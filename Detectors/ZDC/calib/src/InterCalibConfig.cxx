@@ -16,7 +16,7 @@ using namespace o2::zdc;
 
 void InterCalibConfig::print() const
 {
-  const char* hn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM"};
+  const char* hn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM", "ZNI", "ZPI"};
   for (Int_t ih = 0; ih < NH; ih++) {
     LOG(info) << hn[ih] << " limits = (" << cutLow[ih] << " : " << cutHigh[ih] << ")";
   }
@@ -106,8 +106,8 @@ void InterCalibConfig::setCuts(double low, double high)
 
 void InterCalibConfig::setCuts(int ih, double low, double high)
 {
-  cutHigh[ih] = low;
-  cutLow[ih] = high;
+  cutLow[ih] = low;
+  cutHigh[ih] = high;
 }
 
 void InterCalibConfig::setBinning1D(int nb, double amin, double amax)

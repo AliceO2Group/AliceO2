@@ -139,7 +139,7 @@ class TOFChannelData
 };
 
 template <class T>
-class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T, o2::tof::TOFChannelData>
+class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o2::tof::TOFChannelData>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
@@ -155,7 +155,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
 #endif
 
  protected:
-  std::deque<o2::calibration::TimeSlot<o2::tof::TOFChannelData>>& getSlots() { return o2::calibration::TimeSlotCalibration<T, o2::tof::TOFChannelData>::getSlots(); }
+  std::deque<o2::calibration::TimeSlot<o2::tof::TOFChannelData>>& getSlots() { return o2::calibration::TimeSlotCalibration<o2::tof::TOFChannelData>::getSlots(); }
 
  public:
   void doPerStrip(bool val = true) { mPerStrip = val; }

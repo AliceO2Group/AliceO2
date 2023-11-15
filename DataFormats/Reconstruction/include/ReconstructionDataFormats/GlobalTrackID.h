@@ -93,7 +93,7 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
 #ifndef GPUCA_GPUCODE
   static auto getSourceName(int s)
   {
-    return DetID::getNames(getSourceDetectorsMask(s), '-');
+    return s == ITSAB ? std::string{"ITSAB"} : DetID::getNames(getSourceDetectorsMask(s), '-');
   }
   static mask_t getSourcesMask(const std::string_view srcList);
   static std::string getSourcesNames(mask_t srcm);
@@ -157,7 +157,7 @@ GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< dete
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CPV)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::EMC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::HMP)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFT)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCH)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MID)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ZDC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FT0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FV0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FDD)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCH)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRD)),
-    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCHMID)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCHMID)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRDTOF)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSAB)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CTP)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCHMID)) // Temporary ordering

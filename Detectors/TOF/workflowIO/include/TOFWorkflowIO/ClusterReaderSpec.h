@@ -47,6 +47,7 @@ class ClusterReader : public Task
   std::string mFileName = "";
 
   std::vector<Cluster> mClusters, *mClustersPtr = &mClusters;
+  std::vector<int> mClustersMult, *mClustersMultPtr = &mClustersMult;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
 };
 

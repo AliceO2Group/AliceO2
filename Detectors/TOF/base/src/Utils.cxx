@@ -47,6 +47,7 @@ TChain* Utils::mTreeFit = nullptr;
 std::vector<o2::dataformats::CalibInfoTOF> Utils::mVectC;
 std::vector<o2::dataformats::CalibInfoTOF>* Utils::mPvectC = &mVectC;
 int Utils::mNfits = 0;
+uint32_t Utils::mNOrbitInTF = 128;
 
 void Utils::addInteractionBC(int bc, bool fromCollisonCotext)
 {
@@ -271,14 +272,28 @@ int Utils::addMaskBC(int mask, int channel)
   int mask2 = (mask >> 16);
   int cmask = 1;
   int used = 0;
+  int weight = 1;
+  int candidates = 0;
+  for (int ibit = 0; ibit < 16; ibit++) { // counts candidates
+    if (mask & cmask) {
+      candidates++;
+    }
+    cmask *= 2;
+  }
+
+  if (candidates) {
+    weight = 16 / candidates;
+  }
+
+  cmask = 1;
   for (int ibit = 0; ibit < 16; ibit++) {
     if (mask & cmask) {
-      mMaskBCchan[channel][ibit]++;
-      mMaskBC[ibit]++;
+      mMaskBCchan[channel][ibit] += weight;
+      mMaskBC[ibit] += weight;
     }
     if (mask2 & cmask) {
-      mMaskBCchanUsed[channel][ibit]++;
-      mMaskBCUsed[ibit]++;
+      mMaskBCchanUsed[channel][ibit] += weight;
+      mMaskBCUsed[ibit] += weight;
       used = ibit - 8;
     }
     cmask *= 2;
@@ -331,7 +346,8 @@ int Utils::extractNewTimeSlewing(const o2::dataformats::CalibTimeSlewingParamTOF
 
   mTreeFit = new TChain("treeCollectedCalibInfo", "treeCollectedCalibInfo");
 
-  system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  auto retval = system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  (void)retval;
   FILE* f = fopen("listaCal", "r");
 
   if (!f) { // no inputs -> return

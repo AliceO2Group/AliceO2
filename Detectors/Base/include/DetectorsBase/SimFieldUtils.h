@@ -15,12 +15,15 @@
 #ifndef ALICEO2_BASE_SIMFIELDUTILS_H_
 #define ALICEO2_BASE_SIMFIELDUTILS_H_
 
+class FairField;
+
 namespace o2
 {
-namespace field
-{
-class MagneticField;
-}
+// namespace field
+
+//{
+// class MagneticField;
+//}
 
 namespace base
 {
@@ -30,7 +33,7 @@ class SimFieldUtils
  public:
   // a common entry point to create the mag field for simulation
   // based on the simulation configuration in SimConfig
-  static o2::field::MagneticField* const createMagField();
+  static FairField* const createMagField();
 };
 
 } // namespace base

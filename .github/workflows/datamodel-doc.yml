@@ -10,20 +10,20 @@ jobs:
     steps:
 
       - name: Checkout O2
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: O2
           persist-credentials: false
 
       - name: Checkout O2Physics
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: AliceO2Group/O2Physics
           path: O2Physics
           persist-credentials: false
 
       - name: Checkout documentation
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: AliceO2Group/analysis-framework
           path: analysis-framework

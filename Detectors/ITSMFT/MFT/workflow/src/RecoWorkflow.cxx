@@ -20,6 +20,7 @@
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
 #include "MFTWorkflow/TracksToRecordsSpec.h"
+#include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 
 namespace o2
 {
@@ -37,12 +38,17 @@ framework::WorkflowSpec getWorkflow(
   bool runAssessment,
   bool processGen,
   bool runTracking,
+  int nThreads,
   bool runTracks2Records)
 {
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
     specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, true, "mftdigits.root"));
+    auto& trackingParam = MFTTrackingParam::Instance();
+    if (trackingParam.irFramesOnly) {
+      specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec("ITS", 0, "its-irframe-reader", "o2_its_irframe.root"));
+    }
   }
   if (!upstreamClusters) {
     specs.emplace_back(o2::mft::getClustererSpec(useMC));
@@ -50,8 +56,9 @@ framework::WorkflowSpec getWorkflow(
   if (!disableRootOutput) {
     specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
   }
+
   if (runTracking) {
-    specs.emplace_back(o2::mft::getTrackerSpec(useMC));
+    specs.emplace_back(o2::mft::getTrackerSpec(useMC, nThreads));
     if (!disableRootOutput) {
       specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
     }

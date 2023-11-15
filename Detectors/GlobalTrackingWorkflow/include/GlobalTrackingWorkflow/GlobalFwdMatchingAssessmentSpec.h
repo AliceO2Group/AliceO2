@@ -17,6 +17,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "GlobalTracking/MatchGlobalFwdAssessment.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "TStopwatch.h"
 
 using namespace o2::framework;
@@ -28,17 +29,21 @@ namespace globaltracking
 class GlobalFwdAssessmentSpec : public Task
 {
  public:
-  GlobalFwdAssessmentSpec(bool useMC, bool processGen, bool midFilterDisabled, bool finalizeAnalysis = false) : mUseMC(useMC),
-                                                                                                                mMIDFilterDisabled(midFilterDisabled),
-                                                                                                                mProcessGen(processGen),
-                                                                                                                mFinalizeAnalysis(finalizeAnalysis){};
+  GlobalFwdAssessmentSpec(bool useMC, bool processGen, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool midFilterDisabled, bool finalizeAnalysis = false)
+    : mUseMC(useMC),
+      mMIDFilterDisabled(midFilterDisabled),
+      mProcessGen(processGen),
+      mGGCCDBRequest(gr),
+      mFinalizeAnalysis(finalizeAnalysis){};
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
 
  private:
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::globaltracking::GloFwdAssessment> mGloFwdAssessment;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
   bool mProcessGen = false;
   bool mFinalizeAnalysis = false;

@@ -24,6 +24,10 @@
 
 #include <iostream>
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 namespace
 {
 struct ClusterHelper {
@@ -70,6 +74,7 @@ TimeFrame::TimeFrame(int nLayers)
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
   mROframesClusters.resize(nLayers, {0}); /// TBC: if resetting the timeframe is required, then this has to be done
+  mNClustersPerROF.resize(nLayers);
   mTrackletsIndexROf.resize(2, {0});
 }
 
@@ -77,10 +82,12 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex);
-    const int w{vertex.getNContributors()};
-    mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-    mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-    mBeamPosWeight += w;
+    if (!isBeamPositionOverridden) {
+      const int w{vertex.getNContributors()};
+      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
+      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
+      mBeamPosWeight += w;
+    }
   }
   mROframesPV.push_back(mPrimaryVertices.size());
 }
@@ -89,10 +96,12 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex);
-    const int w{vertex.getNContributors()};
-    mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-    mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-    mBeamPosWeight += w;
+    if (!isBeamPositionOverridden) {
+      const int w{vertex.getNContributors()};
+      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
+      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
+      mBeamPosWeight += w;
+    }
   }
   mROframesPV.push_back(mPrimaryVertices.size());
 }
@@ -132,6 +141,7 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   }
 
   for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+    mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
     mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     if (iL < 2) {
       mTrackletsIndexROf[iL].push_back(mUnsortedClusters[1].size()); // Tracklets used in vertexer are always computed starting from L1
@@ -150,10 +160,23 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
                                const itsmft::TopologyDictionary* dict,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
+  for (int iLayer{0}; iLayer < mUnsortedClusters.size(); ++iLayer) {
+    mUnsortedClusters[iLayer].clear();
+    mTrackingFrameInfo[iLayer].clear();
+    mClusterExternalIndices[iLayer].clear();
+    mROframesClusters[iLayer].resize(1, 0);
+
+    if (iLayer < 2) {
+      mTrackletsIndexROf[iLayer].clear();
+    }
+  }
+
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   mNrof = 0;
+  mClusterSize.clear();
+  mClusterSize.reserve(clusters.size());
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
@@ -163,18 +186,27 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
+      unsigned int clusterSize{0};
       if (pattID != itsmft::CompCluster::InvalidPatternID) {
         sigmaY2 = dict->getErr2X(pattID);
         sigmaZ2 = dict->getErr2Z(pattID);
         if (!dict->isGroup(pattID)) {
           locXYZ = dict->getClusterCoordinates(c);
+          clusterSize = dict->getNpixels(pattID);
         } else {
           o2::itsmft::ClusterPattern patt(pattIt);
           locXYZ = dict->getClusterCoordinates(c, patt);
+          clusterSize = patt.getNPixels();
         }
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt, false);
+        clusterSize = patt.getNPixels();
+      }
+      if (clusterSize < 255) {
+        mClusterSize.push_back(clusterSize);
+      } else {
+        mClusterSize.push_back(255);
       }
       auto sensorID = c.getSensorID();
       // Inverse transformation to the local --> tracking
@@ -191,6 +223,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+      // mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
       mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     }
     mNrof++;
@@ -203,7 +236,6 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   if (mcLabels) {
     mClusterLabels = mcLabels;
   }
-
   return mNrof;
 }
 
@@ -219,6 +251,9 @@ int TimeFrame::getTotalClusters() const
 void TimeFrame::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers)
 {
   if (iteration == 0) {
+    if (maxLayers < trkParam.NLayers) {
+      resetRofPV();
+    }
     mTracks.clear();
     mTracksLabel.clear();
     mLinesLabels.clear();
@@ -229,6 +264,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mCells.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mCellsNeighboursLUT.resize(trkParam.CellsPerRoad() - 1);
     mCellLabels.resize(trkParam.CellsPerRoad());
     mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
@@ -243,15 +279,30 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
-      mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+      mPositionResolution[iLayer] = std::sqrt(0.5 * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
+    mIndexTables.clear();
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
-    mNTrackletsPerROf.resize(2, std::vector<int>(mNrof + 1, 0));
+    mNTrackletsPerROf.resize(2);
+    for (auto& v : mNTrackletsPerROf) {
+      v = std::vector<int>(mNrof + 1, 0);
+    }
 
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
+
+    for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
+      if (trkParam.SystErrorY2[iLayer] > 0.f || trkParam.SystErrorZ2[iLayer] > 0.f) {
+        for (auto& tfInfo : mTrackingFrameInfo[iLayer]) {
+          /// Account for alignment systematics in the cluster covariance matrix
+          tfInfo.covarianceTrackingFrame[0] += trkParam.SystErrorY2[iLayer];
+          tfInfo.covarianceTrackingFrame[2] += trkParam.SystErrorZ2[iLayer];
+        }
+      }
+    }
+
     for (int rof{0}; rof < mNrof; ++rof) {
       if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
         continue;
@@ -265,6 +316,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
         cHelper.resize(clustersNum);
 
         for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+
           const Cluster& c = unsortedClusters[iCluster];
           ClusterHelper& h = cHelper[iCluster];
           float x = c.xCoordinate - mBeamPos[0];
@@ -323,7 +375,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
   float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
   for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
     mMSangles[iLayer] = MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
-    mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+    mPositionResolution[iLayer] = std::sqrt(0.5f * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
 
     if (iLayer < mClusters.size() - 1) {
       const float& r1 = trkParam.LayerRadii[iLayer];
@@ -351,6 +403,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     if (iLayer < (int)mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsNeighbours[iLayer].clear();
+      mCellsNeighboursLUT[iLayer].clear();
     }
   }
 }
@@ -362,14 +415,12 @@ unsigned long TimeFrame::getArtefactsMemory()
     size += sizeof(Tracklet) * trkl.size();
   }
   for (auto& cells : mCells) {
-    size += sizeof(Cell) * cells.size();
+    size += sizeof(CellSeed) * cells.size();
   }
   for (auto& cellsN : mCellsNeighbours) {
-    for (auto& vec : cellsN) {
-      size += sizeof(int) * vec.size();
-    }
+    size += sizeof(int) * cellsN.size();
   }
-  return size + sizeof(Road) * mRoads.size();
+  return size + sizeof(Road<5>) * mRoads.size();
 }
 
 void TimeFrame::fillPrimaryVerticesXandAlpha()
@@ -413,6 +464,20 @@ void TimeFrame::checkTrackletLUTs()
       }
     }
   }
+}
+
+void TimeFrame::resizeVectors(int nLayers)
+{
+  mMinR.resize(nLayers, 10000.);
+  mMaxR.resize(nLayers, -1.);
+  mClusters.resize(nLayers);
+  mUnsortedClusters.resize(nLayers);
+  mTrackingFrameInfo.resize(nLayers);
+  mClusterExternalIndices.resize(nLayers);
+  mUsedClusters.resize(nLayers);
+  mROframesClusters.resize(nLayers, {0});
+  mNClustersPerROF.resize(nLayers);
+  mTrackletsIndexROf.resize(2, {0});
 }
 
 void TimeFrame::printTrackletLUTonLayer(int i)
@@ -476,10 +541,25 @@ void TimeFrame::printROFoffsets()
   }
 }
 
-void TimeFrame::computeTrackletsScans()
+void TimeFrame::printNClsPerROF()
 {
-  std::exclusive_scan(mNTrackletsPerROf[0].begin(), mNTrackletsPerROf[0].end(), mNTrackletsPerROf[0].begin(), 0);
-  std::exclusive_scan(mNTrackletsPerROf[1].begin(), mNTrackletsPerROf[1].end(), mNTrackletsPerROf[1].begin(), 0);
+  std::cout << "--------" << std::endl;
+  for (unsigned int iLayer{0}; iLayer < mNClustersPerROF.size(); ++iLayer) {
+    std::cout << "Layer " << iLayer << std::endl;
+    for (auto& value : mNClustersPerROF[iLayer]) {
+      std::cout << value << "\t";
+    }
+    std::cout << std::endl;
+  }
+}
+
+void TimeFrame::computeTrackletsScans(const int nThreads)
+{
+  // #pragma omp parallel for num_threads(nThreads > 1 ? 2 : nThreads)
+  for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
+    mTotalTracklets[iLayer] = std::accumulate(mNTrackletsPerROf[iLayer].begin(), mNTrackletsPerROf[iLayer].end(), 0);
+    std::exclusive_scan(mNTrackletsPerROf[iLayer].begin(), mNTrackletsPerROf[iLayer].end(), mNTrackletsPerROf[iLayer].begin(), 0);
+  }
 }
 
 } // namespace its

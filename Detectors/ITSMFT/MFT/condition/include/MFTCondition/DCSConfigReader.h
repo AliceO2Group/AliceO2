@@ -13,7 +13,10 @@
 #define MFTDCSCONFIGPROCESSOR_H_
 
 #include "Rtypes.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "MFTCondition/DCSConfigInfo.h"
+#include "MFTCondition/DCSConfigUtils.h"
 #include <gsl/span>
 #include <memory>
 
@@ -36,21 +39,23 @@ class DCSConfigReader
   void init(bool);
   void loadConfig(gsl::span<const char> configBuf); // load MFT config
   void clear();
+  void clearDeadmap();
 
-  std::vector<o2::mft::DCSConfigInfo>& getConfigInfo() { return mDCSConfig; }
+  const std::vector<o2::mft::DCSConfigInfo>& getConfigInfo() const { return mDCSConfig; }
+  const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
+  const o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>& getAlpideInfo() const { return mAlpideInfo; }
 
  private:
   void parseConfig();
 
   std::string mParams;
-
-  int mNumRow;
-  int mNumRU;
-  int mNumALPIDE;
-
   bool mVerbose = false;
 
   std::vector<o2::mft::DCSConfigInfo> mDCSConfig;
+  o2::itsmft::NoiseMap mNoiseMap{936};
+  const o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>& mAlpideInfo = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+
+  DCSConfigUtils* mDCSUtils;
 
   ClassDefNV(DCSConfigReader, 1);
 };

@@ -19,6 +19,7 @@
 #define O2_MCH_INSPECTMODEL_H_
 
 #include <vector>
+#include <chrono>
 
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlin.h>
@@ -43,15 +44,20 @@ typedef struct dummy_t {
   int totalNbrOfSubClusterPads = 0;
   int totalNbrOfSubClusterThetaEMFinal = 0;
   int totalNbrOfSubClusterThetaExtra = 0;
-  std::vector<DataBlock_t> subClusterPadList;
-  std::vector<DataBlock_t> subClusterChargeList;
-  std::vector<DataBlock_t> subClusterThetaEMFinal;
-  std::vector<DataBlock_t> subClusterThetaFitList;
-  std::vector<DataBlock_t> subClusterThetaExtra;
+  std::vector<o2::mch::DataBlock_t> subClusterPadList;
+  std::vector<o2::mch::DataBlock_t> subClusterChargeList;
+  std::vector<o2::mch::DataBlock_t> subClusterThetaEMFinal;
+  std::vector<o2::mch::DataBlock_t> subClusterThetaFitList;
+  std::vector<o2::mch::DataBlock_t> subClusterThetaExtra;
 
   // Cath groups
   int nCathGroups = 0;
   short* padToCathGrp = nullptr;
+
+  // Timing
+  std::chrono::time_point<std::chrono::high_resolution_clock> startTime[3];
+  double duration[4];
+
 } InspectModel;
 //
 
@@ -59,7 +65,7 @@ typedef struct dummy_t {
 typedef struct dummyPad_t {
   // Data on Pixels
   const static int nPixelStorage = 8;
-  std::vector<DataBlock_t> xyDxyQPixels[nPixelStorage];
+  std::vector<o2::mch::DataBlock_t> xyDxyQPixels[nPixelStorage];
 } InspectPadProcessing_t;
 
 extern "C" {
@@ -99,6 +105,7 @@ void collectThetaEMFinal(double* thetaEM, int K);
 void collectThetaExtra(double* thetaExtra, int K);
 void cleanPixels();
 int collectPixels(int which, int N, double* xyDxy, double* q);
+void inspectOverWriteQ(int which, const double* qPixels);
 void inspectSavePixels(int which, o2::mch::Pads& pixels);
 int getNbrProjectedPads();
 void setNbrProjectedPads(int n);
@@ -112,4 +119,7 @@ void fitMathiesonMag(const double* xyDxDy, const double* q,
                      double* thetaInit, int K, int N,
                      double* thetaFinal, double* khi2);
 }
+
+void InspectModelChrono(int type, bool end);
+
 #endif // O2_MCH_INSPECTMODEL_H_

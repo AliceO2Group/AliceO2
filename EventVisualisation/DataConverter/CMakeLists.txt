@@ -19,6 +19,7 @@ o2_add_library(EventVisualisationDataConverter
                        src/VisualisationEventROOTSerializer.cxx
                PUBLIC_LINK_LIBRARIES RapidJSON::RapidJSON
                         O2::ReconstructionDataFormats
+                        O2::DataFormatsParameters
 )
 
 o2_add_executable(eve-convert

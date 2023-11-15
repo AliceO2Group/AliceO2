@@ -101,7 +101,7 @@ void Encoder::completeWord(std::vector<char>& buffer)
 {
   /// Completes the buffer with zeros to reach the expected CRU word size
   size_t dataSize = buffer.size();
-  size_t cruWord = 2 * o2::raw::RDHUtils::GBTWord;
+  size_t cruWord = 2 * o2::raw::RDHUtils::GBTWord128;
   size_t modulo = dataSize % cruWord;
   if (modulo) {
     dataSize += cruWord - modulo;

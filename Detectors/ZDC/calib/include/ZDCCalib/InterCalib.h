@@ -43,6 +43,8 @@ class InterCalib
   static constexpr int HidZNC = 2;
   static constexpr int HidZPC = 3;
   static constexpr int HidZEM = 4;
+  static constexpr int HidZNI = 5;
+  static constexpr int HidZPI = 6;
   static constexpr int NH = InterCalibData::NH;
   static constexpr int NPAR = InterCalibData::NPAR;
   void clear(int ih = -1);
@@ -57,13 +59,16 @@ class InterCalib
   int mini(int ih);
   void add(int ih, o2::dataformats::FlatHisto1D<float>& h1);
   void add(int ih, o2::dataformats::FlatHisto2D<float>& h2);
-  int write(const std::string fn = "ZDCInterCalib.root");
+  int saveDebugHistos(const std::string fn = "ZDCInterCalib.root");
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
   static double mAdd[NPAR][NPAR]; /// Temporary copy of cumulated sums
   static void fcn(int& npar, double* gin, double& chi, double* par, int iflag);
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
 
   const ZDCTowerParam& getTowerParamUpd() const { return mTowerParamUpd; };
+
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
@@ -76,10 +81,11 @@ class InterCalib
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
 
-  static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1"};
-  static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1"};
-  static constexpr const char* mCUncN[NH] = {"cZNA", "cZPA", "cZNC", "cZPC", "cZEM"};
-  static constexpr const char* mCUncT[NH] = {"ZNA;TC;SUM", "ZPA;TC;SUM", "ZNC;TC;SUM", "ZPC;TC;SUM", "ZEM;ZEM1;ZEM2"};
+  // Histograms for intercalibration of side C vs A are duplicate -> No title
+  static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "", "", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1", "", ""};
+  static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "", "", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1", "", ""};
+  static constexpr const char* mCUncN[NH] = {"cZNA", "cZPA", "cZNC", "cZPC", "cZEM", "cZNI", "cZPI"};
+  static constexpr const char* mCUncT[NH] = {"ZNA;TC;SUM", "ZPA;TC;SUM", "ZNC;TC;SUM", "ZPC;TC;SUM", "ZEM;ZEM1;ZEM2", "ZN;ZNAC;ZNCC", "ZP;ZPAC;ZPCC"};
 
  private:
   std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mHUnc{};
@@ -89,6 +95,7 @@ class InterCalib
   std::array<std::unique_ptr<TMinuit>, NH> mMn{};
   InterCalibData mData;
   bool mInitDone = false;
+  bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
   static std::mutex mMtx; /// mutex for critical section
   double mPar[NH][NPAR] = {0};

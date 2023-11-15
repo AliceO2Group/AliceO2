@@ -78,9 +78,9 @@ void DumpRaw::init()
 {
   gROOT->SetBatch();
   auto& sopt = ZDCSimParam::Instance();
-  int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   double xmax = 2 * NTimeBinsPerBC - 0.5;
+  int nbx = std::round(xmax - xmin);
   if (mTransmitted == nullptr) {
     mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
@@ -90,6 +90,10 @@ void DumpRaw::init()
   if (mLoss == nullptr) {
     mLoss = std::make_unique<TH1F>("hloss", "Data loss", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
     setModuleLabel(mLoss.get());
+  }
+  if (mError == nullptr) {
+    mError = std::make_unique<TH1F>("hError", "Error bit", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
+    setModuleLabel(mError.get());
   }
   if (mOve == nullptr) {
     mOve = std::make_unique<TH1F>("hove", "BC overflow", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
@@ -128,6 +132,11 @@ void DumpRaw::init()
       TString hname = TString::Format("hst%d%d", imod, ich);
       TString htit = TString::Format("Signal mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
       mSignalT[i] = std::make_unique<TH2F>(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+    }
+    if (mSignalTH[i] == nullptr) {
+      TString hname = TString::Format("hsth%d%d", imod, ich);
+      TString htit = TString::Format("Signal mod. %d ch. %d AUTOT & Hit; Sample; ADC", imod, ich);
+      mSignalTH[i] = std::make_unique<TH2F>(hname, htit, 2 * NTimeBinsPerBC, -0.5 - NTimeBinsPerBC, NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
     }
     if (mBunchA[i] == nullptr) {
       TString hname = TString::Format("hba%d%d", imod, ich);
@@ -199,12 +208,17 @@ void DumpRaw::write()
       setStat(mSignalT[i].get());
       mSignalT[i]->Write();
     }
+    if (mSignalTH[i] && mSignalTH[i]->GetEntries() > 0) {
+      setStat(mSignalTH[i].get());
+      mSignalTH[i]->Write();
+    }
   }
   mTransmitted->Write();
   mFired->Write();
   mBits->Write();
   mBitsH->Write();
   mLoss->Write();
+  mError->Write();
   mOve->Write();
   f->Close();
 }
@@ -226,36 +240,37 @@ int DumpRaw::processWord(const uint32_t* word)
     printf("NULL\n");
     return 1;
   }
+  // LOGF(info, "GBT word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
   if ((word[0] & 0x3) == Id_w0) {
-    for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-      mCh.w[0][iw] = word[iw];
-    }
+    mCh.w[0][NWPerGBTW - 1] = 0;
+    mCh.w[0][NWPerGBTW - 2] = 0;
+    memcpy((void*)&mCh.w[0][0], (const void*)word, PayloadPerGBTW);
   } else if ((word[0] & 0x3) == Id_w1) {
     if (mCh.f.fixed_0 == Id_w0) {
-      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-        mCh.w[1][iw] = word[iw];
-      }
+      mCh.w[1][NWPerGBTW - 1] = 0;
+      mCh.w[1][NWPerGBTW - 2] = 0;
+      memcpy((void*)&mCh.w[1][0], (const void*)word, PayloadPerGBTW);
     } else {
-      LOG(error) << "Wrong word sequence";
+      LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, word[0] & 0x3);
       mCh.f.fixed_0 = Id_wn;
       mCh.f.fixed_1 = Id_wn;
       mCh.f.fixed_2 = Id_wn;
     }
   } else if ((word[0] & 0x3) == Id_w2) {
     if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-        mCh.w[2][iw] = word[iw];
-      }
+      mCh.w[2][NWPerGBTW - 1] = 0;
+      mCh.w[2][NWPerGBTW - 2] = 0;
+      memcpy((void*)&mCh.w[2][0], (const void*)word, PayloadPerGBTW);
       process(mCh);
     } else {
-      LOG(error) << "Wrong word sequence";
+      LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u %u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, mCh.f.fixed_1, word[0] & 0x3);
     }
     mCh.f.fixed_0 = Id_wn;
     mCh.f.fixed_1 = Id_wn;
     mCh.f.fixed_2 = Id_wn;
   } else {
-    // Word not present in payload
-    LOG(fatal) << "Event format error";
+    // Word id not foreseen in payload
+    LOGF(error, "Event format error on word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
     return 1;
   }
   return 0;
@@ -273,11 +288,11 @@ int DumpRaw::process(const EventChData& ch)
   // Not empty event
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
-  if (ih < 0) {
+  if (ih < 0 || ih >= NDigiChannels) {
     return -1;
   }
 
-  if (mVerbosity > 0) {
+  if (mVerbosity > 1) {
     for (int32_t iw = 0; iw < NWPerBc; iw++) {
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
@@ -287,6 +302,10 @@ int DumpRaw::process(const EventChData& ch)
   if (f.Hit) {
     mFired->Fill(f.board, f.ch);
   }
+
+  static int16_t prev_s[NDigiChannels][NTimeBinsPerBC] = {0};
+  static uint32_t prev_orbit[NDigiChannels] = {0};
+  static uint16_t prev_bc[NDigiChannels] = {0};
 
   uint16_t us[12];
   int16_t s[12];
@@ -380,6 +399,12 @@ int DumpRaw::process(const EventChData& ch)
     mBits->Fill(ih, 2);
     if (f.Hit) {
       mBitsH->Fill(ih, 2);
+      if ((prev_orbit[ih] == f.orbit && (f.bc - prev_bc[ih]) == 1) || ((f.orbit - prev_orbit[ih]) == 1 && prev_bc[ih] == 3563 && f.bc == 0)) {
+        for (int32_t i = 0; i < 12; i++) {
+          mSignalTH[ih]->Fill(i + 0., double(s[i]));
+          mSignalTH[ih]->Fill(i - NTimeBinsPerBC + 0., double(prev_s[ih][i]));
+        }
+      }
     }
     for (int32_t i = 0; i < 12; i++) {
       mSignalT[ih]->Fill(i + 0., double(s[i]));
@@ -416,9 +441,18 @@ int DumpRaw::process(const EventChData& ch)
     word16.uns = f.offset;
     mBaseline[ih]->Fill(word16.sig);
     mCounts[ih]->Fill(f.hits & 0xfff);
-    if (f.hits & 0x8000) {
+    if (f.dLoss) {
       mLoss->Fill(ih);
     }
+    if (f.error) {
+      mError->Fill(ih);
+    }
+  }
+  // Save information to process next bunch crossing
+  prev_orbit[ih] = f.orbit;
+  prev_bc[ih] = f.bc;
+  for (int32_t i = 0; i < 12; i++) {
+    prev_s[ih][i] = s[i];
   }
   return 0;
 }

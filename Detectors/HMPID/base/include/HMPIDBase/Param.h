@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -67,8 +67,10 @@ class Param
                        kPadSigmaMasked = 20 }; // One can go up to 5 sigma cut, overflow is protected in AliHMPIDCalib
 
   static float r2d() { return 57.2957795; }
-  static float sizePadX() { return fgCellX; } // pad size x, [cm]
-  static float sizePadY() { return fgCellY; } // pad size y, [cm]
+  static float sizePadX() { return fgCellX; }         // pad size x, [cm]
+  static float sizePadY() { return fgCellY; }         // pad size y, [cm]
+  static float sizeHalfPadX() { return fgHalfCellX; } // half pad size x, [cm]
+  static float sizeHalfPadY() { return fgHalfCellY; } // half pad size y, [cm]
 
   static float sizePcX() { return fgPcX; }                  // PC size x
   static float sizePcY() { return fgPcY; }                  // PC size y
@@ -100,8 +102,8 @@ class Param
 
   bool getInstType() const { return fgInstanceType; } // return if the instance is from geom or ideal
 
-  inline static bool isInDead(float x, float y);                  // is the point in dead area?
-  inline static bool isDeadPad(Int_t padx, Int_t pady, Int_t ch); // is a dead pad?
+  static bool isInDead(float x, float y);                  // is the point in dead area?
+  static bool isDeadPad(Int_t padx, Int_t pady, Int_t ch); // is a dead pad?
 
   inline void setChStatus(Int_t ch, bool status = kTRUE);
   inline void setSectStatus(Int_t ch, Int_t sect, bool status);
@@ -281,8 +283,8 @@ class Param
   static Int_t fgThreshold;   // sigma Cut
   static bool fgInstanceType; // kTRUE if from geomatry kFALSE if from ideal geometry
 
-  static float fgCellX, fgCellY, fgPcX, fgPcY, fgAllX, fgAllY; // definition of HMPID geometric parameters
-  Param(bool noGeo);                                           // default ctor is protected to enforce it to be singleton
+  static float fgCellX, fgCellY, fgHalfCellX, fgHalfCellY, fgPcX, fgPcY, fgAllX, fgAllY; // definition of HMPID geometric parameters
+  Param(bool noGeo);                                                                     // default ctor is protected to enforce it to be singleton
 
   static Param* fgInstance; // static pointer  to instance of Param singleton
 

@@ -14,11 +14,11 @@
 
 #include <vector>
 #include <deque>
-
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "CTPReconstruction/RawDataDecoder.h"
 
 namespace o2
 {
@@ -37,14 +37,12 @@ class RawDecoderSpec : public framework::Task
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
   RawDecoderSpec(bool digits, bool lumi) : mDoDigits(digits), mDoLumi(lumi) {}
-
   /// \brief Destructor
   ~RawDecoderSpec() override = default;
-
   /// \brief Initializing the RawDecoderSpec
   /// \param ctx Init context
   void init(framework::InitContext& ctx) final;
-
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   /// \brief Run conversion of raw data to cells
   /// \param ctx Processing context
   ///
@@ -52,22 +50,25 @@ class RawDecoderSpec : public framework::Task
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
   /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
-  static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
 
  protected:
  private:
   // for digits
   bool mDoDigits = true;
-  std::vector<CTPDigit> mOutputDigits;
+  o2::pmr::vector<CTPDigit> mOutputDigits;
   // for lumi
   bool mDoLumi = true;
-  gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
+  //
   LumiInfo mOutputLumiInfo;
   bool mVerbose = false;
-  uint64_t mCounts = 0;
+  uint64_t mCountsT = 0;
+  uint64_t mCountsV = 0;
   uint32_t mNTFToIntegrate = 1;
-  uint32_t mNHBIntegrated = 0;
-  std::deque<size_t> mHistory;
+  uint32_t mNHBIntegratedT = 0;
+  uint32_t mNHBIntegratedV = 0;
+  std::deque<size_t> mHistoryT;
+  std::deque<size_t> mHistoryV;
+  RawDataDecoder mDecoder;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP

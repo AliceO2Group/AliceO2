@@ -46,7 +46,7 @@ o2::framework::DataProcessorSpec getLHCClockCalibDeviceSpec()
     "ft0-lhcphase-calibration",
     inputs, // o2::framework::Inputs{{"input", "FT0", "CALIBDATA"}},
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL, ccdbRequest)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, DEFAULT_INPUT_LABEL)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 26000u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},

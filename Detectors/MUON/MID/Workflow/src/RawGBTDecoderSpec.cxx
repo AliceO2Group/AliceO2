@@ -49,7 +49,7 @@ class RawGBTDecoderDeviceDPL
       double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  decoding: " << mTimerAlgo.count() * scaleFactor << " us";
     };
-    ic.services().get<o2::framework::CallbackService>().set(o2::framework::CallbackService::Id::Stop, stop);
+    ic.services().get<o2::framework::CallbackService>().set<o2::framework::CallbackService::Id::Stop>(stop);
 
     auto idx = ic.services().get<o2::framework::ParallelContext>().index1D();
     mFeeId = mFeeIds[idx];

@@ -14,6 +14,8 @@
 
 #include "DataFormatsTRD/Constants.h"
 #include <iostream>
+#include <string>
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -54,12 +56,17 @@ struct HelperMethods {
     printf("%02i_%i_%i\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER);
   }
 
+  static std::string getSectorStackLayerSide(int hcid)
+  {
+    int det = hcid / 2;
+    std::string side = (hcid % 2 == 0) ? "A" : "B";
+    return fmt::format("{}_{}_{}{}", getSector(det), getStack(det), getLayer(det), side);
+  }
+
   static void printSectorStackLayerSide(int hcid)
   {
     // for a given half-chamber number prints SECTOR_STACK_LAYER_side
-    int det = hcid / 2;
-    std::string side = (hcid % 2 == 0) ? "A" : "B";
-    printf("%02i_%i_%i%s\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER, side.c_str());
+    printf("%s\n", getSectorStackLayerSide(hcid).c_str());
   }
 
   static int getPadColFromADC(int irob, int imcm, int iadc)
@@ -157,12 +164,52 @@ struct HelperMethods {
     return getORIinSuperModule(hcid) + constants::NHCPERSEC * sector;
   }
 
-  inline static void swapByteOrder(unsigned int& word)
+  static int getChannelIndexInColumn(int rob, int mcm, int channel)
   {
-    word = (word >> 24) |
-           ((word << 8) & 0x00FF0000) |
-           ((word >> 8) & 0x0000FF00) |
-           (word << 24);
+    // the highest ADC channel number corresponds to the lowest pad column connected to given MCM
+    int mcmCol = (rob % 2) ? mcm % constants::NMCMROBINROW + constants::NMCMROBINCOL : mcm % constants::NMCMROBINROW;
+    return mcmCol * constants::NADCMCM + constants::NADCMCM - 1 - channel;
+  }
+
+  static int getGlobalChannelIndex(int det, int rob, int mcm, int channel)
+  {
+    // return global readout channel index for given detector, ROB, MCM and channel index
+    // start with sector offset
+    int idx = getSector(det) * constants::NCHANNELSPERSECTOR;
+    // layer offset
+    idx += getLayer(det) * constants::NCHANNELSPERLAYER;
+    // stack offset
+    idx += (getStack(det) < 3) ? getStack(det) * constants::NCHANNELSC1 : (getStack(det) - 1) * constants::NCHANNELSC1 + constants::NCHANNELSC0;
+    // pad row offset
+    idx += getPadRowFromMCM(rob, mcm) * constants::NCHANNELSPERROW;
+    // position within pad column
+    idx += getChannelIndexInColumn(rob, mcm, channel);
+
+    return idx;
+  }
+
+  static void getPositionFromGlobalChannelIndex(int idx, int& det, int& rob, int& mcm, int& channel)
+  {
+    int sec = idx / constants::NCHANNELSPERSECTOR;
+    int layer = (idx % constants::NCHANNELSPERSECTOR) / constants::NCHANNELSPERLAYER;
+    int stackIndex = ((idx % constants::NCHANNELSPERSECTOR) % constants::NCHANNELSPERLAYER);
+    int stack, chamberIndex;
+    if (stackIndex >= 2 * constants::NCHANNELSC1 + constants::NCHANNELSC0) {
+      stack = 3 + (stackIndex - 2 * constants::NCHANNELSC1 - constants::NCHANNELSC0) / constants::NCHANNELSC1;
+      chamberIndex = (stackIndex - constants::NCHANNELSC0) % constants::NCHANNELSC1;
+    } else if (stackIndex > 2 * constants::NCHANNELSC1) {
+      stack = 2;
+      chamberIndex = stackIndex - 2 * constants::NCHANNELSC1;
+    } else {
+      stack = stackIndex / constants::NCHANNELSC1;
+      chamberIndex = stackIndex % constants::NCHANNELSC1;
+    }
+    int row = chamberIndex / constants::NCHANNELSPERROW;
+    int mcmCol = (chamberIndex % constants::NCHANNELSPERROW) / constants::NADCMCM;
+    det = getDetector(sec, stack, layer);
+    rob = (mcmCol >= constants::NMCMROBINCOL) ? (row / constants::NMCMROBINROW) * 2 + 1 : (row / constants::NMCMROBINROW) * 2;
+    mcm = (row % constants::NMCMROBINROW) * constants::NMCMROBINCOL + (mcmCol % constants::NMCMROBINCOL);
+    channel = constants::NADCMCM - 1 - ((chamberIndex % constants::NCHANNELSPERROW) % constants::NADCMCM);
   }
 };
 

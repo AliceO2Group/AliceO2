@@ -33,7 +33,6 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "Framework/CCDBParamSpec.h"
 #include <TChain.h>
 #include <TStopwatch.h>
 

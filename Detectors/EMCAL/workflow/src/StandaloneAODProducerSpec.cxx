@@ -64,21 +64,21 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   LOG(info) << "FOUND " << cellsIn.size() << " EMC cells in CTF";
   LOG(info) << "FOUND " << triggersIn.size() << " EMC tiggers in CTF";
 
-  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
-  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
-  auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
-  auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
+  auto bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  auto caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
+  auto caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
 
-  auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
-  auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
-  auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
-  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
+  auto bcCursor = bcBuilder->cursor<o2::aod::BCs>();
+  auto collisionsCursor = collisionsBuilder->cursor<o2::aod::Collisions>();
+  auto caloCellsCursor = caloCellsBuilder->cursor<o2::aod::Calos>();
+  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder->cursor<o2::aod::CaloTriggers>();
 
   // build event for easier handling
   mCaloEventHandler->reset();
   mCaloEventHandler->setCellData(cellsIn, triggersIn);
 
-  uint64_t triggerMask = 1;
+  uint64_t triggerMask = 1, inputMask = 1;
   // loop over events
   for (int iev = 0; iev < mCaloEventHandler->getNumberOfEvents(); iev++) {
     o2::emcal::EventData inputEvent = mCaloEventHandler->buildEvent(iev);
@@ -91,7 +91,8 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     bcCursor(0,
              runNumber,
              bcID,
-             triggerMask);
+             triggerMask,
+             inputMask);
     auto indexBC = iev;
 
     for (auto& cell : cellsInEvent) {

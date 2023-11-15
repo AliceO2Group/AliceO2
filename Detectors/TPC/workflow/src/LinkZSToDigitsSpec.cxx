@@ -151,7 +151,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
           o2::framework::RawParser parser(input.payload, payloadSize);
 
           for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-            auto* rdhPtr = it.get_if<o2::header::RAWDataHeader>();
+            auto* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
             if (!rdhPtr) {
               break;
             }

@@ -12,8 +12,10 @@
 /// @file  TPCInterpolationSpec.cxx
 
 #include <vector>
+#include <unordered_map>
 
 #include "DataFormatsITS/TrackITS.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -27,6 +29,9 @@
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -44,26 +49,60 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mSlotLength = ic.options().get<uint32_t>("sec-per-slot");
+  mProcessSeeds = ic.options().get<bool>("process-seeds");
+  mMatCorr = ic.options().get<int>("matCorrType");
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // other init-once stuff
-
-    mInterpolation.init();
-    mResidualProcessor.init(false, o2::base::Propagator::Instance()->getNominalBz()); // initialize but skip the binning which is needed only later
+    const auto& param = SpacePointsCalibConfParam::Instance();
+    mInterpolation.init(mSources);
+    if (mProcessITSTPConly) {
+      mInterpolation.setProcessITSTPConly();
+    }
+    mInterpolation.setSqrtS(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS());
+    int nTfs = mSlotLength / (o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-6);
+    bool limitTracks = (param.maxTracksPerCalibSlot < 0) ? false : true;
+    int nTracksPerTfMax = (nTfs > 0 && limitTracks) ? param.maxTracksPerCalibSlot / nTfs : -1;
+    if (nTracksPerTfMax > 0) {
+      LOGP(info, "We will stop processing tracks after validating {} tracks per TF, since we want to accumulate {} tracks for a slot with {} TFs",
+           nTracksPerTfMax, param.maxTracksPerCalibSlot, nTfs);
+      if (param.additionalTracksITSTPC > 0) {
+        int nITSTPCadd = param.additionalTracksITSTPC / nTfs;
+        LOGP(info, "In addition up to {} ITS-TPC tracks are processed per TF", nITSTPCadd);
+        mInterpolation.setAddITSTPCTracksPerTF(nITSTPCadd);
+      }
+    } else if (nTracksPerTfMax < 0) {
+      LOG(info) << "The number of processed tracks per TF is not limited";
+    } else {
+      LOG(error) << "No tracks will be processed. maxTracksPerCalibSlot must be greater than slot length in TFs";
+    }
+    mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
+    mInterpolation.setMatCorr(static_cast<o2::base::Propagator::MatCorrType>(mMatCorr));
+    if (mProcessSeeds) {
+      mInterpolation.setProcessSeeds();
+    }
+    o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
   }
   // we may have other params which need to be queried regularly
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mInterpolation.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
+  }
+  if (mDebugOutput) {
+    mInterpolation.setDumpTrackPoints();
+    mInterpolation.setITSClusterDictionary(mITSDict);
   }
 }
 
@@ -75,97 +114,39 @@ void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
+    return;
+  }
 }
 
 void TPCInterpolationDPL::run(ProcessingContext& pc)
 {
-  LOG(info) << "TPC Interpolation Workflow initialized. Start processing...";
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc);
-
-  // load the input tracks
-  std::vector<o2::globaltracking::RecoContainer::GlobalIDSet> gidTables;
-  std::vector<o2::track::TrackParCov> seeds;
-  std::vector<float> trkTimes;
-  std::vector<GTrackID> gids;
-  bool processITSTPConly = mProcessITSTPConly; // so that the flag can be used inside the lambda
-  // the creator goes from most complete track (ITS-TPC-TRD-TOF) to least complete one (ITS-TPC)
-  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids](auto& _tr, GTrackID _origID, float t0, float tErr) {
-    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
-      bool trackGood = true;
-      bool hasOuterPoint = false;
-      auto gidTable = recoData.getSingleDetectorRefs(_origID);
-      if (!gidTable[GTrackID::ITS].isIndexSet() || !gidTable[GTrackID::TPC].isIndexSet()) {
-        // ITS and TPC track is always needed. At this stage ITS afterburner tracks are also rejected
-        return true;
-      }
-      if (gidTable[GTrackID::TRD].isIndexSet() || gidTable[GTrackID::TOF].isIndexSet()) {
-        hasOuterPoint = true;
-      }
-      const auto itstpcTrk = &recoData.getTPCITSTrack(gidTable[GTrackID::ITSTPC]);
-      const auto itsTrk = &recoData.getITSTrack(gidTable[GTrackID::ITS]);
-      const auto tpcTrk = &recoData.getTPCTrack(gidTable[GTrackID::TPC]);
-      // apply track quality cuts
-      if (itsTrk->getChi2() / itsTrk->getNumberOfClusters() > param::MaxITSChi2 || tpcTrk->getChi2() / tpcTrk->getNClusterReferences() > param::MaxTPCChi2) {
-        // reduced chi2 cut is the same for all track types
-        trackGood = false;
-      }
-      if (!hasOuterPoint) {
-        // ITS-TPC track (does not have outer points in TRD or TOF)
-        if (!processITSTPConly) {
-          return true;
-        }
-        if (itsTrk->getNumberOfClusters() < param::MinITSNClsNoOuterPoint || tpcTrk->getNClusterReferences() < param::MinTPCNClsNoOuterPoint) {
-          trackGood = false;
-        }
-      } else {
-        if (itsTrk->getNumberOfClusters() < param::MinITSNCls || tpcTrk->getNClusterReferences() < param::MinTPCNCls) {
-          trackGood = false;
-        }
-      }
-      if (trackGood) {
-        trkTimes.push_back(t0);
-        seeds.emplace_back(itsTrk->getParamOut()); // FIXME: should this not be a refit of the ITS track?
-        gidTables.emplace_back(gidTable);
-        gids.push_back(_origID);
-      }
-      return true;
-    } else {
-      return false;
-    }
-  };
-  recoData.createTracksVariadic(creator); // create track sample considered for interpolation
-  LOG(info) << "Created " << seeds.size() << " seeds.";
-
-  if (mUseMC) {
-    // possibly MC labels will be used to check filtering procedure performance before interpolation
-    // not yet implemented
-  }
-
-  mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
+  mInterpolation.prepareInputTrackSample(recoData);
+  mInterpolation.process();
   mTimer.Stop();
   LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
-  mTimer.Start(true);
-  mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
-  // in the following step one can create one output file per TPC sector with local residuals and statistics
-  mResidualProcessor.doOutlierRejection(false); // if parameter is 'true', then the unbinned filtered residuals will be written to a debug file
-  mTimer.Stop();
-  LOGF(info, "TPC outlier filtering and local residual extraction timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
-
-  if (mWriteResiduals) {
-    pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
-    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  if (SpacePointsCalibConfParam::Instance().writeUnfiltered) {
+    // these are the residuals and tracks before outlier rejection; they are not used in production
+    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResidualsUnfiltered());
+    if (mSendTrackData) {
+      pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracksUnfiltered());
+    }
   }
-  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mResidualProcessor.getUnbinnedResiduals());
+  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
+  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0, Lifetime::Timeframe}, mInterpolation.getTrackDataCompact());
   if (mSendTrackData) {
-    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mResidualProcessor.getTrackDataOut());
+    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
   }
-
+  if (mDebugOutput) {
+    pc.outputs().snapshot(Output{"GLO", "TRKDATAEXT", 0, Lifetime::Timeframe}, mInterpolation.getTrackDataExtended());
+  }
   mInterpolation.reset();
-  mResidualProcessor.resetUnbinnedResiduals();
-  mResidualProcessor.resetTrackData();
 }
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
@@ -174,7 +155,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeResiduals, bool sendTrackData)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mask_t srcVtx, GTrackID::mask_t srcTrk, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
@@ -183,31 +164,43 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
     LOG(fatal) << "MC usage must be disabled for this workflow, since it is not yet implemented";
   }
 
-  dataRequest->requestTracks(src, useMC);
-  dataRequest->requestClusters(src, useMC);
+  dataRequest->requestTracks(srcVtx, useMC);
+  dataRequest->requestClusters(srcCls, useMC);
+  dataRequest->requestPrimaryVertertices(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPLHCIF
                                                               true,                              // GRPMagField
                                                               true,                              // askMatLUT
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  if (writeResiduals) {
+  if (SpacePointsCalibConfParam::Instance().writeUnfiltered) {
     outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
-    outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
+    if (sendTrackData) {
+      outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
+    }
   }
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TRKREFS", 0, Lifetime::Timeframe);
+  if (sendTrackData) {
+    outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
+  }
+  if (debugOutput) {
+    outputs.emplace_back("GLO", "TRKDATAEXT", 0, Lifetime::Timeframe);
+  }
 
   return DataProcessorSpec{
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, writeResiduals, sendTrackData)},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput)},
+    Options{
+      {"matCorrType", VariantType::Int, 2, {"material correction type (definition in Propagator.h)"}},
+      {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
+      {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
 }
 
 } // namespace tpc

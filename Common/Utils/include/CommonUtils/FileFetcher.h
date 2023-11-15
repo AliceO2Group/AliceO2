@@ -58,10 +58,12 @@ class FileFetcher
   ~FileFetcher();
 
   const auto& getFileRef(size_t i) const { return mInputFiles[i]; }
-
+  void setFailThreshold(float f) { mFailThreshold = f; }
+  float getFailThreshold() const { return mFailThreshold; }
   void setMaxFilesInQueue(size_t s) { mMaxInQueue = s > 0 ? s : 1; }
   void setMaxLoops(size_t v) { mMaxLoops = v; }
   bool isRunning() const { return mRunning; }
+  bool isFailed() const { return mFailure; }
   void start();
   void stop();
   void cleanup();
@@ -100,10 +102,12 @@ class FileFetcher
   size_t mMaxInQueue{5};
   bool mRunning = false;
   bool mNoRemoteCopy = false;
+  bool mFailure = false;
   size_t mMaxLoops = 0;
   size_t mNLoops = 0;
   size_t mNFilesProc = 0;
   size_t mNFilesProcOK = 0;
+  float mFailThreshold = 0.f; // throw if too many failed fetches (>0 : fraction to total, <0 abs number)
   mutable std::mutex mMtx;
   std::mutex mMtxStop;
   std::thread mFetcherThread{};

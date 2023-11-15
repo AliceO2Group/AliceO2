@@ -26,6 +26,7 @@ namespace tof
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using OutputType = std::vector<o2::tof::Cluster>;
+using MultType = std::vector<int>;
 using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 using namespace o2::header;
 
@@ -34,6 +35,9 @@ DataProcessorSpec getTOFClusterWriterSpec(bool useMC)
   // Spectators for logging
   auto logger = [](OutputType const& indata) {
     LOG(debug) << "RECEIVED CLUSTERS SIZE " << indata.size();
+  };
+  auto loggerMult = [](MultType const& inmult) {
+    LOG(debug) << "RECEIVED N BC SIZE " << inmult.size();
   };
   auto loggerMCLabels = [](LabelsType const& labeldata) {
     LOG(debug) << "TOF GOT " << labeldata.getNElements() << " LABELS ";
@@ -46,6 +50,11 @@ DataProcessorSpec getTOFClusterWriterSpec(bool useMC)
                                                              "tofclusters-branch-name",
                                                              1,
                                                              logger},
+                                BranchDefinition<MultType>{InputSpec{"clustersMult", gDataOriginTOF, "CLUSTERSMULT", 0},
+                                                           "TOFClusterMult",
+                                                           "tofclustersmult-branch-name",
+                                                           1,
+                                                           loggerMult},
                                 BranchDefinition<LabelsType>{InputSpec{"labels", gDataOriginTOF, "CLUSTERSMCTR", 0},
                                                              "TOFClusterMCTruth",
                                                              "clusterlabels-branch-name",

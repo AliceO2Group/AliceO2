@@ -66,6 +66,20 @@ o2_add_test_root_macro(CheckTracksCA.C
                                              O2::DataFormatsITSMFT
                        LABELS its)
 
+o2_add_test_root_macro(CheckSquasher.C
+                       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::ITSBase
+                                             O2::DataFormatsITS
+                                             O2::DataFormatsITSMFT
+                       LABELS its)
+
+o2_add_test_root_macro(CheckVertices.C
+                       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::ITSBase
+                                             O2::DataFormatsITS
+                                             O2::DataFormatsITSMFT
+                       LABELS its)
+
 o2_add_test_root_macro(DisplayTrack.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
                                              O2::DataFormatsITSMFT
@@ -93,4 +107,9 @@ o2_add_test_root_macro(ITSMisaligner.C
                        LABELS its)
 
 o2_add_test_root_macro(CompareArtefacts.C
+                       LABELS its)
+
+o2_add_test_root_macro(CheckDuplicates.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITS
+                                             O2::DataFormatsITSMFT
                        LABELS its)

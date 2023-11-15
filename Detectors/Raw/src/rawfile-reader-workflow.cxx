@@ -27,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"input-conf", VariantType::String, "", {"configuration file with input (obligatory)"}});
+  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, "all", {"list of dectors"}});
   options.push_back(ConfigParamSpec{"min-tf", VariantType::Int64, 0L, {"min TF ID to process"}});
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int64, 0xffffffffL, {"max TF ID to process"}});
   options.push_back(ConfigParamSpec{"run-number", VariantType::Int, 0, {"impose run number"}});
@@ -63,6 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ReaderInp rinp;
   rinp.inifile = configcontext.options().get<std::string>("input-conf");
   rinp.loop = configcontext.options().get<int>("loop");
+  rinp.onlyDet = configcontext.options().get<std::string>("onlyDet");
   rinp.maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
   rinp.minTF = uint32_t(configcontext.options().get<int64_t>("min-tf"));
   rinp.runNumber = configcontext.options().get<int>("run-number");
@@ -88,7 +90,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
   std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
   if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
-    rinp.metricChannel = fmt::format(chanFmt, o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+    rinp.metricChannel = fmt::format(fmt::runtime(chanFmt), o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto hbfini = configcontext.options().get<std::string>("hbfutils-config");

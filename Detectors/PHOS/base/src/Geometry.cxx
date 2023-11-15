@@ -178,7 +178,7 @@ int Geometry::areNeighbours(short absId1, short absId2)
     char rowdiff = TMath::Abs(relid1[1] - relid2[1]);
     char coldiff = TMath::Abs(relid1[2] - relid2[2]);
 
-    if ((coldiff <= 1) && (rowdiff <= 1)) { // At least common vertex
+    if (coldiff + rowdiff <= 1) { // Common side
       return 1;
     } else {
       if ((relid2[1] > relid1[1]) && (relid2[2] > relid1[2] + 1)) {

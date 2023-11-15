@@ -18,7 +18,7 @@
 #include <iostream>
 #include <TParticle.h>
 #include <vector>
-#include <SimulationDataFormat/Stack.h>
+#include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <FairRootManager.h>
 #include <FairDetector.h>
@@ -63,7 +63,6 @@ class O2MCApplication : public O2MCApplicationBase
       det->EndOfEvent();
     }
     fStack->Reset();
-    LOG(info) << "This event/chunk did " << mStepCounter << " steps";
   }
 
   /** Define actions at the end of run */

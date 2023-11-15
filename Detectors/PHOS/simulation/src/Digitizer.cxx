@@ -180,7 +180,6 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   }
   // Calculate trigger tiles 2*2 and 4*4
-  int nBgTrig = digitsOut.size(); // Number of trigger digits copied to output from background
   bool mL0Fired = false;
   float sum2x2[65][57];
   float time2x2[65][57];
@@ -225,7 +224,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
             // Check that this tile does not exist yet in Bg
             // Number of trigger tiles is small, plain loop is OK
             bool added = false;
-            for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
+            for (int ibgTr = nBgTrigFirst; ibgTr < digitsOut.size(); ibgTr++) {
               Digit& bgTr = digitsOut[ibgTr];
               if (bgTr.getTRUId() == tileId && bgTr.is2x2Tile()) {
                 // assign time to the larger tile
@@ -273,7 +272,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
             // Check that this tile does not exist yet in Bg
             // Number of trigger tiles is small, plain loop is OK
             bool added = false;
-            for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
+            for (int ibgTr = nBgTrigFirst; ibgTr < digitsOut.size(); ibgTr++) {
               Digit& bgTr = digitsOut[ibgTr];
               if (bgTr.getTRUId() == tileId && !bgTr.is2x2Tile()) {
                 // assign time to the larger tile

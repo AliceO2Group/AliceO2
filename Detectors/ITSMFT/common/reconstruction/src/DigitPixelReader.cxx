@@ -16,6 +16,10 @@
 #include "CommonUtils/RootChain.h"
 #include <fairlogger/Logger.h>
 #include <cassert>
+#include <algorithm>
+#include <numeric>
+
+#include <iostream>
 
 using namespace o2::itsmft;
 using o2::itsmft::Digit;
@@ -35,7 +39,13 @@ int DigitPixelReader::decodeNextTrigger()
     if (mROFRecVec[mIdROF].getNEntries() > 0) {
       mIdDig = 0; // jump to the 1st digit of the trigger
       mInteractionRecord = mROFRecVec[mIdROF].getBCData();
-      return mROFRecVec[mIdROF].getNEntries();
+      if (mSquashOverflowsDepth) {
+        auto nUsed = std::accumulate(mSquashedDigitsMask.begin() + mROFRecVec[mIdROF].getFirstEntry(),
+                                     mSquashedDigitsMask.begin() + mROFRecVec[mIdROF].getFirstEntry() + mROFRecVec[mIdROF].getNEntries() - 1, 0);
+        return mROFRecVec[mIdROF].getNEntries() - nUsed;
+      } else {
+        return mROFRecVec[mIdROF].getNEntries();
+      }
     }
   }
   return 0;
@@ -71,18 +81,146 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   }
   chipData.clear();
   int did = mROFRecVec[mIdROF].getFirstEntry() + mIdDig;
-  chipData.setStartID(did); // for the MC references
+  chipData.setStartID(did); // for the MC references, not used if squashing
   const auto* digit = &mDigits[did];
   chipData.setChipID(digit->getChipIndex());
   chipData.setROFrame(mROFRecVec[mIdROF].getROFrame());
   chipData.setInteractionRecord(mInteractionRecord);
   chipData.setTrigger(mTrigger);
-  chipData.getData().emplace_back(digit);
-  int lim = mROFRecVec[mIdROF].getFirstEntry() + mROFRecVec[mIdROF].getNEntries();
-  while ((++did < lim) && (digit = &mDigits[did])->getChipIndex() == chipData.getChipID()) {
+  if (mSquashOverflowsDepth) {
+    if (!mSquashedDigitsMask[did]) {
+      chipData.getData().emplace_back(digit);
+      mSquashedDigitsMask[did] = true;
+      if (mDigitsMCTruth) {
+        chipData.getPixIds().push_back(did); // this we do only with squashing + MC
+      }
+    }
+  } else {
     chipData.getData().emplace_back(digit);
   }
+  int lim = mROFRecVec[mIdROF].getFirstEntry() + mROFRecVec[mIdROF].getNEntries();
+  while ((++did < lim) && (digit = &mDigits[did])->getChipIndex() == chipData.getChipID()) {
+    if (mSquashOverflowsDepth) {
+      if (!mSquashedDigitsMask[did]) {
+        chipData.getData().emplace_back(digit);
+        mSquashedDigitsMask[did] = true;
+        if (mDigitsMCTruth) {
+          chipData.getPixIds().push_back(did); // this we do only with squashing + MC
+        }
+      }
+    } else {
+      chipData.getData().emplace_back(digit);
+    }
+  }
   mIdDig = did - mROFRecVec[mIdROF].getFirstEntry();
+
+  // Merge overflow digits from next N ROFs, being N the depth of the search
+  if (!mIdROF || mIdROFLast != mIdROF) {
+    mIdROFLast = mIdROF;
+    for (uint16_t iROF{1}; iROF <= mSquashOverflowsDepth && (mIdROF + iROF) < mROFRecVec.size(); ++iROF) {
+      mBookmarkNextROFs[iROF - 1] = mROFRecVec[mIdROF + iROF].getFirstEntry(); // reset starting bookmark
+    }
+  }
+
+  // Loop over next ROFs
+  for (uint16_t iROF{1}; iROF <= mSquashOverflowsDepth && (mIdROF + iROF) < mROFRecVec.size(); ++iROF) {
+    int idNextROF{mIdROF + iROF};
+    if (std::abs(mROFRecVec[idNextROF].getBCData().differenceInBC(mROFRecVec[idNextROF - 1].getBCData())) > mMaxBCSeparationToSquash) {
+      break; // ROFs are too distant in BCs
+    }
+
+    int nDigitsNext{0};
+    for (int i{mBookmarkNextROFs[iROF - 1]}; i < mROFRecVec[idNextROF].getFirstEntry() + mROFRecVec[idNextROF].getNEntries(); ++i) {
+      if (mDigits[i].getChipIndex() < chipData.getChipID()) {
+        ++mBookmarkNextROFs[iROF - 1];
+      } else {
+        if (mDigits[i].getChipIndex() == chipData.getChipID()) {
+          ++nDigitsNext;
+        } else {
+          break;
+        }
+      }
+    }
+    if (!nDigitsNext) { // No data related to this chip in next rof, we stop squashing, assuming continue persistence
+      break;
+    }
+    size_t initialSize{chipData.getData().size()};
+    // Compile mask for repeated digits (digits with same row,col)
+    for (size_t iPixel{0}, iDigitNext{0}; iPixel < initialSize; ++iPixel) {
+      auto& pixel = chipData.getData()[iPixel];
+      // seek to iDigitNext which is inferior than itC - mMaxSquashDist
+      auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
+      auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
+      if (iDigitNext == nDigitsNext) { // in case iDigitNext loop below reached the end
+        iDigitNext--;
+      }
+      while ((mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getColumn() > mincol || mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getRow() > minrow) && iDigitNext > 0) {
+        iDigitNext--;
+      }
+      for (; iDigitNext < nDigitsNext; iDigitNext++) {
+        if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
+          continue;
+        }
+        const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
+        auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
+        auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
+        if (!dcol && !drow) {
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          break;
+        }
+      }
+    }
+
+    // loop over chip pixels
+    for (int iPixel{0}, iDigitNext{0}; iPixel < initialSize; ++iPixel) {
+      auto& pixel = chipData.getData()[iPixel];
+      // seek to iDigitNext which is inferior than itC - mMaxSquashDist
+      auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
+      auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
+      if (iDigitNext == nDigitsNext) { // in case iDigitNext loop below reached the end
+        iDigitNext--;
+      }
+      while ((mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getColumn() > mincol || mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext].getRow() > minrow) && iDigitNext > 0) {
+        iDigitNext--;
+      }
+      for (; iDigitNext < nDigitsNext; iDigitNext++) {
+        if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext]) {
+          continue;
+        }
+        const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
+        auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
+        auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
+        if (!dcol && !drow) {
+          // same pixel fired in two ROFs
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          continue;
+        }
+        if (dcol > mMaxSquashDist || (dcol == mMaxSquashDist && drow > mMaxSquashDist)) {
+          break; // all greater iDigitNexts will not match to this pixel too
+        }
+        if (dcol < -mMaxSquashDist || (drow > mMaxSquashDist || drow < -mMaxSquashDist)) {
+          continue;
+        } else {
+          chipData.getData().emplace_back(digitNext); // push squashed pixel
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          if (mDigitsMCTruth) {
+            chipData.getPixIds().push_back(mBookmarkNextROFs[iROF - 1] + iDigitNext);
+          }
+        }
+      }
+    }
+    mBookmarkNextROFs[iROF - 1] += nDigitsNext;
+  }
+  if (mSquashOverflowsDepth) {
+    if (mDigitsMCTruth) {
+      auto& pixels = chipData.getData();
+      chipData.getPixelsOrder().resize(pixels.size());
+      std::iota(chipData.getPixelsOrder().begin(), chipData.getPixelsOrder().end(), 0);
+      std::sort(chipData.getPixelsOrder().begin(), chipData.getPixelsOrder().end(), [&pixels](int a, int b) -> bool { return pixels[a].getCol() == pixels[b].getCol() ? pixels[a].getRow() < pixels[b].getRow() : pixels[a].getCol() < pixels[b].getCol(); });
+    }
+    std::sort(chipData.getData().begin(), chipData.getData().end(), [](auto& d1, auto& d2) -> bool { return d1.getCol() == d2.getCol() ? d1.getRow() < d2.getRow() : d1.getCol() < d2.getCol(); });
+  }
+
   return true;
 }
 
@@ -117,7 +255,7 @@ void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID
   }
 
   mInputTree->SetBranchAddress((detName + "DigitMCTruth").data(), &mDigitsMCTruthSelf);
-  //setDigitsMCTruth(mDigitsMCTruthSelf); // it will be assigned again at the reading, this is just to signal that the MCtruth is there
+  // setDigitsMCTruth(mDigitsMCTruthSelf); // it will be assigned again at the reading, this is just to signal that the MCtruth is there
 }
 
 //______________________________________________________________________________
@@ -135,7 +273,7 @@ bool DigitPixelReader::readNextEntry()
     setDigits(gsl::span(mDigitsSelf->data(), mDigitsSelf->size()));
     setROFRecords(gsl::span(mROFRecVecSelf->data(), mROFRecVecSelf->size()));
     setMC2ROFRecords(gsl::span(mMC2ROFRecVecSelf->data(), mMC2ROFRecVecSelf->size()));
-    //setDigitsMCTruth(mDigitsMCTruthSelf);
+    // setDigitsMCTruth(mDigitsMCTruthSelf);
     return true;
   } else {
     return false;

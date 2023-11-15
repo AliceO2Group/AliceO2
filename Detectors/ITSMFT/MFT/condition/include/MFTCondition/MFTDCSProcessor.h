@@ -39,25 +39,33 @@ using DPVAL = o2::dcs::DataPointValue;
 using DPCOM = o2::dcs::DataPointCompositeObject;
 
 struct MFTDCSinfo {
+
   std::pair<uint64_t, double> firstValue; // first value seen by the MFT DCS processor
   std::pair<uint64_t, double> lastValue;  // last value seen by the MFT DCS processor
+  std::pair<uint64_t, double> meanValue;  // mean value seen by the MFT DCS processor
+  std::pair<uint64_t, double> stddevValue; // standard deviation value seen by the MFT DCS processor
   std::pair<uint64_t, double> midValue;   // mid value seen by the MFT DCS processor
   std::pair<uint64_t, double> maxChange;  // maximum variation seen by the MFT DCS processor
+  std::pair<uint64_t, double> summary;    // number of entries by the MFT DCS processor
+
   MFTDCSinfo()
   {
     firstValue = std::make_pair(0, -999999999);
     lastValue = std::make_pair(0, -999999999);
+    meanValue = std::make_pair(0, -999999999);
+    stddevValue = std::make_pair(0, -999999999);
     midValue = std::make_pair(0, -999999999);
     maxChange = std::make_pair(0, -999999999);
+    summary = std::make_pair(0, -999999999);
   }
   void makeEmpty()
   {
-    firstValue.first = lastValue.first = midValue.first = maxChange.first = 0;
-    firstValue.second = lastValue.second = midValue.second = maxChange.second = -999999999;
+    firstValue.first = lastValue.first = midValue.first = meanValue.first = stddevValue.first = maxChange.first = summary.first = 0.;
+    firstValue.second = lastValue.second = midValue.second = meanValue.second = stddevValue.second = maxChange.second = summary.second = -999999999;
   }
   void print() const;
 
-  ClassDefNV(MFTDCSinfo, 1);
+  ClassDefNV(MFTDCSinfo, 2);
 };
 
 class MFTDCSProcessor
@@ -137,7 +145,7 @@ class MFTDCSProcessor
   double mThresholdBackBiasVoltage;
   double mThresholdRULV;
 
-  ClassDefNV(MFTDCSProcessor, 0);
+  ClassDefNV(MFTDCSProcessor, 1);
 };
 
 template <typename T>

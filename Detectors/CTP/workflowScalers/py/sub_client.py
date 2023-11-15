@@ -20,15 +20,18 @@ socket.connect ("tcp://localhost:%s" % port)
 if len(sys.argv) > 2:
     socket.connect ("tcp://localhost:%s" % port1)
 # Subscribe to zipcode, default is NYC, 10001
-topicfilter = "CTP"
+topicfilter = ""
 socket.setsockopt_string(zmq.SUBSCRIBE, topicfilter)
 
 # Process 5 updates
 total_value = 0
 while(1):
     string = socket.recv_multipart()
-    #string = stringr.decode()
-    print("string:",string)
+    h = string[0].decode('UTF-8')
+    data = string[1]
+    if len(data) > 20:
+      data = data[0:20]
+    print("string:",h,data)
     #topic, messagedata = string.split()
     #total_value += int(messagedata)
     #print(topic, messagedata)

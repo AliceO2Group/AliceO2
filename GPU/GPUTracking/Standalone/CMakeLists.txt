@@ -49,10 +49,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(BUILD_DEBUG)
-  set(CMAKE_CXX_FLAGS "-Og -ggdb")
+  set(CMAKE_CXX_FLAGS "-O0 -ggdb") # -fsanitize=address,undefined -fno-sanitize=vptr
   set(CMAKE_BUILD_TYPE DEBUG)
 else()
-  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -funroll-loops -ffast-math -fno-stack-protector")
+  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -funroll-loops -fno-stack-protector")
+  if(DEFINED GPUCA_NO_FAST_MATH AND ${GPUCA_NO_FAST_MATH})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-fast-math -ffp-contract=off")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
+  endif()
   if (NOT CMAKE_CXX_COMPILER STREQUAL "clang++")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftracer -fprefetch-loop-arrays")
   endif()
@@ -182,10 +187,9 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Detectors/ITSMFT/common/base/include
                     ${O2_DIR}/Detectors/ITSMFT/ITS/base/include
                     ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/include
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/src
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/hip/include
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU/cuda
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU/hip
                     ${O2_DIR}/Detectors/Raw/include
                     ${O2_DIR}/Detectors/TOF/base/include
                     ${O2_DIR}/Detectors/TPC/base/include

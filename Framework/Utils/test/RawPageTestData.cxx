@@ -18,9 +18,7 @@
 #include "Headers/Stack.h"
 #include <random>
 
-namespace o2::framework
-{
-namespace test
+namespace o2::framework::test
 {
 
 DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHeader> const& dataheaders, AmendRawDataHeader amendRdh)
@@ -47,8 +45,12 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
   };
   std::vector<int> checkValues;
   DataSet::Messages messages;
+  unsigned char packetCounter = 0;
 
-  auto initRawPage = [&checkValues, &amendRdh](char* buffer, size_t size, auto value) {
+  auto initRawPage = [&checkValues, &amendRdh, &packetCounter](char* buffer, size_t size, auto value) {
+    int pageCounter = 0;
+    unsigned int lastFEEID = 0;
+    unsigned int lastOrbit = 0;
     char* wrtptr = buffer;
     while (wrtptr < buffer + size) {
       auto* header = reinterpret_cast<RAWDataHeader*>(wrtptr);
@@ -56,7 +58,15 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
       if (amendRdh) {
         amendRdh(*header);
       }
+      if (wrtptr == buffer || header->feeId != lastFEEID || header->orbit != lastOrbit) {
+        pageCounter = 0;
+      }
+      lastFEEID = header->feeId;
+      lastOrbit = header->orbit;
+      header->memorySize = PAGESIZE;
       header->offsetToNext = PAGESIZE;
+      header->pageCnt = pageCounter++;
+      header->packetCounter = packetCounter++;
       *reinterpret_cast<decltype(value)*>(wrtptr + header->headerSize) = value;
       wrtptr += PAGESIZE;
       checkValues.emplace_back(value);
@@ -87,8 +97,7 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
   }
 
   static ServiceRegistry registry;
-  return {std::move(schema), std::move(messages), std::move(checkValues), registry};
+  return {std::move(schema), std::move(messages), std::move(checkValues), {registry}};
 }
 
-} // namespace test
 } // namespace o2::framework

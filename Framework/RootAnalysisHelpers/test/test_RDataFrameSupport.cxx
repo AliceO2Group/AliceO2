@@ -305,23 +305,17 @@ BOOST_AUTO_TEST_CASE(TestCombinedDS)
                                             // 4 in event 0 and 4 in event 1. So the total number
                                             // of row is given by the cross product of the two parts, minus
                                             // the diagonal (4*4) - 4 + (4*4) - 4
-  // FIXME: this is currently affected by a bug in RArrowDS which does not work properly when
-  //        doing a rewind. Uncomment once we have a build with a ROOT which includes:
-  //
-  //        https://github.com/root-project/root/pull/3277
-  //        https://github.com/root-project/root/pull/3428
-  //
   auto sum = [](int lx, int rx) { return lx + rx; };
   auto left = [](int lx, int) { return lx; };
   auto right = [](int, int rx) { return rx; };
 
-  // BOOST_CHECK_EQUAL(*finalDF.Define("s1", sum, { "left_x", "left_y" }).Sum("s1"), 448);
-  // BOOST_CHECK_EQUAL(*finalDF.Define("s4", sum, { "right_x", "left_x" }).Sum("s4"), 448);
-  // BOOST_CHECK_EQUAL(*finalDF.Define("s2", left, { "left_x", "left_y" }).Sum("s2"), 224);
-  // BOOST_CHECK_EQUAL(*finalDF.Define("s3", right, { "right_x", "left_x" }).Sum("s3"), 224);
-  // BOOST_CHECK_EQUAL(*indexedDF.Define("s4", sum, {"right_x", "left_x"}).Sum("s4"), 56);
-  // BOOST_CHECK_EQUAL(*unionDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 56);
-  // BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s1", sum, {"left_x", "left_y"}).Sum("s1"), 448);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s4", sum, {"right_x", "left_x"}).Sum("s4"), 448);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s2", left, {"left_x", "left_y"}).Sum("s2"), 224);
+  BOOST_CHECK_EQUAL(*finalDF.Define("s3", right, {"right_x", "left_x"}).Sum("s3"), 224);
+  BOOST_CHECK_EQUAL(*indexedDF.Define("s4", sum, {"right_x", "left_x"}).Sum("s4"), 56);
+  BOOST_CHECK_EQUAL(*unionDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 56);
+  BOOST_CHECK_EQUAL(*blockDF.Define("s5", sum, {"right_x", "left_x"}).Sum("s5"), 168);
 }
 
 BOOST_AUTO_TEST_CASE(TestSoAIntegration)
@@ -347,11 +341,8 @@ BOOST_AUTO_TEST_CASE(TestSoAIntegration)
 
 BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
 {
-  std::vector<OutputRoute> routes;
-  DataAllocator allocator(nullptr, routes);
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
-  // we require reference to object owned by allocator context
-  static_assert(std::is_lvalue_reference<decltype(allocator.make<TableBuilder>(output))>::value);
+  // we require reference to object owned by allocator contexallocatort
 }
 
 BOOST_AUTO_TEST_CASE(TestPodInjestion)

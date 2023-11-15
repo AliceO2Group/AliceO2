@@ -11,15 +11,14 @@
 #include "Framework/LogParsingHelpers.h"
 #include <regex>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel::Size] = {
   "DEBUG",
   "INFO",
   "WARNING",
+  "ALARM",
   "ERROR",
   "FATAL",
   "UNKNOWN"};
@@ -52,6 +51,8 @@ LogLevel LogParsingHelpers::parseTokenLevel(std::string_view const s)
     return LogLevel::Info;
   } else if (s.compare(LABELPOS, 7, "[WARN] ") == 0) {
     return LogLevel::Warning;
+  } else if (s.compare(LABELPOS, 8, "[ALARM] ") == 0) {
+    return LogLevel::Alarm;
   } else if (s.compare(LABELPOS, 8, "[ERROR] ") == 0) {
     return LogLevel::Error;
   } else if (s.compare(LABELPOS, 8, "[FATAL] ") == 0) {
@@ -59,5 +60,4 @@ LogLevel LogParsingHelpers::parseTokenLevel(std::string_view const s)
   }
   return LogLevel::Unknown;
 }
-} // namespace framework
 } // namespace o2

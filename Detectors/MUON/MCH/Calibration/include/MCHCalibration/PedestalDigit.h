@@ -24,9 +24,9 @@
 namespace o2::mch::calibration
 {
 
-/** 
- * @class PedestalDigit 
- * @brief "Fat" digit for pedestal data. 
+/**
+ * @class PedestalDigit
+ * @brief "Fat" digit for pedestal data.
  *
  * In contrast to a "regular" digit, a PedestalDigit stores ADC samples
  * (up to `MCH_PEDESTALS_MAX_SAMPLES` samples)

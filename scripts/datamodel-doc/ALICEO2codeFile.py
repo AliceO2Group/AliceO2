@@ -7,7 +7,7 @@ class produces:
   def __init__(self, name, templated=False):
     self.name = name
     self.templated = templated
-    
+
   def tableName(self, arguments=list(), argumentValues=list()):
     tname = ""
     if len(arguments) != len(argumentValues):
@@ -15,7 +15,7 @@ class produces:
       print("  ",arguments)
       print("  ",argumentValues)
       return tname
-    
+
     if self.templated:
       for i in range(len(arguments)):
         if self.name == arguments[i]:
@@ -23,7 +23,7 @@ class produces:
           continue
     else:
       tname = self.name
-    
+
     return tname
 
 # -----------------------------------------------------------------------------
@@ -41,19 +41,19 @@ class struct:
   def setTemplated(self, templateArguments):
     self.templateArguments = templateArguments
     self.templated = True
-    
+
   def addProduces(self, prod):
     self.produces.append(prod)
-  
+
   def getTableNames(self, argumentValues=list()):
     tableNames = list()
     for prod in self.produces:
       tableName = prod.tableName(self.templateArguments,argumentValues)
       if tableName != "":
         tableNames.append(tableName)
-    
+
     return tableNames
-    
+
   def print(self):
     print()
     print("Struct: ", self.name)
@@ -65,19 +65,19 @@ class struct:
     print("  produces: ", len(self.produces))
     for prod in self.produces:
       print("    ", prod.name)
-      
+
 # -----------------------------------------------------------------------------
 class codeFile:
   def __init__(self, cfile):
     self.structs = list()
     self.tableNames = list()
-    
+
     with open(cfile, 'r') as file:
       # read the file
       lines_in_file = file.readlines()
       content = O2DMT.pickContent(lines_in_file)
       self.tableNames = self.parseContent(content)
-      
+
   def addStruct(self, struct):
     self.structs.append(struct)
 
@@ -87,19 +87,19 @@ class codeFile:
   def parseContent(self, content):
     words = content[0]
     lines = content[1]
-        
+
     # find template <...>
     # restLine is everything else than a templated block
     restLine = ""
     fullLine = O2DMT.block(words)
     nchFullLine = len(fullLine)
     sob = 0
-    
+
     # loop over templates
     inds = [i for i, x in enumerate(words) if x.txt == 'template']
     for ind in inds:
       line = O2DMT.block(words[ind:])
-      
+
       # templates can come without {} block!
       # find out what comes first '{' or ';'
       if ';' in line:
@@ -115,10 +115,10 @@ class codeFile:
       else:
         [oi, ci] = O2DMT.findInBrackets("{","}",line)
         tempBlock = line[:ci]
-      
+
       if len(tempBlock) == 0:
         continue
-        
+
       # extract template arguments
       tempLine = O2DMT.lineInBrackets("<",">",line)[1:-1]
       argWords = tempLine.split(',')
@@ -127,7 +127,7 @@ class codeFile:
         kvpair = arg.split()
         if len(kvpair) == 2:
           tempArgs.append(kvpair[-1])
-      
+
       # find struct within tempBlock
       tempWords = O2DMT.split(tempBlock)
       istructs = [i for i, x in enumerate(tempWords) if x == 'struct']
@@ -136,7 +136,7 @@ class codeFile:
         structBlock = O2DMT.block(tempWords[istruct:])
         newStruct = struct(tempWords[istruct+1],
           O2DMT.lineInBrackets("{","}",structBlock), tempArgs)
-        
+
         structWords = O2DMT.split(newStruct.cont)
         iprods = [i for i, x in enumerate(structWords) if x == 'Produces']
         for iprod in iprods:
@@ -144,18 +144,18 @@ class codeFile:
           tname = O2DMT.lineInBrackets("<",">",O2DMT.block(structWords[iprod:],False))[1:-1]
           newProd = produces(tname, True)
           newStruct.addProduces(newProd)
-        
+
         if len(iprods) > 0:
           self.addStruct(newStruct)
-        
+
       # update restLine
       eob = nchFullLine - len(line)
       restLine += fullLine[sob:eob]
       sob = eob+ci+1
-    
+
     # update restLine
     restLine += fullLine[sob:]
-      
+
     # find struct outside of template - in restLine
     restWords = O2DMT.split(restLine)
     istructs = [i for i, x in enumerate(restWords) if x == 'struct']
@@ -164,7 +164,7 @@ class codeFile:
       structBlock = O2DMT.block(restWords[istruct:])
       newStruct = struct(restWords[istruct+1],
         O2DMT.lineInBrackets("{","}",structBlock))
-      
+
       structWords = O2DMT.split(newStruct.cont)
       iprods = [i for i, x in enumerate(structWords) if x == 'Produces']
       for iprod in iprods:
@@ -172,17 +172,17 @@ class codeFile:
         tname = O2DMT.lineInBrackets("<",">",O2DMT.block(structWords[iprod:],False))[1:-1]
         newProd = produces(tname, False)
         newStruct.addProduces(newProd)
-        
+
       if len(iprods) > 0:
         self.addStruct(newStruct)
-      
+
     # loop over structs
     tableNames = list()
     for strct in self.structs:
-      
+
       # for all templated structs: find flavoured calls of structs
       if strct.templated:
-    
+
         # extract flavouredStruct
         inds = [i for i, x in enumerate(restWords) if x == strct.name]
         for ind in inds:
@@ -190,10 +190,10 @@ class codeFile:
             # extract argument values
             argValues = O2DMT.getArgumentValues(restWords[ind:])
             tableNames += strct.getTableNames(argValues)
-            
+
       else:
         tableNames += strct.getTableNames()
-        
+
     # uniqify tableNames
     tableNames = list(set(tableNames))
 

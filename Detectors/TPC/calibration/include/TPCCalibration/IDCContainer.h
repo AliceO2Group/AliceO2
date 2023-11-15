@@ -31,10 +31,11 @@ namespace tpc
 {
 
 /// IDC types
-enum class IDCType { IDC = 0,     ///< integrated and grouped IDCs
-                     IDCZero = 1, ///< IDC0: I_0(r,\phi) = <I(r,\phi,t)>_t
-                     IDCOne = 2,  ///< IDC1: I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-                     IDCDelta = 3 ///< IDCDelta: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+enum class IDCType { IDC = 0,       ///< integrated and grouped IDCs
+                     IDCZero = 1,   ///< IDC0: I_0(r,\phi) = <I(r,\phi,t)>_t
+                     IDCOne = 2,    ///< IDC1: I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+                     IDCDelta = 3,  ///< IDCDelta: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+                     IDCOutlier = 4 //< IDCOutlier: for outlier maps
 };
 
 /// define alias for SACs
@@ -178,8 +179,32 @@ struct IDCZero {
   /// get number of IDC0 values
   auto getNIDC0() const { return mIDCZero.size(); }
 
+  /// add IDCZero values from other object
+  IDCZero& operator+=(const IDCZero& idczero)
+  {
+    std::transform(mIDCZero.begin(), mIDCZero.end(), idczero.mIDCZero.begin(), mIDCZero.begin(), std::plus<>());
+    return *this;
+  }
+
+  IDCZero& operator/=(const float value)
+  {
+    std::transform(mIDCZero.begin(), mIDCZero.end(), mIDCZero.begin(), [value](float idczero) { return idczero / value; });
+    return *this;
+  }
+
   std::vector<float> mIDCZero{}; ///< I_0(r,\phi) = <I(r,\phi,t)>_t
   ClassDefNV(IDCZero, 2)
+};
+
+///< struct containing the ITPC0 values (integrated TPC clusters)
+struct ITPCZero {
+  IDCZero mIQMaxA; ///< integrated QMax cluster for A-side
+  IDCZero mIQMaxC; ///< integrated QMax cluster for C-side
+  IDCZero mIQTotA; ///< integrated QTot cluster for A-side
+  IDCZero mIQTotC; ///< integrated QTot cluster for C-side
+  IDCZero mINClA;  ///< integrated NCl cluster for A-side
+  IDCZero mINClC;  ///< integrated NCl cluster for C-side
+  ClassDefNV(ITPCZero, 1)
 };
 
 ///< struct containing the IDC1
@@ -191,6 +216,10 @@ struct IDCOne {
   /// constructor for initializing member with default value (this is used in the IDCFourierTransform class to perform calculation of the fourier coefficients for the first aggregation interval)
   /// \param nIDC number of IDCs which will be initialized
   IDCOne(const unsigned int nIDC) : mIDCOne{std::vector<float>(nIDC)} {};
+
+  /// \param nIDC number of IDCs which will be initialized
+  /// \param val initialized values of the IDCs
+  IDCOne(const unsigned int nIDC, const float val) : mIDCOne{std::vector<float>(nIDC, val)} {};
 
   /// set IDC one for given index
   /// \param idcOne Delta IDC value which will be set
@@ -209,6 +238,16 @@ struct IDCOne {
 
   /// resize vector
   void resize(const unsigned int size) { mIDCOne.resize(size); }
+
+  /// append an IDCOne vector
+  void append(const IDCOne& idcone) { mIDCOne.insert(mIDCOne.end(), idcone.mIDCOne.begin(), idcone.mIDCOne.end()); }
+
+  /// multiply IDCOne values by a factor
+  IDCOne& operator*=(const float value)
+  {
+    std::transform(mIDCOne.begin(), mIDCOne.end(), mIDCOne.begin(), [value](float idcone) { return idcone * value; });
+    return *this;
+  }
 
   std::vector<float> mIDCOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   ClassDefNV(IDCOne, 2)
@@ -290,6 +329,9 @@ struct FourierCoeff {
   /// \param interval index of interval
   /// \param coefficient index of coefficient
   unsigned int getIndex(const unsigned int interval, const unsigned int coefficient) const { return interval * mCoeffPerTF + coefficient; }
+
+  /// \return returns number of time frames
+  unsigned int getNTimeFrames() const { return getNCoefficients() / mCoeffPerTF; }
 
   /// \return returns the stored value
   /// \param index index of the data
@@ -411,20 +453,6 @@ class IDCDeltaCompressionHelper
     }
   }
 };
-
-enum class PadFlags : unsigned short {
-  flagGoodPad = 1 << 0,      ///< flag for a good pad binary 0001
-  flagDeadPad = 1 << 1,      ///< flag for a dead pad binary 0010
-  flagUnknownPad = 1 << 2,   ///< flag for unknown status binary 0100
-  flagSaturatedPad = 1 << 3, ///< flag for saturated status binary 0100
-  flagHighPad = 1 << 4,      ///< flag for pad with extremly high IDC value
-  flagLowPad = 1 << 5,       ///< flag for pad with extremly low IDC value
-  flagSkip = 1 << 6          ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
-};
-
-inline PadFlags operator&(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) & static_cast<int>(b)); }
-inline PadFlags operator~(PadFlags a) { return static_cast<PadFlags>(~static_cast<int>(a)); }
-inline PadFlags operator|(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) | static_cast<int>(b)); }
 
 } // namespace tpc
 } // namespace o2

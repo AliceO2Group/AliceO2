@@ -30,31 +30,40 @@ namespace mid
 class ColumnDataHandler
 {
  public:
-  /// Add single strip
-  /// \param deId Detection element ID
-  /// \param columnId Column ID
-  /// \param lineId Local board line in the column
-  /// \param strip Strip number
-  /// \param cathode Anode or cathode
+  /// @brief Add single strip
+  /// @param deId Detection element ID
+  /// @param columnId Column ID
+  /// @param lineId Local board line in the column
+  /// @param strip Strip number
+  /// @param cathode Anode or cathode
   void add(uint8_t deId, uint8_t columnId, int lineId, int strip, int cathode);
 
-  /// Merges digit
-  /// \param col input digit
-  /// \returns true if this is the first added digit
-  bool merge(const ColumnData& col);
+  /// @brief Merges digit
+  /// @param col input digit
+  /// @param idx index of col in the vector. Useful to keep track of what digit was merged
+  /// @returns true if this is the first added digit
+  bool merge(const ColumnData& col, size_t idx = 0);
 
-  /// Merges digits
-  /// \param colVec span of column data
-  void merge(gsl::span<const ColumnData> colVec);
+  /// @brief Merges digits
+  /// @param colVec span of column data
+  /// @param idx Offset index of the first ColumnData in the vector. It can be different from 0 if we are merging a subspan.
+  void merge(gsl::span<const ColumnData> colVec, size_t idx = 0);
 
-  /// Clears the data
-  void clear() { mData.clear(); }
+  /// @brief Clears inner maps
+  void clear();
 
-  /// Returns the merged data
+  /// @brief Returns the merged data
+  /// @return Vector of merged ColumnData
   std::vector<ColumnData> getMerged() const;
 
+  /// @brief Returns the indexes of the ColumnData merged into this one
+  /// @param col Merged ColumnData
+  /// @return Vector of the indexes of the ColumnData merged into this one
+  std::vector<size_t> getMergedIndexes(const ColumnData& col) const;
+
  private:
-  std::unordered_map<uint16_t, ColumnData> mData{}; // ColumnData
+  std::unordered_map<uint16_t, ColumnData> mData{};                  /// Map of ColumnData
+  std::unordered_map<uint16_t, std::vector<size_t>> mCorrespondence; /// Correspondence between input and merged ColumnData
 };
 
 } // namespace mid

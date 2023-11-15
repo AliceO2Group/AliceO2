@@ -2,9 +2,9 @@
 \page refDetectorsUpgradesALICE3FT3 EndCaps
 /doxy -->
 
-# PostLS4EndCaps
+# ALICE 3 Tracker Endcaps
 
-This is a top page for the PostLS4EndCaps detector documentation.
+This is top page for the FT3 detector documentation.
 
 <!-- doxy
 /doxy -->

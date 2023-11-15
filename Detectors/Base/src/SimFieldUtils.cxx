@@ -11,14 +11,19 @@
 
 #include <DetectorsBase/SimFieldUtils.h>
 #include <Field/MagneticField.h>
+#include <Field/ALICE3MagneticField.h>
 #include <SimConfig/SimConfig.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <DataFormatsParameters/GRPMagField.h>
 
 using namespace o2::base;
 
-o2::field::MagneticField* const SimFieldUtils::createMagField()
+FairField* const SimFieldUtils::createMagField()
 {
+  if (getenv("ALICE3_SIM_FIELD")) {
+    return new o2::field::ALICE3MagneticField();
+  }
+
   auto& confref = o2::conf::SimConfig::Instance();
   // a) take field from CDDB
   const auto fieldmode = confref.getConfigData().mFieldMode;

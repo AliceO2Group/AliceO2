@@ -37,6 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"idc0File", VariantType::String, "", {"file to reference IDC0 object"}},
     {"disableIDC0CCDB", VariantType::Bool, false, {"Disabling loading the IDC0 object from the CCDB (no normalization is applied for IDC1 calculation)"}},
     {"enable-synchronous-processing", VariantType::Bool, false, {"Enable calculation and sending of 1D-IDCs for synchronous processing"}},
+    {"n-TFs-buffer", VariantType::Int, 1, {"Buffer n-TFs to reduce the messaged which will be send."}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. 'TPCIDCGroupParam.Method=0;')"}}};
 
   std::swap(workflowOptions, options);
@@ -61,6 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const std::string idc0File = config.options().get<std::string>("idc0File");
   const auto disableIDC0CCDB = config.options().get<bool>("disableIDC0CCDB");
   const auto enableSynchProc = config.options().get<bool>("enable-synchronous-processing");
+  const int nTFsBufferTmp = config.options().get<int>("n-TFs-buffer");
 
   // set up configuration
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
@@ -78,7 +80,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(timePipeline(getTPCFLPIDCSpec(ilane, rangeCRUs, rangeIDC, loadStatusMap, idc0File, disableIDC0CCDB, enableSynchProc), time_lanes));
+    int nTFsBuffer = nTFsBufferTmp * rangeCRUs.size();
+    if (nTFsBuffer <= 0) {
+      nTFsBuffer = rangeCRUs.size();
+    }
+    workflow.emplace_back(timePipeline(getTPCFLPIDCSpec(ilane, rangeCRUs, rangeIDC, loadStatusMap, idc0File, disableIDC0CCDB, enableSynchProc, nTFsBuffer), time_lanes));
   }
 
   return workflow;

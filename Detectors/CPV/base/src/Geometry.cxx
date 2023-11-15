@@ -68,7 +68,8 @@ short Geometry::areNeighbours(unsigned short absId1, unsigned short absId2)
     short rowdiff = TMath::Abs(relId1[1] - relId2[1]);
     short coldiff = TMath::Abs(relId1[2] - relId2[2]);
 
-    if ((coldiff <= 1) && (rowdiff <= 1)) { // At least common vertex
+    // if ((coldiff <= 1) && (rowdiff <= 1)) { // At least common vertex
+    if (coldiff + rowdiff <= 1) { // Common side
       return 1;
     } else {
       if ((relId2[1] > relId1[1]) && (relId2[2] > relId1[2] + 1)) {

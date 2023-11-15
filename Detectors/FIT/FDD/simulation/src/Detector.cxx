@@ -20,7 +20,7 @@
 
 #include "FDDSimulation/Detector.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "Field/MagneticField.h"
 
 #include "TVirtualMC.h"

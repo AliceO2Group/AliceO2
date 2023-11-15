@@ -104,7 +104,7 @@ struct GRPGeomRequest {
   bool needPropagatorD = false;    // init also PropagatorD
 
   GRPGeomRequest() = delete;
-  GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce = false, bool needPropD = false);
+  GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce = false, bool needPropD = false, std::string detMaskString = "all");
   void addInput(const o2::framework::InputSpec&& isp, std::vector<o2::framework::InputSpec>& inputs);
 };
 

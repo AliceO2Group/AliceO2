@@ -9,21 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework RuntimeError
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/RuntimeError.h"
+#include <unistd.h>
 #include <execinfo.h>
 
-BOOST_AUTO_TEST_CASE(TestRuntimeError)
+TEST_CASE("TestRuntimeError")
 {
   try {
     throw o2::framework::runtime_error("foo");
   } catch (o2::framework::RuntimeErrorRef ref) {
     auto& err = o2::framework::error_from_ref(ref);
-    BOOST_CHECK_EQUAL(strncmp(err.what, "foo", 3), 0);
+    REQUIRE(strncmp(err.what, "foo", 3) == 0);
 #ifdef DPL_ENABLE_BACKTRACE
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
@@ -33,7 +30,7 @@ BOOST_AUTO_TEST_CASE(TestRuntimeError)
     throw o2::framework::runtime_error_f("foo %d", 1);
   } catch (o2::framework::RuntimeErrorRef ref) {
     auto& err = o2::framework::error_from_ref(ref);
-    BOOST_CHECK_EQUAL(strncmp(err.what, "foo", 3), 0);
+    REQUIRE(strncmp(err.what, "foo", 3) == 0);
 #ifdef DPL_ENABLE_BACKTRACE
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
     o2::framework::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);

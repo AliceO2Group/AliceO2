@@ -42,17 +42,21 @@ struct OutputObjHeader : public BaseHeader {
   OutputObjHandlingPolicy mPolicy;
   OutputObjSourceType mSourceType;
   uint32_t mTaskHash;
+  uint16_t mPipelineIndex = 0;
+  uint16_t mPipelineSize = 1;
 
   constexpr OutputObjHeader()
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),
       mPolicy{OutputObjHandlingPolicy::AnalysisObject},
       mSourceType{OutputObjSourceType::OutputObjSource},
       mTaskHash{0} {}
-  constexpr OutputObjHeader(OutputObjHandlingPolicy policy, OutputObjSourceType sourceType, uint32_t hash)
+  constexpr OutputObjHeader(OutputObjHandlingPolicy policy, OutputObjSourceType sourceType, uint32_t hash, uint16_t pipelineIndex, uint16_t pipelineSize)
     : BaseHeader(sizeof(OutputObjHeader), sHeaderType, sSerializationMethod, sVersion),
       mPolicy{policy},
       mSourceType{sourceType},
-      mTaskHash{hash} {}
+      mTaskHash{hash},
+      mPipelineIndex{pipelineIndex},
+      mPipelineSize{pipelineSize} {}
   constexpr OutputObjHeader(OutputObjHeader const&) = default;
 };
 

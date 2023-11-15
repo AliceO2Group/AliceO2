@@ -12,10 +12,9 @@
 #include "Framework/DataProcessorSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/SpectraInfoObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
 #include "FT0Calibration/FT0TimeOffsetSlotContainer.h"
-#include "FT0Calibration/CalibParam.h"
 
 using namespace o2::framework;
 
@@ -33,13 +32,15 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<float,
-                                                              o2::ft0::FT0TimeOffsetSlotContainer, o2::ft0::FT0ChannelTimeCalibrationObject>;
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
-  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
+                                                              o2::ft0::FT0TimeOffsetSlotContainer, o2::ft0::TimeSpectraInfoObject>;
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("calib", "FT0", "CALIB_INFO");
+  std::vector<o2::framework::OutputSpec> outputs;
+  const o2::header::DataDescription inputDataDescriptor{"TIME_SPECTRA"};
+  const o2::header::DataDescription outputDataDescriptor{"FT0_TIME_CALIB"};
+  CalibrationDeviceType::prepareVecInputSpec(inputs, o2::header::gDataOriginFT0, inputDataDescriptor);
+  CalibrationDeviceType::prepareVecOutputSpec(outputs, outputDataDescriptor);
+
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -51,10 +52,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "ft0-time-offset-calib",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>("calib", ccdbRequest)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, outputDataDescriptor)},
     o2::framework::Options{
       {"tf-per-slot", o2::framework::VariantType::UInt32, 56000u, {""}},
-      {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}}}};
+      {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}},
+      {"extra-info-per-slot", o2::framework::VariantType::String, "", {"Extra info for time slot(usually for debugging)"}}}};
 
   WorkflowSpec workflow;
   workflow.emplace_back(dataProcessorSpec);

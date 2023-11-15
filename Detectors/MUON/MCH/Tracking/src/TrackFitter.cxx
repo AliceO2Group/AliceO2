@@ -54,12 +54,14 @@ void TrackFitter::initField(float l3Current, float dipoleCurrent)
 
 //_________________________________________________________________________________________________
 void TrackFitter::fit(Track& track, bool smooth, bool finalize,
-                      std::list<TrackParam>::reverse_iterator* itStartingParam)
+                      std::list<TrackParam>::reverse_iterator* itStartingParam,
+                      bool skipLocalChi2Calculation)
 {
   /// Fit a track to its attached clusters
   /// Smooth the track if requested and the smoother enabled
   /// If finalize = true: copy the smoothed parameters, if any, into the regular ones
   /// Fit the entire track or only the part upstream itStartingParam
+  /// Skip the local chi2 calculation in the smoother if requested
   /// Throw an exception in case of failure
 
   // initialize the starting track parameters and cluster
@@ -92,7 +94,7 @@ void TrackFitter::fit(Track& track, bool smooth, bool finalize,
 
   // smooth the track if requested and the smoother enabled
   if (smooth && mSmooth) {
-    smoothTrack(track, finalize);
+    smoothTrack(track, finalize, skipLocalChi2Calculation);
   }
 }
 
@@ -219,7 +221,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const Cluster& cl,
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::smoothTrack(Track& track, bool finalize)
+void TrackFitter::smoothTrack(Track& track, bool finalize, bool skipLocalChi2Calculation)
 {
   /// Recompute the track parameters at each cluster using the Smoother
   /// Smoothed parameters are stored in dedicated data members
@@ -238,8 +240,10 @@ void TrackFitter::smoothTrack(Track& track, bool finalize)
   itPreviousParam->setLocalChi2(itPreviousParam->getTrackChi2() - itCurrentParam->getTrackChi2());
 
   // recursively smooth the next parameters and covariances
+  // compute the local chi2 if requested and needed (i.e. if there are more than 2 clusters)
+  auto skipChi2 = skipLocalChi2Calculation || track.getNClusters() < 3;
   do {
-    runSmoother(*itPreviousParam, *itCurrentParam);
+    runSmoother(*itPreviousParam, *itCurrentParam, skipChi2);
     ++itPreviousParam;
   } while (++itCurrentParam != track.end());
 
@@ -317,7 +321,7 @@ void TrackFitter::runKalmanFilter(TrackParam& trackParam)
 }
 
 //_________________________________________________________________________________________________
-void TrackFitter::runSmoother(const TrackParam& previousParam, TrackParam& param)
+void TrackFitter::runSmoother(const TrackParam& previousParam, TrackParam& param, bool skipLocalChi2Calculation)
 {
   /// Recompute the track parameters starting from the previous ones
   /// Throw an exception in case of failure
@@ -353,6 +357,12 @@ void TrackFitter::runSmoother(const TrackParam& previousParam, TrackParam& param
   TMatrixD smoothCovariances(smootherGain, TMatrixD::kMult, tmpCov2);              // A(k) * (C(k+1 n) - C(k+1 k)) * (A(k))^t
   smoothCovariances += filteredCovariances;                                        // C(k k) + A(k) * (C(k+1 n) - C(k+1 k)) * (A(k))^t
   param.setSmoothCovariances(smoothCovariances);
+
+  // skip the local chi2 calculation if requested to do so
+  if (skipLocalChi2Calculation) {
+    param.setLocalChi2(0.);
+    return;
+  }
 
   // compute smoothed residual: r(k n) = cluster - X(k n)
   const Cluster* cluster = param.getClusterPtr();

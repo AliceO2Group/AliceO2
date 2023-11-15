@@ -143,8 +143,9 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
-      const unsigned int defaultLink = i == NSectors ? rdh_utils::SACLinkID : zsV <= 2 ? rdh_utils::UserLogicLinkID : zsV == 3 ? rdh_utils::ILBZSLinkID : rdh_utils::DLBZSLinkID;
-      const rdh_utils::FEEIDType feeid = i == NSectors ? 46208 : rdh_utils::getFEEID(cruID, j & 1, defaultLink);
+      const unsigned int rdhLink = i == NSectors ? rdh_utils::SACLinkID : 0;
+      const unsigned int feeLink = i == NSectors ? rdh_utils::SACLinkID : zsV <= 2 ? rdh_utils::UserLogicLinkID : zsV == 3 ? rdh_utils::ILBZSLinkID : rdh_utils::DLBZSLinkID;
+      const rdh_utils::FEEIDType feeid = i == NSectors ? 46208 : rdh_utils::getFEEID(cruID, j & 1, feeLink);
       std::string outfname;
       if (fileFor == "all") { // single file for all links
         outfname = fmt::format("{}tpc_all.raw", outDir);
@@ -155,7 +156,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
       }
-      writer.registerLink(feeid, cruID, defaultLink, j & 1, outfname);
+      writer.registerLink(feeid, cruID, rdhLink, j & 1, outfname);
       if (i == NSectors) {
         break; // Special IAC node
       }
@@ -180,8 +181,10 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   auto globalConfig = config.ReadConfigurableParam();
   attr.zsThreshold = config.configReconstruction.tpc.zsThreshold;
   if (globalConfig.zsOnTheFlyDigitsFilter) {
-    IonTailCorrection itCorr;
-    attr.digitsFilter = [&itCorr](std::vector<o2::tpc::Digit>& digits) { itCorr.filterDigitsDirect(digits); };
+    attr.digitsFilter = [](std::vector<o2::tpc::Digit>& digits) {
+      IonTailCorrection itCorr;
+      itCorr.filterDigitsDirect(digits);
+    };
   }
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {

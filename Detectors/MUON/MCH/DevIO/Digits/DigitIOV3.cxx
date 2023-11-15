@@ -13,7 +13,7 @@
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitFileFormat.h"
-#include "DigitReader.h"
+#include "DigitSampler.h"
 #include "IO.h"
 #include "IOStruct.h"
 #include <iostream>
@@ -21,7 +21,7 @@
 namespace o2::mch::io::impl
 {
 
-void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
+void DigitSamplerV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
 {
   rewind(in);
   ndigits = 0;
@@ -38,9 +38,9 @@ void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   rewind(in);
 }
 
-bool DigitReaderV3::read(std::istream& in,
-                         std::vector<Digit>& digits,
-                         std::vector<ROFRecord>& rofs)
+bool DigitSamplerV3::read(std::istream& in,
+                          std::vector<Digit>& digits,
+                          std::vector<ROFRecord>& rofs)
 {
   if (in.peek() == EOF) {
     return false;
@@ -94,14 +94,14 @@ bool DigitReaderV3::read(std::istream& in,
   return true;
 }
 
-void DigitReaderV3::rewind(std::istream& in)
+void DigitSamplerV3::rewind(std::istream& in)
 {
-  DigitReaderImpl::rewind(in);
+  DigitSamplerImpl::rewind(in);
 }
 
-bool DigitWriterV3::write(std::ostream& out,
-                          gsl::span<const Digit> digits,
-                          gsl::span<const ROFRecord> rofs)
+bool DigitSinkV3::write(std::ostream& out,
+                        gsl::span<const Digit> digits,
+                        gsl::span<const ROFRecord> rofs)
 {
   if (rofs.empty()) {
     return false;

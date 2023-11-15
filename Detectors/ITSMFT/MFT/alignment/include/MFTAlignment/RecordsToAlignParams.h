@@ -16,6 +16,7 @@
 #ifndef ALICEO2_MFT_RECORDS_TO_ALIGN_PARAMS_H
 #define ALICEO2_MFT_RECORDS_TO_ALIGN_PARAMS_H
 
+#include <vector>
 #include <TChain.h>
 
 #include "MFTAlignment/MillePede2.h"
@@ -53,6 +54,15 @@ class RecordsToAlignParams : public Aligner
   /// \brief provide access to the AlignParam vector
   void getAlignParams(std::vector<o2::detectors::AlignParam>& alignParams) { alignParams = mAlignParams; }
 
+  /// \brief provide access to the vector of alignment corrections
+  void getPedeOutParams(std::vector<double>& output) { output = mPedeOutParams; }
+
+  /// \brief provide access to the vector of errors on the alignement corrections
+  void getPedeOutParamsErrors(std::vector<double>& output) { output = mPedeOutParamsErrors; }
+
+  /// \brief provide access to the vector of pulls on the alignement corrections
+  void getPedeOutParamsPulls(std::vector<double>& output) { output = mPedeOutParamsPulls; }
+
   /// \brief connect data record reader to input TChain of records
   void connectRecordReaderToChain(TChain* ch);
 
@@ -67,8 +77,11 @@ class RecordsToAlignParams : public Aligner
   bool mWithConstraintsRecReader;                      ///< boolean to set to true if one wants to also read constraints records
   o2::mft::MilleRecordReader* mConstraintsRecReader;   ///< utility that handles the reading of the constraints records
   o2::mft::MillePede2* mMillepede;                     ///< Millepede2 implementation copied from AliROOT
+  std::vector<double> mPedeOutParams;                  ///< Vector to store the outputs (alignment corrections) of the MillePede simulatenous fit
+  std::vector<double> mPedeOutParamsErrors;            ///< Vector to store the outputs (errors on the alignement corrections) of the MillePede simulatenous fit
+  std::vector<double> mPedeOutParamsPulls;             ///< Vector to store the outputs (pulls on the alignement corrections) of the MillePede simulatenous fit
 
-  ClassDef(RecordsToAlignParams, 0);
+  ClassDefOverride(RecordsToAlignParams, 0);
 };
 
 } // namespace mft

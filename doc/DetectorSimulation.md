@@ -115,6 +115,7 @@ o2-sim -m MFT -e TGeant3 -g fwmugen -n 10
 ```
 o2-sim -m PIPE ITS MFT -e TGeant3 -g boxgen -n 10 --configKeyValues 'BoxGun.pdg=13 ; BoxGun.eta[0]=-3.6 ; BoxGun.eta[1]=-2.45; BoxGun.number=100'
 ```
+This command line will generate 10 events with 100 forward muons.
 
 * **PYTHIA 8**
 

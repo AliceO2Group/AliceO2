@@ -9,13 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Utils RootTreeWriter
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
+#include <catch_amalgamated.hpp>
 #include "Framework/RootSerializationSupport.h"
-#include <boost/test/unit_test.hpp>
-#include <iostream>
 #include <iomanip>
 #include "Headers/DataHeader.h"
 #include <fairmq/Message.h>
@@ -37,6 +32,17 @@
 #include <TTree.h>
 #include <TBranch.h>
 #include <TSystem.h>
+
+#define CHECK_MESSAGE(cond, msg) \
+  do {                           \
+    INFO(msg);                   \
+    CHECK(cond);                 \
+  } while ((void)0, 0)
+#define REQUIRE_MESSAGE(cond, msg) \
+  do {                             \
+    INFO(msg);                     \
+    REQUIRE(cond);                 \
+  } while ((void)0, 0)
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
@@ -61,7 +67,7 @@ template <typename T>
 bool checkBranch(TTree& tree, BranchContent<T>&& content)
 {
   TBranch* branch = tree.GetBranch(content.branchName);
-  BOOST_REQUIRE(branch != nullptr);
+  REQUIRE(branch != nullptr);
   T store;
   T* pointer = &store;
   // in general, pointer to pointer has to be used for setting the branch
@@ -74,7 +80,7 @@ bool checkBranch(TTree& tree, BranchContent<T>&& content)
     branch->SetAddress(&pointer);
   }
   branch->GetEntry(0);
-  BOOST_CHECK_MESSAGE(store == content.reference, "mismatch for branch " << content.branchName);
+  CHECK_MESSAGE(store == content.reference, "mismatch for branch " << content.branchName);
   return store == content.reference;
 }
 
@@ -88,13 +94,13 @@ template <typename... Args>
 bool checkTree(const char* filename, const char* treename, Args&&... args)
 {
   TFile* file = TFile::Open(filename);
-  BOOST_REQUIRE(file != nullptr);
-  TTree* tree = reinterpret_cast<TTree*>(file->GetObjectChecked(treename, "TTree"));
-  BOOST_REQUIRE(tree != nullptr);
+  REQUIRE(file != nullptr);
+  auto* tree = reinterpret_cast<TTree*>(file->GetObjectChecked(treename, "TTree"));
+  REQUIRE(tree != nullptr);
   return checkBranch(*tree, std::forward<Args>(args)...);
 }
 
-BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
+TEST_CASE("test_RootTreeWriter")
 {
   std::string filename = "test_RootTreeWriter.root";
   const char* treename = "testtree";
@@ -115,9 +121,9 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     // branches are filled independently of the tree, so the tree state needs to be
     // synchronized with the branch states
     tree->SetEntries();
-    std::cout << "Custom close, tree has " << tree->GetEntries() << " entries" << std::endl;
+    INFO("Custom close, tree has " << tree->GetEntries() << " entries");
     // there was one write cycle and each branch should have one entry
-    BOOST_CHECK(tree->GetEntries() == 1);
+    CHECK(tree->GetEntries() == 1);
     tree->Write();
     file->Close();
   };
@@ -139,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
                         // TriviallyCopyable can be sent with either serialization methods NONE or ROOT
                         RootTreeWriter::BranchDef<std::vector<o2::test::TriviallyCopyable>>{"input8", "srlzdvecbranch"});
 
-  BOOST_CHECK(writer.getStoreSize() == 7);
+  CHECK(writer.getStoreSize() == 7);
 
   // need to mimic a context to actually call the processing
   auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
@@ -243,7 +249,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
+TEST_CASE("test_MakeRootTreeWriterSpec")
 {
   // setup the spec helper and retrieve the spec by calling the operator
   struct Printer {
@@ -264,22 +270,22 @@ BOOST_AUTO_TEST_CASE(test_MakeRootTreeWriterSpec)
                          )();
 }
 
-BOOST_AUTO_TEST_CASE(test_ThrowOnMissingDictionary)
+TEST_CASE("test_ThrowOnMissingDictionary")
 {
   // trying to set up a branch for a collection class without dictionary which must throw
   const char* filename = "test_RootTreeWriterTrow.root";
   const char* treename = "testtree";
   RootTreeWriter writer(nullptr, nullptr, RootTreeWriter::BranchDef<std::vector<TrivialStruct>>{"input1", "vecbranch"});
-  BOOST_REQUIRE_THROW(writer.init(filename, treename), std::runtime_error);
+  REQUIRE_THROWS(writer.init(filename, treename));
   // we print this note to explain the error message in the log
-  std::cout << "Note: This error has been provoked by the configuration, the exception has been handled" << std::endl;
+  INFO("Note: This error has been provoked by the configuration, the exception has been handled");
 }
 
 template <typename T>
 using Trait = RootTreeWriter::StructureElementTypeTrait<T>;
 template <typename T>
 using BinaryBranchStoreType = RootTreeWriter::BinaryBranchStoreType<T>;
-BOOST_AUTO_TEST_CASE(test_RootTreeWriterSpec_store_types)
+TEST_CASE("test_RootTreeWriterSpec_store_types")
 {
   using TriviallyCopyable = o2::test::TriviallyCopyable;
   using Polymorphic = o2::test::Polymorphic;
@@ -313,7 +319,7 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriterSpec_store_types)
   static_assert(std::is_same<Trait<std::vector<Polymorphic>>::store_type, std::vector<Polymorphic>*>::value == true);
 }
 
-BOOST_AUTO_TEST_CASE(TestCanAssign)
+TEST_CASE("TestCanAssign")
 {
   using Callback = std::function<bool(int, float)>;
   auto matching = [](int, float) -> bool {
@@ -325,8 +331,8 @@ BOOST_AUTO_TEST_CASE(TestCanAssign)
   auto otherParam = [](int, int) -> bool {
     return true;
   };
-  BOOST_REQUIRE((can_assign<decltype(matching), Callback>::value == true));
-  BOOST_REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
-  BOOST_REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
+  REQUIRE((can_assign<decltype(matching), Callback>::value == true));
+  REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
+  REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
 }
 } // namespace o2::test

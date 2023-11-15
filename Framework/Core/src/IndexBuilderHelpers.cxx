@@ -28,7 +28,8 @@ ChunkedArrayIterator::ChunkedArrayIterator(std::shared_ptr<arrow::ChunkedArray> 
 }
 
 SelfIndexColumnBuilder::SelfIndexColumnBuilder(const char* name, arrow::MemoryPool* pool)
-  : mColumnName{name}
+  : mColumnName{name},
+    mArrowType{arrow::int32()}
 {
   auto status = arrow::MakeBuilder(pool, arrow::int32(), &mBuilder);
   if (!status.ok()) {
@@ -38,7 +39,7 @@ SelfIndexColumnBuilder::SelfIndexColumnBuilder(const char* name, arrow::MemoryPo
 
 std::shared_ptr<arrow::Field> SelfIndexColumnBuilder::field() const
 {
-  return std::make_shared<arrow::Field>(mColumnName, arrow::int32());
+  return std::make_shared<arrow::Field>(mColumnName, mArrowType);
 }
 
 IndexColumnBuilder::IndexColumnBuilder(std::shared_ptr<arrow::ChunkedArray> source, const char* name, int listSize, arrow::MemoryPool* pool)
@@ -204,7 +205,11 @@ void IndexColumnBuilder::fillSlice(int idx)
 void IndexColumnBuilder::fillMulti(int idx)
 {
   (void)static_cast<arrow::ListBuilder*>(mListBuilder.get())->Append();
-  (void)static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(mIndices[idx].data(), mIndices[idx].size());
+  if (std::find(mValues.begin(), mValues.end(), idx) != mValues.end()) {
+    (void)static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(mIndices[idx].data(), mIndices[idx].size());
+  } else {
+    (void)static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(nullptr, 0);
+  }
 }
 
 std::shared_ptr<arrow::Int32Array> ChunkedArrayIterator::getCurrentArray()

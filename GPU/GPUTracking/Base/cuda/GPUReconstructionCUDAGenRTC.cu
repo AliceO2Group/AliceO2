@@ -179,6 +179,7 @@ int GPUReconstructionCUDA::genRTC()
     if (mProcessingSettings.debugLevel >= 0) {
       GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
     }
+#ifdef GPUCA_HAVE_O2HEADERS
     if (mProcessingSettings.rtc.cacheOutput) {
       FILE* fp = fopen("rtc.cuda.cache", "w+b");
       if (fp == nullptr) {
@@ -216,6 +217,7 @@ int GPUReconstructionCUDA::genRTC()
       }
       fclose(fp);
     }
+#endif
   }
 
   for (unsigned int i = 0; i < nCompile; i++) {

@@ -19,9 +19,14 @@ namespace mch
 {
 void vectorPrint(const char* str, const double* x, int K)
 {
-  printf("%s", str);
-  for (int k = 0; k < K; k++) {
-    printf(" %9.6g", x[k]);
+  int nPackets = K / 10 + 1;
+
+  printf("%s %d ???%d\n", str, K, nPackets);
+  for (int i = 0; i < nPackets; i++) {
+    for (int k = 0; (k < 10) && ((i * 10 + k) < K); k++) {
+      printf(" %9.6g", x[i * 10 + k]);
+    }
+    printf("\n");
   }
   printf("\n");
 }

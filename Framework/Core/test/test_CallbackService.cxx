@@ -18,7 +18,6 @@
 #include "Framework/runDataProcessing.h"
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 using namespace o2::framework;
@@ -47,7 +46,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
          auto callback = [count]() {
            (*count)++;
          };
-         ic.services().get<CallbackService>().set(CallbackService::Id::ClockTick, callback);
+         ic.services().get<CallbackService>().set<CallbackService::Id::ClockTick>(callback);
          return [count](ProcessingContext& ctx) {
            if (*count > 10) {
              ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);

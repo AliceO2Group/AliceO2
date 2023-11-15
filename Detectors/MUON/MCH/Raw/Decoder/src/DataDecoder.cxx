@@ -18,17 +18,16 @@
 
 #include "MCHRawDecoder/DataDecoder.h"
 
-#include <fstream>
-#include <fairlogger/Logger.h>
-#include "Headers/RAWDataHeader.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "DetectorsRaw/HBFUtils.h"
-#include "MCHBase/DecoderError.h"
-#include "MCHMappingInterface/Segmentation.h"
 #include "Framework/Logger.h"
+#include "Headers/RAWDataHeader.h"
+#include "MCHBase/DecoderError.h"
+#include "MCHConstants/DetectionElements.h"
+#include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawDecoder/ErrorCodes.h"
-#include "DetectionElements.h"
+#include <fairlogger/Logger.h>
+#include <fstream>
 
 #define MCH_DECODER_MAX_ERROR_COUNT 100
 
@@ -242,8 +241,10 @@ bool DataDecoder::TimeFrameStartRecord::check(int32_t orbit, uint32_t bc, int32_
 
 DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
                          std::string mapCRUfile, std::string mapFECfile,
-                         bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode)
+                         bool ds2manu, bool verbose, bool useDummyElecMap,
+                         TimeRecoMode timeRecoMode,
+                         uint32_t nofOrbitsPerTF)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode), mOrbitsInTF(nofOrbitsPerTF)
 {
   init();
 }
@@ -898,7 +899,6 @@ void DataDecoder::init()
   initFee2SolarMapper(mMapCRUfile);
   initElec2DetMapper(mMapFECfile);
 
-  mOrbitsInTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
   mBcInOrbit = o2::constants::lhc::LHCMaxBunches;
 
   mTimeFrameStartRecords.resize(sReadoutChipsNum);

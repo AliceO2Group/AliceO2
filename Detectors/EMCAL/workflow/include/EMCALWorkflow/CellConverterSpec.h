@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_CELLCONVERTER_SPEC
+#define O2_EMCAL_CELLCONVERTER_SPEC
+
 #include <vector>
 
 #include "DataFormatsEMCAL/Cell.h"
@@ -19,6 +22,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
 #include "EMCALReconstruction/AltroHelper.h"
+#include "EMCALWorkflow/CalibLoader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
@@ -46,7 +50,10 @@ class CellConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  CellConverterSpec(bool propagateMC) : framework::Task(), mPropagateMC(propagateMC){};
+  /// \param useccdb If true the TecoParams
+  /// \param inputSubsepc Subsepc of input objects
+  /// \param outputSubspec Subspec of output objects
+  CellConverterSpec(bool propagateMC, int inputSubsepc, int outputSubspec, std::shared_ptr<o2::emcal::CalibLoader> calibhandler) : framework::Task(), mPropagateMC(propagateMC), mSubspecificationIn(inputSubsepc), mSubspecificationOut(outputSubspec), mCalibHandler(calibhandler){};
 
   /// \brief Destructor
   ~CellConverterSpec() override = default;
@@ -73,6 +80,8 @@ class CellConverterSpec : public framework::Task
   /// Output MC-truth: {"EMC", "CELLSMCTR", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
+
  protected:
   std::vector<o2::emcal::SRUBunchContainer> digitsToBunches(gsl::span<const o2::emcal::Digit> digits, std::vector<gsl::span<const o2::emcal::MCLabel>>& mcLabels);
 
@@ -82,10 +91,16 @@ class CellConverterSpec : public framework::Task
 
   int selectMaximumBunch(const gsl::span<const Bunch>& bunchvector);
 
+  /// \brief Update calibration objects
+  void updateCalibrationObjects();
+
  private:
   bool mPropagateMC = false;                                           ///< Switch whether to process MC true labels
-  o2::emcal::Geometry* mGeometry = nullptr;                            ///!<! Geometry pointer
-  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;                ///!<! Raw fitter
+  unsigned int mSubspecificationIn = 0;                                ///< Input subspecification
+  unsigned int mSubspecificationOut = 0;                               ///< Output subspecification
+  o2::emcal::Geometry* mGeometry = nullptr;                            //!<! Geometry pointer
+  std::shared_ptr<o2::emcal::CalibLoader> mCalibHandler;               //!<! Calibration handler
+  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;                //!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;                           ///< Container with output cells
   std::vector<o2::emcal::TriggerRecord> mOutputTriggers;               ///< Container with output trigger records
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> mOutputLabels; ///< Container with output MC labels
@@ -94,12 +109,17 @@ class CellConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
 /// \ingroup EMCALworkflow
 /// \param propagateMC If true the MC truth container is propagated to the output
+/// \param useccdb If true the RecoParams are loaded from the CCDB
+/// \param inputSubsepc Subspec of input objects
+/// \param outputSubspec Subspec of output objects
 ///
 /// Refer to CellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getCellConverterSpec(bool propagateMC);
+framework::DataProcessorSpec getCellConverterSpec(bool propagateMC, int inputSubsepc = 0, int outputSubspec = 0);
 
 } // namespace reco_workflow
 
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_CELLCONVERTER_SPEC

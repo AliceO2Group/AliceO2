@@ -206,6 +206,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
   int bufferDim = PEDTHBYTES * Geo::N_CHANNELS * Geo::N_DILOGICS * Geo::N_COLUMNS + 10;
   char* outBuffer = new char[bufferDim];
   char* inserPtr;
+  char* endPtr = outBuffer + bufferDim;
 
   for (int e = 0; e < Geo::MAXEQUIPMENTS; e++) {
     if (mDeco->getAverageEventSize(e) == 0) { // skip the empty equipment
@@ -229,19 +230,22 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
           Pedestal = (uint32_t)Average;
           Threshold = (uint32_t)(Variance * mSigmaCut + Average);
           PedThr = ((Threshold & 0x001FF) << 9) | (Pedestal & 0x001FF);
-          sprintf(inserPtr, PEDTHFORMAT, PedThr);
+          assert(inserPtr < endPtr);
+          snprintf(inserPtr, endPtr - inserPtr, PEDTHFORMAT, PedThr);
           inserPtr += PEDTHBYTES;
         }
         if (COLUMNTAIL) {
           for (int h = 48; h < 64; h++) {
-            sprintf(inserPtr, PEDTHFORMAT, 0);
+            assert(inserPtr < endPtr);
+            snprintf(inserPtr, endPtr - inserPtr, PEDTHFORMAT, 0);
             inserPtr += PEDTHBYTES;
           }
         }
       }
     }
     mExTimer.logMes("End write the equipment = " + std::to_string(e));
-    sprintf(inserPtr, "%05X\n", 0xA0A0A); // The closure value
+    assert(inserPtr < endPtr);
+    snprintf(inserPtr, endPtr - inserPtr, "%05X\n", 0xA0A0A); // The closure value
     inserPtr += 6;
     *inserPtr = '\0'; // close the string rap.
     o2::dcs::addConfigItem(pedestalsConfig, "Equipment" + std::to_string(e), (const char*)outBuffer);

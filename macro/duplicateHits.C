@@ -17,12 +17,13 @@
 #include "DataFormatsCPV/Hit.h"
 #include "DataFormatsZDC/Hit.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/TrackReference.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsCommonDataFormats/SimTraits.h"
-
 #ifdef ENABLE_UPGRADES
-#include "EndCapsSimulation/Hit.h"
+// todo: put upgrade detectors?
 #endif
 
 #endif

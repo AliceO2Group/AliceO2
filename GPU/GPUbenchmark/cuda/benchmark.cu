@@ -11,6 +11,7 @@
 ///
 /// \author mconcas@cern.ch
 ///
+#include <unistd.h>
 
 #include "../Shared/Kernels.h"
 #define VERSION "version 0.3"
@@ -56,7 +57,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 
     if (vm.count("extra")) {
       o2::benchmark::benchmarkOpts opts;
-      o2::benchmark::GPUbenchmark<char> bm_dummy{opts, nullptr};
+      o2::benchmark::GPUbenchmark<char> bm_dummy{opts};
       bm_dummy.printDevices();
       return false;
     }
@@ -173,39 +174,32 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   return true;
 }
 
-using o2::benchmark::ResultWriter;
-
 int main(int argc, const char* argv[])
 {
+  std::cout << "Started benchmark with pid: " << getpid() << std::endl;
   o2::benchmark::benchmarkOpts opts;
 
   if (!parseArgs(opts, argc, argv)) {
     return -1;
   }
 
-  std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>(std::to_string(opts.deviceId) + "_" + opts.outFileName + ".root");
-
   for (auto& dtype : opts.dtypes) {
     if (dtype == "char") {
-      o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
+      o2::benchmark::GPUbenchmark<char> bm_char{opts};
       bm_char.run();
     } else if (dtype == "int") {
-      o2::benchmark::GPUbenchmark<int> bm_int{opts, writer};
+      o2::benchmark::GPUbenchmark<int> bm_int{opts};
       bm_int.run();
     } else if (dtype == "ulong") {
-      o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
+      o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts};
       bm_size_t.run();
     } else if (dtype == "int4") {
-      o2::benchmark::GPUbenchmark<int4> bm_size_t{opts, writer};
+      o2::benchmark::GPUbenchmark<int4> bm_size_t{opts};
       bm_size_t.run();
     } else {
       std::cerr << "Unkonwn data type: " << dtype << std::endl;
       exit(1);
     }
   }
-
-  // save results
-  writer.get()->saveToFile();
-
   return 0;
 }

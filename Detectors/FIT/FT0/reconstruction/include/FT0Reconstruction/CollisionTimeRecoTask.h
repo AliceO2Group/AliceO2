@@ -19,8 +19,10 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/SpectraInfoObject.h"
 #include <gsl/span>
 #include <array>
+#include <vector>
 #include <TGraph.h>
 
 namespace o2
@@ -39,20 +41,25 @@ class CollisionTimeRecoTask
                Vertex };
   CollisionTimeRecoTask() = default;
   ~CollisionTimeRecoTask() = default;
-  o2::ft0::RecPoints process(o2::ft0::Digit const& bcd,
-                             gsl::span<const o2::ft0::ChannelData> inChData,
-                             gsl::span<o2::ft0::ChannelDataFloat> outChData);
+  void processTF(const gsl::span<const o2::ft0::Digit>& digits,
+                 const gsl::span<const o2::ft0::ChannelData>& channels,
+                 std::vector<o2::ft0::RecPoints>& vecRecPoints,
+                 std::vector<o2::ft0::ChannelDataFloat>& vecChData);
+
+  o2::ft0::RecPoints processDigit(const o2::ft0::Digit& digit,
+                                  const gsl::span<const o2::ft0::ChannelData> inChData,
+                                  std::vector<o2::ft0::ChannelDataFloat>& outChData);
   void FinishTask();
-  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const* caliboffsets) { mCalibOffset = caliboffsets; };
+  void SetTimeCalibObject(o2::ft0::TimeSpectraInfoObject const* timeCalibObject) { mTimeCalibObject = timeCalibObject; };
   void SetSlew(std::array<TGraph, NCHANNELS>* calibslew)
   {
     LOG(info) << "@@@SetSlew " << calibslew->size();
     mCalibSlew = calibslew;
   };
-  int getOffset(int channel, int amp);
+  float getTimeInPS(const o2::ft0::ChannelData& channelData);
 
  private:
-  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
+  o2::ft0::TimeSpectraInfoObject const* mTimeCalibObject = nullptr;
   std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
 
   ClassDefNV(CollisionTimeRecoTask, 3);

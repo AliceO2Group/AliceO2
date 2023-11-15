@@ -55,7 +55,7 @@ struct InputRoute {
   size_t inputSpecIndex;
   std::string sourceChannel;
   size_t timeslice;
-  std::optional<RouteConfigurator> configurator;
+  std::optional<RouteConfigurator> configurator = std::nullopt;
 };
 
 } // namespace o2::framework

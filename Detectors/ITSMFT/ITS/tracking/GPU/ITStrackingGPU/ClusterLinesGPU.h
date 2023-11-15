@@ -65,7 +65,6 @@ class ClusterLinesGPU final
  private:
   float mAMatrix[6];         // AX=B
   float mBMatrix[3];         // AX=B
-  int mLabels[2];            // labels
   float mVertexCandidate[3]; // vertex candidate
   float mWeightMatrix[9];    // weight matrix
   float mVertex[3];          // cluster centroid position

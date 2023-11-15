@@ -17,6 +17,7 @@
 #define BOOST_TEST_MODULE CCDB
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/ConfigurableParam.h"

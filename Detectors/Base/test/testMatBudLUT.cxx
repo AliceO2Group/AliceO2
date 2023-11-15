@@ -13,6 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
+#include <unistd.h>
 
 #include "buildMatBudLUT.C"
 
@@ -22,8 +23,13 @@ BOOST_AUTO_TEST_CASE(MatBudLUT)
 {
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 
-  BOOST_CHECK(buildMatBudLUT(2, 20)); // generate LUT
-  BOOST_CHECK(testMBLUT());           // test LUT manipulations
+  // using process specific geometry names in order
+  // to avoid race/conditions with other tests accessing geometry
+  std::string geomPrefix("matBudGeom");
+  std::string matBudFile("matbud");
+  matBudFile += std::to_string(getpid()) + ".root";
+  BOOST_CHECK(buildMatBudLUT(2, 20, matBudFile, geomPrefix + std::to_string(getpid()))); // generate LUT
+  BOOST_CHECK(testMBLUT(matBudFile));                                                    // test LUT manipulations
 
 #endif //!GPUCA_ALIGPUCODE
 }

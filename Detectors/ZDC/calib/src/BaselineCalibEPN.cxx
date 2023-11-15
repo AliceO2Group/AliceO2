@@ -23,18 +23,24 @@ using namespace o2::zdc;
 
 int BaselineCalibEPN::init()
 {
-  // Inspect reconstruction parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
-  opt.print();
-
-  if (mVerbosity > DbgZero) {
-    mModuleConfig->print();
+  static bool firstCall = true;
+  if (firstCall) {
+    // Inspect reconstruction parameters
+    const auto& opt = CalibParamZDC::Instance();
+    if (mVerbosity >= DbgFull) {
+      opt.print();
+    }
+    if (opt.debugOutput == true) {
+      setSaveDebugHistos();
+    }
+    if (mVerbosity >= DbgMedium) {
+      mModuleConfig->print();
+    }
+    firstCall = false;
+  } else {
+    // Reset data structure
+    mData.clear();
   }
-
-  if (opt.rootOutput == true) {
-    setSaveDebugHistos();
-  }
-
   mInitDone = true;
   return 0;
 }
@@ -55,6 +61,9 @@ int BaselineCalibEPN::process(const gsl::span<const o2::zdc::OrbitData>& orbitda
         auto myped = float(myorbit.data[ich]) * mModuleConfig->baselineFactor;
         if (myped >= ADCMin && myped <= ADCMax) {
           mData.addEntry(ich, myorbit.data[ich]);
+          if (mSaveDebugHistos) {
+            mDataSum.addEntry(ich, myorbit.data[ich]);
+          }
         }
       }
     }
@@ -66,16 +75,22 @@ int BaselineCalibEPN::process(const gsl::span<const o2::zdc::OrbitData>& orbitda
 int BaselineCalibEPN::endOfRun()
 {
   if (mVerbosity > DbgZero) {
-    mData.print();
+    LOG(info) << "BaselineCalibEPN::endOfRun";
   }
   if (mSaveDebugHistos) {
+    if (mVerbosity >= DbgMedium) {
+      mDataSum.print();
+    }
     saveDebugHistos();
   }
+  mInitDone = false;
   return 0;
 }
 
 //______________________________________________________________________________
 int BaselineCalibEPN::saveDebugHistos(const std::string fn)
 {
-  return mData.saveDebugHistos(fn, mModuleConfig->baselineFactor);
+  // EPN debug histos are now cumulated over process life
+  LOG(info) << "Saving EPN debug histos on file " << fn;
+  return mDataSum.saveDebugHistos(fn, mModuleConfig->baselineFactor);
 }

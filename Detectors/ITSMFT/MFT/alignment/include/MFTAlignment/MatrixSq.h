@@ -144,7 +144,7 @@ class MatrixSq : public TMatrixDBase
  protected:
   Bool_t fSymmetric; ///< is the matrix symmetric? Only lower triangle is filled
 
-  ClassDef(MatrixSq, 1);
+  ClassDefOverride(MatrixSq, 1);
 };
 
 //___________________________________________________________

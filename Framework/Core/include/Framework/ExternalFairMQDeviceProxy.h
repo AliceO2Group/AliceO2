@@ -13,7 +13,6 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/DataAllocator.h"
 #include <fairmq/FwdDecls.h>
 #include <vector>
 #include <functional>
@@ -24,7 +23,16 @@ namespace o2::framework
 /// A callback function to retrieve the fair::mq::Channel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
-using InjectorFunction = std::function<void(TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever)>;
+/// The callback which actually does the heavy lifting of converting the input data into
+/// DPL messages. The callback is invoked with the following parameters:
+/// @param timingInfo is the timing information of the current timeslice
+/// @param services is the service registry
+/// @param inputs is the list of input messages
+/// @param channelRetriever is a callback to retrieve the fair::mq::Channel name to be used for
+///        sending the messages
+/// @param newTimesliceId is the timeslice ID of the current timeslice
+/// @return true if any message were sent, false otherwise
+using InjectorFunction = std::function<bool(TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& inputs, ChannelRetriever, size_t newTimesliceId, bool& stop)>;
 using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>& channels)>;
 
 struct InputChannelSpec;
@@ -43,10 +51,14 @@ void sendOnChannel(fair::mq::Device& device, o2::header::Stack&& headerStack, fa
 
 void sendOnChannel(fair::mq::Device& device, fair::mq::Parts& messages, std::string const& channel, size_t timeSlice);
 
+/// append a header/payload part to multipart message for aggregate sending, a channel retriever
+/// callback is required to get the associated fair::mq::Channel
+void appendForSending(fair::mq::Device& device, o2::header::Stack&& headerStack, size_t timeSliceID, fair::mq::MessagePtr&& payloadMessage, OutputSpec const& spec, fair::mq::Parts& messageCache, ChannelRetriever& channelRetriever);
+
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header
 /// and sends them to the downstream components.
-InjectorFunction incrementalConverter(OutputSpec const& spec, uint64_t startTime, uint64_t step);
+InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::SerializationMethod method, uint64_t startTime, uint64_t step);
 
 /// This is to be used for sources which already have an O2 Data Model /
 /// (header, payload) structure for their output. At the moment what this /
@@ -81,7 +93,7 @@ inline InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs, bo
 }
 
 /// The default connection method for the custom source
-static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
+static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, header::gSerializationMethodROOT, 0, 1);
 
 /// Default way to select an output channel for multi-output proxy.
 std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>& channels);
@@ -101,7 +113,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    std::vector<OutputSpec> const& outputs,
                                                    const char* defaultChannelConfig,
                                                    InjectorFunction converter,
-                                                   uint64_t minSHM = 0);
+                                                   uint64_t minSHM = 0,
+                                                   bool sendTFcounter = false,
+                                                   bool doInjectMissingData = false,
+                                                   unsigned int doPrintSizes = 0);
 
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
                                                  Inputs const& inputSpecs,

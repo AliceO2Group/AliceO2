@@ -34,22 +34,26 @@ void ColumnDataHandler::add(uint8_t deId, uint8_t columnId, int lineId, int stri
   dataIt->second.addStrip(strip, cathode, lineId);
 }
 
-bool ColumnDataHandler::merge(const ColumnData& col)
+bool ColumnDataHandler::merge(const ColumnData& col, size_t idx)
 {
   auto uniqueId = getColumnDataUniqueId(col.deId, col.columnId);
   auto dataIt = mData.find(uniqueId);
+  bool isNew = false;
   if (dataIt == mData.end()) {
+    isNew = true;
     mData[uniqueId] = col;
-    return true;
+  } else {
+    dataIt->second |= col;
   }
-  dataIt->second |= col;
-  return false;
+  mCorrespondence[uniqueId].emplace_back(idx);
+
+  return isNew;
 }
 
-void ColumnDataHandler::merge(gsl::span<const ColumnData> colVec)
+void ColumnDataHandler::merge(gsl::span<const ColumnData> colVec, size_t idx)
 {
-  for (auto& col : colVec) {
-    merge(col);
+  for (size_t ic = 0, end = colVec.size(); ic < end; ++ic) {
+    merge(colVec[ic], idx + ic);
   }
 }
 
@@ -61,6 +65,22 @@ std::vector<ColumnData> ColumnDataHandler::getMerged() const
     data.emplace_back(item.second);
   }
   return data;
+}
+
+void ColumnDataHandler::clear()
+{
+  mData.clear();
+  mCorrespondence.clear();
+}
+
+std::vector<size_t> ColumnDataHandler::getMergedIndexes(const ColumnData& col) const
+{
+  auto uniqueId = getColumnDataUniqueId(col.deId, col.columnId);
+  auto corrIt = mCorrespondence.find(uniqueId);
+  if (corrIt == mCorrespondence.end()) {
+    return std::vector<size_t>{};
+  }
+  return corrIt->second;
 }
 
 } // namespace mid

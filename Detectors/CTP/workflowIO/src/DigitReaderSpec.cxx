@@ -14,6 +14,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/NameConf.h"
@@ -44,12 +45,14 @@ class DigitReader : public Task
   void connectTree(const std::string& filename);
 
   std::vector<o2::ctp::CTPDigit> mDigits, *mDigitsPtr = &mDigits;
+  o2::ctp::LumiInfo mLumi, *mLumiPtr = &mLumi;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
 
   bool mUseMC = false; // use MC truth
   std::string mDigTreeName = "o2sim";
   std::string mDigitBranchName = "CTPDigits";
+  std::string mLumiBranchName = "CTPLumi";
 };
 
 DigitReader::DigitReader(bool useMC)
@@ -74,6 +77,7 @@ void DigitReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "DigitReader pushes " << mDigits.size() << " digits at entry " << ent;
   pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+  pc.outputs().snapshot(Output{"CTP", "LUMI", 0, Lifetime::Timeframe}, mLumi);
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -87,19 +91,30 @@ void DigitReader::connectTree(const std::string& filename)
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get(mDigTreeName.c_str()));
   assert(mTree);
+  if (mTree->GetBranch(mDigitBranchName.c_str())) {
+    mTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
+  } else {
+    LOGP(warn, "Digits branch {} is absent", mDigitBranchName);
+  }
+  if (mTree->GetBranch(mLumiBranchName.c_str())) {
+    mTree->SetBranchAddress(mLumiBranchName.c_str(), &mLumiPtr);
+  } else {
+    LOGP(warn, "Lumi branch {} is absent", mLumiBranchName);
+  }
   mTree->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getDigitsReaderSpec(bool useMC)
+DataProcessorSpec getDigitsReaderSpec(bool useMC, const std::string& defFile)
 {
   return DataProcessorSpec{
     "ctp-digit-reader",
     Inputs{},
-    Outputs{{"CTP", "DIGITS", 0, Lifetime::Timeframe}},
+    Outputs{{"CTP", "DIGITS", 0, Lifetime::Timeframe},
+            {"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      {"ctp-digit-infile", VariantType::String, "ctpdigits.root", {"Name of the input digit file"}},
+      {"ctp-digit-infile", VariantType::String, defFile, {"Name of the input digit file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

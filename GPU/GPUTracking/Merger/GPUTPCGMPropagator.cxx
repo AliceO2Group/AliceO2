@@ -19,6 +19,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUParam.inc"
 #include "GPUTPCGMMergerTypes.h"
+#include "GPUDebugStreamer.h"
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
 #include "AliTracker.h"
@@ -566,15 +567,17 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
   float bz = GetBz(mT->X(), mT->Y(), mT->Z());
   float k = mT0.QPt() * bz;
   float dx = x - mT->X();
-  float kdx = k * dx;
   float ex = mT0.CosPhi();
   float ey = mT0.SinPhi();
-  float ey1 = kdx + ey;
+  float ey1 = ey - k * dx;
   if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) {
     return 1;
   }
   float ss = ey + ey1;
   float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
+  if (ex < 0) {
+    ex1 = -ex1;
+  }
   float cc = ex + ex1;
   float dxcci = dx / cc;
   float dy = dxcci * ss;
@@ -594,21 +597,31 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
   return 0;
 }
 
-GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState) const
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState, bool sideC) const
 {
-  if (!mSeedingErrors) {
-    param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
-  } else {
-    param.GetClusterRMS2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
-  }
-  param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
+  GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), iRow, clusterState, sideC);
 }
 
-GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState) const
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC)
+{
+#ifndef GPUCA_TPC_GEOMETRY_O2
+  if (mSeedingErrors) {
+    param.GetClusterErrorsSeeding2(iRow, posZ, snp, tgl, err2Y, err2Z);
+  } else
+#endif
+  {
+    param.GetClusterErrors2(iRow, posZ, snp, tgl, err2Y, err2Z);
+  }
+  param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
+  float statErr2 = param.GetSystematicClusterErrorIFC2(x, posZ, sideC);
+  err2Y += statErr2;
+  err2Z += statErr2;
+}
+
+GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, bool sideC) const
 {
   float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
+  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sideC);
   return PredictChi2(posY, posZ, err2Y, err2Z);
 }
 
@@ -639,16 +652,19 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit)
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, bool sideC GPUCA_DEBUG_STREAMER_CHECK(, int iTrk))
 {
   float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
+  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sideC);
 
   if (rejectChi2 >= 2) {
     if (rejectChi2 == 3 && inter->errorY < (GPUCA_MERGER_INTERPOLATION_ERROR_TYPE)0) {
       rejectChi2 = 1;
     } else {
-      int retVal = InterpolateReject(posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
+      int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
+      GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster, iTrk)) {
+        o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data() << "mAlpha=" << mAlpha << "iRow=" << iRow << "posY=" << posY << "posZ=" << posZ << "clusterState=" << clusterState << "rejectChi2=" << rejectChi2 << "interpolationhit=" << *inter << "refit=" << refit << "retVal=" << retVal << "err2Y=" << err2Y << "err2Z=" << err2Z << "track=" << mT << "\n";
+      })
       if (retVal) {
         return retVal;
       }
@@ -672,10 +688,10 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
     return 0;
   }
 
-  return Update(posY, posZ, clusterState, rejectChi2 == 1, err2Y, err2Z);
+  return Update(posY, posZ, clusterState, rejectChi2 == 1, err2Y, err2Z, &param);
 }
 
-GPUd() int GPUTPCGMPropagator::InterpolateReject(float posY, float posZ, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z)
+GPUd() int GPUTPCGMPropagator::InterpolateReject(const GPUParam& GPUrestrict() param, float posY, float posZ, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z)
 {
   float* GPUrestrict() mC = mT->Cov();
   float* GPUrestrict() mP = mT->Par();
@@ -735,14 +751,14 @@ GPUd() int GPUTPCGMPropagator::InterpolateReject(float posY, float posZ, short c
       chiY = CAMath::Abs((Jw0 * Jz0 + Jw1 * Jz1) * Jz0);
       chiZ = CAMath::Abs((Jw1 * Jz0 + Jw2 * Jz1) * Jz1);
     }
-    if (RejectCluster(chiY, chiZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
+    if (RejectCluster(chiY * param.rec.tpc.clusterRejectChi2TolleranceY, chiZ * param.rec.tpc.clusterRejectChi2TolleranceZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
       return 2;
     }
   }
   return 0;
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z)
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* GPUrestrict() param)
 {
   float* GPUrestrict() mC = mT->Cov();
   float* GPUrestrict() mP = mT->Par();
@@ -776,7 +792,7 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState
   }
   float dChi2 = chiY + chiZ;
   // GPUInfo("hits %d chi2 %f, new %f %f (dy %f dz %f)", N, mChi2, chiY, chiZ, z0, z1);
-  if (!mSeedingErrors && rejectChi2 == 1 && RejectCluster(chiY, chiZ, clusterState)) {
+  if (rejectChi2 == 1 && RejectCluster(chiY * param->rec.tpc.clusterRejectChi2TolleranceY, chiZ * param->rec.tpc.clusterRejectChi2TolleranceZ, clusterState)) {
     return 2;
   }
   mT->Chi2() += dChi2;

@@ -184,7 +184,7 @@ void ChipMappingITS::expandChipInfoSW(int idSW, int& lay, int& sta, int& ssta, i
   sta = staveInfo->idSW;
   mod = chi.chOnRU->moduleSW;
   chipInMod = chi.chOnRU->chipOnModuleSW;
-  ssta = lay < 3 || (mod < (NModulesPerStaveSB[chi.ruType] >> 2)) ? 0 : 1;
+  ssta = lay < 3 || (mod < NModulesAlongStaveSB[chi.ruType]) ? 0 : 1;
 }
 
 //______________________________________________
@@ -231,4 +231,39 @@ void ChipMappingITS::imposeFEEId2RUSW(uint16_t feeID, uint16_t ruSW)
     LOG(fatal) << "Invalid SW RUid " << ruSW << " (cannot exceed " << getNRUs() << ")";
   }
   mFEEId2RUSW[feeID] = ruSW;
+}
+
+std::vector<ChipMappingITS::Overlaps> ChipMappingITS::getOverlapsInfo() const
+{
+  std::vector<ChipMappingITS::Overlaps> v(getNChips());
+  for (int id = 0; id < getNChips(); id++) {
+    auto& vval = v[id];
+    int lay, sta, ssta, mod, chip;
+    expandChipInfoSW(id, lay, sta, ssta, mod, chip);
+    int ruTp = getRUType(sta);
+    if (ruTp == IB) {
+      int chOnLr = id - getFirstChipsOnLayer(lay), chPerSStave = getNChipsOnRUType(ruTp);
+      vval.lowRow = getFirstChipsOnLayer(lay) + (chOnLr - chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay);  // chips overlapping from rowMin side with other chips high row side
+      vval.highRow = getFirstChipsOnLayer(lay) + (chOnLr + chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay); // chips overlapping from rowMax side with other chips low row side
+      vval.lowRowOverlap = ChipMappingITS::Overlaps::HighRow;
+      vval.highRowOverlap = ChipMappingITS::Overlaps::LowRow;
+    } else {
+      int staOv = sta, modOv = mod;
+      auto NChipsModule = NChipsPerModuleSB[ruTp];
+      if (ssta == 0) {
+        modOv += getNModulesPerStave(ruTp) / 2;
+        if (chip >= NChipsModule / 2) {                                                                                      // overlap is possible only with ssta=1 of previous stave, otherwise only with ssta=1 of the same stave;  only from high row side with other chips high row side
+          staOv = getFirstStavesOnLr(lay) + (sta - getFirstStavesOnLr(lay) - 1 + getNStavesOnLr(lay)) % getNStavesOnLr(lay); // stave below
+        }
+      } else {
+        modOv -= getNModulesPerStave(ruTp) / 2;
+        if (chip < NChipsModule / 2) {                                                                                       // overlap is possible only with ssta=0 of the next stave, otherwise only with ssta=0 of the same stave and only from high row side with other chips high row side
+          staOv = getFirstStavesOnLr(lay) + (sta - getFirstStavesOnLr(lay) + 1 + getNStavesOnLr(lay)) % getNStavesOnLr(lay); // stave above
+        }
+      }
+      vval.highRow = getGlobalChipIDSW(lay, staOv, modOv, NChipsModule - 1 - chip);
+      vval.highRowOverlap = ChipMappingITS::Overlaps::HighRow;
+    }
+  }
+  return v;
 }

@@ -43,12 +43,14 @@ std::vector<int> PreClustersDE::getNeighbours(int icolumn, int idx) const
     return neighbours;
   }
   const BP& pcB = mPreClustersBP[icolumn][idx];
+  static constexpr double epsilon = 0.1;
+  // The epsilon is used to reject strips that touches only in one corner
   for (int ib = 0; ib < mPreClustersBP[icolumn + 1].size(); ++ib) {
     const BP& neigh = mPreClustersBP[icolumn + 1][ib];
-    if (neigh.area.getYmin() > pcB.area.getYmax()) {
+    if (neigh.area.getYmin() > pcB.area.getYmax() - epsilon) {
       continue;
     }
-    if (neigh.area.getYmax() < pcB.area.getYmin()) {
+    if (neigh.area.getYmax() < pcB.area.getYmin() + epsilon) {
       continue;
     }
     neighbours.emplace_back(ib);

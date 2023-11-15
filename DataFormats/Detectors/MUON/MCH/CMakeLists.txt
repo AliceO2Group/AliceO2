@@ -38,3 +38,9 @@ o2_add_test(digit
             COMPONENT_NAME mch
             LABELS muon;mch)
 
+o2_add_test(track
+            SOURCES src/testTrackMCH.cxx
+            PUBLIC_LINK_LIBRARIES O2::MCHBase
+            COMPONENT_NAME mch
+            LABELS muon;mch)
+

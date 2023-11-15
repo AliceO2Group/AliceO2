@@ -41,7 +41,7 @@ class DecodedDataAggregatorDeviceDPL
       double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << "  aggregating: " << mTimerAlgo.count() * scaleFactor << " us";
     };
-    ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
+    ic.services().get<of::CallbackService>().set<of::CallbackService::Id::Stop>(stop);
   }
 
   void run(of::ProcessingContext& pc)

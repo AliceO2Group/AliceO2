@@ -28,7 +28,7 @@
 
 namespace o2::mch::io::impl
 {
-void DigitReaderV0::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
+void DigitSamplerV0::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
 {
   rewind(in);
   ndigits = 0;
@@ -45,9 +45,9 @@ void DigitReaderV0::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   rewind(in);
 }
 
-bool DigitReaderV0::read(std::istream& in,
-                         std::vector<Digit>& digits,
-                         std::vector<ROFRecord>& rofs)
+bool DigitSamplerV0::read(std::istream& in,
+                          std::vector<Digit>& digits,
+                          std::vector<ROFRecord>& rofs)
 {
   // note the input vectors are not cleared as this is the responsability
   // of the calling class, if need be.
@@ -67,15 +67,15 @@ bool DigitReaderV0::read(std::istream& in,
   return true;
 }
 
-void DigitReaderV0::rewind(std::istream& in)
+void DigitSamplerV0::rewind(std::istream& in)
 {
-  DigitReaderImpl::rewind(in);
+  DigitSamplerImpl::rewind(in);
   mCurrentROF = 0;
 }
 
-bool DigitWriterV0::write(std::ostream& out,
-                          gsl::span<const Digit> digits,
-                          gsl::span<const ROFRecord> rofs)
+bool DigitSinkV0::write(std::ostream& out,
+                        gsl::span<const Digit> digits,
+                        gsl::span<const ROFRecord> rofs)
 {
   // V0 format had no notion of rofs, so we strip them
   for (auto r : rofs) {

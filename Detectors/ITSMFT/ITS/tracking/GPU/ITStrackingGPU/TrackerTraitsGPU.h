@@ -23,7 +23,7 @@ namespace o2
 namespace its
 {
 
-template <int NLayers = 7>
+template <int nLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
  public:
@@ -38,9 +38,17 @@ class TrackerTraitsGPU : public TrackerTraits
   void setBz(float) override;
   void findCellsNeighbours(const int iteration) override;
   void findRoads(const int iteration) override;
+
+  // Methods to get CPU execution from traits
+  void initialiseTimeFrameHybrid(const int iteration) override { initialiseTimeFrame(iteration); };
+  void computeTrackletsHybrid(const int iteration) override;
+  void computeCellsHybrid(const int iteration) override;
+  void findCellsNeighboursHybrid(const int iteration) override;
+  void findRoadsHybrid(const int iteration) override;
+  void findTracksHybrid(const int iteration) override;
+
   void findTracks() override;
   void extendTracks(const int iteration) override;
-  // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
 
   // TimeFrameGPU information forwarding
   int getTFNumberOfClusters() const override;
@@ -48,14 +56,16 @@ class TrackerTraitsGPU : public TrackerTraits
   int getTFNumberOfCells() const override;
 
  private:
+  IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
-  gpu::StaticTrackingParameters<NLayers>* mStaticTrkPars;
+  gpu::StaticTrackingParameters<nLayers>* mStaticTrkPars;
 };
 
-template <int NLayers>
-inline void TrackerTraitsGPU<NLayers>::adoptTimeFrame(TimeFrame* tf)
+template <int nLayers>
+inline void TrackerTraitsGPU<nLayers>::adoptTimeFrame(TimeFrame* tf)
 {
-  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<NLayers>*>(tf);
+  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<nLayers>*>(tf);
+  mTimeFrame = static_cast<TimeFrame*>(tf);
 }
 } // namespace its
 } // namespace o2

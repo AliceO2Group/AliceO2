@@ -36,6 +36,7 @@ void SAMPAProcessing::updateParameters(float vdrift)
   mEleParam = &(ParameterElectronics::Instance());
   auto& cdb = CDBInterface::instance();
   mPedestalMap = &(cdb.getPedestals());
+  mPedestalMapCRU = &(cdb.getPedestalsCRU());
   mNoiseMap = &(cdb.getNoise());
   mZeroSuppression = &(cdb.getZeroSuppressionThreshold());
   mVDrift = vdrift > 0 ? vdrift : mGasParam->DriftV;

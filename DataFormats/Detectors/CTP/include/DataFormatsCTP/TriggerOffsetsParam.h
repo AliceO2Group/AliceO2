@@ -22,9 +22,11 @@ namespace o2
 namespace ctp
 {
 struct TriggerOffsetsParam : public o2::conf::ConfigurableParamHelper<TriggerOffsetsParam> {
+  static constexpr int MaxNDet = 32; // take with margin to account for possible changes / upgrades
   int64_t LM_L0 = 15;
   int64_t L0_L1 = 280;
-
+  int64_t globalInputsShift = 0; // Global shift of inps; customOffset[CTP] is global shift of classes
+  int64_t customOffset[MaxNDet] = {};
   O2ParamDef(TriggerOffsetsParam, "TriggerOffsetsParam"); // boilerplate stuff + make principal key
 };
 } // namespace ctp

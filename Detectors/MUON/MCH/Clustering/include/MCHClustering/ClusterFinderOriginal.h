@@ -29,6 +29,7 @@
 
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/Cluster.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 
@@ -62,6 +63,9 @@ class ClusterFinderOriginal
   const std::vector<Cluster>& getClusters() const { return mClusters; }
   /// return the list of digits used in reconstructed clusters
   const std::vector<Digit>& getUsedDigits() const { return mUsedDigits; }
+
+  /// return the counting of encountered errors
+  ErrorMap& getErrorMap() { return mErrorMap; }
 
  private:
   static constexpr double SDistancePrecision = 1.e-3;            ///< precision used to check overlaps and so on (cm)
@@ -127,6 +131,8 @@ class ClusterFinderOriginal
 
   std::vector<Cluster> mClusters{}; ///< list of reconstructed clusters
   std::vector<Digit> mUsedDigits{}; ///< list of digits used in reconstructed clusters
+
+  ErrorMap mErrorMap{}; ///< counting of encountered errors
 
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
 };

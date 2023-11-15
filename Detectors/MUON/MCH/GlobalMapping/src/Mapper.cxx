@@ -10,73 +10,48 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHGlobalMapping/Mapper.h"
+
+#include "HV.h"
+#include "LV.h"
+#include "MCHConditions/DCSAliases.h"
+#include "MCHConditions/SolarCrate.h"
+#include "MCHConstants/DetectionElements.h"
+#include "MCHGlobalMapping/DsIndex.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "MCHRawElecMap/Mapper.h"
+#include "Quadrant.h"
+#include "Slat.h"
+#include <limits>
 #include <map>
 #include <vector>
 
-namespace o2::mch
+namespace o2::mch::dcs
 {
 
-template <typename KEY, typename VALUE>
-std::map<VALUE, KEY> inverseMap(const std::map<KEY, VALUE>& src)
+std::set<int> solarAliasToDsIndices(std::string_view alias)
 {
-  std::map<VALUE, KEY> dest;
-  for (auto p : src) {
-    dest.emplace(p.second, p.first);
+  const auto chamber = aliasToChamber(alias);
+  if (dcs::isQuadrant(chamber)) {
+    return dcs::quadrant::solarAliasToDsIndices(alias);
+  } else {
+    return dcs::slat::solarAliasToDsIndices(alias);
   }
-  return dest;
 }
 
-std::map<uint32_t, uint16_t> buildDetId2DsIndexMap()
+std::set<int> aliasToDsIndices(std::string_view alias)
 {
-  static std::map<uint32_t, uint16_t> m;
-  if (m.empty()) {
-    uint16_t dsIndex{0};
-    o2::mch::mapping::forEachDetectionElement([&](int deId) {
-      const auto& seg = o2::mch::mapping::segmentation(deId);
-      std::vector<int> dsids;
-      seg.forEachDualSampa([&](int dsid) {
-        dsids.emplace_back(dsid);
-      });
-      // ensure dual sampa are sorted by dsid
-      std::sort(dsids.begin(), dsids.end());
-      for (auto dsId : dsids) {
-        raw::DsDetId det{deId, dsId};
-        m.emplace(encode(det), dsIndex);
-        ++dsIndex;
-      }
-    });
+  auto m = aliasToMeasurementType(alias);
+  switch (m) {
+    case dcs::MeasurementType::HV_I:
+    case dcs::MeasurementType::HV_V:
+      return hvAliasToDsIndices(alias);
+    case dcs::MeasurementType::LV_V_FEE_ANALOG:
+    case dcs::MeasurementType::LV_V_FEE_DIGITAL:
+      return lvAliasToDsIndices(alias);
+    case dcs::MeasurementType::LV_V_SOLAR:
+      return solarAliasToDsIndices(alias);
+    default:
+      return {};
   }
-  return m;
 }
-
-DsIndex getDsIndex(const o2::mch::raw::DsDetId& dsDetId)
-{
-  static std::map<uint32_t, uint16_t> m = buildDetId2DsIndexMap();
-  return m[encode(dsDetId)];
-}
-
-o2::mch::raw::DsDetId getDsDetId(DsIndex dsIndex)
-{
-  static std::map<uint16_t, uint32_t> m = inverseMap(buildDetId2DsIndexMap());
-  return raw::decodeDsDetId(m[dsIndex]);
-}
-
-uint8_t numberOfDualSampaChannels(DsIndex dsIndex)
-{
-  static std::vector<uint8_t> channelsPerDS;
-  if (channelsPerDS.empty()) {
-    for (uint16_t dsIndex = 0; dsIndex < o2::mch::NumberOfDualSampas; ++dsIndex) {
-      raw::DsDetId det{o2::mch::getDsDetId(dsIndex)};
-      uint8_t nch{0};
-      auto dsId = det.dsId();
-      auto deId = det.deId();
-      const auto& seg = o2::mch::mapping::segmentation(deId);
-      seg.bending().forEachPadInDualSampa(dsId, [&nch](int /*catPadIndex*/) { ++nch; });
-      seg.nonBending().forEachPadInDualSampa(dsId, [&nch](int /*catPadIndex*/) { ++nch; });
-      channelsPerDS.emplace_back(nch);
-    }
-  }
-  return channelsPerDS[dsIndex];
-}
-} // namespace o2::mch
+} // namespace o2::mch::dcs

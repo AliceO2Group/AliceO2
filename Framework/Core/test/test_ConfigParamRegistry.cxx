@@ -8,11 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework ConfigParamRegistry
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/ConfigParamRegistry.h"
 
@@ -34,7 +31,7 @@ struct Foo {
   float y;
 };
 
-BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
+TEST_CASE("TestConfigParamRegistry")
 {
   bpo::options_description testOptions("Test options");
   testOptions.add_options()                                               //
@@ -97,28 +94,28 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   store->activate();
   ConfigParamRegistry registry(std::move(store));
 
-  BOOST_CHECK_EQUAL(registry.get<float>("aFloat"), 1.0);
-  BOOST_CHECK_EQUAL(registry.get<double>("aDouble"), 2.0);
-  BOOST_CHECK_EQUAL(registry.get<int>("anInt"), 10);
-  BOOST_CHECK_EQUAL(registry.get<int8_t>("anInt8"), '2');
-  BOOST_CHECK_EQUAL(registry.get<int16_t>("anInt16"), 10);
-  BOOST_CHECK_EQUAL(registry.get<uint8_t>("anUInt8"), '2');
-  BOOST_CHECK_EQUAL(registry.get<uint16_t>("anUInt16"), 10);
-  BOOST_CHECK_EQUAL(registry.get<uint32_t>("anUInt32"), 10);
-  BOOST_CHECK_EQUAL(registry.get<uint64_t>("anUInt64"), 10);
-  BOOST_CHECK_EQUAL(registry.get<int64_t>("anInt64"), 50000000000000ll);
-  BOOST_CHECK_EQUAL(registry.get<bool>("aBoolean"), true);
-  BOOST_CHECK_EQUAL(registry.get<std::string>("aString"), "somethingelse");
-  BOOST_CHECK_EQUAL(registry.get<int>("aNested.x"), 1);
-  BOOST_CHECK_EQUAL(registry.get<float>("aNested.y"), 2.f);
-  BOOST_CHECK_EQUAL(registry.get<float>("aNested.z"), 4.f);
+  REQUIRE(registry.get<float>("aFloat") == 1.0);
+  REQUIRE(registry.get<double>("aDouble") == 2.0);
+  REQUIRE(registry.get<int>("anInt") == 10);
+  REQUIRE(registry.get<int8_t>("anInt8") == '2');
+  REQUIRE(registry.get<int16_t>("anInt16") == 10);
+  REQUIRE(registry.get<uint8_t>("anUInt8") == '2');
+  REQUIRE(registry.get<uint16_t>("anUInt16") == 10);
+  REQUIRE(registry.get<uint32_t>("anUInt32") == 10);
+  REQUIRE(registry.get<uint64_t>("anUInt64") == 10);
+  REQUIRE(registry.get<int64_t>("anInt64") == 50000000000000ll);
+  REQUIRE(registry.get<bool>("aBoolean") == true);
+  REQUIRE(registry.get<std::string>("aString") == "somethingelse");
+  REQUIRE(registry.get<int>("aNested.x") == 1);
+  REQUIRE(registry.get<float>("aNested.y") == 2.f);
+  REQUIRE(registry.get<float>("aNested.z") == 4.f);
   // We can get nested objects also via their top-level ptree.
   auto pt = registry.get<boost::property_tree::ptree>("aNested");
   auto pt2 = registry.get<boost::property_tree::ptree>("aDict");
-  BOOST_CHECK_EQUAL(pt.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(pt.get<float>("y"), 2.f);
+  REQUIRE(pt.get<int>("x") == 1);
+  REQUIRE(pt.get<float>("y") == 2.f);
   // And we can get it as a generic object as well.
   Foo obj = registry.get<Foo>("aNested");
-  BOOST_CHECK_EQUAL(obj.x, 1);
-  BOOST_CHECK_EQUAL(obj.y, 2.f);
+  REQUIRE(obj.x == 1);
+  REQUIRE(obj.y == 2.f);
 }

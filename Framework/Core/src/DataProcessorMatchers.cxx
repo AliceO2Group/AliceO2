@@ -28,4 +28,25 @@ DeviceMatcher DeviceMatchers::matchByName(char const* name_)
     return spec.name == name;
   };
 }
+
+EdgeMatcher EdgeMatchers::matchSourceByName(char const* name_)
+{
+  return [name = std::string(name_)](DataProcessorSpec const& source, DataProcessorSpec const&, ConfigContext const&) {
+    return source.name == name;
+  };
+}
+
+EdgeMatcher EdgeMatchers::matchDestByName(char const* name_)
+{
+  return [name = std::string(name_)](DataProcessorSpec const&, DataProcessorSpec const& dest, ConfigContext const&) {
+    return dest.name == name;
+  };
+}
+
+EdgeMatcher EdgeMatchers::matchEndsByName(char const* source_, char const* dest_)
+{
+  return [sourceName = std::string(source_), destName = std::string(dest_)](DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const&) {
+    return source.name == sourceName && dest.name == destName;
+  };
+}
 } // namespace o2::framework

@@ -63,6 +63,7 @@ void RecEventReader::run(ProcessingContext& pc)
 void RecEventReader::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
+
   mFile.reset(TFile::Open(filename.c_str()));
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get(mRecEventTreeName.c_str()));

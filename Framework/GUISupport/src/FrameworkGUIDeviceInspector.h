@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// Helper to display information about a device
-
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct DeviceSpec;
@@ -21,12 +17,13 @@ struct DeviceControl;
 struct DeviceInfo;
 struct DeviceMetricsInfo;
 struct DataProcessorInfo;
+struct DataProcessingStates;
 
 namespace gui
 {
 
-void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DeviceMetricsInfo const& metrics, DataProcessorInfo const& metadata, DeviceControl& control);
+/// Helper to display information about a device
+void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DataProcessingStates const& states, DeviceMetricsInfo const& metrics, DataProcessorInfo const& metadata, DeviceControl& control);
 
 } // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

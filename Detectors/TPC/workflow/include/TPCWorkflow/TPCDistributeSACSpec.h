@@ -102,7 +102,7 @@ class TPCDistributeSACSpec : public o2::framework::Task
   void sendOutput(o2::framework::ProcessingContext& pc)
   {
     LOGP(info, "Sending SACs on lane: {} for {} TFs", mCurrentOutLane, mProcessedTFs);
-    pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionSACCCDB(), 0, Lifetime::Timeframe}, mCCDBTimeStamp);
+    pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionSACCCDB(), 0, Lifetime::Sporadic}, mCCDBTimeStamp);
     for (unsigned int i = 0; i < o2::tpc::GEMSTACKS; ++i) {
       pc.outputs().snapshot(Output{gDataOriginTPC, mDataDescrOut[mCurrentOutLane], header::DataHeader::SubSpecificationType{i}}, mSACs[i]);
     }
@@ -112,14 +112,14 @@ class TPCDistributeSACSpec : public o2::framework::Task
 DataProcessorSpec getTPCDistributeSACSpec(const unsigned int timeframes, const unsigned int outlanes)
 {
   std::vector<InputSpec> inputSpecs;
-  inputSpecs.emplace_back(InputSpec{"sac", gDataOriginTPC, "DECODEDSAC", 0, Lifetime::Timeframe});
-  inputSpecs.emplace_back(InputSpec{"reftime", gDataOriginTPC, "REFTIMESAC", 0, Lifetime::Timeframe});
+  inputSpecs.emplace_back(InputSpec{"sac", gDataOriginTPC, "DECODEDSAC", 0, Lifetime::Sporadic});
+  inputSpecs.emplace_back(InputSpec{"reftime", gDataOriginTPC, "REFTIMESAC", 0, Lifetime::Sporadic});
 
   std::vector<OutputSpec> outputSpecs;
   for (unsigned int lane = 0; lane < outlanes; ++lane) {
     outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACVec(lane)}, Lifetime::Sporadic);
   }
-  outputSpecs.emplace_back(gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACCCDB(), 0, Lifetime::Timeframe);
+  outputSpecs.emplace_back(gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACCCDB(), 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-distribute-sac",

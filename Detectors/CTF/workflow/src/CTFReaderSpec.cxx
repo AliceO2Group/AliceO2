@@ -24,6 +24,7 @@
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CommonUtils/IRFrameSelector.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "CommonUtils/NameConf.h"
@@ -81,7 +82,7 @@ class CTFReaderSpec : public o2::framework::Task
 
  private:
   void openCTFFile(const std::string& flname);
-  void processTF(ProcessingContext& pc);
+  bool processTF(ProcessingContext& pc);
   void checkTreeEntries();
   void stopReader();
   template <typename C>
@@ -98,6 +99,9 @@ class CTFReaderSpec : public o2::framework::Task
   int mCTFCounter = 0;
   int mNFailedFiles = 0;
   int mFilesRead = 0;
+  int mTFLength = 128;
+  int mNWaits = 0;
+  long mTotalWaitTime = 0;
   long mLastSendTime = 0L;
   long mCurrTreeEntry = 0L;
   long mImposeRunStartMS = 0L;
@@ -125,8 +129,8 @@ void CTFReaderSpec::stopReader()
     return;
   }
   LOGP(info, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
-  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
-       mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
+  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops, spent {:.2} s in {} data waiting states",
+       mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops(), 1e-6 * mTotalWaitTime, mNWaits);
   mRunning = false;
   mFileFetcher->stop();
   mFileFetcher.reset();
@@ -143,13 +147,18 @@ void CTFReaderSpec::init(InitContext& ic)
   mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
   mUseLocalTFCounter = ic.options().get<bool>("local-tf-counter");
   mImposeRunStartMS = ic.options().get<int64_t>("impose-run-start-timstamp");
+  mInput.checkTFLimitBeforeReading = ic.options().get<bool>("limit-tf-before-reading");
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
+  mFileFetcher->setFailThreshold(ic.options().get<float>("fetch-failure-threshold"));
   mFileFetcher->start();
   if (!mInput.fileIRFrames.empty()) {
     mIRFrameSelector.loadIRFrames(mInput.fileIRFrames);
+    const auto& hbfu = o2::raw::HBFUtils::Instance();
+    mTFLength = hbfu.nHBFPerTF;
+    LOGP(info, "IRFrames will be selected from {}, assumed TF length: {} HBF", mInput.fileIRFrames, mTFLength);
   }
 }
 
@@ -160,11 +169,14 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
     mFilesRead++;
     mCTFFile.reset(TFile::Open(flname.c_str()));
     if (!mCTFFile || !mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
-      throw std::runtime_error("failed to open CTF file");
+      throw std::runtime_error(fmt::format("failed to open CTF file {}, skipping", flname));
     }
     mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
     if (!mCTFTree) {
-      throw std::runtime_error("failed to load CTF tree from");
+      throw std::runtime_error(fmt::format("failed to load CTF tree from {}, skipping", flname));
+    }
+    if (mCTFTree->GetEntries() < 1) {
+      throw std::runtime_error(fmt::format("CTF tree in {} has 0 entries, skipping", flname));
     }
   } catch (const std::exception& e) {
     LOG(error) << "Cannot process " << flname << ", reason: " << e.what();
@@ -181,30 +193,27 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
+  if (mInput.tfRateLimit == -999) {
     mInput.tfRateLimit = std::stoi(pc.services().get<RawDeviceService>().device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
-
   std::string tfFileName;
-  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
-    LOG(info) << "All CTFs from selected range were injected, stopping";
-    mRunning = false;
-  }
+  bool waitAcknowledged = false;
+  long startWait = 0;
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
       if (mInput.ctfIDs.empty() || mInput.ctfIDs[mSelIDEntry] == mCTFCounter) { // no selection requested or matching CTF ID is found
         LOG(debug) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
         mSelIDEntry++;
-        processTF(pc);
-        break;
-      } else { // explict CTF ID selection list was provided and current entry is not selected
-        LOGP(info, "Skipping CTF${} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
-        checkTreeEntries();
-        mCTFCounter++;
-        continue;
+        if (processTF(pc)) {
+          break;
+        }
       }
+      // explict CTF ID selection list or IRFrame was provided and current entry is not selected
+      LOGP(info, "Skipping CTF#{} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
+      checkTreeEntries();
+      mCTFCounter++;
+      continue;
     }
     //
     tfFileName = mFileFetcher->getNextFileInQueue();
@@ -213,11 +222,30 @@ void CTFReaderSpec::run(ProcessingContext& pc)
         mRunning = false;
         break;
       }
+      if (!waitAcknowledged) {
+        startWait = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+        waitAcknowledged = true;
+      }
       pc.services().get<RawDeviceService>().waitFor(5);
       continue;
     }
+    if (waitAcknowledged) {
+      long waitTime = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - startWait;
+      mTotalWaitTime += waitTime;
+      if (++mNWaits > 1) {
+        LOGP(warn, "Resuming reading after waiting for data {:.2} s (accumulated {:.2} s delay in {} waits)", 1e-6 * waitTime, 1e-6 * mTotalWaitTime, mNWaits);
+      }
+      waitAcknowledged = false;
+    }
     LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
+  }
+
+  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
+    LOGP(info, "All CTFs from selected range were injected, stopping");
+    mRunning = false;
+  } else if (mRunning && !mCTFTree && mFileFetcher->getNextFileInQueue().empty() && !mFileFetcher->isRunning()) { // previous tree was done, can we read more?
+    mRunning = false;
   }
 
   if (!mRunning) {
@@ -228,14 +256,12 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 }
 
 ///_______________________________________
-void CTFReaderSpec::processTF(ProcessingContext& pc)
+bool CTFReaderSpec::processTF(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
   static RateLimiter limiter;
-  limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
-
   CTFHeader ctfHeader;
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
@@ -259,6 +285,27 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;
 
+  if (mIRFrameSelector.isSet()) {
+    o2::InteractionRecord ir0(0, timingInfo.firstTForbit);
+    // we cannot have GRPECS via DPL CCDB fetcher in the CTFReader, so we use mTFLength extracted from the HBFUtils
+    o2::InteractionRecord ir1(o2::constants::lhc::LHCMaxBunches - 1, timingInfo.firstTForbit < 0xffffffff - (mTFLength - 1) ? timingInfo.firstTForbit + (mTFLength - 1) : 0xffffffff);
+    auto irSpan = mIRFrameSelector.getMatchingFrames({ir0, ir1});
+    if (irSpan.size() == 0 && mInput.skipSkimmedOutTF) {
+      LOGP(info, "Skimming did not define any selection for TF [{}] : [{}]", ir0.asString(), ir1.asString());
+      return false;
+    } else {
+      if (mInput.checkTFLimitBeforeReading) {
+        limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+      }
+      LOGP(info, "{} IR-Frames are selected for TF [{}] : [{}]", irSpan.size(), ir0.asString(), ir1.asString());
+    }
+    auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
+  } else {
+    if (mInput.checkTFLimitBeforeReading) {
+      limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+    }
+  }
+
   // send CTF Header
   pc.outputs().snapshot({"header", mInput.subspec}, ctfHeader);
 
@@ -279,14 +326,6 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   processDetector<o2::zdc::CTF>(DetID::ZDC, ctfHeader, pc);
   processDetector<o2::ctp::CTF>(DetID::CTP, ctfHeader, pc);
 
-  if (mIRFrameSelector.isSet()) {
-    o2::InteractionRecord ir0(0, timingInfo.firstTForbit);
-    // we cannot have GRPECS via DPL CCDB fetcher in the CTFReader, so we take max possible TF length of 256 orbits
-    o2::InteractionRecord ir1(o2::constants::lhc::LHCMaxBunches - 1, timingInfo.firstTForbit < 0xffffffff - 255 ? timingInfo.firstTForbit + 255 : 0xffffffff);
-    auto irSpan = mIRFrameSelector.getMatchingFrames({ir0, ir1});
-    auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
-  }
-
   // send sTF acknowledge message
   if (!mInput.sup0xccdb) {
     auto& stfDist = pc.outputs().make<o2::header::STFHeader>(OutputRef{"TFDist", 0xccdb});
@@ -299,7 +338,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   checkTreeEntries();
   mTimer.Stop();
 
-  // do we need to way to respect the delay ?
+  // do we need to wait to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   if (mCTFCounter) {
     auto tDiff = tNow - mLastSendTime;
@@ -307,10 +346,14 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
       pc.services().get<RawDeviceService>().waitFor((mInput.delay_us - tDiff) / 1000); // respect requested delay before sending
     }
   }
+  if (!mInput.checkTFLimitBeforeReading) {
+    limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+  }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, mCTFCounter ? 1e-6 * (tNow - mLastSendTime) : 0.);
   mLastSendTime = tNow;
   mCTFCounter++;
+  return true;
 }
 
 ///_______________________________________
@@ -429,6 +472,8 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
   options.emplace_back(ConfigParamSpec{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}});
   options.emplace_back(ConfigParamSpec{"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}});
   options.emplace_back(ConfigParamSpec{"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}});
+  options.emplace_back(ConfigParamSpec{"fetch-failure-threshold", VariantType::Float, 0.f, {"Fail if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
+  options.emplace_back(ConfigParamSpec{"limit-tf-before-reading", VariantType::Bool, false, {"Check TF limiting before reading new TF, otherwhise before injecting it"}});
   if (!inp.metricChannel.empty()) {
     options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, inp.metricChannel, {"Out-of-band channel config for TF throttling"}});
   }

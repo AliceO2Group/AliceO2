@@ -151,7 +151,7 @@ int checkPropagation()
           t.Print();
           break;
         }
-        if (fabsf(t.GetZ()) >= 250.) {
+        if (fabsf(t.GetZ()) >= GPUTPCGeometry::TPCLength()) {
           std::cout << "Can not propagate to x = " << xRow << ": Z outside the volume" << std::endl;
           t.Print();
           err = -1;

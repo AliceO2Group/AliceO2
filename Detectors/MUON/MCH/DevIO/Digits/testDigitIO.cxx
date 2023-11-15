@@ -27,7 +27,7 @@
 #include <cassert>
 #include <array>
 #include <stdexcept>
-#include "DigitReaderImpl.h"
+#include "DigitSamplerImpl.h"
 #include "IO.h"
 
 using namespace o2::mch;
@@ -90,12 +90,12 @@ BOOST_DATA_TEST_CASE(WriteMustReturnFalseIfDigitVectorIsEmpty, digitFileFormats,
 
   rofs.push_back({});
 
-  DigitWriter dwText(str);
+  DigitSink dwText(str);
   bool ok = dwText.write(digits, rofs);
 
   BOOST_CHECK_EQUAL(ok, false);
 
-  DigitWriter dwBinary(str, digitFileFormat);
+  DigitSink dwBinary(str, digitFileFormat);
   ok = dwBinary.write(digits, rofs);
 
   BOOST_CHECK_EQUAL(ok, false);
@@ -112,7 +112,7 @@ BOOST_DATA_TEST_CASE(BinaryWriteMustReturnFalseIfRofVectorIsEmpty, digitFileForm
 
   digits.push_back({});
 
-  DigitWriter dwBinary(str, digitFileFormat);
+  DigitSink dwBinary(str, digitFileFormat);
   bool ok = dwBinary.write(digits, rofs);
 
   BOOST_CHECK_EQUAL(ok, false);
@@ -130,15 +130,15 @@ BOOST_DATA_TEST_CASE(ReaderMustIdentifyFileFormat, digitFileFormats, digitFileFo
   buffer.write(reinterpret_cast<const char*>(&digitFileFormat), sizeof(uint64_t));
   buffer.clear();
   buffer.seekg(0);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
   BOOST_CHECK_EQUAL(dr.fileFormat(), digitFileFormat);
 }
 
 BOOST_DATA_TEST_CASE(BinaryWriterMustTagCorrectly, digitFileFormats, digitFileFormat)
 {
   std::stringstream buffer;
-  DigitWriter dw(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSink dw(buffer, digitFileFormat);
+  DigitSampler dr(buffer);
   BOOST_CHECK_EQUAL(dr.fileFormat(), digitFileFormat);
 }
 
@@ -179,11 +179,11 @@ TF createDummyData(int ndigits, int nrofs, uint32_t firstOrbit)
 }
 
 /** The test data is used to check the internal consistency
-  * of the reader and writer (i.e. data written by the writer must be readable
-  * by the reader).
-  * A complete test requires, in addition, the usage of externally created data
-  * (see for instance V0File in testDigitIOV0)
-  */
+ * of the reader and writer (i.e. data written by the writer must be readable
+ * by the reader).
+ * A complete test requires, in addition, the usage of externally created data
+ * (see for instance V0File in testDigitIOV0)
+ */
 constexpr int NROF_1 = 1;
 constexpr int NROF_2 = 1;
 constexpr int NROF_3 = 1;
@@ -200,7 +200,7 @@ std::vector<TF> testData{
 void writeTestData(std::ostream& out, DigitFileFormat dff)
 {
   auto tfs = testData;
-  DigitWriter dw(out, dff);
+  DigitSink dw(out, dff);
   for (auto tf : tfs) {
     dw.write(tf.digits, tf.rofs);
   }
@@ -210,7 +210,7 @@ BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_DATA_TEST_CASE(TestDataDump, digitFileFormats, digitFileFormat)
 {
   auto tfs = testData;
-  DigitWriter dw(std::cout);
+  DigitSink dw(std::cout);
   for (auto tf : tfs) {
     dw.write(tf.digits, tf.rofs);
   }
@@ -221,7 +221,7 @@ BOOST_DATA_TEST_CASE(TestDataIsOfExpectedFormat, digitFileFormats, digitFileForm
 {
   std::stringstream buffer;
   writeTestData(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
 
   BOOST_CHECK_EQUAL(dr.fileFormat(), digitFileFormat);
 }
@@ -230,7 +230,7 @@ BOOST_DATA_TEST_CASE(TestDataHasExpectedNofROFs, digitFileFormats, digitFileForm
 {
   std::stringstream buffer;
   writeTestData(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
 
   BOOST_CHECK_EQUAL(dr.nofROFs(), NROFS);
 }
@@ -239,7 +239,7 @@ BOOST_DATA_TEST_CASE(TestDataHasExpectedNofTFs, digitFileFormats, digitFileForma
 {
   std::stringstream buffer;
   writeTestData(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
 
   if (not digitFileFormat.hasRof) {
     BOOST_CHECK_EQUAL(dr.nofTimeFrames(), NROFS);
@@ -252,7 +252,7 @@ BOOST_DATA_TEST_CASE(TestDataHasExpectedNumberOfDigitsWhenReading, digitFileForm
 {
   std::stringstream buffer;
   writeTestData(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
 
   std::vector<Digit> digits;
   std::vector<ROFRecord> rofs;
@@ -267,7 +267,7 @@ BOOST_DATA_TEST_CASE(TestDataHasExpectedNumberOfDigitsWhenCounting, digitFileFor
 {
   std::stringstream buffer;
   writeTestData(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
 
   BOOST_CHECK_EQUAL(dr.nofDigits(), 47);
 }
@@ -276,7 +276,7 @@ BOOST_DATA_TEST_CASE(CheckReader, digitFileFormats, digitFileFormat)
 {
   std::stringstream buffer;
   writeTestData(buffer, digitFileFormat);
-  DigitReader dr(buffer);
+  DigitSampler dr(buffer);
 
   std::vector<Digit> digits;
   std::vector<ROFRecord> rofs;

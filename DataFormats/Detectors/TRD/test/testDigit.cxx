@@ -176,6 +176,27 @@ BOOST_AUTO_TEST_CASE(TRDDigit_test)
   testDigitDetRowPad(za, 10, 12, NCOLMCM - 1);
   BOOST_CHECK(za.getADC()[14] == 56); // 14th time bin should be 56;
   BOOST_CHECK(za.getADC()[16] == 58); // 16th time bin should be 58;
+
+  // check the setting and reading of the phase for various combinations of setting the detector and phase.
+  Digit withphase(10, 6, 0, 2, data, 3);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x3);
+  withphase.setPreTrigPhase(1);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x1);
+  withphase.setDetector(12);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x1);
+  BOOST_CHECK(withphase.getDetector() == 0xc);
+  withphase.setDetector(539);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x1);
+  BOOST_CHECK(withphase.getDetector() == 539);
+  withphase.setDetector(12);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x1);
+  BOOST_CHECK(withphase.getDetector() == 12);
+  withphase.setDetector(0);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x1);
+  BOOST_CHECK(withphase.getDetector() == 0);
+  withphase.setPreTrigPhase(0);
+  BOOST_CHECK(withphase.getPreTrigPhase() == 0x0);
+  BOOST_CHECK(withphase.getDetector() == 0);
 }
 
 } // namespace trd

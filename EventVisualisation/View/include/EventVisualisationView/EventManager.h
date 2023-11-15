@@ -27,6 +27,7 @@
 #include <TEveElement.h>
 #include <TEveEventManager.h>
 #include <TQObject.h>
+#include <TEnv.h>
 
 #include <string>
 
@@ -102,6 +103,7 @@ class EventManager final : public TEveEventManager, public TQObject
   TEveElementList* dataTypeListsPhi[EVisualisationDataType::NdataTypes]; // Phi
   DataSource* dataSource = nullptr;
   TString dataPath = "";
+  TEnv settings;
   VizSettings vizSettings;
 
   /// Default constructor

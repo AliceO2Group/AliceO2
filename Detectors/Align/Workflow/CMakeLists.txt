@@ -1,17 +1,16 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
-
-# FIXME: do we actually need a library here, or is the executable enough ?
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(AlignmentWorkflow
-               SOURCES  src/BarrelAlignmentSpec.cxx
+               SOURCES src/BarrelAlignmentSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Align
                                      O2::FrameworkLogger
                                      O2::DataFormatsGlobalTracking
@@ -23,6 +22,8 @@ o2_add_library(AlignmentWorkflow
                                      O2::DataFormatsTPC
                                      O2::DataFormatsTRD
                                      O2::DataFormatsTOF
+                                     O2::GPUTracking
+                                     O2::TPCCalibration
                                      ROOT::Core
                                      ROOT::Geom
                                      ROOT::MathCore

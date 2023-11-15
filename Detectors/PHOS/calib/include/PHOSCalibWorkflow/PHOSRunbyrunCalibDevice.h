@@ -55,7 +55,7 @@ class PHOSRunbyrunCalibDevice
   bool mWriteRootOutput = true;                        /// Write local root files
   std::string mOutputDir;                              /// where to write calibration digits
   std::string mMetaFileDir;                            /// where to store meta files
-  long mRunStartTime = 0;                              /// start time of the run (ms)
+  unsigned long mRunStartTime = 0;                     /// start time of the run (ms)
   std::array<float, 8> mRunByRun;                      /// Final calibration object
   std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;

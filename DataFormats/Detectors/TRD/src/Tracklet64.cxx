@@ -10,24 +10,19 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsTRD/Tracklet64.h"
-#include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
-
 #include "fairlogger/Logger.h"
 #include <iostream>
 
 namespace o2
 {
-
 namespace trd
 {
 
-using namespace constants;
-
 void Tracklet64::print() const
 {
-  LOGF(info, "%02i_%i_%i, row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
-       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
+  LOGF(info, "%02i_%i_%i, ROB(%i), MCM(%i), row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
+       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getROB(), getMCM(), getPadRow(), getPadCol(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE

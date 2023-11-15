@@ -107,6 +107,7 @@ struct BaselineCalibData {
   void print() const;
   void clear();
   void setCreationTime(uint64_t ctime);
+  void mergeCreationTime(uint64_t ctime);
   void setN(int n);
   BaselineCalibSummaryData& getSummary();
   int saveDebugHistos(const std::string fn, float factor);

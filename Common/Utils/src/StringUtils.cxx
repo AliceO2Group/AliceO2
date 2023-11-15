@@ -12,6 +12,8 @@
 #include "CommonUtils/StringUtils.h"
 #include <cstdlib>
 #include <filesystem>
+#include <TGrid.h>
+#include <unistd.h>
 
 using namespace o2::utils;
 
@@ -35,10 +37,12 @@ std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool 
 // generate random string of given lenght, suitable for file names
 std::string Str::getRandomString(int lenght)
 {
-  auto nextAllowed = []() {
+  int pid = (int)getpid();
+  auto nextAllowed = [pid]() {
     constexpr char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     constexpr size_t L = sizeof(chars) - 1;
-    return chars[std::rand() % L];
+    int rn = std::rand() | pid;
+    return chars[rn % L];
   };
   std::string str(lenght, 0);
   std::generate_n(str.begin(), lenght, nextAllowed);
@@ -47,7 +51,7 @@ std::string Str::getRandomString(int lenght)
 
 bool Str::pathExists(const std::string_view p)
 {
-  return std::filesystem::exists(std::string{p});
+  return p.compare(0, 8, "alien://") ? std::filesystem::exists(std::string{p}) : true; // we don't validate alien paths
 }
 
 bool Str::pathIsDirectory(const std::string_view p)
@@ -66,11 +70,23 @@ std::string Str::rectifyDirectory(const std::string_view p)
   if (dir.empty() || dir == "none") {
     dir = "";
   } else {
-    dir = getFullPath(dir);
-    if (!pathIsDirectory(dir)) {
-      throw std::runtime_error(fmt::format("{:s} is not an accessible directory", dir));
+    if (p.compare(0, 8, "alien://") == 0) {
+      if (!gGrid && !TGrid::Connect("alien://")) {
+        throw std::runtime_error(fmt::format("failed to initialize alien for {}", dir));
+      }
+      // for root or raw files do not treat as directory
+      if (dir.back() != '/' && !(endsWith(dir, ".root") || endsWith(dir, ".raw") || endsWith(dir, ".tf"))) {
+        dir += '/';
+      }
     } else {
-      dir += '/';
+      dir = getFullPath(dir);
+      if (!pathIsDirectory(dir)) {
+        throw std::runtime_error(fmt::format("{} is not an accessible directory", dir));
+      } else {
+        if (dir.back() != '/') {
+          dir += '/';
+        }
+      }
     }
   }
   return dir;

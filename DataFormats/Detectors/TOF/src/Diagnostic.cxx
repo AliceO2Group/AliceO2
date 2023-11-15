@@ -20,9 +20,9 @@ using namespace o2::tof;
 
 ClassImp(Diagnostic);
 
-int Diagnostic::fill(ULong64_t pattern)
+uint32_t Diagnostic::fill(ULong64_t pattern)
 {
-  int frequency = 1;
+  uint32_t frequency = 1;
 
   auto pairC = mVector.find(pattern);
 
@@ -35,7 +35,7 @@ int Diagnostic::fill(ULong64_t pattern)
   return frequency;
 }
 
-int Diagnostic::fill(ULong64_t pattern, int frequency)
+uint32_t Diagnostic::fill(ULong64_t pattern, uint32_t frequency)
 {
   auto pairC = mVector.find(pattern);
 
@@ -49,7 +49,7 @@ int Diagnostic::fill(ULong64_t pattern, int frequency)
   return frequency;
 }
 
-int Diagnostic::getFrequency(ULong64_t pattern) const
+uint32_t Diagnostic::getFrequency(ULong64_t pattern) const
 {
   auto pairC = mVector.find(pattern);
   if (pairC != mVector.end()) {

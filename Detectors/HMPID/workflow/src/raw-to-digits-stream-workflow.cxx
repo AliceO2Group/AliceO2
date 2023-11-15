@@ -37,14 +37,6 @@ void customize(std::vector<o2::framework::DispatchPolicy>& policies)
   policies.push_back({"decoded-hmpid-digits", readerMatcher, DispatchOp::WhenReady, triggerMatcher});
 }
 
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(CompletionPolicyHelpers::defineByName("raw-hmpid-decode", CompletionPolicy::CompletionOp::Consume));
-}
-
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {

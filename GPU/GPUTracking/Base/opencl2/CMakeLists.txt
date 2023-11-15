@@ -12,10 +12,7 @@
 set(MODULE GPUTrackingOCL2)
 enable_language(ASM)
 
-if(DEFINED OCL2_GPUTARGET)
-  set(TMP_TARGET "(AMDGPU Target ${OCL2_GPUTARGET})")
-endif()
-message(STATUS "Building GPUTracking with OpenCL 2 support ${TMP_TARGET}")
+message(STATUS "Building GPUTracking with OpenCL 2 support")
 
 # convenience variables
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -26,7 +23,10 @@ endif()
 set(CL_SRC ${GPUDIR}/Base/opencl-common/GPUReconstructionOCL.cl)
 set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code)
 
-set(OCL_FLAGS -Xclang -fdenormal-fp-math-f32=ieee -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Dcl_clang_storage_class_specifiers -Wno-invalid-constexpr -Wno-unused-command-line-argument -cl-std=clc++)
+set(OCL_FLAGS -ferror-limit=1000 -Dcl_clang_storage_class_specifiers -Wno-invalid-constexpr -Wno-unused-command-line-argument -cl-std=CLC++2021)
+if(NOT DEFINED GPUCA_NO_FAST_MATH OR NOT ${GPUCA_NO_FAST_MATH})
+  set(OCL_FLAGS ${OCL_FLAGS} -Xclang -fdenormal-fp-math-f32=ieee -cl-mad-enable -cl-no-signed-zeros)
+endif()
 set(OCL_DEFINECL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
             "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>"
             -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
@@ -40,47 +40,21 @@ set(OCL_DEFINECL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS
 set(SRCS GPUReconstructionOCL2.cxx)
 set(HDRS GPUReconstructionOCL2.h GPUReconstructionOCL2Internals.h)
 
-if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
-  if(NOT DEFINED OCL2_GPUTARGET)
-    execute_process(COMMAND ${ROCM_AGENT_ENUMERATOR} COMMAND "sort" COMMAND "tail -n 1" OUTPUT_VARIABLE OCL2_GPUTARGET)
-  endif()
-
-  # executes AMD clang-ocl
-  add_custom_command(
-    OUTPUT ${CL_BIN}.amd
-    COMMAND ${CLANG_OCL}
-            -O3
-            ${OCL_FLAGS}
-            ${OCL_DEFINECL}
-            -mcpu=${OCL2_GPUTARGET}
-            -o ${CL_BIN}.amd ${CL_SRC}
-    MAIN_DEPENDENCY ${CL_SRC}
-    IMPLICIT_DEPENDS CXX ${CL_SRC}
-    COMMAND_EXPAND_LISTS)
-
-  create_binary_resource(${CL_BIN}.amd ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.o)
-  set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.o)
-endif()
-
 if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   # executes clang to create llvm IL code
+  # Add -fintegrated-objemitter once we switch to clang >= 17
+  cmake_path(GET LLVM_SPIRV PARENT_PATH TMP_LLVM_SPIRV_PATH)
   add_custom_command(
-      OUTPUT ${CL_BIN}.bc
-      COMMAND ${LLVM_CLANG}
+      OUTPUT ${CL_BIN}.spirv
+      COMMAND ${CMAKE_COMMAND} -E env "PATH=${TMP_LLVM_SPIRV_PATH}:\$PATH" ${LLVM_CLANG}
               -O0
-              -emit-llvm --target=spir64-unknown-unknown
+              --target=spirv64
               ${OCL_FLAGS}
               ${OCL_DEFINECL}
-              -o ${CL_BIN}.bc -c ${CL_SRC}
+              -o ${CL_BIN}.spirv -c ${CL_SRC}
       MAIN_DEPENDENCY ${CL_SRC}
       IMPLICIT_DEPENDS CXX ${CL_SRC}
       COMMAND_EXPAND_LISTS)
-
-  # executes converter to create spirv IL code
-  add_custom_command(
-      OUTPUT ${CL_BIN}.spirv
-      COMMAND ${LLVM_SPIRV} ${CL_BIN}.bc -o=${CL_BIN}.spirv
-      MAIN_DEPENDENCY ${CL_BIN}.bc)
 
   create_binary_resource(${CL_BIN}.spirv ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
@@ -146,9 +120,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(targetName ${MODULE})
 endif()
 
-if(OPENCL2_ENABLED_AMD)
-  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_AMD)
-endif()
 if(OPENCL2_ENABLED_SPIRV)
   target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_SPIRV)
 endif()

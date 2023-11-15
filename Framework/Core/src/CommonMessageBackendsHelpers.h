@@ -31,7 +31,7 @@ struct CommonMessageBackendsHelpers {
   {
     return [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) {
       auto& proxy = services.get<FairMQDeviceProxy>();
-      return ServiceHandle{TypeIdHelpers::uniqueId<T>(), new T(proxy)};
+      return ServiceHandle{TypeIdHelpers::uniqueId<T>(), new T(proxy), ServiceKind::Stream};
     };
   }
 

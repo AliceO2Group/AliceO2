@@ -48,11 +48,13 @@ class DumpRaw
   std::unique_ptr<TH2> mBits = nullptr;
   std::unique_ptr<TH2> mBitsH = nullptr;
   std::unique_ptr<TH1> mLoss = nullptr;
+  std::unique_ptr<TH1> mError = nullptr;
   std::unique_ptr<TH1> mOve = nullptr;
   std::unique_ptr<TH1> mBaseline[NDigiChannels] = {nullptr};
   std::unique_ptr<TH1> mCounts[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mSignalA[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mSignalT[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mSignalTH[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mBunchA[NDigiChannels] = {nullptr}; // Bunch pattern ALICE
   std::unique_ptr<TH2> mBunchT[NDigiChannels] = {nullptr}; // Bunch pattern Autotrigger
   std::unique_ptr<TH2> mBunchH[NDigiChannels] = {nullptr}; // Bunch pattern Hit

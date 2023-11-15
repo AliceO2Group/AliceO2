@@ -29,7 +29,7 @@ gsl::span<const o2::dataformats::IRFrame> IRFrameSelector::getMatchingFrames(con
     return {};
   }
   auto upper = std::upper_bound(lower, mFrames.end(), o2::dataformats::IRFrame{fr.getMax(), fr.getMax()});
-  return {&*lower, size_t(std::distance(lower, upper) + 1)};
+  return {&*lower, size_t(std::distance(lower, upper))};
 }
 
 long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
@@ -40,7 +40,7 @@ long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
     fr.setMin(fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0});
   }
   if (fwd) {
-    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + bwd : o2::InteractionRecord::getIRMaxBC());
+    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC());
   }
   // find entry which overlaps or above fr
   auto fullcheck = [&fr, this]() -> long {
@@ -112,6 +112,7 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
   TKey* key;
   std::string clVec{TClass::GetClass("std::vector<o2::dataformats::IRFrame>")->GetName()};
   bool done = false;
+  bool toBeSorted = false;
   while ((key = (TKey*)nextkey())) {
     std::string kcl(key->GetClassName());
     if (kcl == clVec) {
@@ -137,7 +138,27 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
       done = true;
       LOGP(info, "Loaded {} IRFrames from tree {} of {}", mOwnList.size(), key->GetName(), fname);
       break;
+    } else if (kcl == "TDirectoryFile") {
+      TTree* bcRanges = (TTree*)tfl->Get(fmt::format("{}/O2bcranges", key->GetName()).data());
+      if (!bcRanges) {
+        continue;
+      }
+      LOGP(info, "Loading BCrange trees in the directory {}", key->GetName());
+      ULong64_t minBC, maxBC;
+      bcRanges->SetBranchAddress("fBCstart", &minBC);
+      bcRanges->SetBranchAddress("fBCend", &maxBC);
+      for (int i = 0; i < (int)bcRanges->GetEntries(); i++) {
+        bcRanges->GetEntry(i);
+        mOwnList.emplace_back(InteractionRecord::long2IR(minBC), InteractionRecord::long2IR(maxBC));
+      }
+      done = true;
+      toBeSorted = true;
     }
+  }
+
+  if (toBeSorted) {
+    LOGP(info, "Sorting {} IRFrames", mOwnList.size());
+    std::sort(mOwnList.begin(), mOwnList.end(), [](const auto& a, const auto& b) { return a.getMin() < b.getMin(); });
   }
   if (!true) {
     LOGP(fatal, "Did not find neither tree nor vector of IRFrames in {}", fname);
@@ -165,17 +186,31 @@ void IRFrameSelector::clear()
   mFrames = {};
 }
 
-void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
+void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, long shift, bool removeOverlaps)
 {
-  // apply margin to all IRFrames by converting them to IRFrame.getMin()-fwd, IRFrame.getMax()-bwd
-  if ((!fwd && !bwd) || !mIsSet || !mFrames.size()) {
+  // apply shift and margin to all IRFrames by converting them to IRFrame.getMin() - fwd + shift, IRFrame.getMax() + bwd + shift
+  LOGP(debug, "applyMargins({},{},{})", bwd, fwd, removeOverlaps);
+  if ((!fwd && !bwd && !shift) || !mIsSet || !mFrames.size()) {
     return;
   }
   mLastBoundID = -1;
   std::vector<o2::dataformats::IRFrame> lst;
+  long shiftBwd = bwd - shift, shiftFwd = fwd + shift;
+
   for (const auto& fr : mFrames) {
-    auto irmin = fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0};
-    auto irmax = (o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong()) > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC();
+    auto irmin = fr.getMin();
+    auto irmax = fr.getMax();
+    if (shiftBwd > 0) {
+      irmin = fr.getMin().toLong() > shiftBwd ? fr.getMin() - shiftBwd : o2::InteractionRecord{0, 0};
+    } else {
+      irmin = (o2::InteractionRecord::MaxGlobalBCs - fr.getMin().toLong()) > -shiftBwd ? fr.getMin() - shiftBwd : o2::InteractionRecord::getIRMaxBC();
+    }
+    if (shiftFwd > 0) {
+      irmax = (o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong()) > shiftFwd ? fr.getMax() + shiftFwd : o2::InteractionRecord::getIRMaxBC();
+    } else {
+      irmax = fr.getMax().toLong() > -shiftFwd ? fr.getMax() + shiftFwd : o2::InteractionRecord{0, 0};
+    }
+    LOGP(debug, "before removerlap: {}:{} -> {}:{}", fr.getMin().toLong(), fr.getMax().toLong(), irmin.toLong(), irmax.toLong());
     if (removeOverlaps && lst.size() && lst.back().getMax() >= irmin) {
       lst.back().setMax(irmax);
     } else {
@@ -183,5 +218,5 @@ void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
     }
   }
   mOwnList.swap(lst);
-  setSelectedIRFrames(mOwnList);
+  mFrames = gsl::span<const o2::dataformats::IRFrame>(mOwnList.data(), mOwnList.size());
 }

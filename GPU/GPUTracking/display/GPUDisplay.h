@@ -160,7 +160,10 @@ class GPUDisplay : public GPUDisplayInterface
   template <typename... Args>
   void SetInfo(Args... args)
   {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
     snprintf(mInfoText2, 1024, args...);
+#pragma GCC diagnostic pop
     GPUInfo("%s", mInfoText2);
     mInfoText2Timer.ResetStart();
   }

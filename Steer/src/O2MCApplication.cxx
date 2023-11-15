@@ -28,7 +28,11 @@
 #include <fstream>
 #include <FairVolume.h>
 #include <CommonUtils/NameConf.h>
+#include <CommonUtils/ConfigurationMacroHelper.h>
 #include "SimConfig/SimUserDecay.h"
+#include <filesystem>
+#include <CommonUtils/FileSystemUtils.h>
+#include "SimConfig/GlobalProcessCutSimParam.h"
 
 namespace o2
 {
@@ -53,6 +57,17 @@ void TypedVectorAttach(const char* name, fair::mq::Channel& channel, fair::mq::P
 void O2MCApplicationBase::Stepping()
 {
   mStepCounter++;
+
+  // check the max time of flight condition
+  const auto tof = fMC->TrackTime();
+  auto& params = o2::GlobalProcessCutSimParam::Instance();
+  if (tof > params.TOFMAX) {
+    fMC->StopTrack();
+    return;
+  }
+
+  mLongestTrackTime = std::max((double)mLongestTrackTime, tof);
+
   if (mCutParams.stepFiltering) {
     // we can kill tracks here based on our
     // custom detector specificities
@@ -83,7 +98,11 @@ void O2MCApplicationBase::Stepping()
     }
   }
 
-  // dispatch first to stepping function in FairRoot
+  if (mCutParams.stepTrackRefHook) {
+    mTrackRefFcn(fMC);
+  }
+
+  // dispatch now to stepping function in FairRoot
   FairMCApplication::Stepping();
 }
 
@@ -126,6 +145,7 @@ void O2MCApplicationBase::InitGeometry()
   // load special cuts which might be given from the outside first.
   auto& matMgr = o2::base::MaterialManager::Instance();
   matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);
+  matMgr.SetLowEnergyNeutronTransport(mCutParams.lowneut);
   // During the following, FairModule::SetSpecialPhysicsCuts will be called for each module
   FairMCApplication::InitGeometry();
   matMgr.writeCutsAndProcessesToJSON();
@@ -143,7 +163,7 @@ void O2MCApplicationBase::InitGeometry()
 
 bool O2MCApplicationBase::MisalignGeometry()
 {
-  for (auto det : listActiveDetectors) {
+  for (auto det : listDetectors) {
     if (dynamic_cast<o2::base::Detector*>(det)) {
       ((o2::base::Detector*)det)->addAlignableVolumes();
     }
@@ -173,9 +193,11 @@ bool O2MCApplicationBase::MisalignGeometry()
 void O2MCApplicationBase::finishEventCommon()
 {
   LOG(info) << "This event/chunk did " << mStepCounter << " steps";
+  LOG(info) << "Longest track time is " << mLongestTrackTime;
 
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
   header->getMCEventStats().setNSteps(mStepCounter);
+  header->setDetId2HitBitLUT(o2::base::Detector::getDetId2HitBitIndex());
 
   static_cast<o2::data::Stack*>(GetStack())->updateEventStats();
 }
@@ -206,6 +228,7 @@ void O2MCApplicationBase::BeginEvent()
   static_cast<o2::data::Stack*>(GetStack())->setMCEventStats(&header->getMCEventStats());
 
   mStepCounter = 0;
+  mLongestTrackTime = 0;
 }
 
 void addSpecialParticles()
@@ -241,6 +264,11 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(1010020041, "Hyperhelium4*", kPTHadron, 3.9231, 2.0, 2.632e-10, "Ion", 0.0, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
   //Anti-Hyper helium 4 excited state
   TVirtualMC::GetMC()->DefineParticle(-1010020041, "AntiHyperhelium4*", kPTHadron, 3.9231, 2.0, 2.632e-10, "Ion", 0.0, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
+
+  // Lithium 4 ground state
+  TVirtualMC::GetMC()->DefineParticle(1000030040, "Lithium4", kPTHadron, 3.7513, 3.0, 9.1e-23, "Ion", 0.003, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
+  // Anti-Lithium 4 ground state
+  TVirtualMC::GetMC()->DefineParticle(-1000030040, "AntiLithium4", kPTHadron, 3.7513, 3.0, 9.1e-23, "Ion", 0.003, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
 
   //Hyper helium 5
   TVirtualMC::GetMC()->DefineParticle(1010020050, "Hyperhelium5", kPTHadron, 4.841, 2.0, 2.632e-10, "Ion", 0.0, 0, 1, 0, 0, 0, 0, 0, 5, kFALSE);
@@ -574,6 +602,38 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->SetDecayMode(-1010020040, abratio4, amode4);
   //Decay for the excited state (after em transition)
   TVirtualMC::GetMC()->SetDecayMode(-1010020041, abratio4, amode4);
+
+  // Define the 2-body phase space decay for the Lithium 4
+  Int_t model4[6][3];
+  Float_t bratiol4[6];
+
+  for (Int_t kz = 0; kz < 6; kz++) {
+    bratiol4[kz] = 0.;
+    model4[kz][0] = 0;
+    model4[kz][1] = 0;
+    model4[kz][2] = 0;
+  }
+  bratiol4[0] = 100.;
+  model4[0][0] = 1000020030; // Helium3
+  model4[0][1] = 2212;       // proton
+
+  TVirtualMC::GetMC()->SetDecayMode(1000030040, bratiol4, model4);
+
+  // Define the 2-body phase space decay for the Anti-Lithium 4
+  Int_t amodel4[6][3];
+  Float_t abratiol4[6];
+
+  for (Int_t kz = 0; kz < 6; kz++) {
+    abratiol4[kz] = 0.;
+    amodel4[kz][0] = 0;
+    amodel4[kz][1] = 0;
+    amodel4[kz][2] = 0;
+  }
+  abratiol4[0] = 100.;
+  amodel4[0][0] = -1000020030; // Anti-Helium3
+  amodel4[0][1] = -2212;       // Anti-proton
+
+  TVirtualMC::GetMC()->SetDecayMode(-1000030040, abratiol4, amodel4);
 
   // Define the 3-body phase space decay for the Hyper Helium 5
   Int_t mode41[6][3];
@@ -1179,6 +1239,22 @@ void O2MCApplicationBase::AddParticles()
   while (ss >> pdg) {
     LOG(info) << "Setting user decay for PDG " << pdg;
     TVirtualMC::GetMC()->SetUserDecay(pdg);
+  }
+}
+
+void O2MCApplicationBase::initTrackRefHook()
+{
+  if (mCutParams.stepTrackRefHook) {
+    LOG(info) << "Initializing the hook for TrackReferences during stepping";
+    auto expandedTrackRefHookFileName = o2::utils::expandShellVarsInFileName(mCutParams.stepTrackRefHookFile);
+    if (std::filesystem::exists(expandedTrackRefHookFileName)) {
+      // if this file exists we will compile the hook on the fly
+      mTrackRefFcn = o2::conf::GetFromMacro<TrackRefFcn>(mCutParams.stepTrackRefHookFile, "trackRefHook()", "o2::steer::O2MCApplicationBase::TrackRefFcn", "o2mc_stepping_trackref_hook");
+      LOG(info) << "Hook initialized from file " << expandedTrackRefHookFileName;
+    } else {
+      LOG(error) << "Did not file TrackRefHook file " << expandedTrackRefHookFileName << " ; Will not execute hook";
+      mTrackRefFcn = [](TVirtualMC const*) {}; // do nothing
+    }
   }
 }
 

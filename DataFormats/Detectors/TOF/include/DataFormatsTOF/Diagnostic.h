@@ -32,16 +32,16 @@ class Diagnostic
 {
  public:
   Diagnostic() = default;
-  int fill(ULong64_t pattern);
-  int fill(ULong64_t pattern, int frequency);
-  int getFrequency(ULong64_t pattern) const;                                                    // Get frequency
-  int getFrequencyROW() const { return getFrequency(0); }                                       // Readout window frequency
-  int getFrequencyEmptyCrate(int crate) const { return getFrequency(getEmptyCrateKey(crate)); } // empty crate frequency
-  int getFrequencyEmptyTOF() const { return getFrequency(1); }                                  // empty crate frequency
-  int fillNoisy(int channel, int frequency = 1) { return fill(getNoisyChannelKey(channel), frequency); }
-  int fillROW() { return fill(0); }
-  int fillEmptyCrate(int crate, int frequency = 1) { return fill(getEmptyCrateKey(crate), frequency); }
-  int fillEmptyTOF(int frequency = 1) { return fill(1, frequency); }
+  uint32_t fill(ULong64_t pattern);
+  uint32_t fill(ULong64_t pattern, uint32_t frequency);
+  uint32_t getFrequency(ULong64_t pattern) const;                                                    // Get frequency
+  uint32_t getFrequencyROW() const { return getFrequency(0); }                                       // Readout window frequency
+  uint32_t getFrequencyEmptyCrate(int crate) const { return getFrequency(getEmptyCrateKey(crate)); } // empty crate frequency
+  uint32_t getFrequencyEmptyTOF() const { return getFrequency(1); }                                  // empty crate frequency
+  uint32_t fillNoisy(int channel, int frequency = 1) { return fill(getNoisyChannelKey(channel), frequency); }
+  uint32_t fillROW() { return fill(0); }
+  uint32_t fillEmptyCrate(int crate, uint32_t frequency = 1) { return fill(getEmptyCrateKey(crate), frequency); }
+  uint32_t fillEmptyTOF(uint32_t frequency = 1) { return fill(1, frequency); }
   static ULong64_t getEmptyCrateKey(int crate);
   static ULong64_t getNoisyChannelKey(int channel);
   static ULong64_t getTRMKey(int crate, int trm);

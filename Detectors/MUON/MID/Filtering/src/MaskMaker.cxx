@@ -27,10 +27,10 @@ namespace o2
 {
 namespace mid
 {
-std::vector<ColumnData> makeBadChannels(const ChannelScalers& scalers, unsigned long nEvents, double threshold)
+std::vector<ColumnData> makeBadChannels(const ChannelScalers& scalers, double timeOrTriggers, double threshold)
 {
   /// Makes the mask from the scalers
-  uint32_t nThresholdEvents = static_cast<uint32_t>(threshold * nEvents);
+  uint32_t nThresholdEvents = static_cast<uint32_t>(threshold * timeOrTriggers);
   ColumnDataHandler handler;
   for (const auto scaler : scalers.getScalers()) {
     if (scaler.second >= nThresholdEvents) {
@@ -40,9 +40,9 @@ std::vector<ColumnData> makeBadChannels(const ChannelScalers& scalers, unsigned 
   return handler.getMerged();
 }
 
-std::vector<ColumnData> makeMasks(const ChannelScalers& scalers, unsigned long nEvents, double threshold, const std::vector<ColumnData>& refMasks)
+std::vector<ColumnData> makeMasks(const ChannelScalers& scalers, double timeOrTriggers, double threshold, const std::vector<ColumnData>& refMasks)
 {
-  auto badChannels = makeBadChannels(scalers, nEvents, threshold);
+  auto badChannels = makeBadChannels(scalers, timeOrTriggers, threshold);
   ChannelMasksHandler maskHandler;
   maskHandler.switchOffChannels(badChannels);
   std::vector<ColumnData> masks(maskHandler.getMasks());

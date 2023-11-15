@@ -8,17 +8,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework WorkflowSerializationHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Framework/WorkflowSpec.h"
 #include "../src/WorkflowSerializationHelpers.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
+TEST_CASE("TestVerifyWorkflowSerialization")
 {
   using namespace o2::framework;
   WorkflowSpec w0{                       //
@@ -51,9 +48,10 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
                                     AlgorithmSpec{[](ProcessingContext& ctx) {}},                                                                                                               //
                                     {},                                                                                                                                                         //
                                     CommonServices::defaultServices(),                                                                                                                          //
-                                    {{"label a"}, {"label \"b\""}}}};
+                                    {{"label a"}, {"label \"b\""}},
+                                    {{"key1", "v\"al'1"}, {"", "val2"}, {"key3", ""}, {"", ""}}}};
 
-  std::vector<DataProcessorInfo> metadataOut{
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
     {"A", "test_Framework_test_SerializationWorkflow", {"foo"}, {ConfigParamSpec{"aBool", VariantType::Bool, true, {"A Bool"}}}},
     {"B", "test_Framework_test_SerializationWorkflow", {"b-bar", "bfoof", "fbdbfaso"}},
     {"C", "test_Framework_test_SerializationWorkflow", {}},
@@ -62,31 +60,31 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
 
   CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
 
-  std::vector<DataProcessorInfo> metadataIn{};
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
   CommandInfo commandInfoIn;
 
   std::ostringstream firstDump;
-  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut, commandInfoOut);
+  WorkflowSerializationHelpers::dump(firstDump, w0, dataProcessorInfoOut, commandInfoOut);
   std::istringstream is;
   is.str(firstDump.str());
   WorkflowSpec w1;
-  WorkflowSerializationHelpers::import(is, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::import(is, w1, dataProcessorInfoIn, commandInfoIn);
 
   std::ostringstream secondDump;
-  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::dump(secondDump, w1, dataProcessorInfoIn, commandInfoIn);
 
-  BOOST_REQUIRE_EQUAL(w0.size(), 4);
-  BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
-  BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
-  BOOST_CHECK_EQUAL(commandInfoIn.command, commandInfoOut.command);
+  REQUIRE(w0.size() == 4);
+  REQUIRE(w0.size() == w1.size());
+  REQUIRE(firstDump.str() == secondDump.str());
+  REQUIRE(commandInfoIn.command == commandInfoOut.command);
 
   // also check if the conversion to ConcreteDataMatcher is working at import
-  BOOST_CHECK(std::get_if<ConcreteDataMatcher>(&w1[0].inputs[0].matcher) != nullptr);
+  REQUIRE(std::get_if<ConcreteDataMatcher>(&w1[0].inputs[0].matcher) != nullptr);
 }
 
 /// Test a workflow with a single data processor with a single input
 /// which has a wildcard on subspec.
-BOOST_AUTO_TEST_CASE(TestVerifyWildcard)
+TEST_CASE("TestVerifyWildcard")
 {
   using namespace o2::framework;
   WorkflowSpec w0{
@@ -95,30 +93,30 @@ BOOST_AUTO_TEST_CASE(TestVerifyWildcard)
       .inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}},
     }};
 
-  std::vector<DataProcessorInfo> metadataOut{
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
     {"A", "test_Framework_test_SerializationWorkflow", {}},
   };
 
   CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
 
-  std::vector<DataProcessorInfo> metadataIn{};
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
   CommandInfo commandInfoIn;
 
   std::ostringstream firstDump;
-  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut, commandInfoOut);
+  WorkflowSerializationHelpers::dump(firstDump, w0, dataProcessorInfoOut, commandInfoOut);
   std::istringstream is;
   is.str(firstDump.str());
   WorkflowSpec w1;
-  WorkflowSerializationHelpers::import(is, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::import(is, w1, dataProcessorInfoIn, commandInfoIn);
 
   std::ostringstream secondDump;
-  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::dump(secondDump, w1, dataProcessorInfoIn, commandInfoIn);
 
-  BOOST_REQUIRE_EQUAL(w0.size(), 1);
-  BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
-  BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
-  BOOST_CHECK_EQUAL(commandInfoIn.command, commandInfoOut.command);
+  REQUIRE(w0.size() == 1);
+  REQUIRE(w0.size() == w1.size());
+  REQUIRE(firstDump.str() == secondDump.str());
+  REQUIRE(commandInfoIn.command == commandInfoOut.command);
 
   // also check if the conversion to ConcreteDataMatcher is working at import
-  // BOOST_CHECK(std::get_if<ConcreteDataTypeMatcher>(&w1[0].inputs[0].matcher) != nullptr);
+  // REQUIRE(std::get_if<ConcreteDataTypeMatcher>(&w1[0].inputs[0].matcher) != nullptr);;
 }

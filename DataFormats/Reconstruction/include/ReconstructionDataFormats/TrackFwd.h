@@ -168,6 +168,12 @@ class TrackParCovFwd : public TrackParFwd
   // Kalman filter/fitting
   bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov);
 
+  // Propagate fwd track to vertex including MCS effects
+  bool propagateToVtxhelixWithMCS(double z, const std::array<float, 2>& p, const std::array<float, 2>& cov, double field, double x_over_X0);
+  bool propagateToVtxlinearWithMCS(double z, const std::array<float, 2>& p, const std::array<float, 2>& cov, double x_over_X0);
+
+  bool getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const;
+
  private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>

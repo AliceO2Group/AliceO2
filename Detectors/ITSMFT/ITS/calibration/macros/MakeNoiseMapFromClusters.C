@@ -53,7 +53,7 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
 
   o2::its::NoiseCalibrator calib(only1pix, probT);
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL("https://alice-ccdb.cern.ch");
+  mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
 
   calib.setClusterDictionary(mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary"));

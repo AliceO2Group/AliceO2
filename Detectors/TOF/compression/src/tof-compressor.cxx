@@ -35,6 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   auto verbose = ConfigParamSpec{"tof-compressor-verbose", VariantType::Bool, false, {"Enable verbose compressor"}};
   auto paranoid = ConfigParamSpec{"tof-compressor-paranoid", VariantType::Bool, false, {"Enable paranoid compressor"}};
   auto ignoreStf = ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}};
+  auto payloadlim = ConfigParamSpec{"payload-limit", VariantType::Int64, -1ll, {"Payload limit in Byte (-1 -> no limits)"}};
 
   workflowOptions.push_back(config);
   workflowOptions.push_back(outputDesc);
@@ -42,6 +43,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(verbose);
   workflowOptions.push_back(paranoid);
   workflowOptions.push_back(ignoreStf);
+  workflowOptions.push_back(payloadlim);
+  workflowOptions.emplace_back(ConfigParamSpec{"old", VariantType::Bool, false, {"use the non-DPL version of the compressor"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
@@ -57,22 +60,28 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto verbose = cfgc.options().get<bool>("tof-compressor-verbose");
   auto paranoid = cfgc.options().get<bool>("tof-compressor-paranoid");
   auto ignoreStf = cfgc.options().get<bool>("ignore-dist-stf");
+  auto old = cfgc.options().get<bool>("old");
+  if (old) {
+    LOGP(error, "--old option is not actually supported, using the new version");
+  }
+  auto payloadLim = cfgc.options().get<long>("payload-limit");
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
   AlgorithmSpec algoSpec;
-  if (rdhVersion == 6) {
+  if (rdhVersion == o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>()) {
     if (!verbose && !paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false, false>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, false>>(payloadLim)};
     }
     if (!verbose && paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false, true>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, true>>(payloadLim)};
     }
     if (verbose && !paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true, false>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, false>>(payloadLim)};
     }
     if (verbose && paranoid) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true, true>>()};
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, true>>(payloadLim)};
     }
   }
 
@@ -100,9 +109,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   while (getline(ssconfig, iconfig, ',')) {
     std::vector<InputSpec> inputs = select(iconfig.c_str());
     if (!ignoreStf) {
-      for (auto& val : inputs) {
-        val.lifetime = Lifetime::Optional;
-      }
       inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
     }
     workflow.emplace_back(DataProcessorSpec{
@@ -112,7 +118,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       outputs,
       algoSpec,
       Options{
-        {"tof-compressor-output-buffer-size", VariantType::Int, 0, {"Encoder output buffer size (in bytes). Zero = automatic (careful)."}},
+        {"tof-compressor-output-buffer-size", VariantType::Int, 1048576, {"Encoder output buffer size (in bytes). Zero = automatic (careful)."}},
         {"tof-compressor-conet-mode", VariantType::Bool, false, {"Decoder CONET flag"}},
         {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
         {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},

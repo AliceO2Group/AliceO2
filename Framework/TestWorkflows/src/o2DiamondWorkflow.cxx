@@ -40,7 +40,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
   policies.push_back(CallbacksPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
     .policy = [](CallbackService& service, InitContext&) {
-      service.set(CallbackService::Id::Start, []() { LOG(info) << "invoked at start"; });
+      service.set<CallbackService::Id::Start>([]() { LOG(info) << "invoked at start"; });
     }});
 }
 
@@ -85,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
       })},
     .options = {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}},
-                ConfigParamSpec{"channel-config", VariantType::String, "name=metric-feedback", {"Timeframes per second limit"}}}};
+                }};
   DataProcessorSpec b{
     .name = "B",
     .inputs = {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
@@ -104,9 +104,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
                           auto ref = inputs.get("b");
                           auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
                           LOG(info) << "Start time: " << header->startTime;
-                        })}};
+                        })},
+                      .labels = {{"expendable"}}};
 
   return workflow::concat(WorkflowSpec{a},
-                          workflow::combine("combined", {b, c}, false),
+                          WorkflowSpec{b, c},
                           WorkflowSpec{d});
 }

@@ -31,12 +31,20 @@ static InspectModel inspectModel={.nbrOfProjPads=0, .projectedPads=0,
 .projGroups=0, .thetaInit=0, .kThetaInit=0, .totalNbrOfSubClusterPads=0,
 .totalNbrOfSubClusterThetaEMFinal=0, .nCathGroups=0, .padToCathGrp=0};
 */
-static InspectModel inspectModel;
 
+namespace o2
+{
+namespace mch
+{
+extern ClusterConfig clusterConfig;
+}
+} // namespace o2
+
+static InspectModel inspectModel;
 // Used when several sub-cluster occur in the precluster
 // Append the new hits/clusters in the thetaList of the pre-cluster
 void copyInGroupList(const double* values, int N, int item_size,
-                     std::vector<DataBlock_t>& groupList)
+                     std::vector<o2::mch::DataBlock_t>& groupList)
 {
   double* ptr = new double[N * item_size];
   // memcpy( (void *) ptr, (const void*) values, N*item_size*sizeof(double));
@@ -78,12 +86,12 @@ void collectTheta(double* theta, o2::mch::Groups_t* thetaToGroup, int K)
 {
   int sumK = 0;
 
-  if (o2::mch::ClusterConfig::inspectModelLog >= o2::mch::ClusterConfig::info) {
+  if (o2::mch::clusterConfig.inspectModelLog >= o2::mch::ClusterConfig::info) {
     printf("collectTheta : nbrOfGroups with clusters = %lu\n", inspectModel.subClusterThetaFitList.size());
   }
   for (int h = 0; h < inspectModel.subClusterThetaFitList.size(); h++) {
     int k = inspectModel.subClusterThetaFitList[h].first;
-    if (o2::mch::ClusterConfig::inspectModelLog >= o2::mch::ClusterConfig::info) {
+    if (o2::mch::clusterConfig.inspectModelLog >= o2::mch::ClusterConfig::info) {
       o2::mch::printTheta("  ", 1.0,
                           inspectModel.subClusterThetaFitList[h].second,
                           inspectModel.subClusterThetaFitList[h].first);
@@ -94,7 +102,7 @@ void collectTheta(double* theta, o2::mch::Groups_t* thetaToGroup, int K)
       o2::mch::vectorSetShort(&thetaToGroup[sumK], h + 1, k);
     }
     sumK += k;
-    if (o2::mch::ClusterConfig::inspectModelLog >= o2::mch::ClusterConfig::info) {
+    if (o2::mch::clusterConfig.inspectModelLog >= o2::mch::ClusterConfig::info) {
       printf("collect theta grp=%d,  grpSize=%d, adress=%p\n", h, k,
              inspectModel.subClusterThetaFitList[h].second);
     }
@@ -170,6 +178,11 @@ void cleanInspectModel()
   delete[] inspectModel.padToCathGrp;
   inspectModel.padToCathGrp = nullptr;
   inspectModel.nCathGroups = 0;
+
+  // Timing
+  for (int i = 0; i < 4; i++) {
+    inspectModel.duration[i] = 0;
+  }
 }
 
 void finalizeInspectModel()
@@ -279,7 +292,7 @@ void savePadToCathGroup(const o2::mch::Groups_t* cath0Grp,
 
 void collectPadToCathGroup(o2::mch::Mask_t* padToMGrp, int nPads)
 {
-  if (o2::mch::ClusterConfig::inspectModelLog >= o2::mch::ClusterConfig::info) {
+  if (o2::mch::clusterConfig.inspectModelLog >= o2::mch::ClusterConfig::info) {
     printf("collectPadToCathGroup nPads=%d\n", nPads);
   }
   o2::mch::vectorCopyShort(inspectModel.padToCathGrp, nPads, padToMGrp);
@@ -449,6 +462,19 @@ int collectPixels(int which, int N, double* xyDxy, double* q)
   return nSrc;
 }
 
+void inspectOverWriteQ(int which, const double* qPixels)
+{
+  int G = inspectPadProcess.xyDxyQPixels[which].size();
+  /// Last Group
+  int N = inspectPadProcess.xyDxyQPixels[which][G - 1].first;
+  if (N != 0) {
+    double* xyDxyQ = inspectPadProcess.xyDxyQPixels[which][G - 1].second;
+    double* q = &xyDxyQ[4 * N];
+    o2::mch::vectorCopy(qPixels, N, q);
+    o2::mch::vectorPrint("inspectOverWriteQ ???", q, N);
+  }
+}
+
 void inspectSavePixels(int which, o2::mch::Pads& pixels)
 {
   int N = pixels.getNbrOfPads();
@@ -460,7 +486,7 @@ void inspectSavePixels(int which, o2::mch::Pads& pixels)
   o2::mch::vectorCopy(pixels.getDX(), N, &xyDxy[2 * N]);
   o2::mch::vectorCopy(pixels.getDY(), N, &xyDxy[3 * N]);
   o2::mch::vectorCopy(pixels.getCharges(), N, q);
-  DataBlock_t db = {N, xyDxyQ};
+  o2::mch::DataBlock_t db = {N, xyDxyQ};
   inspectPadProcess.xyDxyQPixels[which].push_back(db);
   // printf("[inspectPadProcess], chanel=%d, nbrGrp=%ld\n", which,
   // inspectPadProcess.xyDxyQPixels[which].size() );
@@ -474,6 +500,24 @@ void setNbrProjectedPads(int n)
   // inspectModel.maxNbrOfProjPads= n;
 };
 
+void InspectModelChrono(int type, bool end)
+{
+  if (type == -1) {
+    // printf("Duration all=%f localMax=%f fitting=%f\n", inspectModel.duration[0], inspectModel.duration[1], inspectModel.duration[2]);
+    return;
+  }
+  if (!end) {
+    // Start
+    inspectModel.startTime[type] = std::chrono::high_resolution_clock::now();
+  } else {
+    std::chrono::time_point<std::chrono::high_resolution_clock> tEnd;
+    tEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration_ = tEnd - inspectModel.startTime[type];
+    inspectModel.duration[type] += duration_.count();
+  }
+}
+
+/*
 int f_ChargeIntegralMag(const gsl_vector* gslParams, void* dataFit,
                         gsl_vector* residuals)
 {
@@ -587,25 +631,6 @@ int f_ChargeIntegralMag(const gsl_vector* gslParams, void* dataFit,
     // gsl_vector_set(residuals, i, (zObs[i] - z[i]) * (1.0 + cathPenal) +
     // wPenal);
   }
-  /*
-  if (o2::mch::ClusterConfig::fittingLog >= o2::mch::ClusterConfig::debug) {
-    printf("    Observed sumCath0=%15.8f, sumCath1=%15.8f,\n",
-           zCathTotalCharge[0], zCathTotalCharge[1]);
-    // printf("  fitted   sumCath0=%15.8f, sumCath1=%15.8f,\n", chargePerCath,
-    // chargePerCath);
-    printf("    Penalties cathPenal=%5.4g wPenal=%5.4g \n", 1.0 + cathPenal,
-           wPenal);
-    printf("    Residues\n");
-    printf("  %15s  %15s  %15s %15s %15s %15s\n", "zObs", "z", "cathWeight",
-           "norm. factor", "notSaturated", "residual");
-    for (int i = 0; i < N; i++) {
-      printf("  %15.8f  %15.8f  %15.8f  %15.8f         %d  %15.8f\n", zObs[i],
-             z[i], cathWeights[i], sumNormalizedZ[cath[i]] * cathWeights[i],
-             notSaturated[i], gsl_vector_get(residuals, i));
-    }
-    printf("\n");
-  }
-  */
   return GSL_SUCCESS;
 }
 
@@ -678,36 +703,6 @@ void fitMathiesonMag(const double* xyDxDy, const double* q,
   mathiesonData.notSaturated_ptr = notSaturated;
 
   // Total Charge per cathode plane
-  /*
-  double zCathTotalCharge[2];
-  o2::mch::Mask_t mask[N];
-  // Cath 1
-  o2::mch::vectorCopyShort(mathiesonData.cath_ptr, N, mask);
-  // Logic And operation
-  o2::mch::vectorMultVectorShort(mathiesonData.notSaturated_ptr, mask, N, mask);
-  zCathTotalCharge[0] = o2::mch::vectorMaskedSum(mathiesonData.zObs_ptr, mask, N);
-  // cath 0
-  o2::mch::vectorCopyShort(mathiesonData.cath_ptr, N, mask);
-  o2::mch::vectorNotShort(mask, N, mask);
-  // Logic And operation
-  o2::mch::vectorMultVectorShort(mathiesonData.notSaturated_ptr, mask, N, mask);
-  zCathTotalCharge[1] = o2::mch::vectorMaskedSum(mathiesonData.zObs_ptr, mask, N);
-  // Init the weights
-  cathWeights = new double[N];
-  for (int i = 0; i < N; i++) {
-    cathWeights[i] = (mathiesonData.cath_ptr[i] == 0) ? zCathTotalCharge[0]
-                                                      : zCathTotalCharge[1];
-    cathMax[mathiesonData.cath_ptr[i]] = std::fmax(
-      cathMax[mathiesonData.cath_ptr[i]],
-      mathiesonData.notSaturated_ptr[i] * mathiesonData.zObs_ptr[i]);
-  }
-  if (o2::mch::ClusterConfig::fittingLog >= o2::mch::ClusterConfig::detail) {
-    vectorPrintShort("mathiesonData.cath_ptr", mathiesonData.cath_ptr, N);
-    vectorPrintShort("mathiesonData.notSaturated_ptr",
-                     mathiesonData.notSaturated_ptr, N);
-    vectorPrint("mathiesonData.zObs_ptr", mathiesonData.zObs_ptr, N);
-  }
-  */
   mathiesonData.cathWeights_ptr = nullptr;
   mathiesonData.cathMax_ptr = nullptr;
   mathiesonData.chamberId = chId;
@@ -830,11 +825,6 @@ void fitMathiesonMag(const double* xyDxDy, const double* q,
       o2::mch::copyTheta(thetaInit, K, thetaFinal, K, K);
     } else {
       // Fitted parameters
-      /* Invalid ???
-      for (int k = 0; k < (3 * K - 1); k++) {
-        muAndWf[k] = gsl_vector_get(s->x, k);
-      }
-      */
 
       // Mu part
       for (int k = 0; k < K; k++) {
@@ -850,19 +840,6 @@ void fitMathiesonMag(const double* xyDxDy, const double* q,
       }
       // Last w : 1.0 - sumW
       muAndWf[3 * K - 1] = 1.0 - sumW;
-
-      // Parameter error
-      /* Pb Mac compilation
-      if (computeStdDev && (pError != nullptr)) { //
-        // Covariance matrix an error
-        gsl_matrix* covar = gsl_matrix_alloc(3 * K - 1, 3 * K - 1);
-        gsl_multifit_covar(s->J, 0.0, covar);
-        for (int k = 0; k < (3 * K - 1); k++) {
-          pError[k] = sqrt(gsl_matrix_get(covar, k, k));
-        }
-        gsl_matrix_free(covar);
-      }
-      */
     }
     if (o2::mch::ClusterConfig::fittingLog >= o2::mch::ClusterConfig::detail) {
       printf("  status parameter error = %s\n", gsl_strerror(status));
@@ -876,3 +853,4 @@ void fitMathiesonMag(const double* xyDxDy, const double* q,
   //
   return;
 }
+*/

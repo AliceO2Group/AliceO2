@@ -65,6 +65,8 @@ struct ChipStat {
     InterleavedChipData,          // Chip data interleaved on the cable
     TruncatedBuffer,              // truncated buffer, 0 padding
     TrailerAfterHeader,           // trailer seen after header w/o FE of FD set
+    FlushedIncomplete,            // ALPIDE MEB was flushed by the busy handling
+    StrobeExtended,               // ALPIDE received a second trigger while the strobe was still open
     NErrorsDefined
   };
 
@@ -99,7 +101,9 @@ struct ChipStat {
     "DColumns non-increasing",                      // DColumns non increasing
     "Chip data interleaved on the cable",           // Chip data interleaved on the cable
     "TruncatedBuffer",                              // truncated buffer, 0 padding
-    "TrailerAfterHeader"                            // trailer seen after header w/o FE of FD set
+    "TrailerAfterHeader",                           // trailer seen after header w/o FE of FD set
+    "FlushedIncomplete",                            // ALPIDE MEB was flushed by the busy handling
+    "StrobeExtended"                                // ALPIDE received a second trigger while the strobe was still open
   };
 
   static constexpr std::array<uint32_t, NErrorsDefined> ErrActions = {
@@ -133,7 +137,9 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // DColumns non increasing
     ErrActPropagate | ErrActDump, // Chip data interleaved on the cable
     ErrActPropagate | ErrActDump, // Truncated buffer while something was expected
-    ErrActPropagate | ErrActDump  // trailer seen after header w/o FE of FD set
+    ErrActPropagate | ErrActDump, // trailer seen after header w/o FE of FD set
+    ErrActPropagate | ErrActDump, // ALPIDE MEB was flushed by the busy handling
+    ErrActPropagate | ErrActDump  // ALPIDE received a second trigger while the strobe was still open
   };
   uint16_t feeID = -1;
   size_t nHits = 0;
@@ -209,10 +215,14 @@ struct GBTLinkDecodingStat {
     ErrMissingDiagnosticWord,    // missing diagnostic word after RDH with stop
     ErrGBTWordNotRecognized,     // GBT word not recognized
     ErrWrongeCableID,            // Invalid cable ID
+    ErrWrongAlignmentWord,       // unexpected alignment word
+    ErrMissingROF,               // missing ROF (desync?)
+    ErrOldROF,                   // old ROF (desync?)
+    ErrLinkRecovery,             // data skipped since recovery is declared
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
-    "Page data not start with expected RDH",                             // ErrNoRDHAtStart
+    "Page data does not start with expected RDH",                        // ErrNoRDHAtStart
     "RDH is stopped, but the time is not matching the stop packet",      // ErrPageNotStopped
     "Page with RDH.stop does not contain diagnostic word only",          // ErrStopPageNotEmpty
     "RDH page counters for the same RU/trigger are not continuous",      // ErrPageCounterDiscontinuity
@@ -229,9 +239,13 @@ struct GBTLinkDecodingStat {
     "Active lanes pattern conflicts with expected for given RU type",    // ErrInvalidActiveLanes
     "Jump in RDH_packetCounter",                                         // ErrPacketCounterJump
     "Packet done is missing in the trailer while CRU page is not over",  // ErrPacketDoneMissing
-    "Missing diagnostic GBT word after RDH with stop",                   // ErrMissingDiagnosticWord
+    "Wrong/missing diagnostic GBT word after RDH with stop",             // ErrMissingDiagnosticWord
     "GBT word not recognized",                                           // ErrGBTWordNotRecognized
-    "Wrong cable ID"                                                     // ErrWrongeCableID
+    "Wrong cable ID",                                                    // ErrWrongeCableID
+    "Unexpected CRU page alignment padding word",                        // ErrWrongAlignmentWord
+    "ROF in future, pause decoding to synchronize",                      // ErrMissingROF
+    "Old ROF, discarding",                                               // ErrOldROF
+    "Data discarded due to the recovery flag in RDH",                    // ErrLinkRecovery
   };
 
   uint16_t feeID = 0; // FeeID

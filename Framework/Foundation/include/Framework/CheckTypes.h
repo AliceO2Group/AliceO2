@@ -11,6 +11,10 @@
 #ifndef O2_FRAMEWORK_CHECKTYPES_H_
 #define O2_FRAMEWORK_CHECKTYPES_H_
 
+#include <algorithm>
+#include <type_traits>
+#include "CompilerBuiltins.h"
+
 namespace o2::framework
 {
 
@@ -35,10 +39,29 @@ void call_if_defined_full(TDefined&& onDefined, TUndefined&& onUndefined)
   }
 }
 
+/// Helper which will invoke @a onDefined if the type T is actually available
+/// or @a onUndefined if the type T is a forward declaration.
+/// Can be used to check for existence or not of a given type.
+template <typename T, typename TDefined, typename TUndefined>
+T call_if_defined_full_forward(TDefined&& onDefined, TUndefined&& onUndefined)
+{
+  if constexpr (is_type_complete_v<T>) {
+    return std::move(onDefined(static_cast<T*>(nullptr)));
+  } else {
+    return onUndefined();
+  }
+}
+
 template <typename T, typename TDefined>
 void call_if_defined(TDefined&& onDefined)
 {
   call_if_defined_full<T>(onDefined, []() -> void {});
+}
+
+template <typename T, typename TDefined>
+T call_if_defined_forward(TDefined&& onDefined)
+{
+  return std::move(call_if_defined_full_forward<T>(onDefined, []() -> T&& { O2_BUILTIN_UNREACHABLE(); }));
 }
 
 } // namespace o2::framework

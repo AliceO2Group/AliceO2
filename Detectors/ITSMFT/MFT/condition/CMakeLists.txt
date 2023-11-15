@@ -10,15 +10,15 @@
 
 o2_add_library(MFTCondition
                SOURCES src/MFTDCSProcessor.cxx
-                       src/DCSNameResolver.cxx                       
-		       src/DCSConfigInfo.cxx
-		       src/DCSConfigReader.cxx
+                       src/DCSNameResolver.cxx
+                       src/DCSConfigInfo.cxx
+                       src/DCSConfigReader.cxx
                        src/DCSConfigUtils.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB
+                                     O2::DataFormatsMFT
                                      O2::DetectorsCalibration
                                      O2::DetectorsDCS
                                      Microsoft.GSL::GSL)
-
 o2_target_root_dictionary(MFTCondition
                           HEADERS include/MFTCondition/MFTDCSProcessor.h
                                   include/MFTCondition/DCSNameResolver.h

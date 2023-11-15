@@ -20,16 +20,19 @@
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcontext)
 {
   std::vector<o2::dcs::test::HintType> dphints;
-  // for testing, we use less DPs than the official ones
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/SA[1..2]/actual/iMon", 250, 350});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/SA[1..2]/actual/ADC0_BASELINE", 30, 150});
-  // Official list
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/S[A,B,C,D,E,F,G,H][1..4]/actual/iMon", 250, 350});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/S[A,B,C,D,E,F,G,H][51,52]/actual/iMon", 250, 350});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/SREF/actual/iMon", 250, 350});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/S[A,B,C,D,E,F,G,H][1..4]/actual/ADC[0,1]_BASELINE", 30, 150});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/S[A,B,C,D,E,F,G,H][51,52]/actual/ADC[0,1]_BASELINE", 30, 150});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/SREF/actual/ADC[0,1]_BASELINE", 30, 150});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/S[A,B,C,D,E,F,G,H][1..4]/actual/iMon", 250, 350});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/S[A,B,C,D,E,F,G,H][51,52]/actual/iMon", 250, 350});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/HV/SREF/actual/iMon", 250, 350});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/S[A,B,C,D,E,F,G,H][1..4]/actual/ADC[0,1]_BASELINE", 30, 150});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/S[A,B,C,D,E,F,G,H][51,52]/actual/ADC[0,1]_BASELINE", 30, 150});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<uint>{"FV0/PM/SREF/actual/ADC[0,1]_BASELINE", 30, 150});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Trigger1_Charge/CNT_RATE", 0, 5000000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Trigger2_Nchannels/CNT_RATE", 0, 5000000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Trigger3_InnerRings/CNT_RATE", 0, 5000000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Trigger4_OuterRings/CNT_RATE", 0, 5000000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Trigger5_OrA/CNT_RATE", 0, 5000000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Background/[0..9]/CNT_RATE", 0, 50000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FV0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE", 0, 50000});
 
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "FV0"));

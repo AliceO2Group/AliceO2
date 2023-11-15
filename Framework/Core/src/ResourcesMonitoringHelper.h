@@ -14,11 +14,11 @@
 
 #include "Framework/DeviceMetricsInfo.h"
 #include "Monitoring/ProcessMonitor.h"
-#include <boost/property_tree/ptree.hpp>
 #include "Framework/DeviceSpec.h"
 
 #include <vector>
 #include <type_traits>
+#include <regex>
 
 namespace o2::framework
 {
@@ -29,7 +29,7 @@ struct ResourcesMonitoringHelper {
   static bool dumpMetricsToJSON(std::vector<DeviceMetricsInfo> const& metrics,
                                 DeviceMetricsInfo const& driverMetrics,
                                 std::vector<DeviceSpec> const& specs,
-                                std::vector<std::string> const& metricsToDump) noexcept;
+                                std::vector<std::regex> const& metricsToDump) noexcept;
   static bool isResourcesMonitoringEnabled(unsigned short interval) noexcept { return interval > 0; }
 };
 

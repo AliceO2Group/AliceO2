@@ -87,3 +87,5 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
 endif()
+
+set_target_hip_arch(${targetName})

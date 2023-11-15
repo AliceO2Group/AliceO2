@@ -14,6 +14,7 @@
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsEMCAL/MCLabel.h"
@@ -46,13 +47,17 @@ void CellConverterSpec::init(framework::InitContext& ctx)
   }
   mRawFitter->setAmpCut(0.);
   mRawFitter->setL1Phase(0.);
-  LOG(info) << "Using time shift: " << RecoParam::Instance().getCellTimeShiftNanoSec() << " ns";
 }
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALCellConverter - run] called";
+
+  mCalibHandler->checkUpdates(ctx);
+  updateCalibrationObjects();
+
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
+  timeshift = int(timeshift / 100) * 100;                             // This is a cheat to make the time multiple of 100, since the digitizer takes the delay only as mutiple of 100
 
   mOutputCells.clear();
   mOutputLabels.clear();
@@ -71,6 +76,8 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       mOutputTriggers.emplace_back(trg.getBCData(), trg.getTriggerBits(), currentstart, ncellsTrigger);
       continue;
     }
+
+    int bcmod4 = (trg.getBCData().bc + RecoParam::Instance().getPhaseBCmod4()) % 4;
 
     gsl::span<const o2::emcal::Digit> digits(digitsAll.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
     std::vector<gsl::span<const o2::emcal::MCLabel>> mcLabels;
@@ -110,7 +117,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fitResults.getTime() < 0) {
             fitResults.setTime(0.);
           }
-          mOutputCells.emplace_back(tower, fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY, fitResults.getTime() - timeshift, channelType);
+          mOutputCells.emplace_back(tower, fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY, fitResults.getTime() - timeshift - 25 * bcmod4, channelType);
 
           if (mPropagateMC) {
             Int_t LabelIndex = mOutputLabels.getIndexedSize();
@@ -154,10 +161,25 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     ncellsTrigger = 0;
   }
   LOG(debug) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputLabels);
+    ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputLabels);
+  }
+}
+
+void CellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCalibHandler->finalizeCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+void CellConverterSpec::updateCalibrationObjects()
+{
+  if (mCalibHandler->hasUpdateRecoParam()) {
+    LOG(info) << "RecoParams updated";
+    o2::emcal::RecoParam::Instance().printKeyValues(true, true);
   }
 }
 
@@ -432,22 +454,25 @@ int CellConverterSpec::selectMaximumBunch(const gsl::span<const Bunch>& bunchvec
   return bunchindex;
 }
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(bool propagateMC)
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(bool propagateMC, int inputSubspec, int outputSubspec)
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
-  inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe);
-  inputs.emplace_back("triggers", "EMC", "DIGITSTRGR", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", inputSubspec, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("triggers", "EMC", "DIGITSTRGR", inputSubspec, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "CELLS", outputSubspec, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "CELLSTRGR", outputSubspec, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
-    inputs.emplace_back("digitsmctr", "EMC", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back("EMC", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("digitsmctr", "EMC", "DIGITSMCTR", inputSubspec, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back("EMC", "CELLSMCTR", outputSubspec, o2::framework::Lifetime::Timeframe);
   }
+  auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
+  calibhandler->enableRecoParams(true);
+  calibhandler->defineInputSpecs(inputs);
   return o2::framework::DataProcessorSpec{"EMCALCellConverterSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::CellConverterSpec>(propagateMC),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::CellConverterSpec>(propagateMC, inputSubspec, outputSubspec, calibhandler),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}}}};
 }

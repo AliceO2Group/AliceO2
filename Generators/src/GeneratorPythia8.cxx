@@ -16,11 +16,18 @@
 #include "CommonUtils/ConfigurationMacroHelper.h"
 #include <fairlogger/Logger.h>
 #include "TParticle.h"
+#include "TF1.h"
+#include "TRandom.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCGenProperties.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Pythia8/HIUserHooks.h"
+#include "Pythia8Plugins/PowhegHooks.h"
 #include "TSystem.h"
+#include "ZDCBase/FragmentParam.h"
 
 #include <iostream>
+#include <unordered_map>
 
 namespace o2
 {
@@ -102,7 +109,28 @@ Bool_t GeneratorPythia8::Init()
   /** inhibit hadron decays **/
   mPythia.readString("HadronLevel:Decay off");
 #endif
-
+  if (mPythia.settings.mode("Beams:frameType") == 4) {
+    // Hook for POWHEG
+    // Read in key POWHEG merging settings
+    int vetoMode = mPythia.settings.mode("POWHEG:veto");
+    int MPIvetoMode = mPythia.settings.mode("POWHEG:MPIveto");
+    bool loadHooks = (vetoMode > 0 || MPIvetoMode > 0);
+    // Add in user hooks for shower vetoing
+    std::shared_ptr<Pythia8::PowhegHooks> powhegHooks;
+    if (loadHooks) {
+      // Set ISR and FSR to start at the kinematical limit
+      if (vetoMode > 0) {
+        mPythia.readString("SpaceShower:pTmaxMatch = 2");
+        mPythia.readString("TimeShower:pTmaxMatch = 2");
+      }
+      // Set MPI to start at the kinematical limit
+      if (MPIvetoMode > 0) {
+        mPythia.readString("MultipartonInteractions:pTmaxMatch = 2");
+      }
+      powhegHooks = std::make_shared<Pythia8::PowhegHooks>();
+      mPythia.setUserHooksPtr((Pythia8::UserHooksPtr)powhegHooks);
+    }
+  }
   /** initialise **/
   if (!mPythia.init()) {
     LOG(fatal) << "Failed to init \'Pythia8\': init returned with error";
@@ -118,8 +146,6 @@ Bool_t GeneratorPythia8::Init()
 Bool_t
   GeneratorPythia8::generateEvent()
 {
-  /** generate event **/
-
   /** generate event **/
   if (!mPythia.next()) {
     return false;
@@ -161,17 +187,161 @@ Bool_t
 /*****************************************************************/
 
 Bool_t
-  GeneratorPythia8::importParticles(Pythia8::Event& event)
+  GeneratorPythia8::importParticles(Pythia8::Event const& event)
 {
   /** import particles **/
 
+  // the right moment to filter out unwanted stuff (like parton-level event information)
+
+  std::unique_ptr<Pythia8::Event> hadronLevelEvent;
+  auto eventToRead = &event;
+
+  // The right moment to filter out unwanted stuff (like parton-level event information)
+  // Here, we aim to filter out everything before hadronization with the motivation to reduce the
+  // size of the MC event record in the AOD.
+  if (!GeneratorPythia8Param::Instance().includePartonEvent) {
+
+    // lambda performing the actual filtering
+    auto getHadronLevelEvent = [](Pythia8::Event const& event, Pythia8::Event& hadronLevelEvent) {
+      std::unordered_map<int, int> old_to_new;
+      std::vector<Pythia8::Particle> filtered;
+      // push the system particle
+      filtered.push_back(event[0]);
+
+      // Iterate over all particles and keep those that appear in hadronization phase
+      // (should be mostly those with HepMC statuses 1 and 2)
+      // we go from 1 since 0 is system as whole
+      for (int i = 1; i < event.size(); ++i) {
+        auto& p = event[i];
+        if (p.statusHepMC() == 1 || p.statusHepMC() == 2) {
+          filtered.push_back(p);
+          old_to_new[i] = filtered.size() - 1;
+        }
+      }
+
+      // helper lambda to lookup new index in filtered event - returns new id or -1 if not succesfull
+      auto lookupNew = [&old_to_new](int oldid) {
+        auto iter = old_to_new.find(oldid);
+        if (iter == old_to_new.end()) {
+          return -1;
+        }
+        return iter->second;
+      };
+
+      std::vector<int> childbuffer;
+
+      // a lambda to check/assert size on children
+      auto checkChildrenSize = [&childbuffer](int expected) {
+        if (expected != childbuffer.size()) {
+          LOG(error) << "Transcribed children list does not have expected size " << expected << " but " << childbuffer.size();
+        }
+      };
+
+      // second pass to fix parent / children mappings
+      for (int i = 1; i < filtered.size(); ++i) {
+        auto& p = filtered[i];
+        // get old daughters --> lookup their new position and fix
+        auto originaldaughterids = p.daughterList();
+
+        // this checks if all children have been copied over to filtered
+        childbuffer.clear();
+        for (auto& oldid : originaldaughterids) {
+          auto newid = lookupNew(oldid);
+          if (newid == -1) {
+            LOG(error) << "Pythia8 remapping error - original index not known " << oldid;
+          } else {
+            childbuffer.push_back(newid);
+          }
+        }
+
+        // fix children
+        // analyse the cases (see Pythia8 documentation)
+        auto d1 = p.daughter1();
+        auto d2 = p.daughter2();
+        if (d1 == 0 && d2 == 0) {
+          // there is no offsprint --> nothing to do
+          checkChildrenSize(0);
+        } else if (d1 == d2 && d1 != 0) {
+          // carbon copy ... should not happend here
+          checkChildrenSize(1);
+          p.daughters(childbuffer[0], childbuffer[0]);
+        } else if (d1 > 0 && d2 == 0) {
+          checkChildrenSize(1);
+          p.daughters(childbuffer[0], 0);
+        } else if (d2 != 0 && d2 > d1) {
+          // multiple decay products ... adjacent in the event
+          checkChildrenSize(d2 - d1 + 1);
+          p.daughters(lookupNew(d1), lookupNew(d2));
+        } else if (d2 != 0 && d2 < d1) {
+          // 2 distinct products ... not adjacent to each other
+          checkChildrenSize(2);
+          p.daughters(lookupNew(d1), lookupNew(d2));
+        }
+
+        // fix mothers
+        auto m1 = p.mother1();
+        auto m2 = p.mother2();
+        if (m1 == 0 && m2 == 0) {
+          // nothing to be done
+        } else if (m1 > 0 && m2 == m1) {
+          // carbon copy
+          auto tmp = lookupNew(m1);
+          if (tmp != -1) {
+            p.mothers(tmp, tmp);
+          } else {
+            // delete mother link since no longer available
+            p.mothers(0, 0);
+          }
+        } else if (m1 > 0 && m2 == 0) {
+          // the "normal" mother case, where it is meaningful to speak of one single mother to several products, in a shower or decay;
+          auto tmp = lookupNew(m1);
+          if (tmp != -1) {
+            p.mothers(tmp, tmp);
+          } else {
+            // delete mother link since no longer available
+            p.mothers(0, 0);
+          }
+        } else if (m1 < m2 && m1 > 0) {
+          // mother1 < mother2, both > 0,
+          // case for abs(status) = 81 - 86: primary hadrons produced from
+          // the fragmentation of a string spanning the range from mother1 to mother2,
+          // so that all partons in this range should be considered mothers;
+          // and analogously for abs(status) = 101 - 106, the formation of R-hadrons;
+
+          // here we simply delete the mothers
+          p.mothers(0, 0);
+          // verify that these shouldn't be in the list anyway
+          if (lookupNew(m1) != -1 || lookupNew(m2) != -1) {
+            LOG(warn) << "Indexing looks weird for primary hadron cases";
+          }
+        } else {
+          LOG(warn) << "Unsupported / unexpected mother reindexing. Code needs more treatment";
+        }
+        // append this to the Pythia event
+        hadronLevelEvent.append(p);
+      }
+    };
+
+    hadronLevelEvent.reset(new Pythia8::Event);
+    hadronLevelEvent->init("Hadron Level event record", &mPythia.particleData);
+
+    hadronLevelEvent->reset();
+
+    getHadronLevelEvent(event, *hadronLevelEvent);
+
+    hadronLevelEvent->list();
+    eventToRead = hadronLevelEvent.get();
+    LOG(info) << "The pythia event has been reduced from size " << event.size()
+              << " to " << hadronLevelEvent->size() << " by pre-hadronization pruning";
+  }
+
   /* loop over particles */
   //  auto weight = mPythia.info.weight(); // TBD: use weights
-  auto nParticles = event.size();
+  auto nParticles = eventToRead->size();
   for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) { // first particle is system
-    auto particle = event[iparticle];
+    auto particle = (*eventToRead)[iparticle];
     auto pdg = particle.id();
-    auto st = particle.statusHepMC();
+    auto st = o2::mcgenstatus::MCGenStatusEncoding(particle.statusHepMC(), particle.status()).fullEncoding;
     auto px = particle.px();
     auto py = particle.py();
     auto pz = particle.pz();
@@ -185,6 +355,7 @@ Bool_t
     auto d1 = particle.daughter1() - 1;
     auto d2 = particle.daughter2() - 1;
     mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, particle.statusHepMC() == 1);
   }
 
   /** success **/
@@ -196,11 +367,39 @@ Bool_t
 void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   /** update header **/
+  using Key = o2::dataformats::MCInfoKeys;
 
-  eventHeader->putInfo<std::string>("generator", "pythia8");
-  eventHeader->putInfo<int>("version", PYTHIA_VERSION_INTEGER);
-  eventHeader->putInfo<std::string>("processName", mPythia.info.name());
-  eventHeader->putInfo<int>("processCode", mPythia.info.code());
+  eventHeader->putInfo<std::string>(Key::generator, "pythia8");
+  eventHeader->putInfo<int>(Key::generatorVersion, PYTHIA_VERSION_INTEGER);
+  eventHeader->putInfo<std::string>(Key::processName, mPythia.info.name());
+  eventHeader->putInfo<int>(Key::processCode, mPythia.info.code());
+  eventHeader->putInfo<float>(Key::weight, mPythia.info.weight());
+
+  auto& info = mPythia.info;
+
+  // Set PDF information
+  eventHeader->putInfo<int>(Key::pdfParton1Id, info.id1pdf());
+  eventHeader->putInfo<int>(Key::pdfParton2Id, info.id2pdf());
+  eventHeader->putInfo<float>(Key::pdfX1, info.x1pdf());
+  eventHeader->putInfo<float>(Key::pdfX2, info.x2pdf());
+  eventHeader->putInfo<float>(Key::pdfScale, info.QFac());
+  eventHeader->putInfo<float>(Key::pdfXF1, info.pdf1());
+  eventHeader->putInfo<float>(Key::pdfXF2, info.pdf2());
+
+  // Set cross section
+  eventHeader->putInfo<float>(Key::xSection, info.sigmaGen() * 1e9);
+  eventHeader->putInfo<float>(Key::xSectionError, info.sigmaErr() * 1e9);
+
+  // Set weights (overrides cross-section for each weight)
+  size_t iw = 0;
+  auto xsecErr = info.weightContainerPtr->getTotalXsecErr();
+  for (auto w : info.weightContainerPtr->getTotalXsec()) {
+    std::string post = (iw == 0 ? "" : "_" + std::to_string(iw));
+    eventHeader->putInfo<float>(Key::weight + post, info.weightValueByIndex(iw));
+    eventHeader->putInfo<float>(Key::xSection + post, w * 1e9);
+    eventHeader->putInfo<float>(Key::xSectionError + post, xsecErr[iw] * 1e9);
+    iw++;
+  }
 
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = mPythia.info.hiinfo;
@@ -211,16 +410,20 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   if (hiinfo) {
     /** set impact parameter **/
     eventHeader->SetB(hiinfo->b());
-    eventHeader->putInfo<double>("Bimpact", hiinfo->b());
+    eventHeader->putInfo<double>(Key::impactParameter, hiinfo->b());
+    auto bImp = hiinfo->b();
     /** set Ncoll, Npart and Nremn **/
     int nColl, nPart;
     int nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg;
     int nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg;
+    int nFreeNeutronProj, nFreeProtonProj, nFreeNeutronTarg, nFreeProtonTarg;
     getNcoll(nColl);
     getNpart(nPart);
     getNpart(nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg);
     getNremn(nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg);
-    eventHeader->putInfo<int>("Ncoll", nColl);
+    getNfreeSpec(nFreeNeutronProj, nFreeProtonProj, nFreeNeutronTarg, nFreeProtonTarg);
+    eventHeader->putInfo<int>(Key::nColl, nColl);
+    // These are all non-HepMC3 fields - of limited use
     eventHeader->putInfo<int>("Npart", nPart);
     eventHeader->putInfo<int>("Npart_proj_p", nPartProtonProj);
     eventHeader->putInfo<int>("Npart_proj_n", nPartNeutronProj);
@@ -230,6 +433,22 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     eventHeader->putInfo<int>("Nremn_proj_n", nRemnNeutronProj);
     eventHeader->putInfo<int>("Nremn_targ_p", nRemnProtonTarg);
     eventHeader->putInfo<int>("Nremn_targ_n", nRemnNeutronTarg);
+    eventHeader->putInfo<int>("Nfree_proj_n", nFreeNeutronProj);
+    eventHeader->putInfo<int>("Nfree_proj_p", nFreeProtonProj);
+    eventHeader->putInfo<int>("Nfree_targ_n", nFreeNeutronTarg);
+    eventHeader->putInfo<int>("Nfree_targ_p", nFreeProtonTarg);
+
+    // --- HepMC3 conforming information ---
+    // This is how the Pythia authors define Ncoll
+    // eventHeader->putInfo<int>(Key::nColl,
+    //                           hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+    //                           hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
+    //                           hiiinfo->nCollND() - hiinfo->nCollDD());
+    eventHeader->putInfo<int>(Key::nPartProjectile,
+                              hiinfo->nAbsProj() + hiinfo->nDiffProj());
+    eventHeader->putInfo<int>(Key::nPartTarget,
+                              hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+    eventHeader->putInfo<int>(Key::nCollHard, hiinfo->nCollNDTot());
   }
 }
 
@@ -288,6 +507,10 @@ void GeneratorPythia8::getNcoll(const Pythia8::Info& info, int& nColl)
   auto hiinfo = info.hiInfo;
 #endif
 
+  // This is how the Pythia authors define Ncoll
+  nColl = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+           hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
+           hiinfo->nCollND() - hiinfo->nCollDD());
   nColl = 0;
 
   if (!hiinfo) {
@@ -315,6 +538,17 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nPart)
 {
 
   /** compute number of participants as the sum of all participants nucleons **/
+
+  // This is how the Pythia authors calculate Npart
+#if PYTHIA_VERSION_INTEGER < 8300
+  auto hiinfo = info.hiinfo;
+#else
+  auto hiinfo = info.hiInfo;
+#endif
+  if (hiinfo) {
+    nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+             hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  }
 
   int nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg;
   getNpart(info, nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg);
@@ -422,9 +656,68 @@ void GeneratorPythia8::getNremn(const Pythia8::Event& event, int& nProtonProj, i
     LOG(warning) << " GeneratorPythia8: found more than two nuclear remnants (weird)";
   }
 }
+/*****************************************************************/
 
 /*****************************************************************/
-/*****************************************************************/
+
+void GeneratorPythia8::getNfreeSpec(const Pythia8::Info& info, int& nFreenProj, int& nFreepProj, int& nFreenTarg, int& nFreepTarg)
+{
+  /** compute number of free spectator nucleons for ZDC response **/
+
+#if PYTHIA_VERSION_INTEGER < 8300
+  auto hiinfo = info.hiinfo;
+#else
+  auto hiinfo = info.hiInfo;
+#endif
+
+  if (!hiinfo) {
+    return;
+  }
+
+  double b = hiinfo->b();
+
+  static o2::zdc::FragmentParam frag; // data-driven model to get free spectators given impact parameter
+
+  TF1 const& fneutrons = frag.getfNeutrons();
+  TF1 const& fsigman = frag.getsigmaNeutrons();
+  TF1 const& fprotons = frag.getfProtons();
+  TF1 const& fsigmap = frag.getsigmaProtons();
+
+  // Calculating no. of free spectators from parametrization
+  int nneu[2] = {0, 0};
+  for (int i = 0; i < 2; i++) {
+    float nave = fneutrons.Eval(b);
+    float sigman = fsigman.Eval(b);
+    float nfree = gRandom->Gaus(nave, 0.68 * sigman * nave);
+    nneu[i] = (int)nfree;
+    if (nave < 0 || nneu[i] < 0) {
+      nneu[i] = 0;
+    }
+    if (nneu[i] > 126) {
+      nneu[i] = 126;
+    }
+  }
+  //
+  int npro[2] = {0, 0};
+  for (int i = 0; i < 2; i++) {
+    float pave = fprotons.Eval(b);
+    float sigmap = fsigman.Eval(b);
+    float pfree = gRandom->Gaus(pave, 0.68 * sigmap * pave) / 0.7;
+    npro[i] = (int)pfree;
+    if (pave < 0 || npro[i] < 0) {
+      npro[i] = 0;
+    }
+    if (npro[i] > 82) {
+      npro[i] = 82;
+    }
+  }
+
+  nFreenProj = nneu[0];
+  nFreenTarg = nneu[1];
+  nFreepProj = npro[0];
+  nFreepTarg = npro[1];
+  /*****************************************************************/
+}
 
 } /* namespace eventgen */
 } /* namespace o2 */

@@ -38,6 +38,9 @@
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/RateLimiter.h"
+#include "Framework/Plugins.h"
+#include "Framework/DeviceSpec.h"
 #include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
@@ -76,6 +79,7 @@ struct InputObject {
   TClass* kind = nullptr;
   void* obj = nullptr;
   std::string name;
+  int count = -1;
 };
 
 const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNames = {{OutputObjHandlingPolicy::AnalysisObject, "AnalysisResults.root"},
@@ -85,8 +89,17 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
 DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputObjectInfo> const& objmap, std::vector<OutputTaskInfo> const& tskmap)
 {
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
+    auto& deviceSpec = ic.services().get<DeviceSpec const>();
     auto& callbacks = ic.services().get<CallbackService>();
     auto inputObjects = std::make_shared<std::vector<std::pair<InputObjectRoute, InputObject>>>();
+
+    static TFile* f[OutputObjHandlingPolicy::numPolicies];
+    for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
+      f[i] = nullptr;
+    }
+
+    static std::string currentDirectory = "";
+    static std::string currentFile = "";
 
     auto endofdatacb = [inputObjects](EndOfStreamContext& context) {
       LOG(debug) << "Writing merged objects and histograms to file";
@@ -94,64 +107,6 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
         LOG(error) << "Output object map is empty!";
         context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         return;
-      }
-      std::string currentDirectory = "";
-      std::string currentFile = "";
-      TFile* f[OutputObjHandlingPolicy::numPolicies];
-      for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
-        f[i] = nullptr;
-      }
-      for (auto& [route, entry] : *inputObjects) {
-        auto file = ROOTfileNames.find(route.policy);
-        if (file != ROOTfileNames.end()) {
-          auto filename = file->second;
-          if (f[route.policy] == nullptr) {
-            f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
-          }
-          auto nextDirectory = route.directory;
-          if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
-            if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
-              f[route.policy]->mkdir(nextDirectory.c_str());
-            }
-            currentDirectory = nextDirectory;
-            currentFile = filename;
-          }
-
-          // translate the list-structure created by the registry into a directory structure within the file
-          std::function<void(TList*, TDirectory*)> writeListToFile;
-          writeListToFile = [&](TList* list, TDirectory* parentDir) {
-            TIter next(list);
-            TObject* object = nullptr;
-            while ((object = next())) {
-              if (object->InheritsFrom(TList::Class())) {
-                writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
-              } else {
-                parentDir->WriteObjectAny(object, object->Class(), object->GetName());
-                list->Remove(object);
-              }
-            }
-          };
-
-          TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
-          if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
-            TList* outputList = static_cast<TList*>(entry.obj);
-            outputList->SetOwner(false);
-
-            // if registry should live in dedicated folder a TNamed object is appended to the list
-            if (outputList->Last() && outputList->Last()->IsA() == TNamed::Class()) {
-              delete outputList->Last();
-              outputList->RemoveLast();
-              currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
-            }
-
-            writeListToFile(outputList, currentDir);
-            outputList->SetOwner();
-            delete outputList;
-            entry.obj = nullptr;
-          } else {
-            currentDir->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
-          }
-        }
       }
       for (auto i = 0u; i < OutputObjHandlingPolicy::numPolicies; ++i) {
         if (f[i] != nullptr) {
@@ -162,7 +117,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
@@ -198,7 +153,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       auto hash = objh->mTaskHash;
 
       obj.obj = tm.ReadObjectAny(obj.kind);
-      TNamed* named = static_cast<TNamed*>(obj.obj);
+      auto* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
       auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.id == hash; });
       if (hpos == tskmap.end()) {
@@ -219,19 +174,87 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       auto nameHash = compile_time_hash(obj.name.c_str());
       InputObjectRoute key{obj.name, nameHash, taskname, hash, policy, sourceType};
       auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
+      // If it's the first one, we just add it to the list.
       if (existing == inputObjects->end()) {
+        obj.count = objh->mPipelineSize;
         inputObjects->push_back(std::make_pair(key, obj));
+        existing = inputObjects->end() - 1;
+      } else {
+        obj.count = existing->second.count;
+        // Otherwise, we merge it with the existing one.
+        auto merger = existing->second.kind->GetMerge();
+        if (!merger) {
+          LOG(error) << "Already one unmergeable object found for " << obj.name;
+          return;
+        }
+        TList coll;
+        coll.Add(static_cast<TObject*>(obj.obj));
+        merger(existing->second.obj, &coll, nullptr);
+      }
+      // We expect as many objects as the pipeline size, for
+      // a given object name and task hash.
+      existing->second.count -= 1;
+
+      if (existing->second.count != 0) {
         return;
       }
-      auto merger = existing->second.kind->GetMerge();
-      if (!merger) {
-        LOG(error) << "Already one unmergeable object found for " << obj.name;
+      // Write the object here.
+      auto route = existing->first;
+      auto entry = existing->second;
+      auto file = ROOTfileNames.find(route.policy);
+      if (file == ROOTfileNames.end()) {
         return;
+      }
+      auto filename = file->second;
+      if (f[route.policy] == nullptr) {
+        f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
+      }
+      auto nextDirectory = route.directory;
+      if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
+        if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
+          f[route.policy]->mkdir(nextDirectory.c_str());
+        }
+        currentDirectory = nextDirectory;
+        currentFile = filename;
       }
 
-      TList coll;
-      coll.Add(static_cast<TObject*>(obj.obj));
-      merger(existing->second.obj, &coll, nullptr);
+      // translate the list-structure created by the registry into a directory structure within the file
+      std::function<void(TList*, TDirectory*)> writeListToFile;
+      writeListToFile = [&](TList* list, TDirectory* parentDir) {
+        TIter next(list);
+        TObject* object = nullptr;
+        while ((object = next())) {
+          if (object->InheritsFrom(TList::Class())) {
+            writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
+          } else {
+            parentDir->WriteObjectAny(object, object->Class(), object->GetName());
+            auto* written = list->Remove(object);
+            delete written;
+          }
+        }
+      };
+
+      TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
+      if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
+        auto* outputList = static_cast<TList*>(entry.obj);
+        outputList->SetOwner(false);
+
+        // if registry should live in dedicated folder a TNamed object is appended to the list
+        if (outputList->Last() && outputList->Last()->IsA() == TNamed::Class()) {
+          delete outputList->Last();
+          outputList->RemoveLast();
+          currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
+        }
+
+        writeListToFile(outputList, currentDir);
+        outputList->SetOwner();
+        delete outputList;
+        entry.obj = nullptr;
+      } else {
+        currentDir->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+        delete (TObject*)entry.obj;
+        entry.obj = nullptr;
+      }
     };
   };
 
@@ -288,7 +311,7 @@ DataProcessorSpec
     };
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
 
     // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
     std::map<uint64_t, uint64_t> tfNumbers;
@@ -326,6 +349,9 @@ DataProcessorSpec
         tfFilenames.insert(std::pair<uint64_t, std::string>(startTime, aodInputFile));
       }
 
+      // close all output files if one has reached size limit
+      dod->checkFileSizes();
+
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec) {
@@ -334,17 +360,16 @@ DataProcessorSpec
         }
 
         // get metadata
-        if (DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AMD"))) {
-          if (ref.spec->binding == "aodmdk") {
-            aodMetaDataKeys = pc.inputs().get<std::vector<TString>>("aodmdk");
-          }
-          if (ref.spec->binding == "aodmdv") {
-            aodMetaDataVals = pc.inputs().get<std::vector<TString>>("aodmdv");
-          }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataKeys"))) {
+          aodMetaDataKeys = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
+        }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataVals"))) {
+          aodMetaDataVals = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
         }
 
         // skip non-AOD refs
-        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD"))) {
+        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD")) &&
+            !DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("DYN"))) {
           continue;
         }
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
@@ -374,7 +399,7 @@ DataProcessorSpec
         // get the TableConsumer and corresponding arrow table
         auto msg = pc.inputs().get(ref.spec->binding);
         if (msg.header == nullptr) {
-          LOGP(error, "No header for message {}:{}", ref.spec->binding, *ref.spec);
+          LOGP(error, "No header for message {}:{}", ref.spec->binding, DataSpecUtils::describe(*ref.spec));
           continue;
         }
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
@@ -538,7 +563,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, std::string rateLimitingChannelConfig)
 {
   return DataProcessorSpec{
     .name = "internal-dpl-injected-dummy-sink",
@@ -549,29 +574,46 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
-        auto channel = device->fChannels.find("metric-feedback");
-        if (channel != device->fChannels.end()) {
+        auto channel = device->GetChannels().find("metric-feedback");
+        auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+        if (channel != device->GetChannels().end()) {
           fair::mq::MessagePtr payload(device->NewMessage());
           size_t* consumed = (size_t*)malloc(sizeof(size_t));
-          *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+          *consumed = oldestPossingTimeslice;
           if (*consumed != lastTimeslice) {
             payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
             channel->second[0].Send(payload);
             lastTimeslice = *consumed;
           }
         }
+        auto& stats = services.get<DataProcessingStats>();
+        stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
       };
-      callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
+      callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
 
       return adaptStateless([]() {
       });
     })},
-    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
-                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://" + ChannelSpecHelpers::defaultIPCFolder() + "metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
-                                                                       {"Out-of-band channel config"}}}
-                                       : std::vector<ConfigParamSpec>()
+    .options = !rateLimitingChannelConfig.empty() ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                                  rateLimitingChannelConfig,
+                                                                                  {"Out-of-band channel config"}}}
+                                                  : std::vector<ConfigParamSpec>()
 
   };
+}
+
+AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
+{
+  return PluginManager::wrapAlgorithm(spec, [](AlgorithmSpec::ProcessCallback& original, ProcessingContext& pcx) -> void {
+    auto& raw = pcx.services().get<RawDeviceService>();
+    static RateLimiter limiter;
+    auto limit = std::stoi(raw.device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+    LOG(detail) << "Rate limiting to " << limit << " timeframes in flight";
+    limiter.check(pcx, limit, 2000);
+    LOG(detail) << "Rate limiting passed. Invoking old callback";
+    original(pcx);
+    LOG(detail) << "Rate limited callback done";
+  });
 }
 
 #pragma GCC diagnostic pop

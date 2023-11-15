@@ -9,6 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# see if its3 4-layer tracking option is enabled
+option(ENABLE_ITS3_4L "Enable its3 4-layer tracking option" OFF)
+if (ENABLE_ITS3_4L)
+  MESSAGE(STATUS "Enable its3 4-layer tracking option")
+  add_definitions(-DENABLE_ITS3_4L)
+endif()
+
 o2_add_library(ITStracking
                TARGETVARNAME targetName
                SOURCES src/ClusterLines.cxx
@@ -25,15 +32,16 @@ o2_add_library(ITStracking
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
                        src/Smoother.cxx
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                     Microsoft.GSL::GSL
-                                     O2::CommonConstants
-                                     O2::DataFormatsITSMFT
-                                     O2::SimulationDataFormat
-                                     O2::ITSBase
-                                     O2::ITSReconstruction
-                                     O2::ITSMFTReconstruction
-                                     O2::DataFormatsITS)
+               PUBLIC_LINK_LIBRARIES
+                       O2::GPUCommon
+                       Microsoft.GSL::GSL
+                       O2::CommonConstants
+                       O2::DataFormatsITSMFT
+                       O2::SimulationDataFormat
+                       O2::ITSBase
+                       O2::ITSReconstruction
+                       O2::ITSMFTReconstruction
+                       O2::DataFormatsITS)
 
 if (OpenMP_CXX_FOUND)
         target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

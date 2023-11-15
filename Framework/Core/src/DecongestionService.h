@@ -18,8 +18,19 @@ namespace o2::framework
 struct DecongestionService {
   /// Wether we are a source in the processing chain
   bool isFirstInTopology = true;
+  /// The last timeslice which the ExpirationHandler::Creator callback
+  /// created. This can be used to skip dummy iterations.
+  size_t nextEnumerationTimeslice = 0;
+  /// Flag to indicate that we rewinded the nextExnumerationTimeslice.
+  /// The rewinded value must be checked when sending the oldestPossible.
+  bool nextEnumerationTimesliceRewinded = false;
   /// Last timeslice we communicated. Notice this should never go backwards.
   int64_t lastTimeslice = 0;
+  /// The next timeslice we should consume, when running in order,
+  /// using an ordered completion policy.
+  int64_t nextTimeslice = 0;
+  /// Ordered completion policy is active.
+  bool orderedCompletionPolicyActive = false;
   // Task to enqueue the oldest possible timeslice propagation
   // at the end of any processing chain.
   o2::framework::AsyncTaskId oldestPossibleTimesliceTask = {0};

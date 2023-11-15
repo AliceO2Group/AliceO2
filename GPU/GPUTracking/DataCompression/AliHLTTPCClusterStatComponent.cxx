@@ -177,7 +177,7 @@ void AliHLTTPCClusterStatComponent::TransformReverse(int slice, int row, float y
   float xyzGlobal[2] = {param->GetPadRowRadii(sector, sectorrow), y};
   AliHLTTPCGeometry::Local2Global(xyzGlobal, slice);
 
-  float time = z * sign * 1024.f / 250.f;
+  float time = z * sign * 1024.f / GPUTPCGeometry::TPCLength();
   padtime[1] = (1024.f - time);
 }
 
@@ -214,7 +214,7 @@ void AliHLTTPCClusterStatComponent::TransformForward(int slice, int row, float p
   float xyzGlobal[2] = {xyz[0], xyz[1]};
   AliHLTTPCGeometry::Local2Global(xyzGlobal, slice);
 
-  xyz[2] = sign * (1024 - time) * 250.f / 1024.f;
+  xyz[2] = sign * (1024 - time) * GPUTPCGeometry::TPCLength() / 1024.f;
 }
 
 static bool AliHLTTPCClusterStat_sorthelper(const AliHLTTPCRawCluster& a, const AliHLTTPCRawCluster& b)

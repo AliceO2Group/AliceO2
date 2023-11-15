@@ -22,12 +22,13 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
+#include "EventVisualisationDataConverter/VisualisationEventJSONSerializer.h"
 #include <EventVisualisationBase/DataSourceOnline.h>
 #include "EventVisualisationBase/ConfigurationManager.h"
+#include "DataFormatsParameters/ECSDataAdapters.h"
 #include <TEveManager.h>
 #include <TEveTrack.h>
 #include <TEveTrackPropagator.h>
-#include <TEnv.h>
 #include <TEveElement.h>
 #include <TGListTree.h>
 #include <TEveCalo.h>
@@ -59,16 +60,19 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
-  LOG(info) << "Initializing TEveManager";
+  LOGF(info, "Initializing TEveManager");
+
+  ConfigurationManager::getInstance().getConfig(settings);
+
   vizSettings.firstEvent = true;
 
   for (int i = 0; i < NvisualisationGroups; i++) {
     vizSettings.trackVisibility[i] = true;
-    vizSettings.trackColor[i] = kMagenta;
+    vizSettings.trackColor[i] = settings.GetValue("tracks.byType.unknown", kMagenta);
     vizSettings.trackStyle[i] = 1;
     vizSettings.trackWidth[i] = 1;
     vizSettings.clusterVisibility[i] = true;
-    vizSettings.clusterColor[i] = kBlue;
+    vizSettings.clusterColor[i] = settings.GetValue("clusters.byType.unknown", kBlue);
     vizSettings.clusterStyle[i] = 20;
     vizSettings.clusterSize[i] = 1.0f;
   }
@@ -76,6 +80,7 @@ EventManager::EventManager() : TEveEventManager("Event", "")
 
 void EventManager::displayCurrentEvent()
 {
+  auto start = std::chrono::high_resolution_clock::now();
   const auto multiView = MultiView::getInstance();
   const auto dataSource = getDataSource();
   if (dataSource->getEventCount() > 0) {
@@ -92,7 +97,10 @@ void EventManager::displayCurrentEvent()
     }
 
     VisualisationEvent event; // collect calorimeters in one drawing step
-    auto displayList = dataSource->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
+    auto displayList = dataSource->getVisualisationList(no,
+                                                        EventManagerFrame::getInstance().getMinTimeFrameSliderValue(),
+                                                        EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(),
+                                                        EventManagerFrame::MaxRange);
 
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
       if (it->second == EVisualisationGroup::EMC || it->second == EVisualisationGroup::PHS) {
@@ -115,16 +123,25 @@ void EventManager::displayCurrentEvent()
       restoreVisualisationSettings();
     }
 
-    if (this->mShowDate) {
-      multiView->getAnnotationTop()->SetText(
-        TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+    if (dataSource->getRunNumber() != -1) {
+      if (this->mShowDate) {
+        multiView->getAnnotationTop()->SetText(
+          TString::Format("Run %d %s\n%s", dataSource->getRunNumber(),
+                          std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(),
+                          dataSource->getFileTime().c_str()));
+      } else {
+        multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+      }
+      auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
+      multiView->getAnnotationBottom()->SetText(
+        TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
     } else {
-      multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+      multiView->getAnnotationTop()->SetText("No Available Data to Display");
     }
-    auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
-    multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }
   multiView->redraw3D();
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 }
 
 void EventManager::GotoEvent(Int_t no)
@@ -204,7 +221,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 {
   double eta = 0.1;
   size_t trackCount = event.getTrackCount();
-  LOG(info) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
+
   // tracks
   auto* list = new TEveTrackList(detectorName.c_str());
   list->IncDenyDestroy();
@@ -212,14 +229,14 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   size_t clusterCount = 0;
   auto* point_list = new TEvePointSet(detectorName.c_str());
   point_list->IncDenyDestroy(); // don't delete if zero parent
-  point_list->SetMarkerColor(kBlue);
+  point_list->SetMarkerColor(settings.GetValue("clusters.byType.unknown", kBlue));
 
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
     TEveRecTrackD t;
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
-    vistrack->SetLineColor(kMagenta);
+    vistrack->SetLineColor(settings.GetValue("tracks.byType.unknown", kMagenta));
     vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
@@ -249,7 +266,6 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   if (trackCount != 0) {
     dataTypeLists[EVisualisationDataType::Tracks]->AddElement(list);
     if (detectorName != "MCH" && detectorName != "MFT" && detectorName != "MID") {
-      // LOG(info) << "phi: " << trackCount << " detector: " << detectorName;
       dataTypeListsPhi[EVisualisationDataType::Tracks]->AddElement(list);
     }
   }
@@ -266,20 +282,19 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
     if (detectorName != "MCH" && detectorName != "MFT" && detectorName != "MID") {
-      // LOG(info) << "phi: " << clusterCount << " detector: " << detectorName;
       dataTypeListsPhi[EVisualisationDataType::Clusters]->AddElement(point_list);
     }
   }
 
-  LOG(info) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
-  LOG(info) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
+  LOGF(info, "tracks: ", trackCount, " detector: ", detectorName, ":",
+       dataTypeLists[EVisualisationDataType::Tracks]->NumChildren());
+  LOGF(info, "clusters: ", clusterCount, " detector: ", detectorName, ":",
+       dataTypeLists[EVisualisationDataType::Clusters]->NumChildren());
 }
 
 void EventManager::displayCalorimeters(VisualisationEvent& event, const std::string& detectorName)
 {
-  int size = event.getCaloCount();
-  if (size > 0) {
-    const std::string detector = detectorName == "EMC" ? "emcal" : "phos";
+  if (event.getCaloCount() > 0) {
     struct CaloInfo {
       std::string name;
       std::string configColor;
@@ -299,8 +314,6 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
       std::string configMaxValAbs;
       float defaultMaxValAbs;
     };
-    TEnv settings;
-    ConfigurationManager::getInstance().getConfig(settings);
 
     // TODO: calculate values based on info available in O2
     static const std::unordered_map<o2::dataformats::GlobalTrackID::Source, CaloInfo> caloInfos =
@@ -329,11 +342,9 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
         return std::hash<float>()(pair.first + 1000.0 * pair.second);
       }
     };
-    std::unordered_map<std::pair<float, float>, int, pair_hash> map; // sum up entries for the same tower
+    std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
-      auto key = std::make_pair(calo.getEta(), calo.getPhi());
-      map.try_emplace(key, 0);
-      map[key] = map[key] + calo.getEnergy();
+      map[std::make_pair(calo.getEta(), calo.getPhi())] += calo.getEnergy();
     }
 
     for (const auto& entry : map) {
@@ -415,7 +426,7 @@ void EventManager::saveVisualisationSettings()
 
       return arr;
     };
-
+    d.AddMember("version", rapidjson::Value().SetString(o2_eve_version.c_str(), o2_eve_version.length()), allocator);
     d.AddMember("trackVisibility", jsonArray(vizSettings.trackVisibility, allocator), allocator);
     d.AddMember("trackColor", jsonArray(vizSettings.trackColor, allocator), allocator);
     d.AddMember("trackStyle", jsonArray(vizSettings.trackStyle, allocator), allocator);
@@ -465,6 +476,11 @@ void EventManager::restoreVisualisationSettings()
     string json((istreambuf_iterator<char>(settings)), istreambuf_iterator<char>());
     Document d;
     d.Parse(json.c_str());
+
+    if (VisualisationEventJSONSerializer::getStringOrDefault(d, "version", "0.0") != o2_eve_version) {
+      LOGF(info, "visualisation settings has wrong version and was not restored");
+      return;
+    }
 
     auto updateArray = [](auto& array, const auto& document, const char* name, const auto& accessor) {
       for (size_t i = 0; i < elemof(array); ++i) {

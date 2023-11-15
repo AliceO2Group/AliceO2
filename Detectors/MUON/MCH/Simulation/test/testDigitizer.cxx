@@ -24,17 +24,20 @@
 #include "MCHGeometryTransformer/Transformations.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHSimulation/Digitizer.h"
+#include "MCHSimulation/DigitizerParam.h"
 #include "MCHSimulation/Hit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TGeoManager.h"
 #include "boost/format.hpp"
 #include <boost/test/data/test_case.hpp>
+#include <algorithm>
+#include <unordered_map>
 
 using IR = o2::InteractionRecord;
 using o2::mch::Digit;
-using o2::mch::groupIR;
 using o2::mch::Hit;
+using o2::mch::ROFRecord;
 using o2::mch::mapping::Segmentation;
 
 struct GEOMETRY {
@@ -48,10 +51,15 @@ struct GEOMETRY {
 
 namespace
 {
-o2::math_utils::Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); //x,y,z coordinates in cm
+short detElemId1 = 101;
+o2::math_utils::Point3D<float> entrancePoint1(-17.7993, 8.929883, -522.201); // x,y,z coordinates in cm
 o2::math_utils::Point3D<float> exitPoint1(-17.8136, 8.93606, -522.62);
+short detElemId2 = 1012;
 o2::math_utils::Point3D<float> entrancePoint2(-49.2793, 28.8673, -1441.25);
 o2::math_utils::Point3D<float> exitPoint2(-49.2965, 28.8806, -1441.75);
+short detElemId3 = 1012;
+o2::math_utils::Point3D<float> entrancePoint3(-50.1793, 28.2673, -1441.25);
+o2::math_utils::Point3D<float> exitPoint3(-50.1965, 28.2806, -1441.75);
 
 int check(const Hit& hit, const Digit& digit, Segmentation& seg, o2::mch::geo::TransformationCreator transformation)
 {
@@ -68,7 +76,7 @@ int check(const Hit& hit, const Digit& digit, Segmentation& seg, o2::mch::geo::T
   auto t = transformation(digit.getDetID());
 
   o2::math_utils::Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
-  o2::math_utils::Point3D<float> lpos;
+  o2::math_utils::Point3D<float> lpos{};
   t.MasterToLocal(pos, lpos);
 
   // very loose check : check that digit position is within 10 pads of the
@@ -87,154 +95,93 @@ BOOST_FIXTURE_TEST_SUITE(digitization, GEOMETRY)
 
 BOOST_AUTO_TEST_CASE(DigitizerTest)
 {
-  // FIXME: must set a (global) seed here to get reproducible results
-
   auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
-
+  o2::conf::ConfigurableParam::setValue("MCHDigitizer", "seed", 123);
   o2::mch::Digitizer digitizer(transformation);
+
   int trackId1 = 0;
   int trackId2 = 1;
-  short detElemId1 = 101;
-  short detElemId2 = 1012;
-
-  float eloss1 = 1e-6;
-  float eloss2 = 1e-6;
+  int trackId3 = 2;
+  IR collisionTime1(3, 1);
+  IR collisionTime2(5, 1);
+  float eloss = 1.e-6;
   float length = 0.f;
-  float tof = 0.0;
+  float tof = 0.f;
 
-  std::vector<o2::mch::Hit> hits(2);
-  hits.at(0) = o2::mch::Hit(trackId1, detElemId1, entrancePoint1, exitPoint1, eloss1, length, tof);
-  hits.at(1) = o2::mch::Hit(trackId2, detElemId2, entrancePoint2, exitPoint2, eloss2, length, tof);
+  std::vector<o2::mch::Hit> hits1(2);
+  hits1.at(0) = o2::mch::Hit(trackId1, detElemId1, entrancePoint1, exitPoint1, eloss, length, tof);
+  hits1.at(1) = o2::mch::Hit(trackId2, detElemId2, entrancePoint2, exitPoint2, eloss, length, tof);
+
+  std::vector<o2::mch::Hit> hits2(1);
+  hits2.at(0) = o2::mch::Hit(trackId3, detElemId3, entrancePoint3, exitPoint3, eloss, length, tof);
+
+  digitizer.processHits(hits1, collisionTime1, 0, 0);
+  digitizer.processHits(hits2, collisionTime2, 0, 0);
+
+  auto firstIR = IR::long2IR(std::max(int64_t(0), collisionTime1.toLong() - 100));
+  auto lastIR = collisionTime2 + 100;
+  digitizer.addNoise(firstIR, lastIR);
+
+  std::vector<ROFRecord> rofs{};
+  std::vector<Digit> digits{};
+  o2::dataformats::MCLabelContainer labels{};
+  digitizer.digitize(rofs, digits, labels);
 
   Segmentation seg1{detElemId1};
   Segmentation seg2{detElemId2};
-
-  digitizer.startCollision({0, 0});
-
-  o2::conf::ConfigurableParam::setValue("MCHDigitizer", "noiseProba", 0.0);
-  digitizer.processHits(hits, 0, 0);
-
-  std::vector<Digit> digits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
-
-  digitizer.extractDigitsAndLabels(digits, labels);
-
   int digitcounter1 = 0;
   int digitcounter2 = 0;
-  int count = 0;
+  int digitcounter3 = 0;
+  int64_t previousROFtime = -1;
+  std::unordered_map<int, Digit> digitsMap{};
 
-  for (const auto& digit : digits) {
-    auto label = (labels.getLabels(count))[0];
-    int trackID = label.getTrackID();
-    ++count;
+  for (const auto& rof : rofs) {
 
-    if (trackID == trackId1) {
-      digitcounter1 += check(hits.at(0), digit, seg1, transformation);
-    } else if (trackID == trackId2) {
-      digitcounter2 += check(hits.at(1), digit, seg2, transformation);
-    } else {
-      BOOST_FAIL(" MC-labels not matching between hit and digit ");
+    // check ROF alignment on 4 BC
+    if (rof.getBCData().bc % 4 != 0) {
+      BOOST_FAIL(" ROF IR not aligned on 4 BC ");
+    }
+
+    // check ROFs ordering in ascending IR
+    auto rofTime = rof.getBCData().toLong();
+    if (rofTime < previousROFtime) {
+      BOOST_FAIL(" ROF not ordered in ascending IR ");
+    } else if (rofTime == previousROFtime) {
+      BOOST_FAIL(" 2 ROFs with the same IR ");
+    }
+    previousROFtime = rofTime;
+
+    for (int iDigit = rof.getFirstIdx(); iDigit <= rof.getLastIdx(); ++iDigit) {
+      const auto& digit = digits[iDigit];
+
+      // check hit-digit association
+      for (const auto& label : labels.getLabels(iDigit)) {
+        int trackID = label.getTrackID();
+        if (trackID == trackId1) {
+          digitcounter1 += check(hits1.at(0), digit, seg1, transformation);
+        } else if (trackID == trackId2) {
+          digitcounter2 += check(hits1.at(1), digit, seg2, transformation);
+        } else if (trackID == trackId3) {
+          digitcounter3 += check(hits2.at(0), digit, seg2, transformation);
+        } else if (!label.isNoise()) {
+          BOOST_FAIL(" MC-labels not matching between hit and digit ");
+        }
+      }
+
+      // check pileup handling within the readout window
+      auto itDigit = digitsMap.emplace((digit.getDetID() << 16) + digit.getPadID(), digit);
+      if (!itDigit.second &&
+          digit.getTime() - itDigit.first->second.getTime() < 4 * (itDigit.first->second.getNofSamples() + 2)) {
+        BOOST_FAIL(" same pad has multiple digits in overlapping readout windows ");
+      }
     }
   }
+
   BOOST_TEST(digitcounter1 > 0);
   BOOST_TEST(digitcounter1 < 20);
   BOOST_TEST(digitcounter2 > 0);
   BOOST_TEST(digitcounter2 < 10);
-}
-
-bool isSame(const std::map<IR, std::vector<int>>& result,
-            const std::map<IR, std::vector<int>>& expected)
-{
-  if (result == expected) {
-    return true;
-  }
-  std::cout << result.size() << " " << expected.size() << "\n";
-
-  std::cout << "Expected:\n";
-  for (auto p : expected) {
-    std::cout << p.first << "-> ";
-    for (auto v : p.second) {
-      std::cout << v << ",";
-    }
-    std::cout << "\n";
-  }
-  std::cout << "Got:\n";
-  for (auto p : result) {
-    std::cout << p.first << "-> ";
-    for (auto v : p.second) {
-      std::cout << v << ",";
-    }
-    std::cout << "\n";
-  }
-  return false;
-}
-
-const std::vector<IR> testIRs = {
-  /* bc, orbit */
-  {123, 0},
-  {125, 0},
-  {125, 0},
-  {125, 1},
-  {130, 1},
-  {134, 1},
-  {135, 1},
-  {137, 1},
-};
-
-BOOST_AUTO_TEST_CASE(GroupIRMustBeAlignedOn4BCMarks)
-{
-  std::map<IR, std::vector<int>> expected;
-  expected[IR{120, 0}] = {0};
-  expected[IR{124, 0}] = {1, 2};
-  expected[IR{124, 1}] = {3};
-  expected[IR{128, 1}] = {4};
-  expected[IR{132, 1}] = {5, 6};
-  expected[IR{136, 1}] = {7};
-
-  auto g = groupIR(testIRs, 4);
-  BOOST_CHECK_EQUAL(isSame(g, expected), true);
-}
-
-BOOST_AUTO_TEST_CASE(GroupIRMustThrowOnNonSortedRecords)
-{
-  const std::vector<IR> notSorted = {
-    {125, 0},
-    {123, 0},
-  };
-  BOOST_CHECK_THROW(groupIR(notSorted), std::invalid_argument);
-}
-
-BOOST_AUTO_TEST_CASE(GroupIRInvalidWidthMustThrow)
-{
-  BOOST_CHECK_THROW(groupIR(testIRs, 0), std::invalid_argument);
-}
-
-BOOST_AUTO_TEST_CASE(IdenticalIRsShouldBeMerged)
-{
-  std::map<IR, std::vector<int>> expected;
-  expected[IR{123, 0}] = {0};
-  expected[IR{125, 0}] = {1, 2};
-  expected[IR{125, 1}] = {3};
-  expected[IR{130, 1}] = {4};
-  expected[IR{134, 1}] = {5};
-  expected[IR{135, 1}] = {6};
-  expected[IR{137, 1}] = {7};
-
-  auto g = groupIR(testIRs, 1);
-  BOOST_CHECK_EQUAL(isSame(g, expected), true);
-}
-
-BOOST_AUTO_TEST_CASE(IRSeparatedByLessThan4BCShouldBeMerged)
-{
-  std::map<IR, std::vector<int>> expected;
-  expected[IR{120, 0}] = {0};
-  expected[IR{124, 0}] = {1, 2};
-  expected[IR{124, 1}] = {3};
-  expected[IR{128, 1}] = {4};
-  expected[IR{132, 1}] = {5, 6};
-  expected[IR{136, 1}] = {7};
-
-  auto g = groupIR(testIRs, 4);
-  BOOST_CHECK_EQUAL(isSame(g, expected), true);
+  BOOST_TEST(digitcounter3 > 0);
+  BOOST_TEST(digitcounter3 < 10);
 }
 BOOST_AUTO_TEST_SUITE_END()

@@ -22,6 +22,7 @@
 #include "DataFormatsTPC/Defs.h"
 #include "TPCCalibration/IDCContainer.h"
 #include "TPCCalibration/IDCFourierTransformBase.h"
+#include "CommonConstants/LHCConstants.h"
 
 using fftwf_plan = struct fftwf_plan_s*;
 using fftwf_complex = float[2];
@@ -112,6 +113,18 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
 
   /// printing information about the algorithms which are used by FFTW for debugging e.g. seeing if SIMD instructions will be used
   void printFFTWPlan() const;
+
+  /// return the frequencies and the magnitude of the frequency. std::pair of <frequency, magnitude>
+  /// \param samplingFrequency sampling frequency of the signal in Hz (default is IDC sampling rate in Hz)
+  std::vector<std::pair<float, float>> getFrequencies(const float samplingFrequency = getSamplingFrequencyIDCHz()) const { return getFrequencies(mFourierCoefficients, samplingFrequency); }
+
+  /// return the frequencies and the magnitude of the frequency
+  /// \param coeff fourier coefficients
+  /// \param samplingFrequency sampling frequency of the signal in Hz (default is IDC sampling rate in Hz)
+  static std::vector<std::pair<float, float>> getFrequencies(const FourierCoeff& coeff, const float samplingFrequency = getSamplingFrequencyIDCHz());
+
+  /// \return returns sampling frequency of IDCs in Hz
+  static float getSamplingFrequencyIDCHz() { return 1e6 / (12 * o2::constants::lhc::LHCOrbitMUS); }
 
  private:
   FourierCoeff mFourierCoefficients;         ///< fourier coefficients. interval -> coefficient

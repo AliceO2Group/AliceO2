@@ -24,8 +24,11 @@ using namespace o2::emcal::reco_workflow;
 template <class InputType>
 void ClusterizerSpec<InputType>::init(framework::InitContext& ctx)
 {
-  auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
-  ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+  // Check if InfoLoggerContext is active and if so set the Detector field
+  if (ctx.services().active<AliceO2::InfoLogger::InfoLoggerContext>()) {
+    auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+    ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+  }
 
   LOG(debug) << "[EMCALClusterizer - init] Initialize clusterizer ...";
 

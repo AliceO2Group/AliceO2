@@ -8,13 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework ConfigurationOptionsRetriever
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "../src/ConfigurationOptionsRetriever.h"
 #include "Framework/ConfigParamStore.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <Configuration/ConfigurationFactory.h>
 #include <Configuration/ConfigurationInterface.h>
 
@@ -23,7 +20,7 @@
 using namespace o2::framework;
 using namespace o2::configuration;
 
-BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
+TEST_CASE("TestOptionsRetriever")
 {
   const std::string TEMP_FILE = "/tmp/alice_o2_configuration_test_file.ini";
   // Put stuff in temp file
@@ -53,12 +50,12 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
   store.preload();
   store.activate();
 
-  BOOST_CHECK_EQUAL(store.store().get<std::string>("key"), "value");
-  BOOST_CHECK_EQUAL(store.store().get<int>("section.key_int"), 123);
-  BOOST_CHECK_EQUAL(store.store().get<float>("section.key_float"), 4.56f);
-  BOOST_CHECK_EQUAL(store.store().get<std::string>("section.key_string"), "hello");
+  REQUIRE(store.store().get<std::string>("key") == "value");
+  REQUIRE(store.store().get<int>("section.key_int") == 123);
+  REQUIRE(store.store().get<float>("section.key_float") == 4.56f);
+  REQUIRE(store.store().get<std::string>("section.key_string") == "hello");
   // We can get nested objects also via their top-level ptree.
   auto pt = store.store().get_child("section");
-  BOOST_CHECK_EQUAL(pt.get<int>("key_int"), 123);
-  BOOST_CHECK_EQUAL(pt.get<float>("key_float"), 4.56f);
+  REQUIRE(pt.get<int>("key_int") == 123);
+  REQUIRE(pt.get<float>("key_float") == 4.56f);
 }

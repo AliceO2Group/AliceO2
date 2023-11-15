@@ -45,7 +45,6 @@ BOOST_AUTO_TEST_CASE(LocaltoRCTest)
 {
   auto mGeo = o2::trd::Geometry::instance();
   mGeo->createPadPlaneArray();
-  mGeo->createClusterMatrixArray();
 
   int hcid = 776;
   // This C1 chamber has 16 pad rows with I pad length = 90mm and O pad length = 75mm

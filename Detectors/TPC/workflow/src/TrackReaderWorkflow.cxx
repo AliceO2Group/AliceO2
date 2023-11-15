@@ -18,11 +18,14 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/PartRef.h"
 #include "Framework/ConcreteDataMatcher.h"
+#include "Framework/CallbacksPolicy.h"
+
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Headers/DataHeaderHelpers.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 
@@ -34,6 +37,11 @@
 // we need a global variable to propagate the type the message dispatching of the
 // publisher will trigger on. This is dependent on the input type
 o2::framework::Output gDispatchTrigger{"", ""};
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // Global variable used to transport data to the completion policy
 o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
@@ -47,8 +55,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "tracks", {"tracks"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
+    {"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -80,7 +89,7 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
-
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto inputType = cfgc.options().get<std::string>("input-type");
   auto dispmode = cfgc.options().get<std::string>("dispatching-mode");
   if (dispmode == "complete") {
@@ -93,6 +102,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool doMC = not cfgc.options().get<bool>("disable-mc");
 
   specs.push_back(o2::tpc::getTPCTrackReaderSpec(doMC));
+
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);
 }

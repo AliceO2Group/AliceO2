@@ -41,33 +41,35 @@ void Digitizer::init()
 
   float tau = mSimParam->getTimeResponseTau();
   float N = mSimParam->getTimeResponsePower();
-  float delay = std::fmod(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE, 1);
-  mDelay = ((int)(std::floor(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE)));
-  mTimeWindowStart = ((unsigned int)(std::floor(mSimParam->getTimeBinOffset() / constants::EMCAL_TIMESAMPLE)));
 
   mSmearEnergy = mSimParam->doSmearEnergy();
   mSimulateTimeResponse = mSimParam->doSimulateTimeResponse();
 
   mDigits.init();
-  if ((mDelay - mTimeWindowStart) != 0) {
+  mDigits.reserve();
+  /*
+  if ((mDelay - mTimeWindowStart) != 0)
+  {
     mDigits.setBufferSize(mDigits.getBufferSize() + (mDelay - mTimeWindowStart));
     mDigits.reserve();
   }
+  */
 
-  mAmplitudeInTimeBins.clear();
+  if (mSimulateTimeResponse) {
+    // for each phase create a template distribution
+    TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
+    RawResponse.SetParameters(1., 0., tau, N, 0.);
 
-  // for each phase create a template distribution
-  TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
-  RawResponse.SetParameters(1., 0., tau, N, 0.);
-
-  for (int i = 0; i < 4; i++) {
-
-    std::vector<double> sf;
-    RawResponse.SetParameter(1, 0.25 * i);
-    for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
-      sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
+    for (int phase = 0; phase < 4; phase++) {
+      // parameter 1: Handling phase + delay
+      // phase: 25 ns * phase index (-4)
+      // delay: Average signal delay
+      RawResponse.SetParameter(1, 0.25 * phase + mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE);
+      for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
+        mAmplitudeInTimeBins[phase][sample] = RawResponse.Eval(sample);
+      }
     }
-    mAmplitudeInTimeBins.push_back(sf);
+  } else {
   }
 
   if (mEnableDebugStreaming) {
@@ -156,16 +158,16 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
 
   Double_t energies[15];
   if (mSimulateTimeResponse) {
-    for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++) {
+    for (int sample = 0; sample < mAmplitudeInTimeBins[mPhase].size(); sample++) {
 
-      double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
-      energies[j] = val;
-      double digitTime = (mEventTimeOffset + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
+      double val = energy * (mAmplitudeInTimeBins[mPhase][sample]);
+      energies[sample] = val;
+      double digitTime = mEventTimeOffset * constants::EMCAL_TIMESAMPLE;
       Digit digit(tower, val, digitTime);
       mTempDigitVector.push_back(digit);
     }
   } else {
-    Digit digit(tower, energy, (mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE);
+    Digit digit(tower, energy, smearTime(sDigit.getTimeStamp(), energy));
     mTempDigitVector.push_back(digit);
   }
 
@@ -201,6 +203,11 @@ double Digitizer::smearEnergy(double energy)
   Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
   energy *= mRandomGenerator->Poisson(fluct) / fluct;
   return energy;
+}
+
+double Digitizer::smearTime(double time, double energy)
+{
+  return mRandomGenerator->Gaus(time + mSimParam->getSignalDelay(), mSimParam->getTimeResolution(energy));
 }
 
 //_______________________________________________________________________

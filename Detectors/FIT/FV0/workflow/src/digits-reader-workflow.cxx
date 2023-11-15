@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(ctx.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec producer = o2::fv0::getDigitReaderSpec(ctx.options().get<bool>("disable-mc"), ctx.options().get<bool>("disable-trigger-input"));
+  DataProcessorSpec producer = o2::fv0::getDigitReaderSpec(!ctx.options().get<bool>("disable-mc"), ctx.options().get<bool>("disable-trigger-input"));
   specs.push_back(producer);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

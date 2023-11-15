@@ -74,8 +74,8 @@ struct DataOutputDirector {
   void readSpecs(std::vector<InputSpec> inputs);
 
   // fill the DataOutputDirector with information from a json file
-  std::tuple<std::string, std::string, int> readJson(std::string const& fnjson);
-  std::tuple<std::string, std::string, int> readJsonString(std::string const& stjson);
+  std::tuple<std::string, std::string, std::string, float, int> readJson(std::string const& fnjson);
+  std::tuple<std::string, std::string, std::string, float, int> readJsonString(std::string const& stjson);
 
   // read/write private members
   int getNumberTimeFramesToMerge() { return mnumberTimeFramesToMerge; }
@@ -90,13 +90,20 @@ struct DataOutputDirector {
   // get the matching TFile
   FileAndFolder getFileFolder(DataOutputDescriptor* dodesc, uint64_t folderNumber, std::string parentFileName);
 
+  // check file sizes
+  bool checkFileSizes();
+  // close all files
   void closeDataFiles();
 
+  // setters
+  void setResultDir(std::string resDir);
   void setFilenameBase(std::string dfn);
+  void setMaximumFileSize(float maxfs);
 
   void printOut();
 
  private:
+  std::string mresultDirectory{"."};
   std::string mfilenameBase;
   std::string* const mfilenameBasePtr = &mfilenameBase;
   std::vector<DataOutputDescriptor*> mDataOutputDescriptors;
@@ -105,11 +112,13 @@ struct DataOutputDirector {
   std::vector<TFile*> mfilePtrs;
   std::vector<TMap*> mParentMaps;
   bool mdebugmode = false;
+  int mfileCounter = 1;
+  float mmaxfilesize = -1.;
   int mnumberTimeFramesToMerge = 1;
   std::string mfileMode = "RECREATE";
 
-  std::tuple<std::string, std::string, int> readJsonDocument(Document* doc);
-  const std::tuple<std::string, std::string, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), -1);
+  std::tuple<std::string, std::string, std::string, float, int> readJsonDocument(Document* doc);
+  const std::tuple<std::string, std::string, std::string, float, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), std::string(""), -1., -1);
 };
 
 } // namespace o2::framework

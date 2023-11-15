@@ -27,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"no-cluster-patterns", VariantType::Bool, false, {"do not produce clusters patterns (def: produce)"}},
     ConfigParamSpec{"digits", VariantType::Bool, false, {"produce digits (def: skip)"}},
     ConfigParamSpec{"enable-calib-data", VariantType::Bool, false, {"produce GBT calibration stream (def: skip)"}},
+    ConfigParamSpec{"squash-overflow-pixels", VariantType::Bool, false, {"merge chip information of consecutively fired neighbour pixels (for ALPIDE time-walking)"}},
     ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     ConfigParamSpec{"dataspec", VariantType::String, "", {"selection string for the input data, if not provided <DET>Raw:<DET>/RAWDATA with DET=ITS or MFT will be used"}},
     ConfigParamSpec{"report-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce decoding report (-1 means no limit)"}},
@@ -47,6 +48,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   inp.doPatterns = inp.doClusters && !cfgc.options().get<bool>("no-cluster-patterns");
   inp.doDigits = cfgc.options().get<bool>("digits");
   inp.doCalib = cfgc.options().get<bool>("enable-calib-data");
+  inp.doSquashing = cfgc.options().get<bool>("squash-overflow-pixels");
   inp.askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
   inp.inputSpec = cfgc.options().get<std::string>("dataspec");
   // Update the (declared) parameters if changed from the command line

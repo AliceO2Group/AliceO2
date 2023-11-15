@@ -57,20 +57,21 @@ class Tracker
   const std::vector<ROFRecord>& getClusterROFRecords() { return mClusterROFRecords; }
 
  private:
-  bool processSide(bool isRight, bool isInward);
-  bool tryAddTrack(const Track& track);
-  bool followTrackKeepAll(const Track& track, bool isRight, bool isInward);
+  void processSide(bool isRight, bool isInward);
+  void tryAddTrack(const Track& track);
+  void followTrackKeepAll(Track& track, bool isRight, bool isInward);
   bool findAllClusters(const Track& track, bool isRight, int chamber, int firstRPC, int lastRPC, int nextChamber,
                        std::unordered_set<int>& excludedClusters, bool excludeClusters);
-  bool followTrackKeepBest(const Track& track, bool isRight, bool isInward);
-  bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
+  void followTrackKeepBest(Track& track, bool isRight, bool isInward);
+  void findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
   int getFirstNeighbourRPC(int rpc) const;
   int getLastNeighbourRPC(int rpc) const;
   bool loadClusters(gsl::span<const Cluster>& clusters);
   bool makeTrackSeed(Track& track, const Cluster& cl1, const Cluster& cl2) const;
   void runKalmanFilter(Track& track, const Cluster& cluster) const;
   bool tryOneCluster(const Track& track, int chamber, int clIdx, Track& newTrack) const;
-  void excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters);
+  void excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters) const;
+  bool skipOneChamber(Track& track) const;
 
   static constexpr float SMT11Z = -1603.5; ///< Position of the first MID chamber (cm)
 
@@ -90,8 +91,8 @@ class Tracker
 
   GeometryTransformer mTransformer{}; ///< Geometry transformer
 
-  typedef bool (Tracker::*TrackerMemFn)(const Track&, bool, bool);
-  TrackerMemFn mFollowTrack{&Tracker::followTrackKeepBest}; ///! Choice of the function to follow the track
+  typedef void (Tracker::*TrackerMemFn)(Track&, bool, bool);
+  TrackerMemFn mFollowTrack{&Tracker::followTrackKeepAll}; ///! Choice of the function to follow the track
 };
 } // namespace mid
 } // namespace o2

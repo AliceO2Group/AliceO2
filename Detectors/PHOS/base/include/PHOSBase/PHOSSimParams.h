@@ -80,7 +80,7 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
 
   // Parameters used in clusterization
   float mLogWeight = 4.5;              ///< Cutoff used in log. weight calculation
-  float mDigitMinEnergy = 0.010;       ///< Minimal energy of digits to be used in cluster (GeV)
+  float mDigitMinEnergy = 0.020;       ///< Minimal energy of digits to be used in cluster (GeV)
   float mClusteringThreshold = 0.050;  ///< Minimal energy of digit to start clustering (GeV)
   float mLocalMaximumCut = 0.015;      ///< Minimal height of local maximum over neighbours
   int mUnfoldMaxSize = 100;            ///< maximal number of cells in cluster to be unfolded

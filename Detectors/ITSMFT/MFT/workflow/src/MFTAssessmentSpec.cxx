@@ -62,7 +62,7 @@ void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
     }
     mTimer[SWRecoAndTrue].Start(false);
     mMFTAssessment->processRecoTracks();
-    mMFTAssessment->processTrueTracks();
+    mMFTAssessment->processTrueAndFakeTracks();
     mTimer[SWRecoAndTrue].Stop();
   }
 }

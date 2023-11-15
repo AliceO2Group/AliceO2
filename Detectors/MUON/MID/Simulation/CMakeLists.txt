@@ -25,8 +25,7 @@ o2_add_library(
           src/PreClusterLabeler.cxx
           src/Stepper.cxx
           src/TrackLabeler.cxx
-  PUBLIC_LINK_LIBRARIES O2::MIDBase O2::MIDEfficiency O2::CommonDataFormat O2::DetectorsBase
-                        O2::SimulationDataFormat O2::MIDClustering)
+  PUBLIC_LINK_LIBRARIES O2::MIDBase O2::MIDEfficiency O2::MIDConditions O2::CommonDataFormat O2::DetectorsBase O2::DetectorsDCS O2::SimulationDataFormat O2::MIDClustering)
 
 o2_target_root_dictionary(
   MIDSimulation

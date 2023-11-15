@@ -50,8 +50,8 @@ class FairMQOutputStream : public OutputStream
 
   /// Close the stream, preserving the buffer (retrieve it with Finish()).
   Status Close() override;
-  bool closed() const override;
-  Result<int64_t> Tell() const override;
+  [[nodiscard]] bool closed() const override;
+  [[nodiscard]] Result<int64_t> Tell() const override;
   Status Write(const void* data, int64_t nbytes) override;
 
   /// \cond FALSE
@@ -68,7 +68,7 @@ class FairMQOutputStream : public OutputStream
   /// \return Status
   Status Reset(int64_t initial_capacity = 1024, MemoryPool* pool = default_memory_pool());
 
-  int64_t capacity() const { return capacity_; }
+  [[nodiscard]] int64_t capacity() const { return capacity_; }
 
  private:
   FairMQOutputStream();

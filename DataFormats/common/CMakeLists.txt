@@ -16,6 +16,7 @@ o2_add_library(CommonDataFormat
                        src/FlatHisto2D.cxx
                        src/AbstractRefAccessor.cxx
                        src/TFIDInfo.cxx
+                       src/TimeStamp.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
                                      ROOT::Core O2::MathUtils Microsoft.GSL::GSL)
 
@@ -30,6 +31,7 @@ o2_target_root_dictionary(CommonDataFormat
                                   include/CommonDataFormat/FlatHisto1D.h
                                   include/CommonDataFormat/FlatHisto2D.h
                                   include/CommonDataFormat/TFIDInfo.h
+                                  include/CommonDataFormat/Triplet.h
                                   include/CommonDataFormat/Pair.h)
 
 o2_add_test(TimeStamp

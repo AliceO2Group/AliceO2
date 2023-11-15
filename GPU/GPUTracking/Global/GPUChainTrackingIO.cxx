@@ -33,6 +33,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
 #include "TPCZSLinkMapping.h"
+#include "GPUTriggerOutputs.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -131,6 +132,14 @@ void GPUChainTracking::DumpData(const char* filename)
     if (DumpData(fp, &ptr, &total, InOutPointerType::TPC_ZS)) {
       fwrite(&counts, sizeof(counts), 1, fp);
     }
+  }
+  if (mIOPtrs.tpcCompressedClusters) {
+    if (mIOPtrs.tpcCompressedClusters->ptrForward) {
+      throw std::runtime_error("Cannot dump non-flat compressed clusters");
+    }
+    char* ptr = (char*)mIOPtrs.tpcCompressedClusters;
+    size_t size = mIOPtrs.tpcCompressedClusters->totalDataSize;
+    DumpData(fp, &ptr, &size, InOutPointerType::TPC_COMPRESSED_CL);
   }
   if (mIOPtrs.settingsTF) {
     unsigned int n = 1;
@@ -233,6 +242,9 @@ int GPUChainTracking::ReadData(const char* filename)
       }
     }
     mIOPtrs.tpcZS = mIOMem.tpcZSmeta.get();
+  }
+  if (ReadData(fp, &ptr, &total, &mIOMem.tpcCompressedClusters, InOutPointerType::TPC_COMPRESSED_CL)) {
+    mIOPtrs.tpcCompressedClusters = (const o2::tpc::CompressedClustersFlat*)ptr;
   }
   unsigned int n;
   ReadData(fp, &mIOPtrs.settingsTF, &n, &mIOMem.settingsTF, InOutPointerType::TF_SETTINGS);

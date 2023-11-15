@@ -30,18 +30,6 @@ namespace align
 {
 
 //_________________________________________________________
-Millepede2Record::Millepede2Record()
-  : mTrackID(0), mTimeStamp(0), mNResid(0), mNVarLoc(0), mNVarGlo(0), mNDLocTot(0), mNDGloTot(0), mNMeas(0), mChi2Ini(0), mQ2Pt(0), mTgl(0), mNDLoc(nullptr), mNDGlo(nullptr), mVolID(nullptr), mResid(nullptr), mResErr(nullptr), mIDLoc(nullptr), mIDGlo(nullptr), mDLoc(nullptr), mDGlo(nullptr)
-    //
-    ,
-    mNResidBook(0),
-    mNDLocTotBook(0),
-    mNDGloTotBook(0)
-{
-  // def c-tor
-}
-
-//_________________________________________________________
 Millepede2Record::~Millepede2Record()
 {
   // d-tor
@@ -49,6 +37,7 @@ Millepede2Record::~Millepede2Record()
   delete[] mNDGlo;
   delete[] mVolID;
   delete[] mResid;
+  delete[] mMeasType;
   delete[] mResErr;
   delete[] mIDLoc;
   delete[] mIDGlo;
@@ -73,6 +62,7 @@ void Millepede2Record::dummyRecord(float res, float err, float dGlo, int labGlo)
   mNDGlo[0] = 1;
   mVolID[0] = -1;
   mResid[0] = res;
+  mMeasType[0] = -1;
   mResErr[0] = err;
   //
   mIDLoc[0] = 0;
@@ -84,30 +74,30 @@ void Millepede2Record::dummyRecord(float res, float err, float dGlo, int labGlo)
 }
 
 //_________________________________________________________
-bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
+bool Millepede2Record::fillTrack(AlignmentTrack& trc, const std::vector<int>& id2Lab)
 {
   // fill track info, optionally substitutind glopar par ID by label
   //
-  if (!trc->getDerivDone()) {
+  if (!trc.getDerivDone()) {
     LOG(error) << "Track derivatives are not yet evaluated";
     return false;
   }
-  mNVarLoc = trc->getNLocPar(); // number of local degrees of freedom in the track
+  mNVarLoc = trc.getNLocPar(); // number of local degrees of freedom in the track
   mNResid = 0;
   mNDLocTot = 0;
   mNDGloTot = 0;
-  mChi2Ini = trc->getChi2Ini();
-  mQ2Pt = trc->getQ2Pt();
-  mTgl = trc->getTgl();
+  mChi2Ini = trc.getChi2Ini();
+  mQ2Pt = trc.getQ2Pt();
+  mTgl = trc.getTgl();
   mNMeas = 0;
-  setCosmic(trc->isCosmic());
+  setCosmic(trc.isCosmic());
   // 1) check sizes for buffers, expand if needed
-  int np = trc->getNPoints();
+  int np = trc.getNPoints();
   int nres = 0;
   int nlocd = 0;
   int nglod = 0;
-  for (int ip = np; ip--;) {
-    auto pnt = trc->getPoint(ip);
+  for (int ip = 0; ip < np; ip++) {
+    auto pnt = trc.getPoint(ip);
     int ngl = pnt->getNGloDOFs(); // number of DOF's this point depends on
     if (pnt->containsMeasurement()) {
       nres += 2;                    // every point has 2 residuals
@@ -123,11 +113,11 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
   }
   //
   resize(nres, nlocd, nglod);
-  int nParETP = trc->getNLocExtPar(); // numnber of local parameters for reference track param
+  int nParETP = trc.getNLocExtPar(); // numnber of local parameters for reference track param
   //
-  const int* gloParID = trc->getGloParID(); // IDs of global DOFs this track depends on
+  const int* gloParID = trc.getGloParID(); // IDs of global DOFs this track depends on
   for (int ip = 0; ip < np; ip++) {
-    auto* pnt = trc->getPoint(ip);
+    auto* pnt = trc.getPoint(ip);
     if (pnt->containsMeasurement()) {
       int gloOffs = pnt->getDGloOffs(); // 1st entry of global derivatives for this point
       int nDGlo = pnt->getNGloDOFs();   // number of global derivatives (number of DOFs it depends on)
@@ -140,11 +130,12 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
         mVolID[mNResid] = pnt->getSensor()->getVolID() + 1;
         //
         // measured residual/error
-        mResid[mNResid] = trc->getResidual(idim, ip);
+        mMeasType[mNResid] = idim;
+        mResid[mNResid] = trc.getResidual(idim, ip);
         mResErr[mNResid] = Sqrt(pnt->getErrDiag(idim));
         //
         // derivatives over local params
-        const double* deriv = trc->getDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
+        const double* deriv = trc.getDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
         int nnon0 = 0;
         for (int j = 0; j < nParETP; j++) { // derivatives over reference track parameters
           if (isZeroAbs(deriv[j])) {
@@ -158,6 +149,9 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
         int lp0 = pnt->getMinLocVarID();  // point may depend on material variables starting from this one
         int lp1 = pnt->getMaxLocVarID();  // and up to this one (exclusive)
         for (int j = lp0; j < lp1; j++) { // derivatives over material variables
+          if (TMath::IsNaN(deriv[j])) {
+            LOGP(error, "Deriv {} of {}:{} is NAN", j, lp0, lp1);
+          }
           if (isZeroAbs(deriv[j])) {
             continue;
           }
@@ -171,7 +165,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
         //
         // derivatives over global params
         nnon0 = 0;
-        deriv = trc->getDResDGlo(idim, gloOffs);
+        deriv = trc.getDResDGlo(idim, gloOffs);
         const int* gloIDP = gloParID + gloOffs;
         for (int j = 0; j < nDGlo; j++) {
           if (isZeroAbs(deriv[j])) {
@@ -179,7 +173,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
           }
           nnon0++;
           mDGlo[mNDGloTot] = deriv[j];                                    // value of derivative
-          mIDGlo[mNDGloTot] = id2Lab ? id2Lab[gloIDP[j]] : gloIDP[j] + 1; // global DOF ID
+          mIDGlo[mNDGloTot] = id2Lab.empty() ? gloIDP[j] + 1 : id2Lab[gloIDP[j]]; // global DOF ID
           mNDGloTot++;
         }
         mNDGlo[mNResid] = nnon0;
@@ -194,6 +188,7 @@ bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
       int offs = pnt->getMaxLocVarID() - nmatpar;    // start of material variables
       // here all derivatives are 1 = dx/dx
       for (int j = 0; j < nmatpar; j++) {
+        mMeasType[mNResid] = 10 + j;
         mNDGlo[mNResid] = 0; // mat corrections don't depend on global params
         mVolID[mNResid] = 0; // not associated to global parameter
         mResid[mNResid] = 0; // expectation for MS effects is 0
@@ -219,17 +214,20 @@ void Millepede2Record::resize(int nresid, int nloc, int nglo)
 {
   // resize container
   if (nresid > mNResidBook) {
+    delete[] mMeasType;
     delete[] mNDLoc;
     delete[] mNDGlo;
     delete[] mVolID;
     delete[] mResid;
     delete[] mResErr;
+    mMeasType = new int16_t[nresid];
     mNDLoc = new int16_t[nresid];
     mNDGlo = new int[nresid];
     mVolID = new int[nresid];
     mResid = new float[nresid];
     mResErr = new float[nresid];
     mNResidBook = nresid;
+    memset(mMeasType, 0, nresid * sizeof(int16_t));
     memset(mNDLoc, 0, nresid * sizeof(int16_t));
     memset(mNDGlo, 0, nresid * sizeof(int));
     memset(mVolID, 0, nresid * sizeof(int));
@@ -258,11 +256,10 @@ void Millepede2Record::resize(int nresid, int nloc, int nglo)
 }
 
 //____________________________________________
-void Millepede2Record::Clear(const Option_t*)
+void Millepede2Record::clear()
 {
   // reset record
-  TObject::Clear();
-  ResetBit(0xffffffff);
+  mBits = 0;
   mNResid = 0;
   mNVarLoc = 0;
   mNVarGlo = 0;
@@ -271,12 +268,11 @@ void Millepede2Record::Clear(const Option_t*)
 }
 
 //____________________________________________
-void Millepede2Record::Print(const Option_t*) const
+void Millepede2Record::print() const
 {
   // print info
   //
-  printf("Track %d Event TimeStamp:%d Run:%d\n",
-         mTrackID, mTimeStamp, getRun());
+  printf("Track %s TForbit:%d Run:%d\n", mTrackID.asString().c_str(), mFirstTFOrbit, mRunNumber);
   printf("Nmeas:%3d Q/pt:%+.2e Tgl:%+.2e Chi2Ini:%.1f\n", mNMeas, mQ2Pt, mTgl, mChi2Ini);
   printf("NRes: %3d NLoc: %3d NGlo:%3d | Stored: Loc:%3d Glo:%5d\n",
          mNResid, mNVarLoc, mNVarGlo, mNDLocTot, mNDGloTot);
@@ -285,8 +281,8 @@ void Millepede2Record::Print(const Option_t*) const
   const int kNColLoc = 5;
   for (int ir = 0; ir < mNResid; ir++) {
     int ndloc = mNDLoc[ir], ndglo = mNDGlo[ir];
-    printf("Res:%3d %+e (%+e) | NDLoc:%3d NDGlo:%4d [VID:%5d]\n",
-           ir, mResid[ir], mResErr[ir], ndloc, ndglo, getVolID(ir));
+    printf("Res:%3d Type:%d %+e (%+e) | NDLoc:%3d NDGlo:%4d [VID:%5d]\n",
+           ir, mMeasType[ir], mResid[ir], mResErr[ir], ndloc, ndglo, getVolID(ir));
     //
     printf("Local Derivatives:\n");
     bool eolOK = true;

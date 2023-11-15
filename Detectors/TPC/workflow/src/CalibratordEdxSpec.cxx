@@ -41,7 +41,7 @@ namespace o2::tpc
 class CalibratordEdxDevice : public Task
 {
  public:
-  CalibratordEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  CalibratordEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::base::Propagator::MatCorrType matType) : mCCDBRequest(req), mMatType(matType) {}
   void init(framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
@@ -54,6 +54,7 @@ class CalibratordEdxDevice : public Task
     const auto minEntries2D = ic.options().get<int>("min-entries-2d");
     const auto fitPasses = ic.options().get<int>("fit-passes");
     const auto fitThreshold = ic.options().get<float>("fit-threshold");
+    const auto fitThresholdLowFactor = ic.options().get<float>("fit-threshold-low-factor");
 
     const auto dEdxBins = ic.options().get<int>("dedxbins");
     const auto mindEdx = ic.options().get<float>("min-dedx");
@@ -70,7 +71,8 @@ class CalibratordEdxDevice : public Task
     mCalibrator->setMinEntries(minEntries);
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
-    mCalibrator->setElectronCut({fitThreshold, fitPasses});
+    mCalibrator->setElectronCut({fitThreshold, fitPasses, fitThresholdLowFactor});
+    mCalibrator->setMaterialType(mMatType);
 
     if (dumpData) {
       mCalibrator->enableDebugOutput("calibratordEdx.root");
@@ -87,13 +89,13 @@ class CalibratordEdxDevice : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOGP(info, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
+    LOGP(detail, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
     mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
     mCalibrator->process(tracks);
     sendOutput(pc.outputs());
 
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
+    LOGP(detail, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -116,7 +118,7 @@ class CalibratordEdxDevice : public Task
     assert(calibrations.size() == intervals.size());
     for (unsigned int i = 0; i < calibrations.size(); i++) {
       const auto& object = calibrations[i];
-      o2::ccdb::CcdbObjectInfo info(CDBTypeMap.at(CDBType::CalTimeGain), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, intervals[i].first, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+      o2::ccdb::CcdbObjectInfo info(CDBTypeMap.at(CDBType::CalTimeGain), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, intervals[i].first, intervals[i].second + 1);
       auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &info);
       LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", i}, *image.get()); // vector<char>
@@ -126,21 +128,23 @@ class CalibratordEdxDevice : public Task
   }
 
   std::unique_ptr<CalibratordEdx> mCalibrator;
+  const o2::base::Propagator::MatCorrType mMatType{};
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   uint64_t mRunNumber{0}; ///< processed run number
 };
 
-DataProcessorSpec getCalibratordEdxSpec()
+DataProcessorSpec getCalibratordEdxSpec(const o2::base::Propagator::MatCorrType matType)
 {
+  const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
-  std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS"}};
+  std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS", Lifetime::Sporadic}};
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                false,                          // askMatLUT
+                                                                enableAskMatLUT,                // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs,
                                                                 true,
@@ -149,7 +153,7 @@ DataProcessorSpec getCalibratordEdxSpec()
     "tpc-calibrator-dEdx",
     inputs,
     outputs,
-    adaptFromTask<CalibratordEdxDevice>(ccdbRequest),
+    adaptFromTask<CalibratordEdxDevice>(ccdbRequest, matType),
     Options{
       {"tf-per-slot", VariantType::UInt32, 6000u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 10u, {"number of slots in past to consider"}},
@@ -160,6 +164,7 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"min-entries-2d", VariantType::Int, 50000, {"minimum entries per stack to fit 2D correction"}},
       {"fit-passes", VariantType::Int, 3, {"number of fit iterations"}},
       {"fit-threshold", VariantType::Float, 0.2f, {"dEdx width around the MIP peak used in the fit"}},
+      {"fit-threshold-low-factor", VariantType::Float, 1.5f, {"factor for low dEdx width around the MIP peak used in the fit"}},
 
       {"dedxbins", VariantType::Int, 60, {"number of dEdx bins"}},
       {"min-dedx", VariantType::Float, 20.0f, {"minimum value for dEdx histograms"}},

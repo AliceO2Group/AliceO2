@@ -41,6 +41,7 @@ class ClustererDPL : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);

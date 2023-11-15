@@ -12,7 +12,7 @@
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitIOBaseTask.h"
-#include "DigitWriter.h"
+#include "DigitSink.h"
 #include <fmt/format.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InitContext.h"
@@ -44,7 +44,7 @@ void DigitIOBaseTask::printFull(gsl::span<const Digit> digits,
 {
   if (mPrintDigits) {
     std::stringstream str;
-    o2::mch::io::DigitWriter dw(str);
+    o2::mch::io::DigitSink dw(str);
     dw.write(digits, rofs);
     for (std::string line; std::getline(str, line);) {
       LOG(info) << line;

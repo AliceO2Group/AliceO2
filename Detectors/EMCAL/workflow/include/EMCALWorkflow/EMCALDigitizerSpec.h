@@ -12,6 +12,7 @@
 #ifndef STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_
 #define STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_
 
+#include <memory>
 #include <vector>
 
 #include "Framework/DataProcessorSpec.h"
@@ -29,6 +30,8 @@ namespace o2
 {
 namespace emcal
 {
+class CalibLoader;
+
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
 
@@ -37,11 +40,12 @@ namespace emcal
 /// \author Anders Garritt Knospe <anders.knospe@cern.ch>, University of Houston
 /// \author Markus Fasel <markus.fasel@cern.ch> Oak Ridge National laboratory
 /// \since Nov 12, 2018
-class DigitizerSpec final : public o2::base::BaseDPLDigitizer
+class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framework::Task
 {
  public:
+  using o2::base::BaseDPLDigitizer::init;
   /// \brief Constructor
-  DigitizerSpec() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+  DigitizerSpec(std::shared_ptr<CalibLoader> calibloader) : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM), o2::framework::Task(), mCalibHandler(calibloader) {}
 
   /// \brief Destructor
   ~DigitizerSpec() final = default;
@@ -50,6 +54,10 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer
   /// \param ctx Init context
   void initDigitizerTask(framework::InitContext& ctx) final;
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
+
+  void configure();
+
   /// \brief run digitizer
   /// \param ctx Processing context
   ///
@@ -57,21 +65,23 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer
   /// - Open readout window when the event sets a trigger
   /// - Accumulate digits sampled via the time response from different bunch crossings
   /// - Retrieve digits when the readout window closes
-  void run(framework::ProcessingContext& ctx);
+  void run(framework::ProcessingContext& ctx) override;
 
  private:
-  Bool_t mFinished = false;            ///< Flag for digitization finished
-  Digitizer mDigitizer;                ///< Digitizer object
-  o2::emcal::SDigitizer mSumDigitizer; ///< Summed digitizer
-  std::vector<Hit> mHits;              ///< Vector with input hits
+  Bool_t mFinished = false;                   ///< Flag for digitization finished
+  bool mIsConfigured = false;                 ///< Initialization status of the digitizer
+  Digitizer mDigitizer;                       ///< Digitizer object
+  o2::emcal::SDigitizer mSumDigitizer;        ///< Summed digitizer
+  std::shared_ptr<CalibLoader> mCalibHandler; ///< Handler of calibration objects
+  std::vector<Hit> mHits;                     ///< Vector with input hits
   std::vector<TChain*> mSimChains;
 };
 
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
-o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth = true);
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth = true, bool useccdb = true);
 
-} // end namespace emcal
+} // namespace emcal
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_ */

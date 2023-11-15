@@ -15,6 +15,7 @@
 #define COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAM_H_
 
 #include <vector>
+#include <cassert>
 #include <map>
 #include <unordered_map>
 #include <boost/property_tree/ptree.hpp>
@@ -218,6 +219,23 @@ class ConfigurableParam
       }
     } catch (std::exception const& e) {
       std::cerr << "Error in setValue (T) " << e.what() << "\n";
+    }
+  }
+
+  static void setProvenance(std::string const& mainkey, std::string const& subkey, EParamProvenance p)
+  {
+    if (!sIsFullyInitialized) {
+      std::cerr << "setProvenance was called on non-initialized ConfigurableParam\n";
+      return;
+    }
+    try {
+      auto key = mainkey + "." + subkey;
+      auto keyProv = sValueProvenanceMap->find(key);
+      if (keyProv != sValueProvenanceMap->end()) {
+        keyProv->second = p;
+      }
+    } catch (std::exception const& e) {
+      std::cerr << "Error in setProvenance (T) " << e.what() << "\n";
     }
   }
 

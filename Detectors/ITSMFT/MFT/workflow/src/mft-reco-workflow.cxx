@@ -41,6 +41,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"run-assessment", o2::framework::VariantType::Bool, false, {"run MFT assessment workflow"}},
     {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks (depends on --run-assessment)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"nThreads", VariantType::Int, 1, {"Number of threads"}},
     {"run-tracks2records", o2::framework::VariantType::Bool, false, {"run MFT alignment tracks to records workflow"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -62,6 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto runAssessment = configcontext.options().get<bool>("run-assessment");
   auto processGen = !configcontext.options().get<bool>("disable-process-gen");
   auto runTracking = !configcontext.options().get<bool>("disable-tracking");
+  auto nThreads = configcontext.options().get<int>("nThreads");
   auto runTracks2Records = configcontext.options().get<bool>("run-tracks2records");
 
   auto wf = o2::mft::reco_workflow::getWorkflow(
@@ -72,6 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     runAssessment,
     processGen,
     runTracking,
+    nThreads,
     runTracks2Records);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

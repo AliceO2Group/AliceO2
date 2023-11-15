@@ -30,7 +30,9 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
 {
 
  public:
-  static constexpr int sNCHANNELS = o2::ft0::Geometry::Nchannels;
+  static constexpr int sNCHANNELS = Geometry::Nchannels;
+  static constexpr int sNCHANNELS_A = 4 * Geometry::NCellsA;
+
   int mNbinsY{400};
   float mMinY{-200.};
   float mMaxY{200.};
@@ -57,21 +59,49 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
   }
   void run(o2::framework::ProcessingContext& pc) final
   {
+    enum { kTimeA = sNCHANNELS,
+           kTimeC = sNCHANNELS + 1,
+           kSumTimeAC = sNCHANNELS + 2,
+           kDiffTimeCA = sNCHANNELS + 3
+    };
+    const int nExtraSpectraSlots = 4; // For timeA/C sum and diff
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
-    o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(sNCHANNELS, 0, sNCHANNELS, mNbinsY, mMinY, mMaxY);
+    o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(sNCHANNELS + nExtraSpectraSlots, 0, sNCHANNELS + nExtraSpectraSlots, mNbinsY, mMinY, mMaxY);
     for (const auto& digit : digits) {
       if ((digit.mTriggers.getTriggersignals() & mTrgBitsToCheck) != mTrgBitsGood) {
         continue;
       }
       const auto& chan = digit.getBunchChannelData(channels);
+      float timeA{0}, timeC{0};
+      int NchanA{0}, NchanC{0};
       for (const auto& channel : chan) {
-        if (channel.QTCAmpl > mAmpThreshold && std::abs(channel.CFDTime) < mTimeWindow && ((channel.ChainQTC & mPMbitsToCheck) == mPMbitsGood)) {
+        if (channel.QTCAmpl > mAmpThreshold && std::abs(channel.CFDTime) < mTimeWindow && ((channel.ChainQTC & mPMbitsToCheck) == mPMbitsGood && channel.ChId < sNCHANNELS)) {
           const auto result = timeSpectraInfoObject.fill(channel.ChId, channel.CFDTime);
+          if (channel.ChId < sNCHANNELS_A) {
+            NchanA++;
+            timeA += channel.CFDTime;
+          } else {
+            NchanC++;
+            timeC += channel.CFDTime;
+          }
+        }
+      }
+      if (NchanA > 0) {
+        timeA = timeA / NchanA;
+        const auto result = timeSpectraInfoObject.fill(kTimeA, timeA);
+      }
+      if (NchanC > 0) {
+        timeC = timeC / NchanC;
+        const auto result = timeSpectraInfoObject.fill(kTimeC, timeC);
+        if (NchanA > 0) {
+          const auto resultSum = timeSpectraInfoObject.fill(kSumTimeAC, (timeA + timeC) / 2);
+          const auto resultDiff = timeSpectraInfoObject.fill(kDiffTimeCA, (timeC - timeA) / 2.);
         }
       }
     }
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "CALIB_INFO", 0, o2::framework::Lifetime::Timeframe}, timeSpectraInfoObject.getBase());
+
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TIME_SPECTRA", 0, o2::framework::Lifetime::Timeframe}, timeSpectraInfoObject.getBase());
   }
 };
 
@@ -102,7 +132,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "FT0TimeSpectraProcessor",
     inputs,
     Outputs{
-      {{"calib"}, "FT0", "CALIB_INFO"}},
+      {{"timeSpectra"}, "FT0", "TIME_SPECTRA"}},
     AlgorithmSpec{adaptFromTask<o2::ft0::FT0TimeSpectraProcessor>()},
     Options{{"number-bins", VariantType::Int, 400, {"Number of bins along Y-axis"}},
             {"low-edge", VariantType::Float, -200.0f, {"Lower edge of first bin along Y-axis"}},

@@ -27,7 +27,7 @@
 
 namespace o2::mch::io::impl
 {
-void DigitReaderV2::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
+void DigitSamplerV2::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
 {
   auto dff = digitFileFormats[2];
   rewind(in);
@@ -44,9 +44,9 @@ void DigitReaderV2::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   rewind(in);
 }
 
-bool DigitReaderV2::read(std::istream& in,
-                         std::vector<Digit>& digits,
-                         std::vector<ROFRecord>& rofs)
+bool DigitSamplerV2::read(std::istream& in,
+                          std::vector<Digit>& digits,
+                          std::vector<ROFRecord>& rofs)
 {
   if (in.peek() == EOF) {
     return false;
@@ -76,15 +76,15 @@ bool DigitReaderV2::read(std::istream& in,
   return !in.fail();
 }
 
-void DigitReaderV2::rewind(std::istream& in)
+void DigitSamplerV2::rewind(std::istream& in)
 {
-  DigitReaderImpl::rewind(in);
+  DigitSamplerImpl::rewind(in);
   mCurrentROF = 0;
 }
 
-bool DigitWriterV2::write(std::ostream& out,
-                          gsl::span<const Digit> digits,
-                          gsl::span<const ROFRecord> rofs)
+bool DigitSinkV2::write(std::ostream& out,
+                        gsl::span<const Digit> digits,
+                        gsl::span<const ROFRecord> rofs)
 {
   // V2 format had no notion of rofs, so we strip them
   for (auto r : rofs) {

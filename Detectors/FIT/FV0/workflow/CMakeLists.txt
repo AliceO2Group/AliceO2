@@ -53,6 +53,21 @@ o2_add_executable(flp-dpl-workflow
                   PUBLIC_LINK_LIBRARIES O2::FV0Workflow O2::FITWorkflow O2::FV0Raw
                   TARGETVARNAME fv0flpexe)
 
+o2_add_executable(integrate-cluster-workflow
+                  SOURCES src/cluster-integrator.cxx
+                  COMPONENT_NAME fv0
+                  PUBLIC_LINK_LIBRARIES O2::FV0Workflow O2::FITWorkflow)
+
+o2_add_executable(integrate-cluster-reader-workflow
+                  SOURCES src/cluster-integrator-reader.cxx
+                  COMPONENT_NAME fv0
+                  PUBLIC_LINK_LIBRARIES O2::FV0Workflow O2::FITWorkflow)
+
+o2_add_executable(merge-integrate-cluster-workflow
+                  SOURCES src/cluster-merge-integrator.cxx
+                  COMPONENT_NAME fv0
+                  PUBLIC_LINK_LIBRARIES O2::FV0Workflow O2::FITWorkflow)
+
 if(NOT APPLE)
 
  set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)

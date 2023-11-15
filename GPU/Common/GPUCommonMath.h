@@ -66,6 +66,7 @@ class GPUCommonMath
   GPUhdni() static void SinCos(float x, float& s, float& c);
   GPUhdni() static void SinCosd(double x, double& s, double& c);
   GPUd() static float Tan(float x);
+  GPUd() static float Pow(float x, float y);
   GPUhdni() static float Copysign(float x, float y);
   GPUd() static float TwoPi() { return 6.2831853f; }
   GPUd() static float Pi() { return 3.1415927f; }
@@ -80,6 +81,8 @@ class GPUCommonMath
   GPUhdni() static float Hypot(float x, float y, float z, float w);
 
   GPUd() static float Log(float x);
+  GPUd() static float Exp(float x);
+
   template <class T>
   GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
@@ -151,7 +154,7 @@ class GPUCommonMath
   GPUd() static float FMulRZ(float a, float b);
 
   template <int I, class T>
-  GPUd() CONSTEXPR17 static T nextMultipleOf(T val);
+  GPUd() CONSTEXPR static T nextMultipleOf(T val);
 
 #ifdef GPUCA_NOCOMPAT
   GPUdi() static float Sum2() // Needed for legacy C++, For >=17 the below if constexpr handles the case
@@ -162,7 +165,7 @@ class GPUCommonMath
   template <typename... Args>
   GPUdi() static float Sum2(float w, Args... args)
   {
-    if CONSTEXPR17 (sizeof...(Args) == 0) {
+    if CONSTEXPR (sizeof...(Args) == 0) {
       return w * w;
     } else {
       return w * w + Sum2(args...);
@@ -196,9 +199,9 @@ typedef GPUCommonMath CAMath;
 #endif // clang-format on
 
 template <int I, class T>
-GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
+GPUdi() CONSTEXPR T GPUCommonMath::nextMultipleOf(T val)
 {
-  if CONSTEXPR17 (I & (I - 1)) {
+  if CONSTEXPR (I & (I - 1)) {
     T tmp = val % I;
     if (tmp) {
       val += I - tmp;
@@ -248,6 +251,8 @@ GPUhdi() float GPUCommonMath::ATan2(float y, float x) { return CHOICE(atan2f(y, 
 GPUdi() float GPUCommonMath::Sin(float x) { return CHOICE(sinf(x), sinf(x), sin(x)); }
 
 GPUdi() float GPUCommonMath::Cos(float x) { return CHOICE(cosf(x), cosf(x), cos(x)); }
+
+GPUdi() float GPUCommonMath::Pow(float x, float y) { return CHOICE(powf(x, y), powf(x, y), pow(x, y)); }
 
 GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
 {
@@ -409,6 +414,7 @@ GPUdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), a
 GPUdi() float GPUCommonMath::ACos(float x) { return CHOICE(acosf(x), acosf(x), acos(x)); }
 
 GPUdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
+GPUdi() float GPUCommonMath::Exp(float x) { return CHOICE(expf(x), expf(x), exp(x)); }
 
 GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 {

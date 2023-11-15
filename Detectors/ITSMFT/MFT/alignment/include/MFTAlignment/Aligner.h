@@ -54,6 +54,9 @@ class Aligner
   void setAllowedVariationDeltaRz(const double value) { mAllowVar[2] = value; }
   void setChi2CutFactor(const double value) { mStartFac = value; }
 
+  /// \brief return the number of DOF per sensor
+  int getNDofPerSensor() const { return mNDofPerSensor; }
+
  protected:
   static constexpr int mNumberOfTrackParam = 4;                                  ///< Number of track (= local) parameters (X0, Tx, Y0, Ty)
   static constexpr int mNDofPerSensor = 4;                                       ///< translation in global x, y, z, and rotation Rz around global z-axis

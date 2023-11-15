@@ -356,6 +356,14 @@ class RawFileWriter
     mUseRDHVersion = v;
   }
 
+  unsigned char getUsedRDHDataFormat() const { return mUseRDHDataFormat; }
+  unsigned char getAlignmentSize() const { return mAlignmentSize; }
+  unsigned char getAlignmentPaddingFiller() const { return mAlignmentPaddingFiller; }
+
+  void useRDHDataFormat(unsigned char v) { mUseRDHDataFormat = v; }
+  void setAlignmentSize(unsigned char v) { mAlignmentSize = v; }
+  void setAlignmentPaddingFiller(unsigned char v) { mAlignmentPaddingFiller = v; }
+
   bool getDontFillEmptyHBF() const { return mDontFillEmptyHBF; }
   void setDontFillEmptyHBF(bool v) { mDontFillEmptyHBF = v; }
 
@@ -402,6 +410,9 @@ class RawFileWriter
   int mVerbosity = 0;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   int mUseRDHVersion = RDHUtils::getVersion<o2::header::RAWDataHeader>(); // by default, use default version
+  unsigned char mUseRDHDataFormat = 0;                                    // by default use padding
+  unsigned char mAlignmentSize = 0;                                       // apply alignment to the CRU page size
+  unsigned char mAlignmentPaddingFiller = 0xff;                           // using this filler
   int mSuperPageSize = 1024 * 1024;                                       // super page size
   bool mStartTFOnNewSPage = true;                                         // every TF must start on a new SPage
   bool mDontFillEmptyHBF = false;                                         // skipp adding empty HBFs (uness it must have TF flag)

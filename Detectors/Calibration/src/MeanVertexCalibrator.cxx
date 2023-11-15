@@ -246,7 +246,7 @@ bool MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     sumX += (fitResSlicesX[iFit][2] * weightSigmaX);
     weightSumX += weightSigmaX;
 
-    double weightSigmaY = covMatrixX[iFit](2, 2) > 0 ? 1. / covMatrixY[iFit](2, 2) : 1.; // covMatrix is already an error squared
+    double weightSigmaY = covMatrixY[iFit](2, 2) > 0 ? 1. / covMatrixY[iFit](2, 2) : 1.; // covMatrix is already an error squared
     sumY += (fitResSlicesY[iFit][2] * weightSigmaY);
     weightSumY += weightSigmaY;
   }
@@ -364,7 +364,8 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   if (mTmpMVobjDqTime.size() > params.nSlots4SMA) {
     mTmpMVobjDqTime.pop_front();
   }
-  long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2;
+  long offset = (slot.getEndTimeMS() - slot.getStartTimeMS()) / 2;
+  long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2 - offset;
   LOG(info) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);

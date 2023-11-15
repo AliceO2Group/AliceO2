@@ -153,6 +153,26 @@ in order to verify the write, the inverse decoding of raw file
 ```
 
 
+### o2-hmpid-digits-to-clusters-workflow
+Perfom Clusterization; reads from file and writes to file by default
+
+Data processor options: HMPClustersWriter:
+
+```
+  --output-dir arg (=./)                        base dir for output cluster-file (ClustersWriterSpec)
+  --outfile arg (=hmpidclusters.root)           base name for output cluster-file (ClustersWriterSpec)
+
+  --hmpid-digit-infile (=hmpiddigits.root)      name of the input digit root file (DigitsReaderSpec)
+  --input-dir arg (=./)                         Input directory (DigitsReaderSpec)
+
+  --disable-root-input arg  (=false)            Read from digit-file by defaut
+  --disable-root-output arg (=false)            Write to cluster-file by defaut (ClustersWriterSpec)
+```
+
+```
+o2-hmpid-digits-to-clusters-workflow -b --outfile hmpidclus.root --hmpid-digit-infile hmpiddigits.root
+```
+
 ### o2-hmpid-raw-to-pedestals-workflow
 Write the Pedestals/Threshold files for the readout and registers Mean and Sigma in the CCDB
 

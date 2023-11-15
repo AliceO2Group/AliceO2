@@ -12,19 +12,19 @@
 #ifndef O2_MCH_RAW_ELECMAP_ELECTRONIC_MAPPER_IMPL_HELPER_H
 #define O2_MCH_RAW_ELECMAP_ELECTRONIC_MAPPER_IMPL_HELPER_H
 
+#include "MCHConstants/DetectionElements.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
 #include "MCHRawElecMap/FeeLinkId.h"
-#include <functional>
-#include <optional>
-#include <map>
-#include <cstdint>
-#include <set>
-#include <fmt/format.h>
-#include <iostream>
 #include "MCHRawElecMap/Mapper.h"
 #include "dslist.h"
-#include "DetectionElements.h"
+#include <cstdint>
+#include <fmt/format.h>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <optional>
+#include <set>
 
 namespace o2::mch::raw::impl
 {
@@ -212,6 +212,42 @@ std::set<DsDetId> getDualSampas(uint16_t solarId)
     }
   }
   return dualSampas;
+}
+
+template <typename T>
+std::map<uint16_t, uint16_t> generateSolarIndex2IdMap()
+{
+  std::set<uint16_t> solarIds = raw::getSolarUIDs<T>();
+  std::map<uint16_t, uint16_t> m;
+  uint16_t i{0};
+  for (const auto& solarId : solarIds) {
+    m[i] = solarId;
+    ++i;
+  }
+  return m;
+}
+
+template <typename T>
+std::optional<uint16_t> solarIndex2Id(uint16_t solarIndex)
+{
+  static std::map<uint16_t, uint16_t> ix2id = generateSolarIndex2IdMap<T>();
+  auto it = ix2id.find(solarIndex);
+  if (it == ix2id.end()) {
+    return std::nullopt;
+  }
+  return it->second;
+}
+
+template <typename T>
+std::optional<uint16_t> solarId2Index(uint16_t solarId)
+{
+  static std::map<uint16_t, uint16_t> id2ix =
+    inverseMap(generateSolarIndex2IdMap<T>());
+  auto it = id2ix.find(solarId);
+  if (it == id2ix.end()) {
+    return std::nullopt;
+  }
+  return it->second;
 }
 
 } // namespace o2::mch::raw::impl

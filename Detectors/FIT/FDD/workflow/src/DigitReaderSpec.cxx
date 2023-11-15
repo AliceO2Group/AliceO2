@@ -42,7 +42,7 @@ void DigitReader::init(InitContext& ic)
   mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                  ic.options().get<std::string>("fdd-digits-infile"));
 
-  mFile = std::make_unique<TFile>(mInputFileName.c_str(), "OLD");
+  mFile.reset(TFile::Open(mInputFileName.c_str()));
   if (!mFile->IsOpen()) {
     LOG(error) << "Cannot open the " << mInputFileName.c_str() << " file !";
     throw std::runtime_error("cannot open input digits file");

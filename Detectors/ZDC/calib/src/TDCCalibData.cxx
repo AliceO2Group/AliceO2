@@ -17,7 +17,7 @@ using namespace o2::zdc;
 void TDCCalibData::print() const
 {
   for (int i = 0; i < NTDC; i++) {
-    LOGF(info, "%s", CTDC[i]);
+    LOGF(info, "%s entries: %d", CTDC[i], entries[i]);
   }
 }
 
@@ -25,7 +25,7 @@ TDCCalibData& TDCCalibData::operator+=(const TDCCalibData& other)
 {
 
   for (int32_t ih = 0; ih < NTDC; ih++) {
-    entries[ih] += other.entries[ih];
+    entries[ih] = entries[ih] + other.entries[ih];
   }
 
   if (mCTimeBeg == 0 || other.mCTimeBeg < mCTimeBeg) {
@@ -34,11 +34,11 @@ TDCCalibData& TDCCalibData::operator+=(const TDCCalibData& other)
   if (other.mCTimeEnd > mCTimeEnd) {
     mCTimeEnd = other.mCTimeEnd;
   }
-  //#ifdef O2_ZDC_DEBUG
+#ifdef O2_ZDC_DEBUG
   LOGF(info, "TDCCalibData [%llu : %llu]: %s=%d %s=%d %s=%d %s=%d %s=%d %s=%d %s=%d %s=%d %s=%d %s=%d", mCTimeBeg, mCTimeEnd, CTDC[0], getEntries(0), CTDC[1], getEntries(1),
        CTDC[2], getEntries(2), CTDC[3], getEntries(3), CTDC[4], getEntries(4), CTDC[5], getEntries(5), CTDC[6], getEntries(6), CTDC[7], getEntries(7),
        CTDC[8], getEntries(8), CTDC[9], getEntries(9));
-  //#endif
+#endif
   return *this;
 }
 

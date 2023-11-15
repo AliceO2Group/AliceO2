@@ -113,8 +113,8 @@ class SAMPAProcessing
   float getTimeBinTime(float time) const;
 
   /// Get the noise for a given channel
-  /// \param cru CRU of the channel of interest
-  /// \param padPos PadPos of the channel of interest
+  /// \param sector sector number
+  /// \param globalPadInSector pad number in sector
   /// \return Noise on the channel of interest
   float getNoise(const int sector, const int globalPadInSector);
 
@@ -122,10 +122,16 @@ class SAMPAProcessing
   float getZeroSuppression(const int sector, const int globalPadInSector) const;
 
   /// Get the pedestal for a given channel
-  /// \param cru CRU of the channel of interest
-  /// \param padPos PadPos of the channel of interest
-  /// \return Pedestal on the channel of interest
+  /// \param sector sector number
+  /// \param globalPadInSector pad number in sector
+  /// \return Pedestal of the channel of interest
   float getPedestal(const int sector, const int globalPadInSector) const;
+
+  /// Get the pedestal for a given channel as used in the CRU with 10+2bit precision
+  /// \param sector sector number
+  /// \param globalPadInSector pad number in sector
+  /// \return Pedestal of the channel of interest
+  float getPedestalCRU(const int sector, const int globalPadInSector) const;
 
  private:
   SAMPAProcessing();
@@ -134,6 +140,7 @@ class SAMPAProcessing
   const ParameterElectronics* mEleParam;     ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mNoiseMap;                   ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mPedestalMap;                ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mPedestalMapCRU;             ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mZeroSuppression;            ///< Caching of the parameter class to avoid multiple CDB calls
   math_utils::RandomRing<> mRandomNoiseRing; ///< Ring with random number for noise
   float mVDrift = 0;                         ///< VDrift for current timestamp
@@ -153,6 +160,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
 {
   float signal = ADCcounts;
   pedestal = getPedestal(sector, globalPadInSector);
+  float pedestalCRU = getPedestalCRU(sector, globalPadInSector);
   noise = getNoise(sector, globalPadInSector);
   switch (MODE) {
     case DigitzationMode::FullMode: {
@@ -167,7 +175,19 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       signal += noise;
       signal += pedestal;
       signal += (tot > 0) ? 80 : 0; // TODO: improve to also add tail
-      const float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
+      const float signalSubtractPedestal = getADCSaturation(signal) - pedestalCRU;
+      const float zeroSuppression = getZeroSuppression(sector, globalPadInSector);
+      if (signalSubtractPedestal < zeroSuppression) {
+        return 0.f;
+      }
+      return signalSubtractPedestal;
+      break;
+    }
+    case DigitzationMode::ZeroSuppressionCMCorr: {
+      signal += noise;
+      signal += pedestal;
+      signal += (tot > 0) ? 80 : 0; // TODO: improve to also add tail
+      const float signalSubtractPedestal = getADCSaturation(signal) - pedestalCRU;
       const float zeroSuppression = getZeroSuppression(sector, globalPadInSector);
       if (signalSubtractPedestal < zeroSuppression) {
         return 0.f;
@@ -179,7 +199,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       signal -= commonMode;
       signal += noise;
       signal += pedestal;
-      const float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
+      const float signalSubtractPedestal = getADCSaturation(signal) - pedestalCRU;
       return signalSubtractPedestal;
       break;
     }
@@ -264,6 +284,11 @@ inline float SAMPAProcessing::getZeroSuppression(const int sector, const int glo
 inline float SAMPAProcessing::getPedestal(const int sector, const int globalPadInSector) const
 {
   return mPedestalMap->getValue(sector, globalPadInSector);
+}
+
+inline float SAMPAProcessing::getPedestalCRU(const int sector, const int globalPadInSector) const
+{
+  return mPedestalMapCRU->getValue(sector, globalPadInSector);
 }
 } // namespace tpc
 } // namespace o2

@@ -11,7 +11,7 @@
 
 /// @brief Class for creating debug root trees with std::cout like intervace
 /// @author Marian Ivanov, marian.ivanov@cern.ch (original code in AliRoot)
-///         Ruben Shahoyan, ruben.shahoyan@cern.ch (porting to O2)
+///         Ruben Shahoyan, ruben.shahoyan@cern.ch (porting to O2).
 
 #ifndef ALICEO2_TREESTREAM_H
 #define ALICEO2_TREESTREAM_H
@@ -19,6 +19,7 @@
 #include <TString.h>
 #include <TTree.h>
 #include <vector>
+#include "GPUCommonDef.h"
 
 class TBranch;
 class TClass;
@@ -44,7 +45,7 @@ class TreeStream
   struct TreeDataElement {
     char type = 0;               ///< type of data element
     const TClass* cls = nullptr; ///< data type pointer
-    void* ptr = nullptr;         ///< pointer to element
+    const void* ptr = nullptr;   ///< pointer to element
     std::string name;            ///< name of the element
   };
 
@@ -52,7 +53,7 @@ class TreeStream
   TreeStream() = default;
   virtual ~TreeStream() = default;
   void Close() { mTree.Write(); }
-  Int_t CheckIn(Char_t type, void* pointer);
+  Int_t CheckIn(Char_t type, const void* pointer);
   void BuildTree();
   void Fill();
   Double_t getSize() { return mTree.GetZipBytes(); }
@@ -62,79 +63,79 @@ class TreeStream
   const char* getName() const { return mTree.GetName(); }
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
-  TreeStream& operator<<(Bool_t& b)
+  TreeStream& operator<<(const Bool_t& b)
   {
     CheckIn('B', &b);
     return *this;
   }
 
-  TreeStream& operator<<(Char_t& c)
+  TreeStream& operator<<(const Char_t& c)
   {
     CheckIn('B', &c);
     return *this;
   }
 
-  TreeStream& operator<<(UChar_t& c)
+  TreeStream& operator<<(const UChar_t& c)
   {
     CheckIn('b', &c);
     return *this;
   }
 
-  TreeStream& operator<<(Short_t& h)
+  TreeStream& operator<<(const Short_t& h)
   {
     CheckIn('S', &h);
     return *this;
   }
 
-  TreeStream& operator<<(UShort_t& h)
+  TreeStream& operator<<(const UShort_t& h)
   {
     CheckIn('s', &h);
     return *this;
   }
 
-  TreeStream& operator<<(Int_t& i)
+  TreeStream& operator<<(const Int_t& i)
   {
     CheckIn('I', &i);
     return *this;
   }
 
-  TreeStream& operator<<(UInt_t& i)
+  TreeStream& operator<<(const UInt_t& i)
   {
     CheckIn('i', &i);
     return *this;
   }
 
-  TreeStream& operator<<(Long_t& l)
+  TreeStream& operator<<(const Long_t& l)
   {
     CheckIn('L', &l);
     return *this;
   }
 
-  TreeStream& operator<<(ULong_t& l)
+  TreeStream& operator<<(const ULong_t& l)
   {
     CheckIn('l', &l);
     return *this;
   }
 
-  TreeStream& operator<<(Long64_t& l)
+  TreeStream& operator<<(const Long64_t& l)
   {
     CheckIn('L', &l);
     return *this;
   }
 
-  TreeStream& operator<<(ULong64_t& l)
+  TreeStream& operator<<(const ULong64_t& l)
   {
     CheckIn('l', &l);
     return *this;
   }
 
-  TreeStream& operator<<(Float_t& f)
+  TreeStream& operator<<(const Float_t& f)
   {
     CheckIn('F', &f);
     return *this;
   }
 
-  TreeStream& operator<<(Double_t& d)
+  TreeStream& operator<<(const Double_t& d)
   {
     CheckIn('D', &d);
     return *this;
@@ -143,21 +144,21 @@ class TreeStream
   TreeStream& operator<<(const Char_t* name);
 
   template <class T>
-  TreeStream& operator<<(T* obj)
+  TreeStream& operator<<(const T* obj)
   {
     CheckIn(obj);
     return *this;
   }
 
-  template <class T>
-  TreeStream& operator<<(T& obj)
+  template <class T, typename std::enable_if<!std::is_pointer<GPUgeneric() T>::value, bool>::type* = nullptr>
+  TreeStream& operator<<(const T& obj)
   {
     CheckIn(&obj);
     return *this;
   }
 
   template <class T>
-  Int_t CheckIn(T* obj);
+  Int_t CheckIn(const T* obj);
 
  private:
   //
@@ -174,7 +175,7 @@ class TreeStream
 };
 
 template <class T>
-Int_t TreeStream::CheckIn(T* obj)
+Int_t TreeStream::CheckIn(const T* obj)
 {
   // check in arbitrary class having dictionary
   TClass* pClass = nullptr;

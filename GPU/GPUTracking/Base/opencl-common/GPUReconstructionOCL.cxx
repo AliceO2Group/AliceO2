@@ -75,9 +75,9 @@ void GPUReconstructionOCL::GPUFailedMsgA(const long int error, const char* file,
   }
 }
 
-void GPUReconstructionOCL::UpdateSettings()
+void GPUReconstructionOCL::UpdateAutomaticProcessingSettings()
 {
-  GPUCA_GPUReconstructionUpdateDefailts();
+  GPUCA_GPUReconstructionUpdateDefaults();
 }
 
 int GPUReconstructionOCL::InitDevice_Runtime()
@@ -110,7 +110,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       found = true;
     } else {
       for (unsigned int i_platform = 0; i_platform < num_platforms; i_platform++) {
-        char platform_profile[64] = {}, platform_version[64] = {}, platform_name[64] = {}, platform_vendor[64] = {};
+        char platform_profile[256] = {}, platform_version[256] = {}, platform_name[256] = {}, platform_vendor[256] = {};
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_PROFILE, sizeof(platform_profile), platform_profile, nullptr);
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_NAME, sizeof(platform_name), platform_name, nullptr);
@@ -118,9 +118,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
         if (mProcessingSettings.debugLevel >= 2) {
           GPUInfo("Available Platform %d: (%s %s) %s %s", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
         }
-        if (CheckPlatform(i_platform)) {
+        if (!found && CheckPlatform(i_platform)) {
           found = true;
           mInternals->platform = mInternals->platforms[i_platform];
+          if (mProcessingSettings.debugLevel >= 2) {
+            GPUInfo("    Using this platform");
+          }
         }
       }
     }
@@ -390,7 +393,7 @@ int GPUReconstructionOCL::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents)
 {
   if (evList == nullptr) {
     nEvents = 0;
@@ -411,7 +414,7 @@ size_t GPUReconstructionOCL::GPUMemCpy(void* dst, const void* src, size_t size, 
   return size;
 }
 
-size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mProcessingSettings.debugLevel >= 4) {
@@ -425,7 +428,7 @@ size_t GPUReconstructionOCL::TransferMemoryInternal(GPUMemoryResource* res, int 
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
 {
   if (stream == -1) {
     SynchronizeGPU();
@@ -434,9 +437,9 @@ size_t GPUReconstructionOCL::WriteToConstantMemory(size_t offset, const void* sr
   return size;
 }
 
-void GPUReconstructionOCL::ReleaseEvent(deviceEvent* ev) { GPUFailedMsg(clReleaseEvent(*(cl_event*)ev)); }
+void GPUReconstructionOCL::ReleaseEvent(deviceEvent ev) { GPUFailedMsg(clReleaseEvent(*(cl_event*)ev)); }
 
-void GPUReconstructionOCL::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, (cl_event*)ev)); }
+void GPUReconstructionOCL::RecordMarker(deviceEvent ev, int stream) { GPUFailedMsg(clEnqueueMarkerWithWaitList(mInternals->command_queue[stream], 0, nullptr, (cl_event*)ev)); }
 
 int GPUReconstructionOCL::DoStuckProtection(int stream, void* event)
 {

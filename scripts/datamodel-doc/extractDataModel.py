@@ -153,8 +153,10 @@ def setProducers(O2Physicsdir, cerelations, dm, subDM, todo=0):
   # update the data model accordingly using setProducer
   for codefile in codefiles:
     codefile = codefile.rstrip("\n")
-  
+
     CErelation = cerelations.getExecutable(codefile)
+    if (len(CErelation) != 5):
+      continue
     codeFile = O2CF.codeFile(codefile)
     for tableName in codeFile.tableNames:
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -166,7 +168,7 @@ def setProducers(O2Physicsdir, cerelations, dm, subDM, todo=0):
       #
       # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       dm.setProducer(CErelation, tableName)
-  
+
   return True
 
 # -----------------------------------------------------------------------------

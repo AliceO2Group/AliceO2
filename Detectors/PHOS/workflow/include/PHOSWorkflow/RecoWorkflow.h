@@ -46,7 +46,8 @@ framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     std::string const& cfgOutput = "clusters", //
                                     bool fullCluOut = false,
                                     int flpId = 0,
-                                    bool defBadMap = false);
+                                    bool defBadMap = false,
+                                    bool skipL1phase = true);
 } // namespace reco_workflow
 
 } // namespace phos

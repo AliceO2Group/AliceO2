@@ -16,12 +16,9 @@
 #include <cstdlib>
 #include <cmath>
 
-// #include <boost/format.hpp>
-// using std::cout;
-// using std::endl;
-// using boost::format;
-
 #include "TPCBase/Mapper.h"
+#include "Framework/Logger.h"
+
 namespace o2
 {
 namespace tpc
@@ -127,8 +124,7 @@ bool Mapper::readMappingFile(std::string file)
   std::string line;
   std::ifstream infile(file, std::ifstream::in);
   if (!infile.is_open()) {
-    std::cout << "could not open file " << file << "\n";
-    exit(1);
+    LOGP(fatal, "could not open file {}", file);
   }
   while (std::getline(infile, line)) {
     std::stringstream streamLine(line);
@@ -157,7 +153,7 @@ bool Mapper::readMappingFile(std::string file)
     mMapFECIDGlobalPad[FECInfo::globalSAMPAId(fecIndex, sampaChip, sampaChannel)] = padIndex;
     mMapGlobalPadCentre[padIndex] = PadCentre(localX, localY);
 
-    //std::cout
+    // std::cout
     //<< padIndex<< " "
     //<< padRow<< " "
     //<< pad<< " "
@@ -186,12 +182,12 @@ void Mapper::load(const std::string& mappingDir)
   //   std::string inputDir(std::getenv("ALICEO2"));
   std::string inputDir = mappingDir;
   if (!inputDir.size()) {
-    //const char* aliceO2env=std::getenv("ALICEO2");
-    //if (aliceO2env) inputDir=aliceO2env;
-    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-IROC.txt");
-    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC1.txt");
-    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC2.txt");
-    //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC3.txt");
+    // const char* aliceO2env=std::getenv("ALICEO2");
+    // if (aliceO2env) inputDir=aliceO2env;
+    // readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-IROC.txt");
+    // readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC1.txt");
+    // readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC2.txt");
+    // readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC3.txt");
 
     const char* aliceO2env = std::getenv("O2_ROOT");
     if (aliceO2env) {
@@ -271,8 +267,7 @@ void Mapper::setTraceLengths(std::string_view inputFile, std::vector<float>& len
 
   std::ifstream infile(inputFile.data(), std::ifstream::in);
   if (!infile.is_open()) {
-    std::cout << "could not open file " << inputFile.data() << "\n";
-    exit(1);
+    LOGP(fatal, "could not open file {}", inputFile);
   }
 
   // e.g. IROC file

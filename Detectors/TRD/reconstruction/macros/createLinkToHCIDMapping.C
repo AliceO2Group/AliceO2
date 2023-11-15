@@ -60,7 +60,7 @@ void createLinkToHCIDMapping(bool isDefault = true)
   }
 
   o2::ccdb::CcdbApi ccdb;
-  ccdb.init("https://alice-ccdb.cern.ch");
+  ccdb.init("http://alice-ccdb.cern.ch");
   // ccdb.init("http://ccdb-test.cern.ch:8080");
 
   std::map<std::string, std::string> metadata;

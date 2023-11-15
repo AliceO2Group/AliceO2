@@ -96,6 +96,7 @@ class ClusterPattern
   int getNPixels() const;
   /// Prints the pattern
   friend std::ostream& operator<<(std::ostream& os, const ClusterPattern& top);
+  void print() const;
   /// Sets the pattern
   void setPattern(int nRow, int nCol, const unsigned char patt[MaxPatternBytes]);
   /// Sets the whole bitmask: the number of rows, the number of columns and the pattern

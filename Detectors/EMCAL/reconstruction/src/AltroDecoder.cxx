@@ -8,14 +8,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <cassert>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <boost/format.hpp>
-#include "InfoLogger/InfoLogger.hxx"
+#include <fmt/format.h>
 #include "DetectorsRaw/RDHUtils.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
+#include "Framework/Logger.h"
 
 using namespace o2::emcal;
 
@@ -41,9 +42,7 @@ void AltroDecoder::readRCUTrailer()
     gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
     mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
-    AliceO2::InfoLogger::InfoLogger logger;
-    logger << e.what();
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, (boost::format("RCU trailer decoding error: %s") % e.what()).str().data());
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{} {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR), e.what()));
   }
 }
 
@@ -52,7 +51,7 @@ void AltroDecoder::checkRCUTrailer()
   int trailersize = mRCUTrailer.getTrailerSize();
   int buffersize = mRawReader.getPayload().getPayloadWords().size();
   if (trailersize > buffersize) {
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR, (boost::format("Trailer size %d exceeding buffer size %d") % trailersize % buffersize).str().data());
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR, fmt::format("{}: Trailer size {} exceeding buffer size {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR), trailersize, buffersize));
   }
 }
 
@@ -63,6 +62,7 @@ void AltroDecoder::readChannels()
   int currentpos = 0;
   auto& buffer = mRawReader.getPayload().getPayloadWords();
   auto maxpayloadsize = buffer.size() - mRCUTrailer.getTrailerSize();
+  int lastFEC = -1;
   while (currentpos < maxpayloadsize) {
     auto currentword = buffer[currentpos++];
     if (currentword >> 30 != 1) {
@@ -74,6 +74,23 @@ void AltroDecoder::readChannels()
     int32_t hwaddress = channelheader & 0xFFF;
     uint16_t payloadsize = (channelheader >> 16) & 0x3FF;
     bool badchannel = (channelheader >> 29) & 0x1;
+
+    // check hardware address for consistency
+    if (!checkChannelHWAddress(hwaddress)) {
+      // Inconsistent HW address information, channel header corrupted, payload must be skipped
+      mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_ORDER, channelheader, currentword);
+      continue;
+    }
+
+    int currentfec = 10 * Channel::getBranchIndexFromHwAddress(hwaddress) + Channel::getFecIndexFromHwAddress(hwaddress);
+    // std::cout << "Branch: " << Channel::getBranchIndexFromHwAddress(hwaddress) << ", FEC " << Channel::getFecIndexFromHwAddress(hwaddress) << " -> " << currentfec << " (channel " << Channel::getChannelIndexFromHwAddress(hwaddress) << " )" << std::endl;
+    if (currentfec < lastFEC) {
+      // FECs are ordered by the SRU, breaking the order is a clear sign of data corruption
+      // std::cout << "Error Fec, current " << currentfec << ", last " << lastFEC << std::endl;
+      mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_ORDER, channelheader, currentword);
+      continue;
+    }
+    lastFEC = currentfec;
 
     /// decode all words for channel
     bool foundChannelError = false;
@@ -122,6 +139,18 @@ void AltroDecoder::readChannels()
         // we must break here as well, the bunch is cut and the pointer would be set to invalid memory
         break;
       }
+      // Raise minor decoding error in case the bunch length exceeds the maximum possible amount of samples
+      if ((unsigned int)bunchlength > mMaxBunchLength) {
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::BUNCH_LENGTH_ALLOW_EXCEED, channelheader, 0);
+        // Same as above: if the bunch length exceeds the maximum possible bunch length it will for sure conflict with the next bunch
+        break;
+      }
+      // Raise minor decoding error in case the start timne the maximum possible amount of samples (resulting in negative first sample index)
+      if ((unsigned int)starttime > mMaxBunchLength) {
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::BUNCH_STARTTIME, channelheader, 0);
+        // Also here we must break, out-of-bounds start time will create troubles in the raw fit
+        break;
+      }
       if (bunchlength == 0) {
         // skip bunches with bunch size 0, they don't contain any payload
         // Map error type to NULL header since header word is null
@@ -138,10 +167,27 @@ void AltroDecoder::readChannels()
   mChannelsInitialized = true;
 }
 
+bool AltroDecoder::checkChannelHWAddress(int hwaddress)
+{
+  unsigned int branch = Channel::getBranchIndexFromHwAddress(hwaddress),
+               fec = Channel::getFecIndexFromHwAddress(hwaddress),
+               altro = Channel::getAltroIndexFromHwAddress(hwaddress);
+  if (branch > 1) {
+    return false;
+  }
+  if (fec > 9) {
+    return false;
+  }
+  if (!(altro == 0 || altro == 2 || altro == 3 || altro == 4)) {
+    return false;
+  }
+  return true;
+}
+
 const RCUTrailer& AltroDecoder::getRCUTrailer() const
 {
   if (!mRCUTrailer.isInitialized()) {
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, "RCU trailer was not initialized");
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{}: RCU trailer was not initialized", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR)));
   }
   return mRCUTrailer;
 }
@@ -149,7 +195,7 @@ const RCUTrailer& AltroDecoder::getRCUTrailer() const
 const std::vector<Channel>& AltroDecoder::getChannels() const
 {
   if (!mChannelsInitialized) {
-    throw AltroDecoderError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR, "Channels not initizalized");
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR, AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::CHANNEL_ERROR));
   }
   return mChannels;
 }
@@ -186,6 +232,7 @@ int AltroDecoderError::errorTypeToInt(AltroErrType errortype)
     case AltroErrType::CHANNEL_ERROR:
       errorNumber = 7;
       break;
+
     default:
       break;
   }
@@ -195,6 +242,7 @@ int AltroDecoderError::errorTypeToInt(AltroErrType errortype)
 
 AltroErrType AltroDecoderError::intToErrorType(int errornumber)
 {
+  assert(errornumber < getNumberOfErrorTypes());
 
   AltroErrType errorType;
 
@@ -230,23 +278,79 @@ AltroErrType AltroDecoderError::intToErrorType(int errornumber)
   return errorType;
 }
 
+const char* AltroDecoderError::getErrorTypeName(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      return "RCUTrailerError";
+    case AltroErrType::RCU_VERSION_ERROR:
+      return "RCUTrailerVersionError";
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      return "RCUTrailerSizeError";
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      return "BunchHeaderError";
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      return "BunchLengthError";
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      return "ALTROPayloadError";
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      return "ALTROMappingError";
+    case AltroErrType::CHANNEL_ERROR:
+      return "ChannelError";
+  };
+  return "";
+}
+
+const char* AltroDecoderError::getErrorTypeTitle(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      return "RCU Trailer";
+    case AltroErrType::RCU_VERSION_ERROR:
+      return "RCU Version";
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      return "RCU Trailer Size";
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      return "ALTRO Bunch Header";
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      return "ALTRO Bunch Length";
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      return "ALTRO Payload";
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      return "ALTRO Mapping";
+    case AltroErrType::CHANNEL_ERROR:
+      return "Channel";
+  };
+  return "";
+}
+
+const char* AltroDecoderError::getErrorTypeDescription(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      return "RCU trailer decoding error";
+    case AltroErrType::RCU_VERSION_ERROR:
+      return "Inconsistent RCU trailer version";
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      return "Invalid RCU trailer size";
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      return "Inconsistent bunch header";
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      return "Bunch length exceeding payload size";
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      return "Payload could not be decoded";
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      return "Invalid hardware address in ALTRO mapping";
+    case AltroErrType::CHANNEL_ERROR:
+      return "Channels not initizalized";
+  };
+  return "";
+}
+
 std::string MinorAltroDecodingError::what() const noexcept
 {
   std::stringstream result;
-  switch (mErrorType) {
-    case ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT:
-      result << "Unexpected end of payload in altro channel payload!";
-      break;
-    case ErrorType_t::CHANNEL_PAYLOAD_EXCEED:
-      result << "Trying to access out-of-bound payload!";
-      break;
-    case ErrorType_t::BUNCH_HEADER_NULL:
-      result << "Bunch header 0 or not configured!";
-      break;
-    case ErrorType_t::BUNCH_LENGTH_EXCEED:
-      result << "Bunch length exceeding channel payload size!";
-      break;
-  };
+  result << getErrorTypeDescription(mErrorType);
   auto address = mChannelHeader & 0xFFF,
        payload = (mChannelHeader >> 16) & 0x3FF;
   bool good = (mChannelHeader >> 29) & 0x1;
@@ -271,11 +375,23 @@ int MinorAltroDecodingError::errorTypeToInt(MinorAltroErrType errortype)
     case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
       errorNumber = 1;
       break;
-    case MinorAltroErrType::BUNCH_HEADER_NULL:
+    case MinorAltroErrType::CHANNEL_ORDER:
       errorNumber = 2;
       break;
-    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+    case MinorAltroErrType::CHANNEL_HEADER:
       errorNumber = 3;
+      break;
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      errorNumber = 4;
+      break;
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      errorNumber = 5;
+      break;
+    case MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED:
+      errorNumber = 6;
+      break;
+    case MinorAltroErrType::BUNCH_STARTTIME:
+      errorNumber = 7;
       break;
   };
 
@@ -284,7 +400,7 @@ int MinorAltroDecodingError::errorTypeToInt(MinorAltroErrType errortype)
 
 MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
 {
-
+  assert(errornumber < getNumberOfErrorTypes());
   MinorAltroErrType errorType;
 
   switch (errornumber) {
@@ -295,14 +411,119 @@ MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
       errorType = MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED;
       break;
     case 2:
-      errorType = MinorAltroErrType::BUNCH_HEADER_NULL;
+      errorType = MinorAltroErrType::CHANNEL_ORDER;
       break;
     case 3:
+      errorType = MinorAltroErrType::CHANNEL_HEADER;
+      break;
+    case 4:
+      errorType = MinorAltroErrType::BUNCH_HEADER_NULL;
+      break;
+    case 5:
       errorType = MinorAltroErrType::BUNCH_LENGTH_EXCEED;
+      break;
+    case 6:
+      errorType = MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED;
+      break;
+    case 7:
+      errorType = MinorAltroErrType::BUNCH_STARTTIME;
       break;
     default:
       break;
   }
 
   return errorType;
+}
+
+const char* MinorAltroDecodingError::getErrorTypeName(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      return "ChannelEndPayloadUnexpected";
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      return "ChannelPayloadExceed";
+    case MinorAltroErrType::CHANNEL_ORDER:
+      return "ChannelOrderError";
+    case MinorAltroErrType::CHANNEL_HEADER:
+      return "ChannelHeader";
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      return "BunchHeaderNull";
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      return "BunchLengthExceed";
+    case MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED:
+      return "BunchLengthAllowExceed";
+    case MinorAltroErrType::BUNCH_STARTTIME:
+      return "BunchStarttimeExceed";
+  };
+  return "";
+}
+
+const char* MinorAltroDecodingError::getErrorTypeTitle(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      return "Channel end unexpected";
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      return "Channel exceed";
+    case MinorAltroErrType::CHANNEL_ORDER:
+      return "FEC order";
+    case MinorAltroErrType::CHANNEL_HEADER:
+      return "Channel header invalid";
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      return "Bunch header null";
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      return "Bunch length exceed";
+    case MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED:
+      return "Bunch length impossible";
+    case MinorAltroErrType::BUNCH_STARTTIME:
+      return "Bunch starttime exceed";
+  };
+  return "";
+}
+
+const char* MinorAltroDecodingError::getErrorTypeDescription(ErrorType_t errortype)
+{
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      return "Unexpected end of payload in altro channel payload!";
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      return "Trying to access out-of-bound payload!";
+    case MinorAltroErrType::CHANNEL_ORDER:
+      return "Invalid FEC order";
+    case MinorAltroErrType::CHANNEL_HEADER:
+      return "Invalid channel header";
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      return "Bunch header 0 or not configured!";
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      return "Bunch length exceeding channel payload size!";
+    case MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED:
+      return "Bunch length exceeding max. possible bunch size!";
+    case MinorAltroErrType::BUNCH_STARTTIME:
+      return "Bunch start time outside range!";
+  };
+  return "";
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const AltroDecoderError& error)
+{
+  stream << error.what();
+  return stream;
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const AltroDecoderError::ErrorType_t& errortype)
+{
+  stream << AltroDecoderError::getErrorTypeName(errortype);
+  return stream;
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const MinorAltroDecodingError& error)
+{
+  stream << error.what();
+  return stream;
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const MinorAltroDecodingError::ErrorType_t& errortype)
+{
+  stream << MinorAltroDecodingError::getErrorTypeName(errortype);
+  return stream;
 }

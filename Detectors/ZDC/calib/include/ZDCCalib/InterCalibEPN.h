@@ -40,6 +40,8 @@ class InterCalibEPN
   static constexpr int HidZNC = 2;
   static constexpr int HidZPC = 3;
   static constexpr int HidZEM = 4;
+  static constexpr int HidZNI = 5;
+  static constexpr int HidZPI = 6;
   static constexpr int NH = InterCalibData::NH;
   static constexpr int NPAR = InterCalibData::NPAR;
   void clear(int ih = -1);
@@ -49,12 +51,12 @@ class InterCalibEPN
               const gsl::span<const uint16_t>& info); // Calibration of RUN3 data
   int endOfRun();                                     // Perform minimization
   int process(const char* hname, int ic);             // Calibration of RUN2 data
-  int write(const std::string fn = "ZDCInterCalibEPN.root");
+  int saveDebugHistos(const std::string fn = "ZDCInterCalibEPN.root");
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   void cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w);
   void setInterCalibConfig(const InterCalibConfig* param) { mInterCalibConfig = param; };
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
-  void setSaveDebugHistos() { mSaveDebugHistos = true; }
-  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   void setVerbosity(int val) { mVerbosity = val; }
   InterCalibData mData;
   InterCalibData& getData() { return mData; }

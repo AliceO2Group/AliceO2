@@ -67,7 +67,7 @@ class RectMatrix : public TObject
   Int_t fNCols;     ///< Number of columns
   Double_t** fRows; ///< pointers on rows
 
-  ClassDef(RectMatrix, 0);
+  ClassDefOverride(RectMatrix, 0);
 };
 
 //___________________________________________________________

@@ -26,7 +26,9 @@
 #include "DPLUtils/RawParser.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/DataHeaderHelpers.h"
+#include "Headers/RDHAny.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/RawDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
 
@@ -39,15 +41,15 @@
 using namespace o2::tpc;
 using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
+using RDHAny = o2::header::RDHAny;
 
-void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID);
-void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType);
+void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID);
+void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType, int triggerBC);
 uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter);
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference, uint32_t decoderType)
+std::vector<o2::framework::InputSpec> calib_processing_helper::getFilter(o2::framework::InputRecord& inputs)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
-  size_t errorCount = 0;
   // TODO: check if presence of data sampling can be checked in another way
   bool sampledData = true;
   for ([[maybe_unused]] auto const& ref : InputRecordWalker(inputs, filter)) {
@@ -68,10 +70,24 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     LOGP(info, "Using sampled data");
   }
 
+  return filter;
+}
+
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<rawreader::RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference, uint32_t decoderType, bool useTrigger, bool returnOnNoTrigger)
+{
+  std::vector<InputSpec> filter = getFilter(inputs);
+
+  size_t errorCount = 0;
+
   uint64_t activeSectors = 0;
-  bool isLinkZS = false;
-  bool readFirst = false;
   uint32_t firstOrbit = 0;
+  bool readFirst = false;
+  bool readFirstZS = false;
+
+  const auto triggerBC = ((decoderType == 1 && useTrigger)) ? getTriggerBCoffset(inputs, filter) : -1;
+  if (returnOnNoTrigger && (triggerBC < 0)) {
+    return 0;
+  }
 
   // for LinkZS data the maximum sync offset is needed to align the data properly.
   // getBCsyncOffsetReference only works, if the full TF is seen. Alternatively, this value could be set
@@ -130,29 +146,44 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 
       o2::framework::RawParser parser(raw.data(), raw.size());
       // detect decoder type by analysing first RDH
-      if (!readFirst) {
+      bool isLinkZS = false;
+      {
         auto it = parser.begin();
-        auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-        if (!rdhPtr) {
-          throw std::runtime_error("could not get RDH from packet");
+        auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+        const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+        if (!rdhPtr || rdhVersion < 6) {
+          throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
         }
         const auto link = RDHUtils::getLinkID(*rdhPtr);
         const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-        if ((link == rdh_utils::UserLogicLinkID) || (detField == raw_data_types::LinkZS) || ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::ZS))) {
-          LOGP(info, "Detected Link-based zero suppression");
+        const auto feeID = RDHUtils::getFEEID(*rdhPtr);
+        const auto feeLinkID = rdh_utils::getLink(feeID);
+        if (detField == raw_data_types::LinkZS || ((link == 0 || link == rdh_utils::UserLogicLinkID) && ((feeLinkID == rdh_utils::ILBZSLinkID || feeLinkID == rdh_utils::DLBZSLinkID) && detField == raw_data_types::ZS))) {
           isLinkZS = true;
-          if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
-            LOGP(fatal, "LinkZSCallback must be set in RawReaderCRUManager");
+          if (!readFirstZS) {
+            if (feeLinkID == rdh_utils::DLBZSLinkID) {
+              LOGP(info, "Detected Dense Link-based zero suppression");
+            } else if (feeLinkID == rdh_utils::ILBZSLinkID) {
+              LOGP(info, "Detected Improved Link-based zero suppression");
+            } else {
+              LOGP(info, "Detected Link-based zero suppression");
+            }
+            if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
+              LOGP(fatal, "LinkZSCallback must be set in RawReaderCRUManager");
+            }
+            readFirstZS = true;
           }
         }
 
         // firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
-        LOGP(info, "First orbit in present TF: {}", firstOrbit);
+        if (!readFirst) {
+          LOGP(info, "First orbit in present TF: {}", firstOrbit);
+        }
         readFirst = true;
       }
 
       if (isLinkZS) {
-        processLinkZS(parser, reader, firstOrbit, syncOffsetReference, decoderType);
+        processLinkZS(parser, reader, firstOrbit, syncOffsetReference, decoderType, triggerBC);
       } else {
         processGBT(parser, reader, feeID);
       }
@@ -193,7 +224,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
   return activeSectors;
 }
 
-void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID)
+void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID)
 {
   // TODO: currently this will only work for HBa1, since the sync is in the first packet and
   // the decoder expects all packets of one link to be processed at once
@@ -233,12 +264,13 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
   reader->runADCDataCallback(rawData);
 }
 
-void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType)
+void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType, int triggerBC)
 {
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-    auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-    if (!rdhPtr) {
-      throw std::runtime_error("could not get RDH from packet");
+    auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+    if (!rdhPtr || rdhVersion < 6) {
+      throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
     }
     // workaround for MW2 data
     // const bool useTimeBins = true;
@@ -252,15 +284,15 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     const auto linkID = rdh_utils::getLink(feeID);
     if (!((detField == raw_data_types::LinkZS) ||
           ((detField == raw_data_types::RAWDATA || detField == 0xdeadbeef) && (link == rdh_utils::UserLogicLinkID)) ||
-          ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
+          ((linkID == rdh_utils::ILBZSLinkID || linkID == rdh_utils::DLBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
       continue;
     }
 
-    if ((decoderType == 1) && (linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)) {
+    if ((decoderType == 1) && (linkID == rdh_utils::ILBZSLinkID || linkID == rdh_utils::DLBZSLinkID) && (detField == raw_data_types::Type::ZS)) {
       std::vector<Digit> digits;
       static o2::gpu::GPUParam gpuParam;
       static o2::gpu::GPUReconstructionZSDecoder gpuDecoder;
-      gpuDecoder.DecodePage(digits, (const void*)it.raw(), firstOrbit, gpuParam);
+      gpuDecoder.DecodePage(digits, (const void*)it.raw(), firstOrbit, gpuParam, static_cast<unsigned int>((triggerBC > 0) ? triggerBC : 0));
       for (const auto& digit : digits) {
         reader->getManager()->getLinkZSCallback()(digit.getCRU(), digit.getRow(), digit.getPad(), digit.getTimeStamp(), digit.getChargeFloat());
       }
@@ -290,9 +322,10 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
     o2::framework::RawParser parser(raw.data(), raw.size());
 
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-      if (!rdhPtr) {
-        throw std::runtime_error("could not get RDH from packet"); // RS: this method is not used at the moment
+      auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+      if (!rdhPtr || rdhVersion < 6) {
+        throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
       }
 
       // only process LinkZSdata, only supported for data where this is already set in the UL
@@ -336,4 +369,156 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
 
   LOGP(info, "syncOffsetReference in this TF: {}", syncOffsetReference);
   return syncOffsetReference;
+}
+
+int getTriggerInfoLBZS(const char* data, size_t size, uint32_t firstOrbit)
+{
+  auto rdh = (const RDHAny*)data;
+  const auto orbit = RDHUtils::getTriggerOrbit(rdh);
+  int triggerBCOffset = -1;
+  zerosupp_link_based::ContainerZS* zsdata = (zerosupp_link_based::ContainerZS*)(data + sizeof(RDHAny));
+  const auto& header = zsdata->cont.header;
+  if (!header.hasCorrectMagicWord()) {
+    return -1;
+  }
+
+  if (header.isTriggerInfo()) {
+    // for the moment only skip the trigger info
+    const auto triggerInfo = (zerosupp_link_based::TriggerContainer*)zsdata;
+    const auto triggerOrbit = triggerInfo->triggerInfo.getOrbit();
+    const auto triggerBC = triggerInfo->triggerInfo.bunchCrossing;
+    triggerBCOffset = int(triggerOrbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches + triggerBC;
+    LOGP(debug, "TriggerInfoV1: orbit: {}, firstOrbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, firstOrbit, triggerOrbit, triggerBC, triggerBCOffset);
+    zsdata = zsdata->next();
+    return triggerBCOffset;
+  } else if (header.isTriggerInfoV2()) {
+    // for the moment only skip the trigger info
+    const auto triggerInfo = (zerosupp_link_based::TriggerInfoV2*)zsdata;
+    const auto triggerOrbit = triggerInfo->orbit;
+    const auto triggerBC = triggerInfo->bunchCrossing;
+    triggerBCOffset = int(triggerOrbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches + triggerBC;
+    LOGP(debug, "TriggerInfoV2: orbit: {}, firstOrbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, firstOrbit, triggerOrbit, triggerBC, triggerBCOffset);
+    zsdata = zsdata->next();
+    return triggerBCOffset;
+  } else if (header.isMetaHeader()) {
+    const auto& metaHDR = *((TPCZSHDRV2*)zsdata);
+
+    const auto& triggerInfo = *(zerosupp_link_based::TriggerInfoV3*)((const char*)&metaHDR + sizeof(metaHDR));
+    if (triggerInfo.hasTrigger()) {
+      const auto triggerBC = triggerInfo.getFirstBC();
+      const auto triggerOrbit = orbit;
+      triggerBCOffset = int(triggerOrbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches + triggerBC;
+      LOGP(debug, "TriggerInfoV3: orbit: {}, firstOrbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, firstOrbit, triggerOrbit, triggerBC, triggerBCOffset);
+    }
+
+    return triggerBCOffset;
+  }
+
+  return -1;
+}
+
+int calib_processing_helper::getTriggerBCoffset(const char* data, size_t size, uint32_t firstOrbit)
+{
+  auto rdh = (const RDHAny*)data;
+  const auto feeId = RDHUtils::getFEEID(rdh);
+  const auto link = rdh_utils::getLink(feeId);
+
+  if (link != rdh_utils::DLBZSLinkID) {
+    return getTriggerInfoLBZS(data, size, firstOrbit);
+  }
+
+  // treatment for dense link-based
+  TPCZSHDR* const headerV1 = (TPCZSHDR*)(link == rdh_utils::DLBZSLinkID ? (data + size - sizeof(TPCZSHDRV2)) : data);
+  const auto header = (TPCZSHDRV2*)headerV1;
+  if (header->magicWord != 0xfd) {
+    LOGP(error, "Wrong magic word: {}, wrong data type?", header->magicWord);
+    return -1;
+  }
+  if (!(header->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent)) {
+    return -1;
+  }
+  const auto triggerWord = (TriggerWordDLBZS*)(data + size - sizeof(TPCZSHDRV2) - sizeof(TriggerWordDLBZS));
+  // Only process calibration (Laser) triggers
+  int iTrg;
+  for (iTrg = 0; iTrg < TriggerWordDLBZS::MaxTriggerEntries; ++iTrg) {
+    if (triggerWord->isValid(iTrg)) {
+      if (triggerWord->getTriggerType(iTrg) == TriggerWordDLBZS::Cal) {
+        break;
+      }
+    } else {
+      return -1;
+    }
+  }
+
+  const auto triggerBC = triggerWord->getTriggerBC(iTrg);
+  const auto orbit = RDHUtils::getHeartBeatOrbit(rdh);
+  const int orbitBC = ((orbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches) + triggerBC;
+  LOGP(debug, "TriggerWordDLBZS {}: Type = {}, orbit = {}, firstOrbit = {}, BC = {}, oribitBC = {}", iTrg, triggerWord->getTriggerType(iTrg), orbit, firstOrbit, triggerWord->getTriggerBC(iTrg), orbitBC);
+  return orbitBC;
+}
+
+int calib_processing_helper::getTriggerBCoffset(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec> filter, bool slowScan)
+{
+  if (filter.size() == 0) {
+    filter = getFilter(inputs);
+  }
+
+  int triggerBC = -1;
+  uint32_t firstOrbit = 0;
+  for (auto const& ref : InputRecordWalker(inputs, filter)) {
+    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto payloadSize = DataRefUtils::getPayloadSize(ref);
+    // skip empty HBF
+    if (payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
+      continue;
+    }
+
+    firstOrbit = dh->firstTForbit;
+
+    try {
+      const gsl::span<const char> raw = inputs.get<gsl::span<char>>(ref);
+      std::unique_ptr<o2::framework::RawParser<8192>> rawparserPtr;
+
+      o2::framework::RawParser parser(raw.data(), raw.size());
+      for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+        auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+        const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
+        if (!rdhPtr || rdhVersion < 6) {
+          throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
+        }
+
+        // only process LinkZSdata, only supported for data where this is already set in the UL
+        const auto link = RDHUtils::getLinkID(*rdhPtr);
+        const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+        const auto feeID = RDHUtils::getFEEID(*rdhPtr);
+        const auto linkID = rdh_utils::getLink(feeID);
+        if (!((detField == raw_data_types::LinkZS) ||
+              ((detField == raw_data_types::RAWDATA || detField == 0xdeadbeef) && (link == rdh_utils::UserLogicLinkID)) ||
+              ((linkID == rdh_utils::ILBZSLinkID || linkID == rdh_utils::DLBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
+          continue;
+        }
+
+        const auto data = (const char*)it.raw();
+        const auto size = it.sizeTotal();
+
+        const auto thisTrigger = getTriggerBCoffset(data, size, firstOrbit);
+        if (thisTrigger >= 0 && !slowScan) {
+          triggerBC = thisTrigger;
+          break;
+        }
+        // slow scan, check consistency of trigger info in all pages
+        if (triggerBC >= 0 && triggerBC != thisTrigger) {
+          LOGP(error, "inconsistent trigger information in raw pages of this TF");
+        }
+      }
+    } catch (...) {
+    }
+    if (triggerBC >= 0 && !slowScan) {
+      break;
+    }
+  }
+  if (triggerBC >= 0) {
+    LOGP(info, "Found triggerBCoffset: {}", triggerBC);
+  }
+  return triggerBC;
 }

@@ -26,8 +26,11 @@ using namespace o2::zdc;
 int BaselineCalib::init()
 {
   // Inspect reconstruction parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
 
   if (mConfig == nullptr) {
     LOG(fatal) << "o2::zdc::BaselineCalib: missing configuration object";
@@ -37,10 +40,6 @@ int BaselineCalib::init()
   if (mVerbosity > DbgZero) {
     mModuleConfig->print();
     mConfig->print();
-  }
-
-  if (opt.rootOutput == true) {
-    setSaveDebugHistos();
   }
 
   clear();
@@ -57,13 +56,27 @@ void BaselineCalib::clear()
 //______________________________________________________________________________
 int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
 {
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalib::process(" << data << ")";
+  if (mVerbosity >= DbgFull) {
+    printf("Data to be added\n");
+    data->print();
+  }
+#endif
+
   if (!mInitDone) {
     init();
   }
+
+#ifdef O2_ZDC_DEBUG
+  printf("Before adding\n");
   if (mVerbosity >= DbgFull) {
-    data->print();
+    mData.print();
   }
+#endif
+
   mData += data;
+
   if (mVerbosity >= DbgFull) {
     mData.print();
   }
@@ -94,15 +107,17 @@ int BaselineCalib::endOfRun()
     }
     if (nsum > 0 && mConfig->min_e[ic]) {
       float ave = sum / nsum;
-      LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
+      if (mVerbosity > DbgZero) {
+        LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
+      }
       mParamUpd.setCalib(ic, ave, true);
     } else {
       if (mParam == nullptr) {
-        LOGF(error, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
+        LOGF(warn, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
         mParamUpd.setCalib(ic, -std::numeric_limits<float>::infinity(), false);
       } else {
         float val = mParam->getCalib(ic);
-        LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
+        LOGF(warn, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
         mParamUpd.setCalib(ic, val, false);
       }
     }

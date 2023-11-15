@@ -13,15 +13,9 @@
 #include "TPCWorkflow/CalibLaserTracksSpec.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
-
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-calib-laser-tracks", CompletionPolicy::CompletionOp::Consume));
-}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -29,6 +23,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "input:TPC/TRACKS", {"selection string input specs"}},
     {"use-filtered-tracks", VariantType::Bool, false, {"use prefiltered laser tracks as input"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
   };
 
   std::swap(workflowOptions, options);
@@ -40,6 +36,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
+  // set up configuration
+  o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
+
   WorkflowSpec specs;
   std::string inputSpec = config.options().get<std::string>("input-spec");
   if (config.options().get<bool>("use-filtered-tracks")) {

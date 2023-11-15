@@ -35,17 +35,11 @@ class TimeSlot
  public:
   TimeSlot() = default;
   TimeSlot(TFType tfS, TFType tfE) : mTFStart(tfS), mTFEnd(tfE) {}
-  TimeSlot(const TimeSlot& src) : mTFStart(src.mTFStart), mTFEnd(src.mTFEnd), mContainer(std::make_unique<Container>(*src.getContainer())) {}
-  TimeSlot& operator=(const TimeSlot& src)
+  TimeSlot(const TimeSlot& src) : mTFStart(src.mTFStart), mTFEnd(src.mTFEnd), mEntries(src.mEntries), mRunStartOrbit(src.mRunStartOrbit), mTFStartMS(src.mTFStartMS)
   {
-    if (&src != this) {
-      mTFStart = src.mTFStart;
-      mTFEnd = src.mTFEnd;
-      mTFStartMS = src.mTFStartMS;
-      mContainer = std::make_unique<Container>(*src.getContainer());
-    }
-    return *this;
+    mContainer = src.mContainer ? std::make_unique<Container>(*src.mContainer) : nullptr;
   }
+  TimeSlot& operator=(TimeSlot&& src) = default;
 
   ~TimeSlot() = default;
 

@@ -18,16 +18,10 @@
 
 #include <vector>
 #include <gsl/gsl>
-#include <fmt/format.h>
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/DataSpecUtils.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
-#include "Framework/WorkflowSpec.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "DataFormatsMID/MCLabel.h"
 #include "MIDWorkflow/ColumnDataSpecsUtils.h"
 
 namespace of = o2::framework;

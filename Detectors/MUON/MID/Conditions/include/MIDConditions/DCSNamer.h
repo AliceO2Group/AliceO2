@@ -50,6 +50,12 @@ std::vector<std::string> aliases(std::vector<MeasurementType> types = {
                                    MeasurementType::HV_V,
                                    MeasurementType::HV_I});
 
+/// @brief Converts the detection element ID into a DCS alias
+/// @param deId Detection element ID
+/// @param type Measurement type
+/// @return DCS alias
+std::string detElemId2DCSAlias(int deId, MeasurementType type);
+
 } // namespace o2::mid::dcs
 
 #endif

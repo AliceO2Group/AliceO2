@@ -101,6 +101,7 @@ void ConfigParamsHelper::populateBoostProgramOptions(
       case VariantType::LabeledArrayInt:
       case VariantType::LabeledArrayFloat:
       case VariantType::LabeledArrayDouble:
+      case VariantType::LabeledArrayString:
       // FIXME: for  Dict we should probably allow parsing stuff
       //        provided on the command line
       case VariantType::Dict:

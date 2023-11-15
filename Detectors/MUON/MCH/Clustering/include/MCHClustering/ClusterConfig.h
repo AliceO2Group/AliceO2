@@ -29,14 +29,32 @@ struct ClusterConfig {
   //
   // Physical-Numerical parameters
   //
+  // Run2
+  // 4.f * 0.22875f;
+  double minChargeOfPads;              // Lowest Charge of a Pad
+  double minChargeOfClusterPerCathode; // Lowest Charge of a Pad
   // static constexpr double minChargeOfClusterPerCathode = 1.1; // Lowest Charge of a Group
-  static constexpr double minChargeOfClusterPerCathode = 20.0; // Lowest Charge of a Group
+  // Run3
+  // static double minChargeOfPads = 16; // Lowest Charge of a Pad
+  // static double minChargeOfClusterPerCathode = 1.0 * minChargeOfPads; // Lowest Charge of a Group
   //
-  // Algorithm limitations
-  //
+  // ClusterResolution
+  float SDefaultClusterResolutionX; ///< default cluster resolution in x direction (cm)
+  float SDefaultClusterResolutionY; ///< default cluster resolution in y direction (cm)
+  float SBadClusterResolutionX;     ///< bad (e.g. mono-cathode) cluster resolution in x direction (cm)
+  float SBadClusterResolutionY;     ///< bad (e.g. mono-cathode) cluster resolution in y direction (cm)
+
+  // Large Clusters
+  int nbrPadLimit = 600;
+  double ratioStepForLargeCluster = 0.05; // increment to find nPads < nbrPadLimit
   // Limit of pad number  to perform the fitting
-  static constexpr int nbrOfPadsLimitForTheFitting = 100;
+  int nbrOfPadsLimitForTheFitting = 100;
+  // Stop the fitting if small xy shift
+  double minFittingXYStep = 0.1; // in cm
   //
+  // Algorithm choices
+  //
+  int useSpline = 0;
   // Logs
   //
   enum VerboseMode {
@@ -45,13 +63,13 @@ struct ClusterConfig {
     detail = 0x2, ///< Describes in detail
     debug = 0x3   ///< Ful details
   };
-  static constexpr VerboseMode fittingLog = no;
-  static constexpr VerboseMode processingLog = no; // Global
-  static constexpr VerboseMode padMappingLog = no;
-  static constexpr VerboseMode groupsLog = no;
-  static constexpr VerboseMode EMLocalMaxLog = no;
-  static constexpr VerboseMode inspectModelLog = no;
-  static constexpr VerboseMode laplacianLocalMaxLog = no;
+  VerboseMode fittingLog = no;
+  VerboseMode processingLog = no;
+  VerboseMode padMappingLog = no;
+  VerboseMode groupsLog = no;
+  VerboseMode EMLocalMaxLog = no;
+  VerboseMode inspectModelLog = no;
+  VerboseMode laplacianLocalMaxLog = no;
   //
   // Checks
   //
@@ -60,13 +78,14 @@ struct ClusterConfig {
     active = 0x1,   ///< Describe default activation
   };
   // Activate/deactivate InspectModel
-  static constexpr ActivateMode inspectModel = active;
+  ActivateMode inspectModel = inactive;
   //
-  static constexpr bool groupsCheck = true;
-  static constexpr bool padMappingCheck = true;
-  // TODO ???
-  // Check, Stat
+  bool groupsCheck = true;
+  bool padMappingCheck = true;
+  bool mathiesonCheck = false;
 };
+
+void initClusterConfig();
 
 } // namespace mch
 } // end namespace o2

@@ -32,6 +32,11 @@ o2_add_test_root_macro(readTRDVoltages.C
                                             O2::CCDB
                       LABELS trd COMPILE_ONLY)
 
+o2_add_test_root_macro(trdPadNoise.C
+                      PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD
+                                            O2::TRDCalibration
+                      LABELS trd COMPILE_ONLY)
+
 o2_add_test_root_macro(manualCalibFit.C
                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD
                                             O2::TRDCalibration

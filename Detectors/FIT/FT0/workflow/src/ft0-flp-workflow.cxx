@@ -63,6 +63,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"input-sub-sampled",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"SUB_RAWDATA DPL channel will be used as input, in case of dispatcher usage"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"disable-dpl-ccdb-fetcher",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"Disable DPL CCDB fetcher, channel map will be uploaded during initialization by taking last entry in CCDB"}});
 #if defined(FT0_NEW_DECOER_ON)
   workflowOptions.push_back(
     ConfigParamSpec{"new-decoder",
@@ -83,6 +93,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
+  const auto isSubSampled = configcontext.options().get<bool>("input-sub-sampled");
+  const auto disableDplCcdbFetcher = configcontext.options().get<bool>("disable-dpl-ccdb-fetcher");
   bool isNewDecoder = false;
 #if defined(FT0_NEW_DECOER_ON)
   isNewDecoder = configcontext.options().get<bool>("new-decoder");
@@ -100,12 +112,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   if (!isNewDecoder) {
     if (isExtendedMode) {
-      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0ext{dataOrigin, dumpReader}, askSTFDist));
+      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0ext{dataOrigin, dumpReader}, askSTFDist, isSubSampled, disableDplCcdbFetcher));
       if (!disableRootOut) {
         specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0ext, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
       }
     } else {
-      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0{dataOrigin, dumpReader}, askSTFDist));
+      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0{dataOrigin, dumpReader}, askSTFDist, isSubSampled, disableDplCcdbFetcher));
       if (!disableRootOut) {
         specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
       }

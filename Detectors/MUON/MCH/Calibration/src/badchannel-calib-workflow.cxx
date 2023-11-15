@@ -38,6 +38,7 @@ DataProcessorSpec getBadChannelCalibratorSpec(const char* specName, const std::s
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"}, Lifetime::Sporadic);
   outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Sporadic});
+  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"MCH", "BADCHAN"}, Lifetime::Sporadic));
   std::vector<InputSpec> inputs = o2::framework::select(fmt::format("digits:MCH/{}", inputSpec.data()).c_str());
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true

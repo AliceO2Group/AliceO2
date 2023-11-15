@@ -36,7 +36,8 @@ o2_add_library(TPCReconstruction
                                      O2::TPCBase
                                      O2::GPUO2Interface
                                      O2::TPCFastTransformation
-                                     O2::DetectorsRaw)
+                                     O2::DetectorsRaw 
+                                     O2::DetectorsBase)
 
 o2_target_root_dictionary(
   TPCReconstruction
@@ -130,6 +131,7 @@ o2_add_test_root_macro(macro/testRawRead.C
 o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                        COMPILE_ONLY
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                                             O2::TPCCalibration
                                              O2::CommonConstants
                                              O2::CommonUtils
                                              O2::TPCSpaceCharge

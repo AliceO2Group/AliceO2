@@ -15,6 +15,8 @@
 #include "Generators/Trigger.h"
 #include "Generators/PrimaryGenerator.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/ParticleStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "FairPrimaryGenerator.h"
 #include <fairlogger/Logger.h>
 #include <cmath>
@@ -68,6 +70,9 @@ Bool_t
     /** clear particle vector **/
     mParticles.clear();
 
+    /** reset the sub-generator ID **/
+    mSubGeneratorId = -1;
+
     /** generate event **/
     if (!generateEvent()) {
       return kFALSE;
@@ -75,6 +80,14 @@ Bool_t
 
     /** import particles **/
     if (!importParticles()) {
+      return kFALSE;
+    }
+
+    if (mSubGeneratorsIdToDesc.empty() && mSubGeneratorId > -1) {
+      return kFALSE;
+    }
+
+    if (!mSubGeneratorsIdToDesc.empty() && mSubGeneratorId < 0) {
       return kFALSE;
     }
 
@@ -100,6 +113,7 @@ Bool_t
     return kFALSE;
   }
   updateHeader(o2header);
+  updateSubGeneratorInformation(o2header);
 
   /** success **/
   return kTRUE;
@@ -131,7 +145,7 @@ Bool_t
                         particle.GetMother(1),
                         particle.GetDaughter(0),
                         particle.GetDaughter(1),
-                        particle.GetStatusCode() == 1,
+                        particle.TestBit(ParticleStatus::kToBeDone),
                         particle.Energy() * mEnergyUnit,
                         particle.T() * mTimeUnit,
                         particle.GetWeight(),
@@ -202,6 +216,27 @@ Bool_t
 
   /** return **/
   return triggered;
+}
+
+/*****************************************************************/
+
+void Generator::addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription)
+{
+  if (subGeneratorId < 0) {
+    LOG(fatal) << "Sub-generator IDs must be >= 0, instead, passed value is " << subGeneratorId;
+  }
+  mSubGeneratorsIdToDesc.insert({subGeneratorId, subGeneratorDescription});
+}
+
+/*****************************************************************/
+
+void Generator::updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const
+{
+  if (mSubGeneratorId < 0) {
+    return;
+  }
+  header->putInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, mSubGeneratorId);
+  header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP, mSubGeneratorsIdToDesc);
 }
 
 /*****************************************************************/

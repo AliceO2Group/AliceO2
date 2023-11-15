@@ -31,4 +31,6 @@
 #pragma link C++ class vector < o2::tof::eventTimeTrack> + ;
 #pragma link C++ class vector < o2::tof::eventTimeTrackTest> + ;
 #pragma link C++ class vector < unsigned int> + ;
+#pragma link C++ class o2::tof::EventTimeTOFParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tof::EventTimeTOFParams> + ;
 #endif

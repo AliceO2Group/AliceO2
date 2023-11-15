@@ -1,0 +1,32 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file ErrorMergerSpec.h
+/// \brief Definition of a data processor to merge the processing errors in one single output
+///
+/// \author Philippe Pillot, Subatech
+
+#ifndef O2_MCH_ERRORMERGERSPEC_H_
+#define O2_MCH_ERRORMERGERSPEC_H_
+
+#include "Framework/DataProcessorSpec.h"
+
+namespace o2::mch
+{
+
+framework::DataProcessorSpec getErrorMergerSpec(const char* specName = "mch-error-merger",
+                                                bool preclustering = true,
+                                                bool clustering = true,
+                                                bool tracking = true);
+
+} // namespace o2::mch
+
+#endif // O2_MCH_ERRORMERGERSPEC_H_

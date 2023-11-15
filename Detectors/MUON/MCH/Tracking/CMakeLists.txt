@@ -11,10 +11,29 @@
 
 o2_add_library(MCHTracking
         SOURCES
-        src/TrackParam.cxx
-        src/Track.cxx
-        src/TrackExtrap.cxx
-        src/TrackFitter.cxx
-        src/TrackFinderOriginal.cxx
-        src/TrackFinder.cxx
-        PUBLIC_LINK_LIBRARIES O2::Field O2::MCHBase O2::Framework O2::CommonUtils)
+           src/TrackParam.cxx
+           src/Track.cxx
+           src/TrackExtrap.cxx
+           src/TrackFitter.cxx
+           src/TrackFinderOriginal.cxx
+           src/TrackFinder.cxx
+           src/TrackFinderSpec.cxx
+        PUBLIC_LINK_LIBRARIES
+           O2::Field
+           O2::DetectorsBase
+           O2::MCHBase
+           O2::Framework
+           O2::CommonUtils
+           O2::DataFormatsParameters)
+
+o2_add_executable(
+        clusters-to-tracks-workflow
+        SOURCES src/clusters-to-tracks-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHTracking)
+
+o2_add_executable(
+        tracks-to-tracks-workflow
+        SOURCES src/TrackFitterSpec.cxx src/tracks-to-tracks-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHTracking)

@@ -35,6 +35,7 @@ int main(int argc, char** argv)
     add_option("file-port,o", bpo::value<int>()->default_value(5556), "port to send the file");
     add_option("ack-port,a", bpo::value<int>()->default_value(5557), "port to receive the acknowledgment");
     add_option("timeout,t", bpo::value<int>()->default_value(5), "timeout for acknowledgment");
+    add_option("quit-on-ack,q", bpo::value<bool>()->default_value(false), "quit if acknowledgment is ok");
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
 
@@ -59,6 +60,8 @@ int main(int argc, char** argv)
   zmq::socket_t collector(context, zmq::socket_type::pull);
 
   int recv_timeout = vm["timeout"].as<int>();
+
+  const bool quitOnAck = vm["quit-on-ack"].as<bool>();
 
   collector.set(zmq::sockopt::rcvtimeo, recv_timeout * 1000);
 
@@ -112,6 +115,9 @@ int main(int argc, char** argv)
     ans.assign(ack.to_string());
     std::cout << ans << std::endl;
     // end of ack -------------------
+    if (quitOnAck && (ans.find("ok") == (ans.size() - 2))) {
+      break;
+    }
 
     trial++;
   }

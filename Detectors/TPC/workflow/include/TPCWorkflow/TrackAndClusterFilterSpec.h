@@ -9,13 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   MonitorWorkflowSpec.h
+/// @file   TrackAndClusterFilterSpec.h
 /// @author Jens Wiechula
-/// @since  2020-01-17
-/// @brief  Raw data monitor workflow
+/// @brief  track and cluster filtering
 
-#ifndef TPC_MonitorWorkflowSpec_H_
-#define TPC_MonitorWorkflowSpec_H_
+#ifndef TPC_TrackAndClusterFilterSpec_H_
+#define TPC_TrackAndClusterFilterSpec_H_
 
 #include <string>
 #include "Framework/DataProcessorSpec.h"
@@ -29,4 +28,4 @@ o2::framework::DataProcessorSpec getTrackAndClusterFilterSpec(const std::string 
 
 } // namespace o2::tpc
 
-#endif // TPC_MonitorWorkflowSpec_H_
+#endif // TPC_TrackAndClusterFilterSpec_H_

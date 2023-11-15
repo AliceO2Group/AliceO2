@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <boost/test/unit_test.hpp>
 #include "CommonDataFormat/InteractionRecord.h"
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 
 namespace o2
 {

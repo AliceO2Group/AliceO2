@@ -32,6 +32,8 @@
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUReconstruction.h"
+#include "GPUDebugStreamer.h"
+#include "GPUTrackingRefit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace gputpcgmmergertypes;
@@ -155,12 +157,11 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
   out << "\nTPC Merger Refit\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[trackOrder[i]];
-    const auto& trkdEdx = mOutputTracksdEdx[trackOrder[i]];
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
 #ifdef GPUCA_HAVE_O2HEADERS
-        << " dEdx " << trkdEdx.dEdxTotTPC << "/" << trkdEdx.dEdxMaxTPC
+        << " dEdx " << mOutputTracksdEdx[trackOrder[i]].dEdxTotTPC << "/" << mOutputTracksdEdx[trackOrder[i]].dEdxMaxTPC
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }
@@ -179,5 +180,87 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
   unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
+  }
+}
+
+template <int mergeType>
+inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac)
+{
+#ifdef DEBUG_STREAMER
+  std::vector<int> hits1(152), hits2(152);
+  for (int i = 0; i < 152; i++) {
+    hits1[i] = hits2[i] = -1;
+  }
+  const GPUTPCTracker& tracker1 = GetConstantMem()->tpcTrackers[slice1];
+  const GPUTPCGMSliceTrack& sliceTrack1 = mSliceTrackInfos[b1.TrackID()];
+  const GPUTPCTrack& inTrack1 = *sliceTrack1.OrigTrack();
+  for (int i = 0; i < inTrack1.NHits(); i++) {
+    const GPUTPCHitId& ic1 = tracker1.TrackHits()[inTrack1.FirstHitID() + i];
+    int clusterIndex = tracker1.Data().ClusterDataIndex(tracker1.Data().Row(ic1.RowIndex()), ic1.HitIndex());
+    hits1[ic1.RowIndex()] = clusterIndex;
+  }
+  const GPUTPCTracker& tracker2 = GetConstantMem()->tpcTrackers[slice2];
+  const GPUTPCGMSliceTrack& sliceTrack2 = mSliceTrackInfos[b2.TrackID()];
+  const GPUTPCTrack& inTrack2 = *sliceTrack2.OrigTrack();
+  for (int i = 0; i < inTrack2.NHits(); i++) {
+    const GPUTPCHitId& ic2 = tracker2.TrackHits()[inTrack2.FirstHitID() + i];
+    int clusterIndex = tracker2.Data().ClusterDataIndex(tracker2.Data().Row(ic2.RowIndex()), ic2.HitIndex());
+    hits2[ic2.RowIndex()] = clusterIndex;
+  }
+
+  std::string debugname = std::string("debug_") + name;
+  std::string treename = std::string("tree_") + name;
+  o2::utils::DebugStreamer::instance()->getStreamer(debugname.c_str(), "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName(treename.c_str()).data() << "slice1=" << slice1 << "slice2=" << slice2 << "b1=" << b1 << "b2=" << b2 << "clusters1=" << hits1 << "clusters2=" << hits2 << "sliceTrack1=" << sliceTrack1 << "sliceTrack2=" << sliceTrack2 << "mergeMode=" << mergeMode << "weight=" << weight << "fraction=" << frac << "\n";
+#endif
+}
+
+void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac)
+{
+#ifdef DEBUG_STREAMER
+  if (mergeMode == 0) {
+    MergedTrackStreamerInternal<0>(b1, b2, name, slice1, slice2, mergeMode, weight, frac);
+  } else if (mergeMode >= 1 && mergeMode <= 0) {
+    // MergedTrackStreamerInternal<1>(b1, b2, name, slice1, slice2, mergeMode, weight, frac); Not yet working
+  }
+#endif
+}
+
+const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId)
+{
+  for (int i = 0; i < N; i++) {
+    if (tracks[i].TrackID() == trackId) {
+      return tracks[i];
+    }
+  }
+  throw std::runtime_error("didn't find border track");
+}
+
+void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
+{
+  GPUTPCGMMergedTrack trk = track;
+  GPUTrackingRefit refit;
+  ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHitStates = ClusterStateExt();
+  ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHits = Clusters();
+  refit.SetPtrsFromGPUConstantMem(GetConstantMem());
+  int retval = refit.RefitTrackAsGPU(trk, false, true);
+  if (retval > 0) {
+    GPUTPCGMPropagator prop;
+    prop.SetMaterialTPC();
+    prop.SetPolynomialField(&Param().polynomialField);
+    prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+    prop.SetPropagateBzOnly(false);
+    prop.SetMatLUT(Param().rec.useMatLUT ? GetConstantMem()->calibObjects.matLUT : nullptr);
+    prop.SetTrack(&trk.Param(), trk.GetAlpha());
+    int err = prop.PropagateToXAlpha(track.GetParam().GetX(), track.GetAlpha(), false);
+    if (err == 0) {
+      printf("REFIT RESULT %d, SnpDiff %f\n", retval, trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi());
+      if (retval > 20 && fabsf(trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi()) > 0.01) {
+        printf("LARGE DIFF\n");
+      }
+    } else {
+      printf("PROPAGATE ERROR\n");
+    }
+  } else {
+    printf("REFIT ERROR\n");
   }
 }

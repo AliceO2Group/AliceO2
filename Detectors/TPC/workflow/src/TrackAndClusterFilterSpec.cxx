@@ -43,8 +43,27 @@ class TrackAndClusterFilterDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mTrackDump.outputFileName = ic.options().get<std::string>("output-file");
-    mTrackDump.writeTracks = ic.options().get<bool>("write-tracks");
+    mTrackDump.writeTracks = !ic.options().get<bool>("dont-write-tracks");
     mTrackDump.writeGlobal = ic.options().get<bool>("write-global-cluster-info");
+
+    // cluster write types
+    mTrackDump.clusterStorageType = TrackDump::ClStorageType::InsideTrack;
+    const auto clWriteType = ic.options().get<int>("clusters-write-type");
+    if (clWriteType >= 0 && clWriteType <= 3) {
+      mTrackDump.clusterStorageType = (TrackDump::ClStorageType)clWriteType;
+    } else {
+      LOGP(error, "clWriteType {} unknown, using default", clWriteType);
+    }
+
+    mTrackDump.noTrackClusterType = TrackDump::ClUnStorageType::DontStore;
+    const auto clNoTrackWriteType = ic.options().get<int>("notrack-clusters-write-type");
+    if (clNoTrackWriteType >= 0 && clNoTrackWriteType <= 2) {
+      mTrackDump.noTrackClusterType = (TrackDump::ClUnStorageType)clNoTrackWriteType;
+    } else {
+      LOGP(error, "clNoTrackWriteType {} unknown, using default", clNoTrackWriteType);
+    }
+
+    // track cuts
     const double mindEdx = ic.options().get<double>("min-dedx");
     const double maxdEdx = ic.options().get<double>("max-dedx");
     const double minP = ic.options().get<double>("min-momentum");
@@ -124,9 +143,11 @@ DataProcessorSpec getTrackAndClusterFilterSpec(const std::string dataDescription
     outputs,
     AlgorithmSpec{adaptFromTask<TrackAndClusterFilterDevice>(writeMC)},
     Options{
-      {"output-file", VariantType::String, "filtered-track-and-clusters.root", {"output file name"}},
-      {"write-tracks", VariantType::Bool, true, {"dump filtered tracks and clusters"}},
+      {"output-file", VariantType::String, "filtered-tracks-and-clusters.root", {"output file name"}},
+      {"dont-write-tracks", VariantType::Bool, false, {"don't dump filtered tracks and clusters"}},
       {"write-global-cluster-info", VariantType::Bool, false, {"write simple clusters tree"}},
+      {"clusters-write-type", VariantType::Int, 0, {"how to store clusters associated to tracks: 0 - vector in track, 1 - separate branch, 2 - separate tree, 3 - spearate file"}},
+      {"notrack-clusters-write-type", VariantType::Int, 0, {"clusters not associated to tracks: 0 - don't write, 1 - separate tree, 2 - spearate file"}},
       {"min-dedx", VariantType::Double, 20., {"minimum dEdx cut"}},
       {"max-dedx", VariantType::Double, 1e10, {"maximum dEdx cut"}},
       {"min-momentum", VariantType::Double, 0.2, {"minimum momentum cut"}},

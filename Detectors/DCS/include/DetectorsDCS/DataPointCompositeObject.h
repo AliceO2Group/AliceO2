@@ -39,7 +39,7 @@ namespace dcs
      * @see ADAPRO::ADAPOS::DataPointIdentifier
      * @see ADAPRO::ADAPOS::DataPointValue
      */
-struct alignas(128) DataPointCompositeObject final {
+struct DataPointCompositeObject final {
   /**
          * The DataPointIdentifier object, which occupies the first 64 bytes of
          * the DataPointCompositeObject. This object contains the immutable

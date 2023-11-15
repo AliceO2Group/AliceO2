@@ -29,6 +29,8 @@ namespace o2::framework
 class StringContext
 {
  public:
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
+
   StringContext(FairMQDeviceProxy& proxy)
     : mProxy(proxy)
   {

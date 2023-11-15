@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_DIGITSPRINTER_SPEC
+#define O2_EMCAL_DIGITSPRINTER_SPEC
+
 #include <string>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -61,9 +64,11 @@ class DigitsPrinterSpec : public framework::Task
 /// specs
 o2::framework::DataProcessorSpec getEmcalDigitsPrinterSpec(std::string inputtype);
 
-//using DigitsPrinterSpecDigit = o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Digit>;
-//using DigitsPrinterSpecCell = o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Cell>;
+// using DigitsPrinterSpecDigit = o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Digit>;
+// using DigitsPrinterSpecCell = o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Cell>;
 } // namespace reco_workflow
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_DIGITSPRINTER_SPEC

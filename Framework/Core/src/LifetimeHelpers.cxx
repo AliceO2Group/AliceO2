@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DecongestionService.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpec.h"
 #include "Framework/LifetimeHelpers.h"
@@ -22,6 +23,8 @@
 #include "Framework/DataTakingContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/Formatters.h"
+#include "Framework/DeviceState.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -56,36 +59,42 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](ChannelIndex, TimesliceIndex&) -> TimesliceSlot {
+  return [](ServiceRegistryRef, ChannelIndex) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
 
 ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices, size_t maxRepetitions)
 {
-  auto last = std::make_shared<size_t>(start + inputTimeslice * step);
+  size_t firstTimeslice = start + inputTimeslice * step;
   auto repetition = std::make_shared<size_t>(0);
 
-  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, firstTimeslice, maxInputTimeslices, maxRepetitions, repetition](ServiceRegistryRef services, ChannelIndex channelIndex) -> TimesliceSlot {
+    auto& index = services.get<TimesliceIndex>();
+    auto& decongestion = services.get<DecongestionService>();
+    if (decongestion.nextEnumerationTimeslice == 0) {
+      decongestion.nextEnumerationTimeslice = firstTimeslice;
+    }
+
     for (size_t si = 0; si < index.size(); si++) {
-      if (*last > end) {
+      if (decongestion.nextEnumerationTimeslice > end) {
         LOGP(debug, "Last greater than end");
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
       auto slot = TimesliceSlot{si};
       if (index.isValid(slot) == false) {
-        TimesliceId timestamp{*last};
+        TimesliceId timestamp{decongestion.nextEnumerationTimeslice};
         *repetition += 1;
         if (*repetition % maxRepetitions == 0) {
-          *last += step * maxInputTimeslices;
+          decongestion.nextEnumerationTimeslice += step * maxInputTimeslices;
         }
         LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
         // We know that next association will bring in last
         // so we can state this will be the latest possible input for the channel
         // associated with this.
-        LOG(debug) << "Oldest possible input is " << *last;
-        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        LOG(debug) << "Oldest possible input is " << decongestion.nextEnumerationTimeslice;
+        [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
         index.updateOldestPossibleOutput();
         return slot;
       }
@@ -96,11 +105,11 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   };
 }
 
-ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
+ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::chrono::microseconds> periods, std::vector<std::chrono::seconds> intervals, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod)
 {
-  std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
+  std::shared_ptr<bool> stablePeriods = std::make_shared<bool>(false);
   // FIXME: should create timeslices when period expires....
-  return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [stablePeriods, periods, intervals, hasTimerFired, updateTimerPeriod](ServiceRegistryRef services, ChannelIndex channelIndex) mutable -> TimesliceSlot {
     // We start with a random offset to avoid all the devices
     // send their first message at the same time, bring down
     // the QC machine.
@@ -109,20 +118,41 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     // the future.
     // We do it here because if we do it in configure, long delays
     // between configure and run will cause this to behave
-    // incorrrectly.
-    if (*last == 0ULL || index.didReceiveData() == false) {
+    // incorrectly.
+    auto& index = services.get<TimesliceIndex>();
+    auto& decongestion = services.get<DecongestionService>();
+
+    bool timerHasFired = hasTimerFired();
+    if (decongestion.nextEnumerationTimeslice == 0ULL || (index.didReceiveData() == false && timerHasFired)) {
       std::random_device r;
       std::default_random_engine e1(r());
-      std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
-      *last = getCurrentTime() - dist(e1) - period.count() * 0.1;
+      std::uniform_int_distribution<uint64_t> dist(0, periods.front().count() * 0.9);
+      auto randomizedPeriodUs = static_cast<int64_t>(dist(e1) + periods.front().count() * 0.1);
+      decongestion.nextEnumerationTimeslice = getCurrentTime() - randomizedPeriodUs;
+      updateTimerPeriod(randomizedPeriodUs / 1000, randomizedPeriodUs / 1000);
+      *stablePeriods = false;
+      LOG(debug) << "Timer updated to a randomized period of " << randomizedPeriodUs << "us";
+    } else if (timerHasFired && *stablePeriods == false) {
+      updateTimerPeriod(periods.front().count() / 1000, periods.front().count() / 1000);
+      *stablePeriods = true;
+      LOG(debug) << "Timer updated to a stable period of " << periods.front().count() << "us";
     }
     // Nothing to do if the time has not expired yet.
-    auto current = getCurrentTime();
-    auto delta = current - *last;
-    if (delta < period.count()) {
-      auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+    if (timerHasFired == false) {
+      [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
       index.updateOldestPossibleOutput();
       return TimesliceSlot{TimesliceSlot::INVALID};
+    }
+    // Get the first time we were invoked.
+    static auto firstTime = getCurrentTime();
+    auto current = getCurrentTime();
+    if ((current - firstTime) / 1000000 > intervals.front().count() && periods.size() > 1) {
+      LOGP(detail, "First {} seconds with period {} elapsed, switching to new interval.", intervals.front().count(), periods.front().count());
+      // Remove the first period and the first interval
+      periods.erase(periods.begin());
+      intervals.erase(intervals.begin());
+      LOGP(detail, "New period for timer is {}.", periods.front().count());
+      updateTimerPeriod(periods.front().count() / 1000, periods.front().count() / 1000);
     }
     // We first check if the current time is not already present
     // FIXME: this should really be done by query matching? Ok
@@ -134,14 +164,15 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       }
       auto& variables = index.getVariablesForSlot(slot);
       if (VariableContextHelpers::getTimeslice(variables).value == current) {
-        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
         index.updateOldestPossibleOutput();
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
+
+    decongestion.nextEnumerationTimeslice = current;
     // If we are here the timer has expired and a new slice needs
     // to be created.
-    *last = current;
     data_matcher::VariableContext newContext;
     newContext.put({0, static_cast<uint64_t>(current)});
     newContext.commit();
@@ -157,7 +188,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
         break;
     }
 
-    auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+    auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
     index.updateOldestPossibleOutput();
     return slot;
   };
@@ -219,8 +250,9 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
 {
-  return [requestedLoopReason, &state](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [requestedLoopReason, &state](ServiceRegistryRef services, ChannelIndex) -> TimesliceSlot {
     /// Not the expected loop reason, return an invalid slot.
+    auto& index = services.get<TimesliceIndex>();
     if ((state.loopReason & requestedLoopReason) == 0) {
       LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
            requestedLoopReason,
@@ -389,7 +421,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.tfCounter = timestamp;
     dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
     DataProcessingHeader dph{timestamp, 1};
-    services.get<CallbackService>()(CallbackService::Id::NewTimeslice, dh, dph);
+    services.get<CallbackService>().call<CallbackService::Id::NewTimeslice>(dh, dph);
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
@@ -460,24 +492,9 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
   return f;
 }
 
-// Life is too short. LISP rules.
-#define STREAM_ENUM(x) \
-  case Lifetime::x:    \
-    oss << #x;         \
-    break;
 std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
 {
-  switch (val) {
-    STREAM_ENUM(Timeframe)
-    STREAM_ENUM(Condition)
-    STREAM_ENUM(QA)
-    STREAM_ENUM(Transient)
-    STREAM_ENUM(Timer)
-    STREAM_ENUM(Enumeration)
-    STREAM_ENUM(Signal)
-    STREAM_ENUM(Optional)
-    STREAM_ENUM(OutOfBand)
-  };
+  oss << fmt::format("{}", val);
   return oss;
 }
 

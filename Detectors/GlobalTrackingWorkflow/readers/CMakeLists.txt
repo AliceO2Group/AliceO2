@@ -13,6 +13,7 @@ o2_add_library(GlobalTrackingWorkflowReaders
                SOURCES src/TrackCosmicsReaderSpec.cxx
                        src/SecondaryVertexReaderSpec.cxx
                        src/PrimaryVertexReaderSpec.cxx
+                       src/StrangenessTrackingReaderSpec.cxx
                        src/TrackTPCITSReaderSpec.cxx
                        src/GlobalFwdTrackReaderSpec.cxx
                        src/MatchedMFTMCHReaderSpec.cxx

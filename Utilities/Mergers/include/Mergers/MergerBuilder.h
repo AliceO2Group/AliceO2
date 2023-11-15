@@ -48,7 +48,8 @@ class MergerBuilder
 
   void setName(std::string);
   void setInputSpecs(const framework::Inputs&);
-  void setOutputSpec(const framework::OutputSpec&);
+  void setOutputSpec(const framework::OutputSpec& outputSpec);
+  void setOutputSpecMovingWindow(const framework::OutputSpec& outputSpec);
   void setTopologyPosition(size_t layer, size_t id);
   void setTimePipeline(size_t timepipeline);
   void setConfig(MergerConfig);
@@ -59,7 +60,8 @@ class MergerBuilder
   static void customizeInfrastructure(std::vector<framework::CompletionPolicy>&);
 
   static inline framework::DataProcessorLabel mergerLabel() { return {"merger"}; }
-  static inline std::string mergerOutputBinding() { return "out"; };
+  static inline std::string mergerIntegralOutputBinding() { return "out"; };
+  static inline std::string mergerMovingWindowOutputBinding() { return "mw_out"; };
   static inline std::string mergerIdString() { return "MERGER"; };
   static inline header::DataOrigin mergerDataOrigin() { return {"MRGR"}; };
   static inline header::DataDescription mergerDataDescription(std::string name)
@@ -79,7 +81,8 @@ class MergerBuilder
   size_t mLayer{1};
   size_t mTimePipeline{1};
   framework::Inputs mInputSpecs;
-  framework::OutputSpec mOutputSpec;
+  framework::OutputSpec mOutputSpecIntegral;
+  framework::OutputSpec mOutputSpecMovingWindow;
   MergerConfig mConfig;
 };
 

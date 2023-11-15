@@ -188,7 +188,7 @@ class FileReaderTask
       LOG(info) << "stop file reader";
       this->mInputFile.close();
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
 
     const auto& hbfu = o2::raw::HBFUtils::Instance();
     if (hbfu.runNumber != 0) {

@@ -55,7 +55,7 @@ std::pair<TrackMCHMID::Time, bool> TrackMCHMID::getTimeMUS(const InteractionReco
   bool isInTF = bcDiff >= 0 && bcDiff < nOrbits * o2::constants::lhc::LHCMaxBunches;
   if (printError && !isInTF) {
     LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}, source:MCH-MID",
-         bcDiff, mIR, startIR);
+         bcDiff, mIR.asString(), startIR.asString());
   }
   return std::make_pair(Time(tMean, tErr), isInTF);
 }

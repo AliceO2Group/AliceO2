@@ -11,19 +11,17 @@
 
 class ImVec2;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 class DeviceMetricsInfo;
 class DeviceInfo;
+class DataProcessingStates;
 
 namespace gui
 {
 
 /// View of the DataRelayer metrics for a given DeviceInfo
-void displayDataRelayer(DeviceMetricsInfo const& metrics, DeviceInfo const& info, ImVec2 const& size);
+void displayDataRelayer(DeviceMetricsInfo const& metrics, DeviceInfo const& info, DataProcessingStates const&, ImVec2 const& size);
 
 } // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

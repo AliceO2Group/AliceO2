@@ -11,6 +11,8 @@
 
 #include "MCHBase/ErrorMap.h"
 
+#include <utility>
+
 namespace o2::mch
 {
 
@@ -28,46 +30,92 @@ std::pair<uint32_t, uint32_t> decode(uint64_t x)
   return std::make_pair(a, b);
 }
 
-void ErrorMap::add(uint32_t errorType, uint32_t id0, uint32_t id1)
+void ErrorMap::add(ErrorType errorType, uint32_t id0, uint32_t id1, uint64_t n)
 {
-  mErrorCounts[errorType][encode(id0, id1)]++;
+  auto [itError, isNew] = mErrors[errorType].emplace(encode(id0, id1), Error{errorType, id0, id1, n});
+  if (!isNew) {
+    itError->second.count += n;
+  }
+}
+
+void ErrorMap::add(Error error)
+{
+  auto [itError, isNew] = mErrors[error.type].emplace(encode(error.id0, error.id1), error);
+  if (!isNew) {
+    itError->second.count += error.count;
+  }
+}
+
+void ErrorMap::add(gsl::span<const Error> errors)
+{
+  for (auto error : errors) {
+    add(error);
+  }
+}
+
+void ErrorMap::add(const ErrorMap& errors)
+{
+  errors.forEach([this](Error error) {
+    add(error);
+  });
+}
+
+uint64_t ErrorMap::getNumberOfErrors() const
+{
+  uint64_t n{0};
+  forEach([&n](Error error) {
+    n += error.count;
+  });
+  return n;
+}
+
+uint64_t ErrorMap::getNumberOfErrors(ErrorType type) const
+{
+  uint64_t n{0};
+  forEach(type, [&n](Error error) {
+    n += error.count;
+  });
+  return n;
+}
+
+uint64_t ErrorMap::getNumberOfErrors(ErrorGroup group) const
+{
+  uint64_t n{0};
+  forEach(group, [&n](Error error) {
+    n += error.count;
+  });
+  return n;
 }
 
 void ErrorMap::forEach(ErrorFunction f) const
 {
-  for (auto errorType : mErrorCounts) {
-    for (auto errorCounts : errorType.second) {
-      uint64_t count = errorCounts.second;
-      uint64_t id = errorCounts.first;
-      auto [id0, id1] = decode(id);
-      f(errorType.first, id0, id1, count);
+  for (const auto& typeErrors : mErrors) {
+    for (auto error : typeErrors.second) {
+      f(error.second);
     }
   }
 }
 
-uint64_t numberOfErrorTypes(const ErrorMap& em)
+void ErrorMap::forEach(ErrorType type, ErrorFunction f) const
 {
-  std::set<uint32_t> errorTypes;
-  auto countErrorTypes = [&errorTypes](uint32_t errorType,
-                                       uint32_t /*id0*/,
-                                       uint32_t /*id1*/,
-                                       uint64_t /*count*/) {
-    errorTypes.emplace(errorType);
-  };
-  em.forEach(countErrorTypes);
-  return errorTypes.size();
+  for (const auto& [thisType, errors] : mErrors) {
+    if (thisType == type) {
+      for (auto error : errors) {
+        f(error.second);
+      }
+    }
+  }
 }
 
-uint64_t totalNumberOfErrors(const ErrorMap& em)
+void ErrorMap::forEach(ErrorGroup group, ErrorFunction f) const
 {
-  uint64_t n{0};
-  auto countErrors = [&n](uint32_t /*errorType*/,
-                          uint32_t /*id0*/,
-                          uint32_t /*id1*/,
-                          uint64_t count) {
-    n += count;
-  };
-  em.forEach(countErrors);
-  return n;
+  for (const auto& [thisType, errors] : mErrors) {
+    if (errorGroup(thisType) == group) {
+      for (auto error : errors) {
+        f(error.second);
+      }
+    }
+  }
 }
-}; // namespace o2::mch
+
+} // namespace o2::mch

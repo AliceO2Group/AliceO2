@@ -17,13 +17,14 @@ add_subdirectory(Core)
 
 add_subdirectory(Utils)
 
-add_subdirectory(AnalysisSupport) 
+add_subdirectory(AnalysisSupport)
 add_subdirectory(CCDBSupport)
 add_subdirectory(PhysicsSupport)
 add_subdirectory(DataTakingSupport)
 
-add_subdirectory(RootAnalysisHelpers)
-
+# FIXME: disable for now, since ROOT made a non backward compatible change
+# RCombinedDS. Will reenable once we move to ROOT 6.30.01
+#add_subdirectory(RootAnalysisHelpers)
 
 # Build the GUI support only if we have DebugGUI
 if (TARGET AliceO2::DebugGUI)
@@ -31,3 +32,5 @@ add_subdirectory(GUISupport)
 endif()
 
 add_subdirectory(TestWorkflows)
+
+add_subdirectory(AODMerger)

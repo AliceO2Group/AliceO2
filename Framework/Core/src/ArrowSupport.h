@@ -21,6 +21,8 @@ namespace o2::framework
 struct ArrowSupport {
   // Create spec for backend used to send Arrow messages
   static ServiceSpec arrowBackendSpec();
+  static ServiceSpec arrowTableSlicingCacheDefSpec();
+  static ServiceSpec arrowTableSlicingCacheSpec();
 };
 
 } // namespace o2::framework

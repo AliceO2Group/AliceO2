@@ -17,7 +17,9 @@
 
 #pragma link C++ class o2::fv0::FV0ChannelTimeOffsetSlotContainer + ;
 #pragma link C++ class o2::fv0::FV0CalibCollector + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0CalibInfoSlot>;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0ChannelTimeOffsetSlotContainer>;
+#pragma link C++ class o2::calibration::TimeSlot < o2::fv0::FV0CalibInfoSlot>;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibInfoSlot>;
+#pragma link C++ class o2::calibration::TimeSlot < o2::fv0::FV0ChannelTimeOffsetSlotContainer>;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0ChannelTimeOffsetSlotContainer>;
 
 #endif

@@ -162,6 +162,12 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
 
 GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
 {
+  // this generator should leave all dimensions the same as in the incoming kinematics file
+  setMomentumUnit(1.);
+  setEnergyUnit(1.);
+  setPositionUnit(1.);
+  setTimeUnit(1.);
+
   mEventFile = TFile::Open(name);
   if (mEventFile == nullptr) {
     LOG(fatal) << "EventFile " << name << " not found";
@@ -235,8 +241,8 @@ bool GeneratorFromO2Kine::importParticles()
       auto d1 = t.getFirstDaughterTrackId();
       auto d2 = t.getLastDaughterTrackId();
       auto e = t.GetEnergy();
-      auto vt = t.T();
-      auto weight = 1.; // p.GetWeight() ??
+      auto vt = t.T() * 1e-9; // MCTrack stores in ns ... generators and engines use seconds
+      auto weight = t.getWeight();
       auto wanttracking = t.getToBeDone();
 
       if (mContinueMode) { // in case we want to continue, do only inhibited tracks
@@ -245,8 +251,10 @@ bool GeneratorFromO2Kine::importParticles()
 
       LOG(debug) << "Putting primary " << pdg;
 
-      mParticles.push_back(TParticle(pdg, wanttracking, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
+      mParticles.push_back(TParticle(pdg, t.getStatusCode().fullEncoding, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
       mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
+      mParticles.back().SetBit(ParticleStatus::kToBeDone, wanttracking);
+      mParticles.back().SetWeight(weight);
 
       particlecounter++;
     }

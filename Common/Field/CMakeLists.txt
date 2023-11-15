@@ -16,7 +16,8 @@ o2_add_library(Field
                        src/MagFieldParam.cxx
                        src/MagneticField.cxx
                        src/MagneticWrapperChebyshev.cxx
-                       PUBLIC_LINK_LIBRARIES O2::MathUtils FairRoot::Base)
+                       src/ALICE3MagneticField.cxx
+                       PUBLIC_LINK_LIBRARIES O2::MathUtils FairRoot::Base O2::CommonUtils)
 
 o2_target_root_dictionary(Field
                           HEADERS include/Field/MagneticWrapperChebyshev.h
@@ -24,7 +25,8 @@ o2_target_root_dictionary(Field
                                   include/Field/MagFieldParam.h
                                   include/Field/MagFieldContFact.h
                                   include/Field/MagFieldFast.h
-                                  include/Field/MagFieldFact.h)
+                                  include/Field/MagFieldFact.h
+                                  include/Field/ALICE3MagneticField.h)
 
 o2_add_test(MagneticField
             SOURCES test/testMagneticField.cxx

@@ -35,14 +35,6 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
 }
 
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(o2::framework::CompletionPolicyHelpers::defineByName("digit-hmpid-write", CompletionPolicy::CompletionOp::Consume));
-}
-
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {

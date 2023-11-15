@@ -30,6 +30,10 @@ namespace vertexing
 struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParams> {
 
   // parameters
+  bool createFullV0s = false;      ///< fill V0s prongs/kinematics
+  bool createFullCascades = false; ///< fill cascades prongs/kinematics
+  bool createFull3Bodies = false;  ///< fill 3-body decays prongs/kinematics
+
   bool useAbsDCA = true;        ///< use abs dca minimization
   bool selectBestV0 = false;    ///< match only the best v0 for each cascade candidate
   float maxChi2 = 2.;           ///< max dca from prongs to vertex
@@ -85,18 +89,24 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   float maxRIni3body = 90.; // don't consider as a 3body seed (circles/line intersection) if its R exceeds this
 
+  bool mExcludeTPCtracks = false; // don't loop over TPC tracks if true (if loaded, dEdx info is used instead)
+  float mTPCTrackMaxX = -1.f;     // don't use TPC standalone tracks with X exceeding this
+  float minTPCdEdx = 250;         // starting from this dEdx value, tracks with p > minMomTPCdEdx are always accepted
+  float minMomTPCdEdx = 0.8;      // minimum p for tracks with dEdx > mMinTPCdEdx to be accepted
+
   // cuts on different V0 PID params
   bool checkV0Hypothesis = true;
-  float pidCutsPhoton[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.60, 0.0};    // Photon
-  float pidCutsK0[SVertexHypothesis::NPIDParams] = {0.003, 20, 0.07, 0.5};        // K0
-  float pidCutsLambda[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};    // Lambda
-  float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5};  // HyperTriton
-  float pidCutsHhydrog4[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5}; // Hyperhydrog4 - Need to update
+  float pidCutsPhoton[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.60, 20, 0.60, 0.0, 0.0, 0.0, 0.0};                        // Photon
+  float pidCutsK0[SVertexHypothesis::NPIDParams] = {0., 20, 0., 5.0, 0.0, 2.84798e-03, 9.84206e-04, 3.31951e-03, 2.39438};     // K0
+  float pidCutsLambda[SVertexHypothesis::NPIDParams] = {0., 20, 0., 5.0, 0.0, 1.09004e-03, 2.62291e-04, 8.93179e-03, 2.83121}; // Lambda
+  float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                       // HyperTriton
+  float pidCutsHhydrog4[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                      // Hyperhydrog4 - Need to update
   //
   // cuts on different Cascade PID params
   bool checkCascadeHypothesis = true;
-  float pidCutsXiMinus[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};    // XiMinus
-  float pidCutsOmegaMinus[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5}; // OmegaMinus
+  float pidCutsXiMinus[SVertexHypothesis::NPIDParams] = {0.0, 10, 0.0, 4.0, 0.0, 1.56315e-03, 2.23279e-04, 2.75136e-02, 3.309};          // XiMinus
+  float pidCutsOmegaMinus[SVertexHypothesis::NPIDParams] = {0.0, 10, 0.0, 4.0, 0.0, 1.43572e-03, 6.94416e-04, 2.13534e+05, 1.48889e+01}; // OmegaMinus
+  float maximalCascadeWidth = 0.006;
   //
   // cuts on different 3 body PID params
   bool check3bodyHypothesis = true;

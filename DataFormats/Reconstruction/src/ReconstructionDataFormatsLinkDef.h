@@ -24,6 +24,8 @@
 #pragma link C++ class o2::track::TrackParCovD + ;
 #pragma link C++ class o2::track::TrackParCov + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
+#pragma link C++ class std::vector < o2::track::TrackParametrizationWithError < float>> + ;
+
 #pragma link C++ class o2::track::TrackParametrizationWithError < double> + ;
 #pragma link C++ class o2::track::TrackParFwd + ;
 #pragma link C++ class o2::track::PID + ;
@@ -43,6 +45,9 @@
 
 #pragma link C++ class o2::dataformats::TrackTPCTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCTOF> + ;
+
+#pragma link C++ class o2::dataformats::TrackHMP + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackHMP> + ;
 
 #pragma link C++ class o2::dataformats::TrackCosmics + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackCosmics> + ;
@@ -68,10 +73,12 @@
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>> + ;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>> + ;
 #pragma link C++ class o2::dataformats::PrimaryVertex + ;
+#pragma link C++ class o2::dataformats::PrimaryVertexExt + ;
 
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>>> + ;
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>>> + ;
 #pragma link C++ class std::vector < o2::dataformats::PrimaryVertex> + ;
+#pragma link C++ class std::vector < o2::dataformats::PrimaryVertexExt> + ;
 
 #pragma link C++ class o2::dataformats::GlobalTrackID + ;
 #pragma link C++ class std::vector < o2::dataformats::GlobalTrackID> + ;
@@ -85,13 +92,28 @@
 
 #pragma link C++ class o2::dataformats::DCA + ;
 
+#pragma link C++ class o2::dataformats::DecayNBodyIndex < 2> + ;
+#pragma link C++ class o2::dataformats::DecayNBodyIndex < 3> + ;
+#pragma link C++ class o2::dataformats::Decay3BodyIndex + ;
+#pragma link C++ class o2::dataformats::V0Index + ;
+#pragma link C++ class o2::dataformats::CascadeIndex + ;
+
+#pragma link C++ class std::vector < o2::dataformats::DecayNBodyIndex < 2>> + ;
+#pragma link C++ class std::vector < o2::dataformats::DecayNBodyIndex < 3>> + ;
+#pragma link C++ class std::vector < o2::dataformats::Decay3BodyIndex> + ;
+#pragma link C++ class std::vector < o2::dataformats::V0Index> + ;
+#pragma link C++ class std::vector < o2::dataformats::CascadeIndex> + ;
+
 #pragma link C++ class o2::dataformats::V0 + ;
 #pragma link C++ class std::vector < o2::dataformats::V0> + ;
 
 #pragma link C++ class o2::dataformats::Cascade + ;
 #pragma link C++ class std::vector < o2::dataformats::Cascade> + ;
 
-#pragma link C++ class o2::dataformats::DecayNbody + ;
-#pragma link C++ class std::vector < o2::dataformats::DecayNbody> + ;
+#pragma link C++ class o2::dataformats::Decay3Body + ;
+#pragma link C++ class std::vector < o2::dataformats::Decay3Body> + ;
+
+#pragma link C++ class o2::dataformats::StrangeTrack + ;
+#pragma link C++ class std::vector < o2::dataformats::StrangeTrack> + ;
 
 #endif

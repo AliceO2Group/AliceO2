@@ -19,6 +19,8 @@
 #include "TPCCalibration/CalibLaserTracks.h"
 #include "TLinearFitter.h"
 #include <chrono>
+#include <algorithm>
+#include <string_view>
 
 using namespace o2::tpc;
 void CalibLaserTracks::fill(std::vector<TrackTPC> const& tracks)
@@ -37,6 +39,9 @@ void CalibLaserTracks::fill(const gsl::span<const TrackTPC> tracks)
   if (!tracks.size()) {
     return;
   }
+
+  mCalibData.nTrackTF.emplace_back();
+  mCalibDataTF.nTrackTF.emplace_back();
 
   // ===| associate tracks with ideal laser track positions |===
   for (const auto& track : tracks) {
@@ -87,10 +92,11 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
   if (mTriggerPos < 0) {
     // use CE for time 0
     const float zOffset = (track.getTime0() + mTriggerPos) * mZbinWidth * mDriftV + 250;
-    //printf("time0: %.2f, trigger pos: %d, zTrack: %.2f, zOffset: %.2f\n", track.getTime0(), mTriggerPos, zTrack, zOffset);
+    // printf("time0: %.2f, trigger pos: %d, zTrack: %.2f, zOffset: %.2f\n", track.getTime0(), mTriggerPos, zTrack, zOffset);
     zTrack += zOffset;
     parOutAtLtr.setZ(zTrack);
   } else if (mTriggerPos > 0) {
+    const float zOffset = mTriggerPos;
   }
 
   if (std::abs(zTrack) > 300) {
@@ -119,6 +125,13 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
 
   mCalibData.matchedLtrIDs.emplace_back(laserTrackID);
   mCalibDataTF.matchedLtrIDs.emplace_back(laserTrackID);
+
+  const auto dEdx = track.getdEdx().dEdxTotTPC;
+  mCalibData.dEdx.emplace_back(dEdx);
+  mCalibDataTF.dEdx.emplace_back(dEdx);
+
+  ++mCalibData.nTrackTF.back();
+  ++mCalibDataTF.nTrackTF.back();
 
   // ===| debug output |========================================================
   if (mWriteDebugTree) {
@@ -250,6 +263,14 @@ void CalibLaserTracks::merge(const CalibLaserTracks* other)
   auto& ltrIDsOther = other->mCalibData.matchedLtrIDs;
   ltrIDs.insert(ltrIDs.end(), ltrIDsOther.begin(), ltrIDsOther.end());
 
+  auto& nTrk = mCalibData.nTrackTF;
+  auto& nTrkOther = other->mCalibData.nTrackTF;
+  nTrk.insert(nTrk.end(), nTrkOther.begin(), nTrkOther.end());
+
+  auto& dEdx = mCalibData.dEdx;
+  auto& dEdxOther = other->mCalibData.dEdx;
+  dEdx.insert(dEdx.end(), dEdxOther.begin(), dEdxOther.end());
+
   mCalibData.firstTime = std::min(mCalibData.firstTime, other->mCalibData.firstTime);
   mCalibData.lastTime = std::max(mCalibData.lastTime, other->mCalibData.lastTime);
 
@@ -285,9 +306,9 @@ void CalibLaserTracks::finalize()
 
   fillCalibData(mCalibData, mZmatchPairsA, mZmatchPairsC);
 
-  //auto& ltrIDs = mCalibData.matchedLtrIDs;
-  //std::sort(ltrIDs.begin(), ltrIDs.end());
-  //ltrIDs.erase(std::unique(ltrIDs.begin(), ltrIDs.end()), ltrIDs.end());
+  // auto& ltrIDs = mCalibData.matchedLtrIDs;
+  // std::sort(ltrIDs.begin(), ltrIDs.end());
+  // ltrIDs.erase(std::unique(ltrIDs.begin(), ltrIDs.end()), ltrIDs.end());
 
   if (mDebugStream) {
     (*mDebugStream) << "finalData"
@@ -303,8 +324,8 @@ void CalibLaserTracks::finalize()
 //______________________________________________________________________________
 void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<TimePair>& pairsA, const std::vector<TimePair>& pairsC)
 {
-  auto dvA = fit(pairsA);
-  auto dvC = fit(pairsC);
+  auto dvA = fit(pairsA, "A-Side");
+  auto dvC = fit(pairsC, "C-Side");
   calibData.creationTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   calibData.refVDrift = mDriftV;
   calibData.dvOffsetA = dvA.x1;
@@ -317,7 +338,7 @@ void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<
 }
 
 //______________________________________________________________________________
-TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
+TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches, std::string_view info) const
 {
   if (!trackMatches.size()) {
     return TimePair();
@@ -328,12 +349,17 @@ TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
   fit.ClearPoints();
 
   uint64_t meanTime = 0;
+  double minZrec = 1000;
+  double maxZrec = -1000;
   for (const auto& point : trackMatches) {
     double x = point.x1;
     double y = point.x2;
     fit.AddPoint(&x, y);
 
     meanTime += point.time;
+
+    minZrec = std::min(y, minZrec);
+    maxZrec = std::max(y, maxZrec);
   }
 
   meanTime /= uint64_t(trackMatches.size());
@@ -342,10 +368,15 @@ TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
   const int minPoints = 6;
 
   if (trackMatches.size() < size_t(minPoints / robustFraction)) {
+    LOGP(warning, "{} - Not enough points to perform the fit: {} < {}", info, trackMatches.size(), size_t(minPoints / robustFraction));
+    return TimePair({0, 0, meanTime});
+  }
+  if (std::abs(maxZrec - minZrec) < 50) {
+    LOGP(warning, "{} - All points seem to be from one Layer: abs({}cm - {}cm) < 50cm, will not do fitting", info, trackMatches.size(), maxZrec, minZrec);
     return TimePair({0, 0, meanTime});
   }
 
-  //fit.EvalRobust(robustFraction);
+  // fit.EvalRobust(robustFraction);
   fit.Eval();
 
   TimePair retVal;
@@ -367,7 +398,7 @@ void CalibLaserTracks::print() const
 {
   if (mFinalized) {
     LOGP(info,
-         "Processed {} TFs from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side, reference: {}",
+         "Processed {} TFs from {} - {}; found tracks: {} / {}; fit offsets (cm): {} / {}; T0s (us): {} / {}; dv correction factors: {} / {} for A- / C-Side, reference: {}",
          mCalibData.processedTFs,
          mCalibData.firstTime,
          mCalibData.lastTime,
@@ -375,6 +406,8 @@ void CalibLaserTracks::print() const
          mCalibData.nTracksC,
          mCalibData.dvOffsetA,
          mCalibData.dvOffsetC,
+         mCalibData.getT0A(),
+         mCalibData.getT0C(),
          mCalibData.dvCorrectionA,
          mCalibData.dvCorrectionC,
          mCalibData.refVDrift);
@@ -386,13 +419,15 @@ void CalibLaserTracks::print() const
          mCalibData.lastTime);
 
     LOGP(info,
-         "Last processed TF from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side, reference: {}",
+         "Last processed TF from {} - {}; found tracks: {} / {}; fit offsets (cm): {} / {}; T0s (us): {} / {}; dv correction factors: {} / {} for A- / C-Side, reference: {}",
          mCalibDataTF.firstTime,
          mCalibDataTF.lastTime,
          mCalibDataTF.nTracksA,
          mCalibDataTF.nTracksC,
          mCalibDataTF.dvOffsetA,
          mCalibDataTF.dvOffsetC,
+         mCalibDataTF.getT0A(),
+         mCalibDataTF.getT0C(),
          mCalibDataTF.dvCorrectionA,
          mCalibDataTF.dvCorrectionC,
          mCalibDataTF.refVDrift);

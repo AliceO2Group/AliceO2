@@ -56,9 +56,9 @@ void createResidualDistortionObject(int bSign, const char* pathToHistoFile = "In
   spaceChargeRes.setDistortionLookupTables(matrixResDistDz[0], matrixResDistDr[0], matrixResDistDrphi[0], o2::tpc::Side::A);
   spaceChargeRes.setDistortionLookupTables(matrixResDistDz[1], matrixResDistDr[1], matrixResDistDrphi[1], o2::tpc::Side::C);
 
-  TFile fileOutput("ResidualDistortions.root", "recreate");
-  spaceChargeRes.dumpGlobalDistortions(fileOutput, o2::tpc::Side::A);
-  spaceChargeRes.dumpGlobalDistortions(fileOutput, o2::tpc::Side::C);
+  std::string_view file = "ResidualDistortions.root";
+  spaceChargeRes.dumpGlobalDistortions(file, o2::tpc::Side::A, "RECREATE");
+  spaceChargeRes.dumpGlobalDistortions(file, o2::tpc::Side::C, "UPDATE");
 
   if (debug) {
     makeDebugTreeResiduals(scCalcFluc, scCalcAvg, spaceChargeRes);

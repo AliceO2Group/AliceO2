@@ -15,6 +15,7 @@
 /// @brief  Descriptor of geometrical constraint
 
 #include "Align/GeometricalConstraint.h"
+#include "Align/AlignConfig.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "Align/utils.h"
 #include "Framework/Logger.h"
@@ -32,37 +33,6 @@ namespace o2
 namespace align
 {
 
-//___________________________________________________________________
-GeometricalConstraint::GeometricalConstraint(const char* name, const char* title)
-  : TNamed(name, title), mConstraint(0), mParent(nullptr), mChildren(2)
-{
-  // def. c-tor
-  for (int i = kNDOFGeom; i--;) {
-    mSigma[i] = 0;
-  }
-}
-
-//___________________________________________________________________
-GeometricalConstraint::~GeometricalConstraint()
-{
-  // d-tor
-  delete mParent;
-}
-
-//___________________________________________________________________
-void GeometricalConstraint::setParent(const AlignableVolume* par)
-{
-  mParent = par;
-  TString nm = GetName();
-  if (nm.IsNull()) {
-    if (par) {
-      SetNameTitle(par->getSymName(), "Automatic");
-    } else {
-      SetNameTitle("GLOBAL", "Automatic");
-    }
-  }
-}
-
 //______________________________________________________
 void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
 {
@@ -78,13 +48,14 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
   //
   bool doJac = !getNoJacobian(); // do we need jacobian evaluation?
   int nch = getNChildren();
-  float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
-  memset(cstrArr, 0, nch * kNDOFGeom * kNDOFGeom * sizeof(float));
+  std::unique_ptr<double[]> cstrArr(new double[nch * kNDOFGeom * kNDOFGeom]);
+  memset(cstrArr.get(), 0, nch * kNDOFGeom * kNDOFGeom * sizeof(double));
   // we need for each children the matrix for vector transformation from children frame
   // (in which its DOFs are defined, LOC or TRA) to this parent variation frame
   // matRel = mPar^-1*mChild
   TGeoHMatrix mPar;
   //
+  const auto& algConf = AlignConfig::Instance();
   // in case of parent assigned use its matrix,
   // otherwise Alice global frame is assumed to be the parent -> Unit matrix
   if (mParent && doJac) {
@@ -97,11 +68,10 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
     mPar = mPar.Inverse();
   }
   //
-  float* jac = cstrArr;
-  int nContCh[kNDOFGeom] = {0}; // we need at least on contributing children DOF to constrain the parent DOF
+  auto jac = cstrArr.get();
+  int nContCh[kNDOFGeom] = {0}; // we need at least one contributing children DOF to constrain the parent DOF
   for (int ich = 0; ich < nch; ich++) {
-    AlignableVolume* child = getChild(ich);
-    //
+    auto child = getChild(ich);
     if (doJac) { // calculate jacobian
       TGeoHMatrix matRel;
       if (child->isFrameTRA()) {
@@ -115,14 +85,13 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
       //
       for (int ics = 0; ics < kNDOFGeom; ics++) { // DOF of parent to be constrained
         for (int ip = 0; ip < kNDOFGeom; ip++) {  // count contributing DOFs
-          float jv = jac[ics * kNDOFGeom + ip];
+          double jv = jac[ics * kNDOFGeom + ip];
           if (!isZeroAbs(jv) && child->isFreeDOF(ip) && child->getParErr(ip) >= 0) {
             nContCh[ip]++;
           }
         }
       }
     } else { // simple constraint on the sum of requested DOF
-      //
       for (int ip = 0; ip < kNDOFGeom; ip++) {
         if (child->isFreeDOF(ip) && child->getParErr(ip) >= 0) {
           nContCh[ip]++;
@@ -132,32 +101,32 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
     }
     jac += kNDOFGeom * kNDOFGeom; // matrix for next slot
   }
-  //
   for (int ics = 0; ics < kNDOFGeom; ics++) {
     if (!isDOFConstrained(ics)) {
       continue;
     }
     int cmtStatus = nContCh[ics] > 0 ? kOff : kOn; // do we comment this constraint?
-    //
     if (cmtStatus) {
-      LOG(info) << "No contributors to constraint of " << getDOFName(ics) << " of " << GetName();
+      if (algConf.verbose > 0) {
+        LOG(info) << "No contributors to constraint of " << getDOFName(ics) << " of " << getName();
+      }
     }
     if (mSigma[ics] > 0) {
-      fprintf(conOut, "\n%s%s\t%e\t%e\t%s %s of %s %s\n", comment[cmtStatus], kKeyConstr[kMeas], 0.0, mSigma[ics],
-              comment[kOnOn], getDOFName(ics), GetName(), GetTitle());
+      fprintf(conOut, "\n%s%s\t%e\t%e\t%s %s of %s Auto\n", comment[cmtStatus], kKeyConstr[kMeas], 0.0, mSigma[ics],
+              comment[kOnOn], getDOFName(ics), getName().c_str());
     } else {
-      fprintf(conOut, "\n%s%s\t%e\t%s %s of %s %s\n", comment[cmtStatus], kKeyConstr[kConstr], 0.0,
-              comment[kOnOn], getDOFName(ics), GetName(), GetTitle());
+      fprintf(conOut, "\n%s%s\t%e\t%s %s of %s Auto\n", comment[cmtStatus], kKeyConstr[kConstr], 0.0,
+              comment[kOnOn], getDOFName(ics), getName().c_str());
     }
     for (int ich = 0; ich < nch; ich++) { // contribution from this children DOFs to constraint
-      AlignableVolume* child = getChild(ich);
-      jac = cstrArr + kNDOFGeom * kNDOFGeom * ich;
+      auto child = getChild(ich);
+      jac = cstrArr.get() + kNDOFGeom * kNDOFGeom * ich;
       if (cmtStatus) {
         fprintf(conOut, "%s", comment[cmtStatus]);
       } // comment out contribution
       // first write real constraints
       for (int ip = 0; ip < kNDOFGeom; ip++) {
-        float jv = jac[ics * kNDOFGeom + ip];
+        double jv = jac[ics * kNDOFGeom + ip];
         if (child->isFreeDOF(ip) && !isZeroAbs(jv) && child->getParErr(ip) >= 0) {
           fprintf(conOut, "%9d %+.3e\t", child->getParLab(ip), jv);
         }
@@ -166,18 +135,16 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
       fprintf(conOut, "%s ", comment[kOn]);
       if (doJac) {
         for (int ip = 0; ip < kNDOFGeom; ip++) {
-          float jv = jac[ics * kNDOFGeom + ip];
+          double jv = jac[ics * kNDOFGeom + ip];
           if (child->isFreeDOF(ip) && !isZeroAbs(jv) && child->getParErr(ip) >= 0) {
             continue;
           }
           fprintf(conOut, "%9d %+.3e\t", child->getParLab(ip), jv);
         } // loop over DOF's of children contributing to this constraint
       }
-      fprintf(conOut, "%s from %s\n", comment[kOnOn], child->GetName());
+      fprintf(conOut, "%s from %s\n", comment[kOnOn], child->getSymName());
     } // loop over children
   }   // loop over constraints in parent volume
-  //
-  delete[] cstrArr;
 }
 
 //______________________________________________________
@@ -190,8 +157,8 @@ void GeometricalConstraint::checkConstraint() const
   }
   //
   bool doJac = !getNoJacobian(); // do we need jacobian evaluation?
-  float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
-  memset(cstrArr, 0, nch * kNDOFGeom * kNDOFGeom * sizeof(float));
+  std::unique_ptr<double[]> cstrArr(new double[nch * kNDOFGeom * kNDOFGeom]);
+  memset(cstrArr.get(), 0, nch * kNDOFGeom * kNDOFGeom * sizeof(double));
   // we need for each children the matrix for vector transformation from children frame
   // (in which its DOFs are defined, LOC or TRA) to this parent variation frame
   // matRel = mPar^-1*mChild
@@ -208,11 +175,11 @@ void GeometricalConstraint::checkConstraint() const
     mPar = mPar.Inverse();
   }
   //
-  float* jac = cstrArr;
+  auto jac = cstrArr.get();
   double parsTotEx[kNDOFGeom] = {0}; // explicitly calculated total modification
   double parsTotAn[kNDOFGeom] = {0}; // analyticaly calculated total modification
   //
-  printf("\n\n ----- Constraints Validation for %s %s ------\n", GetName(), GetTitle());
+  printf("\n\n ----- Constraints Validation for %s Auto ------\n", getName().c_str());
   printf(" chld| ");
   for (int jp = 0; jp < kNDOFGeom; jp++) {
     printf("  %3s:%3s An/Ex  |", getDOFName(jp), isDOFConstrained(jp) ? "ON " : "OFF");
@@ -221,9 +188,9 @@ void GeometricalConstraint::checkConstraint() const
   for (int jp = 0; jp < kNDOFGeom; jp++) {
     printf("  D%3s   ", getDOFName(jp));
   }
-  printf(" ! %s\n", GetName());
+  printf(" ! %s\n", getName().c_str());
   for (int ich = 0; ich < nch; ich++) {
-    AlignableVolume* child = getChild(ich);
+    auto child = getChild(ich);
     double parsC[kNDOFGeom] = {0}, parsPAn[kNDOFGeom] = {0}, parsPEx[kNDOFGeom] = {0};
     for (int jc = kNDOFGeom; jc--;) {
       parsC[jc] = child->getParVal(jc);
@@ -240,7 +207,7 @@ void GeometricalConstraint::checkConstraint() const
       } // local to global
       //
       matRel.MultiplyLeft(&mPar);
-      constrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePeded
+      constrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePede
                                    //
       TGeoHMatrix tau;
       child->delta2Matrix(tau, parsC); // child correction matrix in the child frame
@@ -315,7 +282,7 @@ void GeometricalConstraint::checkConstraint() const
   else {
     printf(" no parent -> %s ", doJac ? "Global" : "Simple");
   }
-  printf(" ! <----- %s\n", GetName());
+  printf(" ! <----- %s\n", getName().c_str());
   //
   printf(" Sig | ");
   for (int jp = 0; jp < kNDOFGeom; jp++) {
@@ -326,14 +293,10 @@ void GeometricalConstraint::checkConstraint() const
     }
   }
   printf(" ! <----- \n");
-
-  //
-  delete[] cstrArr;
-  //
 }
 
 //_________________________________________________________________
-void GeometricalConstraint::constrCoefGeom(const TGeoHMatrix& matRD, float* jac /*[kNDOFGeom][kNDOFGeom]*/) const
+void GeometricalConstraint::constrCoefGeom(const TGeoHMatrix& matRD, double* jac /*[kNDOFGeom][kNDOFGeom]*/) const
 {
   // If the transformation R brings the vector from "local" frame to "master" frame as V=R*v
   // then application of the small LOCAL correction tau to vector v is equivalent to
@@ -355,8 +318,14 @@ void GeometricalConstraint::constrCoefGeom(const TGeoHMatrix& matRD, float* jac 
   const double *rd = matRD.GetRotationMatrix(), *ri = matRI.GetRotationMatrix();
   const double /**td=matRD.GetTranslation(),*/* ti = matRI.GetTranslation();
   //
-  // the angles are in degrees, while we use sinX->X approximation...
-  const double cf[kNDOFGeom] = {1, 1, 1, DegToRad(), DegToRad(), DegToRad()};
+  //// the angles are in radians, while we use sinX->X approximation...
+  // const double cf[kNDOFGeom] = {1., 1., 1., DegToRad(), DegToRad(), DegToRad()};
+  // const double sgc[kNDOFGeom] = {1., 1., 1., -RadToDeg(), RadToDeg(), -RadToDeg()};
+
+  // the angles are in radians
+  const double cf[kNDOFGeom] = {1., 1., 1., 1., 1., 1.};
+  const double sgc[kNDOFGeom] = {1., 1., 1., -1., 1., -1.};
+
   //
   // since the TAU is supposed to convert local corrections in the child frame to corrections
   // in the parent frame, we scale angular degrees of freedom back to degrees and assign the
@@ -367,7 +336,6 @@ void GeometricalConstraint::constrCoefGeom(const TGeoHMatrix& matRD, float* jac 
   //  -cospsi*sinthe*cosphi + sinpsi*sinphi;  cospsi*sinthe*sinphi + sinpsi*cosphi;  costhe*cospsi;
   //
   const double kJTol = 1e-4; // treat derivatives below this threshold as 0
-  const double sgc[kNDOFGeom] = {1., 1., 1., -RadToDeg(), RadToDeg(), -RadToDeg()};
   //
   double dDPar[kNDOFGeom][4][4] = {
     // dDX[4][4]
@@ -403,7 +371,7 @@ void GeometricalConstraint::constrCoefGeom(const TGeoHMatrix& matRD, float* jac 
 }
 
 //______________________________________________________
-void GeometricalConstraint::Print(const Option_t*) const
+void GeometricalConstraint::print() const
 {
   // print info
   printf("Constraint on ");
@@ -412,13 +380,13 @@ void GeometricalConstraint::Print(const Option_t*) const
       printf("%3s (Sig:%+e) ", getDOFName(i), getSigma(i));
     }
   }
-  printf(" | %s %s\n", GetName(), GetTitle());
+  printf(" | %s Auto\n", getName().c_str());
   if (getNoJacobian()) {
     printf("!!! This is explicit constraint on sum of DOFs (no Jacobian)!!!\n");
   }
   for (int i = 0; i < getNChildren(); i++) {
-    const AlignableVolume* child = getChild(i);
-    printf("%3d %s\n", i, child->GetName());
+    auto child = getChild(i);
+    printf("%3d %s\n", i, child->getSymName());
   }
 }
 

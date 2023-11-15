@@ -78,6 +78,10 @@ static void BM_EventMixingTraditional(benchmark::State& state)
   auto tableTrack = trackBuilder.finalize();
   o2::aod::StoredTracks tracks{tableTrack};
 
+  ArrowTableSlicingCache atscache({{getLabelFromType<o2::aod::StoredTracks>(), "fIndex" + cutString(getLabelFromType<o2::aod::Collisions>())}});
+  auto s = atscache.updateCacheEntry(0, tableTrack);
+  SliceCache cache{&atscache};
+
   int64_t count = 0;
   int64_t colCount = 0;
   int nBinsTot = (xBins.size() - 2) * (yBins.size() - 2);
@@ -99,9 +103,9 @@ static void BM_EventMixingTraditional(benchmark::State& state)
       auto& mixingBuffer = mixingBufferVector[bin];
 
       if (mixingBuffer.size() > 0) {
-        auto tracks1 = tracks.sliceByCached(o2::aod::track::collisionId, col1.globalIndex());
+        auto tracks1 = tracks.sliceByCached(o2::aod::track::collisionId, col1.globalIndex(), cache);
         for (auto& col2 : mixingBuffer) {
-          auto tracks2 = tracks.sliceByCached(o2::aod::track::collisionId, col2.globalIndex());
+          auto tracks2 = tracks.sliceByCached(o2::aod::track::collisionId, col2.globalIndex(), cache);
           for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {
             count++;
           }
@@ -167,13 +171,16 @@ static void BM_EventMixingCombinations(benchmark::State& state)
 
   int64_t count = 0;
   int64_t colCount = 0;
+  ArrowTableSlicingCache atscache{{{getLabelFromType<o2::aod::StoredTracks>(), "fIndex" + getLabelFromType<o2::aod::Collisions>()}}};
+  auto s = atscache.updateCacheEntry(0, tableTrack);
+  SliceCache cache{&atscache};
 
   for (auto _ : state) {
     count = 0;
     colCount = 0;
 
     auto tracksTuple = std::make_tuple(tracks);
-    SameKindPair<o2::aod::Collisions, o2::aod::StoredTracks, BinningType> pair{binningOnPositions, numEventsToMix - 1, -1, collisions, tracksTuple};
+    SameKindPair<o2::aod::Collisions, o2::aod::StoredTracks, BinningType> pair{binningOnPositions, numEventsToMix - 1, -1, collisions, tracksTuple, &cache};
     for (auto& [c1, tracks1, c2, tracks2] : pair) {
       int bin = binningOnPositions.getBin({c1.posX(), c1.posY()});
       for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {

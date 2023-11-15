@@ -36,6 +36,8 @@ o2_add_library(TPCBase
                        src/ZeroSuppress.cxx
                        src/CRUCalibHelpers.cxx
                        src/IonTailSettings.cxx
+                       src/FEEConfig.cxx
+                       src/DeadChannelMapCreator.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
                                      O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
@@ -65,7 +67,9 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/ZeroSuppress.h
                                   include/TPCBase/Utils.h
                                   include/TPCBase/CRUCalibHelpers.h
-                                  include/TPCBase/IonTailSettings.h)
+                                  include/TPCBase/IonTailSettings.h
+                                  include/TPCBase/FEEConfig.h
+                                  include/TPCBase/DeadChannelMapCreator.h)
 o2_add_test(Base
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase

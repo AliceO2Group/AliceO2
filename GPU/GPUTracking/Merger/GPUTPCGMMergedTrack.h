@@ -121,7 +121,9 @@ class GPUTPCGMMergedTrack
   unsigned char mFlags;
   unsigned char mLegs;
 
+#if !defined(GPUCA_STANDALONE)
   ClassDefNV(GPUTPCGMMergedTrack, 0);
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

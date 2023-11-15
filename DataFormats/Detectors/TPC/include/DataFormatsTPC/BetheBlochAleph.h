@@ -12,7 +12,8 @@
 #ifndef AliceO2_TPC_BETHEBLOCH_H_
 #define AliceO2_TPC_BETHEBLOCH_H_
 
-#include <cmath>
+#include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -20,13 +21,13 @@ namespace tpc
 {
 
 template <typename T>
-inline T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5)
+GPUdi() T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5)
 {
-  T beta = bg / std::sqrt(static_cast<T>(1.) + bg * bg);
+  T beta = bg / o2::gpu::GPUCommonMath::Sqrt(static_cast<T>(1.) + bg * bg);
 
-  T aa = std::pow(beta, kp4);
-  T bb = std::pow(static_cast<T>(1.) / bg, kp5);
-  bb = std::log(kp3 + bb);
+  T aa = o2::gpu::GPUCommonMath::Pow(beta, kp4);
+  T bb = o2::gpu::GPUCommonMath::Pow(static_cast<T>(1.) / bg, kp5);
+  bb = o2::gpu::GPUCommonMath::Log(kp3 + bb);
 
   return (kp2 - aa - bb) * kp1 / aa;
 }

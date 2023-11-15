@@ -29,6 +29,7 @@
 #include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDWorkflow/ClusterizerSpec.h"
 #include "MIDWorkflow/FilteringSpec.h"
+#include "MIDWorkflow/FilteringBCSpec.h"
 #include "MIDWorkflow/TimingSpec.h"
 #include "MIDWorkflow/TrackerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -51,6 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
       {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}},
       {"change-local-to-BC", VariantType::Int, 0, {"Change the delay between the MID local clock and the BC"}},
       {"disable-filtering", VariantType::Bool, false, {"Do not remove bad channels"}},
+      {"enable-filter-BC", VariantType::Bool, false, {"Filter BCs"}},
       {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
@@ -65,22 +67,35 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableFile = cfgc.options().get<bool>("disable-root-output");
   auto disableFiltering = cfgc.options().get<bool>("disable-filtering");
   auto localToBC = cfgc.options().get<int>("change-local-to-BC");
+  auto filterBC = cfgc.options().get<bool>("enable-filter-BC");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  std::string dataDesc = "DATA";
-  std::string rofDesc = "DATAROF";
-  std::string labelsDesc = "DATALABELS";
+  std::string baseDataDesc = "DATA";
+  std::string baseROFDesc = "DATAROF";
+  std::string baseLabelsDesc = "DATALABELS";
+  std::string dataDesc = baseDataDesc;
+  std::string rofDesc = baseROFDesc;
+  std::string labelsDesc = baseLabelsDesc;
   if (!disableFiltering) {
-    std::string outDataDesc = "F" + dataDesc;
+    std::string prefix = "F";
+    std::string outDataDesc = prefix + baseDataDesc;
     specs.emplace_back(o2::mid::getFilteringSpec(!disableMC, dataDesc, outDataDesc));
     dataDesc = outDataDesc;
-    rofDesc = "F" + rofDesc;
-    labelsDesc = "F" + labelsDesc;
+    rofDesc = prefix + baseROFDesc;
+    labelsDesc = prefix + baseLabelsDesc;
   }
   if (localToBC != 0) {
     specs.emplace_back(o2::mid::getTimingSpec(localToBC, rofDesc));
-    rofDesc = "TDATAROF";
+    std::string prefix = "T";
+    rofDesc = prefix + baseROFDesc;
+  }
+  if (filterBC) {
+    specs.emplace_back(o2::mid::getFilteringBCSpec(!disableMC, dataDesc));
+    std::string prefix = "B";
+    dataDesc = prefix + baseDataDesc;
+    rofDesc = prefix + baseROFDesc;
+    labelsDesc = prefix + baseLabelsDesc;
   }
   specs.emplace_back(o2::mid::getClusterizerSpec(!disableMC, dataDesc, rofDesc, labelsDesc));
   if (!disableTracking) {

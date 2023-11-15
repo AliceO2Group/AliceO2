@@ -46,10 +46,10 @@ InterCalibData& InterCalibData::operator+=(const InterCalibData& other)
   if (other.mCTimeEnd > mCTimeEnd) {
     mCTimeEnd = other.mCTimeEnd;
   }
-  //#ifdef O2_ZDC_DEBUG
+#ifdef O2_ZDC_DEBUG
   LOGF(info, "InterCalibData [%llu : %llu]: %s=%d %s=%d %s=%d %s=%d %s=%d", mCTimeBeg, mCTimeEnd, DN[0], getEntries(0), DN[1], getEntries(1),
        DN[2], getEntries(2), DN[3], getEntries(3), DN[4], getEntries(4));
-  //#endif
+#endif
   return *this;
 }
 

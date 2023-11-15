@@ -12,6 +12,8 @@
 #ifndef O2_FRAMEWORK_DRIVERCLIENTCONTEXT_H_
 #define O2_FRAMEWORK_DRIVERCLIENTCONTEXT_H_
 
+#include "Framework/ServiceRegistryRef.h"
+
 namespace o2::framework
 {
 struct DeviceSpec;
@@ -20,8 +22,7 @@ struct WSDPLClient;
 
 /// Context for the client callbacks
 struct DriverClientContext {
-  DeviceSpec const& spec;
-  DeviceState* state = nullptr;
+  ServiceRegistryRef ref;
   WSDPLClient* client = nullptr;
 };
 } // namespace o2::framework

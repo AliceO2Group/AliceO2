@@ -19,7 +19,7 @@ namespace o2
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url, int timestamp, bool ccdbSA = false);
+o2::framework::DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url, int timestamp);
 
 } // end namespace tof
 } // end namespace o2

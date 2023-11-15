@@ -19,7 +19,15 @@ o2_add_library(TOFWorkflowIO
                        src/CalibClusReaderSpec.cxx
                        src/TOFMatchedWriterSpec.cxx
                        src/TOFCalibWriterSpec.cxx
+                       src/TOFMatchableWriterSpec.cxx
                        src/TOFMatchedReaderSpec.cxx
                        src/CalibInfoReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction)
+                       src/TOFIntegrateClusterWriterSpec.cxx
+                       src/TOFIntegrateClusterReaderSpec.cxx
+                       src/CcdbRequestSpec.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction O2::Algorithm)
 
+o2_add_executable(test-ccdb-request
+                  SOURCES src/test-ccdb-request.cxx
+                  COMPONENT_NAME tof
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowIO)

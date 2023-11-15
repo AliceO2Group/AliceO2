@@ -46,8 +46,9 @@ class VisualisationCalo
     std::string gid = "";
     o2::dataformats::GlobalTrackID::Source source;
   };
+
   // Constructor with properties initialisation
-  VisualisationCalo(const VisualisationCaloVO& vo);
+  explicit VisualisationCalo(const VisualisationCaloVO& vo);
 
   VisualisationCalo(const VisualisationCalo& src);
 
@@ -102,8 +103,6 @@ class VisualisationCalo
 
   int mPID;         /// PDG code of the particle
   std::string mGID; /// String representation of gid
-
-  float mStartCoordinates[3]; /// Vector of track's start coordinates
 
   float mEta; /// An angle from Z-axis to the radius vector pointing to the particle
   float mPhi; /// An angle from X-axis to the radius vector pointing to the particle

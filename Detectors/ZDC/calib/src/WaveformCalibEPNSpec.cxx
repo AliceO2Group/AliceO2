@@ -88,10 +88,13 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
+  } else {
+    mWorker.clear();
   }
 
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
   WaveformCalibData& data = mWorker.getData();
+
   data.setCreationTime(creationTime);
 
   auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");

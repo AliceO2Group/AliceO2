@@ -8,11 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework ConfigParamRegistry
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <fairmq/ProgOptions.h>
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/RootConfigParamHelpers.h"
@@ -23,7 +20,7 @@
 using namespace o2::framework;
 namespace bpo = boost::program_options;
 
-BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
+TEST_CASE("TestRootConfigParamRegistry")
 {
   bpo::options_description testOptions("Test options");
   testOptions.add_options()                             //
@@ -48,16 +45,16 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   store->activate();
   ConfigParamRegistry registry(std::move(store));
 
-  BOOST_CHECK_EQUAL(registry.get<int>("foo.x"), 1);
-  BOOST_CHECK_EQUAL(registry.get<float>("foo.y"), 2.f);
+  REQUIRE(registry.get<int>("foo.x") == 1);
+  REQUIRE(registry.get<float>("foo.y") == 2.f);
 
   // We can get nested objects also via their top-level ptree.
   auto pt = registry.get<boost::property_tree::ptree>("foo");
-  BOOST_CHECK_EQUAL(pt.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(pt.get<float>("y"), 2.f);
+  REQUIRE(pt.get<int>("x") == 1);
+  REQUIRE(pt.get<float>("y") == 2.f);
 
   // And we can get it as a generic object as well.
   auto obj = RootConfigParamHelpers::as<o2::test::SimplePODClass>(pt);
-  BOOST_CHECK_EQUAL(obj.x, 1);
-  BOOST_CHECK_EQUAL(obj.y, 2.f);
+  REQUIRE(obj.x == 1);
+  REQUIRE(obj.y == 2.f);
 }

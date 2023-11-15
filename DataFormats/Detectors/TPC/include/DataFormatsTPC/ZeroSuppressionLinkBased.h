@@ -19,6 +19,7 @@
 #include "GPUCommonDef.h"
 
 #ifndef GPUCA_GPUCODE
+#include <cstdint>
 #include <bitset>
 #endif
 
@@ -54,7 +55,8 @@ struct CommonHeader {
       uint32_t bunchCrossing : 12;  ///< bunch crossing number
       uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values
       uint32_t syncOffsetBC : 8;    ///< sync offset in bunch crossings
-      uint32_t fecInPartition : 16; ///< fecInPartition, only used in improved link-based format
+      uint32_t fecInPartition : 8;  ///< fecInPartition, only used in improved link-based format
+      uint32_t CMC : 8;             ///< CMC, only used in improved link-based format
       uint32_t magicWord : 8;       ///< magic word, identifies package
     };
   };

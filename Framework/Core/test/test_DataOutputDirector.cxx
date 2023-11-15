@@ -8,16 +8,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DataOutputDirector
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Headers/DataHeader.h"
 #include "Framework/DataOutputDirector.h"
 #include <fstream>
 
-BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
+TEST_CASE("TestDataOutputDirector")
 {
   using namespace o2::header;
   using namespace o2::framework;
@@ -36,21 +33,23 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
 
   auto ds = dod.getDataOutputDescriptors(dh);
 
-  BOOST_CHECK_EQUAL(ds.size(), 2);
+  REQUIRE(ds.size() == 2);
 
-  BOOST_CHECK_EQUAL(ds[0]->tablename, std::string("UNO"));
-  BOOST_CHECK_EQUAL(ds[0]->treename, std::string("tr1"));
-  BOOST_CHECK_EQUAL(ds[0]->colnames.size(), 3);
-  BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("fn1"));
+  REQUIRE(ds[0]->tablename == std::string("UNO"));
+  REQUIRE(ds[0]->treename == std::string("tr1"));
+  REQUIRE(ds[0]->colnames.size() == 3);
+  REQUIRE(ds[0]->getFilenameBase() == std::string("fn1"));
 
-  BOOST_CHECK_EQUAL(ds[1]->tablename, std::string("UNO"));
-  BOOST_CHECK_EQUAL(ds[1]->treename, std::string("O2uno"));
-  BOOST_CHECK_EQUAL(ds[1]->colnames.size(), 1);
-  BOOST_CHECK_EQUAL(ds[1]->getFilenameBase(), std::string("myresultfile"));
+  REQUIRE(ds[1]->tablename == std::string("UNO"));
+  REQUIRE(ds[1]->treename == std::string("O2uno"));
+  REQUIRE(ds[1]->colnames.size() == 1);
+  REQUIRE(ds[1]->getFilenameBase() == std::string("myresultfile"));
 
   // test jsonString reader
+  std::string rdn("./");
   std::string dfn("");
   std::string fmode("");
+  float mfs = -1.;
   int ntf = -1;
 
   dh = DataHeader(DataDescription{"DUE"},
@@ -59,19 +58,19 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   std::string jsonString(R"({"OutputDirector": {"resfile": "defresults", "resfilemode": "RECREATE", "ntfmerge": 10, "OutputDescriptors": [{"table": "AOD/UNO/0", "columns": ["fEta1","fMom1"], "treename": "uno", "filename": "unoresults"}, {"table": "AOD/DUE/0", "columns": ["fPhi2"], "treename": "due"}]}})");
 
   dod.reset();
-  std::tie(dfn, fmode, ntf) = dod.readJsonString(jsonString);
+  std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJsonString(jsonString);
   //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
-  BOOST_CHECK_EQUAL(ds.size(), 1);
-  BOOST_CHECK_EQUAL(dfn, std::string("defresults"));
-  BOOST_CHECK_EQUAL(fmode, std::string("RECREATE"));
-  BOOST_CHECK_EQUAL(ntf, 10);
+  REQUIRE(ds.size() == 1);
+  REQUIRE(dfn == std::string("defresults"));
+  REQUIRE(fmode == std::string("RECREATE"));
+  REQUIRE(ntf == 10);
 
-  BOOST_CHECK_EQUAL(ds[0]->tablename, std::string("DUE"));
-  BOOST_CHECK_EQUAL(ds[0]->treename, std::string("due"));
-  BOOST_CHECK_EQUAL(ds[0]->colnames.size(), 1);
-  BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("defresults"));
+  REQUIRE(ds[0]->tablename == std::string("DUE"));
+  REQUIRE(ds[0]->treename == std::string("due"));
+  REQUIRE(ds[0]->colnames.size() == 1);
+  REQUIRE(ds[0]->getFilenameBase() == std::string("defresults"));
 
   // test json file reader
   std::string jsonFile("testO2config.json");
@@ -105,23 +104,23 @@ BOOST_AUTO_TEST_CASE(TestDataOutputDirector)
   jf.close();
 
   dod.reset();
-  std::tie(dfn, fmode, ntf) = dod.readJson(jsonFile);
+  std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJson(jsonFile);
   dod.setFilenameBase("AnalysisResults");
   //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
-  BOOST_CHECK_EQUAL(ds.size(), 2);
-  BOOST_CHECK_EQUAL(dfn, std::string("defresults"));
-  BOOST_CHECK_EQUAL(fmode, std::string("NEW"));
-  BOOST_CHECK_EQUAL(ntf, 10);
+  REQUIRE(ds.size() == 2);
+  REQUIRE(dfn == std::string("defresults"));
+  REQUIRE(fmode == std::string("NEW"));
+  REQUIRE(ntf == 10);
 
-  BOOST_CHECK_EQUAL(ds[0]->getFilenameBase(), std::string("unoresults"));
-  BOOST_CHECK_EQUAL(ds[0]->tablename, std::string("DUE"));
-  BOOST_CHECK_EQUAL(ds[0]->treename, std::string("uno"));
-  BOOST_CHECK_EQUAL(ds[0]->colnames.size(), 2);
+  REQUIRE(ds[0]->getFilenameBase() == std::string("unoresults"));
+  REQUIRE(ds[0]->tablename == std::string("DUE"));
+  REQUIRE(ds[0]->treename == std::string("uno"));
+  REQUIRE(ds[0]->colnames.size() == 2);
 
-  BOOST_CHECK_EQUAL(ds[1]->getFilenameBase(), std::string("dueresults"));
-  BOOST_CHECK_EQUAL(ds[1]->tablename, std::string("DUE"));
-  BOOST_CHECK_EQUAL(ds[1]->treename, std::string("due"));
-  BOOST_CHECK_EQUAL(ds[1]->colnames.size(), 1);
+  REQUIRE(ds[1]->getFilenameBase() == std::string("dueresults"));
+  REQUIRE(ds[1]->tablename == std::string("DUE"));
+  REQUIRE(ds[1]->treename == std::string("due"));
+  REQUIRE(ds[1]->colnames.size() == 1);
 }

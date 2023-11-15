@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Traits
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/CheckTypes.h"
 
 using namespace o2::framework;
@@ -22,7 +18,7 @@ struct Foo {
   bool foo;
 };
 
-BOOST_AUTO_TEST_CASE(CallIfUndefined)
+TEST_CASE("CallIfUndefined")
 {
   bool shouldBeCalled = false;
   bool shouldNotBeCalled = false;
@@ -30,17 +26,17 @@ BOOST_AUTO_TEST_CASE(CallIfUndefined)
 
   call_if_defined<struct Foo>([&shouldBeCalled](auto) { shouldBeCalled = true; });
   call_if_defined<struct Bar>([&shouldNotBeCalled](auto) { shouldNotBeCalled = true; });
-  BOOST_REQUIRE_EQUAL(shouldBeCalled, true);
-  BOOST_REQUIRE_EQUAL(shouldNotBeCalled, false);
+  REQUIRE(shouldBeCalled == true);
+  REQUIRE(shouldNotBeCalled == false);
 
   shouldBeCalled = false;
   shouldNotBeCalled = false;
   shouldBeCalledOnUndefined = false;
 
   call_if_defined_full<struct Bar>([&shouldNotBeCalled](auto) { shouldNotBeCalled = true; }, []() {});
-  BOOST_REQUIRE_EQUAL(shouldNotBeCalled, false);
-  BOOST_REQUIRE_EQUAL(shouldBeCalledOnUndefined, false);
+  REQUIRE(shouldNotBeCalled == false);
+  REQUIRE(shouldBeCalledOnUndefined == false);
   call_if_defined_full<struct Bar>([&shouldNotBeCalled](auto) { shouldNotBeCalled = true; }, [&shouldBeCalledOnUndefined]() { shouldBeCalledOnUndefined = true; });
-  BOOST_REQUIRE_EQUAL(shouldNotBeCalled, false);
-  BOOST_REQUIRE_EQUAL(shouldBeCalledOnUndefined, true);
+  REQUIRE(shouldNotBeCalled == false);
+  REQUIRE(shouldBeCalledOnUndefined == true);
 }

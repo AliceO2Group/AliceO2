@@ -27,6 +27,7 @@
 #pragma link C++ class o2::tpc::CalDet < unsigned> + ;
 #pragma link C++ class o2::tpc::CalDet < short> + ;
 #pragma link C++ class o2::tpc::CalDet < bool> + ;
+#pragma link C++ class o2::tpc::CalDet < o2::tpc::PadFlags> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>*> + ;
 #pragma link C++ class std::unordered_map < std::string, o2::tpc::CalDet < float>> + ;
@@ -47,26 +48,9 @@
 #pragma link C++ class o2::tpc::ROC;
 #pragma link C++ class o2::tpc::Sector;
 
-#pragma link C++ namespace o2::tpc::painter;
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <float>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <double>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <int>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <short>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <bool>&);
+#pragma link C++ class o2::tpc::painter + ;
 
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <float>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <double>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <int>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <short>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <bool>&, int, float, float);
-
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <float>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <double>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <int>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <short>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <bool>&, int, float, float, bool);
-
-//#pragma link C++ class std::vector <TCanvas*> + ;
+// #pragma link C++ class std::vector <TCanvas*> + ;
 #pragma link C++ class o2::tpc::ParameterDetector;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterDetector> + ;
 #pragma link C++ class o2::tpc::ParameterElectronics;
@@ -79,6 +63,8 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGEM> + ;
 #pragma link C++ class o2::tpc::IonTailSettings + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::IonTailSettings> + ;
+#pragma link C++ class o2::tpc::FEEConfig + ;
+#pragma link C++ class o2::tpc::CRUConfig + ;
 
 #pragma link C++ namespace o2::tpc::utils;
 #pragma link C++ function o2::tpc::utils::tokenize(const std::string_view, const std::string_view);
@@ -99,4 +85,5 @@
 #pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 2>(const std::string_view, const std::string_view, std::string_view)
 #pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 6>(const std::string_view, const std::string_view, std::string_view)
 
+#pragma link C++ class o2::tpc::DeadChannelMapCreator + ;
 #endif

@@ -89,6 +89,7 @@ std::vector<GPUChainTracking::InOutMemory> ioMemEvents;
 
 void SetCPUAndOSSettings()
 {
+#if not(defined(__ARM_NEON) or defined(__aarch64__)) // ARM doesn't have SSE
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV // Flush and load denormals to zero in any case
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #else
@@ -100,6 +101,7 @@ void SetCPUAndOSSettings()
 #endif
   _mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
 #endif
+#endif // ARM
 }
 
 int ReadConfiguration(int argc, char** argv)
@@ -118,8 +120,8 @@ int ReadConfiguration(int argc, char** argv)
     configStandalone.proc.debugLevel = 0;
   }
 #ifndef _WIN32
-  setlocale(LC_ALL, "");
-  setlocale(LC_NUMERIC, "");
+  setlocale(LC_ALL, "en_US.utf-8");
+  setlocale(LC_NUMERIC, "en_US.utf-8");
   if (configStandalone.cpuAffinity != -1) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -164,7 +166,7 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 #ifndef GPUCA_HAVE_O2HEADERS
   configStandalone.runTRD = configStandalone.rundEdx = configStandalone.runCompression = configStandalone.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
-  configStandalone.rec.ForceEarlyTPCTransform = 1;
+  configStandalone.rec.tpc.forceEarlyTransform = 1;
   configStandalone.runRefit = false;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
@@ -181,18 +183,12 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-  if (configStandalone.proc.runQA) {
-    if (getenv("LC_NUMERIC")) {
-      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly\n"); // BUG: ROOT Problem
-      return 1;
-    }
-  }
   if (configStandalone.proc.doublePipeline && configStandalone.testSyncAsync) {
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
   }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
-    printf("Double pipeline mode needs at least 3 runs per event and external output\n");
+    printf("Double pipeline mode needs at least 3 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
     return 1;
   }
   if (configStandalone.TF.bunchSim && configStandalone.TF.nMerge) {
@@ -218,6 +214,9 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
+  }
+  if (configStandalone.QA.dumpToROOT) {
+    configStandalone.proc.outputSharedClusterMap = true;
   }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
@@ -276,7 +275,10 @@ int SetupReconstruction()
   if (!configStandalone.eventGenerator) {
     char filename[256];
     snprintf(filename, 256, "events/%s/", configStandalone.eventsDir);
-    if (rec->ReadSettings(filename)) {
+    if (configStandalone.noEvents) {
+      configStandalone.eventsDir = "NON_EXISTING";
+      configStandalone.rundEdx = false;
+    } else if (rec->ReadSettings(filename)) {
       printf("Error reading event config file\n");
       return 1;
     }
@@ -340,7 +342,7 @@ int SetupReconstruction()
     procSet.eventDisplay = eventDisplay.get();
   }
 
-  if (procSet.runQA) {
+  if (procSet.runQA && !configStandalone.QA.noMC) {
     procSet.runMC = true;
   }
 
@@ -372,7 +374,16 @@ int SetupReconstruction()
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
-  if (grp.needsClusterer) {
+  steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
+  steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+  if (grp.doCompClusterDecode) {
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
+    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+  } else if (grp.needsClusterer) {
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
   } else {
@@ -392,8 +403,6 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCClusterFinding));
-  steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
-  steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
 
   if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
     if (recSet.tpc.nWays > 1) {
@@ -406,7 +415,9 @@ int SetupReconstruction()
 
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    if (configStandalone.rundEdx == -1) {
+      steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    }
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       procSet.eventDisplay = nullptr;
@@ -436,6 +447,9 @@ int SetupReconstruction()
     procSet.runQA = false;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
+    if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
+      procSet.tpcInputWithClusterRejection = 1;
+    }
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.tpc.loopInterpolationInExtraPass = 0;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
@@ -487,6 +501,7 @@ int ReadEvent(int n)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.eventsDir, n);
+    chainTracking->GetQA()->UpdateChain(chainTracking);
     if (chainTracking->GetQA()->ReadO2MCData(filename)) {
       snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.eventsDir, 0);
       if (chainTracking->GetQA()->ReadO2MCData(filename) && configStandalone.proc.runQA) {
@@ -553,7 +568,7 @@ int LoadEvent(int iEvent, int x)
     }
   }
 
-  if (!rec->GetParam().par.earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
+  if (!rec->GetParam().par.earlyTpcTransform && !chainTracking->mIOPtrs.clustersNative && !chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS && !chainTracking->mIOPtrs.tpcCompressedClusters) {
     printf("Need cluster native data for on-the-fly TPC transform\n");
     return 1;
   }
@@ -600,7 +615,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent)];
     chainTrackingUse->mIOPtrs = ioPtrs;
     if (iteration == (configStandalone.proc.doublePipeline ? 2 : (configStandalone.runs - 1))) {
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.proc.doublePipeline && timerPipeline) {
         timerPipeline->Start();
       }
       if (configStandalone.controlProfiler) {
@@ -610,7 +625,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     int tmpRetVal = recUse->RunChains();
     int iterationEnd = nIterationEnd.fetch_add(1);
     if (iterationEnd == configStandalone.runs - 1) {
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.proc.doublePipeline && timerPipeline) {
         timerPipeline->Stop();
       }
       if (configStandalone.controlProfiler) {
@@ -720,12 +735,14 @@ int main(int argc, char** argv)
       recAsync->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
+    chainTrackingAsync->SetQAFromForeignChain(chainTracking);
   }
   if (configStandalone.proc.doublePipeline) {
     if (configStandalone.proc.debugLevel >= 3) {
       recPipeline->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingPipeline = recPipeline->AddChain<GPUChainTracking>();
+    chainTrackingPipeline->SetQAFromForeignChain(chainTracking);
   }
 #ifdef GPUCA_HAVE_O2HEADERS
   if (!configStandalone.proc.doublePipeline) {
@@ -817,11 +834,17 @@ int main(int argc, char** argv)
     long long int nClustersTotal = 0;
     int nEventsProcessed = 0;
 
+    if (configStandalone.noEvents) {
+      nEvents = 1;
+      configStandalone.StartEvent = 0;
+      chainTracking->ClearIOPointers();
+    }
+
     for (int iEvent = configStandalone.StartEvent; iEvent < nEvents; iEvent++) {
       if (iEvent != configStandalone.StartEvent) {
         printf("\n");
       }
-      if (!configStandalone.preloadEvents) {
+      if (configStandalone.noEvents == false && !configStandalone.preloadEvents) {
         HighResTimer timerLoad;
         timerLoad.Start();
         if (LoadEvent(iEvent, 0)) {
@@ -843,12 +866,12 @@ int main(int argc, char** argv)
           } else {
             grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
-            rec->UpdateGRPSettings(&grp);
+            rec->UpdateSettings(&grp);
             if (recAsync) {
-              recAsync->UpdateGRPSettings(&grp);
+              recAsync->UpdateSettings(&grp);
             }
             if (recPipeline) {
-              recPipeline->UpdateGRPSettings(&grp);
+              recPipeline->UpdateSettings(&grp);
             }
           }
         }

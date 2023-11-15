@@ -96,7 +96,7 @@ inline DigitContainer::DigitContainer()
   mTmaxTriggered = detParam.TmaxTriggered;
 
   // always have 50 % contingency for the size of the container depending on the input
-  mOffset = static_cast<TimeBin>(1.5 * detParam.TPClength / gasParam.DriftV / eleParam.ZbinWidth);
+  mOffset = static_cast<TimeBin>(detParam.TPCRecoWindowSim * detParam.TPClength / gasParam.DriftV / eleParam.ZbinWidth);
   mTimeBins.resize(mOffset, nullptr);
 }
 
@@ -126,6 +126,11 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
                                      float signal)
 {
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
+  if (mEffectiveTimeBin >= mTimeBins.size()) {
+    // LOG(warning) << "Out of bound access to digit container .. dropping digit";
+    return;
+  }
+
   if (mTimeBins[mEffectiveTimeBin] == nullptr) {
     mTimeBins[mEffectiveTimeBin] = new DigitTime();
   }

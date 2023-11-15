@@ -74,7 +74,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
   int refitCounters[4]{0, 0, 0, 0};
 #endif
   for (int iRoad = get_global_id(0); iRoad < Fitter.NumberOfRoads(); iRoad += get_global_size(0)) {
-    Road& road = Fitter.roads()[iRoad];
+    Road<5>& road = Fitter.roads()[iRoad];
     int clusters[7] = {o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex, o2::its::constants::its::UnusedIndex};
     int lastCellLevel = o2::its::constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);

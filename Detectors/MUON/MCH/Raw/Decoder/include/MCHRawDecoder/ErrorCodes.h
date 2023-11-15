@@ -13,6 +13,7 @@
 #define O2_MCH_RAW_ERROR_CODES_H
 
 #include <string>
+#include <cstdint>
 
 namespace o2
 {

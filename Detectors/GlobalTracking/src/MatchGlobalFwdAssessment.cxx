@@ -46,7 +46,7 @@ void GloFwdAssessment::reset()
     mTrackEtaPhiNCls[nHisto]->Reset();
   }
 
-  mTrackTanl->Reset();
+  mTrackCotl->Reset();
 
   if (mUseMC) {
     mPairables.clear();
@@ -86,9 +86,9 @@ void GloFwdAssessment::createHistos()
   mTrackNumberOfClusters = std::make_unique<TH1F>("mGlobalFwdNumberOfMFTClusters",
                                                   "Number Of Clusters Per Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackInvQPt = std::make_unique<TH1F>("mGlobalFwdInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
+  mTrackInvQPt = std::make_unique<TH1F>("mGlobalFwdInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 100, -5, 5);
 
-  mTrackChi2 = std::make_unique<TH1F>("mGlobalFwdChi2", "Track #chi^{2}; #chi^{2}; # entries", 21, -0.5, 20.5);
+  mTrackChi2 = std::make_unique<TH1F>("mGlobalFwdChi2", "Track #chi^{2}; #chi^{2}; # entries", 202, -0.5, 100.5);
 
   mTrackCharge = std::make_unique<TH1F>("mGlobalFwdCharge", "Track Charge; q; # entries", 3, -1.5, 1.5);
 
@@ -109,7 +109,7 @@ void GloFwdAssessment::createHistos()
     mTrackEtaPhiNCls[nHisto]->SetOption("COLZ");
   }
 
-  mTrackTanl = std::make_unique<TH1F>("mGlobalFwdTanl", "Track tan #lambda; tan #lambda; # entries", 100, -25, 0);
+  mTrackCotl = std::make_unique<TH1F>("mGlobalFwdCotl", "Track cot #lambda; cot #lambda; # entries", 100, -0.25, 0);
 
   // Creating MC-based histos
   if (mUseMC) {
@@ -223,7 +223,7 @@ void GloFwdAssessment::runBasicQC(o2::framework::ProcessingContext& ctx)
     mTrackCharge->Fill(oneTrack.getCharge());
     mTrackPhi->Fill(oneTrack.getPhi());
     mTrackEta->Fill(oneTrack.getEta());
-    mTrackTanl->Fill(oneTrack.getTanl());
+    mTrackCotl->Fill(1. / oneTrack.getTanl());
 
     for (auto minNClusters : sMinNClustersList) {
       if (nClusters >= minNClusters) {
@@ -400,7 +400,7 @@ void GloFwdAssessment::processTrueTracks()
           const auto y_res = fwdTrack.getY() - vyGen;
           const auto eta_res = fwdTrack.getEta() - etaGen;
           const auto phi_res = fwdTrack.getPhi() - phiGen;
-          const auto tanl_res = fwdTrack.getTanl() - tanlGen;
+          const auto cotl_res = (1. / fwdTrack.getTanl()) - (1. / tanlGen);
           const auto invQPt_res = invQPt_Rec - invQPtGen;
           mHistPtVsEta[kRecoTrue]->Fill(eta_Rec, pt_Rec);
           mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
@@ -421,7 +421,7 @@ void GloFwdAssessment::processTrueTracks()
           mTH3Histos[kTH3GMTrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(fwdTrack.getCovariances()(0, 0)));
           mTH3Histos[kTH3GMTrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(fwdTrack.getCovariances()(1, 1)));
           mTH3Histos[kTH3GMTrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(fwdTrack.getCovariances()(2, 2)));
-          mTH3Histos[kTH3GMTrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(fwdTrack.getCovariances()(3, 3)));
+          mTH3Histos[kTH3GMTrackCotlPullPtEta]->Fill(ptGen, etaGen, cotl_res / sqrt(1. / fwdTrack.getCovariances()(3, 3)));
           mTH3Histos[kTH3GMTrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(fwdTrack.getCovariances()(4, 4)));
           mTH3Histos[kTH3GMTrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
           mTH3Histos[kTH3GMTrackInvQPtResMCHPtEta]->Fill(ptGen, etaGen, (invQPt_MCH - invQPtGen) / invQPtGen);
@@ -477,7 +477,7 @@ void GloFwdAssessment::getHistos(TObjArray& objar)
     objar.Add(mTrackXYNCls[nHisto].get());
     objar.Add(mTrackEtaPhiNCls[nHisto].get());
   }
-  objar.Add(mTrackTanl.get());
+  objar.Add(mTrackCotl.get());
 
   if (mUseMC) {
     objar.Add(mHistPhiRecVsPhiGen.get());
@@ -552,7 +552,7 @@ void GloFwdAssessment::loadHistos()
     mTrackEtaPhiNCls[nHisto] = std::unique_ptr<TH2F>((TH2F*)f->Get(Form("mGlobalFwdEtaPhi_%d_MinClusters", minNClusters)));
   }
 
-  mTrackTanl = std::unique_ptr<TH1F>((TH1F*)f->Get("mGlobalFwdTanl"));
+  mTrackCotl = std::unique_ptr<TH1F>((TH1F*)f->Get("mGlobalFwdCotl"));
 
   // Creating MC-based histos
   if (mUseMC) {

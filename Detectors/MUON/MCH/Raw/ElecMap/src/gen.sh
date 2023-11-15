@@ -24,3 +24,8 @@ sort fec.map.tmp -o fec.map
 
 rm cru.map.tmp
 rm fec.map.tmp
+
+# generate SolarCrate.cxx
+
+./elecmap.py -gs "MCH Electronic Mapping" --credentials="$CRED" --dcs-to-solar -s "DCS Alias To Solar Crate"
+

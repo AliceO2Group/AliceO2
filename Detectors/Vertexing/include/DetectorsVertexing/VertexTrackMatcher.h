@@ -58,6 +58,7 @@ class VertexTrackMatcher
   void setITSROFrameLengthMUS(float v) { mITSROFrameLengthMUS = v; }
   void setMFTROFrameLengthMUS(float v) { mMFTROFrameLengthMUS = v; }
   void setMaxTPCDriftTimeMUS(float v) { mMaxTPCDriftTimeMUS = v; }
+  void setTPCTDriftOffset(float t) { mTPCTDriftOffset = t; }
   void setTPCBin2MUS(float v) { mTPCBin2MUS = v; }
   void setPrescaleLogs(int n) { mPrescaleLogs = n; }
 
@@ -72,6 +73,7 @@ class VertexTrackMatcher
   float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
   float mMFTROFrameLengthMUS = 0;       ///< MFT RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
+  float mTPCTDriftOffset = 0.f;
   float mTPCBin2MUS = 0;
   int mPrescaleLogs = 0;
 };

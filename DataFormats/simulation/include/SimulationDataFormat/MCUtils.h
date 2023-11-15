@@ -16,13 +16,17 @@
 #ifndef O2_MCUTILS_H
 #define O2_MCUTILS_H
 
+#include <string>
 #include <SimulationDataFormat/MCTrack.h>
+#include <SimulationDataFormat/ParticleStatus.h>
 #include "TPDGCode.h"
+#include "TParticle.h"
 
 namespace o2
 {
 namespace mcutils
 {
+
 /// A couple of functions to query on MC tracks ( that needs navigation within the global container
 /// of available tracks. It is a class so as to make it available for interactive ROOT more easily.
 class MCTrackNavigator
@@ -67,6 +71,16 @@ class MCTrackNavigator
   /// user hook on nodes
 
   ClassDefNV(MCTrackNavigator, 1);
+};
+
+class MCGenHelper
+{
+ public:
+  // Helper function for users which takes over encoding of status code as well as (re-)setting correct transport bit.
+  // Has to be in a class as a static methid. Just in a namespace it doesn't work to use this function in ROOT macros.
+  static void encodeParticleStatusAndTracking(TParticle& particle, bool wanttracking = true);
+  static void encodeParticleStatusAndTracking(TParticle& particle, int hepmcStatus, int genStatus, bool wanttracking = true);
+  ClassDefNV(MCGenHelper, 1)
 };
 
 /// Determine if a particle (identified by pdg) is stable
@@ -116,4 +130,4 @@ inline bool isStable(int pdg)
 } // namespace mcutils
 } // namespace o2
 
-#endif //O2_MCUTILS_H
+#endif // O2_MCUTILS_H

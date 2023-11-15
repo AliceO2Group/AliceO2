@@ -45,7 +45,7 @@ namespace dcs
      * constructors and setters of this struct, that take an array containing
      * binary data as parameter, don't check the length of the given array.</em>
      */
-struct alignas(64) DataPointValue final {
+struct DataPointValue final {
   /**
          * <p>This flag is used for signaling that a DPVAL stream connection is
          * working, but there is no data to be sent.</p>

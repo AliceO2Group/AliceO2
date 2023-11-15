@@ -106,6 +106,9 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::LabeledArrayDouble:
           pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<double>>()));
           break;
+        case VariantType::LabeledArrayString:
+          pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<std::string>>()));
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -320,6 +323,14 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
             pt.put_child(key, labeledArrayToBranch(std::move(v)));
           }
         }; break;
+        case VariantType::LabeledArrayString: {
+          auto v = labeledArrayFromBranch<std::string>(it.value());
+          if (!replaceLabels(v, spec.defaultValue.get<LabeledArray<std::string>>())) {
+            pt.put_child(key, *it);
+          } else {
+            pt.put_child(key, labeledArrayToBranch(std::move(v)));
+          }
+        }; break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -341,7 +352,7 @@ namespace
 void traverseRecursive(const boost::property_tree::ptree& parent,
                        const boost::property_tree::ptree::path_type& childPath,
                        const boost::property_tree::ptree& child,
-                       PropertyTreeHelpers::WalkerFunction& method)
+                       PropertyTreeHelpers::WalkerFunction<boost::property_tree::ptree>& method)
 {
   using boost::property_tree::ptree;
 
@@ -353,7 +364,8 @@ void traverseRecursive(const boost::property_tree::ptree& parent,
 }
 } // namespace
 
-void PropertyTreeHelpers::traverse(const boost::property_tree::ptree& parent, PropertyTreeHelpers::WalkerFunction& method)
+template <>
+void PropertyTreeHelpers::traverse<boost::property_tree::ptree>(const boost::property_tree::ptree& parent, PropertyTreeHelpers::WalkerFunction<boost::property_tree::ptree>& method)
 {
   traverseRecursive(parent, "", parent, method);
 }

@@ -288,7 +288,7 @@ def getArgumentValues(words):
 def pickContent(lines_in_file):
 
   # 1. remove the comments // but not the //!
-  #   ATTENTION: '//' can be part of a string, e.g. https://alice-ccdb.cern.ch
+  #   ATTENTION: '//' can be part of a string, e.g. http://alice-ccdb.cern.ch
   # 2. consider extensions \
   # 3. remove comment blocks /* ... */
   linesWithoutComments = list()

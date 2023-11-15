@@ -39,12 +39,17 @@ class MatchInfoTOFReco : public MatchInfoTOF
 
   MatchInfoTOFReco() = default;
 
+  void setFakeMatch() { mFakeMC = true; }
+  void resetFakeMatch() { mFakeMC = false; }
+  bool isFake() const { return mFakeMC; }
+
   void setTrackType(TrackType value) { mTrackType = value; }
   TrackType getTrackType() const { return mTrackType; }
 
  private:
   TrackType mTrackType; ///< track type (TPC, ITSTPC, TPCTRD, ITSTPCTRD)
-  ClassDefNV(MatchInfoTOFReco, 2);
+  bool mFakeMC = false;
+  ClassDefNV(MatchInfoTOFReco, 3);
 };
 } // namespace dataformats
 } // namespace o2

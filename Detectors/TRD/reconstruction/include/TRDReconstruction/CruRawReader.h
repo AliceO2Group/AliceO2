@@ -63,13 +63,21 @@ class CruRawReader
   // configure the raw reader, done once at the init() stage
   void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options);
 
+  // set number of time bins to fixed value instead of reading from DigitHCHeader
+  // (but still complain if DigitHCHeader is not consistent)
+  void setNumberOfTimeBins(int tb)
+  {
+    mTimeBins = tb;
+    mTimeBinsFixed = true;
+  }
+
   // settings in order to avoid InfoLogger flooding
   void setMaxErrWarnPrinted(int nerr, int nwar)
   {
     mMaxErrsPrinted = nerr < 0 ? std::numeric_limits<int>::max() : nerr;
     mMaxWarnPrinted = nwar < 0 ? std::numeric_limits<int>::max() : nwar;
   }
-  void checkNoWarn();
+  void checkNoWarn(bool silently = true);
   void checkNoErr();
 
   // set the input data buffer
@@ -102,9 +110,6 @@ class CruRawReader
   // parse the digit HC headers, possibly update settings as the number of time bins from the header word
   bool parseDigitHCHeaders(int hcid);
 
-  // compare the link ID information from the digit HC header with what we know from RDH header
-  void checkDigitHCHeader(int hcidRef);
-
   // helper function to compare two consecutive RDHs
   bool compareRDH(const o2::header::RDHAny* rdhPrev, const o2::header::RDHAny* rdhCurr);
 
@@ -114,8 +119,10 @@ class CruRawReader
   // given the total link size and the hcid from the RDH
   // parse the tracklet data. Overwrite hcid from TrackletHCHeader if mismatch is detected
   // trackletWordsRejected:  count the number of words which were skipped (subset of words read)
-  // returns total number of words read (no matter if parsed successfully or not)
-  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
+  // trackletWordsReadOK: count the number of words which could be read consecutively w/o errors
+  // numberOfTrackletsFound: count the number of tracklets found
+  // returns total number of words read (no matter if parsed successfully or not) or -1 in case of failure
+  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected, int& trackletWordsReadOK, int& numberOfTrackletsFound);
 
   // the parsing begins after the DigitHCHeaders have been parsed already
   // maxWords32 is the remaining number of words for the given link
@@ -168,10 +175,12 @@ class CruRawReader
   bool mPreviousHalfCRUHeaderSet;       // flag, whether we can use mPreviousHalfCRUHeader for additional sanity checks
   DigitHCHeader mDigitHCHeader;         // Digit HalfChamber header we are currently on.
   uint16_t mTimeBins{constants::TIMEBINS}; // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
+  bool mTimeBinsFixed{false};              // flag, whether number of time bins different from default was configured
   bool mHaveSeenDigitHCHeader3{false};     // flag, whether we can compare an incoming DigitHCHeader3 with a header we have seen before
   uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
   uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks
-
+  uint8_t mPreTriggerPhase = 0;           // Pre trigger phase of the adcs producing the digits, its comes from an optional DigitHCHeader
+                                          // It is stored here to carry it around after parsing it from the DigitHCHeader1 if it exists in the data.
   uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;       // CRU ID taken from the FEEID of the RDH
   TRDFeeID mFEEID;       // current Fee ID working on
@@ -180,8 +189,8 @@ class CruRawReader
   std::set<std::pair<int, int>> mHalfChamberMismatches; // first element is HCID from RDH and second element is HCID from TrackletHCHeader
 
   o2::InteractionRecord mIR;
-  std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
-  std::array<uint32_t, 15> mCurrentHalfCRULinkErrorFlags;
+  std::array<uint16_t, 15> mCurrentHalfCRULinkLengths;
+  std::array<uint8_t, 15> mCurrentHalfCRULinkErrorFlags;
 
   const LinkToHCIDMapping* mLinkMap = nullptr; // to retrieve HCID from Link ID
 

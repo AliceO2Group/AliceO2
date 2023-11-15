@@ -119,7 +119,7 @@ GPUReconstruction::~GPUReconstruction()
   }
 }
 
-void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
+void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame)
 {
   if (trackerTraits) {
     trackerTraits->reset(new o2::its::TrackerTraits);
@@ -127,11 +127,9 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraits);
   }
-}
-
-void GPUReconstruction::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
-{
-  timeFrame->reset(new o2::its::TimeFrame);
+  if (timeFrame) {
+    timeFrame->reset(new o2::its::TimeFrame);
+  }
 }
 
 int GPUReconstruction::SetNOMPThreads(int n)
@@ -281,7 +279,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.tpc.mergerReadFromTrackerDirectly) {
     mProcessingSettings.fullMergerOnGPU = false;
   }
-  if (mProcessingSettings.debugLevel || !mProcessingSettings.fullMergerOnGPU) {
+  if (mProcessingSettings.debugLevel > 3 || !mProcessingSettings.fullMergerOnGPU) {
     mProcessingSettings.delayedOutput = false;
   }
   if (!mProcessingSettings.fullMergerOnGPU && GetRecoStepsGPU() & RecoStep::TPCMerging) {
@@ -291,8 +289,8 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     }
   }
 
-  UpdateSettings();
-  GPUCA_GPUReconstructionUpdateDefailts();
+  UpdateAutomaticProcessingSettings();
+  GPUCA_GPUReconstructionUpdateDefaults();
   if (!mProcessingSettings.trackletConstructorInPipeline) {
     mProcessingSettings.trackletSelectorInPipeline = false;
   }
@@ -533,7 +531,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     return retVal;
   }
   if (memorypool == nullptr) {
-    GPUInfo("Memory pool uninitialized");
+    GPUError("Cannot allocate memory from uninitialized pool");
     throw std::bad_alloc();
   }
   size_t retVal;
@@ -673,8 +671,8 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     mUnmanagedChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
     return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mUnmanagedChunks.back().get());
   } else {
-    void* pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
-    void* poolend = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPoolEnd : mHostMemoryPoolEnd;
+    void*& pool = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPool : mHostMemoryPool;
+    void*& poolend = type == GPUMemoryResource::MEMORY_GPU ? mDeviceMemoryPoolEnd : mHostMemoryPoolEnd;
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
     if (pool > poolend) {
@@ -907,6 +905,31 @@ void GPUReconstruction::PrintMemoryStatistics()
   }
 }
 
+int GPUReconstruction::registerMemoryForGPU(const void* ptr, size_t size)
+{
+  if (mProcessingSettings.noGPUMemoryRegistration) {
+    return 0;
+  }
+  int retVal = registerMemoryForGPU_internal(ptr, size);
+  if (retVal == 0) {
+    mRegisteredMemoryPtrs.emplace(ptr);
+  }
+  return retVal;
+}
+
+int GPUReconstruction::unregisterMemoryForGPU(const void* ptr)
+{
+  if (mProcessingSettings.noGPUMemoryRegistration) {
+    return 0;
+  }
+  const auto& pos = mRegisteredMemoryPtrs.find(ptr);
+  if (pos != mRegisteredMemoryPtrs.end()) {
+    mRegisteredMemoryPtrs.erase(pos);
+    return unregisterMemoryForGPU_internal(ptr);
+  }
+  return 1;
+}
+
 template <class T>
 static inline int getStepNum(T step, bool validCheck, int N, const char* err = "Invalid step num")
 {
@@ -949,8 +972,10 @@ void GPUReconstruction::RunPipelineWorker()
     } else {
       q->retVal = q->chain->RunChain();
     }
-    std::lock_guard<std::mutex> lk(q->m);
-    q->done = true;
+    {
+      std::lock_guard<std::mutex> lk(q->m);
+      q->done = true;
+    }
     q->c.notify_one();
   }
   if (mProcessingSettings.debugLevel >= 3) {
@@ -1014,11 +1039,11 @@ void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not b
   AllocateRegisteredMemory(nullptr);
 }
 
-int GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
+int GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, std::vector<std::array<unsigned int, 4>>* fillErrors)
 {
   int retVal = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->CheckErrorCodes(cpuOnly, forceShowErrors)) {
+    if (mChains[i]->CheckErrorCodes(cpuOnly, forceShowErrors, fillErrors)) {
       retVal++;
     }
   }
@@ -1036,10 +1061,17 @@ void GPUReconstruction::DumpSettings(const char* dir)
   }
 }
 
-void GPUReconstruction::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
+void GPUReconstruction::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
-  mGRPSettings = *g;
-  param().UpdateSettings(g, p);
+  if (g) {
+    mGRPSettings = *g;
+  }
+  if (p) {
+    mProcessingSettings.debugLevel = p->debugLevel;
+    mProcessingSettings.resetTimers = p->resetTimers;
+  }
+  GPURecoStepConfiguration w = {mRecoSteps, mRecoStepsGPU, mRecoStepsInputs, mRecoStepsOutputs};
+  param().UpdateSettings(g, p, &w);
   if (mInitialized) {
     WriteConstantParams();
   }
@@ -1125,6 +1157,12 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
 {
   GPUReconstruction* retVal = nullptr;
   unsigned int type = cfg.deviceType;
+#ifdef DEBUG_STREAMER
+  if (type != DeviceType::CPU) {
+    GPUError("Cannot create GPUReconstruction for a non-CPU device if DEBUG_STREAMER are enabled");
+    return nullptr;
+  }
+#endif
   if (type == DeviceType::CPU) {
     retVal = GPUReconstruction_Create_CPU(cfg);
   } else if (type == DeviceType::CUDA) {
@@ -1158,7 +1196,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
       retVal = CreateInstance(cfg2);
     }
   } else {
-    GPUInfo("Created GPUReconstruction instance for device type %s (%u) %s", GPUDataTypes::DEVICE_TYPE_NAMES[type], type, cfg.master ? " (slave)" : "");
+    GPUInfo("Created GPUReconstruction instance for device type %s (%u)%s", GPUDataTypes::DEVICE_TYPE_NAMES[type], type, cfg.master ? " (slave)" : "");
   }
 
   return retVal;
@@ -1177,7 +1215,7 @@ bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
   } else if (type == DeviceType::OCL2) {
     return sLibOCL2->LoadLibrary() == 0;
   } else {
-    GPUError("Error: Invalid device type %u", type);
+    GPUError("Error: Invalid device type %u", (unsigned)type);
     return false;
   }
 }

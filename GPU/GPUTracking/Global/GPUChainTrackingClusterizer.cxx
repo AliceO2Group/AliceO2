@@ -24,6 +24,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #endif
 #ifdef GPUCA_HAVE_O2HEADERS
+#include "GPUTriggerOutputs.h"
 #include "GPUHostDataTypes.h"
 #include "GPUTPCCFChainContext.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
@@ -59,10 +60,10 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
     if (doGPU) {
       unsigned short posInEndpoint = 0;
       unsigned short pagesEndpoint = 0;
-      for (unsigned int k = clusterer.mMinMaxCN[j].minC; k < clusterer.mMinMaxCN[j].maxC; k++) {
-        const unsigned int minL = (k == clusterer.mMinMaxCN[j].minC) ? clusterer.mMinMaxCN[j].minN : 0;
-        const unsigned int maxL = (k + 1 == clusterer.mMinMaxCN[j].maxC) ? clusterer.mMinMaxCN[j].maxN : mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
-        for (unsigned int l = minL; l < maxL; l++) {
+      for (unsigned int k = clusterer.mMinMaxCN[j].zsPtrFirst; k < clusterer.mMinMaxCN[j].zsPtrLast; k++) {
+        const unsigned int pageFirst = (k == clusterer.mMinMaxCN[j].zsPtrFirst) ? clusterer.mMinMaxCN[j].zsPageFirst : 0;
+        const unsigned int pageLast = (k + 1 == clusterer.mMinMaxCN[j].zsPtrLast) ? clusterer.mMinMaxCN[j].zsPageLast : mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
+        for (unsigned int l = pageFirst; l < pageLast; l++) {
           unsigned short pageDigits = mCFContext->fragmentData[fragment.index].pageDigits[iSlice][j][posInEndpoint++];
           if (pageDigits) {
             *(o++) = GPUTPCClusterFinder::ZSOffset{digits, j, pagesEndpoint};
@@ -88,8 +89,60 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
   if (doGPU) {
     pages = o - processors()->tpcClusterer[iSlice].mPzsOffsets;
   }
+  if (!doGPU && GetProcessingSettings().debugLevel >= 4 && mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
+    TPCClusterizerEnsureZSOffsets(iSlice, fragment);
+  }
   return {digits, pages};
 }
+
+void GPUChainTracking::TPCClusterizerEnsureZSOffsets(unsigned int iSlice, const CfFragment& fragment)
+{
+  GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
+  unsigned int nAdcs = 0;
+  for (unsigned short endpoint = 0; endpoint < GPUTrackingInOutZS::NENDPOINTS; endpoint++) {
+    const auto& data = mCFContext->fragmentData[fragment.index];
+    unsigned int pagesEndpoint = 0;
+    const unsigned int nAdcsExpected = data.nDigits[iSlice][endpoint];
+    const unsigned int nPagesExpected = data.nPages[iSlice][endpoint];
+
+    unsigned int nAdcDecoded = 0;
+    const auto& zs = mIOPtrs.tpcZS->slice[iSlice];
+    for (unsigned int i = data.minMaxCN[iSlice][endpoint].zsPtrFirst; i < data.minMaxCN[iSlice][endpoint].zsPtrLast; i++) {
+      const unsigned int pageFirst = (i == data.minMaxCN[iSlice][endpoint].zsPtrFirst) ? data.minMaxCN[iSlice][endpoint].zsPageFirst : 0;
+      const unsigned int pageLast = (i + 1 == data.minMaxCN[iSlice][endpoint].zsPtrLast) ? data.minMaxCN[iSlice][endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
+      for (unsigned int j = pageFirst; j < pageLast; j++) {
+        const unsigned char* page = static_cast<const unsigned char*>(zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+        const header::RAWDataHeader* rawDataHeader = reinterpret_cast<const header::RAWDataHeader*>(page);
+        const TPCZSHDRV2* decHdr = reinterpret_cast<const TPCZSHDRV2*>(page + raw::RDHUtils::getMemorySize(*rawDataHeader) - sizeof(TPCZSHDRV2));
+        const unsigned short nSamplesInPage = decHdr->nADCsamples;
+
+        nAdcDecoded += nSamplesInPage;
+        pagesEndpoint++;
+      }
+    }
+
+    if (pagesEndpoint != nPagesExpected) {
+      GPUFatal("Sector %d, Endpoint %d, Fragment %d: TPC raw page count mismatch: expected %d / buffered %lu", iSlice, endpoint, fragment.index, pagesEndpoint, nPagesExpected);
+    }
+
+    if (nAdcDecoded != nAdcsExpected) {
+      GPUFatal("Sector %d, Endpoint %d, Fragment %d: TPC ADC count mismatch: expected %u, buffered %u", iSlice, endpoint, fragment.index, nAdcsExpected, nAdcDecoded);
+    }
+
+    if (nAdcs != clusterer.mPzsOffsets[endpoint].offset) {
+      GPUFatal("Sector %d, Endpoint %d, Fragment %d: TPC ADC offset mismatch: expected %u, buffered %u", iSlice, endpoint, fragment.index, nAdcs, clusterer.mPzsOffsets[endpoint].offset);
+    }
+
+    nAdcs += nAdcsExpected;
+  }
+}
+
+namespace
+{
+struct TPCCFDecodeScanTmp {
+  int zsPtrFirst, zsPageFirst, zsPtrLast, zsPageLast, hasData, pageCounter;
+};
+} // namespace
 
 std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCount(unsigned int iSlice, const CfFragment& fragment)
 {
@@ -113,11 +166,11 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
     }
 #endif
 
-    std::vector<std::pair<CfFragment, std::array<int, 6>>> fragments;
+    std::vector<std::pair<CfFragment, TPCCFDecodeScanTmp>> fragments;
     fragments.reserve(mCFContext->nFragments);
-    fragments.emplace_back(std::pair<CfFragment, std::array<int, 6>>{fragment, {0, 0, 0, 0, 0, -1}});
+    fragments.emplace_back(std::pair<CfFragment, TPCCFDecodeScanTmp>{fragment, {0, 0, 0, 0, 0, -1}});
     for (unsigned int i = 1; i < mCFContext->nFragments; i++) {
-      fragments.emplace_back(std::pair<CfFragment, std::array<int, 6>>{fragments.back().first.next(), {0, 0, 0, 0, 0, -1}});
+      fragments.emplace_back(std::pair<CfFragment, TPCCFDecodeScanTmp>{fragments.back().first.next(), {0, 0, 0, 0, 0, -1}});
     }
     std::vector<bool> fragmentExtends(mCFContext->nFragments, false);
 
@@ -125,6 +178,9 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
     unsigned int pageCounter = 0;
     unsigned int emptyPages = 0;
     for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
+      if (GetProcessingSettings().tpcSingleSector != -1 && GetProcessingSettings().tpcSingleSector != (int)iSlice) {
+        break;
+      }
       nPages += mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
       for (unsigned int l = 0; l < mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k]; l++) {
 #ifndef GPUCA_NO_VC
@@ -140,23 +196,54 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           continue;
         }
         pageCounter++;
-        const TPCZSHDR* const hdr = (const TPCZSHDR*)(o2::raw::RDHUtils::getLinkID(*rdh) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
+        const TPCZSHDR* const hdr = (const TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
         if (mCFContext->zsVersion == -1) {
           mCFContext->zsVersion = hdr->version;
+          if (GetProcessingSettings().param.tpcTriggerHandling && mCFContext->zsVersion < ZSVersion::ZSVersionDenseLinkBased) { // TODO: Move tpcTriggerHandling to recoSteps bitmask
+            static bool errorShown = false;
+            if (errorShown == false) {
+              GPUAlarm("Trigger handling only possible with TPC Dense Link Based data, received version %d, disabling", mCFContext->zsVersion);
+            }
+            errorShown = true;
+          }
         } else if (mCFContext->zsVersion != (int)hdr->version) {
+          GPUError("Received TPC ZS 8kb page of mixed versions, expected %d, received %d (linkid %d, feeCRU %d, feeEndpoint %d, feelinkid %d)", mCFContext->zsVersion, (int)hdr->version, (int)o2::raw::RDHUtils::getLinkID(*rdh), (int)rdh_utils::getCRU(*rdh), (int)rdh_utils::getEndPoint(*rdh), (int)rdh_utils::getLink(*rdh));
+          constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1;
+          char dumpBuffer[bufferSize];
+          for (size_t i = 0; i < sizeof(*rdh); i++) {
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)rdh)[i]);
+          }
+          GPUAlarm("RDH of page: %s", dumpBuffer);
+          for (size_t i = 0; i < sizeof(*hdr); i++) {
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)hdr)[i]);
+          }
+          GPUAlarm("Metainfo of page: %s", dumpBuffer);
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
             mCFContext->abandonTimeframe = true;
-            GPUError("Received TPC ZS data of mixed versions");
             return {0, 0};
           } else {
-            GPUFatal("Received TPC ZS data of mixed versions");
+            GPUFatal("Cannot process with invalid TPC ZS data, exiting");
+          }
+        }
+        if (GetProcessingSettings().param.tpcTriggerHandling) {
+          const TPCZSHDRV2* const hdr2 = (const TPCZSHDRV2*)hdr;
+          if (hdr2->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) {
+            const char* triggerWord = (const char*)hdr - TPCZSHDRV2::TRIGGER_WORD_SIZE;
+            o2::tpc::TriggerInfoDLBZS tmp;
+            memcpy((void*)&tmp.triggerWord, triggerWord, TPCZSHDRV2::TRIGGER_WORD_SIZE);
+            tmp.orbit = o2::raw::RDHUtils::getHeartBeatOrbit(*rdh);
+            if (tmp.triggerWord.isValid(0)) {
+              mTriggerBuffer->triggers.emplace(tmp);
+            }
           }
         }
         nDigits += hdr->nADCsamples;
         endpointAdcSamples[j] += hdr->nADCsamples;
         unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
         unsigned int maxTimeBin = timeBin + hdr->nTimeBinSpan;
-        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+        if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
           const TPCZSHDRV2* const hdr2 = (const TPCZSHDRV2*)hdr;
           if (hdr2->flags & TPCZSHDRV2::ZSFlags::nTimeBinSpanBit8) {
             maxTimeBin += 256;
@@ -166,7 +253,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           mCFContext->tpcMaxTimeBin = maxTimeBin;
         }
         bool extendsInNextPage = false;
-        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+        if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
           if (l + 1 < mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k] && o2::raw::RDHUtils::getMemorySize(*rdh) == TPCZSHDR::TPC_ZS_PAGE_SIZE) {
             const o2::header::RAWDataHeader* nextrdh = (const o2::header::RAWDataHeader*)(page + TPCZSHDR::TPC_ZS_PAGE_SIZE);
             extendsInNextPage = o2::raw::RDHUtils::getHeartBeatOrbit(*nextrdh) == o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) && o2::raw::RDHUtils::getMemorySize(*nextrdh) > sizeof(o2::header::RAWDataHeader);
@@ -177,32 +264,42 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         }
         auto handleExtends = [&](unsigned int ff) {
           if (fragmentExtends[ff]) {
-            fragments[ff].second[3]++;
-            mCFContext->fragmentData[ff].nPages[iSlice][j]++;
             if (doGPU) {
+              // Only add extended page on GPU. On CPU the pages are in consecutive memory anyway.
+              // Not adding the page prevents an issue where a page is decoded twice on CPU, when only the extend should be decoded.
+              fragments[ff].second.zsPageLast++;
+              mCFContext->fragmentData[ff].nPages[iSlice][j]++;
               mCFContext->fragmentData[ff].pageDigits[iSlice][j].emplace_back(0);
             }
             fragmentExtends[ff] = false;
           }
         };
-        if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+        if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
           for (unsigned int ff = 0; ff < firstPossibleFragment; ff++) {
             handleExtends(ff);
           }
         }
         for (unsigned int f = firstPossibleFragment; f < mCFContext->nFragments; f++) {
           if (timeBin < (unsigned int)fragments[f].first.last() && (unsigned int)fragments[f].first.first() <= maxTimeBin) {
-            if (!fragments[f].second[4]) {
-              fragments[f].second[4] = 1;
-              fragments[f].second[0] = k;
-              fragments[f].second[1] = l;
+            if (!fragments[f].second.hasData) {
+              fragments[f].second.hasData = 1;
+              fragments[f].second.zsPtrFirst = k;
+              fragments[f].second.zsPageFirst = l;
             } else {
-              if (pageCounter > (unsigned int)fragments[f].second[5] + 1) {
-                mCFContext->fragmentData[f].nPages[iSlice][j] += emptyPages + pageCounter - fragments[f].second[5] - 1;
-                if (doGPU) {
-                  for (unsigned int k2 = fragments[f].second[2] - 1; k2 <= k; k2++) {
-                    for (unsigned int l2 = ((int)k2 == fragments[f].second[2] - 1) ? fragments[f].second[3] : 0; l2 < (k2 < k ? mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k2] : l); l2++) {
+              if (pageCounter > (unsigned int)fragments[f].second.pageCounter + 1) {
+                mCFContext->fragmentData[f].nPages[iSlice][j] += emptyPages + pageCounter - fragments[f].second.pageCounter - 1;
+                for (unsigned int k2 = fragments[f].second.zsPtrLast - 1; k2 <= k; k2++) {
+                  for (unsigned int l2 = ((int)k2 == fragments[f].second.zsPtrLast - 1) ? fragments[f].second.zsPageLast : 0; l2 < (k2 < k ? mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k2] : l); l2++) {
+                    if (doGPU) {
                       mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(0);
+                    } else {
+                      // CPU cannot skip unneeded pages, so we must keep space to store the invalid dummy clusters
+                      const unsigned char* const pageTmp = ((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j][k2]) + l2 * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+                      const o2::header::RAWDataHeader* rdhTmp = (const o2::header::RAWDataHeader*)pageTmp;
+                      if (o2::raw::RDHUtils::getMemorySize(*rdhTmp) != sizeof(o2::header::RAWDataHeader)) {
+                        const TPCZSHDR* const hdrTmp = (const TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdhTmp)) == rdh_utils::DLBZSLinkID ? (pageTmp + o2::raw::RDHUtils::getMemorySize(*rdhTmp) - sizeof(TPCZSHDRV2)) : (pageTmp + sizeof(o2::header::RAWDataHeader)));
+                        mCFContext->fragmentData[f].nDigits[iSlice][j] += hdrTmp->nADCsamples;
+                      }
                     }
                   }
                 }
@@ -215,9 +312,9 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
                 }
               }
             }
-            fragments[f].second[2] = k + 1;
-            fragments[f].second[3] = l + 1;
-            fragments[f].second[5] = pageCounter;
+            fragments[f].second.zsPtrLast = k + 1;
+            fragments[f].second.zsPageLast = l + 1;
+            fragments[f].second.pageCounter = pageCounter;
             mCFContext->fragmentData[f].nPages[iSlice][j]++;
             mCFContext->fragmentData[f].nDigits[iSlice][j] += hdr->nADCsamples;
             if (doGPU) {
@@ -227,7 +324,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           } else {
             handleExtends(f);
             if (timeBin < (unsigned int)fragments[f].first.last()) {
-              if (mCFContext->zsVersion == ZSVersion::ZSVersionDenseLinkBased) {
+              if (mCFContext->zsVersion >= ZSVersion::ZSVersionDenseLinkBased) {
                 for (unsigned int ff = f + 1; ff < mCFContext->nFragments; ff++) {
                   handleExtends(ff);
                 }
@@ -242,10 +339,10 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
       }
     }
     for (unsigned int f = 0; f < mCFContext->nFragments; f++) {
-      mCFContext->fragmentData[f].minMaxCN[iSlice][j].maxC = fragments[f].second[2];
-      mCFContext->fragmentData[f].minMaxCN[iSlice][j].minC = fragments[f].second[0];
-      mCFContext->fragmentData[f].minMaxCN[iSlice][j].maxN = fragments[f].second[3];
-      mCFContext->fragmentData[f].minMaxCN[iSlice][j].minN = fragments[f].second[1];
+      mCFContext->fragmentData[f].minMaxCN[iSlice][j].zsPtrLast = fragments[f].second.zsPtrLast;
+      mCFContext->fragmentData[f].minMaxCN[iSlice][j].zsPtrFirst = fragments[f].second.zsPtrFirst;
+      mCFContext->fragmentData[f].minMaxCN[iSlice][j].zsPageLast = fragments[f].second.zsPageLast;
+      mCFContext->fragmentData[f].minMaxCN[iSlice][j].zsPageFirst = fragments[f].second.zsPageFirst;
     }
   }
   mCFContext->nPagesTotal += nPages;
@@ -337,9 +434,9 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::RunTPCClusterizer_transf
       unsigned int nPages = 0;
       mInputsHost->mPzsMeta->slice[iSlice].zsPtr[j] = &mInputsShadow->mPzsPtrs[iSlice * GPUTrackingInOutZS::NENDPOINTS + j];
       mInputsHost->mPzsPtrs[iSlice * GPUTrackingInOutZS::NENDPOINTS + j] = clustererShadow.mPzs + (nPagesSector + nPages) * TPCZSHDR::TPC_ZS_PAGE_SIZE;
-      for (unsigned int k = clusterer.mMinMaxCN[j].minC; k < clusterer.mMinMaxCN[j].maxC; k++) {
-        const unsigned int min = (k == clusterer.mMinMaxCN[j].minC) ? clusterer.mMinMaxCN[j].minN : 0;
-        const unsigned int max = (k + 1 == clusterer.mMinMaxCN[j].maxC) ? clusterer.mMinMaxCN[j].maxN : mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
+      for (unsigned int k = clusterer.mMinMaxCN[j].zsPtrFirst; k < clusterer.mMinMaxCN[j].zsPtrLast; k++) {
+        const unsigned int min = (k == clusterer.mMinMaxCN[j].zsPtrFirst) ? clusterer.mMinMaxCN[j].zsPageFirst : 0;
+        const unsigned int max = (k + 1 == clusterer.mMinMaxCN[j].zsPtrLast) ? clusterer.mMinMaxCN[j].zsPageLast : mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
         if (max > min) {
           char* src = (char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j][k] + min * TPCZSHDR::TPC_ZS_PAGE_SIZE;
           char* ptrLast = (char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j][k] + (max - 1) * TPCZSHDR::TPC_ZS_PAGE_SIZE;
@@ -375,16 +472,20 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
     mCFContext.reset(new GPUTPCCFChainContext);
   }
   const short maxFragmentLen = GetProcessingSettings().overrideClusterizerFragmentLen;
-  mCFContext->tpcMaxTimeBin = param().par.continuousTracking ? std::max<int>(param().par.continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
+  const unsigned int maxAllowedTimebin = param().par.continuousTracking ? std::max<int>(param().par.continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
+  mCFContext->tpcMaxTimeBin = maxAllowedTimebin;
   const CfFragment fragmentMax{(tpccf::TPCTime)mCFContext->tpcMaxTimeBin + 1, maxFragmentLen};
   mCFContext->prepare(mIOPtrs.tpcZS, fragmentMax);
+  if (GetProcessingSettings().param.tpcTriggerHandling) {
+    mTriggerBuffer->triggers.clear();
+  }
   if (mIOPtrs.tpcZS) {
     unsigned int nDigitsFragmentMax[NSLICES];
     mCFContext->zsVersion = -1;
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (mIOPtrs.tpcZS->slice[iSlice].count[0]) {
         const void* rdh = mIOPtrs.tpcZS->slice[iSlice].zsPtr[0][0];
-        if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>() != o2::raw::RDHUtils::getVersion(rdh)) {
+        if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeaderV6>() > o2::raw::RDHUtils::getVersion(rdh)) {
           GPUError("Data has invalid RDH version %d, %d required\n", o2::raw::RDHUtils::getVersion(rdh), o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
           return 1;
         }
@@ -429,17 +530,18 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
       processors()->tpcClusterer[iSlice].SetNMaxDigits(nDigits, mCFContext->nPagesFragmentMax, nDigits, 0);
     }
   }
+
   if (mIOPtrs.tpcZS) {
     GPUInfo("Event has %u 8kb TPC ZS pages (version %d), %lld digits", mCFContext->nPagesTotal, mCFContext->zsVersion, (long long int)mRec->MemoryScalers()->nTPCdigits);
   } else {
     GPUInfo("Event has %lld TPC Digits", (long long int)mRec->MemoryScalers()->nTPCdigits);
   }
 
-  if (param().par.continuousMaxTimeBin > 0 && mCFContext->tpcMaxTimeBin >= std::max<unsigned int>(param().par.continuousMaxTimeBin, maxFragmentLen) + 1) {
-    GPUError("Input data has invalid time bin %u >= %d", mCFContext->tpcMaxTimeBin, std::max<unsigned int>(param().par.continuousMaxTimeBin + 1, (int)maxFragmentLen));
+  if (mCFContext->tpcMaxTimeBin > maxAllowedTimebin) {
+    GPUError("Input data has invalid time bin %u > %d", mCFContext->tpcMaxTimeBin, maxAllowedTimebin);
     if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
       mCFContext->abandonTimeframe = true;
-      mCFContext->tpcMaxTimeBin = param().par.continuousMaxTimeBin;
+      mCFContext->tpcMaxTimeBin = maxAllowedTimebin;
     } else {
       return 1;
     }
@@ -485,6 +587,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasNHBFPerTF) {
     unsigned int nHitsBase = mRec->MemoryScalers()->nTPCHits;
     unsigned int threshold = 30000000 / 256 * mIOPtrs.settingsTF->nHBFPerTF;
+    if (mIOPtrs.settingsTF->nHBFPerTF < 64) {
+      threshold *= 2;
+    }
     mRec->MemoryScalers()->nTPCHits = std::max<unsigned int>(nHitsBase, std::min<unsigned int>(threshold, nHitsBase * 3.5)); // Increase the buffer size for low occupancy data to compensate for noisy pads creating exceiive clusters
     if (nHitsBase < threshold) {
       float maxFactor = mRec->MemoryScalers()->nTPCHits < threshold * 2 / 3 ? 3 : (mRec->MemoryScalers()->nTPCHits < threshold ? 2.25 : 1.75);
@@ -527,6 +632,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }
   if (buildNativeHost && !(buildNativeGPU && GetProcessingSettings().delayedOutput)) {
+    if (mWaitForFinalInputs) {
+      GPUFatal("Cannot use waitForFinalInput callback without delayed output");
+    }
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
   }
 
@@ -540,8 +648,21 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   char transferRunning[NSLICES] = {0};
   unsigned int outputQueueStart = mOutputQueue.size();
 
+  auto notifyForeignChainFinished = [this]() {
+    if (mPipelineNotifyCtx) {
+      SynchronizeStream(OutputStream()); // Must finish before updating ioPtrs in (global) constant memory
+      {
+        std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
+        mPipelineNotifyCtx->ready = true;
+      }
+      mPipelineNotifyCtx->cond.notify_one();
+    }
+  };
+  bool synchronizeCalibUpdate = false;
+
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetProcessingSettings().nTPCClustererLanes) {
     std::vector<bool> laneHasData(GetProcessingSettings().nTPCClustererLanes, false);
+    static_assert(NSLICES <= GPUCA_MAX_STREAMS, "Stream events must be able to hold all slices");
     const int maxLane = std::min<int>(GetProcessingSettings().nTPCClustererLanes, NSLICES - iSliceBase);
     for (CfFragment fragment = mCFContext->fragmentFirst; !fragment.isEnd(); fragment = fragment.next()) {
       if (GetProcessingSettings().debugLevel >= 3) {
@@ -549,7 +670,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       }
       GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
       for (int lane = 0; lane < maxLane; lane++) {
-        if (fragment.index != 0) {
+        if (doGPU && fragment.index != 0) {
           SynchronizeStream(lane); // Don't overwrite charge map from previous iteration until cluster computation is finished
         }
 
@@ -592,12 +713,13 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Zeroed Charges", doGPU);
 
-        if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice] && mCFContext->zsVersion != -1) {
-          TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceZS, lane);
-          SynchronizeStream(GetProcessingSettings().nTPCClustererLanes + lane);
+        if (doGPU) {
+          if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice] && mCFContext->zsVersion != -1) {
+            TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceZS, lane);
+            SynchronizeStream(GetProcessingSettings().nTPCClustererLanes + lane);
+          }
+          SynchronizeStream(mRec->NStreams() - 1); // Wait for copying to constant memory
         }
-
-        SynchronizeStream(mRec->NStreams() - 1); // Wait for copying to constant memory
 
         if (mIOPtrs.tpcZS && (mCFContext->abandonTimeframe || !mCFContext->nPagesSector[iSlice] || mCFContext->zsVersion == -1)) {
           clusterer.mPmemory->counters.nPositions = 0;
@@ -619,12 +741,14 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           }
         }
 
-        if (not mIOPtrs.tpcZS) {
-          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane), {iSlice}, {}, mIOPtrs.tpcZS == nullptr);
-          TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
-        } else if (propagateMCLabels) {
-          runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}, {}, mIOPtrs.tpcZS == nullptr);
-          TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
+        if (GetProcessingSettings().tpcSingleSector == -1 || GetProcessingSettings().tpcSingleSector == (int)iSlice) {
+          if (not mIOPtrs.tpcZS) {
+            runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane), {iSlice}, {}, mIOPtrs.tpcZS == nullptr);
+            TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
+          } else if (propagateMCLabels) {
+            runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::findFragmentStart>(GetGrid(1, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}, {}, mIOPtrs.tpcZS == nullptr);
+            TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
+          }
         }
 
         if (mIOPtrs.tpcZS) {
@@ -653,7 +777,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
       for (int lane = 0; lane < maxLane; lane++) {
         unsigned int iSlice = iSliceBase + lane;
-        SynchronizeStream(lane);
+        if (doGPU) {
+          SynchronizeStream(lane);
+        }
         if (mIOPtrs.tpcZS) {
           CfFragment f = fragment.next();
           int nextSlice = iSlice;
@@ -703,7 +829,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         unsigned int iSlice = iSliceBase + lane;
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
-        SynchronizeStream(lane);
+        if (doGPU) {
+          SynchronizeStream(lane);
+        }
         if (clusterer.mPmemory->counters.nPeaks == 0) {
           continue;
         }
@@ -720,7 +848,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         unsigned int iSlice = iSliceBase + lane;
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
-        SynchronizeStream(lane);
+        if (doGPU) {
+          SynchronizeStream(lane);
+        }
 
         if (fragment.index == 0) {
           runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {nullptr, transferRunning[lane] == 1 ? &mEvents->stream[lane] : nullptr}, clustererShadow.mPclusterInRow, GPUCA_ROW_COUNT * sizeof(*clustererShadow.mPclusterInRow));
@@ -737,7 +867,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         runKernel<GPUTPCCFClusterizer>(GetGrid(clusterer.mPmemory->counters.nClusters, lane), {iSlice}, {}, 0);
         if (doGPU && propagateMCLabels) {
           TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchId, lane);
-          SynchronizeStream(lane);
+          if (doGPU) {
+            SynchronizeStream(lane);
+          }
           runKernel<GPUTPCCFClusterizer>(GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}, {}, 1);
         }
         if (GetProcessingSettings().debugLevel >= 3) {
@@ -758,7 +890,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     for (int lane = 0; lane < maxLane; lane++) {
       unsigned int iSlice = iSliceBase + lane;
       std::fill(&tmpNative->nClusters[iSlice][0], &tmpNative->nClusters[iSlice][0] + MAXGLOBALPADROW, 0);
-      SynchronizeStream(lane);
+      if (doGPU) {
+        SynchronizeStream(lane);
+      }
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
 
@@ -812,11 +946,29 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
       }
     }
+
+    if (mWaitForFinalInputs && iSliceBase >= 21 && (int)iSliceBase < 21 + GetProcessingSettings().nTPCClustererLanes) {
+      notifyForeignChainFinished();
+    }
+    if (mWaitForFinalInputs && iSliceBase >= 30 && (int)iSliceBase < 30 + GetProcessingSettings().nTPCClustererLanes) {
+      mWaitForFinalInputs();
+      synchronizeCalibUpdate = DoQueuedUpdates(0, false);
+    }
   }
   for (int i = 0; i < GetProcessingSettings().nTPCClustererLanes; i++) {
     if (transferRunning[i]) {
       ReleaseEvent(&mEvents->stream[i], doGPU);
     }
+  }
+
+  if (GetProcessingSettings().param.tpcTriggerHandling) {
+    GPUOutputControl* triggerOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords)];
+    if (triggerOutput && triggerOutput->allocator) {
+      // GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
+      auto* outputBuffer = (decltype(mTriggerBuffer->triggers)::value_type*)triggerOutput->allocator(mTriggerBuffer->triggers.size() * sizeof(decltype(mTriggerBuffer->triggers)::value_type));
+      std::copy(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end(), outputBuffer);
+    }
+    mTriggerBuffer->triggers.clear();
   }
 
   ClusterNativeAccess::ConstMCLabelContainerView* mcLabelsConstView = nullptr;
@@ -861,11 +1013,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     mIOPtrs.clustersNative = tmpNative;
   }
 
-  if (mPipelineNotifyCtx) {
-    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
-    std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
-    mPipelineNotifyCtx->ready = true;
-    mPipelineNotifyCtx->cond.notify_one();
+  if (!mWaitForFinalInputs) {
+    notifyForeignChainFinished();
   }
 
   if (buildNativeGPU) {
@@ -876,8 +1025,11 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
     TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceClusterNativeAccess, 0);
   }
-  if (synchronizeOutput) {
+  if (doGPU && synchronizeOutput) {
     SynchronizeStream(mRec->NStreams() - 1);
+  }
+  if (doGPU && synchronizeCalibUpdate) {
+    SynchronizeStream(0);
   }
   if (buildNativeHost && GetProcessingSettings().debugLevel >= 4) {
     for (unsigned int i = 0; i < NSLICES; i++) {

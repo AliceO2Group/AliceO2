@@ -18,9 +18,6 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
 #include <vector>
 
 using namespace o2::framework;
@@ -46,11 +43,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}},
+    {"ccdb-meanvertex-seed", o2::framework::VariantType::Bool, false, {"use MeanVertex from CCDB if available to provide beam position seed (default: false)"}},
     {"select-with-triggers", o2::framework::VariantType::String, "none", {"use triggers to prescale processed ROFs: phys, trd, none"}},
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
+    {"use-gpu-workflow", o2::framework::VariantType::Bool, false, {"use GPU workflow (default: false)"}},
+    {"gpu-device", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -64,10 +63,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto beamPosOVerride = configcontext.options().get<bool>("ccdb-meanvertex-seed");
   auto useCAtracker = configcontext.options().get<bool>("trackerCA");
   auto trmode = configcontext.options().get<std::string>("tracking-mode");
   auto selTrig = configcontext.options().get<std::string>("select-with-triggers");
-  auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpuDevice"));
+  auto useGpuWF = configcontext.options().get<bool>("use-gpu-workflow");
+  auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpu-device"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
@@ -87,7 +88,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-  auto wf = o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, trType);
+  auto wf = o2::its::reco_workflow::getWorkflow(useMC,
+                                                useCAtracker,
+                                                trmode,
+                                                beamPosOVerride,
+                                                extDigits,
+                                                extClusters,
+                                                disableRootOutput,
+                                                trType,
+                                                useGpuWF,
+                                                gpuDevice);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

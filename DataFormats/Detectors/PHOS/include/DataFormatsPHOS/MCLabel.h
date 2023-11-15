@@ -23,7 +23,7 @@ namespace phos
 class MCLabel : public o2::MCCompLabel
 {
  private:
-  float mEdep = 0; //deposited energy
+  float mEdep = 0; // deposited energy
 
  public:
   MCLabel() = default;
@@ -44,7 +44,9 @@ class MCLabel : public o2::MCCompLabel
 
   float getEdep() const { return mEdep; }
 
-  ClassDefNV(MCLabel, 1);
+  double getAmplitudeFraction() const { return mEdep; }
+
+  ClassDefNV(MCLabel, 2);
 };
 } // namespace phos
 } // namespace o2

@@ -17,6 +17,7 @@
 #define ITSTRACKINGGPU_STREAM_H_
 
 #include "ITStracking/Definitions.h"
+
 #ifdef __HIPCC__
 #include <hip/hip_runtime.h>
 #endif
@@ -34,9 +35,6 @@ class Stream final
  public:
   Stream();
   ~Stream();
-
-  Stream(const Stream&) = delete;
-  Stream& operator=(const Stream&) = delete;
 
   const GPUStream& get() const;
 

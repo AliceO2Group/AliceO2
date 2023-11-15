@@ -11,7 +11,10 @@
 
 o2_add_library(CTPReconstruction
                SOURCES src/CTFCoder.cxx src/CTFHelper.cxx
+               src/RawDataDecoder.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                     O2::DPLUtils
+                                     O2::DetectorsRaw
                                      O2::DetectorsBase
                                      O2::CommonDataFormat
                                      O2::DetectorsCommonDataFormats

@@ -36,17 +36,20 @@ class IndexTableUtils
   GPUhdi() int getPhiBinIndex(const float) const;
   GPUhdi() int getBinIndex(const int, const int) const;
   GPUhdi() int countRowSelectedBins(const int*, const int, const int, const int) const;
+  GPUhdi() void print() const;
 
   GPUhdi() int getNzBins() const { return mNzBins; }
   GPUhdi() int getNphiBins() const { return mNphiBins; }
   GPUhdi() float getLayerZ(int i) const { return mLayerZ[i]; }
+  GPUhdi() void setNzBins(const int zBins) { mNzBins = zBins; }
+  GPUhdi() void setNphiBins(const int phiBins) { mNphiBins = phiBins; }
 
  private:
   int mNzBins = 0;
   int mNphiBins = 0;
   float mInversePhiBinSize = 0.f;
-  float mLayerZ[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-  float mInverseZBinSize[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  float mLayerZ[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  float mInverseZBinSize[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
 };
 
 template <class T>
@@ -90,6 +93,14 @@ GPUhdi() int IndexTableUtils::countRowSelectedBins(const int* indexTable, const 
   const int maxBinIndex{firstBinIndex + maxZBinIndex - minZBinIndex + 1};
 
   return indexTable[maxBinIndex] - indexTable[firstBinIndex];
+}
+
+GPUhdi() void IndexTableUtils::print() const
+{
+  printf("NzBins: %d, NphiBins: %d, InversePhiBinSize: %f\n", mNzBins, mNphiBins, mInversePhiBinSize);
+  for (int iLayer{0}; iLayer < 7; ++iLayer) {
+    printf("Layer %d: Z: %f, InverseZBinSize: %f\n", iLayer, mLayerZ[iLayer], mInverseZBinSize[iLayer]);
+  }
 }
 } // namespace its
 } // namespace o2

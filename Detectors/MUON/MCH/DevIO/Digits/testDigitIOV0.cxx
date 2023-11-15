@@ -27,7 +27,7 @@
 #include <cassert>
 #include <array>
 #include <stdexcept>
-#include "DigitReaderImpl.h"
+#include "DigitSamplerImpl.h"
 #include "TestFileV0.h"
 #include "DigitD0.h"
 #include "IO.h"
@@ -90,7 +90,7 @@ struct V0File {
       buffer << b;
     }
     std::istringstream in(buffer.str());
-    DigitReader r(in);
+    DigitSampler r(in);
     r.read(digits[0], rofs[0]);
     r.read(digits[1], rofs[1]);
   }
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(SpotCheckSizesV0)
 BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(SpotCheckDumpV0)
 {
-  DigitWriter w(std::cout);
+  DigitSink w(std::cout);
   w.write(digits[0], rofs[0]);
   w.write(digits[1], rofs[1]);
 }

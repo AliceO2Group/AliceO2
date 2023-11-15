@@ -116,7 +116,7 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
 
-    LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
+    LOG(detail) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
     for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { // event loop
@@ -134,7 +134,7 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     auto infoVecSize = mCalibrator->getCcdbInfoBadChannelMapVector().size();
     auto badMapVecSize = mCalibrator->getBadChannelMapVector().size();
     if (infoVecSize > 0) {
-      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " BadChannelMap objects for TF " << tfcounter;
+      LOG(detail) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " BadChannelMap objects for TF " << tfcounter;
     }
     sendOutput(pc.outputs());
   }

@@ -88,6 +88,15 @@ void FileFetcher::processInput(const std::vector<std::string>& input)
     if (fs::is_directory(inp)) {
       processDirectory(inp);
     } else if (mSelRegex && !std::regex_match(inp, *mSelRegex.get())) { // provided selector does not match, treat as a txt file with list
+      // Avoid reading a multigiB data file as a list of inputs
+      // bringing down the system.
+      std::filesystem::path p(inp);
+
+      if (std::filesystem::file_size(p) > 10000000) {
+        LOGP(error, "file list {} larger than 10MB. Is this a data file?", inp);
+        continue;
+      }
+
       std::ifstream listFile(inp);
       if (!listFile.good()) {
         LOGP(error, "file {} pretends to be a list of inputs but does not exist", inp);
@@ -215,6 +224,9 @@ void FileFetcher::stop()
   if (mFetcherThread.joinable()) {
     mFetcherThread.join();
   }
+  if (mFailure) {
+    LOGP(fatal, "too many failures in file fetching: {} in {} attempts for {} files in {} loops, abort", mNFilesProc - mNFilesProcOK, mNFilesProc, getNFiles(), mNLoops);
+  }
 }
 
 //____________________________________________________________
@@ -282,6 +294,19 @@ void FileFetcher::fetcher()
         fileRef.copied = true;
         mQueue.push(fileEntry);
         mNFilesProcOK++;
+      } else {
+        if (mFailThreshold < 0.f) { // cut on abs number of failures
+          if (mNFilesProc - mNFilesProcOK > -mNFilesProcOK) {
+            mFailure = true;
+          }
+        } else if (mFailThreshold > 0.f) {
+          float fracFail = mNLoops ? (mNFilesProc - mNFilesProcOK) / float(mNFilesProc) : (mNFilesProc - mNFilesProcOK) / float(getNFiles());
+          mFailure = fracFail > mFailThreshold;
+        }
+        if (mFailure) {
+          mRunning = false;
+          break;
+        }
       }
     }
   }
@@ -303,19 +328,42 @@ void FileFetcher::discardFile(const std::string& fname)
 bool FileFetcher::copyFile(size_t id)
 {
   // copy remote file to local setCopyDirName. Adaptation for Gvozden's code from SubTimeFrameFileSource::DataFetcherThread()
+  bool aliencpMode = false;
+  std::string uuid{};
+  std::vector<std::string> logsToClean;
   if (mCopyCmd.find("alien") != std::string::npos) {
     if (!gGrid && !TGrid::Connect("alien://")) {
       LOG(error) << "Copy command refers to alien but connection to Grid failed";
     }
+    uuid = mInputFiles[id].getOrigName();
+    for (auto& c : uuid) {
+      if (!std::isalnum(c) && c != '-') {
+        c = '_';
+      }
+    }
+    gSystem->Setenv("ALIENPY_DEBUG", "1");
+    logsToClean.push_back(fmt::format("log_alienpy_{}.txt", uuid));
+    gSystem->Setenv("ALIENPY_DEBUG_FILE", logsToClean.back().c_str());
+    gSystem->Setenv("XRD_LOGLEVEL", "Dump");
+    logsToClean.push_back(fmt::format("log_xrd_{}.txt", uuid));
+    gSystem->Setenv("XRD_LOGFILE", logsToClean.back().c_str());
   }
-  auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());
-  auto fullCmd = fmt::format("sh -c \"{}\" >> {}  2>&1", realCmd, mCopyCmdLogFile);
+  auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex(R"(\?src)"), mInputFiles[id].getOrigName()), std::regex(R"(\?dst)"), mInputFiles[id].getLocalName());
+  auto fullCmd = fmt::format(R"(sh -c "{}" >> {}  2>&1)", realCmd, mCopyCmdLogFile);
   LOG(info) << "Executing " << fullCmd;
   const auto sysRet = gSystem->Exec(fullCmd.c_str());
   if (sysRet != 0) {
     LOGP(warning, "FileFetcher: non-zero exit code {} for cmd={}", sysRet, realCmd);
+    std::string logCmd = fmt::format(R"(sh -c "cp {} log_aliencp_{}.txt")", mCopyCmdLogFile, uuid);
+    gSystem->Exec(logCmd.c_str());
+  } else { // on success cleanup debug log files
+    for (const auto& log : logsToClean) {
+      if (fs::exists(log)) {
+        fs::remove(log);
+      }
+    }
   }
-  if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName())) {
+  if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName()) || sysRet != 0) {
     LOGP(alarm, "FileFetcher: failed for copy command {}", realCmd);
     return false;
   }

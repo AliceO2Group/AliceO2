@@ -11,12 +11,14 @@
 
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <TChain.h>
 #include <TFile.h>
 #include <iostream>
 #include <numeric> // for iota
 #include <MathUtils/Cartesian.h>
+#include <DataFormatsCalibration/MeanVertexObject.h>
 
 using namespace o2::steer;
 
@@ -28,6 +30,7 @@ void DigitizationContext::printCollisionSummary(bool withQED, int truncateOutput
   for (int p = 0; p < mSimPrefixes.size(); ++p) {
     std::cout << "Part " << p << " : " << mSimPrefixes[p] << "\n";
   }
+  std::cout << "QED information included " << isQEDProvided() << "\n";
   if (withQED) {
     std::cout << "Number of Collisions " << mEventRecords.size() << "\n";
     std::cout << "Number of QED events " << mEventRecordsWithQED.size() - mEventRecords.size() << "\n";
@@ -53,6 +56,9 @@ void DigitizationContext::printCollisionSummary(bool withQED, int truncateOutput
       std::cout << "Collision " << i << " TIME " << mEventRecords[i];
       for (auto& e : mEventParts[i]) {
         std::cout << " (" << e.sourceID << " , " << e.entryID << ")";
+      }
+      if (i < mInteractionVertices.size()) {
+        std::cout << " sampled vertex : " << mInteractionVertices[i];
       }
       std::cout << "\n";
     }
@@ -196,7 +202,7 @@ void DigitizationContext::saveToFile(std::string_view filename) const
   file.Close();
 }
 
-DigitizationContext const* DigitizationContext::loadFromFile(std::string_view filename)
+DigitizationContext* DigitizationContext::loadFromFile(std::string_view filename)
 {
   std::string tmpFile;
   if (filename == "") {
@@ -209,22 +215,54 @@ DigitizationContext const* DigitizationContext::loadFromFile(std::string_view fi
   return incontext;
 }
 
-void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord)
+void DigitizationContext::fillQED(std::string_view QEDprefix, int max_events, double qedrate)
+{
+  o2::steer::InteractionSampler qedInteractionSampler;
+  qedInteractionSampler.setBunchFilling(mBCFilling);
+
+  // get first and last "hadronic" interaction records and let
+  // QED events range from the first bunch crossing to the last bunch crossing
+  // in this range
+  auto first = mEventRecords.front();
+  auto last = mEventRecords.back();
+  first.bc = 0;
+  last.bc = o2::constants::lhc::LHCMaxBunches;
+  LOG(info) << "QED RATE " << qedrate;
+  qedInteractionSampler.setInteractionRate(qedrate);
+  qedInteractionSampler.setFirstIR(first);
+  qedInteractionSampler.init();
+  qedInteractionSampler.print();
+  std::vector<o2::InteractionTimeRecord> qedinteractionrecords;
+  o2::InteractionTimeRecord t;
+  LOG(info) << "GENERATING COL TIMES";
+  t = qedInteractionSampler.generateCollisionTime();
+  while ((t = qedInteractionSampler.generateCollisionTime()) < last) {
+    qedinteractionrecords.push_back(t);
+  }
+  LOG(info) << "DONE GENERATING COL TIMES";
+  fillQED(QEDprefix, qedinteractionrecords, max_events, false);
+}
+
+void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::InteractionTimeRecord> const& irecord, int max_events, bool fromKinematics)
 {
   mQEDSimPrefix = QEDprefix;
 
   std::vector<std::vector<o2::steer::EventPart>> qedEventParts;
 
-  // we need to fill the QED parts (using a simple round robin scheme)
-  auto qedKinematicsName = o2::base::NameConf::getMCKinematicsFileName(mQEDSimPrefix);
-  // find out how many events are stored
-  TFile f(qedKinematicsName.c_str(), "OPEN");
-  auto t = (TTree*)f.Get("o2sim");
-  if (!t) {
-    LOG(error) << "No QED kinematics found";
-    throw std::runtime_error("No QED kinematics found");
+  int numberQEDevents = max_events; // if this is -1 there will be no limitation
+  if (fromKinematics) {
+    // we need to fill the QED parts (using a simple round robin scheme)
+    auto qedKinematicsName = o2::base::NameConf::getMCKinematicsFileName(mQEDSimPrefix);
+    // find out how many events are stored
+    TFile f(qedKinematicsName.c_str(), "OPEN");
+    auto t = (TTree*)f.Get("o2sim");
+    if (!t) {
+      LOG(error) << "No QED kinematics found";
+      throw std::runtime_error("No QED kinematics found");
+    }
+    numberQEDevents = t->GetEntries();
   }
-  auto numberQEDevents = t->GetEntries();
+
   int eventID = 0;
   for (auto& tmp : irecord) {
     std::vector<EventPart> qedpart;
@@ -255,5 +293,193 @@ void DigitizationContext::fillQED(std::string_view QEDprefix, std::vector<o2::In
   for (int i = 0; i < idx.size(); ++i) {
     mEventRecordsWithQED.push_back(combinedrecords[idx[i]]);
     mEventPartsWithQED.push_back(combinedparts[idx[i]]);
+  }
+}
+
+namespace
+{
+// a common helper for timeframe structure
+std::vector<std::pair<int, int>> getTimeFrameBoundaries(std::vector<o2::InteractionTimeRecord> const& irecords, long startOrbit, long orbitsPerTF)
+{
+  std::vector<std::pair<int, int>> result;
+
+  // the goal is to determine timeframe boundaries inside the interaction record vectors
+  // determine if we can do anything
+  if (irecords.size() == 0) {
+    // nothing to do
+    return result;
+  }
+
+  if (irecords.back().orbit < startOrbit) {
+    LOG(error) << "start orbit larger than last collision entry";
+    return result;
+  }
+
+  // skip to the first index falling within our constrained
+  int left = 0;
+  while (left < irecords.size() && irecords[left].orbit < startOrbit) {
+    left++;
+  }
+
+  // now we can start (2 pointer approach)
+  auto right = left;
+  int timeframe_count = 1;
+  while (right < irecords.size()) {
+    if (irecords[right].orbit >= startOrbit + timeframe_count * orbitsPerTF) {
+      // we finished one timeframe
+      result.emplace_back(std::pair<int, int>(left, right - 1));
+      timeframe_count++;
+      left = right;
+    }
+    right++;
+  }
+  // finished last timeframe
+  result.emplace_back(std::pair<int, int>(left, right - 1));
+  return result;
+}
+} // namespace
+
+void DigitizationContext::applyMaxCollisionFilter(long startOrbit, long orbitsPerTF, int maxColl)
+{
+  // the idea is to go through each timeframe and throw away collisions beyond a certain count
+  // then the indices should be condensed
+
+  std::vector<std::vector<o2::steer::EventPart>> newparts;
+  std::vector<o2::InteractionTimeRecord> newrecords;
+
+  // get a timeframe boundary indexing
+  auto timeframeindices = getTimeFrameBoundaries(mEventRecords, startOrbit, orbitsPerTF);
+
+  std::unordered_map<int, int> currMaxId;                           // the max id encountered for a source
+  std::unordered_map<int, std::unordered_map<int, int>> reIndexMap; // for each source, a map of old to new index for the event parts
+
+  if (maxColl == -1) {
+    maxColl = mEventRecords.size();
+  }
+
+  // now we can go through the structure timeframe by timeframe
+  for (auto timeframe : timeframeindices) {
+    auto firstindex = timeframe.first;
+    auto lastindex = timeframe.second;
+    // copy to new structure
+    for (int index = firstindex; index <= std::min(lastindex, firstindex + maxColl - 1); ++index) {
+      newrecords.push_back(mEventRecords[index]);
+      newparts.push_back(mEventParts[index]);
+
+      // reindex the event parts to achieve compactification (and initial linear increase)
+      for (auto& part : newparts.back()) {
+        auto source = part.sourceID;
+        auto entry = part.entryID;
+        // have we remapped this entry before?
+        if (reIndexMap.find(source) != reIndexMap.end() && reIndexMap[source].find(entry) != reIndexMap[source].end()) {
+          part.entryID = reIndexMap[source][entry];
+        } else {
+          // assign the next free index
+          if (currMaxId.find(source) == currMaxId.end()) {
+            currMaxId[source] = 0;
+          }
+          part.entryID = currMaxId[source];
+          // cache this assignment
+          reIndexMap[source][entry] = currMaxId[source];
+          currMaxId[source] += 1;
+        }
+      }
+    }
+  }
+  // reassignment
+  mEventRecords = newrecords;
+  mEventParts = newparts;
+}
+
+void DigitizationContext::finalizeTimeframeStructure(long startOrbit, long orbitsPerTF)
+{
+  mTimeFrameStartIndex = getTimeFrameBoundaries(mEventRecords, startOrbit, orbitsPerTF);
+  LOG(info) << "Fixed " << mTimeFrameStartIndex.size() << " timeframes ";
+  for (auto p : mTimeFrameStartIndex) {
+    LOG(info) << p.first << " " << p.second;
+  }
+}
+
+std::unordered_map<int, int> DigitizationContext::getCollisionIndicesForSource(int source) const
+{
+  // go through all collisions and pick those that have the give source
+  // then keep only the first collision index
+  std::unordered_map<int, int> result;
+  const auto& parts = getEventParts(false);
+  for (int collindex = 0; collindex < parts.size(); ++collindex) {
+    for (auto& eventpart : parts[collindex]) {
+      if (eventpart.sourceID == source) {
+        result[eventpart.entryID] = collindex;
+      }
+    }
+  }
+  return result;
+}
+
+int DigitizationContext::findSimPrefix(std::string const& prefix) const
+{
+  auto iter = std::find(mSimPrefixes.begin(), mSimPrefixes.end(), prefix);
+  if (iter != mSimPrefixes.end()) {
+    return std::distance(mSimPrefixes.begin(), iter);
+  }
+  return -1;
+}
+
+namespace
+{
+struct pair_hash {
+  template <class T1, class T2>
+  std::size_t operator()(const std::pair<T1, T2>& pair) const
+  {
+    return std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second);
+  }
+};
+} // namespace
+
+void DigitizationContext::sampleInteractionVertices(o2::dataformats::MeanVertexObject const& meanv)
+{
+  // mapping of source x event --> index into mInteractionVertices
+  std::unordered_map<std::pair<int, int>, int, pair_hash> vertex_cache;
+
+  mInteractionVertices.clear();
+  int collcount = 0;
+
+  std::unordered_set<int> vset; // used to detect vertex incompatibilities
+  for (auto& coll : mEventParts) {
+    collcount++;
+    vset.clear();
+
+    // first detect if any of these entries already has an associated vertex
+    for (auto& part : coll) {
+      auto source = part.sourceID;
+      auto event = part.entryID;
+      auto cached_iter = vertex_cache.find(std::pair<int, int>(source, event));
+
+      if (cached_iter != vertex_cache.end()) {
+        vset.emplace(cached_iter->second);
+      }
+    }
+
+    // make sure that there is no conflict
+    if (vset.size() > 1) {
+      LOG(fatal) << "Impossible conflict during interaction vertex sampling";
+    }
+
+    int cacheindex = -1;
+    if (vset.size() == 1) {
+      // all of the parts need to be assigned the same existing vertex
+      cacheindex = *(vset.begin());
+      mInteractionVertices.push_back(mInteractionVertices[cacheindex]);
+    } else {
+      // we need to sample a new point
+      mInteractionVertices.emplace_back(meanv.sample());
+      cacheindex = mInteractionVertices.size() - 1;
+    }
+    // update the cache
+    for (auto& part : coll) {
+      auto source = part.sourceID;
+      auto event = part.entryID;
+      vertex_cache[std::pair<int, int>(source, event)] = cacheindex;
+    }
   }
 }

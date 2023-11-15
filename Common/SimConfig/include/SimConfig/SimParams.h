@@ -23,6 +23,9 @@ namespace conf
 // (mostly used in O2MCApplication stepping)
 struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
   bool stepFiltering = true; // if we activate the step filtering in O2BaseMCApplication
+  bool stepTrackRefHook = false;                                                                              // if we create track references during generic stepping
+  std::string stepTrackRefHookFile = "${O2_ROOT}/share/Detectors/gconfig/StandardSteppingTrackRefHook.macro"; // the standard code holding the TrackRef callback
+
   bool trackSeed = false;    // per track seeding for track-reproducible mode
 
   double maxRTracking = 1E20;    // max R tracking cut in cm (in the VMC sense) -- applied in addition to cutting in the stepping function
@@ -34,7 +37,7 @@ struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
   float tunnelZ = 1900;       // Z-value from where we apply maxRTrackingZDC (default value taken from standard "hall" dimensions)
 
   float globalDensityFactor = 1.f; // global factor that scales all material densities for systematic studies
-
+  bool lowneut = false;
   O2ParamDef(SimCutParams, "SimCutParams");
 };
 

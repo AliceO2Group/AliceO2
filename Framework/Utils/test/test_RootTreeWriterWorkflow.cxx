@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/RootSerializationSupport.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"

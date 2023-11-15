@@ -134,11 +134,19 @@ class MatchGlobalFwd
   void setMFTROFrameLengthMUS(float fums);
   ///< set MFT ROFrame duration in BC (continuous mode only)
   void setMFTROFrameLengthInBC(int nbc);
+  ///< set MFT ROFrame bias in BC (continuous mode only) or time shift applied already as MFTAlpideParam.roFrameBiasInBC
+  void setMFTROFrameBiasInBC(int nbc);
+
   const std::vector<o2::dataformats::GlobalFwdTrack>& getMatchedFwdTracks() const { return mMatchedTracks; }
   const std::vector<o2::mft::TrackMFT>& getMFTMatchingPlaneParams() const { return mMFTMatchPlaneParams; }
   const std::vector<o2::track::TrackParCovFwd>& getMCHMatchingPlaneParams() const { return mMCHMatchPlaneParams; }
   const std::vector<o2::dataformats::MatchInfoFwd>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
+
+  /// Converts mchTrack parameters to Forward coordinate system
+  o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
+  /// Converts FwdTrack parameters to MCH coordinate system
+  o2::mch::TrackParam FwdtoMCH(const o2::dataformats::GlobalFwdTrack& fwdtrack);
 
  private:
   void updateTimeDependentParams();
@@ -162,6 +170,9 @@ class MatchGlobalFwd
   void fitTracks();                                          ///< Fit all matched tracks
   void fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack&); ///< Kalman filter fit global Forward track by attaching MFT clusters
   bool computeCluster(o2::dataformats::GlobalFwdTrack& track, const MFTCluster& cluster, int& startingLayerID);
+
+  void setMFTRadLength(float MFT_x2X0) { mMFTDiskThicknessInX0 = MFT_x2X0 / 5.0; }
+  void setAlignResiduals(Float_t res) { mAlignResidual = res; }
 
   template <typename T>
   bool propagateToNextClusterWithMCS(T& track, double z, int& startingLayerID, const int& newLayerID)
@@ -274,16 +285,17 @@ class MatchGlobalFwd
     return true;
   }
 
-  /// Converts mchTrack parameters to Forward coordinate system
-  o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
-
   float mBz = -5.f;                       ///< nominal Bz in kGauss
   float mMatchingPlaneZ = sLastMFTPlaneZ; ///< MCH-MFT matching plane Z position
-  Float_t mMFTDiskThicknessInX0 = 0.042 / 5;
+  Float_t mMFTDiskThicknessInX0 = 0.042 / 5; ///< MFT disk thickness in radiation length
+  Float_t mAlignResidual = 1;                ///< Alignment residual for cluster position uncertainty
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
   int mMFTROFrameLengthInBC = 0;        ///< MFT RO frame in BC (for MFT cont. mode only)
   float mMFTROFrameLengthMUS = -1.;     ///< MFT RO frame in \mus
   float mMFTROFrameLengthMUSInv = -1.;  ///< MFT RO frame in \mus inverse
+  int mMFTROFrameBiasInBC = 0;          ///< MFT ROF bias in BC wrt to orbit start
+  float mMFTROFrameBiasMUS = -1.;       ///< MFT ROF bias in \mus
+  float mMFTROFrameBiasMUSInv = -1.;    ///< MFT ROF bias in \mus inverse
 
   std::map<std::string, MatchingFunc_t> mMatchingFunctionMap; ///< MFT-MCH Matching function
   std::map<std::string, CutFunc_t> mCutFunctionMap;           ///< MFT-MCH Candidate cut function
@@ -311,6 +323,7 @@ class MatchGlobalFwd
 
   std::vector<BracketF> mMCHROFTimes;                          ///< min/max times of MCH ROFs in \mus
   std::vector<TrackLocMCH> mMCHWork;                           ///< MCH track params prepared for matching
+  std::vector<int> mMCHID2Work;                                ///< MCH track id to ensure correct indexing for matching
   std::vector<BracketF> mMFTROFTimes;                          ///< min/max times of MFT ROFs in \mus
   std::vector<TrackLocMFT> mMFTWork;                           ///< MFT track params prepared for matching
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters

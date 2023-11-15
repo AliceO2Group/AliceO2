@@ -34,6 +34,7 @@ struct CCDBFetcherHelper {
     size_t cacheHit = 0;
     size_t minSize = -1ULL;
     size_t maxSize = 0;
+    int lastCheckedTF = 0;
   };
 
   struct RemapMatcher {
@@ -51,7 +52,11 @@ struct CCDBFetcherHelper {
   std::unordered_map<std::string, o2::ccdb::CcdbApi> apis;
   std::vector<OutputRoute> routes;
   std::unordered_map<std::string, std::string> remappings;
-  size_t queryDownScaleRate = 1;
+  uint32_t lastCheckedTFCounterOrbReset = 0; // last checkecked TFcounter for bulk check
+  int queryPeriodGlo = 1;
+  int queryPeriodFactor = 1;
+  int64_t timeToleranceMS = 5000;
+
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
   {
     // find the first = sign in the string. If present drop everything after it
@@ -175,10 +180,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
                        DataAllocator& allocator) -> void
 {
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
-  bool checkValidityGlo = timingInfo.timeslice % helper->queryDownScaleRate == 0;
+  int objCnt = -1;
   for (auto& route : helper->routes) {
-    LOGP(debug, "Fetching object for route {}", route.matcher);
-
+    LOGP(debug, "Fetching object for route {}", DataSpecUtils::describe(route.matcher));
+    objCnt++;
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
     Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
     auto&& v = allocator.makeVector<char>(output);
@@ -186,7 +191,8 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     std::map<std::string, std::string> headers;
     std::string path = "";
     std::string etag = "";
-    bool checkValidity = checkValidityGlo;
+    int chRate = helper->queryPeriodGlo;
+    bool checkValidity = false;
     for (auto& meta : route.matcher.metadata) {
       if (meta.name == "ccdb-path") {
         path = meta.defaultValue.get<std::string>();
@@ -198,17 +204,19 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         LOGP(debug, "Adding metadata {}: {} to the request", key, value);
         metadata[key] = value;
       } else if (meta.name == "ccdb-query-rate") {
-        checkValidity = (timingInfo.timeslice % meta.defaultValue.get<int64_t>() == 0);
+        chRate = meta.defaultValue.get<int>() * helper->queryPeriodFactor;
       }
     }
-    LOGP(debug, "checkValidity is {} for slice {} of {}", checkValidity, timingInfo.timeslice, path);
-
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second.etag;
+      checkValidity = int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF) >= chRate;
     } else {
       checkValidity = true; // never skip check if the cache is empty
     }
+
+    LOGP(debug, "checkValidity is {} for tfID {} of {}", checkValidity, timingInfo.tfCounter, path);
+
     const auto& api = helper->getAPI(path);
     if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
       LOGP(detail, "Loading {} for timestamp {}", path, timestamp);
@@ -222,12 +230,13 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       if (headers.find("default") != headers.end()) {
         LOGP(detail, "******** Default entry used for {} ********", path);
       }
+      helper->mapURL2UUID[path].lastCheckedTF = timingInfo.tfCounter;
       if (etag.empty()) {
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
-        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
+        auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         continue;
@@ -238,11 +247,11 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
-        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
+        auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         // one could modify the    adoptContainer to take optional old cacheID to clean:
-        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
         continue;
       }
     }
@@ -261,9 +270,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       std::unordered_map<std::string, bool> accountedSpecs;
       auto defHost = options.get<std::string>("condition-backend");
-      auto checkRate = static_cast<size_t>(options.get<int64_t>("condition-tf-per-query"));
-      helper->queryDownScaleRate = checkRate > 0 ? checkRate : static_cast<size_t>(-1l);
-      LOGP(info, "CCDB Backend at: {}, validity check for every {} TF", defHost, helper->queryDownScaleRate);
+      auto checkRate = options.get<int>("condition-tf-per-query");
+      auto checkMult = options.get<int>("condition-tf-per-query-multiplier");
+      helper->timeToleranceMS = options.get<int64_t>("condition-time-tolerance");
+      helper->queryPeriodGlo = checkRate > 0 ? checkRate : std::numeric_limits<int>::max();
+      helper->queryPeriodFactor = checkMult > 0 ? checkMult : 1;
+      LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}", defHost, helper->queryPeriodGlo, helper->queryPeriodFactor == 1 ? std::string{} : fmt::format(", (query for high-rate objects downscaled by {})", helper->queryPeriodFactor));
       auto remapString = options.get<std::string>("condition-remap");
       ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
       if (!result.error.empty()) {
@@ -293,17 +305,16 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
         accountedSpecs[specStr] = true;
         helper->routes.push_back(route);
-        LOGP(info, "The following route is a condition {}", route.matcher);
+        LOGP(info, "The following route is a condition {}", DataSpecUtils::describe(route.matcher));
         for (auto& metadata : route.matcher.metadata) {
           if (metadata.type == VariantType::String) {
             LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue.asString());
           }
         }
       }
-
       /// Add a callback on stop which dumps the statistics for the caching per
       /// path
-      callbacks.set(CallbackService::Id::Stop, [helper]() {
+      callbacks.set<CallbackService::Id::Stop>([helper]() {
         LOGP(info, "CCDB cache miss/hit ratio:");
         for (auto& entry : helper->mapURL2UUID) {
           LOGP(info, "  {}: {}/{} ({}-{} bytes)", entry.first, entry.second.cacheMiss, entry.second.cacheHit, entry.second.minSize, entry.second.maxSize);
@@ -324,7 +335,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
-          bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
+          bool checkValidity = int(timingInfo.tfCounter - helper->lastCheckedTFCounterOrbReset) >= helper->queryPeriodGlo;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
             etag = url2uuid->second.etag;
@@ -337,6 +348,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           auto&& v = allocator.makeVector<char>(output);
           const auto& api = helper->getAPI(path);
           if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
+            helper->lastCheckedTFCounterOrbReset = timingInfo.tfCounter;
             api.loadFileToMemory(v, path, metadata, timingInfo.creation, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
             if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
               LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.creation);
@@ -349,7 +361,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
               helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
               newOrbitResetTime = getOrbitResetTime(v);
-              auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+              auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
               LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
             } else if (v.size()) { // but should be overridden by fresh object
@@ -359,11 +371,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
               helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
               newOrbitResetTime = getOrbitResetTime(v);
-              auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+              auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
               LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
               // one could modify the adoptContainer to take optional old cacheID to clean:
-              // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+              // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
             }
             // cached object is fine
           }
@@ -380,10 +392,10 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
 
         int64_t timestamp = ceil((timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
-        if (timestamp + 5000 < timingInfo.creation) {                                                                        // 5 sec. tolerance
+        if (std::abs(int64_t(timingInfo.creation) - timestamp) > helper->timeToleranceMS) {
           static bool notWarnedYet = true;
           if (notWarnedYet) {
-            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time {}, use the latter", timestamp, timingInfo.firstTForbit, orbitResetTime / 1000, timingInfo.creation);
+            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} differs by >{} from the TF creation time {}, use the latter", timestamp, timingInfo.firstTForbit, orbitResetTime / 1000, helper->timeToleranceMS, timingInfo.creation);
             notWarnedYet = false;
             // apparently the orbit reset time from the CTP object makes no sense (i.e. orbit was reset for this run w/o create an object, as it happens for technical runs)
             dtc.orbitResetTimeMUS = 1000 * timingInfo.creation - timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000;

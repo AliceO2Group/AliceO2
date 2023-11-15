@@ -20,7 +20,7 @@ float o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupCRU>::getGroupedIDC
   switch (paramIDCGroup.method) {
     case o2::tpc::AveragingMethod::SLOW:
     default:
-      return mRobustAverage[mThreadNum].getFilteredAverage(paramIDCGroup.sigma);
+      return mRobustAverage[mThreadNum].getFilteredAverage(paramIDCGroup.sigma).first;
       break;
     case o2::tpc::AveragingMethod::FAST:
       return withweights ? mRobustAverage[mThreadNum].getWeightedMean() : mRobustAverage[mThreadNum].getMean();
@@ -80,7 +80,7 @@ float o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::getGroupedIDC
   switch (paramIDCGroup.method) {
     case o2::tpc::AveragingMethod::SLOW:
     default:
-      return mRobustAverage[mThreadNum].getFilteredAverage(paramIDCGroup.sigma);
+      return mRobustAverage[mThreadNum].getFilteredAverage(paramIDCGroup.sigma).first;
       break;
     case o2::tpc::AveragingMethod::FAST:
       return withweights ? mRobustAverage[mThreadNum].getWeightedMean() : mRobustAverage[mThreadNum].getMean();

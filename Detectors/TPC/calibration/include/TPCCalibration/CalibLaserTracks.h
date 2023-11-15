@@ -23,6 +23,7 @@
 #define TPC_CalibLaserTracks_H_
 
 #include <gsl/span>
+#include <string_view>
 
 #include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -140,7 +141,7 @@ class CalibLaserTracks
   bool getWriteDebugTree() const { return mWriteDebugTree; }
 
   /// extract DV correction and T0 offset
-  TimePair fit(const std::vector<TimePair>& trackMatches) const;
+  TimePair fit(const std::vector<TimePair>& trackMatches, std::string_view info) const;
 
   /// sort TimePoint vectors
   void sort(std::vector<TimePair>& trackMatches);
@@ -153,6 +154,8 @@ class CalibLaserTracks
 
   /// name of the debug output tree
   void setDebugOutputName(std::string_view name) { mDebugOutputName = name; }
+
+  void setVDriftRef(float v) { mDriftV = v; }
 
  private:
   int mTriggerPos{0};                                          ///< trigger position, if < 0 it treats it as the CE position

@@ -19,7 +19,8 @@ namespace conf
 
 namespace
 {
-static const std::string confstrings[3] = {"FTFP_BERT_EMV+optical", "FTFP_BERT_EMV+optical+biasing", "FTFP_INCLXX_EMV+optical"};
+static const std::string confstrings[4] = {"FTFP_BERT_EMV+optical", "FTFP_BERT_EMV+optical+biasing", "FTFP_INCLXX_EMV+optical",
+                                           "FTFP_BERT_HP_EMV+optical"};
 }
 
 std::string const& G4Params::getPhysicsConfigString() const

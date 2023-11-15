@@ -15,7 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::trk::GeometryTGeo;
-#pragma link C++ class o2::trk::MisalignmentParameter + ;
+#pragma link C++ class o2::trk::GeometryTGeo +
+#pragma link C++ class o2::trk::TRKBaseParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trk::TRKBaseParam> + ;
 
 #endif

@@ -25,6 +25,7 @@
 
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {

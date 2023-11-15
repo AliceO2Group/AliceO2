@@ -27,9 +27,11 @@
 #endif
 
 #include <memory>
+#include <array>
 #include <vector>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
+
 namespace o2::tpc
 {
 struct ClusterNativeAccess;
@@ -38,15 +40,27 @@ template <class T>
 class CalDet;
 } // namespace o2::tpc
 
+namespace o2::its
+{
+class TrackerTraits;
+class VertexerTraits;
+class TimeFrame;
+} // namespace o2::its
+
 namespace o2::gpu
 {
 class GPUReconstruction;
 class GPUChainTracking;
+class GPUChainITS;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
+struct GPUInterfaceInputUpdate;
 struct GPUTrackingOutputs;
 struct GPUConstantMem;
 struct GPUNewCalibValues;
+
+struct GPUO2Interface_processingContext;
+struct GPUO2Interface_Internals;
 
 class GPUO2Interface
 {
@@ -57,14 +71,15 @@ class GPUO2Interface
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr);
-  void Clear(bool clearOutputs);
+  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, unsigned int iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
+  void Clear(bool clearOutputs, unsigned int iThread = 0);
+  void DumpEvent(int nEvent, GPUTrackingInOutPointers* data);
+  void DumpSettings();
+
+  void GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame);
 
   // Updates all calibration objects that are != nullptr in newCalib
-  int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals);
-
-  bool GetParamContinuous() { return (mContinuous); }
-  void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
+  int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread = 0);
 
   static std::unique_ptr<TPCPadGainCalib> getPadGainCalibDefault();
   static std::unique_ptr<TPCPadGainCalib> getPadGainCalib(const o2::tpc::CalDet<float>& in);
@@ -73,6 +88,7 @@ class GPUO2Interface
 
   int registerMemoryForGPU(const void* ptr, size_t size);
   int unregisterMemoryForGPU(const void* ptr);
+  void setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v);
 
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
@@ -80,13 +96,14 @@ class GPUO2Interface
   GPUO2Interface(const GPUO2Interface&);
   GPUO2Interface& operator=(const GPUO2Interface&);
 
-  bool mInitialized = false;
   bool mContinuous = false;
 
-  std::unique_ptr<GPUReconstruction> mRec;              //!
-  GPUChainTracking* mChain = nullptr;                   //!
-  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
-  std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
+  unsigned int mNContexts = 0;
+  std::unique_ptr<GPUO2Interface_processingContext[]> mCtx;
+
+  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
+  GPUChainITS* mChainITS = nullptr;
+  std::unique_ptr<GPUO2Interface_Internals> mInternals;
 };
 } // namespace o2::gpu
 

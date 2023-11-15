@@ -15,6 +15,7 @@
 /// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "DetectorsDCS/AliasExpander.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -43,8 +44,17 @@ int makeFDDCCDBEntryForDCS(const std::string ccdbUrl = "http://localhost:8080",
                                          "FDD/PM/SIDE_C/LAYER1/PMT_1_[0..3]/ADC[0,1]_BASELINE",
                                          "FDD/PM/SIDE_A/LAYER2/PMT_2_[0..3]/ADC[0,1]_BASELINE",
                                          "FDD/PM/SIDE_A/LAYER3/PMT_3_[0..3]/ADC[0,1]_BASELINE"};
+  std::vector<std::string> aliasesRates = {"FDD/Trigger1_Central/CNT_RATE",
+                                           "FDD/Trigger2_SemiCentral/CNT_RATE",
+                                           "FDD/Trigger3_Vertex/CNT_RATE",
+                                           "FDD/Trigger4_OrC/CNT_RATE",
+                                           "FDD/Trigger5_OrA/CNT_RATE",
+                                           "FDD/Background/[0..9]/CNT_RATE",
+                                           "FDD/Background/[A,B,C,D,E,F,G,H]/CNT_RATE"};
+
   std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
   std::vector<std::string> expAliasesADC = o2::dcs::expandAliases(aliasesADC);
+  std::vector<std::string> expAliasesRates = o2::dcs::expandAliases(aliasesRates);
 
   LOG(info) << "DCS DP IDs:";
 
@@ -59,6 +69,11 @@ int makeFDDCCDBEntryForDCS(const std::string ccdbUrl = "http://localhost:8080",
     dpid2DataDesc[dpIdTmp] = "FDDDATAPOINTS";
     LOG(info) << dpIdTmp;
   }
+  for (size_t i = 0; i < expAliasesRates.size(); i++) {
+    DPID::FILL(dpIdTmp, expAliasesRates[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
+    dpid2DataDesc[dpIdTmp] = "FDDDATAPOINTS";
+    LOG(info) << dpIdTmp;
+  }
 
   LOG(info) << "Total number of DPs: " << dpid2DataDesc.size();
 
@@ -68,7 +83,7 @@ int makeFDDCCDBEntryForDCS(const std::string ccdbUrl = "http://localhost:8080",
     o2::ccdb::CcdbApi api;
     api.init(ccdbUrl);
     std::map<std::string, std::string> metadata;
-    long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    long ts = o2::ccdb::getCurrentTimestamp();
     api.storeAsTFileAny(&dpid2DataDesc, ccdbPath, metadata, ts, 99999999999999);
   }
 

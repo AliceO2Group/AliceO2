@@ -15,13 +15,16 @@
 #include <exception>
 #include <iterator>
 #include <gsl/span>
+#include <vector>
 #include "Rtypes.h"
 #include "fmt/format.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/Digit.h"
 #include "DataFormatsPHOS/EventData.h"
+#include "DataFormatsPHOS/MCLabel.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -259,6 +262,13 @@ class EventHandler
   /// \throw NotInitializedException in case the event handler is not initialized for cell
   const CellRange getCellsForEvent(int eventID) const;
 
+  /// \brief Get vector of MC labels belonging to the given event
+  /// \param eventID ID of the event
+  /// \return vector of MC labels for the event
+  /// \throw RangeException in case the required event ID exceeds the maximum number of events
+  /// \throw NotInitializedException in case the event handler is not initialized for cell
+  std::vector<gsl::span<const o2::phos::MCLabel>> getCellMCLabelForEvent(int eventID) const;
+
   /// \brief Get range of cluster cell indices belonging to the given event
   /// \param eventID ID of the event
   /// \return Cluster cell index range for the event
@@ -300,6 +310,13 @@ class EventHandler
     mTriggerRecordsCells = triggers;
   }
 
+  /// \brief Setting the pointer for the MCTruthContainer for cells
+  /// \param mclabels Pointer to the MCTruthContainer for cells in timeframe
+  void setCellMCTruthContainer(const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>* mclabels)
+  {
+    mCellLabels = mclabels;
+  }
+
   /// \brief Reset containers with empty ranges
   void reset();
 
@@ -329,11 +346,12 @@ class EventHandler
   TriggerRange mTriggerRecordsCellIndices; ///< trigger record for cluster cell index type
   TriggerRange mTriggerRecordsCells;       ///< Trigger record for cell type
 
-  ClusterRange mClusters;             /// container for clusters in timeframe
-  CellIndexRange mClusterCellIndices; /// container for cell indices in timeframe
-  CellRange mCells;                   /// container for cells in timeframe
+  ClusterRange mClusters;                                                            /// container for clusters in timeframe
+  CellIndexRange mClusterCellIndices;                                                /// container for cell indices in timeframe
+  CellRange mCells;                                                                  /// container for cells in timeframe
+  const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>* mCellLabels = nullptr; /// pointer to the MCTruthContainer for cells in timeframe
 
-  ClassDefNV(EventHandler, 1);
+  ClassDefNV(EventHandler, 2);
 };
 
 } // namespace phos

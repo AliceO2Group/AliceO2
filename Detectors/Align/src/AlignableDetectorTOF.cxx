@@ -18,9 +18,9 @@
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableSensorTOF.h"
 #include "Align/Controller.h"
-//#include "AliGeomManager.h"
-//#include "AliTOFGeometry.h"
-//#include "AliESDtrack.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsTOF/Cluster.h"
+#include "TOFBase/Geo.h"
 #include <TGeoManager.h>
 
 ClassImp(o2::align::AlignableDetectorTOF);
@@ -31,17 +31,9 @@ namespace align
 {
 
 //____________________________________________
-AlignableDetectorTOF::AlignableDetectorTOF(const char* title)
+AlignableDetectorTOF::AlignableDetectorTOF(Controller* ctr) : AlignableDetector(DetID::TOF, ctr)
 {
   // default c-tor
-  SetNameTitle(Controller::getDetNameByDetID(Controller::kTOF), title);
-  setDetID(Controller::kTOF);
-}
-
-//____________________________________________
-AlignableDetectorTOF::~AlignableDetectorTOF()
-{
-  // d-tor
 }
 
 //____________________________________________
@@ -49,38 +41,92 @@ void AlignableDetectorTOF::defineVolumes()
 {
   // define TOF volumes
   //
-  const int kNSect = 18, kNStrips = AliTOFGeometry::NStripA() + 2 * AliTOFGeometry::NStripB() + 2 * AliTOFGeometry::NStripC();
+  constexpr int NSect = 18;
   int labDet = getDetLabel();
-  AlignableSensorTOF* strip = 0;
+  AlignableSensorTOF* strip = nullptr;
   //
   //  AddVolume( volTOF = new AlignableVolume("TOF") ); // no main volume, why?
-  AlignableVolume* sect[kNSect] = {0};
-  //
-  for (int isc = 0; isc < kNSect; isc++) {
-    int iid = labDet + (1 + isc) * 100;
-    addVolume(sect[isc] = new AlignableVolume(Form("TOF/sm%02d", isc), iid));
-  }
+  AlignableVolume* sect[NSect] = {};
+  AlignableVolume* volTOF = nullptr; // fictious envelope
+  addVolume(volTOF = new AlignableVolume("TOF_envelope", getDetLabel(), mController));
+  volTOF->setDummyEnvelope();
   //
   int cnt = 0;
-  for (int isc = 0; isc < kNSect; isc++) {
-    for (int istr = 1; istr <= kNStrips; istr++) { // strip
-      int iid = labDet + (1 + isc) * 100 + (1 + istr);
-      int vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTOF, cnt++);
+  for (int isc = 0; isc < NSect; isc++) {
+    for (int istr = 1; istr <= o2::tof::Geo::NSTRIPXSECTOR; istr++) { // strip
       const char* symname = Form("TOF/sm%02d/strip%02d", isc, istr);
-      if (!gGeoManager->GetAlignableEntry(symname))
-        continue;
-      addVolume(strip = new AlignableSensorTOF(symname, vid, iid, isc));
+      addVolume(strip = new AlignableSensorTOF(symname, o2::base::GeometryManager::getSensID(DetID::TOF, cnt), getSensLabel(cnt), isc, mController));
+      cnt++;
+      if (!gGeoManager->GetAlignableEntry(symname)) {
+        strip->setDummy(true);
+        //        continue;
+      }
+      if (!sect[isc]) {
+        sect[isc] = new AlignableVolume(Form("TOF/sm%02d", isc), getNonSensLabel(isc), mController);
+        sect[isc]->setParent(volTOF);
+      }
       strip->setParent(sect[isc]);
     } // strip
   }   // layer
-  //
+
+  for (int isc = 0; isc < NSect; isc++) {
+    if (sect[isc]) {
+      addVolume(sect[isc]);
+    }
+  }
 }
 
 //____________________________________________
-bool AlignableDetectorTOF::AcceptTrack(const AliESDtrack* trc, int trtype) const
+int AlignableDetectorTOF::processPoints(GIndex gid, int npntCut, bool inv)
 {
-  // test if detector had seed this track
-  return CheckFlags(trc, trtype);
+  // Extract the points corresponding to this detector, recalibrate/realign them to the
+  // level of the "starting point" for the alignment/calibration session.
+  // If inv==true, the track propagates in direction of decreasing tracking X
+  // (i.e. upper leg of cosmic track)
+  //
+
+  int npoints = 0;
+  auto algTrack = mController->getAlgTrack();
+  auto recoData = mController->getRecoContainer();
+  auto TOFClusters = recoData->getTOFClusters();
+  if (TOFClusters.empty()) {
+    return -1; // source not loaded?
+  }
+  const auto& clus = TOFClusters[gid.getIndex()];
+  int det[5] = {}, ch = clus.getMainContributingChannel();
+  o2::tof::Geo::getVolumeIndices(ch, det);
+  int sensID = o2::tof::Geo::getStripNumberPerSM(det[1], det[2]) + clus.getSector() * o2::tof::Geo::NSTRIPXSECTOR;
+  auto* sensor = (AlignableSensorTOF*)getSensor(sensID);
+  if (sensor->isDummy()) {
+    LOGP(error, "Dummy sensor {} is referred by a track", sensID);
+    return 0;
+  }
+  double loc[3] = {(det[4] + 0.5) * o2::tof::Geo::XPAD - o2::tof::Geo::XHALFSTRIP, 0., (det[3] - 0.5) * o2::tof::Geo::ZPAD}, locCorr[3] = {}, traCorr[3] = {};
+  const auto& matAlg = sensor->getMatrixClAlg();
+  matAlg.LocalToMaster(loc, locCorr);
+  // rotate to tracking
+  const auto& matT2L = sensor->getMatrixT2L();
+  matT2L.MasterToLocal(locCorr, traCorr);
+  //
+  auto& pnt = algTrack->addDetectorPoint();
+
+  const auto* sysE = sensor->getAddError(); // additional syst error
+  pnt.setYZErrTracking(clus.getSigmaY2() + sysE[0] * sysE[0], clus.getSigmaYZ(), clus.getSigmaZ2() + sysE[1] * sysE[1]);
+  if (getUseErrorParam()) { // errors will be calculated just before using the point in the fit, using track info
+    pnt.setNeedUpdateFromTrack();
+  }
+  pnt.setXYZTracking(traCorr[0], traCorr[1], traCorr[2]);
+  pnt.setSensor(sensor);
+  pnt.setAlphaSens(sensor->getAlpTracking());
+  pnt.setXSens(sensor->getXTracking());
+  pnt.setDetID(mDetID);
+  pnt.setSID(sensor->getSID());
+  pnt.setContainsMeasurement();
+  pnt.setInvDir(inv);
+  pnt.init();
+  npoints++;
+  mNPoints += npoints;
+  return npoints;
 }
 
 } // namespace align

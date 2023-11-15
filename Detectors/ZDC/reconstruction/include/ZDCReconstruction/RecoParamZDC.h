@@ -26,16 +26,18 @@ namespace zdc
 {
 struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   // Trigger
-  int32_t tsh[NTDCChannels] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4}; // Trigger shift
-  int32_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8}; // Trigger threshold
-  bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
+  int32_t tsh[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Trigger shift
+  int32_t tth[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Trigger threshold
+  bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};           // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
+  uint8_t triggerCondition = 0x0; // Trigger condition: 0x1 single, 0x3 double and 0x7 triple
 
   // Signal processing
-  int low_pass_filter = -1;    // Low pass filtering
-  int full_interpolation = -1; // Full interpolation of waveform
-  int corr_signal = -1;        // TDC signal correction
-  int corr_background = -1;    // TDC pile-up correction
+  int low_pass_filter = -1;               // Low pass filtering
+  int full_interpolation = -1;            // Full interpolation of waveform
+  int full_interpolation_min_length = -1; // Minimum length to perform full interpolation
+  int corr_signal = -1;                   // TDC signal correction
+  int corr_background = -1;               // TDC pile-up correction
 
   int debug_output = -1; // Debug output
 
@@ -45,6 +47,14 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   float tdc_shift[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};  // Correction of TDC position (0-25 ns, units of ~10 ps)
   float tdc_calib[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};  // Correction of TDC amplitude
   float tdc_search[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
+
+  // Enable extended search at beginning of first bunch
+  bool setExtendedSearch = false;
+  bool doExtendedSearch = false;
+
+  // Store events with in-event pile-up
+  bool setStoreEvPileup = false;
+  bool doStoreEvPileup = false;
 
   // Charge integration
   int32_t amod[NChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Position of ADC channel in raw data

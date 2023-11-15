@@ -37,6 +37,8 @@ struct ConfigContext;
 
 /// Possible states for the DPL Driver application
 ///
+/// BIND_GUI_PORT => Binding of the GUI port, to avoid doing it at each level of they
+///                 hierarchy if a pipe is detected and we only need to dump a workflow.
 /// INIT => Initial state where global initialization should happen
 /// MERGE_CONFIGS => Invoked to rework the configuration so that common
 ///                  options are homogeneous between different invokations.
@@ -77,6 +79,7 @@ enum struct DriverState {
   IMPORT_CURRENT_WORKFLOW,
   DO_CHILD,
   MERGE_CONFIGS,
+  BIND_GUI_PORT,
   LAST
 };
 
@@ -112,14 +115,14 @@ struct DriverInfo {
   int argc;
   /// The argv with which the driver was started.
   char** argv;
-  /// Whether the driver was started in batch mode or not.
-  bool batch;
   /// User specified policies for handling errors, completion and early forwarding
   ProcessingPolicies processingPolicies;
   /// User specified policies for handling callbacks.
   std::vector<CallbacksPolicy> callbacksPolicies;
   /// The offset at which the process was started.
   uint64_t startTime;
+  /// The actual time in milliseconds from epoch at which the process was started.
+  uint64_t startTimeMsFromEpoch;
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;
@@ -164,6 +167,8 @@ struct DriverInfo {
 
   /// The last error reported by the driver itself
   std::string lastError;
+  /// Driver mode
+  DriverMode mode = DriverMode::STANDALONE;
 };
 
 struct DriverInfoHelper {

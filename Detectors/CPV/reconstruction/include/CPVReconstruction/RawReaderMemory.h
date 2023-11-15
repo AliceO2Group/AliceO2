@@ -42,7 +42,8 @@ enum RawErrorType_t {
   kEOE_HEADER_ERROR,
   kPADERROR,
   kUNKNOWN_WORD,
-  kPadAddress
+  kPadAddress,
+  kWRONG_DATAFORMAT
 };
 
 /// \class RawReaderMemory
@@ -103,6 +104,10 @@ class RawReaderMemory
   /// \return HeartBeatFrame orbit number
   uint32_t getCurrentHBFOrbit() const { return mCurrentHBFOrbit; }
 
+  /// \brief get data format from RDH
+  /// \return data format read from RDH (0x0 for RDH version < 7)
+  uint8_t getDataFormat() const { return mDataFormat; }
+
  protected:
   /// \brief Initialize the raw stream
   ///
@@ -121,6 +126,7 @@ class RawReaderMemory
   uint32_t mCurrentHBFOrbit = 0;          ///< Current orbit of HBF
   bool mStopBitWasNotFound;               ///< True if StopBit was not found but HBF orbit changed
   bool mIsJustInited = false;             ///< True if init() was just called
+  uint8_t mDataFormat = 0x0;              ///< Data format (read from RDH version >= 7)
 
   ClassDefNV(RawReaderMemory, 2);
 };

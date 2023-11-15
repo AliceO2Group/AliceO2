@@ -85,21 +85,6 @@ std::string measurementName(o2::mid::dcs::MeasurementType m)
   return "INVALID";
 }
 
-std::vector<std::string> measurement(const std::vector<std::string>& patterns,
-                                     o2::mid::dcs::MeasurementType m)
-{
-  std::vector<std::string> result;
-
-  result.resize(patterns.size());
-
-  std::transform(patterns.begin(), patterns.end(), result.begin(), [&m](std::string s) {
-    return fmt::sprintf(s, measurementName(m));
-  });
-
-  std::sort(result.begin(), result.end());
-  return result;
-}
-
 } // namespace
 
 namespace o2::mid::dcs
@@ -133,26 +118,21 @@ std::optional<ID> detElemId2DCS(int deId)
   return std::optional<ID>{{id, side, chamberId}};
 }
 
+std::string detElemId2DCSAlias(int deId, MeasurementType type)
+{
+  auto id = detElemId2DCS(deId);
+  return fmt::format("{}_{}_MT{}_RPC{}_HV.", detPrefix, sideName(id->side), id->chamberId, id->number) + measurementName(type);
+}
+
 std::vector<std::string> aliases(std::vector<MeasurementType> types)
 {
 
-  std::vector<std::string> patterns;
-  for (auto deId = 0; deId < detparams::NDetectionElements; ++deId) {
-    auto id = detElemId2DCS(deId);
-    auto pattern = fmt::format("{}_{}_MT{}_RPC{}_HV.", detPrefix,
-                               sideName(id->side), id->chamberId, id->number) +
-                   "%s";
-    patterns.emplace_back(pattern);
-  }
   std::vector<std::string> aliases;
-
-  for (auto m : types) {
-    if (m == MeasurementType::HV_V || m == MeasurementType::HV_I) {
-      auto aliasPerType = measurement(patterns, m);
-      aliases.insert(aliases.begin(), aliasPerType.begin(), aliasPerType.end());
+  for (auto& type : types) {
+    for (auto deId = 0; deId < detparams::NDetectionElements; ++deId) {
+      aliases.emplace_back(detElemId2DCSAlias(deId, type));
     }
   }
   return aliases;
 }
-
 } // namespace o2::mid::dcs

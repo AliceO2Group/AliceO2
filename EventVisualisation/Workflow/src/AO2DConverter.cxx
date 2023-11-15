@@ -48,7 +48,7 @@ struct AO2DConverter {
 
   void init(o2::framework::InitContext& ic)
   {
-    LOG(info) << "------------------------    AO2DConverter::init version " << mWorkflowVersion << "    ------------------------------------";
+    LOGF(info, "------------------------    AO2DConverter::init version ", mWorkflowVersion, "    ------------------------------------");
 
     mData.init();
     mHelper = std::make_shared<EveWorkflowHelper>();

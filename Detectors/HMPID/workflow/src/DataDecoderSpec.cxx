@@ -131,7 +131,7 @@ void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
     }
   }
   char summaryFileName[254];
-  sprintf(summaryFileName, "%s_stat.txt", mRootStatFile.c_str());
+  snprintf(summaryFileName, 254, "%s_stat.txt", mRootStatFile.c_str());
   mDeco->writeSummaryFile(summaryFileName);
   for (int e = 0; e < numEqui; e++) {
     avgEventSize = mDeco->getAverageEventSize(e);
@@ -280,7 +280,7 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
 o2::framework::DataProcessorSpec getDecodingSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }

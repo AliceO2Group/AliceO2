@@ -45,10 +45,10 @@
 #include <boost/histogram/accumulators/mean.hpp>
 
 using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
-using boostHisto1d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+using boostHisto1d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>>;
 
 using boostHisto2d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
-using boostHisto1d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+using boostHisto1d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, boost::use_default>>>;
 
 namespace o2
 {
@@ -401,23 +401,84 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 }
 
 /// \brief Convert a 1D root histogram to a Boost histogram
-boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D);
+template <typename Hist>
+Hist boosthistoFromRoot_1D(TH1D* inHist1D)
+{
+  // first setup the proper boost histogram
+  int nBins = inHist1D->GetNbinsX();
+  std::vector<double> binEdges;
+  for (int i = 0; i < nBins + 1; i++) {
+    binEdges.push_back(inHist1D->GetBinLowEdge(i + 1));
+  }
+  Hist mHisto;
+
+  if constexpr (std::is_same<Hist, boostHisto1d_VarAxis>::value) {
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdges));
+  } else {
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, binEdges[0], binEdges.back()));
+  }
+
+  // trasfer the acutal values
+  for (Int_t x = 1; x < nBins + 1; x++) {
+    mHisto.at(x - 1) = inHist1D->GetBinContent(x);
+  }
+  return mHisto;
+}
 
 /// \brief Convert a 2D root histogram to a Boost histogram
-boostHisto2d_VarAxis boostHistoFromRoot_2D(TH2D* inHist2D);
+template <typename Hist>
+Hist boostHistoFromRoot_2D(TH2D* inHist2D)
+{
+  // Get Xaxis binning
+  const int nBinsX = inHist2D->GetNbinsX();
+  std::vector<double> binEdgesX;
+  for (int i = 0; i < nBinsX + 1; i++) {
+    binEdgesX.push_back(inHist2D->GetXaxis()->GetBinLowEdge(i + 1));
+  }
+  // Get Yaxis binning
+  const int nBinsY = inHist2D->GetNbinsY();
+  std::vector<double> binEdgesY;
+  for (int i = 0; i < nBinsY + 1; i++) {
+    binEdgesY.push_back(inHist2D->GetYaxis()->GetBinLowEdge(i + 1));
+  }
+
+  Hist mHisto;
+
+  if constexpr (std::is_same<Hist, boostHisto2d_VarAxis>::value) {
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesX), boost::histogram::axis::variable<>(binEdgesY));
+  } else {
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBinsX, binEdgesX[0], binEdgesX.back()), boost::histogram::axis::regular<>(nBinsY, binEdgesY[0], binEdgesY.back()));
+  }
+
+  // trasfer the acutal values
+  for (Int_t x = 1; x < nBinsX + 1; x++) {
+    for (Int_t y = 1; y < nBinsY + 1; y++) {
+      mHisto.at(x - 1, y - 1) = inHist2D->GetBinContent(x, y);
+    }
+  }
+  return mHisto;
+}
 
 /// \brief Get the mean of a 1D boost histogram
+/// \param inHist1D input boost histogram
+/// \param rangeLow minimum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
+/// \param rangeHigh maximum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
+/// \return mean value of boost histogram in specified range
 template <typename... axes>
-double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
+double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D, const double rangeLow = 0, const double rangeHigh = 0)
 {
   // LOG(info) << "Entering the mean function for hist with rank " << inHist1D.rank() << " with " << inHist1D.axis(0).size() << " bins";
   o2::math_utils::detail::StatAccumulator stats;
-  int mynbins = 0;
+  bool restrictRange = rangeLow < rangeHigh ? true : false;
   auto histiter = inHist1D.begin() + 1;
   const auto& axis = inHist1D.axis(0);
   for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
     // std::cout << "bin center bin " << mynbins << ": " << *bincenter << " <-> value: " << *histiter << std::endl;
-    ++mynbins;
+    if (restrictRange) {
+      if (*bincenter < rangeLow || *bincenter > rangeHigh) {
+        continue;
+      }
+    }
     stats.add(*bincenter, *histiter);
   }
   return stats.getMean();
@@ -427,18 +488,27 @@ double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
 /// \param inHist1D input boost histogram
 /// \param mean mean mean of the histogram, if set to -999999, mean will be caluclated
 /// \param weight weight of the entries in the histogram. Per default set to 1
+/// \param rangeLow minimum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
+/// \param rangeHigh maximum range considered for the mean calculation (if rangeLow == rangeHigh, no cut will be performed)
 /// \return variance of the distribution with respect to the mean
 template <typename... axes>
-double getVarianceBoost1D(boost::histogram::histogram<axes...>& inHist1D, double mean = -999999, const double weight = 1)
+double getVarianceBoost1D(boost::histogram::histogram<axes...>& inHist1D, double mean = -999999, const double rangeLow = 0, const double rangeHigh = 0, const double weight = 1)
 {
   if (std::abs(mean + 999999) < 0.00001) {
-    mean = getMeanBoost1D(inHist1D);
+    mean = getMeanBoost1D(inHist1D, rangeLow, rangeHigh);
   }
+  bool restrictRange = rangeLow < rangeHigh ? true : false;
   unsigned int nMeas = 0; // counter for the number of data points
   auto histiter = inHist1D.begin() + 1;
   const auto& axis = inHist1D.axis(0);
   double variance = 0;
   for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
+    if (restrictRange) {
+      LOG(debug) << " *bincenter " << *bincenter << "  rangeLow " << rangeLow << " rangeHigh " << rangeHigh;
+      if (*bincenter < rangeLow || *bincenter > rangeHigh) {
+        continue;
+      }
+    }
     nMeas += *histiter / weight; // to get the number of entries, for weighted histograms we need to divide by the weight to get back to the number of entries
     variance += *histiter * (*bincenter - mean) * (*bincenter - mean);
   }
@@ -548,7 +618,7 @@ auto ProjectBoostHistoXFast(const boost::histogram::histogram<axes...>& hist2d, 
 /// \return result
 ///      1d boost histogram from projection of the input 2d boost histogram
 template <typename... axes>
-auto ReduceBoostHistoFastSlice(boost::histogram::histogram<axes...>& hist2d, int binXLow, int binXHigh, int binYLow, int binYHigh, bool includeOverflowUnderflow)
+auto ReduceBoostHistoFastSlice(const boost::histogram::histogram<axes...>& hist2d, int binXLow, int binXHigh, int binYLow, int binYHigh, bool includeOverflowUnderflow)
 {
   int nXbins = binXHigh - binXLow + 1;
   int nYbins = binYHigh - binYLow + 1;

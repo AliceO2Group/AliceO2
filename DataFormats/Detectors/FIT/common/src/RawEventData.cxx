@@ -32,14 +32,6 @@ void EventData::print() const
   LOG(info) << "------------Channel " << channelID << "------------";
   LOG(info) << "Charge: " << charge;
   LOG(info) << "Time: " << time;
-  LOG(info) << "numberADC: " << numberADC;
-  LOG(info) << "isDoubleEvent: " << isDoubleEvent;
-  LOG(info) << "isTimeInfoNOTvalid: " << isTimeInfoNOTvalid;
-  LOG(info) << "isCFDinADCgate: " << isCFDinADCgate;
-  LOG(info) << "isTimeInfoLate: " << isTimeInfoLate;
-  LOG(info) << "isAmpHigh: " << isAmpHigh;
-  LOG(info) << "isEventInTVDC: " << isEventInTVDC;
-  LOG(info) << "isTimeInfoLost: " << isTimeInfoLost;
   LOG(info) << "##########################################";
   LOG(info) << std::dec;
 }

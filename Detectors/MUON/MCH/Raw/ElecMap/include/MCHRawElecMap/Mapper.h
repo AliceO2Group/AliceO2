@@ -29,8 +29,6 @@
 namespace o2::mch::raw
 {
 
-extern std::array<int, 156> deIdsForAllMCH;
-
 /**@name Mapper templates.
 
   Those creator functions return functions that can do the mapping to/from
@@ -82,7 +80,7 @@ template <typename T>
 std::set<DsDetId> getDualSampasPerFeeId(uint16_t feeId);
 
 /**@name Actual mapper types.
-    */
+ */
 ///@{
 
 struct ElectronicMapperDummy {
@@ -96,7 +94,7 @@ struct ElectronicMapperString {
 ///@}
 
 /** Return the full set of Dual Sampa Electronic Id of MCH,
-  * for a given electronic mapping */
+ * for a given electronic mapping */
 template <typename T>
 std::set<DsElecId> getAllDs();
 
@@ -126,6 +124,14 @@ extern std::array<int, 13> deIdsOfCH10L;
 // @returns vector of error messages. If empty the check is ok
 template <typename T>
 std::vector<std::string> solar2FeeLinkConsistencyCheck();
+
+/** Convert a solar index into a solarId */
+template <typename T>
+std::optional<uint16_t> solarIndex2Id(uint16_t solarIndex);
+
+/** Convert a solarId into a solar index */
+template <typename T>
+std::optional<uint16_t> solarId2Index(uint16_t solarId);
 
 } // namespace o2::mch::raw
 

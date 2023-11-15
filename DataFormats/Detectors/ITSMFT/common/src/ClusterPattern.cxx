@@ -102,6 +102,11 @@ std::ostream& operator<<(std::ostream& os, const ClusterPattern& pattern)
   return os;
 }
 
+void ClusterPattern::print() const
+{
+  std::cout << *this << "\n";
+}
+
 int ClusterPattern::getNPixels() const
 {
   int n = 0, nBytes = getUsedBytes();

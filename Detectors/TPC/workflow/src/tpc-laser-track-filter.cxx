@@ -12,8 +12,6 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "TPCWorkflow/LaserTrackFilterSpec.h"
 #include "DataFormatsTPC/TrackTPC.h"
 
@@ -22,13 +20,6 @@ using namespace o2::tpc;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-laser-track-filter", CompletionPolicy::CompletionOp::Consume));
-}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -54,7 +45,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     const char* defaultFileName = "tpc-laser-tracks.root";
     const char* defaultTreeName = "tpcrec";
 
-    //branch definitions for RootTreeWriter spec
+    // branch definitions for RootTreeWriter spec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
 
     // a spectator callback which will be invoked by the tree writer with the extracted object

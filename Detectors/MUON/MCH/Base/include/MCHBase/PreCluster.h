@@ -18,6 +18,7 @@
 #define O2_MCH_PRECLUSTER_H_
 
 #include <iostream>
+#include <Rtypes.h>
 
 #include <gsl/span>
 
@@ -37,6 +38,8 @@ struct PreCluster {
   uint32_t lastDigit() const { return firstDigit + nDigits - 1; }
 
   void print(std::ostream& stream, gsl::span<const Digit> digits) const;
+
+  ClassDefNV(PreCluster, 1)
 };
 
 } // namespace mch

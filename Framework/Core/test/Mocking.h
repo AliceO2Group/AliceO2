@@ -16,6 +16,8 @@
 #include "Framework/WorkflowCustomizationHelpers.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 
+namespace
+{
 std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
 {
   using namespace o2::framework;
@@ -53,3 +55,4 @@ std::vector<ChannelConfigurationPolicy> makeTrivialChannelPolicies(ConfigContext
 
   return {defaultPolicy};
 }
+} // namespace

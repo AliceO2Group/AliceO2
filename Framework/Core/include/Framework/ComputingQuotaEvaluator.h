@@ -13,6 +13,7 @@
 #define O2_COMPUTINGQUOTAEVALUATOR_H_
 
 #include "Framework/ComputingQuotaOffer.h"
+#include "Framework/ServiceRegistryRef.h"
 
 #include <cstdint>
 #include <functional>
@@ -20,7 +21,8 @@
 #include <vector>
 #include <cstddef>
 
-typedef struct uv_loop_s uv_loop_t;
+using uv_loop_t = struct uv_loop_s;
+using uv_timer_t = struct uv_timer_s;
 
 namespace o2::framework
 {
@@ -31,8 +33,7 @@ class ComputingQuotaEvaluator
  public:
   // Maximum number of offers this evaluator can hold
   static constexpr int MAX_INFLIGHT_OFFERS = 16;
-  // @a now the current time when the register was created. E.g. what uv_now returns.
-  ComputingQuotaEvaluator(uint64_t now);
+  ComputingQuotaEvaluator(ServiceRegistryRef ref);
   /// @a task the task which needs some quota
   /// @a request the resource request the @a task needs
   /// @a now the time (e.g. uv_now) when invoked.
@@ -58,6 +59,8 @@ class ComputingQuotaEvaluator
   /// Information about a given computing offer (e.g. when it was started to be used)
   std::array<ComputingQuotaInfo, MAX_INFLIGHT_OFFERS> mInfos;
   ComputingQuotaStats mStats;
+  ServiceRegistryRef mRef;
+  uv_timer_t* mTimer;
 };
 
 } // namespace o2::framework

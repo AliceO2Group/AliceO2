@@ -70,7 +70,7 @@ class RawReaderZDC
   void clear();
 
   // decoding binary data into data blocks
-  void processBinaryData(gsl::span<const uint8_t> payload, int linkID); // processing data blocks into digits
+  int processBinaryData(gsl::span<const uint8_t> payload, int linkID, uint8_t dataFormat); // processing data blocks into digits
   int processWord(const uint32_t* word);
   void process(const EventChData& ch);
 

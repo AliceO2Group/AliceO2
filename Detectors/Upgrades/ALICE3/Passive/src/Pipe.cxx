@@ -103,7 +103,7 @@ void Alice3Pipe::ConstructGeometry()
   // Strategy used here is to use a composite shape where shapes of TRK layers are subtracted to the vacuum volume
   TGeoTube* outerBeTube = new TGeoTube("OUT_PIPEsh", mBeOuterPipeRmin, mBeOuterPipeRmin + mBeOuterPipeThick, mOuterIpHLength);
   TGeoVolume* outerBeTubeVolume = new TGeoVolume("OUT_PIPE", outerBeTube, kMedBe);
-  outerBeTubeVolume->SetLineColor(kBlue);
+  outerBeTubeVolume->SetLineColor(kGreen - 9);
 
   TGeoTube* outerBerylliumTubeVacuumBase = new TGeoTube("OUT_PIPEVACUUM_BASEsh", mBeInnerPipeRmin + mBeInnerPipeThick, mBeOuterPipeRmin, mOuterIpHLength); // Vacuum filling for outer pipe
   TGeoCompositeShape* outerBerylliumTubeVacuumComposite;                                                                                                   // Composite volume to subctract to vacuum
@@ -114,6 +114,7 @@ void Alice3Pipe::ConstructGeometry()
 
   if (!mIsTRKActivated) {
     std::vector<TGeoTube*> trkLayerShapes;
+
     std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 50.f, 50.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
                                                       std::array<float, 3>{1.2f, 50.f, 50.e-4},
                                                       std::array<float, 3>{2.5f, 50.f, 50.e-4}};
@@ -126,9 +127,14 @@ void Alice3Pipe::ConstructGeometry()
         subtractorsFormula += Form("+TRKLAYER_%dsh", iLayer);
       }
     }
-    LOG(debug) << "Subtractors formula before: " << subtractorsFormula;
+
+    // Escavate vacuum for hosting cold plate
+    TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", 2.6f, 2.6f + 150.e-3, 50.f / 2);
+    subtractorsFormula += "+TRK_COLDPLATEsh";
+
+    LOG(info) << "Subtractors formula before : " << subtractorsFormula;
     subtractorsFormula = Form("-(%s)", subtractorsFormula.Data());
-    LOG(debug) << "Subtractors formula after: " << subtractorsFormula;
+    LOG(info) << "Subtractors formula after: " << subtractorsFormula;
 
     outerBerylliumTubeVacuumComposite = new TGeoCompositeShape("OUT_PIPEVACUUMsh", (compositeFormula + subtractorsFormula).Data());
     outerBerylliumTubeVacuumVolume = new TGeoVolume("OUT_PIPEVACUUM", outerBerylliumTubeVacuumComposite, kMedVac);
@@ -149,7 +155,7 @@ void Alice3Pipe::ConstructGeometry()
   TGeoTube* innerBeTube =
     new TGeoTube("INN_PIPEsh", mBeInnerPipeRmin, mBeInnerPipeRmin + mBeInnerPipeThick, mInnerIpHLength);
   TGeoVolume* innerBeTubeVolume = new TGeoVolume("INN_PIPE", innerBeTube, kMedBe);
-  innerBeTubeVolume->SetLineColor(kRed);
+  innerBeTubeVolume->SetLineColor(kGreen - 9);
 
   TGeoTube* berylliumTubeVacuum =
     new TGeoTube("INN_PIPEVACUUMsh", 0., mBeInnerPipeRmin, mInnerIpHLength);

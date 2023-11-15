@@ -224,14 +224,21 @@ struct Descriptor {
 
   // Note: don't need to define operator=(ItgType v) because the compiler
   // can use Descriptor(ItgType initializer) for conversion
+  using ImplicitConversion = std::conditional_t<(size <= 8), ItgType, std::string_view>;
 
   // type cast operator for simplified usage of the descriptor's integer member
-  // TODO: this is sort of a hack, takes the first element.
-  //       we should rethink these implicit conversions
-  operator ItgType() const
+  // in case it does not fit into the descriptor, the string representation is returned
+  operator ImplicitConversion() const
   {
-    static_assert(arraySize == 1, "casting Descriptor to ItgType only allowed for N<=8");
-    return itg[0];
+    if constexpr (std::is_same_v<ImplicitConversion, ItgType>) {
+      return itg[0];
+    } else {
+      size_t len = size;
+      while (len > 1 && str[len - 1] == 0) {
+        --len;
+      }
+      return std::string_view(str, len);
+    }
   }
 
   /// constructor from a compile-time string
@@ -240,7 +247,7 @@ struct Descriptor {
   {
     static_assert(L <= N + 1, "initializer string must not exceed descriptor size");
     unsigned i = 0;
-    for (; in[i] && i < (N < L ? N : L); ++i) {
+    for (; i < (N < L ? N : L) && in[i]; ++i) {
       str[i] = in[i];
     }
   }
@@ -279,6 +286,8 @@ struct Descriptor {
   bool operator<(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) < 0; }
   bool operator!=(const Descriptor& other) const { return not this->operator==(other); }
 
+  // Convesion operators for comparison with their implicitly convertible types
+  friend bool operator==(const Descriptor& lhs, ImplicitConversion rhs) { return static_cast<ImplicitConversion>(lhs) == rhs; }
   // explicitly forbid comparison with e.g. const char* strings
   // use: value == Descriptor<N>("DESC") for the appropriate
   // template instantiation instead
@@ -570,9 +579,12 @@ constexpr o2::header::DataOrigin gDataOriginTST{"TST"};
 constexpr o2::header::DataOrigin gDataOriginACO{"ACO"}; // for bwd compatibility with DD
 
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
+constexpr o2::header::DataOrigin gDataOriginFOC{"FOC"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
 constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
 constexpr o2::header::DataOrigin gDataOriginFCT{"FCT"};
+
+constexpr o2::header::DataOrigin gDataOriginGPU{"GPU"};
 
 // possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};

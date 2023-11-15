@@ -102,7 +102,7 @@ int main(int argc, char** argv)
   int nbad{0};
 
   for (auto de : deIds) {
-    std::string filepath(fmt::format(filePattern, de));
+    std::string filepath(fmt::format(fmt::runtime(filePattern), de));
     std::ifstream in(filepath);
     if (!in) {
       std::cout << "Cannot open " << filepath << "\n";

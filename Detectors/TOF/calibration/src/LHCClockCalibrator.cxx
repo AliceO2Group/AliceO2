@@ -15,7 +15,6 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Utils.h"
 
 namespace o2

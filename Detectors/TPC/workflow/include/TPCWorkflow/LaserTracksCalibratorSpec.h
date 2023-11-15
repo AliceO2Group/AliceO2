@@ -55,7 +55,7 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("laserTracks").header);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     auto data = pc.inputs().get<gsl::span<TrackTPC>>("laserTracks");
-    LOGP(info, "Processing TF {} and {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, data.size());
+    LOGP(detail, "Processing TF {} and {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, data.size());
 
     mCalibrator->process(data);
 

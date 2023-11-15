@@ -32,6 +32,10 @@ namespace o2::itsmft
 {
 class TopologyDictionary;
 }
+namespace o2::tpc
+{
+class CorrectionMapsLoader;
+}
 
 namespace o2::gpu
 {
@@ -65,6 +69,8 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUSettingsO2> mConfParam;
   std::unique_ptr<TPCFastTransform> mFastTransform;
+  std::unique_ptr<TPCFastTransform> mFastTransformRef;
+  std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;

@@ -20,9 +20,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceExecution.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// These are the possible states for the driver controller
@@ -53,7 +51,6 @@ struct DriverControl {
   bool defaultStopped;
 };
 
-} // namespace framework
 } // namespace o2
 
 #endif

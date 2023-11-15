@@ -54,10 +54,9 @@
 #pragma link C++ class o2::eventgen::GeneratorFromO2KineParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFromO2KineParam> + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
+#pragma link C++ class o2::eventgen::PrimaryGeneratorParam + ;
 
 #pragma link C++ enum o2::eventgen::EVertexDistribution;
-#pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam> + ;
 #pragma link C++ class o2::eventgen::TriggerExternalParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerExternalParam> + ;
 #pragma link C++ class o2::eventgen::TriggerParticleParam + ;
@@ -68,5 +67,10 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam> + ;
 #pragma link C++ class o2::eventgen::GenCosmicsParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam> + ;
+#pragma link C++ class o2::eventgen::GeneratorTParticle + ;
+#pragma link C++ class o2::eventgen::GeneratorTParticleParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorTParticleParam> + ;
+#pragma link C++ class o2::eventgen::GeneratorFileOrCmdParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFileOrCmdParam> + ;
 
 #endif

@@ -13,20 +13,34 @@
 #define O2_SIM_CONFIGURATION
 
 #include <Rtypes.h>
+#ifndef __CLING__
 #include <boost/program_options.hpp>
+#else
+namespace boost::program_options
+{
+class variables_map;
+class options_description;
+} // namespace boost::program_options
+#endif
 
 namespace o2
 {
 namespace conf
 {
 
-enum SimFieldMode {
+enum class SimFieldMode {
   kDefault = 0,
   kUniform = 1,
   kCCDB = 2
 };
 
-enum TimeStampMode {
+enum class VertexMode {
+  kNoVertex = 0,     // no vertexing should be applied in the generator
+  kDiamondParam = 1, // Diamond param will influence vertexing
+  kCCDB = 2          // vertex should be taken from CCDB (Calib/MeanVertex object)
+};
+
+enum class TimeStampMode {
   kNow = 0,
   kManual = 1,
   kRun = 2
@@ -61,13 +75,17 @@ struct SimConfigData {
   bool mFilterNoHitEvents = false;            // whether to filter out events not leaving any response
   std::string mCCDBUrl;                       // the URL where to find CCDB
   uint64_t mTimestamp;                        // timestamp in ms to anchor transport simulation to
-  TimeStampMode mTimestampMode = kNow;        // telling of timestamp was given as option or defaulted to now
+  TimeStampMode mTimestampMode = TimeStampMode::kNow; // telling of timestamp was given as option or defaulted to now
   int mRunNumber = -1;                        // ALICE run number (if set != -1); the timestamp should be compatible
   int mField;                                 // L3 field setting in kGauss: +-2,+-5 and 0
-  SimFieldMode mFieldMode = kDefault;         // uniform magnetic field
+  SimFieldMode mFieldMode = SimFieldMode::kDefault; // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
   bool mIsRun5 = false;                       // true if the simulation is for Run 5
+  std::string mFromCollisionContext = "";     // string denoting a collision context file; If given, this file will be used to determine number of events
+  bool mForwardKine = false;                  // true if tracks and event headers are to be published on a FairMQ channel (for reading by other consumers)
+  bool mWriteToDisc = true;                   // whether we write simulation products (kine, hits) to disc
+  VertexMode mVertexMode = VertexMode::kDiamondParam; // by default we should use die InteractionDiamond parameter
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -92,6 +110,12 @@ class SimConfig
   {
     static SimConfig conf;
     return conf;
+  }
+
+  // makes a new instance that can be used as a local object
+  static SimConfig make()
+  {
+    return SimConfig();
   }
 
   static void initOptions(boost::program_options::options_description&);
@@ -120,6 +144,8 @@ class SimConfig
 
   // helper to parse field option
   static bool parseFieldString(std::string const& fieldstring, int& fieldvalue, o2::conf::SimFieldMode& mode);
+  // helper to parse vertex option; returns true if parsing ok, false if failure
+  static bool parseVertexModeString(std::string const& vertexstring, o2::conf::VertexMode& mode);
 
   // get selected generator (to be used to select a genconfig)
   std::string getGenerator() const { return mConfigData.mGenerator; }
@@ -146,9 +172,15 @@ class SimConfig
   int getRunNumber() const { return mConfigData.mRunNumber; }
   bool isNoGeant() const { return mConfigData.mNoGeant; }
   void setRun5(bool value = true) { mConfigData.mIsRun5 = value; }
+  bool forwardKine() const { return mConfigData.mForwardKine; }
+  bool writeToDisc() const { return mConfigData.mWriteToDisc; }
+  VertexMode getVertexMode() const { return mConfigData.mVertexMode; }
 
  private:
   SimConfigData mConfigData; //!
+
+  // adjust/overwrite some option settings when collision context is used
+  void adjustFromCollContext();
 
   ClassDefNV(SimConfig, 1);
 };
@@ -177,6 +209,7 @@ struct SimReconfigData {
   unsigned int primaryChunkSize; // defining max granularity for input primaries of a sim job
   ULong_t startSeed;             // base for random number seeds
   bool stop;                     // to shut down the service
+  std::string mFromCollisionContext = ""; // string denoting a collision context file; If given, this file will be used to determine number of events
 
   ClassDefNV(SimReconfigData, 1);
 };

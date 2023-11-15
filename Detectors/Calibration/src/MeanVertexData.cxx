@@ -38,7 +38,7 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
 {
   // fill container
 
-  LOG(info) << "input size = " << data.size();
+  LOG(debug) << "input size = " << data.size();
   for (int i = data.size(); i--;) {
     // filling the histogram in binned mode
     std::array<float, 3> xyz{data[i].getX(), data[i].getY(), data[i].getZ()};

@@ -14,6 +14,7 @@
 #include <arrow/status.h>
 #include <arrow/util/config.h>
 #include <cassert>
+#include <utility>
 
 namespace arrow::io::internal
 {
@@ -113,7 +114,7 @@ FairMQResizableBuffer::~FairMQResizableBuffer() = default;
 FairMQResizableBuffer::FairMQResizableBuffer(Creator creator)
   : ResizableBuffer(nullptr, 0),
     mMessage{nullptr},
-    mCreator{creator}
+    mCreator{std::move(creator)}
 {
   this->data_ = nullptr;
   this->capacity_ = 0;
@@ -160,10 +161,6 @@ arrow::Status FairMQResizableBuffer::Reserve(const int64_t capacity)
 
 std::unique_ptr<fair::mq::Message> FairMQResizableBuffer::Finalise()
 {
-  auto oldSize = mMessage->GetSize();
-  bool resized = mMessage->SetUsedSize(this->size_);
-  auto newSize = mMessage->GetSize();
-
   this->data_ = nullptr;
   this->capacity_ = 0;
   this->size_ = 0;

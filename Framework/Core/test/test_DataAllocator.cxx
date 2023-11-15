@@ -12,6 +12,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/InputRecord.h"
@@ -30,6 +31,7 @@
 #include <vector>
 #include <chrono>
 #include <cstring>
+#include <deque>
 #include <utility> // std::declval
 #include <TNamed.h>
 
@@ -43,14 +45,11 @@ using namespace o2::framework;
 // this function is only used to do the static checks for API return types
 void doTypeChecks()
 {
-  ServiceRegistry* contextes = nullptr;
-  std::vector<OutputRoute> routes;
-  DataAllocator allocator(contextes, routes);
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require references to objects owned by allocator context
-  static_assert(std::is_lvalue_reference<decltype(allocator.make<int>(output))>::value);
-  static_assert(std::is_lvalue_reference<decltype(allocator.make<std::string>(output, "test"))>::value);
-  static_assert(std::is_lvalue_reference<decltype(allocator.make<std::vector<int>>(output))>::value);
+  static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<int>(output))>::value);
+  static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<std::string>(output, "test"))>::value);
+  static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<std::vector<int>>(output))>::value);
 }
 
 namespace test
@@ -72,11 +71,14 @@ constexpr o2::header::HeaderType MetaHeader::sHeaderType = "MetaHead";
 
 DataProcessorSpec getSourceSpec()
 {
+  static_assert(enable_root_serialization<o2::test::Polymorphic>::value, "enable_root_serialization<o2::test::Polymorphic> must be true");
   auto processingFct = [](ProcessingContext& pc) {
     static int counter = 0;
     o2::test::TriviallyCopyable a(42, 23, 0xdead);
     o2::test::Polymorphic b(0xbeef);
     std::vector<o2::test::Polymorphic> c{{0xaffe}, {0xd00f}};
+    std::deque<int> testDequePayload{10, 20, 30};
+
     // class TriviallyCopyable is both messageable and has a dictionary, the default
     // picked by the framework is no serialization
     test::MetaHeader meta1{42};
@@ -89,6 +91,8 @@ DataProcessorSpec getSourceSpec()
     pc.outputs().snapshot(Output{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe}, b);
     // vector of ROOT serializable class
     pc.outputs().snapshot(Output{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe}, c);
+    // deque of simple types
+    pc.outputs().snapshot(Output{"TST", "DEQUE", 0, Lifetime::Timeframe}, testDequePayload);
     // likewise, passed anonymously with char type and class name
     o2::framework::ROOTSerialized<char, const char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
     pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe}, d);
@@ -175,6 +179,7 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{"TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{"TST", "DEQUE", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
@@ -318,6 +323,12 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object15[0] == o2::test::Polymorphic{0xacdc});
     ASSERT_ERROR(object15[1] == o2::test::Polymorphic{0xbeef});
 
+    LOG(info) << "extracting deque to vector from input16";
+    auto object16 = pc.inputs().get<std::vector<int>>("input16");
+    LOG(info) << "object16.size() = " << object16.size() << std::endl;
+    ASSERT_ERROR(object16.size() == 3);
+    ASSERT_ERROR(object16[0] == 10 && object16[1] == 20 && object16[2] == 30);
+
     LOG(info) << "extracting PMR vector";
     auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
     ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
@@ -352,6 +363,7 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe},
                             InputSpec{"input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
                             InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
+                            InputSpec{"input16", "TST", "DEQUE", 0, Lifetime::Timeframe},
                             InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"inputPODvector", "TST", "PODVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},

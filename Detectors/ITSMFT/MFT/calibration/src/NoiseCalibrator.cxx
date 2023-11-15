@@ -29,7 +29,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(info) << "Processing TF# " << nTF++;
+  LOG(detail) << "Processing TF# " << nTF++;
 
   for (const auto& rof : rofs) {
     auto digitsInFrame = rof.getROFData(digits);
@@ -51,7 +51,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(info) << "Processing TF# " << nTF++;
+  LOG(detail) << "Processing TF# " << nTF++;
 
   auto pattIt = patterns.begin();
   for (const auto& rof : rofs) {

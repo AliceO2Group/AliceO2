@@ -18,6 +18,7 @@
 #pragma link C++ class o2::emcal::CalibDB + ;
 #pragma link C++ class o2::emcal::BadChannelMap + ;
 #pragma link C++ class o2::emcal::TimeCalibrationParams + ;
+#pragma link C++ class o2::emcal::TimeCalibrationSlewingParams + ;
 #pragma link C++ class o2::emcal::TimeCalibParamL1Phase + ;
 #pragma link C++ class o2::emcal::TempCalibrationParams + ;
 #pragma link C++ class o2::emcal::TempCalibParamSM + ;

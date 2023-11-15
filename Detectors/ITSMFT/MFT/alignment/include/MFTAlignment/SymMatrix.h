@@ -215,7 +215,7 @@ class SymMatrix : public MatrixSq
   static SymMatrix* fgBuffer; ///< buffer for fast solution
   static Int_t fgCopyCnt;     ///< matrix copy counter
 
-  ClassDef(SymMatrix, 0);
+  ClassDefOverride(SymMatrix, 0);
 };
 
 //___________________________________________________________

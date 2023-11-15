@@ -36,6 +36,7 @@
 // GG
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
+#include "MCHClustering/ClusterizerParam.h"
 // ??? <<<<<<< HEAD
 #include "MCHBase/MathiesonOriginal.h"
 // #include "mathiesonFit.h"
@@ -55,6 +56,8 @@ namespace o2
 namespace mch
 {
 
+extern ClusterConfig clusterConfig;
+
 //_________________________________________________________________________________________________
 ClusterFinderGEM::ClusterFinderGEM()
   : mMathiesons(std::make_unique<MathiesonOriginal[]>(2)), mPreCluster(std::make_unique<ClusterOriginal>())
@@ -72,7 +75,7 @@ ClusterFinderGEM::ClusterFinderGEM()
   mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(0.7642);
   // GG
   // init Mathieson
-  o2::mch::initMathieson();
+  o2::mch::initMathieson(clusterConfig.useSpline, 0);
   nPads = 0;
   xyDxy = nullptr;
   cathode = nullptr;
@@ -85,11 +88,34 @@ ClusterFinderGEM::ClusterFinderGEM()
 }
 
 //_________________________________________________________________________________________________
-void ClusterFinderGEM::init(int _mode)
+void ClusterFinderGEM::init(int _mode, bool run2Config)
 {
   /// initialize the clustering
   // ??? Not used
   mode = _mode;
+  // Run 2 case (default)
+  // 4.f * 0.22875f;
+  initClusterConfig();
+  clusterConfig.minChargeOfPads = 1.1;
+  clusterConfig.minChargeOfClusterPerCathode = 2 * clusterConfig.minChargeOfPads;
+  //
+  // ClusterResolution
+  clusterConfig.SDefaultClusterResolutionX = 0.2f;
+  clusterConfig.SDefaultClusterResolutionY = 0.2f;
+  clusterConfig.SBadClusterResolutionX = 10.f;
+  clusterConfig.SBadClusterResolutionY = 10.f;
+  if (!run2Config) {
+    // Run 3 case
+    clusterConfig.minChargeOfPads = ClusterizerParam::Instance().lowestPadCharge;
+    clusterConfig.minChargeOfClusterPerCathode = 1.0 * clusterConfig.minChargeOfPads;
+    //
+    // Cluster resolution (for the tracking)
+    clusterConfig.SDefaultClusterResolutionX = ClusterizerParam::Instance().defaultClusterResolutionX;
+    clusterConfig.SDefaultClusterResolutionY = ClusterizerParam::Instance().defaultClusterResolutionY;
+    clusterConfig.SBadClusterResolutionX = ClusterizerParam::Instance().badClusterResolutionX;
+    clusterConfig.SBadClusterResolutionY = ClusterizerParam::Instance().badClusterResolutionY;
+  }
+  // Inv ???  LOG(info) << "Init lowestPadCharge = " << clusterConfig.minChargeOfPads ;
 }
 //_________________________________________________________________________________________________
 void ClusterFinderGEM::deinit()
@@ -99,18 +125,13 @@ void ClusterFinderGEM::deinit()
 }
 
 //_________________________________________________________________________________________________
+
 ClusterFinderGEM::~ClusterFinderGEM() = default;
-/*
+
+/* Trace
 ClusterFinderGEM::~ClusterFinderGEM()
 {
-  // std::cout << "  [GEM] Delete " << std::endl;
-  // GG invalid
-  if ( pOriginalClusterDump != 0) {
-    delete [] pOriginalClusterDump;
-  }
-  if ( pGEMClusterDump != 0) {
-    delete [] pGEMClusterDump;
-  }
+  std::cout << "  [ClusterFinderGEM] Delete " << std::endl;
 }
 */
 
@@ -121,6 +142,14 @@ void ClusterFinderGEM::reset()
   // std::cout << "  [GEM] Reset hits/mClusters.size=" << mClusters.size() << std::endl;
 
   // GEM part
+  releasePreCluster();
+  // Inv ??? freeMemoryPadProcessing();
+  mClusters.clear();
+  mUsedDigits.clear();
+}
+
+void ClusterFinderGEM::releasePreCluster()
+{
   nPads = 0;
   DEId = -1;
   if (xyDxy != nullptr) {
@@ -139,9 +168,6 @@ void ClusterFinderGEM::reset()
     delete[] saturated;
     saturated = nullptr;
   };
-  // Inv ??? freeMemoryPadProcessing();
-  mClusters.clear();
-  mUsedDigits.clear();
 }
 
 //_________________________________________________________________________________________________
@@ -175,8 +201,6 @@ void ClusterFinderGEM::dumpPreCluster(ClusterDump* dumpFile, gsl::span<const Dig
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
     uint32_t adc = digit.getADC();
-    // float charge(0.);
-    // std::memcpy(&charge, &adc, sizeof(adc));
     double charge = mADCToCharge(adc);
     bool isSaturated = digit.isSaturated();
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
@@ -264,6 +288,16 @@ void ClusterFinderGEM::dumpClusterResults(ClusterDump* dumpFile, const std::vect
   }
 }
 
+/* Invalid
+//_________________________________________________________________________________________________
+// void ClusterFinderGEM::saveStatistics(ClusterDump* dumpFile, gsl::span<const Digit> digits, const std::vector<Cluster>& clusters, size_t startIdx, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster)
+void ClusterFinderGEM::saveStatistics(uint32_t orbit, uint16_t bunchCrossing, uint32_t iPreCluster, uint16_t nPads, uint16_t nbrClusters, uint16_t DEId, double duration)
+{
+  statStream << iPreCluster << " " << bunchCrossing << " " << orbit << " "
+             << nPads << " " << nbrClusters << " " << DEId << " " << duration << std::endl;
+}
+*/
+
 //_________________________________________________________________________________________________
 void ClusterFinderGEM::fillGEMInputData(gsl::span<const Digit>& digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster)
 {
@@ -305,6 +339,7 @@ void ClusterFinderGEM::fillGEMInputData(gsl::span<const Digit>& digits, uint16_t
     if (charge <= 0.) {
       throw std::runtime_error("The precluster contains a digit with charge <= 0");
     }
+    // std::cout << x << ", " << y << ", " << dx << ", " << dy << ", " << charge  << ", " << isSaturated << std::endl;
     mPreCluster->addPad(x, y, dx, dy, charge, isSaturated, plane, iDigit, PadOriginal::kZero);
     // GG
     // Initialisation for GEM processing
@@ -328,9 +363,8 @@ void ClusterFinderGEM::setClusterResolution(Cluster& cluster) const
   if (cluster.getChamberId() < 4) {
 
     // do not consider mono-cathode clusters in stations 1 and 2
-    cluster.ex = SDefaultClusterResolution;
-    cluster.ey = SDefaultClusterResolution;
-
+    cluster.ex = clusterConfig.SDefaultClusterResolutionX;
+    cluster.ey = clusterConfig.SDefaultClusterResolutionY;
   } else {
 
     // find pads below the cluster
@@ -350,8 +384,10 @@ void ClusterFinderGEM::setClusterResolution(Cluster& cluster) const
     }
 
     // set the cluster resolution accordingly
-    cluster.ex = (itPadNB == mUsedDigits.end()) ? SBadClusterResolution : SDefaultClusterResolution;
-    cluster.ey = (itPadB == mUsedDigits.end()) ? SBadClusterResolution : SDefaultClusterResolution;
+    cluster.ex = (itPadNB == mUsedDigits.end()) ? clusterConfig.SBadClusterResolutionX
+                                                : clusterConfig.SDefaultClusterResolutionX;
+    cluster.ey = (itPadB == mUsedDigits.end()) ? clusterConfig.SBadClusterResolutionY
+                                               : clusterConfig.SDefaultClusterResolutionY;
   }
 }
 
@@ -367,7 +403,7 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
     return;
   }
   uint32_t nPreviousCluster = mClusters.size();
-  if (ClusterConfig::processingLog >= ClusterConfig::info) {
+  if (clusterConfig.processingLog >= clusterConfig.info) {
     printf("----------------------------------------\n");
     std::cout << "  [GEM] PreCluster BC=" << bunchCrossing
               << ", orbit = " << orbit
@@ -386,7 +422,7 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
 
   // GG process clusters
   int chId = DEId / 100;
-  int nbrOfHits = clusterProcess(xyDxy, cathode, saturated, padCharge, chId, nPads);
+  int nbrOfHits = ::clusterProcess(xyDxy, cathode, saturated, padCharge, chId, nPads);
   double theta[nbrOfHits * 5];
   Groups_t thetaToGroup[nbrOfHits];
   /// collectTheta(theta, thetaToGroup, nbrOfHits);
@@ -433,16 +469,16 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
           // ??? value of chID
           // ??? To do later
           if (chId <= 4) {
-            dx = SDefaultClusterResolution;
-            dy = SDefaultClusterResolution;
+            dx = SDefaultClusterResolutionX;
+            dy = SDefaultClusterResolutionY;
           } else {
             // Find the associated pads
             // set the cluster resolution accordingly
-            // cluster.ex = (NBPad) ? SBadClusterResolution : SDefaultClusterResolution;
-            // cluster.ey = (BPad) ? SBadClusterResolution : SDefaultClusterResolution;
+            // cluster.ex = (NBPad) ? SBadClusterResolutionX : SDefaultClusterResolutionX;
+            // cluster.ey = (BPad) ? SBadClusterResolutionY : SDefaultClusterResolutionY;
             // ???
-            dx = SDefaultClusterResolution;
-            dy = SDefaultClusterResolution;
+            dx = SDefaultClusterResolutionX;
+            dy = SDefaultClusterResolutionY;
           }
            */
         // ??? uint32_t uid = Cluster::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), thetaToGroup[s]);
@@ -460,7 +496,6 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
         setClusterResolution(mClusters[mClusters.size() - 1]);
         // Debug
         int iNewCluster = mClusters.size() - 1;
-        // Debug ???
         /*
         std::cout << "iNewCluster=" << iNewCluster << ", DEId=" << digits[0].getDetID()
                  << ", x" <<  mClusters[iNewCluster].x << ", y" <<  mClusters[iNewCluster].y << ", z" <<  mClusters[iNewCluster].z
@@ -471,6 +506,8 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
   }
 
   // std::cout << "  [GEM] Finished preCluster " << digits.size() << std::endl;
+  cleanClusterResults();
+  releasePreCluster();
 }
 
 } // namespace mch

@@ -145,7 +145,7 @@ static constexpr unsigned short NPHI = 180; // grid in phi
 const float mZROC = o2::tpc::TPCParameters<double>::TPCZ0;     // absolute - position of G1T
 const float mRIFC = o2::tpc::TPCParameters<double>::IFCRADIUS; // inner field cage radius in cm
 const float mROFC = o2::tpc::TPCParameters<double>::OFCRADIUS; // outer field cage radius in cm
-const float mOmegatau = 0.32f;
+const int mBField = -5;                                        ///< B-Field
 
 const char* outfnameHists = "spaceChargeDensityHist"; // name of the output file for the histograms
 const char* outfnameIDC = "spaceChargeDensityIDC";    // name of the output file for the IDCs
@@ -177,10 +177,8 @@ int getSideEnd(const int sides);
 /// \nZBins number of phi bins the sc density histograms
 void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514, const std::array<float, GEMSTACKSPERSECTOR> gainStackScaling = std::array<float, GEMSTACKSPERSECTOR>{1, 1, 1, 1} /*, const int nThreads = 1*/)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
-
   // load average distortions of electrons
-  SpaceCharge<double> spacecharge;
+  SpaceCharge<double> spacecharge(mBField, NZ, NR, NPHI);
   if (distortionType == 1) {
     const std::string inpFileDistortions = Form("%sdistortions.root", inputfolder);
     TFile fInp(inpFileDistortions.data(), "READ");
@@ -578,10 +576,9 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
 template <typename DataT = double>
 void makeDistortionsCorrections(const TH3& histSC, const int nZ, const int nR, const int nPhi, const char* outFileDistortions = "distortions.root", const int sides = 0)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(nZ, nR, nPhi);
   std::cout << "output file: " << outFileDistortions << std::endl;
 
-  o2::tpc::SpaceCharge<DataT> spacecharge(mOmegatau, 1, 1);
+  o2::tpc::SpaceCharge<DataT> spacecharge(mBField, nZ, nR, nPhi);
   spacecharge.fillChargeDensityFromHisto(histSC);
 
   // dump distortion object to file if output file is specified
@@ -691,11 +688,9 @@ float getScaleValueZDep(const float scaleFactorConst, const float scaleFactorLin
 template <typename DataT = double>
 void createScaledMeanMap(const std::string inpFile, const std::string outFile, const int sides, const float scaleFactorConst, const float scaleFactorLinear, const float scaleFactorParabolic, const int nZ, const int nR, const int nPhi)
 {
-  o2::tpc::SpaceCharge<DataT>::setGrid(nZ, nR, nPhi);
-
   // load the mean histo
   using SC = o2::tpc::SpaceCharge<DataT>;
-  SC scScaled(mOmegatau, 1, 1);
+  SC scScaled(mBField, nZ, nR, nPhi);
 
   TFile fInp(inpFile.data(), "READ");
   if (sides != 2) {
@@ -822,7 +817,7 @@ float get1DIDCs(const CalPad& calPad, const o2::tpc::Side side)
       const int npads = mapper.getNumberOfPadsInRowROC(roc, irow);
       for (int ipad = 0; ipad < npads; ++ipad) {
         const auto idc = calPad.getValue(roc, irow, ipad);
-        mean += idc * o2::tpc::Mapper::INVPADAREA[region]; //PADAREA[NREGIONS] = inverse pad area
+        mean += idc * o2::tpc::Mapper::INVPADAREA[region]; // PADAREA[NREGIONS] = inverse pad area
         ++ww;
       }
     }

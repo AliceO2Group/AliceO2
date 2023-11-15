@@ -15,8 +15,10 @@
 #define O2_TPC_RESIDUALREADER
 
 #include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
@@ -24,7 +26,7 @@ namespace tpc
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCResidualReaderSpec();
+framework::DataProcessorSpec getTPCResidualReaderSpec(bool doBinning, GID::mask_t src);
 
 } // namespace tpc
 } // namespace o2

@@ -88,7 +88,7 @@ class TPCMonitorDevice : public o2::framework::Task
         mGUIThread->join();
       }
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
   }
 
   void run(o2::framework::ProcessingContext& pc) final

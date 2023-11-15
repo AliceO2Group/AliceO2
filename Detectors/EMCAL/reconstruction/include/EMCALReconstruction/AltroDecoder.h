@@ -11,10 +11,12 @@
 #ifndef ALICEO2_EMCAL_ALTRODECODER_H
 #define ALICEO2_EMCAL_ALTRODECODER_H
 
+#include <climits>
 #include <exception>
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
+#include <string_view>
 #include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/Channel.h"
@@ -48,7 +50,10 @@ class AltroDecoderError : public std::exception
   ///
   /// Defining error code and error message. To be called when the
   /// exception is thrown
-  AltroDecoderError(ErrorType_t errtype, const char* message) : mErrorType(errtype), mErrorMessage(message) {}
+  ///
+  /// \param errtype Type of the error
+  /// \param message Error message related to the error
+  AltroDecoderError(ErrorType_t errtype, const std::string_view message) : mErrorType(errtype), mErrorMessage(message) {}
 
   /// \brief Destructor
   ~AltroDecoderError() noexcept override = default;
@@ -73,6 +78,69 @@ class AltroDecoderError : public std::exception
   /// \return Error type
   const ErrorType_t getErrorType() const noexcept { return mErrorType; }
 
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(ErrorType_t errortype);
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(unsigned int errortype)
+  {
+    return getErrorTypeName(intToErrorType(errortype));
+  }
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(ErrorType_t errortype);
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(unsigned int errortype)
+  {
+    return getErrorTypeTitle(intToErrorType(errortype));
+  }
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(ErrorType_t errortype);
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(unsigned int errortype)
+  {
+    return getErrorTypeDescription(intToErrorType(errortype));
+  }
+
  private:
   ErrorType_t mErrorType;    ///< Code of the decoding error type
   std::string mErrorMessage; ///< Message connected to the error type
@@ -88,9 +156,13 @@ class MinorAltroDecodingError
   /// \brief Error codes connected with the ALTRO decoding
   enum class ErrorType_t {
     BUNCH_HEADER_NULL,            ///< Bunch header is 0
+    CHANNEL_HEADER,               ///< Channel header corruption
     CHANNEL_END_PAYLOAD_UNEXPECT, ///< Unexpected end of payload (channel or trailer word in bunch words)
     CHANNEL_PAYLOAD_EXCEED,       ///< Exceeding channel payload block
-    BUNCH_LENGTH_EXCEED           ///< Bunch length exceeding channel payload size
+    CHANNEL_ORDER,                ///< Channels not in increasing order
+    BUNCH_LENGTH_EXCEED,          ///< Bunch length exceeding channel payload size
+    BUNCH_LENGTH_ALLOW_EXCEED,    ///< Exceeds maximum allowed bunch length
+    BUNCH_STARTTIME               ///< Bunch start time exceeding
   };
 
   /// \brief Dummy constructor
@@ -139,7 +211,70 @@ class MinorAltroDecodingError
 
   /// \brief Get the number of error types handled by the AltroDecoderError
   /// \return Number of error types
-  static constexpr int getNumberOfErrorTypes() noexcept { return 2; }
+  static constexpr int getNumberOfErrorTypes() noexcept { return 8; }
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(ErrorType_t errortype);
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(unsigned int errortype)
+  {
+    return getErrorTypeName(intToErrorType(errortype));
+  }
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(ErrorType_t errortype);
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(unsigned int errortype)
+  {
+    return getErrorTypeTitle(intToErrorType(errortype));
+  }
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(ErrorType_t errortype);
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(unsigned int errortype)
+  {
+    return getErrorTypeDescription(intToErrorType(errortype));
+  }
 
  private:
   ErrorType_t mErrorType;  ///< Type of the error
@@ -171,6 +306,13 @@ class AltroDecoder
 
   /// \brief Destructor
   ~AltroDecoder() = default;
+
+  /// \brief Set the max. allowed bunch length
+  /// \param maxBunchLength Max. allowed bunch lengths
+  ///
+  /// Rejects bunches in case the decoded bunch length or the
+  /// decoded start time exceeds the maximum allowed bunch length.
+  void setMaxBunchLength(int maxBunchLength) { mMaxBunchLength = maxBunchLength; }
 
   /// \brief Decode the ALTRO stream
   /// \throw AltroDecoderError if the RCUTrailer or ALTRO payload cannot be decoded
@@ -211,14 +353,56 @@ class AltroDecoder
   /// In case of failure an exception is thrown.
   void checkRCUTrailer();
 
+  /// \brief Check hardware address in channel header for consistency
+  /// \param hwaddress Hardware address to check
+  /// \return True if the channel is consistent (branch, FEC and Altro in expected range) - false otherwise
+  bool checkChannelHWAddress(int hwaddress);
+
   RawReaderMemory& mRawReader;                               ///< underlying raw reader
   RCUTrailer mRCUTrailer;                                    ///< RCU trailer
   std::vector<Channel> mChannels;                            ///< vector of channels in the raw stream
   std::vector<MinorAltroDecodingError> mMinorDecodingErrors; ///< Container for minor (non-crashing) errors
   bool mChannelsInitialized = false;                         ///< check whether the channels are initialized
+  unsigned int mMaxBunchLength = UINT_MAX;                   ///< Max bunch length
 
   ClassDefNV(AltroDecoder, 1);
 };
+
+/// \brief Stream operator of the AltroDecoderError
+///
+/// Printing error.what()
+///
+/// \param stream Stream to print on
+/// \param error Error to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const AltroDecoderError& error);
+
+/// \brief Stream operator of AltroDecoderError's ErrorType_t
+///
+/// Prining name of the error type
+///
+/// \param stream Stream to print on
+/// \param error Error type to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const AltroDecoderError::ErrorType_t& errortype);
+
+/// \brief Stream operator of the MinorAltroDecodingError
+///
+/// Printing error.what()
+///
+/// \param stream Stream to print on
+/// \param error Error to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const MinorAltroDecodingError& error);
+
+/// \brief Stream operator of MinorAltroDecodingError's ErrorType_t
+///
+/// Prining name of the error type
+///
+/// \param stream Stream to print on
+/// \param error Error type to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const MinorAltroDecodingError::ErrorType_t& errortype);
 
 } // namespace emcal
 

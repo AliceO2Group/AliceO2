@@ -181,7 +181,9 @@ class MillePede2
   void SetSigmaPar(int i, double par);
 
   /// \brief performs a requested number of global iterations
-  int GlobalFit(double* par = nullptr, double* error = nullptr, double* pull = nullptr);
+  int GlobalFit(std::vector<double>& par,
+                std::vector<double>& error,
+                std::vector<double>& pull);
 
   /// \brief perform global parameters fit once all the local equations have been fitted
   int GlobalFitIteration();

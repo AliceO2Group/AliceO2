@@ -14,12 +14,10 @@
 o2_add_library(MCHWorkflow
                SOURCES
                    src/ClusterFinderOriginalSpec.cxx
-                   src/ClusterReaderSpec.cxx
-                   src/ClusterWriterSpec.cxx
+                   src/ClusterFinderGEMSpec.cxx
                    src/DataDecoderSpec.cxx
-                   src/TrackReaderSpec.cxx
-                   src/TrackTreeReader.cxx
-                   src/TrackWriterSpec.cxx
+                   src/ErrorReaderSpec.cxx
+                   src/ErrorWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES
                    O2::CommonUtils
                    O2::DPLUtils
@@ -28,6 +26,7 @@ o2_add_library(MCHWorkflow
                    O2::DetectorsRaw
                    O2::MCHCTF
                    O2::MCHClustering
+                   O2::MCHClusteringGEM
                    O2::MCHPreClustering
                    O2::MCHRawCommon
                    O2::MCHRawDecoder
@@ -45,13 +44,6 @@ o2_add_executable(
         SOURCES src/dump-pages-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
-
-# to be deprecated : use DevIO/digits-writer instead
-o2_add_executable(
-        digits-sink-workflow
-        SOURCES src/digits-sink-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils Boost::program_options O2::MCHBase O2::MCHRawDecoder)
 
 o2_add_executable(
         raw-to-digits-workflow
@@ -78,24 +70,6 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHTriggering)
 
 o2_add_executable(
-        digits-reader-workflow
-        SOURCES src/DigitSamplerSpec.cxx src/digits-reader-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
-
-o2_add_executable(
-        sim-digits-reader-workflow
-        SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMCH O2::MCHBase O2::SimulationDataFormat)
-
-o2_add_executable(
-        preclusters-sink-workflow
-        SOURCES src/PreClusterSinkSpec.cxx src/preclusters-sink-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
-
-o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
@@ -106,42 +80,6 @@ o2_add_executable(
         SOURCES src/preclusters-to-clusters-GEM-workflow.cxx src/ClusterFinderGEMSpec.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHClusteringGEM O2::MCHMappingImpl3)
-
-o2_add_executable(
-        clusters-sink-workflow
-        SOURCES src/clusters-sink-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
-
-o2_add_executable(
-        clusters-sampler-workflow
-        SOURCES src/clusters-sampler-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
-
-o2_add_executable(
-        clusters-writer-workflow
-        SOURCES src/clusters-writer-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
-
-o2_add_executable(
-        clusters-reader-workflow
-        SOURCES src/clusters-reader-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
-
-o2_add_executable(
-        clusters-to-tracks-original-workflow
-        SOURCES src/TrackFinderOriginalSpec.cxx src/clusters-to-tracks-original-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
-
-o2_add_executable(
-        clusters-to-tracks-workflow
-        SOURCES src/TrackFinderSpec.cxx src/clusters-to-tracks-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Framework O2::DataFormatsMCH O2::MCHTracking O2::DataFormatsParameters)
 
 o2_add_executable(
         vertex-sampler-workflow
@@ -156,34 +94,22 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::DataFormatsMCH O2::MCHTracking)
 
 o2_add_executable(
-        tracks-sink-workflow
-        SOURCES src/TrackSinkSpec.cxx src/tracks-sink-workflow.cxx
+        errors-merger-workflow
+        SOURCES src/ErrorMergerSpec.cxx src/errors-merger-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHBase)
 
 o2_add_executable(
-        tracks-writer-workflow
-        SOURCES src/tracks-writer-workflow.cxx
+        errors-writer-workflow
+        SOURCES src/errors-writer-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
-        tracks-reader-workflow
-        SOURCES src/tracks-reader-workflow.cxx
+        errors-reader-workflow
+        SOURCES src/errors-reader-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
-
-o2_add_executable(
-        tracks-sampler-workflow
-        SOURCES src/TrackSamplerSpec.cxx src/tracks-sampler-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
-
-o2_add_executable(
-        tracks-to-tracks-workflow
-        SOURCES src/TrackFitterSpec.cxx src/tracks-to-tracks-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
 
 o2_add_executable(
         entropy-encoder-workflow
@@ -194,28 +120,24 @@ o2_add_executable(
 o2_add_executable(
         reco-workflow
         SOURCES
-            src/DigitReaderSpec.cxx
+            src/ErrorMergerSpec.cxx
             src/EventFinderSpec.cxx
-            src/TrackFinderSpec.cxx
             src/TrackMCLabelFinderSpec.cxx
             src/reco-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
             O2::MCHDigitFiltering
             O2::MCHGeometryTransformer
+            O2::MCHIO
             O2::MCHMappingImpl4
+            O2::MCHStatus
             O2::MCHTimeClustering
-            O2::MCHTriggering
             O2::MCHTracking
+            O2::MCHTriggering
             O2::MCHWorkflow
             O2::SimulationDataFormat
             O2::Steer
         TARGETVARNAME mch-reco-workflow)
-
-o2_add_executable(tracks-file-dumper
-        SOURCES src/tracks-file-dumper.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES Boost::program_options O2::MCHWorkflow)
 
 o2_add_executable(
         tracks-mc-label-finder-workflow
@@ -227,4 +149,3 @@ o2_add_executable(rofs-histogrammer
         SOURCES src/rofs-histogrammer.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH)
-

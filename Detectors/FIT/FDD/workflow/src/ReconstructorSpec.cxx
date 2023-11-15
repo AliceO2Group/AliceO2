@@ -53,7 +53,7 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
     mReco.process(digit, channels, mRecPoints, mRecChData);
   }
   // do we ignore MC in this task?
-  LOG(info) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
+  LOG(debug) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 }

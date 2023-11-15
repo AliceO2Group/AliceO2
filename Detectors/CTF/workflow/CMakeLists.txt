@@ -35,7 +35,7 @@ o2_add_library(CTFWorkflow
                                      O2::FT0Workflow
                                      O2::FV0Workflow
                                      O2::FDDWorkflow
-                                     O2::MCHWorkflow
+                                     O2::MCHCTF
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow
                                      O2::PHOSWorkflow
@@ -54,5 +54,10 @@ o2_add_executable(writer-workflow
 o2_add_executable(reader-workflow
                   SOURCES src/ctf-reader-workflow.cxx
                   COMPONENT_NAME ctf
+                  TARGETVARNAME targetName
                   PUBLIC_LINK_LIBRARIES O2::CTFWorkflow)
 
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

@@ -25,6 +25,7 @@
 #include "GPUO2Interface.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
+#include "DetectorsBase/Propagator.h"
 
 // root includes
 #include "TFile.h"
@@ -92,8 +93,10 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
     const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
     if (!mPropagateTrack) {
       refit->setTrackReferenceX(xPosition);
+    } else {
+      track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
     }
-    const bool check = mPropagateTrack ? track.propagateTo(xPosition, mField) : ((refit->RefitTrackAsGPU(track, false, true) < 0) ? false : true); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
+    const bool check = mPropagateTrack ? o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT) : ((refit->RefitTrackAsGPU(track, false, true) < 0) ? false : true); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
 
     if (!check || std::isnan(track.getParam(1))) {
       continue;
@@ -103,7 +106,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
     const float charge = (mChargeType == ChargeType::Max) ? cl.qMax : cl.qTot;
     const float effectiveLength = mCalibTrackTopologyPol ? getTrackTopologyCorrectionPol(track, cl, region, charge) : getTrackTopologyCorrection(track, region);
 
-    const unsigned char pad = static_cast<unsigned char>(cl.getPad() + 0.5f); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
+    const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
     const float gain = mGainMapRef ? mGainMapRef->getValue(sectorIndex, rowIndex, pad) : 1;
     const float chargeNorm = charge / (effectiveLength * gain);
 
@@ -202,7 +205,10 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
       }
 
       // fill the normalizes charge in pad histogram
-      const float fillVal = mDoNotNormCharge ? std::get<3>(x) : std::get<3>(x) / dedxTmp;
+      float fillVal = mDoNotNormCharge ? std::get<3>(x) : std::get<3>(x) / dedxTmp;
+      if (getLogTransformQ()) {
+        fillVal = std::log(1 + fillVal);
+      }
       fillPadByPadHistogram(roc.getRoc(), index, fillVal);
     }
   } else {
@@ -395,9 +401,10 @@ int CalibPadGainTracks::getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber,
 //______________________________________________
 void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
-  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDrift = v.getVDrift();
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________

@@ -13,6 +13,7 @@ o2_add_library(
   DataFormatsGlobalTracking
   SOURCES src/RecoContainer.cxx
           src/FilteredRecoTF.cxx
+          src/TrackTuneParams.cxx
   PUBLIC_LINK_LIBRARIES
     O2::DataFormatsTPC
     O2::DataFormatsITSMFT
@@ -40,4 +41,5 @@ o2_add_library(
 o2_target_root_dictionary(
   DataFormatsGlobalTracking
   HEADERS include/DataFormatsGlobalTracking/FilteredRecoTF.h
+          include/DataFormatsGlobalTracking/TrackTuneParams.h
 )

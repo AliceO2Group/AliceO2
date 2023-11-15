@@ -25,13 +25,12 @@
 // TODO : Optimization,  generateMixedGaussians2D computed twice.
 //
 
-static int nIterMin = 10;
-static int nIterMax = 400;
-
 namespace o2
 {
 namespace mch
 {
+
+extern ClusterConfig clusterConfig;
 
 void iterateEMPoisson(const double* Cij, const double* Ci,
                       const Mask_t* maskCij, const double* qPixels,
@@ -47,7 +46,8 @@ void iterateEMPoisson(const double* Cij, const double* Ci,
     qPadPrediction[j] = 0;
     for (int i = 0; i < nPixels; i++) {
       qPadPrediction[j] +=
-        maskCij[nPads * i + j] * Cij[nPads * i + j] * qPixels[i];
+        // maskCij[nPads * i + j] * Cij[nPads * i + j] * qPixels[i];
+        Cij[nPads * i + j] * qPixels[i];
     }
     // Prevent  zero division
     if (qPadPrediction[j] < 1.0e-6) {
@@ -70,7 +70,8 @@ void iterateEMPoisson(const double* Cij, const double* Ci,
     if (Ci[i] > 1.0e-10) {
       double s_i = 0;
       for (int j = 0; j < nPads; j++) {
-        s_i += maskCij[nPads * i + j] * Cij[nPads * i + j] * qPad[j] /
+        // s_i += maskCij[nPads * i + j] * Cij[nPads * i + j] * qPad[j] /
+        s_i += Cij[nPads * i + j] * qPad[j] /
                qPadPrediction[j];
       }
       newQPixels[i] = s_i * qPixels[i] / Ci[i];
@@ -144,6 +145,8 @@ void fastIterateEMPoisson(const double* Cij, const double* Ci,
 
   // Compute charge prediction on pad j based on pixel charges
   //  qPadPrediction[j] = Sum_i{ Cij[i,j].qPixels[i] }
+  // printf("fastIterateEMPoisson Cij=%p, Ci=%p, qPixels=%p, qPad=%p, qPadPrediction=%p, nPixels=%d, nPads=%d, newQPixels=%p\n",
+  //        Cij, Ci, qPixels, qPad, qPadPrediction, nPixels, nPads,newQPixels);
   gsl_matrix_const_view Cij_gsl = gsl_matrix_const_view_array(Cij, nPixels, nPads);
   gsl_vector_const_view qPixels_gsl = gsl_vector_const_view_array(qPixels, nPixels);
   gsl_vector_view qPadPrediction_gsl = gsl_vector_view_array(qPadPrediction, nPads);
@@ -236,10 +239,30 @@ double computeChiSquare(const Pads& pads, const double* qPredictedPads,
   return chi2;
 }
 
+std::pair<double, double> computeChiSquare(const Pads& pads, const double* qPredictedPads,
+                                           int N)
+{
+  // Compute Chi2 on unsaturated pads
+  double chi20 = 0.0;
+  double chi21 = 0.0;
+  const double* q = pads.getCharges();
+  const Mask_t* cath = pads.getCathodes();
+  const Mask_t* sat = pads.getSaturates();
+  for (int i = 0; i < N; i++) {
+    double var = (1 - sat[i]) * (q[i] - qPredictedPads[i]);
+    if (cath[i] == 0) {
+      chi20 += var * var;
+    } else {
+      chi21 += var * var;
+    }
+  }
+  return std::make_pair(chi20, chi21);
+}
+
 std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
                                         const double* Cij, Mask_t* maskCij,
-                                        int qCutMode, double minPadResidu,
-                                        int nItMax, int n0)
+                                        int qCutMode, double minPadError,
+                                        int nItMax)
 {
   // The array pixels return the last state
   //
@@ -267,7 +290,7 @@ std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
   // Init convergence criteria
   bool converge = false;
   int it = 0;
-  if (ClusterConfig::EMLocalMaxLog > ClusterConfig::detail) {
+  if (clusterConfig.EMLocalMaxLog > clusterConfig.info) {
     printf("Poisson EM\n");
     printf(
       "   it.  <Pixels_residu>   <Pad_residu>   max(Pad_residu)   "
@@ -275,14 +298,19 @@ std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
   }
   double meanPixelsResidu = 0.0;
   double maxPixelsResidu = 0.0;
+  double maxRelResidu;
+  double pixelVariation;
+  double padRelError;
   //
+
   while (!converge) {
     //
     // Filter pixels
     //
     if (qCutMode == -1) {
       // Percent of the min charge
-      qPixCut = 1.02 * vectorMin(qPixels, nPixels);
+      // qPixCut = 1.02 * vectorMin(qPixels, nPixels);
+      qPixCut = 1.0e-14;
     } else {
       // qCutMode = 0
       // No filtering
@@ -293,24 +321,33 @@ std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
     if (qPixCut > 0.0) {
       for (int i = 0; i < (nPixels); i++) {
         if (qPixels[i] < qPixCut) {
-          vectorSetShort(&maskCij[nPads * i], 0, nPads);
+          // old version with mask vectorSetShort(&maskCij[nPads * i], 0, nPads);
         }
       }
     }
     // Update Ci
     for (int i = 0; i < nPixels; i++) {
       Ci[i] = 0;
-      for (int j = 0; j < nPads; j++) {
-        Ci[i] += Cij[nPads * i + j] * maskCij[nPads * i + j];
+      int start = nPads * i;
+      int end = start + nPads;
+      // for (int j = 0; j < nPads; j++) {
+      for (int l = start; l < end; l++) {
+        // Ci[i] += Cij[nPads * i + j] * maskCij[nPads * i + j];
+        // Ci[i] += Cij[nPads * i + j];
+        Ci[i] += Cij[l];
       }
     }
+    // Not needed
+    /*
     double Cj[nPads];
     for (int j = 0; j < nPads; j++) {
       Cj[j] = 0;
       for (int i = 0; i < nPixels; i++) {
-        Cj[j] += Cij[nPads * i + j] * maskCij[nPads * i + j];
+        // Cj[j] += Cij[nPads * i + j] * maskCij[nPads * i + j];
+        Cj[j] += Cij[nPads * i + j];
       }
     }
+    */
     // Store previous qPixels state
     vectorCopy(qPixels, nPixels, previousQPixels);
     //
@@ -318,73 +355,42 @@ std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
     // Poisson EM Iterations
     //
 
-    // Convergence acceleration process
-    // Not used
-    /*
-    if(0) {
-    double qPixels1[nPixels], qPixels2[nPixels];
-    // Speed-up factors
-    double r[nPixels], v[nPixels];
-    // Perform 2 iterations
-    // Test simple iteration if(1) {
-    iterateEMPoisson( Cij, Ci, maskCij, qPixels, qPads, qPadPrediction, nPixels,
-    nPads, qPixels1); iterateEMPoisson( Cij, Ci, maskCij, qPixels1, qPads,
-    qPadPrediction, nPixels, nPads, qPixels2);
-    // ??? To optimize : loop fusion
-    // Compute r[:] = (qPixels1[:] - qPixels[:])
-    vectorAddVector( qPixels1, -1.0, qPixels,nPixels, r );
-    // Compute v[:] = (qPixels2[:] - qPixels[:]) - r[:]
-    vectorAddVector( qPixels2, -1.0, qPixels1, nPixels, v );
-    vectorAddVector( v, -1.0, r, nPixels, v );
-    double rNorm = vectorNorm(r, nPixels);
-    double vNorm = vectorNorm(v, nPixels);
-    // printf("rNorm=%f vNorm=%f\n", rNorm, vNorm);
-    if (( rNorm < 1.0e-12 ) || (vNorm < 1.0e-12 )) {
-      converge = true;
-    } else {
-      double alpha = - rNorm / vNorm;
-      // qPixels[:] = qPixels[:] - 2.0*alpha*r[:] + alpha*alpha*v[:]
-      vectorAddVector( qPixels, -2.0*alpha, r, nPixels, qPixels);
-      vectorAddVector( qPixels, alpha*alpha, v, nPixels, qPixels);
-      iterateEMPoisson( Cij, Ci, maskCij, qPixels, qPads, qPadPrediction,
-    nPixels, nPads, qPixels);
-    }
-
-    } else {
-    */
     // iterateEMPoisson( Cij, Ci, maskCij, qPixels, qPads, qPadPrediction,
     // nPixels, nPads, qPixels);
-    // fastIterateEMPoisson(Cij, Ci, qPixels, qPads, qPadPrediction, nPixels,
-    //                     nPads, qPixels);
+
     fastIterateEMPoisson(Cij, Ci, previousQPixels, qPads, qPadPrediction, nPixels,
                          nPads, qPixels);
-    // }
 
-    // Compute pixel residues: pixResidu[:] = abs( previousQPixels[:] -
-    // qPixels[:] )
+    // Measure of pixel variation to stop
+    // the iteration if required
     double pixResidu[nPixels];
     vectorAddVector(previousQPixels, -1.0, qPixels, nPixels, pixResidu);
     vectorAbs(pixResidu, nPixels, pixResidu);
-    meanPixelsResidu = vectorSum(pixResidu, nPixels) / nPixels;
-    maxPixelsResidu = vectorMax(pixResidu, nPixels);
-    // Compute pad residues: padResidu[:] = abs( qPads - qPadPrediction[:] )
+    // Pixel variation
+    pixelVariation = vectorSum(pixResidu, nPixels) / vectorSum(qPixels, nPixels);
+    int iMaxResidu = vectorArgMax(pixResidu, nPixels);
+    maxRelResidu = pixResidu[iMaxResidu] / previousQPixels[iMaxResidu];
+
+    // Relative error on pad prediction
+    // Compute a stdError normalized with the pad Esperance
     double padResidu[nPads];
     vectorAddVector(qPads, -1.0, qPadPrediction, nPads, padResidu);
-    vectorAbs(padResidu, nPads, padResidu);
-    double meanPadResidu = vectorSum(padResidu, nPads) / nPads;
-    if (ClusterConfig::EMLocalMaxLog > ClusterConfig::detail) {
-      printf(" %4d    %10.6f      %10.6f      %10.6f             %10.6f\n", it,
-             meanPixelsResidu, meanPadResidu, vectorMax(padResidu, nPads),
-             vectorSum(padResidu, nPads) / vectorSum(qPads, nPads));
-      int u = vectorArgMax(padResidu, nPads);
-      // printf("max pad residu:    qPads=%10.6f, qPadPrediction=%10.6f \n",
-      // qPads[u], qPadPrediction[u]);
+    double var = vectorDotProd(padResidu, padResidu, nPads) / nPads;
+    double E = vectorSum(qPads, nPads) / nPads;
+    padRelError = std::sqrt(var) / E;
+
+    if (clusterConfig.EMLocalMaxLog > clusterConfig.info) {
+      printf("    EM it=%d   <pixelResidu>=%10.6f, dQPixel/qPixel=%10.6f, max(dQPix)/qPix=%10.6f, relPadError=%10.6f\n",
+             it, vectorSum(pixResidu, nPixels) / nPixels, pixelVariation, maxRelResidu, padRelError);
     }
-    converge = (meanPixelsResidu < 1.0e-12) || (meanPadResidu < minPadResidu) ||
+    // maxPixelVariation = 1 / 20 * minPadError;
+    converge = (pixelVariation < minPadError * 0.03) && (padRelError < minPadError) ||
                (it > nItMax);
     it += 1;
   }
-
+  if (clusterConfig.EMLocalMaxLog > clusterConfig.info) {
+    printf("  Exit criterom pixelVariation=%d padRelError=%d itend=%d \n", (pixelVariation < minPadError * 0.03), (padRelError < minPadError), (it > nItMax));
+  }
   // Update pixels charge
   // Remove small charged pixels (<qPixCut)
   int oldValueNPads = pixels.getNbrOfPads();
@@ -393,14 +399,27 @@ std::pair<double, double> PoissonEMLoop(const Pads& pads, Pads& pixels,
   if (qPixCut > 0.0) {
     k = pixels.removePads(qPixCut);
   }
-
-  // Chi2 on cathode0
-  double chi20 = computeChiSquare(pads, qPadPrediction, 0, n0);
+  // Chi2 on cathodes 0/1
+  double chi20, chi21;
   // Chi2 on cathode1
-  double chi21 = computeChiSquare(pads, qPadPrediction, n0, nPads);
-
+  std::pair<double, double> chi = computeChiSquare(pads, qPadPrediction, pads.getNbrOfPads());
+  std::pair<double, double> chiObs = computeChiSquare(pads, qPadPrediction, pads.getNbrOfObsPads());
+  if (clusterConfig.EMLocalMaxLog > clusterConfig.info) {
+    printf(" ??? Chi2 over NbrPads  = (%f, %f); Chi2 over NbrObsPads = (%f, %f) \n",
+           chi.first, chi.second, chiObs.first, chiObs.second);
+  }
+  // ??? Must chose a method. A the moment over pads is better
+  if (1) {
+    // Chi2 over Pads
+    chi20 = chi.first;
+    chi21 = chi.second;
+  } else {
+    // Chi2 over ObsPads
+    chi20 = chiObs.first;
+    chi21 = chiObs.second;
+  }
   // Take care to the leadind dimension is getNbrOfPads()
-  if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
+  if (clusterConfig.EMLocalMaxLog >= clusterConfig.info) {
     printf("End poisson EM :\n");
     printf("  Total Pad Charge       = %14.6f\n", vectorSum(qPads, nPads));
     printf("  Total Predicted Charge = %14.6f\n",

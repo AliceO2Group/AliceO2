@@ -12,7 +12,7 @@
 #ifndef O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
 #define O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
 
-#include "DigitReader.h"
-#include "DigitWriter.h"
+#include "DigitSampler.h"
+#include "DigitSink.h"
 
 #endif

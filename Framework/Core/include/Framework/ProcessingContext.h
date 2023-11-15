@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_PROCESSINGCONTEXT_H_
 
 #include "Framework/ServiceRegistryRef.h"
+#include "Framework/DeviceStateEnums.h"
 
 namespace o2::framework
 {
@@ -38,6 +39,13 @@ class ProcessingContext
   ServiceRegistryRef services() { return mServices; }
   /// The data allocator is used to allocate memory for the output data.
   DataAllocator& outputs() { return mAllocator; }
+
+  /// Return the straming state of the device. Guaranteed to be valid only
+  /// until the current ProcessingContext is destroyed. Do not cache.
+  [[nodiscard]] StreamingState streamingState() const;
+  /// Return the transitionState of the device. Guaranteed to be valid only
+  /// until the current ProcessingContext is destroyed. Do not cache.
+  [[nodiscard]] TransitionHandlingState transitionState() const;
 
   InputRecord& mInputs;
   ServiceRegistryRef mServices;

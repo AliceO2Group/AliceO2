@@ -195,6 +195,17 @@ class InputRecord
   [[nodiscard]] DataRef getFirstValid(bool throwOnFailure = false) const;
 
   [[nodiscard]] size_t getNofParts(int pos) const;
+
+  // Given a binding by string, return the associated DataRef
+  DataRef getDataRefByString(const char* bindingName, int part = 0) const
+  {
+    int pos = getPos(bindingName);
+    if (pos < 0) {
+      auto msg = describeAvailableInputs();
+      throw runtime_error_f("InputRecord::get: no input with binding %s found. %s", bindingName, msg.c_str());
+    }
+    return this->getByPos(pos, part);
+  }
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -211,28 +222,13 @@ class InputRecord
   {
     DataRef ref{nullptr, nullptr};
     using decayed = std::decay_t<R>;
+
     // Get the actual dataref
     if constexpr (std::is_same_v<decayed, char const*> ||
-                  std::is_same_v<decayed, char*> ||
-                  std::is_same_v<decayed, std::string>) {
-      try {
-        int pos = -1;
-        if constexpr (std::is_same_v<decayed, std::string>) {
-          pos = getPos(binding.c_str());
-        } else {
-          pos = getPos(binding);
-        }
-        if (pos < 0) {
-          throw std::invalid_argument("no matching route found for " + std::string(binding));
-        }
-        ref = this->getByPos(pos, part);
-      } catch (const std::exception& e) {
-        if constexpr (std::is_same_v<decayed, std::string>) {
-          throw runtime_error_f("Unknown argument requested %s - %s", binding.c_str(), e.what());
-        } else {
-          throw runtime_error_f("Unknown argument requested %s - %s", binding, e.what());
-        }
-      }
+                  std::is_same_v<decayed, char*>) {
+      ref = getDataRefByString(binding, part);
+    } else if constexpr (std::is_same_v<decayed, std::string>) {
+      ref = getDataRefByString(binding.c_str(), part);
     } else if constexpr (std::is_same_v<decayed, DataRef>) {
       ref = binding;
     } else {
@@ -396,7 +392,7 @@ class InputRecord
         // If the matcher does not have an entry in the cache, deserialise it
         // and cache the deserialised object at the given id.
         auto path = fmt::format("{}", DataSpecUtils::describe(matcher));
-        LOGP(info, "{}", path);
+        LOGP(debug, "{}", path);
         auto& cache = mRegistry.get<ObjectCache>();
         auto& callbacks = mRegistry.get<CallbackService>();
         auto cacheEntry = cache.matcherToId.find(path);
@@ -404,7 +400,7 @@ class InputRecord
           cache.matcherToId.insert(std::make_pair(path, id));
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
           void* obj = (void*)result.get();
-          callbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
+          callbacks.call<CallbackService::Id::CCDBDeserialised>((ConcreteDataMatcher&)matcher, (void*)obj);
           cache.idToObject[id] = obj;
           LOGP(info, "Caching in {} ptr to {} ({})", id.value, path, obj);
           return result;
@@ -413,7 +409,7 @@ class InputRecord
         // The id in the cache is the same, let's simply return it.
         if (oldId.value == id.value) {
           std::unique_ptr<ValueT const, Deleter<ValueT const>> result((ValueT const*)cache.idToObject[id], false);
-          LOGP(info, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
+          LOGP(debug, "Returning cached entry {} for {} ({})", id.value, path, (void*)result.get());
           return result;
         }
         // The id in the cache is different. Let's destroy the old cached entry
@@ -421,7 +417,7 @@ class InputRecord
         delete reinterpret_cast<ValueT*>(cache.idToObject[oldId]);
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release(), false);
         void* obj = (void*)result.get();
-        callbacks(CallbackService::Id::CCDBDeserialised, (ConcreteDataMatcher&)matcher, (void*)obj);
+        callbacks.call<CallbackService::Id::CCDBDeserialised>((ConcreteDataMatcher&)matcher, (void*)obj);
         cache.idToObject[id] = obj;
         LOGP(info, "Replacing cached entry {} with {} for {} ({})", oldId.value, id.value, path, obj);
         oldId.value = id.value;
@@ -662,6 +658,9 @@ class InputRecord
   }
 
  private:
+  // Produce a string describing the available inputs.
+  [[nodiscard]] std::string describeAvailableInputs() const;
+
   ServiceRegistryRef mRegistry;
   std::vector<InputRoute> const& mInputsSchema;
   InputSpan& mSpan;

@@ -18,10 +18,8 @@
 #include <fairlogger/Logger.h>
 #include <iostream>
 #include <iomanip>
-#include <limits>
 
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
@@ -40,7 +38,7 @@ void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, s
 
 bool VisualisationEventJSONSerializer::fromFile(VisualisationEvent& event, std::string fileName)
 {
-  LOG(info) << "VisualisationEventJSONSerializer <- " << fileName;
+  LOGF(info, "VisualisationEventJSONSerializer <- ", fileName);
   if (FILE* file = fopen(fileName.c_str(), "r")) {
     fclose(file); // file exists
   } else {
@@ -64,6 +62,7 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
 
   // compatibility verification
   tree.AddMember("runNumber", rapidjson::Value().SetInt(event.mRunNumber), allocator);
+  tree.AddMember("runType", rapidjson::Value().SetInt(event.mRunType), allocator);
   tree.AddMember("clMask", rapidjson::Value().SetInt(event.mClMask), allocator);
   tree.AddMember("trkMask", rapidjson::Value().SetInt(event.mTrkMask), allocator);
   tree.AddMember("tfCounter", rapidjson::Value().SetInt(event.mTfCounter), allocator);
@@ -147,6 +146,7 @@ void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::
   tree.Parse(json.c_str());
 
   event.setRunNumber(getIntOrDefault(tree, "runNumber", 0));
+  event.setRunType(static_cast<parameters::GRPECS::RunType>(getIntOrDefault(tree, "runType", 0)));
   event.setClMask(getIntOrDefault(tree, "clMask"));
   event.setTrkMask(getIntOrDefault(tree, "trkMask"));
   event.setTfCounter(getIntOrDefault(tree, "tfCounter"));
@@ -193,7 +193,7 @@ VisualisationCluster VisualisationEventJSONSerializer::clusterFromJSON(rapidjson
   XYZ[2] = jsonZ.GetDouble();
 
   VisualisationCluster cluster(XYZ, 0);
-  cluster.mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
+  cluster.mSource = o2::dataformats::GlobalTrackID::HMP;
   return cluster;
 }
 

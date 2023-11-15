@@ -90,6 +90,8 @@ EPNMonitor::EPNMonitor(std::string path, bool infoLogger, int runNumber, std::st
   mFilters.emplace_back("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}");
   mFilters.emplace_back("^Warning in <Fit");
   mFilters.emplace_back("^Warning in <TGraph");
+  mFilters.emplace_back("^Warning in <TInterpreter");
+  mFilters.emplace_back("Dividing histograms with different labels");
   mInfoLoggerActive = infoLogger;
   mPath = path;
   mRunNumber = runNumber;

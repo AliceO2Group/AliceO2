@@ -60,6 +60,14 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
 
+    if (context->hasTriggerInput()) {
+      auto ctpdigits = context->getCTPDigits();
+      LOG(info) << "Yes, we have CTP digits";
+      LOG(info) << "We have " << ctpdigits->size() << " digits";
+    } else {
+      LOG(info) << "No trigger input available ... selftriggering";
+    }
+
     context->initSimChains(o2::detectors::DetID::HMP, mSimChains);
 
     auto& irecords = context->getEventRecords();

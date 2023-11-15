@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Traits
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/CompilerBuiltins.h"
 
 struct Foo {
@@ -25,7 +21,7 @@ struct O2_VISIBILITY_HIDDEN Bar {
   int someMethod() { return 0; };
 };
 
-BOOST_AUTO_TEST_CASE(TestPrefetch)
+TEST_CASE("TestPrefetch")
 {
   int a[10];
   int b[10];

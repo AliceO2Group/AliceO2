@@ -81,14 +81,14 @@ template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 class NDPiecewisePolynomials : public FlatObject
 {
  public:
-#if !defined(GPUCA_GPUCODE)
-
+#ifndef GPUCA_GPUCODE
   /// constructor
   /// \param min minimum coordinates of the grid
   /// \param max maximum coordinates of the grid (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
   /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
   NDPiecewisePolynomials(const float min[/* Dim */], const float max[/* Dim */], const unsigned int n[/* Dim */]) { init(min, max, n); }
-
+#endif
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// constructor construct and object by initializing it from an object stored in a Root file
   /// \param fileName name of the file
   /// \param name name of the object
@@ -172,6 +172,12 @@ class NDPiecewisePolynomials : public FlatObject
   /// Setting directly the parameters of the polynomials
   void setParams(const float params[/* getNParameters() */]) { std::copy(params, params + getNParameters(), mParams); }
 
+  /// initalize the members
+  /// \param min minimum coordinates of the grid
+  /// \param max maximum coordinates of the grid (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
+  /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
+  void init(const float min[/* Dim */], const float max[/* Dim */], const unsigned int n[/* Dim */]);
+
 #ifndef GPUCA_STANDALONE
   /// perform the polynomial fits on the grid
   /// \param func function which returns for every input x on the defined grid the true value
@@ -190,12 +196,6 @@ class NDPiecewisePolynomials : public FlatObject
 
   /// setting default polynomials which just returns 1
   void setDefault();
-
-  /// initalize the members
-  /// \param min minimum coordinates of the grid
-  /// \param max maximum coordinates of the grid (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
-  /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
-  void init(const float min[/* Dim */], const float max[/* Dim */], const unsigned int n[/* Dim */]);
 
   /// dump the polynomials to tree for visualisation
   /// \param nSamplingPoints number of sampling points per dimension
@@ -296,6 +296,10 @@ class NDPiecewisePolynomials : public FlatObject
   // construct the object (flatbuffer)
   void construct();
 #endif
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(NDPiecewisePolynomials, 1);
+#endif
 };
 
 //=================================================================================
@@ -313,36 +317,34 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::loadFromFile(TFile& i
     delete gridTmp;
   } else {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("couldnt load object {} from input file", name));
+    LOGP(info, "couldnt load object {} from input file", name);
 #endif
   }
 }
-
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFromContainer(const NDPiecewisePolynomialContainer& container)
 {
   if (Dim != container.mDim) {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("wrong number of dimensions! this {} container {}", Dim, container.mDim));
+    LOGP(info, "wrong number of dimensions! this {} container {}", Dim, container.mDim);
 #endif
     return;
   }
   if (Degree != container.mDegree) {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("wrong number of degrees! this {} container {}", Degree, container.mDegree));
+    LOGP(info, "wrong number of degrees! this {} container {}", Degree, container.mDegree);
 #endif
     return;
   }
   if (InteractionOnly != container.mInteractionOnly) {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("InteractionOnly is set for this object to {}, but stored as {} in the container", InteractionOnly, container.mInteractionOnly));
+    LOGP(info, "InteractionOnly is set for this object to {}, but stored as {} in the container", InteractionOnly, container.mInteractionOnly);
 #endif
     return;
   }
   init(container.mMin.data(), container.mMax.data(), container.mN.data());
   setParams(container.mParams.data());
 }
-
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::writeToFile(TFile& outf, const char* name) const
 {
@@ -361,7 +363,9 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setDefault()
     std::copy(params.begin(), params.end(), &mParams[i * nParamsPerPol]);
   }
 }
+#endif
 
+#ifndef GPUCA_GPUCODE
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::cloneFromObject(const NDPiecewisePolynomials<Dim, Degree, InteractionOnly>& obj, char* newFlatBufferPtr)
 {
@@ -463,7 +467,7 @@ GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x
   }
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#ifndef GPUCA_GPUCODE
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[], const float max[], const unsigned int n[])
 {
@@ -475,7 +479,9 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::init(const float min[
   }
   construct();
 }
+#endif
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getNPolynomials() const
 {

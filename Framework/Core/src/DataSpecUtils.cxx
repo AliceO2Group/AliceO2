@@ -415,6 +415,19 @@ ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
   return std::get<ConcreteDataMatcher>(spec.matcher);
 }
 
+std::optional<ConcreteDataMatcher> DataSpecUtils::asOptionalConcreteDataMatcher(OutputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) {
+                        return std::optional<ConcreteDataMatcher>{concrete};
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        return DataSpecUtils::optionalConcreteDataMatcherFrom(matcher);
+                      },
+                      [](auto const&) { return std::optional<ConcreteDataMatcher>{std::nullopt}; }},
+                    spec.matcher);
+}
+
 ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
 {
   return std::visit([](auto const& concrete) {
@@ -779,6 +792,22 @@ void DataSpecUtils::updateInputList(std::vector<InputSpec>& list, InputSpec&& in
   } else {
     // add entry
     list.emplace_back(std::move(input));
+  }
+}
+
+void DataSpecUtils::updateOutputList(std::vector<OutputSpec>& list, OutputSpec&& spec)
+{
+  auto locate = std::find(list.begin(), list.end(), spec);
+  if (locate != list.end()) {
+    // amend entry
+    auto& entryMetadata = locate->metadata;
+    entryMetadata.insert(entryMetadata.end(), spec.metadata.begin(), spec.metadata.end());
+    std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    entryMetadata.erase(new_end, entryMetadata.end());
+  } else {
+    // add entry
+    list.emplace_back(std::move(spec));
   }
 }
 

@@ -20,7 +20,7 @@
 #include "DetectorsCalibration/TimeSlot.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include "CommonDataFormat/Pair.h"
+#include "CommonDataFormat/Triplet.h"
 #include "CCDB/CcdbObjectInfo.h"
 
 namespace o2::tpc
@@ -43,12 +43,12 @@ struct TPCVDTglContainer {
     entries = src.entries;
   }
 
-  void fill(const gsl::span<const o2::dataformats::Pair<float, float>> data)
+  void fill(const gsl::span<const o2::dataformats::Triplet<float, float, float>> data)
   {
-    if (data.size() < 2) { // last entry always contains the full and reference VDrift used for the TF
+    if (data.size() < 3) { // first 2 entres always contains the {full and reference VDrift} and {full and reference DriftTimeOffset} used for the TF
       return;
     }
-    for (size_t i = 1; i < data.size(); i++) {
+    for (size_t i = 2; i < data.size(); i++) {
       auto& p = data[i];
       auto bin = histo->fill(p.first, p.first - p.second);
       LOGP(debug, "fill #{} : {} for {} {}", i - 1, bin, p.first, p.first - p.second);
@@ -81,7 +81,7 @@ struct TPCVDTglContainer {
   ClassDefNV(TPCVDTglContainer, 1);
 };
 
-class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::dataformats::Pair<float, float>, TPCVDTglContainer>
+class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<TPCVDTglContainer>
 {
   using Slot = o2::calibration::TimeSlot<TPCVDTglContainer>;
 

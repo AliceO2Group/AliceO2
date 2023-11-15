@@ -82,7 +82,7 @@ class VectorSparse : public TObject
   UShort_t* fIndex; ///< Index of stored elems
   Double_t* fElems; ///< pointer on elements
 
-  ClassDef(VectorSparse, 0);
+  ClassDefOverride(VectorSparse, 0);
 };
 
 //___________________________________________________

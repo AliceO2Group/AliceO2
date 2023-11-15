@@ -257,6 +257,21 @@ struct intersect_pack {
 template <typename S1, typename S2>
 using intersected_pack_t = typename intersect_pack<S1, S2>::type;
 
+template <typename... A1, typename... A2>
+constexpr auto intersected_pack(pack<A1...>, pack<A2...>)
+{
+  return intersected_pack_t<pack<A1...>, pack<A2...>>{};
+}
+
+template <typename P1, typename P2, typename... Ps>
+constexpr auto intersected_pack(P1 p1, P2 p2, Ps... ps)
+{
+  return intersected_pack(p1, intersected_pack(p2, ps...));
+}
+
+template <typename... Ps>
+using full_intersected_pack_t = decltype(intersected_pack(Ps{}...));
+
 /// Subtract two packs
 template <typename S1, typename S2>
 struct subtract_pack {

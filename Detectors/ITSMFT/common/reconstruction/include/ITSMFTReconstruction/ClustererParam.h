@@ -36,6 +36,8 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<
 
   int maxRowColDiffToMask = DEFRowColDiffToMask(); ///< pixel may be masked as overflow if such a neighbour in prev frame was fired
   int maxBCDiffToMaskBias = 10;                    ///< mask if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable masking
+  int maxBCDiffToSquashBias = -10;                 ///< squash if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable squashing
+  float maxSOTMUS = 8.;                            ///< max expected signal over threshold in \mus
 
   O2ParamDef(ClustererParam, getParamName().data());
 
@@ -45,6 +47,7 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<
     // default neighbourhood definition
     return N == o2::detectors::DetID::ITS ? 1 : 1; // ITS and MFT will suppress also closest neigbours
   }
+
   static constexpr std::string_view ParamName[2] = {"ITSClustererParam", "MFTClustererParam"};
 };
 

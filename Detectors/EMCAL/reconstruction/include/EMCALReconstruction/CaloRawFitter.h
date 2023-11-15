@@ -56,16 +56,87 @@ class CaloRawFitter
   /// \brief Create error message for a given error type
   /// \param fiterror Fit error type
   /// \return Error message connected to the error type
-  static std::string createErrorMessage(RawFitterError_t fiterror);
+  static std::string createErrorMessage(RawFitterError_t fiterror) { return getErrorTypeDescription(fiterror); }
 
   /// \brief Convert error type to numeric representation
   /// \param fiterror Fit error type
   /// \return Numeric representation of the raw fitter error
   static int getErrorNumber(RawFitterError_t fiterror);
 
+  /// \brief Convert numeric representation of error type to RawFitterError_t
+  ///
+  /// Expect the error code provided to be a valid error code.
+  ///
+  /// \param fiterror Numeric representation of fit error
+  /// \return Symbolic representation of the error code
+  static RawFitterError_t intToErrorType(unsigned int fiterror);
+
   /// \brief Get the number of raw fit error types supported
-  /// \return Number of error types (4)
-  static constexpr int getNumberOfErrorTypes() noexcept { return 4; }
+  /// \return Number of error types (5)
+  static constexpr int getNumberOfErrorTypes() noexcept { return 5; }
+
+  /// \brief Get the name connected to the fit error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Name of the fit error type
+  static const char* getErrorTypeName(RawFitterError_t fiterror);
+
+  /// \brief Get the name connected to the fit error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Name of the fit error type
+  static const char* getErrorTypeName(unsigned int fiterror)
+  {
+    return getErrorTypeName(intToErrorType(fiterror));
+  }
+
+  /// \brief Get the title connected to the fit error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Title of the fit error type
+  static const char* getErrorTypeTitle(RawFitterError_t fiterror);
+
+  /// \brief Get the title connected to the fit error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Title of the fit error type
+  static const char* getErrorTypeTitle(unsigned int fiterror)
+  {
+    return getErrorTypeTitle(intToErrorType(fiterror));
+  }
+
+  /// \brief Get the description connected to the fit error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Description connected to the fit error type
+  static const char* getErrorTypeDescription(RawFitterError_t fiterror);
+
+  /// \brief Get the description connected to the fit error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Description connected to the fit error type
+  static const char* getErrorTypeDescription(unsigned int fiterror)
+  {
+    return getErrorTypeDescription(intToErrorType(fiterror));
+  }
 
   /// \brief Constructor
   CaloRawFitter(const char* name, const char* nameshort);
@@ -198,6 +269,12 @@ class CaloRawFitter
 
   ClassDefNV(CaloRawFitter, 1);
 }; // CaloRawFitter
+
+/// \brief Stream operator for CaloRawFitter's RawFitterError
+/// \param stream Stream to print on
+/// \param error Error code to be printed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const CaloRawFitter::RawFitterError_t error);
 
 } // namespace emcal
 

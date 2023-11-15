@@ -9,12 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "SimulationDataFormat/MCGenProperties.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Generators/GeneratorTGenerator.h"
+#include "Generators/GeneratorExternalParam.h"
 #include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
 #include "TGenerator.h"
 #include "TClonesArray.h"
 #include "TParticle.h"
+#include "TMCProcess.h" // for VMC Particle Production Process
 
 namespace o2
 {
@@ -83,7 +87,22 @@ Bool_t
   auto nparticles = mCloneParticles->GetEntries();
   for (Int_t iparticle = 0; iparticle < nparticles; iparticle++) {
     auto particle = (TParticle*)mCloneParticles->At(iparticle);
+    // Some particle comes in from somewhere.
+    // To support the user and in case the status code is found to be not encoded, do it here,
+    // assuming that the current code is the HepMC status (like it used to be before).
+    auto statusCode = particle->GetStatusCode();
+    if (!mcgenstatus::isEncoded(statusCode)) {
+      particle->SetStatusCode(mcgenstatus::MCGenStatusEncoding(statusCode, 0).fullEncoding);
+    }
     mParticles.push_back(*particle);
+    // Set the transport bit according to the HepMC status code as it always used to be
+    mParticles.back().SetBit(ParticleStatus::kToBeDone, mcgenstatus::getHepMCStatusCode(particle->GetStatusCode()) == 1);
+
+    if (GeneratorExternalParam::Instance().markAllAsPrimary) {
+      // The production process will be set to kPPrimary which is the expected default for generator-level particles in O2
+      // not doing this might confuse transport and selection of particles to keep in AOD
+      mParticles.back().SetUniqueID(kPPrimary);
+    }
   }
 
   /** success **/

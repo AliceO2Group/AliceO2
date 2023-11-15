@@ -20,6 +20,5 @@
 #pragma link C++ class o2::fdd::Digitizer + ;
 #pragma link C++ class o2::fdd::DigitizationParameters + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::fdd::MCLabel> + ;
-#pragma link C++ class o2::fdd::Digits2Raw + ;
 
 #endif

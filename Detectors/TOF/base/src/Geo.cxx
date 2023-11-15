@@ -31,11 +31,14 @@ constexpr Float_t Geo::ROOF2PARAMETERS[3];
 Bool_t Geo::mToBeInit = kTRUE;
 Bool_t Geo::mToBeInitIndexing = kTRUE;
 Float_t Geo::mRotationMatrixSector[NSECTORS + 1][3][3];
-Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
+Float_t Geo::mRotationMatrixPlateStrip[NSECTORS][NPLATES][NMAXNSTRIP][3][3];
 Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
+Float_t Geo::mGeoDistances[NSECTORS][NPLATES][NMAXNSTRIP];
+Float_t Geo::mGeoHeights[NSECTORS][NPLATES][NMAXNSTRIP];
+Float_t Geo::mGeoX[NSECTORS][NPLATES][NMAXNSTRIP];
 Int_t Geo::mPlate[NSTRIPXSECTOR];
 Int_t Geo::mStripInPlate[NSTRIPXSECTOR];
-std::array<std::vector<float>, 5> Geo::mDistances;
+std::array<std::vector<float>, 5> Geo::mDistances[NSECTORS];
 
 void Geo::Init()
 {
@@ -46,37 +49,6 @@ void Geo::Init()
 
   if (!gGeoManager) {
     LOG(fatal) << "geometry is not loaded";
-  }
-
-  int det[5];
-  for (Int_t isector = 0; isector < NSECTORS; isector++) {
-    det[0] = isector;
-    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
-      det[1] = iplate;
-
-      if (iplate == 2 && (isector == 13 || isector == 14 || isector == 15)) {
-        continue; // PHOS HOLES
-      }
-
-      for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) { // maximum number of strip is 19 for plate B and C
-        det[2] = istrip;
-        if (!(iplate == 2 && istrip >= NSTRIPA)) { // the middle plate (A) has only 15 strips
-          for (Int_t ipadz = 0; ipadz < NPADZ; ipadz++) {
-            det[3] = ipadz;
-            for (Int_t ipadx = 0; ipadx < NPADX; ipadx++) {
-              det[4] = ipadx;
-              gGeoManager->cd(getVolumePath(det).c_str());
-              TGeoHMatrix global;
-              global = *gGeoManager->GetCurrentMatrix();
-              const Double_t* tr = global.GetTranslation();
-              mPadPosition[isector][iplate][istrip][ipadz][ipadx][0] = tr[0];
-              mPadPosition[isector][iplate][istrip][ipadz][ipadx][1] = tr[1];
-              mPadPosition[isector][iplate][istrip][ipadz][ipadx][2] = tr[2];
-            }
-          }
-        }
-      }
-    }
   }
 
   Double_t rotationAngles[6] =
@@ -112,42 +84,318 @@ void Geo::Init()
     mRotationMatrixSector[NSECTORS][ii][2] = TMath::Cos(rotationAngles[2 * ii]);
   }
 
-  for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
-    for (Int_t istrip = 0; istrip < NMAXNSTRIP; istrip++) {
-      if (getAngles(iplate, istrip) > 0.) {
-        rotationAngles[0] = 90. * TMath::DegToRad();
-        rotationAngles[1] = 0.;
-        rotationAngles[3] = 90. * TMath::DegToRad();
-        rotationAngles[4] = getAngles(iplate, istrip) * TMath::DegToRad();
-        rotationAngles[5] = 90. * TMath::DegToRad();
-        rotationAngles[2] = 90. * TMath::DegToRad() + rotationAngles[4];
-      } else if (getAngles(iplate, istrip) == 0.) {
-        rotationAngles[0] = 90. * TMath::DegToRad();
-        rotationAngles[1] = 0.;
-        rotationAngles[2] = 90. * TMath::DegToRad();
-        rotationAngles[3] = 90. * TMath::DegToRad();
-        rotationAngles[4] = 0;
-        rotationAngles[5] = 0.;
-      } else if (getAngles(iplate, istrip) < 0.) {
-        rotationAngles[0] = 90. * TMath::DegToRad();
-        rotationAngles[1] = 0.;
-        rotationAngles[3] = 90. * TMath::DegToRad();
-        rotationAngles[4] = -getAngles(iplate, istrip) * TMath::DegToRad();
-        rotationAngles[5] = 270. * TMath::DegToRad();
-        rotationAngles[2] = 90. * TMath::DegToRad() - rotationAngles[4];
-      }
+  double toMyCoord[9];
+  toMyCoord[0] = mRotationMatrixSector[NSECTORS][0][0];
+  toMyCoord[1] = mRotationMatrixSector[NSECTORS][1][0];
+  toMyCoord[2] = mRotationMatrixSector[NSECTORS][2][0];
 
-      for (Int_t ii = 0; ii < 3; ii++) {
-        mRotationMatrixPlateStrip[iplate][istrip][ii][0] =
-          TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]);
-        mRotationMatrixPlateStrip[iplate][istrip][ii][1] =
-          TMath::Sin(rotationAngles[2 * ii]) * TMath::Sin(rotationAngles[2 * ii + 1]);
-        mRotationMatrixPlateStrip[iplate][istrip][ii][2] = TMath::Cos(rotationAngles[2 * ii]);
+  toMyCoord[3] = mRotationMatrixSector[NSECTORS][0][1];
+  toMyCoord[4] = mRotationMatrixSector[NSECTORS][1][1];
+  toMyCoord[5] = mRotationMatrixSector[NSECTORS][2][1];
+
+  toMyCoord[6] = mRotationMatrixSector[NSECTORS][0][2];
+  toMyCoord[7] = mRotationMatrixSector[NSECTORS][1][2];
+  toMyCoord[8] = mRotationMatrixSector[NSECTORS][2][2];
+
+  TGeoHMatrix myMatCoord;
+  myMatCoord.SetRotation(toMyCoord);
+  myMatCoord = myMatCoord.Inverse();
+
+  /*
+  printf("SECTOR BACK\n");
+  printf("%f %f %f\n",mRotationMatrixSector[NSECTORS][0][0],mRotationMatrixSector[NSECTORS][0][1],mRotationMatrixSector[NSECTORS][0][2]);
+  printf("%f %f %f\n",mRotationMatrixSector[NSECTORS][1][0],mRotationMatrixSector[NSECTORS][1][1],mRotationMatrixSector[NSECTORS][1][2]);
+  printf("%f %f %f\n",mRotationMatrixSector[NSECTORS][2][0],mRotationMatrixSector[NSECTORS][2][1],mRotationMatrixSector[NSECTORS][2][2]);
+  printf("\n");
+  */
+
+  int det[5];
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    det[0] = isector;
+    auto string1 = fmt::format("/cave_1/barrel_1/B077_1/BSEGMO{:d}_1/BTOF{:d}_1", isector, isector);
+    gGeoManager->cd(string1.c_str());
+    TGeoHMatrix sectorMat = *gGeoManager->GetCurrentMatrix();
+    // put translation to zero -> only rotation are considered for sectors, translation are applied directly for strips
+    double trans0[3] = {0., 0., 0.};
+    sectorMat.SetTranslation(trans0);
+    const Double_t* rot = sectorMat.GetRotationMatrix();
+
+    /*
+    printf("SECTOR %d rotations\n",isector);
+    printf("%f %f %f\n",mRotationMatrixSector[isector][0][0],mRotationMatrixSector[isector][0][1],mRotationMatrixSector[isector][0][2]);
+    printf("%f %f %f\n",mRotationMatrixSector[isector][1][0],mRotationMatrixSector[isector][1][1],mRotationMatrixSector[isector][1][2]);
+    printf("%f %f %f\n",mRotationMatrixSector[isector][2][0],mRotationMatrixSector[isector][2][1],mRotationMatrixSector[isector][2][2]);
+    printf("vs...\n");
+    */
+
+    mRotationMatrixSector[isector][0][0] = rot[0];
+    mRotationMatrixSector[isector][1][0] = rot[1];
+    mRotationMatrixSector[isector][2][0] = rot[2];
+
+    mRotationMatrixSector[isector][0][1] = rot[3];
+    mRotationMatrixSector[isector][1][1] = rot[4];
+    mRotationMatrixSector[isector][2][1] = rot[5];
+
+    mRotationMatrixSector[isector][0][2] = rot[6];
+    mRotationMatrixSector[isector][1][2] = rot[7];
+    mRotationMatrixSector[isector][2][2] = rot[8];
+
+    // let's invert the matric to move from global to sector coordinates
+    sectorMat = sectorMat.Inverse();
+
+    /*
+    printf("%f %f %f\n",mRotationMatrixSector[isector][0][0],mRotationMatrixSector[isector][0][1],mRotationMatrixSector[isector][0][2]);
+    printf("%f %f %f\n",mRotationMatrixSector[isector][1][0],mRotationMatrixSector[isector][1][1],mRotationMatrixSector[isector][1][2]);
+    printf("%f %f %f\n",mRotationMatrixSector[isector][2][0],mRotationMatrixSector[isector][2][1],mRotationMatrixSector[isector][2][2]);
+    printf("\n");
+    */
+
+    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
+      det[1] = iplate;
+
+      if (iplate == 2 && (isector == 13 || isector == 14 || isector == 15)) {
+        continue; // PHOS HOLES
+      }
+      int istripOff = 0;
+      if (iplate == 1) {
+        istripOff = NSTRIPC;
+      } else if (iplate == 2) {
+        istripOff = NSTRIPC + NSTRIPB;
+      }
+      if (iplate == 3) {
+        istripOff = NSTRIPC + NSTRIPB + NSTRIPA;
+      }
+      if (iplate == 4) {
+        istripOff = NSTRIPC + 2 * NSTRIPB + NSTRIPA;
+      }
+      istripOff++;
+
+      for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) { // maximum number of strip is 19 for plate B and C
+        auto string2 = fmt::format("FTOA_0/FLTA_0/FSTR_{:d}", istrip + istripOff);
+        if (isector == 13 || isector == 14 || isector == 15) {
+          if (iplate < 2) {
+            string2 = fmt::format("FTOB_0/FLTB_0/FSTR_{:d}", istrip + istripOff);
+          }
+          if (iplate > 2) {
+            string2 = fmt::format("FTOC_0/FLTC_0/FSTR_{:d}", istrip + istripOff);
+          }
+        }
+
+        det[2] = istrip;
+        if (!(iplate == 2 && istrip >= NSTRIPA)) { // the middle plate (A) has only 15 strips
+
+          gGeoManager->cd(o2::utils::Str::concat_string(string1, '/', string2).c_str());
+          TGeoHMatrix aliceToStrip = *gGeoManager->GetCurrentMatrix();
+          TGeoHMatrix stripMat = sectorMat * aliceToStrip * myMatCoord; // strip in sector coordinate
+
+          // load strip alignment parameters from current geometry
+          const Double_t* tr = stripMat.GetTranslation();
+          const Double_t* rot = stripMat.GetRotationMatrix();
+          mGeoDistances[isector][iplate][istrip] = tr[1];                     // DISTANCES[iplate][istrip];
+          mGeoHeights[isector][iplate][istrip] = tr[2] - (RMAX + RMIN) * 0.5; // HEIGHTS[iplate][istrip];
+          mGeoX[isector][iplate][istrip] = tr[0];
+
+          /*
+          printf("TRANSLATION\n");
+          printf("dist=%f, heights=%f, x=%f\n",DISTANCES[iplate][istrip],HEIGHTS[iplate][istrip],0.);
+          printf("vs...\n");
+          printf("dist=%lf, heights=%lf, x=%lf",tr[1],tr[2]-385.520360,tr[0]);
+          printf("\n");
+          */
+
+          mRotationMatrixPlateStrip[isector][iplate][istrip][0][0] = rot[0];
+          mRotationMatrixPlateStrip[isector][iplate][istrip][1][0] = rot[1];
+          mRotationMatrixPlateStrip[isector][iplate][istrip][2][0] = rot[2];
+
+          mRotationMatrixPlateStrip[isector][iplate][istrip][0][1] = rot[3];
+          mRotationMatrixPlateStrip[isector][iplate][istrip][1][1] = rot[4];
+          mRotationMatrixPlateStrip[isector][iplate][istrip][2][1] = rot[5];
+
+          mRotationMatrixPlateStrip[isector][iplate][istrip][0][2] = rot[6];
+          mRotationMatrixPlateStrip[isector][iplate][istrip][1][2] = rot[7];
+          mRotationMatrixPlateStrip[isector][iplate][istrip][2][2] = rot[8];
+
+          // load pad positions from current geometry
+          for (Int_t ipadz = 0; ipadz < NPADZ; ipadz++) {
+            det[3] = ipadz;
+            for (Int_t ipadx = 0; ipadx < NPADX; ipadx++) {
+              det[4] = ipadx;
+              gGeoManager->cd(getVolumePath(det).c_str());
+              TGeoHMatrix global;
+              global = *gGeoManager->GetCurrentMatrix();
+              tr = global.GetTranslation();
+              mPadPosition[isector][iplate][istrip][ipadz][ipadx][0] = tr[0];
+              mPadPosition[isector][iplate][istrip][ipadz][ipadx][1] = tr[1];
+              mPadPosition[isector][iplate][istrip][ipadz][ipadx][2] = tr[2];
+            }
+          }
+        }
       }
     }
   }
+
+  /*
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
+      for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) {
+  if (getAngles(iplate, istrip) > 0.) {
+    rotationAngles[0] = 90. * TMath::DegToRad();
+    rotationAngles[1] = 0.;
+    rotationAngles[3] = 90. * TMath::DegToRad();
+    rotationAngles[4] = getAngles(iplate, istrip) * TMath::DegToRad();
+    rotationAngles[5] = 90. * TMath::DegToRad();
+    rotationAngles[2] = 90. * TMath::DegToRad() + rotationAngles[4];
+  } else if (getAngles(iplate, istrip) == 0.) {
+    rotationAngles[0] = 90. * TMath::DegToRad();
+    rotationAngles[1] = 0.;
+    rotationAngles[2] = 90. * TMath::DegToRad();
+    rotationAngles[3] = 90. * TMath::DegToRad();
+    rotationAngles[4] = 0;
+    rotationAngles[5] = 0.;
+  } else if (getAngles(iplate, istrip) < 0.) {
+    rotationAngles[0] = 90. * TMath::DegToRad();
+    rotationAngles[1] = 0.;
+    rotationAngles[3] = 90. * TMath::DegToRad();
+    rotationAngles[4] = -getAngles(iplate, istrip) * TMath::DegToRad();
+    rotationAngles[5] = 270. * TMath::DegToRad();
+    rotationAngles[2] = 90. * TMath::DegToRad() - rotationAngles[4];
+  }
+
+  printf("SECTOR %d, PLATE %d, STRIP %d rotations\n",isector,iplate,istrip);
+  printf("%f %f %f\n",mRotationMatrixPlateStrip[isector][iplate][istrip][0][0],mRotationMatrixPlateStrip[isector][iplate][istrip][0][1],mRotationMatrixPlateStrip[isector][iplate][istrip][0][2]);
+  printf("%f %f %f\n",mRotationMatrixPlateStrip[isector][iplate][istrip][1][0],mRotationMatrixPlateStrip[isector][iplate][istrip][1][1],mRotationMatrixPlateStrip[isector][iplate][istrip][1][2]);
+  printf("%f %f %f\n",mRotationMatrixPlateStrip[isector][iplate][istrip][2][0],mRotationMatrixPlateStrip[isector][iplate][istrip][2][1],mRotationMatrixPlateStrip[isector][iplate][istrip][2][2]);
+  printf("vs...\n");
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    mRotationMatrixPlateStrip[isector][iplate][istrip][ii][0] =
+      TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]);
+    mRotationMatrixPlateStrip[isector][iplate][istrip][ii][1] =
+      TMath::Sin(rotationAngles[2 * ii]) * TMath::Sin(rotationAngles[2 * ii + 1]);
+    mRotationMatrixPlateStrip[isector][iplate][istrip][ii][2] = TMath::Cos(rotationAngles[2 * ii]);
+  }
+
+  printf("%f %f %f\n",mRotationMatrixPlateStrip[isector][iplate][istrip][0][0],mRotationMatrixPlateStrip[isector][iplate][istrip][0][1],mRotationMatrixPlateStrip[isector][iplate][istrip][0][2]);
+  printf("%f %f %f\n",mRotationMatrixPlateStrip[isector][iplate][istrip][1][0],mRotationMatrixPlateStrip[isector][iplate][istrip][1][1],mRotationMatrixPlateStrip[isector][iplate][istrip][1][2]);
+  printf("%f %f %f\n",mRotationMatrixPlateStrip[isector][iplate][istrip][2][0],mRotationMatrixPlateStrip[isector][iplate][istrip][2][1],mRotationMatrixPlateStrip[isector][iplate][istrip][2][2]);
+  printf("\n");
+
+      }
+    }
+  }
+  */
+
   InitIndices();
   mToBeInit = kFALSE;
+}
+
+void Geo::InitIdeal()
+{
+  mToBeInit = true;
+  mToBeInitIndexing = true;
+
+  if (!mToBeInit) {
+    return;
+  }
+  LOG(info) << "tof::Geo: Initialization of TOF rotation parameters with ideal";
+
+  Double_t rotationAngles[6] =
+    {90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/};
+  for (Int_t ii = 0; ii < 6; ii++) {
+    rotationAngles[ii] *= TMath::DegToRad();
+  }
+
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    rotationAngles[5] = ((isector + 0.5) * PHISEC) * TMath::DegToRad();
+    rotationAngles[1] = 90. * TMath::DegToRad() + rotationAngles[5];
+
+    for (Int_t ii = 0; ii < 3; ii++) {
+      mRotationMatrixSector[isector][ii][0] =
+        TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]);
+      mRotationMatrixSector[isector][ii][1] =
+        TMath::Sin(rotationAngles[2 * ii]) * TMath::Sin(rotationAngles[2 * ii + 1]);
+      mRotationMatrixSector[isector][ii][2] = TMath::Cos(rotationAngles[2 * ii]);
+    }
+  }
+
+  rotationAngles[0] = 90. * TMath::DegToRad();
+  rotationAngles[1] = 0.;
+  rotationAngles[2] = 0.;
+  rotationAngles[3] = 0.;
+  rotationAngles[4] = 90. * TMath::DegToRad();
+  rotationAngles[5] = 270. * TMath::DegToRad();
+  for (Int_t ii = 0; ii < 3; ii++) {
+    mRotationMatrixSector[NSECTORS][ii][0] =
+      TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]);
+    mRotationMatrixSector[NSECTORS][ii][1] =
+      TMath::Sin(rotationAngles[2 * ii]) * TMath::Sin(rotationAngles[2 * ii + 1]);
+    mRotationMatrixSector[NSECTORS][ii][2] = TMath::Cos(rotationAngles[2 * ii]);
+  }
+
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
+      for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) {
+        mGeoDistances[isector][iplate][istrip] = DISTANCES[iplate][istrip];
+        mGeoHeights[isector][iplate][istrip] = HEIGHTS[iplate][istrip];
+        mGeoX[isector][iplate][istrip] = 0.0;
+
+        if (getAngles(iplate, istrip) > 0.) {
+          rotationAngles[0] = 90. * TMath::DegToRad();
+          rotationAngles[1] = 0.;
+          rotationAngles[3] = 90. * TMath::DegToRad();
+          rotationAngles[4] = getAngles(iplate, istrip) * TMath::DegToRad();
+          rotationAngles[5] = 90. * TMath::DegToRad();
+          rotationAngles[2] = 90. * TMath::DegToRad() + rotationAngles[4];
+        } else if (getAngles(iplate, istrip) == 0.) {
+          rotationAngles[0] = 90. * TMath::DegToRad();
+          rotationAngles[1] = 0.;
+          rotationAngles[2] = 90. * TMath::DegToRad();
+          rotationAngles[3] = 90. * TMath::DegToRad();
+          rotationAngles[4] = 0;
+          rotationAngles[5] = 0.;
+        } else if (getAngles(iplate, istrip) < 0.) {
+          rotationAngles[0] = 90. * TMath::DegToRad();
+          rotationAngles[1] = 0.;
+          rotationAngles[3] = 90. * TMath::DegToRad();
+          rotationAngles[4] = -getAngles(iplate, istrip) * TMath::DegToRad();
+          rotationAngles[5] = 270. * TMath::DegToRad();
+          rotationAngles[2] = 90. * TMath::DegToRad() - rotationAngles[4];
+        }
+
+        for (Int_t ii = 0; ii < 3; ii++) {
+          mRotationMatrixPlateStrip[isector][iplate][istrip][ii][0] =
+            TMath::Sin(rotationAngles[2 * ii]) * TMath::Cos(rotationAngles[2 * ii + 1]);
+          mRotationMatrixPlateStrip[isector][iplate][istrip][ii][1] =
+            TMath::Sin(rotationAngles[2 * ii]) * TMath::Sin(rotationAngles[2 * ii + 1]);
+          mRotationMatrixPlateStrip[isector][iplate][istrip][ii][2] = TMath::Cos(rotationAngles[2 * ii]);
+        }
+      }
+    }
+  }
+
+  InitIndices();
+  mToBeInit = kFALSE;
+
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
+      for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) {
+        for (int iz = 0; iz < 2; iz++) {
+          for (int ix = 0; ix < 48; ix++) {
+            int det[] = {isector, iplate, istrip, iz, ix};
+            float posPad[3] = {0., 0., 0.};
+            getPosInPadCoord(det, posPad);
+            antiRotateToStrip(posPad, iplate, istrip, isector);
+            antiRotateToSector(posPad, 18);
+            antiRotateToSector(posPad, isector);
+
+            mPadPosition[isector][iplate][istrip][iz][ix][0] = -posPad[0];
+            mPadPosition[isector][iplate][istrip][iz][ix][1] = -posPad[1];
+            mPadPosition[isector][iplate][istrip][iz][ix][2] = -posPad[2];
+          }
+        }
+      }
+    }
+  }
 }
 
 void Geo::InitIndices()
@@ -178,15 +426,17 @@ void Geo::InitIndices()
   }
 
   Int_t nstrips = NSTRIPC;
-  for (int iplate = 0; iplate < 5; ++iplate) {
-    if (iplate == 1 || iplate == 3) {
-      nstrips = NSTRIPB;
-    } else if (iplate == 2) {
-      nstrips = NSTRIPA;
-    }
-    mDistances[iplate].reserve(nstrips);
-    for (int i = 0; i < nstrips; ++i) {
-      mDistances[iplate].push_back(DISTANCES[iplate][nstrips - i - 1]);
+  for (Int_t isector = 0; isector < NSECTORS; isector++) {
+    for (int iplate = 0; iplate < 5; ++iplate) {
+      if (iplate == 1 || iplate == 3) {
+        nstrips = NSTRIPB;
+      } else if (iplate == 2) {
+        nstrips = NSTRIPA;
+      }
+      mDistances[isector][iplate].reserve(nstrips);
+      for (int i = 0; i < nstrips; ++i) {
+        mDistances[isector][iplate].push_back(getGeoDistances(isector, iplate, nstrips - i - 1));
+      }
     }
   }
 }
@@ -281,7 +531,7 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
     return;
   }
 
-  det[2] = fromPlateToStrip(posLocal, det[1]);
+  det[2] = fromPlateToStrip(posLocal, det[1], det[0]);
   if (det[2] == -1) {
     return;
   }
@@ -392,6 +642,67 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
   return index;
 }
 
+void Geo::getPosInSectorCoord(const Int_t* detId, float* pos)
+{
+  Init();
+  fromGlobalToSector(pos, detId[0]);
+
+  float swap = pos[0];
+  pos[0] = pos[1];
+  pos[1] = swap;
+  pos[2] = -pos[2];
+}
+
+void Geo::getPosInStripCoord(const Int_t* detId, float* pos)
+{
+  Init();
+  fromGlobalToSector(pos, detId[0]);
+
+  float step[3];
+  step[0] = getGeoX(detId[0], detId[1], detId[2]);
+  step[1] = getGeoHeights(detId[0], detId[1], detId[2]);
+  step[2] = -getGeoDistances(detId[0], detId[1], detId[2]);
+  translate(pos[0], pos[1], pos[2], step);
+  rotateToStrip(pos, detId[1], detId[2], detId[0]);
+}
+
+void Geo::getPosInPadCoord(const Int_t* detId, float* pos)
+{
+  Init();
+  fromGlobalToSector(pos, detId[0]);
+
+  float step[3];
+  step[0] = getGeoX(detId[0], detId[1], detId[2]);
+  step[1] = getGeoHeights(detId[0], detId[1], detId[2]);
+  step[2] = -getGeoDistances(detId[0], detId[1], detId[2]);
+  translate(pos[0], pos[1], pos[2], step);
+  rotateToStrip(pos, detId[1], detId[2], detId[0]);
+
+  pos[0] -= (detId[4] + 0.5) * XPAD - XHALFSTRIP;
+  pos[2] -= (detId[3] - 0.5) * ZPAD;
+}
+
+void Geo::getPosInSectorCoord(int ch, float* pos)
+{
+  int det[5];
+  getVolumeIndices(ch, det);
+  getPosInSectorCoord(det, pos);
+}
+
+void Geo::getPosInStripCoord(int ch, float* pos)
+{
+  int det[5];
+  getVolumeIndices(ch, det);
+  getPosInStripCoord(det, pos);
+}
+
+void Geo::getPosInPadCoord(int ch, float* pos)
+{
+  int det[5];
+  getVolumeIndices(ch, det);
+  getPosInPadCoord(det, pos);
+}
+
 void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
 {
   if (isector == -1) {
@@ -409,7 +720,7 @@ void Geo::fromGlobalToSector(Float_t* pos, Int_t isector)
   rotateToSector(pos, NSECTORS);
 }
 
-Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
+Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate, Int_t isector)
 {
   if (iplate == -1) {
     return -1;
@@ -439,17 +750,17 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
 
   // we restrict the search of the strip to a more reasonable range, considering that the
   // DISTANCES are never larger than 10 between consecutive strips
-  auto ilower = std::lower_bound(mDistances[iplate].begin(), mDistances[iplate].end(), -pos[2]);
-  int stripFound = mDistances[iplate].size() - 1 - std::distance(mDistances[iplate].begin(), ilower);
+  auto ilower = std::lower_bound(mDistances[isector][iplate].begin(), mDistances[isector][iplate].end(), -pos[2]);
+  int stripFound = mDistances[isector][iplate].size() - 1 - std::distance(mDistances[isector][iplate].begin(), ilower);
   int firstStripToCheck = stripFound;
   int lastStripToCheck = stripFound;
   if (stripFound != 0) {
-    while (std::abs(pos[2] + DISTANCES[iplate][firstStripToCheck - 1]) < 10) {
+    while (std::abs(pos[2] + getGeoDistances(isector, iplate, firstStripToCheck - 1)) < 10) {
       --firstStripToCheck;
     }
   }
   if (stripFound != nstrips - 1) {
-    while (std::abs(pos[2] + DISTANCES[iplate][lastStripToCheck + 1]) < 10) {
+    while (std::abs(pos[2] + getGeoDistances(isector, iplate, lastStripToCheck + 1)) < 10) {
       ++lastStripToCheck;
     }
   }
@@ -457,9 +768,9 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
   for (Int_t istrip = firstStripToCheck; istrip <= lastStripToCheck; ++istrip) {
     Float_t posLoc2[3] = {pos[0], pos[1], pos[2]};
 
-    step[0] = 0.;
-    step[1] = getHeights(iplate, istrip);
-    step[2] = -getDistances(iplate, istrip);
+    step[0] = getGeoX(isector, iplate, istrip);
+    step[1] = getGeoHeights(isector, iplate, istrip);
+    step[2] = -getGeoDistances(isector, iplate, istrip);
     translate(posLoc2[0], posLoc2[1], posLoc2[2], step);
 
     if (fabs(posLoc2[1]) > 10) {
@@ -475,7 +786,7 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       continue;
     }
 
-    rotateToStrip(posLoc2, iplate, istrip);
+    rotateToStrip(posLoc2, iplate, istrip, isector);
 
     if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
         (TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
@@ -549,7 +860,7 @@ void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos, int se
     return;
   }
 
-  det[2] = fromPlateToStrip(DeltaPos, det[1]);
+  det[2] = fromPlateToStrip(DeltaPos, det[1], det[0]);
   if (det[2] == -1) {
     return;
   }
@@ -702,20 +1013,9 @@ void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)
 
   Float_t xyzDummy[3] = {0., 0., 0.};
 
-  float matAR[3][3];
-  matAR[0][0] = -mRotationMatrixSector[isector][0][0];
-  matAR[0][1] = mRotationMatrixSector[isector][0][1];
-  matAR[0][2] = mRotationMatrixSector[isector][0][2];
-  matAR[1][0] = mRotationMatrixSector[isector][1][0];
-  matAR[1][1] = mRotationMatrixSector[isector][1][1];
-  matAR[1][2] = mRotationMatrixSector[isector][1][2];
-  matAR[2][0] = mRotationMatrixSector[isector][2][0];
-  matAR[2][1] = -mRotationMatrixSector[isector][2][1];
-  matAR[2][2] = mRotationMatrixSector[isector][2][2];
-
   for (Int_t ii = 0; ii < 3; ii++) {
-    xyzDummy[ii] = xyz[0] * matAR[ii][0] + xyz[1] * matAR[ii][1] +
-                   xyz[2] * matAR[ii][2];
+    xyzDummy[ii] = xyz[0] * mRotationMatrixSector[isector][0][ii] + xyz[1] * mRotationMatrixSector[isector][1][ii] +
+                   xyz[2] * mRotationMatrixSector[isector][2][ii];
   }
 
   for (Int_t ii = 0; ii < 3; ii++) {
@@ -745,14 +1045,31 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
   return;
 }
 
-void Geo::rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
+void Geo::antiRotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector)
 {
   Float_t xyzDummy[3] = {0., 0., 0.};
 
   for (Int_t ii = 0; ii < 3; ii++) {
-    xyzDummy[ii] = xyz[0] * mRotationMatrixPlateStrip[iplate][istrip][ii][0] +
-                   xyz[1] * mRotationMatrixPlateStrip[iplate][istrip][ii][1] +
-                   xyz[2] * mRotationMatrixPlateStrip[iplate][istrip][ii][2];
+    xyzDummy[ii] = xyz[0] * mRotationMatrixPlateStrip[isector][iplate][istrip][0][ii] +
+                   xyz[1] * mRotationMatrixPlateStrip[isector][iplate][istrip][1][ii] +
+                   xyz[2] * mRotationMatrixPlateStrip[isector][iplate][istrip][2][ii];
+  }
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyz[ii] = xyzDummy[ii];
+  }
+
+  return;
+}
+
+void Geo::rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip, Int_t isector)
+{
+  Float_t xyzDummy[3] = {0., 0., 0.};
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyzDummy[ii] = xyz[0] * mRotationMatrixPlateStrip[isector][iplate][istrip][ii][0] +
+                   xyz[1] * mRotationMatrixPlateStrip[isector][iplate][istrip][ii][1] +
+                   xyz[2] * mRotationMatrixPlateStrip[isector][iplate][istrip][ii][2];
   }
 
   for (Int_t ii = 0; ii < 3; ii++) {

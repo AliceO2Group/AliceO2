@@ -13,7 +13,14 @@ o2_add_library(FITWorkflow
                SOURCES src/FITDataReaderDPLSpec.cxx
                        src/FITDigitWriterSpec.cxx
                        src/RawReaderFIT.cxx
+                       src/FITIntegrateClusterReaderSpec.cxx
+                       src/FITIntegrateClusterSpec.cxx
+                       src/FITIntegrateClusterWriterSpec.cxx
+                       src/FITMergeIntegrateClusterSpec.cxx
                        PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DetectorsCommonDataFormats
                                      O2::DPLUtils
-                                     O2::FITRaw)
+                                     O2::FITRaw
+                                     O2::DetectorsBase
+                                     O2::Algorithm
+                                     O2::DetectorsCalibration)

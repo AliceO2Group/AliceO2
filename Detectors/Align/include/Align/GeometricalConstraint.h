@@ -28,8 +28,7 @@
 #define GEOMETRICALCONSTRAINT_H
 
 #include <cstdio>
-#include <TNamed.h>
-#include <TObjArray.h>
+#include <Rtypes.h>
 #include "Align/AlignableVolume.h"
 
 namespace o2
@@ -37,24 +36,28 @@ namespace o2
 namespace align
 {
 
-class GeometricalConstraint : public TNamed
+class GeometricalConstraint
 {
  public:
   enum { kNDOFGeom = AlignableVolume::kNDOFGeom };
-  enum { kNoJacobianBit = BIT(14) };
   //
-  GeometricalConstraint(const char* name = nullptr, const char* title = nullptr);
-  ~GeometricalConstraint() override;
-  //
-  void setParent(const AlignableVolume* par);
+  const std::string getName() const { return mName; }
+  void setName(const std::string& n) { mName = n; }
+  void setParent(const AlignableVolume* par)
+  {
+    mParent = par;
+    if (mName.empty()) {
+      mName = par->getSymName();
+    }
+  }
   const AlignableVolume* getParent() const { return mParent; }
   //
-  int getNChildren() const { return mChildren.GetEntriesFast(); }
-  AlignableVolume* getChild(int i) const { return (AlignableVolume*)mChildren[i]; }
+  int getNChildren() const { return mChildren.size(); }
+  const AlignableVolume* getChild(int i) const { return mChildren[i]; }
   void addChild(const AlignableVolume* v)
   {
     if (v) {
-      mChildren.AddLast((AlignableVolume*)v);
+      mChildren.push_back(v);
     }
   }
   //
@@ -62,33 +65,30 @@ class GeometricalConstraint : public TNamed
   uint8_t getConstraintPattern() const { return mConstraint; }
   void constrainDOF(int dof) { mConstraint |= 0x1 << dof; }
   void unConstrainDOF(int dof) { mConstraint &= ~(0x1 << dof); }
-  void setConstrainPattern(uint32_t pat) { mConstraint = pat; }
+  void setConstrainPattern(uint8_t pat) { mConstraint = pat; }
   bool hasConstraint() const { return mConstraint; }
   double getSigma(int i) const { return mSigma[i]; }
   void setSigma(int i, double s = 0) { mSigma[i] = s; }
   //
-  void setNoJacobian(bool v = true) { SetBit(kNoJacobianBit, v); }
-  bool getNoJacobian() const { return TestBit(kNoJacobianBit); }
+  void setNoJacobian(bool v = true) { mNoJacobian = v; }
+  bool getNoJacobian() const { return mNoJacobian; }
   //
-  void constrCoefGeom(const TGeoHMatrix& matRD, float* jac /*[kNDOFGeom][kNDOFGeom]*/) const;
+  void constrCoefGeom(const TGeoHMatrix& matRD, double* jac /*[kNDOFGeom][kNDOFGeom]*/) const;
   //
-  void Print(const Option_t* opt = "") const final;
-  virtual void writeChildrenConstraints(FILE* conOut) const;
-  virtual void checkConstraint() const;
-  virtual const char* getDOFName(int i) const { return AlignableVolume::getGeomDOFName(i); }
-  //
+  void print() const;
+  void writeChildrenConstraints(FILE* conOut) const;
+  void checkConstraint() const;
+  const char* getDOFName(int i) const { return AlignableVolume::getGeomDOFName(i); }
+
  protected:
-  // ------- dummies -------
-  GeometricalConstraint(const GeometricalConstraint&);
-  GeometricalConstraint& operator=(const GeometricalConstraint&);
+  bool mNoJacobian = false;                      // flag that Jacobian is not needed
+  uint8_t mConstraint = 0;                       // bit pattern of constraint
+  double mSigma[kNDOFGeom] = {};                 // optional sigma if constraint is gaussian
+  const AlignableVolume* mParent = nullptr;      // parent volume for contraint, lab if 0
+  std::vector<const AlignableVolume*> mChildren; // volumes subjected to constraints
+  std::string mName{};
   //
- protected:
-  uint32_t mConstraint;           // bit pattern of constraint
-  double mSigma[kNDOFGeom];       // optional sigma if constraint is gaussian
-  const AlignableVolume* mParent; // parent volume for contraint, lab if 0
-  TObjArray mChildren;            // volumes subjected to constraints
-  //
-  ClassDef(GeometricalConstraint, 2);
+  ClassDefNV(GeometricalConstraint, 2);
 };
 
 } // namespace align

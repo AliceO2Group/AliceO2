@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <unistd.h>
+#include <ctime>
 #include <sstream>
 #include <iostream>
 #include <cstdio>
@@ -39,9 +40,13 @@
 #include <cstdio>
 #include <unordered_map>
 #include <filesystem>
+#include <atomic>
+#include "Framework/SourceInfoHeader.h"
+#include "Headers/Stack.h"
 
 #include "SimPublishChannelHelper.h"
 #include <CommonUtils/FileSystemUtils.h>
+#include <CCDB/BasicCCDBManager.h>
 
 std::string getServerLogName()
 {
@@ -86,6 +91,28 @@ void remove_tmp_files()
 
 void cleanup()
 {
+  auto& conf = o2::conf::SimConfig::Instance();
+  if (conf.forwardKine()) {
+    auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto forwardchannel = fair::mq::Channel{"kineforward", "pair", factory};
+    auto address = std::string{"ipc:///tmp/o2sim-hitmerger-kineforward-"} + std::to_string(getpid());
+    forwardchannel.Bind(address.c_str());
+    forwardchannel.Validate();
+    fair::mq::Parts parts;
+    fair::mq::MessagePtr payload(forwardchannel.NewMessage());
+    o2::framework::SourceInfoHeader sih;
+    sih.state = o2::framework::InputChannelState::Completed;
+    auto channelAlloc = o2::pmr::getTransportAllocator(forwardchannel.Transport());
+    auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
+    parts.AddPart(std::move(header));
+    parts.AddPart(std::move(payload));
+    int timeoutinMS = 1000; // block for 1s max (other side might have disconnected already)
+    if (forwardchannel.Send(parts, timeoutinMS) > 0) {
+      LOGP(info, "SENDING END-OF-STREAM TO PROXY AT {}", address.c_str());
+    } else {
+      LOGP(warn, "SENDING END-OF-STREAM TIMED OUT; PEER PROBABLY NO LONGER CONNECTED");
+    }
+  }
   remove_tmp_files();
   o2::utils::ShmManager::Instance().release();
 
@@ -122,6 +149,9 @@ int checkresult()
   // We can put more or less complex things
   // here.
   auto& conf = o2::conf::SimConfig::Instance();
+  if (!conf.writeToDisc()) {
+    return 0;
+  }
   // easy check: see if we have number of entries in output tree == number of events asked
   std::string filename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
@@ -151,6 +181,7 @@ std::vector<int> gDistributedEvents;
 // record finished events in a container
 std::vector<int> gFinishedEvents;
 int gAskedEvents;
+std::atomic<bool> gPrimServerIsInitialized = false;
 
 std::string getControlAddress()
 {
@@ -169,20 +200,6 @@ std::string getInternalControlAddress()
   std::stringstream controlsocketname;
   controlsocketname << "ipc:///tmp/" << tmp.substr(0, 10) << "_" << getpid();
   return controlsocketname.str();
-}
-
-// signal handler for graceful exit
-void sighandler(int signal)
-{
-  if (signal == SIGINT || signal == SIGTERM) {
-    LOG(info) << "o2-sim driver: Signal caught ... clean up and exit";
-    // forward signal to all children
-    for (auto& pid : gChildProcesses) {
-      killpg(pid, signal);
-    }
-    cleanup();
-    exit(0);
-  }
 }
 
 bool isBusy()
@@ -206,12 +223,14 @@ void launchControlThread()
   auto lambda = [controladdress, internalcontroladdress]() {
     auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
 
-    auto internalchannel = fair::mq::Channel{"o2sim-control", "pub", factory};
+    // used for internal distribution of control commands
+    auto internalchannel = fair::mq::Channel{"o2sim-internal", "pub", factory};
     internalchannel.Bind(internalcontroladdress);
     internalchannel.Validate();
     std::unique_ptr<fair::mq::Message> message(internalchannel.NewMessage());
 
-    auto outsidechannel = fair::mq::Channel{"o2sim-outside-exchange", "rep", factory};
+    // the channel with which outside entities can control this simulator
+    auto outsidechannel = fair::mq::Channel{"o2sim-control", "rep", factory};
     outsidechannel.Bind(controladdress);
     outsidechannel.Validate();
     std::unique_ptr<fair::mq::Message> request(outsidechannel.NewMessage());
@@ -223,7 +242,7 @@ void launchControlThread()
       outsidechannel.Validate();
       if (outsidechannel.Receive(request) > 0) {
         std::string command(reinterpret_cast<char const*>(request->GetData()), request->GetSize());
-        LOG(info) << "Control message: " << command;
+        LOG(info) << "Control message: " << command << " received ";
         int code = -1;
         if (isBusy()) {
           code = 1; // code = 1 --> busy
@@ -288,11 +307,11 @@ void launchWorkerListenerThread()
 // gives possibility to exec a callback at these events
 void launchThreadMonitoringEvents(
   int pipefd, std::string text, std::vector<int>& eventcontainer,
-  std::function<void(std::vector<int> const&)> callback = [](std::vector<int> const&) {})
+  std::function<bool(std::vector<int> const&)> callback = [](std::vector<int> const&) { return true; })
 {
   static std::vector<std::thread> threads;
   auto lambda = [pipefd, text, callback, &eventcontainer]() {
-    int eventcounter;
+    int eventcounter; // event id or some other int message
     while (1) {
       ssize_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
       if (count == -1) {
@@ -305,14 +324,108 @@ void launchThreadMonitoringEvents(
       } else if (count == 0) {
         break;
       } else {
-        LOG(info) << text.c_str() << eventcounter;
         eventcontainer.push_back(eventcounter);
-        callback(eventcontainer);
+        if (callback(eventcontainer)) {
+          LOG(info) << text.c_str() << eventcounter;
+        }
       }
     };
   };
   threads.push_back(std::thread(lambda));
   threads.back().detach();
+}
+
+void launchShutdownThread()
+{
+  static std::vector<std::thread> threads;
+  auto lambda = []() {
+    // once started ... we are waiting for some seconds
+    // then **force** shutdown all remaining children by killing them.
+    // This is to make sure that the process does not hang during a final wait
+    // and interrupted/blocked signal delivery.
+
+    struct timespec initial, remaining;
+    initial.tv_sec = 5;
+    // for for specified time ... (and account for possible signal interruptions)
+    while (nanosleep(&initial, &remaining) == -1 && remaining.tv_sec > 0) {
+      initial = remaining;
+    }
+    LOG(info) << "Shutdown timer expired ... force killing remaining children";
+    for (auto p : gChildProcesses) {
+      killpg(p, SIGKILL);
+    }
+  };
+  threads.push_back(std::thread(lambda));
+  threads.back().detach();
+}
+
+void empty(int) {}
+
+// signal handler for graceful exit
+void sighandler(int sig)
+{
+  if (sig == SIGINT || sig == SIGTERM) {
+    signal(sig, empty); // ignore further deliveries of these signals
+    LOG(info) << "o2-sim driver: Signal caught ... clean up and exit (please be patient)";
+    // forward signal to all children
+    for (auto& pid : gChildProcesses) {
+      killpg(pid, sig);
+    }
+    cleanup();
+
+    // make sure everyone is really shutting down
+    int status, cpid;
+    launchShutdownThread();
+    while ((cpid = wait(&status))) {
+      if (cpid == -1) {
+        break;
+      }
+    }
+
+    exit(1); // exiting upon external signal is abnormal so exit code != 0
+  }
+}
+
+// We do some early checks on the arguments passed. In particular we fix
+// missing timestamps for consistent application in all sub-processes. An empty
+// vector is returned upon errors.
+std::vector<char*> checkArgs(int argc, char* argv[])
+{
+  auto conf = o2::conf::SimConfig::make();
+  std::vector<std::string> modifiedArgs;
+#ifdef SIM_RUN5
+  conf.setRun5();
+#endif
+  if (conf.resetFromArguments(argc, argv)) {
+    for (int i = 0; i < argc; ++i) {
+      modifiedArgs.push_back(argv[i]);
+    }
+
+    // Check the run and the time arguments and enforce consistency.
+    // This is important as queries to CCDB are done using the timestamp.
+    if (conf.getRunNumber() != -1) {
+      // if we have a run number we should fix or check the timestamp
+
+      // fetch the actual timestamp ranges for this run
+      auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+      auto soreor = ccdbmgr.getRunDuration(conf.getRunNumber());
+      auto timestamp = conf.getTimestamp();
+      if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kNow) {
+        timestamp = soreor.first;
+        LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
+        modifiedArgs.push_back("--timestamp");
+        modifiedArgs.push_back(std::to_string(timestamp));
+      } else if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
+        LOG(fatal) << "The given timestamp " << timestamp << " is incompatible with the given run number " << conf.getRunNumber() << " starting at " << soreor.first << " and ending at " << soreor.second;
+      }
+    }
+  }
+  std::vector<char*> final(modifiedArgs.size(), nullptr);
+  for (int i = 0; i < modifiedArgs.size(); ++i) {
+    final[i] = new char[modifiedArgs[i].size() + 1];
+    strcpy(final[i], modifiedArgs[i].c_str());
+  }
+  return final;
 }
 
 // helper executable to launch all the devices/processes
@@ -363,18 +476,24 @@ int main(int argc, char* argv[])
   // auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto externalpublishchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-notifications"));
 
+  // check initial arguments and complete
+  auto finalArgs = checkArgs(argc, argv);
+  if (finalArgs.size() == 0) {
+    return 1;
+  }
+
   auto& conf = o2::conf::SimConfig::Instance();
 #ifdef SIM_RUN5
   conf.setRun5();
 #endif
-  if (!conf.resetFromArguments(argc, argv)) {
+  if (!conf.resetFromArguments(finalArgs.size(), &finalArgs[0])) {
     return 1;
   }
   // in case of zero events asked (only setup geometry etc) we just call the non-distributed version
   // (otherwise we would need to add more synchronization between the actors)
   if (conf.getNEvents() <= 0 && !conf.asService()) {
     LOG(info) << "No events to be simulated; Switching to non-distributed mode";
-    const int Nargs = argc + 1;
+    const int Nargs = finalArgs.size() + 1;
 #ifdef SIM_RUN5
     std::string name("o2-sim-serial-run5");
 #else
@@ -382,10 +501,10 @@ int main(int argc, char* argv[])
 #endif
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
-    for (int i = 1; i < argc; ++i) {
-      arguments[i] = argv[i];
+    for (int i = 1; i < finalArgs.size(); ++i) {
+      arguments[i] = finalArgs[i];
     }
-    arguments[argc] = nullptr;
+    arguments[finalArgs.size()] = nullptr;
     std::string path = installpath + "/" + name;
     auto r = execv(path.c_str(), (char* const*)arguments);
     if (r != 0) {
@@ -436,11 +555,11 @@ int main(int argc, char* argv[])
 
     // copy all arguments into a common vector
 #ifdef SIM_RUN5
-    const int addNArgs = 10;
+    const int addNArgs = 12;
 #else
-    const int addNArgs = 9;
+    const int addNArgs = 11;
 #endif
-    const int Nargs = argc + addNArgs;
+    const int Nargs = finalArgs.size() + addNArgs;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     arguments[1] = "--control";
@@ -451,11 +570,13 @@ int main(int argc, char* argv[])
     arguments[6] = config.c_str();
     arguments[7] = "--severity";
     arguments[8] = "debug";
+    arguments[9] = "--color";
+    arguments[10] = "false"; // switch off colored output
 #ifdef SIM_RUN5
-    arguments[9] = "--isRun5";
+    arguments[11] = "--isRun5";
 #endif
-    for (int i = 1; i < argc; ++i) {
-      arguments[addNArgs - 1 + i] = argv[i];
+    for (int i = 1; i < finalArgs.size(); ++i) {
+      arguments[addNArgs - 1 + i] = finalArgs[i];
     }
     arguments[Nargs - 1] = nullptr;
     for (int i = 0; i < Nargs; ++i) {
@@ -480,10 +601,28 @@ int main(int argc, char* argv[])
     // A simple callback for distributed primary-chunk "events"
     auto distributionCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
       std::stringstream str;
-      str << "EVENT " << v.back() << " DISTRIBUTED";
-      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+      if (v.back() == -111) {
+        // message that server is initialized
+        gPrimServerIsInitialized = true;
+        return false; // silent
+      } else {
+        str << "EVENT " << v.back() << " DISTRIBUTED";
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+        return true;
+      }
     };
     launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ", gDistributedEvents, distributionCallback);
+  }
+
+  // we wait until the particle server is initialized before constructing the worker
+  // since the worker needs an operating server to initialize
+  while (!gPrimServerIsInitialized) {
+    int status;
+    auto result = waitpid(gChildProcesses.back(), &status, WNOHANG);
+    if (result != 0) {
+      break; // exit this busy loop if the server process exited for some reason
+    }
+    sleep(1); // otherwise wait until server is initialized
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
@@ -510,6 +649,7 @@ int main(int argc, char* argv[])
 
       const std::string name("o2-sim-device-runner");
       const std::string path = installpath + "/" + name;
+
       execl(path.c_str(), name.c_str(), "--control", "static", "--id", workerss.str().c_str(), "--config-key",
             "worker", "--mq-config", localconfig.c_str(), "--severity", "info", (char*)nullptr);
       return 0;
@@ -528,6 +668,8 @@ int main(int argc, char* argv[])
   }
 
   pid = fork();
+
+  std::atomic<bool> shutdown_initiated = false;
   if (pid == 0) {
     int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     dup2(fd, 1); // make stdout go to file
@@ -538,7 +680,7 @@ int main(int argc, char* argv[])
     setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
     const std::string name("o2-sim-hit-merger-runner");
     const std::string path = installpath + "/" + name;
-    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
+    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(), "--color", "false",
           (char*)nullptr);
     return 0;
   } else {
@@ -550,7 +692,7 @@ int main(int argc, char* argv[])
     // A simple callback that determines if the simulation is complete and triggers
     // a shutdown of all child processes. This appears to be more robust than leaving
     // that decision upon the children (sometimes there are problems with that).
-    auto finishCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
+    auto finishCallback = [&shutdown_initiated, &conf, &externalpublishchannel](std::vector<int> const& v) {
       std::stringstream str;
       str << "EVENT " << v.back() << " FINISHED " << gAskedEvents << " " << v.size();
       o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
@@ -558,13 +700,17 @@ int main(int argc, char* argv[])
         o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
         if (!conf.asService()) {
           LOG(info) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
-          for (auto p : gChildProcesses) {
-            killpg(p, SIGTERM);
+          if (!shutdown_initiated) {
+            shutdown_initiated = true;
+            for (auto p : gChildProcesses) {
+              killpg(p, SIGTERM);
+            }
           }
         } else {
           LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
         }
       }
+      return true;
     };
 
     launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", gFinishedEvents, finishCallback);
@@ -578,35 +724,42 @@ int main(int argc, char* argv[])
   bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
     if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
-      LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
-                << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
+      if (!shutdown_initiated) {
+        LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
+                  << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
 
-      // we bring down all processes if one of them had problems or got a termination signal
-      // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
-      LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
-      for (auto p : gChildProcesses) {
-        LOG(info) << "TERMINATING " << p;
-        killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
+        // we bring down all processes if one of them had problems or got a termination signal
+        // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
+        LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
+        for (auto p : gChildProcesses) {
+          LOG(info) << "TERMINATING " << p;
+          killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
+        }
+        LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "FAILURE"));
+        errored = true;
       }
-      LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
-      errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(info) << "Merger process " << mergerpid << " returned";
   LOG(info) << "Simulation process took " << timer.RealTime() << " s";
 
-  if (!errored) {
+  if (!errored && !shutdown_initiated) {
+    shutdown_initiated = true;
     // ordinary shutdown of the rest
     for (auto p : gChildProcesses) {
       if (p != mergerpid) {
-        LOG(info) << "SHUTTING DOWN CHILD PROCESS " << p;
+        LOG(info) << "SHUTTING DOWN CHILD PROCESS (normal thread)" << p;
         killpg(p, SIGTERM);
       }
     }
   }
-  // definitely wait on all children
-  // otherwise this breaks accounting in the /usr/bin/time command
+
+  // Final shutdown section. Here we definitely wait on all children
+  // otherwise this breaks accounting in the /usr/bin/time command. But we install
+  // an asynchronous timeout thread which triggers an emergency kill after some seconds in order to not block.
+  launchShutdownThread();
   while ((cpid = wait(&status))) {
     if (cpid == -1) {
       break;
@@ -626,11 +779,12 @@ int main(int argc, char* argv[])
     // later stages (digitization).
 
     auto& conf = o2::conf::SimConfig::Instance();
-    // easy check: see if we have number of entries in output tree == number of events asked
-    std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
-    std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
-    o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
-
+    if (conf.writeToDisc()) {
+      // easy check: see if we have number of entries in output tree == number of events asked
+      std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
+      std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
+      o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
+    }
     LOG(info) << "SIMULATION RETURNED SUCCESFULLY";
   }
 

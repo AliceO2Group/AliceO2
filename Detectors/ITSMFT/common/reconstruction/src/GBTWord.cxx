@@ -34,7 +34,7 @@ void GBTWord::printX(bool padded) const
 void GBTWord::printB(bool padded) const
 {
   /// print in bitset format, optionally padding to 128 bits
-  int nw = padded ? 16 : 8;
+  int nw = padded ? GBTPaddedWordLength : GBTWordLength;
   std::stringstream ss;
   for (int i = nw; i--;) {
     uint8_t v = data8[i];

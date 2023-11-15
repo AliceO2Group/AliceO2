@@ -50,6 +50,7 @@ enum class VariantType : int { Int = 0,
                                UInt64,
                                Int8,
                                Int16,
+                               LabeledArrayString,
                                Empty,
                                Dict,
                                Unknown };
@@ -77,7 +78,8 @@ constexpr auto isLabeledArray()
 {
   return (V == VariantType::LabeledArrayInt ||
           V == VariantType::LabeledArrayFloat ||
-          V == VariantType::LabeledArrayDouble);
+          V == VariantType::LabeledArrayDouble ||
+          V == VariantType::LabeledArrayString);
 }
 
 template <VariantType V>
@@ -113,7 +115,8 @@ DECLARE_VARIANT_TRAIT(long long int, Int64);
 DECLARE_VARIANT_TRAIT(uint8_t, UInt8);
 DECLARE_VARIANT_TRAIT(uint16_t, UInt16);
 DECLARE_VARIANT_TRAIT(uint32_t, UInt32);
-DECLARE_VARIANT_TRAIT(uint64_t, UInt64);
+DECLARE_VARIANT_TRAIT(unsigned long int, UInt64);
+DECLARE_VARIANT_TRAIT(unsigned long long int, UInt64);
 
 DECLARE_VARIANT_TRAIT(float, Float);
 DECLARE_VARIANT_TRAIT(double, Double);
@@ -145,6 +148,7 @@ DECLARE_VARIANT_TRAIT(Array2D<double>, Array2DDouble);
 DECLARE_VARIANT_TRAIT(LabeledArray<int>, LabeledArrayInt);
 DECLARE_VARIANT_TRAIT(LabeledArray<float>, LabeledArrayFloat);
 DECLARE_VARIANT_TRAIT(LabeledArray<double>, LabeledArrayDouble);
+DECLARE_VARIANT_TRAIT(LabeledArray<std::string>, LabeledArrayString);
 
 template <typename T>
 struct variant_array_symbol {
@@ -215,6 +219,7 @@ DECLARE_VARIANT_TYPE(Array2D<double>, Array2DDouble);
 DECLARE_VARIANT_TYPE(LabeledArray<int>, LabeledArrayInt);
 DECLARE_VARIANT_TYPE(LabeledArray<float>, LabeledArrayFloat);
 DECLARE_VARIANT_TYPE(LabeledArray<double>, LabeledArrayDouble);
+DECLARE_VARIANT_TYPE(LabeledArray<std::string>, LabeledArrayString);
 
 template <VariantType type>
 struct variant_array_element_type {
@@ -238,6 +243,7 @@ DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(std::string, ArrayString);
 DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(int, LabeledArrayInt);
 DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(float, LabeledArrayFloat);
 DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(double, LabeledArrayDouble);
+DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(std::string, LabeledArrayString);
 
 template <VariantType V>
 using variant_array_element_type_t = typename variant_array_element_type<V>::type;
@@ -322,6 +328,12 @@ class Variant
   ~Variant();
   Variant& operator=(const Variant& other);
   Variant& operator=(Variant&& other) noexcept;
+  template <typename T>
+  Variant& operator=(std::vector<T>&& other) noexcept
+  {
+    *this = Variant(other);
+    return *this;
+  }
 
   template <typename T>
   T get() const

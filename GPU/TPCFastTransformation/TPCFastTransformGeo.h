@@ -20,6 +20,7 @@
 #include "GPUCommonDef.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
+#include "GPUCommonRtypes.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -37,6 +38,9 @@ class TPCFastTransformGeo
   struct SliceInfo {
     float sinAlpha;
     float cosAlpha;
+#ifndef GPUCA_ALIROOT_LIB
+    ClassDefNV(SliceInfo, 1);
+#endif
   };
 
   /// The struct contains necessary info about TPC padrow
@@ -47,6 +51,12 @@ class TPCFastTransformGeo
     float u0;         ///< min. u coordinate
     float scaleUtoSU; ///< scale for su (scaled u ) coordinate
     float scaleSUtoU; ///< scale for u coordinate
+
+    /// get width in U
+    GPUd() float getUwidth() const { return -2.f * u0; }
+#ifndef GPUCA_ALIROOT_LIB
+    ClassDefNV(RowInfo, 1);
+#endif
   };
 
   /// _____________  Constructors / destructors __________________________
@@ -116,6 +126,13 @@ class TPCFastTransformGeo
   /// Gives Z length of the TPC, side C
   GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
 
+  /// Gives Z length of the TPC, depending on the slice
+  GPUd() float getTPCzLength(int slice) const
+  {
+    return (slice < NumberOfSlicesA) ? mTPCzLengthA
+                                     : mTPCzLengthC;
+  }
+
   /// Gives TPC alignment in Z
   GPUd() float getTPCalignmentZ() const { return mTPCalignmentZ; }
 
@@ -129,6 +146,7 @@ class TPCFastTransformGeo
 
   /// convert UV -> Local c.s.
   GPUd() void convUVtoLocal(int slice, float u, float v, float& y, float& z) const;
+  GPUd() void convVtoLocal(int slice, float v, float& z) const;
 
   /// convert Local-> UV c.s.
   GPUd() void convLocalToUV(int slice, float y, float z, float& u, float& v) const;
@@ -190,6 +208,10 @@ class TPCFastTransformGeo
 
   SliceInfo mSliceInfos[NumberOfSlices + 1]; ///< array of slice information [fixed size]
   RowInfo mRowInfos[MaxNumberOfRows + 1];    ///< array of row information [fixed size]
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(TPCFastTransformGeo, 1);
+#endif
 };
 
 // =======================================================================
@@ -230,6 +252,17 @@ GPUdi() void TPCFastTransformGeo::convGlobalToLocal(int slice, float gx, float g
   lx = gx * sliceInfo.cosAlpha + gy * sliceInfo.sinAlpha;
   ly = -gx * sliceInfo.sinAlpha + gy * sliceInfo.cosAlpha;
   lz = gz;
+}
+
+GPUdi() void TPCFastTransformGeo::convVtoLocal(int slice, float v, float& lz) const
+{
+  /// convert UV -> Local c.s.
+  if (slice < NumberOfSlicesA) { // TPC side A
+    lz = mTPCzLengthA - v;
+  } else {                 // TPC side C
+    lz = v - mTPCzLengthC; // drift direction is mirrored on C-side
+  }
+  lz += mTPCalignmentZ; // global TPC alignment
 }
 
 GPUdi() void TPCFastTransformGeo::convUVtoLocal(int slice, float u, float v, float& ly, float& lz) const

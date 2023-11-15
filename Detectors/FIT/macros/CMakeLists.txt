@@ -29,7 +29,7 @@ o2_add_test_root_macro(readFV0digits.C
                        PUBLIC_LINK_LIBRARIES O2::FV0Simulation
                        LABELS fit)
 
-o2_add_test_root_macro(readFITBadChannelMap.C
+o2_add_test_root_macro(readFITDeadChannelMap.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
                                              O2::DataFormatsFIT
                                              O2::Framework
@@ -39,3 +39,5 @@ o2_add_test_root_macro(readFITDCSdata.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
                                              O2::CCDB
                        LABELS fit)
+
+o2_data_file(COPY readFITDCSdata.C DESTINATION Detectors/FIT/macros/readFITDCSdata.C)

@@ -37,6 +37,7 @@
 #include "ZDCCalib/WaveformCalibParam.h"
 #include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibSpec.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -116,6 +117,9 @@ void WaveformCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   WaveformCalibParam payload;
   payload.assign(data);
   auto& info = mWorker.getCcdbObjectInfo();
+  const auto& opt = CalibParamZDC::Instance();
+  opt.updateCcdbObjectInfo(info);
+
   auto image = o2::ccdb::CcdbApi::createObjectImage<WaveformCalibParam>(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();

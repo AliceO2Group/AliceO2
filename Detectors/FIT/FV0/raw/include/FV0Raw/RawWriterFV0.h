@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawWriterFV0.h Raw writer class for FV0
+// file RawWriterFV0.h Raw writer class for FV0
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -24,10 +24,12 @@ namespace o2
 {
 namespace fv0
 {
-//Normal TCM mode
+// Normal TCM mode
 using RawWriterFV0 = o2::fit::RawWriterFIT<DigitBlockFV0, DataBlockPM, DataBlockTCM>;
-//Extended TCM mode
-//using RawWriterFV0ext = o2::fit::RawWriterFIT<DigitBlockFV0, DataBlockPM, DataBlockTCMext>;
+using RawWriterFV0_padded = o2::fit::RawWriterFIT<DigitBlockFV0, DataBlockPM::DataBlockInvertedPadding_t, DataBlockTCM::DataBlockInvertedPadding_t>;
+
+// Extended TCM mode
+// using RawWriterFV0ext = o2::fit::RawWriterFIT<DigitBlockFV0, DataBlockPM, DataBlockTCMext>;
 } // namespace fv0
 } // namespace o2
 

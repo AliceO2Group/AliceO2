@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -325,8 +325,8 @@ Double_t Digit::qdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, 
 /// @return : a charge fraction [0-1] imposed into the pad
 double Digit::intPartMathiX(double x, int pad)
 {
-  double shift1 = -lorsX(pad) + 0.5 * o2::hmpid::Param::sizePadX();
-  double shift2 = -lorsX(pad) - 0.5 * o2::hmpid::Param::sizePadX();
+  double shift1 = -lorsX(pad) + o2::hmpid::Param::sizeHalfPadX();
+  double shift2 = -lorsX(pad) - o2::hmpid::Param::sizeHalfPadX();
 
   double ux1 = o2::hmpid::Param::sqrtK3x() * tanh(o2::hmpid::Param::k2x() * (x + shift1) / o2::hmpid::Param::pitchAnodeCathode());
   double ux2 = o2::hmpid::Param::sqrtK3x() * tanh(o2::hmpid::Param::k2x() * (x + shift2) / o2::hmpid::Param::pitchAnodeCathode());
@@ -343,8 +343,8 @@ double Digit::intPartMathiX(double x, int pad)
 /// @return : a charge fraction [0-1] imposed into the pad
 double Digit::intPartMathiY(double y, int pad)
 {
-  double shift1 = -lorsY(pad) + 0.5 * o2::hmpid::Param::sizePadY();
-  double shift2 = -lorsY(pad) - 0.5 * o2::hmpid::Param::sizePadY();
+  double shift1 = -lorsY(pad) + o2::hmpid::Param::sizeHalfPadY();
+  double shift2 = -lorsY(pad) - o2::hmpid::Param::sizeHalfPadY();
 
   double uy1 = o2::hmpid::Param::sqrtK3y() * tanh(o2::hmpid::Param::k2y() * (y + shift1) / o2::hmpid::Param::pitchAnodeCathode());
   double uy2 = o2::hmpid::Param::sqrtK3y() * tanh(o2::hmpid::Param::k2y() * (y + shift2) / o2::hmpid::Param::pitchAnodeCathode());

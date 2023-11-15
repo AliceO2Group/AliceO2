@@ -25,14 +25,13 @@ o2_add_library(CommonUtils
                        src/IRFrameSelector.cxx
                        src/DebugStreamer.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
-                                     FairLogger::FairLogger O2::MathUtils)
+                                     FairLogger::FairLogger O2::MathUtils TBB::tbb)
 
 o2_target_root_dictionary(CommonUtils
                           HEADERS include/CommonUtils/TreeStream.h
                                   include/CommonUtils/TreeStreamRedirector.h
                                   include/CommonUtils/RootChain.h
                                   include/CommonUtils/BoostHistogramUtils.h
-                                  include/CommonUtils/BoostSerializer.h
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
                                   include/CommonUtils/StringUtils.h
@@ -54,12 +53,6 @@ o2_add_test(TreeStream
             LABELS utils
             SOURCES test/testTreeStream.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::ReconstructionDataFormats)
-
-o2_add_test(BoostSerializer
-            COMPONENT_NAME CommonUtils
-            LABELS utils
-            SOURCES test/testBoostSerializer.cxx
-            PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::serialization)
 
 o2_add_test(CompStream
             COMPONENT_NAME CommonUtils

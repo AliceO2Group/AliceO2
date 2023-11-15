@@ -18,7 +18,7 @@
 #include "FCTSimulation/FCTLayer.h"
 #include "FCTBase/FCTBaseParam.h"
 
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes

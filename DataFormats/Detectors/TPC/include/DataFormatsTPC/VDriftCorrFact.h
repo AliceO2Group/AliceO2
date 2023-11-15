@@ -20,6 +20,7 @@
 #define AliceO2_TPC_VDRIFT_CORRFACT_H
 
 #include "GPUCommonRtypes.h"
+#include "CommonConstants/LHCConstants.h"
 
 namespace o2::tpc
 {
@@ -31,11 +32,15 @@ struct VDriftCorrFact {
   float corrFact{1.0};    ///< drift velocity correction factor (multiplicative)
   float corrFactErr{0.0}; ///< stat error of correction factor
   float refVDrift{0.};    ///< reference vdrift for which factor was extracted
+  float refTimeOffset{0.};  ///< additive time offset reference (\mus)
+  float timeOffsetCorr{0.}; ///< additive time offset correction (\mus)
 
   float getVDrift() const { return refVDrift * corrFact; }
   float getVDriftError() const { return refVDrift * corrFactErr; }
 
-  // renormalize reference and correction either to provided new reference (if >0) or to correction 1 wrt current reference
+  float getTimeOffset() const { return refTimeOffset + timeOffsetCorr; }
+
+  // renormalize VDrift reference and correction either to provided new reference (if >0) or to correction 1 wrt current reference
   void normalize(float newVRef = 0.f)
   {
     if (newVRef == 0.f) {
@@ -47,7 +52,21 @@ struct VDriftCorrFact {
     corrFact *= fact;
   }
 
-  ClassDefNV(VDriftCorrFact, 1);
+  // similarly, the time offset reference is set to provided newRefTimeOffset (if > -998) or modified to have timeOffsetCorr to
+  // be 0 otherwise
+
+  void normalizeOffset(float newRefTimeOffset = -999.)
+  {
+    if (newRefTimeOffset > -999.) {
+      timeOffsetCorr = getTimeOffset() - newRefTimeOffset;
+      refTimeOffset = newRefTimeOffset;
+    } else {
+      refTimeOffset = getTimeOffset();
+      timeOffsetCorr = 0.;
+    }
+  }
+
+  ClassDefNV(VDriftCorrFact, 2);
 };
 
 } // namespace o2::tpc

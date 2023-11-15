@@ -24,7 +24,7 @@ namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
+framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, int lumiType);
 
 } // namespace globaltracking
 } // namespace o2

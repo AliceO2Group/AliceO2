@@ -12,6 +12,7 @@
 /// @file   FITDataDecoderDPLSpec.cxx
 
 #include "FT0Workflow/FT0DataDecoderDPLSpec.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include <numeric>
 #include <emmintrin.h>
 #include <immintrin.h>
@@ -28,6 +29,13 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
 {
   auto t1 = std::chrono::high_resolution_clock::now();
 
+  auto dummyOutput = [&pc, this]() {
+    this->mVecDigits.resize(0);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
+    this->mVecChannelData.resize(0);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+  };
+
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
@@ -43,10 +51,7 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
-        mVecDigits.resize(0);
-        pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
-        mVecChannelData.resize(0);
-        pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+        dummyOutput();
         return;
       }
     }
@@ -70,21 +75,34 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
     if (!it.size()) {
       continue; // excluding pages without payload
     }
-    auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-    const uint16_t orbitTF = (rdhPtr->orbit) % 256;
+    auto* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    try {
+      int verRDH = o2::raw::RDHUtils::getVersion(rdhPtr);
+      if (verRDH < 5 || verRDH > o2::raw::RDHUtils::getVersion<o2::header::RDHHighest>()) {
+        LOGP(alarm, "Invalid RDH version {}, abandoning TF sending dummy output", verRDH);
+        dummyOutput();
+        return;
+      }
+    } catch (std::exception& e) {
+      LOG(alarm) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
+      dummyOutput();
+      return;
+    }
+    auto orb = o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr);
+    const uint16_t orbitTF = (orb) % 256;
     // const uint16_t feeID=rdhPtr->feeId;
-    arrOrbit[orbitTF] = rdhPtr->orbit;
-    const auto& linkID = rdhPtr->linkID;
-    const auto& endPoint = rdhPtr->endPointID;
+    arrOrbit[orbitTF] = orb;
+    const auto& linkID = o2::raw::RDHUtils::getLinkID(rdhPtr);
+    const auto& endPoint = o2::raw::RDHUtils::getEndPointID(rdhPtr);
     const uint16_t feeID = linkID + 12 * endPoint;
     if (feeID == mFEEID_TCM) {
       // Iterator is noncopyable, preparing RDH pointers and span objects
       arrOrbitSizePagesTCM[orbitTF] += it.size();
-      arrRdhTCMperOrbit[orbitTF].push_back(it.get_if<o2::header::RAWDataHeader>());
+      arrRdhTCMperOrbit[orbitTF].push_back(reinterpret_cast<const o2::header::RAWDataHeader*>(rdhPtr));
       arrDataTCMperOrbit[orbitTF].emplace_back(it.data(), it.size());
     } else {
       arrOrbitSizePages[orbitTF] += it.size();
-      arrRdhPtrPerOrbit[orbitTF][feeID].push_back(it.get_if<o2::header::RAWDataHeader>());
+      arrRdhPtrPerOrbit[orbitTF][feeID].push_back(reinterpret_cast<const o2::header::RAWDataHeader*>(rdhPtr));
       arrDataPerOrbit[orbitTF][feeID].emplace_back(it.data(), it.size());
     }
   }

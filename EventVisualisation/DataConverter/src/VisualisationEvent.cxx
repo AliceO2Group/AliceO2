@@ -86,6 +86,9 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
     if (filter == o2::event_visualisation::EVisualisationGroup::PHS) {
       res.contains[o2::dataformats::GlobalTrackID::PHS][filter] = true;
     }
+    if (filter == o2::event_visualisation::EVisualisationGroup::HMP) {
+      res.contains[o2::dataformats::GlobalTrackID::HMP][filter] = true;
+    }
   }
   return res;
 }();

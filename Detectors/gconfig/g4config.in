@@ -10,7 +10,8 @@
 #/tracking/verbose 1
 #//control/cout/ignoreThreadsExcept 0
 
-/mcPhysics/rangeCuts 0.01 mm
+/mcPhysics/rangeCuts 0.001 mm
+/mcRegions/setRangePrecision 5
 /mcTracking/skipNeutrino true
 /mcDet/setIsMaxStepInLowDensityMaterials true
 /mcDet/setMaxStepInLowDensityMaterials 10 m
@@ -32,6 +33,7 @@
 /mcPhysics/emModel/setEmModel  PAI
 /mcPhysics/emModel/setRegions  TRD_Gas-mix
 /mcPhysics/emModel/setParticles  all
+/mcPrimaryGenerator/skipUnknownParticles true # don't crash when seeing unknown ion etc. (issue warning)
 
 #
 # Precise Msc for EMCAL

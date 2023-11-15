@@ -34,6 +34,7 @@ RuntimeErrorRef runtime_error_f(const char*, ...);
 RuntimeError& error_from_ref(RuntimeErrorRef);
 
 void throw_error(RuntimeErrorRef);
+void clean_all_runtime_errors();
 
 } // namespace o2::framework
 

@@ -62,15 +62,19 @@ class Tracker
 
   void clustersToTracks(
     std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; }, std::function<void(std::string s)> = [](std::string s) { std::cerr << s << std::endl; });
+  void clustersToTracksHybrid(
+    std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; }, std::function<void(std::string s)> = [](std::string s) { std::cerr << s << std::endl; });
   std::vector<TrackITSExt>& getTracks();
 
   void setParameters(const std::vector<TrackingParameters>&);
+  std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
   void getGlobalConfiguration();
   void setBz(float);
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type);
   bool isMatLUT() const;
   void setNThreads(int n);
   int getNThreads() const;
+  std::uint32_t mTimeFrameCounter = 0;
 
  private:
   void initialiseTimeFrame(int& iteration);
@@ -78,6 +82,14 @@ class Tracker
   void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
+
+  void initialiseTimeFrameHybrid(int& iteration);
+  void computeTrackletsHybrid(int& iteration);
+  void computeCellsHybrid(int& iteration);
+  void findCellsNeighboursHybrid(int& iteration);
+  void findRoadsHybrid(int& iteration);
+  void findTracksHybrid(int& iteration);
+
   void findShortPrimaries();
   void findTracks();
   void extendTracks(int& iteration);
@@ -94,7 +106,6 @@ class Tracker
   TimeFrame* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<TrackingParameters> mTrkParams;
-  std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
   unsigned int mNumberOfRuns{0};

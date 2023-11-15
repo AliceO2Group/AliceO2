@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <cstring>
+#include <cstdint>
 #include <boost/format.hpp>
 #include "InfoLogger/InfoLogger.hxx"
 #include "PHOSBase/PHOSSimParams.h"
@@ -16,7 +17,6 @@
 #include "PHOSReconstruction/AltroDecoder.h"
 #include "PHOSReconstruction/RawReaderMemory.h"
 #include "PHOSReconstruction/RawDecodingError.h"
-
 #include "DetectorsRaw/RDHUtils.h"
 #include <fairlogger/Logger.h>
 
@@ -162,7 +162,7 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
           short chiAddr = absId;
           chiAddr |= caloFlag << 14;
           mOutputFitChi.emplace_back(chiAddr);
-          mOutputFitChi.emplace_back(short(5 * rawFitter->getChi2())); // 0.2 accuracy
+          mOutputFitChi.emplace_back(short(std::min(5.f * rawFitter->getChi2(), float(SHRT_MAX - 1)))); // 0.2 accuracy
         }
         if (fitResult == CaloRawFitter::FitStatus::kOK || fitResult == CaloRawFitter::FitStatus::kNoTime) {
           if (!mPedestalRun) {

@@ -42,8 +42,8 @@ struct TrackerParam : public o2::conf::ConfigurableParamHelper<TrackerParam> {
   bool moreCandidates = false; ///< find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
   bool refineTracks = true;    ///< refine the tracks in the end using cluster resolution
 
-  std::size_t maxCandidates = 100000; ///< maximum number of track candidates above which the tracking abort
-  double maxTrackingDuration = 1000.; ///< maximum tracking duration in second above which the tracking abort
+  std::size_t maxCandidates = 50000; ///< maximum number of track candidates above which the tracking abort
+  double maxTrackingDuration = 300.; ///< maximum tracking duration in second above which the tracking abort
 
   O2ParamDef(TrackerParam, "MCHTracking");
 };

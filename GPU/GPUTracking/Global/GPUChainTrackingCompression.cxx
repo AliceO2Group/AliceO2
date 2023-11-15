@@ -67,6 +67,8 @@ int GPUChainTracking::RunTPCCompression()
   O->nAttachedClustersReduced = O->nAttachedClusters - O->nTracks;
   O->nSliceRows = NSLICES * GPUCA_ROW_COUNT;
   O->nComppressionModes = param().rec.tpc.compressionTypeMask;
+  O->solenoidBz = param().bzkG;
+  O->maxTimeBin = param().par.continuousMaxTimeBin;
   size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)]);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
   char* hostFlatPtr = (char*)Compressor.mOutput->qTotU; // First array as allocated in GPUTPCCompression::SetPointersCompressedClusters
@@ -79,8 +81,8 @@ int GPUChainTracking::RunTPCCompression()
   HighResTimer* gatherTimer = nullptr;
   int outputStream = 0;
   if (ProcessingSettings().doublePipeline) {
-    SynchronizeStream(mRec->NStreams() - 2); // Synchronize output copies running in parallel from memory that might be released, only the following async copy from stacked memory is safe after the chain finishes.
-    outputStream = mRec->NStreams() - 2;
+    SynchronizeStream(OutputStream()); // Synchronize output copies running in parallel from memory that might be released, only the following async copy from stacked memory is safe after the chain finishes.
+    outputStream = OutputStream();
   }
 
   if (ProcessingSettings().tpcCompressionGatherMode >= 2) {

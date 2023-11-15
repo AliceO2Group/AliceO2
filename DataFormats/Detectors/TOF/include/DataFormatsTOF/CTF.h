@@ -56,14 +56,14 @@ struct CompressedInfos {
     */
 
   // ROF header data
-  std::vector<uint16_t> bcIncROF;    /// increment of ROF BC wrt BC of previous ROF
-  std::vector<uint32_t> orbitIncROF; /// increment of ROF orbit wrt orbit of previous ROF
+  std::vector<int16_t> bcIncROF;     /// increment of ROF BC wrt BC of previous ROF
+  std::vector<int32_t> orbitIncROF;  /// increment of ROF orbit wrt orbit of previous ROF
   std::vector<uint32_t> ndigROF;     /// number of digits in ROF
   std::vector<uint32_t> ndiaROF;     /// number of diagnostic/pattern words in ROF
   std::vector<uint32_t> ndiaCrate;   /// number of diagnostic/pattern words per crate in ROF
 
   // Hit data
-  std::vector<uint16_t> timeFrameInc; /// time increment with respect of previous digit in TimeFrame units
+  std::vector<int16_t> timeFrameInc;  /// time increment with respect of previous digit in TimeFrame units
   std::vector<uint16_t> timeTDCInc;   /// time increment with respect of previous digit in TDC channel (about 24.4 ps) within timeframe
   std::vector<uint16_t> stripID;      /// increment of stripID wrt that of prev. strip
   std::vector<uint8_t> chanInStrip;   /// channel in strip 0-95 (ordered in time)

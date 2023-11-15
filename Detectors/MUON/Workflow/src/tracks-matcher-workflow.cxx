@@ -23,7 +23,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "MCHWorkflow/TrackReaderSpec.h"
+#include "MCHIO/TrackReaderSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
 #include "TrackMatcherSpec.h"
 #include "TrackWriterSpec.h"

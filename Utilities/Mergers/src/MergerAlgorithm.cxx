@@ -122,7 +122,8 @@ void merge(TObject* const target, TObject* const other)
       LOG(warn) << "Object '" + std::string(target->GetName()) + "' with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types, skipping";
     }
     if (errorCode == -1) {
-      LOG(error) << "Merging object '" + std::string(target->GetName()) + "' of type '" + std::string(target->ClassName()) + "' failed.";
+      LOG(error) << "Failed to merge the input object '" + std::string(other->GetName()) + "' of type '" + std::string(other->ClassName()) //
+                      + " and the target object '" + std::string(target->GetName()) + "' of type '" + std::string(target->ClassName()) + "'";
     }
   }
 }

@@ -66,7 +66,7 @@ class VertexSamplerSpec
         this->mInputFile.close();
       }
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   //_________________________________________________________________________________________________

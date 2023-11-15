@@ -9,14 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "O2ControlHelpers.h"
-#include "Framework/O2ControlLabels.h"
+#include "Framework/O2ControlParameters.h"
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessorSpec.h"
 
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <filesystem>
+#include <optional>
+#include <set>
 
 namespace bfs = std::filesystem;
 
@@ -31,6 +35,13 @@ namespace implementation
 std::string taskName(const std::string& workflowName, const std::string& deviceName)
 {
   return workflowName + "-" + deviceName;
+}
+
+std::optional<DataProcessorMetadata> firstMatchingMetadata(DeviceSpec const& spec, std::string_view key)
+{
+  auto sameKey = [otherKey = key](DataProcessorMetadata const& metadata) { return metadata.key == otherKey; };
+  auto result = std::find_if(spec.metadata.begin(), spec.metadata.end(), sameKey);
+  return result != spec.metadata.end() ? std::optional{*result} : std::nullopt;
 }
 
 template <typename T>
@@ -217,17 +228,20 @@ void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, con
   }
 
   dumpOut << indLevel << "properties:\n";
-  std::string qcConfigFullCommand = configPath.empty() ? "\"\"" : "\"{{ ToPtree(GetConfig  ('" + configPath + "'), 'json') }}\"";
+  std::string qcConfigFullCommand = configPath.empty() ? "\"\"" : "\"{{ ToPtree(config.Get('" + configPath + "'), 'json') }}\"";
   dumpOut << indLevel << indScheme << "qcConfiguration: " << qcConfigFullCommand << "\n";
 }
 
 void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::string indLevel)
 {
   dumpOut << indLevel << "shell: true\n";
-  dumpOut << indLevel << "log: \"{{ log_task_output }}\"\n";
+  dumpOut << indLevel << "stdout: \"{{ log_task_stdout }}\"\n";
+  dumpOut << indLevel << "stderr: \"{{ log_task_stderr }}\"\n";
   dumpOut << indLevel << "env:\n";
   dumpOut << indLevel << indLevel << "- O2_DETECTOR={{ detector }}\n";
   dumpOut << indLevel << indLevel << "- O2_PARTITION={{ environment_id }}\n";
+  dumpOut << indLevel << indLevel << "- HOME=/tmp\n";
+
   // Dump all the environment variables
   for (auto& env : execution.environ) {
     dumpOut << indLevel << indLevel << "- " << env << "\n";
@@ -367,7 +381,8 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
 {
   dumpOut << indLevel << "name: " << taskName << "\n";
   dumpOut << indLevel << "defaults:\n";
-  dumpOut << indLevel << indScheme << "log_task_output: none\n";
+  dumpOut << indLevel << indScheme << "log_task_stdout: none\n";
+  dumpOut << indLevel << indScheme << "log_task_stderr: none\n";
   std::string exitTransitionTimeout = "15";
   if (execution.args.size() > 2) {
     for (size_t i = 0; i < execution.args.size() - 1; ++i) {
@@ -396,6 +411,18 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << "wants:\n";
   dumpOut << indLevel << indScheme << "cpu: 0.01\n";
   dumpOut << indLevel << indScheme << "memory: 1\n";
+
+  auto cpuKillThreshold = implementation::firstMatchingMetadata(spec, ecs::cpuKillThreshold);
+  auto privateMemoryKillThresholdMB = implementation::firstMatchingMetadata(spec, ecs::privateMemoryKillThresholdMB);
+  if (cpuKillThreshold.has_value() || privateMemoryKillThresholdMB.has_value()) {
+    dumpOut << indLevel << "limits:\n";
+    if (cpuKillThreshold.has_value()) {
+      dumpOut << indLevel << indScheme << "cpu: " << cpuKillThreshold.value().value << '\n';
+    }
+    if (privateMemoryKillThresholdMB.has_value()) {
+      dumpOut << indLevel << indScheme << "memory: " << privateMemoryKillThresholdMB.value().value << '\n';
+    }
+  }
 
   dumpOut << indLevel << "bind:\n";
   for (const auto& outputChannel : spec.outputChannels) {

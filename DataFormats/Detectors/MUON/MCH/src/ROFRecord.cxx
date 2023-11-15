@@ -40,7 +40,7 @@ std::pair<ROFRecord::Time, bool> ROFRecord::getTimeMUS(const BCData& startIR, ui
   bool isInTF = bcDiff >= 0 && bcDiff < nOrbits * o2::constants::lhc::LHCMaxBunches;
   if (printError && !isInTF) {
     LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}, source:MCH",
-         bcDiff, mBCData, startIR);
+         bcDiff, mBCData.asString(), startIR.asString());
   }
   return std::make_pair(Time(tMean, tErr), isInTF);
 }

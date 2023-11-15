@@ -12,6 +12,7 @@
 #include "MIDWorkflow/TrackReaderSpec.h"
 
 #include "DPLUtils/RootTreeReader.h"
+#include "CommonUtils/StringUtils.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Lifetime.h"
@@ -72,7 +73,7 @@ struct TrackReader {
       LOGP(warning, "Not reading MID Track Labels");
     }
     auto treeName = "midreco";
-    auto fileName = ic.options().get<std::string>("infile");
+    auto fileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), ic.options().get<std::string>("infile"));
     auto nofEntries{-1};
     if (mUseMC) {
       mTreeReader = std::make_unique<RootTreeReader>(
@@ -125,7 +126,7 @@ DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName)
 
   auto options = Options{
     {"infile", VariantType::String, "mid-reco.root", {"name of the input track file"}},
-  };
+    {"input-dir", VariantType::String, "none", {"Input directory"}}};
 
   return DataProcessorSpec{
     specName,

@@ -53,6 +53,7 @@ class MergerInfrastructureBuilder
   void setInfrastructureName(std::string name);
   void setInputSpecs(const framework::Inputs& inputs);
   void setOutputSpec(const framework::OutputSpec& outputSpec);
+  void setOutputSpecMovingWindow(const framework::OutputSpec& outputSpec);
   void setConfig(MergerConfig config);
 
   framework::WorkflowSpec generateInfrastructure();
@@ -65,7 +66,8 @@ class MergerInfrastructureBuilder
  private:
   std::string mInfrastructureName;
   framework::Inputs mInputs;
-  framework::OutputSpec mOutputSpec;
+  framework::OutputSpec mOutputSpecIntegral;
+  framework::OutputSpec mOutputSpecMovingWindow;
   MergerConfig mConfig;
 };
 

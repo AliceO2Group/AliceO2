@@ -54,6 +54,9 @@ class Digitizer
   /// Sets the chamber response
   void setChamberResponse(const ChamberResponse& chamberResponse) { mResponse = chamberResponse; }
 
+  /// Gets the chamber response
+  ChamberResponse& getChamberResponse() { return mResponse; }
+
   /// Sets the chamber efficiency
   void setChamberEfficiency(const std::vector<ChEffCounter>& counters) { mEfficiencyResponse.setFromCounters(counters); }
 

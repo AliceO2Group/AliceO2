@@ -41,6 +41,7 @@ class Digits2Raw
   void setBoardId(uint32_t boardid) { mBoardId = boardid; }
   void setZeroSuppressedIntRec(bool value) { mZeroSuppressedIntRec = value; }
   void setZeroSuppressedClassRec(bool value) { mZeroSuppressedClassRec = value; }
+  void setPadding(bool value) { mPadding = value; }
   bool getFilePerLink() const { return mOutputPerLink; }
   uint64_t getFEEIDIR() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDIntRec << 8)); }
   uint64_t getFEEIDTC() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDClassRec << 8)); }
@@ -71,8 +72,9 @@ class Digits2Raw
   //const uint32_t mGBTLinkTC = 1; // Trigger Class Record CTP GBT link
   //const uint32_t mGBTLinkMisc = 2; // HBrecord, Counters, ...
   uint32_t mBoardId = 33;
-  bool mZeroSuppressedIntRec = false;
+  bool mZeroSuppressedIntRec = true;
   bool mZeroSuppressedClassRec = true;
+  bool mPadding = true;
   //constexpr uint32_t CTPCRULinkIDMisc = 2;
   std::string mCTPRawDataFileName = "CTP_alio2-cr1-flp163_cru1111_0";
 };

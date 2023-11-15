@@ -27,23 +27,27 @@ void exampleMCTrackAnalysis(const char* itsdigitfilename) {
   }
 
   // read the labels
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> *labelcontainer = nullptr;
+  o2::dataformats::IOMCTruthContainerView* labelROOTbuffer = nullptr; // labels are stored in specific buffered format
   auto labelbr = tree->GetBranch("ITSDigitMCTruth");
   if (!labelbr) {
     return;
   }
 
-  labelbr->SetAddress(&labelcontainer);
+  labelbr->SetAddress(&labelROOTbuffer);
   labelbr->GetEntry(0);
-  if (!labelcontainer) {
+  if (!labelROOTbuffer) {
     return;
   }
+  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> labelcontainer;
+  // we need to convert to actual usable label container
+  labelROOTbuffer->copyandflatten(labelcontainer);
 
   // MCTracks: exemplary access and analysis
   int MCdigits = 0;
   int purenoisedigits = 0;
   int secondarydigits = 0;
   int primarydigits = 0;
+  int motherissecondary = 0; // counts all digits coming from a particle whose mother was also a secondary
 
   for (int pos = 0; pos < digits->size(); ++pos) {
     auto& digit = (*digits)[pos];
@@ -51,16 +55,30 @@ void exampleMCTrackAnalysis(const char* itsdigitfilename) {
     bool MCcontrib = false;
     bool primarycontrib = false;
     bool secondarycontrib = false;
-    for (auto& label : labelcontainer->getLabels(pos)) {
+    auto labels = labelcontainer.getLabels(pos);
+    for (auto label : labels) {
       if (!label.isNoise()) {
         auto track = reader.getTrack(label);
-	if (track->isSecondary()) {
+        if (!track) {
+          continue;
+        }
+
+        if (track->isSecondary()) {
           secondarycontrib = true;
         }
-	else {
+        else {
           primarycontrib = true;
         }
-	MCcontrib = true;
+
+        // line showing how to navigate MC tracks and obtain the mother track of the "track"
+        auto mothertrackptr = o2::mcutils::MCTrackNavigator::getMother(*track, reader.getTracks(label.getSourceID(), label.getEventID()));
+        if (mothertrackptr) {
+          if (mothertrackptr->isSecondary()) {
+            motherissecondary++;
+          }
+        }
+
+        MCcontrib = true;
       }
       else {
         noisecontrib = true;
@@ -70,7 +88,7 @@ void exampleMCTrackAnalysis(const char* itsdigitfilename) {
       purenoisedigits++;
     }
     if (MCcontrib) {
-      MCdigits++;      
+      MCdigits++;
     }
     if (secondarycontrib) {
       secondarydigits++;
@@ -85,4 +103,5 @@ void exampleMCTrackAnalysis(const char* itsdigitfilename) {
   std::cout << "MC contrib digits: " << MCdigits << "\n";
   std::cout << "Digits with primary track contrib: " << primarydigits << "\n";
   std::cout << "Digits with secondary track contrib: " << secondarydigits << "\n";
+  std::cout << "Digits from secondary tracks, with secondary as mother: " << motherissecondary << "\n";
 }

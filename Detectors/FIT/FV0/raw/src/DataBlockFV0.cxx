@@ -10,3 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FV0Raw/DataBlockFV0.h"
+
+template class o2::fit::DataBlockPM<o2::fit::DataBlockConfig<false>, o2::fv0::RawHeaderPM, o2::fv0::RawDataPM>;
+template class o2::fit::DataBlockTCM<o2::fit::DataBlockConfig<false>, o2::fv0::RawHeaderTCM, o2::fv0::RawDataTCM>;
+template class o2::fit::DataBlockTCMext<o2::fit::DataBlockConfig<false>, o2::fv0::RawHeaderTCMext, o2::fv0::RawDataTCM, o2::fv0::RawDataTCMext>;

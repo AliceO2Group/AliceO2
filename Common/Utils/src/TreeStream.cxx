@@ -24,7 +24,7 @@ TreeStream::TreeStream(const char* treename) : mTree(treename, treename)
 }
 
 //_________________________________________________
-int TreeStream::CheckIn(Char_t type, void* pointer)
+int TreeStream::CheckIn(Char_t type, const void* pointer)
 {
   // Insert object
 
@@ -77,26 +77,26 @@ void TreeStream::BuildTree()
       name = TString::Format("B%d", i);
     }
     if (element.cls) {
-      br = mTree.Branch(name.Data(), element.cls->GetName(), &(element.ptr));
+      br = mTree.Branch(name.Data(), element.cls->GetName(), const_cast<void**>(&element.ptr));
       mBranches[i] = br;
       if (entriesFilled) {
         br->SetAddress(nullptr);
         for (int ientry = 0; ientry < entriesFilled; ientry++) {
           br->Fill();
         }
-        br->SetAddress(&(element.ptr));
+        br->SetAddress(const_cast<void**>(&element.ptr));
       }
     }
 
     if (element.type > 0) {
       TString nameC = TString::Format("%s/%c", name.Data(), element.type);
-      br = mTree.Branch(name.Data(), element.ptr, nameC.Data());
+      br = mTree.Branch(name.Data(), const_cast<void*>(element.ptr), nameC.Data());
       if (entriesFilled) {
         br->SetAddress(nullptr);
         for (int ientry = 0; ientry < entriesFilled; ientry++) {
           br->Fill();
         }
-        br->SetAddress(element.ptr);
+        br->SetAddress(const_cast<void*>(element.ptr));
       }
       mBranches[i] = br;
     }
@@ -120,7 +120,7 @@ void TreeStream::Fill()
     auto br = mBranches[i];
     if (br) {
       if (element.type) {
-        br->SetAddress(element.ptr);
+        br->SetAddress(const_cast<void*>(element.ptr));
       }
     }
   }

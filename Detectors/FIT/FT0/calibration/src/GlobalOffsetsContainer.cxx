@@ -75,7 +75,7 @@ int GlobalOffsetsContainer::getMeanGaussianFitValue() const
     return 0;
   }
 }
-GlobalOffsetsCalibrationObject GlobalOffsetsContainer::generateCalibrationObject() const
+GlobalOffsetsCalibrationObject GlobalOffsetsContainer::generateCalibrationObject(long, long, const std::string&) const
 {
   GlobalOffsetsCalibrationObject calibrationObject;
   calibrationObject.mCollisionTimeOffsets = getMeanGaussianFitValue();

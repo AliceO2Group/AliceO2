@@ -39,6 +39,7 @@
 class TH1F;
 class TH1D;
 class TH2F;
+class TGraphAsymmErrors;
 
 namespace o2
 {
@@ -57,11 +58,17 @@ struct GPUInterfaceQAOutputs {
   const std::vector<TH1F>* hist1 = nullptr;
   const std::vector<TH2F>* hist2 = nullptr;
   const std::vector<TH1D>* hist3 = nullptr;
+  const std::vector<TGraphAsymmErrors>* hist4 = nullptr;
   bool newQAHistsCreated = false;
 };
 
 struct GPUInterfaceOutputs : public GPUTrackingOutputs {
   GPUInterfaceQAOutputs qa;
+};
+
+struct GPUInterfaceInputUpdate {
+  std::function<void(GPUTrackingInOutPointers*& data, GPUInterfaceOutputs*& outputs)> callback; // Callback which provides final data ptrs / outputRegions after Clusterization stage
+  std::function<void()> notifyCallback;                                                         // Callback called to notify that Clusterization state has finished without update
 };
 
 // Full configuration structure with all available settings of GPU...
@@ -72,7 +79,6 @@ struct GPUO2InterfaceConfiguration {
 
   // Settings for the Interface class
   struct GPUInterfaceSettings {
-    int dumpEvents = 0;
     bool outputToExternalBuffers = false;
     // These constants affect GPU memory allocation only and do not limit the CPU processing
     unsigned long maxTPCZS = 8192ul * 1024 * 1024;

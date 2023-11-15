@@ -15,6 +15,8 @@ o2_add_library(
           src/Cartesian.cxx
           src/Chebyshev3D.cxx
           src/Chebyshev3DCalc.cxx
+   src/SymMatrixSolver.cxx
+   src/Tsallis.cxx
   PUBLIC_LINK_LIBRARIES
     ROOT::Hist
     FairLogger::FairLogger
@@ -35,7 +37,9 @@ o2_target_root_dictionary(
           include/MathUtils/CachingTF1.h
           include/MathUtils/RandomRing.h
           include/MathUtils/Primitive2D.h
-          include/MathUtils/SMatrixGPU.h)
+          include/MathUtils/SMatrixGPU.h
+          include/MathUtils/SymMatrixSolver.h
+          include/MathUtils/Tsallis.h)
 
 o2_add_test(
   CachingTF1

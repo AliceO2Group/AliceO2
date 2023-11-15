@@ -17,8 +17,9 @@
 #ifndef RESIDUALSCONTROLLER_H
 #define RESIDUALSCONTROLLER_H
 
-#include <TObject.h>
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include <TMath.h>
+#include <Rtypes.h>
 
 namespace o2
 {
@@ -27,38 +28,42 @@ namespace align
 
 class AlignmentTrack;
 
-class ResidualsController : public TObject
+class ResidualsController
 {
  public:
-  enum { kCosmicBit = BIT(14),
-         kVertexBit = BIT(15),
-         kKalmanDoneBit = BIT(16) };
+  enum {
+    CosmicBit = 0x1,
+    VertexBit = 0x1 << 1,
+    KalmanBit = 0x1 << 2
+  };
   //
-  ResidualsController();
-  ~ResidualsController() final;
+  ResidualsController() = default;
+  ~ResidualsController();
   //
-  void setRun(int r) { mRun = r; }
+  int getRun() const { return mRunNumber; }
+  void setRun(int r) { mRunNumber = r; }
+  uint32_t getFirstTFOrbit() const { return mFirstTFOrbit; }
+  void setFirstTFOrbit(uint32_t v) { mFirstTFOrbit = v; }
+  o2::dataformats::GlobalTrackID getTrackID() const { return mTrackID; }
+  void setTrackID(o2::dataformats::GlobalTrackID t) { mTrackID = t; }
   void setBz(float v) { mBz = v; }
-  void setTimeStamp(uint32_t v) { mTimeStamp = v; }
-  void setTrackID(uint32_t v) { mTrackID = v; }
+  float getBz() const { return mBz; }
+
   void setNPoints(int n)
   {
     mNPoints = n;
     resize(n);
   }
   //
-  bool isCosmic() const { return TestBit(kCosmicBit); }
-  bool hasVertex() const { return TestBit(kVertexBit); }
-  void setCosmic(bool v = kTRUE) { SetBit(kCosmicBit, v); }
-  void setHasVertex(bool v = kTRUE) { SetBit(kVertexBit, v); }
+  bool isCosmic() const { return testBit(CosmicBit); }
+  void setCosmic(bool v = true) { setBit(CosmicBit, v); }
+
+  bool hasVertex() const { return testBit(VertexBit); }
+  void setHasVertex(bool v = true) { setBit(VertexBit, v); }
   //
-  bool getKalmanDone() const { return TestBit(kKalmanDoneBit); }
-  void setKalmanDone(bool v = kTRUE) { SetBit(kKalmanDoneBit, v); }
+  bool getKalmanDone() const { return testBit(KalmanBit); }
+  void setKalmanDone(bool v = true) { setBit(KalmanBit, v); }
   //
-  int getRun() const { return mRun; }
-  float getBz() const { return mBz; }
-  uint32_t getTimeStamp() const { return mTimeStamp; }
-  uint32_t getTrackID() const { return mTrackID; }
   int getNPoints() const { return mNPoints; }
   int getNBook() const { return mNBook; }
   float getChi2() const { return mChi2; }
@@ -100,49 +105,57 @@ class ResidualsController : public TObject
   float getYLab(int i) const;
   float getZLab(int i) const;
   //
-  bool fillTrack(AlignmentTrack* trc, bool doKalman = kTRUE);
+  bool fillTrack(AlignmentTrack& trc, bool doKalman = kTRUE);
   void resize(int n);
-  void Clear(const Option_t* opt = "") final;
-  void Print(const Option_t* opt = "re") const final;
+  void clear();
+  void print(const Option_t* opt = "re") const;
   //
  protected:
   //
-  // -------- dummies --------
-  ResidualsController(const ResidualsController&);
-  ResidualsController& operator=(const ResidualsController&);
+  uint16_t mBits = 0;
+  int mRunNumber = 0;                        // run
+  float mBz = 0;                             // field
+  uint32_t mFirstTFOrbit = 0;                // event time stamp
+  o2::dataformats::GlobalTrackID mTrackID{}; // track in the event
+  int mNPoints = 0;                          // n meas points
+  int mNBook = 0;                            //! booked length
+  float mChi2 = 0;                           //  chi2 after solution
+  float mChi2Ini = 0;                        //  chi2 before solution
+  float mChi2K = 0;                          //  chi2 from kalman
+  float mQ2Pt = 0;                           //  Q/Pt at reference point
+  float* mX = nullptr;                       //[mNPoints] tracking X of cluster
+  float* mY = nullptr;                       //[mNPoints] tracking Y of cluster
+  float* mZ = nullptr;                       //[mNPoints] tracking Z of cluster
+  float* mSnp = nullptr;                     //[mNPoints] track Snp
+  float* mTgl = nullptr;                     //[mNPoints] track Tgl
+  float* mAlpha = nullptr;                   //[mNPoints] track alpha
+  float* mDY = nullptr;                      //[mNPoints] Y residual (track - meas)
+  float* mDZ = nullptr;                      //[mNPoints] Z residual (track - meas)
+  float* mDYK = nullptr;                     //[mNPoints] Y residual (track - meas) Kalman
+  float* mDZK = nullptr;                     //[mNPoints] Z residual (track - meas) Kalman
+  float* mSigY2 = nullptr;                   //[mNPoints] Y err^2
+  float* mSigYZ = nullptr;                   //[mNPoints] YZ err
+  float* mSigZ2 = nullptr;                   //[mNPoints] Z err^2
+  float* mSigY2K = nullptr;                  //[mNPoints] Y err^2 of Kalman track smoothing
+  float* mSigYZK = nullptr;                  //[mNPoints] YZ err  of Kalman track smoothing
+  float* mSigZ2K = nullptr;                  //[mNPoints] Z err^2 of Kalman track smoothing
+  int* mVolID = nullptr;                     //[mNPoints] volume id (0 for vertex constraint)
+  int* mLabel = nullptr;                     //[mNPoints] label of the volume
   //
- protected:
-  //
-  int mRun;            // run
-  float mBz;           // field
-  uint32_t mTimeStamp; // event time
-  uint32_t mTrackID;   // track ID
-  int mNPoints;        // n meas points
-  int mNBook;          //! booked lenfth
-  float mChi2;         //  chi2 after solution
-  float mChi2Ini;      //  chi2 before solution
-  float mChi2K;        //  chi2 from kalman
-  float mQ2Pt;         //  Q/Pt at reference point
-  float* mX;           //[mNPoints] tracking X of cluster
-  float* mY;           //[mNPoints] tracking Y of cluster
-  float* mZ;           //[mNPoints] tracking Z of cluster
-  float* mSnp;         //[mNPoints] track Snp
-  float* mTgl;         //[mNPoints] track Tgl
-  float* mAlpha;       //[mNPoints] track alpha
-  float* mDY;          //[mNPoints] Y residual (track - meas)
-  float* mDZ;          //[mNPoints] Z residual (track - meas)
-  float* mDYK;         //[mNPoints] Y residual (track - meas) Kalman
-  float* mDZK;         //[mNPoints] Z residual (track - meas) Kalman
-  float* mSigY2;       //[mNPoints] Y err^2
-  float* mSigYZ;       //[mNPoints] YZ err
-  float* mSigZ2;       //[mNPoints] Z err^2
-  float* mSigY2K;      //[mNPoints] Y err^2 of Kalman track smoothing
-  float* mSigYZK;      //[mNPoints] YZ err  of Kalman track smoothing
-  float* mSigZ2K;      //[mNPoints] Z err^2 of Kalman track smoothing
-  int* mVolID;         //[mNPoints] volume id (0 for vertex constraint)
-  int* mLabel;         //[mNPoints] label of the volume
-  //
-  ClassDef(ResidualsController, 2);
+  void setBit(uint16_t b, bool v)
+  {
+    if (v) {
+      mBits |= b;
+    } else {
+      mBits &= ~(b & 0xffff);
+    }
+  }
+  bool testBit(uint16_t b) const
+  {
+    return mBits & b;
+  }
+
+  ClassDefNV(ResidualsController, 1);
 };
 } // namespace align
 } // namespace o2

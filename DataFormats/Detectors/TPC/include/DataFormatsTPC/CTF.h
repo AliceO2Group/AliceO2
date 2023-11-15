@@ -27,14 +27,15 @@ namespace tpc
 struct CTFHeader : public ctf::CTFDictHeader, public CompressedClustersCounters {
   enum : uint32_t { CombinedColumns = 0x1 };
   uint32_t flags = 0;
-
-  ClassDefNV(CTFHeader, 2);
+  uint32_t firstOrbitTrig = 0; /// orbit of 1st trigger
+  uint16_t nTriggers = 0;      /// number of triggers
+  ClassDefNV(CTFHeader, 3);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 23, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 26, uint32_t> {
 
-  using container_t = o2::ctf::EncodedBlocks<CTFHeader, 23, uint32_t>;
+  using container_t = o2::ctf::EncodedBlocks<CTFHeader, 26, uint32_t>;
 
   static constexpr size_t N = getNBlocks();
   static constexpr int NBitsQTot = 16;
@@ -66,9 +67,14 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 23, uint32_t> {
                BLCsigmaPadU,
                BLCsigmaTimeU, // can be combined with BLCsigmaPadU
                BLCnTrackClusters,
-               BLCnSliceRowClusters };
+               BLCnSliceRowClusters,
+               // trigger info
+               BLCTrigOrbitInc,
+               BLCTrigBCInc,
+               BLCTrigType
+  };
 
-  ClassDefNV(CTF, 2);
+  ClassDefNV(CTF, 4);
 };
 
 } // namespace tpc

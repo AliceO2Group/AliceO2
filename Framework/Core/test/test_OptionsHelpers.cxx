@@ -9,18 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework OptionsHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <boost/program_options.hpp>
 #include "../src/OptionsHelpers.h"
 namespace bpo = boost::program_options;
 
-BOOST_AUTO_TEST_CASE(Merging)
+TEST_CASE("Merging")
 {
   boost::program_options::options_description desc1;
   desc1.add_options()("help,h", bpo::value<std::string>()->default_value("foo"), "Print help message")("help,h", bpo::value<std::string>()->default_value("foo"), "Print help message");
   auto res = o2::framework::OptionsHelpers::makeUniqueOptions(desc1);
-  BOOST_CHECK_EQUAL(res.options().size(), 1);
+  REQUIRE(res.options().size() == 1);
 }

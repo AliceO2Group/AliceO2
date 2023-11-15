@@ -20,6 +20,7 @@
 #include "Framework/Output.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include <TChain.h>
@@ -34,9 +35,7 @@
 #include <functional> // std::function
 #include <utility>    // std::forward
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 namespace rtr
@@ -557,6 +556,5 @@ class GenericRootTreeReader
 
 using RootTreeReader = GenericRootTreeReader<rtr::DefaultKey>;
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif

@@ -20,30 +20,27 @@
 #include <sstream>
 #include "DetectorsCalibration/Utils.h"
 #include "MIDFiltering/MaskMaker.h"
-#include "MIDFiltering/ChannelMasksHandler.h"
-#include "MIDRaw/ColumnDataToLocalBoard.h"
-#include "MIDRaw/ROBoardConfigHandler.h"
 
 namespace o2
 {
 namespace mid
 {
 
-using Slot = o2::calibration::TimeSlot<NoiseData>;
+using Slot = o2::calibration::TimeSlot<CalibData>;
 
-void NoiseData::fill(const gsl::span<const ColumnData> data)
+void CalibData::fill(const gsl::span<const ColumnData> data)
 {
   for (auto& col : data) {
     mChannelScalers.count(col);
   }
 }
 
-void NoiseData::merge(const NoiseData* prev)
+void CalibData::merge(const CalibData* prev)
 {
   mChannelScalers.merge(prev->mChannelScalers);
 }
 
-void NoiseData::print()
+void CalibData::print()
 {
   std::cout << mChannelScalers;
 }
@@ -51,8 +48,7 @@ void NoiseData::print()
 void ChannelCalibrator::initOutput()
 {
   mBadChannels.clear();
-  mEventsCounter = 0;
-  mMasksString = "";
+  mTimeOrTriggers = 0;
 }
 
 bool ChannelCalibrator::hasEnoughData(const Slot& slot) const
@@ -67,37 +63,17 @@ Slot& ChannelCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<NoiseData>());
+  slot.setContainer(std::make_unique<CalibData>());
   return slot;
 }
 
 void ChannelCalibrator::finalizeSlot(Slot& slot)
 {
-  o2::mid::NoiseData* noiseData = slot.getContainer();
+  o2::mid::CalibData* calibData = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   // Keep track of last TimeFrame, since the masks will be valid from now on
-  mBadChannels = makeBadChannels(noiseData->getScalers(), mEventsCounter, mThreshold);
-
-  // Get the masks for the electronics
-  // First convert the dead channels into masks
-  ChannelMasksHandler masksHandler;
-  masksHandler.switchOffChannels(mBadChannels);
-
-  // Complete with the expected masks from mapping
-  masksHandler.merge(mRefMasks);
-
-  // Convert column data masks to local board masks
-  ColumnDataToLocalBoard colToBoard;
-  colToBoard.process(masksHandler.getMasks(), true);
-
-  // Update local board configuration with the masks
-  ROBoardConfigHandler roBoardCfgHandler;
-  roBoardCfgHandler.updateMasks(colToBoard.getData());
-  std::stringstream ss;
-  roBoardCfgHandler.write(ss);
-
-  mMasksString = ss.str();
+  mBadChannels = makeBadChannels(calibData->getScalers(), mTimeOrTriggers, mThreshold);
 }
 
 } // namespace mid

@@ -11,6 +11,9 @@
 
 o2_add_library(GPUWorkflow
                SOURCES src/GPUWorkflowSpec.cxx
+                       src/GPUWorkflowTPC.cxx
+                       src/GPUWorkflowITS.cxx
+                       src/GPUWorkflowPipeline.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsTPC
@@ -46,6 +49,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
           PUBLIC_LINK_LIBRARIES O2::GPUO2Interface
                                 O2::GPUWorkflowHelper
                                 O2::DataFormatsGlobalTracking
+                                O2::TPCCalibration
                                 O2::TPCFastTransformation
                                 O2::TRDBase
                                 O2::TOFBase

@@ -34,14 +34,12 @@ void BadChannelCalibrator::initOutput()
 bool BadChannelCalibrator::readyToSend(std::string& reason) const
 {
   reason = "";
-  if (BadChannelCalibratorParam::Instance().onlyAtEndOfStream) {
-    return false;
-  }
 
   // let's check our hypothesis about this object (nslots=1) is actually true
   auto nslots = getNSlots();
   if (nslots != 1) {
-    LOGP(fatal, "nslots={} while it is expected to be 1", nslots);
+    LOGP(error, "nslots={} while it is expected to be 1", nslots);
+    return false;
   }
 
   auto& slot = getFirstSlot();
@@ -51,6 +49,18 @@ bool BadChannelCalibrator::readyToSend(std::string& reason) const
     const o2::mch::calibration::PedestalData* pedData = slot.getContainer();
   }
   return statIsEnough;
+}
+
+void BadChannelCalibrator::finalize()
+{
+  // let's check our hypothesis about this object (nslots=1) is actually true
+  auto nslots = getNSlots();
+  if (nslots != 1) {
+    LOGP(fatal, "nslots={} while it is expected to be 1", nslots);
+  }
+
+  auto& slot = getSlot(0);
+  finalizeSlot(slot);
 }
 
 bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
@@ -66,9 +76,8 @@ bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
   bool hasEnough = nofCalibrated > requiredChannels;
 
   LOGP(info,
-       "nofChannelWithEnoughStat(>{})={} nofChannels={} "
-       "requiredChannels={} calibrated={} hasEnough={}",
-       minNofEntries, nofCalibrated, nofChannels, requiredChannels, nofCalibrated, hasEnough);
+       "nofChannelWithEnoughStat(>{})={} nofChannels={} requiredChannels={} hasEnough={}",
+       minNofEntries, nofCalibrated, nofChannels, requiredChannels, hasEnough);
 
   return hasEnough;
 }

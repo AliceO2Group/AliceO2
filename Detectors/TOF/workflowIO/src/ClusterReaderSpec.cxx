@@ -18,6 +18,8 @@
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+#include "TOFBase/Geo.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -43,6 +45,7 @@ void ClusterReader::run(ProcessingContext& pc)
   LOG(debug) << "Pushing " << mClustersPtr->size() << " TOF clusters at entry " << ent;
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMULT", 0, Lifetime::Timeframe}, mClustersMult);
   if (mUseMC) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mLabels);
   }
@@ -61,6 +64,13 @@ void ClusterReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get("o2sim"));
   assert(mTree);
   mTree->SetBranchAddress("TOFCluster", &mClustersPtr);
+
+  if (mTree->GetBranch("TOFClusterMult")) {
+    mTree->SetBranchAddress("TOFClusterMult", &mClustersMultPtr);
+  } else {
+    mClustersMult.resize(o2::base::GRPGeomHelper::instance().getNHBFPerTF() * o2::constants::lhc::LHCMaxBunches);
+  }
+
   if (mUseMC) {
     mTree->SetBranchAddress("TOFClusterMCTruth", &mLabelsPtr);
   }
@@ -71,6 +81,7 @@ DataProcessorSpec getClusterReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMULT", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
   }

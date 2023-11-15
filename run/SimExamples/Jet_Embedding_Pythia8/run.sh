@@ -7,6 +7,7 @@
 # b) how to run a simulation producing signal events using specific pythia8 settings and user hooks (to accept / reject generated events)
 # c) how to run digitization embedding/overlaying background and signal hits
 # d) how to access the MC kinematics given MClabels
+# e) how to navigate MCtracks
 
 set -x
 
@@ -27,4 +28,4 @@ o2-sim-digitizer-workflow --sims bkg,sgn --tpc-lanes 4 -b --run
 
 # PART d)
 # Simple analysis: read ITS digits and analyse some properties of digits and MC tracks leaving a digit
-root -q -b -l exampleMCTrackAnalysis.macro("itsdigits.root")
+root -q -b -l 'exampleMCTrackAnalysis.macro("itsdigits.root")'

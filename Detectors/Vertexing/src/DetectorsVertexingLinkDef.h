@@ -15,21 +15,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::vertexing::DCAFitterN < 2, o2::track::TrackParCov> + ;
-#pragma link C++ class o2::vertexing::DCAFitterN < 3, o2::track::TrackParCov> + ;
-
 #pragma link C++ class o2::vertexing::PVertexerParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::PVertexerParams> + ;
 
 #pragma link C++ class o2::vertexing::SVertexHypothesis + ;
 #pragma link C++ class o2::vertexing::SVertexerParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::SVertexerParams> + ;
-
-#pragma link C++ class o2::track::TrackAuxPar + ;
-#pragma link C++ class o2::track::CrossInfo + ;
-
-#pragma link C++ function o2::vertexing::DCAFitter2::process(const o2::track::TrackParCov&, const o2::track::TrackParCov&);
-#pragma link C++ function o2::vertexing::DCAFitter3::process(const o2::track::TrackParCov&, const o2::track::TrackParCov&, const o2::track::TrackParCov&);
 
 #pragma link C++ class o2::vertexing::TrackVFDump + ;
 #pragma link C++ class std::vector < o2::vertexing::TrackVFDump> + ;

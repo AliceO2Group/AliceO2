@@ -4,42 +4,91 @@
 
 # DPL workflows for the TRD
 
-## TRD reconstruction workflow
-The TRD reconstruction workflow requires TRD tracklets, TRD trigger records and as additional input either TPC tracks, ITS-TPC matches, or both.
-Take a look at the Input data section to see how to generate the input from a simulation.
+## TRD synchronous reconstruction workflow
 
-The reconstruction workflow consists of the following DPL processors:
+An overview of the current synchronous reconstruction workflow is shown in the figure below:
 
-* `TRDTrackletReader`
-* `tpc-track-reader`
-* `itstpc-track-reader`
-* `trd-globaltracking[TPC_ITS-TPC]` using [o2::gpu::GPUTRDTracker_t<TrackType,PropagatorType>](../../../../tree/dev/GPU/GPUTracking/TRDTracking/GPUTRDTracker.h)
-* `trd-trackbased-calib` using [o2::trd::TrackBasedCalib](../../../../tree/dev/Detectors/TRD/calibration/include/TRDCalibration/TrackBasedCalib.h)
-* `trd-track-writer-tpc`
-* `trd-track-writer-tpcits`
-* `TRDCalibWriter`
+![TRDReco](https://user-images.githubusercontent.com/26281793/259394523-cf115d1b-954e-4d8f-b2cd-ff0eef6a0c99.png)
 
-The different track reader and writer are only added to the workflow if the respective tracking source is configured. The workflow is started with the command:
-`o2-trd-global-tracking`. Available options are:
-* `--disable-mc` disable MC labels
-* `--disable-root-input` the input is provided by another DPL device
-* `--disable-root-output` the output is not written to file
-* `--track-sources ITS-TPC,TPC` a comma-seperated list of sources to use for the tracking. Default is `ALL` which results in the same workflow as `ITS-TPC,TPC`
-* `--strict-matching` if enabled, TPC-TRD tracks which have another hypothesis close to the best one are flagged as ambiguous and not written out. The minimum chi2 gap between best and second best hypothesis can be configured with `GPU_rec_trd.chi2SeparationCut`
-* `--filter-trigrec` if enabled, the trigger records for which no ITS information is available are ignored. Per default on in the synchronous reconstruction, since there is no matching to TPC-only tracks in that case.
-* `--configKeyValues "GPU_rec_trd.nSigmaTerrITSTPC=4;"` only one example for the different options for the TRD tracker. All are listed in [GPUSettingsList.h](../../../../dev/GPU/GPUTracking/Definitions/GPUSettingsList.h). Search for GPUSettingsRecTRD
+We have the following binaries which can be used to assemble a global workflow:
+
+* `o2-trd-datareader`: extracts digits, tracklets, trigger records and some statistics from the raw data (not needed in asynchronous reconstruction, when starting from CTFs)
+* `o2-trd-tracklet-transformer`: creates calibrated tracklets (space points) from the `Tracklet64` data type it receives from the `o2-trd-datareader`. Optionally this is done only for triggers where ITS ROF where reconstructed to save computing time during synchronous running.
+* `o2-trd-global-tracking`: uses tracklets, ITS-TPC matched tracks or TPC-only tracks as input to create global tracks with TRD tracklets attached. Can in addition run track-based calibrations, e.g. for vDrift, gain or t0 monitoring.
+* `o2-calibration-trd-workflow`: used for any of the TRD calibrations running on the aggregator node taking input from the track-based calibrations or also for noise runs taking the input directly from the `o2-trd-datareader`.
+
+Run any of the workflows with `--help` or `--help full` to see the available options and their explanations.
+
+The available `--configKeyValues` for the global tracking workflow are mostly listed in [GPUSettingsList.h](../../../../dev/GPU/GPUTracking/Definitions/GPUSettingsList.h). Search for GPUSettingsRecTRD to find options as for example the minimum number of TRD tracklets required for a TRD track to not be discarded.
+
 
 
 ## Input data
-Since the TRD reconstruction requires either ITS-TPC or TPC tracks to run there are some additional steps to be taken next to the simulation and digitization of an example data sample:
-These commands will generate a small pp data sample with 10 events:
-* `o2-sim -n 10 -g pythia8pp --skipModules ZDC`
-* `o2-sim-digitizer-workflow -b` this will create both TRD digits and TRD tracklets
-* `o2-tpc-reco-workflow -b --input-type digits --output-type clusters,tracks --configKeyValues "GPU_proc.ompThreads=4;" --shm-segment-size 10000000000 --run`
-* `o2-its-reco-workflow -b --trackerCA --tracking-mode async --shm-segment-size 10000000000 --run`
-* `o2-tpcits-match-workflow -b --tpc-track-reader tpctracks.root --tpc-native-cluster-reader "--infile tpc-native-clusters.root" --shm-segment-size 10000000000 --run`
-* `o2-trd-tracklet-transformer -b --filter-trigrec` if the trigger filter is active here, it must also be active for the TRD tracking. Otherwise an error will be thrown
-* `o2-trd-global-tracking -b --filter-trigrec`
 
-Of course one can also concatenate the workflows. For example:`o2-trd-tracklet-transformer -b --disable-root-output | o2-trd-global-tracking -b`. This will create the calibrated tracklets on-the-fly and not create the `trdcalibratedtracklets.root` file.
+In order to run any of the workflows locally you have to have some input data. This can be retrieved either from real runs as described in the [PDP documentation](https://alice-pdp-operations.docs.cern.ch/ctf-reprocessing/) or you can run your own simulation. The easiest will be to use the [sim_challenge.sh](../../../../dev/prodtests/sim_challenge.sh) script. Run it as
 
+    $O2_ROOT/prodtests/sim_challenge.sh -h
+
+to see the available options. Without any arguments you will simulate a pp TF with 10 events. You will **need an [alien token](https://alice-doc.github.io/alice-analysis-tutorial/start/cert.html#test-your-certificate)** for the simulation to work.
+
+
+## QC
+
+In order to attach the QC manually to a workflow for local tests one can do for example
+
+    o2-trd-digit-reader-workflow -b --disable-mc | o2-qc --config json://TRDdigits.json -b
+
+The `o2-qc` is steering the QC, in the json file `TRDdigits.json` we can specify which QC tasks should run, if there is any data sampling to be done or where to store the output. Also parameters can be passed to the QC tasks and much more. A very simple example for running only digits QC would be
+
+```json
+{
+  "qc": {
+    "config": {
+      "database": {
+        "implementation": "CCDB",
+        "host": "ccdb-test.cern.ch:8080",
+        "username": "not_applicable",
+        "password": "not_applicable",
+        "name": "not_applicable"
+      },
+      "Activity": {
+        "number": "42",
+        "type": "2"
+      },
+      "monitoring": {
+        "url": "infologger:///debug?qc"
+      },
+      "consul": {
+        "url": ""
+      },
+      "conditionDB": {
+        "url": "http://alice-ccdb.cern.ch"
+      },
+      "infologger": {
+        "filterDiscardDebug": "false",
+        "filterDiscardLevel": "20"
+      }
+    },
+    "tasks" : {
+      "DigitTask" : {
+        "active": "true",
+        "className": "o2::quality_control_modules::trd::DigitsTask",
+        "moduleName": "QcTRD",
+        "detectorName": "TRD",
+        "cycleDurationSeconds": "60",
+        "maxNumberCycles": "-1",
+        "dataSource": {
+          "type": "direct",
+          "query": "digits:TRD/DIGITS;triggers:TRD/TRKTRGRD"
+        },
+        "saveObjectsToFile":"QC_TRD_digits.root"
+      }
+    },
+    "dataSamplingPolicies": [
+    ]
+  }
+}
+```
+This would run the `DigitsTask` from QC without any data sampling (so taking directly all the digits provided by the reader) and store the QC histograms in `QC_TRD_digits.root`.
+
+One can also check the results in the test QCG at <https://qcg-test.cern.ch/?page=objectTree>. If you go to `TRD/MO/DigitTask/digitsperevent` you will see the same histogram which you have in your local file.

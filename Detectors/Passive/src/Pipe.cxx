@@ -1509,9 +1509,9 @@ void Pipe::ConstructGeometry()
     dovX -= 0.0625;
     dovY += 0.075;
     char vname[20];
-    sprintf(vname, "voRB242CuOvTransV%d", i);
+    snprintf(vname, 20, "voRB242CuOvTransV%d", i);
     voRB242CuOvTransV[i] = new TGeoVolume(vname, new TGeoEltu(dovX, dovY, 1.0), kMedCuHC);
-    sprintf(vname, "voRB242CuOvTransI%d", i);
+    snprintf(vname, 20, "voRB242CuOvTransI%d", i);
     voRB242CuOvTransI[i] = new TGeoVolume(vname, new TGeoEltu(dovX - 0.2, dovY - 0.2, 1.0), kMedVacHC);
     voRB242CuOvTransV[i]->AddNode(voRB242CuOvTransI[i], 1, gGeoIdentity);
     voRB242CuOvTransMo->AddNode(voRB242CuOvTransV[i], 1, new TGeoTranslation(0., 0., dovZ));

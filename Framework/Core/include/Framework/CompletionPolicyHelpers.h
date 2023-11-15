@@ -12,7 +12,6 @@
 #define O2_FRAMEWORK_COMPLETIONPOLICYHELPERS_H_
 
 #include "Framework/ChannelSpec.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
 #include "Headers/DataHeader.h"
 
@@ -50,6 +49,15 @@ struct CompletionPolicyHelpers {
     return consumeWhenAny("consume-any", matcher);
   }
   static CompletionPolicy consumeWhenAny(std::string matchName);
+
+  /// When any of the parts of the record have been received, consume them.
+  static CompletionPolicy consumeWhenAnyWithAllConditions(const char* name, CompletionPolicy::Matcher matcher);
+  /// Default matcher applies for all devices
+  static CompletionPolicy consumeWhenAnyWithAllConditions(CompletionPolicy::Matcher matcher = [](auto const&) -> bool { return true; })
+  {
+    return consumeWhenAnyWithAllConditions("consume-any-all-conditions", matcher);
+  }
+  static CompletionPolicy consumeWhenAnyWithAllConditions(std::string matchName);
 
   /// When any of the parts of the record have been received, process the existing and free the associated payloads.
   /// This allows freeing things as early as possible, while still being able to wait

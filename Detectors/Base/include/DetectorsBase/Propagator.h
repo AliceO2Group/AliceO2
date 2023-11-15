@@ -34,7 +34,7 @@ namespace parameters
 {
 class GRPObject;
 class GRPMagField;
-}
+} // namespace parameters
 
 namespace dataformats
 {
@@ -45,7 +45,7 @@ namespace field
 {
 class MagFieldFast;
 class MagneticField;
-}
+} // namespace field
 
 namespace gpu
 {
@@ -95,6 +95,10 @@ class PropagatorImpl
     return bzOnly ? propagateToX(track, x, getNominalBz(), maxSnp, maxStep, matCorr, tofInfo, signCorr) : PropagateToXBxByBz(track, x, maxSnp, maxStep, matCorr, tofInfo, signCorr);
   }
 
+  template <typename track_T>
+  GPUd() bool propagateToAlphaX(track_T& track, value_type alpha, value_type x, bool bzOnly = false, value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, int minSteps = 1,
+                                MatCorrType matCorr = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+
   GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParametrizationWithError<value_type>& track, value_type bZ,
                              value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
                              o2::dataformats::DCA* dcaInfo = nullptr, track::TrackLTIntegral* tofInfo = nullptr,
@@ -130,6 +134,7 @@ class PropagatorImpl
   GPUd() void setGPUField(const o2::gpu::GPUTPCGMPolynomialField* field) { mGPUField = field; }
   GPUd() const o2::gpu::GPUTPCGMPolynomialField* getGPUField() const { return mGPUField; }
   GPUd() void setBz(value_type bz) { mBz = bz; }
+  GPUd() bool hasMagFieldSet() const { return mField != nullptr; }
 
   GPUd() void estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const;
 
@@ -156,7 +161,7 @@ class PropagatorImpl
   PropagatorImpl(bool uninitialized = false);
   ~PropagatorImpl() = default;
 #endif
-
+  static constexpr value_type Epsilon = 0.00001; // precision of propagation to X
   template <typename T>
   GPUd() void getFieldXYZImpl(const math_utils::Point3D<T> xyz, T* bxyz) const;
 

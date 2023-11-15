@@ -99,8 +99,11 @@ void FCTLayer::createDiskLayer(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("FCT_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
+  sensVol->SetLineColor(kGreen + 3);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+  chipVol->SetLineColor(kGreen + 3);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+  layerVol->SetLineColor(kGreen + 3);
 
   LOG(info) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
   chipVol->AddNode(sensVol, 1, nullptr);

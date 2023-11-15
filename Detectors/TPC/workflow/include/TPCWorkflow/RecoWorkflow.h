@@ -65,6 +65,7 @@ enum struct OutputType { Digits,
                          ZSRaw,
                          QA,
                          NoSharedClusterMap,
+                         TPCTriggers
 };
 
 using CompletionPolicyData = std::vector<framework::InputSpec>;
@@ -81,9 +82,14 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
                                     bool askDISTSTF = true,
-                                    bool selIR = false);
+                                    bool selIR = false,
+                                    bool filteredInp = false,
+                                    int lumiScaleType = 0,
+                                    int deadMapSources = -1);
+
+void cleanupCallback();
 
 } // end namespace reco_workflow
 } // end namespace tpc
 } // end namespace o2
-#endif //O2_TPC_RECOWORKFLOW_H
+#endif // O2_TPC_RECOWORKFLOW_H

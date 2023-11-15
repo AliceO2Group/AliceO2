@@ -35,6 +35,7 @@ o2_add_library(FT0Decoder
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                                      O2::Framework
                                      O2::DetectorsCommonDataFormats
+                                     O2::DetectorsRaw
                                      O2::DPLUtils
                                      TARGETVARNAME targetDecoderAVX512)
 target_compile_options(${targetDecoderAVX512} PRIVATE -mavx512f -mavx512vl -mavx512bw -mavx512dq)
@@ -96,6 +97,22 @@ o2_add_executable(recpoints-reader-workflow
                   SOURCES src/recpoints-reader-workflow.cxx
                   COMPONENT_NAME ft0
                   PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
+
+o2_add_executable(integrate-cluster-workflow
+                  SOURCES src/cluster-integrator.cxx
+                  COMPONENT_NAME ft0
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow O2::FITWorkflow)
+
+o2_add_executable(integrate-cluster-reader-workflow
+                  SOURCES src/cluster-integrator-reader.cxx
+                  COMPONENT_NAME ft0
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow O2::FITWorkflow)
+
+o2_add_executable(merge-integrate-cluster-workflow
+                  SOURCES src/cluster-merge-integrator.cxx
+                  COMPONENT_NAME ft0
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow O2::FITWorkflow)
+
 if(NOT APPLE)
 
  set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)

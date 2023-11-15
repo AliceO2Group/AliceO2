@@ -50,9 +50,19 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   mCTFCoder.updateTimeDependentParams(pc, true);
   auto digits = pc.inputs().get<gsl::span<CTPDigit>>("digits");
+  static LumiInfo lumiPrev;
+  const int maxDumRep = 5;
+  int dumRep = 0;
   LumiInfo lumi{};
   if (!mNoLumi) {
-    lumi = pc.inputs().get<LumiInfo>("lumi");
+    if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(LumiInfo)) {
+      lumiPrev = lumi = pc.inputs().get<LumiInfo>("CTPLumi");
+    } else {
+      if (dumRep < maxDumRep && lumiPrev.nHBFCounted == 0 && lumiPrev.nHBFCountedFV0 == 0) {
+        LOGP(alarm, "Previous TF lumi used to substitute dummy input is empty, warning {} of {}", ++dumRep, maxDumRep);
+      }
+      lumi = lumiPrev;
+    }
   }
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0, Lifetime::Timeframe});
   auto iosize = mCTFCoder.encode(buffer, digits, lumi);
@@ -72,7 +82,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR, bool nolumi)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "CTP", "DIGITS", 0, Lifetime::Timeframe);
   if (!nolumi) {
-    inputs.emplace_back("lumi", "CTP", "LUMI", 0, Lifetime::Timeframe);
+    inputs.emplace_back("CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe);
   }
   inputs.emplace_back("ctfdict", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionaryTree"));
   if (selIR) {
@@ -86,7 +96,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR, bool nolumi)
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace ctp

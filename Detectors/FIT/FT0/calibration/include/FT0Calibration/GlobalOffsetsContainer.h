@@ -38,7 +38,7 @@ class GlobalOffsetsContainer final
   int getMeanGaussianFitValue() const;
   void merge(GlobalOffsetsContainer* prev);
   void print() const;
-  GlobalOffsetsCalibrationObject generateCalibrationObject() const;
+  GlobalOffsetsCalibrationObject generateCalibrationObject(long, long, const std::string&) const;
   void updateFirstCreation(std::uint64_t creation)
   {
     if (creation < mFirstCreation) {

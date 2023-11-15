@@ -104,6 +104,7 @@ You can use it as e.g.:
 echo "blabla" > TOFfile.txt  # this is the file you want to send from the DCS to the config processor
 xterm -e "alienv load cppzmq/latest O2/latest; ./dcssend -f TOFfile.txt -o 5556 -a 5557"& # run the server emulator in separate terminal
 ```
+In case the process should end upon successful sending of the object, add `-q true`. This is helpful e.g. in case several objects should be sent from a script. Otherwise the object is sent over and over again.
 
 Then, in other terminal you can run your DCS config processor, as described above (make sure the ports of sender and receiver are consistent.
 In case of problems you can validate the receiving process using `dcsclient` test utility (emulates `o2-dcs-config-proxy ...` workflow by receiving the file from the `DCS server` and sending it an acknowledgment):

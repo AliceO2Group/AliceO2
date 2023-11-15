@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework CompletionPolicy
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Headers/DataHeader.h"
@@ -24,7 +20,7 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestCompletionPolicy)
+TEST_CASE("TestCompletionPolicy")
 {
   std::ostringstream oss;
   oss << CompletionPolicy::CompletionOp::Consume
@@ -32,10 +28,10 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy)
       << CompletionPolicy::CompletionOp::Wait
       << CompletionPolicy::CompletionOp::Discard;
 
-  BOOST_REQUIRE_EQUAL(oss.str(), "consumeprocesswaitdiscard");
+  REQUIRE(oss.str() == "consumeprocesswaitdiscard");
 }
 
-BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
+TEST_CASE("TestCompletionPolicy_callback")
 {
   o2::header::Stack stack{o2::header::DataHeader{"SOMEDATA", "TST", 0, 0}, o2::header::NameHeader<9>{"somename"}};
 
@@ -46,9 +42,9 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
   auto callback = [&stack](InputSpan const& inputRefs) {
     for (auto const& ref : inputRefs) {
       auto const* header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
-      BOOST_CHECK_EQUAL(header, reinterpret_cast<o2::header::DataHeader*>(stack.data()));
-      BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>>(ref) != nullptr);
-      BOOST_CHECK(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>*>(ref) != nullptr);
+      REQUIRE(header == reinterpret_cast<o2::header::DataHeader*>(stack.data()));
+      REQUIRE(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>>(ref) != nullptr);
+      REQUIRE(CompletionPolicyHelpers::getHeader<o2::header::NameHeader<9>*>(ref) != nullptr);
     }
     return CompletionPolicy::CompletionOp::Consume;
   };

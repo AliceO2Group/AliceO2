@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   AODProducerWorkflowSpec.h
+/// @file   AODMcProducerWorkflowSpec.h
 
 #ifndef O2_AODMCPRODUCER_WORKFLOW_SPEC
 #define O2_AODMCPRODUCER_WORKFLOW_SPEC
@@ -42,18 +42,25 @@ class AODMcProducerWorkflowDPL : public Task
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-  int64_t mTFNumber{-1};
-  int mRunNumber{-1};
+  int64_t mTFNumber{1};
   int mTruncate{1};
   int mFilterMC{0};
-  o2::InteractionRecord mStartIR{}; // TF 1st IR
+  bool mEnableEmbed{false};
+  std::string mMCHeaderFNames;
   TString mLPMProdTag{""};
   TString mAnchorPass{""};
   TString mAnchorProd{""};
   TString mRecoPass{""};
   TStopwatch mTimer;
 
+  std::string mSimPrefix;
+
   o2::aodhelpers::TripletsMap_t mToStore;
+
+  // keep track event/source id for each mc-collision
+  // using map and not unordered_map to ensure
+  // correct ordering when iterating over container elements
+  std::vector<std::vector<int>> mMCColToEvSrc;
 
   // MC production metadata holder
   std::vector<TString> mMetaDataKeys;
@@ -66,13 +73,9 @@ class AODMcProducerWorkflowDPL : public Task
   uint32_t mMcParticlePos = 0xFFFFFFF0;     // 19 bits
   uint32_t mMcParticleMom = 0xFFFFFFF0;     // 19 bits
 
-  void collectBCs(const std::vector<o2::InteractionTimeRecord>& mcRecords,
-                  std::map<uint64_t, int>& bcsMap);
-
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
-                            const MCParticlesCursorType& mcParticlesCursor,
-                            const std::map<std::pair<int, int>, int>& mcColToEvSrc);
+                            const MCParticlesCursorType& mcParticlesCursor);
 };
 
 /// create a processor spec

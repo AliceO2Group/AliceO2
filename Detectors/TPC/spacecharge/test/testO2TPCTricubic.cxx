@@ -37,9 +37,7 @@ static constexpr unsigned short NPHI = 90;   // grid in phi
 
 BOOST_AUTO_TEST_CASE(PoissonSolver3D_test)
 {
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR);
-  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI);
+  const ParamSpaceCharge params{NR, NZ, NPHI};
 
   // define min range
   const DataT zmin = o2::tpc::GridProperties<DataT>::ZMIN;
@@ -51,7 +49,7 @@ BOOST_AUTO_TEST_CASE(PoissonSolver3D_test)
   const DataT phiSpacing = o2::tpc::GridProperties<DataT>::getGridSpacingPhi(NPHI);
 
   // create grid and datacontainer object
-  o2::tpc::RegularGrid3D<DataT> grid3D(zmin, rmin, phimin, zSpacing, rSpacing, phiSpacing);
+  o2::tpc::RegularGrid3D<DataT> grid3D(zmin, rmin, phimin, zSpacing, rSpacing, phiSpacing, params);
   o2::tpc::DataContainer3D<DataT> data3D(NZ, NR, NPHI);
 
   // function to approximate

@@ -42,6 +42,12 @@ void GPUParam::SetDefaults(float solenoidBz)
   new (&tpcGeometry) GPUTPCGeometry;
   new (&rec) GPUSettingsRec;
 
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};
+  const float kErrorsZ[4] = {0.06, 0.24, 0.15, 0.1};
+
+  UpdateRun3ClusterErrors(kErrorsY, kErrorsZ);
+#else
   // clang-format off
   const float kParamS0Par[2][3][6] =
   {
@@ -53,7 +59,7 @@ void GPUParam::SetDefaults(float solenoidBz)
     { 1.15970033221e-03, 1.30452335725e-05, 1.87015570700e-02, 5.39766737973e-08, 1.64790824056e-02, 1.44115634612e-04 },
     { 6.27940462437e-04, 1.78520094778e-05, 2.83537860960e-02, 1.16867742150e-08, 5.02607785165e-02, 1.88510020962e-04 } }
   };
-  const float kParamRMS0[2][3][4] =
+  const float kParamErrorsSeeding0[2][3][4] =
   {
     { { 4.17516864836e-02, 1.87623649254e-04, 5.63788712025e-02, 5.38373768330e-01, },
     { 8.29434990883e-02, 2.03291710932e-04, 6.81538805366e-02, 9.70965325832e-01, },
@@ -76,10 +82,11 @@ void GPUParam::SetDefaults(float solenoidBz)
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 4; k++) {
-        ParamRMS0[i][j][k] = kParamRMS0[i][j][k];
+        ParamErrorsSeeding0[i][j][k] = kParamErrorsSeeding0[i][j][k];
       }
     }
   }
+#endif
 
   par.dAlpha = 0.349066f;
   bzkG = solenoidBz;
@@ -121,7 +128,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
 }
 
-void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
+void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
 {
   if (g) {
     bzkG = g->solenoidBz;
@@ -142,29 +149,48 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
+    UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
+  }
+  if (w) {
+    par.dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
+    if (par.dodEdx && p && p->tpcDownscaledEdx != 0) {
+      par.dodEdx = (rand() % 100) < p->tpcDownscaledEdx;
+    }
   }
 }
 
 void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
 {
   SetDefaults(g->solenoidBz);
-  if (w) {
-    par.dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
-  }
   if (r) {
     rec = *r;
     if (rec.fitPropagateBzOnly == -1) {
       rec.fitPropagateBzOnly = rec.tpc.nWays - 1;
     }
   }
-  UpdateSettings(g, p);
+  UpdateSettings(g, p, w);
+}
+
+void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)
+{
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  for (int yz = 0; yz < 2; yz++) {
+    const float* param = yz ? zErrorParam : yErrorParam;
+    for (int rowType = 0; rowType < 4; rowType++) {
+      constexpr int regionMap[4] = {0, 4, 6, 8};
+      ParamErrors[yz][rowType][0] = param[0] * param[0];
+      ParamErrors[yz][rowType][1] = param[1] * param[1] * tpcGeometry.PadHeightByRegion(regionMap[rowType]);
+      ParamErrors[yz][rowType][2] = param[2] * param[2] / tpcGeometry.TPCLength() / tpcGeometry.PadHeightByRegion(regionMap[rowType]);
+      ParamErrors[yz][rowType][3] = param[3] * param[3];
+    }
+  }
+#endif
 }
 
 #ifndef GPUCA_ALIROOT_LIB
 void GPUParam::LoadClusterErrors(bool Print)
 {
 }
-
 #else
 
 #include <iomanip>
@@ -189,7 +215,7 @@ void GPUParam::LoadClusterErrors(bool Print)
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 4; k++) {
-        ParamRMS0[i][j][k] = clparam->GetParamRMS0(i, j, k);
+        ParamErrorsSeeding0[i][j][k] = clparam->GetParamErrorsSeeding0(i, j, k);
       }
     }
   }
@@ -215,14 +241,14 @@ void GPUParam::LoadClusterErrors(bool Print)
     }
     std::cout << " }; " << std::endl;
 
-    std::cout << "ParamRMS0[2][3][4]=" << std::endl;
+    std::cout << "ParamErrorsSeeding0[2][3][4]=" << std::endl;
     std::cout << " { " << std::endl;
     for (int i = 0; i < 2; i++) {
       std::cout << "   { " << std::endl;
       for (int j = 0; j < 3; j++) {
         std::cout << " { ";
         for (int k = 0; k < 4; k++) {
-          std::cout << ParamRMS0[i][j][k] << ", ";
+          std::cout << ParamErrorsSeeding0[i][j][k] << ", ";
         }
         std::cout << " }, " << std::endl;
       }

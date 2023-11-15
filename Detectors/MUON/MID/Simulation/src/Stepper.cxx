@@ -13,7 +13,7 @@
 
 #include "CommonUtils/ShmAllocator.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "TVirtualMC.h"
 #include "FairRootManager.h"

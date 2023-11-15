@@ -71,7 +71,9 @@ struct GPUConstantMem {
   GPUTPCCompression tpcCompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTrackerGPU trdTrackerGPU;
+#ifdef GPUCA_HAVE_O2HEADERS
   GPUTRDTracker trdTrackerO2;
+#endif
   GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
   GPUTrackingRefitProcessor trackingRefit;

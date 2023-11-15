@@ -44,7 +44,10 @@
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
 #include "DataFormatsCTP/CTF.h"
-#include "rANS/rans.h"
+
+#include "rANS/histogram.h"
+#include "rANS/compat.h"
+
 #include <vector>
 #include <stdexcept>
 #include <array>
@@ -88,7 +91,7 @@ size_t appendToTree(TTree& tree, const std::string brname, T& ptr)
 }
 
 using DetID = o2::detectors::DetID;
-using FTrans = o2::rans::FrequencyTable;
+using FTrans = o2::rans::DenseHistogram<int32_t>;
 
 class CTFWriterSpec : public o2::framework::Task
 {
@@ -125,23 +128,29 @@ class CTFWriterSpec : public o2::framework::Task
   bool mStoreMetaFile = false;
   bool mRejectCurrentTF = false;
   bool mFallBackDirUsed = false;
+  bool mFallBackDirProvided = false;
   int mReportInterval = -1;
   int mVerbosity = 0;
   int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint32_t mPrevDictTimeStamp = 0; // timestamp of the previously stored dictionary
   uint32_t mDictTimeStamp = 0;     // timestamp of the currently stored dictionary
-  size_t mMinSize = 0;               // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
-  size_t mMaxSize = 0;               // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
-  size_t mChkSize = 0;               // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
-  size_t mAccCTFSize = 0;            // so far accumulated size (if any)
-  size_t mCurrCTFSize = 0;           // size of currently processed CTF
-  size_t mNCTF = 0;                  // total number of CTFs written
-  size_t mNCTFPrevDict = 0;          // total number of CTFs used for previous dictionary version
-  size_t mNAccCTF = 0;               // total number of CTFs accumulated in the current file
-  size_t mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
-  size_t mNCTFFiles = 0;             // total number of CTF files written
-  int mMaxCTFPerFile = 0;            // max CTFs per files to store
-  int mRejRate = 0;                  // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
+  size_t mMinSize = 0;             // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
+  size_t mMaxSize = 0;             // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
+  size_t mChkSize = 0;             // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
+  size_t mAccCTFSize = 0;          // so far accumulated size (if any)
+  size_t mCurrCTFSize = 0;         // size of currently processed CTF
+  size_t mNCTF = 0;                // total number of CTFs written
+  size_t mNCTFPrevDict = 0;        // total number of CTFs used for previous dictionary version
+  size_t mNAccCTF = 0;             // total number of CTFs accumulated in the current file
+  int mWaitDiskFull = 0;           // if mCheckDiskFull triggers, pause for this amount of ms before new attempt
+  int mWaitDiskFullMax = -1;       // produce fatal mCheckDiskFull block the workflow for more than this time (in ms)
+  float mCheckDiskFull = 0.;       // wait for if available abs. disk space is < mCheckDiskFull (if >0) or if its fraction is < -mCheckDiskFull (if <0)
+  long mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
+  size_t mNCTFFiles = 0;           // total number of CTF files written
+  int mMaxCTFPerFile = 0;          // max CTFs per files to store
+  int mRejRate = 0;                // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
+  int mCTFFileCompression = 0;     // CTF file compression level (if >= 0)
+  bool mFillMD5 = false;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
@@ -210,11 +219,13 @@ void CTFWriterSpec::init(InitContext& ic)
   }
 
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
-  mCTFAutoSave = ic.options().get<int>("save-ctf-after");
+  mCTFAutoSave = ic.options().get<long>("save-ctf-after");
+  mCTFFileCompression = ic.options().get<int>("ctf-file-compression");
   mCTFMetaFileDir = ic.options().get<std::string>("meta-output-dir");
   if (mCTFMetaFileDir != "/dev/null") {
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
+    mFillMD5 = ic.options().get<bool>("md5-for-meta");
   }
   mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
   mCTFDir = ic.options().get<std::string>("output-dir");
@@ -227,6 +238,7 @@ void CTFWriterSpec::init(InitContext& ic)
   mCTFDirFallBack = ic.options().get<std::string>("output-dir-alt");
   if (mCTFDirFallBack != "/dev/null") {
     mCTFDirFallBack = o2::utils::Str::rectifyDirectory(mCTFDirFallBack);
+    mFallBackDirProvided = true;
   }
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinSize = ic.options().get<int64_t>("min-file-size");
@@ -247,6 +259,11 @@ void CTFWriterSpec::init(InitContext& ic)
       }
     }
   }
+
+  mCheckDiskFull = ic.options().get<float>("require-free-disk");
+  mWaitDiskFull = 1000 * ic.options().get<float>("wait-for-free-disk");
+  mWaitDiskFullMax = 1000 * ic.options().get<float>("max-wait-for-free-disk");
+
   mChkSize = std::max(size_t(mMinSize * 1.1), mMaxSize);
   o2::utils::createDirectoriesIfAbsent(LOCKFileDir);
 
@@ -267,15 +284,13 @@ void CTFWriterSpec::init(InitContext& ic)
 //___________________________________________________________________
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  static bool initOnceDone = false;
   namespace GRPECS = o2::parameters::GRPECS;
-  if (!initOnceDone) {
-    initOnceDone = true;
+  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
+  if (mTimingInfo.globalRunNumberChanged) {
     mDataTakingContext = pc.services().get<DataTakingContext>();
     // determine the output type for the CTF metadata
     mMetaDataType = GRPECS::getRawDataPersistencyMode(mDataTakingContext.runType, mDataTakingContext.forcedRaw);
   }
-  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
 
 //___________________________________________________________________
@@ -293,7 +308,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   const o2::ctf::BufferType* bdata = ctfBuffer.data();
   if (bdata) {
     if (warnedEmpty) {
-      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead misalignment of detectors in CTF", mNCTF, det.getName()));
+      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
     }
     const auto ctfImage = C::getImage(bdata);
     ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
@@ -304,7 +319,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
       sz = ctfBuffer.size();
     }
     if (mCreateDict) {
-      if (!mFreqsAccumulation[det].size()) {
+      if (mFreqsAccumulation[det].empty()) {
         mFreqsAccumulation[det].resize(C::getNBlocks());
         mFreqsMetaData[det].resize(C::getNBlocks());
       }
@@ -324,14 +339,19 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
                   try {
                     freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
                   } catch (const std::overflow_error& e) {
-                    LOGP(warning, "unable to frequency table for {}, block {} due to overflow", det.getName(), ib);
+                    LOGP(warning, "unable to add frequency table for {}, block {} due to overflow", det.getName(), ib);
                     mIsSaturatedFrequencyTable[det][ib] = true;
                     return false;
                   }
                   return true;
                 }()) {
-              auto newProbBits = static_cast<uint8_t>(o2::rans::computeRenormingPrecision(freq));
-              mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, newProbBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), static_cast<int32_t>(freq.size()), 0, 0};
+              auto newProbBits = static_cast<uint8_t>(o2::rans::compat::computeRenormingPrecision(countNUsedAlphabetSymbols(freq)));
+              auto histogramView = o2::rans::trim(o2::rans::makeHistogramView(freq));
+              mdSave = ctf::detail::makeMetadataRansDict(newProbBits,
+                                                         static_cast<int32_t>(histogramView.getMin()),
+                                                         static_cast<int32_t>(histogramView.getMax()),
+                                                         static_cast<int32_t>(histogramView.size()),
+                                                         md.opt);
               mFreqsAccumulation[det][ib] = std::move(freq);
             }
           }
@@ -341,7 +361,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   } else {
     if (!warnedEmpty) {
       if (mNCTF) {
-        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead misalignment of detectors in CTF", mNCTF, det.getName()));
+        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
       }
       LOGP(important, "Empty CTF provided for {}, skipping and will not report anymore", det.getName());
       warnedEmpty = true;
@@ -408,6 +428,9 @@ size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
 void CTFWriterSpec::run(ProcessingContext& pc)
 {
   const std::string NAStr = "NA";
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
+    mTimer.Reset();
+  }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   updateTimeDependentParams(pc);
@@ -415,6 +438,40 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF && !mRejectCurrentTF) {
     prepareTFTreeAndFile();
+
+    int totalWait = 0, nwaitCycles = 0;
+    while ((mFallBackDirUsed || !mFallBackDirProvided) && mCheckDiskFull) { // we are on the physical disk and not on the RAM disk
+      constexpr size_t MB = 1024 * 1024;
+      constexpr int showFirstN = 10, prsecaleWarnings = 50;
+      try {
+        const auto si = std::filesystem::space(mCTFFileOut->GetName());
+        std::string wmsg{};
+        if (mCheckDiskFull > 0.f && si.available < mCheckDiskFull) {
+          nwaitCycles++;
+          wmsg = fmt::format("Disk has {} MB available while at least {} MB is requested, wait for {} ms (on top of {} ms)", si.available / MB, size_t(mCheckDiskFull) / MB, mWaitDiskFull, totalWait);
+        } else if (mCheckDiskFull < 0.f && float(si.available) / si.capacity < -mCheckDiskFull) { // relative margin requested
+          nwaitCycles++;
+          wmsg = fmt::format("Disk has {:.3f}% available while at least {:.3f}% is requested, wait for {} ms (on top of {} ms)", si.capacity ? float(si.available) / si.capacity * 100.f : 0., -mCheckDiskFull, mWaitDiskFull, totalWait);
+        } else {
+          nwaitCycles = 0;
+        }
+        if (nwaitCycles) {
+          if (mWaitDiskFullMax > 0 && totalWait > mWaitDiskFullMax) {
+            closeTFTreeAndFile(); // try to save whatever we have
+            LOGP(fatal, "Disk has {} MB available out of {} MB after waiting for {} ms", si.available / MB, si.capacity / MB, mWaitDiskFullMax);
+          }
+          if (nwaitCycles < showFirstN + 1 || (prsecaleWarnings && (nwaitCycles % prsecaleWarnings) == 0)) {
+            LOG(alarm) << wmsg;
+          }
+          pc.services().get<RawDeviceService>().waitFor((unsigned int)(mWaitDiskFull));
+          totalWait += mWaitDiskFull;
+          continue;
+        }
+      } catch (std::exception const& e) {
+        LOG(fatal) << "unable to query disk space info for path " << mCurrentCTFFileNameFull << ", reason: " << e.what();
+      }
+      break;
+    }
   }
   // create header
   CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTForbit, mTimingInfo.tfCounter};
@@ -437,13 +494,14 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   szCTF += processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
   szCTF += processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
   if (mReportInterval > 0 && (mTimingInfo.tfCounter % mReportInterval) == 0) {
-    LOGP(important, "CTF {} size report:{}", mTimingInfo.tfCounter, mSizeReport);
+    LOGP(important, "CTF {} size report:{} - Total:{}", mTimingInfo.tfCounter, mSizeReport, fmt::group_digits(szCTF));
   }
 
   mTimer.Stop();
 
   if (mWriteCTF && !mRejectCurrentTF) {
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
+    size_t prevSizeMB = mAccCTFSize / (1 << 20);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
     mTFOrbits.push_back(mTimingInfo.firstTForbit);
@@ -461,7 +519,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 
     if (mAccCTFSize >= mMinSize || (mMaxCTFPerFile > 0 && mNAccCTF >= mMaxCTFPerFile)) {
       closeTFTreeAndFile();
-    } else if (mCTFAutoSave > 0 && mNAccCTF % mCTFAutoSave == 0) {
+    } else if ((mCTFAutoSave > 0 && mNAccCTF % mCTFAutoSave == 0) || (mCTFAutoSave < 0 && int(prevSizeMB / (-mCTFAutoSave)) != size_t(mAccCTFSize / (1 << 20)) / (-mCTFAutoSave))) {
       mCTFTreeOut->AutoSave("override");
     }
   } else {
@@ -489,6 +547,8 @@ void CTFWriterSpec::finalize()
   LOGF(info, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mFinalized = true;
+  mNCTF = 0;
+  mNCTFFiles = 0;
 }
 
 //___________________________________________________________________
@@ -512,7 +572,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
     closeTFTreeAndFile();
     mFallBackDirUsed = false;
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
-    if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
+    if (mChkSize > 0 && mFallBackDirProvided) {
       createLockFile(0);
       auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
       if (sz < mChkSize) {
@@ -532,6 +592,9 @@ void CTFWriterSpec::prepareTFTreeAndFile()
     mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTForbit, mTimingInfo.tfCounter, mHostName);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
     mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
+    if (mCTFFileCompression >= 0) {
+      mCTFFileOut->SetCompressionLevel(mCTFFileCompression);
+    }
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
 
     mNCTFFiles++;
@@ -548,13 +611,13 @@ void CTFWriterSpec::closeTFTreeAndFile()
       mCTFTreeOut.reset();
       mCTFFileOut->Close();
       mCTFFileOut.reset();
-      if (!TMPFileEnding.empty()) {
-        std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
-      }
       // write CTF file metaFile data
+      auto actualFileName = TMPFileEnding.empty() ? mCurrentCTFFileNameFull : o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding);
       if (mStoreMetaFile) {
         o2::dataformats::FileMetaData ctfMetaData;
-        ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
+        if (!ctfMetaData.fillFileData(actualFileName, mFillMD5, TMPFileEnding)) {
+          throw std::runtime_error("metadata file was requested but not created");
+        }
         ctfMetaData.setDataTakingContext(mDataTakingContext);
         ctfMetaData.type = mMetaDataType;
         ctfMetaData.priority = mFallBackDirUsed ? "low" : "high";
@@ -565,10 +628,15 @@ void CTFWriterSpec::closeTFTreeAndFile()
           std::ofstream metaFileOut(metaFileNameTmp);
           metaFileOut << ctfMetaData;
           metaFileOut.close();
+          if (!TMPFileEnding.empty()) {
+            std::filesystem::rename(actualFileName, mCurrentCTFFileNameFull);
+          }
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(error) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
+      } else if (!TMPFileEnding.empty()) {
+        std::filesystem::rename(actualFileName, mCurrentCTFFileNameFull);
       }
     } catch (std::exception const& e) {
       LOG(error) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
@@ -730,16 +798,21 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
     Options{                                                                               //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
-            {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
+            {"save-ctf-after", VariantType::Int64, 0ll, {"autosave CTF tree with multiple CTFs after every N CTFs if >0 or every -N MBytes if < 0"}},
             {"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
+            {"md5-for-meta", VariantType::Bool, false, {"fill CTF file MD5 sum in the metadata file"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},
             {"ctf-rejection", VariantType::Int, 0, {">0: percentage to reject randomly, <0: reject if timeslice%|value|!=0"}},
+            {"ctf-file-compression", VariantType::Int, 0, {"if >= 0: impose CTF file compression level"}},
+            {"require-free-disk", VariantType::Float, 0.f, {"pause writing op. if available disk space is below this margin, in bytes if >0, as a fraction of total if <0"}},
+            {"wait-for-free-disk", VariantType::Float, 10.f, {"if paused due to the low disk space, recheck after this time (in s)"}},
+            {"max-wait-for-free-disk", VariantType::Float, 60.f, {"produce fatal if paused due to the low disk space for more than this amount in s."}},
             {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 

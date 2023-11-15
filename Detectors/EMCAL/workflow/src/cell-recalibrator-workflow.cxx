@@ -31,9 +31,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{{"input-subspec", VariantType::UInt32, 1U, {"Subspecification for input objects"}},
                                        {"output-subspec", VariantType::UInt32, 0U, {"Subspecification for output objects"}},
+                                       {"isMC", VariantType::Bool, false, {"Monte-Carlo mode"}},
                                        {"no-badchannelcalib", VariantType::Bool, false, {"Disable bad channel calibration"}},
                                        {"no-timecalib", VariantType::Bool, false, {"Disable time calibration"}},
                                        {"no-gaincalib", VariantType::Bool, false, {"Disable gain calibration"}},
+                                       {"drop-led", VariantType::Bool, false, {"Drop LED events"}},
+                                       {"redirect-led", VariantType::Bool, false, {"Redirect LED events"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
@@ -52,10 +55,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto inputsubspec = cfgc.options().get<uint32_t>("input-subspec"),
        outputsubspec = cfgc.options().get<uint32_t>("output-subspec");
 
+  // LED event handling
+  auto dropled = cfgc.options().get<bool>("drop-led"),
+       redirectled = cfgc.options().get<bool>("redirect-led");
+
+  if (dropled && redirectled) {
+    LOG(fatal) << "Ambiguous handling of LED events";
+  }
+  uint32_t ledsetting = 0;
+  if (dropled) {
+    ledsetting = 1;
+  }
+  if (redirectled) {
+    ledsetting = 2;
+  }
+
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::emcal::getCellRecalibratorSpec(inputsubspec, outputsubspec, !disableBadchannels, !disableTime, !disableEnergy));
+  specs.emplace_back(o2::emcal::getCellRecalibratorSpec(inputsubspec, outputsubspec, ledsetting, !disableBadchannels, !disableTime, !disableEnergy, cfgc.options().get<bool>("isMC")));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

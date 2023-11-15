@@ -70,7 +70,7 @@ class GainCalibData
 }; // end GainCalibData
 //=============================================================================
 using GainTimeSlot = o2::calibration::TimeSlot<GainCalibData>;
-class GainCalibrator final : public o2::calibration::TimeSlotCalibration<Digit, GainCalibData>
+class GainCalibrator final : public o2::calibration::TimeSlotCalibration<GainCalibData>
 {
  public:
   GainCalibrator();

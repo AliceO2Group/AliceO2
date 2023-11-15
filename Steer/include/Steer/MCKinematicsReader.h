@@ -82,7 +82,7 @@ class MCKinematicsReader
   /// API to ask releasing tracks (freeing memory) for source + event
   void releaseTracksForSourceAndEvent(int source, int event);
 
-  /// variant returning all tracks for source and event at once
+  /// variant returning all tracks for an event id (source = 0) at once
   std::vector<MCTrack> const& getTracks(int event) const;
 
   /// get all primaries for a certain event

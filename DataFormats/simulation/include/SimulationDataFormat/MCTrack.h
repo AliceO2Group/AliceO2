@@ -17,6 +17,7 @@
 #define ALICEO2_DATA_MCTRACK_H_
 
 #include "SimulationDataFormat/ParticleStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
@@ -26,6 +27,7 @@
 #include "TParticle.h"
 #include "TParticlePDG.h"
 #include "TVector3.h"
+#include <type_traits>
 
 namespace o2
 {
@@ -44,6 +46,8 @@ template <class _T>
 class MCTrackT
 {
  public:
+  static constexpr int NHITBITS = 22; // do not modify this
+
   ///  Default constructor
   MCTrackT();
 
@@ -68,7 +72,7 @@ class MCTrackT
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
-  bool isPrimary() const { return getProcess() == TMCProcess::kPPrimary; }
+  bool isPrimary() const { return (getProcess() == TMCProcess::kPPrimary) || (getMotherTrackId() < 0 && getSecondMotherTrackId() < 0); }
   bool isSecondary() const { return !isPrimary(); }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
@@ -79,6 +83,11 @@ class MCTrackT
   Double_t GetStartVertexCoordinatesY() const { return mStartVertexCoordinatesY; }
   Double_t GetStartVertexCoordinatesZ() const { return mStartVertexCoordinatesZ; }
   Double_t GetStartVertexCoordinatesT() const { return mStartVertexCoordinatesT; }
+
+  /// production radius squared
+  Double_t R2() const { return Vx() * Vx() + Vy() * Vy(); }
+  /// production radius
+  Double_t R() const { return std::sqrt(R2()); }
 
   /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;
@@ -116,7 +125,7 @@ class MCTrackT
   {
     double mx(mStartVertexMomentumX);
     double my(mStartVertexMomentumY);
-    return (TMath::Pi() + TMath::ATan2(-mx, -my));
+    return (TMath::Pi() + TMath::ATan2(-my, -mx));
   }
 
   Double_t GetEta() const
@@ -138,11 +147,11 @@ class MCTrackT
 
   Double_t GetRapidity() const;
 
-  void GetMomentum(TVector3& momentum);
+  void GetMomentum(TVector3& momentum) const;
 
-  void Get4Momentum(TLorentzVector& momentum);
+  void Get4Momentum(TLorentzVector& momentum) const;
 
-  void GetStartVertex(TVector3& vertex);
+  void GetStartVertex(TVector3& vertex) const;
 
   /// Accessors to the hit mask
   Int_t getHitMask() const { return ((PropEncoding)mProp).hitmask; }
@@ -152,24 +161,40 @@ class MCTrackT
   void SetSecondMotherTrackId(Int_t id) { mSecondMotherTrackId = id; }
   void SetFirstDaughterTrackId(Int_t id) { mFirstDaughterTrackId = id; }
   void SetLastDaughterTrackId(Int_t id) { mLastDaughterTrackId = id; }
+
   // set bit indicating that this track
-  // left a hit in detector with id iDet
-  void setHit(Int_t iDet)
+  // left a hit in detector that corresponds to bit iDetBit. This bit is found in
+  // a lookup table.
+  void setHit(Int_t iDetBit)
   {
-    assert(0 <= iDet && iDet < o2::detectors::DetID::nDetectors);
+    assert(0 <= iDetBit && iDetBit < o2::detectors::DetID::nDetectors);
     auto prop = ((PropEncoding)mProp);
-    prop.hitmask |= 1 << iDet;
+    prop.hitmask |= 1 << iDetBit;
     mProp = prop.i;
   }
 
-  // did detector iDet see this track?
-  bool leftTrace(Int_t iDet) const { return (((PropEncoding)mProp).hitmask & (1 << iDet)) > 0; }
+  bool leftTraceGivenBitField(int bit) const
+  {
+    return (((PropEncoding)mProp).hitmask & (1 << bit)) > 0;
+  }
+
+  /// Returns of detector with DetID iDet has seen this track.
+  /// Needs lookup table detIDToBit mapping detectorIDs to bitfields (which is persistified in MCEventHeaders).
+  bool leftTrace(Int_t iDet, std::vector<int> const& detIDtoBit) const
+  {
+    auto bit = detIDtoBit[iDet];
+    if (bit != -1) {
+      return leftTraceGivenBitField(bit);
+    }
+    return false;
+  }
+
   // determine how many detectors "saw" this track
   int getNumDet() const
   {
     int count = 0;
-    for (auto i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
-      if (leftTrace(i)) {
+    for (auto i = 0; i < NHITBITS; ++i) {
+      if (leftTraceGivenBitField(i)) {
         count++;
       }
     }
@@ -199,7 +224,7 @@ class MCTrackT
   int getProcess() const { return ((PropEncoding)mProp).process; }
 
   /// get generator status code
-  int getStatusCode() const { return mStatusCode; }
+  o2::mcgenstatus::MCGenStatusEncoding getStatusCode() const { return ((o2::mcgenstatus::MCGenStatusEncoding)mStatusCode); }
 
   void setToBeDone(bool f)
   {
@@ -254,9 +279,8 @@ class MCTrackT
     struct {
       int storage : 1;  // encoding whether to store this track to the output
       unsigned int process : 6; // encoding process that created this track (enough to store TMCProcess from ROOT)
-      int hitmask : 21; // encoding hits per detector
-      int reserved1 : 1; // bit reserved for possible future purposes
-      int reserved2 : 1; // bit reserved for possible future purposes
+      int hitmask : NHITBITS;   // encoding hits per detector
+      int reserved1 : 1;        // bit reserved for possible future purposes
       int inhibited : 1; // whether tracking of this was inhibited
       int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };
@@ -267,7 +291,7 @@ class MCTrackT
   // such as part of mProp (process) or mPDG
   Int_t mStatusCode = 0;
 
-  ClassDefNV(MCTrackT, 5);
+  ClassDefNV(MCTrackT, 8);
 };
 
 template <typename T>
@@ -279,19 +303,19 @@ inline Double_t MCTrackT<T>::GetEnergy() const
 }
 
 template <typename T>
-inline void MCTrackT<T>::GetMomentum(TVector3& momentum)
+inline void MCTrackT<T>::GetMomentum(TVector3& momentum) const
 {
   momentum.SetXYZ(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ);
 }
 
 template <typename T>
-inline void MCTrackT<T>::Get4Momentum(TLorentzVector& momentum)
+inline void MCTrackT<T>::Get4Momentum(TLorentzVector& momentum) const
 {
   momentum.SetXYZT(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ, GetEnergy());
 }
 
 template <typename T>
-inline void MCTrackT<T>::GetStartVertex(TVector3& vertex)
+inline void MCTrackT<T>::GetStartVertex(TVector3& vertex) const
 {
   vertex.SetXYZ(mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ);
 }
@@ -380,15 +404,13 @@ inline void MCTrackT<T>::Print(Int_t trackId) const
 template <typename T>
 inline Double_t MCTrackT<T>::GetMass() const
 {
-  TDatabasePDG* pdgdb = O2DatabasePDG::Instance();
-  if (pdgdb) {
-    auto particle = pdgdb->GetParticle(mPdgCode);
-    if (particle) {
-      return particle->Mass();
-    }
+  bool success{};
+  auto mass = O2DatabasePDG::Mass(mPdgCode, success);
+  if (!success) {
+    // coming here is a mistake which should not happen
+    MCTrackHelper::printMassError(mPdgCode);
   }
-  MCTrackHelper::printMassError(mPdgCode);
-  return 0; // coming here is a mistake which should not happen
+  return mass;
 }
 
 template <typename T>

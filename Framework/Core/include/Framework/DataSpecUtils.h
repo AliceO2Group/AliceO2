@@ -150,7 +150,13 @@ struct DataSpecUtils {
   /// If possible extract the ConcreteDataMatcher from an OutputSpec.
   /// For the moment this is trivial as the OutputSpec does not allow
   /// for wildcards.
+  /// @throw std::runtime_error if the OutputSpec contains wildcards.
   static ConcreteDataMatcher asConcreteDataMatcher(OutputSpec const& spec);
+
+  /// As the other asConcreteDataMatcher, but returns a std::optional
+  /// and does its best to handle the case where the OutputSpec contains
+  /// a wildcard.
+  static std::optional<ConcreteDataMatcher> asOptionalConcreteDataMatcher(OutputSpec const& spec);
 
   /// If possible extract the ConcreteTypeDataMatcher from an OutputSpec.
   /// This will always be possible, but implementation will have to
@@ -224,6 +230,9 @@ struct DataSpecUtils {
 
   /// Updates list of InputSpecs by merging metadata
   static void updateInputList(std::vector<InputSpec>& list, InputSpec&& input);
+
+  /// Updates list of OutputSpecs by merging metadata (or adding output).
+  static void updateOutputList(std::vector<OutputSpec>& list, OutputSpec&& input);
 };
 
 } // namespace framework

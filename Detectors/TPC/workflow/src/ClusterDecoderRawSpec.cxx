@@ -26,6 +26,7 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <fairlogger/Logger.h>
+#include <set>
 #include <memory> // for make_shared
 #include <vector>
 #include <map>

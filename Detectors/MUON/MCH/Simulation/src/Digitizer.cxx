@@ -10,49 +10,53 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/Digitizer.h"
-#include "MCHMappingInterface/Segmentation.h"
-#include "CommonDataFormat/InteractionRecord.h"
-#include <algorithm>
+
+#include "MCHSimulation/DigitizerParam.h"
 
 namespace o2::mch
 {
 
 Digitizer::Digitizer(geo::TransformationCreator transformationCreator)
+  : mRandom{DigitizerParam::Instance().seed == 0 ? std::random_device{}() : DigitizerParam::Instance().seed}
 {
-  mapping::forEachDetectionElement([&transformation = transformationCreator, &digitizers = this->mDEDigitizers](int deId) {
-    digitizers[deId] = std::make_unique<DEDigitizer>(deId, transformation(deId));
+  mapping::forEachDetectionElement([&](int deId) {
+    mDEDigitizers[deId] = std::make_unique<DEDigitizer>(deId, transformationCreator(deId), mRandom);
   });
 }
 
-void Digitizer::addNoise(float noiseProba)
-{
-  if (noiseProba > 0) {
-    for (auto& d : mDEDigitizers) {
-      d.second->addNoise(noiseProba);
-    }
-  }
-}
-
-void Digitizer::startCollision(o2::InteractionRecord collisionTime)
-{
-  for (auto& d : mDEDigitizers) {
-    d.second->startCollision(collisionTime);
-  }
-}
-
-void Digitizer::processHits(gsl::span<Hit> hits, int evID, int srcID)
+void Digitizer::processHits(gsl::span<const Hit> hits, const InteractionRecord& collisionTime, int evID, int srcID)
 {
   for (const auto& hit : hits) {
-    mDEDigitizers[hit.detElemId()]->process(hit, evID, srcID);
+    mDEDigitizers[hit.detElemId()]->processHit(hit, collisionTime, evID, srcID);
   }
 }
 
-void Digitizer::extractDigitsAndLabels(std::vector<Digit>& digits,
-                                       o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
+void Digitizer::addNoise(const InteractionRecord& firstIR, const InteractionRecord& lastIR)
 {
   for (auto& d : mDEDigitizers) {
-    d.second->extractDigitsAndLabels(digits, labels);
+    d.second->addNoise(firstIR, lastIR);
   }
+}
+
+size_t Digitizer::digitize(std::vector<ROFRecord>& rofs,
+                           std::vector<Digit>& digits,
+                           dataformats::MCLabelContainer& labels)
+{
+  // digitize every DE and store digits and labels ordered per IR
+  size_t nPileup = 0;
+  std::map<InteractionRecord, DEDigitizer::DigitsAndLabels> irDigitsAndLabels{};
+  for (auto& d : mDEDigitizers) {
+    nPileup += d.second->digitize(irDigitsAndLabels);
+  }
+
+  // fill the external containers
+  for (const auto& [ir, digitsAndLabels] : irDigitsAndLabels) {
+    rofs.emplace_back(ROFRecord(ir, digits.size(), digitsAndLabels.first.size()));
+    digits.insert(digits.end(), digitsAndLabels.first.begin(), digitsAndLabels.first.end());
+    labels.mergeAtBack(digitsAndLabels.second);
+  }
+
+  return nPileup;
 }
 
 void Digitizer::clear()
@@ -60,34 +64,6 @@ void Digitizer::clear()
   for (auto& d : mDEDigitizers) {
     d.second->clear();
   }
-}
-
-std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionTimeRecord> records, uint32_t width)
-{
-  std::vector<o2::InteractionRecord> irs;
-  for (const auto& ir : records) {
-    irs.emplace_back(ir.bc, ir.orbit);
-  }
-  return groupIR(irs, width);
-}
-
-std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionRecord> records, uint32_t width)
-{
-  if (!std::is_sorted(records.begin(), records.end())) {
-    throw std::invalid_argument("input records must be sorted");
-  }
-  if (width < 1) {
-    throw std::invalid_argument("width must be >=1");
-  }
-  std::map<o2::InteractionRecord, std::vector<int>> binned;
-  auto ir0 = records[0];
-  for (auto i = 0; i < records.size(); ++i) {
-    auto ir = records[i];
-    auto mchIR = ir;
-    mchIR.bc = mchIR.bc - mchIR.bc % width;
-    binned[mchIR].emplace_back(i);
-  }
-  return binned;
 }
 
 } // namespace o2::mch

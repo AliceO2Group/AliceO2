@@ -34,6 +34,43 @@ enum struct DplPluginKind : int {
   Unknown
 };
 
+/// A service which can be loaded from a shared library.
+/// Description is the actual string "LibraryName:ServiceName"
+/// which can be used to load it.
+template <typename T>
+struct LoadableServicePlugin {
+  // How to load the given service.
+  std::string loadSpec;
+
+  void setInstance(T* instance_)
+  {
+    ptr = instance_;
+  }
+
+  T& operator*() const
+  {
+    return ptr;
+  }
+
+  T* operator->() const
+  {
+    return ptr;
+  }
+
+  T* get() const
+  {
+    return ptr;
+  }
+
+  void reset()
+  {
+    delete ptr;
+    ptr = nullptr;
+  }
+
+  T* ptr = nullptr;
+};
+
 } // namespace o2::framework
 
 /// An handle for a generic DPL plugin.
@@ -77,6 +114,8 @@ struct PluginInfo {
 namespace o2::framework
 {
 struct PluginManager {
+  using WrapperProcessCallback = std::function<void(AlgorithmSpec::ProcessCallback&, ProcessingContext&)>;
+
   template <typename T>
   static T* getByName(DPLPluginHandle* handle, char const* name)
   {
@@ -92,6 +131,12 @@ struct PluginManager {
   /// On successfull completion @a onSuccess is called passing
   /// the DPLPluginHandle provided by the library.
   static void load(std::vector<PluginInfo>& infos, const char* dso, std::function<void(DPLPluginHandle*)>& onSuccess);
+  /// Load an called @plugin from a library called @a library and
+  /// return the associtated AlgorithmSpec.
+  static auto loadAlgorithmFromPlugin(std::string library, std::string plugin) -> AlgorithmSpec;
+  /// Wrap an algorithm with some lambda @wrapper which will be called
+  /// with the original callback and the ProcessingContext.
+  static auto wrapAlgorithm(AlgorithmSpec const& spec, WrapperProcessCallback&& wrapper) -> AlgorithmSpec;
 };
 
 } // namespace o2::framework

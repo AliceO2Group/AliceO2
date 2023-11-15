@@ -18,6 +18,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTSPACECHARGECORRECTIONMAP_H
 
 #include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 #include <vector>
 
 namespace GPUCA_NAMESPACE
@@ -26,10 +27,11 @@ namespace gpu
 {
 
 ///
-/// The TPCFastSpaceChargeCorrectionMap class represents correction of nominal coordinates of TPC clusters
-/// using best-fit splines
+/// The TPCFastSpaceChargeCorrectionMap class represents a maps of corrections of nominal coordinates of TPC clusters
 ///
 /// Row, U, V -> dX,dU,dV
+///
+/// It is used by TPCFastSpoaceChargeCorrectionHelper
 ///
 /// The class is flat C structure. No virtual methods, no ROOT types are used.
 ///
@@ -94,6 +96,10 @@ class TPCFastSpaceChargeCorrectionMap
   int mNrocs{0};
   int mNrows{0};
   std::vector<std::vector<CorrectionPoint>> fDataPoints; //! (transient!!) points with space charge correction
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(TPCFastSpaceChargeCorrectionMap, 0);
+#endif
 };
 
 } // namespace gpu

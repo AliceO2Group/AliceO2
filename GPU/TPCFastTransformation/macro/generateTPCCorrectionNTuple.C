@@ -67,7 +67,7 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
   sc->setGlobalDistType(SC::GlobalDistType::None);
   sc->fillChargeDensityFromHisto(*mHisSCDensity3D.get());
   // select constant distortions (over time), realistic distortions changing in time not yet pushed to official code
-  sc->setSCDistortionType(SC::SCDistortionType::SCDistortionsConstant);
+  sc->setSCDistortionType(SCDistortionType::SCDistortionsConstant);
   // gas parameters nor Ne-CO2-N2 90-10-5
   sc->setOmegaTauT1T2(0.32, 1, 1);
   // start calculation of lookup tables (takes some time)
@@ -84,8 +84,8 @@ void generateTPCCorrectionNTuple(const char* path = "InputSCDensityHistograms.ro
   TFile* f = new TFile("tpcCorrection.root", "RECREATE");
   TNtuple* nt = new TNtuple("dist", "dist", "slice:row:su:sv:dx:du:dv");
 
-  int nSlices = 1; //fastTransform->getNumberOfSlices();
-  //for( int slice=0; slice<nSlices; slice++){
+  int nSlices = 1; // fastTransform->getNumberOfSlices();
+  // for( int slice=0; slice<nSlices; slice++){
   for (int slice = 0; slice < 1; slice++) {
     const o2::gpu::TPCFastTransformGeo::SliceInfo& sliceInfo = geo.getSliceInfo(slice);
 

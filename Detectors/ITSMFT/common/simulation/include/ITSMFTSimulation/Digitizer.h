@@ -127,7 +127,7 @@ class Digitizer : public TObject
   o2::itsmft::AlpideSimResponse* mAlpSimRespIB = nullptr;
   o2::itsmft::AlpideSimResponse* mAlpSimRespOB = nullptr;
   o2::itsmft::AlpideSimResponse mAlpSimResp[2]; // simulated response
-
+  std::string mResponseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
   const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 
   std::vector<o2::itsmft::ChipDigitsContainer> mChips; ///< Array of chips digits containers

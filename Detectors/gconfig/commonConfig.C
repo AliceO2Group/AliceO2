@@ -2,8 +2,9 @@
 // with VMC instances
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
+#include "SimConfig/SimParams.h"
 #include "TVirtualMC.h"
 #include "Generators/DecayerPythia8.h"
 #endif
@@ -17,6 +18,7 @@ void stackSetup(T* vmc, R* run)
   auto& stackparam = o2::sim::StackParam::Instance();
   st->StoreSecondaries(stackparam.storeSecondaries);
   st->pruneKinematics(stackparam.pruneKine);
+  st->setTrackSeedingMode(o2::conf::SimCutParams::Instance().trackSeed);
   vmc->SetStack(st);
 
   /*

@@ -108,8 +108,11 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
   }   // close if continuous
 
   for (auto& hit : *hits) {
-    //TODO: put readout window counting/selection
-
+    // TODO: put readout window counting/selection
+    //  neglect very slow particles (low energy neutrons)
+    if (hit.GetTime() > 1000) { // 1 mus
+      continue;
+    }
     processHit(hit, mEventTime.getTimeOffsetWrtBC() + Geo::LATENCYWINDOW);
   } // end loop over hits
 
@@ -518,6 +521,17 @@ Float_t Digitizer::getEffZ(Float_t z)
 //______________________________________________________________________
 Float_t Digitizer::getFractionOfCharge(Float_t x, Float_t z) { return 1; }
 //______________________________________________________________________
+void Digitizer::setShowerSmearing()
+{
+  mShowerResolution = 50; // smearing correlated for all digits of the same hit
+  if (mTOFresolution > mShowerResolution) {
+    mDigitResolution = TMath::Sqrt(mTOFresolution * mTOFresolution - mShowerResolution * mShowerResolution); // independent smearing for each digit
+  } else {
+    mShowerResolution = mTOFresolution;
+    mDigitResolution = 0;
+  }
+}
+//______________________________________________________________________
 void Digitizer::initParameters()
 {
   // boundary references for interpolation of efficiency and resolution
@@ -528,14 +542,7 @@ void Digitizer::initParameters()
 
   // resolution parameters
   mTOFresolution = TOFSimParams::Instance().time_resolution; // TOF global resolution in ps
-  mShowerResolution = 50; // smearing correlated for all digits of the same hit
-  if (mTOFresolution > mShowerResolution) {
-    mDigitResolution = TMath::Sqrt(mTOFresolution * mTOFresolution -
-                                   mShowerResolution * mShowerResolution); // independent smearing for each digit
-  } else {
-    mShowerResolution = mTOFresolution;
-    mDigitResolution = 0;
-  }
+  setShowerSmearing();
 
   mTimeSlope = 100;     // ps/cm extra smearing if hit out of pad propto the distance from the border
   mTimeDelay = 70;      // time delay if hit out of pad

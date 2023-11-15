@@ -25,6 +25,7 @@ namespace o2
 namespace ctp
 {
 /// CTP related constants
+static constexpr int CRUPageAlignment = 16;
 static constexpr uint32_t GBTLinkIDIntRec = 0;
 static constexpr uint32_t NIntRecPayload = 48 + 12;
 static constexpr uint32_t GBTLinkIDClassRec = 1;
@@ -33,6 +34,7 @@ static constexpr uint32_t NGBT = 80;
 static constexpr std::uint32_t NumOfHBInTF = 128;
 static constexpr uint32_t NRUNS = 16;
 typedef std::bitset<NGBT> gbtword80_t;
+typedef std::bitset<128> gbtword128_t;
 //
 static constexpr std::uint32_t CTP_NINPUTS = 48;    /// Max number of CTP inputs for all levels
 static constexpr std::uint32_t CTP_NCLASSES = 64;   /// Number of classes in hardware
@@ -49,11 +51,13 @@ struct CTPDigit {
   o2::InteractionRecord intRecord;
   std::bitset<CTP_NINPUTS> CTPInputMask;
   std::bitset<CTP_NCLASSES> CTPClassMask;
-  CTPDigit() = default;
   void printStream(std::ostream& stream) const;
   void setInputMask(gbtword80_t mask);
   void setClassMask(gbtword80_t mask);
-  bool operator==(const CTPDigit& d) const
+  bool isInputEmpty() const { return CTPInputMask.count() == 0; }
+  const bool isClassEmpty() const { return CTPClassMask.count() == 0; }
+  const bool isEmpty() const { return isInputEmpty() && isClassEmpty(); }
+  const bool operator==(const CTPDigit& d) const
   {
     return intRecord == d.intRecord && CTPInputMask == d.CTPInputMask && CTPClassMask == d.CTPClassMask;
   }
@@ -67,7 +71,6 @@ struct CTPInputDigit {
   o2::InteractionRecord intRecord;
   std::bitset<CTP_MAXTRIGINPPERDET> inputsMask;
   o2::detectors::DetID::ID detector;
-  CTPInputDigit() = default;
   ClassDefNV(CTPInputDigit, 1)
 };
 } // namespace ctp

@@ -89,8 +89,7 @@ HmpidDecoder::~HmpidDecoder()
 /// Init all the members variables.
 void HmpidDecoder::init()
 {
-  mRDHAcceptedVersion = 6;
-  mRDHSize = sizeof(o2::header::RAWDataHeaderV6) / sizeof(uint32_t);
+  mRDHSize = sizeof(o2::header::RAWDataHeader) / sizeof(uint32_t);
 
   mVerbose = 0;
   mHeEvent = 0;
@@ -359,7 +358,7 @@ bool HmpidDecoder::decodeHmpidError(int ErrorField, char* outbuf)
 int HmpidDecoder::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
 {
   uint32_t* buffer = streamPtrAdr; // Sets the pointer to buffer
-  o2::header::RAWDataHeaderV6* hpt = (o2::header::RAWDataHeaderV6*)buffer;
+  o2::header::RAWDataHeader* hpt = (o2::header::RAWDataHeader*)buffer;
 
   /*
   mHeFEEID = (buffer[0] & 0x000f0000) >> 16;

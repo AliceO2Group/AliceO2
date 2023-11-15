@@ -28,6 +28,7 @@ struct GPUTRDTrackDataRecord {
   float fC[15];              // covariance matrix
   int fTPCTrackID;           // id of corresponding TPC track
   int fAttachedTracklets[6]; // IDs for attached tracklets sorted by layer
+  unsigned char mIsPadrowCrossing; // bits 0 to 5 indicate whether a padrow was crossed
 
   int GetNTracklets() const
   {

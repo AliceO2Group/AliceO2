@@ -23,6 +23,7 @@ o2_add_library(TPCWorkflow
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
                        src/KryptonRawFilterSpec.cxx
+                       src/OccupancyFilterSpec.cxx
                        src/SACProcessorSpec.cxx
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
@@ -34,6 +35,17 @@ o2_add_library(TPCWorkflow
                        src/TrackAndClusterFilterSpec.cxx
                        src/FileWriterSpec.cxx
                        src/TPCVDriftTglCalibSpec.cxx
+                       src/ClusterQCSpec.cxx
+                       src/TPCIntegrateClusterReaderSpec.cxx
+                       src/TPCIntegrateClusterSpec.cxx
+                       src/TPCIntegrateClusterWriterSpec.cxx
+                       src/TPCTriggerWriterSpec.cxx
+                       src/TPCMergeIntegrateClusterSpec.cxx
+                       src/TPCTimeSeriesSpec.cxx
+                       src/TPCTimeSeriesWriterSpec.cxx
+                       src/TPCTimeSeriesReaderSpec.cxx
+                       src/TPCMergeTimeSeriesSpec.cxx
+                       src/TPCScalerSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -45,40 +57,10 @@ o2_add_library(TPCWorkflow
            )
 
 o2_add_library(TPCWorkflowGUI
-               SOURCES src/RecoWorkflow.cxx
-                       src/ClustererSpec.cxx
-                       src/ClusterDecoderRawSpec.cxx
-                       src/EntropyEncoderSpec.cxx
-                       src/EntropyDecoderSpec.cxx
-                       src/RawToDigitsSpec.cxx
-                       src/LinkZSToDigitsSpec.cxx
-                       src/ZSSpec.cxx
-                       src/CalibProcessingHelper.cxx
-                       src/ClusterSharingMapSpec.cxx
-                       src/CalDetMergerPublisherSpec.cxx
-                       src/KryptonClustererSpec.cxx
-                       src/KryptonRawFilterSpec.cxx
-                       src/SACProcessorSpec.cxx
-                       src/IDCToVectorSpec.cxx
-                       src/CalibdEdxSpec.cxx
-                       src/CalibratordEdxSpec.cxx
-                       src/MIPTrackFilterSpec.cxx
-                       src/LaserTrackFilterSpec.cxx
-                       src/ApplyCCDBCalibSpec.cxx
-                       src/MonitorWorkflowSpec.cxx
-                       src/ProcessingHelpers.cxx
-                       src/TrackAndClusterFilterSpec.cxx
-                       src/FileWriterSpec.cxx
-                       src/TPCVDriftTglCalibSpec.cxx
+               SOURCES src/MonitorWorkflowSpec.cxx
                TARGETVARNAME targetName
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
-                                     O2::DPLUtils O2::TPCReconstruction
-                                     O2::TPCCalibration O2::TPCSimulation
-                                     O2::TPCQC O2::DetectorsCalibration
-                                     O2::TPCReaderWorkflow
+               PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
                                      O2::TPCMonitor
-               PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
-                                      O2::GPUWorkflow
            )
 
 
@@ -195,6 +177,11 @@ o2_add_executable(krypton-raw-filter
                   SOURCES src/tpc-krypton-raw-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(occupancy-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-occupancy-filter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(idc-to-vector
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-idc-to-vector.cxx
@@ -230,6 +217,41 @@ o2_add_executable(calib-gainmap-tracks
                   SOURCES src/tpc-calib-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow O2::GlobalTracking)
 
+o2_add_executable(integrate-cluster-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-integrate-cluster-currents.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(integrate-cluster-reader-workflow
+                  SOURCES src/cluster-integrator-reader.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(merge-integrate-cluster-workflow
+                  SOURCES src/cluster-merge-integrator.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(time-series-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-time-series.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(time-series-reader-workflow
+                  SOURCES src/time-series-reader.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(merge-time-series-workflow
+                  SOURCES src/time-series-merge-integrator.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(scaler-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-scaler.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow
@@ -254,6 +276,11 @@ o2_add_executable(calibrator-gainmap-tracks
 
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(cluster-qc
+                  SOURCES src/tpc-cluster-qc.cxx
                   COMPONENT_NAME tpc
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 

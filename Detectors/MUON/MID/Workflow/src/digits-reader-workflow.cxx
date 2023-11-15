@@ -18,10 +18,6 @@
 #include <vector>
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsMID/ColumnData.h"
-#include "DataFormatsMID/ROFRecord.h"
-#include "DataFormatsMID/MCLabel.h"
 #include "MIDWorkflow/DigitReaderSpec.h"
 #include "MIDWorkflow/FilteringSpec.h"
 #include "MIDWorkflow/ZeroSuppressionSpec.h"

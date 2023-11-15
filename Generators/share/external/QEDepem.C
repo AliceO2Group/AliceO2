@@ -25,13 +25,28 @@ o2::eventgen::GeneratorTGenerator* QEDepem()
     LOG(fatal) << "QEDGenParam.ptMin(" << qedParam.ptMin << ") >= QEDGenParam.ptMax(" << qedParam.ptMax << ")";
   }
 
-  auto genBg = new TGenEpEmv1();
-  genBg->SetYRange(qedParam.yMin, qedParam.yMax);                                  // Set Y limits
-  genBg->SetPtRange(qedParam.ptMin, qedParam.ptMax);                               // Set pt limits (GeV) for e+-: 1MeV corresponds to max R=13.3mm at 5kGaus
-  genBg->SetOrigin(diamond.position[0], diamond.position[1], diamond.position[2]); // vertex position in space
-  genBg->SetSigma(diamond.width[0], diamond.width[1], diamond.width[2]);           // vertex sigma
-  genBg->SetTimeOrigin(0.);                                                        // vertex position in time
-  genBg->Init();
+  const int numTrials = 5; // spent 5 tries to init generator (might fail because of convergence/sampling issues)
+  int trial = 0;
+  TGenEpEmv1* genBg = nullptr;
+  bool initialized = false;
+  for (; trial < numTrials; ++trial) {
+    genBg = new TGenEpEmv1();
+    genBg->SetYRange(qedParam.yMin, qedParam.yMax);                                  // Set Y limits
+    genBg->SetPtRange(qedParam.ptMin, qedParam.ptMax);                               // Set pt limits (GeV) for e+-: 1MeV corresponds to max R=13.3mm at 5kGaus
+    genBg->SetOrigin(diamond.position[0], diamond.position[1], diamond.position[2]); // vertex position in space
+    genBg->SetSigma(diamond.width[0], diamond.width[1], diamond.width[2]);           // vertex sigma
+    genBg->SetTimeOrigin(0.);                                                        // vertex position in time
+    initialized = genBg->Init();
+    if (!initialized) {
+      delete genBg;
+    } else {
+      break;
+    }
+  }
+  if (!initialized) {
+    LOG(fatal) << "Could not initialize the QED generator";
+  }
+  LOG(info) << "QED event generator has been setup in " << (trial + 1) << " trial";
 
   // calculate and store X-section
   std::ostringstream xstr;

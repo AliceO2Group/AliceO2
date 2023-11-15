@@ -12,58 +12,65 @@
 #ifndef O2_MCH_BASE_ERROR_MAP_H_H
 #define O2_MCH_BASE_ERROR_MAP_H_H
 
-#include <map>
-#include <set>
 #include <cstdint>
 #include <functional>
+#include <map>
+
+#include <gsl/span>
+
+#include "MCHBase/Error.h"
 
 namespace o2::mch
 {
 
-/** A container class to summarize errors encountered during processing.
+/** @brief A container class to summarize errors encountered during processing.
  *
- * The interface is :
- * add(errorType, id0, id1)
+ * @details The main interface is :
+ * add(errorType, id0, id1[, count])
  *
- * where errorType, id0 and id1 are integers (unsigned, 32 bits wide)
+ * where errorType is the type of the error and id0 and id1 are additional
+ * descriptors, whose meaning depends on the error type (see Error.h/cxx)
  *
- * ErrorMap stores the number of times the add method has been
- * called for the {errorType,id0,id1} triplet.
- *
- * The exact meaning of the triplet members is left to the client of ErrorMap.
- *
+ * additional interfaces are provided to add and access the errors,
+ * or execute a function on all or some of them
  */
 class ErrorMap
 {
  public:
-  /* ErrorFunction is a function that receive a triplet {errorType,id0,id1)
-   * and the number of times (count) that triplet has been seen.
-   */
-  using ErrorFunction = std::function<void(uint32_t errorType,
-                                           uint32_t id0,
-                                           uint32_t id1,
-                                           uint64_t count)>;
+  using ErrorFunction = std::function<void(Error error)>;
 
-  /* increment the count of the {errorType,id0,id1} triplet by one.*/
-  void add(uint32_t errorType, uint32_t id0, uint32_t id1);
+  /** increment the count of the {errorType,id0,id1} triplet by n */
+  void add(ErrorType errorType, uint32_t id0, uint32_t id1, uint64_t n = 1);
+  /** add or increment this error */
+  void add(Error error);
+  /** add or increment these errors */
+  void add(gsl::span<const Error> errors);
+  /** add or increment these errors */
+  void add(const ErrorMap& errors);
 
-  /* execute function f on all {errorType,id0,id1} triplets.
-   *
-   * The function is passed the triplet and the corresponding occurence count
-   * of that triplet.
-   */
+  /** erase all encountered errors */
+  void clear() { mErrors.clear(); }
+
+  /** return the number of encountered types of error */
+  uint64_t getNumberOfErrorTypes() const { return mErrors.size(); }
+  /** return the total number of encountered errors */
+  uint64_t getNumberOfErrors() const;
+  /** return the total number of encountered errors of a given type */
+  uint64_t getNumberOfErrors(ErrorType type) const;
+  /** return the total number of encountered errors of a given group */
+  uint64_t getNumberOfErrors(ErrorGroup group) const;
+
+  /** execute function f on all encountered errors */
   void forEach(ErrorFunction f) const;
+  /** execute function f on all encountered errors of a given type */
+  void forEach(ErrorType type, ErrorFunction f) const;
+  /** execute function f on all encountered errors of a given group */
+  void forEach(ErrorGroup group, ErrorFunction f) const;
 
  private:
-  std::map<uint32_t, std::map<uint64_t, uint64_t>> mErrorCounts;
+  std::map<ErrorType, std::map<uint64_t, Error>> mErrors{}; ///< map of encountered errors
 };
 
-/* convenience function to get the number of error types */
-uint64_t numberOfErrorTypes(const ErrorMap& em);
-
-/* convenience function to get the total number of errors */
-uint64_t totalNumberOfErrors(const ErrorMap& em);
-
-}; // namespace o2::mch
+} // namespace o2::mch
 
 #endif

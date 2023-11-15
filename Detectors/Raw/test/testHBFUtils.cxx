@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <bitset>
 #include <boost/test/unit_test.hpp>
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Headers/RAWDataHeader.h"
 #include <TRandom.h>

@@ -21,6 +21,7 @@
 #include <array>
 
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"
@@ -41,22 +42,34 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
   ~VertexerTraitsGPU() override;
-  void initialise(const TrackingParameters& trackingParams) override;
-  void adoptTimeFrame(TimeFrame* tf) override;
+  void initialise(const TrackingParameters&) override;
+  void adoptTimeFrame(TimeFrame*) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;
-  void updateVertexingParameters(const VertexingParameters& vrtPar) override;
-  // void computeMCFiltering() override;
+
+  // Hybrid
+  void initialiseHybrid(const TrackingParameters& pars) override { VertexerTraits::initialise(pars); }
+  void adoptTimeFrameHybrid(TimeFrame* tf) override { VertexerTraits::adoptTimeFrame(tf); }
+  void computeTrackletsHybrid() override { VertexerTraits::computeTracklets(); }
+  void computeTrackletMatchingHybrid() override { VertexerTraits::computeTrackletMatching(); }
+  void computeVerticesHybrid() override { VertexerTraits::computeVertices(); }
+
+  void updateVertexingParameters(const VertexingParameters&, const TimeFrameGPUParameters&) override;
 
   void computeVerticesHist();
 
  protected:
   IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
+  TimeFrameGPUParameters mTfGPUParams;
 };
 
-inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }
+inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf)
+{
+  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf);
+  mTimeFrame = static_cast<TimeFrame*>(tf);
+}
 
 } // namespace its
 } // namespace o2

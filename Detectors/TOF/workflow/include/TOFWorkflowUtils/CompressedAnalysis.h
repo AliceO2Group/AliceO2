@@ -28,7 +28,7 @@ namespace o2
 namespace tof
 {
 
-class CompressedAnalysis : public DecoderBaseT<o2::header::RAWDataHeaderV6>
+class CompressedAnalysis : public DecoderBaseT<o2::header::RAWDataHeader>
 {
 
  public:

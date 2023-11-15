@@ -24,7 +24,7 @@ namespace trd
 class TRDTrackletTransformerSpec : public o2::framework::Task
 {
  public:
-  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool trigRecFilterActive, bool applyXOR) : mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrigRecFilterActive(trigRecFilterActive), mApplyXOR(applyXOR){};
+  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool trigRecFilterActive) : mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrigRecFilterActive(trigRecFilterActive){};
   ~TRDTrackletTransformerSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -35,12 +35,11 @@ class TRDTrackletTransformerSpec : public o2::framework::Task
 
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
-  bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
-  bool mApplyXOR;            ///< if true, the 8-th bit of position and slope will be inverted before transformation in chamber coordinates
+  bool mTrigRecFilterActive = false; ///< if true, transform only TRD tracklets for which ITS data is available
   TrackletTransformer mTransformer;
 };
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, bool applyXOR);
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive);
 
 } // end namespace trd
 } // end namespace o2

@@ -47,10 +47,10 @@ namespace o2::framework
 /// auto &deviceSpec = ctx.services().get<DeviceSpec const>();
 struct DeviceSpec {
   /// The name of the associated DataProcessorSpec
-  std::string name;
+  std::string name = "unknown";
   /// The id of the device, including time-pipelining and suffix
-  std::string id;
-  std::string channelPrefix;
+  std::string id = "unknown";
+  std::string channelPrefix = "";
   std::vector<InputChannelSpec> inputChannels;
   std::vector<OutputChannelSpec> outputChannels;
   std::vector<std::string> arguments;
@@ -79,6 +79,7 @@ struct DeviceSpec {
   ComputingResource resource;
   unsigned short resourceMonitoringInterval;
   std::vector<DataProcessorLabel> labels;
+  std::vector<DataProcessorMetadata> metadata;
 };
 
 } // namespace o2::framework

@@ -12,6 +12,7 @@
 /// \file TestCTPScalers.C
 /// \brief create CTP scalers, test it and add to database
 /// \author Roman Lietava
+// root -b -q "GetScalers.C(\"519499\", 1656286373953)"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <fairlogger/Logger.h>
@@ -35,19 +36,28 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   CTPRunScalers scl;
   CTPRunManager mng;
   mng.setCCDBHost(ccdbHost);
-  // mng.setCCDBPathScalers("CTP/Scalers");
   bool ok;
+  // ctpcfg = mng.getConfigFromCCDB(time, srun);
+  // ctpcfg.printStream(std::cout);
+  // return;
   scl = mng.getScalersFromCCDB(time, srun, ok);
   if (ok == 1) {
+    scl.printStream(std::cout);
     scl.convertRawToO2();
-    // scl.printStream(std::cout);
-    //  scl.printRates();
-    scl.printIntegrals();
-    ctpcfg = mng.getConfigFromCCDB(time, srun);
-    // std::vector<int> clsses;
-    // clsses = ctpcfg.getTriggerClassList();
-    // std::cout << clsses.size() << std::endl;
-    // for(auto const& i : clsses) std::cout << i << std::endl;
+    // scl.printO2(std::cout);
+    // scl.printFromZero(std::cout);
+    // scl.printIntegrals();
+    // scl.printRates();
+    std::cout << "TVX,TSC,TCE,ZNC:" << std::endl;
+    scl.printInputRateAndIntegral(3);
+    scl.printInputRateAndIntegral(4);
+    scl.printInputRateAndIntegral(5);
+    scl.printInputRateAndIntegral(26);
+    std::cout << " TVX,TVX&TCE,TVX&TSC,TVX&VCH:" << std::endl;
+    scl.printClassBRateAndIntegral(3);
+    scl.printClassBRateAndIntegral(4);
+    scl.printClassBRateAndIntegral(5);
+    scl.printClassBRateAndIntegral(6);
   } else {
     std::cout << "Can not find run, please, check parameters" << std::endl;
   }

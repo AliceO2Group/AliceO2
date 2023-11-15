@@ -14,6 +14,7 @@
 #include <ios>
 #include <iostream>
 #include <cassert>
+#include <fmt/format.h>
 
 using namespace o2;
 
@@ -22,6 +23,13 @@ void MCEventLabel::print() const
 {
   // print itself
   std::cout << (MCEventLabel) * this << std::endl;
+}
+
+//_____________________________________________
+std::string MCEventLabel::asString() const
+{
+  // stream itself
+  return isSet() ? fmt::format("[{}/{}/{}]", getSourceID(), getEventID(), getCorrWeight()) : "[unset]";
 }
 
 //_____________________________________________

@@ -8,11 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework OptionsRetriever
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <boost/program_options.hpp>
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/ConfigParamStore.h"
@@ -22,7 +19,7 @@
 namespace bpo = boost::program_options;
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
+TEST_CASE("TestFairMQOptionsRetriever")
 {
   bpo::options_description testOptions("Test options");
   testOptions.add_options()                                               //
@@ -64,21 +61,21 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
   store.preload();
   store.activate();
 
-  BOOST_CHECK_EQUAL(store.store().get<float>("aFloat"), 1.0);
-  BOOST_CHECK_EQUAL(store.store().get<double>("aDouble"), 2.0);
-  BOOST_CHECK_EQUAL(store.store().get<int>("anInt"), 10);
-  BOOST_CHECK_EQUAL(store.store().get<int64_t>("anInt64"), 50000000000000ll);
-  BOOST_CHECK_EQUAL(store.store().get<bool>("aBoolean"), true);
-  BOOST_CHECK_EQUAL(store.store().get<std::string>("aString"), "somethingelse");
-  BOOST_CHECK_EQUAL(store.store().get<int>("aNested.int"), 1);
-  BOOST_CHECK_EQUAL(store.store().get<float>("aNested.float"), 2.f);
+  REQUIRE(store.store().get<float>("aFloat") == 1.0);
+  REQUIRE(store.store().get<double>("aDouble") == 2.0);
+  REQUIRE(store.store().get<int>("anInt") == 10);
+  REQUIRE(store.store().get<int64_t>("anInt64") == 50000000000000ll);
+  REQUIRE(store.store().get<bool>("aBoolean") == true);
+  REQUIRE(store.store().get<std::string>("aString") == "somethingelse");
+  REQUIRE(store.store().get<int>("aNested.int") == 1);
+  REQUIRE(store.store().get<float>("aNested.float") == 2.f);
   // We can get nested objects also via their top-level ptree.
   auto pt = store.store().get_child("aNested");
-  BOOST_CHECK_EQUAL(pt.get<int>("int"), 1);
-  BOOST_CHECK_EQUAL(pt.get<float>("float"), 2.f);
+  REQUIRE(pt.get<int>("int") == 1);
+  REQUIRE(pt.get<float>("float") == 2.f);
 }
 
-BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
+TEST_CASE("TestOptionsDefaults")
 {
   bpo::options_description testOptions("Test options");
   testOptions.add_options()                                               //
@@ -113,23 +110,23 @@ BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
   store.preload();
   store.activate();
 
-  BOOST_CHECK_EQUAL(store.store().get<float>("aFloat"), 10.f);
-  BOOST_CHECK_EQUAL(store.store().get<double>("aDouble"), 20.);
-  BOOST_CHECK_EQUAL(store.store().get<int>("anInt"), 1);
-  BOOST_CHECK_EQUAL(store.store().get<int64_t>("anInt64"), -50000000000000ll);
-  BOOST_CHECK_EQUAL(store.store().get<bool>("aBoolean"), false);
-  BOOST_CHECK_EQUAL(store.store().get<std::string>("aString"), "something");
-  BOOST_CHECK_EQUAL(store.store().get<int>("aNested.int"), 2);
-  BOOST_CHECK_EQUAL(store.store().get<float>("aNested.float"), 3.f);
+  REQUIRE(store.store().get<float>("aFloat") == 10.f);
+  REQUIRE(store.store().get<double>("aDouble") == 20.);
+  REQUIRE(store.store().get<int>("anInt") == 1);
+  REQUIRE(store.store().get<int64_t>("anInt64") == -50000000000000ll);
+  REQUIRE(store.store().get<bool>("aBoolean") == false);
+  REQUIRE(store.store().get<std::string>("aString") == "something");
+  REQUIRE(store.store().get<int>("aNested.int") == 2);
+  REQUIRE(store.store().get<float>("aNested.float") == 3.f);
 
   /// They come from FairMQ, not default in any case...
-  BOOST_CHECK_EQUAL(store.provenance("aFloat"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("aDouble"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("anInt"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("anInt64"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("aBoolean"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("aString"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("aNested.int"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("aNested.float"), "fairmq");
-  BOOST_CHECK_EQUAL(store.provenance("aNested.double"), "default");
+  REQUIRE(store.provenance("aFloat") == "fairmq");
+  REQUIRE(store.provenance("aDouble") == "fairmq");
+  REQUIRE(store.provenance("anInt") == "fairmq");
+  REQUIRE(store.provenance("anInt64") == "fairmq");
+  REQUIRE(store.provenance("aBoolean") == "fairmq");
+  REQUIRE(store.provenance("aString") == "fairmq");
+  REQUIRE(store.provenance("aNested.int") == "fairmq");
+  REQUIRE(store.provenance("aNested.float") == "fairmq");
+  REQUIRE(store.provenance("aNested.double") == "default");
 }

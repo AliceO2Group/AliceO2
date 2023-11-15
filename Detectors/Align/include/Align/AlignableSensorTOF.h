@@ -32,17 +32,18 @@ namespace align
 class AlignableSensorTOF : public AlignableSensor
 {
  public:
-  AlignableSensorTOF(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);
-  ~AlignableSensorTOF() = final;
+  AlignableSensorTOF() = default;
+  AlignableSensorTOF(const char* name, int vid, int iid, int isec, Controller* ctr);
+  ~AlignableSensorTOF() final = default;
   //
   void prepareMatrixT2L() final;
   //
-  int GetSector() const { return fSector; }
-  void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }
+  int getSector() const { return mSector; }
+  void setSector(uint32_t sc) { mSector = (uint8_t)sc; }
   //
  protected:
   //
-  uint8_t fSector; // sector ID
+  uint8_t mSector; // sector ID
   //
   ClassDef(AlignableSensorTOF, 1)
 };

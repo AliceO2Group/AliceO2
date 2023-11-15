@@ -12,6 +12,7 @@
 #include "DPLMonitoringBackend.h"
 #include "Framework/DriverClient.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/RuntimeError.h"
 #include <fmt/format.h>
 #include <sstream>
 
