@@ -509,6 +509,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
     .stop = [](ServiceRegistryRef services, void* service) {
       auto* decongestion = (DecongestionService*)service;
+      services.get<TimesliceIndex>().reset();
       decongestion->nextEnumerationTimeslice = 0;
       decongestion->nextEnumerationTimesliceRewinded = false;
       decongestion->lastTimeslice = 0;

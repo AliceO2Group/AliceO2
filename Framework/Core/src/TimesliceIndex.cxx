@@ -205,4 +205,19 @@ InputChannelInfo const& TimesliceIndex::getChannelInfo(ChannelIndex channel) con
   return mChannels[channel.value];
 }
 
+auto TimesliceIndex::reset() -> void
+{
+  mOldestPossibleInput = {
+    .timeslice = {0},
+    /// The actual channel id of the oldest input.
+    .channel = {ChannelIndex::INVALID}};
+  mOldestPossibleOutput = {
+    .timeslice = {0},
+    .channel = {ChannelIndex::INVALID},
+    .slot = {(size_t)-1}};
+  for (auto& channel : mChannels) {
+    channel.oldestForChannel = {0};
+  }
+}
+
 } // namespace o2::framework
