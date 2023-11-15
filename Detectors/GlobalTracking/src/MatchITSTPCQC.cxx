@@ -47,6 +47,7 @@ void MatchITSTPCQC::deleteHistograms()
     delete mPtPhysPrimNum[i];
     delete mPtPhysPrimDen[i];
     delete mFractionITSTPCmatchPhysPrim[i];
+
     // Phi
     delete mPhiNum[i];
     delete mPhiDen[i];
@@ -57,6 +58,7 @@ void MatchITSTPCQC::deleteHistograms()
     delete mPhiVsPtNum[i];
     delete mPhiVsPtDen[i];
     delete mFractionITSTPCmatchPhiVsPt[i];
+
     // Eta
     delete mEtaNum[i];
     delete mEtaDen[i];
@@ -67,6 +69,24 @@ void MatchITSTPCQC::deleteHistograms()
     delete mEtaVsPtNum[i];
     delete mEtaVsPtDen[i];
     delete mFractionITSTPCmatchEtaVsPt[i];
+
+    if (mUseTrkPID) { // Vs Tracking PID hypothesis
+      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+        // Pt
+        delete mPtNumVsTrkPID[i][j];
+        delete mPtDenVsTrkPID[i][j];
+        delete mFractionITSTPCmatchPtVsTrkPID[i][j];
+        // Phi
+        delete mPhiNumVsTrkPID[i][j];
+        delete mPhiDenVsTrkPID[i][j];
+        delete mFractionITSTPCmatchPhiVsTrkPID[i][j];
+        // Eta
+        delete mEtaNumVsTrkPID[i][j];
+        delete mEtaDenVsTrkPID[i][j];
+        delete mFractionITSTPCmatchEtaVsTrkPID[i][j];
+      }
+    }
+
     // 1/Pt
     delete m1OverPtNum[i];
     delete m1OverPtDen[i];
@@ -99,6 +119,7 @@ void MatchITSTPCQC::reset()
     mPtDen_noEta0[i]->Reset();
     mPtPhysPrimNum[i]->Reset();
     mPtPhysPrimDen[i]->Reset();
+
     // Phi
     mPhiNum[i]->Reset();
     mPhiDen[i]->Reset();
@@ -106,6 +127,7 @@ void MatchITSTPCQC::reset()
     mPhiPhysPrimDen[i]->Reset();
     mPhiVsPtNum[i]->Reset();
     mPhiVsPtDen[i]->Reset();
+
     // Eta
     mEtaNum[i]->Reset();
     mEtaDen[i]->Reset();
@@ -113,6 +135,20 @@ void MatchITSTPCQC::reset()
     mEtaPhysPrimDen[i]->Reset();
     mEtaVsPtNum[i]->Reset();
     mEtaVsPtDen[i]->Reset();
+
+    if (mUseTrkPID) { // Vs Tracking PID hypothesis
+      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+        // Pt
+        mPtNumVsTrkPID[i][j]->Reset();
+        mPtDenVsTrkPID[i][j]->Reset();
+        // Phi
+        mPhiNumVsTrkPID[i][j]->Reset();
+        mPhiDenVsTrkPID[i][j]->Reset();
+        // Eta
+        mEtaNumVsTrkPID[i][j]->Reset();
+        mEtaDenVsTrkPID[i][j]->Reset();
+      }
+    }
     // 1/Pt
     m1OverPtNum[i]->Reset();
     m1OverPtDen[i]->Reset();
@@ -158,6 +194,23 @@ bool MatchITSTPCQC::init()
     mEtaVsPtNum[i] = new TH2F(Form("mEtaVsPtNum_%s", title[i].c_str()), Form("Eta vs Pt distribution of ITSTPC matched tracks, wrt %s tracks; #it{p}_{T} [GeV#it{c}]; #it{p}_{T} [GeV#it{c}]; Eta", title[i].c_str()), 100, 0.f, 20.f, 100, -2.f, 2.f);
     mEtaVsPtDen[i] = new TH2F(Form("mEtaVsPtDen_%s", title[i].c_str()), Form("Eta vs Pt distribution of %s tracks; #it{p}_{T} [GeV#it{c}]; #it{p}_{T} [GeV#it{c}]; Eta", title[i].c_str()), 100, 0.f, 20.f, 100, -2.f, 2.f);
     mFractionITSTPCmatchEtaVsPt[i] = new TEfficiency(Form("mFractionITSTPCmatchEtaVsPt_%s", title[i].c_str()), Form("Fraction of ITSTPC matched tracks, wrt %s tracks, Eta vs Pt; #it{p}_{T} [GeV#it{c}]; Eta; Eff", title[i].c_str()), 100, 0.f, 20.f, 100, -2.f, 2.f);
+    if (mUseTrkPID) { // Vs Tracking PID hypothesis
+      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+        // Pt
+        mPtNumVsTrkPID[i][j] = new TH1D(Form("mPtNumVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Pt distribution of ITSTPC matched tracks, wrt %s tracks %s, TrkPID %i; Pt [GeV/c]; dNdPt", title[i].c_str(), etaSel[i].c_str(), j), 100, 0.f, 20.f);
+        mPtDenVsTrkPID[i][j] = new TH1D(Form("mPtDenVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Pt distribution of %s tracks %s, TrkPID %i; Pt [GeV/c]; dNdPt", title[i].c_str(), etaSel[i].c_str(), j), 100, 0.f, 20.f);
+        mFractionITSTPCmatchPtVsTrkPID[i][j] = new TEfficiency(Form("mFractionITSTPCmatchPtVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Fraction of ITSTPC matched tracks wrt %s tracks vs Pt %s, TrkPID %i; Pt [GeV/c]; Eff", title[i].c_str(), etaSel[i].c_str(), j), 100, 0.f, 20.f);
+        // Phi
+        mPhiNumVsTrkPID[i][j] = new TH1D(Form("mPhiNumVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Phi distribution of ITSTPC matched tracks, wrt %s tracks %s, TrkPID %i; Phi [rad]; dNdPhi", title[i].c_str(), etaSel[i].c_str(), j), 100, 0.f, 2 * TMath::Pi());
+        mPhiDenVsTrkPID[i][j] = new TH1D(Form("mPhiDenVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Phi distribution of %s tracks %s, TrkPID %i; Phi [rad]; dNdPhi", title[i].c_str(), etaSel[i].c_str(), j), 100, 0.f, 2 * TMath::Pi());
+        mFractionITSTPCmatchPhiVsTrkPID[i][j] = new TEfficiency(Form("mFractionITSTPCmatchPhiVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Fraction of ITSTPC matched tracks wrt %s tracks vs Phi %s, TrkPID %i; Phi [rad]; Eff", title[i].c_str(), etaSel[i].c_str(), j), 100, 0.f, 2 * TMath::Pi());
+        // Eta
+        mEtaNumVsTrkPID[i][j] = new TH1D(Form("mEtaNumVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Eta distribution of ITSTPC matched tracks, wrt %s tracks %s, TrkPID %i; Eta; dNdEta", title[i].c_str(), etaSel[i].c_str(), j), 100, -2.f, 2.f);
+        mEtaDenVsTrkPID[i][j] = new TH1D(Form("mEtaDenVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Eta distribution of %s tracks %s, TrkPID %i; Eta; dNdEta", title[i].c_str(), etaSel[i].c_str(), j), 100, -2.f, 2.f);
+        mFractionITSTPCmatchEtaVsTrkPID[i][j] = new TEfficiency(Form("mFractionITSTPCmatchEtaVsTrkPID_%s_PID%i", title[i].c_str(), j), Form("Fraction of ITSTPC matched tracks wrt %s tracks vs Eta %s, TrkPID %i; Eta; Eff", title[i].c_str(), etaSel[i].c_str(), j), 100, -2.f, 2.f);
+      }
+    }
+
     // 1/pt
     m1OverPtNum[i] = new TH1D(Form("m1OverPtNum_%s", title[i].c_str()), Form("1/Pt distribution of matched tracks, wrt %s tracks %s; 1/Pt [c/GeV]; dNdPt", title[i].c_str(), etaSel[i].c_str()), 100, -20.f, 20.f);
     m1OverPtDen[i] = new TH1D(Form("m1OverPtDen_%s", title[i].c_str()), Form("1/Pt distribution of %s tracks %s; 1/Pt [c/GeV]; dNdPt", title[i].c_str(), etaSel[i].c_str()), 100, -20.f, 20.f);
@@ -202,24 +255,43 @@ bool MatchITSTPCQC::init()
     mFractionITSTPCmatchPhysPrim1OverPt[i] = new TEfficiency(Form("mFractionITSTPCmatchPhysPrim1OverPt_%s", title[i].c_str()), Form("Fraction of ITSTPC matched tracks vs 1/Pt (physical primary), wrt %s tracks %s; 1/Pt [c/GeV]; Eff", title[i].c_str(), etaSel[i].c_str()), 100, -20.f, 20.f);
 
     // some extra settings
+    // Pt
     mPtNum[i]->Sumw2();
     mPtDen[i]->Sumw2();
     mPtNum_noEta0[i]->Sumw2();
     mPtDen_noEta0[i]->Sumw2();
+    mPtPhysPrimNum[i]->Sumw2();
+    mPtPhysPrimDen[i]->Sumw2();
+
+    // Phi
     mPhiNum[i]->Sumw2();
     mPhiDen[i]->Sumw2();
     mPhiVsPtNum[i]->Sumw2();
     mPhiVsPtDen[i]->Sumw2();
-    mPtPhysPrimNum[i]->Sumw2();
-    mPtPhysPrimDen[i]->Sumw2();
     mPhiPhysPrimNum[i]->Sumw2();
     mPhiPhysPrimDen[i]->Sumw2();
+
+    // Eta
     mEtaNum[i]->Sumw2();
     mEtaDen[i]->Sumw2();
     mEtaPhysPrimNum[i]->Sumw2();
     mEtaPhysPrimDen[i]->Sumw2();
     mEtaVsPtNum[i]->Sumw2();
     mEtaVsPtDen[i]->Sumw2();
+
+    if (mUseTrkPID) { // Vs Tracking PID hypothesis
+      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+        // Pt
+        mPtNumVsTrkPID[i][j]->Sumw2();
+        mPtDenVsTrkPID[i][j]->Sumw2();
+        // Phi
+        mPhiNumVsTrkPID[i][j]->Sumw2();
+        mPhiDenVsTrkPID[i][j]->Sumw2();
+        // Eta
+        mEtaNumVsTrkPID[i][j]->Sumw2();
+        mEtaDenVsTrkPID[i][j]->Sumw2();
+      }
+    }
 
     m1OverPtNum[i]->Sumw2();
     m1OverPtDen[i]->Sumw2();
@@ -422,12 +494,24 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           mPhiDen[i]->Fill(trkDen.getPhi());
           mPhiVsPtDen[i]->Fill(trkDen.getPt(), trkDen.getPhi());
           m1OverPtDen[i]->Fill(trkDen.getSign() * trkDen.getPtInv());
+          if (mUseTrkPID) { // Vs Tracking PID hypothesis
+            mPtNumVsTrkPID[i][trkDen.getPID()]->Fill(trkDen.getPt());
+            mPhiNumVsTrkPID[i][trkDen.getPID()]->Fill(trkDen.getPhi());
+            // we fill also the denominator
+            mPtDenVsTrkPID[i][trkDen.getPID()]->Fill(trkDen.getPt());
+            mPhiDenVsTrkPID[i][trkDen.getPID()]->Fill(trkDen.getPhi());
+          }
         }
         mEtaNum[i]->Fill(trkDen.getEta());
         mEtaVsPtNum[i]->Fill(trkDen.getPt(), trkDen.getEta());
         // we fill also the denominator
         mEtaDen[i]->Fill(trkDen.getEta());
         mEtaVsPtDen[i]->Fill(trkDen.getPt(), trkDen.getEta());
+        if (mUseTrkPID) { // Vs Tracking PID hypothesis
+          mEtaNumVsTrkPID[i][trkDen.getPID()]->Fill(trkDen.getEta());
+          // we fill also the denominator
+          mEtaDenVsTrkPID[i][trkDen.getPID()]->Fill(trkDen.getEta());
+        }
         if (el.second.mIsPhysicalPrimary) {
           if (isEtaITSOk) {
             mPtPhysPrimNum[i]->Fill(trkDen.getPt());
@@ -498,10 +582,17 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
               mPtNum_noEta0[i]->Fill(trkRef.getPt());
             }
             mPhiNum[i]->Fill(trkRef.getPhi());
+            if (mUseTrkPID) { // Vs Tracking PID hypothesis
+              mPtNumVsTrkPID[i][trkRef.getPID()]->Fill(trkRef.getPt());
+              mPhiNumVsTrkPID[i][trkRef.getPID()]->Fill(trkRef.getPhi());
+            }
             mPhiVsPtNum[i]->Fill(trkRef.getPt(), trkRef.getPhi());
             m1OverPtNum[i]->Fill(trkRef.getSign() * trkRef.getPtInv());
           }
           mEtaNum[i]->Fill(trkRef.getEta());
+          if (mUseTrkPID) { // Vs Tracking PID hypothesis
+            mEtaNumVsTrkPID[i][trkRef.getPID()]->Fill(trkRef.getEta());
+          }
           mEtaVsPtNum[i]->Fill(trkRef.getPt(), trkRef.getEta());
         }
         if (i == matchType::TPC) {
@@ -750,6 +841,13 @@ void MatchITSTPCQC::finalize()
     setEfficiency(mFractionITSTPCmatchPhiVsPt[i], mPhiVsPtNum[i], mPhiVsPtDen[i], true);
     setEfficiency(mFractionITSTPCmatchEtaVsPt[i], mEtaVsPtNum[i], mEtaVsPtDen[i], true);
     setEfficiency(mFractionITSTPCmatch1OverPt[i], m1OverPtNum[i], m1OverPtDen[i]);
+    if (mUseTrkPID) { // Vs Tracking PID hypothesis
+      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+        setEfficiency(mFractionITSTPCmatchPtVsTrkPID[i][j], mPtNumVsTrkPID[i][j], mPtDenVsTrkPID[i][j]);
+        setEfficiency(mFractionITSTPCmatchPhiVsTrkPID[i][j], mPhiNumVsTrkPID[i][j], mPhiDenVsTrkPID[i][j]);
+        setEfficiency(mFractionITSTPCmatchEtaVsTrkPID[i][j], mEtaNumVsTrkPID[i][j], mEtaDenVsTrkPID[i][j]);
+      }
+    }
     if (mUseMC) {
       setEfficiency(mFractionITSTPCmatchPhysPrim[i], mPtPhysPrimNum[i], mPtPhysPrimDen[i]);
       setEfficiency(mFractionITSTPCmatchPhiPhysPrim[i], mPhiPhysPrimNum[i], mPhiPhysPrimDen[i]);
@@ -835,6 +933,23 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
     objar.Add(mPhiNum[i]);
     objar.Add(mPhiDen[i]);
     objar.Add(mFractionITSTPCmatchPhi[i]);
+
+    if (mUseTrkPID) { // Vs Tracking PID hypothesis
+      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+        // Pt
+        objar.Add(mPtNumVsTrkPID[i][j]);
+        objar.Add(mPtDenVsTrkPID[i][j]);
+        objar.Add(mFractionITSTPCmatchPtVsTrkPID[i][j]);
+        // Phi
+        objar.Add(mPhiNumVsTrkPID[i][j]);
+        objar.Add(mPhiDenVsTrkPID[i][j]);
+        objar.Add(mFractionITSTPCmatchPhiVsTrkPID[i][j]);
+        // Eta
+        objar.Add(mEtaNumVsTrkPID[i][j]);
+        objar.Add(mEtaDenVsTrkPID[i][j]);
+        objar.Add(mFractionITSTPCmatchEtaVsTrkPID[i][j]);
+      }
+    }
 
     objar.Add(mPhiPhysPrimNum[i]);
     objar.Add(mPhiPhysPrimDen[i]);
