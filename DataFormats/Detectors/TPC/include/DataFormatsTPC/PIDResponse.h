@@ -98,24 +98,26 @@ GPUd() o2::track::PID::ID PIDResponse::getMostProbablePID(const TrackTPC& track,
 
   auto id = o2::track::PID::Electron;
   float distanceMin = 0.;
+  float dEdxExpected = getExpectedSignal(track, id);
   if (PID_useNsigma) {
     // using nSigma
-    distanceMin = o2::gpu::GPUCommonMath::Abs((dEdx - getExpectedSignal(track, id)) / (PID_sigma * getExpectedSignal(track, id)));
+    distanceMin = o2::gpu::GPUCommonMath::Abs((dEdx - dEdxExpected) / (PID_sigma * dEdxExpected));
   } else {
     // using absolute distance
-    distanceMin = o2::gpu::GPUCommonMath::Abs(dEdx - getExpectedSignal(track, id));
+    distanceMin = o2::gpu::GPUCommonMath::Abs(dEdx - dEdxExpected);
   }
 
   // calculate the distance to the expected dEdx signals
   // start from Pion to exlude Muons
   for (o2::track::PID::ID i = o2::track::PID::Pion; i < o2::track::PID::NIDs; i++) {
     float distance = 0.;
+    dEdxExpected = getExpectedSignal(track, i);
     if (PID_useNsigma) {
       // using nSigma
-      distance = o2::gpu::GPUCommonMath::Abs((dEdx - getExpectedSignal(track, i)) / (PID_sigma * getExpectedSignal(track, i)));
+      distance = o2::gpu::GPUCommonMath::Abs((dEdx - dEdxExpected) / (PID_sigma * dEdxExpected));
     } else {
       // using absolute distance
-      distance = o2::gpu::GPUCommonMath::Abs(dEdx - getExpectedSignal(track, i));
+      distance = o2::gpu::GPUCommonMath::Abs(dEdx - dEdxExpected);
     }
     if (distance < distanceMin) {
       id = i;
