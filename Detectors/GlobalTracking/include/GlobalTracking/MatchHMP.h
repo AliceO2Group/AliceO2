@@ -183,13 +183,10 @@ class MatchHMP
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  std::vector<o2::dataformats::TrackTPCITS> mITSTPCTracksArrayInp; ///< input tracks
   gsl::span<const Cluster> mHMPClustersArray;                      ///< input HMPID clusters
   gsl::span<const Trigger> mHMPTriggersArray;                      ///< input HMPID triggers
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mHMPClusLabels; ///< input HMP clusters MC labels (pointer to read from tree)
-
-  int mNotPropagatedToHMP[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< number of tracks failing in propagation
 
   ///< working copy of the input tracks
   std::vector<matchTrack> mTracksWork[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< track params prepared for matching + time value
