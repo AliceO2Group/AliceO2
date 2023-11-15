@@ -403,15 +403,11 @@ std::string CCDBDownloader::trimHostUrl(std::string full_host_url) const
 {
   CURLU* host_url = curl_url();
   curl_url_set(host_url, CURLUPART_URL, full_host_url.c_str(), 0);
-  // Get host part
+
+  // Get host part (the only critical part)
   char* host;
   CURLUcode host_result = curl_url_get(host_url, CURLUPART_HOST, &host, 0);
-  std::string host_name;
-  if (host_result == CURLUE_OK) {
-    // Host part present
-    host_name = host;
-    curl_free(host);
-  } else {
+  if (host_result != CURLUE_OK) {
     LOG(error) << "CCDBDownloader: Malformed url detected when processing redirect, could not identify the host part: " << host;
     curl_url_cleanup(host_url);
     return "";
@@ -419,14 +415,25 @@ std::string CCDBDownloader::trimHostUrl(std::string full_host_url) const
   // Get scheme (protocol) part
   char* scheme;
   CURLUcode scheme_result = curl_url_get(host_url, CURLUPART_SCHEME, &scheme, 0);
+  // Get port
+  char* port;
+  CURLUcode port_result = curl_url_get(host_url, CURLUPART_PORT, &port, 0);
+
   curl_url_cleanup(host_url);
+
+  // Assemble parts
+  std::string trimmed_url = "";
   if (scheme_result == CURLUE_OK) {
-    // If protocol present combine with host
-    curl_free(scheme);
-    return scheme + std::string("://") + host_name;
-  } else {
-    return host_name;
+    trimmed_url += scheme + std::string("://");
+    free(scheme);
   }
+  trimmed_url += host;
+  free(host);
+  if (port_result == CURLUE_OK) {
+    trimmed_url += std::string(":") + port;
+    free(port);
+  }
+  return trimmed_url;
 }
 
 std::string CCDBDownloader::prepareRedirectedURL(std::string address, std::string potentialHost) const
