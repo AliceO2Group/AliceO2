@@ -726,6 +726,7 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
           return (s1->l1Before - s0->l1Before) / timedelta;
         case 6:
           return (s1->l1After - s0->l1After) / timedelta;
+        default:
           LOG(error) << "Wrong type:" << type;
           return -1; // wrong type
       }
