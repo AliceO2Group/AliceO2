@@ -126,7 +126,7 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
 {
   // Each channel oldest possible input must be monotoically increasing.
   if (timestamp.value < mChannels[channel.value].oldestForChannel.value) {
-    LOG(error) << "Received bogus oldest possible timeslice " << timestamp.value << " for channel " << channel.value << " Excpected >= " << mChannels[channel.value].oldestForChannel.value;
+    LOG(error) << "Received bogus oldest possible timeslice " << timestamp.value << " for channel " << channel.value << ". Expected >= " << mChannels[channel.value].oldestForChannel.value;
   }
   mChannels[channel.value].oldestForChannel = timestamp;
   OldestInputInfo result{timestamp, channel};
