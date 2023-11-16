@@ -25,6 +25,7 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DispatchControl.h"
 #include "Framework/DanglingContext.h"
+#include "Framework/DriverInfo.h"
 #include "Framework/DomainInfoHeader.h"
 #include "Framework/DriverClient.h"
 #include "Framework/EndOfStreamContext.h"
@@ -160,16 +161,60 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
 
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
     auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+    auto controlKind = this->GetConfig()->GetPropertyAsString("control");
     auto& deviceState = ref.get<DeviceState>();
     auto& control = ref.get<ControlService>();
     auto& callbacks = ref.get<CallbackService>();
-    control.notifyDeviceState(fair::mq::GetStateName(state));
+    auto stateName = fair::mq::GetStateName(state);
+    control.notifyDeviceState(stateName);
     callbacks.call<CallbackService::Id::DeviceStateChanged>(ServiceRegistryRef{ref}, (int)state);
+    LOG(detail) << "In state watcher callback " << stateName;
+
+    // If the termination policy is not to wait, we simply ignore all
+    // user imposed state changes and keep running until we are done.
+    if (controlKind != "gui") {
+      return;
+    }
+
+    static bool runningOnce = false;
 
     if (deviceState.nextFairMQState.empty() == false) {
+      LOG(detail) << "State change requested, changing state to " << deviceState.nextFairMQState.back();
       auto state = deviceState.nextFairMQState.back();
-      (void)this->ChangeState(state);
+      bool changed = this->ChangeState(state);
+      if (!changed) {
+        LOG(error) << "Failed to change state to " << state;
+      }
       deviceState.nextFairMQState.pop_back();
+    } else if (state == fair::mq::State::Running && deviceState.nextFairMQState.empty()) {
+      LOGP(detail, "Device is running and no transition expected. We are done.");
+      deviceState.transitionHandling = TransitionHandlingState::NoTransition;
+    } else {
+      while (runningOnce && deviceState.nextFairMQState.empty() && this->NewStatePending() == false) {
+        LOG(detail) << "No state change requested, waiting for next state change " << this->NewStatePending();
+        if (stateName == "EXITING") {
+          // Send ctrl c to ourselves. To bad FairMQ does not seem to exit when
+          // reaching the EXITING state.
+          kill(getpid(), SIGTERM);
+          return;
+        }
+        uv_run(deviceState.loop, UV_RUN_ONCE);
+        LOG(detail) << "Woke up from event loop";
+      }
+      if (runningOnce && deviceState.nextFairMQState.empty() == false) {
+        LOG(detail) << "State change requested, changing state to " << deviceState.nextFairMQState.back();
+        auto state = deviceState.nextFairMQState.back();
+        bool changed = this->ChangeState(state);
+        if (!changed) {
+          LOG(error) << "Failed to change state to " << state;
+        }
+        deviceState.nextFairMQState.pop_back();
+      }
+      LOG(detail) << "Exiting callback for state " << state;
+    }
+    if (runningOnce == false && state == fair::mq::State::Running) {
+      LOG(detail) << "First iteration, next time we start the event loop";
+      runningOnce = true;
     }
   };
 

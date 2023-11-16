@@ -18,12 +18,15 @@ struct DeviceInfo;
 struct DeviceMetricsInfo;
 struct DataProcessorInfo;
 struct DataProcessingStates;
+enum struct TerminationPolicy;
 
 namespace gui
 {
 
 /// Helper to display information about a device
-void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DataProcessingStates const& states, DeviceMetricsInfo const& metrics, DataProcessorInfo const& metadata, DeviceControl& control);
+void displayDeviceInspector(DeviceSpec const& spec, DeviceInfo const& info, DataProcessingStates const& states,
+                            DeviceMetricsInfo const& metrics, DataProcessorInfo const& metadata, DeviceControl& control,
+                            TerminationPolicy TerminationPolicy);
 
 } // namespace gui
 } // namespace o2::framework

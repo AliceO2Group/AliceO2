@@ -11,6 +11,7 @@
 
 #include "FrameworkGUIDeviceInspector.h"
 #include "Framework/DataProcessorInfo.h"
+#include "Framework/ProcessingPolicies.h"
 
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
@@ -251,7 +252,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
                             DataProcessingStates const& states,
                             DeviceMetricsInfo const& metrics,
                             DataProcessorInfo const& metadata,
-                            DeviceControl& control)
+                            DeviceControl& control,
+                            TerminationPolicy terminationPolicy)
 {
   ImGui::Text("Name: %s", spec.name.c_str());
   ImGui::Text("Executable: %s", metadata.executable.c_str());
@@ -340,12 +342,33 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
 
     if (control.requestedState > info.providedState) {
-      ImGui::Text(ICON_FA_CLOCK_O);
+      ImGui::TextUnformatted(ICON_FA_CLOCK_O "Requested transition in progress");
     } else {
+      // We only allow navigation if the termination policy is "WAIT"
+      ImGui::BeginDisabled(terminationPolicy == TerminationPolicy::QUIT);
       if (ImGui::Button("Restart")) {
         control.requestedState = info.providedState + 1;
         control.controller->write("/restart", strlen("/restart"));
       }
+      if (info.deviceState == "RUNNING") {
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_STOP)) {
+          control.requestedState = info.providedState + 1;
+          control.controller->write("/stop", strlen("/stop"));
+        }
+      } else if (info.deviceState == "READY") {
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_PLAY)) {
+          control.requestedState = info.providedState + 1;
+          control.controller->write("/start", strlen("/start"));
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_POWER_OFF)) {
+          control.requestedState = info.providedState + 1;
+          control.controller->write("/shutdown", strlen("/shutdown"));
+        }
+      }
+      ImGui::EndDisabled();
     }
   }
 

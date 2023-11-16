@@ -1185,7 +1185,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
     style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0x1b / 255.f, 0x1b / 255.f, 0x1b / 255.f, 1.00f);
 
-    showTopologyNodeGraph(guiState, infos, devices, allStates, metadata, controls, metricsInfos);
+    showTopologyNodeGraph(guiState, infos, devices, allStates, metadata, controls, metricsInfos, driverInfo.processingPolicies.termination);
 
     AllMetricsStore metricsStore;
 

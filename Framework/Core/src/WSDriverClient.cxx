@@ -15,6 +15,8 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "DriverClientContext.h"
+#include "Framework/RawDeviceService.h"
+#include "Device.h"
 #include "DPLWebSocket.h"
 #include <uv.h>
 #include <string_view>
@@ -131,6 +133,28 @@ void on_connect(uv_connect_t* connection, int status)
 
   client->observe("/stop", [ref = context->ref](std::string_view) {
     auto& state = ref.get<DeviceState>();
+    state.nextFairMQState.emplace_back("STOP");
+  });
+
+  client->observe("/shutdown", [ref = context->ref](std::string_view) {
+    auto currentStateName = ref.get<RawDeviceService>().device()->GetCurrentStateName();
+    LOGP(info, "Received shutdown request while in {}", currentStateName);
+
+    auto& state = ref.get<DeviceState>();
+    state.nextFairMQState.emplace_back("END");
+    if (currentStateName == "IDLE") {
+      return;
+    }
+    state.nextFairMQState.emplace_back("AUTO");
+    state.nextFairMQState.emplace_back("RESET DEVICE");
+    if (currentStateName == "DEVICE READY") {
+      return;
+    }
+    state.nextFairMQState.emplace_back("AUTO");
+    state.nextFairMQState.emplace_back("RESET TASK");
+    if (currentStateName == "READY") {
+      return;
+    }
     state.nextFairMQState.emplace_back("STOP");
   });
 

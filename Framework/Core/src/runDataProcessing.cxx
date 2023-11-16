@@ -29,6 +29,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceConfigInfo.h"
+#include "Framework/DeviceController.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
 #include "Framework/DeviceConfig.h"
@@ -2068,7 +2069,17 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
         // We send SIGTERM to make sure we do the STOP transition in FairMQ
-        killChildren(infos, SIGTERM);
+        if (driverInfo.processingPolicies.termination == TerminationPolicy::WAIT) {
+          for (size_t di = 0; di < infos.size(); ++di) {
+            auto& info = infos[di];
+            auto& control = controls[di];
+            if (info.active == true) {
+              control.controller->write("/shutdown", strlen("/shutdown"));
+            }
+          }
+        } else {
+          killChildren(infos, SIGTERM);
+        }
         // We have a timer to send SIGUSR1 to make sure we advance all devices
         // in a timely manner.
         force_step_timer.data = &infos;
