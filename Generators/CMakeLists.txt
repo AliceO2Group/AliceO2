@@ -42,6 +42,7 @@ o2_add_library(Generators
                        src/GeneratorGeantinos.cxx
                        src/GeneratorTParticle.cxx
                        src/GeneratorTParticleParam.cxx
+                       src/GeneratorService.cxx
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6.cxx>
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6Param.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
@@ -88,6 +89,7 @@ set(headers
     include/Generators/GeneratorGeantinos.h
     include/Generators/GeneratorTParticle.h
     include/Generators/GeneratorTParticleParam.h
+    include/Generators/GeneratorService.h
     )
 
 if (pythia6_FOUND)
@@ -149,6 +151,12 @@ o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
         PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
 endif()
+
+o2_add_test(GeneratorService NAME test_Generator_test_GeneratorService
+            SOURCES test/test_GeneratorService.cxx
+            COMPONENT_NAME Generator
+            LABELS generator
+            PUBLIC_LINK_LIBRARIES O2::Generators)
 
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)
