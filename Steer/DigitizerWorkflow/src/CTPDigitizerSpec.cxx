@@ -70,9 +70,9 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
     // emc
     if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::EMC) != mDetList.end()) {
-      auto emcinputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("emc");
+      auto emcinputs = pc.inputs().get<gsl::span<o2::ctp::CTPInputDigit>>("emc");
       for (const auto& inp : emcinputs) {
-        finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::EMC});
+        finputs.emplace_back(inp);
       }
     }
     gsl::span<CTPInputDigit> ginputs(finputs);

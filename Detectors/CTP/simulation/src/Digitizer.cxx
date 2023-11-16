@@ -71,11 +71,18 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         case o2::detectors::DetID::EMC: {
           // uint64_t inpmaskdebug = 1;
           uint64_t inpmaskdebug = (inp->inputsMask).to_ullong();
-          for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
-            uint64_t mask = inpmaskdebug & detInputName2Mask[ctpinp.name];
-            // uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
-            if (mask) {
-              inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
+          if (inpmaskdebug & detInputName2Mask["EMBA"]) {
+            // MB-accept must be treated separately, as it is not a CTP input
+            std::bitset<CTP_NINPUTS> emcMBaccept;
+            emcMBaccept.set(CTP_NINPUTS - 1, 1);
+            inpmaskcoll |= emcMBaccept;
+          } else {
+            for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
+              uint64_t mask = inpmaskdebug & detInputName2Mask[ctpinp.name];
+              // uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
+              if (mask) {
+                inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
+              }
             }
           }
           LOG(info) << "EMC input mask:" << inpmaskcoll;
@@ -109,10 +116,16 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
     } // end loop over trigger input for this interaction
     if (inpmaskcoll.to_ullong()) {
       // we put the trigger only when non-trivial
+      std::bitset<64> classmask;
+      calculateClassMask(inpmaskcoll, classmask);
+      if (classmask.to_ulong() == 0) {
+        // No class accepted
+        continue;
+      }
       CTPDigit data;
       data.intRecord = hits.first;
       data.CTPInputMask = inpmaskcoll;
-      calculateClassMask(inpmaskcoll, data.CTPClassMask);
+      data.CTPClassMask = classmask;
       digits.emplace_back(data);
       LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll;
     }
@@ -123,17 +136,31 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
 {
   classmask = 0;
   for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
-    // check if Min Bias EMC class
-    bool tvxMBemc = tcl.name.find("C0TVX-B-NOPF-EMC") != std::string::npos; // 2023
-    tvxMBemc |= tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
-    tvxMBemc |= tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
-    tvxMBemc |= tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
     if (tcl.cluster->name == "emc") {
-      tvxMBemc |= tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
-    }
-    if (tvxMBemc && ctpinpmask[CTP_NINPUTS - 1]) {
-      classmask |= tcl.classMask;
-      LOG(info) << "adding MBA:" << tcl.name;
+      // check if Min Bias EMC class
+      bool tvxMBemc = tcl.name.find("C0TVX-B-NOPF-EMC") != std::string::npos; // 2023
+      tvxMBemc |= tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
+      tvxMBemc |= tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
+      tvxMBemc |= tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
+      if (tcl.cluster->name == "emc") {
+        tvxMBemc |= tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
+      }
+      if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
+        // require real physics input in any case
+        if (tvxMBemc) {
+          // if the class is a min. bias class accept it only if the MB-accept bit is set in addition
+          // (fake trigger input)
+          if (ctpinpmask[CTP_NINPUTS - 1]) {
+            classmask |= tcl.classMask;
+            LOG(info) << "adding MBA:" << tcl.name;
+          }
+        } else {
+          // EMCAL rare triggers - physical trigger input
+          // class identification can be handled like in the case of the other
+          // classes as EMCAL trigger input is required
+          classmask |= tcl.classMask;
+        }
+      }
     } else {
       if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
         classmask |= tcl.classMask;
