@@ -120,7 +120,8 @@ class TrackCuts
         src == o2::dataformats::GlobalTrackID::ITSTPCTOF ||
         src == o2::dataformats::GlobalTrackID::ITSTPCTRDTOF) { // track selection for barrel tracks (ITS-TPC matched)
       trk = data.getTrackParam(trackIndex);
-      if (trk.getPt() < mMinPt || trk.getPt() > mMaxPt || trk.getEta() < mMinEta || trk.getEta() > mMaxEta) {
+      float trkEta = trk.getEta();
+      if (trk.getPt() < mMinPt || trk.getPt() > mMaxPt || trkEta < mMinEta || trkEta > mMaxEta) {
         return false;
       }
     }
