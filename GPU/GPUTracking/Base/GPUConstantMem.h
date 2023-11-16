@@ -46,6 +46,7 @@ class GPUTRDTracker_t
 #if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(GPUCA_HAVE_O2HEADERS)
 #include "GPUTPCConvert.h"
 #include "GPUTPCCompression.h"
+#include "GPUTPCDecompression.h"
 #include "GPUITSFitter.h"
 #include "GPUTPCClusterFinder.h"
 #include "GPUTrackingRefit.h"
@@ -69,6 +70,7 @@ struct GPUConstantMem {
   tpcTrackers[GPUCA_NSLICES];
   GPUTPCConvert tpcConverter;
   GPUTPCCompression tpcCompressor;
+  GPUTPCDecompression tpcDecompressor;
   GPUTPCGMMerger tpcMerger;
   GPUTRDTrackerGPU trdTrackerGPU;
 #ifdef GPUCA_HAVE_O2HEADERS

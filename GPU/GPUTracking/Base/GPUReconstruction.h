@@ -511,7 +511,7 @@ inline void GPUReconstruction::RegisterGPUProcessor(T* proc, bool deviceSlave)
 template <class T>
 inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
 {
-  static_assert(sizeof(T) > sizeof(GPUProcessor), "Need to setup derrived class");
+  static_assert(sizeof(T) > sizeof(GPUProcessor), "Need to setup derived class");
   if (allocate) {
     proc->SetMaxData(mHostConstantMem->ioPtrs);
   }
