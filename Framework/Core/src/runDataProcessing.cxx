@@ -1073,7 +1073,7 @@ void gui_callback(uv_timer_s* ctx)
   if (gui->plugin->supportsDeferredClose()) {
     // For now, there is nothing for which we want to defer the close
     // so if the flag is set, we simply exit
-    if (*(gui->guiQuitRequested)) {
+    if (*(gui->guiQuitRequested) && *(gui->allChildrenGone)) {
       return;
     }
     void* draw_data = nullptr;
