@@ -302,7 +302,7 @@ void SVertexer::updateTimeDependentParams()
     ft.setBz(bz);
   }
 
-  // TPC dE/dx usage information 
+  // TPC dE/dx usage information
   // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
   // to-do: grab from CCDB when available -> discussion with TPC experts, not available yet
   const float bbPars[] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};
@@ -499,7 +499,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         auto protonId = o2::track::PID::Proton;
         float dEdxExpected = mPIDresponse.getExpectedSignal(tpcTrack, protonId);
         float fracDevProton = std::abs((dEdxTPC - dEdxExpected) / dEdxExpected);
-        if(fracDevProton<mSVParams->mFractiondEdxforCascBaryons){ 
+        if (fracDevProton < mSVParams->mFractiondEdxforCascBaryons) {
           compatibleWithProton = true;
         }
       }
@@ -519,7 +519,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
-      if(!hasTPC && nITSclu < mSVParams->mITSSAminNclu){
+      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu) {
         continue; // reject track if no TPC && below minimum N ITS clusters
       }
 
@@ -612,7 +612,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
     goodLamForCascade = true;
   }
-  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && ptV0 > mSVParams->minPtV0FromCascade &&(!mSVParams->mRequireTPCforCascBaryons || seedN.hasTPC && seedN.compatibleProton)) {
+  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mRequireTPCforCascBaryons || seedN.hasTPC && seedN.compatibleProton)) {
     goodALamForCascade = true;
   }
 
