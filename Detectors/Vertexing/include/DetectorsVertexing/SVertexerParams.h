@@ -95,9 +95,11 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minTPCdEdx = 250;         // starting from this dEdx value, tracks with p > minMomTPCdEdx are always accepted
   float minMomTPCdEdx = 0.8;      // minimum p for tracks with dEdx > mMinTPCdEdx to be accepted
 
-  // cascade-specific selections 
-  uint8_t minNITSCluCascMesons = 6; // require at least this many ITS clusters for mesonic cascade daughters
-  bool requireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC
+  uint8_t mITSSAminNclu = 6; // require at least this many ITS clusters if no TPC info present
+  bool mRequireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC
+  
+  // percent deviation from expected proton dEdx - to be replaced - estimated sigma from TPC for now 6%; a 6*sigma cut is therefore 36% = 0.36f. Any value above 1.0f will be ignored manually when checking.
+  float mFractiondEdxforCascBaryons = 0.36f; 
 
   // cuts on different V0 PID params
   bool checkV0Hypothesis = true;
