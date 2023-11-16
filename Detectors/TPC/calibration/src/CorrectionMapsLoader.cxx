@@ -63,20 +63,20 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
 }
 
 //________________________________________________________
-void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, int lumiScaleType, int lumiScaleMode)
+void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, const CorrectionMapsLoaderGloOpts& gloOpts)
 {
   addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)}); // time-dependent
-  if (lumiScaleMode == 0) {
+  if (gloOpts.lumiMode == 0) {
     addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
-  } else if (lumiScaleMode == 1) {
+  } else if (gloOpts.lumiMode == 1) {
     addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMap), {}, 1)}); // time-dependent
   } else {
     LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
   }
 
-  if (lumiScaleType == 1) {
+  if (gloOpts.lumiType == 1) {
     addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
-  } else if (lumiScaleType == 2) {
+  } else if (gloOpts.lumiType == 2) {
     addInput(inputs, {"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe});
   }
   addOptions(options);
@@ -85,11 +85,29 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std
 //________________________________________________________
 void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
 {
+  // these are options which should be added at the level of device using TPC corrections
   addOption(options, ConfigParamSpec{"corrmap-lumi-mean", VariantType::Float, 0.f, {"override TPC corr.map mean lumi (if > 0), disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-inst", VariantType::Float, 0.f, {"override instantaneous CTP lumi (if > 0) for TPC corr.map scaling, disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-ref", VariantType::Float, 0.f, {"override TPC corr.mapRef mean lumi (if > 0)"}});
   addOption(options, ConfigParamSpec{"ctp-lumi-factor", VariantType::Float, 1.0f, {"scaling to apply to instantaneous lumi from CTP (but not corrmap-lumi-inst)"}});
   addOption(options, ConfigParamSpec{"ctp-lumi-source", VariantType::Int, 0, {"CTP lumi source: 0 = LumiInfo.getLumi(), 1 = LumiInfo.getLumiAlt()"}});
+}
+
+//________________________________________________________
+void CorrectionMapsLoader::addGlobalOptions(std::vector<ConfigParamSpec>& options)
+{
+  // these are options which should be added at the workflow level, since they modify the inputs of the devices
+  addOption(options, ConfigParamSpec{"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}});
+  addOption(options, ConfigParamSpec{"corrmap-lumi-mode", o2::framework::VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}});
+}
+
+//________________________________________________________
+CorrectionMapsLoaderGloOpts CorrectionMapsLoader::parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts)
+{
+  CorrectionMapsLoaderGloOpts tpcopt;
+  tpcopt.lumiType = opts.get<int>("lumi-type");
+  tpcopt.lumiMode = opts.get<int>("corrmap-lumi-mode");
+  return tpcopt;
 }
 
 //________________________________________________________

@@ -32,6 +32,7 @@
 #include "Steer/MCKinematicsReader.h"
 #include "TSystem.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -64,9 +65,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
     {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
     {"write-matchable", o2::framework::VariantType::Bool, false, {"write all matchable pairs in a file (o2matchable_tof.root)"}},
-    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -93,7 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto diagnostic = configcontext.options().get<bool>("enable-dia");
   auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
   auto writeMatchable = configcontext.options().get<bool>("write-matchable");
-  auto lumiType = configcontext.options().get<int>("lumi-type");
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   bool writematching = 0;
   bool writecalib = 0;
   auto outputType = configcontext.options().get<std::string>("output-type");
@@ -138,7 +139,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (useFIT) {
     clustermask |= GID::getSourceMask(GID::FT0);
   }
-  if (lumiType == 1) {
+  if (sclOpt.lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   if (useMC) {
@@ -159,7 +160,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable, lumiType)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable, sclOpt)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;

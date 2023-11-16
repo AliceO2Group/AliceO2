@@ -28,6 +28,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -56,10 +57,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"disable-3body-finder", o2::framework::VariantType::Bool, false, {"do not run 3 body finder"}},
     {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"do not run strangeness tracker"}},
-
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -81,8 +81,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
   auto enableStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
-  auto lumiType = configcontext.options().get<int>("lumi-type");
-
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
   if (enableStrTr) {
@@ -91,12 +90,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (src[GID::TPC]) {
     srcClus |= GID::getSourceMask(GID::TPC);
   }
-  if (lumiType == 1) {
+  if (sclOpt.lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, useMC, lumiType));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, useMC, sclOpt));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;

@@ -358,7 +358,7 @@ void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
   mDBGOut.reset();
 }
 
-DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, bool enableCosmic, int postprocess, bool useMC, int lumiType)
+DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, bool enableCosmic, int postprocess, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -383,7 +383,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     }
     if (src[DetID::TPC] && !skipDetClusters[DetID::TPC]) {
       o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-      o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, lumiType);
+      o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
       loadTPCCalib = true;
     }
   }
