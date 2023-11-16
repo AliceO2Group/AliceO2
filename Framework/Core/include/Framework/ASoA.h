@@ -1053,17 +1053,26 @@ static auto haveKey(framework::pack<C...>, std::string const& key)
   return std::vector{hasKey<C>(key)...};
 }
 
+void notFoundColumn(const char* label, const char* key);
+
 template <typename T>
 static std::string getLabelFromTypeForKey(std::string const& key)
 {
   if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
     using Os = typename std::decay_t<T>::originals;
     auto locate = haveKey(Os{}, key);
-    return std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; })->second;
+    auto it = std::find_if(locate.begin(), locate.end(), [](auto const& x) { return x.first; });
+    if (it != locate.end()) {
+      return it->second;
+    }
   } else {
     auto locate = hasKey<std::decay_t<T>>(key);
-    return locate.second;
+    if (locate.first) {
+      return locate.second;
+    }
   }
+  notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  O2_BUILTIN_UNREACHABLE();
 }
 
 template <typename B, typename... C>
