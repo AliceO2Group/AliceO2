@@ -58,6 +58,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float maxDCAXYToMeanVertexV0Casc = 2.; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
   float maxDCAXYToMeanVertex3bodyV0 = 2; ///< max DCA of V0 from beam line (mean vertex) for 3body V0 candidates
   float minPtV0 = 0.01;                  ///< v0 minimum pT
+  float minPtV0FromCascade = 0.3;        ///< v0 minimum pT for v0 to be used in cascading (lowest pT Run 2 lambda: 0.4)
   float maxTglV0 = 2.;                   ///< maximum tgLambda of V0
 
   float causalityRTolerance = 1.; ///< V0 radius cannot exceed its contributors minR by more than this value
@@ -93,6 +94,10 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float mTPCTrackMaxX = -1.f;     // don't use TPC standalone tracks with X exceeding this
   float minTPCdEdx = 250;         // starting from this dEdx value, tracks with p > minMomTPCdEdx are always accepted
   float minMomTPCdEdx = 0.8;      // minimum p for tracks with dEdx > mMinTPCdEdx to be accepted
+
+  // cascade-specific selections 
+  uint8_t minNITSCluCascMesons = 6; // require at least this many ITS clusters for mesonic cascade daughters
+  bool requireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC
 
   // cuts on different V0 PID params
   bool checkV0Hypothesis = true;

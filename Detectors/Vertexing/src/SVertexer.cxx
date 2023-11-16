@@ -429,6 +429,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
+  bool isITSloaded = recoData.isTrackSourceLoaded(GIndex::ITS);
   if (isTPCloaded && !mSVParams->mExcludeTPCtracks) {
     mTPCTracksArray = recoData.getTPCTracks();
     mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
@@ -477,15 +478,25 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       }
       const auto& trc = recoData.getTrackParam(tvid);
 
+      bool hasTPC = false;
       bool heavyIonisingParticle = false;
       auto tpcGID = recoData.getTPCContributorGID(tvid);
       if (tpcGID.isIndexSet() && isTPCloaded) {
+        hasTPC = true;
         auto& tpcTrack = recoData.getTPCTrack(tpcGID);
         float dEdxTPC = tpcTrack.getdEdx().dEdxTotTPC;
         if (dEdxTPC > mSVParams->minTPCdEdx && trc.getP() > mSVParams->minMomTPCdEdx) // accept high dEdx tracks (He3, He4)
         {
           heavyIonisingParticle = true;
         }
+      }
+
+      // get Nclusters in the ITS if available
+      uint8_t nITSclu = -1;
+      auto itsGID = recoData.getITSContributorGID(tvid);
+      if (itsGID.isIndexSet() && isITSloaded) {
+        auto& itsTrack = recoData.getITSTrack(itsGID);
+        nITSclu = itsTrack.getNumberOfClusters();
       }
 
       if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
@@ -496,7 +507,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       }
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
-      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
+      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu});
       if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
         correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
       }
@@ -580,10 +591,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   // check tight lambda mass only
   bool goodLamForCascade = false, goodALamForCascade = false;
-  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && ptV0 > mSVParams->minPtV0FromCascade && (seedN.nITSclu >= mSVParams->minNITSCluCascMesons || seedN.hasTPC) && (!mSVParams->requireTPCforCascBaryons || seedP.hasTPC)) {
     goodLamForCascade = true;
   }
-  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && ptV0 > mSVParams->minPtV0FromCascade && (seedP.nITSclu >= mSVParams->minNITSCluCascMesons || seedP.hasTPC) && (!mSVParams->requireTPCforCascBaryons || seedN.hasTPC)) {
     goodALamForCascade = true;
   }
 
@@ -746,6 +757,10 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
+    if( !bach.hasTPC && bach.nITSclu< mSVParams->minNITSCluCascMesons){
+      continue; // skip bachelors below min number ITS clusters and without TPC
+    }
+
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV

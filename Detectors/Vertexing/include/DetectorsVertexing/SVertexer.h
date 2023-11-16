@@ -97,6 +97,8 @@ class SVertexer
     GIndex gid{};
     VBracket vBracket{};
     float minR = 0; // track lowest point r
+    bool hasTPC = false;
+    uint8_t nITSclu = -1; // number of ITS clusters
   };
 
   SVertexer(bool enabCascades = true, bool enab3body = false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body}
