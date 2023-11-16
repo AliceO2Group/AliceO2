@@ -26,6 +26,7 @@
 namespace o2::framework
 {
 struct ServiceRegistry;
+struct GuiCallbackContext;
 /// Plugin interface for DPL GUIs.
 struct DebugGUI {
   virtual std::function<void(void)> getGUIDebugger(std::vector<o2::framework::DeviceInfo> const& infos,
@@ -35,7 +36,8 @@ struct DebugGUI {
                                                    std::vector<o2::framework::DeviceMetricsInfo> const& metricsInfos,
                                                    o2::framework::DriverInfo const& driverInfo,
                                                    std::vector<o2::framework::DeviceControl>& controls,
-                                                   o2::framework::DriverControl& driverControl) = 0;
+                                                   o2::framework::DriverControl& driverControl,
+                                                   GuiCallbackContext& context) = 0;
   virtual void updateMousePos(float x, float y) = 0;
   virtual void updateMouseButton(bool isClicked) = 0;
   virtual void updateMouseWheel(int direction) = 0;

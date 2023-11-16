@@ -16,6 +16,7 @@
 #include "DebugGUI/imgui_extras.h"
 #include "Framework/DriverControl.h"
 #include "Framework/DriverInfo.h"
+#include "Framework/GuiCallbackContext.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "FrameworkGUIDeviceInspector.h"
@@ -506,7 +507,7 @@ void displayDeviceMetrics(const char* label,
     case MetricsDisplayStyle::Lines: {
       auto xAxisFlags = ImPlotAxisFlags_None;
       auto yAxisFlags = ImPlotAxisFlags_LockMin;
-      //ImPlot::FitNextPlotAxes(true, true, true, true);
+      // ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", {-1, -1}, axisFlags)) {
         ImPlot::SetupAxes("time", "value", xAxisFlags, yAxisFlags);
         ImPlot::SetupAxisFormat(ImAxis_Y1, formatSI, nullptr);
@@ -1008,6 +1009,71 @@ void popWindowColorDueToStatus()
   ImGui::PopStyleVar(1);
 }
 
+int debugPID(int pid)
+{
+  std::string pidStr = std::to_string(pid);
+  setenv("O2DEBUGGEDPID", pidStr.c_str(), 1);
+#ifdef __APPLE__
+  std::string defaultAppleDebugCommand =
+    "osascript -e 'tell application \"Terminal\"'"
+    " -e 'activate'"
+    " -e 'do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\") & \"; exit\"'"
+    " -e 'end tell'";
+  setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
+#else
+  setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
+#endif
+  return system(getenv("O2DPLDEBUG"));
+}
+
+int profilePID(int pid)
+{
+  std::string pidStr = std::to_string(pid);
+  setenv("O2PROFILEDPID", pidStr.c_str(), 1);
+#ifdef __APPLE__
+  auto defaultAppleProfileCommand = fmt::format(
+    "osascript -e 'tell application \"Terminal\"'"
+    " -e 'activate'"
+    " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+    " --instrument os_signpost --time-limit 30s --template Time\\\\ Profiler --attach {0} "
+    " && open dpl-profile-{0}.trace && exit\"'"
+    " -e 'end tell'",
+    pid);
+  std::cout << defaultAppleProfileCommand << std::endl;
+  setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+#else
+  setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
+#endif
+  return system(getenv("O2DPLPROFILE"));
+}
+
+/// Show a window with the list of devices which have not yet exited
+/// and provide a few controls to interact with them.
+void displayShutdownDialog(std::vector<DeviceSpec> const& specs, std::vector<DeviceInfo> const& infos)
+{
+  for (size_t i = 0; i < infos.size(); ++i) {
+    auto& info = infos[i];
+    if (info.active == false) {
+      continue;
+    }
+    auto& spec = specs[i];
+    ImGui::Text("Unable to quit due to the following devices:");
+    ImGui::Text("%s (%d).", spec.name.c_str(), info.pid);
+    ImGui::SameLine();
+    if (ImGui::Button("Force quit")) {
+      kill(info.pid, SIGKILL);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Debug")) {
+      debugPID(info.pid);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Profile")) {
+      profilePID(info.pid);
+    }
+  }
+}
+
 /// Display information window about the driver
 /// and its state.
 void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
@@ -1035,42 +1101,12 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   }
   ImGui::SameLine();
   if (ImGui::Button("Debug driver")) {
-    std::string pidStr = std::to_string(pid);
-    setenv("O2DEBUGGEDPID", pidStr.c_str(), 1);
-#ifdef __APPLE__
-    std::string defaultAppleDebugCommand =
-      "osascript -e 'tell application \"Terminal\"'"
-      " -e 'activate'"
-      " -e 'do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\") & \"; exit\"'"
-      " -e 'end tell'";
-    setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
-#else
-    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
-#endif
-    int retVal = system(getenv("O2DPLDEBUG"));
-    (void)retVal;
+    debugPID(pid);
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Profile")) {
-    std::string pidStr = std::to_string(pid);
-    setenv("O2PROFILEDPID", pidStr.c_str(), 1);
-#ifdef __APPLE__
-    auto defaultAppleProfileCommand = fmt::format(
-      "osascript -e 'tell application \"Terminal\"'"
-      " -e 'activate'"
-      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
-      " --instrument os_signpost --time-limit 30s --template Time\\\\ Profiler --attach {0} "
-      " && open dpl-profile-{0}.trace && exit\"'"
-      " -e 'end tell'",
-      pid);
-    std::cout << defaultAppleProfileCommand << std::endl;
-    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
-#else
-    setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
-#endif
-    int retVal = system(getenv("O2DPLPROFILE"));
-    (void)retVal;
+    profilePID(pid);
   }
 
   // FIXME: this should really be a combo box
@@ -1110,7 +1146,8 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                          std::vector<DeviceMetricsInfo> const& metricsInfos,
                                          DriverInfo const& driverInfo,
                                          std::vector<DeviceControl>& controls,
-                                         DriverControl& driverControl)
+                                         DriverControl& driverControl,
+                                         GuiCallbackContext& gui)
 {
   static gui::WorkspaceGUIState globalGUIState;
   gui::WorkspaceGUIState& guiState = globalGUIState;
@@ -1141,7 +1178,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   std::vector<TopologyNodeInfo> driverNodesInfos;
   driverNodesInfos.push_back(TopologyNodeInfo{"driver"});
 
-  return [&infos, &devices, &allStates, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl, deviceNodesInfos, driverNodesInfos]() {
+  return [&infos, &devices, &allStates, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl, &gui, deviceNodesInfos, driverNodesInfos]() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 0.;
     style.WindowRounding = 0.;
@@ -1158,6 +1195,9 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     metricsStore.specs[DRIVER_METRICS] = gsl::span(driverNodesInfos);
     displayMetrics(guiState, driverInfo, infos, metadata, controls, metricsStore);
     displayDriverInfo(driverInfo, driverControl);
+    if (*(gui.guiQuitRequested) && !*(gui.allChildrenGone)) {
+      displayShutdownDialog(devices, infos);
+    }
 
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / guiState.devices.size();
 

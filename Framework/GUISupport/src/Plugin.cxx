@@ -36,9 +36,10 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
                                            std::vector<DeviceMetricsInfo> const& metricsInfos,
                                            DriverInfo const& driverInfo,
                                            std::vector<DeviceControl>& controls,
-                                           DriverControl& driverControl) override
+                                           DriverControl& driverControl,
+                                           GuiCallbackContext& context) override
   {
-    return o2::framework::gui::getGUIDebugger(infos, devices, allStates, metadata, metricsInfos, driverInfo, controls, driverControl);
+    return o2::framework::gui::getGUIDebugger(infos, devices, allStates, metadata, metricsInfos, driverInfo, controls, driverControl, context);
   }
 
   void updateMousePos(float x, float y) override
