@@ -64,6 +64,10 @@ class CcdbApi //: public DatabaseInterface
   /// \brief Default destructor
   virtual ~CcdbApi();
 
+  // Delete copy and copy assignment constructor
+  CcdbApi(const CcdbApi&) = delete;
+  void operator=(const CcdbApi&) = delete;
+
   const std::string getUniqueAgentID() const { return mUniqueAgentID; }
 
   static bool checkAlienToken();
