@@ -293,6 +293,24 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
   std::vector<bool> isITSTrackSelectedEntry(mITSTracks.size(), false);
   TrackCuts cuts;
+  // ITS track
+  cuts.setMinPtITSCut(mPtITSCut);
+  cuts.setEtaITSCut(mEtaITSCut);
+  cuts.setMinNClustersITS(mMinNClustersITS);
+  cuts.setMaxChi2PerClusterITS(mMaxChi2PerClusterITS);
+  for (auto it = mRequiredITSHits.begin(); it != mRequiredITSHits.end(); it++) {
+    cuts.setRequireHitsInITSLayers((*it).first, (*it).second);
+  }
+  // TPC track
+  cuts.setMinPtTPCCut(mPtTPCCut);
+  cuts.setEtaTPCCut(mEtaTPCCut);
+  cuts.setMinNTPCClustersCut(mNTPCClustersCut);
+  cuts.setMaxDCATPCCut(mDCATPCCut);
+  cuts.setMaxDCATPCCutY(mDCATPCCutY);
+  // ITS-TPC track kinematics
+  cuts.setMinPtCut(mPtCut);
+  cuts.setMaxPtCut(mPtMaxCut);
+  cuts.setEtaCut(-mEtaCut, mEtaCut);
 
   for (size_t itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
     auto const& trkTpc = mTPCTracks[itrk];
@@ -301,6 +319,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // }
     o2::dataformats::GlobalTrackID id(itrk, GID::TPC);
     if (cuts.isSelected(id, mRecoCont)) {
+      // NB: same cuts for numerator and denominator tracks of ITS-TPC matching
+      // To change cuts only for numerator, something like o2::dataformats::GlobalTrackID id(itrk, GID::ITSTPC) is necessary
       isTPCTrackSelectedEntry[itrk] = true;
     }
   }
@@ -309,6 +329,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     auto const& trkIts = mITSTracks[itrk];
     o2::dataformats::GlobalTrackID id(itrk, GID::ITS);
     if (cuts.isSelected(id, mRecoCont)) {
+      // NB: same cuts for numerator and denominator tracks of ITS-TPC matching
+      // To change cuts only for numerator, something like o2::dataformats::GlobalTrackID id(itrk, GID::ITSTPC) is necessary
       isITSTrackSelectedEntry[itrk] = true;
     }
   }
@@ -681,7 +703,7 @@ bool MatchITSTPCQC::selectTrack(o2::tpc::TrackTPC const& track)
 
   math_utils::Point3D<float> v{};
   std::array<float, 2> dca;
-  if (!(const_cast<o2::tpc::TrackTPC&>(track).propagateParamToDCA(v, mBz, &dca, mDCACut)) || std::abs(dca[0]) > mDCACutY) {
+  if (!(const_cast<o2::tpc::TrackTPC&>(track).propagateParamToDCA(v, mBz, &dca, mDCATPCCut)) || std::abs(dca[0]) > mDCATPCCutY) {
     return false;
   }
 

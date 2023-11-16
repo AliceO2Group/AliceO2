@@ -52,6 +52,32 @@ using GIndex = o2::dataformats::VtxTrackIndex;
 class TrackCuts
 {
  public:
+  ////////////////////////  Selection setters  ///////////////////////
+  /// ITS
+  void setMinPtITSCut(float value) { mPtITSCut = value; }
+  void setEtaITSCut(float value) { mEtaITSCut = value; }
+  void setMinNClustersITS(float value) { mMinNClustersITS = value; }
+  void setMaxChi2PerClusterITS(float value) { mMaxChi2PerClusterITS = value; }
+  void setRequireHitsInITSLayers(int8_t minNRequiredHits, std::set<uint8_t> requiredLayers)
+  {
+    mRequiredITSHits.push_back(std::make_pair(minNRequiredHits, requiredLayers));
+    LOG(info) << "Track selection, set require hits in ITS layers: " << static_cast<int>(minNRequiredHits);
+  }
+  /// TPC
+  void setMinPtTPCCut(float value) { mPtTPCCut = value; }
+  void setEtaTPCCut(float value) { mEtaTPCCut = value; }
+  void setMinNTPCClustersCut(int32_t value) { mNTPCClustersCut = value; }
+  void setMaxDCATPCCut(float value) { mDCATPCCut = value; }
+  void setMaxDCATPCCutY(float value) { mDCATPCCutY = value; }
+  /// ITS+TPC kinematics
+  void setMinPtCut(float value) { mMinPt = value; }
+  void setMaxPtCut(float value) { mMaxPt = value; }
+  void setEtaCut(float valueMin, float valueMax)
+  {
+    mMinEta = valueMin;
+    mMaxEta = valueMax;
+  }
+
   //////////////////////////////// O2 ////////////////////////////////
   bool isSelected(GID trackIndex, o2::globaltracking::RecoContainer& data)
   {
@@ -60,13 +86,14 @@ class TrackCuts
     auto src = trackIndex.getSource(); // make selections depending on track source
     // ITS tracks
     if (contributorsGID[GIndex::Source::ITS].isIndexSet()) { // ITS tracks selection
-      isBarrelTrack = true;
       const auto& itsTrk = data.getITSTrack(contributorsGID[GID::ITS]);
       int ITSnClusters = itsTrk.getNClusters();
       float ITSchi2 = itsTrk.getChi2();
       float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
       uint8_t itsClusterMap = itsTrk.getPattern();
-      if (ITSnClusters <= mMinNClustersITS ||
+      if (itsTrk.getPt() <= mPtITSCut ||
+          std::abs(itsTrk.getEta()) > mEtaITSCut || // TODO: define 2 different values for min and max (**)
+          ITSnClusters <= mMinNClustersITS ||
           itsChi2NCl >= mMaxChi2PerClusterITS ||
           TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits) == false) {
         return false;
@@ -74,21 +101,27 @@ class TrackCuts
     }
     // TPC tracks
     if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-      isBarrelTrack = true;
       const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
-      math_utils::Point3D<float> v{};
+      math_utils::Point3D<float> v{}; // vertex not defined?!
       std::array<float, 2> dca;
       if (tpcTrk.getPt() < mPtTPCCut ||
-          std::abs(tpcTrk.getEta()) > mEtaTPCCut ||
+          std::abs(tpcTrk.getEta()) > mEtaTPCCut || // TODO: define 2 different values for min and max (***)
           tpcTrk.getNClusters() < mNTPCClustersCut ||
-          (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCACut)) ||
-           std::abs(dca[0]) > mDCACutY)) {
+          (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCATPCCut)) ||
+           std::abs(dca[0]) > mDCATPCCutY) ||
+          std::hypot(dca[0], dca[1]) > mDCATPCCut) {
         return false;
       }
     }
-    if (isBarrelTrack) { // track selection for barrel tracks
+    // ITS-TPC matched cuts
+    // --> currently inactive in MatchITSTPCQC, since either GID::TPC or GID::ITS
+    if (src == o2::dataformats::GlobalTrackID::ITSTPC ||
+        src == o2::dataformats::GlobalTrackID::ITSTPCTRD ||
+        src == o2::dataformats::GlobalTrackID::ITSTPCTOF ||
+        src == o2::dataformats::GlobalTrackID::ITSTPCTRDTOF) { // track selection for barrel tracks (ITS-TPC matched)
       trk = data.getTrackParam(trackIndex);
-      if (trk.getPt() < mMinPt && trk.getPt() > mMaxPt && trk.getEta() < mMinEta && trk.getEta() > mMaxEta) {
+      float trkEta = trk.getEta();
+      if (trk.getPt() < mMinPt || trk.getPt() > mMaxPt || trkEta < mMinEta || trkEta > mMaxEta) {
         return false;
       }
     }
@@ -96,26 +129,26 @@ class TrackCuts
   }
 
  private:
-  bool isBarrelTrack = false; // all barrel tracks must have either ITS or TPC contribution -> true if ITS || TPC track source condition is passed
-  // cut values
-  float mPtTPCCut = 0.1f;
-  float mEtaTPCCut = 1.4f;
-  int32_t mNTPCClustersCut = 60;
-  float mDCACut = 100.f;
-  float mDCACutY = 10.f;
-  // kinematic cuts
-  float mMinPt{0.f},
-    mMaxPt{1e10f};                       // range in pT
+  //////////////////////  cut values   //////////////////////////////
+  /// ITS track
+  float mPtITSCut = 0.f;                                                // min pT for ITS track
+  float mEtaITSCut = 1e10f;                                             // eta window for ITS track --> TODO: define 2 different values for min and max (**)
+  int mMinNClustersITS{0};                                              // min number of ITS clusters
+  float mMaxChi2PerClusterITS{1e10f};                                   // max its fit chi2 per ITS cluster
+  std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{}; // vector of ITS requirements (minNRequiredHits in specific requiredLayers)
+  /// TPC track
+  float mPtTPCCut = 0.1f;        // min pT for TPC track
+  float mEtaTPCCut = 1.4f;       // eta window for TPC track --> TODO: define 2 different values for min and max (***)
+  int32_t mNTPCClustersCut = 60; // minimum number of TPC clusters for TPC track
+  float mDCATPCCut = 100.f;      // max DCA 3D to PV for TPC track
+  float mDCATPCCutY = 10.f;      // max DCA xy to PV for TPC track
+  // ITS+TPC track kinematics
+  float mMinPt{0.f}, mMaxPt{1e10f};      // range in pT
   float mMinEta{-1e10f}, mMaxEta{1e10f}; // range in eta
+
   float mBz = o2::base::Propagator::Instance()->getNominalBz();
 
-  float mMaxChi2PerClusterITS{1e10f}; // max its fit chi2 per ITS cluster
-  int mMinNClustersITS{0};            // min number of ITS clusters
-
-  // vector of ITS requirements (minNRequiredHits in specific requiredLayers)
-  std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{};
-
-  ClassDefNV(TrackCuts, 1);
+  ClassDefNV(TrackCuts, 2);
 };
 } // namespace o2
 
