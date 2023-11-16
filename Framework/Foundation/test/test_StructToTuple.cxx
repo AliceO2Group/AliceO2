@@ -12,7 +12,11 @@
 #include <catch_amalgamated.hpp>
 #include "Framework/StructToTuple.h"
 
-struct Foo {
+struct Foo0 {
+};
+
+struct Foo1 {
+  int foo = 1;
 };
 
 // FIXME: this should really struct Bar : Foo, but a c++17 bug
@@ -22,6 +26,28 @@ struct Bar {
   int foo = 1;
   int bar = 2;
 };
+
+TEST_CASE("SimpleDestructuring")
+{
+  Foo0 foo0;
+  auto t0 = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 1; }, foo0);
+  REQUIRE(t0.size() == 0);
+  Foo1 foo1;
+  auto t1 = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 1; }, foo1);
+
+  REQUIRE(t1.size() == 1);
+
+  // Should work with refs as well. When moving to C++20 this was
+  // not the case initially.
+  Foo1 const&& foo1ref = std::move(foo1);
+  auto t1ref = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 1; }, foo1ref);
+  REQUIRE(t1ref.size() == 1);
+
+  Bar bar;
+  auto t = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 1; }, bar);
+  REQUIRE(t[0] == false);
+  REQUIRE(t[1] == true);
+}
 
 /// Largest supported struct
 struct FooMax {
