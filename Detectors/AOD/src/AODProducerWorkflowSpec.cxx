@@ -52,6 +52,7 @@
 #include "FT0Base/Geometry.h"
 #include "GlobalTracking/MatchTOF.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "GlobalTracking/MatchGlobalFwd.h"
 #include "MCHTracking/TrackExtrap.h"
 #include "MCHTracking/TrackParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
@@ -574,10 +575,12 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     }
 
     o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters(), track.getCovariances());
-    double errVtx{0.0}; // FIXME: get errors associated with vertex if available
-    double errVty{0.0};
-    if (!o2::mch::TrackExtrap::extrapToVertex(trackParamAtVertex, vx, vy, vz, errVtx, errVty)) {
-      return false;
+    if (mPropMuons) {
+      double errVtx{0.0}; // FIXME: get errors associated with vertex if available
+      double errVty{0.0};
+      if (!o2::mch::TrackExtrap::extrapToVertex(trackParamAtVertex, vx, vy, vz, errVtx, errVty)) {
+        return false;
+      }
     }
 
     // extrapolate to DCA
@@ -599,43 +602,37 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     double xAbs = trackParamAtRAbs.getNonBendingCoor();
     double yAbs = trackParamAtRAbs.getBendingCoor();
 
-    double px = trackParamAtVertex.px();
-    double py = trackParamAtVertex.py();
-    double pz = trackParamAtVertex.pz();
-
-    double pt = std::sqrt(px * px + py * py);
-    double dphi = std::atan2(py, px);
-    double dtanl = pz / pt;
-    double dinvqpt = 1.0 / (trackParamAtVertex.getCharge() * pt);
     double dpdca = track.getP() * dca;
     double dchi2 = track.getChi2OverNDF();
 
-    fwdInfo.x = trackParamAtVertex.getNonBendingCoor();
-    fwdInfo.y = trackParamAtVertex.getBendingCoor();
-    fwdInfo.z = trackParamAtVertex.getZ();
+    auto fwdmuon = mMatching.MCHtoFwd(trackParamAtVertex);
+
+    fwdInfo.x = fwdmuon.getX();
+    fwdInfo.y = fwdmuon.getY();
+    fwdInfo.z = fwdmuon.getZ();
+    fwdInfo.phi = fwdmuon.getPhi();
+    fwdInfo.tanl = fwdmuon.getTgl();
+    fwdInfo.invqpt = fwdmuon.getInvQPt();
     fwdInfo.rabs = std::sqrt(xAbs * xAbs + yAbs * yAbs);
-    fwdInfo.phi = dphi;
-    fwdInfo.tanl = dtanl;
-    fwdInfo.invqpt = dinvqpt;
     fwdInfo.chi2 = dchi2;
     fwdInfo.pdca = dpdca;
     fwdInfo.nClusters = track.getNClusters();
 
-    fwdCovInfo.sigX = TMath::Sqrt(trackParamAtVertex.getCovariances()(0, 0));
-    fwdCovInfo.sigY = TMath::Sqrt(trackParamAtVertex.getCovariances()(1, 1));
-    fwdCovInfo.sigPhi = TMath::Sqrt(trackParamAtVertex.getCovariances()(2, 2));
-    fwdCovInfo.sigTgl = TMath::Sqrt(trackParamAtVertex.getCovariances()(3, 3));
-    fwdCovInfo.sig1Pt = TMath::Sqrt(trackParamAtVertex.getCovariances()(4, 4));
-    fwdCovInfo.rhoXY = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 1) / (fwdCovInfo.sigX * fwdCovInfo.sigY));
-    fwdCovInfo.rhoPhiX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 2) / (fwdCovInfo.sigPhi * fwdCovInfo.sigX));
-    fwdCovInfo.rhoPhiY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 2) / (fwdCovInfo.sigPhi * fwdCovInfo.sigY));
-    fwdCovInfo.rhoTglX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 3) / (fwdCovInfo.sigTgl * fwdCovInfo.sigX));
-    fwdCovInfo.rhoTglY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 3) / (fwdCovInfo.sigTgl * fwdCovInfo.sigY));
-    fwdCovInfo.rhoTglPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 3) / (fwdCovInfo.sigTgl * fwdCovInfo.sigPhi));
-    fwdCovInfo.rho1PtX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigX));
-    fwdCovInfo.rho1PtY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigY));
-    fwdCovInfo.rho1PtPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigPhi));
-    fwdCovInfo.rho1PtTgl = (Char_t)(128. * trackParamAtVertex.getCovariances()(3, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigTgl));
+    fwdCovInfo.sigX = TMath::Sqrt(fwdmuon.getCovariances()(0, 0));
+    fwdCovInfo.sigY = TMath::Sqrt(fwdmuon.getCovariances()(1, 1));
+    fwdCovInfo.sigPhi = TMath::Sqrt(fwdmuon.getCovariances()(2, 2));
+    fwdCovInfo.sigTgl = TMath::Sqrt(fwdmuon.getCovariances()(3, 3));
+    fwdCovInfo.sig1Pt = TMath::Sqrt(fwdmuon.getCovariances()(4, 4));
+    fwdCovInfo.rhoXY = (Char_t)(128. * fwdmuon.getCovariances()(0, 1) / (fwdCovInfo.sigX * fwdCovInfo.sigY));
+    fwdCovInfo.rhoPhiX = (Char_t)(128. * fwdmuon.getCovariances()(0, 2) / (fwdCovInfo.sigPhi * fwdCovInfo.sigX));
+    fwdCovInfo.rhoPhiY = (Char_t)(128. * fwdmuon.getCovariances()(1, 2) / (fwdCovInfo.sigPhi * fwdCovInfo.sigY));
+    fwdCovInfo.rhoTglX = (Char_t)(128. * fwdmuon.getCovariances()(0, 3) / (fwdCovInfo.sigTgl * fwdCovInfo.sigX));
+    fwdCovInfo.rhoTglY = (Char_t)(128. * fwdmuon.getCovariances()(1, 3) / (fwdCovInfo.sigTgl * fwdCovInfo.sigY));
+    fwdCovInfo.rhoTglPhi = (Char_t)(128. * fwdmuon.getCovariances()(2, 3) / (fwdCovInfo.sigTgl * fwdCovInfo.sigPhi));
+    fwdCovInfo.rho1PtX = (Char_t)(128. * fwdmuon.getCovariances()(0, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigX));
+    fwdCovInfo.rho1PtY = (Char_t)(128. * fwdmuon.getCovariances()(1, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigY));
+    fwdCovInfo.rho1PtPhi = (Char_t)(128. * fwdmuon.getCovariances()(2, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigPhi));
+    fwdCovInfo.rho1PtTgl = (Char_t)(128. * fwdmuon.getCovariances()(3, 4) / (fwdCovInfo.sig1Pt * fwdCovInfo.sigTgl));
 
     return true;
   };
@@ -1626,6 +1623,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
+  mPropMuons = ic.options().get<bool>("propagate-muons");
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
 #else
@@ -2831,7 +2829,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
       ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}},
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
-      ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}}}};
+      ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
+      ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}}}};
 }
 
 } // namespace o2::aodproducer
