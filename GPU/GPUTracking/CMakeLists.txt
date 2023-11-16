@@ -178,6 +178,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataCompression/GPUTPCCompression.cxx
         DataCompression/GPUTPCCompressionTrackModel.cxx
         DataCompression/GPUTPCCompressionKernels.cxx
+        DataCompression/GPUTPCDecompression.cxx
+        DataCompression/GPUTPCDecompressionKernels.cxx
         DataCompression/TPCClusterDecompressor.cxx
         DataCompression/GPUTPCClusterStatistics.cxx
         TPCClusterFinder/GPUTPCClusterFinder.cxx

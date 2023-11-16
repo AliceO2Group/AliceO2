@@ -28,6 +28,7 @@ using namespace o2::tpc;
 
 int GPUChainTracking::RunTPCCompression()
 {
+  LOGP(info, "====== Compression");
 #ifdef GPUCA_HAVE_O2HEADERS
   mRec->PushNonPersistentMemory(qStr2Tag("TPCCOMPR"));
   RecoStep myStep = RecoStep::TPCCompression;
@@ -44,7 +45,6 @@ int GPUChainTracking::RunTPCCompression()
   }
   SetupGPUProcessor(&Compressor, true);
   new (Compressor.mMemory) GPUTPCCompression::memory;
-
   WriteToConstantMemory(myStep, (char*)&processors()->tpcCompressor - (char*)processors(), &CompressorShadow, sizeof(CompressorShadow), 0);
   TransferMemoryResourcesToGPU(myStep, &Compressor, 0);
   runKernel<GPUMemClean16>(GetGridAutoStep(0, RecoStep::TPCCompression), krnlRunRangeNone, krnlEventNone, CompressorShadow.mClusterStatus, Compressor.mMaxClusters * sizeof(CompressorShadow.mClusterStatus[0]));
@@ -207,8 +207,21 @@ int GPUChainTracking::RunTPCCompression()
 
 int GPUChainTracking::RunTPCDecompression()
 {
+  LOGP(info, "====== Decompression");
+
 #ifdef GPUCA_HAVE_O2HEADERS
+ // mRec->PushNonPersistentMemory(qStr2Tag("TPCDCMPR"));
+  RecoStep myStep = RecoStep::TPCDecompression;
+  bool doGPU = GetRecoStepsGPU() & RecoStep::TPCDecompression; // with -g gives true
+  GPUTPCDecompression& Decompressor = processors()->tpcDecompressor;
+  GPUTPCDecompression& DecompressorShadow = doGPU ? processorsShadow()->tpcDecompressor : Decompressor;
   const auto& threadContext = GetThreadContext();
+  SetupGPUProcessor(&Decompressor, false);
+  new (Decompressor.testP) unsigned int;
+  *Decompressor.testP = 145;
+  WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), 0);
+  TransferMemoryResourcesToGPU(myStep, &Decompressor, 0);
+  LOGP(info, "==== Decompressor testP: {}, DecompressorShadow testP: {}",(void*)Decompressor.testP,(void*)DecompressorShadow.testP);
   TPCClusterDecompressor decomp;
   auto allocator = [this](size_t size) {
     this->mInputsHost->mNClusterNative = this->mInputsShadow->mNClusterNative = size;
@@ -224,6 +237,7 @@ int GPUChainTracking::RunTPCDecompression()
   gatherTimer.Stop();
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   if (mRec->IsGPU()) {
+    runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::test>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
     WriteToConstantMemory(RecoStep::TPCDecompression, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
@@ -234,6 +248,9 @@ int GPUChainTracking::RunTPCDecompression()
     TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, 0);
     SynchronizeStream(0);
   }
+  // mRec->PopNonPersistentMemory(RecoStep::TPCCompression, qStr2Tag("TPCDCMPR"));
 #endif
   return 0;
 }
+
+

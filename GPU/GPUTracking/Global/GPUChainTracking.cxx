@@ -105,6 +105,9 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   if (GetRecoSteps() & RecoStep::TPCCompression) {
     mRec->RegisterGPUProcessor(&processors()->tpcCompressor, GetRecoStepsGPU() & RecoStep::TPCCompression);
   }
+  if (GetRecoSteps() & RecoStep::TPCDecompression) {
+    mRec->RegisterGPUProcessor(&processors()->tpcDecompressor, GetRecoStepsGPU() & RecoStep::TPCDecompression);
+  }
   if (GetRecoSteps() & RecoStep::TPCClusterFinding) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       mRec->RegisterGPUProcessor(&processors()->tpcClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
@@ -148,6 +151,9 @@ void GPUChainTracking::RegisterGPUProcessors()
   }
   if (GetRecoStepsGPU() & RecoStep::TPCCompression) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcCompressor, &processors()->tpcCompressor);
+  }
+  if (GetRecoStepsGPU() & RecoStep::TPCDecompression) {
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcDecompressor, &processors()->tpcDecompressor);
   }
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     for (unsigned int i = 0; i < NSLICES; i++) {
