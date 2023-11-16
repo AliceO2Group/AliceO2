@@ -25,7 +25,7 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
-void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+void PlotPbLumi(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 { //
   // what = 1: znc rate
   // what = 2: (TCE+TSC)/ZNC
@@ -173,4 +173,10 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
   gr3->Draw("AP");
   c1->cd(4);
   gr4->Draw("AP");
+  // getRate test:
+  double tt = timeStamp / 1000.;
+  std::pair<double, double> r1 = scl->getRateGivenT(tt, 25, 7);
+  std::cout << "ZDC input getRateGivetT:" << r1.first / 28. << " " << r1.second / 28. << std::endl;
+  std::pair<double, double> r2 = scl->getRateGivenT(tt, tce, 1);
+  std::cout << "LM before TCE class getRateGivetT:" << r2.first << " " << r2.second << std::endl;
 }
