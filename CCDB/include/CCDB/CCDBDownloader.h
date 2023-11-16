@@ -208,12 +208,12 @@ class CCDBDownloader
    */
   void runLoop(bool noWait);
 
- private:
   /**
    * Leaves only the protocol and host part of the url, discrading path and metadata.
    */
   std::string trimHostUrl(std::string full_host_url) const;
 
+ private:
   /**
    * Recognizes whether the address is a full url, or a partial one (like for example "/Task/Detector/1") and combines it with potentialHost if needed.
    */
