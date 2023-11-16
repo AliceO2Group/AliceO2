@@ -114,7 +114,8 @@ void notBoundTable(const char* tableName)
   throw o2::framework::runtime_error_f("Index pointing to %s is not bound! Did you subscribe to the table?", tableName);
 }
 
-void notFoundColumn(const char* label, const char* key){
+void notFoundColumn(const char* label, const char* key)
+{
   throw o2::framework::runtime_error_f(R"(Preslice not valid: table "%s" (or join based on it) does not have column "%s"")", label, key);
 }
 
