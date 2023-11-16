@@ -153,6 +153,7 @@ TEST_CASE("AdaptorCompilation")
 {
   auto cfgc = makeEmptyConfigContext();
 
+  REQUIRE(brace_constructible_size<ATask>() == 1);
   auto task1 = adaptAnalysisTask<ATask>(*cfgc, TaskName{"test1"});
   REQUIRE(task1.inputs.size() == 2);
   REQUIRE(task1.outputs.size() == 1);
