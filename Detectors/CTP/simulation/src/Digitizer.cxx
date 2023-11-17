@@ -27,7 +27,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> det2ctpinp = mCTPConfiguration->getDet2InputMap();
   // To be taken from config database ?
   std::map<std::string, uint64_t> detInputName2Mask =
-    {{"MVBA", 1}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MVIR", 0x10}, {"MT0A", 1}, {"MT0C", 2}, {"MTSC", 4}, {"MTCE", 8}, {"MTVX", 0x10}, {"0U0A", 1}, {"0U0C", 2}, {"0USC", 4}, {"0UCE", 8}, {"0UVX", 0x10}};
+    {{"MVBA", 1}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MVIR", 0x10}, {"MT0A", 1}, {"MT0C", 2}, {"MTSC", 4}, {"MTCE", 8}, {"MTVX", 0x10}, {"0U0A", 1}, {"0U0C", 2}, {"0USC", 4}, {"0UCE", 8}, {"0UVX", 0x10}, {"EMBA", 0x1}, {"0EMC", 0x2}, {"0DMC", 0x4}};
 
   // pre-sorting detector inputs per interaction record
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> predigits;
@@ -69,12 +69,23 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           break;
         }
         case o2::detectors::DetID::EMC: {
-          for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
-            uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
-            if (mask) {
-              inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
+          // uint64_t inpmaskdebug = 1;
+          uint64_t inpmaskdebug = (inp->inputsMask).to_ullong();
+          if (inpmaskdebug & detInputName2Mask["EMBA"]) {
+            // MB-accept must be treated separately, as it is not a CTP input
+            std::bitset<CTP_NINPUTS> emcMBaccept;
+            emcMBaccept.set(CTP_NINPUTS - 1, 1);
+            inpmaskcoll |= emcMBaccept;
+          } else {
+            for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
+              uint64_t mask = inpmaskdebug & detInputName2Mask[ctpinp.name];
+              // uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
+              if (mask) {
+                inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
+              }
             }
           }
+          LOG(info) << "EMC input mask:" << inpmaskcoll;
           break;
         }
         case o2::detectors::DetID::PHS: {
@@ -100,13 +111,21 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           LOG(error) << "CTP Digitizer: unknown detector:" << inp->detector;
           break;
       }
+      // inpmaskcoll.reset();  // debug
+      // inpmaskcoll[47] = 1;  // debug
     } // end loop over trigger input for this interaction
     if (inpmaskcoll.to_ullong()) {
       // we put the trigger only when non-trivial
+      std::bitset<64> classmask;
+      calculateClassMask(inpmaskcoll, classmask);
+      if (classmask.to_ulong() == 0) {
+        // No class accepted
+        continue;
+      }
       CTPDigit data;
       data.intRecord = hits.first;
       data.CTPInputMask = inpmaskcoll;
-      calculateClassMask(inpmaskcoll, data.CTPClassMask);
+      data.CTPClassMask = classmask;
       digits.emplace_back(data);
       LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll;
     }
@@ -117,10 +136,39 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
 {
   classmask = 0;
   for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
-    if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
-      classmask |= (1 << tcl.classMask);
+    if (tcl.cluster->name == "emc") {
+      // check if Min Bias EMC class
+      bool tvxMBemc = tcl.name.find("C0TVX-B-NOPF-EMC") != std::string::npos; // 2023
+      tvxMBemc |= tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
+      tvxMBemc |= tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
+      tvxMBemc |= tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
+      if (tcl.cluster->name == "emc") {
+        tvxMBemc |= tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
+      }
+      if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
+        // require real physics input in any case
+        if (tvxMBemc) {
+          // if the class is a min. bias class accept it only if the MB-accept bit is set in addition
+          // (fake trigger input)
+          if (ctpinpmask[CTP_NINPUTS - 1]) {
+            classmask |= tcl.classMask;
+            LOG(info) << "adding MBA:" << tcl.name;
+          }
+        } else {
+          // EMCAL rare triggers - physical trigger input
+          // class identification can be handled like in the case of the other
+          // classes as EMCAL trigger input is required
+          classmask |= tcl.classMask;
+        }
+      }
+    } else {
+      if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
+        classmask |= tcl.classMask;
+      }
     }
   }
+  LOG(info) << "input mask:" << ctpinpmask;
+  LOG(info) << "class mask:" << classmask;
 }
 void Digitizer::init()
 {

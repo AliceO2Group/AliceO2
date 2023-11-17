@@ -35,7 +35,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   using GRP = o2::parameters::GRPObject;
 
  public:
-  CTPDPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer() {}
+  CTPDPLDigitizerTask(const std::vector<o2::detectors::DetID>& detList) : o2::base::BaseDPLDigitizer(), mDigitizer(), mDetList(detList) {}
   ~CTPDPLDigitizerTask() override = default;
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -44,23 +44,36 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void run(framework::ProcessingContext& pc)
   {
     // read collision context from input
-    //auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
-    //const bool withQED = context->isQEDProvided();
-    //auto& timesview = context->getEventRecords(withQED);
+    // auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    // const bool withQED = context->isQEDProvided();
+    // auto& timesview = context->getEventRecords(withQED);
     // read ctp inputs from input
-    auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
-    auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
 
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
     LOG(info) << "CALLING CTP DIGITIZATION";
     // Input order: T0, V0, ... but O need also position of inputs DETInputs
-    for (const auto& inp : ft0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
+    // fv0
+    if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::FT0) != mDetList.end()) {
+      auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
+      for (const auto& inp : ft0inputs) {
+        finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
+      }
     }
-    for (const auto& inp : fv0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
+    // fv0
+    if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::FV0) != mDetList.end()) {
+      auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
+      for (const auto& inp : fv0inputs) {
+        finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
+      }
+    }
+    // emc
+    if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::EMC) != mDetList.end()) {
+      auto emcinputs = pc.inputs().get<gsl::span<o2::ctp::CTPInputDigit>>("emc");
+      for (const auto& inp : emcinputs) {
+        finputs.emplace_back(inp);
+      }
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);
@@ -76,16 +89,21 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  protected:
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT;
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
+  std::vector<o2::detectors::DetID> mDetList;
 };
 o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> output;
+
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FT0) != detList.end()) {
     inputs.emplace_back("ft0", "FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FV0) != detList.end()) {
     inputs.emplace_back("fv0", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+  }
+  if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::EMC) != detList.end()) {
+    inputs.emplace_back("emc", "EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
   output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
   output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
@@ -93,7 +111,7 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
     "CTPDigitizer",
     inputs,
     output,
-    AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>()},
+    AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>(detList)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
