@@ -118,6 +118,7 @@ struct CTPClass {
 struct CTPInputsConfiguration {
   CTPInputsConfiguration() = default;
   std::vector<CTPInput> CTPInputs;
+  static const std::vector<CTPInput> CTPInputsDefault;
   int createInputsConfigFromFile(std::string& filename);
   void printStream(std::ostream& strem) const;
   static CTPInputsConfiguration defaultInputConfig;
