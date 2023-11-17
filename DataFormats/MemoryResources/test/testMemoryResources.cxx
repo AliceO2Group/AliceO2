@@ -47,7 +47,7 @@ int testData::nconstructions = 0;
 
 BOOST_AUTO_TEST_CASE(transportallocatormap_test)
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
@@ -64,7 +64,7 @@ using namespace boost::container::pmr;
 
 BOOST_AUTO_TEST_CASE(allocator_test)
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 1};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(allocator_test)
 
 BOOST_AUTO_TEST_CASE(getMessage_test)
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 2};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
 
 BOOST_AUTO_TEST_CASE(adoptVector_test)
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 3};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
