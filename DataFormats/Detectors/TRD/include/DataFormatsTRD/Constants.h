@@ -41,6 +41,7 @@ constexpr int TRDLINKID = 15;        ///< hard coded link id, specific to TRD
 constexpr int NCOLUMN = 144; ///< the number of pad columns for each chamber
 constexpr int NROWC0 = 12;   ///< the number of pad rows for chambers of type C0 (installed in stack 2)
 constexpr int NROWC1 = 16;   ///< the number of pad rows for chambers of type C1 (installed in stacks 0, 1, 3 and 4)
+constexpr int FIRSTROW[NSTACK] = {0, 16, 32, 44, 60}; ///< first pad row for each stack
 
 constexpr int NMCMROB = 16;     ///< the number of MCMs per ROB
 constexpr int NMCMHCMAX = 64;   ///< the maximum number of MCMs for one half chamber (C1 type)
