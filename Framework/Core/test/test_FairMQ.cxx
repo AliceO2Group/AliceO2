@@ -100,7 +100,7 @@ auto forEach(fair::mq::Parts& parts, F&& function)
 
 TEST_CASE("getMessage_Stack")
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 0};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
@@ -149,7 +149,7 @@ TEST_CASE("getMessage_Stack")
 
 TEST_CASE("addDataBlockForEach_test")
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 1};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
