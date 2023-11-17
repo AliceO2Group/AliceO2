@@ -515,7 +515,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
-      if( !hasTPC && nITSclu < mSVParams->mITSSAminNclu ){ 
+      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu) {
         continue; // reject short ITS-only
       }
 
@@ -605,7 +605,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   // check tight lambda mass only
   bool goodLamForCascade = false, goodALamForCascade = false;
-  bool usesTPCOnly = (seedP.hasTPC && seedP.nITSclu<1) || (seedN.hasTPC && seedN.nITSclu<1);
+  bool usesTPCOnly = (seedP.hasTPC && seedP.nITSclu < 1) || (seedN.hasTPC && seedN.nITSclu < 1);
   if (ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly)) {
     if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
       goodLamForCascade = true;
