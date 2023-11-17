@@ -100,6 +100,7 @@ class SVertexer
     VBracket vBracket{};
     float minR = 0; // track lowest point r
     bool hasTPC = false;
+    uint8_t nITSclu = -1;
     bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
   };
 
