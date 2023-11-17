@@ -146,6 +146,10 @@ class TPCTimeSeries : public Task
       mLogdEdxQMaxC.resize(nBins);
       mITSPropertiesA.resize(nBins);
       mITSPropertiesC.resize(nBins);
+      mITSTPCDeltaPA.resize(nBins);
+      mITSTPCDeltaPC.resize(nBins);
+      mSigmaYZA.resize(nBins);
+      mSigmaYZC.resize(nBins);
     }
 
     // getting tracks
@@ -228,6 +232,21 @@ class TPCTimeSeries : public Task
         mITSPropertiesA[i][j].setUseWeights(false);
         mITSPropertiesC[i][j].setUseWeights(false);
       }
+
+      for (int j = 0; j < mITSTPCDeltaPA[i].size(); ++j) {
+        mITSTPCDeltaPA[i][j].clear();
+        mITSTPCDeltaPC[i][j].clear();
+        mITSTPCDeltaPA[i][j].setUseWeights(false);
+        mITSTPCDeltaPC[i][j].setUseWeights(false);
+      }
+
+      for (int j = 0; j < mSigmaYZA[i].size(); ++j) {
+        mSigmaYZA[i][j].clear();
+        mSigmaYZC[i][j].clear();
+        mSigmaYZA[i][j].setUseWeights(false);
+        mSigmaYZC[i][j].setUseWeights(false);
+      }
+
       for (int j = 0; j < mAvgMeffA[i].size(); ++j) {
         mAvgMeffA[i][j].clear();
         mAvgMeffC[i][j].clear();
@@ -295,6 +314,14 @@ class TPCTimeSeries : public Task
       for (int j = 0; j < mITSPropertiesA[i].size(); ++j) {
         mITSPropertiesA[i][j].reserve(resMem);
         mITSPropertiesC[i][j].reserve(resMem);
+      }
+      for (int j = 0; j < mITSTPCDeltaPA[i].size(); ++j) {
+        mITSTPCDeltaPA[i][j].reserve(resMem);
+        mITSTPCDeltaPC[i][j].reserve(resMem);
+      }
+      for (int j = 0; j < mSigmaYZA[i].size(); ++j) {
+        mSigmaYZA[i][j].reserve(resMem);
+        mSigmaYZC[i][j].reserve(resMem);
       }
       for (int j = 0; j < mAvgMeffA[i].size(); ++j) {
         mLogdEdxQTotA[i][j].reserve(resMem);
@@ -483,6 +510,8 @@ class TPCTimeSeries : public Task
         auto& mAvgmdEdxRatioQMax = isCSide ? mLogdEdxQMaxC : mLogdEdxQMaxA;
         auto& mAvgmdEdxRatioQTot = isCSide ? mLogdEdxQTotC : mLogdEdxQTotA;
         auto& mITSProperties = isCSide ? mITSPropertiesC : mITSPropertiesA;
+        auto& mSigmaYZ = isCSide ? mSigmaYZC : mSigmaYZA;
+        auto& mITSTPCDeltaP = isCSide ? mITSTPCDeltaPC : mITSTPCDeltaPA;
 
         const std::array<int, 5> bins{tglBin, phiBin, qPtBin, multBin, binInt};
         // fill bins
@@ -587,6 +616,30 @@ class TPCTimeSeries : public Task
             if (chi2ITS > 0) {
               mITSProperties[bin][1].addValue(chi2ITS);
             }
+
+            float sigmay2 = val.sigmaY2[i];
+            if (sigmay2 > 0) {
+              mSigmaYZ[bin][0].addValue(sigmay2);
+            }
+            float sigmaz2 = val.sigmaZ2[i];
+            if (sigmaz2 > 0) {
+              mSigmaYZ[bin][1].addValue(sigmaz2);
+            }
+
+            float deltaP2 = val.deltaP2[i];
+            if (deltaP2 != -999) {
+              mITSTPCDeltaP[bin][0].addValue(deltaP2);
+            }
+
+            float deltaP3 = val.deltaP3[i];
+            if (deltaP3 != -999) {
+              mITSTPCDeltaP[bin][1].addValue(deltaP3);
+            }
+
+            float deltaP4 = val.deltaP4[i];
+            if (deltaP4 != -999) {
+              mITSTPCDeltaP[bin][2].addValue(deltaP4);
+            }
           }
         }
       }
@@ -655,6 +708,28 @@ class TPCTimeSeries : public Task
       mBufferDCA.mITS_C_NCl_RMS[slice] = mITSPropertiesC[slice][0].getStdDev();
       mBufferDCA.mSqrtITSChi2_Ncl_C_Median[slice] = mITSPropertiesC[slice][1].getMedian();
       mBufferDCA.mSqrtITSChi2_Ncl_C_RMS[slice] = mITSPropertiesC[slice][1].getStdDev();
+
+      //...
+      mBufferDCA.mITSTPCDeltaP2_A_Median[slice] = mITSTPCDeltaPA[slice][0].getMedian();
+      mBufferDCA.mITSTPCDeltaP3_A_Median[slice] = mITSTPCDeltaPA[slice][1].getMedian();
+      mBufferDCA.mITSTPCDeltaP4_A_Median[slice] = mITSTPCDeltaPA[slice][2].getMedian();
+      mBufferDCA.mITSTPCDeltaP2_C_Median[slice] = mITSTPCDeltaPC[slice][0].getMedian();
+      mBufferDCA.mITSTPCDeltaP3_C_Median[slice] = mITSTPCDeltaPC[slice][1].getMedian();
+      mBufferDCA.mITSTPCDeltaP4_C_Median[slice] = mITSTPCDeltaPC[slice][2].getMedian();
+      mBufferDCA.mITSTPCDeltaP2_A_RMS[slice] = mITSTPCDeltaPA[slice][0].getStdDev();
+      mBufferDCA.mITSTPCDeltaP3_A_RMS[slice] = mITSTPCDeltaPA[slice][1].getStdDev();
+      mBufferDCA.mITSTPCDeltaP4_A_RMS[slice] = mITSTPCDeltaPA[slice][2].getStdDev();
+      mBufferDCA.mITSTPCDeltaP2_C_RMS[slice] = mITSTPCDeltaPC[slice][0].getStdDev();
+      mBufferDCA.mITSTPCDeltaP3_C_RMS[slice] = mITSTPCDeltaPC[slice][1].getStdDev();
+      mBufferDCA.mITSTPCDeltaP4_C_RMS[slice] = mITSTPCDeltaPC[slice][2].getStdDev();
+      mBufferDCA.mTPCSigmaY2A_Median[slice] = mSigmaYZA[slice][0].getMedian();
+      mBufferDCA.mTPCSigmaZ2A_Median[slice] = mSigmaYZA[slice][1].getMedian();
+      mBufferDCA.mTPCSigmaY2C_Median[slice] = mSigmaYZC[slice][0].getMedian();
+      mBufferDCA.mTPCSigmaZ2C_Median[slice] = mSigmaYZC[slice][1].getMedian();
+      mBufferDCA.mTPCSigmaY2A_RMS[slice] = mSigmaYZA[slice][0].getStdDev();
+      mBufferDCA.mTPCSigmaZ2A_RMS[slice] = mSigmaYZA[slice][1].getStdDev();
+      mBufferDCA.mTPCSigmaY2C_RMS[slice] = mSigmaYZC[slice][0].getStdDev();
+      mBufferDCA.mTPCSigmaZ2C_RMS[slice] = mSigmaYZC[slice][1].getStdDev();
     }
 
     auto stop = timer::now();
@@ -712,6 +787,11 @@ class TPCTimeSeries : public Task
         dedxValsqMax.reserve(n);
         nClITS.reserve(n);
         chi2ITS.reserve(n);
+        deltaP2.reserve(n);
+        deltaP3.reserve(n);
+        deltaP4.reserve(n);
+        sigmaY2.reserve(n);
+        sigmaZ2.reserve(n);
       } else if (type == 0) {
         dcarcomb.reserve(n);
         dcazcomb.reserve(n);
@@ -741,9 +821,14 @@ class TPCTimeSeries : public Task
       chi2ITS.clear();
       dedxValsqTot.clear();
       dedxValsqMax.clear();
+      deltaP2.clear();
+      deltaP3.clear();
+      deltaP4.clear();
+      sigmaY2.clear();
+      sigmaZ2.clear();
     }
 
-    void emplace_back(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioqTotTmp, float dedxRatioqMaxTmp, float sqrtChi2TPCTmp, float nClTPCTmp, o2::dataformats::GlobalTrackID::Source gIDTmp, float chi2MatchTmp, int hasITSTmp, int nClITSTmp, float chi2ITSTmp, const ValsdEdx& dedxValsqTotTmp, const ValsdEdx& dedxValsqMaxTmp)
+    void emplace_back(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioqTotTmp, float dedxRatioqMaxTmp, float sqrtChi2TPCTmp, float nClTPCTmp, o2::dataformats::GlobalTrackID::Source gIDTmp, float chi2MatchTmp, int hasITSTmp, int nClITSTmp, float chi2ITSTmp, const ValsdEdx& dedxValsqTotTmp, const ValsdEdx& dedxValsqMaxTmp, float sigmaY2Tmp, float sigmaZ2Tmp)
     {
       side.emplace_back(sideTmp);
       tglBin.emplace_back(tglBinTmp);
@@ -764,6 +849,20 @@ class TPCTimeSeries : public Task
       dedxValsqTot.emplace_back(dedxValsqTotTmp);
       nClITS.emplace_back(nClITSTmp);
       chi2ITS.emplace_back(chi2ITSTmp);
+      sigmaY2.emplace_back(sigmaY2Tmp);
+      sigmaZ2.emplace_back(sigmaZ2Tmp);
+      deltaP2.emplace_back(-999);
+      deltaP3.emplace_back(-999);
+      deltaP4.emplace_back(-999);
+    }
+
+    void setDeltaParam(float deltaP2Tmp, float deltaP3Tmp, float deltaP4Tmp)
+    {
+      if (!deltaP2.empty()) {
+        deltaP2.back() = deltaP2Tmp;
+        deltaP3.back() = deltaP3Tmp;
+        deltaP4.back() = deltaP4Tmp;
+      }
     }
 
     void emplace_back_ITSTPC(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioqTotTmp, float dedxRatioqMaxTmp, float sqrtChi2TPCTmp, float nClTPCTmp, float dcarCombTmp, float dcazCombTmp)
@@ -805,6 +904,11 @@ class TPCTimeSeries : public Task
     std::vector<int> nClITS;
     std::vector<float> chi2ITS;
     std::vector<o2::dataformats::GlobalTrackID::Source> gID;
+    std::vector<float> deltaP2;
+    std::vector<float> deltaP3;
+    std::vector<float> deltaP4;
+    std::vector<float> sigmaY2;
+    std::vector<float> sigmaZ2;
   };
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                  ///< info for CCDB request
   const bool mDisableWriter{false};                                        ///< flag if no ROOT output will be written
@@ -837,6 +941,10 @@ class TPCTimeSeries : public Task
   std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxC;                ///< for log dedx C side - qMax
   std::vector<std::array<RobustAverage, 2>> mITSPropertiesA;               ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
   std::vector<std::array<RobustAverage, 2>> mITSPropertiesC;               ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
+  std::vector<std::array<RobustAverage, 3>> mITSTPCDeltaPA;                ///< delta parameters 2,3,4
+  std::vector<std::array<RobustAverage, 3>> mITSTPCDeltaPC;                ///< delta parameters 2,3,4
+  std::vector<std::array<RobustAverage, 2>> mSigmaYZA;                     ///< sigmaY2 and sigmaZ2 A-side
+  std::vector<std::array<RobustAverage, 2>> mSigmaYZC;                     ///< sigmaY2 and sigmaZ2 C-side
   int mNMaxTracks{-1};                                                     ///< maximum number of tracks to process
   float mMinMom{1};                                                        ///< minimum accepted momentum
   int mMinNCl{80};                                                         ///< minimum accepted number of clusters per track
@@ -927,6 +1035,8 @@ class TPCTimeSeries : public Task
       return;
     }
 
+    float sigmaY2 = 0;
+    float sigmaZ2 = 0;
     const int sector = o2::math_utils::angle2Sector(trackTmp.getPhiPos());
     if (sector < SECTORSPERSIDE) {
       // find possible ITS-TPC track and vertex index
@@ -988,15 +1098,20 @@ class TPCTimeSeries : public Task
       if ((chi2ITS > 0) && (nClITS > 0)) {
         chi2ITS = std::sqrt(chi2ITS / nClITS);
       }
+      sigmaY2 = track.getSigmaY2();
+      sigmaZ2 = track.getSigmaZ2();
       if (track.hasCSideClustersOnly()) {
-        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars);
+        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
       } else if (track.hasASideClustersOnly()) {
-        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars);
+        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
       }
 
       // make propagation for ITS-TPC Track
       // check if the track was assigned to ITS track
       o2::gpu::gpustd::array<float, 2> dcaITSTPC{0, 0};
+      float deltaP2 = -999;
+      float deltaP3 = -999;
+      float deltaP4 = -999;
       if (hasITSTPC) {
         // propagate ITS-TPC track to (0,0)
         auto trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
@@ -1017,6 +1132,15 @@ class TPCTimeSeries : public Task
             if ((std::abs(dcaITSTPCTmp[0]) < maxITSTPCDCAr_comb) && (std::abs(dcaITSTPCTmp[1]) < maxITSTPCDCAz_comb)) {
               dcaITSTPCTmp[0] = -1;
               dcaITSTPCTmp[1] = -1;
+            } else {
+              // propagate TPC track to ITS-TPC track and store delta track parameters
+              track.rotate(trackITSTPCTmp.getAlpha());
+              if (propagator->propagateTo(track, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
+                deltaP2 = track.getParam(2) - trackITSTPCTmp.getParam(2);
+                deltaP3 = track.getParam(3) - trackITSTPCTmp.getParam(3);
+                deltaP4 = track.getParam(4) - trackITSTPCTmp.getParam(4);
+                mBufferVals[iThread].front().setDeltaParam(deltaP2, deltaP3, deltaP4);
+              }
             }
 
             if (track.hasCSideClustersOnly()) {
@@ -1091,6 +1215,12 @@ class TPCTimeSeries : public Task
                               << "nClITS=" << nClITS
                               << "chi2ITS=" << chi2ITS
                               << "chi2match_ITSTPC=" << chi2match_ITSTPC
+                              //
+                              << "deltaPar2=" << deltaP2
+                              << "deltaPar3=" << deltaP3
+                              << "deltaPar4=" << deltaP4
+                              << "sigmaY2=" << sigmaY2
+                              << "sigmaZ2=" << sigmaZ2
                               // meta
                               << "mult=" << mNTracksWindow[iTrk]
                               << "time_window_mult=" << mTimeWindowMUS
