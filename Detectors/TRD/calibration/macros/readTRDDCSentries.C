@@ -31,6 +31,7 @@ void readTRDDCSentries(std::string ccdb = "http://localhost:8080", long ts = -1)
   ccdbmgr.setURL(ccdb.c_str()); // comment out this line to read from production CCDB instead of a local one, or adapt ccdb string
   if (ts < 0) {
     ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    std::cout << "Timestamp: " << ts << std::endl;
   }
   ccdbmgr.setTimestamp(ts);
 
@@ -58,6 +59,46 @@ void readTRDDCSentries(std::string ccdb = "http://localhost:8080", long ts = -1)
     std::cout << entry.first << std::endl;
     entry.second.print();
   }
+  std::cout << std::endl;
+
+  // LB: also read FedChamberStatus and FedCFGtag for testing
+  // There seems to be an issue with the validity timestamp of Run DPs, ignoring them at the moment
+  // Access FedChamberStatus DPs
+  auto calchamberstatus = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, int>>("TRD/Calib/DCSDPsFedChamberStatus");
+
+  std::cout << "Print all objects from the map (DCSDPsFedChamberStatus), together with their DataPointIdentifier:" << std::endl;
+  for (const auto& entry : *calchamberstatus) {
+    std::cout << "id =  " << entry.first << ",\tvalue =  " << entry.second << std::endl;
+  }
+  std::cout << std::endl;
+
+  // Access FedCFGtag DPs
+  auto calcfgtag = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, string>>("TRD/Calib/DCSDPsFedCFGtag");
+
+  std::cout << "Print all objects from the map (DCSDPsFedCFGtag), together with their DataPointIdentifier:" << std::endl;
+  for (const auto& entry : *calcfgtag) {
+    std::cout << "id =  " << entry.first << ",\tvalue =  " << entry.second << std::endl;
+  }
+  std::cout << std::endl;
+
+  // Access FedEnvTemp DPs
+  auto calfedenvtemp = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsFedEnvTemp");
+
+  for (const auto& entry : *calfedenvtemp) {
+    std::cout << entry.first << std::endl;
+    entry.second.print();
+    std::cout << std::endl;
+  }
+
+  // Access Cavern DPs
+  auto calcavern = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsCavern");
+
+  for (const auto& entry : *calcavern) {
+    std::cout << entry.first << std::endl;
+    entry.second.print();
+    std::cout << std::endl;
+  }
+
   std::cout << std::endl;
 
   return;
