@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
 
   testData::nconstructions = 0;
 
-  //Create a bogus message
+  // Create a bogus message
   auto message = factoryZMQ->CreateMessage(3 * sizeof(testData));
   auto messageAddr = message.get();
   testData tmpBuf[3] = {3, 2, 1};
