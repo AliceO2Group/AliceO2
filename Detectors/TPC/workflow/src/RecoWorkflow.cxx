@@ -43,7 +43,7 @@
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCReaderWorkflow/TriggerReaderSpec.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
-
+#include "CTPWorkflowIO/DigitReaderSpec.h"
 #include <string>
 #include <stdexcept>
 #include <fstream>
@@ -174,6 +174,9 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   }};
 
   if (!disableRootInput || inputType == InputType::PassThrough) {
+    if (sclOpts.lumiType == 1) { // need CTP digits (lumi) reader
+      specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
+    }
     // The OutputSpec of the PublisherSpec is configured depending on the input
     // type. Note that the configuration of the dispatch trigger in the main file
     // needs to be done in accordance. This means, if a new input option is added
