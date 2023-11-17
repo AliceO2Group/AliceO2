@@ -302,11 +302,7 @@ void SVertexer::updateTimeDependentParams()
     ft.setBz(bz);
   }
 
-  // TPC dE/dx usage information
-  // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
-  // to-do: grab from CCDB when available -> discussion with TPC experts, not available yet
-  const float bbPars[] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};
-  mPIDresponse.setBetheBlochParams(bbPars);
+  mPIDresponse.setBetheBlochParams(mSVParams->mBBpars);
 }
 
 //______________________________________________
@@ -519,6 +515,10 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
+      if( !hasTPC && nITSclu < mSVParams->mITSSAminNclu ){ 
+        continue; // reject short ITS-only
+      }
+
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton});
@@ -605,7 +605,8 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   // check tight lambda mass only
   bool goodLamForCascade = false, goodALamForCascade = false;
-  if (ptV0 > mSVParams->minPtV0FromCascade && (seedP.hasTPC || seedP.nITSclu >= mSVParams->mITSSAminNcluCascades) && (seedN.hasTPC || seedN.nITSclu >= mSVParams->mITSSAminNcluCascades)) {
+  bool usesTPCOnly = (seedP.hasTPC && seedP.nITSclu<1) || (seedN.hasTPC && seedN.nITSclu<1);
+  if (ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly)) {
     if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
       goodLamForCascade = true;
     }
@@ -625,7 +626,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
-  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
+  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5) && (!mSVParams->mSkipTPCOnly3Body || !usesTPCOnly);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
   bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (goodLamForCascade || goodALamForCascade));
   bool rejectIfNotCascade = false;
@@ -773,10 +774,6 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
-
-    if (!bach.hasTPC && bach.nITSclu < mSVParams->mITSSAminNcluCascades) {
-      continue;
-    }
 
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
