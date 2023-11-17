@@ -101,7 +101,7 @@ class CorrectionMapsHelper
       mLumiScale = -1.f;
     } else if (mLumiScaleMode == 1) {
       mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
-      LOGP(info, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
+      LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
     } else {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }

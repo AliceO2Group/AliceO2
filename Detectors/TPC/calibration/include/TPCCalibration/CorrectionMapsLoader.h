@@ -57,9 +57,8 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   void copySettings(const CorrectionMapsLoader& src);
 
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, const CorrectionMapsLoaderGloOpts& gloOpts);
-  static void addOptions(std::vector<o2::framework::ConfigParamSpec>& options);
   static void addGlobalOptions(std::vector<o2::framework::ConfigParamSpec>& options);
-
+  static void addOptions(std::vector<o2::framework::ConfigParamSpec>& options);
   static CorrectionMapsLoaderGloOpts parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts);
 
  protected:
