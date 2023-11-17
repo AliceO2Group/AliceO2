@@ -82,6 +82,7 @@ class Digit
   int getPadCol() const { return HelperMethods::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
   int getMCM() const { return mMCM; }
+  int getMCMCol() const { return (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2); }
   int getChannel() const { return mChannel; }
   int getPreTrigPhase() const { return ((mDetector >> 12) & 0xf); }
   bool isSharedDigit() const;
