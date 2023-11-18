@@ -775,7 +775,7 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
-    
+
     if (!bach.hasTPC && bach.nITSclu < mSVParams->mITSSAminNcluCascades) {
       continue; // reject short ITS-only
     }
