@@ -30,11 +30,17 @@ class ProcessingContext;
 class ConcreteDataMatcher;
 class InputSpec;
 class ConfigParamSpec;
+class ConfigParamRegistry;
 class InitContext;
 } // namespace framework
 
 namespace tpc
 {
+
+struct CorrectionMapsLoaderGloOpts {
+  int lumiType = 0;
+  int lumiMode = 0;
+};
 
 class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
 {
@@ -50,8 +56,10 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   void init(o2::framework::InitContext& ic);
   void copySettings(const CorrectionMapsLoader& src);
 
-  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, int lumiScaleType, int lumiScaleMode = 0);
+  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, const CorrectionMapsLoaderGloOpts& gloOpts);
+  static void addGlobalOptions(std::vector<o2::framework::ConfigParamSpec>& options);
   static void addOptions(std::vector<o2::framework::ConfigParamSpec>& options);
+  static CorrectionMapsLoaderGloOpts parseGlobalOptions(const o2::framework::ConfigParamRegistry& opts);
 
  protected:
   static void addOption(std::vector<o2::framework::ConfigParamSpec>& options, o2::framework::ConfigParamSpec&& osp);

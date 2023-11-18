@@ -196,7 +196,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, int lumiType)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -239,7 +239,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}};
 
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, lumiType);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
 
   return DataProcessorSpec{
     "itstpc-track-matcher",

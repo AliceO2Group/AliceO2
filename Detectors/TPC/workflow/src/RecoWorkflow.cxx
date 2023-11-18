@@ -42,6 +42,7 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCReaderWorkflow/TriggerReaderSpec.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 #include <string>
 #include <stdexcept>
@@ -97,8 +98,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"tpc-triggers", OutputType::TPCTriggers}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
-                                    bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int lumiScaleType, int deadMapSources)
+                                    const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int deadMapSources)
 {
   InputType inputType;
   try {
@@ -440,7 +441,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   if (runGPUReco) {
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
     cfg.runTPCTracking = true;
-    cfg.lumiScaleType = lumiScaleType;
+    cfg.lumiScaleType = sclOpts.lumiType;
+    cfg.lumiScaleMode = sclOpts.lumiMode;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;

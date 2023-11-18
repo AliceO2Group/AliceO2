@@ -33,6 +33,7 @@
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 
@@ -201,7 +202,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
 }
 
-DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC, int lumiType)
+DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -231,7 +232,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
                                                               true);
   if (src[GTrackID::TPC]) {
     o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-    o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, lumiType);
+    o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
   }
   outputs.emplace_back("GLO", "V0S_IDX", 0, Lifetime::Timeframe);        // found V0s indices
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);            // found V0s

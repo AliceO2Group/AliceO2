@@ -89,6 +89,8 @@ enum class CDBType {
                        ///
   CalTimeSeries,       ///< integrated DCAs for longer time interval
   CalScaler,           ///< Scaler from IDCs or combined estimator
+                       ///
+  CorrMapParam,        ///< parameters for CorrectionMapsLoader configuration
 };
 
 /// Upload intervention type
@@ -151,6 +153,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // time series
   {CDBType::CalTimeSeries, "TPC/Calib/TimeSeries"},
   {CDBType::CalScaler, "TPC/Calib/Scaler"},
+  // correction maps loader params
+  {CDBType::CorrMapParam, "TPC/Calib/CorrMapParam"},
 };
 
 /// Poor enum reflection ...

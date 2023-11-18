@@ -20,11 +20,16 @@
 
 namespace o2
 {
+namespace tpc
+{
+struct CorrectionMapsLoaderGloOpts;
+}
+
 namespace vertexing
 {
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC, int lumiType);
+o2::framework::DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
 
 } // namespace vertexing
 } // namespace o2

@@ -20,10 +20,14 @@ using namespace o2::framework;
 
 namespace o2
 {
+namespace tpc
+{
+struct CorrectionMapsLoaderGloOpts;
+}
 namespace globaltracking
 {
 /// create a processor spec
-framework::DataProcessorSpec getTPCITSMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, int lumiType);
+framework::DataProcessorSpec getTPCITSMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
 
 } // namespace globaltracking
 } // namespace o2

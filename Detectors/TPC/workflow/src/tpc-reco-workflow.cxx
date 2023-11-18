@@ -23,6 +23,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -68,10 +69,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
-    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}},
     {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
   };
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -140,7 +141,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
-  auto lumiType = cfgc.options().get<int>("lumi-type");
+
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
   // configured for the PublisherSpec
@@ -167,10 +168,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     gTpcSectorMask |= (1ul << s);
   }
   bool doMC = not cfgc.options().get<bool>("disable-mc");
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(cfgc.options());
   auto wf = o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
                                                 tpcSectors,                                        // sector configuration
                                                 gTpcSectorMask,                                    // same as bitmask
                                                 laneConfiguration,                                 // lane configuration
+                                                sclOpt,                                            // scaling options
                                                 doMC,                                              //
                                                 nLanes,                                            //
                                                 inputType,                                         //
@@ -181,7 +184,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
                                                 cfgc.options().get<bool>("select-ir-frames"),
                                                 cfgc.options().get<bool>("filtered-input"),
-                                                lumiType,
                                                 cfgc.options().get<int>("tpc-deadMap-sources"));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

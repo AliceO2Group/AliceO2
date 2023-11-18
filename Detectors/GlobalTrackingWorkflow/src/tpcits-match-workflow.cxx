@@ -23,6 +23,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -37,13 +38,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"use-ft0", o2::framework::VariantType::Bool, false, {"use FT0 in matching"}},
-    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, "TPC", {"comma-separated list of sources to use: TPC,TPC-TOF,TPC-TRD,TPC-TRD-TOF"}},
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -70,24 +71,23 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2matchtpcits-workflow_configuration.ini");
-
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TPC-TOF");
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   bool needStrictTRDTOF = (src & GID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any();
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   auto useFT0 = configcontext.options().get<bool>("use-ft0");
   if (useFT0) {
     src |= GID::getSourceMask(GID::FT0);
   }
-  auto lumiType = configcontext.options().get<int>("lumi-type");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
   auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is neadded always, TPC must be loaded even if bare TPC tracks are not used in matching
-  if (lumiType == 1) {
+  if (sclOpt.lumiType == 1) {
     srcL = srcL | GID::getSourcesMask("CTP");
   }
 
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useMC, lumiType));
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useMC, sclOpt));
 
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));

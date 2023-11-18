@@ -30,6 +30,7 @@ struct InputSpec;
 }
 namespace tpc
 {
+struct CorrectionMapsLoaderGloOpts;
 
 namespace reco_workflow
 {
@@ -71,20 +72,20 @@ enum struct OutputType { Digits,
 using CompletionPolicyData = std::vector<framework::InputSpec>;
 
 /// create the workflow for TPC reconstruction
-framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
-                                    std::vector<int> const& tpcSectors,           //
-                                    unsigned long tpcSectorMask,                  //
-                                    std::vector<int> const& laneConfiguration,    //
-                                    bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks",      //
-                                    bool disableRootInput = false,                //
-                                    int caClusterer = 0,                          //
+framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,                    //
+                                    std::vector<int> const& tpcSectors,                  //
+                                    unsigned long tpcSectorMask,                         //
+                                    std::vector<int> const& laneConfiguration,           //
+                                    const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, //
+                                    bool propagateMC = true, unsigned nLanes = 1,        //
+                                    std::string const& cfgInput = "digitizer",           //
+                                    std::string const& cfgOutput = "tracks",             //
+                                    bool disableRootInput = false,                       //
+                                    int caClusterer = 0,                                 //
                                     int zsOnTheFly = 0,
                                     bool askDISTSTF = true,
                                     bool selIR = false,
                                     bool filteredInp = false,
-                                    int lumiScaleType = 0,
                                     int deadMapSources = -1);
 
 void cleanupCallback();

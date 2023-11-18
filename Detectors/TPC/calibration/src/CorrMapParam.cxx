@@ -9,29 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   CosmicsMatchingSpec.h
+/// \file CorrMapParam.cxx
+/// \brief Implementation of the parameter class for the CorrectionMapsLoader options
+/// \author ruben.shahoyan@cern.ch
 
-#ifndef O2_COSMICS_MATCHING_SPEC
-#define O2_COSMICS_MATCHING_SPEC
+#include "TPCCalibration/CorrMapParam.h"
 
-#include "Framework/DataProcessorSpec.h"
-
-using namespace o2::framework;
-
-namespace o2
-{
-namespace tpc
-{
-struct CorrectionMapsLoaderGloOpts;
-}
-
-namespace globaltracking
-{
-
-/// create a processor spec
-framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
-
-} // namespace globaltracking
-} // namespace o2
-
-#endif /* O2_TRACKWRITER_TPCITS */
+O2ParamImpl(o2::tpc::CorrMapParam);

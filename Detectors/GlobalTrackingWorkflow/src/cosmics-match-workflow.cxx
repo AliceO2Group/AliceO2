@@ -30,6 +30,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -49,8 +50,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
-    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -81,10 +82,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2match-cosmics-workflow_configuration.ini");
-
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  auto lumiType = configcontext.options().get<int>("lumi-type");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (GID::includesDet(DetID::TPC, src)) {
@@ -96,12 +96,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (GID::includesDet(DetID::TOF, src)) {
     src |= GID::getSourceMask(GID::TOF);
   }
-  if (lumiType == 1) {
+  if (sclOpt.lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   GID::mask_t srcCl = src;
   GID::mask_t dummy;
-  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC, lumiType));
+  specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC, sclOpt));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
 

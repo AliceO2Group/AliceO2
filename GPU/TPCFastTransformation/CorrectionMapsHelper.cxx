@@ -26,6 +26,7 @@ void CorrectionMapsHelper::clear()
   mUpdatedFlags = 0;
   mInstLumi = 0.f;
   mMeanLumi = 0.f;
+  mMeanLumiRef = 0.f;
 }
 
 void CorrectionMapsHelper::setOwner(bool v)
@@ -77,5 +78,5 @@ void CorrectionMapsHelper::setCorrMapRef(std::unique_ptr<TPCFastTransform>&& m)
 //________________________________________________________
 void CorrectionMapsHelper::reportScaling()
 {
-  LOGP(info, "InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumi(), getLumiScale(), getLumiScaleMode());
+  LOGP(info, "Map scaling update: InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumi(), getLumiScale(), getLumiScaleMode());
 }

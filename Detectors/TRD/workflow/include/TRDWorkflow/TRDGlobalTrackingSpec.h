@@ -101,7 +101,7 @@ class TRDGlobalTracking : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, int lumiType /* = 0*/);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict /* = false*/, bool withPID /* = false*/, PIDPolicy policy /* = PIDPolicy::DEFAULT*/, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
 
 } // namespace trd
 } // namespace o2
