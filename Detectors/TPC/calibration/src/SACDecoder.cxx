@@ -60,7 +60,7 @@ bool Decoder::process(const char* data, size_t size)
 
   // check packet counters are increasing by one
   //
-  if (lastPacketInstance && (packetInstance != (lastPacketInstance + 1))) {
+  if (lastPacketInstance && (uint16_t(packetInstance) != uint16_t(lastPacketInstance + 1))) { // convert to uint16_t to respect size of sac.header.pktCount
     LOGP(error, "Packet for instance {} missing, last packet {}, this packet {}", instance, lastPacketInstance, packetInstance);
   }
 
@@ -137,6 +137,29 @@ int Decoder::decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid)
   return 1;
 }
 
+uint32_t Decoder::decodeTimeStamp(const char* data)
+{
+  int carry = 0;
+  uint32_t value = 0;
+  for (int i = 0; i < 8; ++i) {
+    const auto c = data[carry];
+    uint32_t nibble = 0;
+    if ((c >= '0') && (c <= '9')) {
+      nibble = c - '0';
+    } else if ((c >= 'A') && (c <= 'F')) {
+      nibble = c - 'A' + 10;
+    } else {
+      LOGP(error, "unexpected '{}' in time stamp", data[carry]);
+      break;
+    }
+    value <<= 4;
+    value |= (nibble & 0xF);
+    ++carry;
+  }
+
+  return value;
+}
+
 void Decoder::decode(int feid)
 {
   const auto startTime = HighResClock::now();
@@ -190,11 +213,7 @@ void Decoder::decode(int feid)
       const auto streamStart = carry;
       // time stamp comes after channel data
       ++carry;
-      std::string_view vd(&data[carry], 8);
-      std::stringstream str(vd.data());
-      str.flags(std::ios_base::hex);
-      uint32_t timeStamp;
-      str >> timeStamp;
+      uint32_t timeStamp = decodeTimeStamp(&data[carry]);
       decdata.timeStamp = timeStamp;
       decAdditional.timeStamp = timeStamp;
 
@@ -226,7 +245,8 @@ void Decoder::decode(int feid)
           auto& refCount = mTSCountFEs[feid].second;
           // NOTE: use (refTime > 1) instead of (refTime > 0), since in some cases the packet with TS 0 is missing
           if ((refCount == 0) && (refTime > 1)) {
-            LOGP(info, "Skipping initial data packet {} with time stamp {} for FE {}", mTSCountFEs[feid].first, timeStamp, feid);
+            LOGP(detail, "Skipping initial data packet {} with time stamp {} for FE {}",
+                 mTSCountFEs[feid].first, timeStamp, feid);
           } else {
             if (refTime < firstRefTime) {
               // LOGP(info, "FE {}: {} < {}, adding {} DataPoint(s)", feid, refTime, firstRefTime, firstRefTime - refTime);
@@ -240,12 +260,18 @@ void Decoder::decode(int feid)
             mDecodedData.setData(refTime - firstRefTime, refTime, decdata, feid);
 
             if (refCount != refTime) {
-              LOGP(warning, "Unexpected time stamp in FE {}. Count {} != TS {} ({}), dump: {}", feid, refCount, refTime, timeStamp, std::string_view(&data[streamStart], std::min(size_t(20), dataSize - streamStart - carry)));
               // NOTE: be graceful in case TS 0 is missing and avoid furhter warnings
+              if (!((refCount == 0) && (refTime == 1))) {
+                LOGP(warning, "Unexpected time stamp in FE {}. Count {} != TS {} ({}), dump: {}", feid, refCount, refTime, timeStamp, std::string_view(&data[streamStart], std::min(size_t(20), dataSize - streamStart - carry)));
+              }
               if (((refCount == 0) && (refTime == 1)) || ((mReAlignType == ReAlignType::AlignAndFillMissing) && syncLost)) {
                 while (refCount < refTime) {
                   mDecodedData.setData(refCount - firstRefTime, refCount, DecodedDataFE(), feid);
-                  LOGP(warning, "Adding dummy data for FE {}, TS {}", feid, refCount);
+                  if ((refCount == 0) && (refTime == 1)) {
+                    LOGP(info, "Adding dummy data for FE {}, TS {}", feid, refCount);
+                  } else {
+                    LOGP(warning, "Adding dummy data for FE {}, TS {}", feid, refCount);
+                  }
                   ++refCount;
                 }
                 syncLost = false;
@@ -293,22 +319,33 @@ void Decoder::decode(int feid)
       }
       ++carry;
     } else if (data[carry] >= 'a' && data[carry] <= 'z') {
-      if (mReAlignType != ReAlignType::None) {
-        LOGP(error, "Skipping {} for FE {}, trying to re-align data stream", data[carry], feid);
-        aligned = false;
-        syncLost = true;
-      } else {
-        LOGP(error, "Skipping {} for FE {}, might lead to decoding problems", data[carry], feid);
+      if (mTSCountFEs[feid].first == 0) {
+        // in case we still haven't processed the first packet we simply skip end sequence termination and continue
+        LOGP(info, "Skipping {} for FE {}, time stamp packet count {}, ref count {}",
+             data[carry], feid, mTSCountFEs[feid].first, mTSCountFEs[feid].second);
         ++carry;
+      } else {
+        if (mReAlignType != ReAlignType::None) {
+          LOGP(warning, "Skipping {} for FE {}, trying to re-align data stream, time stamp packet count {}, ref count {}",
+               data[carry], feid, mTSCountFEs[feid].first, mTSCountFEs[feid].second);
+          aligned = false;
+          syncLost = true;
+        } else {
+          LOGP(error, "Skipping {} for FE {}, might lead to decoding problems, time stamp packet count {}, ref count {}",
+               data[carry], feid, mTSCountFEs[feid].first, mTSCountFEs[feid].second);
+          ++carry;
+        }
       }
       decdata.reset();
     } else {
       if (mReAlignType != ReAlignType::None) {
-        LOGP(warn, "Can't interpret position for FE {}, {} / {}, {}, trying to re-align data stream\n", feid, carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)));
+        LOGP(warn, "Can't interpret position for FE {}, {} / {}, {}, trying to re-align data stream, time stamp packet count {}, ref count {}",
+             feid, carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)), mTSCountFEs[feid].first, mTSCountFEs[feid].second);
         aligned = false;
         syncLost = true;
       } else {
-        LOGP(error, "Can't interpret position for FE {}, {} / {}, {}, stopping decoding\n", feid, carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)));
+        LOGP(error, "Can't interpret position for FE {}, {} / {}, {}, stopping decoding, time stamp packet count {}, ref count {}",
+             feid, carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)), mTSCountFEs[feid].first, mTSCountFEs[feid].second);
         break;
       }
     }
