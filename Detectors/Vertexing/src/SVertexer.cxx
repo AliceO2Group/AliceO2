@@ -503,7 +503,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       // get Nclusters in the ITS if available
       uint8_t nITSclu = -1;
       auto itsGID = recoData.getITSContributorGID(tvid);
-      if (itsGID.getSource()==GIndex::ITS && isITSloaded) {
+      if (itsGID.getSource() == GIndex::ITS && isITSloaded) {
         auto& itsTrack = recoData.getITSTrack(itsGID);
         nITSclu = itsTrack.getNumberOfClusters();
       }
