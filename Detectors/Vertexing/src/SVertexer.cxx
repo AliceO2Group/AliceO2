@@ -606,7 +606,8 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check tight lambda mass only
   bool goodLamForCascade = false, goodALamForCascade = false;
   bool usesTPCOnly = (seedP.hasTPC && seedP.nITSclu < 1) || (seedN.hasTPC && seedN.nITSclu < 1);
-  if (ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly)) {
+  bool usesShortITSOnly = (!seedP.hasTPC && seedP.nITSclu < mSVParams->mITSSAminNcluCascades) || (!seedN.hasTPC && seedN.nITSclu < mSVParams->mITSSAminNcluCascades);
+  if (ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly) && !usesShortITSOnly) {
     if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
       goodLamForCascade = true;
     }
@@ -774,6 +775,10 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
+    
+    if (!bach.hasTPC && bach.nITSclu < mSVParams->mITSSAminNcluCascades) {
+      continue; // reject short ITS-only
+    }
 
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
       LOG(debug) << "Skipping";

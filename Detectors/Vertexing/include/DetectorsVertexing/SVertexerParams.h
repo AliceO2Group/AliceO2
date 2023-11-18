@@ -95,7 +95,8 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minTPCdEdx = 250;         // starting from this dEdx value, tracks with p > minMomTPCdEdx are always accepted
   float minMomTPCdEdx = 0.8;      // minimum p for tracks with dEdx > mMinTPCdEdx to be accepted
 
-  uint8_t mITSSAminNclu = 6;             // require at least this many ITS clusters if no TPC info present
+  uint8_t mITSSAminNclu = 6;             // global requirement of at least this many ITS clusters if no TPC info present (N.B.: affects all secondary vertexing)
+  uint8_t mITSSAminNcluCascades = 6;     // require at least this many ITS clusters if no TPC info present for cascade finding. 
   bool mRequireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC
   bool mSkipTPCOnlyCascade = true;       // skip TPC only tracks when doing cascade finding
   bool mSkipTPCOnly3Body = true;         // skip TPC only tracks when doing cascade finding
