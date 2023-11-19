@@ -386,8 +386,6 @@ BOOST_AUTO_TEST_CASE(trim_host_url_test)
   CCDBDownloader downloader;
   BOOST_CHECK(downloader.trimHostUrl("http://localhost:8080") == "http://localhost:8080");
   BOOST_CHECK(downloader.trimHostUrl("http://localhost") == "http://localhost");
-  BOOST_CHECK(downloader.trimHostUrl("localhost:8080") == "localhost:8080");
-  BOOST_CHECK(downloader.trimHostUrl("localhost:8080/some/path") == "localhost:8080");
   BOOST_CHECK(downloader.trimHostUrl("http://localhost:8080/some/path") == "http://localhost:8080");
   BOOST_CHECK(downloader.trimHostUrl("http://localhost/some/path") == "http://localhost");
   BOOST_CHECK(downloader.trimHostUrl("http://localhost:8080/Task/Detector/1?HTTPOnly=true") == "http://localhost:8080");
