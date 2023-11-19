@@ -29,7 +29,7 @@ namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd, bool pushMatchable, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
+framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd, bool pushMatchable, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, int nlanes = 1);
 
 } // namespace globaltracking
 } // namespace o2
