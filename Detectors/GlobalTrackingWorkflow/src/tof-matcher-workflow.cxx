@@ -55,6 +55,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
@@ -98,6 +99,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool writematching = 0;
   bool writecalib = 0;
   auto outputType = configcontext.options().get<std::string>("output-type");
+  auto nLanes = configcontext.options().get<int>("tof-lanes");
   if (outputType.rfind("matching-info") < outputType.size()) {
     writematching = 1;
   }
@@ -124,6 +126,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "TOF matching in strict mode = " << strict;
   LOG(debug) << "TOF extra time tolerance for TRD tracks = " << extratolerancetrd;
   LOG(debug) << "Store all matchables = " << writeMatchable;
+  LOG(debug) << "TOF Nlanes for matcher = " << nLanes;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
@@ -160,7 +163,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable, sclOpt)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable, sclOpt, nLanes)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;
