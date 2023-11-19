@@ -301,6 +301,8 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitter3body) {
     ft.setBz(bz);
   }
+
+  mPIDresponse.setBetheBlochParams(mSVParams->mBBpars);
 }
 
 //______________________________________________
@@ -429,6 +431,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
+  bool isITSloaded = recoData.isTrackSourceLoaded(GIndex::ITS);
   if (isTPCloaded && !mSVParams->mExcludeTPCtracks) {
     mTPCTracksArray = recoData.getTPCTracks();
     mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
@@ -477,15 +480,32 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       }
       const auto& trc = recoData.getTrackParam(tvid);
 
+      bool hasTPC = false;
       bool heavyIonisingParticle = false;
+      bool compatibleWithProton = mSVParams->mFractiondEdxforCascBaryons > 0.999f; // if 1 or above, accept all regardless of TPC
       auto tpcGID = recoData.getTPCContributorGID(tvid);
       if (tpcGID.isIndexSet() && isTPCloaded) {
+        hasTPC = true;
         auto& tpcTrack = recoData.getTPCTrack(tpcGID);
         float dEdxTPC = tpcTrack.getdEdx().dEdxTotTPC;
         if (dEdxTPC > mSVParams->minTPCdEdx && trc.getP() > mSVParams->minMomTPCdEdx) // accept high dEdx tracks (He3, He4)
         {
           heavyIonisingParticle = true;
         }
+        auto protonId = o2::track::PID::Proton;
+        float dEdxExpected = mPIDresponse.getExpectedSignal(tpcTrack, protonId);
+        float fracDevProton = std::abs((dEdxTPC - dEdxExpected) / dEdxExpected);
+        if (fracDevProton < mSVParams->mFractiondEdxforCascBaryons) {
+          compatibleWithProton = true;
+        }
+      }
+
+      // get Nclusters in the ITS if available
+      uint8_t nITSclu = -1;
+      auto itsGID = recoData.getITSContributorGID(tvid);
+      if (itsGID.getSource() == GIndex::ITS && isITSloaded) {
+        auto& itsTrack = recoData.getITSTrack(itsGID);
+        nITSclu = itsTrack.getNumberOfClusters();
       }
 
       if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
@@ -494,9 +514,14 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         }
         continue;
       }
+
+      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu) {
+        continue; // reject short ITS-only
+      }
+
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
-      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
+      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton});
       if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
         correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
       }
@@ -580,11 +605,15 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   // check tight lambda mass only
   bool goodLamForCascade = false, goodALamForCascade = false;
-  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
-    goodLamForCascade = true;
-  }
-  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
-    goodALamForCascade = true;
+  bool usesTPCOnly = (seedP.hasTPC && seedP.nITSclu < 1) || (seedN.hasTPC && seedN.nITSclu < 1);
+  bool usesShortITSOnly = (!seedP.hasTPC && seedP.nITSclu < mSVParams->mITSSAminNcluCascades) || (!seedN.hasTPC && seedN.nITSclu < mSVParams->mITSSAminNcluCascades);
+  if (ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly) && !usesShortITSOnly) {
+    if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
+      goodLamForCascade = true;
+    }
+    if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedN.hasTPC && seedN.compatibleProton)) {
+      goodALamForCascade = true;
+    }
   }
 
   // apply mass selections for 3-body decay
@@ -598,7 +627,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
-  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
+  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5) && (!mSVParams->mSkipTPCOnly3Body || !usesTPCOnly);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
   bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (goodLamForCascade || goodALamForCascade));
   bool rejectIfNotCascade = false;
@@ -746,6 +775,11 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
+
+    if (!bach.hasTPC && bach.nITSclu < mSVParams->mITSSAminNcluCascades) {
+      continue; // reject short ITS-only
+    }
+
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV

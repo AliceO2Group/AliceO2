@@ -36,6 +36,7 @@
 #include <algorithm>
 #include "GPUO2InterfaceRefit.h"
 #include "TPCFastTransform.h"
+#include "DataFormatsTPC/PIDResponse.h"
 
 namespace o2
 {
@@ -65,6 +66,7 @@ class SVertexer
   using Decay3BodyIndex = o2::dataformats::Decay3BodyIndex;
   using RRef = o2::dataformats::RangeReference<int, int>;
   using VBracket = o2::math_utils::Bracket<int>;
+  using PIDResponse = o2::tpc::PIDResponse;
 
   enum HypV0 { Photon,
                K0,
@@ -97,6 +99,9 @@ class SVertexer
     GIndex gid{};
     VBracket vBracket{};
     float minR = 0; // track lowest point r
+    bool hasTPC = false;
+    uint8_t nITSclu = -1;
+    bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
   };
 
   SVertexer(bool enabCascades = true, bool enab3body = false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body}
@@ -183,6 +188,9 @@ class SVertexer
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   std::vector<DCAFitterN<3>> mFitter3body;
+
+  PIDResponse mPIDresponse;
+
   int mNThreads = 1;
   int mNV0s = 0, mNCascades = 0, mN3Bodies = 0, mNStrangeTracks = 0;
   float mMinR2ToMeanVertex = 0;

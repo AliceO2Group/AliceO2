@@ -58,6 +58,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float maxDCAXYToMeanVertexV0Casc = 2.; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
   float maxDCAXYToMeanVertex3bodyV0 = 2; ///< max DCA of V0 from beam line (mean vertex) for 3body V0 candidates
   float minPtV0 = 0.01;                  ///< v0 minimum pT
+  float minPtV0FromCascade = 0.3;        ///< v0 minimum pT for v0 to be used in cascading (lowest pT Run 2 lambda: 0.4)
   float maxTglV0 = 2.;                   ///< maximum tgLambda of V0
 
   float causalityRTolerance = 1.; ///< V0 radius cannot exceed its contributors minR by more than this value
@@ -93,6 +94,18 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float mTPCTrackMaxX = -1.f;     // don't use TPC standalone tracks with X exceeding this
   float minTPCdEdx = 250;         // starting from this dEdx value, tracks with p > minMomTPCdEdx are always accepted
   float minMomTPCdEdx = 0.8;      // minimum p for tracks with dEdx > mMinTPCdEdx to be accepted
+
+  uint8_t mITSSAminNclu = 6;             // global requirement of at least this many ITS clusters if no TPC info present (N.B.: affects all secondary vertexing)
+  uint8_t mITSSAminNcluCascades = 6;     // require at least this many ITS clusters if no TPC info present for cascade finding.
+  bool mRequireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC
+  bool mSkipTPCOnlyCascade = true;       // skip TPC only tracks when doing cascade finding
+  bool mSkipTPCOnly3Body = true;         // skip TPC only tracks when doing cascade finding
+
+  // percent deviation from expected proton dEdx - to be replaced - estimated sigma from TPC for now 6%; a 6*sigma cut is therefore 36% = 0.36f. Any value above 1.0f will be ignored manually when checking.
+  float mFractiondEdxforCascBaryons = 0.36f;
+  // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
+  // to-do: grab from CCDB when available -> discussion with TPC experts, not available yet
+  float mBBpars[5] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};
 
   // cuts on different V0 PID params
   bool checkV0Hypothesis = true;
