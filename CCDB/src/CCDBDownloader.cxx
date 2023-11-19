@@ -408,7 +408,7 @@ std::string CCDBDownloader::trimHostUrl(std::string full_host_url) const
   char* host;
   CURLUcode host_result = curl_url_get(host_url, CURLUPART_HOST, &host, 0);
   if (host_result != CURLUE_OK) {
-    LOG(error) << "CCDBDownloader: Malformed url detected when processing redirect, could not identify the host part: " << host;
+    LOG(error) << "CCDBDownloader: Malformed url detected when processing redirect, could not identify the host part: " << full_host_url;
     curl_url_cleanup(host_url);
     return "";
   }
