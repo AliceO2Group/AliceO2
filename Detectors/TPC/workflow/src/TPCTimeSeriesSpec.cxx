@@ -1130,17 +1130,16 @@ class TPCTimeSeries : public Task
 
             // make cut around DCA to vertex due to gammas
             if ((std::abs(dcaITSTPCTmp[0]) < maxITSTPCDCAr_comb) && (std::abs(dcaITSTPCTmp[1]) < maxITSTPCDCAz_comb)) {
-              dcaITSTPCTmp[0] = -1;
-              dcaITSTPCTmp[1] = -1;
-            } else {
               // propagate TPC track to ITS-TPC track and store delta track parameters
-              track.rotate(trackITSTPCTmp.getAlpha());
-              if (propagator->propagateTo(track, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
+              if (track.rotate(trackITSTPCTmp.getAlpha()) && propagator->propagateTo(track, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
                 deltaP2 = track.getParam(2) - trackITSTPCTmp.getParam(2);
                 deltaP3 = track.getParam(3) - trackITSTPCTmp.getParam(3);
                 deltaP4 = track.getParam(4) - trackITSTPCTmp.getParam(4);
                 mBufferVals[iThread].front().setDeltaParam(deltaP2, deltaP3, deltaP4);
               }
+            } else {
+              dcaITSTPCTmp[0] = -1;
+              dcaITSTPCTmp[1] = -1;
             }
 
             if (track.hasCSideClustersOnly()) {
@@ -1204,11 +1203,7 @@ class TPCTimeSeries : public Task
                               << "side_type=" << typeSide
                               << "phi=" << trkOrig.getPhi()
                               << "clusterMask=" << clusterMask
-                              << "dedxTotTPC=" << trkOrig.getdEdx().dEdxTotTPC
-                              << "dedxTotIROC=" << trkOrig.getdEdx().dEdxTotIROC
-                              << "dedxTotOROC1=" << trkOrig.getdEdx().dEdxTotOROC1
-                              << "dedxTotOROC2=" << trkOrig.getdEdx().dEdxTotOROC2
-                              << "dedxTotOROC3=" << trkOrig.getdEdx().dEdxTotOROC3
+                              << "dedxTPC=" << trkOrig.getdEdx()
                               << "chi2=" << trkOrig.getChi2()
                               << "mX=" << trkOrig.getX()
                               << "mX_ITS=" << mx_ITS
