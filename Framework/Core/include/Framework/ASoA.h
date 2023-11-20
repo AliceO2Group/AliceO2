@@ -1071,7 +1071,7 @@ static std::string getLabelFromTypeForKey(std::string const& key)
       return locate.second;
     }
   }
-  
+
   notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
   O2_BUILTIN_UNREACHABLE();
 }
