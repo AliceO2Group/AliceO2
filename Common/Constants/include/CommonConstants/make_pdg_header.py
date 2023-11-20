@@ -119,6 +119,9 @@ class Pdg(Enum):
     kHyperHelium4 = 1010020040
 
 
+dbPdg = ROOT.o2.O2DatabasePDG
+
+
 def mass(code):
     """Returns particle mass from o2::O2DatabasePDG except for special cases."""
     # Special cases (present in TDatabasePDG but with wrong values)
@@ -129,7 +132,7 @@ def mass(code):
         return 2.69520  # PDG 2022: https://pdg.lbl.gov/2022/listings/rpp2022-list-omegac-zero.pdf
     # Default case
     success = c_bool(True)
-    return ROOT.o2.O2DatabasePDG.Mass(code, success)
+    return dbPdg.Mass(code, success)
 
 
 def declare_mass(pdg, type="double") -> str:
