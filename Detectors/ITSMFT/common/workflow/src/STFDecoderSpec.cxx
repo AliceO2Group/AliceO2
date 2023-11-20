@@ -139,6 +139,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<Digit> digVec;
   std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
+  auto& chipStatus = pc.outputs().make<std::vector<char>>(Output{orig, "CHIPSSTATUS", 0, Lifetime::Timeframe}, (size_t)Mapping::getNChips());
+
   try {
     mDecoder->startNewTF(pc.inputs());
     if (mDoDigits) {
@@ -167,10 +169,12 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       }
       lastIR = mDecoder->getInteractionRecord();
       if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
-        mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
+        mDecoder->fillDecodedDigits(digVec, digROFVec, chipStatus); // lot of copying involved
         if (mDoCalibData) {
           mDecoder->fillCalibData(calVec);
         }
+      } else {
+        mDecoder->fillChipsStatus(chipStatus);
       }
       if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
         mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
@@ -216,7 +220,6 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNClusPatt = std::max(mEstNClusPatt, size_t(clusPattVec.size() * 1.2));
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
-
   auto& linkErrors = pc.outputs().make<std::vector<GBTLinkDecodingStat>>(Output{orig, "LinkErrors", 0, Lifetime::Timeframe});
   auto& decErrors = pc.outputs().make<std::vector<ChipError>>(Output{orig, "ChipErrors", 0, Lifetime::Timeframe});
   mDecoder->collectDecodingErrors(linkErrors, decErrors);
@@ -235,6 +238,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
   mTimer.Stop();
   auto tfID = pc.services().get<o2::framework::TimingInfo>().tfCounter;
+
   LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
@@ -364,6 +368,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
 
   outputs.emplace_back(inp.origin, "LinkErrors", 0, Lifetime::Timeframe);
   outputs.emplace_back(inp.origin, "ChipErrors", 0, Lifetime::Timeframe);
+  outputs.emplace_back(inp.origin, "CHIPSSTATUS", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
