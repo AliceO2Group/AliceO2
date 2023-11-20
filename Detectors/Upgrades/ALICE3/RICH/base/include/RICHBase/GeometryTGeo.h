@@ -27,7 +27,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static GeometryTGeo* Instance();
 
   static const char* getRICHVolPattern() { return sVolumeName.c_str(); }
-  static const char* getRICHLayerPattern() { return sLayerName.c_str(); }
+  static const char* getRICHRingPattern() { return sRingName.c_str(); }
   static const char* getRICHChipPattern() { return sChipName.c_str(); }
   static const char* getRICHSensorPattern() { return sSensorName.c_str(); }
 
@@ -35,18 +35,18 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::RCH).getName(), d);
   }
-  static const char* composeSymNameLayer(int d, int layer);
-  static const char* composeSymNameChip(int d, int lr);
-  static const char* composeSymNameSensor(int d, int layer);
+  static const char* composeSymNameRing(int d, int ring);
+  static const char* composeSymNameChip(int d, int ring);
+  static const char* composeSymNameSensor(int d, int ring);
 
  protected:
   static std::string sVolumeName;
-  static std::string sLayerName;
+  static std::string sRingName;
   static std::string sChipName;
   static std::string sSensorName;
 
  private:
-  static std::unique_ptr<o2::trk::GeometryTGeo> sInstance;
+  static std::unique_ptr<o2::rich::GeometryTGeo> sInstance;
 };
 
 } // namespace rich
