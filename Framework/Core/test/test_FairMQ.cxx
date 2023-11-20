@@ -105,7 +105,7 @@ TEST_CASE("getMessage_Stack")
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "getMessage_Stack", &config);
   REQUIRE(factorySHM != nullptr);
   REQUIRE(factoryZMQ != nullptr);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
