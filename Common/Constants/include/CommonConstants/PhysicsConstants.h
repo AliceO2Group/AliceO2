@@ -18,11 +18,7 @@
 
 #include "CommonConstants/PDG.h"
 
-namespace o2
-{
-namespace constants
-{
-namespace physics
+namespace o2::constants::physics
 {
 // particles masses
 constexpr float MassPhoton = 0.0;
@@ -46,8 +42,6 @@ constexpr float MassOmegaMinus = 1.67245;
 
 constexpr float LightSpeedCm2S = 299792458.e2;           // C in cm/s
 constexpr float LightSpeedCm2NS = LightSpeedCm2S * 1e-9; // C in cm/ns
-} // namespace physics
-} // namespace constants
-} // namespace o2
+} // namespace o2::constants::physics
 
 #endif
