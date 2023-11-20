@@ -12,6 +12,8 @@
 #ifndef ALICEO2_RICH_GEOMETRYTGEO_H
 #define ALICEO2_RICH_GEOMETRYTGEO_H
 
+#include <DetectorsCommonDataFormats/DetMatrixCache.h>
+
 namespace o2
 {
 namespace rich
@@ -31,7 +33,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   static const char* composeSymNameRICH(int d)
   {
-    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TRK).getName(), d);
+    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::RCH).getName(), d);
   }
   static const char* composeSymNameLayer(int d, int layer);
   static const char* composeSymNameChip(int d, int lr);
@@ -47,6 +49,6 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::unique_ptr<o2::trk::GeometryTGeo> sInstance;
 };
 
-} // namespace trk
+} // namespace rich
 } // namespace o2
 #endif
