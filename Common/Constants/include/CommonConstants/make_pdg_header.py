@@ -110,6 +110,13 @@ class Pdg(Enum):
     kXiCCPlusPlus = 4422
     kXiCPlus = 4232
     kXiCZero = 4132
+    kDeuteron = 1000010020
+    kTriton = 1000010030
+    kHelium3 = 1000020030
+    kAlpha = 1000020040
+    kHyperTriton = 1010010030
+    kHyperHydrogen4 = 1010010040
+    kHyperHelium4 = 1010020040
 
 
 def mass(code):
