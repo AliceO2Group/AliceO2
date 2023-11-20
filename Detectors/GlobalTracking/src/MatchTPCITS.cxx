@@ -683,6 +683,7 @@ bool MatchTPCITS::prepareITSData()
       if (mMCTruthON) {
         mITSLblWork.emplace_back(mITSTrkLabels[it]);
       }
+      trc.setUserField(0);
       // cache work track index
       int sector = o2::math_utils::angle2Sector(trc.getAlpha());
       mITSSectIndexCache[sector].push_back(nWorkTracks);
@@ -1329,7 +1330,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   iITS = tpcMatchRec.partnerID;
   const auto& tITS = mITSWork[iITS];
   const auto& itsTrOrig = mITSTracksArray[tITS.sourceID];
-
   auto& trfit = matchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   trfit.getParamOut().setUserField(0);                  // reset eventual clones flag
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing

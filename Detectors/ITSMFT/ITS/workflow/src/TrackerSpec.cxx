@@ -299,6 +299,8 @@ void TrackerDPL::run(ProcessingContext& pc)
       // Some conversions that needs to be moved in the tracker internals
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
+        trc.setUserField(0);
+        trc.getParamOut().setUserField(0);
         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
         int ncl = trc.getNumberOfClusters(), nclf = 0;
         for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
