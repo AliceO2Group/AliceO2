@@ -1382,15 +1382,12 @@ class TPCTimeSeries : public Task
             bool pvCont = matchedTrk.isPVContributor();
             if (pvCont) {
               // store index of ITS-TPC track container and vertex ID
-              if (!matchedTrk.isTrackSource(TrkSrc::ITS)) {
-                indicesITSTPC_vtx[recoData.getSingleDetectorRefs(matchedTrk)[TrkSrc::ITSTPC]] = vID;
-              }
-
-              // count contributors of ITS only track and combined tracks
-              if (matchedTrk.isTrackSource(TrkSrc::ITS)) {
-                ++nContributors_ITS[vID];
-              } else {
+              auto refITSTPC = recoData.getSingleDetectorRefs(matchedTrk)[TrkSrc::ITSTPC];
+              if (refITSTPC.isIndexSet()) {
+                indicesITSTPC_vtx[refITSTPC] = vID;
                 ++nContributors_ITSTPC[vID];
+              } else {
+                ++nContributors_ITS[vID];
               }
             }
           }
