@@ -30,6 +30,7 @@
 #include "ZDCBase/Constants.h"
 #include "GlobalTracking/MatchGlobalFwd.h"
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -252,6 +253,7 @@ class AODProducerWorkflowDPL : public Task
   TString mRecoPass{""};
   TStopwatch mTimer;
   bool mEMCselectLeading{false};
+  uint64_t mEMCALTrgClassMask = 0;
 
   // unordered map connects global indices and table indices of barrel tracks
   std::unordered_map<GIndex, int> mGIDToTableID;
@@ -541,6 +543,8 @@ class AODProducerWorkflowDPL : public Task
   void fillCaloTable(TCaloCursor& caloCellCursor, TCaloTRGCursor& caloTRGCursor,
                      TMCCaloLabelCursor& mcCaloCellLabelCursor, const std::map<uint64_t, int>& bcsMap,
                      const o2::globaltracking::RecoContainer& data);
+
+  std::set<uint64_t> filterEMCALIncomplete(const gsl::span<const o2::emcal::TriggerRecord> triggers);
 };
 
 /// create a processor spec
