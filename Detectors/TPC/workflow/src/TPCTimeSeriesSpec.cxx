@@ -37,12 +37,17 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCCalibration/VDriftHelper.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include <random>
 #include <chrono>
 #include "DataFormatsTPC/PIDResponse.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "TROOT.h"
 
+using namespace o2::globaltracking;
+using GTrackID = o2::dataformats::GlobalTrackID;
+using TrkSrc = o2::dataformats::VtxTrackIndex::Source;
+using DetID = o2::detectors::DetID;
 using namespace o2::framework;
 
 namespace o2
@@ -54,7 +59,7 @@ class TPCTimeSeries : public Task
 {
  public:
   /// \constructor
-  TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly){};
+  TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, const bool tpcOnly, std::shared_ptr<o2::globaltracking::DataRequest> dr) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter), mTPCOnly(tpcOnly), mDataRequest(dr){};
 
   void init(framework::InitContext& ic) final
   {
@@ -152,20 +157,23 @@ class TPCTimeSeries : public Task
       mSigmaYZC.resize(nBins);
     }
 
+    RecoContainer recoData;
+    recoData.collectData(pc, *mDataRequest.get());
+
     // getting tracks
-    auto tracksTPC = pc.inputs().get<gsl::span<TrackTPC>>("tracksTPC");
-    auto tracksITSTPC = mTPCOnly ? gsl::span<o2::dataformats::TrackTPCITS>() : pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
-    auto tracksITS = mTPCOnly ? gsl::span<o2::its::TrackITS>() : pc.inputs().get<gsl::span<o2::its::TrackITS>>("tracksITS");
+    auto tracksTPC = recoData.getTPCTracks();
+    auto tracksITSTPC = mTPCOnly ? gsl::span<o2::dataformats::TrackTPCITS>() : recoData.getTPCITSTracks();
+    auto tracksITS = mTPCOnly ? gsl::span<o2::its::TrackITS>() : recoData.getITSTracks();
 
     // getting the vertices
-    const auto vertices = mTPCOnly ? gsl::span<o2::dataformats::PrimaryVertex>() : pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx");
-    const auto primMatchedTracks = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackIndex>() : pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_trmtc");
-    const auto primMatchedTracksRef = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackRef>() : pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref");
+    auto vertices = mTPCOnly ? gsl::span<o2::dataformats::PrimaryVertex>() : recoData.getPrimaryVertices();
+    auto primMatchedTracks = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackIndex>() : recoData.getPrimaryVertexMatchedTracks();     // Global ID's for associated tracks
+    auto primMatchedTracksRef = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackRef>() : recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
     LOGP(info, "Processing {} vertices, {} primary matched vertices, {} TPC tracks, {} ITS tracks, {} ITS-TPC tracks", vertices.size(), primMatchedTracks.size(), tracksTPC.size(), tracksITS.size(), tracksITSTPC.size());
 
     // calculate mean vertex, RMS and count vertices
-    auto indicesITSTPC_vtx = processVertices(vertices, primMatchedTracks, primMatchedTracksRef);
+    auto indicesITSTPC_vtx = processVertices(vertices, primMatchedTracks, primMatchedTracksRef, recoData);
 
     // storing indices to ITS-TPC tracks and vertex ID for tpc track
     std::unordered_map<unsigned int, std::array<int, 2>> indicesITSTPC; // TPC track index -> ITS-TPC track index, vertex ID
@@ -915,6 +923,7 @@ class TPCTimeSeries : public Task
   o2::base::Propagator::MatCorrType mMatType;                              ///< material for propagation
   const bool mUnbinnedWriter{false};                                       /// write out additional unbinned data
   const bool mTPCOnly{false};                                              ///< produce only TPC variables
+  std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;           ///< steers the input
   int mPhiBins = SECTORSPERSIDE;                                           ///< number of phi bins
   int mTglBins{3};                                                         ///< number of tgl bins
   int mQPtBins{20};                                                        ///< number of qPt bins
@@ -1350,19 +1359,19 @@ class TPCTimeSeries : public Task
     }
   }
 
-  std::unordered_map<unsigned int, int> processVertices(const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const gsl::span<const o2::dataformats::VtxTrackIndex> primMatchedTracks, const gsl::span<const o2::dataformats::VtxTrackRef> primMatchedTracksRef)
+  std::unordered_map<unsigned int, int> processVertices(const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const gsl::span<const o2::dataformats::VtxTrackIndex> primMatchedTracks, const gsl::span<const o2::dataformats::VtxTrackRef> primMatchedTracksRef, const RecoContainer& recoData)
   {
     // storing collision vertex to ITS-TPC track index
     std::unordered_map<unsigned int, int> indicesITSTPC_vtx; // ITS-TPC track index -> collision vertex ID
 
     std::unordered_map<int, int> nContributors_ITS;    // ITS: vertex ID -> n contributors
-    std::unordered_map<int, int> nContributors_ITSTPC; // ITS-TPC: vertex ID -> n contributors
+    std::unordered_map<int, int> nContributors_ITSTPC; // ITS-TPC (and ITS-TPC-TRD, ITS-TPC-TOF, ITS-TPC-TRD-TOF): vertex ID -> n contributors
 
     // loop over collisions
     if (!vertices.empty()) {
       for (const auto& ref : primMatchedTracksRef) {
         // loop over ITS and ITS-TPC sources
-        const std::array<o2::dataformats::VtxTrackIndex::Source, 2> sources = {o2::dataformats::VtxTrackIndex::Source::ITSTPC, o2::dataformats::VtxTrackIndex::Source::ITS};
+        const std::array<TrkSrc, 5> sources = {TrkSrc::ITSTPC, TrkSrc::ITSTPCTRD, TrkSrc::ITSTPCTOF, TrkSrc::ITSTPCTRDTOF, TrkSrc::ITS};
         for (auto source : sources) {
           const int vID = ref.getVtxID(); // vertex ID
           const int firstEntry = ref.getFirstEntryOfSource(source);
@@ -1372,11 +1381,16 @@ class TPCTimeSeries : public Task
             const auto& matchedTrk = primMatchedTracks[i + firstEntry];
             bool pvCont = matchedTrk.isPVContributor();
             if (pvCont) {
-              if (source == o2::dataformats::VtxTrackIndex::Source::ITSTPC) {
-                indicesITSTPC_vtx[matchedTrk] = vID;
-                ++nContributors_ITSTPC[vID];
-              } else if (matchedTrk.isTrackSource(o2::dataformats::VtxTrackIndex::Source::ITS)) {
+              // store index of ITS-TPC track container and vertex ID
+              if (!matchedTrk.isTrackSource(TrkSrc::ITS)) {
+                indicesITSTPC_vtx[recoData.getSingleDetectorRefs(matchedTrk)[TrkSrc::ITSTPC]] = vID;
+              }
+
+              // count contributors of ITS only track and combined tracks
+              if (matchedTrk.isTrackSource(TrkSrc::ITS)) {
                 ++nContributors_ITS[vID];
+              } else {
+                ++nContributors_ITSTPC[vID];
               }
             }
           }
@@ -1518,32 +1532,27 @@ class TPCTimeSeries : public Task
 
 o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter, bool tpcOnly)
 {
-  const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
-  std::vector<InputSpec> inputs;
+  using GID = o2::dataformats::GlobalTrackID;
+  auto dataRequest = std::make_shared<DataRequest>();
+  bool useMC = false;
+  GID::mask_t srcTracks = tpcOnly ? GID::getSourcesMask("TPC") : GID::getSourcesMask("TPC,ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  dataRequest->requestTracks(srcTracks, useMC);
   if (!tpcOnly) {
-    inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-    inputs.emplace_back("tracksITS", header::gDataOriginITS, "TRACKS", 0, Lifetime::Timeframe);
-    inputs.emplace_back("pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe);
-    inputs.emplace_back("pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);    // global ids of associated tracks
-    inputs.emplace_back("pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe); // vertex - trackID refs
-  }
-  inputs.emplace_back("tracksTPC", header::gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
-  if (enableUnbinnedWriter) {
-    // request tpc clusters only in case the debug streamer is used for the cluster bit mask
-    inputs.emplace_back("trackTPCClRefs", header::gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe);
+    dataRequest->requestPrimaryVertertices(useMC);
   }
 
+  const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
                                                                 false,                          // GRPECS=true for nHBF per TF
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
                                                                 enableAskMatLUT,                // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
-                                                                inputs,
+                                                                dataRequest->inputs,
                                                                 true,
                                                                 true);
 
-  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
+  o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTimeSeries(), 0, Lifetime::Sporadic);
   if (!disableWriter) {
@@ -1552,9 +1561,9 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
 
   return DataProcessorSpec{
     "tpc-time-series",
-    inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCTimeSeries>(ccdbRequest, disableWriter, matType, enableUnbinnedWriter, tpcOnly)},
+    AlgorithmSpec{adaptFromTask<TPCTimeSeries>(ccdbRequest, disableWriter, matType, enableUnbinnedWriter, tpcOnly, dataRequest)},
     Options{
       {"min-momentum", VariantType::Float, 0.2f, {"Minimum momentum of the tracks"}},
       {"min-cluster", VariantType::Int, 80, {"Minimum number of clusters of the tracks"}},
