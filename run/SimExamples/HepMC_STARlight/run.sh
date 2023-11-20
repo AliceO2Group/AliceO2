@@ -18,6 +18,6 @@ export STARLIGHT_ROOT
 ./run-starlight.sh
 
 # PART b)
-NEV=$(grep EVENT slight.out | wc)
+NEV=$(grep EVENT slight.out | wc -l)
 o2-sim -j 20 -n ${NEV} -g hepmc -m PIPE ITS -o sim \
        --configKeyValues "GeneratorFileOrCmd.fileNames=starlight.hepmc;Diamond.position[2]=0.1;Diamond.width[2]=0.05"
