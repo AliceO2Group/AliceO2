@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(transportallocatormap_test)
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "transportallocatormap_test", &config);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
   BOOST_CHECK(allocZMQ != nullptr && allocSHM != allocZMQ);
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(allocator_test)
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "allocator_test", &config);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
 
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "getMessage_test", &config);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
 
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "adoptVector_test", &config);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
 
