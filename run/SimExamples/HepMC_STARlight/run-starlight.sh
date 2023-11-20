@@ -5,9 +5,9 @@ echo " --- run-starlight.sh ---"
 set -x
 
 # prepare environment
-VERSION=latest
-eval $(alienv printenv -q STARlight/$VERSION)
-STARLIGHT_ROOT=$(starlight-config)
+#VERSION=latest
+#eval $(alienv printenv -q STARlight/$VERSION)
+#STARLIGHT_ROOT=$(starlight-config)
 
 # populate working directory
 cp $STARLIGHT_ROOT/config/slight.in .
