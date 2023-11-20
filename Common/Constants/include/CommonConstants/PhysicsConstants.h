@@ -16,6 +16,8 @@
 #ifndef ALICEO2_PHYSICSCONSTANTS_H_
 #define ALICEO2_PHYSICSCONSTANTS_H_
 
+#include "CommonConstants/PDG.h"
+
 namespace o2
 {
 namespace constants
