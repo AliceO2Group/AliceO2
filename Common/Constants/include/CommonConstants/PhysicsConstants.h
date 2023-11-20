@@ -21,15 +21,15 @@
 namespace o2::constants::physics
 {
 // particles masses
-constexpr float MassPhoton = MassGamma;
-constexpr float MassMuon = MassMuonMinus;
-constexpr float MassPionCharged = MassPiPlus;
-constexpr float MassPionNeutral = MassPi0;
-constexpr float MassKaonCharged = MassKPlus;
-constexpr float MassKaonNeutral = MassK0;
-constexpr float MassLambda = MassLambda0;
-constexpr float MassHyperhydrog4 = MassHyperHydrogen4;
-constexpr float MassHyperhelium4 = MassHyperHelium4;
+constexpr double MassPhoton = MassGamma;
+constexpr double MassMuon = MassMuonMinus;
+constexpr double MassPionCharged = MassPiPlus;
+constexpr double MassPionNeutral = MassPi0;
+constexpr double MassKaonCharged = MassKPlus;
+constexpr double MassKaonNeutral = MassK0;
+constexpr double MassLambda = MassLambda0;
+constexpr double MassHyperhydrog4 = MassHyperHydrogen4;
+constexpr double MassHyperhelium4 = MassHyperHelium4;
 
 constexpr float LightSpeedCm2S = 299792458.e2;           // C in cm/s
 constexpr float LightSpeedCm2NS = LightSpeedCm2S * 1e-9; // C in cm/ns
