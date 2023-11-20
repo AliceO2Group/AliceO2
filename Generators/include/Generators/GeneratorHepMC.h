@@ -31,6 +31,7 @@ namespace HepMC3
 class Reader;
 class GenEvent;
 class FourVector;
+class GenParticle;
 } // namespace HepMC3
 #endif
 
@@ -101,12 +102,22 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
   /** Make our reader */
   bool makeReader();
 
+  /** Type of function to select particles to keep when pruning
+   * events */
+  typedef bool (*Select)(std::shared_ptr<const HepMC3::GenParticle>);
+  /** Prune event of particles that are not selected by passed
+   * function.  The event structure is preserved. */
+  void pruneEvent(Select select);
+
   /** HepMC interface **/
   uint64_t mEventsToSkip = 0;
+  /** HepMC event record version to expected.  Deprecated. */
   int mVersion = 0;
   std::shared_ptr<HepMC3::Reader> mReader;
   /** Event structure */
   HepMC3::GenEvent* mEvent = nullptr;
+  /** Option whether to prune event */
+  bool mPrune; //!
 
   ClassDefOverride(GeneratorHepMC, 1);
 
