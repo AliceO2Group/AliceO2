@@ -2114,6 +2114,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
 
   // helper map for fast search of a corresponding class mask for a bc
+  auto emcalIncomplete = filterEMCALIncomplete(recoData.getEMCALTriggers());
   std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> bcToClassMask;
   if (mInputSources[GID::CTP]) {
     LOG(debug) << "CTP input available";
@@ -2121,6 +2122,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
       uint64_t inputMask = ctpDigit.CTPInputMask.to_ulong();
+      if (emcalIncomplete.find(bc) != emcalIncomplete.end()) {
+        // reject EMCAL triggers as BC was rejected as incomplete at readout level
+        auto classMaskOrig = classMask;
+        classMask = classMask & ~mEMCALTrgClassMask;
+        LOG(debug) << "Found EMCAL incomplete event, mask before " << std::bitset<64>(classMaskOrig) << ", after " << std::bitset<64>(classMask);
+      }
       bcToClassMask[bc] = {classMask, inputMask};
       // LOG(debug) << Form("classmask:0x%llx", classMask);
     }
@@ -2518,6 +2525,18 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   //
 }
 
+std::set<uint64_t> AODProducerWorkflowDPL::filterEMCALIncomplete(const gsl::span<const o2::emcal::TriggerRecord> triggers)
+{
+  std::set<uint64_t> emcalIncompletes;
+  for (const auto& trg : triggers) {
+    if (trg.getTriggerBits() & o2::emcal::triggerbits::Inc) {
+      // trigger record masked at incomplete at readout level
+      emcalIncompletes.insert(trg.getBCData().toLong());
+    }
+  }
+  return emcalIncompletes;
+}
+
 void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
@@ -2550,6 +2569,8 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     mNSigmaTimeTrack = pvParams.nSigmaTimeTrack;
     mTimeMarginTrackTime = pvParams.timeMarginTrackTime * 1.e3;
     mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
+
+    pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
   }
   if (mPropTracks) {
     pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
@@ -2582,6 +2603,17 @@ void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
     mVtx = *(const o2::dataformats::MeanVertexObject*)obj;
     return;
+  }
+  if (matcher == ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
+    // construct mask with EMCAL trigger classes for rejection of incomplete triggers
+    auto ctpconfig = *(const o2::ctp::CTPConfiguration*)obj;
+    mEMCALTrgClassMask = 0;
+    for (const auto& trgclass : ctpconfig.getCTPClasses()) {
+      if (trgclass.cluster->maskCluster[o2::detectors::DetID::EMC]) {
+        mEMCALTrgClassMask |= trgclass.classMask;
+      }
+    }
+    LOG(info) << "Loaded EMCAL trigger class mask: " << std::bitset<64>(mEMCALTrgClassMask);
   }
 }
 
