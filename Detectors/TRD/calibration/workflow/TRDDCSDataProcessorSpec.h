@@ -68,6 +68,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
       mVoltagesDPsUpdateInterval = 600;
     }
     mMinUpdateIntervalU = ic.options().get<int64_t>("DPs-min-update-interval-voltages");
+    // LB: Env DPs, only update every 30 min
     mEnvDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-env");
     if (mEnvDPsUpdateInterval == 0) {
       LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 1800s";
@@ -78,12 +79,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     if (mFedEnvTempDPsUpdateInterval == 0) {
       LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 1800s";
       mFedEnvTempDPsUpdateInterval = 1800;
-    }
-    // LB: Cavern DPs, only update every 2 hours
-    mCavernDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-cavern");
-    if (mCavernDPsUpdateInterval == 0) {
-      LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 7200s";
-      mCavernDPsUpdateInterval = 7200;
     }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
     if (useCCDBtoConfigure) {
@@ -104,12 +99,13 @@ class TRDDCSDataProcessor : public o2::framework::Task
       aliasesFloat.insert(aliasesFloat.end(), {"trd_gasCO2", "trd_gasH2O", "trd_gasO2"});
       aliasesFloat.insert(aliasesFloat.end(), {"trd_gaschromatographCO2", "trd_gaschromatographN2", "trd_gaschromatographXe"});
       aliasesFloat.insert(aliasesFloat.end(), {"trd_hvAnodeImon[00..539]", "trd_hvAnodeUmon[00..539]", "trd_hvDriftImon[00..539]", "trd_hvDriftUmon[00..539]"});
-      aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvTempCavern", "trd_aliEnvTempP2"});
-      aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvPressure00", "trd_aliEnvPressure01", "trd_aliEnvPressure02"});
-      aliasesFloat.insert(aliasesFloat.end(), {"UXC2Humidity", "CavernAtmosPressure", "trd_envTemp[00..539]"});
+      aliasesFloat.insert(aliasesFloat.end(), {"CavernTemperature", "temperature_P2_external"});
+      aliasesFloat.insert(aliasesFloat.end(), {"CavernAtmosPressure", "SurfaceAtmosPressure", "CavernAtmosPressure2"});
+      aliasesFloat.insert(aliasesFloat.end(), {"UXC2Humidity"});
       aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo"});
       aliasesInt.insert(aliasesInt.end(), {"trd_chamberStatus[00..539]"});
       aliasesString.insert(aliasesString.end(), {"trd_CFGtag[00..539]"});
+      aliasesFloat.insert(aliasesFloat.end(), {"trd_envTemp[00..539]"});
 
       for (const auto& i : o2::dcs::expandAliases(aliasesFloat)) {
         vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
@@ -157,11 +153,10 @@ class TRDDCSDataProcessor : public o2::framework::Task
     mTimerVoltages = mTimerGas;
     mTimerCurrents = mTimerGas;
     mTimerEnv = mTimerGas;
-    // LB: new DPs for Fed and Cavern
+    // LB: new DPs for Fed
     mTimerFedChamberStatus = mTimerGas;
     mTimerFedCFGtag = mTimerGas;
     mTimerFedEnvTemp = mTimerGas;
-    mTimerCavern = mTimerGas;
 
     mReportTiming = ic.options().get<bool>("report-timing") || verbosity > 0;
   }
@@ -221,13 +216,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
       mTimerFedEnvTemp = timeNow;
     }
 
-    // LB: new DP for Cavern
-    auto elapsedTimeCavern = timeNow - mTimerCavern; // in ns
-    if (elapsedTimeCavern.count() * 1e-9 >= mCavernDPsUpdateInterval) {
-      sendDPsoutputCavern(pc.outputs());
-      mTimerCavern = timeNow;
-    }
-
     if (mProcessor->shouldUpdateRun()) {
       sendDPsoutputRun(pc.outputs());
     }
@@ -244,11 +232,10 @@ class TRDDCSDataProcessor : public o2::framework::Task
     sendDPsoutputCurrents(ec.outputs());
     sendDPsoutputEnv(ec.outputs());
     sendDPsoutputRun(ec.outputs());
-    // LB: new DPs for Fed and Cavern
+    // LB: new DPs for Fed
     sendDPsoutputFedChamberStatus(ec.outputs());
     sendDPsoutputFedCFGtag(ec.outputs());
     sendDPsoutputFedEnvTemp(ec.outputs());
-    sendDPsoutputCavern(ec.outputs());
   }
 
  private:
@@ -258,22 +245,20 @@ class TRDDCSDataProcessor : public o2::framework::Task
   std::chrono::high_resolution_clock::time_point mTimerVoltages;
   std::chrono::high_resolution_clock::time_point mTimerCurrents;
   std::chrono::high_resolution_clock::time_point mTimerEnv;
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   std::chrono::high_resolution_clock::time_point mTimerFedChamberStatus;
   std::chrono::high_resolution_clock::time_point mTimerFedCFGtag;
   std::chrono::high_resolution_clock::time_point mTimerFedEnvTemp;
-  std::chrono::high_resolution_clock::time_point mTimerCavern;
 
   int64_t mGasDPsUpdateInterval;
   int64_t mVoltagesDPsUpdateInterval;
   int64_t mCurrentsDPsUpdateInterval;
   int64_t mMinUpdateIntervalU;
   int64_t mEnvDPsUpdateInterval;
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   int64_t mFedChamberStatusDPsUpdateInterval;
   int64_t mFedCFGtagDPsUpdateInterval;
   int64_t mFedEnvTempDPsUpdateInterval;
-  int64_t mCavernDPsUpdateInterval;
 
   void sendDPsoutputVoltages(DataAllocator& output)
   {
@@ -429,26 +414,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
   }
 
-  // LB: new DP for Cavern
-  //________________________________________________________________
-  void sendDPsoutputCavern(DataAllocator& output)
-  {
-    // extract CCDB infos and calibration object for DPs
-    if (mProcessor->updateCavernDPsCCDB()) {
-      const auto& payload = mProcessor->getTRDCavernDPsInfo();
-      auto& info = mProcessor->getccdbCavernDPsInfo();
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSCavernDPs", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSCavernDPs", 0}, info);
-      mProcessor->clearCavernDPsInfo();
-    } else {
-      auto& info = mProcessor->getccdbCavernDPsInfo();
-      LOG(info) << "Not sending object " << info.getPath() << "/" << info.getFileName() << " since no DPs were processed for it";
-    }
-  }
-
 }; // end class
 } // namespace trd
 
@@ -470,7 +435,7 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSRunDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSEnvDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSEnvDPs"});
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   // Must use reduced names due to initializer string cannot exceed descriptor size in Data Format
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_ChamberStat"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_ChamberStat"});
@@ -478,8 +443,6 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_CFGtag"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_FedTemp"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_FedTemp"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSCavernDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSCavernDPs"});
 
   return DataProcessorSpec{
     "trd-dcs-data-processor",
@@ -496,7 +459,6 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"DPs-min-update-interval-voltages", VariantType::Int64, 120ll, {"Minimum range to be covered by voltage CCDB object"}},
             {"DPs-update-interval-gas", VariantType::Int64, 900ll, {"Interval (in s) after which to update the DPs CCDB entry for gas parameters"}},
             {"DPs-update-interval-fedenv", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for front end device environment parameters"}},
-            {"DPs-update-interval-cavern", VariantType::Int64, 7200ll, {"Interval (in s) after which to update the DPs CCDB entry for cavern parameters"}},
             {"DPs-max-counter-alarm-fed", VariantType::Int, 1, {"Maximum number of alarms after FedChamberStatus and FedCFGtag changes, following changes are logged as warnings"}},
             {"DPs-min-counter-update-fed", VariantType::Int, 540, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}}}};
 }

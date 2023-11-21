@@ -182,7 +182,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
       }
 
       // check if DP is env value
-      if (std::strstr(dpid.get_alias(), "trd_aliEnv") != nullptr) {
+      if (isAliasFromEnvDP(dpid.get_alias())) {
         if (!mEnvStartTSSet) {
           mEnvStartTS = mCurrentTS;
           mEnvStartTSSet = true;
@@ -204,20 +204,6 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         if (dpInfoFedEnvTemp.nPoints == 0 || etime != mLastDPTimeStamps[dpid]) {
           // only add data point in case last one was not already read before
           dpInfoFedEnvTemp.addPoint(o2::dcs::getValue<double>(dpcom), etime);
-          mLastDPTimeStamps[dpid] = etime;
-        }
-      }
-
-      // DP is UXC2Humidity or CavernAtmosPressure
-      if (std::strstr(dpid.get_alias(), "UXC2Humidity") != nullptr || std::strstr(dpid.get_alias(), "CavernAtmos") != nullptr) {
-        if (!mCavernStartTSSet) {
-          mCavernStartTS = mCurrentTS;
-          mCavernStartTSSet = true;
-        }
-        auto& dpInfoCavern = mTRDDCSCavern[dpid];
-        if (dpInfoCavern.nPoints == 0 || etime != mLastDPTimeStamps[dpid]) {
-          // only add data point in case last one was not already read before
-          dpInfoCavern.addPoint(o2::dcs::getValue<double>(dpcom), etime);
           mLastDPTimeStamps[dpid] = etime;
         }
       }
@@ -477,7 +463,7 @@ bool DCSProcessor::updateEnvDPsCCDB()
   for (const auto& it : mPids) {
     const auto& type = it.first.get_type();
     if (type == o2::dcs::DPVAL_DOUBLE) {
-      if (std::strstr(it.first.get_alias(), "trd_aliEnv") != nullptr) {
+      if (isAliasFromEnvDP(it.first.get_alias())) {
         if (it.second == true) { // we processed the DP at least 1x
           retVal = true;
         }
@@ -489,7 +475,7 @@ bool DCSProcessor::updateEnvDPsCCDB()
     }
   }
   std::map<std::string, std::string> md;
-  md["responsible"] = "Ole Schmidt";
+  md["responsible"] = "Leonardo Barreto";
   o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSEnv, mCcdbEnvDPsInfo, "TRD/Calib/DCSDPsEnv", md, mEnvStartTS, mEnvStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
@@ -619,35 +605,6 @@ bool DCSProcessor::updateFedEnvTempDPsCCDB()
   return retVal;
 }
 
-bool DCSProcessor::updateCavernDPsCCDB()
-{
-  // here we create the object containing the cavern data points to then be sent to CCDB
-  LOG(info) << "Preparing CCDB object for TRD cavern DPs";
-
-  bool retVal = false; // set to 'true' in case at least one DP for env has been processed
-
-  for (const auto& it : mPids) {
-    const auto& type = it.first.get_type();
-    if (type == o2::dcs::DPVAL_DOUBLE) {
-      if (std::strstr(it.first.get_alias(), "UXC2Humidity") != nullptr || std::strstr(it.first.get_alias(), "CavernAtmos") != nullptr) {
-        if (it.second == true) { // we processed the DP at least 1x
-          retVal = true;
-        }
-        if (mVerbosity > 1) {
-          LOG(info) << "PID = " << it.first.get_alias();
-          mTRDDCSCavern[it.first].print();
-        }
-      }
-    }
-  }
-  std::map<std::string, std::string> md;
-  md["responsible"] = "Leonardo Barreto";
-  // TODO: define mCavernStartTS and mCavernEndTS, use same setup as env for now
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSCavern, mCcdbCavernDPsInfo, "TRD/Calib/DCSDPsCavern", md, mCavernStartTS, mCavernStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
-
-  return retVal;
-}
-
 void DCSProcessor::clearCurrentsDPsInfo()
 {
   mTRDDCSCurrents.clear();
@@ -704,7 +661,7 @@ void DCSProcessor::clearEnvDPsInfo()
   for (auto& it : mPids) {
     const auto& type = it.first.get_type();
     if (type == o2::dcs::DPVAL_DOUBLE) {
-      if (std::strstr(it.first.get_alias(), "trd_aliEnv") != nullptr) {
+      if (isAliasFromEnvDP(it.first.get_alias())) {
         it.second = false;
       }
     }
@@ -772,21 +729,6 @@ void DCSProcessor::clearFedEnvTempDPsInfo()
     const auto& type = it.first.get_type();
     if (type == o2::dcs::DPVAL_DOUBLE) {
       if (std::strstr(it.first.get_alias(), "trd_envTemp") != nullptr) {
-        it.second = false;
-      }
-    }
-  }
-}
-
-void DCSProcessor::clearCavernDPsInfo()
-{
-  mTRDDCSCavern.clear();
-  mCavernStartTSSet = false;
-  // reset the 'processed' flags for the fed DPs
-  for (auto& it : mPids) {
-    const auto& type = it.first.get_type();
-    if (type == o2::dcs::DPVAL_DOUBLE) {
-      if (std::strstr(it.first.get_alias(), "UXC2Humidity") != nullptr || std::strstr(it.first.get_alias(), "CavernAtmos") != nullptr) {
         it.second = false;
       }
     }

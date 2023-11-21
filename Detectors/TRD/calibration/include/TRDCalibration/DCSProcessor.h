@@ -64,11 +64,10 @@ class DCSProcessor
   bool updateCurrentsDPsCCDB();
   bool updateEnvDPsCCDB();
   bool updateRunDPsCCDB();
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   bool updateFedChamberStatusDPsCCDB();
   bool updateFedCFGtagDPsCCDB();
   bool updateFedEnvTempDPsCCDB();
-  bool updateCavernDPsCCDB();
 
   // signal that the CCDB object for the voltages should be updated due to change exceeding threshold
   bool shouldUpdateVoltages() const { return mShouldUpdateVoltages; }
@@ -76,6 +75,17 @@ class DCSProcessor
   // LB: Only update ChamberStatus/CFGtag if both conditions are met (complete DPs and new run)
   bool shouldUpdateFedChamberStatus() const { return mFedChamberStatusCompleteDPs && mFirstRunEntryForFedChamberStatusUpdate; }
   bool shouldUpdateFedCFGtag() const { return mFedCFGtagCompleteDPs && mFirstRunEntryForFedCFGtagUpdate; }
+  // LB: Env DPs have no alias pattern, processor uses this function to identify if alias is Env
+  bool isAliasFromEnvDP(const char* dpalias) const
+  {
+    std::vector<std::string> envaliases = {"CavernTemperature", "temperature_P2_external", "AtmosPressure", "UXC2Humidity"};
+    for (const auto& envalias : envaliases) {
+      if (std::strstr(dpalias, envalias.c_str()) != nullptr) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // allow access to the CCDB objects from DPL processor
   CcdbObjectInfo& getccdbGasDPsInfo() { return mCcdbGasDPsInfo; }
@@ -86,7 +96,6 @@ class DCSProcessor
   CcdbObjectInfo& getccdbFedChamberStatusDPsInfo() { return mCcdbFedChamberStatusDPsInfo; }
   CcdbObjectInfo& getccdbFedCFGtagDPsInfo() { return mCcdbFedCFGtagDPsInfo; }
   CcdbObjectInfo& getccdbFedEnvTempDPsInfo() { return mCcdbFedEnvTempDPsInfo; }
-  CcdbObjectInfo& getccdbCavernDPsInfo() { return mCcdbCavernDPsInfo; }
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDGasDPsInfo() const { return mTRDDCSGas; }
   const std::unordered_map<DPID, float>& getTRDVoltagesDPsInfo() const { return mTRDDCSVoltages; }
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDCurrentsDPsInfo() const { return mTRDDCSCurrents; }
@@ -95,7 +104,6 @@ class DCSProcessor
   const std::unordered_map<DPID, int>& getTRDFedChamberStatusDPsInfo() const { return mTRDDCSFedChamberStatus; }
   const std::unordered_map<DPID, string>& getTRDFedCFGtagDPsInfo() const { return mTRDDCSFedCFGtag; }
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDFedEnvTempDPsInfo() const { return mTRDDCSFedEnvTemp; }
-  const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDCavernDPsInfo() const { return mTRDDCSCavern; }
 
   // settings
   void setCurrentTS(TFType tf) { mCurrentTS = tf; }
@@ -109,11 +117,10 @@ class DCSProcessor
   void clearCurrentsDPsInfo();
   void clearEnvDPsInfo();
   void clearRunDPsInfo();
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   void clearFedChamberStatusDPsInfo();
   void clearFedCFGtagDPsInfo();
   void clearFedEnvTempDPsInfo();
-  void clearCavernDPsInfo();
 
   // helper functions
   int getChamberIdFromAlias(const char* alias) const;
@@ -123,13 +130,12 @@ class DCSProcessor
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSGas;      ///< gas DPs (CO2, O2, H20 and from the chromatograph CO2, N2, Xe)
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSCurrents; ///< anode and drift currents
   std::unordered_map<DPID, float> mTRDDCSVoltages;                ///< anode and drift voltages
-  std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSEnv;      ///< environment parameters (temperatures, pressures)
+  std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSEnv;      ///< environment parameters (temperatures, pressures, humidity)
   std::unordered_map<DPID, int> mTRDDCSRun;                       ///< run number (run type ignored)
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   std::unordered_map<DPID, int> mTRDDCSFedChamberStatus;            ///< fed chamber status
   std::unordered_map<DPID, string> mTRDDCSFedCFGtag;                ///< fed config tag
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSFedEnvTemp; ///< fed env temperature
-  std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSCavern;     ///< cavern humidity, pressure
 
   // helper variables
   std::unordered_map<DPID, bool> mPids;                 ///< flag for each DP whether it has been processed at least once
@@ -139,11 +145,10 @@ class DCSProcessor
   CcdbObjectInfo mCcdbCurrentsDPsInfo;
   CcdbObjectInfo mCcdbEnvDPsInfo;
   CcdbObjectInfo mCcdbRunDPsInfo;
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   CcdbObjectInfo mCcdbFedChamberStatusDPsInfo;
   CcdbObjectInfo mCcdbFedCFGtagDPsInfo;
   CcdbObjectInfo mCcdbFedEnvTempDPsInfo;
-  CcdbObjectInfo mCcdbCavernDPsInfo;
 
   TFType mGasStartTS;      ///< the time stamp of the first TF which was processesd for the current GAS CCDB object
   TFType mVoltagesStartTS; ///< the time stamp of the first TF which was processesd for the current voltages CCDB object
@@ -151,22 +156,20 @@ class DCSProcessor
   TFType mEnvStartTS;
   TFType mRunStartTS;
   TFType mRunEndTS;
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   TFType mFedChamberStatusStartTS;
   TFType mFedCFGtagStartTS;
   TFType mFedEnvTempStartTS;
-  TFType mCavernStartTS;
   TFType mCurrentTS{0}; ///< the time stamp of the TF currently being processed
   bool mGasStartTSset{false};
   bool mVoltagesStartTSSet{false};
   bool mCurrentsStartTSSet{false};
   bool mEnvStartTSSet{false};
   bool mRunStartTSSet{false};
-  // LB: new DPs for Fed and Cavern
+  // LB: new DPs for Fed
   bool mFedChamberStatusStartTSSet{false};
   bool mFedCFGtagStartTSSet{false};
   bool mFedEnvTempStartTSSet{false};
-  bool mCavernStartTSSet{false};
   std::bitset<constants::MAXCHAMBER> mVoltageSet{};
   bool mShouldUpdateVoltages{false};
   bool mShouldUpdateRun{false};
