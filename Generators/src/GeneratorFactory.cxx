@@ -149,7 +149,9 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(info) << "using external kinematics";
   } else if (genconfig.compare("extkinO2") == 0) {
     // external kinematics from previous O2 output
-    auto extGen = new o2::eventgen::GeneratorFromO2Kine(conf.getExtKinematicsFileName().c_str());
+    auto name1 = GeneratorFromO2KineParam::Instance().fileName;
+    auto name2 = conf.getExtKinematicsFileName();
+    auto extGen = new o2::eventgen::GeneratorFromO2Kine(name1.size() > 0 ? name1.c_str() : name2.c_str());
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     if (GeneratorFromO2KineParam::Instance().continueMode) {

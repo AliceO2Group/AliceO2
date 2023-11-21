@@ -196,6 +196,7 @@ bool GeneratorFromO2Kine::Init()
   LOG(info) << param;
   mSkipNonTrackable = param.skipNonTrackable;
   mContinueMode = param.continueMode;
+  mRoundRobin = param.roundRobin;
 
   return true;
 }
@@ -259,6 +260,10 @@ bool GeneratorFromO2Kine::importParticles()
       particlecounter++;
     }
     mEventCounter++;
+    if (mRoundRobin) {
+      LOG(info) << "Resetting event counter to 0; Reusing events from file";
+      mEventCounter = mEventCounter % mEventsAvailable;
+    }
 
     if (tracks) {
       delete tracks;
