@@ -18,6 +18,7 @@
 #include <Generators/GeneratorService.h>
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
+#include <TStopwatch.h> // simple timer from ROOT
 
 using namespace o2::framework;
 
@@ -29,11 +30,12 @@ struct GeneratorTask {
   Configurable<long> seed{"seed", 0, "(TRandom) Seed"};
   Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
   Configurable<std::string> vtxModeArg{"vertexMode", "kDiamondParam", "Where the beam-spot vertex should come from. Must be one of kNoVertex, kDiamondParam, kCCDB"};
-
+  Configurable<int64_t> ttl{"time-limit", -1, "Maximum run time limit in seconds (default no limit)"};
   int nEvents = 0;
   int eventCounter = 0;
   int tfCounter = 0;
   o2::eventgen::GeneratorService genservice;
+  TStopwatch timer;
 
   void init(o2::framework::InitContext& /*ic*/)
   {
@@ -55,6 +57,7 @@ struct GeneratorTask {
     } else if (vtxmode == o2::conf::VertexMode::kCCDB) {
       LOG(warn) << "Not yet supported. This needs definition of a timestamp and fetching of the MeanVertex CCDB object";
     }
+    timer.Start();
   }
 
   void run(o2::framework::ProcessingContext& pc)
@@ -71,7 +74,16 @@ struct GeneratorTask {
     // report number of TFs injected for the rate limiter to work
     pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
     ++tfCounter;
-    if (eventCounter >= nEvents) {
+    bool time_expired = false;
+    if (ttl > 0) {
+      timer.Stop();
+      time_expired = timer.RealTime() > ttl;
+      timer.Start(false);
+      if (time_expired) {
+        LOG(info) << "TTL expired after " << eventCounter << " events ... sending end-of-stream";
+      }
+    }
+    if (eventCounter >= nEvents || time_expired) {
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     }
