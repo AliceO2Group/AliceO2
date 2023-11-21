@@ -212,15 +212,15 @@ class GeneratorPythia8 : public Generator
    * this member function modifies the relatives of the passed
    * particle, and thus modifies the passed event structure.
    * Calculations are cached. */
-  void investigateRelatives(Pythia8::Event& event,                   // Event
-                            const std::map<size_t, size_t>& old2New, // Map from old to new idx
-                            size_t index,                            // Current particle
-                            std::vector<bool>& done,                 // cache flag
-                            GetRelatives getter,                     // get relatives
-                            SetRelatives setter,                     // set relatives
-                            FirstLastRelative firstLast,             // get first and last relative
-                            const std::string& what,                 // what are we looking for
-                            const std::string& ind = "");            // logging indent
+  void investigateRelatives(Pythia8::Event& event,           // Event
+                            const std::vector<int>& old2New, // Map from old to new idx
+                            size_t index,                    // Current particle
+                            std::vector<bool>& done,         // cache flag
+                            GetRelatives getter,             // get relatives
+                            SetRelatives setter,             // set relatives
+                            FirstLastRelative firstLast,     // get first and last relative
+                            const std::string& what,         // what are we looking for
+                            const std::string& ind = "");    // logging indent
   /** @{
    * @name utilities **/
   /** Select from ancestor. Fills the output event with all particles

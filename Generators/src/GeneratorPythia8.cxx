@@ -197,7 +197,7 @@ Bool_t
 
 /*****************************************************************/
 void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
-                                            const std::map<size_t, size_t>& old2New,
+                                            const std::vector<int>& old2New,
                                             size_t index,
                                             std::vector<bool>& done,
                                             GetRelatives getter,
@@ -208,8 +208,7 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
 {
   // Utility to find new index, or -1 if not found
   auto findNew = [old2New](size_t old) -> int {
-    auto iter = old2New.find(old);
-    return iter == old2New.end() ? -1 : iter->second;
+    return old2New[old];
   };
   int newIdx = findNew(index);
   int hepmc = event[index].statusHepMC();
@@ -223,11 +222,16 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
   }
 
   // Our list of new relatives
-  using IdList = std::set<int>;
-  IdList newRelatives;
+  using IdList = std::pair<int, int>;
+  constexpr int invalid = 0xFFFFFFF;
+  IdList newRelatives = std::make_pair(invalid, -invalid);
 
   // Utility to add id
-  auto addId = [](IdList& l, size_t id) { l.insert(id); };
+  auto addId = [](IdList& l, size_t id) {
+    l.first = std::min(int(id), l.first);
+    l.second = std::max(int(id), l.second);
+  };
+
   // Get particle and relatives
   auto& particle = event[index];
   auto relatives = getter(particle);
@@ -272,22 +276,31 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
 
     // If this relative was already done, then get its relatives and
     // add them to the list of new relatives.
+    auto grandRelatives = firstLast(relative);
+    int grandRelative1 = grandRelatives.first;
+    int grandRelative2 = grandRelatives.second;
+    assert (grandRelative1 != invalid);
+    assert (grandRelative2 != -invalid);
+    if (grandRelative1 > 0) {
+      addId(newRelatives,grandRelative1);
+    }
+    if (grandRelative2 > 0) {
+      addId(newRelatives,grandRelative2);
+    }
     LOG(debug) << ind << " "
                << what << " "
-               << relativeIdx << " gave new relatives ";
-    for (auto grandRelative : getter(relative)) {
-      LOG(debug) << ind << "  " << grandRelative;
-      addId(newRelatives, grandRelative);
-    }
+               << relativeIdx << " gave new relatives "
+               << grandRelative1 << " -> " << grandRelative2;
   }
-  LOG(debug) << ind << " Got " << newRelatives.size() << " new "
+  LOG(debug) << ind << " Got "
+             << (newRelatives.second - newRelatives.first + 1) << " new "
              << what << "s ";
 
-  if (newRelatives.size() > 0) {
-    size_t newRelative1 = *std::min_element(newRelatives.begin(),
-                                            newRelatives.end());
-    size_t newRelative2 = *std::max_element(newRelatives.begin(),
-                                            newRelatives.end());
+  if (newRelatives.first != invalid) {
+    // If the first relative is not invalid, then the second isn't
+    // either (possibly the same though).
+    int newRelative1 = newRelatives.first;
+    int newRelative2 = newRelatives.second;
     setter(particle, newRelative1, newRelative2);
     LOG(debug) << ind << " " << what << "s: "
                << firstLast(particle).first << " ("
@@ -305,7 +318,7 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
 void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
 {
   // Mapping from old to new index.
-  std::map<size_t, size_t> old2new;
+  std::vector<int> old2new(event.size(), -1);
 
   // Particle 0 is a system particle, and we will skip that in the
   // following.
@@ -321,8 +334,7 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
   }
   // Utility to find new index, or -1 if not found
   auto findNew = [old2new](size_t old) -> int {
-    auto iter = old2new.find(old);
-    return iter == old2new.end() ? -1 : iter->second;
+    return old2new[old];
   };
 
   // First loop, investigate mothers - from the bottom
@@ -409,6 +421,14 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
   // daughters.  If this list of mothers include other mothers than
   // the currently investigated mother, we must change the mothers
   // of the currently investigated daughters.
+  using IdList = std::pair<int, int>;
+  // Utility to add id
+  auto addId = [](IdList& l, size_t id) {
+    l.first = std::min(int(id), l.first);
+    l.second = std::max(int(id), l.second);
+  };
+  constexpr int invalid = 0xFFFFFFF;
+
   std::vector<bool> shareDone(pruned.size(), false);
   for (size_t i = 1; i < pruned.size(); i++) {
     if (shareDone[i]) {
@@ -417,12 +437,12 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
 
     auto& particle = pruned[i];
     auto daughters = particle.daughterList();
-    std::set<size_t> allDaughters;
-    std::set<size_t> allMothers;
-    allMothers.insert(i);
+    IdList allDaughters = std::make_pair(invalid, -invalid);
+    IdList allMothers = std::make_pair(invalid, -invalid);
+    addId(allMothers, i);
     for (auto daughterIdx : daughters) {
       // Add this daughter to set of all daughters
-      allDaughters.insert(daughterIdx);
+      addId(allDaughters, daughterIdx);
       auto& daughter = pruned[daughterIdx];
       auto otherMothers = daughter.motherList();
       for (auto otherMotherIdx : otherMothers) {
@@ -430,12 +450,14 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
         // mothers of the current daughter of the current particle
         // and store that.  In this way, we register mothers that
         // share a daughter with the current particle.
-        allMothers.insert(otherMotherIdx);
+        addId(allMothers, otherMotherIdx);
         // We also need to take all the daughters of this shared
         // mother and reister those.
         auto& otherMother = pruned[otherMotherIdx];
-        auto otherDaughters = otherMother.daughterList();
-        allDaughters.insert(otherDaughters.begin(), otherDaughters.end());
+	int otherDaughter1 = otherMother.daughter1();
+	int otherDaughter2 = otherMother.daughter2();
+	if (otherDaughter1 > 0) addId(allDaughters,otherDaughter1);
+	if (otherDaughter2 > 0) addId(allDaughters,otherDaughter2);
       }
       // At this point, we have added all mothers of current
       // daughter, and all daughters of those mothers.
@@ -445,24 +467,35 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
     // too.
     //
     // We can now update the daughter information on all mothers
-    size_t minDaughter = *std::min_element(allDaughters.begin(),
-                                           allDaughters.end());
-    size_t maxDaughter = *std::max_element(allDaughters.begin(),
-                                           allDaughters.end());
-    for (auto motherIdx : allMothers) {
-      shareDone[motherIdx] = true;
-      pruned[motherIdx].daughters(minDaughter, maxDaughter);
+    int minDaughter = allDaughters.first;
+    int maxDaughter = allDaughters.second;
+    int minMother = allMothers.first;
+    int maxMother = allMothers.second;
+    if (minMother != invalid) {
+      // If first mother isn't invalid, then second isn't either
+      for (size_t motherIdx = minMother; motherIdx <= maxMother; //
+           motherIdx++) {
+        shareDone[motherIdx] = true;
+        if (minDaughter == invalid) {
+          pruned[motherIdx].daughters(0, 0);
+        } else {
+          pruned[motherIdx].daughters(minDaughter, maxDaughter);
+        }
+      }
     }
-    // We can now update the mother information on all daughters
-    size_t minMother = *std::min_element(allMothers.begin(),
-                                         allMothers.end());
-    size_t maxMother = *std::max_element(allMothers.begin(),
-                                         allMothers.end());
-    for (auto daughterIdx : allDaughters) {
-      pruned[daughterIdx].mothers(minMother, maxMother);
+    if (minDaughter != invalid) {
+      // If least mother isn't invalid, then largest mother will not
+      // be invalid either.
+      for (size_t daughterIdx = minDaughter; daughterIdx <= maxDaughter; //
+           daughterIdx++) {
+        if (minMother == invalid) {
+          pruned[daughterIdx].mothers(0, 0);
+        } else {
+          pruned[daughterIdx].mothers(minMother, maxMother);
+        }
+      }
     }
   }
-
   LOG(info) << "Pythia event was pruned from " << event.size()
             << " to " << pruned.size() << " particles";
   // Assign our pruned event to the event passed in

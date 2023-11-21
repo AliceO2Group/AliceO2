@@ -128,7 +128,7 @@ void GeneratorHepMC::pruneEvent(Select select)
 
   auto particles = event.particles();
   auto vertices = event.vertices();
-  std::set<HepMC3::GenParticlePtr> toRemove;
+  std::list<HepMC3::GenParticlePtr> toRemove;
 
   LOG(debug) << "HepMC events has " << particles.size()
              << " particles and " << vertices.size()
@@ -143,7 +143,7 @@ void GeneratorHepMC::pruneEvent(Select select)
     }
 
     // Remove particle from the event
-    toRemove.insert(particle);
+    toRemove.push_back(particle);
     LOG(debug) << " Remove " << std::setw(3) << particle->id();
 
     auto endVtx = particle->end_vertex();
@@ -197,6 +197,7 @@ void GeneratorHepMC::pruneEvent(Select select)
 
   LOG(debug) << "Selected " << nSelect << " particles\n"
              << "Removing " << toRemove.size() << " particles";
+  size_t oldSize = particles.size();
   for (auto particle : toRemove) {
     event.remove_particle(particle);
   }
@@ -214,7 +215,8 @@ void GeneratorHepMC::pruneEvent(Select select)
     event.remove_vertex(vtx);
   }
 
-  LOG(debug) << "HepMC events has " << event.particles().size()
+  LOG(debug) << "HepMC events was pruned from " << oldSize 
+	     << " particles to " << event.particles().size()
              << " particles and " << event.vertices().size()
              << " vertices";
 }
