@@ -32,14 +32,14 @@ float getDetLengthFromEta(const float eta, const float radius)
 }
 
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("RICH", true),
+  : o2::base::DetImpl<Detector>("RCH", true),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
 }
 
 Detector::Detector(bool active)
-  : o2::base::DetImpl<Detector>("RICH", true),
+  : o2::base::DetImpl<Detector>("RCH", true),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {

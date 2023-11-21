@@ -93,7 +93,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
 #ifdef ENABLE_UPGRADES
     if (isUpgrade) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
-        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3) {
+        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3 || d == DetID::RCH) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
