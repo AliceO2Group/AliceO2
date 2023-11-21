@@ -191,7 +191,7 @@ class DetID
      o2h::gDataOriginTST, o2h::gDataOriginCTP, o2h::gDataOriginFOC
 #ifdef ENABLE_UPGRADES
      ,
-     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginFCT
+     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginFCT, o2h::gDataOriginTF3
 #endif
   };
 #endif // GPUCA_GPUCODE_DEVICE
