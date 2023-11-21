@@ -125,14 +125,8 @@ dbPdg = ROOT.o2.O2DatabasePDG
 
 
 def mass(code):
-    """Returns particle mass from o2::O2DatabasePDG except for special cases."""
-    # Special cases (present in TDatabasePDG but with wrong values)
+    """Returns particle mass from o2::O2DatabasePDG."""
     # Missing particles should be added in O2DatabasePDG.h.
-    if abs(code) == Pdg.kXiCCPlusPlus.value:
-        return 3.62155  # PDG 2022: https://pdg.lbl.gov/2022/listings/rpp2022-list-xicc-plus-plus.pdf
-    if abs(code) == Pdg.kOmegaC0.value:
-        return 2.69520  # PDG 2022: https://pdg.lbl.gov/2022/listings/rpp2022-list-omegac-zero.pdf
-    # Default case
     success = c_bool(True)
     return dbPdg.Mass(code, success)
 
@@ -140,6 +134,7 @@ def mass(code):
 def declare_mass(pdg, type="double") -> str:
     """Returns a C++ declaration of a particle mass constant."""
     return f"constexpr {type} Mass{pdg.name[1:]} = {mass(pdg.value)};\n"
+
 
 # Comment at the beginning of the output
 str_block_begin = f"""// BEGINNING OF THE GENERATED BLOCK.
