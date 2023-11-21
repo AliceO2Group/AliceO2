@@ -113,6 +113,22 @@ via `--configKeyValues`
 - `HepMC.eventsToSkip=number` a number events to skip at the beginning
   of each file read.
 
+- `HepMC.prune=boolean` if true, then prune events of particles that
+  are not
+  - beam particles (status = 4),
+  - decayed (status = 2), nor
+  - final state (status = 1)
+
+  This reduces the event size. How much depend on the event
+  generator. Use with caution, as it can potentially corrupt the event
+  structure (though measures are taken to minimise that risk).
+
+  In the future, we may want more granular control of which particles
+  to keep.  For example, we could have the keys
+
+  - `HepMC.keepStatus=list-of-status-codes`
+  - `HepMC.keepPDGs=list-of-pdg-numbers`
+
 - `HepMC.version` - when reading the events from files, this option is
    no longer needed.  The code itself figures out which format version
    the input file is in. If executing a child process through
