@@ -456,10 +456,12 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
         auto& otherMother = pruned[otherMotherIdx];
         int otherDaughter1 = otherMother.daughter1();
         int otherDaughter2 = otherMother.daughter2();
-        if (otherDaughter1 > 0)
+        if (otherDaughter1 > 0) {
           addId(allDaughters, otherDaughter1);
-        if (otherDaughter2 > 0)
+        }
+        if (otherDaughter2 > 0) {
           addId(allDaughters, otherDaughter2);
+        }
       }
       // At this point, we have added all mothers of current
       // daughter, and all daughters of those mothers.
