@@ -215,8 +215,8 @@ void GeneratorHepMC::pruneEvent(Select select)
     event.remove_vertex(vtx);
   }
 
-  LOG(debug) << "HepMC events was pruned from " << oldSize 
-	     << " particles to " << event.particles().size()
+  LOG(debug) << "HepMC events was pruned from " << oldSize
+             << " particles to " << event.particles().size()
              << " particles and " << event.vertices().size()
              << " vertices";
 }

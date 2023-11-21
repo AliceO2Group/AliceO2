@@ -279,13 +279,13 @@ void GeneratorPythia8::investigateRelatives(Pythia8::Event& event,
     auto grandRelatives = firstLast(relative);
     int grandRelative1 = grandRelatives.first;
     int grandRelative2 = grandRelatives.second;
-    assert (grandRelative1 != invalid);
-    assert (grandRelative2 != -invalid);
+    assert(grandRelative1 != invalid);
+    assert(grandRelative2 != -invalid);
     if (grandRelative1 > 0) {
-      addId(newRelatives,grandRelative1);
+      addId(newRelatives, grandRelative1);
     }
     if (grandRelative2 > 0) {
-      addId(newRelatives,grandRelative2);
+      addId(newRelatives, grandRelative2);
     }
     LOG(debug) << ind << " "
                << what << " "
@@ -454,10 +454,12 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
         // We also need to take all the daughters of this shared
         // mother and reister those.
         auto& otherMother = pruned[otherMotherIdx];
-	int otherDaughter1 = otherMother.daughter1();
-	int otherDaughter2 = otherMother.daughter2();
-	if (otherDaughter1 > 0) addId(allDaughters,otherDaughter1);
-	if (otherDaughter2 > 0) addId(allDaughters,otherDaughter2);
+        int otherDaughter1 = otherMother.daughter1();
+        int otherDaughter2 = otherMother.daughter2();
+        if (otherDaughter1 > 0)
+          addId(allDaughters, otherDaughter1);
+        if (otherDaughter2 > 0)
+          addId(allDaughters, otherDaughter2);
       }
       // At this point, we have added all mothers of current
       // daughter, and all daughters of those mothers.
