@@ -124,7 +124,7 @@ class DCSProcessor
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSCurrents; ///< anode and drift currents
   std::unordered_map<DPID, float> mTRDDCSVoltages;                ///< anode and drift voltages
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSEnv;      ///< environment parameters (temperatures, pressures)
-  std::unordered_map<DPID, int> mTRDDCSRun;                       ///< run number and run type
+  std::unordered_map<DPID, int> mTRDDCSRun;                       ///< run number (run type ignored)
   // LB: new DPs for Fed and Cavern
   std::unordered_map<DPID, int> mTRDDCSFedChamberStatus;            ///< fed chamber status
   std::unordered_map<DPID, string> mTRDDCSFedCFGtag;                ///< fed config tag

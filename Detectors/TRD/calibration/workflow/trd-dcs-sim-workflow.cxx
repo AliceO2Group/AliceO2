@@ -45,7 +45,6 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"UXC2Humidity", 0, 100.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernAtmosPressure", 800, 1000.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_fed_runNo", 254, 255});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runType", 1, 3});
 
   return o2::framework::WorkflowSpec{o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "TRD")};
 }

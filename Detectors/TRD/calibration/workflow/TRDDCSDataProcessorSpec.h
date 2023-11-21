@@ -107,7 +107,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
       aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvTempCavern", "trd_aliEnvTempP2"});
       aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvPressure00", "trd_aliEnvPressure01", "trd_aliEnvPressure02"});
       aliasesFloat.insert(aliasesFloat.end(), {"UXC2Humidity", "CavernAtmosPressure", "trd_envTemp[00..539]"});
-      aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo", "trd_fed_runType"});
+      aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo"});
       aliasesInt.insert(aliasesInt.end(), {"trd_chamberStatus[00..539]"});
       aliasesString.insert(aliasesString.end(), {"trd_CFGtag[00..539]"});
 

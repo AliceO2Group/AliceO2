@@ -35,7 +35,7 @@ int makeTRDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   aliasesFloat.insert(aliasesFloat.end(), {"trd_hvAnodeImon[00..539]", "trd_hvAnodeUmon[00..539]", "trd_hvDriftImon[00..539]", "trd_hvDriftUmon[00..539]"});
   aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvTempCavern", "trd_aliEnvTempP2"});
   aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvPressure00", "trd_aliEnvPressure01", "trd_aliEnvPressure02"});
-  aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo", "trd_runType"});
+  aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo"});
 
   // New DPs
   aliasesFloat.insert(aliasesFloat.end(), {"UXC2Humidity", "CavernAtmosPressure", "trd_envTemp[00..539]"});
