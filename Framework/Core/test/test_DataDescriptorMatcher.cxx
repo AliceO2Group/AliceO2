@@ -669,3 +669,27 @@ TEST_CASE("DataQuery")
   REQUIRE(result5[0].metadata[2].name == "key3");
   REQUIRE(result5[0].metadata[2].defaultValue.get<std::string>() == "value3");
 }
+
+// Make sure that 10 and 1 subspect are matched differently
+
+TEST_CASE("MatchSubspec")
+{
+  DataHeader header0;
+  header0.dataOrigin = "EMC";
+  header0.dataDescription = "CELLSTRGR";
+  header0.subSpecification = 10;
+  VariableContext context;
+
+  DataDescriptorMatcher matcher{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"EMC"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"CELLSTRGR"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{1},
+        ConstantValueMatcher{true}))};
+
+  REQUIRE(matcher.match(header0, context) == false);
+}

@@ -48,7 +48,7 @@ std::string ChipPixelData::getErrorDetails(int pos) const
     std::string rbuf = ": 0x<";
     int nc = getNBytesInRawBuff();
     for (int i = 0; i < nc; i++) {
-      rbuf += fmt::format(i ? " {:02x}" : "{:02x}", (int)getRawErrBuff()[i]);
+      rbuf += fmt::format(fmt::runtime(i ? " {:02x}" : "{:02x}"), (int)getRawErrBuff()[i]);
     }
     rbuf += '>';
     return rbuf;

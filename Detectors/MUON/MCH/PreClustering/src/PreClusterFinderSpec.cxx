@@ -83,7 +83,7 @@ class PreClusterFinderTask
       LOG(info) << "deinitializing preclusterizer in: "
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
       mErrorMap.forEach([](Error error) {
-        LOGP(warning, error.asString());
+        LOGP(warning, "{}", error.asString());
       });
     };
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
@@ -117,7 +117,7 @@ class PreClusterFinderTask
       if (!isOK(error)) {
         if (error.nofOutOfBounds > 0) {
           // FIXME: replace this error log with a counters' message ?
-          LOGP(error, asString(error));
+          LOGP(error, "{}", asString(error));
           LOGP(error, "in a TF with {} rofs and {} digits", digitROFs.size(), digits.size());
           abort = true;
         }

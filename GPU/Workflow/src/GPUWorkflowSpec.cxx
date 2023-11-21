@@ -63,6 +63,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "CorrectionMapsHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCBase/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -588,21 +589,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     lastTFCounter = tinfo.tfCounter;
   }
 
-  if (mTPCSectorMask != 0xFFFFFFFFF) {
-    // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
-    for (unsigned int i = 0; i < NSectors; i++) {
-      if (!(mTPCSectorMask & (1ul << i))) {
-        if (ptrs.tpcZS) {
-          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-            tpcZS.slice[i].zsPtr[j] = nullptr;
-            tpcZS.slice[i].nZSPtr[j] = nullptr;
-            tpcZS.slice[i].count[j] = 0;
-          }
-        }
-      }
-    }
-  }
-
   o2::globaltracking::RecoContainer inputTracksTRD;
   decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &inputTracksTRD)) trdInputContainer;
   if (mSpecConfig.readTRDtracklets) {
@@ -631,6 +617,21 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     doInputDigitsMC = mSpecConfig.processMC;
   } else {
     ptrs.clustersNative = &inputsClustersDigits->clusterIndex;
+  }
+
+  if (mTPCSectorMask != 0xFFFFFFFFF) {
+    // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
+    for (unsigned int i = 0; i < NSectors; i++) {
+      if (!(mTPCSectorMask & (1ul << i))) {
+        if (ptrs.tpcZS) {
+          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+            tpcZS.slice[i].zsPtr[j] = nullptr;
+            tpcZS.slice[i].nZSPtr[j] = nullptr;
+            tpcZS.slice[i].count[j] = 0;
+          }
+        }
+      }
+    }
   }
 
   GPUTrackingInOutDigits tpcDigitsMap;
@@ -964,7 +965,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0, Lifetime::Timeframe}, 0u);
   }
   mTimer->Stop();
-  LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
+  LOG(info) << "GPU Reconstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
 
 void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, calibObjectStruct& oldCalibObjects)
@@ -1070,6 +1071,16 @@ Inputs GPURecoWorkflowSpec::inputs()
   }
   if (mSpecConfig.outputTracks) {
     // loading calibration objects from the CCDB
+    const auto mapSources = mSpecConfig.tpcDeadMapSources;
+    if (mapSources != 0) {
+      tpc::SourcesDeadMap sources((mapSources > -1) ? static_cast<tpc::SourcesDeadMap>(mapSources) : tpc::SourcesDeadMap::All);
+      if ((sources & tpc::SourcesDeadMap::IDCPadStatus) == tpc::SourcesDeadMap::IDCPadStatus) {
+        inputs.emplace_back("tpcidcpadflags", gDataOriginTPC, "IDCPADFLAGS", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalIDCPadStatusMapA)));
+      }
+      if ((sources & tpc::SourcesDeadMap::FEEConfig) == tpc::SourcesDeadMap::FEEConfig) {
+        inputs.emplace_back("tpcruninfo", gDataOriginTPC, "TPCRUNINFO", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ConfigRunInfo)));
+      }
+    }
     inputs.emplace_back("tpcgain", gDataOriginTPC, "PADGAINFULL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainFull)));
     inputs.emplace_back("tpcgainresidual", gDataOriginTPC, "PADGAINRESIDUAL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainResidual)));
     inputs.emplace_back("tpctimegain", gDataOriginTPC, "TIMEGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain)));
@@ -1077,7 +1088,8 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
     Options optsDummy;
-    mCalibObjects.mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi, mSpecConfig.lumiScaleMode); // option filled here is lost
+    o2::tpc::CorrectionMapsLoaderGloOpts gloOpts{mSpecConfig.lumiScaleType, mSpecConfig.lumiScaleMode};
+    mCalibObjects.mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, gloOpts); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -1219,7 +1231,7 @@ Outputs GPURecoWorkflowSpec::outputs()
 
 void GPURecoWorkflowSpec::deinitialize()
 {
-  TerminateThreads();
+  ExitPipeline();
   mQA.reset(nullptr);
   mDisplayFrontend.reset(nullptr);
   mGPUReco.reset(nullptr);

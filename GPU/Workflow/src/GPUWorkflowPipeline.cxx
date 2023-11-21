@@ -34,6 +34,7 @@
 
 #include <fairmq/Device.h>
 #include <fairmq/Channel.h>
+#include <fairmq/States.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -45,12 +46,13 @@ using namespace o2::gpu::gpurecoworkflow_internals;
 namespace o2::gpu
 {
 
+static const std::string GPURecoWorkflowSpec_FMQCallbackKey = "GPURecoWorkflowSpec_FMQCallbackKey";
+
 struct pipelinePrepareMessage {
   static constexpr size_t MAGIC_WORD = 0X8473957353424134;
   size_t magicWord = MAGIC_WORD;
   DataProcessingHeader::StartTime timeSliceId;
   GPUSettingsTF tfSettings;
-  fair::mq::RegionInfo regionInfo;
   size_t pointerCounts[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   size_t pointersTotal;
   bool flagEndOfStream;
@@ -60,6 +62,7 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
 {
   if (mSpecConfig.enableDoublePipeline == 1) {
     mPipeline->fmqDevice = ic.services().get<RawDeviceService>().device();
+    mPipeline->fmqDevice->SubscribeToStateChange(GPURecoWorkflowSpec_FMQCallbackKey, [this](fair::mq::State s) { receiveFMQStateCallback(s); });
     mPolicyOrder = [this](o2::framework::DataProcessingHeader::StartTime timeslice) {
       std::unique_lock lk(mPipeline->completionPolicyMutex);
       mPipeline->completionPolicyNotify.wait(lk, [pipeline = mPipeline.get()] { return pipeline->pipelineSenderTerminating || !pipeline->completionPolicyQueue.empty(); });
@@ -78,7 +81,7 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
 
 void GPURecoWorkflowSpec::RunWorkerThread(int id)
 {
-  LOG(info) << "Running pipeline worker " << id;
+  LOG(debug) << "Running pipeline worker " << id;
   auto& workerContext = mPipeline->workers[id];
   while (!mPipeline->shouldTerminate) {
     GPURecoWorkflow_QueueObject* context;
@@ -153,6 +156,9 @@ void GPURecoWorkflowSpec::finalizeInputPipelinedJob(GPUTrackingInOutPointers* pt
 
 int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<GPURecoWorkflow_QueueObject>& context)
 {
+  mPipeline->runStarted = true;
+  mPipeline->stateNotify.notify_all();
+
   auto* device = pc.services().get<RawDeviceService>().device();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   if (mSpecConfig.enableDoublePipeline == 1) {
@@ -184,7 +190,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
       }
     }
 
-    size_t prepareBufferSize = sizeof(pipelinePrepareMessage) + ptrsTotal * sizeof(size_t) * 2;
+    size_t prepareBufferSize = sizeof(pipelinePrepareMessage) + ptrsTotal * sizeof(size_t) * 4;
     std::vector<size_t> messageBuffer(prepareBufferSize / sizeof(size_t));
     pipelinePrepareMessage& preMessage = *(pipelinePrepareMessage*)messageBuffer.data();
     preMessage.magicWord = preMessage.MAGIC_WORD;
@@ -193,28 +199,31 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
     preMessage.flagEndOfStream = false;
     memcpy((void*)&preMessage.tfSettings, (const void*)ptrs.settingsTF, sizeof(preMessage.tfSettings));
 
-    if (ptrsTotal) {
-      bool regionFound = false;
-      for (unsigned int i = 0; i < mRegionInfos.size(); i++) {
-        if ((size_t)firstPtr >= (size_t)mRegionInfos[i].ptr && (size_t)firstPtr < (size_t)mRegionInfos[i].ptr + mRegionInfos[i].size) {
-          preMessage.regionInfo = mRegionInfos[i];
-          regionFound = true;
-          break;
-        }
-      }
-      if (!regionFound) {
-        LOG(fatal) << "Found a TPC ZS pointer outside of shared memory";
-      }
-    }
-
     size_t* ptrBuffer = messageBuffer.data() + sizeof(preMessage) / sizeof(size_t);
     size_t ptrsCopied = 0;
+    int lastRegion = -1;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         preMessage.pointerCounts[i][j] = ptrs.tpcZS->slice[i].count[j];
         for (unsigned int k = 0; k < ptrs.tpcZS->slice[i].count[j]; k++) {
-          ptrBuffer[ptrsCopied + k] = (size_t)ptrs.tpcZS->slice[i].zsPtr[j][k] - (size_t)preMessage.regionInfo.ptr;
+          const void* curPtr = ptrs.tpcZS->slice[i].zsPtr[j][k];
+          bool regionFound = lastRegion != -1 && (size_t)curPtr >= (size_t)mRegionInfos[lastRegion].ptr && (size_t)curPtr < (size_t)mRegionInfos[lastRegion].ptr + mRegionInfos[lastRegion].size;
+          if (!regionFound) {
+            for (unsigned int l = 0; l < mRegionInfos.size(); l++) {
+              if ((size_t)curPtr >= (size_t)mRegionInfos[l].ptr && (size_t)curPtr < (size_t)mRegionInfos[l].ptr + mRegionInfos[l].size) {
+                lastRegion = l;
+                regionFound = true;
+                break;
+              }
+            }
+          }
+          if (!regionFound) {
+            LOG(fatal) << "Found a TPC ZS pointer outside of shared memory";
+          }
+          ptrBuffer[ptrsCopied + k] = (size_t)curPtr - (size_t)mRegionInfos[lastRegion].ptr;
           ptrBuffer[ptrsTotal + ptrsCopied + k] = ptrs.tpcZS->slice[i].nZSPtr[j][k];
+          ptrBuffer[2 * ptrsTotal + ptrsCopied + k] = mRegionInfos[lastRegion].managed;
+          ptrBuffer[3 * ptrsTotal + ptrsCopied + k] = mRegionInfos[lastRegion].id;
         }
         ptrsCopied += ptrs.tpcZS->slice[i].count[j];
       }
@@ -233,7 +242,8 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
 {
   if (mSpecConfig.enableDoublePipeline == 1) {
-    TerminateThreads(); // TODO: Apparently breaks START / STOP / START
+    mPipeline->endOfStreamDplReceived = true;
+    mPipeline->stateNotify.notify_all();
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
     auto* device = ec.services().get<RawDeviceService>().device();
@@ -247,21 +257,47 @@ void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
   }
 }
 
+void GPURecoWorkflowSpec::receiveFMQStateCallback(fair::mq::State newState)
+{
+  {
+    std::lock_guard lk(mPipeline->stateMutex);
+    if (mPipeline->fmqState != fair::mq::State::Running && newState == fair::mq::State::Running) {
+      mPipeline->endOfStreamAsyncReceived = false;
+      mPipeline->endOfStreamDplReceived = false;
+    }
+    mPipeline->fmqPreviousState = mPipeline->fmqState;
+    mPipeline->fmqState = newState;
+    if (newState == fair::mq::State::Exiting) {
+      mPipeline->fmqDevice->UnsubscribeFromStateChange(GPURecoWorkflowSpec_FMQCallbackKey);
+    }
+  }
+  mPipeline->stateNotify.notify_all();
+}
+
 void GPURecoWorkflowSpec::RunReceiveThread()
 {
   auto* device = mPipeline->fmqDevice;
-  while (device->GetCurrentState() != fair::mq::State::Running) {
-    usleep(300000);
-  }
   while (!mPipeline->shouldTerminate) {
     bool received = false;
     int recvTimeot = 1000;
     fair::mq::MessagePtr msg;
-    LOG(info) << "Waiting for out of band message";
+    LOG(debug) << "Waiting for out of band message";
+    auto shouldReceive = [this]() { return ((mPipeline->fmqState == fair::mq::State::Running || (mPipeline->fmqState == fair::mq::State::Ready && mPipeline->fmqPreviousState == fair::mq::State::Running)) && !mPipeline->endOfStreamAsyncReceived); };
     do {
+      {
+        std::unique_lock lk(mPipeline->stateMutex);
+        mPipeline->stateNotify.wait(lk, [this, shouldReceive]() { return shouldReceive() || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
+      }
+      if (mPipeline->shouldTerminate) {
+        break;
+      }
       try {
-        msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
         do {
+          std::unique_lock lk(mPipeline->stateMutex);
+          if (!shouldReceive()) {
+            break;
+          }
+          msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
           received = device->Receive(msg, "gpu-prepare-channel", 0, recvTimeot) > 0;
         } while (!received && !mPipeline->shouldTerminate);
       } catch (...) {
@@ -279,34 +315,57 @@ void GPURecoWorkflowSpec::RunReceiveThread()
       LOG(fatal) << "Prepare message corrupted, invalid magic word";
     }
     if (m->flagEndOfStream) {
-      LOG(info) << "Received end-of-stream from out-of-band channel, terminating receive thread"; // TODO: Breaks START / STOP / START
-      break;
+      LOG(info) << "Received end-of-stream from out-of-band channel";
+      std::lock_guard lk(mPipeline->stateMutex);
+      mPipeline->endOfStreamAsyncReceived = true;
+      mPipeline->mNTFReceived = 0;
+      mPipeline->runStarted = false;
+      continue;
+    }
+
+    {
+      std::lock_guard lk(mPipeline->completionPolicyMutex);
+      mPipeline->completionPolicyQueue.emplace(m->timeSliceId);
+    }
+    mPipeline->completionPolicyNotify.notify_one();
+
+    {
+      std::unique_lock lk(mPipeline->stateMutex);
+      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamAsyncReceived) || mPipeline->shouldTerminate; });
+      if (!mPipeline->runStarted) {
+        continue;
+      }
     }
 
     auto context = std::make_unique<GPURecoWorkflow_QueueObject>();
     context->timeSliceId = m->timeSliceId;
     context->tfSettings = m->tfSettings;
 
-    size_t regionOffset = 0;
-    if (m->pointersTotal) {
-      bool regionFound = false;
-      for (unsigned int i = 0; i < mRegionInfos.size(); i++) {
-        if (mRegionInfos[i].managed == m->regionInfo.managed && mRegionInfos[i].id == m->regionInfo.id) {
-          regionFound = true;
-          regionOffset = (size_t)mRegionInfos[i].ptr;
-          break;
-        }
-      }
-    }
     size_t ptrsCopied = 0;
     size_t* ptrBuffer = (size_t*)msg->GetData() + sizeof(pipelinePrepareMessage) / sizeof(size_t);
     context->tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
     context->tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
+    int lastRegion = -1;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         context->tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
         for (unsigned int k = 0; k < context->tpcZS.slice[i].count[j]; k++) {
-          context->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + regionOffset);
+          bool regionManaged = ptrBuffer[2 * m->pointersTotal + ptrsCopied + k];
+          size_t regionId = ptrBuffer[3 * m->pointersTotal + ptrsCopied + k];
+          bool regionFound = lastRegion != -1 && mRegionInfos[lastRegion].managed == regionManaged && mRegionInfos[lastRegion].id == regionId;
+          if (!regionFound) {
+            for (unsigned int l = 0; l < mRegionInfos.size(); l++) {
+              if (mRegionInfos[l].managed == regionManaged && mRegionInfos[l].id == regionId) {
+                lastRegion = l;
+                regionFound = true;
+                break;
+              }
+            }
+          }
+          if (!regionFound) {
+            LOG(fatal) << "Received ZS Ptr for SHM region (managed " << (int)regionManaged << ", id " << regionId << "), which was not registered for us";
+          }
+          context->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + (size_t)mRegionInfos[lastRegion].ptr);
           context->tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
         }
         context->tpcZS.slice[i].zsPtr[j] = context->tpcZSmeta.Pointers[0][0].data() + ptrsCopied;
@@ -317,39 +376,35 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     context->ptrs.tpcZS = &context->tpcZS;
     context->ptrs.settingsTF = &context->tfSettings;
     context->mTFId = mPipeline->mNTFReceived;
-    if (mPipeline->mNTFReceived++ >= mPipeline->workers.size()) { // Do not inject the first 2 TF, since we need a first round of calib updates from DPL before starting
+    if (mPipeline->mNTFReceived++ >= mPipeline->workers.size()) { // Do not inject the first workers.size() TFs, since we need a first round of calib updates from DPL before starting
       enqueuePipelinedJob(&context->ptrs, nullptr, context.get(), false);
     }
-    {
-      std::lock_guard lk(mPipeline->completionPolicyMutex);
-      mPipeline->completionPolicyQueue.emplace(m->timeSliceId);
-    }
-    mPipeline->completionPolicyNotify.notify_one();
     {
       std::lock_guard lk(mPipeline->queueMutex);
       mPipeline->pipelineQueue.emplace(std::move(context));
     }
     mPipeline->queueNotify.notify_one();
   }
-  {
-    std::lock_guard lk(mPipeline->completionPolicyMutex);
-    mPipeline->pipelineSenderTerminating = true;
-  }
+  mPipeline->pipelineSenderTerminating = true;
   mPipeline->completionPolicyNotify.notify_one();
 }
 
-void GPURecoWorkflowSpec::TerminateThreads()
+void GPURecoWorkflowSpec::ExitPipeline()
 {
-  mPipeline->shouldTerminate = true;
-  for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
-    mPipeline->workers[i].inputQueueNotify.notify_one();
-  }
-  if (mPipeline->receiveThread.joinable()) {
-    mPipeline->receiveThread.join();
-  }
-  for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
-    if (mPipeline->workers[i].thread.joinable()) {
-      mPipeline->workers[i].thread.join();
+  if (mSpecConfig.enableDoublePipeline == 1 && mPipeline->fmqDevice) {
+    mPipeline->fmqDevice = nullptr;
+    mPipeline->shouldTerminate = true;
+    mPipeline->stateNotify.notify_all();
+    for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+      mPipeline->workers[i].inputQueueNotify.notify_one();
+    }
+    if (mPipeline->receiveThread.joinable()) {
+      mPipeline->receiveThread.join();
+    }
+    for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+      if (mPipeline->workers[i].thread.joinable()) {
+        mPipeline->workers[i].thread.join();
+      }
     }
   }
 }

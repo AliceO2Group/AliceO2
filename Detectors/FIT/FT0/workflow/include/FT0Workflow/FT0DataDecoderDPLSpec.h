@@ -110,7 +110,7 @@ framework::DataProcessorSpec getFT0DataDecoderDPLSpec(bool askSTFDist)
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
-  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{"FT0", "RAWDATA"}, Lifetime::Optional}};
+  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{"FT0", "RAWDATA"}, Lifetime::Timeframe}};
   if (askSTFDist) {
     inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }

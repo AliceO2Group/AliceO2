@@ -8,12 +8,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
+#include <iostream>
 #include <sstream>
 #include <string>
 #include "EMCALReconstruction/RawReaderMemory.h"
-#include "EMCALReconstruction/RawDecodingError.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "Headers/RAWDataHeader.h"
+#include "Headers/DAQID.h"
 
 using namespace o2::emcal;
 
@@ -36,6 +37,16 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
   if (headerversion < RDHDecoder::getVersion<o2::header::RDHLowest>() || headerversion > RDHDecoder::getVersion<o2::header::RDHHighest>()) {
     throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
   }
+  if (!RDHDecoder::checkRDH(payloadwords, false, true)) {
+    // Header size != to 64 and 0 in reserved words indicate that the header is a fake header
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
+  }
+  if (RDHDecoder::getVersion(payloadwords) >= 6) {
+    // If header version is >= 6 check that the source ID is EMCAL
+    if (RDHDecoder::getSourceID(payloadwords) != o2::header::DAQID::EMC) {
+      throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
+    }
+  }
   return {*reinterpret_cast<const o2::header::RDHAny*>(payloadwords)};
 }
 
@@ -51,6 +62,7 @@ void RawReaderMemory::next()
 {
   mRawPayload.reset();
   mCurrentTrailer.reset();
+  mMinorErrors.clear();
   bool isDataTerminated = false;
   do {
     nextPage(false);
@@ -117,9 +129,31 @@ void RawReaderMemory::nextPage(bool doResetPayload)
   }
   if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Payload incomplete
+    // Set to offset to next or buffer size, whatever is smaller
+    if (mCurrentPosition + RDHDecoder::getOffsetToNext(mRawHeader) < mRawMemoryBuffer.size()) {
+      mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader);
+      if (mCurrentPosition + 64 < mRawMemoryBuffer.size()) {
+        // check if the page continues with a RDH
+        // if next page is not a header decodeRawHeader will throw a RawDecodingError
+        auto nextheader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+        if (RDHDecoder::getVersion(nextheader) != RDHDecoder::getVersion(mRawHeader)) {
+          // Next header has different header version - clear indication that it is a fake header
+          throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
+        }
+      }
+    } else {
+      mCurrentPosition = mRawMemoryBuffer.size();
+    }
+    // RDHDecoder::printRDH(mRawHeader);
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING, mCurrentFEE);
   } else if (mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Start position of the payload is outside the payload range
+    // Set to offset to next or buffer size, whatever is smaller
+    if (mCurrentPosition + RDHDecoder::getOffsetToNext(mRawHeader) < mRawMemoryBuffer.size()) {
+      mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader);
+    } else {
+      mCurrentPosition = mRawMemoryBuffer.size();
+    }
     throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_START_INVALID, mCurrentFEE);
   } else {
     mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader), RDHDecoder::getMemorySize(mRawHeader) - RDHDecoder::getHeaderSize(mRawHeader)));
@@ -139,7 +173,7 @@ void RawReaderMemory::nextPage(bool doResetPayload)
       // The trailer is only decoded if the DDL is in the range of SRU DDLs. STU pages are propagated
       // 1-1 without trailer parsing
       auto lastword = *(mRawBuffer.getDataWords().rbegin());
-      if (lastword >> 30 == 3) {
+      if (RCUTrailer::checkLastTrailerWord(lastword)) {
         // lastword is a trailer word
         // decode trailer and chop
         try {
@@ -150,7 +184,17 @@ void RawReaderMemory::nextPage(bool doResetPayload)
             mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
           }
           payloadWithoutTrailer = gsl::span<const uint32_t>(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
+          if (trailer.getTrailerWordCorruptions()) {
+            mMinorErrors.emplace_back(RawDecodingError::ErrorType_t::TRAILER_INCOMPLETE, mCurrentFEE);
+          }
         } catch (RCUTrailer::Error& e) {
+          // We must forward the position in such cases in order to not end up in an infinity loop
+          if (mCurrentPosition + RDHDecoder::getOffsetToNext(mRawHeader) < mRawMemoryBuffer.size()) {
+            mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader);
+          } else {
+            mCurrentPosition = mRawMemoryBuffer.size();
+          }
+          // Page is not consistent - must be skipped
           throw RawDecodingError(RawDecodingError::ErrorType_t::TRAILER_DECODING, mCurrentFEE);
         }
       } else {

@@ -144,6 +144,10 @@ int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
         if (waitMessage) {
           LOG(important) << "Sufficient SHM memory free (" << freeSHM << " >= " << minSHM << "), continuing to publish";
         }
+        static bool showReport = getenv("DPL_REPORT_PROCESSING") && atoi(getenv("DPL_REPORT_PROCESSING"));
+        if (showReport) {
+          LOG(info) << "Free SHM Report: " << freeSHM;
+        }
         break;
       }
       if (waitMessage == 0) {

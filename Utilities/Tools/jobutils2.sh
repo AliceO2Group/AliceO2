@@ -326,7 +326,6 @@ taskwrapper() {
   if [ ! "${RC}" ]; then
     RC=1
   fi
-  RC_ACUM=$((RC_ACUM+RC))
   if [ "${RC}" -eq "0" ]; then
     if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then
       # if return code 0 we mark this task as done

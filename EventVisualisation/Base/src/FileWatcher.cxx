@@ -143,8 +143,8 @@ int FileWatcher::getPos() const
 bool FileWatcher::refresh()
 {
   string previous = this->currentItem();
-  LOG(info) << "previous:" << previous;
-  LOG(info) << "currentFile:" << this->mCurrentFile;
+  LOGF(info, "previous:", previous);
+  LOGF(info, "currentFile:", this->mCurrentFile);
 
   this->mFiles = DirectoryLoader::load(this->mDataFolders, "_", this->mExt); // already sorted according part staring with marker
   if (this->mCurrentFile != mEndGuard) {
@@ -165,17 +165,17 @@ bool FileWatcher::refresh()
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
 
-  LOG(info) << "this->mFiles.size() = " << this->mFiles.size();
-  LOG(info) << "this->mCurrentFile = " << this->mCurrentFile;
-  LOG(info) << "current:" << this->currentItem();
+  LOGF(info, "this->mFiles.size() = ", this->mFiles.size());
+  LOGF(info, "this->mCurrentFile = ", this->mCurrentFile);
+  LOGF(info, "current:", this->currentItem());
   return previous != this->currentItem();
 }
 
 void FileWatcher::setCurrentItem(int no)
 {
   this->mCurrentFile = this->mFiles[no];
-  LOG(info) << "this->setCurrentItem(" << no << ")";
-  LOG(info) << "this->mCurrentFile = " << this->mCurrentFile;
+  LOGF(info, "this->setCurrentItem(", no, ")");
+  LOGF(info, "this->mCurrentFile = ", this->mCurrentFile);
 }
 
 std::string FileWatcher::currentFilePath() const

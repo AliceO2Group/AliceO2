@@ -90,6 +90,9 @@ void signal_callback(uv_signal_t* handle, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
   auto* state = (DeviceState*)handle->data;
+  if (!state) {
+    return;
+  }
   state->loopReason |= DeviceState::SIGNAL_ARRIVED;
   state->loopReason |= DeviceState::DATA_INCOMING;
 }
@@ -534,6 +537,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
       .name = processor.name,
       .id = processor.maxInputTimeslices == 1 ? processor.name : processor.name + "_t" + std::to_string(edge.producerTimeIndex),
       .channelPrefix = channelPrefix,
+      .inputChannels = {},
       .options = processor.options,
       .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
       .algorithm = processor.algorithm,

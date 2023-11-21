@@ -23,7 +23,7 @@
 #include <TH2F.h>
 
 using namespace o2::vertexing;
-
+using DetID = o2::detectors::DetID;
 constexpr float PVertexer::kAlmost0F;
 constexpr double PVertexer::kAlmost0D;
 constexpr float PVertexer::kHugeF;
@@ -87,7 +87,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
     applInteractionValidation(verticesLoc, vtTimeSortID, intCand, mPVParams->minNContributorsForIRcutIni);
   }
 
-  if (mPVParams->minITSOnlyFraction > 0.f || mPVParams->maxITSOnlyFraction < 1.0f) {
+  if ((mPVParams->minITSOnlyFraction > 0.f || mPVParams->maxITSOnlyFraction < 1.0f) && !mITSOnly) {
     applITSOnlyFractionCut(verticesLoc, vtTimeSortID, v2tRefsLoc, trackIDs);
   }
 
@@ -1367,9 +1367,15 @@ void PVertexer::setTrackSources(GTrackID::mask_t s)
 {
   mTrackSrc = s;
   // fill vector of sources to consider
+  DetID::mask_t ITSTPC = DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC);
+  int nGloSrc = 0;
   for (int is = 0; is < GTrackID::NSources; is++) {
     if (mTrackSrc[is]) {
       mSrcVec.push_back(is);
+      if ((GTrackID::getSourceDetectorsMask(is) & ITSTPC) == ITSTPC) {
+        nGloSrc++;
+      }
     }
   }
+  mITSOnly = nGloSrc == 0;
 }

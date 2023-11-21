@@ -37,11 +37,8 @@ class Symbol
 
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   constexpr Symbol() noexcept {}; // NOLINT
-  constexpr Symbol(value_type frequency, value_type cumulative, size_t symbolTablePrecision = 0)
-    : mSymbol{frequency, cumulative}
-  {
-    (void)symbolTablePrecision; // silence compiler warnings
-  };
+  constexpr Symbol(value_type frequency, value_type cumulative, [[maybe_unused]] size_t symbolTablePrecision = 0)
+    : mSymbol{frequency, cumulative} {};
   [[nodiscard]] inline constexpr value_type getFrequency() const noexcept { return mSymbol[0]; };
   [[nodiscard]] inline constexpr value_type getCumulative() const noexcept { return mSymbol[1]; };
   [[nodiscard]] inline constexpr const value_type* data() const noexcept { return mSymbol.data(); };

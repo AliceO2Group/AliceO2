@@ -36,6 +36,8 @@ void ITSDCSParser::init(InitContext& ic)
 
   this->mCcdbUrl = ic.options().get<std::string>("ccdb-url");
 
+  this->mCcdbUrlRct = ic.options().get<std::string>("ccdb-url-rct");
+
   this->mVerboseOutput = ic.options().get<bool>("verbose");
 
   return;
@@ -469,7 +471,7 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   long tstart = 0, tend = 0;
   // retireve run start/stop times from CCDB
   o2::ccdb::CcdbApi api;
-  api.init("http://alice-ccdb.cern.ch");
+  api.init(mCcdbUrlRct);
   // Initialize empty metadata object for search
   std::map<std::string, std::string> metadata;
   std::map<std::string, std::string> headers = api.retrieveHeaders(
@@ -582,7 +584,9 @@ void ITSDCSParser::appendDeadChipObj()
 
     unsigned short int globchipID = getGlobalChipID(hicPos, hS, chipInMod);
     this->mDeadMap.maskFullChip(globchipID);
-    LOG(info) << "Masking dead chip " << globchipID;
+    if (mVerboseOutput) {
+      LOG(info) << "Masking dead chip " << globchipID;
+    }
   }
 }
 
@@ -660,7 +664,8 @@ DataProcessorSpec getITSDCSParserSpec()
     AlgorithmSpec{adaptFromTask<o2::its::ITSDCSParser>()},
     Options{
       {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
-      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}}}};
+      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}},
+      {"ccdb-url-rct", VariantType::String, "", {"CCDB url from where to get RCT object for headers, default is o2-ccdb.internal. Use http://alice-ccdb.cern.ch for local tests"}}}};
 }
 } // namespace its
 } // namespace o2

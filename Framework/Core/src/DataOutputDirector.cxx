@@ -584,7 +584,7 @@ void DataOutputDirector::printOut()
 
   LOGP(info, "  File name bases      :");
   for (auto const& fb : mfilenameBases) {
-    LOGP(info, fb);
+    LOGP(info, "{}", fb);
   }
 }
 

@@ -125,7 +125,7 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
 
           if (mDumpFFT) {
             LOGP(info, "dumping FT to file");
-            mIDCFourierTransform[side].dumpToFile(fmt::format("FourierAGG_{:02}_side{}.root", processing_helpers::getCurrentTF(pc), side).data());
+            mIDCFourierTransform[side].dumpToFile(fmt::format("FourierAGG_{:02}_side{}.root", processing_helpers::getCurrentTF(pc), (int)side).data());
           }
 
           if (mSendOutDebug) {

@@ -159,7 +159,7 @@ o2::framework::DataProcessorSpec getSACProcessorSpec()
   using device = o2::tpc::SACProcessorDevice;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back(InputSpec{"tpcraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
+  inputs.emplace_back(InputSpec{"tpcraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

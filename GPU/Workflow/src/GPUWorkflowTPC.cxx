@@ -58,6 +58,8 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "CorrectionMapsHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCCalibration/IDCContainer.h"
+#include "TPCBase/DeadChannelMapCreator.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -98,6 +100,11 @@ namespace o2::gpu
 
 void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
 {
+  mTPCDeadChannelMapCreator.reset(new o2::tpc::DeadChannelMapCreator());
+  const auto deadMapSource = (mSpecConfig.tpcDeadMapSources > -1) ? static_cast<tpc::SourcesDeadMap>(mSpecConfig.tpcDeadMapSources) : tpc::SourcesDeadMap::All;
+  mTPCDeadChannelMapCreator->init();
+  mTPCDeadChannelMapCreator->setSource(deadMapSource);
+
   mCalibObjects.mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
   mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
@@ -262,6 +269,21 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     copyCalibsToBuffer();
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "IDCPADFLAGS", 0)) {
+    copyCalibsToBuffer();
+    const auto* padFlags = static_cast<o2::tpc::CalDet<o2::tpc::PadFlags>*>(obj);
+    mTPCDeadChannelMapCreator->setDeadChannelMapIDCPadStatus(*padFlags);
+    mTPCDeadChannelMapCreator->finalizeDeadChannelMap();
+    mdEdxCalibContainerBufferNew.get()->setDeadChannelMap(mTPCDeadChannelMapCreator->getDeadChannelMap());
+    LOGP(info, "Updating dead channel map with IDC pad flags: {} / {} dead pads from pad flags / total",
+         mTPCDeadChannelMapCreator->getDeadChannelMapIDC().getSum<int>(), mTPCDeadChannelMapCreator->getDeadChannelMap().getSum<int>());
+  } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "TPCRUNINFO", 0)) {
+    copyCalibsToBuffer();
+    mTPCDeadChannelMapCreator->loadFEEConfigViaRunInfoTS(mCreationForCalib);
+    mTPCDeadChannelMapCreator->finalizeDeadChannelMap();
+    mdEdxCalibContainerBufferNew.get()->setDeadChannelMap(mTPCDeadChannelMapCreator->getDeadChannelMap());
+    LOGP(info, "Updating dead channel map with the FEE info loaded via TPCRUNINFO for creation time {}: {} / {} dead pads from FEE info / total",
+         mCreationForCalib, mTPCDeadChannelMapCreator->getDeadChannelMapFEE().getSum<int>(), mTPCDeadChannelMapCreator->getDeadChannelMap().getSum<int>());
   } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
   } else if (mCalibObjects.mFastTransformHelper->accountCCDBInputs(matcher, obj)) {
   }
@@ -271,6 +293,7 @@ template <>
 bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingContext& pc, GPUCalibObjectsConst& newCalibObjects, calibObjectStruct& oldCalibObjects)
 {
   // update calibrations for clustering and tracking
+  mCreationForCalib = pc.services().get<o2::framework::TimingInfo>().creation;
   bool mustUpdate = false;
   if ((mSpecConfig.outputTracks || mSpecConfig.caClusterer) && !mConfParam->disableCalibUpdates) {
     const o2::tpc::CalibdEdxContainer* dEdxCalibContainer = mCalibObjects.mdEdxCalibContainer.get();
@@ -285,6 +308,14 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
       // update the calibration objects in case they changed in the CCDB
       if (dEdxCalibContainer->isCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap)) {
         pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcthreshold");
+      }
+
+      if (mTPCDeadChannelMapCreator->useSource(tpc::SourcesDeadMap::IDCPadStatus)) {
+        pc.inputs().get<o2::tpc::CalDet<tpc::PadFlags>*>("tpcidcpadflags");
+      }
+
+      if (mTPCDeadChannelMapCreator->useSource(tpc::SourcesDeadMap::FEEConfig)) {
+        pc.inputs().get<char*>("tpcruninfo");
       }
 
       if (dEdxCalibContainer->isCorrectionCCDB(o2::tpc::CalibsdEdx::CalResidualGainMap)) {

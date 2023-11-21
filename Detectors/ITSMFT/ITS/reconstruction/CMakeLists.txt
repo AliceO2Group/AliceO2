@@ -9,12 +9,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(
-  ITSReconstruction
-  SOURCES src/ClustererTask.cxx src/CookedTracker.cxx src/CookedConfigParam.cxx
-          src/RecoGeomHelper.cxx src/FastMultEstConfig.cxx src/FastMultEst.cxx
-  PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTReconstruction O2::DataFormatsITS
-                        O2::CommonUtils)
+o2_add_library(ITSReconstruction
+        SOURCES src/ClustererTask.cxx
+                src/CookedTracker.cxx
+                src/CookedConfigParam.cxx
+                src/RecoGeomHelper.cxx
+                src/FastMultEstConfig.cxx
+                src/FastMultEst.cxx
+        PUBLIC_LINK_LIBRARIES O2::ITSBase
+                              O2::ITSMFTReconstruction
+                              O2::DataFormatsITS
+                              O2::CommonUtils)
 
 o2_target_root_dictionary(
   ITSReconstruction

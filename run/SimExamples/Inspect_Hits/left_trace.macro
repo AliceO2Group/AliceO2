@@ -1,54 +1,54 @@
 bool
-leftTrace_golden(o2::MCTrack& t)
+leftTrace_golden(o2::MCTrack& t, std::vector<int> const& bitLUT)
 {
   bool trace = false;
-  trace |= t.leftTrace(o2::detectors::DetID::ITS);
-  trace |= t.leftTrace(o2::detectors::DetID::TPC);
-  trace |= t.leftTrace(o2::detectors::DetID::TRD);
-  trace |= t.leftTrace(o2::detectors::DetID::TOF);
+  trace |= t.leftTrace(o2::detectors::DetID::ITS, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::TPC, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::TRD, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::TOF, bitLUT);
   return trace; 
 }
 
 bool
-leftTrace_barrel(o2::MCTrack& t)
+leftTrace_barrel(o2::MCTrack& t, std::vector<int> const& bitLUT)
 {
   bool trace = false;
-  trace |= t.leftTrace(o2::detectors::DetID::ITS);
-  trace |= t.leftTrace(o2::detectors::DetID::TPC);
-  trace |= t.leftTrace(o2::detectors::DetID::TRD);
-  trace |= t.leftTrace(o2::detectors::DetID::TOF);
-  trace |= t.leftTrace(o2::detectors::DetID::HMP);
-  trace |= t.leftTrace(o2::detectors::DetID::EMC);
-  trace |= t.leftTrace(o2::detectors::DetID::PHS);
-  trace |= t.leftTrace(o2::detectors::DetID::FV0);
-  trace |= t.leftTrace(o2::detectors::DetID::FT0);
-  return trace; 
+  trace |= t.leftTrace(o2::detectors::DetID::ITS, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::TPC, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::TRD, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::TOF, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::HMP, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::EMC, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::PHS, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::FV0, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::FT0, bitLUT);
+  return trace;
 }
 
 bool
-leftTrace_muon(o2::MCTrack& t)
+leftTrace_muon(o2::MCTrack& t, std::vector<int> const& bitLUT)
 {
   bool trace = false;
-  trace |= t.leftTrace(o2::detectors::DetID::ITS);
-  trace |= t.leftTrace(o2::detectors::DetID::FV0);
-  trace |= t.leftTrace(o2::detectors::DetID::FT0);
-  trace |= t.leftTrace(o2::detectors::DetID::MFT);
-  trace |= t.leftTrace(o2::detectors::DetID::MCH);
-  trace |= t.leftTrace(o2::detectors::DetID::MID);
-  return trace; 
+  trace |= t.leftTrace(o2::detectors::DetID::ITS, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::FV0, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::FT0, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::MFT, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::MCH, bitLUT);
+  trace |= t.leftTrace(o2::detectors::DetID::MID, bitLUT);
+  return trace;
 }
 
 bool
-leftTrace_any(o2::MCTrack& t)
+leftTrace_any(o2::MCTrack& t, std::vector<int> const& bitLUT)
 {
-  return leftTrace_barrel(t) || leftTrace_muon(t);
+  return leftTrace_barrel(t, bitLUT) || leftTrace_muon(t, bitLUT);
 }
 
 
-std::function<bool(o2::MCTrack&)> leftTrace_selected = leftTrace_barrel;
+std::function<bool(o2::MCTrack&, std::vector<int> const&)> leftTrace_selected = leftTrace_barrel;
 
 /*
-std::map<std::string, std::function<bool(o2::MCTrack&)> leftTrace = {
+std::map<std::string, std::function<bool(o2::MCTrack&, std::vector<int> const&)> leftTrace = {
 								      {"golden", leftTrace_golden},
 								      {"barrel", leftTrace_barrel},
 								      {"muon"  , leftTrace_muon}  ,
@@ -57,8 +57,8 @@ std::map<std::string, std::function<bool(o2::MCTrack&)> leftTrace = {
 */
 
 bool
-leftTrace(o2::MCTrack& t, vector<o2::MCTrack>* tracks) {
-  if (leftTrace_selected(t)) return true; // this track has left trace in requested detectors
+leftTrace(o2::MCTrack& t, vector<o2::MCTrack>* tracks, std::vector<int> const& bitLUT) {
+  if (leftTrace_selected(t, bitLUT)) return true; // this track has left trace in requested detectors
   //  if (leftTrace_barrel(t)) return true; // this track has left trace in requested detectors
   // check if any of the daughters left trace
   auto id1 = t.getFirstDaughterTrackId();
@@ -67,7 +67,7 @@ leftTrace(o2::MCTrack& t, vector<o2::MCTrack>* tracks) {
   bool trace = false;
   for (int id = id1; id <= id2; ++id) {
     auto d = tracks->at(id);
-    trace |= leftTrace(d, tracks); // at least one daughter has left trace
+    trace |= leftTrace(d, tracks, bitLUT); // at least one daughter has left trace
   }
   return trace;
 }

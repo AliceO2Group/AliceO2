@@ -56,9 +56,25 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto chargeNonBending = charge / chargeCorr;
 
   // local position of the charge distribution
-  math_utils::Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
+  auto exitPoint = hit.exitPoint();
+  auto entrancePoint = hit.entrancePoint();
+  math_utils::Point3D<float> lexit{};
+  math_utils::Point3D<float> lentrance{};
+  mTransformation.MasterToLocal(exitPoint, lexit);
+  mTransformation.MasterToLocal(entrancePoint, lentrance);
+
+  auto hitlengthZ = lentrance.Z() - lexit.Z();
+  auto pitch = mResponse.getPitch();
+
   math_utils::Point3D<float> lpos{};
-  mTransformation.MasterToLocal(pos, lpos);
+
+  if (abs(hitlengthZ) > pitch * 1.99) {
+    lpos.SetXYZ((lexit.X() + lentrance.X()) / 2., (lexit.Y() + lentrance.Y()) / 2., (lexit.Z() + lentrance.Z()) / 2.);
+  } else {
+    lpos.SetXYZ(lexit.X(), // take Bragg peak coordinates assuming electron drift parallel to z
+                lexit.Y(), // take Bragg peak coordinates assuming electron drift parallel to z
+                0.0);      // take wire position global coordinate negative
+  }
   auto localX = mResponse.getAnod(lpos.X());
   auto localY = lpos.Y();
 

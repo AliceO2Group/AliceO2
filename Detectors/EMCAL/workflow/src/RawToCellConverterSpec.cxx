@@ -147,7 +147,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   std::vector<framework::InputSpec> filter{{"filter", framework::ConcreteDataTypeMatcher(originEMC, descRaw)}};
   int firstEntry = 0;
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), filter)) {
-
     // Skip SOX headers
     auto rdhblock = reinterpret_cast<const o2::header::RDHAny*>(rawData.payload);
     if (o2::raw::RDHUtils::getHeaderSize(rdhblock) == static_cast<int>(o2::framework::DataRefUtils::getPayloadSize(rawData))) {
@@ -163,10 +162,19 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         rawreader.next();
       } catch (RawDecodingError& e) {
         handlePageError(e);
+        if (e.getErrorType() == RawDecodingError::ErrorType_t::HEADER_DECODING || e.getErrorType() == RawDecodingError::ErrorType_t::HEADER_INVALID) {
+          // We must break in case of header decoding as the offset to the next payload is lost
+          // consequently the parser does not know where to continue leading to an infinity loop
+          break;
+        }
         // We must skip the page as payload is not consistent
         // otherwise the next functions will rethrow the exceptions as
         // the page format does not follow the expected format
         continue;
+      }
+      for (auto& e : rawreader.getMinorErrors()) {
+        handleMinorPageError(e);
+        // For minor errors we do not need to skip the page, just print and send the error to the QC
       }
 
       auto& header = rawreader.getRawHeader();
@@ -330,6 +338,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
+  std::bitset<46> bitSetActiveLinks;
   if (mActiveLinkCheck) {
     // build expected active mask from DCS
     FeeDCS* feedcs = mCalibHandler->getFEEDCS();
@@ -339,32 +348,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     list0.set(21, false);
     list1.set(7, false);
     // must be 0x307FFFDFFFFF if all links are active
-    std::bitset<46> bitSetActiveLinks((list1.to_ullong() << 32) + list0.to_ullong());
-
-    // Check if we have received pages from all active links
-    // If not we cannot trust the timeframe and must send
-    // empty containers
-    bool hasMissingLinks = false;
-    for (const auto& [globalBC, activelinks] : bcFreq) {
-      if (activelinks != bitSetActiveLinks) {
-        hasMissingLinks = true;
-        LOG(error) << "Not all EMC active links contributed in global BCid=" << globalBC << ": mask=" << (activelinks ^ bitSetActiveLinks);
-        if (mCreateRawDataErrors) {
-          for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
-            if (!bitSetActiveLinks.test(ilink)) {
-              continue;
-            }
-            if (!activelinks.test(ilink)) {
-              mOutputDecoderErrors.emplace_back(ilink, ErrorTypeFEE::ErrorSource_t::LINK_ERROR, 0, -1, -1);
-            }
-          }
-        }
-      }
-    }
-    if (hasMissingLinks) {
-      sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
-      return;
-    }
+    bitSetActiveLinks = std::bitset<46>((list1.to_ullong() << 32) + list0.to_ullong());
   }
 
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
@@ -373,6 +357,35 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     int ncellsEvent = 0, nLEDMONsEvent = 0;
     int eventstart = mOutputCells.size();
     auto& currentevent = eventIterator.nextEvent();
+    const auto interaction = currentevent.getInteractionRecord();
+    if (mActiveLinkCheck) {
+      // check for current event if all links are present
+      // discard event if not all links are present
+      auto bcfreqFound = bcFreq.find(interaction.toLong());
+      if (bcfreqFound != bcFreq.end()) {
+        const auto& activelinks = bcfreqFound->second;
+        if (activelinks != bitSetActiveLinks) {
+          static int nErrors = 0;
+          if (nErrors++ < 3) {
+            LOG(error) << "Not all EMC active links contributed in global BCid=" << interaction.toLong() << ": mask=" << (activelinks ^ bitSetActiveLinks) << (nErrors == 3 ? " (not reporting further errors to avoid spamming)" : "");
+          }
+          if (mCreateRawDataErrors) {
+            for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
+              if (!bitSetActiveLinks.test(ilink)) {
+                continue;
+              }
+              if (!activelinks.test(ilink)) {
+                mOutputDecoderErrors.emplace_back(ilink, ErrorTypeFEE::ErrorSource_t::LINK_ERROR, 0, -1, -1);
+              }
+            }
+          }
+          // discard event
+          // create empty trigger record with dedicated trigger bit marking as rejected
+          mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits() | o2::emcal::triggerbits::Inc, eventstart, 0);
+          continue;
+        }
+      }
+    }
     // Add cells
     if (currentevent.getNumberOfCells()) {
       LOG(debug) << "Event has " << currentevent.getNumberOfCells() << " cells";
@@ -385,7 +398,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       currentevent.sortCells(true);
       nLEDMONsEvent = bookEventCells(currentevent.getLEDMons(), true);
     }
-    const auto interaction = currentevent.getInteractionRecord();
     LOG(debug) << "Next event [Orbit " << interaction.orbit << ", BC (" << interaction.bc << "]: Accepted " << ncellsEvent << " cells and " << nLEDMONsEvent << " LEDMONS";
     mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), eventstart, ncellsEvent + nLEDMONsEvent);
   }
@@ -691,6 +703,22 @@ void RawToCellConverterSpec::handlePageError(const RawDecodingError& e)
   }
 }
 
+void RawToCellConverterSpec::handleMinorPageError(const RawReaderMemory::MinorError& e)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(e.getFEEID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1, -1);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " Page decoding: " << RawDecodingError::getErrorCodeDescription(e.getErrorType()) << " in FEE ID " << e.getFEEID();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+}
+
 void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -722,7 +750,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
     outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
   }
 
-  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Timeframe}};
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }

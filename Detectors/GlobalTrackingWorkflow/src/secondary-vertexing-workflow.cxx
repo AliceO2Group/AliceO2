@@ -28,6 +28,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -56,10 +57,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"disable-3body-finder", o2::framework::VariantType::Bool, false, {"do not run 3 body finder"}},
     {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"do not run strangeness tracker"}},
-
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -80,20 +80,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
-  auto enagleStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
-
+  auto enableStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
-  if (enagleStrTr) {
+  if (enableStrTr) {
     srcClus |= GID::getSourceMask(GID::ITS);
   }
-  if (requireCTPLumi) {
+  if (src[GID::TPC]) {
+    srcClus |= GID::getSourceMask(GID::TPC);
+  }
+  if (sclOpt.lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enagleStrTr, useMC));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, useMC, sclOpt));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;
@@ -118,7 +120,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getSecondaryVertexWriterSpec());
-    if (enagleStrTr) {
+    if (enableStrTr) {
       specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingWriterSpec(useMC));
     }
   }

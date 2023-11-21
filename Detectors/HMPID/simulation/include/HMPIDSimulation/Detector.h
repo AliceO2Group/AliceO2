@@ -55,6 +55,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void EndOfEvent() override { Reset(); }
 
   // for the geometry sub-parts
+  TGeoVolume* createAbsorber(float tickness);
   TGeoVolume* createChamber(int number);
   TGeoVolume* CreateCradle();
   TGeoVolume* CradleBaseVolume(TGeoMedium* med, double l[7], const char* name);

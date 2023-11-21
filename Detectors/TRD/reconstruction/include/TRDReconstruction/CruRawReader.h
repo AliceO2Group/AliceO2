@@ -63,6 +63,14 @@ class CruRawReader
   // configure the raw reader, done once at the init() stage
   void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options);
 
+  // set number of time bins to fixed value instead of reading from DigitHCHeader
+  // (but still complain if DigitHCHeader is not consistent)
+  void setNumberOfTimeBins(int tb)
+  {
+    mTimeBins = tb;
+    mTimeBinsFixed = true;
+  }
+
   // settings in order to avoid InfoLogger flooding
   void setMaxErrWarnPrinted(int nerr, int nwar)
   {
@@ -111,8 +119,10 @@ class CruRawReader
   // given the total link size and the hcid from the RDH
   // parse the tracklet data. Overwrite hcid from TrackletHCHeader if mismatch is detected
   // trackletWordsRejected:  count the number of words which were skipped (subset of words read)
-  // returns total number of words read (no matter if parsed successfully or not)
-  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
+  // trackletWordsReadOK: count the number of words which could be read consecutively w/o errors
+  // numberOfTrackletsFound: count the number of tracklets found
+  // returns total number of words read (no matter if parsed successfully or not) or -1 in case of failure
+  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected, int& trackletWordsReadOK, int& numberOfTrackletsFound);
 
   // the parsing begins after the DigitHCHeaders have been parsed already
   // maxWords32 is the remaining number of words for the given link
@@ -165,6 +175,7 @@ class CruRawReader
   bool mPreviousHalfCRUHeaderSet;       // flag, whether we can use mPreviousHalfCRUHeader for additional sanity checks
   DigitHCHeader mDigitHCHeader;         // Digit HalfChamber header we are currently on.
   uint16_t mTimeBins{constants::TIMEBINS}; // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
+  bool mTimeBinsFixed{false};              // flag, whether number of time bins different from default was configured
   bool mHaveSeenDigitHCHeader3{false};     // flag, whether we can compare an incoming DigitHCHeader3 with a header we have seen before
   uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
   uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks

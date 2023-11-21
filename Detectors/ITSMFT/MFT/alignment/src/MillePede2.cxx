@@ -1384,7 +1384,7 @@ int MillePede2::SolveGlobalMatEq()
     if (fgIterSol == MinResSolve::kSolFGMRes) {
       res = slv->SolveFGMRES(sol, fgMinResCondType, fgMinResMaxIter, fgMinResTol, fgNKrylovV);
     } else {
-      LOGF(warning, "MillePede2 - Undefined Iteritive Solver ID=%d, only %d are defined", fgIterSol, MinResSolve::kNSolvers);
+      LOGF(warning, "MillePede2 - Undefined Iteritive Solver ID=%d, only %d are defined", fgIterSol, (int)MinResSolve::kNSolvers);
     }
   }
 

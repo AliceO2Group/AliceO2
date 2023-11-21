@@ -26,9 +26,9 @@
 
 int main(int argc, char** argv)
 {
-  LOG(info) << "Welcome in O2 event conversion tool";
+  LOGF(info, "Welcome in O2 event conversion tool");
   if (argc != 3) {
-    LOG(error) << "two filename required, second should point to not existent file";
+    LOGF(error, "two filename required, second should point to not existent file");
     exit(-1);
   }
 
@@ -45,13 +45,13 @@ int main(int argc, char** argv)
 
   srcSerializer->fromFile(vEvent, src);
   endTime = std::chrono::high_resolution_clock::now();
-  LOG(info) << "read took "
-            << std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6;
+  LOGF(info, "read took ",
+       std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 
   currentTime = std::chrono::high_resolution_clock::now();
   dstSerializer->toFile(vEvent, dst);
   endTime = std::chrono::high_resolution_clock::now();
-  LOG(info) << "write took "
-            << std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6;
+  LOGF(info, "write took ",
+       std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
   return 0;
 }

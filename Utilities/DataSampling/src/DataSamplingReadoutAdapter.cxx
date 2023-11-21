@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "DataSampling/DataSamplingReadoutAdapter.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/RawDeviceService.h"
 #include "Headers/DataHeader.h"
 #include "Framework/DataSpecUtils.h"
 #include <atomic>
@@ -23,7 +24,9 @@ using DataHeader = o2::header::DataHeader;
 
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
-  return [spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+  return [spec](TimingInfo&, ServiceRegistryRef const& ref, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+    auto *device = ref.get<RawDeviceService>().device();
+
     for (size_t i = 0; i < parts.Size(); ++i) {
 
       DataHeader dh;
@@ -36,8 +39,9 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 
       DataProcessingHeader dph{newTimesliceId, 0};
       o2::header::Stack headerStack{dh, dph};
-      sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
+      sendOnChannel(*device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }
+    return parts.Size() != 0;
   };
 }
 

@@ -19,6 +19,7 @@
 #include <string>
 #include <map>
 #include <utility>
+#include <atomic>
 
 typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_timer_s uv_timer_t;
@@ -59,6 +60,7 @@ struct DeviceState {
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;
+  std::atomic<int64_t> cleanupCount = -1;
 
   /// ComputingQuotaOffers which have not yet been
   /// evaluated by the ComputingQuotaEvaluator

@@ -16,6 +16,8 @@
 #include "Headers/DataHeader.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Monitoring/Tags.h"
+#include "Monitoring/Metric.h"
+#include "Monitoring/Monitoring.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
@@ -708,27 +710,6 @@ DataInputDescriptor* DataInputDirector::getDataInputDescriptor(header::DataHeade
   }
 
   return result;
-}
-
-std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treename)
-{
-  std::unique_ptr<TTreeReader> reader = nullptr;
-  auto didesc = getDataInputDescriptor(dh);
-  // if NOT match then use defaultDataInputDescriptor
-  if (!didesc) {
-    didesc = mdefaultDataInputDescriptor;
-  }
-
-  auto fileAndFolder = didesc->getFileFolder(counter, numTF);
-  if (fileAndFolder.file) {
-    treename = fileAndFolder.folderName + "/" + treename;
-    reader = std::make_unique<TTreeReader>(treename.c_str(), fileAndFolder.file);
-    if (!reader) {
-      throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, fileAndFolder.file->GetName()));
-    }
-  }
-
-  return reader;
 }
 
 FileAndFolder DataInputDirector::getFileFolder(header::DataHeader dh, int counter, int numTF)

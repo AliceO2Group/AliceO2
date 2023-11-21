@@ -238,7 +238,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_singleElementMetrics, histogram_T, histogram_
   std::vector<uint32_t> frequencies{5};
   histogram_T histogram{frequencies.begin(), frequencies.end(), 2};
   const auto [min, max] = getMinMax(histogram);
-  const float eps = 1e-2;
   const size_t nUsedAlphabetSymbols = countNUsedAlphabetSymbols(histogram);
 
   const Metrics<source_type> metrics{histogram};

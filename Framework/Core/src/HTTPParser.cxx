@@ -189,7 +189,7 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
 std::string encode_websocket_handshake_request(const char* endpoint, const char* protocol, int version, char const* nonce,
                                                std::vector<std::pair<std::string, std::string>> headers)
 {
-  char const* res =
+  constexpr auto res =
     "GET {} HTTP/1.1\r\n"
     "Upgrade: websocket\r\n"
     "Connection: Upgrade\r\n"
@@ -216,7 +216,7 @@ std::string HTTPParserHelpers::calculateAccept(const char* nonce)
 
 std::string encode_websocket_handshake_reply(char const* nonce)
 {
-  char const* res =
+  constexpr auto res =
     "HTTP/1.1 101 Switching Protocols\r\n"
     "Upgrade: websocket\r\n"
     "Connection: Upgrade\r\n"

@@ -311,7 +311,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
             o2::ccdb::CcdbObjectInfo ccdbInfoIDCDelta(CDBTypeMap.at(sideA ? CDBType::CalIDCDeltaA : CDBType::CalIDCDeltaC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStartDelta, timeStampEndDelta);
 
             if (mDumpIDCDelta) {
-              mIDCGrouping.dumpToFile(fmt::format("{}DeltaAveraged_chunk{:02}_{:02}_side{}.root", getCurrentType(), iChunk, timeStampStartDelta, side).data());
+              mIDCGrouping.dumpToFile(fmt::format("{}DeltaAveraged_chunk{:02}_{:02}_side{}.root", getCurrentType(), iChunk, timeStampStartDelta, (int)side).data());
             }
 
             auto startCCDBIDCDelta = timer::now();

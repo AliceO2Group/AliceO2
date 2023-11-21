@@ -59,6 +59,9 @@ struct AsyncQueueHelpers {
   /// 2. then priority
   /// 3. only execute the highest (timeslice, debounce) value
   static void run(AsyncQueue& queue, TimesliceId oldestPossibleTimeslice);
+
+  /// Reset the queue to its initial state
+  static void reset(AsyncQueue& queue);
 };
 
 } // namespace o2::framework

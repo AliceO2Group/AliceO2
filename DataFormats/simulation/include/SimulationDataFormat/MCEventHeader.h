@@ -27,6 +27,67 @@ namespace dataformats
 
 class GeneratorHeader;
 
+/** Common keys for information in MC event header */
+struct MCInfoKeys {
+  /** @{
+@name HepMC3 heavy-ion fields */
+  static constexpr const char* impactParameter = "Bimpact";
+  static constexpr const char* nPart = "Npart";
+  static constexpr const char* nPartProjectile = "Npart_proj";
+  static constexpr const char* nPartTarget = "Npart_targ";
+  static constexpr const char* nColl = "Ncoll";
+  static constexpr const char* nCollHard = "Ncoll_hard";
+  static constexpr const char* nCollNNWounded = "NColl_NNw";
+  static constexpr const char* nCollNWoundedN = "NColl_NwN";
+  static constexpr const char* nCollNWoundedNwounded = "NColl_NwNW";
+  static constexpr const char* planeAngle = "eventPsi";
+  static constexpr const char* sigmaInelNN = "sigmaInelNN";
+  static constexpr const char* centrality = "centrality";
+  static constexpr const char* nSpecProjectileProton = "Nspec_proj_p";
+  static constexpr const char* nSpecProjectileNeutron = "Nspec_proj_n";
+  static constexpr const char* nSpecTargetProton = "Nspec_targ_p";
+  static constexpr const char* nSpecTargetNeutron = "Nspec_targ_n";
+  /** @} */
+  /** @{
+@name HepMC3 PDF information
+
+In principle a header can have many of these.  In that case,
+each set should be prefixed with "_<X>" where "<X>" is a
+serial number.
+  */
+  static constexpr const char* pdfParton1Id = "pdf_parton_1_id";
+  static constexpr const char* pdfParton2Id = "pdf_parton_2_id";
+  static constexpr const char* pdfX1 = "pdf_x1";
+  static constexpr const char* pdfX2 = "pdf_x2";
+  static constexpr const char* pdfScale = "pdf_scale";
+  static constexpr const char* pdfXF1 = "pdf_par_x1";
+  static constexpr const char* pdfXF2 = "pdf_par_x2";
+  static constexpr const char* pdfCode1 = "pdf_lhc_1_id";
+  static constexpr const char* pdfCode2 = "pdf_lhc_2_id";
+  /** @} */
+  /** @{
+@name HepMC3 cross-section information
+
+In principle we can have one cross section per weight. In that
+case, each should be post-fixed by "_<X>" where "<X>" is a
+serial number.  These should then matcht possible names of
+weights.
+  */
+  static constexpr const char* acceptedEvents = "accepted_events";
+  static constexpr const char* attemptedEvents = "attempted_events";
+  static constexpr const char* xSection = "cross_section";
+  static constexpr const char* xSectionError = "cross_section_error";
+  /** @} */
+  /** @{
+@name Common fields */
+  static constexpr const char* generator = "generator";
+  static constexpr const char* generatorVersion = "version";
+  static constexpr const char* processName = "processName";
+  static constexpr const char* processCode = "processCode";
+  static constexpr const char* weight = "weight";
+  /** @} */
+};
+
 /*****************************************************************/
 /*****************************************************************/
 
@@ -86,6 +147,9 @@ class MCEventHeader : public FairMCEventHeader
 
   MCEventStats& getMCEventStats() { return mEventStats; }
 
+  void setDetId2HitBitLUT(std::vector<int> const& v) { mDetId2HitBitIndex = v; }
+  std::vector<int> const& getDetId2HitBitLUT() const { return mDetId2HitBitIndex; }
+
   /// create a standalone ROOT file/tree with only the MCHeader branch
   static void extractFileFromKinematics(std::string_view kinefilename, std::string_view targetfilename);
 
@@ -96,9 +160,10 @@ class MCEventHeader : public FairMCEventHeader
   // store a few global properties that this event
   // had in the current simulation (which can be used quick filtering/searching)
   MCEventStats mEventStats{};
+  std::vector<int> mDetId2HitBitIndex;
   o2::utils::RootSerializableKeyValueStore mEventInfo;
 
-  ClassDefOverride(MCEventHeader, 3);
+  ClassDefOverride(MCEventHeader, 4);
 
 }; /** class MCEventHeader **/
 

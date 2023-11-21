@@ -83,7 +83,8 @@ class DetID
   static constexpr ID TRK = 19;
   static constexpr ID FT3 = 20;
   static constexpr ID FCT = 21;
-  static constexpr ID Last = FCT;
+  static constexpr ID TF3 = 22;
+  static constexpr ID Last = TF3;
 #else
   static constexpr ID Last = FOC; ///< if extra detectors added, update this !!!
 #endif
@@ -177,7 +178,7 @@ class DetID
   // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "FOC", "IT3", "TRK", "FT3", "FCT", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "FOC", "IT3", "TRK", "FT3", "FCT", "TF3", nullptr};
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "FOC", nullptr};
 #endif
@@ -208,7 +209,7 @@ GPUconstexpr() DetID::mask_t sMasks[DetID::nDetectors] = ///< detectot masks
    DetID::mask_t(math_utils::bit2Mask(DetID::TST)), DetID::mask_t(math_utils::bit2Mask(DetID::CTP)), DetID::mask_t(math_utils::bit2Mask(DetID::FOC))
 #ifdef ENABLE_UPGRADES
                                                                                                        ,
-   DetID::mask_t(math_utils::bit2Mask(DetID::IT3)), DetID::mask_t(math_utils::bit2Mask(DetID::TRK)), DetID::mask_t(math_utils::bit2Mask(DetID::FT3)), DetID::mask_t(math_utils::bit2Mask(DetID::FCT))
+   DetID::mask_t(math_utils::bit2Mask(DetID::IT3)), DetID::mask_t(math_utils::bit2Mask(DetID::TRK)), DetID::mask_t(math_utils::bit2Mask(DetID::FT3)), DetID::mask_t(math_utils::bit2Mask(DetID::FCT)), DetID::mask_t(math_utils::bit2Mask(DetID::TF3))
 #endif
 };
 } // namespace detid_internal

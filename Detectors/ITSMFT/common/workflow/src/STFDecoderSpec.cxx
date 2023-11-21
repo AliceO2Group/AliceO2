@@ -155,7 +155,17 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
 
     mDecoder->setDecodeNextAuto(false);
+    o2::InteractionRecord lastIR{}, firstIR{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
     while (mDecoder->decodeNextTrigger() >= 0) {
+      if ((!lastIR.isDummy() && lastIR >= mDecoder->getInteractionRecord()) || firstIR > mDecoder->getInteractionRecord()) {
+        const int MaxErrLog = 2;
+        static int errLocCount = 0;
+        if (errLocCount++ < MaxErrLog) {
+          LOGP(warn, "Impossible ROF IR {}, previous was {}, TF 1st IR was {}, discarding in decoding", mDecoder->getInteractionRecord().asString(), lastIR.asString(), firstIR.asString());
+        }
+        continue;
+      }
+      lastIR = mDecoder->getInteractionRecord();
       if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
         mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
         if (mDoCalibData) {
@@ -356,9 +366,6 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   outputs.emplace_back(inp.origin, "ChipErrors", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
-    for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
-      ins.lifetime = Lifetime::Optional;
-    }
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
     inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }

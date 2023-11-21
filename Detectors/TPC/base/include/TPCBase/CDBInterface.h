@@ -88,6 +88,9 @@ enum class CDBType {
   CalCorrDerivMap,     ///< Cluster correction map (derivative map)
                        ///
   CalTimeSeries,       ///< integrated DCAs for longer time interval
+  CalScaler,           ///< Scaler from IDCs or combined estimator
+                       ///
+  CorrMapParam,        ///< parameters for CorrectionMapsLoader configuration
 };
 
 /// Upload intervention type
@@ -149,6 +152,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
   // time series
   {CDBType::CalTimeSeries, "TPC/Calib/TimeSeries"},
+  {CDBType::CalScaler, "TPC/Calib/Scaler"},
+  // correction maps loader params
+  {CDBType::CorrMapParam, "TPC/Calib/CorrMapParam"},
 };
 
 /// Poor enum reflection ...
@@ -459,6 +465,8 @@ class CDBStorage
   }
 
   const auto& getMetaData() const { return mMetaData; }
+
+  std::string getMetaDataString() const;
 
   void setSimulate(bool sim = true) { mSimulate = sim; }
 

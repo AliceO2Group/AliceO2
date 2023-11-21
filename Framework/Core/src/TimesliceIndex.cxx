@@ -126,7 +126,7 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
 {
   // Each channel oldest possible input must be monotoically increasing.
   if (timestamp.value < mChannels[channel.value].oldestForChannel.value) {
-    LOG(error) << "Received bogus oldest possible timeslice " << timestamp.value << " for channel " << channel.value << " Excpected >= " << mChannels[channel.value].oldestForChannel.value;
+    LOG(error) << "Received bogus oldest possible timeslice " << timestamp.value << " for channel " << channel.value << ". Expected >= " << mChannels[channel.value].oldestForChannel.value;
   }
   mChannels[channel.value].oldestForChannel = timestamp;
   OldestInputInfo result{timestamp, channel};
@@ -203,6 +203,21 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
 InputChannelInfo const& TimesliceIndex::getChannelInfo(ChannelIndex channel) const
 {
   return mChannels[channel.value];
+}
+
+auto TimesliceIndex::reset() -> void
+{
+  mOldestPossibleInput = {
+    .timeslice = {0},
+    /// The actual channel id of the oldest input.
+    .channel = {ChannelIndex::INVALID}};
+  mOldestPossibleOutput = {
+    .timeslice = {0},
+    .channel = {ChannelIndex::INVALID},
+    .slot = {(size_t)-1}};
+  for (auto& channel : mChannels) {
+    channel.oldestForChannel = {0};
+  }
 }
 
 } // namespace o2::framework

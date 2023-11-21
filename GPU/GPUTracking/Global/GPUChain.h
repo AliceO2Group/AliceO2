@@ -252,7 +252,7 @@ class GPUChain
 template <class T>
 inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
 {
-  mRec->RunHelperThreads((int (GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
+  mRec->RunHelperThreads((int(GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
 }
 
 template <bool Always, class T, class S, typename... Args>

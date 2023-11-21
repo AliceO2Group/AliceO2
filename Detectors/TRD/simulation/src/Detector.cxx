@@ -230,9 +230,9 @@ void Detector::createTRhit(int det)
       muNo = mTR->getMuAr(energyMeV);
     }
     double muCO = mTR->getMuCO(energyMeV);
-    double fGasNobleFraction = 1;
-    double fGasDensity = 1;
-    sigma = (fGasNobleFraction * muNo + (1.0 - fGasNobleFraction) * muCO) * fGasDensity * mTR->getTemp();
+    // double fGasNobleFraction = 1;
+    // double fGasDensity = 1;
+    sigma = (mGasNobleFraction * muNo + (1.0 - mGasNobleFraction) * muCO) * mGasDensity * mTR->getTemp();
 
     // The distance after which the energy of the TR photon
     // is deposited.

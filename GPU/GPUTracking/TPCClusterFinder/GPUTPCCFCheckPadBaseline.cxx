@@ -77,7 +77,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
 
 #else // CPU CODE
 
-  constexpr size_t ElemsInTileRow = TilingLayout<GridSize<2>>::WidthInTiles * TimebinsPerCacheline * PadsPerCacheline;
+  constexpr size_t ElemsInTileRow = (size_t)TilingLayout<GridSize<2>>::WidthInTiles * TimebinsPerCacheline * PadsPerCacheline;
 
 #ifndef GPUCA_NO_VC
   using UShort8 = Vc::fixed_size_simd<unsigned short, PadsPerCacheline>;

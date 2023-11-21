@@ -86,6 +86,8 @@ void TrackerDPL::init(InitContext& ic)
     for (auto& param : trackParams) {
       param.ZBins = 64;
       param.PhiBins = 32;
+      param.CellsPerClusterLimit = 1.e3f;
+      param.TrackletsPerClusterLimit = 1.e3f;
     }
     trackParams[1].TrackletMinPt = 0.2f;
     trackParams[1].CellDeltaTanLambdaSigma *= 2.;
@@ -198,6 +200,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
+  auto fatalLogger = [&](std::string s) { LOG(fatal) << s; };
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
 
   FastMultEst multEst; // mult estimator
@@ -266,7 +269,11 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     mTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
-    mTracker->clustersToTracks(logger, errorLogger);
+    if (mMode == "async") {
+      mTracker->clustersToTracks(logger, fatalLogger);
+    } else {
+      mTracker->clustersToTracks(logger, errorLogger);
+    }
     size_t totTracks{mTimeFrame->getNumberOfTracks()}, totClusIDs{mTimeFrame->getNumberOfUsedClusters()};
     allTracks.reserve(totTracks);
     allClusIdx.reserve(totClusIDs);
@@ -292,6 +299,8 @@ void TrackerDPL::run(ProcessingContext& pc)
       // Some conversions that needs to be moved in the tracker internals
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
+        trc.setUserField(0);
+        trc.getParamOut().setUserField(0);
         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
         int ncl = trc.getNumberOfClusters(), nclf = 0;
         for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!

@@ -44,7 +44,7 @@ bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, Contai
 template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
 bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
-  //make sure the payload size in DataHeader corresponds to message size
+  // make sure the payload size in DataHeader corresponds to message size
   using o2::header::DataHeader;
   auto* dataHeader = const_cast<DataHeader*>(o2::header::get<DataHeader*>(inputStack.data()));
   dataHeader->payloadSize = dataMessage->GetSize();
@@ -100,12 +100,12 @@ auto forEach(fair::mq::Parts& parts, F&& function)
 
 TEST_CASE("getMessage_Stack")
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 0};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem", "getMessage_Stack", &config);
   REQUIRE(factorySHM != nullptr);
   REQUIRE(factoryZMQ != nullptr);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
@@ -113,7 +113,7 @@ TEST_CASE("getMessage_Stack")
   auto allocSHM = getTransportAllocator(factorySHM.get());
   REQUIRE(allocSHM != nullptr);
   {
-    //check that a message is constructed properly with the default new_delete_resource
+    // check that a message is constructed properly with the default new_delete_resource
     Stack s1{DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}},
              NameHeader<9>{"somename"}};
 
@@ -128,7 +128,7 @@ TEST_CASE("getMessage_Stack")
     REQUIRE(message->GetType() == fair::mq::Transport::ZMQ);
   }
   {
-    //check that a message is constructed properly, cross resource
+    // check that a message is constructed properly, cross resource
     Stack s1{allocZMQ, DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}},
              NameHeader<9>{"somename"}};
     REQUIRE(allocZMQ->getNumberOfMessages() == 1);
@@ -149,7 +149,7 @@ TEST_CASE("getMessage_Stack")
 
 TEST_CASE("addDataBlockForEach_test")
 {
-  size_t session{fair::mq::tools::UuidHash()};
+  size_t session{(size_t)getpid() * 1000 + 1};
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
@@ -159,7 +159,7 @@ TEST_CASE("addDataBlockForEach_test")
   REQUIRE(allocZMQ);
 
   {
-    //simple addition of a data block from an exisiting message
+    // simple addition of a data block from an exisiting message
     fair::mq::Parts message;
     auto simpleMessage = factoryZMQ->CreateMessage(10);
     addDataBlock(message,
@@ -190,7 +190,7 @@ TEST_CASE("addDataBlockForEach_test")
     REQUIRE(message[1].GetSize() == 2 * sizeof(elem));
     ; // check the size of the buffer is set correctly
 
-    //check contents
+    // check contents
     int sum{0};
     forEach(message, [&](auto header, auto data) {
       const int* numbers = reinterpret_cast<const int*>(data.data());
@@ -198,7 +198,7 @@ TEST_CASE("addDataBlockForEach_test")
     });
     REQUIRE(sum == 10);
 
-    //add one more data block and check total size using forEach;
+    // add one more data block and check total size using forEach;
     addDataBlock(message,
                  Stack{allocZMQ, DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}}},
                  factoryZMQ->CreateMessage(10));
@@ -206,7 +206,7 @@ TEST_CASE("addDataBlockForEach_test")
     forEach(message, [&](auto header, auto data) { size += header.size() + data.size(); });
     REQUIRE(size == sizeofDataHeader + 2 * sizeof(elem) + sizeofDataHeader + 10);
 
-    //check contents (headers)
+    // check contents (headers)
     int checkOK{0};
     forEach(message, [&](auto header, auto data) {
       auto dh = get<DataHeader*>(header.data());

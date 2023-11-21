@@ -59,7 +59,7 @@ template <typename T>
 TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, TF1& func, std::string_view option = "")
 {
   Foption_t fitOption;
-  ROOT::Fit::FitOptionsMake(ROOT::Fit::kHistogram, option.data(), fitOption);
+  ROOT::Fit::FitOptionsMake(ROOT::Fit::EFitObjectType::kHistogram, option.data(), fitOption);
 
   ROOT::Fit::DataRange range(xMin, xMax);
   ROOT::Fit::DataOptions opt;

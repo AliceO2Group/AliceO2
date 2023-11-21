@@ -24,6 +24,7 @@ static auto& sImpactParameterParamsITS = o2::its::study::ITSImpactParameterParam
 O2ParamImpl(o2::its::study::ITSAvgClusSizeParamConfig);
 O2ParamImpl(o2::its::study::ITSCheckTracksParamConfig);
 O2ParamImpl(o2::its::study::ITSImpactParameterParamConfig);
+
 } // namespace study
 } // namespace its
 } // namespace o2

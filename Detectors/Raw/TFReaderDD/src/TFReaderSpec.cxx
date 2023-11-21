@@ -264,6 +264,10 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
       }
+      // FIXME: this is to pretend we did send some messages via DPL.
+      //        we should really migrate everything to use FairMQDeviceProxy,
+      //        however this is a small enough hack for now.
+      ctx.services().get<o2f::MessageContext>().fakeDispatch();
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;
       LOGP(info, "Sent TF {} of size {} with {} parts, {:.4f} s elapsed from previous TF.", mTFCounter, dataSize, nparts, double(deltaSending) * 1e-6);
@@ -461,34 +465,34 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});       // in abcence of real data this will be sent
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLTRIGREC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
         } else if (id == DetID::CPV) {
-          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITS", 0});
-          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITTRIGREC", 0});
-          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "RAWHWERRORS", 0});
-          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITS", DetID::getDataOrigin(id), 0, 0});       // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITTRIGREC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"RAWHWERRORS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          spec.outputs.emplace_back(DetID::getDataOrigin(id), "DIGITS", 0);
+          spec.outputs.emplace_back(DetID::getDataOrigin(id), "DIGITTRIGREC", 0);
+          spec.outputs.emplace_back(DetID::getDataOrigin(id), "RAWHWERRORS", 0);
+          rinp.hdVec.emplace_back("DIGITS", DetID::getDataOrigin(id), 0, 0);       // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("DIGITTRIGREC", DetID::getDataOrigin(id), 0, 0); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("RAWHWERRORS", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
         } else if (id == DetID::EMC) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLSTRGR"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "DECODERERR"}});
-          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});      // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLSTRGR", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"DECODERERR", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("CELLS", DetID::getDataOrigin(id), 0, 0);      // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("CELLSTRGR", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("DECODERERR", DetID::getDataOrigin(id), 0, 0); // in abcence of real data this will be sent
         } else if (id == DetID::FOC) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PADLAYERS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELHITS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELCHIPS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "TRIGGERS"}});
-          rinp.hdVec.emplace_back(o2h::DataHeader{"PADLAYERS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELHITS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELCHIPS", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"TRIGGERS", DetID::getDataOrigin(id), 0, 0});   // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("PADLAYERS", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("PIXELHITS", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("PIXELCHIPS", DetID::getDataOrigin(id), 0, 0); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("TRIGGERS", DetID::getDataOrigin(id), 0, 0);   // in abcence of real data this will be sent
         }
       }
     }
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
+    o2f::DataSpecUtils::updateOutputList(spec.outputs, o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
     if (!rinp.sup0xccdb) {
-      spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
+      o2f::DataSpecUtils::updateOutputList(spec.outputs, o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
     }
     if (!rinp.metricChannel.empty()) {
       spec.options.emplace_back(o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.metricChannel, {"Out-of-band channel config for TF throttling"}});

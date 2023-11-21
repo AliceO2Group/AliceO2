@@ -26,6 +26,7 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
+#include "DetectorsBase/Propagator.h"
 
 // boost includes
 #include <boost/histogram.hpp>
@@ -97,6 +98,9 @@ class CalibdEdx
     mFitLowCutFactor = lowCutFactor;
   }
 
+  /// setting the material type for track propagation
+  void setMaterialType(o2::base::Propagator::MatCorrType materialType) { mMatType = materialType; }
+
   /// Fill histograms using tracks data.
   void fill(const TrackTPC& tracks);
   void fill(const gsl::span<const TrackTPC>);
@@ -132,11 +136,10 @@ class CalibdEdx
   /// Save the histograms to a TTree.
   void writeTTree(std::string_view fileName) const;
 
-  constexpr static float MipScale = 1.0 / 50.0;                         ///< Inverse of target dE/dx value for MIPs
-  constexpr static std::array<float, 4> TglScale{1.9, 1.5, 1.22, 1.02}; ///< Max Tgl values for each ROC type
+  constexpr static float MipScale = 1.0 / 50.0; ///< Inverse of target dE/dx value for MIPs
 
-  constexpr static float scaleTgl(float tgl, GEMstack roc) { return tgl / CalibdEdx::TglScale[roc]; }
-  constexpr static float recoverTgl(float scaledTgl, GEMstack roc) { return scaledTgl * CalibdEdx::TglScale[roc]; }
+  constexpr static float scaleTgl(float tgl, GEMstack rocType) { return tgl / conf_dedx_corr::TglScale[rocType]; }
+  constexpr static float recoverTgl(float scaledTgl, GEMstack rocType) { return scaledTgl * conf_dedx_corr::TglScale[rocType]; }
 
  private:
   bool mFitSnp{};
@@ -152,7 +155,9 @@ class CalibdEdx
   Hist mHist;                   ///< dEdx multidimensional histogram
   CalibdEdxCorrection mCalib{}; ///< Calibration output
 
-  ClassDefNV(CalibdEdx, 2);
+  o2::base::Propagator::MatCorrType mMatType{}; ///< material type for track propagation
+
+  ClassDefNV(CalibdEdx, 3);
 };
 
 } // namespace o2::tpc

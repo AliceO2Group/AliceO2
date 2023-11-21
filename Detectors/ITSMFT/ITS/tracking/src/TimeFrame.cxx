@@ -223,7 +223,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
-      mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
+      // mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
       mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     }
     mNrof++;
@@ -262,10 +262,9 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mTracksLabel.resize(mNrof);
     mLinesLabels.resize(mNrof);
     mCells.resize(trkParam.CellsPerRoad());
-    mCellSeeds.resize(trkParam.CellsPerRoad());
-    mCellSeedsChi2.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mCellsNeighboursLUT.resize(trkParam.CellsPerRoad() - 1);
     mCellLabels.resize(trkParam.CellsPerRoad());
     mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
@@ -396,8 +395,6 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mTrackletLabels[iLayer].clear();
     if (iLayer < (int)mCells.size()) {
       mCells[iLayer].clear();
-      mCellSeeds[iLayer].clear();
-      mCellSeedsChi2[iLayer].clear();
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(mClusters[iLayer + 1].size(), 0);
       mCellLabels[iLayer].clear();
@@ -406,6 +403,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     if (iLayer < (int)mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsNeighbours[iLayer].clear();
+      mCellsNeighboursLUT[iLayer].clear();
     }
   }
 }
@@ -417,12 +415,10 @@ unsigned long TimeFrame::getArtefactsMemory()
     size += sizeof(Tracklet) * trkl.size();
   }
   for (auto& cells : mCells) {
-    size += sizeof(Cell) * cells.size();
+    size += sizeof(CellSeed) * cells.size();
   }
   for (auto& cellsN : mCellsNeighbours) {
-    for (auto& vec : cellsN) {
-      size += sizeof(int) * vec.size();
-    }
+    size += sizeof(int) * cellsN.size();
   }
   return size + sizeof(Road<5>) * mRoads.size();
 }

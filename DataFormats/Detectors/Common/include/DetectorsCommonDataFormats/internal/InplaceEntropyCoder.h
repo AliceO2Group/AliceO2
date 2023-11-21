@@ -166,7 +166,6 @@ void InplaceEntropyCoder<source_T>::makeEncoder()
     }
 
     const size_t rangeBits = rans::utils::getRangeBits(*mMetrics.getCoderProperties().min, *mMetrics.getCoderProperties().max);
-    const size_t nSamples = mMetrics.getDatasetProperties().numSamples;
     const size_t nUsedAlphabetSymbols = mMetrics.getDatasetProperties().nUsedAlphabetSymbols;
 
     if (rangeBits <= 18) {

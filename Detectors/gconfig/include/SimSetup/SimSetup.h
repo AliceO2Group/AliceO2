@@ -10,11 +10,15 @@
 // or submit itself to any jurisdiction.
 
 #ifndef O2_SIMSETUP_H
+#define O2_SIMSETUP_H
 
 namespace o2
 {
 struct SimSetup {
   static void setup(const char* engine);
+
+  // a static entrypoint to shutdown the VMC system
+  static void shutdown();
 };
 } // namespace o2
 

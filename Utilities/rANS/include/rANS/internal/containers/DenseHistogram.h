@@ -184,7 +184,7 @@ inline bool DenseHistogram<source_T, std::enable_if_t<sizeof(source_T) == 4>>::i
       ret = false;
     }
   }
-  if (max - min > this->MaxSize) {
+  if (max - min > static_cast<difference_type>(this->MaxSize)) {
     LOGP(warning, "DenseHistogram exceeds {} elements threshold", this->MaxSize);
     ret = false;
   }
@@ -232,8 +232,6 @@ inline auto DenseHistogram<source_T, std::enable_if_t<sizeof(source_T) == 4>>::a
   constexpr size_t ElemsPerQWord = sizeof(uint64_t) / sizeof(source_type);
   constexpr size_t nUnroll = 4 * ElemsPerQWord;
   auto iter = begin;
-
-  const source_type offset = this->getOffset();
 
   if (getRangeBits(min, max) <= 17) {
     container_type histogram{this->mContainer.size(), this->mContainer.getOffset()};
@@ -586,7 +584,16 @@ auto DenseHistogram<source_T, std::enable_if_t<sizeof(source_T) <= 2>>::addFrequ
   addedHistogramView = trim(addedHistogramView);
 
   if constexpr (std::is_unsigned_v<source_T>) {
-    LOG_IF(warning, addedHistogramView.getMin() < 0) << fmt::format("trying to add frequencies for a signed symbol to a DenseHistogram of an unsiged type.");
+    LOG_IF(warning, addedHistogramView.getMin() < 0) << fmt::format("trying to add frequencies of a signed symbol type to a DenseHistogram of an unsiged type.");
+  }
+  if constexpr (std::is_signed_v<source_T>) {
+    const std::ptrdiff_t sourceTypeMax = std::numeric_limits<source_T>::max();
+    const bool isMinOutOfRange = addedHistogramView.getMin() > sourceTypeMax;
+    const bool isMaxOutOfRange = addedHistogramView.getMax() > sourceTypeMax;
+
+    if (isMaxOutOfRange || isMinOutOfRange) {
+      LOGP(warning, "trying to add frequencies of an unsigned symbol type to a DenseHistogram of a signed type");
+    }
   }
 
   const auto thisHistogramView = makeHistogramView(this->mContainer);

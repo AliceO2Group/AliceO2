@@ -64,9 +64,12 @@ void Digitizer::init()
       // parameter 1: Handling phase + delay
       // phase: 25 ns * phase index (-4)
       // delay: Average signal delay
-      RawResponse.SetParameter(1, 0.25 * phase + mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE);
-      for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
-        mAmplitudeInTimeBins[phase][sample] = RawResponse.Eval(sample);
+      for (int itofbin = 0; itofbin < EMC_TOF_BINS; itofbin++) {
+        double tofbincenter = itofbin * EMC_TOF_BINWITH + 0.5 * EMC_TOF_BINWITH;
+        RawResponse.SetParameter(1, 0.25 * phase + (tofbincenter + mSimParam->getSignalDelay()) / constants::EMCAL_TIMESAMPLE);
+        for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
+          mAmplitudeInTimeBins[phase][itofbin][sample] = RawResponse.Eval(sample);
+        }
       }
     }
   } else {
@@ -158,15 +161,29 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
 
   Double_t energies[15];
   if (mSimulateTimeResponse) {
-    for (int sample = 0; sample < mAmplitudeInTimeBins[mPhase].size(); sample++) {
+    if (sDigit.getTimeStamp() + mSimParam->getSignalDelay() + mPhase * 25 > EMC_TOF_MAX) {
+      // Digit time larger than sampling window, will not be sampled
+      // For time response simulation take also signal delay and phase into account
+      return;
+    }
+    int tofbin = static_cast<int>(sDigit.getTimeStamp() / EMC_TOF_BINWITH);
+    if (tofbin >= EMC_TOF_BINS) {
+      tofbin = EMC_TOF_BINS - 1;
+    }
+    for (int sample = 0; sample < mAmplitudeInTimeBins[mPhase][tofbin].size(); sample++) {
 
-      double val = energy * (mAmplitudeInTimeBins[mPhase][sample]);
+      double val = energy * (mAmplitudeInTimeBins[mPhase][tofbin][sample]);
       energies[sample] = val;
       double digitTime = mEventTimeOffset * constants::EMCAL_TIMESAMPLE;
       Digit digit(tower, val, digitTime);
       mTempDigitVector.push_back(digit);
     }
   } else {
+    if (sDigit.getTimeStamp() > EMC_TOF_MAX) {
+      // Digit time larger than sampling window, will not be sampled
+      // In non-sampled mode only apply the max. time window
+      return;
+    }
     Digit digit(tower, energy, smearTime(sDigit.getTimeStamp(), energy));
     mTempDigitVector.push_back(digit);
   }

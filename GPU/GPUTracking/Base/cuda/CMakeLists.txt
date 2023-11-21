@@ -50,7 +50,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       set(RTC_CUDA_ARCH "750")
   endif()
   separate_arguments(CUDARTC_FLAGS)
-  
+
   # convenience variables
   if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
     get_filename_component(GPUDIR ${CMAKE_SOURCE_DIR}/../ ABSOLUTE)
@@ -78,7 +78,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       VERBATIM
   )
   create_binary_resource(${CURTC_BIN}.command ${CURTC_BIN}.command.o)
-  
+
   set(SRCS ${SRCS} ${CURTC_BIN}.src.o ${CURTC_BIN}.command.o)
 endif()
 # -------------------------------- End RTC -------------------------------------------------------
@@ -124,8 +124,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS ${targetName} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
-
-  
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -136,14 +134,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 endif()
 
 target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
-target_compile_definitions(${targetName} PUBLIC GPUCA_GPULIBRARY=CUDA)
-if(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "86")
-target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_AMPERE)
-elseif(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "75")
-target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_TURING)
-else()
-target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_AMPERE)
-endif()
+set_target_cuda_arch(${targetName})
 
 if(OpenMP_CXX_FOUND)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp

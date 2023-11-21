@@ -82,6 +82,7 @@ class Digit
   int getPadCol() const { return HelperMethods::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
   int getMCM() const { return mMCM; }
+  int getMCMCol() const { return (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2); }
   int getChannel() const { return mChannel; }
   int getPreTrigPhase() const { return ((mDetector >> 12) & 0xf); }
   bool isSharedDigit() const;
@@ -91,6 +92,7 @@ class Digit
   ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }
   // returns the max ADC value and sets idx to the time bin with the largest ADC value
   ADC_t getADCmax(int& idx) const;
+  ADC_t getADCval(int tb) const { return mADC[tb]; }
 
   bool operator==(const Digit& o) const
   {

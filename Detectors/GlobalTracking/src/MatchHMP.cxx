@@ -69,9 +69,11 @@ void MatchHMP::run(const o2::globaltracking::RecoContainer& inp)
   mStartIR = inp.startIR;
 
   for (int i = 0; i < o2::globaltracking::MatchHMP::trackType::SIZE; i++) {
+    mTrackGid[i].clear();
     mMatchedTracks[i].clear();
     mOutHMPLabels[i].clear();
     mTracksWork[i].clear();
+    mMatchedTracksIndex[i].clear();
   }
 
   for (int it = 0; it < o2::globaltracking::MatchHMP::trackType::SIZE; it++) {
@@ -111,17 +113,13 @@ void MatchHMP::run(const o2::globaltracking::RecoContainer& inp)
 //==================================================================================================================================================
 bool MatchHMP::prepareTracks()
 {
-  // mNotPropagatedToHMP[trkType::UNCONS] = 0;
-  // mNotPropagatedToHMP[trkType::CONSTR] = 0;
 
   auto creator = [this](auto& trk, GTrackID gid, float time0, float terr) {
     const int nclustersMin = 0;
-
     if constexpr (isTPCTrack<decltype(trk)>()) {
       if (trk.getNClusters() < nclustersMin) {
         return true;
       }
-
       if (std::abs(trk.getQ2Pt()) > mMaxInvPt) {
         return true;
       }
@@ -152,7 +150,6 @@ bool MatchHMP::prepareTracks()
   // Unconstrained tracks
   /*
     if (mIsTPCused) {
-      // LOG(debug) << "Number of UNCONSTRAINED tracks that failed to be propagated to HMPID = " << mNotPropagatedToHMP[o2::globaltracking::MatchHMP::trackType::UNCONS];
 
       // sort tracks in each sector according to their time (increasing in time)
       //  for (int sec = o2::constants::math::NSectors; sec--;) {
@@ -417,7 +414,6 @@ void MatchHMP::doMatching()
         matching.setIdxHMPClus(99, 99999);           // chamber not found, mip not yet considered
         matching.setHMPsignal(Recon::kNotPerformed); // ring reconstruction not yet performed
         matching.setIdxTrack(trackGid);
-
         TrackHMP hmpTrk(trefTrk); // create a hmpid track to be used for propagation and matching
 
         hmpTrk.set(trefTrk.getX(), trefTrk.getAlpha(), trefTrk.getParams(), trefTrk.getCharge(), trefTrk.getPID());

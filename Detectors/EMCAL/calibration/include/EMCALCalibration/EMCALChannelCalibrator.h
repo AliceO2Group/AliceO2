@@ -58,7 +58,10 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<DataI
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;
 
  public:
-  EMCALChannelCalibrator(int nb = 1000, float r = 0.35) : mNBins(nb), mRange(r){};
+  EMCALChannelCalibrator(int nb = 1000, float r = 0.35) : mNBins(nb), mRange(r)
+  {
+    this->setSaveDirectory(EMCALCalibParams::Instance().filePathSave);
+  };
 
   ~EMCALChannelCalibrator() final = default;
 
@@ -319,6 +322,7 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::adoptSavedData(const o2::cal
     return false;
   }
   c->setNEvents(hEvents->GetBinContent(1));
+  LOG(info) << "successfully loaded histograms with " << hEvents->GetBinContent(1) << " events";
 
   return true;
 }

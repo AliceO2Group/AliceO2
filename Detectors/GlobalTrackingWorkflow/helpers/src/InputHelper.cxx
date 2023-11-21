@@ -176,7 +176,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
 
   if (maskClusters[GID::MCH]) {
-    specs.emplace_back(o2::mch::getClusterReaderSpec(maskClustersMC[GID::MCH], "mch-global-cluster-reader", true, false));
+    specs.emplace_back(o2::mch::getClusterReaderSpec(maskClustersMC[GID::MCH], "mch-cluster-reader", true, false));
   }
 
   return 0;

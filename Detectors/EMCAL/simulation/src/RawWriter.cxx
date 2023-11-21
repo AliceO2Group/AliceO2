@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <set>
+
 #include <fairlogger/Logger.h>
 
 #include <fmt/core.h>
@@ -127,12 +129,39 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       continue;
     }
 
+    // sort found towers according to FEC inside
+    // within the FEC channels are also sorted according
+    // their local channel ID
+    std::map<int, std::map<int, int>> fecSortedTowersWithSignal;
+    auto& mappingDDL = mMappingHandler->getMappingForDDL(srucont.mSRUid);
     for (const auto& [tower, channel] : srucont.mChannels) {
 
-      bool saturatedBunchHG = false;
-      createPayload(channel, ChannelType_t::HIGH_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
-      if (saturatedBunchHG) {
-        createPayload(channel, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+      auto hwaddress = mappingDDL.getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN);
+      auto fecInDLL = getBranchIndexFromHwAddress(hwaddress) * 10 + getFecIndexFromHwAddress(hwaddress);
+      auto channelID = getChannelIndexFromHwAddress(hwaddress);
+      auto fecFound = fecSortedTowersWithSignal.find(fecInDLL);
+      if (fecFound != fecSortedTowersWithSignal.end()) {
+        fecFound->second[channelID] = tower;
+      } else {
+        std::map<int, int> channelsInFec;
+        channelsInFec[channelID] = tower;
+        fecSortedTowersWithSignal[fecInDLL] = channelsInFec;
+      }
+    }
+
+    // encode payload for sorted channels
+    for (const auto& [fec, channelsInFec] : fecSortedTowersWithSignal) {
+      for (auto [channelID, tower] : channelsInFec) {
+        auto towerChannel = srucont.mChannels.find(tower);
+        if (towerChannel != srucont.mChannels.end()) {
+          bool saturatedBunchHG = false;
+          createPayload(towerChannel->second, ChannelType_t::HIGH_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+          if (saturatedBunchHG) {
+            createPayload(towerChannel->second, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+          }
+        } else {
+          LOG(error) << "No data found for FEC " << fec << ", channel " << channelID << "(tower " << tower << ")";
+        }
       }
     }
 

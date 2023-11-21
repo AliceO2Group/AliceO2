@@ -105,7 +105,7 @@ class TrackFinderTask
       mTrackFinder.printTimers();
       LOG(info) << "tracking duration = " << mElapsedTime.count() << " s";
       mErrorMap.forEach([](Error error) {
-        LOGP(warning, error.asString());
+        LOGP(warning, "{}", error.asString());
       });
     };
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);

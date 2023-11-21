@@ -599,19 +599,23 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
 
 GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState, bool sideC) const
 {
+  GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), iRow, clusterState, sideC);
+}
+
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC)
+{
 #ifndef GPUCA_TPC_GEOMETRY_O2
   if (mSeedingErrors) {
-    param.GetClusterErrorsSeeding2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
+    param.GetClusterErrorsSeeding2(iRow, posZ, snp, tgl, err2Y, err2Z);
   } else
 #endif
   {
-    param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
+    param.GetClusterErrors2(iRow, posZ, snp, tgl, err2Y, err2Z);
   }
   param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  float statErr2 = param.GetSystematicClusterErrorIFC2(mT->GetX(), posZ, sideC);
+  float statErr2 = param.GetSystematicClusterErrorIFC2(x, posZ, sideC);
   err2Y += statErr2;
   err2Z += statErr2;
-  mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
 }
 
 GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, bool sideC) const

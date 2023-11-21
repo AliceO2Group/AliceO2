@@ -30,6 +30,11 @@
 namespace o2::tpc
 {
 
+namespace conf_dedx_corr
+{
+GPUconstexpr() float TglScale[4] = {1.9, 1.5, 1.22, 1.02}; ///< Max Tgl values for each ROC type
+}
+
 class CalibdEdxCorrection
 {
  public:
@@ -54,7 +59,8 @@ class CalibdEdxCorrection
       return 1;
     }
 
-    tgl = o2::gpu::CAMath::Abs(tgl);
+    // limit to the fit range in the respective region
+    tgl = o2::gpu::CAMath::Min(conf_dedx_corr::TglScale[stack.type], o2::gpu::CAMath::Abs(tgl));
     auto p = mParams[stackIndex(stack, charge)];
     float result = p[0];
     // Tgl part

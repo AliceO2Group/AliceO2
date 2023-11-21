@@ -89,10 +89,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec workflow;
 
   auto inputs = o2::framework::select(std::string("x:TRD/RAWDATA").c_str());
-  for (auto& inp : inputs) {
-    // take care of case where our data is not in the time frame
-    inp.lifetime = Lifetime::Optional;
-  }
   if (askSTFDist) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
@@ -105,6 +101,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     algoSpec,
     Options{{"log-max-errors", VariantType::Int, 20, {"maximum number of errors to log"}},
             {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}},
+            {"number-of-TBs", VariantType::Int, -1, {"set to >=0 in order to overwrite number of time bins"}},
             {"every-nth-tf", VariantType::Int, 1, {"process only every n-th TF"}}}});
 
   if (!cfgc.options().get<bool>("disable-root-output")) {

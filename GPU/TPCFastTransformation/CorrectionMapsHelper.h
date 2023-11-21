@@ -80,6 +80,13 @@ class CorrectionMapsHelper
     }
   }
 
+  void setMeanLumiRef(float v)
+  {
+    if (v != mMeanLumi) {
+      mMeanLumiRef = v;
+    }
+  }
+
   void setLumiScaleMode(int v)
   {
     if (v != mLumiScaleMode) {
@@ -93,7 +100,8 @@ class CorrectionMapsHelper
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
     } else if (mLumiScaleMode == 1) {
-      mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi - 1. : 0.f;
+      mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
+      LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
     } else {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }
@@ -105,6 +113,8 @@ class CorrectionMapsHelper
 
   GPUd() float getInstLumi() const { return mInstLumi; }
   GPUd() float getMeanLumi() const { return mMeanLumi; }
+  GPUd() float getMeanLumiRef() const { return mMeanLumiRef; }
+
   GPUd() float getLumiScale() const { return mLumiScale; }
   GPUd() int getLumiScaleMode() const { return mLumiScaleMode; }
 
@@ -123,11 +133,13 @@ class CorrectionMapsHelper
   void setOwner(bool v);
   void acknowledgeUpdate() { mUpdatedFlags = 0; }
 
-  void setUseCTPLumi(bool v) { mUseCTPLumi = v; }
-  bool getUseCTPLumi() const { return mUseCTPLumi; }
+  void setLumiScaleType(int v) { mLumiScaleType = v; }
+  int getLumiScaleType() const { return mLumiScaleType; }
 
   void setMeanLumiOverride(float f) { mMeanLumiOverride = f; }
+  void setMeanLumiRefOverride(float f) { mMeanLumiRefOverride = f; }
   float getMeanLumiOverride() const { return mMeanLumiOverride; }
+  float getMeanLumiRefOverride() const { return mMeanLumiRefOverride; }
 
   void setInstLumiOverride(float f) { mInstLumiOverride = f; }
   float getInstLumiOverride() const { return mInstLumiOverride; }
@@ -138,19 +150,21 @@ class CorrectionMapsHelper
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
-  bool mOwner = false;      // is content of pointers owned by the helper
-  bool mUseCTPLumi = false; // require CTP Lumi for mInstLumi
+  bool mOwner = false;    // is content of pointers owned by the helper
+  int mLumiScaleType = 0; // require CTP Lumi for mInstLumi
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)
+  float mMeanLumiRef = 0.;                                      // mean luminosity of the ref map (a.u)
   float mLumiScale = 0.;                                        // precalculated mInstLumi/mMeanLumi
   int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
   float mMeanLumiOverride = -1.f;                               // optional value to override mean lumi
+  float mMeanLumiRefOverride = -1.f;                            // optional value to override ref mean lumi
   float mInstLumiOverride = -1.f;                               // optional value to override inst lumi
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(CorrectionMapsHelper, 2);
+  ClassDefNV(CorrectionMapsHelper, 4);
 #endif
 };
 

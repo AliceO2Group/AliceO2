@@ -31,7 +31,6 @@
 #include "DataFormatsTPC/SAC.h"
 
 using o2::constants::lhc::LHCBunchSpacingMUS;
-using std::size_t;
 
 namespace o2::tpc::sac
 {
@@ -233,6 +232,8 @@ class Decoder
   ReAlignType mReAlignType{ReAlignType::None};                      ///< if data cannot be dedoced, try to re-align the stream
 
   uint32_t mDebugLevel{0}; ///< Amount of debug information to print
+
+  uint32_t decodeTimeStamp(const char* data);
 
   /// \return status message: 1 = good, 0 = data length too short, -1 = decoding error
   int decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid);

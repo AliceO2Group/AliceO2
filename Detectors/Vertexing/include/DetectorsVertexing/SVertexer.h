@@ -16,6 +16,7 @@
 #define O2_S_VERTEXER_H
 
 #include "gsl/span"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/V0.h"
@@ -25,6 +26,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DCAFitter/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
@@ -34,6 +36,7 @@
 #include <algorithm>
 #include "GPUO2InterfaceRefit.h"
 #include "TPCFastTransform.h"
+#include "DataFormatsTPC/PIDResponse.h"
 
 namespace o2
 {
@@ -49,8 +52,6 @@ class CorrectionMapsHelper;
 namespace vertexing
 {
 
-namespace o2d = o2::dataformats;
-
 class SVertexer
 {
  public:
@@ -65,6 +66,7 @@ class SVertexer
   using Decay3BodyIndex = o2::dataformats::Decay3BodyIndex;
   using RRef = o2::dataformats::RangeReference<int, int>;
   using VBracket = o2::math_utils::Bracket<int>;
+  using PIDResponse = o2::tpc::PIDResponse;
 
   enum HypV0 { Photon,
                K0,
@@ -97,6 +99,9 @@ class SVertexer
     GIndex gid{};
     VBracket vBracket{};
     float minR = 0; // track lowest point r
+    bool hasTPC = false;
+    uint8_t nITSclu = -1;
+    bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
   };
 
   SVertexer(bool enabCascades = true, bool enab3body = false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body}
@@ -112,7 +117,14 @@ class SVertexer
   int getN3Bodies() const { return mN3Bodies; }
   int getNStrangeTracks() const { return mNStrangeTracks; }
   auto& getMeanVertex() const { return mMeanVertex; }
-  void setMeanVertex(const o2d::VertexBase& v) { mMeanVertex = v; }
+  void setMeanVertex(const o2::dataformats::MeanVertexObject* v)
+  {
+    if (v == nullptr) {
+      return;
+    }
+    mMeanVertex = v->getMeanVertex();
+  }
+
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
   void setUseMC(bool v) { mUseMC = v; }
@@ -125,11 +137,11 @@ class SVertexer
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
-  void initTPCTransform();
   void setStrangenessTracker(o2::strangeness_tracking::StrangenessTracker* tracker) { mStrTracker = tracker; }
   o2::strangeness_tracking::StrangenessTracker* getStrangenessTracker() { return mStrTracker; }
 
   std::array<size_t, 3> getNFitterCalls() const;
+  void setSources(GIndex::mask_t src) { mSrc = src; }
 
  private:
   template <class TVI, class TCI, class T3I, class TR>
@@ -142,14 +154,19 @@ class SVertexer
   void updateTimeDependentParams();
   bool acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const;
   bool processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid);
-  float correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const;
+  float correctTPCTrack(TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const;
 
   uint64_t getPairIdx(GIndex id1, GIndex id2) const
   {
     return (uint64_t(id1) << 32) | id2;
   }
+  const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
+  GIndex::mask_t mSrc{};
 
-  // at the moment not used
+  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;                 ///< input TPC tracks span
+  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
+  gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
   o2::strangeness_tracking::StrangenessTracker* mStrTracker = nullptr;
@@ -163,7 +180,7 @@ class SVertexer
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
 
-  o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
+  o2::dataformats::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
   std::array<SVertexHypothesis, NHypV0> mV0Hyps;
   std::array<SVertexHypothesis, NHypCascade> mCascHyps;
@@ -171,6 +188,9 @@ class SVertexer
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   std::vector<DCAFitterN<3>> mFitter3body;
+
+  PIDResponse mPIDresponse;
+
   int mNThreads = 1;
   int mNV0s = 0, mNCascades = 0, mN3Bodies = 0, mNStrangeTracks = 0;
   float mMinR2ToMeanVertex = 0;

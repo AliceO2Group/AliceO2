@@ -25,7 +25,9 @@
 #include <TGeoManager.h>
 
 #include "CommonDataFormat/EvIndex.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsCTP/Digits.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 
 using namespace o2::framework;
@@ -117,7 +119,18 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
-      std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
+      std::vector<o2::emcal::LabeledDigit> summedDigits;
+      if (mRunSDitizer) {
+        summedDigits = mSumDigitizer.process(mHits);
+      } else {
+        for (auto& hit : mHits) {
+          o2::emcal::MCLabel digitlabel(hit.GetTrackID(), part.entryID, part.sourceID, false, 1.);
+          if (hit.GetEnergyLoss() < __DBL_EPSILON__) {
+            digitlabel.setAmplitudeFraction(0);
+          }
+          summedDigits.emplace_back(hit.GetDetectorID(), hit.GetEnergyLoss(), hit.GetTime(), digitlabel);
+        }
+      }
 
       // call actual digitization procedure
       mDigitizer.process(summedDigits);
@@ -136,6 +149,19 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(info) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
   ctx.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  // Create CTP digits
+  std::vector<o2::ctp::CTPInputDigit> triggerinputs;
+  for (auto& trg : mDigitizer.getTriggerRecords()) {
+    // covert TriggerRecord into CTP trigger digit
+    o2::ctp::CTPInputDigit nextdigit;
+    nextdigit.intRecord = trg.getBCData();
+    nextdigit.detector = o2::detectors::DetID::EMC;
+    // Set min. bias accept trigger (input 0) as fake trigger
+    // Other inputs will be added once available
+    nextdigit.inputsMask.set(0);
+    triggerinputs.push_back(nextdigit);
+  }
+  ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe}, triggerinputs);
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";
@@ -170,6 +196,7 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth
     outputs.emplace_back("EMC", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("EMC", "ROMode", 0, Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);

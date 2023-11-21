@@ -277,7 +277,6 @@ struct InteractionCandidate : public o2::InteractionRecord {
   float time = 0;
   float amplitude = 0;
   uint32_t flag = 0; // origin, etc.
-  InteractionCandidate() = default;
 };
 
 } // namespace vertexing

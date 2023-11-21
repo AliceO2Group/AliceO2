@@ -34,6 +34,7 @@ class TStopwatch;
 namespace fair::mq
 {
 struct RegionInfo;
+enum class State : int;
 } // namespace fair::mq
 namespace o2
 {
@@ -47,6 +48,7 @@ class CalibdEdxContainer;
 struct ClusterGroupHeader;
 class VDriftHelper;
 class CorrectionMapsLoader;
+class DeadChannelMapCreator;
 } // namespace tpc
 
 namespace trd
@@ -103,6 +105,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
     int enableDoublePipeline = 0;
+    int tpcDeadMapSources = -1;
     bool decompressTPC = false;
     bool decompressTPCFromROOT = false;
     bool caClusterer = false;
@@ -120,7 +123,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool runTPCTracking = false;
     bool runTRDTracking = false;
     bool readTRDtracklets = false;
-    bool requireCTPLumi = false;
+    int lumiScaleType = 0; // 0=off, 1=CTP, 2=TPC scalers
     bool outputErrorQA = false;
     bool runITSTracking = false;
     bool itsOverrBeamEst = false;
@@ -169,17 +172,18 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   template <class D, class E, class F, class G, class H, class I, class J, class K>
   void processInputs(o2::framework::ProcessingContext&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
 
+  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
   int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflow_QueueObject>& context);
   void RunReceiveThread();
   void RunWorkerThread(int id);
-  void TerminateThreads();
+  void ExitPipeline();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
   void initPipeline(o2::framework::InitContext& ic);
   void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context, bool inputFinal);
   void finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
-  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
+  void receiveFMQStateCallback(fair::mq::State);
 
   CompletionPolicyData* mPolicyData;
   std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
@@ -187,6 +191,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
 
   calibObjectStruct mCalibObjects;
+  std::unique_ptr<o2::tpc::DeadChannelMapCreator> mTPCDeadChannelMapCreator;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerBufferNew;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
   std::queue<calibObjectStruct> mOldCalibObjects;
@@ -209,6 +214,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   unsigned long mTPCSectorMask = 0;
+  long mCreationForCalib = -1; ///< creation time for calib manipulation
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
   unsigned int mNDebugDumps = 0;

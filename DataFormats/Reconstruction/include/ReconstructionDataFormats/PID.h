@@ -112,7 +112,7 @@ class PID
   GPUd() PID(ID id) : mID(id) {}
   GPUd() PID(const char* name);
   GPUdDefault() PID(const PID& src) = default;
-  GPUdDefault() PID& operator=(const PID& src) = default;
+  GPUhdDefault() PID& operator=(const PID& src) = default;
 
   GPUd() ID getID() const { return mID; }
   GPUd() operator ID() const { return getID(); }

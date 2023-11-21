@@ -17,5 +17,7 @@
 
 #pragma link C++ class o2::passive::Alice3PassiveBase + ;
 #pragma link C++ class o2::passive::Alice3Pipe + ;
+#pragma link C++ class o2::passive::Alice3Absorber + ;
+#pragma link C++ class o2::passive::Alice3Magnet + ;
 
 #endif

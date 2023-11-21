@@ -392,9 +392,9 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
       mHitData[globalBinsortedIndex].y = (cahit)yy;
     }
 
-    if (iThread == 0) {
+    if (iThread == 0 && !mem->param.par.continuousTracking) {
       const float maxAbsZ = CAMath::Max(CAMath::Abs(tmpMinMax[2]), CAMath::Abs(tmpMinMax[3]));
-      if (maxAbsZ > 300 && !mem->param.par.continuousTracking) {
+      if (maxAbsZ > 300) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_Z_OVERFLOW, iSlice, (unsigned int)maxAbsZ);
         return 1;
       }

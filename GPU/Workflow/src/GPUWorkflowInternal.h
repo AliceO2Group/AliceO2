@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <queue>
 #include <array>
+#include <fairmq/States.h>
 
 namespace o2::gpu
 {
@@ -59,11 +60,17 @@ struct GPURecoWorkflow_QueueObject {
 struct GPURecoWorkflowSpec_PipelineInternals {
   std::mutex mutexDecodeInput;
 
-  fair::mq::Device* fmqDevice;
+  fair::mq::Device* fmqDevice = nullptr;
+
+  volatile fair::mq::State fmqState = fair::mq::State::Undefined, fmqPreviousState = fair::mq::State::Undefined;
+  volatile bool endOfStreamAsyncReceived = false;
+  volatile bool endOfStreamDplReceived = false;
+  volatile bool runStarted = false;
+  volatile bool shouldTerminate = false;
+  std::mutex stateMutex;
+  std::condition_variable stateNotify;
 
   std::thread receiveThread;
-  std::mutex threadMutex;
-  volatile bool shouldTerminate = false;
 
   struct pipelineWorkerStruct {
     std::thread thread;
@@ -78,14 +85,14 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   std::condition_variable queueNotify;
 
   std::queue<o2::framework::DataProcessingHeader::StartTime> completionPolicyQueue;
-  bool pipelineSenderTerminating = false;
+  volatile bool pipelineSenderTerminating = false;
   std::mutex completionPolicyMutex;
   std::condition_variable completionPolicyNotify;
 
   unsigned long mNTFReceived = 0;
 
-  bool mayInject = true;
-  unsigned long mayInjectTFId = 0;
+  volatile bool mayInject = true;
+  volatile unsigned long mayInjectTFId = 0;
   std::mutex mayInjectMutex;
   std::condition_variable mayInjectCondition;
 };

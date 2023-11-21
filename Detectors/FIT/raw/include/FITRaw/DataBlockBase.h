@@ -58,8 +58,6 @@ namespace o2
 namespace fit
 {
 
-using namespace std;
-
 static constexpr size_t SIZE_WORD = 16;
 static constexpr size_t SIZE_WORD_GBT = 10;                                                   // should be changed to gloabal variable
 static constexpr size_t SIZE_MAX_PAGE = 8192;                                                 // should be changed to gloabal variable

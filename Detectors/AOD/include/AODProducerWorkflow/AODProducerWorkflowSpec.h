@@ -28,6 +28,7 @@
 #include "Steer/MCKinematicsReader.h"
 #include "TStopwatch.h"
 #include "ZDCBase/Constants.h"
+#include "GlobalTracking/MatchGlobalFwd.h"
 
 #include <string>
 #include <vector>
@@ -226,6 +227,7 @@ class AODProducerWorkflowDPL : public Task
   }
 
   bool mPropTracks{false};
+  bool mPropMuons{false};
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
@@ -301,7 +303,7 @@ class AODProducerWorkflowDPL : public Task
   // Mapping of eventID, sourceID, trackID to some integer.
   // The first two indices are not sparse whereas the trackID index is sparse which explains
   // the combination of vector and map
-  std::vector<std::vector<std::unordered_map<int, int>*>> mToStore;
+  std::vector<std::vector<std::unordered_map<int, int>>> mToStore;
   o2::steer::MCKinematicsReader* mMCKineReader = nullptr; //!
 
   // production metadata
@@ -310,6 +312,8 @@ class AODProducerWorkflowDPL : public Task
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+
+  o2::globaltracking::MatchGlobalFwd mMatching;
 
   static constexpr int TOFTimePrecPS = 16; // required max error in ps for TOF tracks
   // truncation is enabled by default

@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
+#include <numeric>
 
 #include "Rtypes.h"
 
@@ -32,7 +33,7 @@ namespace o2::tpc
 struct CRUConfig {
   static constexpr int NConfigValues = 7; ///< number of configuration values
 
-  uint32_t linkOn{0};        ///< if the link is active
+  uint32_t linkOn{0};        ///< bitmask of active links
   uint32_t cmcEnabled{0};    ///< if common mode correction is enabled
   uint32_t zsOffset{0};      ///< zero suppression offset value used in ITF
   float itCorr0{1.f};        ///< ion tail scaling parameter
@@ -57,7 +58,20 @@ struct FEEConfig {
     Physics35sigma = 6, ///< Physics configuration with 3.5 sigma thresholds
     Physics30sigma = 7, ///< Physics configuration with 3.0 sigma thresholds
     Physics25sigma = 8, ///< Physics configuration with 2.5 sigma thresholds
+    Laser10ADCoff = 9,  ///< Configuration for Laser data taking with 10ADC offset for special studies
   };
+
+  enum class PadConfig {
+    ITfraction = 0,
+    ITexpLambda = 1,
+    CMkValues = 2,
+    ThresholdMap = 3,
+    Pedestals = 4,
+  };
+
+  static constexpr size_t MaxLinks = 91 * 36;
+  static const std::unordered_map<Tags, const std::string> TagNames;
+  static const std::unordered_map<PadConfig, const std::string> PadConfigNames;
 
   using CalPadMapType = std::unordered_map<std::string, CalPad>;
   FEEConfig() { cruConfig.resize(CRU::MaxCRU); }
@@ -81,6 +95,17 @@ struct FEEConfig {
       val = CRUConfig();
     }
   }
+
+  size_t getNumberActiveLinks() const;
+  bool isCMCEnabled() const;
+  bool isITFEnabled() const;
+  bool isZSEnabled() const;
+  bool isResyncEnabled() const;
+
+  void print() const;
+
+  /// Dead channel map including deactivated links and single channels
+  CalDet<bool> getDeadChannelMap() const;
 
   ClassDefNV(FEEConfig, 2);
 };

@@ -42,7 +42,8 @@
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCReaderWorkflow/TriggerReaderSpec.h"
-
+#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "CTPWorkflowIO/DigitReaderSpec.h"
 #include <string>
 #include <stdexcept>
 #include <fstream>
@@ -97,8 +98,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"tpc-triggers", OutputType::TPCTriggers}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
-                                    bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, bool requireCTPLumi)
+                                    const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int deadMapSources)
 {
   InputType inputType;
   try {
@@ -173,6 +174,9 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   }};
 
   if (!disableRootInput || inputType == InputType::PassThrough) {
+    if (sclOpts.lumiType == 1) { // need CTP digits (lumi) reader
+      specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
+    }
     // The OutputSpec of the PublisherSpec is configured depending on the input
     // type. Note that the configuration of the dispatch trigger in the main file
     // needs to be done in accordance. This means, if a new input option is added
@@ -440,7 +444,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   if (runGPUReco) {
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
     cfg.runTPCTracking = true;
-    cfg.requireCTPLumi = requireCTPLumi;
+    cfg.lumiScaleType = sclOpts.lumiType;
+    cfg.lumiScaleMode = sclOpts.lumiMode;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;
@@ -456,6 +461,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
     cfg.tpcTriggerHandling = isEnabled(OutputType::TPCTriggers) || cfg.caClusterer;
+    cfg.tpcDeadMapSources = deadMapSources;
 
     Inputs ggInputs;
     auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);

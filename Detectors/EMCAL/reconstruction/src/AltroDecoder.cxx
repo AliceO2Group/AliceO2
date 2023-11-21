@@ -42,7 +42,6 @@ void AltroDecoder::readRCUTrailer()
     gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
     mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
-    LOG(error) << "Error while decoding RCU trailer: " << e.what();
     throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{} {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR), e.what()));
   }
 }
@@ -75,6 +74,13 @@ void AltroDecoder::readChannels()
     int32_t hwaddress = channelheader & 0xFFF;
     uint16_t payloadsize = (channelheader >> 16) & 0x3FF;
     bool badchannel = (channelheader >> 29) & 0x1;
+
+    // check hardware address for consistency
+    if (!checkChannelHWAddress(hwaddress)) {
+      // Inconsistent HW address information, channel header corrupted, payload must be skipped
+      mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_ORDER, channelheader, currentword);
+      continue;
+    }
 
     int currentfec = 10 * Channel::getBranchIndexFromHwAddress(hwaddress) + Channel::getFecIndexFromHwAddress(hwaddress);
     // std::cout << "Branch: " << Channel::getBranchIndexFromHwAddress(hwaddress) << ", FEC " << Channel::getFecIndexFromHwAddress(hwaddress) << " -> " << currentfec << " (channel " << Channel::getChannelIndexFromHwAddress(hwaddress) << " )" << std::endl;
@@ -159,6 +165,23 @@ void AltroDecoder::readChannels()
     }
   }
   mChannelsInitialized = true;
+}
+
+bool AltroDecoder::checkChannelHWAddress(int hwaddress)
+{
+  unsigned int branch = Channel::getBranchIndexFromHwAddress(hwaddress),
+               fec = Channel::getFecIndexFromHwAddress(hwaddress),
+               altro = Channel::getAltroIndexFromHwAddress(hwaddress);
+  if (branch > 1) {
+    return false;
+  }
+  if (fec > 9) {
+    return false;
+  }
+  if (!(altro == 0 || altro == 2 || altro == 3 || altro == 4)) {
+    return false;
+  }
+  return true;
 }
 
 const RCUTrailer& AltroDecoder::getRCUTrailer() const
@@ -355,17 +378,20 @@ int MinorAltroDecodingError::errorTypeToInt(MinorAltroErrType errortype)
     case MinorAltroErrType::CHANNEL_ORDER:
       errorNumber = 2;
       break;
-    case MinorAltroErrType::BUNCH_HEADER_NULL:
+    case MinorAltroErrType::CHANNEL_HEADER:
       errorNumber = 3;
       break;
-    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
       errorNumber = 4;
       break;
-    case MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED:
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
       errorNumber = 5;
       break;
-    case MinorAltroErrType::BUNCH_STARTTIME:
+    case MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED:
       errorNumber = 6;
+      break;
+    case MinorAltroErrType::BUNCH_STARTTIME:
+      errorNumber = 7;
       break;
   };
 
@@ -388,15 +414,18 @@ MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
       errorType = MinorAltroErrType::CHANNEL_ORDER;
       break;
     case 3:
-      errorType = MinorAltroErrType::BUNCH_HEADER_NULL;
+      errorType = MinorAltroErrType::CHANNEL_HEADER;
       break;
     case 4:
-      errorType = MinorAltroErrType::BUNCH_LENGTH_EXCEED;
+      errorType = MinorAltroErrType::BUNCH_HEADER_NULL;
       break;
     case 5:
-      errorType = MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED;
+      errorType = MinorAltroErrType::BUNCH_LENGTH_EXCEED;
       break;
     case 6:
+      errorType = MinorAltroErrType::BUNCH_LENGTH_ALLOW_EXCEED;
+      break;
+    case 7:
       errorType = MinorAltroErrType::BUNCH_STARTTIME;
       break;
     default:
@@ -415,6 +444,8 @@ const char* MinorAltroDecodingError::getErrorTypeName(ErrorType_t errortype)
       return "ChannelPayloadExceed";
     case MinorAltroErrType::CHANNEL_ORDER:
       return "ChannelOrderError";
+    case MinorAltroErrType::CHANNEL_HEADER:
+      return "ChannelHeader";
     case MinorAltroErrType::BUNCH_HEADER_NULL:
       return "BunchHeaderNull";
     case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
@@ -436,6 +467,8 @@ const char* MinorAltroDecodingError::getErrorTypeTitle(ErrorType_t errortype)
       return "Channel exceed";
     case MinorAltroErrType::CHANNEL_ORDER:
       return "FEC order";
+    case MinorAltroErrType::CHANNEL_HEADER:
+      return "Channel header invalid";
     case MinorAltroErrType::BUNCH_HEADER_NULL:
       return "Bunch header null";
     case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
@@ -457,6 +490,8 @@ const char* MinorAltroDecodingError::getErrorTypeDescription(ErrorType_t errorty
       return "Trying to access out-of-bound payload!";
     case MinorAltroErrType::CHANNEL_ORDER:
       return "Invalid FEC order";
+    case MinorAltroErrType::CHANNEL_HEADER:
+      return "Invalid channel header";
     case MinorAltroErrType::BUNCH_HEADER_NULL:
       return "Bunch header 0 or not configured!";
     case MinorAltroErrType::BUNCH_LENGTH_EXCEED:

@@ -105,7 +105,11 @@ class CalArray
   std::vector<T>& getData() { return mData; }
 
   /// calculate the sum of all elements
-  const T getSum() const { return std::accumulate(mData.begin(), mData.end(), T(0)); }
+  template <typename U = T>
+  const U getSum() const
+  {
+    return std::accumulate(mData.begin(), mData.end(), U{});
+  }
 
   /// Multiply all val to all channels
   const CalArray<T>& multiply(const T& val) { return *this *= val; }
@@ -228,7 +232,11 @@ inline const CalArray<T>& CalArray<T>::operator+=(const CalArray<T>& other)
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
-    mData[i] += other.getValue(i);
+    if constexpr (std::is_same_v<T, bool>) {
+      mData[i] = mData[i] | other.getValue(i);
+    } else {
+      mData[i] += other.getValue(i);
+    }
   }
   return *this;
 }
@@ -256,7 +264,11 @@ inline const CalArray<T>& CalArray<T>::operator*=(const CalArray<T>& other)
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
-    mData[i] *= other.getValue(i);
+    if constexpr (std::is_same_v<T, bool>) {
+      mData[i] = mData[i] & other.getValue(i);
+    } else {
+      mData[i] *= other.getValue(i);
+    }
   }
   return *this;
 }

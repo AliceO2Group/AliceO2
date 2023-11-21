@@ -17,6 +17,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
 #include "Framework/Lifetime.h"
 #include "Framework/ConfigParamSpec.h"
@@ -66,16 +67,17 @@ auto getDataOriginFromFilename(const std::string& filename)
 
 InjectorFunction dcs2dpl(const std::string& acknowledge)
 {
-  return [acknowledge](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+  return [acknowledge](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) -> bool {
+    auto *device = services.get<RawDeviceService>().device();
     if (parts.Size() == 0) { // received at ^c, ignore
       LOG(info) << "ignoring empty message";
-      return;
+      return false;
     }
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
-      sendAnswer("error0: wrong number of messages", acknowledge, device);
-      return;
+      sendAnswer("error0: wrong number of messages", acknowledge, *device);
+      return false;
     }
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t filesize = parts.At(1)->GetSize();
@@ -83,8 +85,8 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     o2::header::DataOrigin dataOrigin = getDataOriginFromFilename(filename);
     if (dataOrigin == o2::header::gDataOriginInvalid) {
       LOG(error) << "unknown detector for " << filename;
-      sendAnswer(fmt::format("{}:error1: unrecognized filename", filename), acknowledge, device);
-      return;
+      sendAnswer(fmt::format("{}:error1: unrecognized filename", filename), acknowledge, *device);
+      return false;
     }
 
     o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
@@ -93,8 +95,8 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     auto channel = channelRetriever(outsp, newTimesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
-      sendAnswer(fmt::format("{}:error2: no channel to send", filename), acknowledge, device);
-      return;
+      sendAnswer(fmt::format("{}:error2: no channel to send", filename), acknowledge, *device);
+      return false;
     }
 
     hdrF.tfCounter = newTimesliceId;
@@ -111,7 +113,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     hdrN.payloadSize = parts.At(0)->GetSize();
     hdrN.firstTForbit = 0; // this should be irrelevant for DCS
 
-    auto fmqFactory = device.GetChannel(channel).Transport();
+    auto fmqFactory = device->GetChannel(channel).Transport();
     std::uint64_t creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
 
     o2::header::Stack headerStackF{hdrF, DataProcessingHeader{newTimesliceId, 1, creation}};
@@ -129,15 +131,16 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     fair::mq::Parts outPartsF;
     outPartsF.AddPart(std::move(hdMessageF));
     outPartsF.AddPart(std::move(plMessageF));
-    sendOnChannel(device, outPartsF, channel, (size_t)-1);
+    sendOnChannel(*device, outPartsF, channel, (size_t)-1);
 
     fair::mq::Parts outPartsN;
     outPartsN.AddPart(std::move(hdMessageN));
     outPartsN.AddPart(std::move(plMessageN));
-    sendOnChannel(device, outPartsN, channel, newTimesliceId);
+    sendOnChannel(*device, outPartsN, channel, newTimesliceId);
 
-    sendAnswer(fmt::format("{}:ok", filename), acknowledge, device);
+    sendAnswer(fmt::format("{}:ok", filename), acknowledge, *device);
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
+    return true;
   };
 }
 

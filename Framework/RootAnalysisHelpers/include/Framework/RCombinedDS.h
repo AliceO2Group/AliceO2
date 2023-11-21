@@ -341,14 +341,14 @@ class RCombinedDS final : public ROOT::RDF::RDataSource
     dummy += colName.data();
     throw std::runtime_error(dummy);
   }
-  const std::vector<std::string>& GetColumnNames() const override;
+  [[nodiscard]] const std::vector<std::string>& GetColumnNames() const override;
   std::vector<std::pair<ULong64_t, ULong64_t>> GetEntryRanges() override;
-  std::string GetTypeName(std::string_view colName) const override;
-  bool HasColumn(std::string_view colName) const override;
+  [[nodiscard]] std::string GetTypeName(std::string_view colName) const override;
+  [[nodiscard]] bool HasColumn(std::string_view colName) const override;
   bool SetEntry(unsigned int slot, ULong64_t entry) override;
   void InitSlot(unsigned int slot, ULong64_t firstEntry) override;
   void SetNSlots(unsigned int nSlots) override;
-  void Initialise() override;
+  void Initialize() override;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

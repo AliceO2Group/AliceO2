@@ -368,7 +368,8 @@ DataProcessorSpec
         }
 
         // skip non-AOD refs
-        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD"))) {
+        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD")) &&
+            !DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("DYN"))) {
           continue;
         }
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;

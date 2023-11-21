@@ -212,6 +212,7 @@ class PVertexer
   long mLongestClusterTimeMS = 0;
   int mLongestClusterMult = 0;
   bool mPoolDumpProduced = false;
+  bool mITSOnly = false;
   TStopwatch mTimeDBScan;
   TStopwatch mTimeVertexing;
   TStopwatch mTimeDebris;

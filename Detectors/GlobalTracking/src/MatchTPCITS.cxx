@@ -633,9 +633,9 @@ bool MatchTPCITS::prepareITSData()
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
     long nBC = rofRec.getBCData().differenceInBC(mStartIR);
-    if (nBC > maxBCs) {
+    if (nBC > maxBCs || nBC < 0) {
       if (++errCount < MaxErrors2Report) {
-        LOGP(alarm, "ITS ROF#{} start is not compatible with TF 1st orbit {} and TF length of {} HBFs",
+        LOGP(alarm, "ITS ROF#{} start {} is not compatible with TF 1st orbit {} or TF length of {} HBFs",
              irof, rofRec.getBCData().asString(), mStartIR.asString(), nHBF);
       }
       break;
@@ -683,6 +683,7 @@ bool MatchTPCITS::prepareITSData()
       if (mMCTruthON) {
         mITSLblWork.emplace_back(mITSTrkLabels[it]);
       }
+      trc.setUserField(0);
       // cache work track index
       int sector = o2::math_utils::angle2Sector(trc.getAlpha());
       mITSSectIndexCache[sector].push_back(nWorkTracks);
@@ -1329,7 +1330,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   iITS = tpcMatchRec.partnerID;
   const auto& tITS = mITSWork[iITS];
   const auto& itsTrOrig = mITSTracksArray[tITS.sourceID];
-
   auto& trfit = matchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   trfit.getParamOut().setUserField(0);                  // reset eventual clones flag
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing

@@ -136,15 +136,16 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     mServiceRegistry{registry},
     mProcessingPolicies{policies}
 {
-  GetConfig()->Subscribe<std::string>("dpl", [&cleanupCount = mCleanupCount, &registry = mServiceRegistry](const std::string& key, std::string value) {
+  GetConfig()->Subscribe<std::string>("dpl", [&registry = mServiceRegistry](const std::string& key, std::string value) {
     if (key == "cleanup") {
+      auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+      auto& deviceState = ref.get<DeviceState>();
+      int64_t cleanupCount = deviceState.cleanupCount.load();
       int64_t newCleanupCount = std::stoll(value);
       if (newCleanupCount <= cleanupCount) {
         return;
       }
-      cleanupCount = newCleanupCount;
-      auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
-      auto& deviceState = ref.get<DeviceState>();
+      deviceState.cleanupCount.store(newCleanupCount);
       for (auto& info : deviceState.inputChannelInfos) {
         fair::mq::Parts parts;
         while (info.channel->Receive(parts, 0)) {
@@ -493,6 +494,10 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   ZoneScopedN("Signal callaback");
   LOG(debug) << "Signal " << signum << " received.";
   auto* registry = (ServiceRegistry*)handle->data;
+  if (!registry) {
+    LOG(debug) << "No registry active. Ignoring signal";
+    return;
+  }
   ServiceRegistryRef ref{*registry};
   auto& state = ref.get<DeviceState>();
   auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
@@ -957,9 +962,12 @@ void DataProcessingDevice::InitTask()
       LOG(detail) << "ptr: " << info.ptr;
       LOG(detail) << "size: " << info.size;
       LOG(detail) << "flags: " << info.flags;
-      context.expectedRegionCallbacks -= 1;
+      // Now we check for pending events with the mutex,
+      // so the lines below are atomic.
       pendingRegionInfos.push_back(info);
-      // We always want to handle these on the main loop
+      context.expectedRegionCallbacks -= 1;
+      // We always want to handle these on the main loop,
+      // so we awake it.
       ServiceRegistryRef ref{registry};
       uv_async_send(ref.get<DeviceState>().awakeMainThread);
     });
@@ -969,10 +977,18 @@ void DataProcessingDevice::InitTask()
   // an event from the outside, making sure that the event loop can
   // be unblocked (e.g. by a quitting DPL driver) even when there
   // is no data pending to be processed.
-  auto* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
-  uv_signal_init(state.loop, sigusr1Handle);
-  sigusr1Handle->data = &mServiceRegistry;
-  uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
+  if (deviceContext.sigusr1Handle == nullptr) {
+    deviceContext.sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
+    deviceContext.sigusr1Handle->data = &mServiceRegistry;
+    uv_signal_init(state.loop, deviceContext.sigusr1Handle);
+    uv_signal_start(deviceContext.sigusr1Handle, on_signal_callback, SIGUSR1);
+  }
+  // If there is any signal, we want to make sure they are active
+  for (auto& handle : state.activeSignals) {
+    handle->data = &state;
+  }
+  // When we start, we must make sure that we do listen to the signal
+  deviceContext.sigusr1Handle->data = &mServiceRegistry;
 
   /// Initialise the pollers
   DataProcessingDevice::initPollers();
@@ -991,11 +1007,17 @@ void DataProcessingDevice::InitTask()
   // We will get there.
   this->fillContext(mServiceRegistry.get<DataProcessorContext>(ServiceRegistry::globalDeviceSalt()), deviceContext);
 
+  auto hasPendingEvents = [&mutex = mRegionInfoMutex, &pendingRegionInfos = mPendingRegionInfos](DeviceContext& deviceContext) {
+    std::lock_guard<std::mutex> lock(mutex);
+    return (pendingRegionInfos.empty() == false) || deviceContext.expectedRegionCallbacks > 0;
+  };
   /// We now run an event loop also in InitTask. This is needed to:
   /// * Make sure region registration callbacks are invoked
   /// on the main thread.
   /// * Wait for enough callbacks to be delivered before moving to START
-  while (deviceContext.expectedRegionCallbacks > 0 && uv_run(state.loop, UV_RUN_ONCE)) {
+  while (hasPendingEvents(deviceContext)) {
+    // Wait for the callback to signal its done, so that we do not busy wait.
+    uv_run(state.loop, UV_RUN_ONCE);
     // Handle callbacks if any
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
@@ -1666,6 +1688,19 @@ void DataProcessingDevice::ResetTask()
 {
   ServiceRegistryRef ref{mServiceRegistry};
   ref.get<DataRelayer>().clear();
+  auto& deviceContext = ref.get<DeviceContext>();
+  // If the signal handler is there, we should
+  // hide the registry from it, so that we do not
+  // end up calling the signal handler on something
+  // which might not be there anymore.
+  if (deviceContext.sigusr1Handle) {
+    deviceContext.sigusr1Handle->data = nullptr;
+  }
+  // Makes sure we do not have a working context on
+  // shutdown.
+  for (auto& handle : ref.get<DeviceState>().activeSignals) {
+    handle->data = nullptr;
+  }
 }
 
 struct WaitBackpressurePolicy {
@@ -2168,11 +2203,17 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       buffer[ai] = record.isValid(ai) ? '3' : '0';
     }
     buffer[record.size()] = 0;
-    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index),
+                        .size = (int)(record.size() + buffer - relayerSlotState),
+                        .data = relayerSlotState});
     uint64_t tEnd = uv_hrtime();
-    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
+    // tEnd and tStart are in nanoseconds according to https://docs.libuv.org/en/v1.x/misc.html#c.uv_hrtime
+    int64_t wallTimeMs = (tEnd - tStart) / 1000000;
+    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, wallTimeMs});
+    // Sum up the total wall time, in milliseconds.
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_WALL_TIME_MS, DataProcessingStats::Op::Add, wallTimeMs});
     // The time interval is in seconds while tEnd - tStart is in nanoseconds, so we divide by 1000000 to get the fraction in ms/s.
-    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, (int64_t)(tEnd - tStart) / 1000000});
+    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, wallTimeMs});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
     stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
     auto latency = calculateInputRecordLatency(record, tStartMilli);
@@ -2293,6 +2334,15 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         if (context.isSink && action.op == CompletionPolicy::CompletionOp::Consume) {
           auto& allocator = ref.get<DataAllocator>();
           allocator.make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
+        }
+
+        // Extra callback which allows a service to add extra outputs.
+        // This is needed e.g. to ensure that injected CCDB outputs are added
+        // before an end of stream.
+        {
+          ref.get<CallbackService>().call<CallbackService::Id::FinaliseOutputs>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);
+          dpContext.finaliseOutputsCallbacks(processContext);
+          streamContext.finaliseOutputsCallbacks(processContext);
         }
 
         {
