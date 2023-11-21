@@ -140,8 +140,8 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     auto dcaHist = mMapHist[fmt::format("hDCAr_{}", types[type]).data()].get();
     const std::string signType((sign < 0) ? "Neg" : "Pos");
     auto dcaHistPT = mMapHist["hDCArVsPt" + signType].get();
-    auto dcaHistEta = mMapHist["hDCArVsEtaPos" + signType].get();
-    auto dcaHistNCluster = mMapHist["hDCArVsNClsPos" + signType].get();
+    auto dcaHistEta = mMapHist["hDCArVsEta" + signType].get();
+    auto dcaHistNCluster = mMapHist["hDCArVsNCls" + signType].get();
 
     // set-up sampling for the DCA calculation
     Double_t sampleProb = 2;
