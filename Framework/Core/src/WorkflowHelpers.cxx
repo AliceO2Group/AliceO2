@@ -11,7 +11,6 @@
 #include "WorkflowHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AODReaderHelpers.h"
-#include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/ConfigContext.h"
@@ -21,13 +20,10 @@
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
-#include "Framework/CommonMessageBackends.h"
 #include "Framework/ChannelSpecHelpers.h"
-#include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
-#include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -61,25 +57,25 @@ std::vector<TopoIndexInfo>
   using EdgeIndex = int;
   // Create the index which will be returned.
   std::vector<TopoIndexInfo> index(nodeCount);
-  for (auto wi = 0; wi < nodeCount; ++wi) {
+  for (auto wi = 0; static_cast<size_t>(wi) < nodeCount; ++wi) {
     index[wi] = {wi, 0};
   }
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
-  for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
+  for (EdgeIndex ei = 0; static_cast<size_t>(ei) < edgesCount; ++ei) {
     remainingEdgesIndex[ei] = ei;
   }
 
   // Create a vector where at each position we have true
   // if the vector has dependencies, false otherwise
   std::vector<bool> nodeDeps(nodeCount, false);
-  for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
+  for (EdgeIndex ei = 0; static_cast<size_t>(ei) < edgesCount; ++ei) {
     nodeDeps[*(edgeOut + ei * stride)] = true;
   }
 
   // We start with all those which do not have any dependencies
   // They are layer 0.
   std::list<TopoIndexInfo> L;
-  for (auto ii = 0; ii < index.size(); ++ii) {
+  for (auto ii = 0; static_cast<size_t>(ii) < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
       L.push_back({ii, 0});
     }
