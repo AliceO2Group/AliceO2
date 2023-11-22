@@ -9,9 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataOutputDirector.h"
+#include "Framework/DataSpecUtils.h"
+#include "Headers/DataHeaderHelpers.h"
+#include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/Logger.h"
 
 #include <filesystem>
+#include <regex>
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
@@ -532,7 +536,7 @@ bool DataOutputDirector::checkFileSizes()
 
   // loop over all files
   // if one file is large, then all files need to be closed
-  for (int i = 0; i < mfilenameBases.size(); i++) {
+  for (auto i = 0U; i < mfilenameBases.size(); i++) {
     if (!mfilePtrs[i]) {
       continue;
     }
@@ -557,7 +561,7 @@ bool DataOutputDirector::checkFileSizes()
 
 void DataOutputDirector::closeDataFiles()
 {
-  for (int i = 0; i < mfilePtrs.size(); i++) {
+  for (auto i = 0U; i < mfilePtrs.size(); i++) {
     auto filePtr = mfilePtrs[i];
     if (filePtr) {
       if (filePtr->IsOpen() && mParentMaps[i]->GetEntries() > 0) {
@@ -632,6 +636,19 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
 void DataOutputDirector::setMaximumFileSize(float maxfs)
 {
   mmaxfilesize = maxfs;
+}
+
+void DataOutputDirector::validate()
+{
+  for (auto i = 0U; i < mDataOutputDescriptors.size(); ++i) {
+    for (auto j = i + 1; j < mDataOutputDescriptors.size(); ++j) {
+      if ((mDataOutputDescriptors[i]->treename == mDataOutputDescriptors[j]->treename) && (mDataOutputDescriptors[i]->version == mDataOutputDescriptors[j]->version)) {
+        auto o1 = DataSpecUtils::optionalConcreteDataMatcherFrom(*mDataOutputDescriptors[i]->matcher);
+        auto o2 = DataSpecUtils::optionalConcreteDataMatcherFrom(*mDataOutputDescriptors[j]->matcher);
+        throw runtime_error_f("Duplicated entry for table %s version %s (origins %s and %s)", mDataOutputDescriptors[i]->treename.c_str(), mDataOutputDescriptors[i]->version.c_str(), o1->origin, o2->origin);
+      }
+    }
+  }
 }
 
 } // namespace framework

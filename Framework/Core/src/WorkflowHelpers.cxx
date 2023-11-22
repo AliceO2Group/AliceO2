@@ -44,8 +44,9 @@
 namespace o2::framework
 {
 
-static constexpr std::array<header::DataOrigin, 3> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"A0D"}, header::DataOrigin{"A1D"}};
-static constexpr std::array<header::DataOrigin, 5> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"A0D"}, header::DataOrigin{"A1D"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}};
+static constexpr std::array<header::DataOrigin, 3> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}};
+static constexpr std::array<header::DataOrigin, 5> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}};
+static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}};
 
 std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
 {
@@ -1119,26 +1120,23 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   if (options.isSet("aod-writer-keep")) {
     auto keepString = options.get<std::string>("aod-writer-keep");
     if (!keepString.empty()) {
-
       dod->reset();
       std::string d("dangling");
       if (d.find(keepString) == 0) {
-
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-          if (DataSpecUtils::partialMatch(OutputsInputs[ii], AODOrigins) && isDangling[ii]) {
+          if (DataSpecUtils::partialMatch(OutputsInputs[ii], writableAODOrigins) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
         }
         dod->readSpecs(danglingOutputs);
-
       } else {
-
         // use the keep string
         dod->readString(keepString);
       }
     }
+    dod->validate();
   }
   dod->setResultDir(resdir);
   dod->setFilenameBase(fnbase);
