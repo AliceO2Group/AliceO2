@@ -132,6 +132,12 @@ if(doBuildSimulation)
                          PUBLIC_LINK_LIBRARIES O2::Generators
                                                O2::SimConfig
                                                LABELS generators)
+
+  o2_add_test(GeneratorService NAME test_Generator_test_GeneratorService
+              SOURCES test/test_GeneratorService.cxx
+              COMPONENT_NAME Generator
+              LABELS generator
+              PUBLIC_LINK_LIBRARIES O2::Generators)
 endif()
 
 o2_add_test_root_macro(share/external/tgenerator.C
@@ -151,12 +157,6 @@ o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
         PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
 endif()
-
-o2_add_test(GeneratorService NAME test_Generator_test_GeneratorService
-            SOURCES test/test_GeneratorService.cxx
-            COMPONENT_NAME Generator
-            LABELS generator
-            PUBLIC_LINK_LIBRARIES O2::Generators)
 
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)
