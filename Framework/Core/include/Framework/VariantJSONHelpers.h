@@ -351,7 +351,7 @@ void writeVariant(std::ostream& o, Variant const& v)
           } else if constexpr (std::is_same_v<float, T> || std::is_same_v<double, T>) {
             w.Double(array2d(i, j));
           } else if constexpr (std::is_same_v<std::string, T>) {
-            w.String(array2d(i, j));
+            w.String(array2d(i.c_str(), j.c_str()));
           }
         }
         w.EndArray();
