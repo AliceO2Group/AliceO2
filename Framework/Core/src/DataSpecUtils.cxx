@@ -13,6 +13,7 @@
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include <fmt/format.h>
 #include <cstring>
