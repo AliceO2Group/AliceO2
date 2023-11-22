@@ -275,23 +275,10 @@ bool DataSpecUtils::match(InputSpec const& input, OutputSpec const& output)
                     output.matcher);
 }
 
-template <size_t N>
-bool DataSpecUtils::partialMatch(InputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
-{
-  return std::find_if(origins.begin(), origins.end(), [&](auto const& o) { return DataSpecUtils::asConcreteOrigin(spec) == o; }) != origins.end();
-}
-
 bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataOrigin const& origin)
 {
   auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(output);
   return dataType.origin == origin;
-}
-
-template <size_t N>
-bool DataSpecUtils::partialMatch(OutputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
-{
-  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
-  return std::find_if(origins.begin(), origins.end(), [&](auto const& o) { return dataType.origin == o; }) != origins.end();
 }
 
 bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin const& origin)
