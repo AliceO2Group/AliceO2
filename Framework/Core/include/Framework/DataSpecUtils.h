@@ -82,7 +82,7 @@ struct DataSpecUtils {
 
   /// @return true if the InputSpec will match at least one of the provided @a origins
   template <size_t N>
-  bool partialMatch(InputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
+  static bool partialMatch(InputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
   {
     return std::find_if(origins.begin(), origins.end(), [&](auto const& o) { return DataSpecUtils::asConcreteOrigin(spec) == o; }) != origins.end();
   }
@@ -92,7 +92,7 @@ struct DataSpecUtils {
 
   /// @return true if the OutputSpec will match at least one of the provided @a origins
   template <size_t N>
-  bool partialMatch(OutputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
+  static bool partialMatch(OutputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
   {
     auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
     return std::find_if(origins.begin(), origins.end(), [&](auto const& o) { return dataType.origin == o; }) != origins.end();
