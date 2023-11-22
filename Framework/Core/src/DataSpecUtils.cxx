@@ -278,7 +278,7 @@ bool DataSpecUtils::match(InputSpec const& input, OutputSpec const& output)
 template <size_t N>
 bool DataSpecUtils::partialMatch(InputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
 {
-  return std::find_if(origins.begin(), origins.end(), [&](auto const& o){ return DataSpecUtils::asConcreteOrigin(spec) == o; }) != origins.end();
+  return std::find_if(origins.begin(), origins.end(), [&](auto const& o) { return DataSpecUtils::asConcreteOrigin(spec) == o; }) != origins.end();
 }
 
 bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataOrigin const& origin)
@@ -291,7 +291,7 @@ template <size_t N>
 bool DataSpecUtils::partialMatch(OutputSpec const& spec, std::array<header::DataOrigin, N> const& origins)
 {
   auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
-  return std::find_if(origins.begin(), origins.end(), [&](auto const& o){ return dataType.origin == o; }) != origins.end();
+  return std::find_if(origins.begin(), origins.end(), [&](auto const& o) { return dataType.origin == o; }) != origins.end();
 }
 
 bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin const& origin)
