@@ -21,6 +21,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
+#include "MCHTimeClustering/TimeClusterFinderSpecV2.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -30,6 +31,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "F-DIGITS", {"description string for the input digit data"}});
   workflowOptions.push_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "F-DIGITROFS", {"description string for the input digit rofs data"}});
   workflowOptions.push_back(ConfigParamSpec{"output-digitrofs-data-description", VariantType::String, "TC-F-DIGITROFS", {"description string for the output digit rofs data"}});
+  workflowOptions.push_back(ConfigParamSpec{"new-rof-clustering", VariantType::Bool, false, {"enable new version of rof clustering"}});
   workflowOptions.push_back(ConfigParamSpec{
     "configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
@@ -39,6 +41,15 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
   o2::conf::ConfigurableParam::updateFromString(cc.options().get<std::string>("configKeyValues"));
+
+  if (cc.options().get<bool>("new-rof-clustering")) {
+    return {
+      o2::mch::getTimeClusterFinderSpecV2(
+        "mch-time-clustering",
+        cc.options().get<std::string>("input-digits-data-description"),
+        cc.options().get<std::string>("input-digitrofs-data-description"),
+        cc.options().get<std::string>("output-digitrofs-data-description"))};
+  }
 
   return {
     o2::mch::getTimeClusterFinderSpec(

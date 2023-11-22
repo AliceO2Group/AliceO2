@@ -30,6 +30,7 @@
 #include "MCHStatus/StatusMapCreatorParam.h"
 #include "MCHStatus/StatusMapCreatorSpec.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
+#include "MCHTimeClustering/TimeClusterFinderSpecV2.h"
 #include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/ErrorWriterSpec.h"
@@ -59,6 +60,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step (for debug)"}},
     {"digits", VariantType::Bool, false, {"Write digits associated to tracks"}},
     {"triggered", VariantType::Bool, false, {"use MID to trigger the MCH reconstruction"}},
+    {"new-rof-clustering", VariantType::Bool, false, {"enable new version of rof clustering"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -74,6 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
   auto digits = configcontext.options().get<bool>("digits");
   auto triggered = configcontext.options().get<bool>("triggered");
+  auto newRofClustering = configcontext.options().get<bool>("new-rof-clustering");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableClustering = configcontext.options().get<bool>("disable-clustering");
   auto disableTracking = disableClustering || configcontext.options().get<bool>("disable-tracking");
@@ -100,10 +103,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                    "F-DIGITROFS", "E-F-DIGITROFS",
                                                    "F-DIGITLABELS", "E-F-DIGITLABELS"));
   } else {
+    if (newRofClustering) {
+      std::cout << "[TOTO] calling getTimeClusterFinderSpecV2()" << std::endl;
+      specs.emplace_back(o2::mch::getTimeClusterFinderSpecV2("mch-time-cluster-finder-new",
+                                                             "F-DIGITS",
+                                                             "F-DIGITROFS",
+                                                             "TC-F-DIGITROFS"));
+    } else {
+      std::cout << "[TOTO] calling getTimeClusterFinderSpec()" << std::endl;
     specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
                                                          "F-DIGITS",
                                                          "F-DIGITROFS",
                                                          "TC-F-DIGITROFS"));
+    }
   }
 
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",

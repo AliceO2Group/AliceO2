@@ -10,10 +10,10 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MCHTimeClustering
-        SOURCES src/ROFTimeClusterFinder.cxx src/TimeClusterizerParam.cxx src/TimeClusterFinderSpec.cxx
+        SOURCES src/ROFTimeClusterFinder.cxx src/TimeClusterizerParam.cxx src/TimeClusterFinderSpec.cxx src/ROFTimeClusterFinderV2.cxx src/TimeClusterizerParamV2.cxx src/TimeClusterFinderSpecV2.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework O2::MCHDigitFiltering O2::MCHROFFiltering)
 
-o2_target_root_dictionary(MCHTimeClustering HEADERS include/MCHTimeClustering/TimeClusterizerParam.h)
+o2_target_root_dictionary(MCHTimeClustering HEADERS include/MCHTimeClustering/TimeClusterizerParam.h include/MCHTimeClustering/TimeClusterizerParamV2.h)
 
 o2_add_executable(
         digits-to-timeclusters-workflow
