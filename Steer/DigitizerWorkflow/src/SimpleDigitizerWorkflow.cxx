@@ -169,6 +169,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // Option to write TPC digits internaly, without forwarding to a special writer instance.
   // This is useful in GRID productions with small available memory.
   workflowOptions.push_back(ConfigParamSpec{"tpc-chunked-writer", o2::framework::VariantType::Bool, false, {"Write independent TPC digit chunks as soon as they can be flushed."}});
+  workflowOptions.push_back(ConfigParamSpec{"tpc-simulate-distortions", o2::framework::VariantType::Bool, false, {"Simulate distortions in the TPC."}});
 
   std::string simhelp("Comma separated list of simulation prefixes (for background, signal productions)");
   workflowOptions.push_back(
@@ -568,7 +569,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     detList.emplace_back(o2::detectors::DetID::TPC);
 
     auto internalwrite = configcontext.options().get<bool>("tpc-chunked-writer");
-    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth, internalwrite);
+    auto simDis = configcontext.options().get<bool>("tpc-simulate-distortions");
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth, internalwrite, simDis);
     specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
 
     if (configcontext.options().get<std::string>("tpc-reco-type").empty() == false) {

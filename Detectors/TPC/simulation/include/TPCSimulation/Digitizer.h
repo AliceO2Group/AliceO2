@@ -53,7 +53,7 @@ enum class SCDistortionType : int;
 class Digitizer
 {
  public:
-  using SC = SpaceCharge<double>;
+  using SC = SpaceCharge<float>;
 
   /// Default constructor
   Digitizer();

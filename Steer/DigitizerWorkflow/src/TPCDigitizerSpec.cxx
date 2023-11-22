@@ -44,12 +44,12 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "SimConfig/DigiParams.h"
 #include <filesystem>
-#include "TH3.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
-using SC = o2::tpc::SpaceCharge<double>;
+using SC = o2::tpc::SpaceCharge<float>;
 
 namespace o2
 {
@@ -108,7 +108,7 @@ using namespace o2::base;
 class TPCDPLDigitizerTask : public BaseDPLDigitizer
 {
  public:
-  TPCDPLDigitizerTask(bool internalwriter) : mInternalWriter(internalwriter), BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM)
+  TPCDPLDigitizerTask(bool internalwriter, bool simulateDistortions) : mInternalWriter(internalwriter), BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mSimulateDistortions(simulateDistortions)
   {
   }
 
@@ -124,55 +124,6 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     mUseCalibrationsFromCCDB = ic.options().get<bool>("TPCuseCCDB");
     LOG(info) << "TPC calibrations from CCDB: " << mUseCalibrationsFromCCDB;
 
-    if (useDistortions > 0) {
-      if (useDistortions == 1) {
-        LOG(info) << "Using realistic space-charge distortions.";
-      } else {
-        LOG(info) << "Using constant space-charge distortions.";
-      }
-      auto readSpaceChargeString = ic.options().get<std::string>("readSpaceCharge");
-      std::vector<std::string> readSpaceCharge;
-      std::stringstream ssSpaceCharge(readSpaceChargeString);
-      while (ssSpaceCharge.good()) {
-        std::string substr;
-        getline(ssSpaceCharge, substr, ',');
-        readSpaceCharge.push_back(substr);
-      }
-      if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
-        if (std::filesystem::exists(readSpaceCharge[0])) {
-          LOGP(info, "Reading space-charge object from file {}", readSpaceCharge[0].data());
-          mDigitizer.setUseSCDistortions(readSpaceCharge[0]);
-        } else {
-          LOG(error) << "Space-charge object or file not found!";
-        }
-      } else { // create new space-charge object either with empty TPC or an initial space-charge density provided by histogram
-        SCDistortionType distortionType = useDistortions == 2 ? SCDistortionType::SCDistortionsConstant : SCDistortionType::SCDistortionsRealistic;
-        auto inputHistoString = ic.options().get<std::string>("initialSpaceChargeDensity");
-        std::vector<std::string> inputHisto;
-        std::stringstream ssHisto(inputHistoString);
-        while (ssHisto.good()) {
-          std::string substr;
-          getline(ssHisto, substr, ',');
-          inputHisto.push_back(substr);
-        }
-        std::unique_ptr<TH3> hisSCDensity;
-        if (std::filesystem::exists(inputHisto[0])) {
-          auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
-          if (fileSCInput->FindKey(inputHisto[1].data())) {
-            hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
-            hisSCDensity->SetDirectory(nullptr);
-          }
-        }
-        if (hisSCDensity.get() != nullptr) {
-          LOG(info) << "TPC: Providing initial space-charge density histogram: " << hisSCDensity->GetName();
-          mDigitizer.setUseSCDistortions(distortionType, hisSCDensity.get());
-        } else {
-          if (distortionType == SCDistortionType::SCDistortionsConstant) {
-            LOG(error) << "Input space-charge density histogram or file not found!";
-          }
-        }
-      }
-    }
     mDigitizer.setContinuousReadout(!triggeredMode);
 
     // we send the GRP data once if the corresponding output channel is available
@@ -236,6 +187,10 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
       return;
     }
+    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDIST", 0)) {
+      LOGP(info, "Updating distortion map");
+      mDigitizer.setUseSCDistortions(static_cast<SC*>(obj));
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -247,6 +202,9 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
     // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
     mTPCVDriftHelper.extractCCDBInputs(pc);
+    if (mSimulateDistortions) {
+      pc.inputs().get<SC*>("tpcdistortions");
+    }
     if (mTPCVDriftHelper.isUpdated()) {
       const auto& vd = mTPCVDriftHelper.getVDriftObject();
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
@@ -498,9 +456,10 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   bool mWithMCTruth = true;
   bool mInternalWriter = false;
   bool mUseCalibrationsFromCCDB = false;
+  bool mSimulateDistortions = false;
 };
 
-o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter)
+o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter, bool simulateDistortions)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -530,23 +489,21 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
     id.str().c_str(),
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter)},
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter, simulateDistortions)},
     Options{
       {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
-      {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
-      {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
       {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}},
       {"TPCuseCCDB", VariantType::Bool, false, {"true: load calibrations from CCDB; false: use random calibratoins"}},
     }};
 }
 
-o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter)
+o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, bool simulateDistortions)
 {
   // channel parameter is deprecated in the TPCDigitizer processor, all descendants
   // are initialized not to publish GRP mode, but the channel will be added to the first
   // processor after the pipelines have been created. The processor will decide upon
   // the index in the ParallelContext whether to publish
-  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth, internalwriter)};
+  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth, internalwriter, simulateDistortions)};
   // override the predefined name, index will be added by parallelPipeline method
   pipelineTemplate[0].name = "TPCDigitizer";
   WorkflowSpec pipelines = parallelPipeline(
@@ -554,6 +511,9 @@ o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> con
   // add the channel for the GRP information to the first processor
   for (auto& spec : pipelines) {
     o2::tpc::VDriftHelper::requestCCDBInputs(spec.inputs); // add the same CCDB request to each pipeline
+    if (simulateDistortions) {
+      spec.inputs.emplace_back("tpcdistortions", o2::header::gDataOriginTPC, "TPCDIST", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::DistortionMap), {}, 1)); // time-dependent
+    }
   }
   pipelines[0].outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
   return pipelines;

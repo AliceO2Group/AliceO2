@@ -78,6 +78,8 @@ enum class CDBType {
   CalScaler,           ///< Scaler from IDCs or combined estimator
                        ///
   CorrMapParam,        ///< parameters for CorrectionMapsLoader configuration
+                       ///
+  DistortionMap,       ///< distortions for MC used in the digitizer
 };
 
 /// Storage name in CCDB for each calibration and parameter type
@@ -136,6 +138,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalScaler, "TPC/Calib/Scaler"},
   // correction maps loader params
   {CDBType::CorrMapParam, "TPC/Calib/CorrMapParam"},
+  // distortion maps
+  {CDBType::DistortionMap, "TPC/Calib/DistortionMap"},
 };
 
 } // namespace o2::tpc
