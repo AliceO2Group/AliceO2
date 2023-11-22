@@ -57,7 +57,7 @@ void resetContentHandler(int /* signal */)
 }
 
 struct ShmManager {
-  ShmManager(uint64_t _shmId, const vector<string>& _segments, const vector<string>& _regions, bool zero = true)
+  ShmManager(uint64_t _shmId, const vector<string>& _segments, const vector<string>& _regions, uint64_t _refcount_segment_size, bool zero = true)
     : shmId(fair::mq::shmem::makeShmIdStr(_shmId))
   {
     LOG(info) << "Starting ShmManager for shmId: " << shmId;
@@ -68,7 +68,7 @@ struct ShmManager {
     AddSegments(_segments, zero);
     LOG(info) << "Done.";
     LOG(info) << "Adding unmanaged regions...";
-    AddRegions(_regions, zero);
+    AddRegions(_regions, _refcount_segment_size, zero);
     LOG(info) << "Done.";
     LOG(info) << "Shared memory is ready for use.";
   }
@@ -116,7 +116,7 @@ struct ShmManager {
     }
   }
 
-  void AddRegions(const vector<string>& _regions, bool zero)
+  void AddRegions(const vector<string>& _regions, uint64_t _refcount_segment_size, bool zero)
   {
     for (const auto& r : _regions) {
       vector<string> conf;
@@ -131,6 +131,9 @@ struct ShmManager {
       fair::mq::RegionConfig cfg;
       cfg.id = id;
       cfg.size = size;
+      if (_refcount_segment_size) {
+        cfg.rcSegmentSize = _refcount_segment_size;
+      }
       regionCfgs.push_back(cfg);
 
 #if !defined(__MACH__) && !defined(__APPLE__)
@@ -217,6 +220,7 @@ int main(int argc, char** argv)
     bool nozero = false;
     bool checkPresence = true;
     uint64_t shmId = 0;
+    uint64_t refcount_segment_size = 0;
     vector<string> segments;
     vector<string> regions;
 
@@ -227,6 +231,7 @@ int main(int argc, char** argv)
       "regions", value<vector<string>>(&regions)->multitoken()->composing(), "Regions, as <id>,<size> <id>,<size>,<numaid> <id>,<size>,<numaid> ...")(
       "nozero", value<bool>(&nozero)->default_value(false)->implicit_value(true), "Do not zero segments after initialization")(
       "check-presence", value<bool>(&checkPresence)->default_value(true)->implicit_value(true), "Check periodically if configured segments/regions are still present, and cleanup and leave if they are not")(
+      "refcount-segment-size", value<uint64_t>(&refcount_segment_size)->default_value(0), "Shm id")(
       "help,h", "Print help");
 
     variables_map vm;
@@ -241,7 +246,7 @@ int main(int argc, char** argv)
 
     notify(vm);
 
-    ShmManager shmManager(shmId, segments, regions, !nozero);
+    ShmManager shmManager(shmId, segments, regions, refcount_segment_size, !nozero);
 
     std::thread resetContentThread([&shmManager]() {
       while (!gStopping) {
