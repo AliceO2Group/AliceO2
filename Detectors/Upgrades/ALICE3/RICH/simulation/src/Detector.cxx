@@ -44,11 +44,9 @@ Detector::Detector(bool active)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   auto& richPars = RICHBaseParam::Instance();
-
-  LOGP(info, "Summary of RICH configuration:");
-  for (auto& ring : mRings) {
-    LOGP(info, "Ring: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", ring.getNumber(), ring.getName(), ring.getInnerRadius(), ring.getZ(), ring.getChipThickness());
-  }
+  mRings.resize(richPars.nRings);
+  mNTiles = richPars.nTiles;
+  LOGP(info, "Summary of RICH configuration:\n\tNumber of rings: {}\n\tNumber of tiles per ring: {}", mRings.size(), mNTiles);
 }
 
 Detector::~Detector()
@@ -88,6 +86,12 @@ void Detector::createMaterials()
   float epsilCer = 1.0E-4;      // .10000E+01;
   float stminCer = 0.0;         // cm "Default value used"
 
+  float tmaxfdAerogel = 0.1;        // .10000E+01; // Degree
+  float stemaxAerogel = .10000E+01; // cm
+  float deemaxAerogel = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  float epsilAerogel = 1.0E-4;      // .10000E+01;
+  float stminAerogel = 0.0;         // cm "Default value used"
+
   // AIR
   float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   float zAir[4] = {6., 7., 8., 18.};
@@ -98,11 +102,20 @@ void Detector::createMaterials()
   float aCf[2] = {12.0107, 1.00794};
   float zCf[2] = {6., 1.};
 
+  // Silica aerogel https://pdg.lbl.gov/2023/AtomicNuclearProperties/HTML/silica_aerogel.html
+  float aAerogel[2] = {15.9990, 28.0855, 1.00794};
+  float zAerogel[2] = {8., 14., 1.};
+  float wAerogel[2] = {0.543192, 0.453451, 0.003357};
+  float dAerogel = 0.200; // g/cm3
+
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
   o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
   o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  o2::base::Detector::Mixture(2, "AEROGEL$", aAerogel, zAerogel, dAerogel, 3, wAerogel);
+  o2::base::Detector::Medium(2, "AEROGEL$", 2, 0, ifield, fieldm, tmaxfdAerogel, stemaxAerogel, deemaxAerogel, epsilAerogel, stminAerogel);
 }
 
 void Detector::createGeometry()
@@ -118,10 +131,7 @@ void Detector::createGeometry()
 
   char vstrng[100] = "RICHVol";
   vRICH->SetTitle(vstrng);
-
-  for (auto& ring : mRings) {
-    ring.createRing(vRICH);
-  }
+  Ring::generateAllRings(vRICH);
 }
 
 void Detector::InitializeO2Detector()
@@ -139,7 +149,7 @@ void Detector::defineSensitiveVolumes()
   TString volumeName;
   LOGP(info, "Adding RICH Sensitive Volumes");
 
-  // The names of the RICH sensitive volumes have the format: RICHRing(0...mRings.size()-1)
+  // The names of the RICH sensitive volumes have the format: Ring(0...mRings.size()-1)
   for (int j{0}; j < mRings.size(); j++) {
     volumeName = GeometryTGeo::getRICHSensorPattern() + TString::Itoa(j, 10);
     LOGP(info, "Trying {}", volumeName.Data());

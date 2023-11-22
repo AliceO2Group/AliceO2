@@ -8,6 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// Design and equations: Nicola Nicassio nicola.nicassio@cern.ch
+//
 
 #ifndef ALICEO2_RICH_DETECTOR_H
 #define ALICEO2_RICH_DETECTOR_H
@@ -63,25 +66,31 @@ class Detector : public o2::base::DetImpl<Detector>
   void configFromFile(std::string fileName = "alice3_RICH_layout.txt");
   void configToFile(std::string fileName = "alice3_RICH_layout.txt");
 
-  void configServices(); // To get special conf from CLI options
   void createMaterials();
   void createGeometry();
+  void createRings(TGeoVolume*);
 
  private:
   // Transient data about track passing the sensor
   struct TrackData {
-    bool mHitStarted;                  // hit creation started
-    unsigned char mTrkStatusStart;     // track status flag
-    TLorentzVector mPositionStart;     // position at entrance
-    TLorentzVector mMomentumStart;     // momentum
-    double mEnergyLoss;                // energy loss
-  } mTrackData;                        //! transient data
+    bool mHitStarted;              // hit creation started
+    unsigned char mTrkStatusStart; // track status flag
+    TLorentzVector mPositionStart; // position at entrance
+    TLorentzVector mMomentumStart; // momentum
+    double mEnergyLoss;            // energy loss
+  } mTrackData;                    //! transient data
+
   GeometryTGeo* mGeometryTGeo;         //!
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
-  std::vector<o2::rich::RICHRing> mRings;
-  // RICHServices mServices;
+  std::vector<o2::rich::Ring> mRings;
 
   void defineSensitiveVolumes();
+
+ protected:
+  int mNumberOfRings; // 21 for |eta|<1.82,  23 for eta|<2.00
+  int mNTiles;
+  // Vessel
+  float mMaximumHalfLength = 350; // cm
 
   template <typename Det>
   friend class o2::base::DetImpl;

@@ -15,7 +15,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::rich::RICHRing + ;
+#pragma link C++ class o2::rich::Ring + ;
 #pragma link C++ class o2::rich::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::rich::Detector> + ;
 
