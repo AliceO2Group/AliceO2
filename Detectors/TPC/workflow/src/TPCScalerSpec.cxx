@@ -85,7 +85,7 @@ class TPCScalerSpec : public Task
 o2::framework::DataProcessorSpec getTPCScalerSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("tpcscaler", o2::header::gDataOriginTPC, "TPCSCALERCCDB", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalScaler)));
+  inputs.emplace_back("tpcscaler", o2::header::gDataOriginTPC, "TPCSCALERCCDB", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalScaler), {}, 1)); // time-dependent
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 false,                          // GRPECS=true for nHBF per TF
