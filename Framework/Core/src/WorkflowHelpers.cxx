@@ -1232,6 +1232,17 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
+bool validateLifetime(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+{
+  if (input.lifetime == Lifetime::Timeframe && output.lifetime == Lifetime::Sporadic) {
+    errors << fmt::format("Input {} of {} has lifetime Timeframe, but output {} of {} has lifetime Sporadic\n",
+                          DataSpecUtils::describe(input).c_str(), consumer.name,
+                          DataSpecUtils::describe(output).c_str(), producer.name);
+    return false;
+  }
+  return true;
+}
+
 bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
 {
   auto isExpendable = [](DataProcessorLabel const& label) {
@@ -1256,7 +1267,7 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
-  std::vector<Validator> defaultValidators = {validateExpendable};
+  std::vector<Validator> defaultValidators = {validateExpendable, validateLifetime};
   std::stringstream errors;
   // Iterate over all the edges.
   // Get the input lifetime and the output lifetime.
