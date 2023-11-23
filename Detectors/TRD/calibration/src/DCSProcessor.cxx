@@ -686,7 +686,7 @@ void DCSProcessor::clearRunDPsInfo()
 
 void DCSProcessor::clearFedChamberStatusDPsInfo()
 {
-  mTRDDCSFedChamberStatus.clear();
+  // mTRDDCSFedChamberStatus should not be cleared after upload giving alarm/warn logic
   mFedChamberStatusStartTSSet = false;
   mFedChamberStatusCompleteDPs = false;
   mFirstRunEntryForFedChamberStatusUpdate = false;
@@ -704,7 +704,7 @@ void DCSProcessor::clearFedChamberStatusDPsInfo()
 
 void DCSProcessor::clearFedCFGtagDPsInfo()
 {
-  mTRDDCSFedCFGtag.clear();
+  // mTRDDCSFedCFGtag should not be cleared after upload giving alarm/warn logic
   mFedCFGtagStartTSSet = false;
   mFedCFGtagCompleteDPs = false;
   mFirstRunEntryForFedCFGtagUpdate = false;
