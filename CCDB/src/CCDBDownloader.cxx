@@ -509,7 +509,7 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
           followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
         } else if (200 <= httpCode && httpCode < 300) {
           contentRetrieved = true;
-        } 
+        }
       } else {
         LOG(error) << loggingMessage;
       }
