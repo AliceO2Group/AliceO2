@@ -71,6 +71,8 @@ enum class CDBType {
                        ///
   CalCorrMap,          ///< Cluster correction map (high IR rate distortions)
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
+  CalCorrMapMC,        ///< Cluster correction map (high IR rate distortions) for MC
+  CalCorrMapRefMC,     ///< Cluster correction reference map (static distortions) for MC
                        ///
   CalCorrDerivMap,     ///< Cluster correction map (derivative map)
                        ///
@@ -79,7 +81,8 @@ enum class CDBType {
                        ///
   CorrMapParam,        ///< parameters for CorrectionMapsLoader configuration
                        ///
-  DistortionMap,       ///< distortions for MC used in the digitizer
+  DistortionMapMC,     ///< full distortions (static + IR dependant) for MC used in the digitizer
+  DistortionMapDerivMC ///< derivative distortions for MC used in the digitizer for scaling
 };
 
 /// Storage name in CCDB for each calibration and parameter type
@@ -131,6 +134,9 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // correction maps
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMapV2"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRefV2"},
+  // correction maps for MC
+  {CDBType::CalCorrMapMC, "TPC/Calib/CorrectionMapMCV2"},
+  {CDBType::CalCorrMapRefMC, "TPC/Calib/CorrectionMapRefMCV2"},
   // derivative map correction
   {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
   // time series
@@ -139,7 +145,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // correction maps loader params
   {CDBType::CorrMapParam, "TPC/Calib/CorrMapParam"},
   // distortion maps
-  {CDBType::DistortionMap, "TPC/Calib/DistortionMap"},
+  {CDBType::DistortionMapMC, "TPC/Calib/DistortionMapMC"},
+  {CDBType::DistortionMapDerivMC, "TPC/Calib/DistortionMapDerivativeMC"},
 };
 
 } // namespace o2::tpc

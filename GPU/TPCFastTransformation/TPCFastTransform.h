@@ -442,7 +442,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
 {
   if (mApplyCorrection) {
     float dx = 0.f, du = 0.f, dv = 0.f;
-    if ((scale >= 0.f) || (scaleMode == 1)) {
+    if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
 #ifndef GPUCA_GPUCODE
       if (mCorrectionSlow) {
         float ly, lz;
@@ -470,7 +470,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
             dx = (dx - dxRef) * scale + dxRef;
             du = (du - duRef) * scale + duRef;
             dv = (dv - dvRef) * scale + dvRef;
-          } else if ((scale != 0.f) && (scaleMode == 1)) {
+          } else if ((scale != 0.f) && ((scaleMode == 1) || (scaleMode == 2))) {
             float dxRef, duRef, dvRef;
             ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
             dx = dxRef * scale + dx;
@@ -494,11 +494,11 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
       getGeometry().convUVtoLocal(slice, uCorr, vCorr, lyT, lzT);
 
       float invYZtoX;
-      InverseTransformYZtoX(slice, row, ly, lz, invYZtoX);
+      InverseTransformYZtoX(slice, row, lyT, lzT, invYZtoX, ref, scale, scaleMode);
 
       float YZtoNominalY;
       float YZtoNominalZ;
-      InverseTransformYZtoNominalYZ(slice, row, ly, lz, YZtoNominalY, YZtoNominalZ);
+      InverseTransformYZtoNominalYZ(slice, row, lyT, lzT, YZtoNominalY, YZtoNominalZ, ref, scale, scaleMode);
 
       float dxRef, duRef, dvRef;
       ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
@@ -745,17 +745,17 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
   /// Transformation y,z -> x
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
-  if (scale >= 0.f) {
+  if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
     mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
-    if (ref && scale > 0.f) { // scaling was requested
-      if (scaleMode == 0) {
+    if (ref) { // scaling was requested
+      if (scaleMode == 0 && scale > 0.f) {
         float xr;
         ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
         x = (x - xr) * scale + xr;
-      } else if (scaleMode == 1) {
+      } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
         float xr;
         ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
-        x = xr * scale + x;
+        x = (xr - getGeometry().getRowInfo(row).x) * scale + x; // xr=mGeo.getRowInfo(row).x + dx;
       }
     }
   } else {
@@ -780,19 +780,19 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
   /// Transformation y,z -> x
   float u = 0, v = 0, un = 0, vn = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
-  if (scale >= 0.f) {
+  if ((scale >= 0.f) || (scaleMode == 1) || (scaleMode == 2)) {
     mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
-    if (ref && scale > 0.f) { // scaling was requested
-      if (scaleMode == 0) {
+    if (ref) { // scaling was requested
+      if (scaleMode == 0 && scale > 0.f) {
         float unr = 0, vnr = 0;
         ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
         un = (un - unr) * scale + unr;
         vn = (vn - vnr) * scale + vnr;
-      } else if (scaleMode == 1) {
+      } else if ((scale != 0) && ((scaleMode == 1) || (scaleMode == 2))) {
         float unr = 0, vnr = 0;
         ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
-        un = unr * scale + un;
-        vn = vnr * scale + vn;
+        un = (unr - u) * scale + un; // unr = u - duv[0];
+        vn = (vnr - v) * scale + vn;
       }
     }
   } else {

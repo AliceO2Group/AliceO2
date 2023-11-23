@@ -99,7 +99,7 @@ class CorrectionMapsHelper
   {
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
-    } else if (mLumiScaleMode == 1) {
+    } else if ((mLumiScaleMode == 1) || (mLumiScaleMode == 2)) {
       mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
       LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
     } else {

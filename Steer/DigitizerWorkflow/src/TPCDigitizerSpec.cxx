@@ -108,7 +108,7 @@ using namespace o2::base;
 class TPCDPLDigitizerTask : public BaseDPLDigitizer
 {
  public:
-  TPCDPLDigitizerTask(bool internalwriter, bool simulateDistortions) : mInternalWriter(internalwriter), BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mSimulateDistortions(simulateDistortions)
+  TPCDPLDigitizerTask(bool internalwriter, int distortionType) : mInternalWriter(internalwriter), BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mDistortionType(distortionType)
   {
   }
 
@@ -119,12 +119,15 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     mLaneId = ic.services().get<const o2::framework::DeviceSpec>().rank;
 
     mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
-    auto useDistortions = ic.options().get<int>("distortionType");
     auto triggeredMode = ic.options().get<bool>("TPCtriggered");
     mUseCalibrationsFromCCDB = ic.options().get<bool>("TPCuseCCDB");
+    mMeanLumiDistortions = ic.options().get<float>("meanLumiDistortions");
+    mMeanLumiDistortionsDerivative = ic.options().get<float>("meanLumiDistortionsDerivative");
+
     LOG(info) << "TPC calibrations from CCDB: " << mUseCalibrationsFromCCDB;
 
     mDigitizer.setContinuousReadout(!triggeredMode);
+    mDigitizer.setDistortionScaleType(mDistortionType);
 
     // we send the GRP data once if the corresponding output channel is available
     // and set the flag to false after
@@ -190,6 +193,16 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDIST", 0)) {
       LOGP(info, "Updating distortion map");
       mDigitizer.setUseSCDistortions(static_cast<SC*>(obj));
+      if (mMeanLumiDistortions >= 0) {
+        mDigitizer.setMeanLumiDistortions(mMeanLumiDistortions);
+      }
+    }
+    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCDISTDERIV", 0)) {
+      LOGP(info, "Updating reference distortion map");
+      mDigitizer.setSCDistortionsDerivative(static_cast<SC*>(obj));
+      if (mMeanLumiDistortionsDerivative >= 0) {
+        mDigitizer.setMeanLumiDistortionsDerivative(mMeanLumiDistortionsDerivative);
+      }
     }
   }
 
@@ -202,9 +215,14 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
     // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
     mTPCVDriftHelper.extractCCDBInputs(pc);
-    if (mSimulateDistortions) {
+    if (mDistortionType) {
       pc.inputs().get<SC*>("tpcdistortions");
+      if (mDistortionType == 2) {
+        pc.inputs().get<SC*>("tpcdistortionsderiv");
+        mDigitizer.setLumiScaleFactor();
+      }
     }
+
     if (mTPCVDriftHelper.isUpdated()) {
       const auto& vd = mTPCVDriftHelper.getVDriftObject();
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
@@ -456,10 +474,12 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   bool mWithMCTruth = true;
   bool mInternalWriter = false;
   bool mUseCalibrationsFromCCDB = false;
-  bool mSimulateDistortions = false;
+  int mDistortionType = 0;
+  float mMeanLumiDistortions = -1;
+  float mMeanLumiDistortionsDerivative = -1;
 };
 
-o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter, bool simulateDistortions)
+o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter, int distortionType)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -489,21 +509,22 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
     id.str().c_str(),
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter, simulateDistortions)},
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter, distortionType)},
     Options{
-      {"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
       {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}},
       {"TPCuseCCDB", VariantType::Bool, false, {"true: load calibrations from CCDB; false: use random calibratoins"}},
+      {"meanLumiDistortions", VariantType::Float, -1.f, {"override lumi of distortion object if >=0"}},
+      {"meanLumiDistortionsDerivative", VariantType::Float, -1.f, {"override lumi of derivative distortion object if >=0"}},
     }};
 }
 
-o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, bool simulateDistortions)
+o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter, int distortionType)
 {
   // channel parameter is deprecated in the TPCDigitizer processor, all descendants
   // are initialized not to publish GRP mode, but the channel will be added to the first
   // processor after the pipelines have been created. The processor will decide upon
   // the index in the ParallelContext whether to publish
-  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth, internalwriter, simulateDistortions)};
+  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth, internalwriter, distortionType)};
   // override the predefined name, index will be added by parallelPipeline method
   pipelineTemplate[0].name = "TPCDigitizer";
   WorkflowSpec pipelines = parallelPipeline(
@@ -511,8 +532,12 @@ o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> con
   // add the channel for the GRP information to the first processor
   for (auto& spec : pipelines) {
     o2::tpc::VDriftHelper::requestCCDBInputs(spec.inputs); // add the same CCDB request to each pipeline
-    if (simulateDistortions) {
-      spec.inputs.emplace_back("tpcdistortions", o2::header::gDataOriginTPC, "TPCDIST", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::DistortionMap), {}, 1)); // time-dependent
+    if (distortionType) {
+      spec.inputs.emplace_back("tpcdistortions", o2::header::gDataOriginTPC, "TPCDIST", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::DistortionMapMC), {}, 1)); // time-dependent
+      // load derivative map in case scaling was requested
+      if (distortionType == 2) {
+        spec.inputs.emplace_back("tpcdistortionsderiv", o2::header::gDataOriginTPC, "TPCDISTDERIV", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::DistortionMapDerivMC), {}, 1)); // time-dependent
+      }
     }
   }
   pipelines[0].outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
