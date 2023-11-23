@@ -100,9 +100,6 @@ struct DataOutputDirector {
 
   void printOut();
 
-  // write request validation
-  void validate();
-
  private:
   std::string mresultDirectory{"."};
   std::string mfilenameBase;

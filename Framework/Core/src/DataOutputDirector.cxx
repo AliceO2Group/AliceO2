@@ -637,19 +637,5 @@ void DataOutputDirector::setMaximumFileSize(float maxfs)
 {
   mmaxfilesize = maxfs;
 }
-
-void DataOutputDirector::validate()
-{
-  for (auto i = 0U; i < mDataOutputDescriptors.size(); ++i) {
-    for (auto j = i + 1; j < mDataOutputDescriptors.size(); ++j) {
-      if ((mDataOutputDescriptors[i]->treename == mDataOutputDescriptors[j]->treename) && (mDataOutputDescriptors[i]->version == mDataOutputDescriptors[j]->version)) {
-        auto o1 = DataSpecUtils::optionalConcreteDataMatcherFrom(*mDataOutputDescriptors[i]->matcher);
-        auto o2 = DataSpecUtils::optionalConcreteDataMatcherFrom(*mDataOutputDescriptors[j]->matcher);
-        throw runtime_error_f("Duplicated entry for table %s version %s (origins %s and %s)", mDataOutputDescriptors[i]->treename.c_str(), mDataOutputDescriptors[i]->version.c_str(), o1->origin, o2->origin);
-      }
-    }
-  }
-}
-
 } // namespace framework
 } // namespace o2

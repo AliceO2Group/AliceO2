@@ -1136,7 +1136,6 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
         dod->readString(keepString);
       }
     }
-    dod->validate();
   }
   dod->setResultDir(resdir);
   dod->setFilenameBase(fnbase);
