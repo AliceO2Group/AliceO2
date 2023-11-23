@@ -558,16 +558,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(MIDBoardCh4, midBoardCh4, //!
 
 namespace v001
 {
-  DECLARE_SOA_DYNAMIC_COLUMN(NClusters, nClusters, //! Number of MFT clusters
-                             [](uint64_t mftClusterSizes) -> int8_t {
-                               int8_t nClusters = 0;
-                               for (int layer = 0; layer < 11; layer++) {
-                                if ((mftClusterSizes >> (layer * 6)) & 0x3F) {
-                                  nClusters++;
-                                }
+DECLARE_SOA_DYNAMIC_COLUMN(NClusters, nClusters, //! Number of MFT clusters
+                           [](uint64_t mftClusterSizes) -> int8_t {
+                             int8_t nClusters = 0;
+                             for (int layer = 0; layer < 11; layer++) {
+                               if ((mftClusterSizes >> (layer * 6)) & 0x3F) {
+                                 nClusters++;
                                }
-                               return nClusters;
-                             });
+                             }
+                             return nClusters;
+                           });
 } // namespace v001
 
 // FwdTracksCov columns definitions
@@ -640,12 +640,12 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMFTTracks_001, "MFTTracks", "AOD", "MFTTR
                                  fwdtrack::Sign<fwdtrack::Signed1Pt>, fwdtrack::Chi2,
                                  fwdtrack::TrackTime, fwdtrack::TrackTimeRes);
 
-DECLARE_SOA_EXTENDED_TABLE(MFTTracks_000, StoredMFTTracks_000, "MFTTRACK", //! Additional MFTTracks information (Pt, Eta, P), version 0 
+DECLARE_SOA_EXTENDED_TABLE(MFTTracks_000, StoredMFTTracks_000, "MFTTRACK", //! Additional MFTTracks information (Pt, Eta, P), version 0
                            aod::fwdtrack::Pt,
                            aod::fwdtrack::Eta,
                            aod::fwdtrack::P);
 
-DECLARE_SOA_EXTENDED_TABLE(MFTTracks_001, StoredMFTTracks_001, "MFTTRACK", //! Additional MFTTracks information (Pt, Eta, P), version 1 
+DECLARE_SOA_EXTENDED_TABLE(MFTTracks_001, StoredMFTTracks_001, "MFTTRACK", //! Additional MFTTracks information (Pt, Eta, P), version 1
                            aod::fwdtrack::Pt,
                            aod::fwdtrack::Eta,
                            aod::fwdtrack::P);
