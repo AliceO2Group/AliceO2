@@ -716,4 +716,3 @@ std::string CCDBDownloader::prepareLogMessage(std::string host_url, std::string 
 }
 
 } // namespace o2
-
