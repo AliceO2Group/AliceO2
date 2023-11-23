@@ -182,7 +182,11 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
             outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtra_001ExtensionMetadata{}));
           }
         } else if (description == header::DataDescription{"MFTTRACK"}) {
-          outputs.adopt(Output{origin, description, version}, maker(o2::aod::MFTTracksExtensionMetadata{}));
+          if (version == 0U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::MFTTracks_000ExtensionMetadata{}));
+          } else if (version == 1U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::MFTTracks_001ExtensionMetadata{}));
+          }
         } else if (description == header::DataDescription{"FWDTRACK"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::FwdTracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
