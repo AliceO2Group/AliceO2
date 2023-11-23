@@ -1533,6 +1533,7 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   data->path = requestContext.path;
   data->timestamp = requestContext.timestamp;
   data->localContentCallback = localContentCallback;
+  data->userAgent = mUniqueAgentID;
 
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
   initCurlOptionsForRetrieve(curl_handle, (void*)(&data->hoPair), writeCallback, false);
@@ -1687,8 +1688,6 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
       if (requestContext.considerSnapshot && fromSnapshots.at(i) != 2) {
         saveSnapshot(requestContext);
       }
-    } else {
-      LOG(info) << "Did not receive content for " << requestContext.path << "\n"; // This is to be expected in case of http answer 304 and similar cases
     }
   }
 }
