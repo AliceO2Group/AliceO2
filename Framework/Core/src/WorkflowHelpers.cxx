@@ -1232,12 +1232,31 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
+bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+{
+  auto isExpendable = [](DataProcessorLabel const& label) {
+    return label.value == "expendable";
+  };
+  auto isResilient = [](DataProcessorLabel const& label) {
+    return label.value == "expendable" || label.value == "resilient";
+  };
+  bool producerExpendable = std::find_if(producer.labels.begin(), producer.labels.end(), isExpendable) != producer.labels.end();
+  bool consumerCritical = std::find_if(consumer.labels.begin(), consumer.labels.end(), isResilient) == consumer.labels.end();
+  if (producerExpendable && consumerCritical) {
+    errors << fmt::format("Critical consumer {} depends on expendable producer {}\n",
+                          consumer.name,
+                          producer.name);
+    return false;
+  }
+  return true;
+}
+
 using Validator = std::function<bool(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)>;
 void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
-  std::vector<Validator> defaultValidators = {};
+  std::vector<Validator> defaultValidators = {validateExpendable};
   std::stringstream errors;
   // Iterate over all the edges.
   // Get the input lifetime and the output lifetime.
