@@ -1232,5 +1232,29 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-#pragma diagnostic pop
+using Validator = std::function<bool(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)>;
+void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
+                                    std::vector<DeviceConnectionEdge> const& edges,
+                                    std::vector<OutputSpec> const& outputs)
+{
+  std::vector<Validator> defaultValidators = {};
+  std::stringstream errors;
+  // Iterate over all the edges.
+  // Get the input lifetime and the output lifetime.
+  // Output lifetime must be Timeframe if the input lifetime is Timeframe.
+  bool hasErrors = false;
+  for (auto& edge : edges) {
+    DataProcessorSpec const& producer = workflow[edge.producer];
+    DataProcessorSpec const& consumer = workflow[edge.consumer];
+    OutputSpec const& output = outputs[edge.outputGlobalIndex];
+    InputSpec const& input = consumer.inputs[edge.consumerInputIndex];
+    for (auto& validator : defaultValidators) {
+      hasErrors |= !validator(errors, producer, output, consumer, input);
+    }
+  }
+  if (hasErrors) {
+    throw std::runtime_error(errors.str());
+  }
+}
+
 } // namespace o2::framework

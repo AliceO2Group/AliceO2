@@ -259,9 +259,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
   };
 
   char const* name = "internal-dpl-aod-global-analysis-file-sink";
+  // Lifetime is sporadic because we do not ask each analysis task to send its
+  // results every timeframe.
   DataProcessorSpec spec{
     .name = name,
-    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
+    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}), Lifetime::Sporadic)},
     .algorithm = {writerFunction},
   };
 

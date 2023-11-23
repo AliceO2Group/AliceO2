@@ -1072,6 +1072,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
 
   WorkflowHelpers::constructGraph(workflow, logicalEdges, outputs, availableForwardsInfo);
 
+  WorkflowHelpers::validateEdges(workflow, logicalEdges, outputs);
+
   // We need to instanciate one device per (me, timeIndex) in the
   // DeviceConnectionEdge. For each device we need one new binding
   // server per (me, other) -> port Moreover for each (me, other,
