@@ -149,7 +149,7 @@ str_block_end = """// END OF THE GENERATED BLOCK
 str_enum_head = """/// \\brief Declarations of named PDG codes of particles missing in ROOT PDG_t
 /// \\note Follow kCamelCase naming convention
 /// \\link https://root.cern/doc/master/TPDGCode_8h.html
-enum Code {
+enum Pdg {
 """
 # End of enum declarations of additional particles
 str_enum_foot = "};\n"

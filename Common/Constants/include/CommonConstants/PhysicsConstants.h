@@ -30,7 +30,7 @@ namespace o2::constants::physics
 /// \brief Declarations of named PDG codes of particles missing in ROOT PDG_t
 /// \note Follow kCamelCase naming convention
 /// \link https://root.cern/doc/master/TPDGCode_8h.html
-enum Code {
+enum Pdg {
   kB0 = 511,
   kB0Bar = -511,
   kBPlus = 521,
