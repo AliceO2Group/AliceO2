@@ -52,7 +52,7 @@ int DCSProcessor::process(const gsl::span<const DPCOM> dps)
     mapin[it.id] = it.data;
 
     // LB: check if all ChamberStatus/CFGtag DPs were sent in dps
-    // if counter is equal to 540 => all DPs were sent
+    // if counter is equal to mFedMinimunDPsForUpdate (522) => all DPs were sent
     if (std::strstr(it.id.get_alias(), "trd_chamberStatus") != nullptr) {
       ChamberStatusDPsCounter++;
     } else if (std::strstr(it.id.get_alias(), "trd_CFGtag") != nullptr) {

@@ -145,7 +145,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
       LOG(info) << "Setting min number of DPs to update ChamberStatus/CFGtag to " << minupdatefed;
       mProcessor->setFedMinimunDPsForUpdate(minupdatefed);
     } else {
-      LOG(info) << "Invalid min number of DPs to update ChamberStatus/CFGtag " << alarmfed << ", using default value of 540";
+      LOG(info) << "Invalid min number of DPs to update ChamberStatus/CFGtag " << alarmfed << ", using default value of 522";
     }
 
     mProcessor->init(vect);
@@ -460,7 +460,7 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"DPs-update-interval-gas", VariantType::Int64, 900ll, {"Interval (in s) after which to update the DPs CCDB entry for gas parameters"}},
             {"DPs-update-interval-fedenv", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for front end device environment parameters"}},
             {"DPs-max-counter-alarm-fed", VariantType::Int, 1, {"Maximum number of alarms after FedChamberStatus and FedCFGtag changes, following changes are logged as warnings"}},
-            {"DPs-min-counter-update-fed", VariantType::Int, 540, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}}}};
+            {"DPs-min-counter-update-fed", VariantType::Int, 522, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}}}};
 }
 
 } // namespace framework

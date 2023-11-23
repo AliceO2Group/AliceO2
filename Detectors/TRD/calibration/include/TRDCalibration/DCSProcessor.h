@@ -187,7 +187,7 @@ class DCSProcessor
   // settings
   int mVerbosity{0};
   int mFedAlarmCounterMax{1};
-  int mFedMinimunDPsForUpdate{540};
+  int mFedMinimunDPsForUpdate{522};
 
   ClassDefNV(DCSProcessor, 0);
 };
