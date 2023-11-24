@@ -31,32 +31,26 @@ namespace
 {
 WorkflowSpec defineDataProcessing()
 {
-  return {{"A",                                                       //
-           Inputs{},                                                  //
-           Outputs{OutputSpec{"TST", "A1"}, OutputSpec{"TST", "A2"}}, // A1 will be consumed twice, A2 is dangling
-           AlgorithmSpec{},                                           //
-           {ConfigParamSpec{"channel-config", VariantType::String,    // raw input channel
-                            "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10,rcvBufSize=789",
-                            {"Out-of-band channel config"}}}},
-          {"B", // producer, no inputs
-           Inputs{},
-           Outputs{OutputSpec{"TST", "B1"}},
+  return {{.name = "A",                                                                  //
+           .outputs = Outputs{OutputSpec{"TST", "A1"}, OutputSpec{"TST", "A2"}}, // A1 will be consumed twice, A2 is dangling
+           .algorithm = AlgorithmSpec{},                                         //
+           .options = {ConfigParamSpec{"channel-config", VariantType::String,    // raw input channel
+                                       "name=into_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-into-dpl,transport=shmem,rateLogging=10,rcvBufSize=789",
+                                       {"Out-of-band channel config"}}}},
+          {.name = "B", // producer, no inputs
+           .outputs = Outputs{OutputSpec{"TST", "B1"}},
            .metadata = {{ecs::cpuKillThreshold, "3.0"}}},
-          {"C", // first consumer of A1, consumer of B1
-           {InputSpec{"y", "TST", "A1"}, InputSpec{"y", "TST", "B1"}},
-           Outputs{},
+          {.name = "C", // first consumer of A1, consumer of B1
+           .inputs = {InputSpec{"y", "TST", "A1"}, InputSpec{"y", "TST", "B1"}},
            .metadata = {{ecs::privateMemoryKillThresholdMB, "5000"}}},
-          {"D", // second consumer of A1
-           Inputs{
-             InputSpec{"x", "TST", "A1"}},
-           Outputs{},
-           AlgorithmSpec{},
-           {ConfigParamSpec{"a-param", VariantType::Int, 1, {"A parameter which should not be escaped"}},
-            ConfigParamSpec{"b-param", VariantType::String, "", {"a parameter which will be escaped"}},
-            ConfigParamSpec{"c-param", VariantType::String, "foo;bar", {"another parameter which will be escaped"}},
-            ConfigParamSpec{"channel-config", VariantType::String, // raw output channel
-                            "name=outta_dpl,type=push,method=bind,address=ipc:///tmp/pipe-outta-dpl,transport=shmem,rateLogging=10",
-                            {"Out-of-band channel config"}}}}};
+          {.name = "D", // second consumer of A1
+           .inputs = Inputs{InputSpec{"x", "TST", "A1"}},
+           .options = {ConfigParamSpec{"a-param", VariantType::Int, 1, {"A parameter which should not be escaped"}},
+                       ConfigParamSpec{"b-param", VariantType::String, "", {"a parameter which will be escaped"}},
+                       ConfigParamSpec{"c-param", VariantType::String, "foo;bar", {"another parameter which will be escaped"}},
+                       ConfigParamSpec{"channel-config", VariantType::String, // raw output channel
+                                       "name=outta_dpl,type=push,method=bind,address=ipc:///tmp/pipe-outta-dpl,transport=shmem,rateLogging=10",
+                                       {"Out-of-band channel config"}}}}};
 }
 
 char* strdiffchr(const char* s1, const char* s2)
