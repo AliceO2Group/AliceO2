@@ -11,16 +11,15 @@
 
 /// \file SegmentationSuperAlpide.h
 /// \brief Definition of the SegmentationSuperAlpide class
+/// \author Fabrizio Grosa <fgrosa@cern.ch>
+/// \author felix.schlepper@cern.ch
 
 #ifndef ALICEO2_ITS3_SEGMENTATIONSUPERALPIDE_H_
 #define ALICEO2_ITS3_SEGMENTATIONSUPERALPIDE_H_
 
-#include <Rtypes.h>
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/MathConstants.h"
-#include "ITS3Base/SuperAlpideParams.h"
-#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
-#include <Framework/Logger.h>
+#include "ITSBase/Specs.h"
 
 namespace o2
 {
@@ -28,40 +27,37 @@ namespace its3
 {
 
 /// Segmentation and response for pixels in ITS3 upgrade
+template <typename value_t = double>
 class SegmentationSuperAlpide
 {
+  // This class defines the segmenation of the pixelArray in the tile. We define
+  // two coordinate systems, one width x,z detector local coordianates (cm) and
+  // the more natural row,col layout: Also all the transformation between these
+  // two. The class provides the transformation from the tile to TGeo
+  // coordinates.
+
+  // row,col=0
+  // |
+  // v
+  // x----------------------x
+  // |           |          |
+  // |           |          |
+  // |           |          |
+  // |           |          |                        ^ x
+  // |           |          |                        |
+  // |           |          |                        |
+  // |           |          |                        |
+  // |-----------X----------|  X marks (x,z)=(0,0)   X----> z
+  // |           |          |
+  // |           |          |
+  // |           |          |
+  // |           |          |
+  // |           |          |
+  // |           |          |
+  // x----------------------x
+
  public:
-  SegmentationSuperAlpide(int layer, float pitchCol, float pitchRow, float detThick, double length, const double radii[4]) : mLayer{layer}, mPitchCol{pitchCol}, mPitchRow{pitchRow}, mDetectorLayerThickness{detThick}, mLength{length}
-  {
-    for (int iL{0}; iL < 4; ++iL) {
-      mRadii[iL] = radii[iL];
-    }
-    print();
-  }
-  SegmentationSuperAlpide(int layer = 0) : SegmentationSuperAlpide(layer, SuperAlpideParams::Instance().mPitchCol, SuperAlpideParams::Instance().mPitchRow, SuperAlpideParams::Instance().mDetectorThickness, DescriptorInnerBarrelITS3Param::Instance().mLength, DescriptorInnerBarrelITS3Param::Instance().mRadii) {}
-
-  double mRadii[4] = {1.8f, 2.4f, 3.0f, 6.0f};                                                                                                                                                                           ///< radii for different layers
-  const double mLength;                                                                                                                                                                                                  ///< chip length
-  const int mLayer;                                                                                                                                                                                                      ///< chip layer
-  const float mPitchCol;                                                                                                                                                                                                 ///< pixel column size at the external surface
-  const float mPitchRow;                                                                                                                                                                                                 ///< pixel row size at the external surface
-  const float mDetectorLayerThickness;                                                                                                                                                                                   ///< detector thickness
-  const int mNCols{static_cast<int>(std::floor(mLength / mPitchCol / 2) * 2)};                                                                                                                                           ///< number of columns (we force to have an even number)
-  const int mNRows{static_cast<int>(std::floor(double(mRadii[mLayer] + mDetectorLayerThickness - mSensorLayerThicknessEff / 2.) * double(constants::math::PI) / double(mPitchRow) / 2 * (mLayer == 3 ? 0.5 : 1.)) * 2)}; ///< number of rows (we force to have an even number)
-  const int mNPixels{mNRows * mNCols};                                                                                                                                                                                   ///< total number of pixels
-  static constexpr float mPassiveEdgeReadOut = 0.;                                                                                                                                                                       ///< width of the readout edge (Passive bottom)
-  static constexpr float mPassiveEdgeTop = 0.;                                                                                                                                                                           ///< Passive area on top
-  static constexpr float mPassiveEdgeSide = 0.;                                                                                                                                                                          ///< width of Passive area on left/right of the sensor
-  const float mActiveMatrixSizeCols{mPitchCol * mNCols};                                                                                                                                                                 ///< Active size along columns
-  const float mActiveMatrixSizeRows{mPitchRow * mNRows};                                                                                                                                                                 ///< Active size along rows
-
-  // effective thickness of sensitive layer, accounting for charge collection non-uniformity, https://alice.its.cern.ch/jira/browse/AOC-46
-  static constexpr float mSensorLayerThicknessEff = 28.e-4;                                   ///< effective thickness of sensitive part
-  static constexpr float mSensorLayerThickness = 30.e-4;                                      ///< physical thickness of sensitive part
-  const float mSensorSizeCols{mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide};   ///< SensorSize along columns
-  const float mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut}; ///< SensorSize along rows
-
-  ~SegmentationSuperAlpide() = default;
+  SegmentationSuperAlpide(int layer = 0) : mLayer{layer} {}
 
   /// Transformation from the curved surface to a flat surface
   /// It works only if the detector is not rototraslated
@@ -73,7 +69,13 @@ class SegmentationSuperAlpide
   /// the center of the sensitive volume.
   /// \param yFlat Detector local flat coordinate y in cm with respect to
   /// the center of the sensitive volume.
-  void curvedToFlat(float xCurved, float yCurved, float& xFlat, float& yFlat);
+  void curvedToFlat(value_t xCurved, value_t yCurved, value_t& xFlat, value_t& yFlat)
+  {
+    value_t dist = std::hypot(xCurved, yCurved);
+    yFlat = dist - mEffRadius;
+    value_t phi = (vaule_t)constants::math::PI / 2 - std::atan2((double)yCurved, (double)xCurved);
+    xFlat = mEffRadius * phi;
+  }
 
   /// Transformation from the flat surface to a curved surface
   /// It works only if the detector is not rototraslated
@@ -85,145 +87,122 @@ class SegmentationSuperAlpide
   /// the center of the sensitive volume.
   /// \param yCurved Detector local curved coordinate y in cm with respect to
   /// the center of the sensitive volume.
-  void flatToCurved(float xFlat, float yFlat, float& xCurved, float& yCurved);
+  void flatToCurved(value_t xFlat, value_t yFlat, value_t& xCurved, value_t& yCurved)
+  {
+    value_t dist = yFlat + mEffRadius;
+    value_t phi = xFlat / dist;
+    value_t tang = std::tan((value_t)constants::math::PI / 2 - (value_t)phi);
+    xCurved = (xFlat > 0 ? 1.f : -1.f) * dist / std::sqrt(1 + tang * tang);
+    yCurved = xCurved * tang;
+  }
 
   /// Transformation from Geant detector centered local coordinates (cm) to
   /// Pixel cell numbers iRow and iCol.
-  /// Returns kTRUE if point x,z is inside sensitive volume, kFALSE otherwise.
+  /// Returns true if point x,z is inside sensitive volume, false otherwise.
   /// A value of -1 for iRow or iCol indicates that this point is outside of the
   /// detector segmentation as defined.
   /// \param float x Detector local coordinate x in cm with respect to
   /// the center of the sensitive volume.
   /// \param float z Detector local coordinate z in cm with respect to
   /// the center of the sensitive volume.
-  /// \param int iRow Detector x cell coordinate. Has the range 0 <= iRow < mNumberOfRows
-  /// \param int iCol Detector z cell coordinate. Has the range 0 <= iCol < mNumberOfColumns
-  bool localToDetector(float x, float z, int& iRow, int& iCol);
-  /// same but w/o check for row/column range
-  void localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol);
+  /// \param int iRow Detector x cell coordinate.
+  /// \param int iCol Detector z cell coordinate.
+  bool localToDetector(value_t const xRow, value_t const zCol, int& iRow, int& iCol) const noexcept
+  {
+    localToDetectorUnchecked(xRow, zCol, iRow, iCol);
+    if (!isValid(iRow, iCol)) {
+      iRow = iCol = -1;
+      return false;
+    }
+    return true;
+  }
 
-  /// Transformation from Detector cell coordiantes to Geant detector centered
+  // Same as localToDetector w.o. checks.
+  void localToDetectorUnchecked(value_t const xRow, value_t const zCol, int& iRow, int& iCol) const noexcept
+  {
+    namespace cp = constants::pixelarray;
+    value_t x = cp::length / 2. - xRow; // transformation to upper edge of pixelarray
+    value_t z = zCol + cp::width / 2.;  // transformation to left edge of pixelarray
+    iRow = std::floor(x / cp::pixel::pitchRow);
+    iCol = std::floor(z / cp::pixel::pitchCol);
+  }
+
+  /// Transformation from Detector cell coordinates to Geant detector centered
   /// local coordinates (cm)
-  /// \param int iRow Detector x cell coordinate. Has the range 0 <= iRow < mNumberOfRows
-  /// \param int iCol Detector z cell coordinate. Has the range 0 <= iCol < mNumberOfColumns
+  /// \param int iRow Detector x cell coordinate.
+  /// \param int iCol Detector z cell coordinate.
   /// \param float x Detector local coordinate x in cm with respect to the
   /// center of the sensitive volume.
   /// \param float z Detector local coordinate z in cm with respect to the
   /// center of the sensitive volume.
   /// If iRow and or iCol is outside of the segmentation range a value of -0.5*Dx()
   /// or -0.5*Dz() is returned.
-  bool detectorToLocal(int iRow, int iCol, float& xRow, float& zCol);
-  bool detectorToLocal(float row, float col, float& xRow, float& zCol);
-  bool detectorToLocal(float row, float col, math_utils::Point3D<float>& loc);
-
-  // same but w/o check for row/col range
-  void detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol);
-  void detectorToLocalUnchecked(float row, float col, float& xRow, float& zCol);
-  void detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc);
-
-  float getFirstRowCoordinate()
+  bool detectorToLocal(int const iRow, int const iCol, value_t& xRow, value_t& zCol) const noexcept
   {
-    return 0.5 * ((mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - mPitchRow);
+    detectorToLocalUnchecked(iRow, iCol, xRow, zCol);
+    if (!isValid(xRow, zCol)) {
+      return false;
+    }
+    return true;
   }
-  float getFirstColCoordinate()
+
+  // Same as detectorToLocal w.o. checks.
+  // We position ourself in the middle of the pixel.
+  void detectorToLocalUnchecked(int iRow, int iCol, value_t& xRow, value_t& zCol) const noexcept
   {
-    return 0.5 * (mPitchCol - mActiveMatrixSizeCols);
+    namespace cp = constants::pixelarray;
+    xRow = -(iRow - 0.5) * cp::pixel::pitchRow + cp::length / 2.;
+    zCol = -(iCol + 0.5) * cp::pixel::pitchCol - cp::width / 2.;
   }
 
-  void print();
-
-  ClassDefNV(SegmentationSuperAlpide, 2); // Segmentation class upgrade pixels
-};                                        // namespace its3
-
-inline void SegmentationSuperAlpide::curvedToFlat(float xCurved, float yCurved, float& xFlat, float& yFlat)
-{
-  float dist = std::sqrt(xCurved * xCurved + yCurved * yCurved);
-  yFlat = dist - (mRadii[mLayer] + mDetectorLayerThickness - mSensorLayerThickness / 2.);
-  float phi = (double)constants::math::PI / 2 - std::atan2((double)yCurved, (double)xCurved);
-  xFlat = (mRadii[mLayer] + mDetectorLayerThickness - mSensorLayerThickness / 2.) * phi; // we bring everything to the upper surface to avoid effects due to the different length of upper and lower surfaces
-}
-
-inline void SegmentationSuperAlpide::flatToCurved(float xFlat, float yFlat, float& xCurved, float& yCurved)
-{
-  float dist = yFlat + mRadii[mLayer] + mDetectorLayerThickness - mSensorLayerThickness / 2.;
-  float phi = xFlat / dist;
-  float tang = std::tan((double)constants::math::PI / 2 - (double)phi);
-  xCurved = (xFlat > 0 ? 1.f : -1.f) * dist / std::sqrt(1 + tang * tang);
-  yCurved = xCurved * tang;
-}
-
-inline void SegmentationSuperAlpide::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol)
-{
-  // convert to row/col w/o over/underflow check
-  xRow = 0.5 * (mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
-  zCol += 0.5 * mActiveMatrixSizeCols;                                                 // coordinate wrt left edge of Active matrix
-  iRow = std::floor(xRow / mPitchRow);
-  iCol = std::floor(zCol / mPitchCol);
-  if (xRow < 0) {
-    iRow -= 1;
+  bool detectorToLocal(float row, float col, float& xRow, float& zCol)
+  {
+    return detectorToLocal(static_cast<int>(row), static_cast<int>(col), xRow, zCol);
   }
-  if (zCol < 0) {
-    iCol -= 1;
+
+  void detectorToLocalUnchecked(float row, float col, float& xRow, float& zCol)
+  {
+    detectorToLocalUnchecked(static_cast<int>(row), static_cast<int>(col), xRow, zCol);
   }
-}
 
-inline bool SegmentationSuperAlpide::localToDetector(float xRow, float zCol, int& iRow, int& iCol)
-{
-  // convert to row/col
-  xRow = 0.5 * (mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - xRow; // coordinate wrt left edge of Active matrix
-  zCol += 0.5 * mActiveMatrixSizeCols;                                                 // coordinate wrt bottom edge of Active matrix
-  if (xRow < 0 || xRow >= mActiveMatrixSizeRows || zCol < 0 || zCol >= mActiveMatrixSizeCols) {
-    iRow = iCol = -1;
-    return false;
+  bool detectorToLocal(float row, float col, math_utils::Point3D<float>& loc)
+  {
+    float xRow, zCol;
+    if (detectorToLocal(row, col, xRow, zCol)) {
+      return false;
+    }
+    loc.SetCoordinates(xRow, 0., zCol);
+    return true;
   }
-  iRow = std::floor(xRow / mPitchRow);
-  iCol = std::floor(zCol / mPitchCol);
-  return true;
-}
-
-inline void SegmentationSuperAlpide::detectorToLocalUnchecked(int iRow, int iCol, float& xRow, float& zCol)
-{
-  xRow = getFirstRowCoordinate() - iRow * mPitchRow;
-  zCol = iCol * mPitchCol + getFirstColCoordinate();
-}
-
-inline void SegmentationSuperAlpide::detectorToLocalUnchecked(float row, float col, float& xRow, float& zCol)
-{
-  xRow = getFirstRowCoordinate() - row * mPitchRow;
-  zCol = col * mPitchCol + getFirstColCoordinate();
-}
-
-inline void SegmentationSuperAlpide::detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc)
-{
-  loc.SetCoordinates(getFirstRowCoordinate() - row * mPitchRow, 0.f, col * mPitchCol + getFirstColCoordinate());
-}
-
-inline bool SegmentationSuperAlpide::detectorToLocal(int iRow, int iCol, float& xRow, float& zCol)
-{
-  if (iRow < 0 || iRow >= mNRows || iCol < 0 || iCol >= mNCols) {
-    return false;
+  void detectorToLocalUnchecked(float row, float col, math_utils::Point3D<float>& loc)
+  {
+    float xRow, zCol;
+    detectorToLocalUnchecked(row, col, xRow, zCol);
+    loc.SetCoordinates(xRow, 0., zCol);
   }
-  detectorToLocalUnchecked(iRow, iCol, xRow, zCol);
-  return true;
-}
 
-inline bool SegmentationSuperAlpide::detectorToLocal(float row, float col, float& xRow, float& zCol)
-{
-  if (row < 0 || row >= mNRows || col < 0 || col >= mNCols) {
-    return false;
+ private:
+  bool isValid(value_t const xRow, value_t const zCol) const noexcept
+  {
+    namespace cp = constants::pixelarray;
+    if (xRow < 0. || xRow >= cp::length || zCol < 0. || zCol >= cp::width) {
+      return false;
+    }
+    return true;
   }
-  detectorToLocalUnchecked(row, col, xRow, zCol);
-  return true;
-}
 
-inline bool SegmentationSuperAlpide::detectorToLocal(float row, float col, math_utils::Point3D<float>& loc)
-{
-  if (row < 0 || row >= mNRows || col < 0 || col >= mNCols) {
-    return false;
+  bool isValid(int const iRow, int const iCol) const noexcept
+  {
+    namespace cp = constants::pixelarray;
+    if (iRow < 0 || iRow >= cp::nRows || iCol < 0 || iCol >= cp::nCols) {
+      return false;
+    }
+    return true;
   }
-  detectorToLocalUnchecked(row, col, loc);
-  return true;
-}
+
+  const int mLayer; ///< chip layer
+  const value_t mEffRadius{constants::radii[mLayer] + constants::thickness / 2.};
+};
 } // namespace its3
 } // namespace o2
 
