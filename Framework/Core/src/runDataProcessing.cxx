@@ -2590,6 +2590,11 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   for (auto& d : specs) {
     out << "- " << d.name << std::endl;
   }
+  out << "digraph G {\n";
+  for (auto& e : edges) {
+    out << fmt::format("  \"{}\" -> \"{}\"\n", specs[e.first].name, specs[e.second].name);
+  }
+  out << "}\n";
   return out.str();
 }
 
