@@ -524,7 +524,7 @@ void MatchHMP::doMatching()
         // 6. Set match information
 
         int cluSize = bestHmpCluster->size();
-        matching.setHMPIDmip(bestHmpCluster->x(), bestHmpCluster->y(), bestHmpCluster->q(), 0); // store mip info in any case
+        matching.setHMPIDmip(bestHmpCluster->x(), bestHmpCluster->y(), (int)bestHmpCluster->q(), 0); // store mip info in any case
         matching.setMipClusSize(bestHmpCluster->size());
         matching.setIdxHMPClus(iCh, index + 1000 * cluSize); // set chamber, index of cluster + cluster size
         matching.setHMPIDtrk(xPc, yPc, theta, phi);
