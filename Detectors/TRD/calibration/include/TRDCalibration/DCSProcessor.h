@@ -110,6 +110,7 @@ class DCSProcessor
   void setVerbosity(int v) { mVerbosity = v; }
   void setMaxCounterAlarmFed(int alarmfed) { mFedAlarmCounterMax = alarmfed; }
   void setFedMinimunDPsForUpdate(int minupdatefed) { mFedMinimunDPsForUpdate = minupdatefed; }
+  void setUVariationTriggerForUpdate(float utrigger) { mUVariationTriggerForUpdate = utrigger; }
 
   // reset methods
   void clearGasDPsInfo();
@@ -188,6 +189,7 @@ class DCSProcessor
   int mVerbosity{0};
   int mFedAlarmCounterMax{1};
   int mFedMinimunDPsForUpdate{522};
+  float mUVariationTriggerForUpdate{1.0};
 
   ClassDefNV(DCSProcessor, 0);
 };

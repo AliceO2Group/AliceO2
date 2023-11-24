@@ -148,6 +148,15 @@ class TRDDCSDataProcessor : public o2::framework::Task
       LOG(info) << "Invalid min number of DPs to update ChamberStatus/CFGtag " << alarmfed << ", using default value of 522";
     }
 
+    // LB: set minimum voltage variation to update Anode/DriftUmon
+    int utrigger = ic.options().get<int>("DPs-voltage-variation-trigger");
+    if (utrigger > 0) {
+      LOG(info) << "Setting voltage variation trigger of DPs to update Anode/DriftUMon to " << utrigger;
+      mProcessor->setUVariationTriggerForUpdate(utrigger);
+    } else {
+      LOG(info) << "Invalid voltage variation trigger of DPs to update Anode/DriftUMon to " << utrigger << ", using default value of 1 V";
+    }
+
     mProcessor->init(vect);
     mTimerGas = std::chrono::high_resolution_clock::now();
     mTimerVoltages = mTimerGas;
@@ -457,6 +466,7 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"DPs-update-interval-voltages", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry for voltage parameters"}},
             {"DPs-update-interval-env", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for environment parameters"}},
             {"DPs-min-update-interval-voltages", VariantType::Int64, 120ll, {"Minimum range to be covered by voltage CCDB object"}},
+            {"DPs-voltage-variation-trigger", VariantType::Int64, 1ll, {"Voltage variation trigger for upload of CCDB object"}},
             {"DPs-update-interval-gas", VariantType::Int64, 900ll, {"Interval (in s) after which to update the DPs CCDB entry for gas parameters"}},
             {"DPs-update-interval-fedenv", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for front end device environment parameters"}},
             {"DPs-max-counter-alarm-fed", VariantType::Int, 1, {"Maximum number of alarms after FedChamberStatus and FedCFGtag changes, following changes are logged as warnings"}},

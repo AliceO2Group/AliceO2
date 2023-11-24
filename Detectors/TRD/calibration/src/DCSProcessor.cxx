@@ -168,7 +168,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         if (etime != mLastDPTimeStamps[dpid]) {
           int chamberId = getChamberIdFromAlias(dpid.get_alias());
           if (mVoltageSet.test(chamberId)) {
-            if (std::fabs(dpInfoVoltages - o2::dcs::getValue<double>(dpcom)) > 1.f) {
+            if (std::fabs(dpInfoVoltages - o2::dcs::getValue<double>(dpcom)) > mUVariationTriggerForUpdate) {
               // trigger update of voltage CCDB object
               mShouldUpdateVoltages = true;
               // OS: this will still overwrite the current voltage value of the object going into the CCDB
