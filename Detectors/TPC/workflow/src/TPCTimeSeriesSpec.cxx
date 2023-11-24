@@ -194,7 +194,7 @@ class TPCTimeSeries : public Task
     std::vector<std::tuple<int, float, float>> idxTPCTrackToTOFCluster; // store for each tpc track index the index to the TOF cluster
 
     // get matches to TOF in case skimmed data is produced
-    if (mUnbinnedWriter && !mTPCOnly) {
+    if (mUnbinnedWriter) {
       idxTPCTrackToTOFCluster = std::vector<std::tuple<int, float, float>>(tracksTPC.size(), {-1, -999, -999});
       const std::vector<gsl::span<const o2::dataformats::MatchInfoTOF>> tofMatches{recoData.getTPCTOFMatches(), recoData.getTPCTRDTOFMatches(), recoData.getITSTPCTOFMatches(), recoData.getITSTPCTRDTOFMatches()};
 
