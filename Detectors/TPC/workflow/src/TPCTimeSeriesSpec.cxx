@@ -191,10 +191,11 @@ class TPCTimeSeries : public Task
       indicesITSTPC[tracksITSTPC[i].getRefTPC().getIndex()] = {i, idxVtx};
     }
 
-    std::vector<int> idxTPCTrackToTOFCluster(tracksTPC.size(), -1); // store for each tpc track index the index to the TOF cluster
+    std::vector<std::tuple<int, float, float>> idxTPCTrackToTOFCluster; // store for each tpc track index the index to the TOF cluster
 
     // get matches to TOF in case skimmed data is produced
     if (mUnbinnedWriter && !mTPCOnly) {
+      idxTPCTrackToTOFCluster = std::vector<std::tuple<int, float, float>>(tracksTPC.size(), {-1, -999, -999});
       const std::vector<gsl::span<const o2::dataformats::MatchInfoTOF>> tofMatches{recoData.getTPCTOFMatches(), recoData.getTPCTRDTOFMatches(), recoData.getITSTPCTOFMatches(), recoData.getITSTPCTRDTOFMatches()};
 
       // loop over ITS-TPC-TRD-TOF and ITS-TPC-TOF tracks an store for each ITS-TPC track the TOF track index
@@ -202,7 +203,7 @@ class TPCTimeSeries : public Task
         for (const auto& tpctofmatch : tofMatch) {
           auto refTPC = recoData.getTPCContributorGID(tpctofmatch.getTrackRef());
           if (refTPC.isIndexSet()) {
-            idxTPCTrackToTOFCluster[refTPC] = tpctofmatch.getIdxTOFCl();
+            idxTPCTrackToTOFCluster[refTPC] = {tpctofmatch.getIdxTOFCl(), tpctofmatch.getDXatTOF(), tpctofmatch.getDZatTOF()};
           }
         }
       }
@@ -1023,7 +1024,7 @@ class TPCTimeSeries : public Task
     return true;
   }
 
-  void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS, const std::vector<int>& idxTPCTrackToTOFCluster, const gsl::span<const o2::tof::Cluster> tofClusters)
+  void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS, const std::vector<std::tuple<int, float, float>>& idxTPCTrackToTOFCluster, const gsl::span<const o2::tof::Cluster> tofClusters)
   {
     o2::track::TrackParCov track = tracksTPC[iTrk];
     const auto& trackFull = tracksTPC[iTrk];
@@ -1207,16 +1208,16 @@ class TPCTimeSeries : public Task
         }
 
         // check for TOF and propagate TPC track to TOF cluster
-        bool hasTOFCluster = (idxTPCTrackToTOFCluster[iTrk] != -1);
-        auto tofCl = hasTOFCluster ? tofClusters[idxTPCTrackToTOFCluster[iTrk]] : o2::tof::Cluster();
+        bool hasTOFCluster = (std::get<0>(idxTPCTrackToTOFCluster[iTrk]) != -1);
+        auto tofCl = hasTOFCluster ? tofClusters[std::get<0>(idxTPCTrackToTOFCluster[iTrk])] : o2::tof::Cluster();
 
-        float tpcYatTOF = 0;
-        float tpcZatTOF = 0;
+        float tpcYDeltaAtTOF = -999;
+        float tpcZDeltaAtTOF = -999;
         if (hasTOFCluster) {
           o2::track::TrackPar trackTmpOut(tracksTPC[iTrk].getParamOut());
           if (trackTmpOut.rotate(o2::math_utils::sector2Angle(tofCl.getSector())) && propagator->propagateTo(trackTmpOut, tofCl.getX(), false, mMaxSnp, mFineStep, mMatType)) {
-            tpcYatTOF = trackTmpOut.getY();
-            tpcZatTOF = trackTmpOut.getZ();
+            tpcYDeltaAtTOF = trackTmpOut.getY() - tofCl.getY();
+            tpcZDeltaAtTOF = signSide * (o2::tpc::ParameterElectronics::Instance().ZbinWidth * trackFull.getTime0() - vertex.getTimeStamp().getTimeStamp()) * mVDrift - trackTmpOut.getZ() + tofCl.getZ();
           }
         }
 
@@ -1273,9 +1274,10 @@ class TPCTimeSeries : public Task
                             << "its_flag=" << int(gID)
                             << "sqrtChi2Match=" << chi2Match
                             // TOF cluster
-                            << "tofCl=" << tofCl.getXYZ()
-                            << "tpcYatTOF=" << tpcYatTOF
-                            << "tpcZatTOF=" << tpcZatTOF
+                            << "tpcYDeltaAtTOF=" << tpcYDeltaAtTOF
+                            << "tpcZDeltaAtTOF=" << tpcZDeltaAtTOF
+                            << "mDXatTOF=" << std::get<1>(idxTPCTrackToTOFCluster[iTrk])
+                            << "mDZatTOF=" << std::get<2>(idxTPCTrackToTOFCluster[iTrk])
                             // TPC delta param
                             << "deltaTPCParamInOutTgl=" << deltaTPCParamInOutTgl
                             << "deltaTPCParamInOutQPt=" << deltaTPCParamInOutQPt
