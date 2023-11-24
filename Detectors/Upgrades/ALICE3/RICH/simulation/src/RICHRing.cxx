@@ -14,102 +14,45 @@
 #include "RICHBase/RICHBaseParam.h"
 #include "Framework/Logger.h"
 
+#include <TGeoManager.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
+#include <TGeoArb8.h>
 
 namespace o2
 {
 namespace rich
 {
-Ring::Ring(int rPosId, int nTiles, float angleM)
-  : mNTiles{nTiles}, mPosId{rPosId}, mMAngle{angleM}
+
+Ring::Ring(int rPosId,
+           int nTilesPhi,
+           float radThick,
+           float photThick,
+           const string& motherName)
+  : mNTiles{nTiles}, mPosId{rPosId}, mRadThickness{radThick}
 {
-  // LOGP(info, "Created ring: id: {} | angleM: {} | t: {} | parA: {} | parB: {} | valM: {} | thetab: {} | mRTilt: {} | mZTilt: {} |", rPosId, angleM, t, parA, parB, valM, thetab, mRTilt, mZTilt);
-}
-
-void Ring::generateAllRings(TGeoVolume* mother)
-{
-  // Mere transcription of Nicola's code
-  auto& richPars = RICHBaseParam::Instance();
-  std::vector<double> thetaBi(richPars.nRings),
-    r0Tilt(richPars.nRings),
-    z0Tilt(richPars.nRings),
-    lAerogelZ(richPars.nRings),
-    tRplusG(richPars.nRings),
-    minRadialMirror(richPars.nRings),
-    maxRadialMirror(richPars.nRings),
-    maxRadialRadiator(richPars.nRings),
-    vMirror1(richPars.nRings),
-    vMirror2(richPars.nRings),
-    vTile1(richPars.nRings),
-    vTile2(richPars.nRings);
-  // Start from middle one
-  double mVal = TMath::Tan(0.0);
-  thetaBi[richPars.nRings / 2] = TMath::ATan(mVal);
-  r0Tilt[richPars.nRings / 2] = richPars.rMax;
-  z0Tilt[richPars.nRings / 2] = r0Tilt[richPars.nRings / 2] * TMath::Tan(thetaBi[richPars.nRings / 2]);
-  lAerogelZ[richPars.nRings / 2] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
-  tRplusG[richPars.nRings / 2] = richPars.rMax - richPars.rMin;
-  double t = TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal)));
-  minRadialMirror[richPars.nRings / 2] = richPars.rMax;
-  maxRadialMirror[richPars.nRings / 2] = richPars.rMin;
-
-  // Configure rest of the rings
-  for (auto iRing{richPars.nRings / 2 + 1}; iRing < richPars.nRings; ++iRing) {
-    double parA = t;
-    double parB = 2.0 * richPars.rMax / richPars.zBaseSize;
-    mVal = (TMath::Sqrt(parA * parA * parB * parB + parB * parB - 1.0) + parA * parB * parB) / (parB * parB - 1.0);
-    t = tan(atan(mVal) + atan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal)));
-    // forward rings
-    thetaBi[iRing] = atan(mVal);
-    r0Tilt[iRing] = richPars.rMax - richPars.zBaseSize / 2.0 * sin(atan(mVal));
-    z0Tilt[iRing] = r0Tilt[iRing] * tan(thetaBi[iRing]);
-    lAerogelZ[iRing] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
-    tRplusG[iRing] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - richPars.rMin) - mVal / 2.0 * (richPars.zBaseSize + lAerogelZ[iRing]);
-    minRadialMirror[iRing] = r0Tilt[iRing] - richPars.zBaseSize / 2.0 * sin(atan(mVal));
-    maxRadialMirror[iRing] = richPars.rMin + 2.0 * lAerogelZ[iRing] / 2.0 * sin(atan(mVal));
-    // backward rings
-    thetaBi[2 * richPars.nRings / 2 - iRing] = -atan(mVal);
-    r0Tilt[2 * richPars.nRings / 2 - iRing] = richPars.rMax - richPars.zBaseSize / 2.0 * sin(atan(mVal));
-    z0Tilt[2 * richPars.nRings / 2 - iRing] = -r0Tilt[iRing] * tan(thetaBi[iRing]);
-    lAerogelZ[2 * richPars.nRings / 2 - iRing] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
-    tRplusG[2 * richPars.nRings / 2 - iRing] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - richPars.rMin) - mVal / 2.0 * (richPars.zBaseSize + lAerogelZ[iRing]);
-    minRadialMirror[2 * richPars.nRings / 2 - iRing] = r0Tilt[iRing] - richPars.zBaseSize / 2.0 * sin(atan(mVal));
-    maxRadialMirror[2 * richPars.nRings / 2 - iRing] = richPars.rMin + 2.0 * lAerogelZ[iRing] / 2.0 * sin(atan(mVal));
+  TGeoManager* geoManager = gGeoManager;
+  geoManager->GetVolume(motherName.c_str());
+  TGeoMedium* medAerogel = gGeoManager->GetMedium("RCH_AEROGEL$");
+  if (!medAerogel) {
+    LOGP(fatal, "Aerogel medium not found");
   }
+  std::vector<TGeoArb8*> aeroTiles(nTilesPhi);
+  LOGP(info, "Creating ring: id: {} with {} tiles. ", rPosId, nTilesPhi);
 
-  // Dimensioning tiles
-  double percentage = 0.999;
-  for (int iRing = 0; iRing < richPars.nRings; iRing++) {
-    if (iRing == richPars.nRings / 2) {
-      vMirror1[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vMirror2[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vTile2[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-    } else if (iRing > richPars.nRings / 2) {
-      vMirror1[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vMirror2[iRing] = percentage * 2.0 * minRadialMirror[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vTile1[iRing] = percentage * 2.0 * maxRadialRadiator[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vTile2[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-    } else if (iRing < richPars.nRings / 2) {
-      vMirror2[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vMirror1[iRing] = percentage * 2.0 * minRadialMirror[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vTile2[iRing] = percentage * 2.0 * maxRadialRadiator[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      vTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-    }
-  }
-  // Aerogel blocs translation parameters
-  std::vector<double> r0Aerogel(richPars.nRings);
-  for (int iRing{0}; iRing < richPars.nRings; iRing++) {
-    r0Aerogel[iRing] = r0Tilt[iRing] - (tRplusG[iRing] - richPars.radiatorThickness / 2.0) * TMath::Cos(thetaBi[iRing]);
-  }
-  // Detector planes translation parameters
-  std::vector<double> r0Detector(richPars.nRings);
-  for (int iRing{0}; iRing < richPars.nRings; iRing++) {
-    r0Detector[iRing] = r0Tilt[iRing] + (richPars.detectorThickness / 2.0) * TMath::Cos(thetaBi[iRing]);
+  const float deltaPhi = TMath::TwoPi() / nTilesPhi;
+  for (auto& aeroTile : aeroTiles) {
+    tile = new TGeoArb8(mRadThickness);
+    tile->SetVertex(0, 0, 0);
+    tile->SetVertex(1, 0, 0);
+    tile->SetVertex(2, 0, 0);
+    tile->SetVertex(3, 0, 0);
+    tile->SetVertex(4, 0, 0);
+    tile->SetVertex(5, 0, 0);
+    tile->SetVertex(6, 0, 0);
+    tile->SetVertex(7, 0, 0);
   }
 }
-
 
 } // namespace rich
 } // namespace o2

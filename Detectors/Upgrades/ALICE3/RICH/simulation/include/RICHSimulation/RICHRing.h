@@ -22,21 +22,9 @@ namespace o2
 {
 namespace rich
 {
-class Tile
-{
- public:
-  Tile() = default;
-
- protected:
-  // Radiator and photodetector thickness (cm)
-  float mRadiatorThickness = 2.0;
-  float mDetectorThickness = 2.0;
-};
-// Ring class is a composition of tiles, its size and orientation is driven by external parameters and it is automatically computed
 class Ring
 {
  public:
-  static void generateAllRings(TGeoVolume*);
   Ring() = default;
   // Angle M_i: the angle formed by the normal line to both tile planes (radiator and photosensitive surface) passing by the center of the ring
   // Angle T_i: the angle formed by the line passing by the farest border of the tile and the center of the ring
@@ -45,19 +33,19 @@ class Ring
   // DeltaRSurf_i: radial dinstance between two surfaces of tiles
   // R_ph: radius of the photosensitive surface (from the center)
   // z_ph: z position of the photosensitive surface (from the center)
-  Ring(int rPosId, int nTiles, float angleM);
+  Ring(int rPosId, int nTilesPhi, float rRad, float radThick, float rPhot, float photThick, const string& motherName = "RICHV");
   ~Ring() = default;
 
   auto getDeltaPhiPos() const { return TMath::TwoPi() / mNTiles; }
   void createRing(TGeoVolume* motherVolume);
 
  private:
-  int mPosId;
-  int mNTiles;
-  float mMAngle;
-  float mRTilt;
-  float mZTilt;
-  std::vector<Tile> mTiles;
+  int mPosId;           // id of the ring
+  int mNTiles;          // number of modules
+  float mRRad;          // max distance for radiators
+  float mRPhot;         // max distance for photosensitive surfaces
+  float mRadThickness;  // thickness of the radiator
+  float mPhotThickness; // thickness of the photosensitive surface
 
   ClassDef(Ring, 0);
 };

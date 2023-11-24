@@ -21,10 +21,11 @@ namespace rich
 {
 struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
   float zBaseSize = 18.4;        // cm
-  float rMax = 122.0;            // cm
-  float rMin = 85.0;             // cm
+  float rMax = 117.0;            // cm
+  float rMin = 90.0;             // cm
   float radiatorThickness = 2.0; // cm
   float detectorThickness = 0.2; // cm
+  float zRichLength = 350.0;     // cm
   int nRings = 21;
   int nTiles = 36;
   std::string configFile = "";

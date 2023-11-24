@@ -68,6 +68,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void createMaterials();
   void createGeometry();
+  void prepareEvenLayout();
+  void prepareOddLayout();
   void createRings(TGeoVolume*);
 
  private:
@@ -91,6 +93,19 @@ class Detector : public o2::base::DetImpl<Detector>
   int mNTiles;
   // Vessel
   float mMaximumHalfLength = 350; // cm
+
+  std::vector<double> mThetaBi;
+  std::vector<double> mR0Tilt;
+  std::vector<double> mZ0Tilt;
+  std::vector<double> mLAerogelZ;
+  std::vector<double> mTRplusG;
+  std::vector<double> mMinRadialMirror;
+  std::vector<double> mMaxRadialMirror;
+  std::vector<double> mMaxRadialRadiator;
+  std::vector<double> mVMirror1;
+  std::vector<double> mVMirror2;
+  std::vector<double> mVTile1;
+  std::vector<double> mVTile2;
 
   template <typename Det>
   friend class o2::base::DetImpl;
