@@ -20,6 +20,7 @@
 #include "TPCCalibration/IDCAverageGroupBase.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/CalDet.h"
+#include <boost/property_tree/ptree.hpp>
 #include <vector>
 #include "Rtypes.h"
 

@@ -15,6 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "SimConfig/SimParams.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include <boost/property_tree/ptree.hpp>
 
 using namespace o2::conf;
 

@@ -24,6 +24,7 @@
 #include "TPCCalibration/IDCContainer.h"
 #include "TPCCalibration/IDCGroupHelperSector.h"
 #include "DataFormatsTPC/Defs.h"
+#include <boost/property_tree/ptree.hpp>
 
 namespace o2::tpc
 {
