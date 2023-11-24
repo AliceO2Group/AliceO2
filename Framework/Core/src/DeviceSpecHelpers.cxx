@@ -48,6 +48,8 @@
 #include <csignal>
 #include <fairmq/Device.h>
 
+#include <regex>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 

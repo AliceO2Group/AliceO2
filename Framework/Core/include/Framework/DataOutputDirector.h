@@ -13,9 +13,7 @@
 
 #include "TFile.h"
 
-#include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
-#include "Framework/DataSpecUtils.h"
 #include "Framework/InputSpec.h"
 
 #include "rapidjson/fwd.h"

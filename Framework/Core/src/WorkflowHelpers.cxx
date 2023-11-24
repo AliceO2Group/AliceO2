@@ -40,6 +40,10 @@
 namespace o2::framework
 {
 
+static constexpr std::array<header::DataOrigin, 3> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}};
+static constexpr std::array<header::DataOrigin, 5> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}};
+static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}};
+
 std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
 {
   out << "(" << info.index << ", " << info.layer << ")";
@@ -197,7 +201,7 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }
-        if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"AOD"})) {
+        if (DataSpecUtils::partialMatch(spec, AODOrigins)) {
           DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
         } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
           DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
@@ -420,7 +424,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         case Lifetime::Optional:
           break;
       }
-      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
+      if (DataSpecUtils::partialMatch(input, AODOrigins)) {
         DataSpecUtils::updateInputList(requestedAODs, InputSpec{input});
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
@@ -434,7 +438,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
     for (auto& output : processor.outputs) {
-      if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
+      if (DataSpecUtils::partialMatch(output, AODOrigins)) {
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
         providedDYNs.emplace_back(output);
@@ -666,13 +670,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) {
-    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
-            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
-            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
-  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if (isAOD(outputsInputs[ii])) {
+    if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
       if (ds.size() > 0 || isDangling[ii]) {
         outputsInputsAOD.emplace_back(outputsInputs[ii]);
@@ -710,7 +709,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       continue;
     }
     // AODs are skipped in any case.
-    if (isAOD(outputsInputs[ii])) {
+    if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
       continue;
     }
     redirectedOutputsInputs.emplace_back(outputsInputs[ii]);
@@ -1114,26 +1113,21 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
     }
   }
   // parse the keepString
-  auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
   if (options.isSet("aod-writer-keep")) {
     auto keepString = options.get<std::string>("aod-writer-keep");
     if (!keepString.empty()) {
-
       dod->reset();
       std::string d("dangling");
       if (d.find(keepString) == 0) {
-
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-          if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
+          if (DataSpecUtils::partialMatch(OutputsInputs[ii], writableAODOrigins) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
         }
         dod->readSpecs(danglingOutputs);
-
       } else {
-
         // use the keep string
         dod->readString(keepString);
       }
