@@ -1253,13 +1253,13 @@ struct CombinationsGenerator {
     {
       return this->mCurrent;
     }
-    bool operator==(const CombinationsIterator& rh)
+    friend bool operator==(const CombinationsIterator& lh, const CombinationsIterator& rh)
     {
-      return (this->mIsEnd && rh.mIsEnd) || (this->mCurrent == rh.mCurrent);
+      return (lh.mIsEnd && rh.mIsEnd) || (lh.mCurrent == rh.mCurrent);
     }
-    bool operator!=(const CombinationsIterator& rh)
+    friend bool operator!=(const CombinationsIterator& lh, const CombinationsIterator& rh)
     {
-      return !(*this == rh);
+      return !(lh == rh);
     }
   };
 

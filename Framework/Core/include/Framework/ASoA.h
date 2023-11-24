@@ -614,14 +614,14 @@ struct DefaultIndexPolicy : IndexPolicyBase {
     this->setCursor(mMaxRow);
   }
 
-  bool operator!=(DefaultIndexPolicy const& other) const
+  friend bool operator!=(DefaultIndexPolicy const& lh, DefaultIndexPolicy const& rh)
   {
-    return O2_BUILTIN_LIKELY(this->mRowIndex != other.mRowIndex);
+    return O2_BUILTIN_LIKELY(lh.mRowIndex != rh.mRowIndex);
   }
 
-  bool operator==(DefaultIndexPolicy const& other) const
+  friend bool operator==(DefaultIndexPolicy const& lh, DefaultIndexPolicy const& rh)
   {
-    return O2_BUILTIN_UNLIKELY(this->mRowIndex == other.mRowIndex);
+    return O2_BUILTIN_UNLIKELY(lh.mRowIndex == rh.mRowIndex);
   }
 
   bool operator!=(RowViewSentinel const& sentinel) const
