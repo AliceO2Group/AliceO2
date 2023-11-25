@@ -255,12 +255,12 @@ class PageParser
       return mElement;
     }
     // comparison
-    bool operator==(const SelfType& rh)
+    bool operator==(const SelfType& rh) const
     {
       return mPosition == rh.mPosition;
     }
     // comparison
-    bool operator!=(const SelfType& rh)
+    bool operator!=(const SelfType& rh) const
     {
       return mPosition != rh.mPosition;
     }
