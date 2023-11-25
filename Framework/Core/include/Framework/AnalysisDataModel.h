@@ -506,6 +506,7 @@ DECLARE_SOA_COLUMN(Phi, phi, float);                                            
 DECLARE_SOA_COLUMN(Tgl, tgl, float);                                                         //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                             //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
 DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                            //! Number of clusters
+DECLARE_SOA_COLUMN(MFTClusterSizes, mftClusterSizes, uint64_t);                              //! Cluster sizes per track and per layer
 DECLARE_SOA_COLUMN(Chi2, chi2, float);                                                       //! Track chi^2
 DECLARE_SOA_COLUMN(PDca, pDca, float);                                                       //! PDca for MUONStandalone
 DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                                   //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
@@ -608,7 +609,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, //!
 DECLARE_SOA_TABLE_FULL(StoredMFTTracks, "MFTTracks", "AOD", "MFTTRACK", //!
                        o2::soa::Index<>, fwdtrack::CollisionId,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
-                       fwdtrack::Signed1Pt, fwdtrack::NClusters,
+                       fwdtrack::Signed1Pt, fwdtrack::NClusters, fwdtrack::MFTClusterSizes,
                        fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
                        fwdtrack::Py<fwdtrack::Pt, fwdtrack::Phi>,
                        fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,

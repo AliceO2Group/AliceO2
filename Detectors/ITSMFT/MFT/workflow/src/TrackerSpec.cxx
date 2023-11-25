@@ -195,11 +195,17 @@ void TrackerDPL::run(ProcessingContext& pc)
     for (auto& trc : new_tracks) {
       trc.setExternalClusterIndexOffset(allClusIdx.size());
       int ncl = trc.getNumberOfPoints();
+      LOGP(info, "NUMBER OF CLUSTERS in TrackerSpec : {}", ncl);
       for (int ic = 0; ic < ncl; ic++) {
         auto externalClusterID = trc.getExternalClusterIndex(ic);
+        auto clusterSize = trc.getExternalClusterSize(ic);
+        auto clusterLayer = trc.getExternalClusterLayer(ic);
+        LOGP(info, "ic = {} ; cluster index = {} ; clusterSize =  {} ; clusterLayer = {}", ic, externalClusterID, clusterSize, clusterLayer);
+        trc.setClusterSize(clusterLayer, clusterSize);
         allClusIdx.push_back(externalClusterID);
       }
       allTracks.emplace_back(trc);
+      LOGP(info, "-------------------------------------");
     }
   };
 
@@ -252,8 +258,10 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& rofData : roFrameVec[i]) {
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracks.swap(rofData.getTracks());
+        //auto clusterSizes = rofData.getClusterSizes();
         ntracksROF = tracks.size();
         copyTracks(tracks, allTracksMFT, allClusIdx);
+        //copyTracks(tracks, allTracksMFT, allClusIdx, clusterSizes);
 
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
@@ -312,7 +320,9 @@ void TrackerDPL::run(ProcessingContext& pc)
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracksL.swap(rofData.getTracks());
         ntracksROF = tracksL.size();
+        //auto clusterSizes = rofData.getClusterSizes();
         copyTracks(tracksL, allTracksMFT, allClusIdx);
+        //copyTracks(tracksL, allTracksMFT, allClusIdx, clusterSizes);
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
         *rof++;
