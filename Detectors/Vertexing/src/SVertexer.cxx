@@ -611,7 +611,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
       goodLamForCascade = true;
     }
-    if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedN.hasTPC && seedN.compatibleProton)) {
+    if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedN.hasTPC) && seedN.compatibleProton) {
       goodALamForCascade = true;
     }
   }
