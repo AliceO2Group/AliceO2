@@ -33,7 +33,19 @@ class Ring
   // DeltaRSurf_i: radial dinstance between two surfaces of tiles
   // R_ph: radius of the photosensitive surface (from the center)
   // z_ph: z position of the photosensitive surface (from the center)
-  Ring(int rPosId, int nTilesPhi, float rRad, float radThick, float rPhot, float photThick, const string& motherName = "RICHV");
+  Ring(int rPosId,
+       int nTilesPhi,
+       float rMin,
+       float rMax,
+       float radThick,
+       float radYmin,
+       float radYmax,
+       float radZ,
+       float photThick,
+       float photYmin,
+       float photYmax,
+       float photZ,
+       const std::string motherName = "RICHV");
   ~Ring() = default;
 
   auto getDeltaPhiPos() const { return TMath::TwoPi() / mNTiles; }

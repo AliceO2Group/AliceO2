@@ -81,7 +81,7 @@ struct SimConfigData {
   SimFieldMode mFieldMode = SimFieldMode::kDefault; // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
-  bool mIsUpgrade = false;                       // true if the simulation is for Run 5
+  bool mIsUpgrade = false;                    // true if the simulation is for Run 5
   std::string mFromCollisionContext = "";     // string denoting a collision context file; If given, this file will be used to determine number of events
   bool mForwardKine = false;                  // true if tracks and event headers are to be published on a FairMQ channel (for reading by other consumers)
   bool mWriteToDisc = true;                   // whether we write simulation products (kine, hits) to disc

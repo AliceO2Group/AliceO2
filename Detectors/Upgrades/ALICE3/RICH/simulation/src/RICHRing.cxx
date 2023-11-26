@@ -26,13 +26,21 @@ namespace rich
 
 Ring::Ring(int rPosId,
            int nTilesPhi,
+           float rMin,
+           float rMax,
            float radThick,
+           float radYmin,
+           float radYmax,
+           float radZ,
            float photThick,
-           const string& motherName)
-  : mNTiles{nTiles}, mPosId{rPosId}, mRadThickness{radThick}
+           float photYmin,
+           float photYmax,
+           float photZ,
+           const std::string motherName)
+  : mNTiles{nTilesPhi}, mPosId{rPosId}, mRadThickness{radThick}
 {
   TGeoManager* geoManager = gGeoManager;
-  geoManager->GetVolume(motherName.c_str());
+  TGeoVolume* motherVolume = geoManager->GetVolume(motherName.c_str());
   TGeoMedium* medAerogel = gGeoManager->GetMedium("RCH_AEROGEL$");
   if (!medAerogel) {
     LOGP(fatal, "Aerogel medium not found");
@@ -40,17 +48,30 @@ Ring::Ring(int rPosId,
   std::vector<TGeoArb8*> aeroTiles(nTilesPhi);
   LOGP(info, "Creating ring: id: {} with {} tiles. ", rPosId, nTilesPhi);
 
-  const float deltaPhi = TMath::TwoPi() / nTilesPhi;
+  float deltaPhiRad = 360.0 / nTilesPhi; // Transformation are constructed in degrees...
+  size_t tileCount{0};
   for (auto& aeroTile : aeroTiles) {
-    tile = new TGeoArb8(mRadThickness);
-    tile->SetVertex(0, 0, 0);
-    tile->SetVertex(1, 0, 0);
-    tile->SetVertex(2, 0, 0);
-    tile->SetVertex(3, 0, 0);
-    tile->SetVertex(4, 0, 0);
-    tile->SetVertex(5, 0, 0);
-    tile->SetVertex(6, 0, 0);
-    tile->SetVertex(7, 0, 0);
+    aeroTile = new TGeoArb8(radZ / 2);
+    aeroTile->SetVertex(0, -radThick / 2, -radYmax / 2);
+    aeroTile->SetVertex(1, -radThick / 2, radYmax / 2);
+    aeroTile->SetVertex(2, radThick / 2, radYmax / 2);
+    aeroTile->SetVertex(3, radThick / 2, -radYmax / 2);
+    aeroTile->SetVertex(4, -radThick / 2, -radYmin / 2);
+    aeroTile->SetVertex(5, -radThick / 2, radYmin / 2);
+    aeroTile->SetVertex(6, radThick / 2, radYmin / 2);
+    aeroTile->SetVertex(7, radThick / 2, -radYmin / 2);
+
+    TGeoVolume* aeroTileVol = new TGeoVolume(Form("aeroTile_%d_%d", rPosId, tileCount), aeroTile, medAerogel);
+    aeroTileVol->SetLineColor(kBlue - 9);
+    aeroTileVol->SetFillColor(kBlue - 9);
+    aeroTileVol->SetTransparency(50);
+    aeroTileVol->SetLineWidth(1);
+
+    auto* rotAero = new TGeoRotation(Form("aeroTileRotation%d_%d", tileCount, rPosId), 0, 0, tileCount * deltaPhiRad);
+    auto* rotoTransAero = new TGeoCombiTrans(rMin * TMath::Cos(tileCount * TMath::Pi() / (nTilesPhi / 2)), rMin * TMath::Sin(tileCount * TMath::Pi() / (nTilesPhi / 2)), 0, rotAero);
+
+    motherVolume->AddNode(aeroTileVol, 1, rotoTransAero);
+    tileCount++;
   }
 }
 

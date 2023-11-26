@@ -158,6 +158,20 @@ void Detector::createGeometry()
   } else {
     prepareOddLayout();
   }
+
+  mRings[richPars.nRings / 2] = Ring{richPars.nRings,
+                                     richPars.nTiles,
+                                     richPars.rMin,
+                                     richPars.rMax,
+                                     richPars.radiatorThickness,
+                                     mVTile1[richPars.nRings / 2],
+                                     mVTile2[richPars.nRings / 2],
+                                     mLAerogelZ[richPars.nRings / 2 / 2],
+                                     richPars.detectorThickness,
+                                     0,
+                                     0,
+                                     richPars.zBaseSize,
+                                     GeometryTGeo::getRICHVolPattern()};
 }
 
 void Detector::InitializeO2Detector()
@@ -361,6 +375,7 @@ void Detector::prepareEvenLayout()
 
 void Detector::prepareOddLayout()
 { // Mere transcription of Nicola's code
+  LOGP(info, "Setting up ODD layout for bRICH");
   auto& richPars = RICHBaseParam::Instance();
 
   mThetaBi.resize(richPars.nRings);
@@ -431,9 +446,6 @@ void Detector::prepareOddLayout()
       mVTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
     }
   }
-
-  // Deploy central ring
-
 }
 } // namespace rich
 } // namespace o2

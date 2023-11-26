@@ -21,7 +21,7 @@ std::unique_ptr<o2::rich::GeometryTGeo> GeometryTGeo::sInstance;
 std::string GeometryTGeo::sVolumeName = "RICHV";
 std::string GeometryTGeo::sRingName = "RICHRing";
 std::string GeometryTGeo::sChipName = "RICHChip";
-std::string GeometryTGeo::sSensorName = "RICHSensor";   
+std::string GeometryTGeo::sSensorName = "RICHSensor";
 
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache()
 {
@@ -74,5 +74,5 @@ const char* GeometryTGeo::composeSymNameSensor(int d, int lr)
   return Form("%s/%s%d", composeSymNameChip(d, lr), getRICHSensorPattern(), lr);
 }
 
-}
-}
+} // namespace rich
+} // namespace o2
