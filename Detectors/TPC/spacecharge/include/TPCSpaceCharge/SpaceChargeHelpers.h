@@ -32,11 +32,17 @@ namespace tpc
 
 struct SCMetaData {
 
+  enum LumiType {
+    CTP = 0,
+    IDC = 1
+  };
+
   void print() const
   {
-    std::array<std::string, 2> collisionTypes{"PP", "Pb-Pb"};
+    const std::array<std::string, 2> collisionTypes{"PP", "Pb-Pb"};
+    const std::array<std::string, 2> slumiSource{"CTP", "IDC"};
     if (collisionType < collisionTypes.size()) {
-      LOGP(info, "meanLumi: {}, IR: {}kHz, run: {}, collisionType {}", meanLumi, ir, run, collisionTypes[collisionType]);
+      LOGP(info, "meanLumi: {}, source of lumi: {}, IR: {}kHz, run: {}, collisionType {}", meanLumi, slumiSource[lumiSource], ir, run, collisionTypes[collisionType]);
     } else {
       LOGP(info, "Specified collision type {} not allowed", collisionType);
     }
@@ -46,6 +52,7 @@ struct SCMetaData {
   float ir = 0;          ///< IR
   int run = 0;           ///< run number this object anchored to to
   int collisionType = 0; ///< 0=PP, 1-Pb-Pb
+  LumiType lumiSource{}; ///< source of luminosity
 
  private:
   ClassDefNV(SCMetaData, 1);
