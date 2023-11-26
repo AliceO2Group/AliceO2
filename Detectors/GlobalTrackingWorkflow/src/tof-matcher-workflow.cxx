@@ -65,6 +65,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"output-type", o2::framework::VariantType::String, "matching-info", {"matching-info, calib-info"}},
     {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
     {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
+    {"refit-tpc-tof", o2::framework::VariantType::Bool, false, {"Refit unconstrained TPC tracks matched to TOF (if false - just move)"}},
     {"write-matchable", o2::framework::VariantType::Bool, false, {"write all matchable pairs in a file (o2matchable_tof.root)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
@@ -98,6 +99,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   bool writematching = 0;
   bool writecalib = 0;
+  bool refitTPCTOF = configcontext.options().get<bool>("refit-tpc-tof");
   auto outputType = configcontext.options().get<std::string>("output-type");
   auto nLanes = configcontext.options().get<int>("tof-lanes");
   if (outputType.rfind("matching-info") < outputType.size()) {
@@ -142,6 +144,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (useFIT) {
     clustermask |= GID::getSourceMask(GID::FT0);
   }
+  if (src[GID::TPC] && refitTPCTOF) { // load clusters
+    clustermask |= GID::getSourceMask(GID::TPC);
+  }
   if (sclOpt.lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
@@ -163,7 +168,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable, sclOpt, nLanes)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, refitTPCTOF, strict, extratolerancetrd, writeMatchable, sclOpt, nLanes)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;
