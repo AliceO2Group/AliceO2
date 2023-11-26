@@ -72,7 +72,7 @@ enum class CDBType {
   CalCorrMap,          ///< Cluster correction map (high IR rate distortions)
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
   CalCorrMapMC,        ///< Cluster correction map (high IR rate distortions) for MC
-  CalCorrMapRefMC,     ///< Cluster correction reference map (static distortions) for MC
+  CalCorrDerivMapMC,   ///< Cluster correction reference map (static distortions) for MC
                        ///
   CalCorrDerivMap,     ///< Cluster correction map (derivative map)
                        ///
@@ -136,7 +136,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRefV2"},
   // correction maps for MC
   {CDBType::CalCorrMapMC, "TPC/Calib/CorrectionMapMCV2"},
-  {CDBType::CalCorrMapRefMC, "TPC/Calib/CorrectionMapRefMCV2"},
+  {CDBType::CalCorrDerivMapMC, "TPC/Calib/CorrectionMapDerivativeMCV2"},
   // derivative map correction
   {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
   // time series
