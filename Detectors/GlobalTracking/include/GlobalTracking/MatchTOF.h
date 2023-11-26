@@ -154,24 +154,6 @@ class MatchTOF
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
 
-  ///< set input TPC tracks cluster indices
-  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
-  {
-    mTPCTrackClusIdx = inp;
-  }
-
-  ///< set input TPC cluster sharing map
-  void setTPCClustersSharingMap(const gsl::span<const unsigned char> inp)
-  {
-    mTPCRefitterShMap = inp;
-  }
-
-  ///< set input TPC clusters
-  void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
-  {
-    mTPCClusterIdxStruct = inp;
-  }
-
   void setFIT(bool value = true) { mIsFIT = value; }
   static int findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, unsigned long firstOrbit);
 
@@ -179,18 +161,32 @@ class MatchTOF
   bool makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCTOF& trConstr);
 
   ///< populate externally provided container by TOF-time-constrained TPC tracks
-  template <typename V>
-  void makeConstrainedTPCTracks(V& container)
+  template <typename MtcInfo, typename MCInfo, typename CTrack>
+  void makeConstrainedTPCTracks(MtcInfo& mtcCont, MCInfo& MCCont, CTrack& trcCont)
   {
+    auto nmatch = getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size(); // preliminary matches
+    mtcCont.reserve(nmatch);
+    trcCont.reserve(nmatch);
+    if (mMCTruthON) {
+      MCCont.reserve(nmatch);
+    }
     checkRefitter();
-    int nmatched = mMatchedTracks[trkType::TPC].size(), nconstrained = 0;
-    container.resize(nmatched);
-    for (unsigned i = 0; i < nmatched; i++) {
-      if (makeConstrainedTPCTrack(i, container[nconstrained])) {
+
+    auto& mclabs = getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC);
+    auto& info = getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC);
+    int nconstrained = 0;
+    for (unsigned i = 0; i < nmatch; i++) {
+      auto& ctr = trcCont.emplace_back();
+      if (makeConstrainedTPCTrack(i, ctr)) {
+        mtcCont.push_back(info[i]);
+        if (mMCTruthON) {
+          MCCont.push_back(mclabs[i]);
+        }
         nconstrained++;
+      } else {
+        trcCont.pop_back();
       }
     }
-    container.resize(nconstrained);
   }
 
   void setTS(unsigned long creationTime) { mTimestamp = creationTime; }
