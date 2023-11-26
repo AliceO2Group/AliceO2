@@ -1867,6 +1867,7 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
       }
       lID = winL.parentID;
     }
+    clref.setEntries(ncl);
     if (!refitABTrack(ABTrackletRefs.size() - 1, ABSeed, matchedTracks, ABTrackletClusterIDs, ABTrackletRefs)) { // on failure, destroy added tracklet reference
       ABTrackletRefs.pop_back();
       ABTrackletClusterIDs.resize(start); // RSS
@@ -1875,7 +1876,6 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
       }
       continue;
     }
-    clref.setEntries(ncl);
     if (mMCTruthON) {
       o2::MCCompLabel lab;
       int maxL = 0; // find most encountered label
