@@ -1166,15 +1166,21 @@ using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 template <typename T>
 inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
+
+template <typename T>
+class FilteredBase;
+template <typename T>
+class Filtered;
+
+template <typename T>
+inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
+
 /// Helper function to extract bound indices
 template <typename... Is>
 static constexpr auto extractBindings(framework::pack<Is...>)
 {
   return framework::pack<typename Is::binding_t...>{};
 }
-
-template <typename T>
-class Filtered;
 
 SelectionVector selectionToVector(gandiva::Selection const& sel);
 
@@ -1199,28 +1205,35 @@ auto doSliceBy(T const* table, o2::framework::PresliceUnsorted<C> const& contain
 {
   if constexpr (o2::soa::is_binding_compatible_v<C, T>()) {
     auto selection = container.getSliceFor(value);
-    auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
-    table->copyIndexBindings(t);
-    t.bindInternalIndicesTo(table);
-    return t;
+    if constexpr (soa::is_soa_filtered_v<T>) {
+      auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+      table->copyIndexBindings(t);
+      t.bindInternalIndicesTo(table);
+      return t;
+    } else {
+      auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
+      table->copyIndexBindings(t);
+      t.bindInternalIndicesTo(table);
+      return t;
+    }
   } else {
     static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
   }
 }
 
 template <typename T>
-auto makeEmptyFiltered(std::shared_ptr<arrow::Table> slice, T const* original)
-{
-  typename T::self_t fresult{{slice}, SelectionVector{}, 0};
-  original->copyIndexBindings(fresult);
-  return fresult;
-}
-
-template <typename T>
 auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
 {
   if (offset >= table->tableSize()) {
-    return makeEmptyFiltered(slice, table);
+    if constexpr (soa::is_soa_filtered_v<T>) {
+      Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
+      table->copyIndexBindings(fresult);
+      return fresult;
+    } else {
+      typename T::self_t fresult{{{slice}}, SelectionVector{}, 0};
+      table->copyIndexBindings(fresult);
+      return fresult;
+    }
   }
   auto start = offset;
   auto end = start + slice->num_rows();
@@ -1232,9 +1245,15 @@ auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, u
                  [&start](int64_t idx) {
                    return idx - static_cast<int64_t>(start);
                  });
-  typename T::self_t fresult{{slice}, std::move(slicedSelection), start};
-  table->copyIndexBindings(fresult);
-  return fresult;
+  if constexpr (soa::is_soa_filtered_v<T>) {
+    Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection), start};
+    table->copyIndexBindings(fresult);
+    return fresult;
+  } else {
+    typename T::self_t fresult{{{slice}}, std::move(slicedSelection), start};
+    table->copyIndexBindings(fresult);
+    return fresult;
+  }
 }
 
 template <typename T, typename C>
@@ -1273,9 +1292,15 @@ template <typename T>
 auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
 {
   auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
-  auto t = Filtered<T>({table->asArrowTable()}, localCache.getSliceFor(value));
-  table->copyIndexBindings(t);
-  return t;
+  if constexpr (soa::is_soa_filtered_v<T>) {
+    auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
+    table->copyIndexBindings(t);
+    return t;
+  } else {
+    auto t = Filtered<T>({table->asArrowTable()}, localCache.getSliceFor(value));
+    table->copyIndexBindings(t);
+    return t;
+  }
 }
 
 template <typename T>
@@ -1292,6 +1317,7 @@ template <typename... C>
 class Table
 {
  public:
+  using self_t = Table<C...>;
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
   using column_types = framework::pack<typename C::type...>;
@@ -2912,6 +2938,7 @@ template <typename T>
 class Filtered : public FilteredBase<T>
 {
  public:
+  using base_t = T;
   using self_t = Filtered<T>;
   using table_t = typename FilteredBase<T>::table_t;
   using originals = originals_pack_t<T>;
@@ -2997,6 +3024,12 @@ class Filtered : public FilteredBase<T>
     return operator*=(other.getSelectedRows());
   }
 
+  template <typename T1>
+  auto rawSliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  {
+    return (table_t)this->sliceBy(container, value);
+  }
+
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     return doFilteredSliceByCached(this, node, value, cache);
@@ -3008,6 +3041,27 @@ class Filtered : public FilteredBase<T>
     t.intersectWithSelection(this->getSelectedRows());
     return t;
   }
+
+  template <typename T1>
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  {
+    return doFilteredSliceBy(this, container, value);
+  }
+
+  template <typename T1>
+  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
+  {
+    auto t = doSliceBy(this, container, value);
+    t.intersectWithSelection(this->getSelectedRows());
+    return t;
+  }
+
+  auto select(framework::expressions::Filter const& f) const
+  {
+    auto t = o2::soa::select(*this, f);
+    copyIndexBindings(t);
+    return t;
+  }
 };
 
 template <typename T>
@@ -3015,6 +3069,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 {
  public:
   using self_t = Filtered<Filtered<T>>;
+  using base_t = T;
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
   using originals = originals_pack_t<T>;
 
@@ -3126,6 +3181,20 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return t;
   }
 
+  template <typename T1>
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  {
+    return doFilteredSliceBy(this, container, value);
+  }
+
+  template <typename T1>
+  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
+  {
+    auto t = doSliceBy(this, container, value);
+    t.intersectWithSelection(this->getSelectedRows());
+    return t;
+  }
+
  private:
   std::vector<std::shared_ptr<arrow::Table>> extractTablesFromFiltered(std::vector<Filtered<T>>& tables)
   {
@@ -3136,9 +3205,6 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return outTables;
   }
 };
-
-template <typename T>
-inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
