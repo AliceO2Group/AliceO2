@@ -361,15 +361,29 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   }
   trackTime -= bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS;
 
-  LOGP(info, "Final track cluster sizes : {}", track.getClusterSizes());
+  uint64_t clusterSize = track.getClusterSizes();
+  LOGP(info, "Final track cluster sizes : {}", clusterSize);
   std::cout << "Unpacked cluster size = ";
-  auto clSizeTest = track.getClusterSizes();
+  auto clSizeTest = clusterSize;
   for (int i = 0; i < 10; ++i) {
     int size = (clSizeTest >> (i * 6)) & 0x3f;
     std::cout << size << " , ";
   }
   LOGP(info, "Get number of clusters {}", track.getNumberOfPoints());
-  LOGP(info, "VALIDATION = {}", track.getClusterSizes());
+  LOGP(info, "VALIDATION = {}", clusterSize);
+  
+  if (track.isCA()) {
+    clusterSize |= (1ULL << (60));
+  } else {
+    clusterSize &= ~(1ULL << (60));
+  }
+
+  std::cout << "Unpacked cluster size adding isCA = ";
+  for (int i = 0; i < 10; ++i) {
+    int size = (clSizeTest >> (i * 6)) & 0x3f;
+    std::cout << size << " , ";
+  }
+
 
   mftTracksCursor(collisionID,
                   track.getX(),
@@ -379,7 +393,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
                   truncateFloatFraction(track.getTanl(), mTrackTgl),
                   truncateFloatFraction(track.getInvQPt(), mTrack1Pt),
                   track.getNumberOfPoints(),
-                  track.getClusterSizes(),
+                  clusterSize,
                   truncateFloatFraction(track.getTrackChi2(), mTrackChi2),
                   truncateFloatFraction(trackTime, mTrackTime),
                   truncateFloatFraction(trackTimeRes, mTrackTimeError));
