@@ -45,7 +45,7 @@ class TrackLTF : public TrackMFTExt
   const std::array<Int_t, constants::mft::LayersNumber>& getLayers() const { return mLayer; }
   const std::array<Int_t, constants::mft::LayersNumber>& getClustersId() const { return mClusterId; }
   const std::array<MCCompLabel, constants::mft::LayersNumber>& getMCCompLabels() const { return mMCCompLabels; }
-  //void setPoint(const Cluster& cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, const Int_t extClsIndex);
+  // void setPoint(const Cluster& cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, const Int_t extClsIndex);
   void setPoint(const Cluster& cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, const Int_t extClsIndex, const Int_t clsSize);
 
   void sort();
@@ -85,7 +85,7 @@ class TrackLTFL : public TrackLTF // A track model for B=0
 };
 
 //_________________________________________________________________________________________________
-//inline void TrackLTF::setPoint(const Cluster& cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, const Int_t extClsIndex)
+// inline void TrackLTF::setPoint(const Cluster& cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, const Int_t extClsIndex)
 inline void TrackLTF::setPoint(const Cluster& cl, const Int_t layer, const Int_t clusterId, const MCCompLabel label, const Int_t extClsIndex, const Int_t clsSize)
 {
   auto nPoints = getNumberOfPoints();

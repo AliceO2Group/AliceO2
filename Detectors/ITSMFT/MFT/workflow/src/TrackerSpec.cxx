@@ -258,10 +258,10 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& rofData : roFrameVec[i]) {
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracks.swap(rofData.getTracks());
-        //auto clusterSizes = rofData.getClusterSizes();
+        // auto clusterSizes = rofData.getClusterSizes();
         ntracksROF = tracks.size();
         copyTracks(tracks, allTracksMFT, allClusIdx);
-        //copyTracks(tracks, allTracksMFT, allClusIdx, clusterSizes);
+        // copyTracks(tracks, allTracksMFT, allClusIdx, clusterSizes);
 
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
@@ -320,9 +320,9 @@ void TrackerDPL::run(ProcessingContext& pc)
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracksL.swap(rofData.getTracks());
         ntracksROF = tracksL.size();
-        //auto clusterSizes = rofData.getClusterSizes();
+        // auto clusterSizes = rofData.getClusterSizes();
         copyTracks(tracksL, allTracksMFT, allClusIdx);
-        //copyTracks(tracksL, allTracksMFT, allClusIdx, clusterSizes);
+        // copyTracks(tracksL, allTracksMFT, allClusIdx, clusterSizes);
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
         *rof++;

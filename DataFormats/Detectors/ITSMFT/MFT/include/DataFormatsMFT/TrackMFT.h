@@ -143,7 +143,7 @@ class TrackMFTExt : public TrackMFT
 
  protected:
   std::array<int, MaxClusters> mExtClsIndex = {-1}; ///< External indices of associated clusters
-  std::array<int, MaxClusters> mExtClsSize = {-1}; ///< Cluster size 
+  std::array<int, MaxClusters> mExtClsSize = {-1};  ///< Cluster size
   std::array<int, MaxClusters> mExtClsLayer = {-1}; ///< Cluster layer
 
   ClassDefNV(TrackMFTExt, 1);
