@@ -154,8 +154,8 @@ class DataGenerator
     // pointer operator->() const {return &mValue;}
     // reference operator[](size_type n) const;
 
-    bool operator==(const self_type& other) { return mCount == other.mCount; }
-    bool operator!=(const self_type& other) { return not(*this == other); }
+    bool operator==(const self_type& other) const { return mCount == other.mCount; }
+    bool operator!=(const self_type& other) const { return not(*this == other); }
 
    private:
     const ContainerT& mParent;
