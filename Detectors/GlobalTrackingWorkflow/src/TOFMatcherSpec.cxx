@@ -168,21 +168,15 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   mMatcher.setTS(creationTime);
 
   mMatcher.run(recoData, pc.services().get<o2::framework::TimingInfo>().firstTForbit);
+  static pmr::vector<o2::MCCompLabel> dummyMCLab;
 
   if (isTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
-    if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_TPC", ss, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
-    }
-
+    auto& mtcInfo = pc.outputs().make<std::vector<o2::dataformats::MatchInfoTOF>>(Output{o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe});
+    auto& mclabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{o2::header::gDataOriginTOF, "MCMTC_TPC", ss, Lifetime::Timeframe}) : dummyMCLab;
+    auto& tracksTPCTOF = pc.outputs().make<std::vector<o2::dataformats::TrackTPCTOF>>(OutputRef{"tpctofTracks", ss});
     auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size();
-    if (mDoTPCRefit) {
-      LOG(debug) << "Refitting " << nmatch << " matched TPC tracks with TOF time info";
-    } else {
-      LOG(debug) << "Shifting Z for " << nmatch << " matched TPC tracks according to TOF time info";
-    }
-    auto& tracksTPCTOF = pc.outputs().make<std::vector<o2::dataformats::TrackTPCTOF>>(OutputRef{"tpctofTracks", ss}, nmatch);
-    mMatcher.makeConstrainedTPCTracks(tracksTPCTOF);
+    LOG(debug) << (mDoTPCRefit ? "Refitting " : "Shifting Z for ") << nmatch << " matched TPC tracks with TOF time info";
+    mMatcher.makeConstrainedTPCTracks(mtcInfo, mclabels, tracksTPCTOF);
   }
 
   if (isITSTPCused) {
@@ -249,6 +243,9 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
   }
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(GID::getSourceMask(GID::TOF), useMC);
+  if (tpcRefit && src[GID::TPC]) {
+    dataRequest->requestClusters(GID::getSourceMask(GID::TPC), false);
+  }
   if (useFIT) {
     dataRequest->requestFT0RecPoints(false);
   }

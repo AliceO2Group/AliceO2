@@ -12,15 +12,18 @@
 #ifndef ALICEO2_TPC_DeadChannelMapCreator_H_
 #define ALICEO2_TPC_DeadChannelMapCreator_H_
 
+#include <string_view>
 #include <unordered_map>
 #include <memory>
+#include <string_view>
 
 #include "Rtypes.h"
 
 #include "CCDB/CcdbApi.h"
 
 #include "DataFormatsTPC/Defs.h"
-#include "TPCBase/CDBInterface.h"
+#include "TPCBase/CDBTypes.h"
+#include "TPCBase/CalDet.h"
 #include "TPCBase/FEEConfig.h"
 
 namespace o2::tpc
@@ -51,7 +54,7 @@ class DeadChannelMapCreator
 
   void reset();
 
-  void init();
+  void init(std::string_view url = "");
   void load(long timeStampOrRun);
   void loadFEEConfigViaRunInfoTS(long timeStamp);
   void loadFEEConfigViaRunInfo(long timeStampOrRun);
@@ -63,6 +66,9 @@ class DeadChannelMapCreator
   const CalDet<bool>& getDeadChannelMapIDC() const { return mDeadChannelMapIDC; }
   const CalDet<bool>& getDeadChannelMapFEE() const { return mDeadChannelMapFEE; }
   const CalDet<bool>& getDeadChannelMap() const { return mDeadChannelMap; }
+
+  const FEEConfig* getFEEConfig() const { return mFEEConfig.get(); }
+  const CalDetFlag_t* getPadFlags() const { return mPadStatusMap.get(); }
 
   void drawDeadChannelMapIDC();
   void drawDeadChannelMapFEE();

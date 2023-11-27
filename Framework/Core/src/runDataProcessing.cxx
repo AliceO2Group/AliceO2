@@ -2565,6 +2565,30 @@ void apply_permutation(
   }
 }
 
+// Check if the workflow is resiliant to failures
+void checkNonResiliency(std::vector<DataProcessorSpec> const& specs,
+                        std::vector<std::pair<int, int>> const& edges)
+{
+  auto checkExpendable = [](DataProcessorLabel const& label) {
+    return label.value == "expendable";
+  };
+  auto checkResilient = [](DataProcessorLabel const& label) {
+    return label.value == "resilient" || label.value == "expendable";
+  };
+
+  for (auto& edge : edges) {
+    auto& src = specs[edge.first];
+    auto& dst = specs[edge.second];
+    if (std::none_of(src.labels.begin(), src.labels.end(), checkExpendable)) {
+      continue;
+    }
+    if (std::any_of(dst.labels.begin(), dst.labels.end(), checkResilient)) {
+      continue;
+    }
+    throw std::runtime_error("Workflow is not resiliant to failures. Processor " + dst.name + " gets inputs from expendable devices, but is not marked as expendable or resilient itself.");
+  }
+}
+
 std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
                           std::vector<TopoIndexInfo> const& infos,
                           std::vector<std::pair<int, int>> const& edges)
@@ -2590,6 +2614,11 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   for (auto& d : specs) {
     out << "- " << d.name << std::endl;
   }
+  out << "digraph G {\n";
+  for (auto& e : edges) {
+    out << fmt::format("  \"{}\" -> \"{}\"\n", specs[e.first].name, specs[e.second].name);
+  }
+  out << "}\n";
   return out.str();
 }
 
@@ -2828,6 +2857,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
     auto topoInfos = WorkflowHelpers::topologicalSort(physicalWorkflow.size(), &edges[0].first, &edges[0].second, sizeof(std::pair<int, int>), edges.size());
     if (topoInfos.size() != physicalWorkflow.size()) {
+      // Check missing resilincy of one of the tasks
+      checkNonResiliency(physicalWorkflow, edges);
       throw std::runtime_error("Unable to do topological sort of the resulting workflow. Do you have loops?\n" + debugTopoInfo(physicalWorkflow, topoInfos, edges));
     }
     // Sort by layer and then by name, to ensure stability.

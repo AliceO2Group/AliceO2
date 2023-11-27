@@ -21,6 +21,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <typeinfo>
 #include <iostream>
+#include <array>
 
 class TFile;
 class TRootIOCtor;

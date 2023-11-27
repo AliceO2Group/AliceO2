@@ -272,10 +272,9 @@ GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
 parse_TPC_CORR_SCALING()
 {
 while [[ $# -gt 0 ]]; do
-  echo $1
   case "$1" in
-    --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; shift 1;;
-    --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; shift 2;;
+    --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; [[ ${1#*=} == "2" ]] && NEED_TPC_SCALERS_WF=1; shift 1;;
+    --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; [[ ${2} == "2" ]] && NEED_TPC_SCALERS_WF=1; shift 2;;
     --corrmap-lumi-mode=*) TPC_CORR_OPT+=" --corrmap-lumi-mode ${1#*=}"; shift 1;;
     --corrmap-lumi-mode) TPC_CORR_OPT+=" --corrmap-lumi-mode ${2}"; shift 2;;
     *) TPC_CORR_KEY+="$1;"; shift 1;;

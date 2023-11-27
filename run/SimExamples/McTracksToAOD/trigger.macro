@@ -1,0 +1,19 @@
+#include "Generators/Trigger.h"
+#include "TParticle.h"
+
+o2::eventgen::Trigger trigger()
+{
+  // a simple trigger accepting only events with less than 200 particles
+  // only for demonstration purposes
+  auto trigger = [](const std::vector<TParticle>& particles) -> bool {
+    auto accept = particles.size() < 200;
+    if (accept) {
+      std::cout << "Trigger accept\n";
+    }
+    else {
+      std::cout << "Trigger reject\n";
+    }
+    return accept;
+  };
+  return trigger;
+}

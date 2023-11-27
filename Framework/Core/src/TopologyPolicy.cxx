@@ -82,33 +82,41 @@ bool expendableDataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
   // If we are here we do not have any data dependency,
   // however we strill consider a dependent on b if
   // a has the "expendable" label and b does not.
-  bool isBExpendable = false;
-  bool isAExpendable = false;
-  for (auto const& label : b.labels) {
+  auto checkExpendable = [](DataProcessorLabel const& label) {
     if (label.value == "expendable") {
-      isBExpendable = true;
-      break;
+      return true;
     }
-  }
-  for (auto const& label : a.labels) {
-    if (label.value == "expendable") {
-      isAExpendable = true;
-      break;
+    return false;
+  };
+  // A task marked as expendable or resilient can be put after an expendable task
+  auto checkResilient = [](DataProcessorLabel const& label) {
+    if (label.value == "resilient") {
+      return true;
     }
-  }
-  // If none is expendable. We simply return false.
+    return false;
+  };
+  bool isBExpendable = std::find_if(b.labels.begin(), b.labels.end(), checkExpendable) != b.labels.end();
+  bool isAExpendable = std::find_if(a.labels.begin(), a.labels.end(), checkExpendable) != a.labels.end();
+  bool bResilient = std::find_if(b.labels.begin(), b.labels.end(), checkResilient) != b.labels.end();
+
+  // If none is expendable. We simply return false and sort as usual.
   if (!isAExpendable && !isBExpendable) {
-    LOGP(debug, "Neither {} nor {} are expendable. No dependency.", a.name, b.name);
+    LOGP(debug, "Neither {} nor {} are expendable. No dependency beyond data deps.", a.name, b.name);
     return false;
   }
-  // If both are expendable. We return false.
+  // If both are expendable. We return false and sort as usual.
   if (isAExpendable && isBExpendable) {
     LOGP(debug, "Both {} and {} are expendable. No dependency.", a.name, b.name);
     return false;
   }
 
+  // If b is expendable but b is resilient, we can keep the same order.
+  if (isAExpendable && bResilient) {
+    LOGP(debug, "{} is expendable but b is resilient, no need to add an unneeded dependency", a.name, a.name, b.name);
+    return false;
+  }
   // If a is expendable we consider it as if there was a dependency from a to b,
-  // but we still need to check if there is not one already from b to a.
+  // however we still need to check if there is not one already from b to a.
   if (isAExpendable) {
     LOGP(debug, "{} is expendable. Checking if there is a dependency from {} to {}.", a.name, b.name, a.name);
     return !dataDeps(b, a);

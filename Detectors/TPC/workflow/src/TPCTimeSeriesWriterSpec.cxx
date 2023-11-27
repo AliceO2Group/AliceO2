@@ -33,8 +33,8 @@ DataProcessorSpec getTPCTimeSeriesWriterSpec()
   return MakeRootTreeWriterSpec("tpc-time-series-writer",
                                 "o2_timeseries_tpc.root",
                                 "treeTimeSeries",
-                                BranchDefinition<TimeSeriesITSTPC>{InputSpec{"timeseries", o2::header::gDataOriginTPC, getDataDescriptionTimeSeries(), 0}, "TimeSeries", 1},
-                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itpctfid", o2::header::gDataOriginTPC, getDataDescriptionTPCTimeSeriesTFId(), 0}, "tfID", 1})();
+                                BranchDefinition<TimeSeriesITSTPC>{InputSpec{"timeseries", o2::header::gDataOriginTPC, getDataDescriptionTimeSeries(), 0, Lifetime::Sporadic}, "TimeSeries", 1},
+                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itpctfid", o2::header::gDataOriginTPC, getDataDescriptionTPCTimeSeriesTFId(), 0, Lifetime::Sporadic}, "tfID", 1})();
 }
 
 } // namespace tpc

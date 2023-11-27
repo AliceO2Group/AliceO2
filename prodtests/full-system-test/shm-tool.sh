@@ -1,4 +1,8 @@
 #!/bin/bash
+if [[ -z $SHM_MANAGER_SHMID ]]; then
+  echo You must provide SHM_MANAGER_SHMID
+  exit 1
+fi
 
 if [[ "0$EPN_NODE_MI100" == "01" && -z $EPN_GLOBAL_SCALING ]]; then
   EPN_GLOBAL_SCALING="3 / 2"

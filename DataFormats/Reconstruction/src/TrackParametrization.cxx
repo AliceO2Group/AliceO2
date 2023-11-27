@@ -144,9 +144,9 @@ template <typename value_T>
 GPUd() bool TrackParametrization<value_T>::getPosDirGlo(gpu::gpustd::array<value_t, 9>& posdirp) const
 {
   // fill vector with lab x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha
-  value_t ptI = gpu::CAMath::Abs(getQ2Pt());
+  value_t ptI = getPtInv();
   value_t snp = getSnp();
-  if (ptI < constants::math::Almost0 || gpu::CAMath::Abs(snp) > constants::math::Almost1) {
+  if (gpu::CAMath::Abs(snp) > constants::math::Almost1) {
     return false;
   }
   value_t &sn = posdirp[7], &cs = posdirp[8];

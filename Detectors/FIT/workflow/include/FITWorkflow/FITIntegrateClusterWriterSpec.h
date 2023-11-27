@@ -38,8 +38,8 @@ DataProcessorSpec getFITIntegrateClusterWriterSpec()
   return MakeRootTreeWriterSpec(fmt::format("{}-currents-writer", FitType::getName()).data(),
                                 treeFile.data(),
                                 treeName.data(),
-                                BranchDefinition<typename DataDescriptionFITCurrents<DataT>::DataTStruct>{InputSpec{"ifitc", FitType::getDataOrigin(), FitType::getDataDescriptionFITC(), 0}, "IFITC", 1},
-                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"tfID", FitType::getDataOrigin(), FitType::getDataDescriptionFITTFId(), 0}, "tfID", 1})();
+                                BranchDefinition<typename DataDescriptionFITCurrents<DataT>::DataTStruct>{InputSpec{"ifitc", FitType::getDataOrigin(), FitType::getDataDescriptionFITC(), 0, Lifetime::Timeframe}, "IFITC", 1},
+                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"tfID", FitType::getDataOrigin(), FitType::getDataDescriptionFITTFId(), 0, Lifetime::Timeframe}, "tfID", 1})();
 }
 
 } // end namespace fit

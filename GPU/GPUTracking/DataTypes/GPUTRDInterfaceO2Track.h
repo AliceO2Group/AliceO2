@@ -47,10 +47,10 @@ template <>
 class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
 {
  public:
-  GPUdDefault() trackInterface<o2::track::TrackParCov>() = default;
-  trackInterface<o2::track::TrackParCov>(const o2::track::TrackParCov& param) = delete;
-  GPUd() trackInterface<o2::track::TrackParCov>(const o2::dataformats::TrackTPCITS& trkItsTpc) : o2::track::TrackParCov(trkItsTpc.getParamOut()) {}
-  GPUd() trackInterface<o2::track::TrackParCov>(const o2::tpc::TrackTPC& trkTpc) : o2::track::TrackParCov(trkTpc.getParamOut()) {}
+  GPUdDefault() trackInterface() = default;
+  trackInterface(const o2::track::TrackParCov& param) = delete;
+  GPUd() trackInterface(const o2::dataformats::TrackTPCITS& trkItsTpc) : o2::track::TrackParCov(trkItsTpc.getParamOut()) {}
+  GPUd() trackInterface(const o2::tpc::TrackTPC& trkTpc) : o2::track::TrackParCov(trkTpc.getParamOut()) {}
 
   GPUd() void set(float x, float alpha, const float* param, const float* cov)
   {
@@ -63,8 +63,8 @@ class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
       setCov(cov[i], i);
     }
   }
-  GPUd() trackInterface<o2::track::TrackParCov>(const GPUTPCGMMergedTrack& trk);
-  GPUd() trackInterface<o2::track::TrackParCov>(const gputpcgmmergertypes::GPUTPCOuterParam& param);
+  GPUd() trackInterface(const GPUTPCGMMergedTrack& trk);
+  GPUd() trackInterface(const gputpcgmmergertypes::GPUTPCOuterParam& param);
   GPUd() void updateCovZ2(float addZerror) { updateCov(addZerror, o2::track::CovLabels::kSigZ2); }
   GPUd() o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
   GPUd() const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }

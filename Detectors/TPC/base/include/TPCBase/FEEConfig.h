@@ -102,10 +102,15 @@ struct FEEConfig {
   bool isZSEnabled() const;
   bool isResyncEnabled() const;
 
+  void setAllLinksOn();
+
   void print() const;
+  void printShort() const;
 
   /// Dead channel map including deactivated links and single channels
   CalDet<bool> getDeadChannelMap() const;
+
+  const CalPad& getPadMap(PadConfig config) const { return padMaps.at(PadConfigNames.at(config)); }
 
   ClassDefNV(FEEConfig, 2);
 };

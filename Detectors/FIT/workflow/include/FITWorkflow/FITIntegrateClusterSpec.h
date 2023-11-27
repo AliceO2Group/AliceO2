@@ -180,9 +180,9 @@ o2::framework::DataProcessorSpec getFITIntegrateClusterSpec(const bool disableWr
                                                                 inputs);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(FitType::getDataOrigin(), FitType::getDataDescriptionFITC(), 0, Lifetime::Sporadic);
+  outputs.emplace_back(FitType::getDataOrigin(), FitType::getDataDescriptionFITC(), 0, Lifetime::Timeframe);
   if (!disableWriter) {
-    outputs.emplace_back(FitType::getDataOrigin(), FitType::getDataDescriptionFITTFId(), 0, Lifetime::Sporadic);
+    outputs.emplace_back(FitType::getDataOrigin(), FitType::getDataDescriptionFITTFId(), 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

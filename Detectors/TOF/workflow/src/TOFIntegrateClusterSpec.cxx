@@ -174,10 +174,10 @@ o2::framework::DataProcessorSpec getTOFIntegrateClusterSpec(const bool disableWr
                                                                 inputs);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCN", 0, Lifetime::Sporadic);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCQ", 0, Lifetime::Sporadic);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCN", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFCQ", 0, Lifetime::Timeframe);
   if (!disableWriter) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFTFID", 0, Lifetime::Sporadic);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "ITOFTFID", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

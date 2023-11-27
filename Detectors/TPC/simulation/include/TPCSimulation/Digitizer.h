@@ -53,7 +53,7 @@ enum class SCDistortionType : int;
 class Digitizer
 {
  public:
-  using SC = SpaceCharge<double>;
+  using SC = SpaceCharge<float>;
 
   /// Default constructor
   Digitizer();
@@ -121,6 +121,9 @@ class Digitizer
   /// \param spaceCharge unique pointer to spaceCharge object
   void setUseSCDistortions(SC* spaceCharge);
 
+  /// \param spaceCharge unique pointer to spaceCharge object
+  void setSCDistortionsDerivative(SC* spaceCharge);
+
   /// Enable the use of space-charge distortions by providing global distortions and global corrections stored in a ROOT file
   /// The storage of the values should be done by the methods provided in the SpaceCharge class
   /// \param file containing distortions
@@ -129,17 +132,26 @@ class Digitizer
   void setVDrift(float v) { mVDrift = v; }
   void setTDriftOffset(float t) { mTDriftOffset = t; }
 
+  void setDistortionScaleType(int distortionScaleType) { mDistortionScaleType = distortionScaleType; }
+  int getDistortionScaleType() const { return mDistortionScaleType; }
+  void setLumiScaleFactor();
+  void setMeanLumiDistortions(float meanLumi);
+  void setMeanLumiDistortionsDerivative(float meanLumi);
+
  private:
-  DigitContainer mDigitContainer;    ///< Container for the Digits
-  std::unique_ptr<SC> mSpaceCharge;  ///< Handler of space-charge distortions
-  Sector mSector = -1;               ///< ID of the currently processed sector
-  double mEventTime = 0.f;           ///< Time of the currently processed event
-  double mOutputDigitTimeOffset = 0; ///< Time of the first IR sampled in the digitizer
-  float mVDrift = 0;                 ///< VDrift for current timestamp
-  float mTDriftOffset = 0;           ///< drift time additive offset in \mus
-  bool mIsContinuous;                ///< Switch for continuous readout
-  bool mUseSCDistortions = false;    ///< Flag to switch on the use of space-charge distortions
-  ClassDefNV(Digitizer, 1);
+  DigitContainer mDigitContainer;      ///< Container for the Digits
+  std::unique_ptr<SC> mSpaceCharge;    ///< Handler of full distortions (static + IR dependant)
+  std::unique_ptr<SC> mSpaceChargeDer; ///< Handler of reference static distortions
+  Sector mSector = -1;                 ///< ID of the currently processed sector
+  double mEventTime = 0.f;             ///< Time of the currently processed event
+  double mOutputDigitTimeOffset = 0;   ///< Time of the first IR sampled in the digitizer
+  float mVDrift = 0;                   ///< VDrift for current timestamp
+  float mTDriftOffset = 0;             ///< drift time additive offset in \mus
+  bool mIsContinuous;                  ///< Switch for continuous readout
+  bool mUseSCDistortions = false;      ///< Flag to switch on the use of space-charge distortions
+  int mDistortionScaleType = 0;        ///< type=0: no scaling of distortions, type=1 distortions without any scaling, type=2 distortions scaling with lumi
+  float mLumiScaleFactor = 0;          ///< value used to scale the derivative map
+  ClassDefNV(Digitizer, 2);
 };
 } // namespace tpc
 } // namespace o2

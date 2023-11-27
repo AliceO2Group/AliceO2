@@ -48,7 +48,7 @@ template <typename RAWCHECKER>
 class RawCheckerDeviceDPL
 {
  public:
-  RawCheckerDeviceDPL<RAWCHECKER>(const std::vector<uint16_t>& feeIds, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay) : mFeeIds(feeIds), mCrateMasks(crateMasks), mElectronicsDelay(electronicsDelay) {}
+  RawCheckerDeviceDPL(const std::vector<uint16_t>& feeIds, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay) : mFeeIds(feeIds), mCrateMasks(crateMasks), mElectronicsDelay(electronicsDelay) {}
 
   void init(o2::framework::InitContext& ic)
   {

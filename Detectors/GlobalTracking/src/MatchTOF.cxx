@@ -484,6 +484,13 @@ bool MatchTOF::prepareTPCData()
     } // loop over tracks of single sector
   }
 
+  if (mRecoCont->inputsTPCclusters) {
+    mTPCClusterIdxStruct = &mRecoCont->inputsTPCclusters->clusterIndex;
+    mTPCTracksArray = mRecoCont->getTPCTracks();
+    mTPCTrackClusIdx = mRecoCont->getTPCTracksClusterRefs();
+    mTPCRefitterShMap = mRecoCont->clusterShMapTPC;
+  }
+
   return true;
 }
 
@@ -1752,10 +1759,10 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
     float chi2 = 0;
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCInnerRef);
     if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
-      LOG(debug) << "Inward Refit failed";
+      LOGP(debug, "Inward Refit failed {}", trConstr.asString());
       return false;
     }
-    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance(); // if needed, correct TPC track after inwar refit
+    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance(); // if needed, correct TPC track after inward refit
     if (!trackTune.useTPCInnerCorr) {
       trConstr.updateParams(trackTune.tpcParInner);
     }
@@ -1767,7 +1774,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
     //
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCOuterRef);
     if (mTPCRefitter->RefitTrackAsTrackParCov(trConstrOut, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, true, true) < 0) { // outward refit after resetting cov.mat.
-      LOG(debug) << "Outward refit failed";
+      LOGP(debug, "Outward Refit failed {}", trConstrOut.asString());
       return false;
     }
   }
