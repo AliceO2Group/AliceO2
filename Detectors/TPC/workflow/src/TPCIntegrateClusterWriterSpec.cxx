@@ -33,8 +33,8 @@ DataProcessorSpec getTPCIntegrateClusterWriterSpec()
   return MakeRootTreeWriterSpec("tpc-currents-writer",
                                 "o2currents_tpc.root",
                                 "itpcc",
-                                BranchDefinition<ITPCC>{InputSpec{"itpcc", o2::header::gDataOriginTPC, getDataDescriptionTPCC(), 0}, "ITPCC", 1},
-                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itpctfid", o2::header::gDataOriginTPC, "ITPCTFID", 0}, "tfID", 1})();
+                                BranchDefinition<ITPCC>{InputSpec{"itpcc", o2::header::gDataOriginTPC, getDataDescriptionTPCC(), 0, Lifetime::Sporadic}, "ITPCC", 1},
+                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itpctfid", o2::header::gDataOriginTPC, "ITPCTFID", 0, Lifetime::Sporadic}, "tfID", 1})();
 }
 
 } // namespace tpc
