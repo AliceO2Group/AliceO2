@@ -148,9 +148,9 @@ void Detector::createGeometry()
   TGeoTube* richVessel = new TGeoTube(richPars.rMin, richPars.rMax, richPars.zRichLength / 2.0);
   TGeoMedium* medArgon = gGeoManager->GetMedium("RCH_ARGON$");
   TGeoVolume* vRichVessel = new TGeoVolume(vstrng, richVessel, medArgon);
-  vRichVessel->SetLineColor(kYellow);
+  vRichVessel->SetLineColor(kGray);
   vRichVessel->SetVisibility(kTRUE);
-  vRichVessel->SetTransparency(50);
+  vRichVessel->SetTransparency(75);
   vALIC->AddNode(vRichVessel, 1, new TGeoTranslation(0, 30., 0));
 
   if (!(richPars.nRings % 2)) {
@@ -158,20 +158,24 @@ void Detector::createGeometry()
   } else {
     prepareOddLayout();
   }
-
-  mRings[richPars.nRings / 2] = Ring{richPars.nRings,
-                                     richPars.nTiles,
-                                     richPars.rMin,
-                                     richPars.rMax,
-                                     richPars.radiatorThickness,
-                                     mVTile1[richPars.nRings / 2],
-                                     mVTile2[richPars.nRings / 2],
-                                     mLAerogelZ[richPars.nRings / 2 / 2],
-                                     richPars.detectorThickness,
-                                     0,
-                                     0,
-                                     richPars.zBaseSize,
-                                     GeometryTGeo::getRICHVolPattern()};
+  for (int iRing{0}; iRing < richPars.nRings; ++iRing) {
+    mRings[iRing] = Ring{iRing,
+                         richPars.nTiles,
+                         richPars.rMin,
+                         richPars.rMax,
+                         richPars.radiatorThickness,
+                         (float)mVTile1[iRing],
+                         (float)mVTile2[iRing],
+                         (float)mLAerogelZ[iRing],
+                         richPars.detectorThickness,
+                         (float)mVMirror1[iRing],
+                         (float)mVMirror2[iRing],
+                         richPars.zBaseSize,
+                         (float)mR0Radiator[iRing],
+                         (float)mR0PhotoDet[iRing],
+                         (float)mThetaBi[iRing],
+                         GeometryTGeo::getRICHVolPattern()};
+  }
 }
 
 void Detector::InitializeO2Detector()
@@ -314,67 +318,10 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 
 void Detector::prepareEvenLayout()
 {
-  // // Mere transcription of Nicola's code
-  // auto& richPars = RICHBaseParam::Instance();
-  // double twoHalvesGap = 1.0; // cm
-
-  // int iCentralMirror = int((richPars.nRings) / 2.0);
-  // double mVal = TMath::Tan(0.0);
-  // double t = TMath::Tan(TMath::ATan(mVal) + TMath::ATan(twoHalvesGap / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - twoHalvesGap * mVal)));
-  // for (int i = iCentralMirror; i < int(richPars.nRings); i++) {
-  //   double parA = t;
-  //   double parB = 2.0 * richPars.rMax / richPars.zBaseSize;
-  //   // Equazione su wolphram
-  //   // solve arctan(a) = arctan(x) - arctan(1/(b*TMath::Sqrt(1+x*x)-x))
-  //   mVal = (TMath::Sqrt(parA * parA * parB * parB + parB * parB - 1.0) + parA * parB * parB) / (parB * parB - 1.0);
-  //   thetaMin[i] = TMath::Pi() / 2.0 - TMath::ATan(t);
-  //   thetaMax[2 * iCentralMirror - i - 1] = TMath::Pi() / 2.0 + TMath::ATan(t);
-  //   t = TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal)));
-  //   thetaMax[i] = TMath::Pi() / 2.0 - TMath::ATan(t);
-  //   thetaMin[2 * iCentralMirror - i - 1] = TMath::Pi() / 2.0 + TMath::ATan(t);
-  //   // Avvaloro forward
-  //   theta_bi[i] = TMath::ATan(mVal);
-  //   r0tilt[i] = richPars.rMax - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-  //   z0_tilt[i] = r0tilt[i] * TMath::Tan(theta_bi[i]);
-  //   l_aerogel_z[i] = TMath::Sqrt(1.0 + mVal * mVal) * R_min * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
-  //   T_r_plus_g[i] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - R_min) - mVal / 2.0 * (richPars.zBaseSize + l_aerogel_z[i]);
-  //   min_radial_mirror[i] = r0tilt[i] - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-  //   max_radial_radiator[i] = R_min + 2.0 * l_aerogel_z[i] / 2.0 * sin(TMath::ATan(mVal));
-  //   // Avvaloro backword
-  //   theta_bi[2 * iCentralMirror - i - 1] = -TMath::ATan(mVal);
-  //   r0tilt[2 * iCentralMirror - i - 1] = richPars.rMax - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-  //   z0_tilt[2 * iCentralMirror - i - 1] = -r0tilt[i] * TMath::Tan(theta_bi[i]);
-  //   l_aerogel_z[2 * iCentralMirror - i - 1] = TMath::Sqrt(1.0 + mVal * mVal) * R_min * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
-  //   T_r_plus_g[2 * iCentralMirror - i - 1] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - R_min) - mVal / 2.0 * (richPars.zBaseSize + l_aerogel_z[i]);
-  //   min_radial_mirror[2 * iCentralMirror - i - 1] = r0tilt[i] - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-  //   max_radial_radiator[2 * iCentralMirror - i - 1] = R_min + 2.0 * l_aerogel_z[i] / 2.0 * sin(TMath::ATan(mVal));
-  // }
-
-  // // Limiti coordinate in phi
-  // double min_area_rad = 0.0;
-  // double min_area_det = 0.0;
-  // double percentage = 0.999;
-  // for (int i = 0; i < int(richPars.nRings); i++) {
-  //   if (i >= iCentralMirror) {
-  //     v_mirror_1[i] = percentage * 2.0 * richPars.rMax * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //     v_mirror_2[i] = percentage * 2.0 * min_radial_mirror[i] * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //     v_tile_1[i] = percentage * 2.0 * max_radial_radiator[i] * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //     v_tile_2[i] = percentage * 2.0 * R_min * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //   } else if (i < iCentralMirror) {
-  //     v_mirror_2[i] = percentage * 2.0 * richPars.rMax * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //     v_mirror_1[i] = percentage * 2.0 * min_radial_mirror[i] * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //     v_tile_2[i] = percentage * 2.0 * max_radial_radiator[i] * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //     v_tile_1[i] = percentage * 2.0 * R_min * sin(TMath::Pi() / double(int(number_of_mirrors_in_rphi)));
-  //   }
-  //   min_area_rad += (v_tile_1[i] + v_tile_2[i]) * l_aerogel_z[i] / 2.0;
-  //   min_area_det += (v_mirror_1[i] + v_mirror_2[i]) * richPars.zBaseSize / 2.0;
-  //   if (i >= iCentralMirror && v_mirror_1[i] > *square_size_rphi)
-  //     *square_size_rphi = v_mirror_1[i];
-  // }
 }
 
 void Detector::prepareOddLayout()
-{ // Mere transcription of Nicola's code
+{ // Mere translation of Nicola's code
   LOGP(info, "Setting up ODD layout for bRICH");
   auto& richPars = RICHBaseParam::Instance();
 
@@ -390,6 +337,8 @@ void Detector::prepareOddLayout()
   mVMirror2.resize(richPars.nRings);
   mVTile1.resize(richPars.nRings);
   mVTile2.resize(richPars.nRings);
+  mR0Radiator.resize(richPars.nRings);
+  mR0PhotoDet.resize(richPars.nRings);
 
   // Start from middle one
   double mVal = TMath::Tan(0.0);
@@ -400,10 +349,10 @@ void Detector::prepareOddLayout()
   mTRplusG[richPars.nRings / 2] = richPars.rMax - richPars.rMin;
   double t = TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal)));
   mMinRadialMirror[richPars.nRings / 2] = richPars.rMax;
-  mMaxRadialMirror[richPars.nRings / 2] = richPars.rMin;
+  mMaxRadialRadiator[richPars.nRings / 2] = richPars.rMin;
 
   // Configure rest of the rings
-  for (auto iRing{richPars.nRings / 2 + 1}; iRing < richPars.nRings; ++iRing) {
+  for (int iRing{richPars.nRings / 2 + 1}; iRing < richPars.nRings; ++iRing) {
     double parA = t;
     double parB = 2.0 * richPars.rMax / richPars.zBaseSize;
     mVal = (TMath::Sqrt(parA * parA * parB * parB + parB * parB - 1.0) + parA * parB * parB) / (parB * parB - 1.0);
@@ -415,36 +364,42 @@ void Detector::prepareOddLayout()
     mLAerogelZ[iRing] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
     mTRplusG[iRing] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - richPars.rMin) - mVal / 2.0 * (richPars.zBaseSize + mLAerogelZ[iRing]);
     mMinRadialMirror[iRing] = mR0Tilt[iRing] - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-    mMaxRadialMirror[iRing] = richPars.rMin + 2.0 * mLAerogelZ[iRing] / 2.0 * sin(TMath::ATan(mVal));
+    mMaxRadialRadiator[iRing] = richPars.rMin + 2.0 * mLAerogelZ[iRing] / 2.0 * sin(TMath::ATan(mVal));
     // backward rings
-    mThetaBi[2 * richPars.nRings / 2 - iRing] = -TMath::ATan(mVal);
-    mR0Tilt[2 * richPars.nRings / 2 - iRing] = richPars.rMax - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-    mZ0Tilt[2 * richPars.nRings / 2 - iRing] = -mR0Tilt[iRing] * TMath::Tan(mThetaBi[iRing]);
-    mLAerogelZ[2 * richPars.nRings / 2 - iRing] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
-    mTRplusG[2 * richPars.nRings / 2 - iRing] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - richPars.rMin) - mVal / 2.0 * (richPars.zBaseSize + mLAerogelZ[iRing]);
-    mMinRadialMirror[2 * richPars.nRings / 2 - iRing] = mR0Tilt[iRing] - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
-    mMaxRadialMirror[2 * richPars.nRings / 2 - iRing] = richPars.rMin + 2.0 * mLAerogelZ[iRing] / 2.0 * sin(TMath::ATan(mVal));
+    mThetaBi[2 * (richPars.nRings / 2) - iRing] = -TMath::ATan(mVal);
+    mR0Tilt[2 * (richPars.nRings / 2) - iRing] = richPars.rMax - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
+    mZ0Tilt[2 * (richPars.nRings / 2) - iRing] = -mR0Tilt[iRing] * TMath::Tan(mThetaBi[iRing]);
+    mLAerogelZ[2 * (richPars.nRings / 2) - iRing] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
+    mTRplusG[2 * (richPars.nRings / 2) - iRing] = TMath::Sqrt(1.0 + mVal * mVal) * (richPars.rMax - richPars.rMin) - mVal / 2.0 * (richPars.zBaseSize + mLAerogelZ[iRing]);
+    mMinRadialMirror[2 * (richPars.nRings / 2) - iRing] = mR0Tilt[iRing] - richPars.zBaseSize / 2.0 * sin(TMath::ATan(mVal));
+    mMaxRadialRadiator[2 * (richPars.nRings / 2) - iRing] = richPars.rMin + 2.0 * mLAerogelZ[iRing] / 2.0 * sin(TMath::ATan(mVal));
   }
 
   // Dimensioning tiles
   double percentage = 0.999;
   for (int iRing = 0; iRing < richPars.nRings; iRing++) {
     if (iRing == richPars.nRings / 2) {
-      mVMirror1[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVMirror2[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVTile2[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
+      mVMirror1[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVMirror2[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVTile2[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
     } else if (iRing > richPars.nRings / 2) {
-      mVMirror1[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVMirror2[iRing] = percentage * 2.0 * mMinRadialMirror[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVTile1[iRing] = percentage * 2.0 * mMaxRadialRadiator[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVTile2[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
+      mVMirror1[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVMirror2[iRing] = percentage * 2.0 * mMinRadialMirror[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVTile1[iRing] = percentage * 2.0 * mMaxRadialRadiator[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVTile2[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
     } else if (iRing < richPars.nRings / 2) {
-      mVMirror2[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVMirror1[iRing] = percentage * 2.0 * mMinRadialMirror[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVTile2[iRing] = percentage * 2.0 * mMaxRadialRadiator[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nRings));
-      mVTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nRings));
+      mVMirror2[iRing] = percentage * 2.0 * richPars.rMax * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVMirror1[iRing] = percentage * 2.0 * mMinRadialMirror[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVTile2[iRing] = percentage * 2.0 * mMaxRadialRadiator[iRing] * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
+      mVTile1[iRing] = percentage * 2.0 * richPars.rMin * TMath::Sin(TMath::Pi() / double(richPars.nTiles));
     }
+  }
+
+  // Translation parameters
+  for (size_t iRing{0}; iRing < richPars.nRings; ++iRing) {
+    mR0Radiator[iRing] = mR0Tilt[iRing] - (mTRplusG[iRing] - richPars.radiatorThickness / 2) * TMath::Cos(mThetaBi[iRing]);
+    mR0PhotoDet[iRing] = mR0Tilt[iRing] - (richPars.detectorThickness / 2) * TMath::Cos(mThetaBi[iRing]);
   }
 }
 } // namespace rich

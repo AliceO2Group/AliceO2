@@ -36,6 +36,9 @@ Ring::Ring(int rPosId,
            float photYmin,
            float photYmax,
            float photZ,
+           float radTransZ,
+           float photTransZ,
+           float thetaB,
            const std::string motherName)
   : mNTiles{nTilesPhi}, mPosId{rPosId}, mRadThickness{radThick}
 {
@@ -43,35 +46,77 @@ Ring::Ring(int rPosId,
   TGeoVolume* motherVolume = geoManager->GetVolume(motherName.c_str());
   TGeoMedium* medAerogel = gGeoManager->GetMedium("RCH_AEROGEL$");
   if (!medAerogel) {
-    LOGP(fatal, "Aerogel medium not found");
+    LOGP(fatal, "RICH: Aerogel medium not found");
   }
-  std::vector<TGeoArb8*> aeroTiles(nTilesPhi);
+  TGeoMedium* medSi = gGeoManager->GetMedium("RCH_SI$");
+  if (!medSi) {
+    LOGP(fatal, "RICH: Silicon medium not found");
+  }
+  std::vector<TGeoArb8*> radiatorTiles(nTilesPhi), photoTiles(nTilesPhi);
   LOGP(info, "Creating ring: id: {} with {} tiles. ", rPosId, nTilesPhi);
+  LOGP(info, "Rmin: {} Rmax: {} RadThick: {} RadYmin: {} RadYmax: {} RadZ: {} PhotThick: {} PhotYmin: {} PhotYmax: {} PhotZ: {}, zTransRad: {}, zTransPhot: {}, ThetaB: {}",
+       rMin, rMax, radThick, radYmin, radYmax, radZ, photThick, photYmin, photYmax, photZ, radTransZ, photTransZ, thetaB);
 
-  float deltaPhiRad = 360.0 / nTilesPhi; // Transformation are constructed in degrees...
-  size_t tileCount{0};
-  for (auto& aeroTile : aeroTiles) {
-    aeroTile = new TGeoArb8(radZ / 2);
-    aeroTile->SetVertex(0, -radThick / 2, -radYmax / 2);
-    aeroTile->SetVertex(1, -radThick / 2, radYmax / 2);
-    aeroTile->SetVertex(2, radThick / 2, radYmax / 2);
-    aeroTile->SetVertex(3, radThick / 2, -radYmax / 2);
-    aeroTile->SetVertex(4, -radThick / 2, -radYmin / 2);
-    aeroTile->SetVertex(5, -radThick / 2, radYmin / 2);
-    aeroTile->SetVertex(6, radThick / 2, radYmin / 2);
-    aeroTile->SetVertex(7, radThick / 2, -radYmin / 2);
+  float deltaPhiDeg = 360.0 / nTilesPhi; // Transformation are constructed in degrees...
+  float thetaBDeg = thetaB * 180.0 / TMath::Pi();
+  size_t radTileCount{0}, photTileCount{0};
+  // Radiator tiles
+  for (auto& radiatorTile : radiatorTiles) {
+    radiatorTile = new TGeoArb8(radZ / 2);
+    radiatorTile->SetVertex(0, -radThick / 2, -radYmin / 2);
+    radiatorTile->SetVertex(1, -radThick / 2, radYmin / 2);
+    radiatorTile->SetVertex(2, radThick / 2, radYmin / 2);
+    radiatorTile->SetVertex(3, radThick / 2, -radYmin / 2);
+    radiatorTile->SetVertex(4, -radThick / 2, -radYmax / 2);
+    radiatorTile->SetVertex(5, -radThick / 2, radYmax / 2);
+    radiatorTile->SetVertex(6, radThick / 2, radYmax / 2);
+    radiatorTile->SetVertex(7, radThick / 2, -radYmax / 2);
 
-    TGeoVolume* aeroTileVol = new TGeoVolume(Form("aeroTile_%d_%d", rPosId, tileCount), aeroTile, medAerogel);
-    aeroTileVol->SetLineColor(kBlue - 9);
-    aeroTileVol->SetFillColor(kBlue - 9);
-    aeroTileVol->SetTransparency(50);
-    aeroTileVol->SetLineWidth(1);
+    TGeoVolume* radiatorTileVol = new TGeoVolume(Form("radTile_%d_%d", rPosId, radTileCount), radiatorTile, medAerogel);
+    radiatorTileVol->SetLineColor(kBlue - 9);
+    radiatorTileVol->SetFillColor(kBlue - 9);
+    radiatorTileVol->SetTransparency(50);
+    radiatorTileVol->SetLineWidth(1);
 
-    auto* rotAero = new TGeoRotation(Form("aeroTileRotation%d_%d", tileCount, rPosId), 0, 0, tileCount * deltaPhiRad);
-    auto* rotoTransAero = new TGeoCombiTrans(rMin * TMath::Cos(tileCount * TMath::Pi() / (nTilesPhi / 2)), rMin * TMath::Sin(tileCount * TMath::Pi() / (nTilesPhi / 2)), 0, rotAero);
+    auto* rotRadiator = new TGeoRotation(Form("radTileRotation_%d_%d", radTileCount, rPosId));
+    rotRadiator->RotateY(-thetaBDeg);
+    rotRadiator->RotateZ(radTileCount * deltaPhiDeg);
 
-    motherVolume->AddNode(aeroTileVol, 1, rotoTransAero);
-    tileCount++;
+    auto* rotTransRadiator = new TGeoCombiTrans(radTransZ * TMath::Cos(radTileCount * TMath::Pi() / (nTilesPhi / 2)),
+                                                radTransZ * TMath::Sin(radTileCount * TMath::Pi() / (nTilesPhi / 2)),
+                                                radTransZ * TMath::Tan(thetaB),
+                                                rotRadiator);
+
+    motherVolume->AddNode(radiatorTileVol, 1, rotTransRadiator);
+    radTileCount++;
+  }
+  // Photosensor tiles
+  for (auto& photoTile : photoTiles) {
+    photoTile = new TGeoArb8(photZ / 2);
+    photoTile->SetVertex(0, -photThick / 2, -photYmin / 2);
+    photoTile->SetVertex(1, -photThick / 2, photYmin / 2);
+    photoTile->SetVertex(2, photThick / 2, photYmin / 2);
+    photoTile->SetVertex(3, photThick / 2, -photYmin / 2);
+    photoTile->SetVertex(4, -photThick / 2, -photYmax / 2);
+    photoTile->SetVertex(5, -photThick / 2, photYmax / 2);
+    photoTile->SetVertex(6, photThick / 2, photYmax / 2);
+    photoTile->SetVertex(7, photThick / 2, -photYmax / 2);
+
+    TGeoVolume* photoTileVol = new TGeoVolume(Form("photoTile_%d_%d", rPosId, photTileCount), photoTile, medSi);
+    photoTileVol->SetLineColor(kOrange);
+    photoTileVol->SetFillColor(kOrange);
+    photoTileVol->SetLineWidth(1);
+
+    auto* rotPhoto = new TGeoRotation(Form("photoTileRotation_%d_%d", photTileCount, rPosId));
+    rotPhoto->RotateY(-thetaBDeg);
+    rotPhoto->RotateZ(photTileCount * deltaPhiDeg);
+    auto* rotTransPhoto = new TGeoCombiTrans(photTransZ * TMath::Cos(photTileCount * TMath::Pi() / (nTilesPhi / 2)),
+                                             photTransZ * TMath::Sin(photTileCount * TMath::Pi() / (nTilesPhi / 2)),
+                                             photTransZ * TMath::Tan(thetaB),
+                                             rotPhoto);
+
+    motherVolume->AddNode(photoTileVol, 1, rotTransPhoto);
+    photTileCount++;
   }
 }
 

@@ -106,7 +106,8 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<double> mVMirror2;
   std::vector<double> mVTile1;
   std::vector<double> mVTile2;
-
+  std::vector<double> mR0Radiator;
+  std::vector<double> mR0PhotoDet;
   template <typename Det>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
