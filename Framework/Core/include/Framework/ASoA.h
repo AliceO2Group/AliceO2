@@ -1166,7 +1166,6 @@ using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 template <typename T>
 inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
-
 template <typename T>
 class FilteredBase;
 template <typename T>
