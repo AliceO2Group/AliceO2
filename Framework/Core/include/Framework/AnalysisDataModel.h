@@ -506,7 +506,7 @@ DECLARE_SOA_COLUMN(Phi, phi, float);                                            
 DECLARE_SOA_COLUMN(Tgl, tgl, float);                                                         //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                             //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
 DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                            //! Number of clusters
-DECLARE_SOA_COLUMN(MFTClusterSizes, mftClusterSizes, uint64_t);                              //! Cluster sizes per track and per layer
+DECLARE_SOA_COLUMN(MFTClusterSizesAndTracksFlags, mftClusterSizesAndTrackFlags, uint64_t);   //! Cluster sizes per track and per layer with the mft flags on the remaining 4 bits
 DECLARE_SOA_COLUMN(Chi2, chi2, float);                                                       //! Track chi^2
 DECLARE_SOA_COLUMN(PDca, pDca, float);                                                       //! PDca for MUONStandalone
 DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                                   //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
@@ -521,6 +521,8 @@ DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                
 DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                       //! Resolution of the track time in ns
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                                                       //! Sign of the track eletric charge
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
+DECLARE_SOA_DYNAMIC_COLUMN(IsCA, isCA,                                                       //! Returns true if used track-finding algorithm was Cellular Automaton
+                           [](uint64_t mftClusterSizesAndTrackFlags) -> bool { return mftClusterSizesAndTrackFlags & (0x1ULL << 60); });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
                               -1.f * nlog(ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //!
@@ -559,10 +561,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(MIDBoardCh4, midBoardCh4, //!
 namespace v001
 {
 DECLARE_SOA_DYNAMIC_COLUMN(NClusters, nClusters, //! Number of MFT clusters
-                           [](uint64_t mftClusterSizes) -> int8_t {
+                           [](uint64_t mftClusterSizesAndTrackFlags) -> int8_t {
                              int8_t nClusters = 0;
                              for (int layer = 0; layer < 11; layer++) {
-                               if ((mftClusterSizes >> (layer * 6)) & 0x3F) {
+                               if ((mftClusterSizesAndTrackFlags >> (layer * 6)) & 0x3F) {
                                  nClusters++;
                                }
                              }
@@ -633,7 +635,7 @@ DECLARE_SOA_TABLE_FULL(StoredMFTTracks_000, "MFTTracks", "AOD", "MFTTRACK", //! 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMFTTracks_001, "MFTTracks", "AOD", "MFTTRACK", 1, //! On disk version of MFTTracks, version 1
                                  o2::soa::Index<>, fwdtrack::CollisionId,
                                  fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
-                                 fwdtrack::Signed1Pt, fwdtrack::v001::NClusters<fwdtrack::MFTClusterSizes>, fwdtrack::MFTClusterSizes,
+                                 fwdtrack::Signed1Pt, fwdtrack::v001::NClusters<fwdtrack::MFTClusterSizesAndTracksFlags>, fwdtrack::MFTClusterSizesAndTracksFlags, fwdtrack::IsCA<fwdtrack::MFTClusterSizesAndTracksFlags>,
                                  fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
                                  fwdtrack::Py<fwdtrack::Pt, fwdtrack::Phi>,
                                  fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
