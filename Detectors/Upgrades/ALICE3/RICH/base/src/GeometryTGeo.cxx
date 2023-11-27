@@ -59,19 +59,19 @@ GeometryTGeo* GeometryTGeo::Instance()
   return sInstance.get();
 }
 
-const char* GeometryTGeo::composeSymNameRing(int d, int lr)
+const char* GeometryTGeo::composeSymNameRing(int d, int rg)
 {
-  return Form("%s/%s%d", composeSymNameRICH(d), getRICHRingPattern(), lr);
+  return Form("%s/%s%d", composeSymNameRICH(d), getRICHRingPattern(), rg);
 }
 
-const char* GeometryTGeo::composeSymNameChip(int d, int lr)
+const char* GeometryTGeo::composeSymNameChip(int d, int rg)
 {
-  return Form("%s/%s%d", composeSymNameRing(d, lr), getRICHChipPattern(), lr);
+  return Form("%s/%s%d", composeSymNameRing(d, rg), getRICHChipPattern(), rg);
 }
 
-const char* GeometryTGeo::composeSymNameSensor(int d, int lr)
+const char* GeometryTGeo::composeSymNameSensor(int d, int rg)
 {
-  return Form("%s/%s%d", composeSymNameChip(d, lr), getRICHSensorPattern(), lr);
+  return Form("%s/%s%d", composeSymNameChip(d, rg), getRICHSensorPattern(), rg);
 }
 
 } // namespace rich

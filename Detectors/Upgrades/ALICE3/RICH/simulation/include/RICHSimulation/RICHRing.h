@@ -45,8 +45,9 @@ class Ring
        float photYmin,
        float photYmax,
        float photZ,
-       float radTransZ,
-       float photTransZ,
+       float radRad0,
+       float photRad0,
+       float aerDetDistance,
        float thetaB,
        const std::string motherName = "RICHV");
   ~Ring() = default;

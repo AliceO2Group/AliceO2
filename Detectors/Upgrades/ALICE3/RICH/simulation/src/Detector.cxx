@@ -145,13 +145,13 @@ void Detector::createGeometry()
   vRICH->SetTitle(vstrng);
   auto& richPars = RICHBaseParam::Instance();
 
-  TGeoTube* richVessel = new TGeoTube(richPars.rMin, richPars.rMax, richPars.zRichLength / 2.0);
-  TGeoMedium* medArgon = gGeoManager->GetMedium("RCH_ARGON$");
-  TGeoVolume* vRichVessel = new TGeoVolume(vstrng, richVessel, medArgon);
-  vRichVessel->SetLineColor(kGray);
-  vRichVessel->SetVisibility(kTRUE);
-  vRichVessel->SetTransparency(75);
-  vALIC->AddNode(vRichVessel, 1, new TGeoTranslation(0, 30., 0));
+  // TGeoTube* richVessel = new TGeoTube(richPars.rMin, richPars.rMax, richPars.zRichLength / 2.0);
+  // TGeoMedium* medArgon = gGeoManager->GetMedium("RCH_ARGON$");
+  // TGeoVolume* vRichVessel = new TGeoVolume(vstrng, richVessel, medArgon);
+  // vRichVessel->SetLineColor(kGray);
+  // vRichVessel->SetVisibility(kTRUE);
+  // vRichVessel->SetTransparency(75);
+  // vALIC->AddNode(vRichVessel, 1, new TGeoTranslation(0, 30., 0));
 
   if (!(richPars.nRings % 2)) {
     prepareEvenLayout();
@@ -173,6 +173,7 @@ void Detector::createGeometry()
                          richPars.zBaseSize,
                          (float)mR0Radiator[iRing],
                          (float)mR0PhotoDet[iRing],
+                         (float)mTRplusG[iRing],
                          (float)mThetaBi[iRing],
                          GeometryTGeo::getRICHVolPattern()};
   }
