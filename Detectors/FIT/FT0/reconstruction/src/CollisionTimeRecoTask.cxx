@@ -125,10 +125,8 @@ float CollisionTimeRecoTask::getTimeInPS(const o2::ft0::ChannelData& channelData
   }
   // Getting slewing offset
   float slewoffset{0};
-  //  if (mCalibSlew) {
   const auto& gr = mCalibSlew[static_cast<int>(channelData.getFlag(o2::ft0::ChannelData::EEventDataBit::kNumberADC))][channelData.ChId];
   slewoffset = gr.Eval(channelData.QTCAmpl);
-  //  }
 
   // Final calculation
   const float globalOffset = offsetChannel + slewoffset;

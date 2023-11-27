@@ -15,6 +15,7 @@
 // Slewing coefficients for FT0
 //////////////////////////////////////////////
 #include "TGraph.h"
+#include "Rtypes.h"
 
 #include <vector>
 #include <array>
@@ -28,11 +29,11 @@ namespace ft0
 struct SlewingCoef {
   constexpr static int sNCHANNELS = 208;
   constexpr static int sNAdc = 2;
-  using Point_t = std::pair<double, double>;                                    // points, x and y
-  using VecPoints = std::vector<Point_t>;                                       // will be processed into object(TGraph) for applying claibration
-  using VecSlewingCoefs = std::array<std::array<VecPoints, sNCHANNELS>, sNAdc>; // 0 - adc0, 1 - adc1
+  using VecPoints_t = std::vector<Double_t>;                                      // Set of points
+  using VecPlot_t = std::pair<VecPoints_t, VecPoints_t>;                          // Plot as pair of two set of points
+  using VecSlewingCoefs_t = std::array<std::array<VecPlot_t, sNCHANNELS>, sNAdc>; // 0 - adc0, 1 - adc1
   typedef std::array<std::array<TGraph, sNCHANNELS>, sNAdc> SlewingPlots_t;
-  VecSlewingCoefs mSlewingCoefs{};
+  VecSlewingCoefs_t mSlewingCoefs{};
   SlewingPlots_t makeSlewingPlots() const;
   constexpr static const char* getObjectPath()
   {
@@ -40,7 +41,6 @@ struct SlewingCoef {
   }
   ClassDefNV(SlewingCoef, 1)
 };
-
 } // namespace ft0
 } // namespace o2
 
