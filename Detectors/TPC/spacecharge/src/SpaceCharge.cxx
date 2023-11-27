@@ -19,7 +19,6 @@
 #include "fmt/core.h"
 #include "Framework/Logger.h"
 #include "TPCSpaceCharge/PoissonSolver.h"
-#include "Framework/Logger.h"
 #include "TGeoGlobalMagField.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -709,7 +708,7 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
     const DataT phi = getPhiVertex(iPhi, side);
     for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
       const DataT radius = getRVertex(iR, side);
-      for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+      for (unsigned int iZ = 1; iZ < mParamGrid.NZVertices; ++iZ) {
         const DataT z = getZVertex(iZ, side);
 
         unsigned int nearestiZ = iZ;
@@ -788,6 +787,11 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
         mGlobalDistdRPhi[side](iZ, iR, iPhi) = -corrdRPhi;
         mGlobalDistdZ[side](iZ, iR, iPhi) = -corrdZ;
       }
+    }
+    for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+      mGlobalDistdR[side](0, iR, iPhi) = 3 * (mGlobalDistdR[side](1, iR, iPhi) - mGlobalDistdR[side](2, iR, iPhi)) + mGlobalDistdR[side](3, iR, iPhi);
+      mGlobalDistdRPhi[side](0, iR, iPhi) = 3 * (mGlobalDistdRPhi[side](1, iR, iPhi) - mGlobalDistdRPhi[side](2, iR, iPhi)) + mGlobalDistdRPhi[side](3, iR, iPhi);
+      mGlobalDistdZ[side](0, iR, iPhi) = 3 * (mGlobalDistdZ[side](1, iR, iPhi) - mGlobalDistdZ[side](2, iR, iPhi)) + mGlobalDistdZ[side](3, iR, iPhi);
     }
   }
 }
@@ -1516,7 +1520,7 @@ void SpaceCharge<DataT>::correctElectron(GlobalPosition3D& point)
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
+void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point, const SpaceCharge<DataT>* scSCale, float scale) const
 {
   DataT distX{};
   DataT distY{};
@@ -1524,6 +1528,18 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
   const Side side = getSide(point.Z());
   // get the distortions for input coordinate
   getDistortions(point.X(), point.Y(), point.Z(), side, distX, distY, distZ);
+
+  DataT distXTmp{};
+  DataT distYTmp{};
+  DataT distZTmp{};
+
+  // scale distortions if requested
+  if (scSCale && scale != 0) {
+    scSCale->getDistortions(point.X(), point.Y(), point.Z(), side, distXTmp, distYTmp, distZTmp);
+    distX += distXTmp * scale;
+    distY += distYTmp * scale;
+    distZ += distZTmp * scale;
+  }
 
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamDistortionsSC)) {
     GlobalPosition3D pos(point);
@@ -1543,6 +1559,10 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
                                                                                          << "distX=" << distX
                                                                                          << "distY=" << distY
                                                                                          << "distZ=" << distZ
+                                                                                         << "distXDer=" << distXTmp
+                                                                                         << "distYDer=" << distYTmp
+                                                                                         << "distZDer=" << distZTmp
+                                                                                         << "scale=" << scale
                                                                                          << "\n";
   })
 
@@ -1734,8 +1754,10 @@ void SpaceCharge<DataT>::getDistortionsCyl(const std::vector<DataT>& z, const st
 template <typename DataT>
 void SpaceCharge<DataT>::getDistortions(const DataT x, const DataT y, const DataT z, const Side side, DataT& distX, DataT& distY, DataT& distZ) const
 {
+  DataT zClamped = regulateZ(z, side);
+
   if (mUseAnaDistCorr) {
-    getDistortionsAnalytical(x, y, z, side, distX, distY, distZ);
+    getDistortionsAnalytical(x, y, zClamped, side, distX, distY, distZ);
   } else {
     // convert cartesian to polar
     const DataT radius = getRadiusFromCartesian(x, y);
@@ -1743,11 +1765,12 @@ void SpaceCharge<DataT>::getDistortions(const DataT x, const DataT y, const Data
 
     DataT distR{};
     DataT distRPhi{};
-    getDistortionsCyl(z, radius, phi, side, distZ, distR, distRPhi);
+    DataT rClamped = regulateR(radius, side);
+    getDistortionsCyl(zClamped, rClamped, phi, side, distZ, distR, distRPhi);
 
     // Calculate distorted position
-    const DataT radiusDist = radius + distR;
-    const DataT phiDist = phi + distRPhi / radius;
+    const DataT radiusDist = rClamped + distR;
+    const DataT phiDist = phi + distRPhi / rClamped;
 
     distX = getXFromPolar(radiusDist, phiDist) - x; // difference between distorted and original x coordinate
     distY = getYFromPolar(radiusDist, phiDist) - y; // difference between distorted and original y coordinate
@@ -2268,7 +2291,13 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
         DataT corrZ{};
         DataT corrR{};
         DataT corrRPhi{};
-        getCorrectionsCyl(zPos, rPos, phiPos, side, corrZ, corrR, corrRPhi);
+        // getCorrectionsCyl(zPos, rPos, phiPos, side, corrZ, corrR, corrRPhi);
+
+        const DataT zDistorted = zPos + distZ;
+        const DataT radiusDistorted = rPos + distR;
+        const DataT phiDistorted = regulatePhi(phiPos + distRPhi / rPos, side);
+        getCorrectionsCyl(zDistorted, radiusDistorted, phiDistorted, side, corrZ, corrR, corrRPhi);
+        corrRPhi *= rPos / radiusDistorted;
 
         DataT lcorrZ{};
         DataT lcorrR{};
@@ -3046,12 +3075,13 @@ void SpaceCharge<DataT>::dumpMetaData(std::string_view file, std::string_view op
   dfStore = dfStore.DefineSlotEntry("grid_A", [&helperA = helperA](unsigned int, ULong64_t entry) { return helperA; });
   dfStore = dfStore.DefineSlotEntry("grid_C", [&helperC = helperC](unsigned int, ULong64_t entry) { return helperC; });
   dfStore = dfStore.DefineSlotEntry("BField", [field = mBField.getBField()](unsigned int, ULong64_t entry) { return field; });
+  dfStore = dfStore.DefineSlotEntry("metaInf", [meta = mMeta](unsigned int, ULong64_t entry) { return meta; });
 
   // write to TTree
   ROOT::RDF::RSnapshotOptions opt;
   opt.fMode = option;
   opt.fOverwriteIfExists = true; // overwrite if already exists
-  dfStore.Snapshot("meta", file, {"paramsC", "grid_A", "grid_C", "BField"}, opt);
+  dfStore.Snapshot("meta", file, {"paramsC", "grid_A", "grid_C", "BField", "metaInf"}, opt);
 }
 
 template <typename DataT>
@@ -3079,6 +3109,15 @@ void SpaceCharge<DataT>::readMetaData(std::string_view file)
 
   ROOT::RDataFrame dFrame("meta", file);
   dFrame.Foreach(readMeta, {"paramsC", "grid_A", "grid_C", "BField"});
+
+  const auto& cols = dFrame.GetColumnNames();
+  if (std::find(cols.begin(), cols.end(), "metaInf") != cols.end()) {
+    auto readMetaInf = [&mMeta = mMeta](const SCMetaData& meta) {
+      mMeta = meta;
+    };
+    dFrame.Foreach(readMetaInf, {"metaInf"});
+  }
+
   LOGP(info, "Setting meta data: mC0={}  mC1={}  mC2={}", mC0, mC1, mC2);
   mReadMetaData = true;
 }
@@ -3608,11 +3647,19 @@ void SpaceCharge<DataT>::fillROCMisalignment(const std::vector<size_t>& indicesT
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::substractGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side)
+void SpaceCharge<DataT>::subtractGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side)
 {
   mGlobalCorrdR[side] -= otherSC.mGlobalCorrdR[side];
   mGlobalCorrdZ[side] -= otherSC.mGlobalCorrdZ[side];
   mGlobalCorrdRPhi[side] -= otherSC.mGlobalCorrdRPhi[side];
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::subtractGlobalDistortions(const SpaceCharge<DataT>& otherSC, const Side side)
+{
+  mGlobalDistdR[side] -= otherSC.mGlobalDistdR[side];
+  mGlobalDistdZ[side] -= otherSC.mGlobalDistdZ[side];
+  mGlobalDistdRPhi[side] -= otherSC.mGlobalDistdRPhi[side];
 }
 
 template <typename DataT>
@@ -3692,6 +3739,13 @@ void SpaceCharge<DataT>::scaleChargeDensityStack(const float scalingFactor, cons
       }
     }
   }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::initAfterReadingFromFile()
+{
+  mGrid3D[Side::A] = RegularGrid(GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices), mParamGrid);
+  mGrid3D[Side::C] = RegularGrid(GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices), mParamGrid);
 }
 
 using DataTD = double;

@@ -27,6 +27,7 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 #include "TPCBase/Mapper.h"
+#include "TPCCalibration/CorrMapParam.h"
 
 #include <fairlogger/Logger.h>
 
@@ -40,10 +41,6 @@ Digitizer::Digitizer() = default;
 
 void Digitizer::init()
 {
-  // Calculate distortion lookup tables if initial space-charge density is provided
-  if (mUseSCDistortions) {
-    mSpaceCharge->init();
-  }
   auto& gemAmplification = GEMAmplification::instance();
   gemAmplification.updateParameters();
   auto& electronTransport = ElectronTransport::instance();
@@ -83,8 +80,10 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
       GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
 
       // Distort the electron position in case space-charge distortions are used
-      if (mUseSCDistortions) {
+      if (mDistortionScaleType == 1) {
         mSpaceCharge->distortElectron(posEle);
+      } else if (mDistortionScaleType == 2) {
+        mSpaceCharge->distortElectron(posEle, mSpaceChargeDer.get(), mLumiScaleFactor);
       }
 
       /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
@@ -190,6 +189,15 @@ void Digitizer::setUseSCDistortions(SC* spaceCharge)
 {
   mUseSCDistortions = true;
   mSpaceCharge.reset(spaceCharge);
+  mSpaceCharge->initAfterReadingFromFile();
+  mSpaceCharge->printMetaData();
+}
+
+void Digitizer::setSCDistortionsDerivative(SC* spaceCharge)
+{
+  mSpaceChargeDer.reset(spaceCharge);
+  mSpaceChargeDer->initAfterReadingFromFile();
+  mSpaceChargeDer->printMetaData();
 }
 
 void Digitizer::setUseSCDistortions(std::string_view finp)
@@ -212,4 +220,20 @@ void Digitizer::setStartTime(double time)
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   sampaProcessing.updateParameters(mVDrift);
   mDigitContainer.setStartTime(sampaProcessing.getTimeBinFromTime(time - mOutputDigitTimeOffset));
+}
+
+void Digitizer::setLumiScaleFactor()
+{
+  mLumiScaleFactor = (CorrMapParam::Instance().lumiInst - mSpaceCharge->getMeanLumi()) / mSpaceChargeDer->getMeanLumi();
+  LOGP(info, "Setting Lumi scale factor: lumiInst: {}  lumi mean: {} lumi mean derivative: {} lumi scale factor: {}", CorrMapParam::Instance().lumiInst, mSpaceCharge->getMeanLumi(), mSpaceChargeDer->getMeanLumi(), mLumiScaleFactor);
+}
+
+void Digitizer::setMeanLumiDistortions(float meanLumi)
+{
+  mSpaceCharge->setMeanLumi(meanLumi);
+}
+
+void Digitizer::setMeanLumiDistortionsDerivative(float meanLumi)
+{
+  mSpaceChargeDer->setMeanLumi(meanLumi);
 }

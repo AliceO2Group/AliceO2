@@ -22,7 +22,7 @@ o2_add_library(TPCSimulation
                        src/SAMPAProcessing.cxx
                        src/IDCSim.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat
-                                     O2::TPCBase O2::TPCSpaceCharge
+                                     O2::TPCBase O2::TPCSpaceCharge O2::TPCCalibration
                                      ROOT::Physics)
 
 o2_target_root_dictionary(TPCSimulation
