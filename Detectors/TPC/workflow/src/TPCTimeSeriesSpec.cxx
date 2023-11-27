@@ -43,6 +43,8 @@
 #include "DataFormatsTPC/PIDResponse.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "TROOT.h"
+#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "DataFormatsTOF/Cluster.h"
 
 using namespace o2::globaltracking;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -170,7 +172,10 @@ class TPCTimeSeries : public Task
     auto primMatchedTracks = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackIndex>() : recoData.getPrimaryVertexMatchedTracks();     // Global ID's for associated tracks
     auto primMatchedTracksRef = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackRef>() : recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
-    LOGP(info, "Processing {} vertices, {} primary matched vertices, {} TPC tracks, {} ITS tracks, {} ITS-TPC tracks", vertices.size(), primMatchedTracks.size(), tracksTPC.size(), tracksITS.size(), tracksITSTPC.size());
+    // TOF clusters
+    const auto& tofClusters = mTPCOnly ? gsl::span<o2::tof::Cluster>() : recoData.getTOFClusters();
+
+    LOGP(info, "Processing {} vertices, {} primary matched vertices, {} TPC tracks, {} ITS tracks, {} ITS-TPC tracks, {} TOF clusters", vertices.size(), primMatchedTracks.size(), tracksTPC.size(), tracksITS.size(), tracksITSTPC.size(), tofClusters.size());
 
     // calculate mean vertex, RMS and count vertices
     auto indicesITSTPC_vtx = processVertices(vertices, primMatchedTracks, primMatchedTracksRef, recoData);
@@ -184,6 +189,24 @@ class TPCTimeSeries : public Task
       const auto idxVtx = (it != indicesITSTPC_vtx.end()) ? (it->second) : -1;
       // store TPC index and ITS-TPC+vertex index
       indicesITSTPC[tracksITSTPC[i].getRefTPC().getIndex()] = {i, idxVtx};
+    }
+
+    std::vector<std::tuple<int, float, float>> idxTPCTrackToTOFCluster; // store for each tpc track index the index to the TOF cluster
+
+    // get matches to TOF in case skimmed data is produced
+    if (mUnbinnedWriter) {
+      idxTPCTrackToTOFCluster = std::vector<std::tuple<int, float, float>>(tracksTPC.size(), {-1, -999, -999});
+      const std::vector<gsl::span<const o2::dataformats::MatchInfoTOF>> tofMatches{recoData.getTPCTOFMatches(), recoData.getTPCTRDTOFMatches(), recoData.getITSTPCTOFMatches(), recoData.getITSTPCTRDTOFMatches()};
+
+      // loop over ITS-TPC-TRD-TOF and ITS-TPC-TOF tracks an store for each ITS-TPC track the TOF track index
+      for (const auto& tofMatch : tofMatches) {
+        for (const auto& tpctofmatch : tofMatch) {
+          auto refTPC = recoData.getTPCContributorGID(tpctofmatch.getTrackRef());
+          if (refTPC.isIndexSet()) {
+            idxTPCTrackToTOFCluster[refTPC] = {tpctofmatch.getIdxTOFCl(), tpctofmatch.getDXatTOF(), tpctofmatch.getDZatTOF()};
+          }
+        }
+      }
     }
 
     // find nearest vertex of tracks which have no vertex assigned
@@ -358,7 +381,7 @@ class TPCTimeSeries : public Task
       auto myThread = [&](int iThread) {
         for (size_t i = iThread; i < loopEnd; i += mNThreads) {
           if (acceptTrack(tracksTPC[i])) {
-            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS);
+            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS, idxTPCTrackToTOFCluster, tofClusters);
           }
         }
       };
@@ -375,7 +398,7 @@ class TPCTimeSeries : public Task
       auto myThread = [&](int iThread) {
         for (size_t i = iThread; i < loopEnd; i += mNThreads) {
           if (acceptTrack(tracksTPC[i])) {
-            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS);
+            fillDCA(tracksTPC, tracksITSTPC, vertices, i, iThread, indicesITSTPC, tracksITS, idxTPCTrackToTOFCluster, tofClusters);
           }
         }
       };
@@ -1001,9 +1024,10 @@ class TPCTimeSeries : public Task
     return true;
   }
 
-  void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS)
+  void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS, const std::vector<std::tuple<int, float, float>>& idxTPCTrackToTOFCluster, const gsl::span<const o2::tof::Cluster> tofClusters)
   {
-    TrackTPC track = tracksTPC[iTrk];
+    o2::track::TrackParCov track = tracksTPC[iTrk];
+    const auto& trackFull = tracksTPC[iTrk];
 
     // propagate track to the DCA and fill in slice
     auto propagator = o2::base::Propagator::Instance();
@@ -1055,11 +1079,11 @@ class TPCTimeSeries : public Task
     const auto vertex = (idxITSTPC.back() != -1) ? vertices[idxITSTPC.back()] : ((mNearestVtxTPC[iTrk] != -1) ? vertices[mNearestVtxTPC[iTrk]] : o2::dataformats::PrimaryVertex{});
 
     // calculate DCAz: (time TPC track - time vertex) * vDrift + sign_side * vertexZ
-    const float signSide = track.hasCSideClustersOnly() ? -1 : 1; // invert sign for C-side
-    const float dcaZFromDeltaTime = (vertex.getTimeStamp().getTimeStamp() == 0) ? 0 : (o2::tpc::ParameterElectronics::Instance().ZbinWidth * track.getTime0() - vertex.getTimeStamp().getTimeStamp()) * mVDrift + signSide * vertex.getZ();
+    const float signSide = trackFull.hasCSideClustersOnly() ? -1 : 1; // invert sign for C-side
+    const float dcaZFromDeltaTime = (vertex.getTimeStamp().getTimeStamp() == 0) ? 0 : (o2::tpc::ParameterElectronics::Instance().ZbinWidth * trackFull.getTime0() - vertex.getTimeStamp().getTimeStamp()) * mVDrift + signSide * vertex.getZ();
 
     // for weight of DCA
-    const float resCl = std::min(track.getNClusters(), static_cast<int>(Mapper::PADROWS)) / static_cast<float>(Mapper::PADROWS);
+    const float resCl = std::min(trackFull.getNClusters(), static_cast<int>(Mapper::PADROWS)) / static_cast<float>(Mapper::PADROWS);
 
     const float div = (resCl * track.getPt());
     if (div == 0) {
@@ -1087,15 +1111,15 @@ class TPCTimeSeries : public Task
     }
 
     const float chi2Match = (chi2 > 0) ? std::sqrt(chi2) : -1;
-    const float sqrtChi2TPC = (track.getChi2() > 0) ? std::sqrt(track.getChi2()) : 0;
-    const float nClTPC = track.getNClusters();
+    const float sqrtChi2TPC = (trackFull.getChi2() > 0) ? std::sqrt(trackFull.getChi2()) : 0;
+    const float nClTPC = trackFull.getNClusters();
 
     // const float dedx = mUseQMax ? track.getdEdx().dEdxMaxTPC : track.getdEdx().dEdxTotTPC;
-    const float dedxRatioqTot = (track.getdEdx().dEdxTotTPC > 0) ? (mMIPdEdx / track.getdEdx().dEdxTotTPC) : -1;
-    const float dedxRatioqMax = (track.getdEdx().dEdxMaxTPC > 0) ? (mMIPdEdx / track.getdEdx().dEdxMaxTPC) : -1;
+    const float dedxRatioqTot = (trackFull.getdEdx().dEdxTotTPC > 0) ? (mMIPdEdx / trackFull.getdEdx().dEdxTotTPC) : -1;
+    const float dedxRatioqMax = (trackFull.getdEdx().dEdxMaxTPC > 0) ? (mMIPdEdx / trackFull.getdEdx().dEdxMaxTPC) : -1;
 
-    const auto dedxQTotVars = getdEdxVars(0, track);
-    const auto dedxQMaxVars = getdEdxVars(1, track);
+    const auto dedxQTotVars = getdEdxVars(0, trackFull);
+    const auto dedxQMaxVars = getdEdxVars(1, trackFull);
 
     // make check to avoid crash in case no or less ITS tracks have been found!
     const int idxITSTrack = (hasITSTPC && (gID == o2::dataformats::GlobalTrackID::Source::ITS)) ? tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex() : -1;
@@ -1108,9 +1132,9 @@ class TPCTimeSeries : public Task
     }
     sigmaY2 = track.getSigmaY2();
     sigmaZ2 = track.getSigmaZ2();
-    if (track.hasCSideClustersOnly()) {
+    if (trackFull.hasCSideClustersOnly()) {
       mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
-    } else if (track.hasASideClustersOnly()) {
+    } else if (trackFull.hasASideClustersOnly()) {
       mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
     }
 
@@ -1150,9 +1174,9 @@ class TPCTimeSeries : public Task
             dcaITSTPCTmp[1] = -1;
           }
 
-          if (track.hasCSideClustersOnly()) {
+          if (trackFull.hasCSideClustersOnly()) {
             mBufferVals[iThread].back().emplace_back_ITSTPC(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
-          } else if (track.hasASideClustersOnly()) {
+          } else if (trackFull.hasASideClustersOnly()) {
             mBufferVals[iThread].back().emplace_back_ITSTPC(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
           }
         }
@@ -1168,7 +1192,7 @@ class TPCTimeSeries : public Task
         writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, distr(mGenerator));
       }
       if (writeData) {
-        auto clusterMask = makeClusterBitMask(track);
+        auto clusterMask = makeClusterBitMask(trackFull);
         const auto& trkOrig = tracksTPC[iTrk];
         const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
         const float mx_ITS = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getX() : -1;
@@ -1177,11 +1201,29 @@ class TPCTimeSeries : public Task
         const int nClITS = idxITSCheck ? tracksITS[idxITSTrack].getNClusters() : -1;
         const int chi2ITS = idxITSCheck ? tracksITS[idxITSTrack].getChi2() : -1;
         int typeSide = 2; // A- and C-Side cluster
-        if (track.hasASideClustersOnly()) {
+        if (trackFull.hasASideClustersOnly()) {
           typeSide = 0;
-        } else if (track.hasCSideClustersOnly()) {
+        } else if (trackFull.hasCSideClustersOnly()) {
           typeSide = 1;
         }
+
+        // check for TOF and propagate TPC track to TOF cluster
+        bool hasTOFCluster = (std::get<0>(idxTPCTrackToTOFCluster[iTrk]) != -1);
+        auto tofCl = hasTOFCluster ? tofClusters[std::get<0>(idxTPCTrackToTOFCluster[iTrk])] : o2::tof::Cluster();
+
+        float tpcYDeltaAtTOF = -999;
+        float tpcZDeltaAtTOF = -999;
+        if (hasTOFCluster) {
+          o2::track::TrackPar trackTmpOut(tracksTPC[iTrk].getParamOut());
+          if (trackTmpOut.rotate(o2::math_utils::sector2Angle(tofCl.getSector())) && propagator->propagateTo(trackTmpOut, tofCl.getX(), false, mMaxSnp, mFineStep, mMatType)) {
+            tpcYDeltaAtTOF = trackTmpOut.getY() - tofCl.getY();
+            tpcZDeltaAtTOF = signSide * (o2::tpc::ParameterElectronics::Instance().ZbinWidth * trackFull.getTime0() - vertex.getTimeStamp().getTimeStamp()) * mVDrift - trackTmpOut.getZ() + tofCl.getZ();
+          }
+        }
+
+        // get delta parameter between inner and outer
+        float deltaTPCParamInOutTgl = trackFull.getTgl() - trackFull.getParamOut().getTgl();
+        float deltaTPCParamInOutQPt = trackFull.getQ2Pt() - trackFull.getParamOut().getQ2Pt();
 
         *mStreamer[iThread] << "treeTimeSeries"
                             // DCAs
@@ -1231,6 +1273,14 @@ class TPCTimeSeries : public Task
                             << "mVDrift=" << mVDrift
                             << "its_flag=" << int(gID)
                             << "sqrtChi2Match=" << chi2Match
+                            // TOF cluster
+                            << "tpcYDeltaAtTOF=" << tpcYDeltaAtTOF
+                            << "tpcZDeltaAtTOF=" << tpcZDeltaAtTOF
+                            << "mDXatTOF=" << std::get<1>(idxTPCTrackToTOFCluster[iTrk])
+                            << "mDZatTOF=" << std::get<2>(idxTPCTrackToTOFCluster[iTrk])
+                            // TPC delta param
+                            << "deltaTPCParamInOutTgl=" << deltaTPCParamInOutTgl
+                            << "deltaTPCParamInOutQPt=" << deltaTPCParamInOutQPt
                             << "\n";
       }
     }
@@ -1591,7 +1641,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"max-dedx-ratio", VariantType::Float, 0.3f, {"Maximum absolute log(dedx(pion)/dedx) ratio"}},
       {"max-dedx-region-ratio", VariantType::Float, 0.5f, {"Maximum absolute log(dedx(region)/dedx) ratio"}},
       {"sample-unbinned-tsallis", VariantType::Bool, false, {"Perform sampling of unbinned data based on Tsallis function"}},
-      {"sampling-factor", VariantType::Float, 0.1f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
+      {"sampling-factor", VariantType::Float, 0.001f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
       {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}}}};
 }
 
