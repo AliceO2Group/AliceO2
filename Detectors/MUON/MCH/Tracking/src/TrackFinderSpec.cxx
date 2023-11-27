@@ -66,7 +66,7 @@ class TrackFinderTask
 {
  public:
   //_________________________________________________________________________________________________
-  TrackFinderTask<T>(bool computeTime, bool digits, std::shared_ptr<base::GRPGeomRequest> req)
+  TrackFinderTask(bool computeTime, bool digits, std::shared_ptr<base::GRPGeomRequest> req)
     : mComputeTime(computeTime), mDigits(digits), mCCDBRequest(req) {}
 
   //_________________________________________________________________________________________________
