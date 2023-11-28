@@ -102,6 +102,13 @@ void ROFTimeClusterFinderV2::initTimeBins()
     }
 
     auto& timeBin = mTimeBins[binIdx];
+    timeBin.mHasChamber = {
+        false, false, false, false, false,
+        false, false, false, false, false
+    };
+    timeBin.mHasStation = {
+        false, false, false, false, false
+    };
 
     if (timeBin.mFirstIdx < 0) {
       timeBin.mFirstIdx = iRof;
@@ -115,6 +122,15 @@ void ROFTimeClusterFinderV2::initTimeBins()
         if (mIsGoodDigit(digit)) {
           nDigitsPS += 1;
         }
+        int deId = digit.getDetID();
+        int chId = (deId / 100) - 1;
+        if (chId < 0) continue;
+        if (chId >= 10) continue;
+        timeBin.mHasChamber[chId] = true;
+        int stId = chId / 2;
+        if (stId < 0) continue;
+        if (stId >= 5) continue;
+        timeBin.mHasStation[stId] = true;
       }
     } else {
       nDigitsPS = rof.getNEntries();
@@ -155,6 +171,15 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
       continue;
     }
 
+    // check number of stations associated to the digits in the search window
+    std::array<bool, 10> hasChamber = {
+        false, false, false, false, false,
+        false, false, false, false, false
+    };
+    std::array<bool, 5> hasStation = {
+        false, false, false, false, false
+    };
+
     int peakOrbit = mInputROFs[peak.mFirstIdx].getBCData().orbit;
     if (peakOrbit == targetOrbit) {
       int peakBc = mInputROFs[peak.mFirstIdx].getBCData().bc;
@@ -174,6 +199,18 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
         found = false;
         break;
       }
+
+      for (size_t k = 0; k < hasChamber.size(); k++) {
+        if (mTimeBins[j].mHasChamber[k]) {
+          hasChamber[k] = true;
+        }
+      }
+
+      for (size_t k = 0; k < hasStation.size(); k++) {
+        if (mTimeBins[j].mHasStation[k]) {
+          hasStation[k] = true;
+        }
+      }
     }
     // the peak must be higher than or equal to next bins
     for (int j = i + 1; j <= i + sPadding; j++) {
@@ -186,12 +223,31 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
         found = false;
         break;
       }
+
+      for (size_t k = 0; k < hasChamber.size(); k++) {
+        if (mTimeBins[j].mHasChamber[k]) {
+          hasChamber[k] = true;
+        }
+      }
+
+      for (size_t k = 0; k < hasStation.size(); k++) {
+        if (mTimeBins[j].mHasStation[k]) {
+          hasStation[k] = true;
+        }
+      }
     }
     if (peakOrbit == targetOrbit) {
       std::cout << "[TOTO] peak found " << found << std::endl;
     }
 
-    if (!found) {
+    int nStations = 0;
+    for (auto st : hasStation) {
+      if (st) {
+        nStations += 1;
+      }
+    }
+
+    if (!found || (nStations < 5)) {
       continue;
     }
 

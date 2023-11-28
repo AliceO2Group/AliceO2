@@ -66,6 +66,8 @@ class ROFTimeClusterFinderV2
     int32_t mFirstIdx{-1};  ///< index of the first digit ROF in the bin
     int32_t mLastIdx{-1};   ///< index of the last digit ROF in the bin
     uint32_t mNDigitsPS{0}; ///< number of digits in the bin for the peak search step
+    std::array<bool, 10> mHasChamber;
+    std::array<bool, 5> mHasStation;
 
     TimeBin() = default;
 
