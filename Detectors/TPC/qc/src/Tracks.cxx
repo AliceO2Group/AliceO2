@@ -16,6 +16,7 @@
 
 // root includes
 #include "TFile.h"
+#include "TRandom3.h"
 
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
@@ -85,6 +86,13 @@ void Tracks::initializeHistograms()
   for (const auto type : types) {
     mMapHist[fmt::format("hDCAr_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}", type).data(), fmt::format("DCAr {};phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 250, -10., 10.);
   }
+  // DCA vs variables Histograms
+  mMapHist["hDCArVsPtPos"] = std::make_unique<TH2F>("hDCArVsPtPos", "DCAr Pos;#it{p}_{T}T (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
+  mMapHist["hDCArVsEtaPos"] = std::make_unique<TH2F>("hDCArVsEtaPos", "DCAr Pos;#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
+  mMapHist["hDCArVsNClsPos"] = std::make_unique<TH2F>("hDCArVsNClsPos", "DCAr Pos;NClusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
+  mMapHist["hDCArVsPtNeg"] = std::make_unique<TH2F>("hDCArVsPtNeg", "DCAr Neg;#it{p}_{T}T (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
+  mMapHist["hDCArVsEtaNeg"] = std::make_unique<TH2F>("hDCArVsEtaNeg", "DCAr Neg;#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
+  mMapHist["hDCArVsNClsNeg"] = std::make_unique<TH2F>("hDCArVsNClsNeg", "DCAr Neg;NClusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
 }
 //______________________________________________________________________________
 void Tracks::resetHistograms()
@@ -130,23 +138,46 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     auto propagator = o2::base::Propagator::Instance(true);
     const int type = (track.getQ2Pt() < 0) + 2 * track.hasCSideClustersOnly();
     auto dcaHist = mMapHist[fmt::format("hDCAr_{}", types[type]).data()].get();
+    const std::string signType((sign < 0) ? "Neg" : "Pos");
+    auto dcaHistPT = mMapHist["hDCArVsPt" + signType].get();
+    auto dcaHistEta = mMapHist["hDCArVsEta" + signType].get();
+    auto dcaHistNCluster = mMapHist["hDCArVsNCls" + signType].get();
 
-    if (propagator->getMatLUT() && propagator->hasMagFieldSet()) {
-      // ---| fill DCA histos |---
-      o2::gpu::gpustd::array<float, 2> dca;
-      const o2::math_utils::Point3D<float> refPoint{0, 0, 0};
-      o2::track::TrackPar propTrack(track);
-      if (propagator->propagateToDCABxByBz(refPoint, propTrack, 2.f, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
-        const auto phi = o2::math_utils::to02PiGen(track.getPhi());
-        dcaHist->Fill(phi, dca[0]);
+    // set-up sampling for the DCA calculation
+    Double_t sampleProb = 2;
+
+    if (mSamplingFractionDCAr > 0) { // for now no SEED is given.
+      TRandom3 randomGenerator(0);
+      sampleProb = randomGenerator.Uniform(1);
+    }
+
+    if (sampleProb > (Double_t)(1. - mSamplingFractionDCAr)) {
+
+      if (propagator->getMatLUT() && propagator->hasMagFieldSet()) {
+        // ---| fill DCA histos |---
+        o2::gpu::gpustd::array<float, 2> dca;
+        const o2::math_utils::Point3D<float> refPoint{0, 0, 0};
+        o2::track::TrackPar propTrack(track);
+        if (propagator->propagateToDCABxByBz(refPoint, propTrack, 2.f, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
+          const auto phi = o2::math_utils::to02PiGen(track.getPhi());
+          dcaHistPT->Fill(pt, dca[0]);
+          if (pt > mCutMinPtDCAr) {
+            dcaHist->Fill(phi, dca[0]);
+            dcaHistEta->Fill(eta, dca[0]);
+            dcaHistNCluster->Fill(nCls, dca[0]);
+          }
+        } else {
+          static bool reported = false;
+          if (!reported) {
+            LOGP(error, "o2::base::Propagator not properly initialized, MatLUT ({}) and / or Field ({}) missing, will not fill DCA histograms", (void*)propagator->getMatLUT(), (void*)propagator->hasMagFieldSet());
+            reported = true;
+          }
+          dcaHist->SetTitle(fmt::format("DCAr {} o2::base::Propagator not properly initialized", types[type]).data());
+          dcaHistPT->SetTitle(fmt::format("DCAr p_{T} {} o2::base::Propagator not properly initialized", signType).data());
+          dcaHistEta->SetTitle(fmt::format("DCAr eta {} o2::base::Propagator not properly initialized", signType).data());
+          dcaHistNCluster->SetTitle(fmt::format("DCAr nClusters {} o2::base::Propagator not properly initialized", signType).data());
+        }
       }
-    } else {
-      static bool reported = false;
-      if (!reported) {
-        LOGP(error, "o2::base::Propagator not properly initialized, MatLUT ({}) and / or Field ({}) missing, will not fill DCA histograms", (void*)propagator->getMatLUT(), (void*)propagator->hasMagFieldSet());
-        reported = true;
-      }
-      dcaHist->SetTitle(fmt::format("DCAr {} o2::base::Propagator not properly initialized", types[type]).data());
     }
 
     if (hasASideOnly == 1) {

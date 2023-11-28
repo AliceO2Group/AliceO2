@@ -17,6 +17,7 @@
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
 
+#include <array>
 #include "MCHGlobalMapping/ChannelCode.h"
 
 BOOST_AUTO_TEST_CASE(CtorShowThrowForInvalidDeId)

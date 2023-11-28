@@ -11,7 +11,6 @@
 #include "WorkflowHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AODReaderHelpers.h"
-#include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/ConfigContext.h"
@@ -21,13 +20,10 @@
 #include "Framework/ControlService.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
-#include "Framework/CommonMessageBackends.h"
 #include "Framework/ChannelSpecHelpers.h"
-#include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
-#include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -43,6 +39,10 @@
 
 namespace o2::framework
 {
+
+static constexpr std::array<header::DataOrigin, 3> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}};
+static constexpr std::array<header::DataOrigin, 5> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}};
+static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}};
 
 std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
 {
@@ -61,25 +61,25 @@ std::vector<TopoIndexInfo>
   using EdgeIndex = int;
   // Create the index which will be returned.
   std::vector<TopoIndexInfo> index(nodeCount);
-  for (auto wi = 0; wi < nodeCount; ++wi) {
+  for (auto wi = 0; static_cast<size_t>(wi) < nodeCount; ++wi) {
     index[wi] = {wi, 0};
   }
   std::vector<EdgeIndex> remainingEdgesIndex(edgesCount);
-  for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
+  for (EdgeIndex ei = 0; static_cast<size_t>(ei) < edgesCount; ++ei) {
     remainingEdgesIndex[ei] = ei;
   }
 
   // Create a vector where at each position we have true
   // if the vector has dependencies, false otherwise
   std::vector<bool> nodeDeps(nodeCount, false);
-  for (EdgeIndex ei = 0; ei < edgesCount; ++ei) {
+  for (EdgeIndex ei = 0; static_cast<size_t>(ei) < edgesCount; ++ei) {
     nodeDeps[*(edgeOut + ei * stride)] = true;
   }
 
   // We start with all those which do not have any dependencies
   // They are layer 0.
   std::list<TopoIndexInfo> L;
-  for (auto ii = 0; ii < index.size(); ++ii) {
+  for (auto ii = 0; static_cast<size_t>(ii) < index.size(); ++ii) {
     if (nodeDeps[ii] == false) {
       L.push_back({ii, 0});
     }
@@ -201,7 +201,7 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }
-        if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"AOD"})) {
+        if (DataSpecUtils::partialMatch(spec, AODOrigins)) {
           DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
         } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
           DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
@@ -424,7 +424,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         case Lifetime::Optional:
           break;
       }
-      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
+      if (DataSpecUtils::partialMatch(input, AODOrigins)) {
         DataSpecUtils::updateInputList(requestedAODs, InputSpec{input});
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
@@ -438,7 +438,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
     for (auto& output : processor.outputs) {
-      if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
+      if (DataSpecUtils::partialMatch(output, AODOrigins)) {
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
         providedDYNs.emplace_back(output);
@@ -670,13 +670,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) {
-    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
-            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
-            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
-  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-    if (isAOD(outputsInputs[ii])) {
+    if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
       if (ds.size() > 0 || isDangling[ii]) {
         outputsInputsAOD.emplace_back(outputsInputs[ii]);
@@ -714,7 +709,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       continue;
     }
     // AODs are skipped in any case.
-    if (isAOD(outputsInputs[ii])) {
+    if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
       continue;
     }
     redirectedOutputsInputs.emplace_back(outputsInputs[ii]);
@@ -1118,26 +1113,21 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
     }
   }
   // parse the keepString
-  auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
   if (options.isSet("aod-writer-keep")) {
     auto keepString = options.get<std::string>("aod-writer-keep");
     if (!keepString.empty()) {
-
       dod->reset();
       std::string d("dangling");
       if (d.find(keepString) == 0) {
-
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
         for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
-          if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
+          if (DataSpecUtils::partialMatch(OutputsInputs[ii], writableAODOrigins) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }
         }
         dod->readSpecs(danglingOutputs);
-
       } else {
-
         // use the keep string
         dod->readString(keepString);
       }
@@ -1232,5 +1222,59 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-#pragma diagnostic pop
+bool validateLifetime(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+{
+  if (input.lifetime == Lifetime::Timeframe && output.lifetime == Lifetime::Sporadic) {
+    errors << fmt::format("Input {} of {} has lifetime Timeframe, but output {} of {} has lifetime Sporadic\n",
+                          DataSpecUtils::describe(input).c_str(), consumer.name,
+                          DataSpecUtils::describe(output).c_str(), producer.name);
+    return false;
+  }
+  return true;
+}
+
+bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+{
+  auto isExpendable = [](DataProcessorLabel const& label) {
+    return label.value == "expendable";
+  };
+  auto isResilient = [](DataProcessorLabel const& label) {
+    return label.value == "expendable" || label.value == "resilient";
+  };
+  bool producerExpendable = std::find_if(producer.labels.begin(), producer.labels.end(), isExpendable) != producer.labels.end();
+  bool consumerCritical = std::find_if(consumer.labels.begin(), consumer.labels.end(), isResilient) == consumer.labels.end();
+  if (producerExpendable && consumerCritical) {
+    errors << fmt::format("Critical consumer {} depends on expendable producer {}\n",
+                          consumer.name,
+                          producer.name);
+    return false;
+  }
+  return true;
+}
+
+using Validator = std::function<bool(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)>;
+void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
+                                    std::vector<DeviceConnectionEdge> const& edges,
+                                    std::vector<OutputSpec> const& outputs)
+{
+  std::vector<Validator> defaultValidators = {validateExpendable, validateLifetime};
+  std::stringstream errors;
+  // Iterate over all the edges.
+  // Get the input lifetime and the output lifetime.
+  // Output lifetime must be Timeframe if the input lifetime is Timeframe.
+  bool hasErrors = false;
+  for (auto& edge : edges) {
+    DataProcessorSpec const& producer = workflow[edge.producer];
+    DataProcessorSpec const& consumer = workflow[edge.consumer];
+    OutputSpec const& output = outputs[edge.outputGlobalIndex];
+    InputSpec const& input = consumer.inputs[edge.consumerInputIndex];
+    for (auto& validator : defaultValidators) {
+      hasErrors |= !validator(errors, producer, output, consumer, input);
+    }
+  }
+  if (hasErrors) {
+    throw std::runtime_error(errors.str());
+  }
+}
+
 } // namespace o2::framework

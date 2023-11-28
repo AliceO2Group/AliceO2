@@ -1442,16 +1442,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
       return false;
     }
     auto posEnd = tracOut.getXYZGlo();
-    // account path integrals
-    float dX = posEnd.x() - posStart.x(), dY = posEnd.y() - posStart.y(), dZ = posEnd.z() - posStart.z(), d2XY = dX * dX + dY * dY;
-    if (mFieldON) { // circular arc = 2*R*asin(dXY/2R)
-      float b[3];
-      o2::math_utils::Point3D<float> posAv(0.5 * (posEnd.x() + posStart.x()), 0.5 * (posEnd.y() + posStart.y()), 0.5 * (posEnd.z() + posStart.z()));
-      propagator->getFieldXYZ(posAv, b);
-      float curvH = std::abs(0.5f * tracOut.getCurvature(b[2])), arcXY = 1. / curvH * std::asin(curvH * std::sqrt(d2XY));
-      d2XY = arcXY * arcXY;
-    }
-    auto lInt = std::sqrt(d2XY + dZ * dZ);
+    auto lInt = propagator->estimateLTIncrement(tracOut, posStart, posEnd);
     tofL.addStep(lInt, tracOut.getP2Inv());
     tofL.addX2X0(lInt * mTPCmeanX0Inv);
     propagator->PropagateToXBxByBz(tracOut, o2::constants::geom::XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
@@ -1464,7 +1455,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
       tracOut.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
     }
   }
-
   trfit.setChi2Match(tpcMatchRec.chi2);
   trfit.setChi2Refit(chi2);
   trfit.setTimeMUS(timeC, timeErr);
@@ -1539,7 +1529,6 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2
   auto propagator = o2::base::Propagator::Instance();
   tracOut.resetCovariance();
   propagator->estimateLTFast(tofL, winLink); // guess about initial value for the track integral from the origin
-
   // refit track outward in the ITS
   const auto& itsClRefs = ABTrackletRefs[iITSAB];
   int nclRefit = 0, ncl = itsClRefs.getNClusters();
@@ -1588,20 +1577,10 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2
       return false;
     }
     auto posEnd = tracOut.getXYZGlo();
-    // account path integrals
-    float dX = posEnd.x() - posStart.x(), dY = posEnd.y() - posStart.y(), dZ = posEnd.z() - posStart.z(), d2XY = dX * dX + dY * dY;
-    if (mFieldON) { // circular arc = 2*R*asin(dXY/2R)
-      float b[3];
-      o2::math_utils::Point3D<float> posAv(0.5 * (posEnd.x() + posStart.x()), 0.5 * (posEnd.y() + posStart.y()), 0.5 * (posEnd.z() + posStart.z()));
-      propagator->getFieldXYZ(posAv, b);
-      float curvH = std::abs(0.5f * tracOut.getCurvature(b[2])), arcXY = 1. / curvH * std::asin(curvH * std::sqrt(d2XY));
-      d2XY = arcXY * arcXY;
-    }
-    auto lInt = std::sqrt(d2XY + dZ * dZ);
+    auto lInt = propagator->estimateLTIncrement(tracOut, posStart, posEnd);
     tofL.addStep(lInt, tracOut.getP2Inv());
     tofL.addX2X0(lInt * mTPCmeanX0Inv);
     propagator->PropagateToXBxByBz(tracOut, o2::constants::geom::XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
-
     const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
     if (trackTune.useTPCOuterCorr) {
       tracOut.updateParams(trackTune.tpcParOuter);
@@ -1888,6 +1867,7 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
       }
       lID = winL.parentID;
     }
+    clref.setEntries(ncl);
     if (!refitABTrack(ABTrackletRefs.size() - 1, ABSeed, matchedTracks, ABTrackletClusterIDs, ABTrackletRefs)) { // on failure, destroy added tracklet reference
       ABTrackletRefs.pop_back();
       ABTrackletClusterIDs.resize(start); // RSS
@@ -1896,7 +1876,6 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
       }
       continue;
     }
-    clref.setEntries(ncl);
     if (mMCTruthON) {
       o2::MCCompLabel lab;
       int maxL = 0; // find most encountered label

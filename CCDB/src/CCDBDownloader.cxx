@@ -493,21 +493,25 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
       curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &url);
       LOG(debug) << "Transfer for " << url << " finished with code " << httpCode << "\n";
 
+      std::string currentHost = requestData->hosts[performData->hostInd];
+      std::string loggingMessage = prepareLogMessage(currentHost, requestData->userAgent, requestData->path, requestData->timestamp, requestData->headers, httpCode);
+
       // Get alternative locations for the same host
       auto locations = getLocations(&(requestData->hoPair.header));
 
       // React to received http code
-      if (404 == httpCode) {
-        LOG(error) << "Requested resource does not exist: " << url;
-      } else if (304 == httpCode) {
-        LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
-        contentRetrieved = true;
-      } else if (300 <= httpCode && httpCode < 400 && performData->locInd < locations.size()) {
-        followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
-      } else if (200 <= httpCode && httpCode < 300) {
-        contentRetrieved = true;
+      if (200 <= httpCode && httpCode < 400) {
+        LOG(debug) << loggingMessage;
+        if (304 == httpCode) {
+          LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
+          contentRetrieved = true;
+        } else if (300 <= httpCode && httpCode < 400 && performData->locInd < locations.size()) {
+          followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
+        } else if (200 <= httpCode && httpCode < 300) {
+          contentRetrieved = true;
+        }
       } else {
-        LOG(error) << "Error in fetching object " << url << ", curl response code:" << httpCode;
+        LOG(error) << loggingMessage;
       }
 
       // Check if content was retrieved, or scheduled to be retrieved
@@ -692,6 +696,23 @@ void CCDBDownloader::asynchSchedule(CURL* handle, size_t* requestCounter)
   checkHandleQueue();
 
   // return codeVector;
+}
+
+std::string CCDBDownloader::prepareLogMessage(std::string host_url, std::string userAgent, const std::string& path, long ts, const std::map<std::string, std::string>* headers, long httpCode) const
+{
+  std::string upath{path};
+  if (headers) {
+    auto ent = headers->find("Valid-From");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+    ent = headers->find("ETag");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+  }
+  upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
+  return fmt::format("CcdbDownloader finished transfer {}{}{} for {} (agent_id: {}) with http code: {}", host_url, (host_url.back() == '/') ? "" : "/", upath, (ts < 0) ? getCurrentTimestamp() : ts, userAgent, httpCode);
 }
 
 } // namespace o2

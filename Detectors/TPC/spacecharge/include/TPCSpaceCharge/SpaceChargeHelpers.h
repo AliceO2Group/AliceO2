@@ -23,11 +23,40 @@
 #include "TPCSpaceCharge/TriCubic.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TFormula.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
 namespace tpc
 {
+
+struct SCMetaData {
+
+  enum LumiType {
+    CTP = 0,
+    IDC = 1
+  };
+
+  void print() const
+  {
+    const std::array<std::string, 2> collisionTypes{"PP", "Pb-Pb"};
+    const std::array<std::string, 2> slumiSource{"CTP", "IDC"};
+    if (collisionType < collisionTypes.size()) {
+      LOGP(info, "meanLumi: {}, source of lumi: {}, IR: {}kHz, run: {}, collisionType {}", meanLumi, slumiSource[lumiSource], ir, run, collisionTypes[collisionType]);
+    } else {
+      LOGP(info, "Specified collision type {} not allowed", collisionType);
+    }
+  }
+
+  float meanLumi = 0;    ///< mean lumi the sc object corresponds to
+  float ir = 0;          ///< IR
+  int run = 0;           ///< run number this object anchored to to
+  int collisionType = 0; ///< 0=PP, 1-Pb-Pb
+  LumiType lumiSource{}; ///< source of luminosity
+
+ private:
+  ClassDefNV(SCMetaData, 1);
+};
 
 ///
 /// this class contains an analytical description of the space charge, potential and the electric fields.

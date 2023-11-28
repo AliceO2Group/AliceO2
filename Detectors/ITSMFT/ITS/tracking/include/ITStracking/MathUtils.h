@@ -77,14 +77,20 @@ GPUhdi() float math_utils::computeCurvature(float x1, float y1, float x2, float 
     0.5f * ((y3 - y2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1) - (y2 - y1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2));
   const float b =
     0.5f * ((x2 - x1) * (y3 * y3 - y2 * y2 + x3 * x3 - x2 * x2) - (x3 - x2) * (y2 * y2 - y1 * y1 + x2 * x2 - x1 * x1));
-
-  return -1.f * d / o2::gpu::CAMath::Sqrt((d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b));
+  const float den2 = (d * x1 - a) * (d * x1 - a) + (d * y1 - b) * (d * y1 - b);
+  return den2 > 0.f ? -1.f * d / o2::gpu::CAMath::Sqrt(den2) : 0.f;
 }
 
 GPUhdi() float math_utils::computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3)
 {
-  const float k1 = (y2 - y1) / (x2 - x1), k2 = (y3 - y2) / (x3 - x2);
-  return 0.5f * (k1 * k2 * (y1 - y3) + k2 * (x1 + x2) - k1 * (x2 + x3)) / (k2 - k1);
+  float dx21 = x2 - x1, dx32 = x3 - x2;
+  if (dx21 == 0.f || dx32 == 0.f) { // add small offset
+    x2 += 1e-4;
+    dx21 = x2 - x1;
+    dx32 = x3 - x2;
+  }
+  float k1 = (y2 - y1) / dx21, k2 = (y3 - y2) / dx32;
+  return (k1 != k2) ? 0.5f * (k1 * k2 * (y1 - y3) + k2 * (x1 + x2) - k1 * (x2 + x3)) / (k2 - k1) : 1e5;
 }
 
 GPUhdi() float math_utils::computeTanDipAngle(float x1, float y1, float x2, float y2, float z1, float z2)

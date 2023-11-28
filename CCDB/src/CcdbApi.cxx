@@ -1533,6 +1533,7 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   data->path = requestContext.path;
   data->timestamp = requestContext.timestamp;
   data->localContentCallback = localContentCallback;
+  data->userAgent = mUniqueAgentID;
 
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
   initCurlOptionsForRetrieve(curl_handle, (void*)(&data->hoPair), writeCallback, false);
@@ -1671,8 +1672,6 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
     // navigateSourcesAndLoadFile either retrieves file from snapshot immediately, or schedules it to be downloaded when mDownloader->runLoop is ran at a later time
     auto& requestContext = requestContexts.at(i);
     navigateSourcesAndLoadFile(requestContext, fromSnapshots.at(i), &requestCounter);
-    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
-               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
   }
 
   // Download the rest
@@ -1683,12 +1682,12 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
   // Save snapshots
   for (int i = 0; i < requestContexts.size(); i++) {
     auto& requestContext = requestContexts.at(i);
+    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
+               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
     if (!requestContext.dest.empty()) {
       if (requestContext.considerSnapshot && fromSnapshots.at(i) != 2) {
         saveSnapshot(requestContext);
       }
-    } else {
-      LOG(warning) << "Did not receive content for " << requestContext.path << "\n"; // Temporarily demoted to warning, since it floods the infologger
     }
   }
 }

@@ -199,8 +199,8 @@ framework::DataProcessorSpec getTDCCalibSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tdccalibconfig", "ZDC", "TDCCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalibConfig.data())));
   inputs.emplace_back("tdccalib", "ZDC", "TDCCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalib.data())));
-  inputs.emplace_back("tdccalibdata", "ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tdc_1dh", ConcreteDataTypeMatcher{"ZDC", "TDC_1DH"}, Lifetime::Timeframe);
+  inputs.emplace_back("tdccalibdata", "ZDC", "TDCCALIBDATA", 0, Lifetime::Sporadic);
+  inputs.emplace_back("tdc_1dh", ConcreteDataTypeMatcher{"ZDC", "TDC_1DH"}, Lifetime::Sporadic);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_TDCcalib"}, Lifetime::Sporadic);

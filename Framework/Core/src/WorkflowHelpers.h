@@ -13,10 +13,8 @@
 
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/ForwardRoute.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataOutputDirector.h"
-#include "Framework/DataProcessorInfo.h"
 
 #include <cstddef>
 #include <vector>
@@ -227,6 +225,14 @@ struct WorkflowHelpers {
 
   /// returns only dangling outputs
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
+
+  /// Validate that the nodes at the ends of the edges of the graph
+  /// are actually compatible with each other.
+  /// For example we should make sure that Lifetime::Timeframe inputs of
+  /// one node is not connected to an Output of Lifetime::Sporadic of another node.
+  static void validateEdges(WorkflowSpec const& workflow,
+                            std::vector<DeviceConnectionEdge> const& edges,
+                            std::vector<OutputSpec> const& outputs);
 };
 
 } // namespace o2::framework

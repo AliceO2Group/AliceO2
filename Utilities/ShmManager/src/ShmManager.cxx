@@ -152,7 +152,7 @@ struct ShmManager {
       }
 #endif
 
-      auto ret = regions.emplace(id, make_unique<fair::mq::shmem::UnmanagedRegion>(shmId, id, size));
+      auto ret = regions.emplace(id, make_unique<fair::mq::shmem::UnmanagedRegion>(shmId, cfg));
       fair::mq::shmem::UnmanagedRegion& region = *(ret.first->second);
       LOG(info) << "Created unamanged region " << id << " of size " << region.GetSize() << ", starting at " << region.GetData() << ". Locking...";
       region.Lock();
