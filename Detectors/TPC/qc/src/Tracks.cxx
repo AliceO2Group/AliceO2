@@ -71,26 +71,26 @@ void Tracks::initializeHistograms()
   mMapHist["h2DQOverPtPhiAside"] = std::make_unique<TH2F>("h2DQOverPtPhiAside", "Charger over p_T vs. phi, A side;phi;q/p_T", 360, 0., 2 * M_PI, 400, -20., 20.);
   mMapHist["h2DQOverPtPhiCside"] = std::make_unique<TH2F>("h2DQOverPtPhiCside", "Charger over p_T vs. phi, C side;phi;q/p_T", 360, 0., 2 * M_PI, 400, -20., 20.);
   // eta vs pt and phi vs pt possitive and negative signs
-  mMapHist["hEtaVsPtPos"] = std::make_unique<TH2F>("hEtaVsPtPos", "#eta vs. p_{T} (Pos.);p_{T};eta", logPtBinning.size() - 1, logPtBinning.data(), 400, -2., 2.);
-  mMapHist["hEtaVsPtNeg"] = std::make_unique<TH2F>("hEtaVsPtNeg", "#eta vs. p_{T} (Neg.);p_{T};eta", logPtBinning.size() - 1, logPtBinning.data(), 400, -2., 2.);
-  mMapHist["hPhiVsPtPos"] = std::make_unique<TH2F>("hPhiVsPtPos", "#phi vs. p_{T} (Pos.);p_{T};phi", logPtBinning.size() - 1, logPtBinning.data(), 360, 0., 2 * M_PI);
-  mMapHist["hPhiVsPtNeg"] = std::make_unique<TH2F>("hPhiVsPtNeg", "#phi vs. p_{T} (Neg.);p_{T};phi", logPtBinning.size() - 1, logPtBinning.data(), 360, 0., 2 * M_PI);
+  mMapHist["hEtaVsPtPos"] = std::make_unique<TH2F>("hEtaVsPtPos", "#eta vs. p_{{T}} (Pos.);p_{{T}};eta", logPtBinning.size() - 1, logPtBinning.data(), 400, -2., 2.);
+  mMapHist["hEtaVsPtNeg"] = std::make_unique<TH2F>("hEtaVsPtNeg", "#eta vs. p_{{T}} (Neg.);p_{{T}};eta", logPtBinning.size() - 1, logPtBinning.data(), 400, -2., 2.);
+  mMapHist["hPhiVsPtPos"] = std::make_unique<TH2F>("hPhiVsPtPos", "#phi vs. p_{{T}} (Pos.);p_{{T}};phi", logPtBinning.size() - 1, logPtBinning.data(), 360, 0., 2 * M_PI);
+  mMapHist["hPhiVsPtNeg"] = std::make_unique<TH2F>("hPhiVsPtNeg", "#phi vs. p_{{T}} (Neg.);p_{{T}};phi", logPtBinning.size() - 1, logPtBinning.data(), 360, 0., 2 * M_PI);
 
   // 1d histograms
   mMapHist["hEtaRatio"] = std::make_unique<TH1F>("hEtaRatio", "Pseudorapidity, ratio neg./pos. ;eta", 400, -2., 2.);
   mMapHist["hPhiAsideRatio"] = std::make_unique<TH1F>("hPhiAsideRatio", "Azimuthal angle, A side, ratio neg./pos. ;phi", 360, 0., 2 * M_PI);
   mMapHist["hPhiCsideRatio"] = std::make_unique<TH1F>("hPhiCsideRatio", "Azimuthal angle, C side, ratio neg./pos. ;phi", 360, 0., 2 * M_PI);
-  mMapHist["hPtRatio"] = std::make_unique<TH1F>("hPtRatio", "Transverse momentum, ratio neg./pos. ;p_T", logPtBinning.size() - 1, logPtBinning.data());
+  mMapHist["hPtRatio"] = std::make_unique<TH1F>("hPtRatio", "Transverse momentum, ratio neg./pos. ;p_{{T}}", logPtBinning.size() - 1, logPtBinning.data());
 
   // DCA Histograms
   for (const auto type : types) {
     mMapHist[fmt::format("hDCAr_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}", type).data(), fmt::format("DCAr {};phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 250, -10., 10.);
   }
   // DCA vs variables Histograms
-  mMapHist["hDCArVsPtPos"] = std::make_unique<TH2F>("hDCArVsPtPos", "DCAr Pos;#it{p}_{T}T (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
+  mMapHist["hDCArVsPtPos"] = std::make_unique<TH2F>("hDCArVsPtPos", "DCAr Pos;#it{p}_{{T}}T (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
   mMapHist["hDCArVsEtaPos"] = std::make_unique<TH2F>("hDCArVsEtaPos", "DCAr Pos;#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
   mMapHist["hDCArVsNClsPos"] = std::make_unique<TH2F>("hDCArVsNClsPos", "DCAr Pos;NClusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
-  mMapHist["hDCArVsPtNeg"] = std::make_unique<TH2F>("hDCArVsPtNeg", "DCAr Neg;#it{p}_{T}T (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
+  mMapHist["hDCArVsPtNeg"] = std::make_unique<TH2F>("hDCArVsPtNeg", "DCAr Neg;#it{p}_{{T}}T (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
   mMapHist["hDCArVsEtaNeg"] = std::make_unique<TH2F>("hDCArVsEtaNeg", "DCAr Neg;#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
   mMapHist["hDCArVsNClsNeg"] = std::make_unique<TH2F>("hDCArVsNClsNeg", "DCAr Neg;NClusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
 }
@@ -173,7 +173,7 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
             reported = true;
           }
           dcaHist->SetTitle(fmt::format("DCAr {} o2::base::Propagator not properly initialized", types[type]).data());
-          dcaHistPT->SetTitle(fmt::format("DCAr p_{T} {} o2::base::Propagator not properly initialized", signType).data());
+          dcaHistPT->SetTitle(fmt::format("DCAr p_{{T}} {} o2::base::Propagator not properly initialized", signType).data());
           dcaHistEta->SetTitle(fmt::format("DCAr eta {} o2::base::Propagator not properly initialized", signType).data());
           dcaHistNCluster->SetTitle(fmt::format("DCAr nClusters {} o2::base::Propagator not properly initialized", signType).data());
         }
