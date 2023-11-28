@@ -20,6 +20,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "DataFormatsFT0/SpectraInfoObject.h"
+#include "DataFormatsFT0/SlewingCoef.h"
 #include <gsl/span>
 #include <array>
 #include <vector>
@@ -51,18 +52,16 @@ class CollisionTimeRecoTask
                                   std::vector<o2::ft0::ChannelDataFloat>& outChData);
   void FinishTask();
   void SetTimeCalibObject(o2::ft0::TimeSpectraInfoObject const* timeCalibObject) { mTimeCalibObject = timeCalibObject; };
-  void SetSlew(std::array<TGraph, NCHANNELS>* calibslew)
+  void SetSlewingCalibObject(o2::ft0::SlewingCoef const* calibSlew)
   {
-    LOG(info) << "@@@SetSlew " << calibslew->size();
-    mCalibSlew = calibslew;
+    LOG(info) << "Init for slewing calib object";
+    mCalibSlew = calibSlew->makeSlewingPlots();
   };
   float getTimeInPS(const o2::ft0::ChannelData& channelData);
 
  private:
   o2::ft0::TimeSpectraInfoObject const* mTimeCalibObject = nullptr;
-  std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
-
-  ClassDefNV(CollisionTimeRecoTask, 3);
+  typename o2::ft0::SlewingCoef::SlewingPlots_t mCalibSlew{};
 };
 } // namespace ft0
 } // namespace o2
