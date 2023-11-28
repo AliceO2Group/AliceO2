@@ -12,7 +12,7 @@
 set(MODULE GPUTrackingHIP)
 
 # Setting flags as a global option for all HIP targets.
-set(CMAKE_HIP_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fno-gpu-rdc")
+set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fno-gpu-rdc")
 if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()

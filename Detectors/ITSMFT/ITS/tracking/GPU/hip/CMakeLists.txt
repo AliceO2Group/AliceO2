@@ -11,7 +11,7 @@
 
 if(HIP_ENABLED)
   message(STATUS "Building ITS HIP tracker")
-  set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+  set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fgpu-rdc")
   o2_add_hipified_library(ITStrackingHIP
                  SOURCES ../cuda/ClusterLinesGPU.cu
                          ../cuda/Context.cu
