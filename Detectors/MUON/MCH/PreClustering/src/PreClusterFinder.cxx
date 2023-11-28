@@ -22,6 +22,9 @@
 #include "MCHBase/Error.h"
 #include "PreClusterFinderMapping.h"
 
+#define MAX_DIGIT_DT 12
+#define MAX_CLUSTER_DT 8
+
 namespace o2::mch
 {
 
@@ -261,6 +264,8 @@ void PreClusterFinder::preClusterizeRecursive()
     for (int iPlane = 0; iPlane < 2; ++iPlane) {
 
       // loop over fired pads
+      while (true) {
+      int nUsed = 0;
       for (int iFiredPad = 0; iFiredPad < de.nFiredPads[iPlane]; ++iFiredPad) {
 
         iPad = de.firedPads[iPlane][iFiredPad];
@@ -277,6 +282,8 @@ void PreClusterFinder::preClusterizeRecursive()
           ++mNPreClusters[iDE][iPlane];
 
           // reset its content
+          cluster->time = 0;
+          cluster->nPads = 0;
           cluster->area[0][0] = 1.e6;
           cluster->area[0][1] = -1.e6;
           cluster->area[1][0] = 1.e6;
@@ -287,8 +294,13 @@ void PreClusterFinder::preClusterizeRecursive()
           // add the pad and its fired neighbours recusively
           cluster->firstPad = de.nOrderedPads[0];
           addPad(de, iPad, *cluster);
+          nUsed += 1;
         }
       }
+      if (nUsed == 0) {
+        break;
+      }
+    }
     }
   }
 }
@@ -296,6 +308,16 @@ void PreClusterFinder::preClusterizeRecursive()
 //_________________________________________________________________________________________________
 void PreClusterFinder::addPad(DetectionElement& de, uint16_t iPad, PreCluster& cluster)
 {
+  auto iDigit = de.mapping->pads[iPad].iDigit;
+  auto digit = de.digits[iDigit];
+  auto digitTime = digit->getTime();
+
+  if (cluster.nPads > 0) {
+    if (std::fabs(digitTime - cluster.time) > MAX_DIGIT_DT) {
+      return;
+    }
+  }
+
   /// add the given MpPad and its fired neighbours (recursive method)
 
   Mapping::MpPad* pads(de.mapping->pads.get());
@@ -323,6 +345,9 @@ void PreClusterFinder::addPad(DetectionElement& de, uint16_t iPad, PreCluster& c
   }
 
   pad.useMe = false;
+
+  cluster.nPads += 1;
+  cluster.time += (double(digitTime) - cluster.time) / cluster.nPads;
 
   // loop over its neighbours
   for (int iNeighbour = 0; iNeighbour < pad.nNeighbours; ++iNeighbour) {
@@ -411,7 +436,8 @@ void PreClusterFinder::mergePreClusters(PreCluster& cluster, std::vector<std::un
 
     cluster2 = preClusters[iPlane][iCluster].get();
     if (Mapping::areOverlapping(cluster.area, cluster2->area, overlapPrecision) &&
-        areOverlapping(cluster, *cluster2, de, overlapPrecision)) {
+        areOverlapping(cluster, *cluster2, de, overlapPrecision) &&
+        std::fabs(cluster.time - cluster2->time) <= MAX_CLUSTER_DT) {
 
       cluster2->useMe = false;
 
@@ -473,6 +499,9 @@ void PreClusterFinder::mergePreClusters(PreCluster& cluster1, PreCluster& cluste
   }
 
   cluster1.lastPad = de.nOrderedPads[1] - 1;
+  cluster1.time += cluster2.time;
+  cluster1.time /= 2;
+  cluster1.nPads += cluster2.nPads;
 }
 
 //_________________________________________________________________________________________________
