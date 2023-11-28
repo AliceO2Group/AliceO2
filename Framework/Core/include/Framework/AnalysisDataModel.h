@@ -506,7 +506,7 @@ DECLARE_SOA_COLUMN(Phi, phi, float);                                            
 DECLARE_SOA_COLUMN(Tgl, tgl, float);                                                         //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                             //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
 DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                            //! Number of clusters
-DECLARE_SOA_COLUMN(MFTClusterSizesAndTracksFlags, mftClusterSizesAndTrackFlags, uint64_t);   //! Cluster sizes per track and per layer with the mft flags on the remaining 4 bits
+DECLARE_SOA_COLUMN(MFTClusterSizesAndTracksFlags, mftClusterSizesAndTrackFlags, uint64_t);   //! Cluster sizes per track, stored per layer (each 6 bits). Remaining 4 bits for MFT flags
 DECLARE_SOA_COLUMN(Chi2, chi2, float);                                                       //! Track chi^2
 DECLARE_SOA_COLUMN(PDca, pDca, float);                                                       //! PDca for MUONStandalone
 DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                                   //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
