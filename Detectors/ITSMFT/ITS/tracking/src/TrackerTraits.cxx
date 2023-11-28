@@ -641,6 +641,8 @@ void TrackerTraits::findRoads(const int iteration)
       if (rofs[2] != INT_MAX) {
         continue;
       }
+      track.setUserField(0);
+      track.getParamOut().setUserField(0);
       if (rofs[1] != INT_MAX) {
         track.setNextROFbit();
       }
