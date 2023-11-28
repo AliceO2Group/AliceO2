@@ -1575,7 +1575,7 @@ class TableMetadata
 {
  public:
   static constexpr char const* tableLabel() { return INHERIT::mLabel; }
-  static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
+  static constexpr char const (&origin())[5] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
   static constexpr o2::header::DataHeader::SubSpecificationType version() { return INHERIT::mVersion; }
   static std::string sourceSpec() { return fmt::format("{}/{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription, INHERIT::mVersion); };
@@ -2366,7 +2366,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     using table_t = _Name_;                                                                        \
     static constexpr o2::header::DataHeader::SubSpecificationType mVersion = _Version_;            \
     static constexpr char const* mLabel = _Label_;                                                 \
-    static constexpr char const mOrigin[4] = _Origin_;                                             \
+    static constexpr char const mOrigin[5] = _Origin_;                                             \
     static constexpr char const mDescription[16] = _Description_;                                  \
   };                                                                                               \
                                                                                                    \
@@ -2407,7 +2407,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     using sources = originals;                                                                                                  \
     static constexpr o2::header::DataHeader::SubSpecificationType mVersion = getVersion<_Table_>();                             \
     static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \
-    static constexpr char const mOrigin[4] = _Origin_;                                                                          \
+    static constexpr char const mOrigin[5] = _Origin_;                                                                          \
     static constexpr char const mDescription[16] = _Description_;                                                               \
   };                                                                                                                            \
                                                                                                                                 \
@@ -2438,7 +2438,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     using sources = typename _Name_::sources_t;                                                                                  \
     static constexpr o2::header::DataHeader::SubSpecificationType mVersion = 0;                                                  \
     static constexpr char const* mLabel = #_Name_;                                                                               \
-    static constexpr char const mOrigin[4] = _Origin_;                                                                           \
+    static constexpr char const mOrigin[5] = _Origin_;                                                                           \
     static constexpr char const mDescription[16] = _Description_;                                                                \
     static constexpr bool exclusive = _Exclusive_;                                                                               \
   };                                                                                                                             \
