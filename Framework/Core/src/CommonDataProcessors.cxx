@@ -599,9 +599,8 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .options = !rateLimitingChannelConfig.empty() ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
                                                                                   rateLimitingChannelConfig,
                                                                                   {"Out-of-band channel config"}}}
-                                                  : std::vector<ConfigParamSpec>()
-
-  };
+                                                  : std::vector<ConfigParamSpec>(),
+    .labels = {{"resilient"}}};
 }
 
 AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
