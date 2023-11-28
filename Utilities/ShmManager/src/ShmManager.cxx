@@ -231,7 +231,7 @@ int main(int argc, char** argv)
       "regions", value<vector<string>>(&regions)->multitoken()->composing(), "Regions, as <id>,<size> <id>,<size>,<numaid> <id>,<size>,<numaid> ...")(
       "nozero", value<bool>(&nozero)->default_value(false)->implicit_value(true), "Do not zero segments after initialization")(
       "check-presence", value<bool>(&checkPresence)->default_value(true)->implicit_value(true), "Check periodically if configured segments/regions are still present, and cleanup and leave if they are not")(
-      "refcount-segment-size", value<uint64_t>(&refcount_segment_size)->default_value(0), "Shm id")(
+      "refcount-segment-size", value<uint64_t>(&refcount_segment_size)->default_value(0), "Size in bytes of refCount segment (global setting affecting all unmanaged regions)")(
       "help,h", "Print help");
 
     variables_map vm;
