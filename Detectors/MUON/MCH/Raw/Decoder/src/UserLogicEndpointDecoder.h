@@ -158,7 +158,7 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
       }
 
       mElinkDecoders.emplace(static_cast<uint16_t>(gbt),
-                             impl::makeArray<40>([=](size_t i) {
+                             impl::makeArray<40>([solarId, *this](size_t i) {
                                DsElecId dselec{solarId.value(), static_cast<uint8_t>(i / 5), static_cast<uint8_t>(i % 5)};
                                return ElinkDecoder(dselec, mDecodedDataHandlers);
                              }));
