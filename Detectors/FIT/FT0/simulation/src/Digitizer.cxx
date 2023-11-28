@@ -204,8 +204,16 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     if (hit.GetEnergyLoss() > 0) {
       continue;
     }
-    const auto& params = FT0DigParam::Instance();
+
     Int_t hit_ch = hit.GetDetectorID();
+
+    // If the dead channel map is used, and the channel with ID 'hit_ch' is dead, don't process this hit.
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(hit_ch)) {
+      continue;
+    }
+
+    const auto& params = FT0DigParam::Instance();
+
     Bool_t is_A_side = (hit_ch < 4 * mGeometry.NCellsA);
     Float_t time_compensate = is_A_side ? params.mA_side_cable_cmps : params.mC_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
@@ -248,6 +256,9 @@ void Digitizer::storeBC(BCCache& bc,
     auto channel_begin = channel_end;
     channel_end = std::find_if(channel_begin, particles.end(),
                                [ipmt](BCCache::particle const& p) { return p.hit_ch != ipmt; });
+
+    // The hits between 'channel_begin' and 'channel_end' now contains all hits for channel 'ipmt'
+
     if (channel_end - channel_begin < params.mAmp_trsh) {
       continue;
     }
