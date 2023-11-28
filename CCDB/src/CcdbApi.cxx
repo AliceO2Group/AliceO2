@@ -1571,7 +1571,7 @@ void CcdbApi::releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, s
 }
 
 void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
-                              long timestamp, std::map<std::string, std::string> headers,
+                              long timestamp, std::map<std::string, std::string>& headers,
                               std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const
 {
   if (createSnapshot) { // create named semaphore
@@ -1581,9 +1581,10 @@ void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
       logStream << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << " for load to memory\n";
     }
   }
-
   if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced;
-    loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), &headers);
+    if (etag.empty()) {
+      loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), &headers);
+    }
     fromSnapshot = 1;
   } else if (mPreferSnapshotCache && std::filesystem::exists(snapshotpath)) {
     // if file is available, use it, otherwise cache it below from the server. Do this only when etag is empty since otherwise the object was already fetched and cached
