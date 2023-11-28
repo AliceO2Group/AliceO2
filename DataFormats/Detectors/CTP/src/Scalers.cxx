@@ -742,7 +742,7 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
   };
   if (nextindex == 0 || nextindex == mScalerRecordO2.size()) {
     // orbit is out of bounds
-    LOG(info) << "query timestamp " << timestamp << " out of bounds; Just returning the global rate";
+    LOG(info) << "query timestamp " << (long)timestamp << " out of bounds; Just returning the global rate";
     return std::make_pair(/*global mean rate*/ calcRate(0, mScalerRecordO2.size() - 1), /* current rate */ -1);
   } else {
 
