@@ -59,18 +59,16 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
-  if (mUseTimeOffsetCalib && mUpdateCCDB) {
-    auto timeCalibObject = pc.inputs().get<o2::ft0::TimeSpectraInfoObject*>("ft0_timespectra");
-    mReco.SetTimeCalibObject(timeCalibObject.get());
+  if (mUseTimeOffsetCalib) {
+    auto timeOffsetCalibObject = pc.inputs().get<o2::ft0::TimeSpectraInfoObject*>("ft0_timespectra");
+    mReco.SetTimeCalibObject(timeOffsetCalibObject.get());
   }
-  /*
-  auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
-  LOG(debug) << " calibslew " << calibslew;
-  if (calibslew) {
-    mReco.SetSlew(calibslew);
-    LOG(info) << " calibslew set slew " << calibslew;
+
+  if (mUseSlewingCalib) {
+    auto slewingCalibObject = pc.inputs().get<o2::ft0::SlewingCoef*>("ft0_slewing_coef");
+    mReco.SetSlewingCalibObject(slewingCalibObject.get());
   }
-  */
+
   mRecPoints.reserve(digits.size());
   mRecChData.reserve(channels.size());
   mReco.processTF(digits, channels, mRecPoints, mRecChData);
@@ -85,7 +83,12 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher("FT0", "TimeSpectraInfo", 0)) {
-    mUpdateCCDB = false;
+    LOG(debug) << "New TimeSpectraInfo is uploaded";
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("FT0", "SlewingCoef", 0)) {
+    LOG(debug) << "New SlewingCoef is uploaded";
+    mUseSlewingCalib = false; // upload only once, slewing should be stable during the run
     return;
   }
 }
@@ -96,7 +99,7 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, bool useTimeOffsetCalib)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
@@ -106,9 +109,17 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, 
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFT0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
-  inputSpec.emplace_back("ft0_timespectra", "FT0", "TimeSpectraInfo", 0,
-                         Lifetime::Condition,
-                         ccdbParamSpec("FT0/Calib/TimeSpectraInfo"));
+  if (useTimeOffsetCalib) {
+    inputSpec.emplace_back("ft0_timespectra", "FT0", "TimeSpectraInfo", 0,
+                           Lifetime::Condition,
+                           ccdbParamSpec("FT0/Calib/TimeSpectraInfo", {}, 1));
+  }
+
+  if (useSlewingCalib) {
+    inputSpec.emplace_back("ft0_slewing_coef", "FT0", "SlewingCoef", 0,
+                           Lifetime::Condition,
+                           ccdbParamSpec("FT0/Calib/SlewingCoef"));
+  }
 
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
@@ -117,7 +128,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, 
     "ft0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath, useTimeOffsetCalib)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath, useTimeOffsetCalib, useSlewingCalib)},
     Options{}};
 }
 

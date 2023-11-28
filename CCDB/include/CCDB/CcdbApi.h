@@ -373,7 +373,7 @@ class CcdbApi //: public DatabaseInterface
   void scheduleDownload(RequestContext& requestContext, size_t* requestCounter) const;
 
   void getFromSnapshot(bool createSnapshot, std::string const& path,
-                       long timestamp, std::map<std::string, std::string> headers,
+                       long timestamp, std::map<std::string, std::string>& headers,
                        std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const;
   void releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, std::string path) const;
   boost::interprocess::named_semaphore* createNamedSempahore(std::string path) const;

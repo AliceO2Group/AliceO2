@@ -23,6 +23,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
 #include "CommonConstants/GeomConstants.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -432,6 +433,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
   bool isITSloaded = recoData.isTrackSourceLoaded(GIndex::ITS);
+  bool isITSTPCloaded = recoData.isTrackSourceLoaded(GIndex::ITSTPC);
   if (isTPCloaded && !mSVParams->mExcludeTPCtracks) {
     mTPCTracksArray = recoData.getTPCTracks();
     mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
@@ -503,11 +505,17 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       // get Nclusters in the ITS if available
       uint8_t nITSclu = -1;
       auto itsGID = recoData.getITSContributorGID(tvid);
-      if (itsGID.getSource() == GIndex::ITS && isITSloaded) {
-        auto& itsTrack = recoData.getITSTrack(itsGID);
-        nITSclu = itsTrack.getNumberOfClusters();
+      if (itsGID.getSource() == GIndex::ITS) {
+        if (isITSloaded) {
+          auto& itsTrack = recoData.getITSTrack(itsGID);
+          nITSclu = itsTrack.getNumberOfClusters();
+        }
+      } else if (itsGID.getSource() == GIndex::ITSAB) {
+        if (isITSTPCloaded) {
+          auto& itsABTracklet = recoData.getITSABRef(itsGID);
+          nITSclu = itsABTracklet.getNClusters();
+        }
       }
-
       if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
         if (tvid.isAmbiguous()) {
           rejmap[tvid] = true;

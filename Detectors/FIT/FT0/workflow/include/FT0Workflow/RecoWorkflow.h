@@ -20,7 +20,7 @@ namespace o2
 {
 namespace ft0
 {
-framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool useTimeOffsetCalib, bool disableRootInp, bool disableRootOut);
+framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib, bool disableRootInp, bool disableRootOut);
 } // namespace ft0
 } // namespace o2
 #endif

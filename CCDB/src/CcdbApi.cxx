@@ -1533,6 +1533,7 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   data->path = requestContext.path;
   data->timestamp = requestContext.timestamp;
   data->localContentCallback = localContentCallback;
+  data->userAgent = mUniqueAgentID;
 
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
   initCurlOptionsForRetrieve(curl_handle, (void*)(&data->hoPair), writeCallback, false);
@@ -1570,7 +1571,7 @@ void CcdbApi::releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, s
 }
 
 void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
-                              long timestamp, std::map<std::string, std::string> headers,
+                              long timestamp, std::map<std::string, std::string>& headers,
                               std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const
 {
   if (createSnapshot) { // create named semaphore
@@ -1580,9 +1581,10 @@ void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
       logStream << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << " for load to memory\n";
     }
   }
-
   if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced;
-    loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), &headers);
+    if (etag.empty()) {
+      loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), &headers);
+    }
     fromSnapshot = 1;
   } else if (mPreferSnapshotCache && std::filesystem::exists(snapshotpath)) {
     // if file is available, use it, otherwise cache it below from the server. Do this only when etag is empty since otherwise the object was already fetched and cached
@@ -1671,8 +1673,6 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
     // navigateSourcesAndLoadFile either retrieves file from snapshot immediately, or schedules it to be downloaded when mDownloader->runLoop is ran at a later time
     auto& requestContext = requestContexts.at(i);
     navigateSourcesAndLoadFile(requestContext, fromSnapshots.at(i), &requestCounter);
-    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
-               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
   }
 
   // Download the rest
@@ -1683,12 +1683,12 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
   // Save snapshots
   for (int i = 0; i < requestContexts.size(); i++) {
     auto& requestContext = requestContexts.at(i);
+    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
+               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
     if (!requestContext.dest.empty()) {
       if (requestContext.considerSnapshot && fromSnapshots.at(i) != 2) {
         saveSnapshot(requestContext);
       }
-    } else {
-      LOG(warning) << "Did not receive content for " << requestContext.path << "\n"; // Temporarily demoted to warning, since it floods the infologger
     }
   }
 }

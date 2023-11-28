@@ -34,7 +34,7 @@ class ReconstructionDPL : public Task
   static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
-  ReconstructionDPL(bool useMC, const std::string& ccdbpath, bool useTimeOffsetCalib) : mUseMC(useMC), mCCDBpath(ccdbpath), mUseTimeOffsetCalib(useTimeOffsetCalib) {}
+  ReconstructionDPL(bool useMC, const std::string& ccdbpath, bool useTimeOffsetCalib, bool useSlewingCalib) : mUseMC(useMC), mCCDBpath(ccdbpath), mUseTimeOffsetCalib(useTimeOffsetCalib), mUseSlewingCalib(useSlewingCalib) {}
   ~ReconstructionDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -44,7 +44,8 @@ class ReconstructionDPL : public Task
  private:
   bool mUseMC = false;
   bool mUpdateCCDB = true;
-  const bool mUseTimeOffsetCalib = true;
+  bool mUseTimeOffsetCalib = true;
+  bool mUseSlewingCalib = true;
   const std::string mCCDBpath = o2::base::NameConf::getCCDBServer();
   std::vector<o2::ft0::RecPoints> mRecPoints;
   std::vector<o2::ft0::ChannelDataFloat> mRecChData;
@@ -54,7 +55,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch", bool useTimeOffsetCalib = true);
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch", bool useTimeOffsetCalib = true, bool useSlewingCalib = true);
 
 } // namespace ft0
 } // namespace o2
