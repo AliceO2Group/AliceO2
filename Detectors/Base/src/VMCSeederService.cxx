@@ -45,5 +45,9 @@ VMCSeederService::VMCSeederService()
 
 void VMCSeederService::setSeed() const
 {
+  // Make sure gRandom is sufficiently well initialized
+  // by calling Rndm() once.
+  // This is ok since in any case gRandom->SetSeed(seed); gRandom->GetSeed() != seed;
+  gRandom->Rndm();
   mSeederFcn();
 }
