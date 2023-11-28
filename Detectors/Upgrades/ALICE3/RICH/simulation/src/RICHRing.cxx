@@ -64,7 +64,7 @@ Ring::Ring(int rPosId,
 
   float deltaPhiDeg = 360.0 / nTilesPhi; // Transformation are constructed in degrees...
   float thetaBDeg = thetaB * 180.0 / TMath::Pi();
-  size_t radTileCount{0}, photTileCount{0}, argSectorsCount{0};
+  int radTileCount{0}, photTileCount{0}, argSectorsCount{0};
   // Radiator tiles
   for (auto& radiatorTile : radiatorTiles) {
     radiatorTile = new TGeoArb8(radZ / 2);

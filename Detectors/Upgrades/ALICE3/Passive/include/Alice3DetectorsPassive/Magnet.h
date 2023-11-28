@@ -35,9 +35,14 @@ class Alice3Magnet : public Alice3PassiveBase
   Alice3Magnet(const Alice3Magnet& orig);
   Alice3Magnet& operator=(const Alice3Magnet&);
 
-  float mInnerWrapInnerRadius{160.f}; // cm
-  float mTotalThickness{10.8f};       // cm
+  float mInnerWrapInnerRadius{150.f}; // cm
+  float mInnerWrapThickness{1.f};     // cm
+  float mCoilInnerRadius{170.f};      // cm
   float mCoilThickness{0.3f};         // cm
+  float mRestMaterialRadius{170.3f};  // cm
+  float mRestMaterialThickness{6.8f}; // cm
+  float mOuterWrapInnerRadius{200.f}; // cm
+  float mOuterWrapThickness{3.f};     // cm
   float mZLength{800.f};              // cm
 
   ClassDefOverride(o2::passive::Alice3Magnet, 1);

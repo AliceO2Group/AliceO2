@@ -61,6 +61,15 @@ void Alice3Magnet::createMaterials()
   // +------------------+-------------------------+----------+--------+
   // Geometry will be oversimplified in two wrapping cylindrical Al layers (symmetric for the time being) with a Copper layer in between.
 
+  //
+  // Air
+  //
+  float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  float zAir[4] = {6., 7., 8., 18.};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
+  float dAir = 1.20479E-3;
+  float dAir1 = 1.20479E-11;
+
   float epsil, stmin, tmaxfd, deemax, stemax;
   epsil = .001;   // Tracking precision,
   stemax = -0.01; // Maximum displacement for multiple scat
@@ -68,9 +77,11 @@ void Alice3Magnet::createMaterials()
   deemax = -.3;   // Maximum fractional energy loss, DLS
   stmin = -.8;
 
+  matmgr.Mixture("A3MAG", 1, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
   matmgr.Material("A3MAG", 9, "Al1$", 26.98, 13., 2.7, 8.9, 37.2);
   matmgr.Material("A3MAG", 19, "Cu1$", 63.55, 29., 8.96, 1.6, 18.8);
 
+  matmgr.Medium("A3MAG", 1, "VACUUM", 1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("A3MAG", 9, "ALU_C0", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
   matmgr.Medium("A3MAG", 19, "CU_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
@@ -88,33 +99,45 @@ void Alice3Magnet::ConstructGeometry()
   auto& matmgr = o2::base::MaterialManager::Instance();
   auto kMedAl = matmgr.getTGeoMedium("A3MAG_ALU_C0");
   auto kMedCu = matmgr.getTGeoMedium("A3MAG_CU_C0");
-
-  float wrapThickness = (mTotalThickness - mCoilThickness) / 2;      // Thickness of the Al wraps
-  float innerCoilsRadius = mInnerWrapInnerRadius + wrapThickness;    // Inner radius of the Cu coils
-  float externalWrapInnerRadius = innerCoilsRadius + mCoilThickness; // Inner radius of the external wrapping Al cylinder
+  auto kMedVac = matmgr.getTGeoMedium("A3MAG_VACUUM");
 
   // inner wrap
-  LOGP(debug, "Alice 3 magnet: creating inner wrap with inner radius {} and thickness {}", mInnerWrapInnerRadius, wrapThickness);
-  TGeoTube* innerLayer = new TGeoTube(mInnerWrapInnerRadius, mInnerWrapInnerRadius + wrapThickness, mZLength / 2);
+  LOGP(debug, "Alice 3 magnet: creating inner wrap with inner radius {} and thickness {}", mInnerWrapInnerRadius, mInnerWrapThickness);
+  TGeoTube* innerLayer = new TGeoTube(mInnerWrapInnerRadius, mInnerWrapInnerRadius + mInnerWrapThickness, mZLength / 2);
+  TGeoTube* innerVacuum = new TGeoTube(mInnerWrapInnerRadius + mInnerWrapThickness, mCoilInnerRadius, mZLength / 2);
   // coils layer
-  LOGP(debug, "Alice 3 magnet: creating coils layer with inner radius {} and thickness {}", innerCoilsRadius, mCoilThickness);
-  TGeoTube* coilsLayer = new TGeoTube(innerCoilsRadius, innerCoilsRadius + mCoilThickness, mZLength / 2);
+  LOGP(debug, "Alice 3 magnet: creating coils layer with inner radius {} and thickness {}", mCoilInnerRadius, mCoilThickness);
+  TGeoTube* coilsLayer = new TGeoTube(mCoilInnerRadius, mCoilInnerRadius + mCoilThickness, mZLength / 2);
+  TGeoTube* restMaterial = new TGeoTube(mRestMaterialRadius, mRestMaterialRadius + mRestMaterialThickness, mZLength / 2);
+  TGeoTube* outerVacuum = new TGeoTube(mRestMaterialRadius + mRestMaterialThickness, mOuterWrapInnerRadius, mZLength / 2);
   // outer wrap
-  LOGP(debug, "Alice 3 magnet: creating outer wrap with inner radius {} and thickness {}", externalWrapInnerRadius, wrapThickness);
-  TGeoTube* outerLayer = new TGeoTube(externalWrapInnerRadius, externalWrapInnerRadius + wrapThickness, mZLength / 2);
+  LOGP(debug, "Alice 3 magnet: creating outer wrap with inner radius {} and thickness {}", mOuterWrapInnerRadius, mOuterWrapThickness);
+  TGeoTube* outerLayer = new TGeoTube(mOuterWrapInnerRadius, mOuterWrapInnerRadius + mOuterWrapThickness, mZLength / 2);
 
-  TGeoVolume* innerWrap = new TGeoVolume("innerWrap", innerLayer, kMedAl);
-  TGeoVolume* coils = new TGeoVolume("coils", coilsLayer, kMedCu);
-  TGeoVolume* outerWrap = new TGeoVolume("outerWrap", outerLayer, kMedAl);
-  innerWrap->SetLineColor(kRed);
-  coils->SetLineColor(kOrange);
-  outerWrap->SetLineColor(kRed);
+  TGeoVolume* innerWrapVol = new TGeoVolume("innerWrap", innerLayer, kMedAl);
+  TGeoVolume* innerVacuumVol = new TGeoVolume("innerVacuum", innerVacuum, kMedVac);
+  TGeoVolume* coilsVol = new TGeoVolume("coils", coilsLayer, kMedCu);
+  TGeoVolume* restMaterialVol = new TGeoVolume("restMaterial", restMaterial, kMedAl);
+  TGeoVolume* outerVacuumVol = new TGeoVolume("outerVacuum", outerVacuum, kMedVac);
+  TGeoVolume* outerWrapVol = new TGeoVolume("outerWrap", outerLayer, kMedAl);
+
+  innerWrapVol->SetLineColor(kRed);
+  innerVacuumVol->SetLineColor(kGray);
+  innerVacuumVol->SetVisibility(1);
+  coilsVol->SetLineColor(kOrange);
+  restMaterialVol->SetLineColor(kRed);
+  outerVacuumVol->SetLineColor(kGray);
+  outerVacuumVol->SetVisibility(1);
+  outerWrapVol->SetLineColor(kRed);
 
   new TGeoVolumeAssembly("magnet");
   auto* magnet = gGeoManager->GetVolume("magnet");
-  magnet->AddNode(innerWrap, 1, nullptr);
-  magnet->AddNode(coils, 1, nullptr);
-  magnet->AddNode(outerWrap, 1, nullptr);
+  magnet->AddNode(innerWrapVol, 1, nullptr);
+  magnet->AddNode(innerVacuumVol, 1, nullptr);
+  magnet->AddNode(coilsVol, 1, nullptr);
+  magnet->AddNode(restMaterialVol, 1, nullptr);
+  magnet->AddNode(outerVacuumVol, 1, nullptr);
+  magnet->AddNode(outerWrapVol, 1, nullptr);
 
   magnet->SetVisibility(1);
 

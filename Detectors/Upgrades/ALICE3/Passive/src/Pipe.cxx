@@ -172,7 +172,7 @@ void Alice3Pipe::createMaterials()
   //
   // Define materials for beam Alice3Pipe
   //
-  Int_t isxfld = 2.;
+  int isxfld = 2;
   float sxmgmx = 10.;
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
