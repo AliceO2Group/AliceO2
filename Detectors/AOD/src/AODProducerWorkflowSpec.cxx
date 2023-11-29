@@ -383,7 +383,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
 
 template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename AmbigTracksCursorType,
           typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
-          typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
+          typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename FwdTrkClsCursorType>
 void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          std::uint64_t collisionBC,
                                                          const o2::dataformats::VtxTrackRef& trackRef,
@@ -398,6 +398,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          FwdTracksCursorType& fwdTracksCursor,
                                                          FwdTracksCovCursorType& fwdTracksCovCursor,
                                                          AmbigFwdTracksCursorType& ambigFwdTracksCursor,
+                                                         FwdTrkClsCursorType& fwdTrkClsCursor,
                                                          const std::map<uint64_t, int>& bcsMap)
 {
   for (int src = GIndex::NSources; src--;) {
@@ -433,6 +434,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           }
           addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
           mGIDToTableFwdID.emplace(trackIndex, mTableTrFwdID);
+          addClustersToFwdTrkClsTable(data, fwdTrkClsCursor, trackIndex, mTableTrFwdID);
           mTableTrFwdID++;
         } else {
           // barrel track: normal tracks table
@@ -1240,6 +1242,33 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
+template <typename FwdTrkClsCursorType>
+void AODProducerWorkflowDPL::addClustersToFwdTrkClsTable(const o2::globaltracking::RecoContainer& recoData, FwdTrkClsCursorType& fwdTrkClsCursor, GIndex trackID, int fwdTrackId)
+{
+  const auto& mchTracks = recoData.getMCHTracks();
+  const auto& mchmidMatches = recoData.getMCHMIDMatches();
+  const auto& mchClusters = recoData.getMCHTrackClusters();
+
+  int mchTrackID = -1;
+  if (trackID.getSource() == GIndex::MCH) { // This is an MCH track
+    mchTrackID = trackID.getIndex();
+  } else if (trackID.getSource() == GIndex::MCHMID) { // This is an MCH-MID track
+    auto mchmidMatch = mchmidMatches[trackID.getIndex()];
+    mchTrackID = mchmidMatch.getMCHRef().getIndex();
+  } // Others are Global Forward Tracks, their clusters will be or were added with the corresponding MCH track
+
+  if (mchTrackID > -1 && mchTrackID < mchTracks.size()) {
+    const auto& mchTrack = mchTracks[mchTrackID];
+    fwdTrkClsCursor.reserve(mchTrack.getNClusters() + fwdTrkClsCursor.lastIndex());
+    int first = mchTrack.getFirstClusterIdx();
+    int last = mchTrack.getLastClusterIdx();
+    for (int i = first; i <= last; i++) {
+      const auto& cluster = mchClusters[i];
+      fwdTrkClsCursor(fwdTrackId, cluster.x, cluster.y, cluster.z, (((cluster.ey < 5.) & 0x1) << 12) | (((cluster.ex < 5.) & 0x1) << 11) | cluster.getDEId());
+    }
+  }
+}
+
 template <typename HMPCursorType>
 void AODProducerWorkflowDPL::fillHMPID(const o2::globaltracking::RecoContainer& recoData, HMPCursorType& hmpCursor)
 {
@@ -1751,6 +1780,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto fv0aCursor = createTableCursor<o2::aod::FV0As>(pc);
   auto fwdTracksCursor = createTableCursor<o2::aod::StoredFwdTracks>(pc);
   auto fwdTracksCovCursor = createTableCursor<o2::aod::StoredFwdTracksCov>(pc);
+  auto fwdTrkClsCursor = createTableCursor<o2::aod::FwdTrkCls>(pc);
   auto mcColLabelsCursor = createTableCursor<o2::aod::McCollisionLabels>(pc);
   auto mcCollisionsCursor = createTableCursor<o2::aod::McCollisions>(pc);
   auto mcMFTTrackLabelCursor = createTableCursor<o2::aod::McMFTTrackLabels>(pc);
@@ -2067,7 +2097,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // fixme: interaction time is undefined for unassigned tracks (?)
   fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor,
                               ambigTracksCursor, mftTracksCursor, ambigMFTTracksCursor,
-                              fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, bcsMap);
+                              fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
 
   // filling collisions and tracks into tables
   collisionID = 0;
@@ -2109,7 +2139,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     // passing interaction time in [ps]
     fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, ambigTracksCursor,
                                 mftTracksCursor, ambigMFTTracksCursor,
-                                fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, bcsMap);
+                                fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, fwdTrkClsCursor, bcsMap);
     collisionID++;
   }
 
@@ -2835,6 +2865,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<AmbiguousTracks>::spec(),
     OutputForTable<AmbiguousMFTTracks>::spec(),
     OutputForTable<AmbiguousFwdTracks>::spec(),
+    OutputForTable<FwdTrkCls>::spec(),
     OutputForTable<V0s>::spec(),
     OutputForTable<HMPIDs>::spec(),
     OutputForTable<Zdcs>::spec(),
