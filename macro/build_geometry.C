@@ -54,6 +54,7 @@
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <IOTOFSimulation/Detector.h>
+#include <RICHSimulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
 #include <Alice3DetectorsPassive/Absorber.h>
 #include <Alice3DetectorsPassive/Magnet.h>
@@ -243,7 +244,11 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("TF3")) {
     // ALICE 3 tofs
-    run->AddModule(new o2::iotof::Detector(isReadout("TF3")));
+    addReadoutDetector(new o2::iotof::Detector(isReadout("TF3")));
+  }
+  if (isActivated("RCH")) {
+    // ALICE 3 RICH
+    addReadoutDetector(new o2::rich::Detector(isReadout("RCH")));
   }
 #endif
 

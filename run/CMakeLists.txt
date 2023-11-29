@@ -43,6 +43,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::FT3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::FCTSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFSimulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::RICHSimulation>
                                 O2::Generators)
 
 add_library(internal::allsim ALIAS allsim)

@@ -63,7 +63,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
   options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\".");
 }
 
-void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool mIsRun5)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool isUpgrade)
 {
   using o2::detectors::DetID;
 
@@ -72,16 +72,16 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   activeModules = inputargs;
 #ifdef ENABLE_UPGRADES
   if (activeModules[0] != "all") {
-    if (mIsRun5) {
+    if (isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3") {
-          LOGP(fatal, "List of active modules contains {}, which is not a run 5 module", activeModules[i]);
+        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3" && activeModules[i] != "RCH" && activeModules[i] != "MI3") {
+          LOGP(fatal, "List of active modules contains {}, which is not a module from the upgrades.", activeModules[i]);
         }
       }
     }
-    if (!mIsRun5) {
+    if (!isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3") {
+        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3" && activeModules[i] == "RCH" && activeModules[i] == "MI3") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
@@ -91,9 +91,9 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
 #ifdef ENABLE_UPGRADES
-    if (mIsRun5) {
+    if (isUpgrade) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
-        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3) {
+        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3 || d == DetID::RCH) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
@@ -186,7 +186,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mNoGeant = vm["noGeant"].as<bool>();
 
   // get final set of active Modules
-  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, mConfigData.mIsRun5);
+  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, mConfigData.mIsUpgrade);
   if (mConfigData.mNoGeant) {
     // CAVE is all that's needed (and that will be built either way), so clear all modules and set the O2TrivialMCEngine
     mConfigData.mActiveModules.clear();
