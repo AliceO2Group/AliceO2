@@ -739,7 +739,7 @@ void CookedTracker::Layer::init()
     Float_t phi = xyz.Phi();
     o2::math_utils::bringTo02Pi(phi);
     mPhi.push_back(phi);
-    Int_t s = phi * kNSectors / k2PI;
+    Int_t s = phi * (int)kNSectors / k2PI;
     mSectors[s < kNSectors ? s : kNSectors - 1].emplace_back(i, c->getZ());
   }
 
@@ -792,8 +792,8 @@ void CookedTracker::Layer::selectClusters(std::vector<Int_t>& selec, Float_t phi
 
   Float_t dphi = dy / mR;
 
-  int smin = (phi - dphi) / k2PI * kNSectors;
-  int ds = (phi + dphi) / k2PI * kNSectors - smin + 1;
+  int smin = (phi - dphi) / k2PI * (int)kNSectors;
+  int ds = (phi + dphi) / k2PI * (int)kNSectors - smin + 1;
 
   smin = (smin + kNSectors) % kNSectors;
 
