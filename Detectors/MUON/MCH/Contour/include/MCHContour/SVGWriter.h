@@ -72,7 +72,7 @@ class SVGWriter
   template <typename T>
   void polygon(const o2::mch::contour::Polygon<T>& p)
   {
-    mSVGBuffer << R"(<polygon fill="blue" points=")";
+    mSVGBuffer << R"(<polygon points=")";
     auto vertices = getVertices(p);
     for (auto j = 0; j < vertices.size(); ++j) {
       auto v = vertices[j];
