@@ -70,7 +70,7 @@ class TrackMFT : public o2::track::TrackParCovFwd
   const o2::track::TrackParCovFwd& getOutParam() const { return mOutParameters; }       ///< Returns track parameters fitted outwards
   void setOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; } ///< Set track out parameters
 
-    void setClusterSize(int l, int size)
+  void setClusterSize(int l, int size)
   {
     if (l >= 11) {
       return;
