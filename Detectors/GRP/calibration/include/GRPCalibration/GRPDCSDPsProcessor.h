@@ -174,7 +174,7 @@ struct GRPLHCInfo {
   static constexpr std::string_view bptxPhaseShiftAliases[NBPTXPhaseShiftAliases] = {"BPTX_Phase_Shift_B1", "BPTX_Phase_Shift_B2"};
   static constexpr std::string_view lumiAliases[NLumiAliases] = {"ALI_Lumi_Total_Inst"};
   static constexpr std::string_view lhcStringAliases[NLHCStringAliases] = {"ALI_Lumi_Source_Name", "BEAM_MODE", "MACHINE_MODE"};
-  static constexpr int nAliasesLHC = NCollimatorAliases + NBeamAliases + NBkgAliases + NBPTXAliases + NBPTXPhaseAliases + NBPTXPhaseRMSAliases + NBPTXPhaseShiftAliases + NLumiAliases + NLHCStringAliases;
+  static constexpr int nAliasesLHC = (int)NCollimatorAliases + (int)NBeamAliases + (int)NBkgAliases + (int)NBPTXAliases + (int)NBPTXPhaseAliases + (int)NBPTXPhaseRMSAliases + (int)NBPTXPhaseShiftAliases + (int)NLumiAliases + (int)NLHCStringAliases;
 
   std::array<std::vector<std::pair<uint64_t, double>>, 2> mIntensityBeam;
   std::array<std::vector<std::pair<uint64_t, double>>, 3> mBackground;
