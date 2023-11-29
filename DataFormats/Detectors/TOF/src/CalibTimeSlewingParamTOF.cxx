@@ -160,6 +160,8 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   }
 
   int n = (*(mChannelStart[sector]))[channel];
+  int nFirst = n;
+
   if (n < 0) {
     return (*(mGlobalOffset[sector]))[channel];
   }
@@ -197,10 +199,14 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
     return (float)((*(mTimeSlewing[sector]))[n].second + (*(mGlobalOffset[sector]))[channel]); // use the last value stored for that channel
   }
 
+  if (n < nFirst) { // this is before the first point (probably tot = 0 calibration is missing)
+    return (*(mGlobalOffset[sector]))[channel];
+  }
+
   float w1 = (float)(tot - (*(mTimeSlewing[sector]))[n].first);
   float w2 = (float)((*(mTimeSlewing[sector]))[n + 1].first - tot);
 
-  return (float)((*(mGlobalOffset[sector]))[channel] + (((*(mTimeSlewing[sector]))[n].second * w2 + (*(mTimeSlewing[sector]))[n + 1].second * w1) / ((*(mTimeSlewing[sector]))[n + 1].first - (*(mTimeSlewing[sector]))[n].first)));
+  return (float)((*(mGlobalOffset[sector]))[channel] + (((*(mTimeSlewing[sector]))[n].second * w2 + (*(mTimeSlewing[sector]))[n + 1].second * w1) / (w1 + w2)));
 }
 //______________________________________________
 void CalibTimeSlewingParamTOF::setTimeSlewingInfo(int channel, float offsetold, int nold, const unsigned short* oldtot, const short* olddt, int nnew, const unsigned short* newtot, const short* newdt)
