@@ -98,8 +98,8 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
   for (auto ids : hitIdx) {
     const auto& hit = hits[ids];
     Int_t detId = hit.GetDetectorID();
-    Double_t hitEdep = hit.GetHitValue() * 1e3; //convert to MeV
-    Float_t const hitTime = hit.GetTime() * 1e9;
+    Double_t hitEdep = hit.GetHitValue() * 1e3;  // convert to MeV
+    Float_t const hitTime = hit.GetTime() * 1e9; // convert to ns
     // TODO: check how big is inaccuracy if more than 1 'below-threshold' particles hit the same detector cell
     if (hitEdep < FV0DigParam::Instance().singleMipThreshold || hitTime > FV0DigParam::Instance().singleHitTimeThreshold) {
       continue;
@@ -138,15 +138,17 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
         if (tNS < 0 && cachedIR[nCachedIR] > irHit) {
           continue; // don't go to negative BC/orbit (it will wrap)
         }
-        setBCCache(cachedIR[nCachedIR++]); // ensure existence of cached container
-      }                                    //BCCache loop
-      createPulse(mipFraction, hit.GetTrackID(), hitTime, cachedIR, nCachedIR, detId);
+        // ensure existence of cached container
+        setBCCache(cachedIR[nCachedIR++]);
+      } // BCCache loop
+
+      createPulse(mipFraction, hit.GetTrackID(), hitTime, hit.GetPos().R(), cachedIR, nCachedIR, detId);
 
     } //while loop
   }   //hitloop
 }
 
-void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
+void Digitizer::createPulse(float mipFraction, int parID, const double hitTime, const float hitR,
                             std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, const int detId)
 {
 
@@ -160,8 +162,9 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
     }
   }
 
-  ///Time of flight subtracted from Hit time //TODO have different TOF according to thr ring number
-  Int_t const NBinShift = std::lround((hitTime - FV0DigParam::Instance().globalTimeOfFlight) / FV0DigParam::Instance().waveformBinWidth);
+  // Subtract time-of-flight from hit time
+  const float timeOfFlight = hitR / o2::constants::physics::LightSpeedCm2NS;
+  Int_t const NBinShift = std::lround((hitTime - timeOfFlight + FV0DigParam::Instance().hitTimeOffset) / FV0DigParam::Instance().waveformBinWidth);
 
   if (NBinShift >= 0 && NBinShift < FV0DigParam::Instance().waveformNbins) {
     mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);

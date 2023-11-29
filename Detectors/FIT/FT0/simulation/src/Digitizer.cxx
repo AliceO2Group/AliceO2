@@ -13,7 +13,8 @@
 #include "FT0Simulation/DigitizationConstants.h"
 #include "FT0Base/FT0DigParam.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include <CommonDataFormat/InteractionRecord.h>
+#include "CommonConstants/PhysicsConstants.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
 #include "TMath.h"
 #include "TRandom.h"
@@ -215,11 +216,16 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     const auto& params = FT0DigParam::Instance();
 
     Bool_t is_A_side = (hit_ch < 4 * mGeometry.NCellsA);
-    Float_t time_compensate = is_A_side ? params.mA_side_cable_cmps : params.mC_side_cable_cmps;
-    Double_t hit_time = hit.GetTime() - time_compensate;
+
+    // Subtract time-of-flight from hit time
+    const Float_t timeOfFlight = hit.GetPos().R() / o2::constants::physics::LightSpeedCm2NS;
+    const Float_t timeOffset = is_A_side ? params.hitTimeOffsetA : params.hitTimeOffsetC;
+    Double_t hit_time = hit.GetTime() - timeOfFlight + timeOffset;
+
     if (hit_time > 150) {
       continue; // not collect very slow particles
     }
+
     auto relBC = o2::InteractionRecord{hit_time};
     if (mCache.size() <= relBC.bc) {
       mCache.resize(relBC.bc + 1);
