@@ -197,6 +197,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       int ncl = trc.getNumberOfPoints();
       for (int ic = 0; ic < ncl; ic++) {
         auto externalClusterID = trc.getExternalClusterIndex(ic);
+        auto clusterSize = trc.getExternalClusterSize(ic);
+        auto clusterLayer = trc.getExternalClusterLayer(ic);
+        trc.setClusterSize(clusterLayer, clusterSize);
         allClusIdx.push_back(externalClusterID);
       }
       allTracks.emplace_back(trc);

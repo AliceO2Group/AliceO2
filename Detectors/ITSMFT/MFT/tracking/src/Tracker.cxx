@@ -268,6 +268,7 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
   Int_t binR_proj, binPhi_proj, bin;
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Int_t extClsIndex;
+  Int_t clsSize;
   Float_t dz = 0., dRCone = 1.;
   Float_t dR2, dR2min, dR2cut = mLTFclsR2Cut;
   Bool_t hasDisk[constants::mft::DisksNumber], newPoint;
@@ -395,7 +396,8 @@ void Tracker<T>::findTracksLTF(ROframe<T>& event)
             Cluster& cluster = event.getClustersInLayer(layer)[clsInLayer];
             mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
             extClsIndex = event.getClusterExternalIndex(layer, cluster.clusterId);
-            event.getCurrentTrack().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
+            clsSize = event.getClusterSize(layer, cluster.clusterId);
+            event.getCurrentTrack().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex, clsSize);
             // mark the used clusters
             cluster.setUsed(true);
           }
@@ -418,6 +420,7 @@ void Tracker<T>::findTracksLTFfcs(ROframe<T>& event)
   Int_t binR_proj, binPhi_proj, bin;
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Int_t extClsIndex;
+  Int_t clsSize;
   Float_t dR2, dR2min, dR2cut = mLTFclsR2Cut;
   Bool_t hasDisk[constants::mft::DisksNumber], newPoint;
 
@@ -530,7 +533,8 @@ void Tracker<T>::findTracksLTFfcs(ROframe<T>& event)
           Cluster& cluster = event.getClustersInLayer(layer)[clsInLayer];
           mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
           extClsIndex = event.getClusterExternalIndex(layer, cluster.clusterId);
-          event.getCurrentTrack().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
+          clsSize = event.getClusterSize(layer, cluster.clusterId);
+          event.getCurrentTrack().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex, clsSize);
           // mark the used clusters
           cluster.setUsed(true);
         }
@@ -1069,14 +1073,17 @@ void Tracker<T>::addCellToCurrentTrackCA(const Int_t layer1, const Int_t cellId,
   MCCompLabel mcCompLabel2 = mUseMC ? event.getClusterLabels(layer2, cluster2.clusterId) : MCCompLabel();
 
   Int_t extClsIndex;
+  Int_t clsSize;
 
   if (trackCA.getNumberOfPoints() == 0) {
     extClsIndex = event.getClusterExternalIndex(layer2, cluster2.clusterId);
-    trackCA.setPoint(cluster2, layer2, clsInLayer2, mcCompLabel2, extClsIndex);
+    clsSize = event.getClusterSize(layer2, cluster2.clusterId);
+    trackCA.setPoint(cluster2, layer2, clsInLayer2, mcCompLabel2, extClsIndex, clsSize);
   }
 
   extClsIndex = event.getClusterExternalIndex(layer1, cluster1.clusterId);
-  trackCA.setPoint(cluster1, layer1, clsInLayer1, mcCompLabel1, extClsIndex);
+  clsSize = event.getClusterSize(layer2, cluster2.clusterId);
+  trackCA.setPoint(cluster1, layer1, clsInLayer1, mcCompLabel1, extClsIndex, clsSize);
 }
 
 //_________________________________________________________________________________________________

@@ -506,7 +506,7 @@ DECLARE_SOA_COLUMN(Phi, phi, float);                                            
 DECLARE_SOA_COLUMN(Tgl, tgl, float);                                                         //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                             //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
 DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                            //! Number of clusters
-DECLARE_SOA_COLUMN(MFTClusterSizesAndTracksFlags, mftClusterSizesAndTrackFlags, uint64_t);   //! Cluster sizes per track, stored per layer (each 6 bits). Remaining 4 bits for MFT flags
+DECLARE_SOA_COLUMN(MFTClusterSizesAndTrackFlags, mftClusterSizesAndTrackFlags, uint64_t);    //! Cluster sizes per track, stored per layer (each 6 bits). Remaining 4 bits for MFT flags
 DECLARE_SOA_COLUMN(Chi2, chi2, float);                                                       //! Track chi^2
 DECLARE_SOA_COLUMN(PDca, pDca, float);                                                       //! PDca for MUONStandalone
 DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                                   //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
@@ -563,7 +563,7 @@ namespace v001
 DECLARE_SOA_DYNAMIC_COLUMN(NClusters, nClusters, //! Number of MFT clusters
                            [](uint64_t mftClusterSizesAndTrackFlags) -> int8_t {
                              int8_t nClusters = 0;
-                             for (int layer = 0; layer < 11; layer++) {
+                             for (int layer = 0; layer < 10; layer++) {
                                if ((mftClusterSizesAndTrackFlags >> (layer * 6)) & 0x3F) {
                                  nClusters++;
                                }
@@ -635,7 +635,7 @@ DECLARE_SOA_TABLE_FULL(StoredMFTTracks_000, "MFTTracks", "AOD", "MFTTRACK", //! 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMFTTracks_001, "MFTTracks", "AOD", "MFTTRACK", 1, //! On disk version of MFTTracks, version 1
                                  o2::soa::Index<>, fwdtrack::CollisionId,
                                  fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
-                                 fwdtrack::Signed1Pt, fwdtrack::v001::NClusters<fwdtrack::MFTClusterSizesAndTracksFlags>, fwdtrack::MFTClusterSizesAndTracksFlags, fwdtrack::IsCA<fwdtrack::MFTClusterSizesAndTracksFlags>,
+                                 fwdtrack::Signed1Pt, fwdtrack::v001::NClusters<fwdtrack::MFTClusterSizesAndTrackFlags>, fwdtrack::MFTClusterSizesAndTrackFlags, fwdtrack::IsCA<fwdtrack::MFTClusterSizesAndTrackFlags>,
                                  fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
                                  fwdtrack::Py<fwdtrack::Pt, fwdtrack::Phi>,
                                  fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
@@ -652,8 +652,8 @@ DECLARE_SOA_EXTENDED_TABLE(MFTTracks_001, StoredMFTTracks_001, "MFTTRACK", //! A
                            aod::fwdtrack::Eta,
                            aod::fwdtrack::P);
 
-using MFTTracks = MFTTracks_000;
-using StoredMFTTracks = StoredMFTTracks_000;
+using MFTTracks = MFTTracks_001;
+using StoredMFTTracks = StoredMFTTracks_001;
 
 using MFTTrack = MFTTracks::iterator;
 
@@ -1549,6 +1549,7 @@ DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksExtra_000, aod::StoredTracksExtra_
 DECLARE_EQUIVALENT_FOR_INDEX(aod::HMPID_000, aod::HMPID_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMFTTracks, aod::StoredMFTTracks_000);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMFTTracks, aod::StoredMFTTracks_001);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMFTTracks_000, aod::StoredMFTTracks_001);
 } // namespace soa
 
 namespace aod
