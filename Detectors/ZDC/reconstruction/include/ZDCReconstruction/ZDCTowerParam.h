@@ -25,7 +25,8 @@ namespace o2
 namespace zdc
 {
 struct ZDCTowerParam {
-  float tower_calib[NChannels] = {0}; // Tower calibration coefficients
+  float tower_calib[NChannels] = {0};  // Tower calibration coefficients
+  float tower_offset[NChannels] = {0}; // Tower offset
   std::array<bool, NChannels> modified{};
   ZDCTowerParam()
   {
@@ -34,8 +35,10 @@ struct ZDCTowerParam {
   void clearFlags();
   void setTowerCalib(uint32_t ich, float val, bool ismodified = true);
   float getTowerCalib(uint32_t ich) const;
+  void setTowerOffset(uint32_t ich, float val, bool ismodified = true);
+  float getTowerOffset(uint32_t ich) const;
   void print() const;
-  ClassDefNV(ZDCTowerParam, 2);
+  ClassDefNV(ZDCTowerParam, 3);
 };
 } // namespace zdc
 } // namespace o2
