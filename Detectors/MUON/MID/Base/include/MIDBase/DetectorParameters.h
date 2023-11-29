@@ -16,6 +16,7 @@
 #ifndef O2_MID_DETECTORPARAMETERS_H
 #define O2_MID_DETECTORPARAMETERS_H
 
+#include <cstdint>
 #include <array>
 #include <string>
 
