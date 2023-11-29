@@ -121,9 +121,9 @@ class TrackITS : public o2::track::TrackParCov
   }
   int getNFakeClusters();
 
-  void setNextROFbit(bool toggle = true) { setUserField((mClusterSizes & ~kNextROF) | (-toggle & kNextROF)); }
+  void setNextROFbit(bool toggle = true) { mClusterSizes = toggle ? (mClusterSizes | kNextROF) : (mClusterSizes & ~kNextROF); }
   bool hasHitInNextROF() const { return mClusterSizes & kNextROF; }
-  void setSharedClusters(bool toggle = true) { setUserField((mClusterSizes & ~kSharedClusters) | (-toggle & kSharedClusters)); }
+  void setSharedClusters(bool toggle = true) { mClusterSizes = toggle ? (mClusterSizes | kSharedClusters) : (mClusterSizes & ~kSharedClusters); }
   bool hasSharedClusters() const { return mClusterSizes & kSharedClusters; }
 
   void setClusterSize(int l, int size)
