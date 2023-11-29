@@ -23,10 +23,11 @@
 using namespace o2::framework;
 
 struct GeneratorTask {
-  Configurable<std::string> params{"confKeyValues", "", "configurable params - configuring event generation internals"};
   Configurable<std::string> generator{"generator", "boxgen", "Name of generator"};
+  Configurable<int> eventNum{"nEvents", 1, "Number of events"};
   Configurable<std::string> trigger{"trigger", "", "Trigger type"}; //
-  Configurable<int> eventNum{"nevents", 1, "Number of events"};
+  Configurable<std::string> iniFile{"configFile", "", "INI file containing configurable parameters"};
+  Configurable<std::string> params{"configKeyValues", "", "configurable params - configuring event generation internals"};
   Configurable<long> seed{"seed", 0, "(TRandom) Seed"};
   Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
   Configurable<std::string> vtxModeArg{"vertexMode", "kDiamondParam", "Where the beam-spot vertex should come from. Must be one of kNoVertex, kDiamondParam, kCCDB"};
@@ -48,6 +49,7 @@ struct GeneratorTask {
     }
 
     // update config key params
+    o2::conf::ConfigurableParam::updateFromFile(iniFile);
     o2::conf::ConfigurableParam::updateFromString((std::string)params);
     // initialize the service
     if (vtxmode == o2::conf::VertexMode::kDiamondParam) {
