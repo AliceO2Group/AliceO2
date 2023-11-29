@@ -63,7 +63,8 @@ function(set_target_hip_arch target)
 endfunction()
 
 # Detect and enable CUDA
-STRING(REGEX REPLACE "\-std=[^ ]*" "" O2_GPU_CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
+STRING(REGEX REPLACE "\-std=[^ ]*" "" O2_GPU_CMAKE_CXX_FLAGS_NOSTD "${CMAKE_CXX_FLAGS}") # Need to strip c++17 imposed by alidist defaults
+
 if(ENABLE_CUDA)
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
