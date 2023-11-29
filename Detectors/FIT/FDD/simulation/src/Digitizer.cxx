@@ -10,8 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDSimulation/Digitizer.h"
+
+#include "CommonDataFormat/InteractionRecord.h"
+#include "FDDSimulation/FDDDigParam.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include <CommonDataFormat/InteractionRecord.h>
 
 #include "TMath.h"
 #include "TRandom.h"
@@ -66,7 +68,11 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
     double delayScintillator = mRndScintDelay.getNextValue();
     double timeHit = delayScintillator + hit.GetTime();
 
-    timeHit -= getTOFCorrection(int(iChannel / 4)); // account for TOF to detector
+    // Subtract time-of-flight from hit time
+    const float timeOfFlight = hit.GetPos().R() / o2::constants::physics::LightSpeedCm2NS;
+    const float timeOffset = iChannel < 8 ? FDDDigParam::Instance().hitTimeOffsetC : FDDDigParam::Instance().hitTimeOffsetA;
+
+    timeHit += -timeOfFlight + timeOffset;
     timeHit += mIntRecord.getTimeNS();
     o2::InteractionRecord irHit(timeHit); // BC in which the hit appears (might be different from interaction BC for slow particles)
 
@@ -420,3 +426,5 @@ void Digitizer::BCCache::print() const
     printf("\n");
   }
 }
+
+O2ParamImpl(FDDDigParam);

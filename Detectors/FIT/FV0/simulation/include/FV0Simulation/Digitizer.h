@@ -90,8 +90,16 @@ class Digitizer
 
  private:
   static constexpr int BCCacheMin = 0, BCCacheMax = 7, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
-  void createPulse(float mipFraction, int parID, const double hitTime, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR,
-                   int nCachedIR, const int detID);
+  /// Create signal pulse based on MC hit
+  /// \param mipFraction Fraction of the MIP energy deposited in the cell
+  /// \param parID       Particle ID
+  /// \param hitTime     Time of the hit
+  /// \param hitR        Length to IP from the position of the hit
+  /// \param cachedIR    Cached interaction records
+  /// \param nCachedIR   Number of cached interaction records
+  /// \param detID       Detector cell ID
+  void createPulse(float mipFraction, int parID, const double hitTime, const float hitR,
+                   std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, const int detID);
 
   long mTimeStamp;                  // TF (run) timestamp
   InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc) -> InteractionTimeRecord

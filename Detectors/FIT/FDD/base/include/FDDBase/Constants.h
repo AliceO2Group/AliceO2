@@ -37,21 +37,6 @@ constexpr float PMNbOfSecElec = 6.0;          // Number of secondary electrons e
 
 constexpr int NTimeBinsPerBC = 256; // number of samples per BC
 
-// Detector TOF correction in ns
-constexpr float FDAdist = 1696.67;
-constexpr float FDCdist = 1954.4;
-constexpr float LayerWidth = 1.27;
-
-constexpr float getTOFCorrection(int det)
-{
-  constexpr float TOFCorr[4] = {
-    (FDCdist + LayerWidth) / o2::constants::physics::LightSpeedCm2NS,
-    (FDCdist - LayerWidth) / o2::constants::physics::LightSpeedCm2NS,
-    (FDAdist - LayerWidth) / o2::constants::physics::LightSpeedCm2NS,
-    (FDAdist + LayerWidth) / o2::constants::physics::LightSpeedCm2NS};
-  return TOFCorr[det];
-}
-
 } // namespace fdd
 } // namespace o2
 
