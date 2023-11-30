@@ -147,6 +147,16 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   O2ParamDef(SVertexerParams, "svertexer");
 };
 } // namespace vertexing
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::vertexing::SVertexerParams> : std::true_type {
+};
+} // namespace framework
+
 } // end namespace o2
 
 #endif

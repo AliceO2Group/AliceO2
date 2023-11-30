@@ -57,6 +57,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"disable-3body-finder", o2::framework::VariantType::Bool, false, {"do not run 3 body finder"}},
     {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"do not run strangeness tracker"}},
+    {"disable-ccdb-params", o2::framework::VariantType::Bool, false, {"do not load the svertexer parameters from the ccdb"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
@@ -78,6 +79,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2secondary-vertexing-workflow_configuration.ini");
   bool useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto enableCCDBParams = !configcontext.options().get<bool>("disable-ccdb-params");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
   auto enableStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
@@ -95,7 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, useMC, sclOpt));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, enableCCDBParams, useMC, sclOpt));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;
