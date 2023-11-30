@@ -490,10 +490,12 @@ int InterCalib::mini(int ih)
   int ierflg = 0;
   double l_bnd = mInterCalibConfig->l_bnd[ih];
   double u_bnd = mInterCalibConfig->u_bnd[ih];
-  double start = 1.0;
+  double start = mInterCalibConfig->start[ih];
   double step = 0.1;
   mMn[ih] = std::make_unique<TMinuit>(NPAR);
   mMn[ih]->SetFCN(fcn);
+  // We introduce the calibration of the common PM in separate workflows
+  // Calibration cvoefficient is forced to and step is forced to zero
   mMn[ih]->mnparm(0, "c0", 1., 0., 1., 1., ierflg);
 
   // Only two ZEM calorimeters: equalize response
@@ -557,6 +559,9 @@ int InterCalib::mini(int ih)
         mMn[ih]->mnexcm("MIGRAD", arglist, 0, ierflg);
         for (Int_t i = 0; i < NPAR; i++) {
           mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
+        }
+        if (ierflg == 0) {
+          break;
         }
       }
     }

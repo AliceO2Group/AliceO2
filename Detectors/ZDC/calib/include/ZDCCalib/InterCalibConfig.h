@@ -45,6 +45,7 @@ struct InterCalibConfig {
   int nb2[NH] = {0};      /// 2D histogram: number of bins
   double amin2[NH] = {0}; /// minimum
   double amax2[NH] = {0}; /// maximum
+  double start[NH] = {0.75, 0.75, 0.75, 0.75, 1., 1., 1., 0.75, 0.75};
   double l_bnd[NH] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   double u_bnd[NH] = {10., 10., 10., 10., 10., 10., 10., 10., 10.};
   double l_bnd_o[NH] = {-20., -20., -20., -20., -20., -20., -20., -20., -20.};
