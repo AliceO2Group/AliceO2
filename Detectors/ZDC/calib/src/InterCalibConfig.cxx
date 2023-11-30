@@ -26,8 +26,8 @@ void InterCalibConfig::print() const
   for (Int_t ih = 0; ih < NH; ih++) {
     LOG(info) << hn[ih] << " booking 2D = (" << nb2[ih] << ", " << amin2[ih] << ", " << amax2[ih] << ")";
   }
-  LOG(info) <<"xcut_ZPA = " << xcut_ZPA;
-  LOG(info) <<"xcut_ZPC = " << xcut_ZPC;
+  LOG(info) << "xcut_ZPA = " << xcut_ZPA;
+  LOG(info) << "xcut_ZPC = " << xcut_ZPC;
 }
 
 void InterCalibConfig::setMinEntries(double val)

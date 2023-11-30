@@ -95,7 +95,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       continue;
     }
     // Select hadronic collisions by requiring a signal in ZEM calorimeters
-    if( ev.TDCVal[TDCZEM1].size()==0 || ev.TDCVal[TDCZEM2].size()==0 ){
+    if (ev.TDCVal[TDCZEM1].size() == 0 || ev.TDCVal[TDCZEM2].size() == 0) {
       continue;
     }
     if ((ev.ezdcDecoded & MaskZNA) == MaskZNA) {
@@ -103,9 +103,9 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     }
     if ((ev.ezdcDecoded & MaskZPA) == MaskZPA) {
       float x, rms;
-      ev.centroidZPA(x,rms);
+      ev.centroidZPA(x, rms);
       cumulate(HidZPA, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
-      if(x<-(mInterCalibConfig->xcut_ZPA)){
+      if (x < -(mInterCalibConfig->xcut_ZPA)) {
         cumulate(HidZPAX, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
       }
     }
@@ -114,9 +114,9 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     }
     if ((ev.ezdcDecoded & MaskZPC) == MaskZPC) {
       float x, rms;
-      ev.centroidZPC(x,rms);
+      ev.centroidZPC(x, rms);
       cumulate(HidZPC, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
-      if(x>(mInterCalibConfig->xcut_ZPC)){
+      if (x > (mInterCalibConfig->xcut_ZPC)) {
         cumulate(HidZPCX, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
       }
     }
@@ -244,7 +244,7 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
-  if((ih==7||ih==8)&&(t1<10||t2<!0||t3<10||t4<10)){
+  if ((ih == 7 || ih == 8) && (t1 < 10 || t2 < !0 || t3 < 10 || t4 < 10)) {
     return;
   }
   double val[NPAR] = {0, 0, 0, 0, 0, 1};

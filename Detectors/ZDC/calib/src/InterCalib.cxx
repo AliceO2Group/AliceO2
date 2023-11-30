@@ -224,17 +224,17 @@ void InterCalib::assign(int ih, bool ismod)
     } else if (ih == 8) {
       id = id_8;
     }
-//     LOG(warn) << "InterCalib::assign MANUAL ASSIGNMENT for ih = " << ih;
-//     if (mVerbosity > DbgZero) {
-//       for (int iid = 0; iid < nid; iid++) {
-//         auto ich = id[iid];
-//         auto oldval = mTowerParam->getTowerCalib(ich);
-//         auto val = oldval;
-//         val = val * mPar[ih][iid + 1];
-//         LOGF(info, "%s MANUAL UPDATING %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
-//       }
-//     }
-//     return;
+    //     LOG(warn) << "InterCalib::assign MANUAL ASSIGNMENT for ih = " << ih;
+    //     if (mVerbosity > DbgZero) {
+    //       for (int iid = 0; iid < nid; iid++) {
+    //         auto ich = id[iid];
+    //         auto oldval = mTowerParam->getTowerCalib(ich);
+    //         auto val = oldval;
+    //         val = val * mPar[ih][iid + 1];
+    //         LOGF(info, "%s MANUAL UPDATING %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
+    //       }
+    //     }
+    //     return;
   } else {
     LOG(fatal) << "InterCalib::assign accessing not existing ih = " << ih;
   }
@@ -507,17 +507,17 @@ int InterCalib::mini(int ih)
 
   // Special fit for proton calorimeters: fit least exposed towers with using previous
   // fit of all towers
-  if(ih == HidZPCX){
+  if (ih == HidZPCX) {
     mMn[ih]->mnparm(1, "c1", mPar[HidZPC][1], 0, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(2, "c2", mPar[HidZPC][2], 0, l_bnd, u_bnd, ierflg);
-  }else{
+  } else {
     mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
   }
-  if(ih == HidZPAX){
+  if (ih == HidZPAX) {
     mMn[ih]->mnparm(3, "c3", mPar[HidZPA][3], 0, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(4, "c4", mPar[HidZPA][4], 0, l_bnd, u_bnd, ierflg);
-  }else{
+  } else {
     mMn[ih]->mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
   }

@@ -418,7 +418,7 @@ void RecEventFlat::centroidZPA(float& x, float& rms)
   // Negative because ZPA calorimeter is on the left of ZNA when looking from IP
   // rms can result from 0 to sqrt((2.8^2+19.6^2)/2-((2.6+19.4)/2)^2) = 8.66
   const static float xc[4] = {-19.6, -14.0, -8.4, -2.8};
-  const static float xq[4] = {19.6*19.6, 14.0*14.0, 8.4*8.4, 2.8*2.8};
+  const static float xq[4] = {19.6 * 19.6, 14.0 * 14.0, 8.4 * 8.4, 2.8 * 2.8};
   static float c = 0;
   static float d = 0;
   if (mComputed[2] == true) {
@@ -444,13 +444,13 @@ void RecEventFlat::centroidZPA(float& x, float& rms)
   for (int i = 0; i < 4; i++) {
     if (e[i] < 0) {
       w[i] = 0;
-    }else{
+    } else {
       // w[i] = std::sqrt(e[i]);
       w[i] = e[i];
     }
     sumw += w[i];
-    c = c+w[i] * xc[i];
-    d = d+w[i] * xq[i];
+    c = c + w[i] * xc[i];
+    d = d + w[i] * xq[i];
   }
   if (sumw <= 0) {
     c = -std::numeric_limits<float>::infinity();
@@ -458,10 +458,10 @@ void RecEventFlat::centroidZPA(float& x, float& rms)
   } else {
     c = c / sumw;
     d = d / sumw;
-    d = d - c*c; // variance
-    if(d>=0){
+    d = d - c * c; // variance
+    if (d >= 0) {
       d = TMath::Sqrt(d);
-    }else{
+    } else {
       LOGF(error, "%s FOP exception @ %d", __FILE__, __LINE__);
       d = -std::numeric_limits<float>::infinity();
     }
@@ -477,7 +477,7 @@ void RecEventFlat::centroidZPC(float& x, float& rms)
   // Positive because ZPC calorimeter is on the right of ZNC when looking from IP
   // x can result in a value from 2.8 to 19.6
   const static float xc[4] = {2.8, 8.4, 14.0, 19.6};
-  const static float xq[4] = {2.8*2.8, 8.4*8.4, 14.0*14.0, 19.6*19.6};
+  const static float xq[4] = {2.8 * 2.8, 8.4 * 8.4, 14.0 * 14.0, 19.6 * 19.6};
   static float c = 0;
   static float d = 0;
   if (mComputed[3]) {
@@ -503,7 +503,7 @@ void RecEventFlat::centroidZPC(float& x, float& rms)
   for (int i = 0; i < 4; i++) {
     if (e[i] < 0) {
       w[i] = 0;
-    }else{
+    } else {
       // w[i] = std::sqrt(e[i]);
       w[i] = e[i];
     }
@@ -517,10 +517,10 @@ void RecEventFlat::centroidZPC(float& x, float& rms)
   } else {
     c /= sumw;
     d /= sumw;
-    d = d - c*c; // variance
-    if(d>=0){
+    d = d - c * c; // variance
+    if (d >= 0) {
       d = TMath::Sqrt(d);
-    }else{
+    } else {
       LOGF(error, "%s FOP exception @ %d", __FILE__, __LINE__);
       d = -std::numeric_limits<float>::infinity();
     }

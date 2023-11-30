@@ -33,7 +33,7 @@ struct InterCalibConfig {
   double cutHigh[NH] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
 
   // Distance from calorimeter side close to the beam (always positive)
-  // Meaningful values are in the range of tower x centers i.e. from 
+  // Meaningful values are in the range of tower x centers i.e. from
   // 2.8 to 19.6 If one puts less than 2.8 then the computation will be
   // the same as for ZPA/ZPC with no cuts
   double xcut_ZPA = 10;
