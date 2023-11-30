@@ -194,19 +194,6 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
           mLastDPTimeStamps[dpid] = etime;
         }
       }
-
-      if (std::strstr(dpid.get_alias(), "trd_envTemp") != nullptr) { // DP is trd_envTemp
-        if (!mFedEnvTempStartTSSet) {
-          mFedEnvTempStartTS = mCurrentTS;
-          mFedEnvTempStartTSSet = true;
-        }
-        auto& dpInfoFedEnvTemp = mTRDDCSFedEnvTemp[dpid];
-        if (dpInfoFedEnvTemp.nPoints == 0 || etime != mLastDPTimeStamps[dpid]) {
-          // only add data point in case last one was not already read before
-          dpInfoFedEnvTemp.addPoint(o2::dcs::getValue<double>(dpcom), etime);
-          mLastDPTimeStamps[dpid] = etime;
-        }
-      }
     }
 
     if (type == DPVAL_INT) {
@@ -227,6 +214,9 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
             // LB: two different flags as they reset separately, after upload of CCDB, for each object
             mFirstRunEntryForFedChamberStatusUpdate = true;
             mFirstRunEntryForFedCFGtagUpdate = true;
+	    // LB: reset alarm counters
+            mFedChamberStatusAlarmCounter = 0;
+            mFedCFGtagAlarmCounter = 0;
             mRunEndTS = mCurrentTS;
           }
 
@@ -245,15 +235,18 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
           mFedChamberStatusStartTS = mCurrentTS;
           mFedChamberStatusStartTSSet = true;
         }
-
-        auto& dpInfoFedChamberStatus = mTRDDCSFedChamberStatus[dpid];
+	
+	// LB: for ChamberStatus, grab the chamber number from alias
+        int chamberId = getChamberIdFromAlias(dpid.get_alias());
+        auto& dpInfoFedChamberStatus = mTRDDCSFedChamberStatus[chamberId];
         if (etime != mLastDPTimeStamps[dpid]) {
           if (dpInfoFedChamberStatus != o2::dcs::getValue<int>(dpcom)) {
             // If value changes after processing and DPs should not be updated, log change as warning (for now)
             if (mPids[dpid] && !(mFedChamberStatusCompleteDPs && mFirstRunEntryForFedChamberStatusUpdate)) {
               // Issue an alarm if counter is lower than maximum, warning otherwise
+	      // LB: set both to warnings, conditions are kept if future changes are needed
               if (mFedChamberStatusAlarmCounter < mFedAlarmCounterMax) {
-                LOG(alarm) << "ChamberStatus change " << dpid.get_alias() << " : " << dpInfoFedChamberStatus << " -> " << o2::dcs::getValue<int>(dpcom) << ", run = " << mCurrentRunNumber;
+                LOG(warn) << "ChamberStatus change " << dpid.get_alias() << " : " << dpInfoFedChamberStatus << " -> " << o2::dcs::getValue<int>(dpcom) << ", run = " << mCurrentRunNumber;
                 mFedChamberStatusAlarmCounter++;
               } else if (mVerbosity > 0) {
                 LOG(warn) << "ChamberStatus change " << dpid.get_alias() << " : " << dpInfoFedChamberStatus << " -> " << o2::dcs::getValue<int>(dpcom) << ", run = " << mCurrentRunNumber;
@@ -274,7 +267,9 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
           mFedCFGtagStartTSSet = true;
         }
 
-        auto& dpInfoFedCFGtag = mTRDDCSFedCFGtag[dpid];
+	// LB: for CFGtag, grab the chamber number from alias
+        int chamberId = getChamberIdFromAlias(dpid.get_alias());
+        auto& dpInfoFedCFGtag = mTRDDCSFedCFGtag[chamberId];
         if (etime != mLastDPTimeStamps[dpid]) {
           if (dpInfoFedCFGtag != o2::dcs::getValue<string>(dpcom)) {
             // If value changes after processing and DPs should not be updated, log change as warning (for now)
@@ -528,7 +523,8 @@ bool DCSProcessor::updateFedChamberStatusDPsCCDB()
           retVal = true;
         }
         if (mVerbosity > 1) {
-          LOG(info) << "PID = " << it.first.get_alias() << ". Value = " << mTRDDCSFedChamberStatus[it.first];
+          int chamberId = getChamberIdFromAlias(it.first.get_alias());
+          LOG(info) << "PID = " << it.first.get_alias() << ". Value = " << mTRDDCSFedChamberStatus[chamberId];
         }
       }
     }
@@ -537,8 +533,10 @@ bool DCSProcessor::updateFedChamberStatusDPsCCDB()
   std::map<std::string, std::string> md;
   md["responsible"] = "Leonardo Barreto";
   md["runNumber"] = std::to_string(mCurrentRunNumber);
-  // TODO: define mFedStartTS and mFedEndTS, use same setup as env for now
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedChamberStatus, mCcdbFedChamberStatusDPsInfo, "TRD/Calib/DCSDPsFedChamberStatus", md, mFedChamberStatusStartTS, mFedChamberStatusStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+  // LB: set start timestamp 30 seconds before DPs are received
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedChamberStatus, mCcdbFedChamberStatusDPsInfo,
+                                                "TRD/Calib/DCSDPsFedChamberStatus", md, mFedChamberStatusStartTS - 30,
+                                                mFedChamberStatusStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -558,7 +556,8 @@ bool DCSProcessor::updateFedCFGtagDPsCCDB()
           retVal = true;
         }
         if (mVerbosity > 1) {
-          LOG(info) << "PID = " << it.first.get_alias() << ". Value = " << mTRDDCSFedCFGtag[it.first];
+          int chamberId = getChamberIdFromAlias(it.first.get_alias());
+          LOG(info) << "PID = " << it.first.get_alias() << ". Value = " << mTRDDCSFedCFGtag[chamberId];
         }
       }
     }
@@ -567,40 +566,10 @@ bool DCSProcessor::updateFedCFGtagDPsCCDB()
   std::map<std::string, std::string> md;
   md["responsible"] = "Leonardo Barreto";
   md["runNumber"] = std::to_string(mCurrentRunNumber);
-  // TODO: define mFedStartTS and mFedEndTS, use same setup as env for now
+  // LB: set start timestamp 30 seconds before DPs are received
   o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedCFGtag, mCcdbFedCFGtagDPsInfo,
-                                                "TRD/Calib/DCSDPsFedCFGtag", md, mFedCFGtagStartTS, mFedCFGtagStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
-
-  return retVal;
-}
-
-bool DCSProcessor::updateFedEnvTempDPsCCDB()
-{
-  // here we create the object containing the fedEnvTemp data points to then be sent to CCDB
-  LOG(info) << "Preparing CCDB object for TRD fedEnvTemp DPs";
-
-  bool retVal = false; // set to 'true' in case at least one DP for run has been processed
-
-  for (const auto& it : mPids) {
-    const auto& type = it.first.get_type();
-    if (type == o2::dcs::DPVAL_DOUBLE) {
-      if (std::strstr(it.first.get_alias(), "trd_envTemp") != nullptr) {
-        if (it.second == true) { // we processed the DP at least 1x
-          retVal = true;
-        }
-        if (mVerbosity > 1) {
-          LOG(info) << "PID = " << it.first.get_alias();
-          mTRDDCSFedEnvTemp[it.first].print();
-        }
-      }
-    }
-  }
-
-  std::map<std::string, std::string> md;
-  md["responsible"] = "Leonardo Barreto";
-  // TODO: define mFedStartTS and mFedEndTS, use same setup as env for now
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedEnvTemp, mCcdbFedEnvTempDPsInfo,
-                                                "TRD/Calib/DCSDPsFedEnvTemp", md, mFedEnvTempStartTS, mFedEnvTempStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+                                                "TRD/Calib/DCSDPsFedCFGtag", md, mFedCFGtagStartTS - 30,
+                                                mFedCFGtagStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -690,7 +659,6 @@ void DCSProcessor::clearFedChamberStatusDPsInfo()
   mFedChamberStatusStartTSSet = false;
   mFedChamberStatusCompleteDPs = false;
   mFirstRunEntryForFedChamberStatusUpdate = false;
-  mFedChamberStatusAlarmCounter = 0;
   // reset the 'processed' flags for the fed DPs
   for (auto& it : mPids) {
     const auto& type = it.first.get_type();
@@ -708,27 +676,11 @@ void DCSProcessor::clearFedCFGtagDPsInfo()
   mFedCFGtagStartTSSet = false;
   mFedCFGtagCompleteDPs = false;
   mFirstRunEntryForFedCFGtagUpdate = false;
-  mFedCFGtagAlarmCounter = 0;
   // reset the 'processed' flags for the fed DPs
   for (auto& it : mPids) {
     const auto& type = it.first.get_type();
     if (type == o2::dcs::DPVAL_STRING) {
       if (std::strstr(it.first.get_alias(), "trd_CFGtag") != nullptr) {
-        it.second = false;
-      }
-    }
-  }
-}
-
-void DCSProcessor::clearFedEnvTempDPsInfo()
-{
-  mTRDDCSFedEnvTemp.clear();
-  mFedEnvTempStartTSSet = false;
-  // reset the 'processed' flags for the fed DPs
-  for (auto& it : mPids) {
-    const auto& type = it.first.get_type();
-    if (type == o2::dcs::DPVAL_DOUBLE) {
-      if (std::strstr(it.first.get_alias(), "trd_envTemp") != nullptr) {
         it.second = false;
       }
     }

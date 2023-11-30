@@ -74,12 +74,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
       LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 1800s";
       mEnvDPsUpdateInterval = 1800;
     }
-    // LB: FedEnvTemp DPs, only update every 30 minutes
-    mFedEnvTempDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-fedenv");
-    if (mFedEnvTempDPsUpdateInterval == 0) {
-      LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 1800s";
-      mFedEnvTempDPsUpdateInterval = 1800;
-    }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
@@ -105,7 +99,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
       aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo"});
       aliasesInt.insert(aliasesInt.end(), {"trd_chamberStatus[00..539]"});
       aliasesString.insert(aliasesString.end(), {"trd_CFGtag[00..539]"});
-      aliasesFloat.insert(aliasesFloat.end(), {"trd_envTemp[00..539]"});
 
       for (const auto& i : o2::dcs::expandAliases(aliasesFloat)) {
         vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
@@ -165,7 +158,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     // LB: new DPs for Fed
     mTimerFedChamberStatus = mTimerGas;
     mTimerFedCFGtag = mTimerGas;
-    mTimerFedEnvTemp = mTimerGas;
 
     mReportTiming = ic.options().get<bool>("report-timing") || verbosity > 0;
   }
@@ -218,13 +210,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
       sendDPsoutputFedCFGtag(pc.outputs());
     }
 
-    // LB: new DP for FedEnvTemp
-    auto elapsedTimeFedEnvTemp = timeNow - mTimerFedEnvTemp; // in ns
-    if (elapsedTimeFedEnvTemp.count() * 1e-9 >= mFedEnvTempDPsUpdateInterval) {
-      sendDPsoutputFedEnvTemp(pc.outputs());
-      mTimerFedEnvTemp = timeNow;
-    }
-
     if (mProcessor->shouldUpdateRun()) {
       sendDPsoutputRun(pc.outputs());
     }
@@ -244,7 +229,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     // LB: new DPs for Fed
     sendDPsoutputFedChamberStatus(ec.outputs());
     sendDPsoutputFedCFGtag(ec.outputs());
-    sendDPsoutputFedEnvTemp(ec.outputs());
   }
 
  private:
@@ -257,7 +241,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
   // LB: new DPs for Fed
   std::chrono::high_resolution_clock::time_point mTimerFedChamberStatus;
   std::chrono::high_resolution_clock::time_point mTimerFedCFGtag;
-  std::chrono::high_resolution_clock::time_point mTimerFedEnvTemp;
 
   int64_t mGasDPsUpdateInterval;
   int64_t mVoltagesDPsUpdateInterval;
@@ -267,7 +250,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
   // LB: new DPs for Fed
   int64_t mFedChamberStatusDPsUpdateInterval;
   int64_t mFedCFGtagDPsUpdateInterval;
-  int64_t mFedEnvTempDPsUpdateInterval;
 
   void sendDPsoutputVoltages(DataAllocator& output)
   {
@@ -403,26 +385,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
   }
 
-  // LB: new DP for FedEnvTemp
-  //________________________________________________________________
-  void sendDPsoutputFedEnvTemp(DataAllocator& output)
-  {
-    // extract CCDB infos and calibration object for DPs
-    if (mProcessor->updateFedEnvTempDPsCCDB()) {
-      const auto& payload = mProcessor->getTRDFedEnvTempDPsInfo();
-      auto& info = mProcessor->getccdbFedEnvTempDPsInfo();
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_FedTemp", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_FedTemp", 0}, info);
-      mProcessor->clearFedEnvTempDPsInfo();
-    } else {
-      auto& info = mProcessor->getccdbFedEnvTempDPsInfo();
-      LOG(info) << "Not sending object " << info.getPath() << "/" << info.getFileName() << " since no DPs were processed for it";
-    }
-  }
-
 }; // end class
 } // namespace trd
 
@@ -450,8 +412,6 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_ChamberStat"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_CFGtag"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_CFGtag"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_FedTemp"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_FedTemp"});
 
   return DataProcessorSpec{
     "trd-dcs-data-processor",
@@ -468,7 +428,6 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"DPs-min-update-interval-voltages", VariantType::Int64, 120ll, {"Minimum range to be covered by voltage CCDB object"}},
             {"DPs-voltage-variation-trigger", VariantType::Int64, 1ll, {"Voltage variation trigger for upload of CCDB object"}},
             {"DPs-update-interval-gas", VariantType::Int64, 900ll, {"Interval (in s) after which to update the DPs CCDB entry for gas parameters"}},
-            {"DPs-update-interval-fedenv", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for front end device environment parameters"}},
             {"DPs-max-counter-alarm-fed", VariantType::Int, 1, {"Maximum number of alarms after FedChamberStatus and FedCFGtag changes, following changes are logged as warnings"}},
             {"DPs-min-counter-update-fed", VariantType::Int, 522, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}}}};
 }

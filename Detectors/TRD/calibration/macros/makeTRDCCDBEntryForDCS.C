@@ -39,7 +39,6 @@ int makeTRDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   aliasesFloat.insert(aliasesFloat.end(), {"trd_hvAnodeImon[00..539]", "trd_hvAnodeUmon[00..539]", "trd_hvDriftImon[00..539]", "trd_hvDriftUmon[00..539]"});
 
   // FED DPs
-  aliasesFloat.insert(aliasesFloat.end(), {"trd_envTemp[00..539]"});
   aliasesInt.insert(aliasesInt.end(), {"trd_chamberStatus[00..539]"});
   aliasesString.insert(aliasesString.end(), {"trd_CFGtag[00..539]"});
 
@@ -51,7 +50,7 @@ int makeTRDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   // Run DPs
   aliasesInt.insert(aliasesInt.end(), {"trd_fed_runNo"});
 
-  // Ignorded DPs: trd_fed_runType, trd_gasOverpressure*
+  // Ignorded DPs: trd_fed_runType, trd_envTemp[00..539], trd_gasOverpressure*
 
   DPID dpidTmp;
   for (const auto& ali : o2::dcs::expandAliases(aliasesFloat)) {

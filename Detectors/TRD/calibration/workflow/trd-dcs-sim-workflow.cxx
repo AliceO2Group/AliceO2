@@ -35,7 +35,6 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_chamberStatus[00..539]", 1, 5});
   dphints.emplace_back(o2::dcs::test::DataPointHint<std::string>{"trd_CFGtag[00..539]", "foo", "bar"});
   // FIXME if I put a longer string here, e.g. "cf2_krypton_tb30:r5927" then dcs-random-data-generator crashes (std::bad_alloc or std::length_error)
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_envTemp[00..539]", 10., 40.});
 
   // Env parameters (temperatures, pressures, humidity)
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernTemperature", 0, 100.});

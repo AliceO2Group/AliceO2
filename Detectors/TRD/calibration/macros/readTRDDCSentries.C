@@ -24,7 +24,8 @@
 #include <bitset>
 #endif
 
-void readTRDDCSentries(std::string ccdb = "http://localhost:8080", long ts = -1)
+void readTRDDCSentries(std::string ccdb = "http://localhost:8080", long ts = -1, bool printGas = true, bool printChamber = true,
+                       bool printI = true, bool printU = true, bool printEnv = true)
 {
 
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
@@ -45,58 +46,66 @@ void readTRDDCSentries(std::string ccdb = "http://localhost:8080", long ts = -1)
   std::cout << std::endl;
 
   // now, access the actual calibration object from CCDB
-  auto cal = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsGas");
+  // Access Gas DPs
+  if (printGas) {
+    auto calgas = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsGas");
 
-  std::cout << "Printing a single object from the map (trd_gasCO2):" << std::endl;
-  o2::dcs::DataPointIdentifier dpid; // used as key to access the map
-  o2::dcs::DataPointIdentifier::FILL(dpid, "trd_gasCO2", o2::dcs::DeliveryType::DPVAL_DOUBLE);
-  auto obj = cal->at(dpid);
-  obj.print();
-  std::cout << std::endl;
+    // LB: use this as template for reading only a single object
+    // std::cout << "Printing a single object from the map (trd_gasCO2):" << std::endl;
+    // o2::dcs::DataPointIdentifier dpid; // used as key to access the map
+    // o2::dcs::DataPointIdentifier::FILL(dpid, "trd_gasCO2", o2::dcs::DeliveryType::DPVAL_DOUBLE);
+    // auto obj = calgas->at(dpid);
+    // obj.print();
+    // std::cout << std::endl;
 
-  std::cout << "And lastly print all objects from the map, together with their DataPointIdentifier:" << std::endl;
-  for (const auto& entry : *cal) {
-    std::cout << entry.first << std::endl;
-    entry.second.print();
+    std::cout << "Print all objects from the map (DCSDPsGas), together with their DataPointIdentifier:" << std::endl;
+    for (const auto& entry : *calgas) {
+      std::cout << entry.first << std::endl;
+      entry.second.print();
+      std::cout << std::endl;
+    }
+  }
+
+  // Access ChamberStatus and CFGtag DPs
+  if (printChamber) {
+    auto calchamberstatus = ccdbmgr.get<std::array<int, o2::trd::constants::MAXCHAMBER>>("TRD/Calib/DCSDPsFedChamberStatus");
+    auto calcfgtag = ccdbmgr.get<std::array<std::string, o2::trd::constants::MAXCHAMBER>>("TRD/Calib/DCSDPsFedCFGtag");
+    std::cout << "Print all objects from the chambers (DCSDPsFedChamberStatus and DCSDPsFedCFGtag), together with their chamber ID:" << std::endl;
+    for (int i = 0; i < o2::trd::constants::MAXCHAMBER; i++) {
+      std::cout << "Chamber ID =  " << i << ",\tstatus =  " << (*calchamberstatus)[i] << ",\tcfgtag = " << (*calcfgtag)[i] << std::endl;
+    }
     std::cout << std::endl;
   }
 
-  // LB: also read FedChamberStatus and FedCFGtag for testing
-  // There seems to be an issue with the validity timestamp of Run DPs, ignoring them at the moment
-  // Access FedChamberStatus DPs
-  auto calchamberstatus = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, int>>("TRD/Calib/DCSDPsFedChamberStatus");
-
-  std::cout << "Print all objects from the map (DCSDPsFedChamberStatus), together with their DataPointIdentifier:" << std::endl;
-  for (const auto& entry : *calchamberstatus) {
-    std::cout << "id =  " << entry.first << ",\tvalue =  " << entry.second << std::endl;
+  // Access Current DPs
+  if (printI) {
+    auto cali = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsI");
+    std::cout << "Print all objects from the map (DCSDPsI), together with their DataPointIdentifier:" << std::endl;
+    for (const auto& entry : *cali) {
+      std::cout << entry.first << std::endl;
+      entry.second.print();
+      std::cout << std::endl;
+    }
   }
-  std::cout << std::endl;
 
-  // Access FedCFGtag DPs
-  auto calcfgtag = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, string>>("TRD/Calib/DCSDPsFedCFGtag");
-
-  std::cout << "Print all objects from the map (DCSDPsFedCFGtag), together with their DataPointIdentifier:" << std::endl;
-  for (const auto& entry : *calcfgtag) {
-    std::cout << "id =  " << entry.first << ",\tvalue =  " << entry.second << std::endl;
-  }
-  std::cout << std::endl;
-
-  // Access FedEnvTemp DPs
-  auto calfedenvtemp = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsFedEnvTemp");
-
-  for (const auto& entry : *calfedenvtemp) {
-    std::cout << entry.first << std::endl;
-    entry.second.print();
-    std::cout << std::endl;
+  // Access Voltages DPs
+  if (printU) {
+    auto calu = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, float>>("TRD/Calib/DCSDPsU");
+    std::cout << "Print all objects from the map (DCSDPsU), together with their DataPointIdentifier:" << std::endl;
+    for (const auto& entry : *calu) {
+      std::cout << "id = " << entry.first << ",\tvalue = " << entry.second << std::endl;
+    }
   }
 
   // Access Env DPs
-  auto calenv = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsEnv");
-
-  for (const auto& entry : *calenv) {
-    std::cout << entry.first << std::endl;
-    entry.second.print();
-    std::cout << std::endl;
+  if (printEnv) {
+    auto calenv = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsEnv");
+    std::cout << "Print all objects from the map (DCSDPsEnv), together with their DataPointIdentifier:" << std::endl;
+    for (const auto& entry : *calenv) {
+      std::cout << entry.first << std::endl;
+      entry.second.print();
+      std::cout << std::endl;
+    }
   }
 
   return;
