@@ -245,7 +245,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   // analyse field options
   // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
   auto& fieldstring = vm["field"].as<std::string>();
-  std::regex re("(ccdb)|([+-]?[250]U?)");
+  std::regex re("(ccdb)|([+-]?([2-9]|[12][0-9]|20)U?)");
   if (!std::regex_match(fieldstring, re)) {
     LOG(error) << "Invalid field option";
     return false;
