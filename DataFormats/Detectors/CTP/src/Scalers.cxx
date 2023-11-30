@@ -641,7 +641,7 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
   // orbit numbers
 
   // then we can use binary search to find the right entries
-  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), orbit, [&](CTPScalerRecordO2 const& a, uint32_t value) { return a.intRecord.orbit < value; });
+  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), orbit, [&](CTPScalerRecordO2 const& a, uint32_t value) { return a.intRecord.orbit <= value; });
   auto nextindex = iter - mScalerRecordO2.begin(); // this points to the first index that has orbit greater or equal to given orbit
 
   auto calcRate = [&](auto index1, auto index2) -> double {
@@ -702,8 +702,11 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
   // orbit numbers
 
   // then we can use binary search to find the right entries
-  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), timestamp, [&](CTPScalerRecordO2 const& a, uint32_t value) { return a.epochTime < value; });
-  auto nextindex = iter - mScalerRecordO2.begin(); // this points to the first index that has orbit greater or equal to given orbit
+  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), timestamp, [&](CTPScalerRecordO2 const& a, double value) { return a.epochTime <= value; });
+  // this points to the first index that has orbit greater to given orbit;
+  // If this is 0, it means that the above condition was false from the beginning, basically saying that the timestamp is below any of the ScalerRecords' orbits.
+  // If this is mScalerRecordO2.size(), it means mScalerRecordO2.end() was returned, condition was met throughout all ScalerRecords, basically saying the timestamp is above any of the ScalarRecordss orbits.
+  auto nextindex = iter - mScalerRecordO2.begin();
 
   auto calcRate = [&](auto index1, auto index2) -> double {
     auto next = &mScalerRecordO2[index2];
