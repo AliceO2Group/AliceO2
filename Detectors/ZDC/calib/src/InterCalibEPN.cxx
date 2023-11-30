@@ -94,6 +94,10 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       // Skip!
       continue;
     }
+    // Select hadronic collisions
+    if( ev.TDCVal[TDCZEM1].size()==0 && ev.TDCVal[TDCZEM2].size()==0 ){
+      continue;
+    }
     if ((ev.ezdcDecoded & MaskZNA) == MaskZNA) {
       cumulate(HidZNA, ev.EZDC(IdZNAC), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
     }
@@ -223,7 +227,7 @@ void InterCalibEPN::clear(int ih)
 void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
   // printf("%s: ih=%d tc=%g t1=%g t2=%g t3=%g t4=%g w=%g\n",__func__,ih, tc, t1, t2, t3, t4, w); fflush(stdout);
-  if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
+  if (tc < 3000 || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
   double val[NPAR] = {0, 0, 0, 0, 0, 1};
