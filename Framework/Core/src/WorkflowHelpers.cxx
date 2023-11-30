@@ -1257,7 +1257,8 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
-  std::vector<Validator> defaultValidators = {validateExpendable, validateLifetime};
+  std::vector<Validator> defaultValidators = {validateExpendable}; // disable validateLifetime for now since it creates problems for FLP workflows
+  // std::vector<Validator> defaultValidators = {validateExpendable, validateLifetime};
   std::stringstream errors;
   // Iterate over all the edges.
   // Get the input lifetime and the output lifetime.
