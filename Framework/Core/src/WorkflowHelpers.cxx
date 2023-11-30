@@ -1254,7 +1254,11 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
-  std::vector<Validator> defaultValidators = {validateExpendable, validateLifetime};
+  static bool disableLifetimeCheck = getenv("DPL_WORKAROUND_DO_NOT_CHECK_FOR_CORRECT_WORKFLOW_LIFETIMES") && atoi(getenv("DPL_WORKAROUND_DO_NOT_CHECK_FOR_CORRECT_WORKFLOW_LIFETIMES"));
+  std::vector<Validator> defaultValidators = {validateExpendable};
+  if (!disableLifetimeCheck) {
+    defaultValidators.emplace_back(validateLifetime);
+  }
   std::stringstream errors;
   // Iterate over all the edges.
   // Get the input lifetime and the output lifetime.
