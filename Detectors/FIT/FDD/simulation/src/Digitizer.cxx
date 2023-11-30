@@ -106,7 +106,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
   }
 
   // LOG(info) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
-  float charge = TMath::Qe() * parameters.PmGain * mBinSize / (mPmtTimeIntegral * ChargePerADC);
+  float charge = TMath::Qe() * FDDDigParam::Instance().pmGain * mBinSize / (mPmtTimeIntegral * ChargePerADC);
 
   Bool_t added[nCachedIR];
   for (int ir = 0; ir < nCachedIR; ir++) {
