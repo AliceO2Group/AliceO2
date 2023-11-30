@@ -16,6 +16,7 @@
 #include "SpacePoints/ResidualAggregator.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 
 #include <filesystem>
 #include <numeric>
@@ -83,7 +84,7 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   nResidualsTotal = rhs.nResidualsTotal;
 }
 
-void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression)
+void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression, long orbitResetTime)
 {
   trackResiduals = residualsEngine;
   writeToRootFile = wFile;
@@ -91,6 +92,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   writeUnbinnedResiduals = wUnbinnedResid;
   writeTrackData = wTrackData;
   autosaveInterval = autosave;
+  orbitReset = orbitResetTime;
   if (writeToRootFile) {
     bool outFileCreated = false;
     int nTries = 0;
@@ -152,6 +154,8 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   treeOutRecords->Branch("sumOfBinnedResiduals", &sumBinnedResidPtr);
   treeOutRecords->Branch("sumOfUnbinnedResiduals", &sumUnbinnedResidPtr);
   treeOutRecords->Branch("CTPLumi", &lumiPtr);
+  treeOutRecords->Branch("TPCVDriftRef", &TPCVDriftRef);
+  treeOutRecords->Branch("TPCDriftTimeOffsetRef", &TPCDriftTimeOffsetRef);
   LOG(debug) << "Done initializing residuals container for file named " << fileName;
 }
 
@@ -166,7 +170,7 @@ void ResidualsContainer::fillStatisticsBranches()
   }
 }
 
-void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, long orbitResetTime, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
@@ -177,7 +181,6 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     lastSeenTF = ti.tfCounter;
   }
   if (ti.tfCounter < firstSeenTF) {
-    orbitReset = orbitResetTime;
     firstTForbit = ti.firstTForbit;
     firstSeenTF = ti.tfCounter;
   }
@@ -241,7 +244,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::sp
     if (lumiInput) {
       lumiTF = *lumiInput;
     }
-    timeMS = orbitResetTime + ti.tfCounter * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+    timeMS = orbitReset + ti.tfCounter * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
     treeOutResidualsUnbinned->Fill();
     unbinnedRes.clear();
     trackInfo.clear();
@@ -404,12 +407,14 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
     LOGP(info, "Skip writing output with {} entries, since file output is disabled or slot is empty", cont->getNEntries());
     return;
   }
+  cont->TPCVDriftRef = mTPCVDriftRef;
+  cont->TPCDriftTimeOffsetRef = mTPCDriftTimeOffsetRef;
   cont->writeToFile(true);
 
   long orbitOffsetStart = (cont->firstSeenTF - slot.getTFStart()) * o2::base::GRPGeomHelper::getNHBFPerTF();
   long orbitOffsetEnd = (slot.getTFEnd() - cont->firstSeenTF) * o2::base::GRPGeomHelper::getNHBFPerTF();
-  long timeStartMS = cont->orbitReset + (cont->firstTForbit - orbitOffsetStart) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-  long timeEndMS = cont->orbitReset + (cont->firstTForbit + orbitOffsetEnd) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+  long timeStartMS = mOrbitResetTime + (cont->firstTForbit - orbitOffsetStart) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+  long timeEndMS = mOrbitResetTime + (cont->firstTForbit + orbitOffsetEnd) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
   auto fileName = fmt::format("o2tpc_residuals_{}_{}_{}_{}.root", timeStartMS, timeEndMS, slot.getTFStart(), slot.getTFEnd());
   auto fileNameWithPath = mOutputDir + fileName;
   std::filesystem::rename(o2::utils::Str::concat_string(mOutputDir, cont->fileName, ".part"), fileNameWithPath);
@@ -440,8 +445,18 @@ Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
-  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval, mCompressionSetting);
+  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval, mCompressionSetting, mOrbitResetTime);
   std::chrono::duration<double, std::milli> emplaceDuration = std::chrono::high_resolution_clock::now() - emplaceStartTime;
   LOGP(info, "Emplacing new calibration slot took: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(emplaceDuration).count());
   return slot;
+}
+
+void ResidualAggregator::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  // for the residual extraction we are using the reference vDrift and time offset values only
+  if (v.refVDrift != mTPCVDriftRef) {
+    mTPCVDriftRef = v.refVDrift;
+    mTPCDriftTimeOffsetRef = v.refTimeOffset;
+    LOGP(info, "Imposing reference VDrift={}/TDrift={} for TPC residuals extraction", mTPCVDriftRef, mTPCDriftTimeOffsetRef);
+  }
 }
