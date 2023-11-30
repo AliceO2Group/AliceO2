@@ -1037,8 +1037,6 @@ void TrackInterpolation::reset()
 //______________________________________________
 void TrackInterpolation::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
-  mTPCVDrift = v.getVDrift();
-  mTPCDriftTimeOffset = v.getTimeOffset();
   // Attention! For the refit we are using reference VDrift and TDriftOffest rather than high-rate calibrated, since we want to have fixed reference over the run
   if (v.refVDrift != mTPCVDriftRef) {
     mTPCVDriftRef = v.refVDrift;

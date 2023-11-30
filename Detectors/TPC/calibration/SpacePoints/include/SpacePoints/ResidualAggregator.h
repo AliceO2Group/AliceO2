@@ -45,11 +45,11 @@ struct ResidualsContainer {
   ResidualsContainer& operator=(const ResidualsContainer& src) = delete;
   ~ResidualsContainer();
 
-  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression);
+  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave, int compression, long orbitResetTime);
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, long orbitResetTime, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const UnbinnedResid> resid, const gsl::span<const o2::tpc::TrackDataCompact> trkRefsIn, const gsl::span<const o2::tpc::TrackData>* trkDataIn, const o2::ctp::LumiInfo* lumiInput);
   void merge(ResidualsContainer* prev);
   void print();
   void writeToFile(bool closeFileAfterwards);
@@ -90,6 +90,8 @@ struct ResidualsContainer {
   TFType firstSeenTF{o2::calibration::INFINITE_TF}; ///< the first TF which was added to this container
   TFType lastSeenTF{0};                             ///< the last TF which was added to this container
   uint64_t nResidualsTotal{0};                      ///< the total number of residuals for this container
+  float TPCVDriftRef{-1.};                          ///< TPC nominal drift speed in cm/microseconds
+  float TPCDriftTimeOffsetRef{0.};                  ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus
 
   ClassDefNV(ResidualsContainer, 5);
 };
@@ -103,6 +105,8 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Res
   ~ResidualAggregator() final;
 
   void setDataTakingContext(o2::framework::DataTakingContext& dtc) { mDataTakingContext = dtc; }
+  void setOrbitResetTime(long t) { mOrbitResetTime = t; }
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setOutputDir(std::string dir)
   {
     mOutputDir = dir;
@@ -139,6 +143,9 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Res
   int mAutosaveInterval{0};            ///< if >0 then the output is written to a file for every n-th TF
   int mCompressionSetting{101};        ///< single integer defining the ROOT compression algorithm and level (see TFile doc for details)
   size_t mMinEntries;             ///< the minimum number of residuals required for the map creation (per voxel)
+  long mOrbitResetTime;           ///< orbit reset time in ms
+  float mTPCVDriftRef = -1.;      ///< TPC nominal drift speed in cm/microseconds
+  float mTPCDriftTimeOffsetRef = 0.; ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus
 
   ClassDefOverride(ResidualAggregator, 4);
 };
