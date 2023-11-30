@@ -31,13 +31,11 @@
 #include "FairVolume.h"      // for FairVolume
 #include "FairRootManager.h"
 
-#include "TGeoCone.h"        // for TGeoCone
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
 #include "TGeoMedium.h"      // for TGeoMedium
 #include "TGeoTube.h"        // for TGeoTube
 #include "TGeoPcon.h"        // for TGeoPcon
 #include "TGeoVolume.h"      // for TGeoVolume, TGeoVolumeAssembly
-#include "TGeoMatrix.h"      // for TGeoCombiTrans, TGeoRotation, etc
 #include "TParticle.h"       // for TParticle
 #include "TString.h"         // for TString, operator+
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
@@ -329,7 +327,7 @@ void Detector::InitializeO2Detector()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
-  if(mOnlyChargedParticles && !(fMC->TrackCharge())){
+  if(!(fMC->TrackCharge())){
     return kFALSE;
   }
 
@@ -426,12 +424,6 @@ void Detector::createMaterials()
   Float_t epsilPb = 0.1;   // .10000E+01;
   Float_t stminPb = 0.0;   // cm "Default value used"
 
-  Float_t tmaxfdBe = -20.;  // Maximum angle due to field deflection
-  Float_t stemaxBe = -0.01; // Maximum displacement for multiple scat
-  Float_t deemaxBe = -.3;   // Maximum fractional energy loss, DLS
-  Float_t epsilBe = .1;     // Tracking precision,
-  Float_t stminBe = -.8;
-
   // AIR
   Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   Float_t zAir[4] = {6., 7., 8., 18.};
@@ -448,10 +440,6 @@ void Detector::createMaterials()
   // Add Lead (copied from EMCAL)
   o2::base::Detector::Material(2, "Pb$", 207.2, 82, 11.35, 0.56, 0.);
   o2::base::Detector::Medium(2, "Pb$", 2, 0, ifield, fieldm, tmaxfdPb, stemaxPb, deemaxPb, epsilPb, stminPb);
-
-  // Add Beryllium (copied from Detectors/Upgrades/ALICE3/Passive)
-  o2::base::Detector::Material(5, "BE$", 9.01, 4., 1.848, 35.3, 36.7);
-  o2::base::Detector::Medium(5, "BE$", 5, 0, ifield, fieldm, tmaxfdBe, stemaxBe, deemaxBe, epsilBe, stminBe);
 }
 
 //_________________________________________________________________________________________________
@@ -501,26 +489,23 @@ void Detector::ConstructGeometry()
     }
   }
 
-  mOnlyChargedParticles = fctBaseParam.OnlyChargedParticles;
-  
   exportLayout();
 
   // Create detector materials
   createMaterials();
 
   // Construct the detector geometry
-  createGeometry(fctBaseParam);
+  createGeometry();
 }
 
 //_________________________________________________________________________________________________
-void Detector::createGeometry(const FCTBaseParam& param)
+void Detector::createGeometry()
 {
 
   mGeometryTGeo = GeometryTGeo::Instance();
 
   TGeoVolume* volFCT = new TGeoVolumeAssembly(GeometryTGeo::getFCTVolPattern());
   TGeoVolume* volIFCT = new TGeoVolumeAssembly(GeometryTGeo::getFCTInnerVolPattern());
-  TGeoVolume* specialSetup = new TGeoVolumeAssembly(GeometryTGeo::getFCTSpecialSetup());
 
   LOG(info) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getFCTVolPattern();
 
@@ -558,196 +543,12 @@ void Detector::createGeometry(const FCTBaseParam& param)
     vALIC->AddNode(volFCT, 2, new TGeoTranslation(0., 30., 0.));
   }
 
-  // Add special geometry
-  if(param.specialSetup != 0){
-
-    auto pseurap_to_ang = [](float eta) { return 2. * TMath::ATan(TMath::Exp(-eta)); };
-
-    // Beam pipe parameters
-    Double_t r_in = 2.5; // Inner radius beam pipe (cm)
-    Double_t t_bp = 0.05; // Thickness beam pipe (cm)
-
-    // Window parameters. Vertical
-    Double_t z1_vertWin = - r_in / TMath::Tan(pseurap_to_ang(abs(param.winEtaMax)));
-    Double_t z2_vertWin = z1_vertWin - t_bp;
-    Double_t r_max_vertWin = abs(z2_vertWin) * TMath::Tan(pseurap_to_ang(abs(param.winEtaMin)));
-
-    // Window parameters. Diagonal 45 deg. Will be done with a TGeoCone
-    Double_t angle_bp = TMath::Pi() / 4.; // Angle of the cone of the beam pipe
-    Double_t t_eff = t_bp / TMath::Cos(angle_bp);
-    Double_t r_max1_diagWin = r_in + t_eff;
-    Double_t r_min1_diagWin = r_in;
-    Double_t z1_diagWin = - r_max1_diagWin / TMath::Tan(pseurap_to_ang(abs(param.winEtaMax)));
-    Double_t z2_diagWin = (r_min1_diagWin + z1_diagWin * TMath::Tan(angle_bp)) / (TMath::Tan(pseurap_to_ang(abs(param.winEtaMin))) + TMath::Tan(angle_bp));
-    Double_t r_min2_diagWin = abs(z2_diagWin - z1_diagWin) * TMath::Tan(angle_bp) - r_min1_diagWin;
-    Double_t r_max2_diagWin = r_min2_diagWin + t_eff;
-    Double_t zpos_diagWin = z1_diagWin + abs(z2_diagWin - z1_diagWin) / 2.;
-    Double_t l_diagWin = z2_diagWin - z1_diagWin;
-
-    // VacV parameters. Horizontal wall
-    Double_t r_in_VacV = 0.485; // Inner radius vacuum vessel (cm)
-    Double_t r_out_VacV = 0.5; // Outer radius vacuum vessel (cm)
-    Double_t z_length_VacV = 70.; // z position left side vacuum vessel (cm)
-
-    // VacV parameters. Vertical wall
-    Double_t r_out_VertVacV = 3.; // Outer radius Vertical vacuum vessel wall (cm)
-    Double_t thickness_VertVacV = 0.015; // Thickness vertical vacuum vessel wall (cm)
-
-    TGeoMedium* medBe = gGeoManager->GetMedium("FCT_BE$");
-  
-    LOG(info) << "Registering special setup:";
-
-    if(param.specialSetup == 1){
-      // Windowed beam pipe covering pseurap -3.5 to -5
-      // Window on angle 90 deg
-      TGeoTube* window = new TGeoTube(r_in, r_max_vertWin, t_bp / 2);
-      TGeoVolume* windowVol = new TGeoVolume("Window", window, medBe);
-
-      auto FwdRotation = new TGeoRotation("FwdkRotation", 0, 0, 180);
-      auto FwdCombiTrans = new TGeoCombiTrans(0, 0, z2_vertWin + t_bp / 2., FwdRotation);
-
-      specialSetup->AddNode(windowVol, 1, FwdCombiTrans);
-
-      LOG(info) << "Window on 90 deg";
-
-    } else if(param.specialSetup == 2){
-      // Windowed beam pipe covering pseurap -3.5 to -5
-      // Window on angle 45 deg
-      TGeoCone* window = new TGeoCone(l_diagWin, r_min1_diagWin, r_max1_diagWin, r_min2_diagWin, r_max2_diagWin);
-      TGeoVolume* windowVol = new TGeoVolume("Window", window, medBe);
-
-      auto FwdRotation = new TGeoRotation("FwdkRotation", 0, 0, 180);
-      auto FwdCombiTrans = new TGeoCombiTrans(0, 0, zpos_diagWin, FwdRotation);
-
-      specialSetup->AddNode(windowVol, 1, FwdCombiTrans);
-
-      LOG(info) << "Window on 45 deg";
-
-    } else if(param.specialSetup == 3){
-      // Optimistic Vacuum Vessel
-      // Horizontal wall
-      TGeoTube* horVacV = new TGeoTube(r_in_VacV, r_out_VacV, z_length_VacV / 2);
-      TGeoVolume* horVacVol = new TGeoVolume("HorVacV", horVacV, medBe);
-
-      auto FwdRotation_horVacV = new TGeoRotation("FwdRotation", 0, 0, 180);
-      auto FwdCombiTrans_horVacV = new TGeoCombiTrans(0, 0, 0., FwdRotation_horVacV);
-
-      specialSetup->AddNode(horVacVol, 1, FwdCombiTrans_horVacV);
-
-      // Vertical wall
-      TGeoTube* verVacV = new TGeoTube(r_in_VacV, r_out_VertVacV, thickness_VertVacV);
-      TGeoVolume* verVacVol = new TGeoVolume("VerVacV", verVacV, medBe);
-
-      auto FwdRotation_verVacV = new TGeoRotation("FwdRotation2", 0, 0, 180);
-      auto FwdCombiTrans_verVacV = new TGeoCombiTrans(0, 0, -z_length_VacV / 2, FwdRotation_verVacV);
-
-      specialSetup->AddNode(verVacVol, 1, FwdCombiTrans_verVacV);
-
-      LOG(info) << "Vacuum Vessel Optimistic";
-
-    } else if(param.specialSetup == 4){
-      // Pessimistic Vacuum vessel
-
-      thickness_VertVacV = 0.05;
-
-      TGeoTube* horVacV = new TGeoTube(r_in_VacV, r_out_VacV, z_length_VacV / 2);
-      TGeoVolume* horVacVol = new TGeoVolume("HorVacV", horVacV, medBe);
-
-      auto FwdRotation_horVacV = new TGeoRotation("FwdRotation", 0, 0, 180);
-      auto FwdCombiTrans_horVacV = new TGeoCombiTrans(0, 0, 0., FwdRotation_horVacV);
-
-      specialSetup->AddNode(horVacVol, 1, FwdCombiTrans_horVacV);
-
-      // Vertical wall
-      TGeoTube* verVacV = new TGeoTube(r_in_VacV, r_out_VertVacV, thickness_VertVacV);
-      TGeoVolume* verVacVol = new TGeoVolume("VerVacV", verVacV, medBe);
-
-      auto FwdRotation_verVacV = new TGeoRotation("FwdRotation2", 0, 0, 180);
-      auto FwdCombiTrans_verVacV = new TGeoCombiTrans(0, 0, -z_length_VacV / 2, FwdRotation_verVacV);
-
-      specialSetup->AddNode(verVacVol, 1, FwdCombiTrans_verVacV);
-
-      LOG(info) << "Vacuum Vessel Pessimistic";
-    
-    } else if(param.specialSetup == 5){
-      // Optimistic Vacuum vessel + window beam pipe 45 deg
-      // Horizontal wall
-      TGeoTube* horVacV = new TGeoTube(r_in_VacV, r_out_VacV, z_length_VacV / 2);
-      TGeoVolume* horVacVol = new TGeoVolume("HorVacV", horVacV, medBe);
-
-      auto FwdRotation_horVacV = new TGeoRotation("FwdRotation", 0, 0, 180);
-      auto FwdCombiTrans_horVacV = new TGeoCombiTrans(0, 0, 0., FwdRotation_horVacV);
-
-      specialSetup->AddNode(horVacVol, 1, FwdCombiTrans_horVacV);
-
-      // Vertical wall
-      TGeoTube* verVacV = new TGeoTube(r_in_VacV, r_out_VertVacV, thickness_VertVacV);
-      TGeoVolume* verVacVol = new TGeoVolume("VerVacV", verVacV, medBe);
-
-      auto FwdRotation_verVacV = new TGeoRotation("FwdRotation2", 0, 0, 180);
-      auto FwdCombiTrans_verVacV = new TGeoCombiTrans(0, 0, -z_length_VacV / 2, FwdRotation_verVacV);
-
-      specialSetup->AddNode(verVacVol, 1, FwdCombiTrans_verVacV);
-
-      // Window
-      TGeoCone* window = new TGeoCone(l_diagWin, r_min1_diagWin, r_max1_diagWin, r_min2_diagWin, r_max2_diagWin);
-      TGeoVolume* windowVol = new TGeoVolume("Window", window, medBe);
-
-      auto FwdRotation_window = new TGeoRotation("FwdkRotation", 0, 0, 180);
-      auto FwdCombiTrans_window = new TGeoCombiTrans(0, 0, zpos_diagWin, FwdRotation_window);
-
-      specialSetup->AddNode(windowVol, 1, FwdCombiTrans_window);
-
-      LOG(info) << "Vacuum Vessel Optimistic + Beam Pipe Window 45 deg";
-    
-    } else if(param.specialSetup == 6){
-      // Pessimistic Vacuum vessel + window beam pipe 45 deg
-
-      thickness_VertVacV = 0.05;
-
-      // Horizontal wall
-      TGeoTube* horVacV = new TGeoTube(r_in_VacV, r_out_VacV, z_length_VacV / 2);
-      TGeoVolume* horVacVol = new TGeoVolume("HorVacV", horVacV, medBe);
-
-      auto FwdRotation_horVacV = new TGeoRotation("FwdRotation", 0, 0, 180);
-      auto FwdCombiTrans_horVacV = new TGeoCombiTrans(0, 0, 0., FwdRotation_horVacV);
-
-      specialSetup->AddNode(horVacVol, 1, FwdCombiTrans_horVacV);
-
-      // Vertical wall
-      TGeoTube* verVacV = new TGeoTube(r_in_VacV, r_out_VertVacV, thickness_VertVacV);
-      TGeoVolume* verVacVol = new TGeoVolume("VerVacV", verVacV, medBe);
-
-      auto FwdRotation_verVacV = new TGeoRotation("FwdRotation2", 0, 0, 180);
-      auto FwdCombiTrans_verVacV = new TGeoCombiTrans(0, 0, -z_length_VacV / 2, FwdRotation_verVacV);
-
-      specialSetup->AddNode(verVacVol, 1, FwdCombiTrans_verVacV);
-
-      // Window
-      TGeoCone* window = new TGeoCone(l_diagWin, r_min1_diagWin, r_max1_diagWin, r_min2_diagWin, r_max2_diagWin);
-      TGeoVolume* windowVol = new TGeoVolume("Window", window, medBe);
-
-      auto FwdRotation_window = new TGeoRotation("FwdkRotation", 0, 0, 180);
-      auto FwdCombiTrans_window = new TGeoCombiTrans(0, 0, zpos_diagWin, FwdRotation_window);
-
-      specialSetup->AddNode(windowVol, 1, FwdCombiTrans_window);
-
-      LOG(info) << "Vacuum Vessel Pessimistic + Beam Pipe Window 45 deg";
-    }
-
-    vALIC->AddNode(specialSetup, 2, new TGeoTranslation(0., 30., 0.));
-  }
-
   LOG(info) << "Registering FCT SensitiveLayerIDs:";
   for (int iLayer = 0; iLayer < mLayers.size(); iLayer++) {
     auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d", GeometryTGeo::getFCTSensorPattern(), mLayers[iLayer].getLayerNumber())) : 0;
     mLayerID.push_back(layerID);
     LOG(info) << "  mLayerID[" << mLayers[iLayer].getLayerNumber() << "] = " << layerID;
   }
-
-  TCanvas *c1 = new TCanvas("c", "c", 500, 500);
-  vALIC->Draw();
-  c1->Print("FCT_Setup.pdf");
 }
 
 //_________________________________________________________________________________________________

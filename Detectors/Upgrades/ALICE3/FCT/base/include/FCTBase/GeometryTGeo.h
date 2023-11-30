@@ -94,7 +94,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getFCTLayerPattern() { return sLayerName.c_str(); }
   static const char* getFCTChipPattern() { return sChipName.c_str(); }
   static const char* getFCTSensorPattern() { return sSensorName.c_str(); }
-  static const char* getFCTSpecialSetup() { return sSpecialSetup.c_str(); }
 
   static const char* composeSymNameFCT(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::FCT).getName(), d); }
   static const char* composeSymNameLayer(Int_t d, Int_t lr);
@@ -109,7 +108,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sVolumeName;      ///< Mother volume name
   static std::string sLayerName;       ///< Layer name
   static std::string sChipName;        ///< Chip name
-  static std::string sSpecialSetup;    ///< Special setup for the FCT (including vacuum vessel wall and windowed beam pipe)
 
   static std::string sSensorName; ///< Sensor name
 

@@ -27,6 +27,7 @@ class Alice3Pipe : public Alice3PassiveBase
   Alice3Pipe(const char* name,
              const char* title = "Alice 3 Pipe",
              const bool isTRKActivated = false,
+             const bool isFT3Activated = false,
              const float rMinInnerPipe = 0.f,
              const float innerThickness = 0.f,
              const float innerLength = 0.f,
@@ -50,6 +51,7 @@ class Alice3Pipe : public Alice3PassiveBase
   float getOuterDz() const { return mOuterIpHLength; }
 
   bool IsTRKActivated() const { return mIsTRKActivated; }
+  bool IsFT3Activated() const { return mIsFT3Activated; }
 
  private:
   void createMaterials();
@@ -65,6 +67,7 @@ class Alice3Pipe : public Alice3PassiveBase
   float mOuterIpHLength = 0.;   // half length of the outer beampipe around the IP
 
   bool mIsTRKActivated = true; // If TRK is not active don't create TRK layers allocations in the vacuum volume
+  bool mIsFT3Activated = true;
 
   ClassDefOverride(Alice3Pipe, 1);
 };

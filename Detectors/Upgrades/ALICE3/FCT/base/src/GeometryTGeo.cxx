@@ -54,7 +54,6 @@ std::string GeometryTGeo::sInnerVolumeName = "FCTInner"; ///< Mother inner volum
 std::string GeometryTGeo::sLayerName = "FCTLayer";       ///< Layer name
 std::string GeometryTGeo::sChipName = "FCTChip";         ///< Sensor name
 std::string GeometryTGeo::sSensorName = "FCTSensor";     ///< Sensor name
-std::string GeometryTGeo::sSpecialSetup = "specialSetup"; ///< Special setup for the FCT (beam pipe window and vacuum vessel)
 
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::FCT)

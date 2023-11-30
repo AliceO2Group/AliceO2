@@ -126,7 +126,6 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<TString> mConverterLayerName;
   Int_t mNumberOfLayers;
   Int_t mNumberOfConverterLayers;
-  Bool_t mOnlyChargedParticles;
 
   /// this is transient data about track passing the sensor
   struct TrackData {               // this is transient
@@ -144,7 +143,7 @@ class Detector : public o2::base::DetImpl<Detector>
   virtual void createMaterials();
 
   /// Create the detector geometry
-  void createGeometry(const FCTBaseParam& param);
+  void createGeometry();
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
