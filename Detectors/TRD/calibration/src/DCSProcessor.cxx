@@ -214,7 +214,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
             // LB: two different flags as they reset separately, after upload of CCDB, for each object
             mFirstRunEntryForFedChamberStatusUpdate = true;
             mFirstRunEntryForFedCFGtagUpdate = true;
-	    // LB: reset alarm counters
+            // LB: reset alarm counters
             mFedChamberStatusAlarmCounter = 0;
             mFedCFGtagAlarmCounter = 0;
             mRunEndTS = mCurrentTS;
@@ -235,8 +235,8 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
           mFedChamberStatusStartTS = mCurrentTS;
           mFedChamberStatusStartTSSet = true;
         }
-	
-	// LB: for ChamberStatus, grab the chamber number from alias
+
+        // LB: for ChamberStatus, grab the chamber number from alias
         int chamberId = getChamberIdFromAlias(dpid.get_alias());
         auto& dpInfoFedChamberStatus = mTRDDCSFedChamberStatus[chamberId];
         if (etime != mLastDPTimeStamps[dpid]) {
@@ -244,7 +244,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
             // If value changes after processing and DPs should not be updated, log change as warning (for now)
             if (mPids[dpid] && !(mFedChamberStatusCompleteDPs && mFirstRunEntryForFedChamberStatusUpdate)) {
               // Issue an alarm if counter is lower than maximum, warning otherwise
-	      // LB: set both to warnings, conditions are kept if future changes are needed
+              // LB: set both to warnings, conditions are kept if future changes are needed
               if (mFedChamberStatusAlarmCounter < mFedAlarmCounterMax) {
                 LOG(warn) << "ChamberStatus change " << dpid.get_alias() << " : " << dpInfoFedChamberStatus << " -> " << o2::dcs::getValue<int>(dpcom) << ", run = " << mCurrentRunNumber;
                 mFedChamberStatusAlarmCounter++;
@@ -267,7 +267,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
           mFedCFGtagStartTSSet = true;
         }
 
-	// LB: for CFGtag, grab the chamber number from alias
+        // LB: for CFGtag, grab the chamber number from alias
         int chamberId = getChamberIdFromAlias(dpid.get_alias());
         auto& dpInfoFedCFGtag = mTRDDCSFedCFGtag[chamberId];
         if (etime != mLastDPTimeStamps[dpid]) {

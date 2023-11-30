@@ -130,8 +130,8 @@ class DCSProcessor
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSEnv;      ///< environment parameters (temperatures, pressures, humidity)
   std::unordered_map<DPID, int> mTRDDCSRun;                       ///< run number (run type ignored)
   // LB: new DPs for Fed
-  std::array<int, constants::MAXCHAMBER> mTRDDCSFedChamberStatus;            ///< fed chamber status
-  std::array<string, constants::MAXCHAMBER> mTRDDCSFedCFGtag;                ///< fed config tag
+  std::array<int, constants::MAXCHAMBER> mTRDDCSFedChamberStatus; ///< fed chamber status
+  std::array<string, constants::MAXCHAMBER> mTRDDCSFedCFGtag;     ///< fed config tag
 
   // helper variables
   std::unordered_map<DPID, bool> mPids;                 ///< flag for each DP whether it has been processed at least once
