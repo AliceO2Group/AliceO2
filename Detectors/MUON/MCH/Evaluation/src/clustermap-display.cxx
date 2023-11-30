@@ -781,6 +781,8 @@ int main(int argc, char* argv[])
   // Load  the aligned geometry from root file
   std::string alignedgeom = "o2sim_geometry-aligned.root";
 
+  auto loadGeom = loadGeometry(alignedgeom);
+
   // Creating directory to save all output files
   std::string directory = "output/";
   mkdir(directory.c_str(), 0777); // 0777 sets permissions;
@@ -799,10 +801,10 @@ int main(int argc, char* argv[])
       o2::mch::contour::SVGWriter wSegRight(bboxes[i]);
 
       // Creating Left and Right Chambers
-      double maxRatioLeft = calculateNmax(i + 1, isBendingPlane, getrootHistogramLeft(rootfileleft), loadGeometry(alignedgeom), norm);
-      double maxRatioRight = calculateNmax(i + 1, isBendingPlane, getrootHistogramRight(rootfileright), loadGeometry(alignedgeom), norm);
-      svgChamber(wSegLeft, i + 1, isBendingPlane, getrootHistogramLeft(rootfileleft), loadGeometry(alignedgeom), maxRatioLeft, norm, green);
-      svgChamber(wSegRight, i + 1, isBendingPlane, getrootHistogramRight(rootfileright), loadGeometry(alignedgeom), maxRatioRight, norm, green);
+      double maxRatioLeft = calculateNmax(i + 1, isBendingPlane, getrootHistogramLeft(rootfileleft), loadGeom, norm);
+      double maxRatioRight = calculateNmax(i + 1, isBendingPlane, getrootHistogramRight(rootfileright), loadGeom, norm);
+      svgChamber(wSegLeft, i + 1, isBendingPlane, getrootHistogramLeft(rootfileleft), loadGeom, maxRatioLeft, norm, green);
+      svgChamber(wSegRight, i + 1, isBendingPlane, getrootHistogramRight(rootfileright), loadGeom, maxRatioRight, norm, green);
 
       // Write in HTML left and right chambers (using <div> tag)
       outv << "<div style='display:flex;justify-content:center'>" << std::endl;
