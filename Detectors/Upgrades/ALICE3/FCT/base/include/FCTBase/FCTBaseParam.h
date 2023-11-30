@@ -41,19 +41,6 @@ struct FCTBaseParam : public o2::conf::ConfigurableParamHelper<FCTBaseParam> {
   Float_t etaIn = 4.5;
   Float_t etaOut = 1.5;
   Float_t Layerx2X0 = 0.01;
-  
-  Bool_t OnlyChargedParticles = true; // When true, only charged partciles are saved. When false, all particles are saved.
-
-  Int_t specialSetup = 0; // 0 when no special setup is active
-  // 1: Windowed beam pipe on 90 degrees
-  // 2: Windowed beam pipe on 45 degrees
-  // 3: Vacuum Vessel + VacV Wall Optimistic
-  // 4: Vacuum Vessel + VacV Wall Pesimistic
-  // 5: Vacuum Vessel + VacV Wall Optimistic + Window 45 degrees
-  // 5: Vacuum Vessel + VacV Wall Pesimistic + Window 45 degrees
-  Bool_t drawFCT = false; // If true, draw fct on a canvas and save to .pdf
-  Float_t winEtaMin = -3.5;
-  Float_t winEtaMax = -5;
 
   // FCTGeometry::External file
   std::string configFile = ""; // Overrides geoModel parameter when provided
