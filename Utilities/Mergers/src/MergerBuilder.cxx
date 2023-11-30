@@ -116,7 +116,7 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   merger.inputs.push_back({"timer-publish", "TMR", mergerDataDescription(mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer, timerSpecs(timers)});
   merger.labels.push_back(mergerLabel());
-  merger.labels.insert( mConfig.labels.end(), mConfig.labels.begin(), mConfig.labels.end() );
+  merger.labels.insert( merger.labels.end(), mConfig.labels.begin(), mConfig.labels.end() );
   merger.maxInputTimeslices = mTimePipeline;
 
   return std::move(merger);
