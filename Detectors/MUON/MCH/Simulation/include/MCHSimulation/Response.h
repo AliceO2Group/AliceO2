@@ -37,6 +37,9 @@ class Response
   float getPitch() const { return mPitch; }
   float getSigmaIntegration() const { return mSigmaIntegration; }
   bool isAboveThreshold(float charge) const { return charge > mChargeThreshold; }
+  bool isAngleEffect() const { return mAngleEffect; }
+  bool isMagnetEffect() const { return mMagnetEffect; }
+
 
   /** Converts energy deposition into a charge.
    *

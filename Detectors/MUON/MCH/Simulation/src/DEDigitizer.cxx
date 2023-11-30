@@ -62,6 +62,7 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   math_utils::Point3D<float> lentrance{};
   mTransformation.MasterToLocal(exitPoint, lexit);
   mTransformation.MasterToLocal(entrancePoint, lentrance);
+  
 
   auto hitlengthZ = lentrance.Z() - lexit.Z();
   auto pitch = mResponse.getPitch();
@@ -77,6 +78,53 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   }
   auto localX = mResponse.getAnod(lpos.X());
   auto localY = lpos.Y();
+
+  //calculate angle between track and wire assuming wire perpendicular to z-axis
+  auto thetawire = asin( (lexit.Y() - lentrance.Y()) / hitlengthZ);
+
+  //auxiliary variables 
+  auto eLossParticleElossMip = 0.0;
+  auto sigmaEffect10degrees = 0.0; 
+  auto sigmaEffectThetadegrees = 0.0;
+  auto yAngleEffect = 0.0;  
+  //calculate track betagamma
+  auto betagamma = 1.;//todo, how to access information in the best way
+  if (isAngleEffect()) {
+    if (!isMagnetEffect()) {
+      thetawire = abs(thetawire);
+        if ( (betagamma > 3.2) && (thetawire * kRadtodeg<=15.)  ) {//todo find translation factor in O2
+          betagamma = log(betagamma);//check if ln or log10
+          eLossParticleElossMip = elossRatio(betagamma);
+          sigmaEffect10degrees = angleEffect10(eLossParticleElossMip);
+          sigmaEffectThetadegrees = sigmaEffect10degrees / angleEffectNorma(thetawire * kRadtodeg);//todo find translation factor in O2
+          if(lexit.Z() < Something ) sigmaEffectThetadegrees/= 1.09833e+00 + 1.70000e-02 * (thetawire * kRadtodeg); //think of exit point to single out chamber one and chamber 2, check if bug in aliroot
+          yAngleEffect = 1.e-04 * gRandom->Gaus(0,sigmaEffectThetadegrees); //error due to the angle effect in cm
+        }
+    }else{
+      //other cases
+  /*
+   if ( (betaxGamma >3.2)   &&  (TMath::Abs(thetawires*kRaddeg)<=15.) ) {
+  449   betaxGamma=TMath::Log(betaxGamma);
+  450   eLossParticleELossMip = fElossRatio->Eval(betaxGamma);
+  451   // 10 degrees is a reference for a model (arbitrary)
+  452   sigmaEffect10degrees=fAngleEffect10->Eval(eLossParticleELossMip);// in micrometers
+  453   // Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
+  454   sigmaEffectThetadegrees =  sigmaEffect10degrees/fMagAngleEffectNorma->Eval(thetawires*kRaddeg,bField[0]/10.);  // For 5mm gap  
+  455       if ( (iChamber==1)  ||  (iChamber==2) )  
+  456         sigmaEffectThetadegrees/=(1.09833e+00+1.70000e-02*(thetawires*kRaddeg)); // The gap is different (4mm)
+  457   yAngleEffect=1.e-04*gRandom->Gaus(0,sigmaEffectThetadegrees); // Error due to the angle effect in cm
+  */
+    }
+  }
+  localY += yAngleEffect;
+
+  //once betagamma and angle there, do case separation for various corrections
+  //at the end correct localY with uncertainty
+  //Todo correct coordinates for angle effect, in Aliroot only acting on y-coordinate, see http://alidoc.cern.ch/AliRoot/master/_ali_m_u_o_nv1_8cxx_source.html
+  //Think if this is correct in the approximation that the B-field has only a x-component in ALICE, think about in which coordinate system best done global/local
+  // need to see if this is the only effect in Aliroot, and if it is enough to simply shift the coordinates by this modification
+  //´problem´: need angle of actual track to do correction -> can take the angle from entrance vs. exit point 
+  //
 
   // borders of charge integration area
   auto dxy = mResponse.getSigmaIntegration() * mResponse.getChargeSpread();
