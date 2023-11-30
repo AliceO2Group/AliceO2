@@ -65,7 +65,7 @@ void Detector::buildFT3FromFile(std::string configFileName)
   // This simple file reader is not failproof. Do not add empty lines!
 
   /*
-  # Sample MFT configuration
+  # Sample FT3 configuration
   # z_layer    r_in    r_out   Layerx2X0
   -45.3       2.5     9.26    0.0042
   -46.7       2.5     9.26    0.0042
