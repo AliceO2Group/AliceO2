@@ -49,6 +49,13 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
   // LOG(info) << "Pulse";
   // Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
+    int iChannel = hit.GetDetectorID();
+
+    // If the dead channel map is used, and the channel with ID 'hit_ch' is dead, don't process this hit.
+    if (mDeadChannelMap && !mDeadChannelMap->isChannelAlive(iChannel)) {
+      continue;
+    }
+
     if (hit.GetTime() > 20e3) {
       const int maxWarn = 10;
       static int warnNo = 0;
@@ -60,7 +67,6 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
     }
 
     std::array<o2::InteractionRecord, NBC2Cache> cachedIR;
-    int iChannel = hit.GetDetectorID();
     int nPhotoElectrons = simulateLightYield(iChannel, hit.GetNphot());
 
     double delayScintillator = mRndScintDelay.getNextValue();

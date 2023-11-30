@@ -18,6 +18,7 @@
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "FT0Simulation/Digitizer.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/HitType.h"
 #include "DataFormatsFT0/Digit.h"
@@ -95,7 +96,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // Initialize the dead channel map
     if (mUpdateDeadChannelMap && mUseDeadChannelMap) {
       auto deadChannelMap = pc.inputs().get<o2::fit::DeadChannelMap*>("ft0deadchannelmap");
-      mDigitizer.SetDeadChannelMap(deadChannelMap.get());
+      mDigitizer.setDeadChannelMap(deadChannelMap.get());
     }
 
     // if there is nothing to do ... return
@@ -172,7 +173,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   bool mUseCCDB = true;
   bool mUpdateCCDB = true;
   bool mUseDeadChannelMap = true;
-  bool mUpdateDeadChannelMap = false;
+  bool mUpdateDeadChannelMap = true;
   std::vector<TChain*> mSimChains;
 };
 

@@ -74,7 +74,7 @@ class Digitizer
 
   void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const*
                           caliboffsets) { mCalibOffset = caliboffsets; };
-  void SetDeadChannelMap(o2::fit::DeadChannelMap const* deadChannelMap) { mDeadChannelMap = deadChannelMap; };
+  void setDeadChannelMap(o2::fit::DeadChannelMap const* deadChannelMap) { mDeadChannelMap = deadChannelMap; };
   double getTimeOffsetWrtBC() const { return mIntRecord.getTimeOffsetWrtBC(); }
 
   struct CFDOutput {
