@@ -732,10 +732,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
     for (auto& ignoredInput : ignored) {
-      if (ignoredInput.lifetime == Lifetime::OutOfBand) {
-        // FIXME: Use Lifetime::Dangling when fully working?
-        ignoredInput.lifetime = Lifetime::Timeframe;
-      }
+      ignoredInput.lifetime = Lifetime::Sporadic;
     }
 
     extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingChannelConfigOutput));
