@@ -498,24 +498,33 @@ int InterCalib::mini(int ih)
   // Calibration cvoefficient is forced to and step is forced to zero
   mMn[ih]->mnparm(0, "c0", 1., 0., 1., 1., ierflg);
 
+  // Special fit for proton calorimeters: fit least exposed towers with using previous
+  // fit of all towers
+
+  // Tower 1
+  if (ih == HidZPCX) {
+    mMn[ih]->mnparm(1, "c1", mPar[HidZPC][1], 0, l_bnd, u_bnd, ierflg);
+  } else {
+    mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
+  }
+
+  // Tower 2
   // Only two ZEM calorimeters: equalize response
   // Equalize side A and C
-  if (ih == 4 || ih == 5 || ih == 6) {
+  if (ih == HidZEM || ih == HidZNI || ih == HidZPI) {
     l_bnd = 0;
     u_bnd = 0;
     start = 0;
     step = 0;
   }
 
-  // Special fit for proton calorimeters: fit least exposed towers with using previous
-  // fit of all towers
   if (ih == HidZPCX) {
-    mMn[ih]->mnparm(1, "c1", mPar[HidZPC][1], 0, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(2, "c2", mPar[HidZPC][2], 0, l_bnd, u_bnd, ierflg);
   } else {
-    mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
   }
+
+  // Towers 3 and 4
   if (ih == HidZPAX) {
     mMn[ih]->mnparm(3, "c3", mPar[HidZPA][3], 0, l_bnd, u_bnd, ierflg);
     mMn[ih]->mnparm(4, "c4", mPar[HidZPA][4], 0, l_bnd, u_bnd, ierflg);
