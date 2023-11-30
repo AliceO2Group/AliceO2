@@ -25,6 +25,8 @@ struct FDDDigParam : o2::conf::ConfigurableParamHelper<FDDDigParam> {
   float hitTimeOffsetA = 0; ///< Hit time offset on the A side [ns]
   float hitTimeOffsetC = 0; ///< Hit time offset on the C side [ns]
 
+  float pmGain = 1e6; ///< PM gain
+
   O2ParamDef(FDDDigParam, "FDDDigParam");
 };
 } // namespace o2::fdd
