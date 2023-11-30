@@ -16,7 +16,7 @@ using namespace o2::zdc;
 
 void InterCalibConfig::print() const
 {
-  const char* hn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM", "ZNI", "ZPI"};
+  const char* hn[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM", "ZNI", "ZPI", "ZPAX", "ZPCX"};
   for (Int_t ih = 0; ih < NH; ih++) {
     LOG(info) << hn[ih] << " limits = (" << cutLow[ih] << " : " << cutHigh[ih] << ")";
   }
@@ -26,6 +26,8 @@ void InterCalibConfig::print() const
   for (Int_t ih = 0; ih < NH; ih++) {
     LOG(info) << hn[ih] << " booking 2D = (" << nb2[ih] << ", " << amin2[ih] << ", " << amax2[ih] << ")";
   }
+  LOG(info) <<"xcut_ZPA = " << xcut_ZPA;
+  LOG(info) <<"xcut_ZPC = " << xcut_ZPC;
 }
 
 void InterCalibConfig::setMinEntries(double val)

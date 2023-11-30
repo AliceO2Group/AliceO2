@@ -244,12 +244,16 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   // Unit: cm
   void centroidZNA(float& x, float& y);
   void centroidZNC(float& x, float& y);
+  void centroidZPA(float& x, float& rms);
+  void centroidZPC(float& x, float& rms);
   float xZNA();
   float yZNA();
   float xZNC();
   float yZNC();
   float xZPA(); // Positive
   float xZPC(); // Negative
+  float rmsZPA();
+  float rmsZPC();
 
   void decodeInfo(uint8_t ch, uint16_t code);
   void decodeMapInfo(uint32_t ch, uint16_t code);

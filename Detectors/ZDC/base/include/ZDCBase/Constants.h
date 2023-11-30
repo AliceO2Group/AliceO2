@@ -23,9 +23,9 @@
 #include <type_traits>
 
 // Enable debug printout in reconstruction
-//#define O2_ZDC_DEBUG
+// #define O2_ZDC_DEBUG
 // TDC arrays in debug output
-//#define O2_ZDC_TDC_C_ARRAY
+// #define O2_ZDC_TDC_C_ARRAY
 
 namespace o2
 {
@@ -141,36 +141,37 @@ constexpr uint32_t MaskZPC = 0x01f00000;
 constexpr uint32_t MaskAllZPC = 0x03f00000;
 
 constexpr std::string_view ChannelNames[] = {
-  "ZNAC",
-  "ZNA1",
-  "ZNA2",
-  "ZNA3",
-  "ZNA4",
-  "ZNAS",
+  "ZNAC", //  0
+  "ZNA1", //  1
+  "ZNA2", //  2
+  "ZNA3", //  3
+  "ZNA4", //  4
+  "ZNAS", //  5
   //
-  "ZPAC",
-  "ZPA1",
-  "ZPA2",
-  "ZPA3",
-  "ZPA4",
-  "ZPAS",
+  "ZPAC", //  6
+  "ZPA1", //  7
+  "ZPA2", //  8
+  "ZPA3", //  9
+  "ZPA4", // 10
+  "ZPAS", // 11
   //
-  "ZEM1",
-  "ZEM2",
+  "ZEM1", // 12
+  "ZEM2", // 13
   //
-  "ZNCC",
-  "ZNC1",
-  "ZNC2",
-  "ZNC3",
-  "ZNC4",
-  "ZNCS",
+  "ZNCC", // 14
+  "ZNC1", // 15
+  "ZNC2", // 16
+  "ZNC3", // 17
+  "ZNC4", // 18
+  "ZNCS", // 19
   //
-  "ZPCC",
-  "ZPC1",
-  "ZPC2",
-  "ZPC3",
-  "ZPC4",
-  "ZPCS"};
+  "ZPCC", // 20
+  "ZPC1", // 21
+  "ZPC2", // 22
+  "ZPC3", // 23
+  "ZPC4", // 24
+  "ZPCS"  // 25
+};
 
 // From TDC ID to signal ID
 const int TDCSignal[NTDCChannels] = {
