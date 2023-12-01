@@ -22,6 +22,7 @@
 #include "TPCFastSpaceChargeCorrection.h"
 #include "GPUCommonMath.h"
 #include "GPUDebugStreamer.h"
+#include "DataFormatsTPC/Defs.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <string>
@@ -158,6 +159,7 @@ class TPCFastTransform : public FlatObject
   void setLumi(float l) { mLumi = l; }
   void setLumiError(float e) { mLumiError = e; }
   void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
+  void setLumiSource(o2::tpc::LumiType l) { mLumiSource = l; }
 
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(long int v) { mTimeStamp = v; }
@@ -253,6 +255,9 @@ class TPCFastTransform : public FlatObject
   /// Return map user defined lumi scale factor
   GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
 
+  /// Return map lumi source type
+  o2::tpc::LumiType getLumiSource() const { return mLumiSource; }
+
   /// maximal possible drift time of the active area
   GPUd() float getMaxDriftTime(int slice, int row, float pad) const;
 
@@ -330,13 +335,15 @@ class TPCFastTransform : public FlatObject
   float mLumiError;       ///< error on luminosity
   float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
 
+  o2::tpc::LumiType mLumiSource{o2::tpc::LumiType::CTP}; ///< source of luminosity
+
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
   GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale, int scaleMode) const;
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 3);
+  ClassDefNV(TPCFastTransform, 4);
 #endif
 };
 
