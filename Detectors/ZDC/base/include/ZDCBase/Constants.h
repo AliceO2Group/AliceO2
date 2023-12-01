@@ -21,6 +21,7 @@
 #include <string_view>
 #include <string>
 #include <type_traits>
+#include <limits>
 
 // Enable debug printout in reconstruction
 // #define O2_ZDC_DEBUG
@@ -70,7 +71,11 @@ constexpr int NLinks = NModules * 2;
 constexpr int NDigiChannels = NModules * NChPerModule;
 constexpr int NWPerBc = 3;
 constexpr int MaxTriggerChannels = NChannels;
+
+// Limits
 constexpr int ADCMin = -2048, ADCMax = 2047, ADCRange = 4096; // 12 bit ADC
+constexpr float FInfty = std::numeric_limits<float>::infinity();
+constexpr float DInfty = std::numeric_limits<double>::infinity();
 
 // Encoding of ZDC energy into an uint32_t value
 // Most significant 5 bits are for channel id, least significant 27 bits are for energy

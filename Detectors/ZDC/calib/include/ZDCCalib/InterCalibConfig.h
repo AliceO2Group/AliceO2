@@ -36,8 +36,10 @@ struct InterCalibConfig {
   // Meaningful values are in the range of tower x centers i.e. from
   // 2.8 to 19.6 If one puts less than 2.8 then the computation will be
   // the same as for ZPA/ZPC with no cuts
-  double xcut_ZPA = 10;
-  double xcut_ZPC = 10;
+  double xcut_ZPA = 6;
+  double xcut_ZPC = 6;
+  double tower_cut_ZP = 0;
+  bool cross_check = false;
 
   int nb1[NH] = {0};      /// 1D histogram: number of bins
   double amin1[NH] = {0}; /// minimum
