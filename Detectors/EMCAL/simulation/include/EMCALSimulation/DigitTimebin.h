@@ -33,10 +33,6 @@ namespace emcal
 template <class DigitTemplate>
 struct DigitTimebinBase;
 
-/// \brief DigitTimebin is DigitTimebinBase<LabeledDigit>
-using DigitTimebin = DigitTimebinBase<LabeledDigit>;
-using DigitTimebinTRU = DigitTimebinBase<Digit>;
-
 /// \struct DigitTimebinBase
 /// \brief DigitTimebinBase templated, used for the DigitsWriteoutBuffer and DigitsWriteoutBufferTRU
 /// \ingroup EMCALsimulation
@@ -59,6 +55,11 @@ struct DigitTimebinBase {
   std::shared_ptr<std::unordered_map<int, std::list<DigitTemplate>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<DigitTemplate>>>();
   ClassDefNV(DigitTimebinBase, 1);
 };
+
+/// \brief DigitTimebin is DigitTimebinBase<LabeledDigit>
+using DigitTimebin = DigitTimebinBase<LabeledDigit>;
+using DigitTimebinTRU = DigitTimebinBase<Digit>;
+
 
 } // namespace emcal
 } // namespace o2

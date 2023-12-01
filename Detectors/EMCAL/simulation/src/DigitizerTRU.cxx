@@ -171,12 +171,12 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
     auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     // if(dig.getAmplitude() > 0.1) LOG(info) << "DIG SIMONE makeAnaloguesFastorSums in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
-    LOG(info) << "DIG SIMONE makeAnaloguesFastorSums in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
+    // LOG(info) << "DIG SIMONE makeAnaloguesFastorSums in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
     auto found = sdigitsFastOR.find(fastorIndex);
     if (found != sdigitsFastOR.end()) {
       // sum energy
-      LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums: found->first, getAmplitude() = " << (found->second).getAmplitude() << ", getAmplitudeADC() = " << (found->second).getAmplitudeADC() << ", isTRU = " << (found->second).getTRU();
-      LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:          dig, getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
+      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums: found->first, getAmplitude() = " << (found->second).getAmplitude() << ", getAmplitudeADC() = " << (found->second).getAmplitudeADC() << ", isTRU = " << (found->second).getTRU();
+      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:          dig, getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
       // (found->second) += dig;
       // auto& previousDig = found->second;
       // previousDig += dig;
@@ -187,7 +187,7 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
 
       Digit digitToSum((found->second).getTower(), dig.getAmplitude(), (found->second).getTimeStamp());
       (found->second) += digitToSum;
-      LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:          sum, getAmplitude() = " << (found->second).getAmplitude() << ", getAmplitudeADC() = " << (found->second).getAmplitudeADC() << ", isTRU = " << (found->second).getTRU();
+      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:          sum, getAmplitude() = " << (found->second).getAmplitude() << ", getAmplitudeADC() = " << (found->second).getAmplitudeADC() << ", isTRU = " << (found->second).getTRU();
       // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:  previousDig, getAmplitude() = " << (previousDig).getAmplitude() << ", getAmplitudeADC() = " << (previousDig).getAmplitudeADC() << ", isTRU = " << (previousDig).getTRU();
       // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:  summedDigit, getAmplitude() = " << (summedDigit).getAmplitude() << ", getAmplitudeADC() = " << (summedDigit).getAmplitudeADC() << ", isTRU = " << (summedDigit).getTRU();
     } else {
@@ -204,7 +204,7 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
     int fastorIndex = elem.first;
     auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    LOG(info) << "DIG SIMONE makeAnaloguesFastorSums AFTER LOOP in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
+    // LOG(info) << "DIG SIMONE makeAnaloguesFastorSums AFTER LOOP in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
   }
 
   // Setting them to be TRU digits
@@ -217,7 +217,7 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
     int fastorIndex = elem.first;
     auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    LOG(info) << "DIG SIMONE makeAnaloguesFastorSums AFTER setTRU in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
+    // LOG(info) << "DIG SIMONE makeAnaloguesFastorSums AFTER setTRU in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
   }
 
   // std::vector<Digit> outputFastorSDigits;
