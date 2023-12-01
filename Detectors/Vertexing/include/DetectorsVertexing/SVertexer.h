@@ -100,8 +100,12 @@ class SVertexer
     VBracket vBracket{};
     float minR = 0; // track lowest point r
     bool hasTPC = false;
-    uint8_t nITSclu = -1;
+    int8_t nITSclu = -1;
     bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
+    bool hasITS() const
+    {
+      return nITSclu > 0;
+    }
   };
 
   SVertexer(bool enabCascades = true, bool enab3body = false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body}
@@ -112,6 +116,7 @@ class SVertexer
   void setEnable3BodyDecays(bool v) { mEnable3BodyDecays = v; }
   void init();
   void process(const o2::globaltracking::RecoContainer& recoTracks, o2::framework::ProcessingContext& pc);
+  void produceOutput(o2::framework::ProcessingContext& pc);
   int getNV0s() const { return mNV0s; }
   int getNCascades() const { return mNCascades; }
   int getN3Bodies() const { return mN3Bodies; }
@@ -152,7 +157,7 @@ class SVertexer
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
-  bool acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const;
+  bool acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc) const;
   bool processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid);
   float correctTPCTrack(TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const;
 
@@ -193,6 +198,7 @@ class SVertexer
 
   int mNThreads = 1;
   int mNV0s = 0, mNCascades = 0, mN3Bodies = 0, mNStrangeTracks = 0;
+  float mBz = 0;
   float mMinR2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertexV0Casc = 0;
