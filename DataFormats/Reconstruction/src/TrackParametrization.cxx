@@ -585,6 +585,9 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
   const auto fy = mP[0], sn = mP[2];
   const value_t kEps = 1.e-6;
   //
+  if (gpu::CAMath::Abs(getSnp()) > constants::math::Almost1) {
+    return false;
+  }
   auto crv = getCurvature(bz);
   while (gpu::CAMath::Abs(crv) > constants::math::Almost0) { // helix ?
     // get center of the track circle
