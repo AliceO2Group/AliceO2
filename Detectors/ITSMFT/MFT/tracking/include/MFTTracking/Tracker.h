@@ -210,10 +210,14 @@ inline const Float_t Tracker<T>::getCellDeviation(const Cell& cell1, const Cell&
 
   Float_t cell1mod = std::sqrt(cell1dx * cell1dx + cell1dy * cell1dy + cell1dz * cell1dz);
   Float_t cell2mod = std::sqrt(cell2dx * cell2dx + cell2dy * cell2dy + cell2dz * cell2dz);
+  Float_t cosAngle = 0;
 
-  Float_t cosAngle = (cell1dx * cell2dx + cell1dy * cell2dy + cell1dz * cell2dz) / (cell1mod * cell2mod);
+  if (std::abs(cell1mod) < 1e-9 || std::abs(cell2mod) < 1e-9) {
+    return -1;
+  }
+  cosAngle = (cell1dx * cell2dx + cell1dy * cell2dy + cell1dz * cell2dz) / (cell1mod * cell2mod);
 
-  return std::acos(cosAngle);
+  return (std::abs(cosAngle) < 1) ? std::acos(cosAngle) : -1;
 }
 
 //_________________________________________________________________________________________________

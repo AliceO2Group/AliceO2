@@ -955,7 +955,7 @@ void Tracker<T>::runBackwardInRoad(ROframe<T>& event)
 
           deviation = getCellDeviation(cellL, cellRC);
 
-          if (deviation < deviationPrev) {
+          if (deviation < deviationPrev && deviation > -1) {
 
             deviationPrev = deviation;
 
