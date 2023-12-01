@@ -298,6 +298,7 @@ void DigiReco::init()
   }
 
   // Tower calibration (intercalibration of towers)
+  // Array ChTowerCalib defines which channels use this calibration: ZN and ZP towers + ZEM2
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.tower_calib[ChTowerCalib[il]] > 0) {
       LOG(info) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];

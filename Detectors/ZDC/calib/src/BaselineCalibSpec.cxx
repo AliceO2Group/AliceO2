@@ -230,7 +230,7 @@ framework::DataProcessorSpec getBaselineCalibSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("basecalibdata", "ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("basecalibdata", "ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
   inputs.emplace_back("calibconfig", "ZDC", "BASECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathBaselineCalibConfig.data()));
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
 
