@@ -530,6 +530,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   if (detRefs[GTrackID::ITS].isIndexSet()) { // this is ITS track
     const auto& trkITS = mITSTracksArray[detRefs[GTrackID::ITS]];
     outerParam = trkITS.getParamOut();
+    outerParam.setPID(recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()).getPID());
     nCl = trkITS.getNumberOfClusters();
     clEntry = trkITS.getFirstClusterEntry();
     chi2Out = trkITS.getChi2();
@@ -540,7 +541,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     const auto& trkITSABref = mITSABRefsArray[detRefs[GTrackID::ITSAB]];
     nCl = trkITSABref.getNClusters();
     clEntry = trkITSABref.getFirstEntry();
-    outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC
+    outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC, no need to set PID, will be transferred from ITSTPC track
     outerParam.resetCovariance(100);                                  // reset covariance to something big
     // refit
     for (int icl = 0; icl < nCl; icl++) {                                                              // clusters are stored from inner to outer layers
