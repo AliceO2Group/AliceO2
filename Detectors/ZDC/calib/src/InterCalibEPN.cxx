@@ -98,7 +98,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     if (ev.TDCVal[TDCZEM1].size() == 0 || ev.TDCVal[TDCZEM2].size() == 0) {
       continue;
     }
-    if(mInterCalibConfig->cross_check == false){
+    if (mInterCalibConfig->cross_check == false) {
       if ((ev.ezdcDecoded & MaskZNA) == MaskZNA) {
         cumulate(HidZNA, ev.EZDC(IdZNAC), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
       }
@@ -121,7 +121,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
           cumulate(HidZPCX, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
         }
       }
-    }else{
+    } else {
       if ((ev.ezdcDecoded & MaskAllZNA) == MaskAllZNA) {
         cumulate(HidZNA, ev.EZDC(IdZNASum), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
       }
@@ -145,7 +145,7 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         }
       }
     }
-    
+
     if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
     }

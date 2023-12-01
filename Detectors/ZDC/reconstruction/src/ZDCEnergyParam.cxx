@@ -72,7 +72,6 @@ float ZDCEnergyParam::getOffset(uint32_t ich) const
   }
 }
 
-
 void ZDCEnergyParam::print() const
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {

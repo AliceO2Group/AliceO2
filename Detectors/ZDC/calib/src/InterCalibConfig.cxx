@@ -29,7 +29,7 @@ void InterCalibConfig::print() const
   LOG(info) << "xcut_ZPA = " << xcut_ZPA;
   LOG(info) << "xcut_ZPC = " << xcut_ZPC;
   LOG(info) << "tower_cut_ZP = " << tower_cut_ZP;
-  if(cross_check){
+  if (cross_check) {
     LOG(warn) << "THIS IS A CROSS CHECK CONFIGURATION (vs SUM)";
   }
 }
