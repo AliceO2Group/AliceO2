@@ -31,12 +31,6 @@ namespace tpc
 {
 
 struct SCMetaData {
-
-  enum LumiType {
-    CTP = 0,
-    IDC = 1
-  };
-
   void print() const
   {
     const std::array<std::string, 2> collisionTypes{"PP", "Pb-Pb"};

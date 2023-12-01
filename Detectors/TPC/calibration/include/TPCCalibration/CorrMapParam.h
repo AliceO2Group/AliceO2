@@ -18,6 +18,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "DataFormatsTPC/Defs.h"
 
 namespace o2
 {
@@ -30,6 +31,7 @@ struct CorrMapParam : public o2::conf::ConfigurableParamHelper<CorrMapParam> {
   float lumiMeanRef = 0.;    // override TPC corr.mapRef mean lumi (if > 0)"
   float lumiInstFactor = 1.; // scaling to apply to instantaneous lumi from CTP (but not corrmap-lumi-inst)
   int ctpLumiSource = 0;     // CTP lumi source: 0 = LumiInfo.getLumi(), 1 = LumiInfo.getLumiAlt()
+  LumiType lumiSource{};     // source of luminosity
 
   O2ParamDef(CorrMapParam, "TPCCorrMap");
 };
