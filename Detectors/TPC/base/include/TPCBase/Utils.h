@@ -67,7 +67,7 @@ void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNam
 /// \param command command to run
 /// \param treeName name of the tree in the chain
 /// \param treeTitle title of the tree
-TChain* buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle);
+TChain* buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle = "", bool checkSubDir = false);
 
 } // namespace utils
 } // namespace o2::tpc

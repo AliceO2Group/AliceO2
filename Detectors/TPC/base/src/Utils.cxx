@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
+#include <memory>
 #include <regex>
 #include <string>
 #include <string_view>
@@ -27,6 +28,7 @@
 #include "TChain.h"
 #include "TGrid.h"
 
+#include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/Utils.h"
@@ -255,7 +257,7 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
 }
 
 //______________________________________________________________________________
-TChain* utils::buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle)
+TChain* utils::buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle, bool checkSubDir)
 {
   const TString files = gSystem->GetFromPipe(command.data());
   std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
@@ -266,10 +268,30 @@ TChain* utils::buildChain(std::string_view command, std::string_view treeName, s
 
   auto c = new TChain(treeName.data(), treeTitle.data());
   for (const auto o : *arrFiles) {
-    LOGP(info, "Adding file '{}'", o->GetName());
-    c->AddFile(o->GetName());
-    if (std::string_view(o->GetName()).find("alien") == 0) {
-      TGrid::Connect("alien");
+    if (o2::utils::Str::beginsWith(o->GetName(), "alien://") && !gGrid && !TGrid::Connect("alien://")) {
+      LOGP(fatal, "could not open alien connection to read {}", o->GetName());
+    }
+
+    if (checkSubDir) {
+      std::unique_ptr<TFile> f(TFile::Open(o->GetName()));
+      if (!f->IsOpen() || f->IsZombie()) {
+        continue;
+      }
+      for (auto ok : *f->GetListOfKeys()) {
+        auto k = static_cast<TKey*>(ok);
+        if (std::string_view(k->GetClassName()) != "TDirectoryFile") {
+          continue;
+        }
+        auto df = f->Get<TDirectoryFile>(k->GetName());
+        if (df->GetListOfKeys() && df->GetListOfKeys()->FindObject(treeName.data())) {
+          const auto fullTreePath = fmt::format("{}/{}", df->GetName(), treeName);
+          c->AddFile(o->GetName(), TTree::kMaxEntries, fullTreePath.data());
+          LOGP(info, "Adding file '{}', with tree {}", o->GetName(), fullTreePath);
+        }
+      }
+    } else {
+      LOGP(info, "Adding file '{}'", o->GetName());
+      c->AddFile(o->GetName());
     }
   }
 
