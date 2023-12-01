@@ -103,7 +103,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minTPCdEdx = 250;                    // starting from this dEdx value, tracks with p > minMomTPCdEdx are always accepted
   float minMomTPCdEdx = 0.8;                 // minimum p for tracks with dEdx > mMinTPCdEdx to be accepted
   float maxV0TglAbsDiff = 0.3;               ///< max absolute difference in Tgl for V0 for photons only
-  float mTPCTrackMaxChi2 = 4.;               ///< max dca from prongs to vertex for photon TPC-only track only
+  float mTPCTrackMaxChi2 = 4.;               ///< max DCA from prongs to vertex for photon TPC-only track only
   float mTPCTrackMaxDZIni = 8.;              ///< don't consider as a seed (circles intersection) if Z distance exceeds this, for photon TPC-only track only
   float mTPCTrackMaxDXYIni = 8.;             ///< don't consider as a seed (circles intersection) if XY distance exceeds this, for photon TPC-only track only
   float mTPCTrackMaxDCAXY2ToMeanVertex = 2.; ///< max DCA^2 of V0 from beam line (mean vertex) for prompt V0 candidates, for photon TPC-only track only
