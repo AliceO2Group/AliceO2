@@ -60,7 +60,6 @@ struct DigitTimebinBase {
 using DigitTimebin = DigitTimebinBase<LabeledDigit>;
 using DigitTimebinTRU = DigitTimebinBase<Digit>;
 
-
 } // namespace emcal
 } // namespace o2
 #endif /* ALICEO2_EMCAL_DIGITTIMEBIN_H */
