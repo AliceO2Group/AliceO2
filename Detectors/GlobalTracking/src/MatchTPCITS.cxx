@@ -1332,6 +1332,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   const auto& itsTrOrig = mITSTracksArray[tITS.sourceID];
   auto& trfit = matchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   trfit.getParamOut().setUserField(0);                  // reset eventual clones flag
+  trfit.setPID(tTPC.getPID());
+  trfit.getParamOut().setPID(tTPC.getPID());
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
   if (!mCompareTracksDZ) {
