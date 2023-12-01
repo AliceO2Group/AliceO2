@@ -153,7 +153,6 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
   }
   if (matcher == ConcreteDataMatcher("GLO", "SVPARAM", 0)) {
     LOG(info) << "SVertexer Params updated from ccdb";
-    SVertexerParams::Instance().printKeyValues(true, true);
     return;
   }
 }
@@ -175,7 +174,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
       // setting and or overwriting the configurable params
-      SVertexerParams::Instance().printKeyValues();
+      SVertexerParams::Instance().printKeyValues(true, true);
     }
     if (mEnableStrangenessTracking) {
       o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
