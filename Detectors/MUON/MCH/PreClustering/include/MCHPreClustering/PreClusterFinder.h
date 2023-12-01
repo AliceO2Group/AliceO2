@@ -66,8 +66,6 @@ class PreClusterFinder
   struct PreCluster {
     uint16_t firstPad; // index of first associated pad in the orderedPads array
     uint16_t lastPad;  // index of last associated pad in the orderedPads array
-    double time;       // average time of the associated digits, in us
-    uint32_t nPads;
     float area[2][2];  // 2D area containing the precluster
     bool useMe;        // false if precluster already merged to another one
     bool storeMe;      // true if precluster to be saved (merging result)
