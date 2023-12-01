@@ -190,6 +190,7 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     float meanTW0 = 0, rmsTW0 = 0, WT0 = 0;
     int nContAdd = 0, nContAdd0 = 0, ntITS = 0;
     int nAdjusted = 0;
+    float q2ptITS, q2ptTPC, q2ptITSTPC, q2ptITSTPCTRD;
     for (int is = 0; is < GTrackID::NSources; is++) {
       DetID::mask_t dm = GTrackID::getSourceDetectorsMask(is);
       bool skipTracks = !mTracksSrc[is] || !recoData.isTrackSourceLoaded(is) || !(dm[DetID::ITS] || dm[DetID::TPC]);
@@ -289,9 +290,27 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           LOGP(debug, "dt={} dz={}, tW={}, zW={} t={} tE={} {}", dt, dca.getZ(), tW, zW, ttime, ttimeE, vid.asString());
         }
         if (acceptGlo) {
+          q2ptITS = q2ptTPC = q2ptITSTPC = q2ptITSTPCTRD = 0.;
+          auto gidRefs = recoData.getSingleDetectorRefs(vid);
+          if (gidRefs[GTrackID::ITS].isIndexSet()) {
+            q2ptITS = recoData.getTrackParam(gidRefs[GTrackID::ITS]).getQ2Pt();
+          }
+          if (gidRefs[GTrackID::TPC].isIndexSet()) {
+            q2ptTPC = recoData.getTrackParam(gidRefs[GTrackID::TPC]).getQ2Pt();
+          }
+          if (gidRefs[GTrackID::ITSTPC].isIndexSet()) {
+            q2ptITSTPC = recoData.getTrackParam(gidRefs[GTrackID::ITSTPC]).getQ2Pt();
+          }
+          if (gidRefs[GTrackID::TRD].isIndexSet()) {
+            q2ptITSTPCTRD = recoData.getTrackParam(gidRefs[GTrackID::TRD]).getQ2Pt();
+          }
+
           (*mDBGOut) << "dca"
                      << "tfID=" << TFCount << "ttime=" << ttime << "ttimeE=" << ttimeE
-                     << "gid=" << vid << "pv=" << (iv == nv - 1 ? vtxDummy : pvvec[iv]) << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin << "\n";
+                     << "gid=" << vid << "pvid=" << (iv == nv - 1 ? -1 : iv) << "pv=" << (iv == nv - 1 ? vtxDummy : pvvec[iv])
+                     << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin
+                     << "q2ptITS=" << q2ptITS << "q2ptTPC=" << q2ptTPC << "q2ptITSTPC=" << q2ptITSTPC << "q2ptITSTPCTRD=" << q2ptITSTPCTRD
+                     << "\n";
         }
       }
     }
