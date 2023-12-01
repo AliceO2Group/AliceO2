@@ -119,9 +119,11 @@ void ROFTimeClusterFinderV2::initTimeBins()
     if (mImprovePeakSearch) {
       auto rofDigits = mDigits.subspan(rof.getFirstIdx(), rof.getNEntries());
       for (auto& digit : rofDigits) {
-        if (mIsGoodDigit(digit)) {
-          nDigitsPS += 1;
+        if (!mIsGoodDigit(digit)) {
+          continue;
         }
+
+        nDigitsPS += 1;
         int deId = digit.getDetID();
         int chId = (deId / 100) - 1;
         if (chId < 0) continue;
@@ -151,7 +153,7 @@ void ROFTimeClusterFinderV2::initTimeBins()
 
 //_________________________________________________________________________________________________
 
-static int targetOrbit = 376784078;
+static int targetOrbit = 74442508;
 
 int32_t ROFTimeClusterFinderV2::getNextPeak()
 {
@@ -172,18 +174,19 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
     }
 
     // check number of stations associated to the digits in the search window
-    std::array<bool, 10> hasChamber = {
-        false, false, false, false, false,
-        false, false, false, false, false
-    };
-    std::array<bool, 5> hasStation = {
-        false, false, false, false, false
-    };
+    std::array<bool, 10> hasChamber = mTimeBins[i].mHasChamber;
+    std::array<bool, 5> hasStation = mTimeBins[i].mHasStation;
 
     int peakOrbit = mInputROFs[peak.mFirstIdx].getBCData().orbit;
     if (peakOrbit == targetOrbit) {
       int peakBc = mInputROFs[peak.mFirstIdx].getBCData().bc;
-      std::cout << "[TOTO] peak seed " << i << "  " << peak.mNDigitsPS << "  bc " << peakBc << "  padding " << sPadding << std::endl;
+      std::cout << "[TOTO] ==== " << std::endl;
+      std::cout << "[TOTO] checking peak seed " << i << "  " << peak.mNDigitsPS << "  bc " << peakBc << "   stations ";
+      for (auto st : mTimeBins[i].mHasStation) {
+        if (st) std::cout<<"1 ";
+        else std::cout<<"0 ";
+      }
+      std::cout << std::endl;
     }
 
 
@@ -193,7 +196,12 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
       if (j > mLastSavedTimeBin && peakOrbit == targetOrbit) {
         int orbit = (mTimeBins[j].mFirstIdx < 0) ? -1 : mInputROFs[mTimeBins[j].mFirstIdx].getBCData().orbit;
         int bc = (mTimeBins[j].mFirstIdx < 0) ? -1 : mInputROFs[mTimeBins[j].mFirstIdx].getBCData().bc;
-        std::cout << "[TOTO] " << j << "   orbit " << orbit << "   bc " << bc << "   nDigits " << mTimeBins[j].mNDigitsPS << std::endl;
+        std::cout << "[TOTO] " << j << "   orbit " << orbit << "   bc " << bc << "   nDigits " << mTimeBins[j].mNDigitsPS << "   stations ";
+        for (auto st : mTimeBins[j].mHasStation) {
+          if (st) std::cout<<"1 ";
+          else std::cout<<"0 ";
+        }
+        std::cout << std::endl;
       }
       if (j > mLastSavedTimeBin && peak <= mTimeBins[j]) {
         found = false;
@@ -217,7 +225,12 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
       if (j < mNbinsInOneTF && peakOrbit == targetOrbit) {
         int orbit = (mTimeBins[j].mFirstIdx < 0) ? -1 : mInputROFs[mTimeBins[j].mFirstIdx].getBCData().orbit;
         int bc = (mTimeBins[j].mFirstIdx < 0) ? -1 : mInputROFs[mTimeBins[j].mFirstIdx].getBCData().bc;
-        std::cout << "[TOTO] " << j << "   orbit " << orbit << "   bc " << bc << "   nDigits " << mTimeBins[j].mNDigitsPS << std::endl;
+        std::cout << "[TOTO] " << j << "   orbit " << orbit << "   bc " << bc << "   nDigits " << mTimeBins[j].mNDigitsPS << "   stations ";
+        for (auto st : mTimeBins[j].mHasStation) {
+          if (st) std::cout<<"1 ";
+          else std::cout<<"0 ";
+        }
+        std::cout << std::endl;
       }
       if (j < mNbinsInOneTF && peak < mTimeBins[j]) {
         found = false;
@@ -236,9 +249,6 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
         }
       }
     }
-    if (peakOrbit == targetOrbit) {
-      std::cout << "[TOTO] peak found " << found << std::endl;
-    }
 
     int nStations = 0;
     for (auto st : hasStation) {
@@ -246,9 +256,18 @@ int32_t ROFTimeClusterFinderV2::getNextPeak()
         nStations += 1;
       }
     }
+    if (peakOrbit == targetOrbit) {
+      int peakOrbit = mInputROFs[peak.mFirstIdx].getBCData().orbit;
+      int peakBc = mInputROFs[peak.mFirstIdx].getBCData().bc;
+      std::cout << "[TOTO] peak seed " << i << "   orbit " << peakOrbit << "   bc " << peakBc << "   nDigits " << mTimeBins[i].mNDigitsPS << "  found=" << found << "    nStations " << nStations << std::endl;
+    }
 
-    if (!found || (nStations < 5)) {
+    if (!found || (nStations < 4)) {
       continue;
+    }
+    if (peakOrbit == targetOrbit) {
+      auto nDigits = mInputROFs[peak.mLastIdx].getLastIdx() - mInputROFs[peak.mFirstIdx].getFirstIdx() + 1;
+      std::cout << fmt::format("[TOTO] new peak found at bin {}, entries = {}/{}", i, peak.mNDigitsPS, nDigits) << std::endl;
     }
 
     if (mDebug) {
