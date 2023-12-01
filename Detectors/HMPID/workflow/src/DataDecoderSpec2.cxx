@@ -203,7 +203,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
     int pointerToTheFirst = mDeco->mDigits.size();
     uint32_t* theBuffer = (uint32_t*)it.raw();
     mDeco->setUpStream(theBuffer, it.size() + it.offset());
-    try {
+   try {
       if (mFastAlgorithm) {
         mDeco->decodePageFast(&theBuffer);
       } else {
@@ -213,7 +213,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
       // The stream end !
       LOG(debug) << "End Page decoding !";
     }
-    //   std::cout << ">>>>" << pointerToTheFirst << "," << mDeco->mDigits.size() << std::endl;
+    // std::cout << "  fDigit=" << pointerToTheFirst << " lDigit=," << mDeco->mDigits.size() << " nDigit=" << mDeco->mDigits.size()-pointerToTheFirst << std::endl;
     mTriggers.push_back(o2::hmpid::Trigger(mDeco->mIntReco, pointerToTheFirst, mDeco->mDigits.size() - pointerToTheFirst));
     mTotalFrames++;
   }
