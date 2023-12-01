@@ -521,7 +521,7 @@ DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                
 DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                       //! Resolution of the track time in ns
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                                                       //! Sign of the track eletric charge
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
-DECLARE_SOA_DYNAMIC_COLUMN(IsCA, isCA, //! Returns true if used track-finding algorithm was Cellular Automaton
+DECLARE_SOA_DYNAMIC_COLUMN(IsCA, isCA,                                                       //! Returns true if used track-finding algorithm was Cellular Automaton
                            [](uint64_t mftClusterSizesAndTrackFlags) -> bool { return mftClusterSizesAndTrackFlags & (0x1ULL << 60); });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
                               -1.f * nlog(ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))));
