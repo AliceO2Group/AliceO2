@@ -33,9 +33,9 @@ TRKServices::TRKServices(float rMin, float zLength, float thickness)
   mColdPlateZLength = zLength;
   mColdPlateThickness = thickness;
   mZLengthIRISVacV = 70.;
-  mThicknessIRISVacV = 150.e-3;
+  mThicknessIRISVacV = 150.e-4;
   mRInIRISVacV = 0.48;
-  mROutIRISVacV = mColdPlateRMin + mColdPlateThickness;
+  mROutIRISVacV = mColdPlateRMin + mColdPlateThickness;;
 }
 
 void TRKServices::createMaterials()
@@ -168,22 +168,21 @@ void TRKServices::createColdplate(TGeoVolume* motherVolume)
   // IRIS Tracker Vacuum Vessel
   TGeoTube* irisVacuumVesselInnerTube = new TGeoTube("TRK_IRISVACUUMVESSEL_INNERTUBEsh", mRInIRISVacV, mRInIRISVacV + mThicknessIRISVacV, mZLengthIRISVacV/2.);
   TGeoTube* irisVacuumVesselOuterTube = new TGeoTube("TRK_IRISVACUUMVESSEL_OUTERTUBEsh", mROutIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mZLengthIRISVacV/2.);
-  TGeoTube* irisVacuumVesselWallNegZSideTube = new TGeoTube("TRK_IRISVACUUMVESSEL_WALLNEGZSIDEsh", mRInIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mThicknessIRISVacV/2.);
-  TGeoTranslation* irisVacVWallNegZ = new TGeoTranslation("IRISVACVWELLNEGZ", 0., 0., -mZLengthIRISVacV/2. - mThicknessIRISVacV/2.);
+  TGeoTube* irisVacuumVesselWall = new TGeoTube("TRK_IRISVACUUMVESSEL_WALLsh", mRInIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mThicknessIRISVacV/2.);
+  TGeoTranslation* irisVacVWallNegZ = new TGeoTranslation("IRISVACVWALLNEGZ", 0., 0., -mZLengthIRISVacV/2. - mThicknessIRISVacV/2.);
   irisVacVWallNegZ->RegisterYourself();
-  TGeoTube* irisVacuumVesselWallPosZSideTube = new TGeoTube("TRK_IRISVACUUMVESSEL_WALLPOSZSIDEsh", mRInIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mThicknessIRISVacV/2.);
-  TGeoTranslation* irisVacVWallPosZ = new TGeoTranslation("IRISVACVWELLPOSZ", 0., 0., mZLengthIRISVacV/2. + mThicknessIRISVacV/2.);
+  TGeoTranslation* irisVacVWallPosZ = new TGeoTranslation("IRISVACVWALLPOSZ", 0., 0., mZLengthIRISVacV/2. + mThicknessIRISVacV/2.);
   irisVacVWallPosZ->RegisterYourself();
   TString irisCompositeFormula = "TRK_IRISVACUUMVESSEL_INNERTUBEsh"
                                   "+TRK_IRISVACUUMVESSEL_OUTERTUBEsh"
-                                  "+TRK_IRISVACUUMVESSEL_WALLNEGZSIDEsh:IRISVACVWELLNEGZ"
-                                  "+TRK_IRISVACUUMVESSEL_WALLPOSZSIDEsh:IRISVACVWELLPOSZ";
+                                  "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLNEGZ"
+                                  "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLPOSZ";
   TGeoCompositeShape* irisVacuumVesselComposite = new TGeoCompositeShape("TRK_IRISVACUUMVESSELsh", irisCompositeFormula);
   const TGeoMedium* medAl5083 = matmgr.getTGeoMedium("IRISVACUUMVESSEL_AL5083");
   TGeoVolume* irisVacuumVesselVolume = new TGeoVolume("TRK_IRISVACUUMVESSEL", irisVacuumVesselComposite, medAl5083);
 
   irisVacuumVesselVolume->SetVisibility(1);
-  irisVacuumVesselVolume->SetLineColor(kYellow);
+  irisVacuumVesselVolume->SetLineColor(kGreen);
 
   LOGP(info, "Creating IRIS Tracker vacuum vessel");
   LOGP(info, "Inserting {} in {} ", irisVacuumVesselVolume->GetName(), motherVolume->GetName());
