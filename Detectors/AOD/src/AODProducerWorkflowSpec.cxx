@@ -2353,7 +2353,10 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.length = intLen;
     const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
     if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
-      const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
+      float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
+      if (expBeta > o2::constants::math::Almost1) {
+        expBeta = o2::constants::math::Almost1;
+      }
       extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
     }
     // correct the time of the track
@@ -2657,6 +2660,9 @@ void AODProducerWorkflowDPL::addRefGlobalBCsForTOF(const o2::dataformats::VtxTra
       float tofExpMom = 0.;
       if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
         float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
+        if (expBeta > o2::constants::math::Almost1) {
+          expBeta = o2::constants::math::Almost1;
+        }
         tofExpMom = o2::constants::physics::MassPionCharged * expBeta / std::sqrt(1.f - expBeta * expBeta);
       } else {
         continue;
