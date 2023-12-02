@@ -340,6 +340,26 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.trackTimeRes, mTrackTimeError));
 }
 
+template <typename TracksQACursorType>
+void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAHolder)
+{
+
+  // trackQA
+  tracksQACursor(
+                    truncateFloatFraction(trackQAHolder.tpcdcaR, mTrackChi2),
+                    truncateFloatFraction(trackQAHolder.tpcdcaZ, mTrackChi2),
+                    trackQAHolder.tpcdEdxMax0R,
+                    trackQAHolder.tpcdEdxMax1R,
+                    trackQAHolder.tpcdEdxMax2R,
+                    trackQAHolder.tpcdEdxMax3R,
+                    trackQAHolder.tpcdEdxTot0R,
+                    trackQAHolder.tpcdEdxTot1R,
+                    trackQAHolder.tpcdEdxTot2R,
+                    trackQAHolder.tpcdEdxTot3R
+    );
+
+}
+
 template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
 void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                                                  GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,

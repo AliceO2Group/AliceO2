@@ -477,6 +477,9 @@ class AODProducerWorkflowDPL : public Task
   template <typename TracksExtraCursorType>
   void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
 
+  template <typename TracksQACursorType>
+  void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAHolder);
+
   template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
