@@ -13,26 +13,63 @@
 /// \author Gabriele Cimador
 
 #include "GPUTPCDecompression.h"
+#include "GPUTPCCompression.h"
 #include "GPUReconstruction.h"
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
+#include "GPULogging.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUTPCDecompression::InitializeProcessor() {}
 
-void* GPUTPCDecompression::SetPointersMemory(void* mem)
+void* GPUTPCDecompression::SetPointersInputGPU(void* mem)
 {
-  computePointerWithAlignment(mem, testP);
+  SetPointersCompressedClusters(mem, mInputGPU, mInputGPU.nAttachedClusters, mInputGPU.nTracks, mInputGPU.nUnattachedClusters, true);
   return mem;
 }
 
-void GPUTPCDecompression::RegisterMemoryAllocation()
-{  AllocateAndInitializeLate();
-  mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCDecompressionMemory");
+template <class T>
+void GPUTPCDecompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA)
+{
+  computePointerWithAlignment(mem, c.qTotU, nClU); // Do not reorder, qTotU ist used as first address in GPUChainTracking::RunTPCCompression
+  computePointerWithAlignment(mem, c.qMaxU, nClU);
+  computePointerWithAlignment(mem, c.flagsU, nClU);
+  computePointerWithAlignment(mem, c.padDiffU, nClU);
+  computePointerWithAlignment(mem, c.timeDiffU, nClU);
+  computePointerWithAlignment(mem, c.sigmaPadU, nClU);
+  computePointerWithAlignment(mem, c.sigmaTimeU, nClU);
+  computePointerWithAlignment(mem, c.nSliceRowClusters, GPUCA_ROW_COUNT * NSLICES);
+
+  unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
+
+  if (!(mRec->GetParam().rec.tpc.compressionTypeMask & GPUSettings::CompressionTrackModel)) {
+    return; // Track model disabled, do not allocate memory
+  }
+  computePointerWithAlignment(mem, c.qTotA, nClA);
+  computePointerWithAlignment(mem, c.qMaxA, nClA);
+  computePointerWithAlignment(mem, c.flagsA, nClA);
+  computePointerWithAlignment(mem, c.rowDiffA, nClAreduced);
+  computePointerWithAlignment(mem, c.sliceLegDiffA, nClAreduced);
+  computePointerWithAlignment(mem, c.padResA, nClAreduced);
+  computePointerWithAlignment(mem, c.timeResA, nClAreduced);
+  computePointerWithAlignment(mem, c.sigmaPadA, nClA);
+  computePointerWithAlignment(mem, c.sigmaTimeA, nClA);
+
+  computePointerWithAlignment(mem, c.qPtA, nTr);
+  computePointerWithAlignment(mem, c.rowA, nTr);
+  computePointerWithAlignment(mem, c.sliceA, nTr);
+  computePointerWithAlignment(mem, c.timeA, nTr);
+  computePointerWithAlignment(mem, c.padA, nTr);
+
+  computePointerWithAlignment(mem, c.nTrackClusters, nTr);
 }
 
-void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io)
-{
+void GPUTPCDecompression::RegisterMemoryAllocation() {
+  AllocateAndInitializeLate();
+  mMemoryResInputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputGPU, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_CUSTOM, "TPCDecompressionInput");
+}
+
+void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io){
 
 }
