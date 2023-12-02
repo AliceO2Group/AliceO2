@@ -385,6 +385,7 @@ class AODProducerWorkflowDPL : public Task
   };
 
   struct TrackQA{
+    GID      trackID;
     uint16_t tpcdcaR;
     uint16_t tpcdcaZ;
     uint8_t  tpcClusterByteMask;
@@ -478,7 +479,7 @@ class AODProducerWorkflowDPL : public Task
   void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
 
   template <typename TracksQACursorType>
-  void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAHolder);
+  void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAInfoHolder);
 
   template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
@@ -490,6 +491,8 @@ class AODProducerWorkflowDPL : public Task
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
   TrackExtraInfo processBarrelTrack(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+  TrackQA processBarrelTrackQA(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+
   bool propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar, const o2::globaltracking::RecoContainer& data, int colID);
   void extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track);
   void cacheTriggers(const o2::globaltracking::RecoContainer& recoData);
@@ -497,7 +500,7 @@ class AODProducerWorkflowDPL : public Task
   // helper for track tables
   // * fills tables collision by collision
   // * interaction time is for TOF information
-  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename AmbigTracksCursorType,
+  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
             typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
             typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
   void fillTrackTablesPerCollision(int collisionID,
@@ -508,6 +511,7 @@ class AODProducerWorkflowDPL : public Task
                                    TracksCursorType& tracksCursor,
                                    TracksCovCursorType& tracksCovCursor,
                                    TracksExtraCursorType& tracksExtraCursor,
+                                   TracksQACursorType& tracksQACursor,
                                    AmbigTracksCursorType& ambigTracksCursor,
                                    MFTTracksCursorType& mftTracksCursor,
                                    AmbigMFTTracksCursorType& ambigMFTTracksCursor,

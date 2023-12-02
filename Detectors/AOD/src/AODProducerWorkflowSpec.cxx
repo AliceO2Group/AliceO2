@@ -341,21 +341,26 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
 }
 
 template <typename TracksQACursorType>
-void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAHolder)
+void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAInfoHolder)
 {
 
   // trackQA
   tracksQACursor(
-                    truncateFloatFraction(trackQAHolder.tpcdcaR, mTrackChi2),
-                    truncateFloatFraction(trackQAHolder.tpcdcaZ, mTrackChi2),
-                    trackQAHolder.tpcdEdxMax0R,
-                    trackQAHolder.tpcdEdxMax1R,
-                    trackQAHolder.tpcdEdxMax2R,
-                    trackQAHolder.tpcdEdxMax3R,
-                    trackQAHolder.tpcdEdxTot0R,
-                    trackQAHolder.tpcdEdxTot1R,
-                    trackQAHolder.tpcdEdxTot2R,
-                    trackQAHolder.tpcdEdxTot3R
+
+                    //truncateFloatFraction(trackQAInfoHolder.tpcdcaR, mTrackChi2),
+                    //truncateFloatFraction(trackQAInfoHolder.tpcdcaZ, mTrackChi2),
+                    trackQAInfoHolder.trackID,
+                    trackQAInfoHolder.tpcdcaR,
+                    trackQAInfoHolder.tpcdcaZ,
+                    trackQAInfoHolder.tpcClusterByteMask,
+                    trackQAInfoHolder.tpcdEdxMax0R,
+                    trackQAInfoHolder.tpcdEdxMax1R,
+                    trackQAInfoHolder.tpcdEdxMax2R,
+                    trackQAInfoHolder.tpcdEdxMax3R,
+                    trackQAInfoHolder.tpcdEdxTot0R,
+                    trackQAInfoHolder.tpcdEdxTot1R,
+                    trackQAInfoHolder.tpcdEdxTot2R,
+                    trackQAInfoHolder.tpcdEdxTot3R
     );
 
 }
@@ -401,7 +406,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   }
 }
 
-template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename AmbigTracksCursorType,
+template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
           typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
           typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
 void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
@@ -412,6 +417,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          TracksCursorType& tracksCursor,
                                                          TracksCovCursorType& tracksCovCursor,
                                                          TracksExtraCursorType& tracksExtraCursor,
+                                                         TracksQACursorType& tracksQACursor,
                                                          AmbigTracksCursorType& ambigTracksCursor,
                                                          MFTTracksCursorType& mftTracksCursor,
                                                          AmbigMFTTracksCursorType& ambigMFTTracksCursor,
@@ -460,6 +466,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             continue;
           }
           auto extraInfoHolder = processBarrelTrack(collisionID, collisionBC, trackIndex, data, bcsMap);
+          auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);  // adding dummy holder
           if (extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
             LOG(warning) << "Barrel track " << trackIndex << " has no time set, rejection is not expected : time=" << extraInfoHolder.trackTime
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
@@ -478,6 +485,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             addToTracksTable(tracksCursor, tracksCovCursor, trOrig, collisionID, aod::track::TrackIU);
           }
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
+          addToTracksQATable(tracksQACursor,trackQAInfoHolder);
           // collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
             ambigTracksCursor(mTableTrID, extraInfoHolder.bcSlice);
@@ -1781,6 +1789,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksCursor = createTableCursor<o2::aod::StoredTracksIU>(pc);
   auto tracksCovCursor = createTableCursor<o2::aod::StoredTracksCovIU>(pc);
   auto tracksExtraCursor = createTableCursor<o2::aod::StoredTracksExtra>(pc);
+  auto tracksQACursor = createTableCursor<o2::aod::TrackQA>(pc);
   auto ambigTracksCursor = createTableCursor<o2::aod::AmbiguousTracks>(pc);
   auto ambigMFTTracksCursor = createTableCursor<o2::aod::AmbiguousMFTTracks>(pc);
   auto ambigFwdTracksCursor = createTableCursor<o2::aod::AmbiguousFwdTracks>(pc);
@@ -2085,7 +2094,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
   // fixme: interaction time is undefined for unassigned tracks (?)
-  fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor,
+  fillTrackTablesPerCollision(-1, std::uint64_t(-1), trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor,
                               ambigTracksCursor, mftTracksCursor, ambigMFTTracksCursor,
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, bcsMap);
 
@@ -2127,7 +2136,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
-    fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, ambigTracksCursor,
+    fillTrackTablesPerCollision(collisionID, globalBC, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, tracksQACursor, ambigTracksCursor,
                                 mftTracksCursor, ambigMFTTracksCursor,
                                 fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, bcsMap);
     collisionID++;
@@ -2445,6 +2454,14 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   }
   return extraInfoHolder;
 }
+
+AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int collisionID, std::uint64_t collisionBC, GIndex trackIndex,
+                                                                                  const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap)
+{
+  TrackQA trackQAHolder;
+  return trackQAHolder;
+}
+
 
 bool AODProducerWorkflowDPL::propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar,
                                                 const o2::globaltracking::RecoContainer& data,
@@ -2849,6 +2866,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<StoredTracksIU>::spec(),
     OutputForTable<StoredTracksCovIU>::spec(),
     OutputForTable<StoredTracksExtra>::spec(),
+    OutputForTable<TracksQA>::spec(),
     OutputForTable<TrackedCascades>::spec(),
     OutputForTable<TrackedV0s>::spec(),
     OutputForTable<Tracked3Bodys>::spec(),
