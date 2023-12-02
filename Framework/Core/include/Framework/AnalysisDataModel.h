@@ -499,14 +499,24 @@ namespace trackqa
 // source - https://github.com/AliceO2Group/AliceO2/pull/12118
 // TRACKQA TABLE COLUMNS
 DECLARE_SOA_INDEX_COLUMN(Track, track); //! track to which this QA information belongs
-DECLARE_SOA_COLUMN(DCAR, dcaR, uint16_t); //!
-DECLARE_SOA_COLUMN(DCAZ, dcaZ, uint16_t); //!
-DECLARE_SOA_COLUMN(ClusterByteMask, clusterByteMask, uint8_t); //!
-DECLARE_SOA_COLUMN(TPCSignalPerRegion, tpcSignalPerRegion, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, uint16_t);                      //!
+DECLARE_SOA_COLUMN(TPCDCAZ, tpcdcaZ, uint16_t);                      //!
+DECLARE_SOA_COLUMN(TPCClusterByteMask, tpcClusterByteMask, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxMax0R, tpcdEdxMax0R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxMax1R, tpcdEdxMax1R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxMax2R, tpcdEdxMax2R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxMax3R, tpcdEdxMax3R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxTot0R, tpcdEdxTot0R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxTot1R, tpcdEdxTot1R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxTot2R, tpcdEdxTot2R, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCdEdxTot3R, tpcdEdxTot3R, uint8_t); //!
 } // namespace trackqa
 
 DECLARE_SOA_TABLE(TracksQA, "AOD", "TRACKQA", //! Run 2 cascade table
-                  o2::soa::Index<>, trackqa::TrackId, trackqa::DCAR, trackqa::DCAZ, trackqa::ClusterByteMask, trackqa::TPCSignalPerRegion);
+                  o2::soa::Index<>, trackqa::TrackId, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
+                  trackqa::TPCdEdxMax0R,trackqa::TPCdEdxMax1R,trackqa::TPCdEdxMax2R,trackqa::TPCdEdxMax3R,
+                  trackqa::TPCdEdxTot0R,trackqa::TPCdEdxTot1R,trackqa::TPCdEdxTot2R,trackqa::TPCdEdxTot3R
+                  );
 
 using TrackQA = TracksQA::iterator;
 
