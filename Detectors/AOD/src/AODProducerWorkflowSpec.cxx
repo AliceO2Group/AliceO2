@@ -361,6 +361,10 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   }
   trackTime -= bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS;
 
+  // the Cellular Automaton track-finding algorithm flag is stored in first of the 4 bits not used for the cluster size
+  uint64_t mftClusterSizesAndTrackFlags = track.getClusterSizes();
+  mftClusterSizesAndTrackFlags |= (track.isCA()) ? (1ULL << (60)) : 0;
+
   mftTracksCursor(collisionID,
                   track.getX(),
                   track.getY(),
@@ -368,7 +372,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
                   truncateFloatFraction(track.getPhi(), mTrackAlpha),
                   truncateFloatFraction(track.getTanl(), mTrackTgl),
                   truncateFloatFraction(track.getInvQPt(), mTrack1Pt),
-                  track.getNumberOfPoints(),
+                  mftClusterSizesAndTrackFlags,
                   truncateFloatFraction(track.getTrackChi2(), mTrackChi2),
                   truncateFloatFraction(trackTime, mTrackTime),
                   truncateFloatFraction(trackTimeRes, mTrackTimeError));
