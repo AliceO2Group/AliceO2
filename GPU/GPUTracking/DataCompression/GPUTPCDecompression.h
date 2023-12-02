@@ -20,25 +20,45 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 
+#ifdef GPUCA_HAVE_O2HEADERS
+#include "DataFormatsTPC/CompressedClusters.h"
+#else
+namespace o2::tpc
+{
+struct CompressedClustersPtrs {
+};
+struct CompressedClusters {
+};
+struct CompressedClustersFlat {
+};
+} // namespace o2::tpc
+#endif
+
 namespace GPUCA_NAMESPACE::gpu
 {
 
 class GPUTPCDecompression : public GPUProcessor
 {
-  friend class GPUTPCDecmpressionKernels;
+  friend class GPUTPCDecompressionKernels;
   friend class GPUChainTracking;
 
  public:
-  unsigned int test = 42;
-  unsigned int* testP = nullptr;
-
-  void* SetPointersMemory(void* mem);
-
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
+
+  void* SetPointersInputGPU(void* mem);
+  void* SetPointersMemory(void* mem);
 #endif
+
+ protected:
+  constexpr static unsigned int NSLICES = GPUCA_NSLICES;
+  o2::tpc::CompressedClusters mInputGPU;
+  template <class T>
+  void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
+
+  short mMemoryResInputGPU = -1;
 };
-}
+} // namespace GPUCA_NAMESPACE::gpu
 #endif // GPUTPCDECOMPRESSION_H
