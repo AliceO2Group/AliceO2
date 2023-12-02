@@ -131,7 +131,7 @@ struct ShmManager {
       fair::mq::RegionConfig cfg;
       cfg.id = id;
       cfg.size = size;
-      if (_refcount_segment_size) {
+      if (_refcount_segment_size != 1) {
         cfg.rcSegmentSize = _refcount_segment_size;
       }
       regionCfgs.push_back(cfg);
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
       "regions", value<vector<string>>(&regions)->multitoken()->composing(), "Regions, as <id>,<size> <id>,<size>,<numaid> <id>,<size>,<numaid> ...")(
       "nozero", value<bool>(&nozero)->default_value(false)->implicit_value(true), "Do not zero segments after initialization")(
       "check-presence", value<bool>(&checkPresence)->default_value(true)->implicit_value(true), "Check periodically if configured segments/regions are still present, and cleanup and leave if they are not")(
-      "refcount-segment-size", value<uint64_t>(&refcount_segment_size)->default_value(0), "Size in bytes of refCount segment (global setting affecting all unmanaged regions)")(
+      "refcount-segment-size", value<uint64_t>(&refcount_segment_size)->default_value(1), "Size in bytes of refCount segment (global setting affecting all unmanaged regions, 1 = use default, 0 = disable rc segment)")(
       "help,h", "Print help");
 
     variables_map vm;
