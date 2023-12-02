@@ -72,7 +72,7 @@ class TrackMFT : public o2::track::TrackParCovFwd
 
   void setClusterSize(int l, int size)
   {
-    if (l >= 11) {
+    if (l >= 10) {
       return;
     }
     if (size > 63) {
