@@ -37,6 +37,35 @@ namespace zdc
 using FirstEntry = int;
 using NElem = int;
 
+struct RecEventScale {
+  static std::array<float,NChannels> fe;
+  static std::array<float,NTDCChannels> fa;
+  void SetGeV(){
+    for(int ich=0; ich<NChannels; ich++){
+      fe[i]=1;
+    }
+    for(int itdc=0; itdc<NTDCChannels; itdc++){
+      fa[i]=1000.;
+    }
+  };
+  void SetTeV(){
+    for(int ich=0; ich<NChannels; ich++){
+      fe[i]=0.001;
+    }
+    for(int itdc=0; itdc<NTDCChannels; itdc++){
+      fa[i]=1.;
+    }
+  };
+  void SetNuclEnergy(float energy){ // In GeV
+    for(int ich=0; ich<NChannels; ich++){
+      fe[i]=1./energy;
+    }
+    for(int itdc=0; itdc<NTDCChannels; itdc++){
+      fa[i]=1000./energy;
+    }
+  };
+};
+
 struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
   uint32_t channels = 0;                         /// pattern of channels acquired

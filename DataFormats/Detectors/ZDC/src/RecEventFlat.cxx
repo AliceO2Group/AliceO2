@@ -15,6 +15,9 @@
 
 using namespace o2::zdc;
 
+std::array<float,NChannels> RecEventScale::fe={1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+std::array<float,NTDCChannels> RecEventScale::fa={1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.,1000.};
+
 void RecEventFlat::init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info)
 {
   mRecBC = *RecBC;
@@ -143,7 +146,7 @@ int RecEventFlat::at(int ientry)
   for (int i = mFirstE; i < mStopE; i++) {
     auto myenergy = mEnergy[i];
     auto ch = myenergy.ch();
-    ezdc[ch] = myenergy.energy();
+    ezdc[ch] = myenergy.energy() * RecEventScale::fe[ch];
     // Assign implicit event info
     if (adcPedOr[ch] == false && adcPedQC[ch] == false && adcPedMissing[ch] == false) {
       adcPedEv[ch] = true;
@@ -163,7 +166,7 @@ int RecEventFlat::at(int ientry)
         isEnd[ch] = true;
       }
       TDCVal[ch].push_back(mytdc.val);
-      TDCAmp[ch].push_back(mytdc.amp);
+      TDCAmp[ch].push_back(mytdc.amp * RecEventScale::fa[ch]);
       // Assign implicit event info
       if (tdcPedQC[ch] == false && tdcPedMissing[ch] == false) {
         tdcPedOr[ch] = true;
