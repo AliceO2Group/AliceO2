@@ -40,30 +40,16 @@ using NElem = int;
 struct RecEventScale {
   static std::array<float,NChannels> fe;
   static std::array<float,NTDCChannels> fa;
-  static void setGeV(){
-    for(int ich=0; ich<NChannels; ich++){
-      fe[ich]=1;
-    }
-    for(int itdc=0; itdc<NTDCChannels; itdc++){
-      fa[itdc]=1000.;
-    }
-  };
-  static void setTeV(){
-    for(int ich=0; ich<NChannels; ich++){
-      fe[ich]=0.001;
-    }
-    for(int itdc=0; itdc<NTDCChannels; itdc++){
-      fa[itdc]=1.;
-    }
-  };
-  static void setNucleonEnergy(float energy){ // In GeV
-    for(int ich=0; ich<NChannels; ich++){
-      fe[ich]=1./energy;
-    }
-    for(int itdc=0; itdc<NTDCChannels; itdc++){
-      fa[itdc]=1000./energy;
-    }
-  };
+  static void reset();
+  static void setGeV();
+  static void setGeVZN();
+  static void setGeVZP();
+  static void setTeV();
+  static void setTeVZN();
+  static void setTeVZP();
+  static void setNucleonEnergy(float energy);
+  static void setNucleonEnergyZN(float energy);
+  static void setNucleonEnergyZP(float energy);
 };
 
 struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
