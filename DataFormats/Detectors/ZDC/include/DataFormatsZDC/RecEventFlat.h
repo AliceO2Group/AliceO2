@@ -42,26 +42,26 @@ struct RecEventScale {
   static std::array<float,NTDCChannels> fa;
   void setGeV(){
     for(int ich=0; ich<NChannels; ich++){
-      fe[i]=1;
+      fe[ich]=1;
     }
     for(int itdc=0; itdc<NTDCChannels; itdc++){
-      fa[i]=1000.;
+      fa[itdc]=1000.;
     }
   };
   void setTeV(){
     for(int ich=0; ich<NChannels; ich++){
-      fe[i]=0.001;
+      fe[ich]=0.001;
     }
     for(int itdc=0; itdc<NTDCChannels; itdc++){
-      fa[i]=1.;
+      fa[itdc]=1.;
     }
   };
   void setNucleonEnergy(float energy){ // In GeV
     for(int ich=0; ich<NChannels; ich++){
-      fe[i]=1./energy;
+      fe[ich]=1./energy;
     }
     for(int itdc=0; itdc<NTDCChannels; itdc++){
-      fa[i]=1000./energy;
+      fa[itdc]=1000./energy;
     }
   };
 };
