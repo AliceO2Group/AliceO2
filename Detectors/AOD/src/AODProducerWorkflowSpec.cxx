@@ -2505,6 +2505,16 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
     }
     //
     trackQAHolder.trackID=trackIndex;
+    /// getDCA - should be done somehow with the TPC only track
+    o2::track::TrackParametrizationWithError<float>  tpcTMP= tpcOrig ; /// get backup of the track
+    o2::base::Propagator::MatCorrType mMatType;     /// what correction is selected?
+    o2::dataformats::DCA dcaInfo;
+    dcaInfo.set(999.f, 999.f, 999.f, 999.f, 999.f);
+    o2::dataformats::VertexBase v = mVtx.getMeanVertex(collisionID < 0 ? 0.f : data.getPrimaryVertex(collisionID).getZ());
+    if (o2::base::Propagator::Instance()->propagateToDCABxByBz(v, tpcTMP, 2.f, mMatType, &dcaInfo)){}
+    trackQAHolder.tpcdcaR=100.*dcaInfo.getY()/sqrt(1.+trackPar.getQ2Pt()*trackPar.getQ2Pt());
+    trackQAHolder.tpcdcaZ=100.*dcaInfo.getZ()/sqrt(1.+trackPar.getQ2Pt()*trackPar.getQ2Pt());
+
     /// get tracklet byteMask
     uint8_t clusterCounters[8]={0};
     {
