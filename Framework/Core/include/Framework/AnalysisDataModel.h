@@ -496,7 +496,6 @@ using FullTrack = FullTracks::iterator;
 
 namespace trackqa
 {
-// source - https://github.com/AliceO2Group/AliceO2/pull/12118
 // TRACKQA TABLE COLUMNS
 DECLARE_SOA_INDEX_COLUMN(Track, track);                              //! track to which this QA information belongs
 DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, int16_t);                      //! tpc only DCAr
