@@ -2455,12 +2455,92 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   return extraInfoHolder;
 }
 
+
+
 AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int collisionID, std::uint64_t collisionBC, GIndex trackIndex,
                                                                                   const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap)
 {
+  TrackExtraInfo extraInfoHolder;
   TrackQA trackQAHolder;
+  if (collisionID < 0) {
+    extraInfoHolder.flags |= o2::aod::track::OrphanTrack;
+  }
+  bool needBCSlice = collisionID < 0;                     // track is associated to multiple vertices
+  uint64_t bcOfTimeRef = collisionBC - mStartIR.toLong(); // by default track time is wrt collision BC (unless no collision assigned)
+
+
+  auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
+  const auto& trackPar = data.getTrackParam(trackIndex);
+  extraInfoHolder.flags |= trackPar.getPID() << 28;
+  auto src = trackIndex.getSource();
+  if (contributorsGID[GIndex::Source::TOF].isIndexSet()) { // ITS-TPC-TRD-TOF, ITS-TPC-TOF, TPC-TRD-TOF, TPC-TOF
+    /// not used
+  }
+  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {                                        // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
+    /// not used
+  }
+  if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+    /// not used
+  }
+  if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+    const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
+    const auto& tpcClData = mTPCCounters[contributorsGID[GIndex::TPC]];
+    extraInfoHolder.tpcInnerParam = tpcOrig.getP();
+    extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+    extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+    extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
+    extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
+    extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
+    extraInfoHolder.tpcNClsShared = tpcClData.shared;
+
+    if (src == GIndex::TPC) {                                                                                // standalone TPC track should set its time from their timebins range
+      double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;                     // half-span of the interval
+      double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
+      LOG(debug) << "TPC tracks t0:" << tpcOrig.getTime0() << " tbwd: " << tpcOrig.getDeltaTBwd() << " tfwd: " << tpcOrig.getDeltaTFwd() << " t: " << t << " te: " << terr;
+      //setTrackTime(t, terr, false);
+    } else if (src == GIndex::ITSTPC) { // its-tpc matched tracks have gaussian time error and the time was not set above
+      const auto& trITSTPC = data.getTPCITSTrack(trackIndex);
+      auto ts = trITSTPC.getTimeMUS();
+      //setTrackTime(ts.getTimeStamp() * 1.e3, ts.getTimeStampError() * 1.e3, true);
+    }
+    //
+    trackQAHolder.trackID=trackIndex;
+    /// get tracklet byteMask
+    uint8_t clusterCounters[8]={0};
+    {
+      uint8_t sectorIndex, rowIndex;
+      uint32_t clusterIndex;
+      const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
+      for (int i = 0; i < tpcOrig.getNClusterReferences(); i++) {
+        o2::tpc::TrackTPC::getClusterReference(tpcClusRefs, i, sectorIndex, rowIndex, clusterIndex, tpcOrig.getClusterRef());
+        char indexTracklet=(rowIndex%152)/19;
+        clusterCounters[indexTracklet]++;
+      }
+    }
+    uint8_t byteMask=0;
+    for (int i=0; i<8; i++) if (clusterCounters[i]>5) byteMask|=1<<i;
+    trackQAHolder.tpcClusterByteMask=byteMask;
+
+    trackQAHolder.tpcdEdxMax0R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxIROC/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxMax1R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxOROC1/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxMax2R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxOROC2/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxMax3R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxOROC3/tpcOrig.getdEdx().dEdxTotTPC):0;
+    //
+    trackQAHolder.tpcdEdxTot0R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotIROC/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxTot1R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotOROC1/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxTot2R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotOROC2/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxTot3R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotOROC3/tpcOrig.getdEdx().dEdxTotTPC):0;
+    ///
+
+  }
+
+  // set bit encoding for PVContributor property as part of the flag field
+  //if (trackIndex.isPVContributor()) {
+  //  extraInfoHolder.flags |= o2::aod::track::PVContributor;
+  //}
   return trackQAHolder;
 }
+
 
 
 bool AODProducerWorkflowDPL::propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar,
