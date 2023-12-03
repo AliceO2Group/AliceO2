@@ -38,8 +38,8 @@ using FirstEntry = int;
 using NElem = int;
 
 struct RecEventScale {
-  static std::array<float,NChannels> fe;
-  static std::array<float,NTDCChannels> fa;
+  static std::array<float, NChannels> fe;
+  static std::array<float, NTDCChannels> fa;
   static void reset();
   static void setGeV();
   static void setGeVZN();

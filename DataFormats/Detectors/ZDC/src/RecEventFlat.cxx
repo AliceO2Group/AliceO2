@@ -15,121 +15,131 @@
 
 using namespace o2::zdc;
 
-std::array<float,NChannels> RecEventScale::fe={1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-std::array<float,NTDCChannels> RecEventScale::fa={1,1,1,1,1,1,1,1,1,1};
+std::array<float, NChannels> RecEventScale::fe = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+std::array<float, NTDCChannels> RecEventScale::fa = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-void RecEventScale::reset(){
-  for(int ich=0; ich<NChannels; ich++){
-    fe[ich]=1;
+void RecEventScale::reset()
+{
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 1;
   }
-  for(int itdc=0; itdc<NTDCChannels; itdc++){
-    fa[itdc]=1;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1;
   }
 }
 
-void RecEventScale::setGeV(){
-  for(int ich=0; ich<NChannels; ich++){
-    fe[ich]=1;
+void RecEventScale::setGeV()
+{
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 1;
   }
-  for(int itdc=0; itdc<NTDCChannels; itdc++){
-    fa[itdc]=1000.;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1000.;
   }
 }
 
-void RecEventScale::setGeVZN(){
-  for(int ich=IdZNAC; ich<=IdZNASum; ich++){
-    fe[ich]=1;
+void RecEventScale::setGeVZN()
+{
+  for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+    fe[ich] = 1;
   }
-  for(int ich=IdZNCC; ich<=IdZNCSum; ich++){
-    fe[ich]=1;
+  for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+    fe[ich] = 1;
   }
-  fa[TDCZNAC]=1000.;
-  fa[TDCZNAS]=1000.;
-  fa[TDCZNCC]=1000.;
-  fa[TDCZNCS]=1000.;
+  fa[TDCZNAC] = 1000.;
+  fa[TDCZNAS] = 1000.;
+  fa[TDCZNCC] = 1000.;
+  fa[TDCZNCS] = 1000.;
 }
 
-void RecEventScale::setGeVZP(){
-  for(int ich=IdZPAC; ich<=IdZPASum; ich++){
-    fe[ich]=1;
+void RecEventScale::setGeVZP()
+{
+  for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+    fe[ich] = 1;
   }
-  for(int ich=IdZPCC; ich<=IdZPCSum; ich++){
-    fe[ich]=1;
+  for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+    fe[ich] = 1;
   }
-  fa[TDCZPAC]=1000.;
-  fa[TDCZPAS]=1000.;
-  fa[TDCZPCC]=1000.;
-  fa[TDCZPCS]=1000.;
+  fa[TDCZPAC] = 1000.;
+  fa[TDCZPAS] = 1000.;
+  fa[TDCZPCC] = 1000.;
+  fa[TDCZPCS] = 1000.;
 }
 
-void RecEventScale::setTeV(){
-  for(int ich=0; ich<NChannels; ich++){
-    fe[ich]=0.001;
+void RecEventScale::setTeV()
+{
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 0.001;
   }
-  for(int itdc=0; itdc<NTDCChannels; itdc++){
-    fa[itdc]=1.;
-  }
-};
-
-void RecEventScale::setTeVZN(){
-  for(int ich=IdZNAC; ich<=IdZNASum; ich++){
-    fe[ich]=0.001;
-  }
-  for(int ich=IdZNCC; ich<=IdZNCSum; ich++){
-    fe[ich]=0.001;
-  }
-  fa[TDCZNAC]=1.;
-  fa[TDCZNAS]=1.;
-  fa[TDCZNCC]=1.;
-  fa[TDCZNCS]=1.;
-};
-
-void RecEventScale::setTeVZP(){
-  for(int ich=IdZPAC; ich<=IdZPASum; ich++){
-    fe[ich]=0.001;
-  }
-  for(int ich=IdZPCC; ich<=IdZPCSum; ich++){
-    fe[ich]=0.001;
-  }
-  fa[TDCZPAC]=1.;
-  fa[TDCZPAS]=1.;
-  fa[TDCZPCC]=1.;
-  fa[TDCZPCS]=1.;
-};
-
-void RecEventScale::setNucleonEnergy(float energy){ // In GeV
-  for(int ich=0; ich<NChannels; ich++){
-    fe[ich]=1./energy;
-  }
-  for(int itdc=0; itdc<NTDCChannels; itdc++){
-    fa[itdc]=1000./energy;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1.;
   }
 };
 
-void RecEventScale::setNucleonEnergyZN(float energy){ // In GeV
-  for(int ich=IdZNAC; ich<=IdZNASum; ich++){
-    fe[ich]=1./energy;
+void RecEventScale::setTeVZN()
+{
+  for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+    fe[ich] = 0.001;
   }
-  for(int ich=IdZNCC; ich<=IdZNCSum; ich++){
-    fe[ich]=1./energy;
+  for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+    fe[ich] = 0.001;
   }
-  fa[TDCZNAC]=1000./energy;
-  fa[TDCZNAS]=1000./energy;
-  fa[TDCZNCC]=1000./energy;
-  fa[TDCZNCS]=1000./energy;
+  fa[TDCZNAC] = 1.;
+  fa[TDCZNAS] = 1.;
+  fa[TDCZNCC] = 1.;
+  fa[TDCZNCS] = 1.;
 };
 
-void RecEventScale::setNucleonEnergyZP(float energy){ // In GeV
-  for(int ich=IdZPAC; ich<=IdZPASum; ich++){
-    fe[ich]=1./energy;
+void RecEventScale::setTeVZP()
+{
+  for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+    fe[ich] = 0.001;
   }
-  for(int ich=IdZPCC; ich<=IdZPCSum; ich++){
-    fe[ich]=1./energy;
+  for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+    fe[ich] = 0.001;
   }
-  fa[TDCZPAC]=1000./energy;
-  fa[TDCZPAS]=1000./energy;
-  fa[TDCZPCC]=1000./energy;
-  fa[TDCZPCS]=1000./energy;
+  fa[TDCZPAC] = 1.;
+  fa[TDCZPAS] = 1.;
+  fa[TDCZPCC] = 1.;
+  fa[TDCZPCS] = 1.;
+};
+
+void RecEventScale::setNucleonEnergy(float energy)
+{ // In GeV
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1000. / energy;
+  }
+};
+
+void RecEventScale::setNucleonEnergyZN(float energy)
+{ // In GeV
+  for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  fa[TDCZNAC] = 1000. / energy;
+  fa[TDCZNAS] = 1000. / energy;
+  fa[TDCZNCC] = 1000. / energy;
+  fa[TDCZNCS] = 1000. / energy;
+};
+
+void RecEventScale::setNucleonEnergyZP(float energy)
+{ // In GeV
+  for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  fa[TDCZPAC] = 1000. / energy;
+  fa[TDCZPAS] = 1000. / energy;
+  fa[TDCZPCC] = 1000. / energy;
+  fa[TDCZPCS] = 1000. / energy;
 };
 
 void RecEventFlat::init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info)
