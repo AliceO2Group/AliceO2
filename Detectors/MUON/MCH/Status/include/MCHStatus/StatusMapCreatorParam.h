@@ -24,8 +24,8 @@ namespace o2::mch
  */
 struct StatusMapCreatorParam : public o2::conf::ConfigurableParamHelper<StatusMapCreatorParam> {
 
-  bool useBadChannels = false; ///< reject bad channels (obtained during pedestal calibration runs)
-  bool useRejectList = false;  ///< use extra (relative to bad channels above) rejection list
+  bool useBadChannels = true; ///< reject bad channels (obtained during pedestal calibration runs)
+  bool useRejectList = true;  ///< use extra (relative to bad channels above) rejection list
 
   bool isActive() const { return useBadChannels || useRejectList; }
 
