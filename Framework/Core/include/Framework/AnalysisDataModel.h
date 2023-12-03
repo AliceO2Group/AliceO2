@@ -498,8 +498,8 @@ namespace trackqa
 {
 // TRACKQA TABLE COLUMNS
 DECLARE_SOA_INDEX_COLUMN(Track, track);                              //! track to which this QA information belongs
-DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, int16_t);                      //! tpc only DCAr
-DECLARE_SOA_COLUMN(TPCDCAZ, tpcdcaZ, int16_t);                      //! tpc only DCAz
+DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, int16_t);                       //! tpc only DCAr
+DECLARE_SOA_COLUMN(TPCDCAZ, tpcdcaZ, int16_t);                       //! tpc only DCAz
 DECLARE_SOA_COLUMN(TPCClusterByteMask, tpcClusterByteMask, uint8_t); // tracklet bitmask - track difided to 8 trakclets (152=8*19 rows) bit set in nCluster>thr (5)
 DECLARE_SOA_COLUMN(TPCdEdxMax0R, tpcdEdxMax0R, uint8_t);             //! TPC dEdxQMax -ROC0/dEdx
 DECLARE_SOA_COLUMN(TPCdEdxMax1R, tpcdEdxMax1R, uint8_t);             //! TPC dEdxQMax -ROC1/dEdx
@@ -513,13 +513,10 @@ DECLARE_SOA_COLUMN(TPCdEdxTot3R, tpcdEdxTot3R, uint8_t);             //! TPC dEd
 
 DECLARE_SOA_TABLE(TracksQA, "AOD", "TRACKQA", //! trackQA information
                   o2::soa::Index<>, trackqa::TrackId, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
-                  trackqa::TPCdEdxMax0R,trackqa::TPCdEdxMax1R,trackqa::TPCdEdxMax2R,trackqa::TPCdEdxMax3R,
-                  trackqa::TPCdEdxTot0R,trackqa::TPCdEdxTot1R,trackqa::TPCdEdxTot2R,trackqa::TPCdEdxTot3R
-                  );
+                  trackqa::TPCdEdxMax0R, trackqa::TPCdEdxMax1R, trackqa::TPCdEdxMax2R, trackqa::TPCdEdxMax3R,
+                  trackqa::TPCdEdxTot0R, trackqa::TPCdEdxTot1R, trackqa::TPCdEdxTot2R, trackqa::TPCdEdxTot3R);
 
 using TrackQA = TracksQA::iterator;
-
-
 
 namespace fwdtrack
 {

@@ -385,21 +385,20 @@ class AODProducerWorkflowDPL : public Task
     int bcSlice[2] = {-1, -1};
   };
 
-  struct TrackQA{
-    GID      trackID;
+  struct TrackQA {
+    GID trackID;
     int16_t tpcdcaR;
     int16_t tpcdcaZ;
-    uint8_t  tpcClusterByteMask;
-    uint8_t  tpcdEdxMax0R;
-    uint8_t  tpcdEdxMax1R;
-    uint8_t  tpcdEdxMax2R;
-    uint8_t  tpcdEdxMax3R;
-    uint8_t  tpcdEdxTot0R;
-    uint8_t  tpcdEdxTot1R;
-    uint8_t  tpcdEdxTot2R;
-    uint8_t  tpcdEdxTot3R;
+    uint8_t tpcClusterByteMask;
+    uint8_t tpcdEdxMax0R;
+    uint8_t tpcdEdxMax1R;
+    uint8_t tpcdEdxMax2R;
+    uint8_t tpcdEdxMax3R;
+    uint8_t tpcdEdxTot0R;
+    uint8_t tpcdEdxTot1R;
+    uint8_t tpcdEdxTot2R;
+    uint8_t tpcdEdxTot3R;
   };
-
 
   // helper struct for addToFwdTracksTable()
   struct FwdTrackInfo {

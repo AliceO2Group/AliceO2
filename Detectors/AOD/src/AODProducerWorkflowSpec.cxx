@@ -347,22 +347,20 @@ void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACurs
   // trackQA
   tracksQACursor(
 
-                    //truncateFloatFraction(trackQAInfoHolder.tpcdcaR, mTrackChi2),
-                    //truncateFloatFraction(trackQAInfoHolder.tpcdcaZ, mTrackChi2),
-                    trackQAInfoHolder.trackID,
-                    trackQAInfoHolder.tpcdcaR,
-                    trackQAInfoHolder.tpcdcaZ,
-                    trackQAInfoHolder.tpcClusterByteMask,
-                    trackQAInfoHolder.tpcdEdxMax0R,
-                    trackQAInfoHolder.tpcdEdxMax1R,
-                    trackQAInfoHolder.tpcdEdxMax2R,
-                    trackQAInfoHolder.tpcdEdxMax3R,
-                    trackQAInfoHolder.tpcdEdxTot0R,
-                    trackQAInfoHolder.tpcdEdxTot1R,
-                    trackQAInfoHolder.tpcdEdxTot2R,
-                    trackQAInfoHolder.tpcdEdxTot3R
-    );
-
+    // truncateFloatFraction(trackQAInfoHolder.tpcdcaR, mTrackChi2),
+    // truncateFloatFraction(trackQAInfoHolder.tpcdcaZ, mTrackChi2),
+    trackQAInfoHolder.trackID,
+    trackQAInfoHolder.tpcdcaR,
+    trackQAInfoHolder.tpcdcaZ,
+    trackQAInfoHolder.tpcClusterByteMask,
+    trackQAInfoHolder.tpcdEdxMax0R,
+    trackQAInfoHolder.tpcdEdxMax1R,
+    trackQAInfoHolder.tpcdEdxMax2R,
+    trackQAInfoHolder.tpcdEdxMax3R,
+    trackQAInfoHolder.tpcdEdxTot0R,
+    trackQAInfoHolder.tpcdEdxTot1R,
+    trackQAInfoHolder.tpcdEdxTot2R,
+    trackQAInfoHolder.tpcdEdxTot3R);
 }
 
 template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
@@ -466,8 +464,8 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             continue;
           }
           auto extraInfoHolder = processBarrelTrack(collisionID, collisionBC, trackIndex, data, bcsMap);
-          auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);  // adding dummy holder
-          if (extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
+          auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap); // adding dummy holder
+          if (extraInfoHolder.trackTimeRes < 0.f) {                                                          // failed or rejected?
             LOG(warning) << "Barrel track " << trackIndex << " has no time set, rejection is not expected : time=" << extraInfoHolder.trackTime
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
             continue;
@@ -485,7 +483,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             addToTracksTable(tracksCursor, tracksCovCursor, trOrig, collisionID, aod::track::TrackIU);
           }
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
-          addToTracksQATable(tracksQACursor,trackQAInfoHolder);
+          addToTracksQATable(tracksQACursor, trackQAInfoHolder);
           // collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
             ambigTracksCursor(mTableTrID, extraInfoHolder.bcSlice);
@@ -2456,10 +2454,8 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   return extraInfoHolder;
 }
 
-
-
 AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int collisionID, std::uint64_t collisionBC, GIndex trackIndex,
-                                                                                  const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap)
+                                                                             const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap)
 {
   TrackExtraInfo extraInfoHolder;
   TrackQA trackQAHolder;
@@ -2469,7 +2465,6 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
   bool needBCSlice = collisionID < 0;                     // track is associated to multiple vertices
   uint64_t bcOfTimeRef = collisionBC - mStartIR.toLong(); // by default track time is wrt collision BC (unless no collision assigned)
 
-
   auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
   const auto& trackPar = data.getTrackParam(trackIndex);
   extraInfoHolder.flags |= trackPar.getPID() << 28;
@@ -2477,7 +2472,7 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
   if (contributorsGID[GIndex::Source::TOF].isIndexSet()) { // ITS-TPC-TRD-TOF, ITS-TPC-TOF, TPC-TRD-TOF, TPC-TOF
     /// not used
   }
-  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {                                        // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
+  if (contributorsGID[GIndex::Source::TRD].isIndexSet()) { // ITS-TPC-TRD-TOF, TPC-TRD-TOF, TPC-TRD, ITS-TPC-TRD
     /// not used
   }
   if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
@@ -2498,61 +2493,61 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
       double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;                     // half-span of the interval
       double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
       LOG(debug) << "TPC tracks t0:" << tpcOrig.getTime0() << " tbwd: " << tpcOrig.getDeltaTBwd() << " tfwd: " << tpcOrig.getDeltaTFwd() << " t: " << t << " te: " << terr;
-      //setTrackTime(t, terr, false);
+      // setTrackTime(t, terr, false);
     } else if (src == GIndex::ITSTPC) { // its-tpc matched tracks have gaussian time error and the time was not set above
       const auto& trITSTPC = data.getTPCITSTrack(trackIndex);
       auto ts = trITSTPC.getTimeMUS();
-      //setTrackTime(ts.getTimeStamp() * 1.e3, ts.getTimeStampError() * 1.e3, true);
+      // setTrackTime(ts.getTimeStamp() * 1.e3, ts.getTimeStampError() * 1.e3, true);
     }
     //
-    trackQAHolder.trackID=trackIndex;
+    trackQAHolder.trackID = trackIndex;
     /// getDCA - should be done somehow with the TPC only track
-    o2::track::TrackParametrizationWithError<float>  tpcTMP= tpcOrig ; /// get backup of the track
-    o2::base::Propagator::MatCorrType mMatType;     /// what correction is selected?
+    o2::track::TrackParametrizationWithError<float> tpcTMP = tpcOrig; /// get backup of the track
+    o2::base::Propagator::MatCorrType mMatType;                       /// what correction is selected?
     o2::dataformats::DCA dcaInfo;
     dcaInfo.set(999.f, 999.f, 999.f, 999.f, 999.f);
     o2::dataformats::VertexBase v = mVtx.getMeanVertex(collisionID < 0 ? 0.f : data.getPrimaryVertex(collisionID).getZ());
-    if (o2::base::Propagator::Instance()->propagateToDCABxByBz(v, tpcTMP, 2.f, mMatType, &dcaInfo)){}
-    trackQAHolder.tpcdcaR=100.*dcaInfo.getY()/sqrt(1.+trackPar.getQ2Pt()*trackPar.getQ2Pt());
-    trackQAHolder.tpcdcaZ=100.*dcaInfo.getZ()/sqrt(1.+trackPar.getQ2Pt()*trackPar.getQ2Pt());
+    if (o2::base::Propagator::Instance()->propagateToDCABxByBz(v, tpcTMP, 2.f, mMatType, &dcaInfo)) {
+    }
+    trackQAHolder.tpcdcaR = 100. * dcaInfo.getY() / sqrt(1. + trackPar.getQ2Pt() * trackPar.getQ2Pt());
+    trackQAHolder.tpcdcaZ = 100. * dcaInfo.getZ() / sqrt(1. + trackPar.getQ2Pt() * trackPar.getQ2Pt());
 
     /// get tracklet byteMask
-    uint8_t clusterCounters[8]={0};
+    uint8_t clusterCounters[8] = {0};
     {
       uint8_t sectorIndex, rowIndex;
       uint32_t clusterIndex;
       const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
       for (int i = 0; i < tpcOrig.getNClusterReferences(); i++) {
         o2::tpc::TrackTPC::getClusterReference(tpcClusRefs, i, sectorIndex, rowIndex, clusterIndex, tpcOrig.getClusterRef());
-        char indexTracklet=(rowIndex%152)/19;
+        char indexTracklet = (rowIndex % 152) / 19;
         clusterCounters[indexTracklet]++;
       }
     }
-    uint8_t byteMask=0;
-    for (int i=0; i<8; i++) if (clusterCounters[i]>5) byteMask|=1<<i;
-    trackQAHolder.tpcClusterByteMask=byteMask;
+    uint8_t byteMask = 0;
+    for (int i = 0; i < 8; i++)
+      if (clusterCounters[i] > 5)
+        byteMask |= 1 << i;
+    trackQAHolder.tpcClusterByteMask = byteMask;
 
-    trackQAHolder.tpcdEdxMax0R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxIROC/tpcOrig.getdEdx().dEdxTotTPC):0;
-    trackQAHolder.tpcdEdxMax1R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxOROC1/tpcOrig.getdEdx().dEdxTotTPC):0;
-    trackQAHolder.tpcdEdxMax2R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxOROC2/tpcOrig.getdEdx().dEdxTotTPC):0;
-    trackQAHolder.tpcdEdxMax3R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxMaxOROC3/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxMax0R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxIROC / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxMax1R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC1 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxMax2R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC2 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxMax3R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC3 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
     //
-    trackQAHolder.tpcdEdxTot0R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotIROC/tpcOrig.getdEdx().dEdxTotTPC):0;
-    trackQAHolder.tpcdEdxTot1R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotOROC1/tpcOrig.getdEdx().dEdxTotTPC):0;
-    trackQAHolder.tpcdEdxTot2R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotOROC2/tpcOrig.getdEdx().dEdxTotTPC):0;
-    trackQAHolder.tpcdEdxTot3R=(tpcOrig.getdEdx().dEdxTotTPC>0) ?uint8_t(100*tpcOrig.getdEdx().dEdxTotOROC3/tpcOrig.getdEdx().dEdxTotTPC):0;
+    trackQAHolder.tpcdEdxTot0R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotIROC / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxTot1R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotOROC1 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxTot2R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotOROC2 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxTot3R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotOROC3 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
     ///
-
   }
 
   // set bit encoding for PVContributor property as part of the flag field
-  //if (trackIndex.isPVContributor()) {
+  // if (trackIndex.isPVContributor()) {
   //  extraInfoHolder.flags |= o2::aod::track::PVContributor;
   //}
   return trackQAHolder;
 }
-
-
 
 bool AODProducerWorkflowDPL::propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar,
                                                 const o2::globaltracking::RecoContainer& data,
@@ -3002,7 +2997,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}}}};
-      ConfigParamSpec{"trackqc-fraction", VariantType::Float, 0.2, {"Fraction of tracks to QC"}};
+  ConfigParamSpec{"trackqc-fraction", VariantType::Float, 0.2, {"Fraction of tracks to QC"}};
 }
 
 } // namespace o2::aodproducer
