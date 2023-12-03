@@ -40,7 +40,7 @@ using NElem = int;
 struct RecEventScale {
   static std::array<float,NChannels> fe;
   static std::array<float,NTDCChannels> fa;
-  void SetGeV(){
+  void setGeV(){
     for(int ich=0; ich<NChannels; ich++){
       fe[i]=1;
     }
@@ -48,7 +48,7 @@ struct RecEventScale {
       fa[i]=1000.;
     }
   };
-  void SetTeV(){
+  void setTeV(){
     for(int ich=0; ich<NChannels; ich++){
       fe[i]=0.001;
     }
@@ -56,7 +56,7 @@ struct RecEventScale {
       fa[i]=1.;
     }
   };
-  void SetNuclEnergy(float energy){ // In GeV
+  void setNucleonEnergy(float energy){ // In GeV
     for(int ich=0; ich<NChannels; ich++){
       fe[i]=1./energy;
     }
