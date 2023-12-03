@@ -231,7 +231,7 @@ class AODProducerWorkflowDPL : public Task
   bool mPropMuons{false};
   float mTrackQCFraction{0.2};
   float mSqrtS{13860.};
-  std::mt19937 mGenerator;                                                 ///< random generator for trackQA sampling
+  std::mt19937 mGenerator; ///< random generator for trackQA sampling
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
