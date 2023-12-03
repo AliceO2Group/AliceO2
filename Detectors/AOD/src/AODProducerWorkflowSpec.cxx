@@ -92,6 +92,8 @@
 #include <thread>
 #include "TLorentzVector.h"
 #include "TVector3.h"
+#include "MathUtils/Tsallis.h"
+#include <random>
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -464,8 +466,16 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             continue;
           }
           auto extraInfoHolder = processBarrelTrack(collisionID, collisionBC, trackIndex, data, bcsMap);
-          auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap); // adding dummy holder
-          if (extraInfoHolder.trackTimeRes < 0.f) {                                                          // failed or rejected?
+
+          float weight = 0;
+          std::uniform_real_distribution<> distr(0., 1.);
+          bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator));
+          if (writeQAData) {
+            auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);
+            addToTracksQATable(tracksQACursor, trackQAInfoHolder);
+          }
+
+          if (extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
             LOG(warning) << "Barrel track " << trackIndex << " has no time set, rejection is not expected : time=" << extraInfoHolder.trackTime
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
             continue;
@@ -483,8 +493,8 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             addToTracksTable(tracksCursor, tracksCovCursor, trOrig, collisionID, aod::track::TrackIU);
           }
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
-          addToTracksQATable(tracksQACursor, trackQAInfoHolder);
-          // collecting table indices of barrel tracks for V0s table
+          // addToTracksQATable(tracksQACursor, trackQAInfoHolder);
+          //  collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
             ambigTracksCursor(mTableTrID, extraInfoHolder.bcSlice);
           }
@@ -1654,7 +1664,9 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
-  mTrackQCFraction = ic.options().get<float>("trackqc-prescaling");
+  mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
+  mSqrtS = ic.options().get<float>("sqrts");
+  mGenerator = std::mt19937(std::random_device{}());
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
 #else
@@ -2997,7 +3009,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}}}};
-  ConfigParamSpec{"trackqc-fraction", VariantType::Float, 0.2, {"Fraction of tracks to QC"}};
+
+  ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.2), {"Fraction of tracks to QC"}};
+  ConfigParamSpec{"sqrts", VariantType::Float, float(13600.f), {"Centre of mass energy used for downsampling"}};
 }
 
 } // namespace o2::aodproducer

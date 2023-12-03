@@ -33,7 +33,7 @@
 #include <set>
 #include <string>
 #include <vector>
-
+#include <random>
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using GIndex = o2::dataformats::VtxTrackIndex;
@@ -230,6 +230,8 @@ class AODProducerWorkflowDPL : public Task
   bool mPropTracks{false};
   bool mPropMuons{false};
   float mTrackQCFraction{0.2};
+  float mSqrtS{13860.};
+  std::mt19937 mGenerator;                                                 ///< random generator for trackQA sampling
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
