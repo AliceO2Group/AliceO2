@@ -307,7 +307,9 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
 
     if (mDeviceMemorySize > cudaDeviceProp.totalGlobalMem || GPUFailedMsgI(cudaMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-      GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available)", (long long int)mDeviceMemorySize, (long long int)cudaDeviceProp.totalGlobalMem);
+      size_t free, total;
+      GPUFailedMsg(cudaMemGetInfo(&free, &total));
+      GPUError("CUDA Memory Allocation Error (trying %lld bytes, %lld available on GPU, %lld free)", (long long int)mDeviceMemorySize, (long long int)cudaDeviceProp.totalGlobalMem, (long long int)free);
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
     }
