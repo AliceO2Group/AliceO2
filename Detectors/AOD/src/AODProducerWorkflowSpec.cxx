@@ -469,6 +469,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 
           float weight = 0;
           std::uniform_real_distribution<> distr(0., 1.);
+          mSqrtS = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS();
           bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator));
           if (writeQAData) {
             auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);
@@ -1664,9 +1665,9 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
-  mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
-  mSqrtS = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS();
-  mGenerator = std::mt19937(std::random_device{}());
+  // mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
+  //  mSqrtS = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS(); // CCDB - can not be read in INIT
+  // mGenerator = std::mt19937(std::random_device{}());
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
 #else
@@ -3010,7 +3011,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}}}};
 
-  ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.2), {"Fraction of tracks to QC"}};
+  ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.05), {"Fraction of tracks to QC"}};
 }
 
 } // namespace o2::aodproducer
