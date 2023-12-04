@@ -48,6 +48,8 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   float tdc_calib[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};  // Correction of TDC amplitude
   float tdc_search[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
 
+  float tdc_offset[NTDCChannels] = {-FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty}; // Compensation of TDC amplitude offset
+
   // Enable extended search at beginning of first bunch
   bool setExtendedSearch = false;
   bool doExtendedSearch = false;
@@ -69,9 +71,10 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   float ped_thr_hi[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
   float ped_thr_lo[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
 
-  // Energy calibration
   float energy_calib[NChannels] = {0}; // Energy calibration coefficients
-  float tower_calib[NChannels] = {0};  // Tower calibration coefficients
+  // Compensation of ADC offset
+  float adc_offset[NChannels] = {-FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty};
+  float tower_calib[NChannels] = {0}; // Tower calibration coefficients
 
   void print();
 

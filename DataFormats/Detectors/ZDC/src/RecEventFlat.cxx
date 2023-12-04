@@ -15,6 +15,133 @@
 
 using namespace o2::zdc;
 
+std::array<float, NChannels> RecEventScale::fe = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+std::array<float, NTDCChannels> RecEventScale::fa = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+void RecEventScale::reset()
+{
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 1;
+  }
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1;
+  }
+}
+
+void RecEventScale::setGeV()
+{
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 1;
+  }
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1000.;
+  }
+}
+
+void RecEventScale::setGeVZN()
+{
+  for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+    fe[ich] = 1;
+  }
+  for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+    fe[ich] = 1;
+  }
+  fa[TDCZNAC] = 1000.;
+  fa[TDCZNAS] = 1000.;
+  fa[TDCZNCC] = 1000.;
+  fa[TDCZNCS] = 1000.;
+}
+
+void RecEventScale::setGeVZP()
+{
+  for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+    fe[ich] = 1;
+  }
+  for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+    fe[ich] = 1;
+  }
+  fa[TDCZPAC] = 1000.;
+  fa[TDCZPAS] = 1000.;
+  fa[TDCZPCC] = 1000.;
+  fa[TDCZPCS] = 1000.;
+}
+
+void RecEventScale::setTeV()
+{
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 0.001;
+  }
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1.;
+  }
+};
+
+void RecEventScale::setTeVZN()
+{
+  for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+    fe[ich] = 0.001;
+  }
+  for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+    fe[ich] = 0.001;
+  }
+  fa[TDCZNAC] = 1.;
+  fa[TDCZNAS] = 1.;
+  fa[TDCZNCC] = 1.;
+  fa[TDCZNCS] = 1.;
+};
+
+void RecEventScale::setTeVZP()
+{
+  for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+    fe[ich] = 0.001;
+  }
+  for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+    fe[ich] = 0.001;
+  }
+  fa[TDCZPAC] = 1.;
+  fa[TDCZPAS] = 1.;
+  fa[TDCZPCC] = 1.;
+  fa[TDCZPCS] = 1.;
+};
+
+void RecEventScale::setNucleonEnergy(float energy)
+{ // In GeV
+  for (int ich = 0; ich < NChannels; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    fa[itdc] = 1000. / energy;
+  }
+};
+
+void RecEventScale::setNucleonEnergyZN(float energy)
+{ // In GeV
+  for (int ich = IdZNAC; ich <= IdZNASum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  for (int ich = IdZNCC; ich <= IdZNCSum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  fa[TDCZNAC] = 1000. / energy;
+  fa[TDCZNAS] = 1000. / energy;
+  fa[TDCZNCC] = 1000. / energy;
+  fa[TDCZNCS] = 1000. / energy;
+};
+
+void RecEventScale::setNucleonEnergyZP(float energy)
+{ // In GeV
+  for (int ich = IdZPAC; ich <= IdZPASum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  for (int ich = IdZPCC; ich <= IdZPCSum; ich++) {
+    fe[ich] = 1. / energy;
+  }
+  fa[TDCZPAC] = 1000. / energy;
+  fa[TDCZPAS] = 1000. / energy;
+  fa[TDCZPCC] = 1000. / energy;
+  fa[TDCZPCS] = 1000. / energy;
+};
+
 void RecEventFlat::init(const std::vector<o2::zdc::BCRecData>* RecBC, const std::vector<o2::zdc::ZDCEnergy>* Energy, const std::vector<o2::zdc::ZDCTDCData>* TDCData, const std::vector<uint16_t>* Info)
 {
   mRecBC = *RecBC;
@@ -143,7 +270,7 @@ int RecEventFlat::at(int ientry)
   for (int i = mFirstE; i < mStopE; i++) {
     auto myenergy = mEnergy[i];
     auto ch = myenergy.ch();
-    ezdc[ch] = myenergy.energy();
+    ezdc[ch] = myenergy.energy() * RecEventScale::fe[ch];
     // Assign implicit event info
     if (adcPedOr[ch] == false && adcPedQC[ch] == false && adcPedMissing[ch] == false) {
       adcPedEv[ch] = true;
@@ -163,7 +290,7 @@ int RecEventFlat::at(int ientry)
         isEnd[ch] = true;
       }
       TDCVal[ch].push_back(mytdc.val);
-      TDCAmp[ch].push_back(mytdc.amp);
+      TDCAmp[ch].push_back(mytdc.amp * RecEventScale::fa[ch]);
       // Assign implicit event info
       if (tdcPedQC[ch] == false && tdcPedMissing[ch] == false) {
         tdcPedOr[ch] = true;
@@ -386,13 +513,44 @@ float RecEventFlat::yZNC()
 
 float RecEventFlat::xZPA()
 {
-  // X coordinates of tower centers
-  // Positive because calorimeter is on the right of ZNA when looking
-  // from IP
-  const static float xc[4] = {2.8, 8.4, 14.0, 19.6};
+  float x, rms;
+  centroidZPA(x, rms);
+  return x;
+}
+
+float RecEventFlat::xZPC()
+{
+  float x, rms;
+  centroidZPC(x, rms);
+  return x;
+}
+
+float RecEventFlat::rmsZPA()
+{
+  float x, rms;
+  centroidZPA(x, rms);
+  return rms;
+}
+
+float RecEventFlat::rmsZPC()
+{
+  float x, rms;
+  centroidZPC(x, rms);
+  return rms;
+}
+
+void RecEventFlat::centroidZPA(float& x, float& rms)
+{
+  // x coordinates of tower centers
+  // Negative because ZPA calorimeter is on the left of ZNA when looking from IP
+  // rms can result from 0 to sqrt((2.8^2+19.6^2)/2-((2.6+19.4)/2)^2) = 8.66
+  const static float xc[4] = {-19.6, -14.0, -8.4, -2.8};
+  const static float xq[4] = {19.6 * 19.6, 14.0 * 14.0, 8.4 * 8.4, 2.8 * 2.8};
   static float c = 0;
-  if (mComputed[2]) {
-    return c;
+  static float d = 0;
+  if (mComputed[2] == true) {
+    x = c;
+    rms = d;
   }
   mComputed[2] = true;
   float e[4], w[4];
@@ -402,35 +560,56 @@ float RecEventFlat::xZPA()
   e[3] = EZDC(IdZPA4);
   if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
     c = -std::numeric_limits<float>::infinity();
-    return c;
+    d = -std::numeric_limits<float>::infinity();
+    x = c;
+    rms = d;
+    return;
   }
   float sumw = 0;
   c = 0;
+  d = 0;
   for (int i = 0; i < 4; i++) {
     if (e[i] < 0) {
-      e[i] = 0;
+      w[i] = 0;
+    } else {
+      // w[i] = std::sqrt(e[i]);
+      w[i] = e[i];
     }
-    w[i] = std::sqrt(e[i]);
     sumw += w[i];
-    c += w[i] * xc[i];
+    c = c + w[i] * xc[i];
+    d = d + w[i] * xq[i];
   }
   if (sumw <= 0) {
     c = -std::numeric_limits<float>::infinity();
+    d = -std::numeric_limits<float>::infinity();
   } else {
-    c /= sumw;
+    c = c / sumw;
+    d = d / sumw;
+    d = d - c * c; // variance
+    if (d >= 0) {
+      d = TMath::Sqrt(d);
+    } else {
+      LOGF(error, "%s FOP exception @ %d", __FILE__, __LINE__);
+      d = -std::numeric_limits<float>::infinity();
+    }
   }
-  return c;
+  x = c;
+  rms = d;
+  return;
 }
 
-float RecEventFlat::xZPC()
+void RecEventFlat::centroidZPC(float& x, float& rms)
 {
-  // X coordinates of tower centers
-  // Negative because calorimeter is on the left of ZNC when looking
-  // from IP
-  const static float xc[4] = {-2.8, -8.4, -14.0, -19.6};
+  // x coordinates of tower centers
+  // Positive because ZPC calorimeter is on the right of ZNC when looking from IP
+  // x can result in a value from 2.8 to 19.6
+  const static float xc[4] = {2.8, 8.4, 14.0, 19.6};
+  const static float xq[4] = {2.8 * 2.8, 8.4 * 8.4, 14.0 * 14.0, 19.6 * 19.6};
   static float c = 0;
+  static float d = 0;
   if (mComputed[3]) {
-    return c;
+    x = c;
+    rms = d;
   }
   mComputed[3] = true;
   float e[4], w[4];
@@ -440,24 +619,42 @@ float RecEventFlat::xZPC()
   e[3] = EZDC(IdZPC4);
   if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
     c = -std::numeric_limits<float>::infinity();
-    return c;
+    d = -std::numeric_limits<float>::infinity();
+    x = c;
+    rms = d;
+    return;
   }
   float sumw = 0;
   c = 0;
+  d = 0;
   for (int i = 0; i < 4; i++) {
     if (e[i] < 0) {
-      e[i] = 0;
+      w[i] = 0;
+    } else {
+      // w[i] = std::sqrt(e[i]);
+      w[i] = e[i];
     }
-    w[i] = std::sqrt(e[i]);
     sumw += w[i];
     c += w[i] * xc[i];
+    d += w[i] * xq[i];
   }
   if (sumw <= 0) {
     c = -std::numeric_limits<float>::infinity();
+    d = -std::numeric_limits<float>::infinity();
   } else {
     c /= sumw;
+    d /= sumw;
+    d = d - c * c; // variance
+    if (d >= 0) {
+      d = TMath::Sqrt(d);
+    } else {
+      LOGF(error, "%s FOP exception @ %d", __FILE__, __LINE__);
+      d = -std::numeric_limits<float>::infinity();
+    }
   }
-  return c;
+  x = c;
+  rms = d;
+  return;
 }
 
 void RecEventFlat::print() const
