@@ -1665,7 +1665,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
-  mSqrtS = ic.options().get<float>("sqrts");
+  mSqrtS = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS(); //
   mGenerator = std::mt19937(std::random_device{}());
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
@@ -3011,7 +3011,6 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}}}};
 
   ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.2), {"Fraction of tracks to QC"}};
-  ConfigParamSpec{"sqrts", VariantType::Float, float(13600.f), {"Centre of mass energy used for downsampling"}};
 }
 
 } // namespace o2::aodproducer
