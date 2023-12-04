@@ -393,7 +393,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
     }*/
 
     if (mDeviceMemorySize > hipDeviceProp.totalGlobalMem || GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
-      GPUError("HIP Memory Allocation Error (trying %lld bytes, %lld available)", (long long int)mDeviceMemorySize, (long long int)hipDeviceProp.totalGlobalMem);
+      size_t free, total;
+      GPUFailedMsg(hipMemGetInfo(&free, &total));
+      GPUError("HIP Memory Allocation Error (trying %lld bytes, %lld available on GPU, %lld free)", (long long int)mDeviceMemorySize, (long long int)hipDeviceProp.totalGlobalMem, (long long int)free);
       GPUFailedMsgI(hipDeviceReset());
       return (1);
     }
