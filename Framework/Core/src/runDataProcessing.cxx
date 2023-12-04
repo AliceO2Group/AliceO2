@@ -864,10 +864,9 @@ bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
     int status;
     pid_t pid = waitpid((pid_t)(-1), &status, WNOHANG);
     if (pid > 0) {
+      // Normal exit
       int es = WEXITSTATUS(status);
-
       if (WIFEXITED(status) == false || es != 0) {
-        es = WIFEXITED(status) ? es : 128 + es;
         // Look for the name associated to the pid in the infos
         std::string id = "unknown";
         assert(specs.size() == infos.size());
@@ -882,8 +881,9 @@ bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
         } else if (forceful_exit) {
           LOGP(error, "pid {} ({}) was forcefully terminated after being requested to quit", pid, id);
         } else {
-          if (es == 128) {
-            LOGP(error, "Workflow crashed - pid {} ({}) was killed abnormally with exit code {}, could be out of memory killer, segfault, unhandled exception, SIGKILL, etc...", pid, id, es);
+          if (WIFSIGNALED(status)) {
+            int exitSignal = WTERMSIG(status);
+            LOGP(error, "Workflow crashed - pid {} ({}) was killed abnormally with {} and exited with {}", pid, id, strsignal(exitSignal), es);
           } else {
             LOGP(error, "pid {} ({}) crashed with or was killed with exit code {}", pid, id, es);
           }
