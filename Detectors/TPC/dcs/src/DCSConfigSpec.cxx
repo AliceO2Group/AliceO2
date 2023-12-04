@@ -448,8 +448,8 @@ DataProcessorSpec getDCSConfigSpec()
 
   return DataProcessorSpec{
     "tpc-dcs-config",
-    Inputs{{"inputConfig", o2::header::gDataOriginTPC, "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", o2::header::gDataOriginTPC, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", o2::header::gDataOriginTPC, "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", o2::header::gDataOriginTPC, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<DCSConfigDevice>()},
     Options{

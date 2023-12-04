@@ -144,8 +144,8 @@ DataProcessorSpec getTOFDCSConfigProcessorSpec()
 
   return DataProcessorSpec{
     "tof-dcs-config-processor",
-    Inputs{{"inputConfig", o2::header::gDataOriginTOF, "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", o2::header::gDataOriginTOF, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", o2::header::gDataOriginTOF, "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", o2::header::gDataOriginTOF, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::tof::TOFDCSConfigProcessor>()},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};

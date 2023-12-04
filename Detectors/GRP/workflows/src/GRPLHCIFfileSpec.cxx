@@ -245,8 +245,8 @@ DataProcessorSpec getGRPLHCIFfileSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_LHCIFData"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "grp-lhc-if-file-processor",
-    Inputs{{"inputConfig", "GRP", "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", "GRP", "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", "GRP", "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", "GRP", "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::grp::GRPLHCIFfileProcessor>()},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};
