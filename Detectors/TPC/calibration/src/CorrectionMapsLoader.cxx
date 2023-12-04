@@ -139,12 +139,6 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     setCorrMap((o2::gpu::TPCFastTransform*)obj);
     mCorrMap->rectifyAfterReadingFromFile();
     if (getMeanLumiOverride() == 0 && mCorrMap->getLumi() > 0.) {
-      // check if the specified scale type is the same as the lumi from the provided map
-      if (mCorrMap->getLumiSource() == LumiType::None) {
-        LOGP(warning, "Lumi type not set in correction map");
-      } else if (mCorrMap->getLumiSource() != getLumiScaleType()) {
-        LOGP(error, "Lumi scale type {} and lumi source {} for correction map do not match", getLumiScaleType(), int(mCorrMap->getLumiSource()));
-      }
       setMeanLumi(mCorrMap->getLumi());
     }
     LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());
@@ -155,13 +149,6 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     setCorrMapRef((o2::gpu::TPCFastTransform*)obj);
     mCorrMapRef->rectifyAfterReadingFromFile();
     if (getMeanLumiRefOverride() == 0 && mCorrMapRef->getLumi() > 0.) {
-      // check if the specified scale type is the same as the lumi from the provided map
-      if (mCorrMapRef->getLumiSource() == LumiType::None) {
-        LOGP(warning, "Lumi type not set in reference correction map");
-      } else if ((getLumiScaleMode() != 0) && (mCorrMapRef->getLumiSource() != getLumiScaleType())) {
-        // check only when using derivative map, since for scalemode=0 the lumi of the reference map is not used for scaling
-        LOGP(error, "Lumi scale type {} and lumi source {} for reference correction map do not match", getLumiScaleType(), int(mCorrMapRef->getLumiSource()));
-      }
       setMeanLumiRef(mCorrMapRef->getLumi());
     }
     LOGP(debug, "MeanLumiRefOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiRefOverride(), mCorrMapRef->getLumi(), getMeanLumiRef());
@@ -188,12 +175,6 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     setUpdatedLumi();
     int scaleType = getLumiScaleType();
     const std::array<std::string, 3> lumiS{"OFF", "CTP", "TPC scaler"};
-    const auto lumiSource = par.lumiSource;
-    if (lumiSource == LumiType::None) {
-      LOGP(warning, "Lumi type not set in CorrMapParam");
-    } else if (lumiSource != scaleType) {
-      LOGP(error, "Lumi scale type {} and lumi source {} from CorrMapParam do not match", scaleType, int(lumiSource));
-    }
     if (scaleType >= lumiS.size()) {
       LOGP(fatal, "Wrong lumi-scale-type provided!");
     }
