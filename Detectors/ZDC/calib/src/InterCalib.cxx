@@ -188,6 +188,8 @@ void InterCalib::assign(int ih, bool ismod)
   int id_4[1] = {IdZEM2};
   int id_5[1] = {IdZNCC};
   int id_6[1] = {IdZPCC};
+  int id_7[4] = {IdZPA1, IdZPA2, IdZPA3, IdZPA4};
+  int id_8[4] = {IdZPC1, IdZPC2, IdZPC3, IdZPC4};
   int nid = 0;
   int* id = nullptr;
   if (ih == 0) {
@@ -215,6 +217,24 @@ void InterCalib::assign(int ih, bool ismod)
     id = id_6;
     LOG(warn) << "InterCalib::assign unimplemented coefficient ih = " << ih;
     return;
+  } else if (ih == 7 || ih == 8) {
+    nid = 4;
+    if (ih == 7) {
+      id = id_7;
+    } else if (ih == 8) {
+      id = id_8;
+    }
+    //     LOG(warn) << "InterCalib::assign MANUAL ASSIGNMENT for ih = " << ih;
+    //     if (mVerbosity > DbgZero) {
+    //       for (int iid = 0; iid < nid; iid++) {
+    //         auto ich = id[iid];
+    //         auto oldval = mTowerParam->getTowerCalib(ich);
+    //         auto val = oldval;
+    //         val = val * mPar[ih][iid + 1];
+    //         LOGF(info, "%s MANUAL UPDATING %8.6f -> %8.6f", ChannelNames[ich].data(), oldval, val);
+    //       }
+    //     }
+    //     return;
   } else {
     LOG(fatal) << "InterCalib::assign accessing not existing ih = " << ih;
   }
@@ -470,23 +490,50 @@ int InterCalib::mini(int ih)
   int ierflg = 0;
   double l_bnd = mInterCalibConfig->l_bnd[ih];
   double u_bnd = mInterCalibConfig->u_bnd[ih];
-  double start = 1.0;
+  double start = mInterCalibConfig->start[ih];
   double step = 0.1;
   mMn[ih] = std::make_unique<TMinuit>(NPAR);
   mMn[ih]->SetFCN(fcn);
+  // We introduce the calibration of the common PM in separate workflows
+  // Calibration cvoefficient is forced to and step is forced to zero
   mMn[ih]->mnparm(0, "c0", 1., 0., 1., 1., ierflg);
-  mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
+
+  // Special fit for proton calorimeters: fit least exposed towers with using previous
+  // fit of all towers
+
+  // Tower 1
+  if (ih == HidZPCX) {
+    mMn[ih]->mnparm(1, "c1", mPar[HidZPC][1], 0, l_bnd, u_bnd, ierflg);
+  } else {
+    mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
+  }
+
+  // Tower 2
   // Only two ZEM calorimeters: equalize response
   // Equalize side A and C
-  if (ih == 4 || ih == 5 || ih == 6) {
+  if (ih == HidZEM || ih == HidZNI || ih == HidZPI) {
     l_bnd = 0;
     u_bnd = 0;
     start = 0;
     step = 0;
   }
-  mMn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
-  mMn[ih]->mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
-  mMn[ih]->mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
+
+  if (ih == HidZPCX) {
+    mMn[ih]->mnparm(2, "c2", mPar[HidZPC][2], 0, l_bnd, u_bnd, ierflg);
+  } else {
+    mMn[ih]->mnparm(2, "c2", start, step, l_bnd, u_bnd, ierflg);
+  }
+
+  // Towers 3 and 4
+  if (ih == HidZPAX) {
+    mMn[ih]->mnparm(3, "c3", mPar[HidZPA][3], 0, l_bnd, u_bnd, ierflg);
+    mMn[ih]->mnparm(4, "c4", mPar[HidZPA][4], 0, l_bnd, u_bnd, ierflg);
+  } else {
+    mMn[ih]->mnparm(3, "c3", start, step, l_bnd, u_bnd, ierflg);
+    mMn[ih]->mnparm(4, "c4", start, step, l_bnd, u_bnd, ierflg);
+  }
+
+  // Offset
   l_bnd = mInterCalibConfig->l_bnd_o[ih];
   u_bnd = mInterCalibConfig->u_bnd_o[ih];
   start = 0;
@@ -497,7 +544,7 @@ int InterCalib::mini(int ih)
     mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
   }
   // Fallback in case fit fails on proton calorimeters
-  if (ih == 1 || ih == 3) {
+  if (ih == 1 || ih == 3 || ih == 7 || ih == 8) {
     for (int iretry = 0; iretry < 2; iretry++) {
       bool retry = false;
       const char* parn[5] = {"c0fix", "c1fix", "c2fix", "c3fix", "c4fix"};
@@ -507,9 +554,9 @@ int InterCalib::mini(int ih)
         if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-3 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-3) {
           retry = true;
           LOG(warn) << "ih=" << ih << " par " << i << " too close to boundaries";
-          if (ih == 1) {
+          if (ih == 1 || ih == 7) {
             mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPAC + i], 0, l_bnd, u_bnd, ierflg);
-          } else if (ih == 3) {
+          } else if (ih == 3 || ih == 8) {
             mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPCC + i], 0, l_bnd, u_bnd, ierflg);
           } else {
             LOG(fatal) << "ERROR on InterCalib minimization ih=" << ih;
@@ -521,6 +568,9 @@ int InterCalib::mini(int ih)
         mMn[ih]->mnexcm("MIGRAD", arglist, 0, ierflg);
         for (Int_t i = 0; i < NPAR; i++) {
           mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
+        }
+        if (ierflg == 0) {
+          break;
         }
       }
     }
@@ -563,7 +613,7 @@ int InterCalib::saveDebugHistos(const std::string fn)
     }
   }
   // Minimization output
-  const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM", "mZNI", "mZPI"};
+  const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM", "mZNI", "mZPI", "mZPAX", "mZPCX"};
   for (int32_t ih = 0; ih < NH; ih++) {
     if (mMn[ih]) {
       mMn[ih]->Write(mntit[ih], TObject::kOverwrite);

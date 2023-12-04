@@ -21,11 +21,12 @@
 #include <string_view>
 #include <string>
 #include <type_traits>
+#include <limits>
 
 // Enable debug printout in reconstruction
-//#define O2_ZDC_DEBUG
+// #define O2_ZDC_DEBUG
 // TDC arrays in debug output
-//#define O2_ZDC_TDC_C_ARRAY
+// #define O2_ZDC_TDC_C_ARRAY
 
 namespace o2
 {
@@ -70,7 +71,11 @@ constexpr int NLinks = NModules * 2;
 constexpr int NDigiChannels = NModules * NChPerModule;
 constexpr int NWPerBc = 3;
 constexpr int MaxTriggerChannels = NChannels;
+
+// Limits
 constexpr int ADCMin = -2048, ADCMax = 2047, ADCRange = 4096; // 12 bit ADC
+constexpr float FInfty = std::numeric_limits<float>::infinity();
+constexpr float DInfty = std::numeric_limits<double>::infinity();
 
 // Encoding of ZDC energy into an uint32_t value
 // Most significant 5 bits are for channel id, least significant 27 bits are for energy
@@ -89,7 +94,7 @@ constexpr int TSL = 6;                    // number of zeros on the right (and o
 constexpr int TSN = 200;                  // Number of interpolated points between each pair = TSN-1
 constexpr int TSNH = TSN / 2;             // Half of TSN
 constexpr int NTS = 2 * TSL * TSN + 1;    // Tapered sinc function array size
-constexpr float FTDCAmp = 1. / 8.;        // Multiplication factor in conversion from integer
+constexpr float FTDCAmp = 1. / 8.;        // Multiplication factor in conversion from integer - TODO increase precision assuming Amplitude>0
 constexpr int NIS = NTimeBinsPerBC * TSN; // Number of interpolated samples
 // With a reference clock of 40 MHz exact this FTDCVal would have been
 // constexpr float FTDCVal = 1. / TSNS;
@@ -141,36 +146,37 @@ constexpr uint32_t MaskZPC = 0x01f00000;
 constexpr uint32_t MaskAllZPC = 0x03f00000;
 
 constexpr std::string_view ChannelNames[] = {
-  "ZNAC",
-  "ZNA1",
-  "ZNA2",
-  "ZNA3",
-  "ZNA4",
-  "ZNAS",
+  "ZNAC", //  0
+  "ZNA1", //  1
+  "ZNA2", //  2
+  "ZNA3", //  3
+  "ZNA4", //  4
+  "ZNAS", //  5
   //
-  "ZPAC",
-  "ZPA1",
-  "ZPA2",
-  "ZPA3",
-  "ZPA4",
-  "ZPAS",
+  "ZPAC", //  6
+  "ZPA1", //  7
+  "ZPA2", //  8
+  "ZPA3", //  9
+  "ZPA4", // 10
+  "ZPAS", // 11
   //
-  "ZEM1",
-  "ZEM2",
+  "ZEM1", // 12
+  "ZEM2", // 13
   //
-  "ZNCC",
-  "ZNC1",
-  "ZNC2",
-  "ZNC3",
-  "ZNC4",
-  "ZNCS",
+  "ZNCC", // 14
+  "ZNC1", // 15
+  "ZNC2", // 16
+  "ZNC3", // 17
+  "ZNC4", // 18
+  "ZNCS", // 19
   //
-  "ZPCC",
-  "ZPC1",
-  "ZPC2",
-  "ZPC3",
-  "ZPC4",
-  "ZPCS"};
+  "ZPCC", // 20
+  "ZPC1", // 21
+  "ZPC2", // 22
+  "ZPC3", // 23
+  "ZPC4", // 24
+  "ZPCS"  // 25
+};
 
 // From TDC ID to signal ID
 const int TDCSignal[NTDCChannels] = {
