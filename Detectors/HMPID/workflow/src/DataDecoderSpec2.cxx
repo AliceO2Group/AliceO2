@@ -203,7 +203,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
     int pointerToTheFirst = mDeco->mDigits.size();
     uint32_t* theBuffer = (uint32_t*)it.raw();
     mDeco->setUpStream(theBuffer, it.size() + it.offset());
-   try {
+    try {
       if (mFastAlgorithm) {
         mDeco->decodePageFast(&theBuffer);
       } else {

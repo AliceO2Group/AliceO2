@@ -1277,7 +1277,7 @@ bool HmpidDecoder2::setUpStream(void* Buffer, long BufferLen)
   }
 
   mActualStreamPtr = (uint32_t*)Buffer;                 // sets the pointer to the Buffer
-  mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen -1; // sets the End of buffer
+  mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen - 1; // sets the End of buffer
   mStartStreamPtr = ((uint32_t*)Buffer);
   return (true);
 }
