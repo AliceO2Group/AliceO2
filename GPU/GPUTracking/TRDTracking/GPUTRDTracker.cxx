@@ -998,7 +998,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetSector(float alpha) const
   } else if (alpha >= 2.f * CAMath::Pi()) {
     alpha -= 2.f * CAMath::Pi();
   }
-  return (int)(alpha * kNSectors / (2.f * CAMath::Pi()));
+  return (int)(alpha * (float)kNSectors / (2.f * CAMath::Pi()));
 }
 
 template <class TRDTRK, class PROP>
