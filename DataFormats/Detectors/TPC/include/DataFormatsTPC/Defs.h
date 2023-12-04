@@ -114,13 +114,6 @@ inline PadFlags operator&(PadFlags a, PadFlags b) { return static_cast<PadFlags>
 inline PadFlags operator~(PadFlags a) { return static_cast<PadFlags>(~static_cast<int>(a)); }
 inline PadFlags operator|(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) | static_cast<int>(b)); }
 
-/// luminosity type used for scaling of the correction or distortions
-enum LumiType {
-  None = 0, ///< default undefined
-  CTP = 1,  ///< CTP
-  IDC = 2   ///< IDCs from TPC
-};
-
 // default point definitions for PointND, PointNDlocal, PointNDglobal are in
 // MathUtils/CartesianND.h
 

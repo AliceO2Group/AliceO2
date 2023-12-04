@@ -61,7 +61,6 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   mLumi = obj.mLumi;
   mLumiError = obj.mLumiError;
   mLumiScaleFactor = obj.mLumiScaleFactor;
-  mLumiSource = obj.mLumiSource;
   // variable-size data
 
   char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCorrection.getFlatBufferPtr());
