@@ -1665,7 +1665,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
-  mSqrtS = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS(); //
+  mSqrtS = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS();
   mGenerator = std::mt19937(std::random_device{}());
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
