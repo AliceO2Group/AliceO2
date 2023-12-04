@@ -92,7 +92,8 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
     merger.outputs[0] = OutputSpec{{mergerIntegralOutputBinding()},
                                    mergerDataOrigin(),
                                    mergerDataDescription(mName),
-                                   subSpec}; // it servers as a unique merger output ID
+                                   subSpec, // it servers as a unique merger output ID
+                                   Lifetime::Sporadic};
   } else {
     // last layer
     merger.outputs[0].binding = {mergerIntegralOutputBinding()};
