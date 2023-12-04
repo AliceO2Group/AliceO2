@@ -81,7 +81,7 @@ struct SimConfigData {
   SimFieldMode mFieldMode = SimFieldMode::kDefault; // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
-  bool mIsRun5 = false;                       // true if the simulation is for Run 5
+  bool mIsUpgrade = false;                    // true if the simulation is for Run 5
   std::string mFromCollisionContext = "";     // string denoting a collision context file; If given, this file will be used to determine number of events
   bool mForwardKine = false;                  // true if tracks and event headers are to be published on a FairMQ channel (for reading by other consumers)
   bool mWriteToDisc = true;                   // whether we write simulation products (kine, hits) to disc
@@ -139,7 +139,7 @@ class SimConfig
 
   // static helper functions to determine list of active / readout modules
   // can also be used from outside
-  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active, bool isRun5 = false);
+  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active, bool isUpgrade = false);
   static void determineReadoutDetectors(std::vector<std::string> const& active, std::vector<std::string> const& enabledRO, std::vector<std::string> const& skippedRO, std::vector<std::string>& finalRO);
 
   // helper to parse field option
@@ -171,7 +171,7 @@ class SimConfig
   uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
   int getRunNumber() const { return mConfigData.mRunNumber; }
   bool isNoGeant() const { return mConfigData.mNoGeant; }
-  void setRun5(bool value = true) { mConfigData.mIsRun5 = value; }
+  void setRun5(bool value = true) { mConfigData.mIsUpgrade = value; }
   bool forwardKine() const { return mConfigData.mForwardKine; }
   bool writeToDisc() const { return mConfigData.mWriteToDisc; }
   VertexMode getVertexMode() const { return mConfigData.mVertexMode; }

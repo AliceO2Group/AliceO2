@@ -117,13 +117,19 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
+  float const SNPThresh = 0.999990f;
 
   for (int iTmp = get_global_id(0); iTmp < nTracks; iTmp += get_global_size(0)) {
     TrackTPC oTrack;
     const int i = trackSort[iTmp].x;
-
+    auto snpIn = tracks[i].GetParam().GetSinPhi();
+    if (snpIn > SNPThresh) {
+      snpIn = SNPThresh;
+    } else if (snpIn < -SNPThresh) {
+      snpIn = -SNPThresh;
+    }
     oTrack.set(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
-               {tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), tracks[i].GetParam().GetSinPhi(), tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt()},
+               {tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), snpIn, tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt()},
                {tracks[i].GetParam().GetCov(0),
                 tracks[i].GetParam().GetCov(1), tracks[i].GetParam().GetCov(2),
                 tracks[i].GetParam().GetCov(3), tracks[i].GetParam().GetCov(4), tracks[i].GetParam().GetCov(5),
@@ -136,9 +142,15 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
       oTrack.setdEdx(tracksdEdx[i]);
     }
 
+    auto snpOut = outerPar.P[2];
+    if (snpOut > SNPThresh) {
+      snpOut = SNPThresh;
+    } else if (snpOut < -SNPThresh) {
+      snpOut = -SNPThresh;
+    }
     oTrack.setOuterParam(o2::track::TrackParCov(
       outerPar.X, outerPar.alpha,
-      {outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4]},
+      {outerPar.P[0], outerPar.P[1], snpOut, outerPar.P[3], outerPar.P[4]},
       {outerPar.C[0], outerPar.C[1], outerPar.C[2], outerPar.C[3], outerPar.C[4], outerPar.C[5],
        outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));

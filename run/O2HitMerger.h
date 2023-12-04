@@ -74,6 +74,7 @@
 #include <FCTSimulation/Detector.h>
 #include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
 #include <IOTOFSimulation/Detector.h>
+#include <RICHSimulation/Detector.h>
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
@@ -982,6 +983,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::TF3) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::iotof::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::RCH) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::rich::Detector>(true));
       counter++;
     }
 #endif

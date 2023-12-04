@@ -63,6 +63,8 @@ function(set_target_hip_arch target)
 endfunction()
 
 # Detect and enable CUDA
+STRING(REGEX REPLACE "\-std=[^ ]*" "" O2_GPU_CMAKE_CXX_FLAGS_NOSTD "${CMAKE_CXX_FLAGS}") # Need to strip c++17 imposed by alidist defaults
+
 if(ENABLE_CUDA)
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
@@ -106,9 +108,7 @@ if(ENABLE_CUDA)
     endif()
   endif()
   if(CMAKE_CUDA_COMPILER)
-    # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
-    STRING(REGEX REPLACE "\-std=[^ ]*" "" CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr --extended-lambda --allow-unsupported-compiler -Xptxas -v")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${O2_GPU_CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr --extended-lambda --allow-unsupported-compiler -Xptxas -v")
     set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -lineinfo -Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
     if(NOT CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       set(CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE}} -Xcompiler \"${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}\" -Xptxas -O4 -Xcompiler -O4")
@@ -262,7 +262,8 @@ if(ENABLE_HIP)
       string(REGEX REPLACE "(.*)bin/c\\+\\+\$" "\\1" HIP_GCC_TOOLCHAIN_PATH "${CMAKE_CXX_COMPILER}")
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --gcc-toolchain=${HIP_GCC_TOOLCHAIN_PATH}") # -ffast-math disabled, since apparently it leads to miscompilation and crashes in FollowLooper kernel
     endif()
-    set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS}")
+    set(CMAKE_HIP_FLAGS "${O2_GPU_CMAKE_CXX_FLAGS_NOSTD} ${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS}")
+    set(CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} ${CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE}}")
   else()
     set(HIP_ENABLED OFF)
   endif()

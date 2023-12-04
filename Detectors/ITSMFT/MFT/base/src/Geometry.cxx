@@ -69,7 +69,7 @@ const Double_t Geometry::sGlueRohacellCarbonThickness = 0.0025 / 2; // glue betw
 const Double_t Geometry::sKaptonOnCarbonThickness = 0.0013 / 2;     // thickness of the kapton layer on the heat exchanger carbone plate
 const Double_t Geometry::sKaptonGlueThickness = 0.0027 / 2;         // thickness of the kapton layer glue
 
-const Int_t Geometry::sGrooves = 0; // grooves or not grooves, that's the question... 0 without grooves, 1 with grooves at your own risks!
+const Int_t Geometry::sGrooves = 1; // 0 without grooves, 1 with grooves
 
 // need to do this, because of the different conventions between
 // ITS and MFT in placing the chips (rows, cols) in the geometry

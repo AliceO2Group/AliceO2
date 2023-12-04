@@ -57,6 +57,23 @@ class RawDumpDeviceDPL
     }
   }
 
+  void printRDHHex(const o2::header::RDHAny* rdhPtr, bool isBare)
+  {
+    std::stringstream ss;
+    size_t nWordsPerLine = isBare ? 2 : 4;
+    std::vector<uint64_t> words{rdhPtr->word0, rdhPtr->word1, rdhPtr->word2, rdhPtr->word3, rdhPtr->word4, rdhPtr->word5, rdhPtr->word6, rdhPtr->word7};
+    for (size_t iword = 0; iword < words.size(); ++iword) {
+      auto word = words[iword];
+      if (iword % nWordsPerLine == 0) {
+        ss << "\n";
+      }
+      for (size_t ibyte = 0, end = sizeof(word); ibyte < end; ++ibyte) {
+        ss << fmt::format("{:02x}", (word >> 8 * ibyte) & 0xf);
+      }
+    }
+    LOG(info) << ss.str();
+  }
+
   void printPayload(gsl::span<const uint8_t> payload, bool isBare)
   {
     std::stringstream ss;
@@ -111,6 +128,7 @@ class RawDumpDeviceDPL
       gsl::span<const uint8_t> payload(it.data(), it.size());
       bool isBare = o2::mid::raw::isBare(*rdhPtr);
       o2::raw::RDHUtils::printRDH(rdhPtr);
+      printRDHHex(rdhPtr, isBare);
       if (mDumpPayload) {
         printPayload(payload, isBare);
       }

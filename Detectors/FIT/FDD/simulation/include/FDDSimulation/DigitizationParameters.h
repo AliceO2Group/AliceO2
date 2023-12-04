@@ -16,7 +16,6 @@ namespace o2::fdd
 {
 struct DigitizationParameters {
   static constexpr float LightYield = 0.01;
-  static constexpr float PmGain = 1e6;
   static constexpr float ShapeAlpha = -0.445;
   static constexpr float ShapeN = 2.65;
   static constexpr float ShapeSigma = 3.25;

@@ -732,10 +732,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
     for (auto& ignoredInput : ignored) {
-      if (ignoredInput.lifetime == Lifetime::OutOfBand) {
-        // FIXME: Use Lifetime::Dangling when fully working?
-        ignoredInput.lifetime = Lifetime::Timeframe;
-      }
+      ignoredInput.lifetime = Lifetime::Sporadic;
     }
 
     extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingChannelConfigOutput));
@@ -1257,7 +1254,11 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
-  std::vector<Validator> defaultValidators = {validateExpendable, validateLifetime};
+  static bool disableLifetimeCheck = getenv("DPL_WORKAROUND_DO_NOT_CHECK_FOR_CORRECT_WORKFLOW_LIFETIMES") && atoi(getenv("DPL_WORKAROUND_DO_NOT_CHECK_FOR_CORRECT_WORKFLOW_LIFETIMES"));
+  std::vector<Validator> defaultValidators = {validateExpendable};
+  if (!disableLifetimeCheck) {
+    defaultValidators.emplace_back(validateLifetime);
+  }
   std::stringstream errors;
   // Iterate over all the edges.
   // Get the input lifetime and the output lifetime.

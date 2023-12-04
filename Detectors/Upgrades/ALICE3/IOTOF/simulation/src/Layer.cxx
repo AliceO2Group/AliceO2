@@ -51,9 +51,9 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kMagenta - 7);
-  chipVol->SetLineColor(kMagenta - 7);
-  layerVol->SetLineColor(kMagenta - 7);
+  sensVol->SetLineColor(kMagenta - 2);
+  chipVol->SetLineColor(kMagenta - 2);
+  layerVol->SetLineColor(kMagenta - 2);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);

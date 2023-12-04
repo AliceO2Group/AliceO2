@@ -11,18 +11,15 @@
 
 set(MODULE GPUTrackingHIP)
 
-set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-#setting flags as a global option for all HIP targets.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fno-gpu-rdc")
+# Setting flags as a global option for all HIP targets.
+set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fno-gpu-rdc")
 if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()
 
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionHIP.hip.cxx)
+set(SRCS GPUReconstructionHIP.hip)
 set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h GPUReconstructionHIPIncludes.h HIPThrustHelpers.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")

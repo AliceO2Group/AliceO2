@@ -16,6 +16,7 @@
 #include "DataFormatsFDD/ChannelData.h"
 #include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/MCLabel.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "FDDSimulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "FDDSimulation/DigitizationParameters.h"
@@ -87,6 +88,8 @@ class Digitizer
   void init();
   void finish();
 
+  void setDeadChannelMap(o2::fit::DeadChannelMap const* deadChannelMap) { mDeadChannelMap = deadChannelMap; };
+
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 10, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
 
@@ -124,6 +127,8 @@ class Digitizer
   static Double_t PMResponse(Double_t x);
   static Double_t PMResponse(Double_t* x, Double_t*);
   static Double_t SinglePhESpectrum(Double_t* x, Double_t* par);
+
+  o2::fit::DeadChannelMap const* mDeadChannelMap = nullptr;
 
   ClassDefNV(Digitizer, 4);
 };

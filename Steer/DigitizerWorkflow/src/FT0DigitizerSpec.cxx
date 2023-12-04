@@ -18,6 +18,7 @@
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "FT0Simulation/Digitizer.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/HitType.h"
 #include "DataFormatsFT0/Digit.h"
@@ -58,13 +59,19 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.init();
     mROMode = o2::parameters::GRPObject::ROMode(o2::parameters::GRPObject::TRIGGERING | (mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT));
     mDisableQED = ic.options().get<bool>("disable-qed");
+    mUseDeadChannelMap = !ic.options().get<bool>("disable-dead-channel-map");
+    mUpdateDeadChannelMap = mUseDeadChannelMap;
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
     if (matcher == ConcreteDataMatcher("FT0", "TimeOffset", 0)) {
       mUpdateCCDB = false;
-      return;
+    }
+
+    // Initialize the dead channel map only once
+    if (matcher == ConcreteDataMatcher("FT0", "DeadChannelMap", 0)) {
+      mUpdateDeadChannelMap = false;
     }
   }
 
@@ -85,6 +92,13 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
       auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
       mDigitizer.SetChannelOffset(caliboffsets.get());
     }
+
+    // Initialize the dead channel map
+    if (mUpdateDeadChannelMap && mUseDeadChannelMap) {
+      auto deadChannelMap = pc.inputs().get<o2::fit::DeadChannelMap*>("ft0deadchannelmap");
+      mDigitizer.setDeadChannelMap(deadChannelMap.get());
+    }
+
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
@@ -158,6 +172,8 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   bool mDisableQED = false;
   bool mUseCCDB = true;
   bool mUpdateCCDB = true;
+  bool mUseDeadChannelMap = true;
+  bool mUpdateDeadChannelMap = true;
   std::vector<TChain*> mSimChains;
 };
 
@@ -183,13 +199,18 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth, 
                         Lifetime::Condition,
                         ccdbParamSpec("FT0/Calib/ChannelTimeOffset"));
   }
+  inputs.emplace_back("ft0deadchannelmap", "FT0", "DeadChannelMap", 0,
+                      Lifetime::Condition,
+                      ccdbParamSpec("FT0/Calib/DeadChannelMap", {}, -1));
+
   return DataProcessorSpec{
     "FT0Digitizer",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>(useCCDB)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
-            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
+            {"disable-qed", VariantType::Bool, false, {"disable QED handling"}},
+            {"disable-dead-channel-map", VariantType::Bool, false, {"Don't mask dead channels"}}}};
 }
 
 } // namespace ft0
