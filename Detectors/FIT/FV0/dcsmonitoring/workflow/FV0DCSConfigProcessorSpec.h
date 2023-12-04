@@ -40,8 +40,8 @@ DataProcessorSpec getFV0DCSConfigProcessorSpec()
 
   return DataProcessorSpec{
     "fv0-dcs-config-processor",
-    Inputs{{"inputConfig", o2::header::gDataOriginFV0, "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", o2::header::gDataOriginFV0, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", o2::header::gDataOriginFV0, "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", o2::header::gDataOriginFV0, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::fit::FITDCSConfigProcessor>("FV0", ddDChM)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
