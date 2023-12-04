@@ -2498,9 +2498,10 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
       }
     }
     uint8_t byteMask = 0;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++) {
       if (clusterCounters[i] > 5)
         byteMask |= 1 << i;
+    }
     trackQAHolder.tpcClusterByteMask = byteMask;
     trackQAHolder.tpcdEdxMax0R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxIROC / tpcOrig.getdEdx().dEdxTotTPC) : 0;
     trackQAHolder.tpcdEdxMax1R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC1 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
