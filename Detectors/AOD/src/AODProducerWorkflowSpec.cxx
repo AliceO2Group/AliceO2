@@ -2498,19 +2498,22 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
     }
     uint8_t byteMask = 0;
     for (int i = 0; i < 8; i++) {
-      if (clusterCounters[i] > 5)
-        byteMask |= 1 << i;
+      {
+        if (clusterCounters[i] > 5)
+          byteMask |= (1 << i);
+      }
     }
     trackQAHolder.tpcClusterByteMask = byteMask;
-    trackQAHolder.tpcdEdxMax0R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxIROC / tpcOrig.getdEdx().dEdxTotTPC) : 0;
-    trackQAHolder.tpcdEdxMax1R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC1 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
-    trackQAHolder.tpcdEdxMax2R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC2 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
-    trackQAHolder.tpcdEdxMax3R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxMaxOROC3 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    float dEdxNorm = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? 100. / tpcOrig.getdEdx().dEdxTotTPC : 0;
+    trackQAHolder.tpcdEdxMax0R = uint8_t(tpcOrig.getdEdx().dEdxMaxIROC * dEdxNorm);
+    trackQAHolder.tpcdEdxMax1R = uint8_t(tpcOrig.getdEdx().dEdxMaxOROC1 * dEdxNorm);
+    trackQAHolder.tpcdEdxMax2R = uint8_t(tpcOrig.getdEdx().dEdxMaxOROC2 * dEdxNorm);
+    trackQAHolder.tpcdEdxMax3R = uint8_t(tpcOrig.getdEdx().dEdxMaxOROC3 * dEdxNorm);
     //
-    trackQAHolder.tpcdEdxTot0R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotIROC / tpcOrig.getdEdx().dEdxTotTPC) : 0;
-    trackQAHolder.tpcdEdxTot1R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotOROC1 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
-    trackQAHolder.tpcdEdxTot2R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotOROC2 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
-    trackQAHolder.tpcdEdxTot3R = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? uint8_t(100 * tpcOrig.getdEdx().dEdxTotOROC3 / tpcOrig.getdEdx().dEdxTotTPC) : 0;
+    trackQAHolder.tpcdEdxTot0R = uint8_t(tpcOrig.getdEdx().dEdxTotIROC * dEdxNorm);
+    trackQAHolder.tpcdEdxTot1R = uint8_t(tpcOrig.getdEdx().dEdxTotOROC1 * dEdxNorm);
+    trackQAHolder.tpcdEdxTot2R = uint8_t(tpcOrig.getdEdx().dEdxTotOROC2 * dEdxNorm);
+    trackQAHolder.tpcdEdxTot3R = uint8_t(tpcOrig.getdEdx().dEdxTotOROC3 * dEdxNorm);
     ///
   }
   return trackQAHolder;
