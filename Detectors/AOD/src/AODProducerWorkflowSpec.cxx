@@ -2471,20 +2471,19 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
   TrackQA trackQAHolder;
   auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
   const auto& trackPar = data.getTrackParam(trackIndex);
-  auto src = trackIndex.getSource();
+  // auto src = trackIndex.getSource();
   if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
     const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
     trackQAHolder.trackID = trackIndex;
     /// getDCA - should be done  with the copy of TPC only track
-    o2::track::TrackParametrizationWithError<float> tpcTMP = tpcOrig; /// get backup of the track
-    o2::base::Propagator::MatCorrType mMatType;                       /// what correction is selected?
-    o2::dataformats::DCA dcaInfo;
-    dcaInfo.set(999.f, 999.f, 999.f, 999.f, 999.f);
+    o2::track::TrackParametrization<float> tpcTMP = tpcOrig;                                       /// get backup of the track
+    o2::base::Propagator::MatCorrType mMatType = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// should be parameterized
     o2::dataformats::VertexBase v = mVtx.getMeanVertex(collisionID < 0 ? 0.f : data.getPrimaryVertex(collisionID).getZ());
-    if (o2::base::Propagator::Instance()->propagateToDCABxByBz(v, tpcTMP, 2.f, mMatType, &dcaInfo)) {
+    o2::gpu::gpustd::array<float, 2> dcaInfo{-999., -999.};
+    if (o2::base::Propagator::Instance()->propagateToDCABxByBz({v.getX(), v.getY(), v.getZ()}, tpcTMP, 2.f, mMatType, &dcaInfo)) {
+      trackQAHolder.tpcdcaR = 100. * dcaInfo[0] / sqrt(1. + trackPar.getQ2Pt() * trackPar.getQ2Pt());
+      trackQAHolder.tpcdcaZ = 100. * dcaInfo[1] / sqrt(1. + trackPar.getQ2Pt() * trackPar.getQ2Pt());
     }
-    trackQAHolder.tpcdcaR = 100. * dcaInfo.getY() / sqrt(1. + trackPar.getQ2Pt() * trackPar.getQ2Pt());
-    trackQAHolder.tpcdcaZ = 100. * dcaInfo.getZ() / sqrt(1. + trackPar.getQ2Pt() * trackPar.getQ2Pt());
     /// get tracklet byteMask
     uint8_t clusterCounters[8] = {0};
     {
