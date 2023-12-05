@@ -136,8 +136,8 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   } // end of event loop
   // std::cout << "Finished cell loop" << std::endl;
 
-  pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
-  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
+  pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, tfNumber);
+  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, "");
 
   mTimer.Stop();
 }

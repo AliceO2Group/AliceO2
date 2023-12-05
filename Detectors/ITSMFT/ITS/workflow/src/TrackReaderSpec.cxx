@@ -44,14 +44,14 @@ void TrackReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " track in " << mROFRec.size() << " ROFs at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0, Lifetime::Timeframe}, mROFRec);
-  pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0, Lifetime::Timeframe}, mTracks);
-  pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0, Lifetime::Timeframe}, mClusInd);
-  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
-  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "ITSTrackROF", 0}, mROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "TRACKS", 0}, mTracks);
+  pc.outputs().snapshot(Output{mOrigin, "TRACKCLSID", 0}, mClusInd);
+  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0}, mVertices);
+  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0}, mVerticesROFRec);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0, Lifetime::Timeframe}, mMCTruth);
-    pc.outputs().snapshot(Output{mOrigin, "VERTICESMCTR", 0, Lifetime::Timeframe}, mMCVertTruth);
+    pc.outputs().snapshot(Output{mOrigin, "TRACKSMCTR", 0}, mMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "VERTICESMCTR", 0}, mMCVertTruth);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

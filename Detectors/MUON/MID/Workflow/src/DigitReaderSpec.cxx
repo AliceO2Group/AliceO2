@@ -55,19 +55,19 @@ class DigitsReaderDeviceDPL
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
                                                  RootTreeReader::BranchDefinition<std::vector<ColumnData>>{
-                                                   Output{header::gDataOriginMID, mDescriptions[0], 0, Lifetime::Timeframe}, "MIDDigit"},
+                                                   Output{header::gDataOriginMID, mDescriptions[0], 0}, "MIDDigit"},
                                                  RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
-                                                   Output{header::gDataOriginMID, mDescriptions[1], 0, Lifetime::Timeframe}, "MIDROFRecords"},
+                                                   Output{header::gDataOriginMID, mDescriptions[1], 0}, "MIDROFRecords"},
                                                  RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCLabel>>{
-                                                   Output{header::gDataOriginMID, mDescriptions[2], 0, Lifetime::Timeframe}, "MIDDigitMCLabels"},
+                                                   Output{header::gDataOriginMID, mDescriptions[2], 0}, "MIDDigitMCLabels"},
                                                  &mPublishDigits);
     } else {
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
                                                  RootTreeReader::BranchDefinition<std::vector<ColumnData>>{
-                                                   Output{header::gDataOriginMID, mDescriptions[0], 0, Lifetime::Timeframe}, "MIDDigit"},
+                                                   Output{header::gDataOriginMID, mDescriptions[0], 0}, "MIDDigit"},
                                                  RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
-                                                   Output{header::gDataOriginMID, mDescriptions[1], 0, Lifetime::Timeframe}, "MIDROFRecords"},
+                                                   Output{header::gDataOriginMID, mDescriptions[1], 0}, "MIDROFRecords"},
                                                  &mPublishDigits);
     }
   }

@@ -177,7 +177,7 @@ void PHOSBadMapCalibDevice::sendOutput(DataAllocator& output)
 
   // Send change to QC
   LOG(info) << "[PHOSBadMapCalibDevice - run] Sending QC ";
-  output.snapshot(o2::framework::Output{"PHS", "BADMAPDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
+  output.snapshot(o2::framework::Output{"PHS", "BADMAPDIFF", 0}, mBadMapDiff);
 }
 
 bool PHOSBadMapCalibDevice::calculateBadMap()

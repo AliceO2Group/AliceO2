@@ -62,22 +62,21 @@ framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool 
 
   // a creator callback for the actual reader instance
   auto creator = [dto, mco, propagateMC](const char* treename, const char* filename, int nofEvents, Reader::PublishingMode publishingMode, o2::header::DataHeader::SubSpecificationType subSpec, const char* branchname, const char* mcbranchname, Reader::SpecialPublishHook* publishhook = nullptr) {
-    constexpr auto persistency = o2::framework::Lifetime::Timeframe;
     if (propagateMC) {
       return std::make_shared<Reader>(treename,
                                       filename,
                                       nofEvents,
                                       publishingMode,
-                                      Output{mco.origin, mco.description, subSpec, persistency},
+                                      Output{mco.origin, mco.description, subSpec},
                                       mcbranchname,
-                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, subSpec, persistency}, branchname},
+                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, subSpec}, branchname},
                                       publishhook);
     } else {
       return std::make_shared<Reader>(treename,
                                       filename,
                                       nofEvents,
                                       publishingMode,
-                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, subSpec, persistency}, branchname},
+                                      Reader::BranchDefinition<T>{Output{dto.origin, dto.description, subSpec}, branchname},
                                       publishhook);
     }
   };

@@ -68,12 +68,12 @@ void TrackTPCITSReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " TPC-ITS matches at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
-  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe}, mABTrkClusRefs);
-  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe}, mABTrkClIDs);
+  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0}, mTracks);
+  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0}, mABTrkClusRefs);
+  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0}, mABTrkClIDs);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mLabels);
-    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mLabelsAB);
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0}, mLabelsAB);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

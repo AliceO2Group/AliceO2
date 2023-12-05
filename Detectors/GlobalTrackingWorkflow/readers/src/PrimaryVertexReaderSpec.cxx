@@ -84,12 +84,12 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mVerticesPtr->size() << " vertices at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, mVertices);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, mPV2MatchIdx);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, mPV2MatchIdxRef);
+  pc.outputs().snapshot(Output{"GLO", "PVTX", 0}, mVertices);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0}, mPV2MatchIdx);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0}, mPV2MatchIdxRef);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0}, mLabels);
   }
 
   if (mVerbose) {

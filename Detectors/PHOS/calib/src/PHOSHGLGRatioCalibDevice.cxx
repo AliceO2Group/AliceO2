@@ -229,7 +229,7 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
   }
   // Anyway send change to QC
   LOG(info) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
-  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
+  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0}, mRatioDiff);
 }
 
 DataProcessorSpec o2::phos::getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate)

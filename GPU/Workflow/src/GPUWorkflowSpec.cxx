@@ -734,7 +734,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   };
 
   setOutputAllocator("COMPCLUSTERSFLAT", mSpecConfig.outputCompClustersFlat, outputRegions.compressedClusters, std::make_tuple(gDataOriginTPC, (DataDescription) "COMPCLUSTERSFLAT", 0));
-  setOutputAllocator("CLUSTERNATIVE", mClusterOutputIds.size() > 0, outputRegions.clustersNative, std::make_tuple(gDataOriginTPC, mSpecConfig.sendClustersPerSector ? (DataDescription) "CLUSTERNATIVETMP" : (DataDescription) "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, clusterOutputSectorHeader), sizeof(o2::tpc::ClusterCountIndex));
+  setOutputAllocator("CLUSTERNATIVE", mClusterOutputIds.size() > 0, outputRegions.clustersNative, std::make_tuple(gDataOriginTPC, mSpecConfig.sendClustersPerSector ? (DataDescription) "CLUSTERNATIVETMP" : (DataDescription) "CLUSTERNATIVE", NSectors, clusterOutputSectorHeader), sizeof(o2::tpc::ClusterCountIndex));
   setOutputAllocator("CLSHAREDMAP", mSpecConfig.outputSharedClusterMap, outputRegions.sharedClusterMap, std::make_tuple(gDataOriginTPC, (DataDescription) "CLSHAREDMAP", 0));
   setOutputAllocator("TRACKS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
   setOutputAllocator("CLUSREFS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
@@ -909,7 +909,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
         if (mTPCSectorMask & (1ul << i)) {
           DataHeader::SubSpecificationType subspec = i;
           clusterOutputSectorHeader.sectorBits = (1ul << i);
-          char* buffer = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear) + sizeof(o2::tpc::ClusterCountIndex)).data();
+          char* buffer = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", subspec, {clusterOutputSectorHeader}}, accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear) + sizeof(o2::tpc::ClusterCountIndex)).data();
           o2::tpc::ClusterCountIndex* outIndex = reinterpret_cast<o2::tpc::ClusterCountIndex*>(buffer);
           memset(outIndex, 0, sizeof(*outIndex));
           for (int j = 0; j < o2::tpc::constants::MAXGLOBALPADROW; j++) {
@@ -926,7 +926,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
             }
             ConstMCLabelContainer contflat;
             cont.flatten_to(contflat);
-            pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, contflat);
+            pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, {clusterOutputSectorHeader}}, contflat);
           }
         }
       }
@@ -937,7 +937,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       static_assert(sizeof(o2::tpc::ClusterCountIndex) == sizeof(accessIndex.nClusters));
       memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(o2::tpc::ClusterCountIndex));
       if (mSpecConfig.processMC && mSpecConfig.caClusterer && accessIndex.clustersMCTruth) {
-        pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, clustersMCBuffer.first);
+        pc.outputs().snapshot({gDataOriginTPC, "CLNATIVEMCLBL", subspec, {clusterOutputSectorHeader}}, clustersMCBuffer.first);
       }
     }
   }
@@ -952,17 +952,17 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     if (sendQAOutput) {
       mQA->postprocessExternal(copy1, copy2, copy3, copy4, out, mQATaskMask ? mQATaskMask : -1);
     }
-    pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
+    pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0}, out);
     if (sendQAOutput) {
       mQA->cleanup();
     }
   }
   if (mSpecConfig.outputErrorQA) {
-    pc.outputs().snapshot({gDataOriginGPU, "ERRORQA", 0, Lifetime::Timeframe}, mErrorQA);
+    pc.outputs().snapshot({gDataOriginGPU, "ERRORQA", 0}, mErrorQA);
     mErrorQA.clear(); // FIXME: This is a race condition once we run multi-threaded!
   }
   if (mSpecConfig.tpcTriggerHandling && !(mSpecConfig.zsOnTheFly || mSpecConfig.zsDecoder)) {
-    pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0, Lifetime::Timeframe}, 0u);
+    pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0}, 0u);
   }
   mTimer->Stop();
   LOG(info) << "GPU Reconstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";

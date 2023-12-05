@@ -111,8 +111,7 @@ auto makePublishBuffer(framework::ProcessingContext& pc, int sector, uint64_t ac
 
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
-  return &pc.outputs().make<T>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe,
-                                      header});
+  return &pc.outputs().make<T>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(sector), header});
 }
 
 template <>
@@ -138,7 +137,7 @@ void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int secto
   LabelType* sharedlabels;
 #pragma omp critical
   sharedlabels = &pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(
-    Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe, header});
+    Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(sector), header});
 
   accum->flatten_to(*sharedlabels);
   delete accum;

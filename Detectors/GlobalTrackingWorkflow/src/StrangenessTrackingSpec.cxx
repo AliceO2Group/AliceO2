@@ -75,11 +75,11 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
   mTracker.process();
-  pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
-  pc.outputs().snapshot(Output{"GLO", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
+  pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0}, mTracker.getStrangeTrackVec());
+  pc.outputs().snapshot(Output{"GLO", "CLUSUPDATES", 0}, mTracker.getClusAttachments());
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
+    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0}, mTracker.getStrangeTrackLabels());
   }
 
   mTimer.Stop();

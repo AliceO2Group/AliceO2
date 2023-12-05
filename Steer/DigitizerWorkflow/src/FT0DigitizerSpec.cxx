@@ -138,14 +138,14 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.flush_all(mDigitsBC, mDigitsCh, mDigitsTrig, labels);
 
     // send out to next stage
-    pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
-    pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe}, mDigitsTrig);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0}, mDigitsBC);
+    pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FT0", "TRIGGERINPUT", 0}, mDigitsTrig);
     if (pc.outputs().isAllowed({"FT0", "DIGITSMCTR", 0})) {
-      pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+      pc.outputs().snapshot(Output{"FT0", "DIGITSMCTR", 0}, labels);
     }
     LOG(info) << "FT0: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"FT0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"FT0", "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";

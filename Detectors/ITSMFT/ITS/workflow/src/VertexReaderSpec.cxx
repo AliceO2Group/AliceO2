@@ -41,8 +41,8 @@ void VertexReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mVerticesPtr->size() << " vertices in " << mVerticesROFRecPtr->size()
             << " ROFs at entry " << ent;
-  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe}, mVertices);
-  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe}, mVerticesROFRec);
+  pc.outputs().snapshot(Output{"ITS", "VERTICES", 0}, mVertices);
+  pc.outputs().snapshot(Output{"ITS", "VERTICESROF", 0}, mVerticesROFRec);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

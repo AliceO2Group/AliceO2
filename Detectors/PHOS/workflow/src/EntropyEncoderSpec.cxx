@@ -54,7 +54,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   if (mSelIR) {
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"PHS", "CTFDATA", 0, Lifetime::Timeframe});
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"PHS", "CTFDATA", 0});
   auto iosize = mCTFCoder.encode(buffer, triggers, cells);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   if (mSelIR) {

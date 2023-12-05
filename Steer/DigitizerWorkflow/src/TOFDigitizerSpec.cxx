@@ -259,21 +259,21 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOG(info) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0}, *digitsVector);
     if (pc.outputs().isAllowed({o2::header::gDataOriginTOF, "DIGITSMCTR", 0})) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, *mcLabVecOfVec);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0}, *mcLabVecOfVec);
     }
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *readoutwindow);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0}, *readoutwindow);
 
     // send empty pattern from digitizer (it may change in future)
     std::vector<uint8_t>& patterns = mDigitizer->getPatterns();
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0}, patterns);
 
     DigitHeader& digitH = mDigitizer->getDigitHeader();
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0}, digitH);
 
     LOG(info) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0}, roMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";

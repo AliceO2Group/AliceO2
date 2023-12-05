@@ -47,7 +47,7 @@ void NoInpDummyOut::run(ProcessingContext& pc)
 {
   static int counter = 0;
   // send just once dummy output to trigger the ccdb-fetcher
-  pc.outputs().make<std::vector<char>>(Output{"GLO", "DUMMY_OUT", 0, Lifetime::Timeframe});
+  pc.outputs().make<std::vector<char>>(Output{"GLO", "DUMMY_OUT", 0});
   if (mLoops >= 0 && ++counter >= mLoops) {
     pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);

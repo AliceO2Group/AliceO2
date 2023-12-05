@@ -496,19 +496,19 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   uint32_t ss = o2::globaltracking::getSubSpec(mStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, mTrkMask)) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe}, tracksOutITSTPC);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0, Lifetime::Timeframe}, trackTrigRecITSTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0}, tracksOutITSTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0}, trackTrigRecITSTPC);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe}, matchLabelsITSTPC);
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe}, trdLabelsITSTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0}, matchLabelsITSTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0}, trdLabelsITSTPC);
     }
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, mTrkMask)) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_TPC", ss, Lifetime::Timeframe}, tracksOutTPC);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_TPC", ss, Lifetime::Timeframe}, trackTrigRecTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_TPC", ss}, tracksOutTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_TPC", ss}, trackTrigRecTPC);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss, Lifetime::Timeframe}, matchLabelsTPC);
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss, Lifetime::Timeframe}, trdLabelsTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss}, matchLabelsTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss}, trdLabelsTPC);
     }
   }
 

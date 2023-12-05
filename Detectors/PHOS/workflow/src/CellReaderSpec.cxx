@@ -44,10 +44,10 @@ void CellReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mCells.size() << " Cells in " << mTRs.size() << " TriggerRecords at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "CELLS", 0, Lifetime::Timeframe}, mCells);
-  pc.outputs().snapshot(Output{mOrigin, "CELLTRIGREC", 0, Lifetime::Timeframe}, mTRs);
+  pc.outputs().snapshot(Output{mOrigin, "CELLS", 0}, mCells);
+  pc.outputs().snapshot(Output{mOrigin, "CELLTRIGREC", 0}, mTRs);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "CELLSMCTR", 0, Lifetime::Timeframe}, mMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "CELLSMCTR", 0}, mMCTruth);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

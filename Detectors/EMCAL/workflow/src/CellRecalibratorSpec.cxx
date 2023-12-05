@@ -113,15 +113,15 @@ void CellRecalibratorSpec::run(framework::ProcessingContext& ctx)
   }
 
   // send recalibrated objects
-  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputcells);
-  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSTRGR", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputtriggers);
+  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", mOutputSubspec}, outputcells);
+  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSTRGR", mOutputSubspec}, outputtriggers);
   if (outputMCLabels.has_value()) {
     LOG(info) << "Timeframe: " << inputMCLabels->getIndexedSize() << " label entries read, " << outputMCLabels->getIndexedSize() << " label entries kept";
-    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSMCTR", mOutputSubspec, o2::framework::Lifetime::Timeframe}, outputMCLabels.value());
+    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSMCTR", mOutputSubspec}, outputMCLabels.value());
   }
   if (mLEDsettings == LEDEventSettings::REDIRECT) {
-    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", 10, o2::framework::Lifetime::Timeframe}, ledcells);
-    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSTRGR", 10, o2::framework::Lifetime::Timeframe}, ledtriggers);
+    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLS", 10}, ledcells);
+    ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "CELLSTRGR", 10}, ledtriggers);
   }
 }
 

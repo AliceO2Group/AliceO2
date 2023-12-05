@@ -74,12 +74,12 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   LOG(debug) << "Pushing " << mMatches.size() << " TOF matchings at entry " << currEntry;
 
   uint32_t tpcMatchSS = o2::globaltracking::getSubSpec(mSubSpecStrict && (!mMode) ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddMatchInfo[mMode], tpcMatchSS, Lifetime::Timeframe}, mMatches);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddMatchInfo[mMode], tpcMatchSS}, mMatches);
   if (mReadTracks && (!mMode)) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "TOFTRACKS_TPC", tpcMatchSS, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "TOFTRACKS_TPC", tpcMatchSS}, mTracks);
   }
   if (mUseMC) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddMCMatchTOF[mMode], tpcMatchSS, Lifetime::Timeframe}, mLabelTOF);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddMCMatchTOF[mMode], tpcMatchSS}, mLabelTOF);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

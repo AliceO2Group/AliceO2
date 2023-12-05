@@ -148,7 +148,7 @@ void AnalysisClusterSpec<InputType>::run(framework::ProcessingContext& ctx)
   }
 
   LOG(debug) << "[EMCALClusterizer - run] Writing " << mOutputAnaClusters->size() << " clusters ...";
-  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "ANALYSISCLUSTERS", 0, o2::framework::Lifetime::Timeframe}, *mOutputAnaClusters);
+  ctx.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginEMC, "ANALYSISCLUSTERS", 0}, *mOutputAnaClusters);
 }
 
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getAnalysisClusterSpec(bool useDigits)

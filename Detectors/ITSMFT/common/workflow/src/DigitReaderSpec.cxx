@@ -74,20 +74,20 @@ void DigitReader::run(ProcessingContext& pc)
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0, Lifetime::Timeframe}, mDigROFRec);
-  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mDigROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
   if (mUseCalib) {
-    pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0, Lifetime::Timeframe}, mCalib);
+    pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0}, mCalib);
   }
   if (mTriggerOut) {
     std::vector<o2::itsmft::PhysTrigger> dummyTrig;
-    pc.outputs().snapshot(Output{mOrigin, "PHYSTRIG", 0, Lifetime::Timeframe}, dummyTrig);
+    pc.outputs().snapshot(Output{mOrigin, "PHYSTRIG", 0}, dummyTrig);
   }
   if (mUseMC) {
-    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe});
+    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
     plabels->copyandflatten(sharedlabels);
     delete plabels;
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mDigMC2ROFs);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mDigMC2ROFs);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

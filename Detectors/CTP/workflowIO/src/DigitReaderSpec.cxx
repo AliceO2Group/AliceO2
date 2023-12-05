@@ -76,8 +76,8 @@ void DigitReader::run(ProcessingContext& pc)
 
   mTree->GetEntry(ent);
   LOG(info) << "DigitReader pushes " << mDigits.size() << " digits at entry " << ent;
-  pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-  pc.outputs().snapshot(Output{"CTP", "LUMI", 0, Lifetime::Timeframe}, mLumi);
+  pc.outputs().snapshot(Output{"CTP", "DIGITS", 0}, mDigits);
+  pc.outputs().snapshot(Output{"CTP", "LUMI", 0}, mLumi);
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

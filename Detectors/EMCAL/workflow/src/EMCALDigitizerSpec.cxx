@@ -140,15 +140,15 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mDigitizer.finish();
 
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mDigitizer.getDigits());
-  ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0, Lifetime::Timeframe}, mDigitizer.getTriggerRecords());
+  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0}, mDigitizer.getDigits());
+  ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0}, mDigitizer.getTriggerRecords());
   if (ctx.outputs().isAllowed({"EMC", "DIGITSMCTR", 0})) {
-    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, mDigitizer.getMCLabels());
+    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0}, mDigitizer.getMCLabels());
   }
   // EMCAL is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(info) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
-  ctx.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  ctx.outputs().snapshot(Output{"EMC", "ROMode", 0}, roMode);
   // Create CTP digits
   std::vector<o2::ctp::CTPInputDigit> triggerinputs;
   for (auto& trg : mDigitizer.getTriggerRecords()) {
@@ -161,7 +161,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     nextdigit.inputsMask.set(0);
     triggerinputs.push_back(nextdigit);
   }
-  ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe}, triggerinputs);
+  ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";

@@ -44,8 +44,8 @@ struct O2simKinePublisher {
     for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
       auto mcevent = mcKinReader->getMCEventHeader(0, eventCounter);
       auto mctracks = mcKinReader->getTracks(0, eventCounter);
-      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcevent);
-      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mctracks);
+      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcevent);
+      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0}, mctracks);
       ++eventCounter;
     }
     // report number of TFs injected for the rate limiter to work

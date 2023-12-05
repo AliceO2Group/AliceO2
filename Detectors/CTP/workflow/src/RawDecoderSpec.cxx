@@ -80,10 +80,10 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   auto& inputs = ctx.inputs();
   auto dummyOutput = [&ctx, this]() {
     if (this->mDoDigits) {
-      ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, this->mOutputDigits);
+      ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0}, this->mOutputDigits);
     }
     if (this->mDoLumi) {
-      ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, this->mOutputLumiInfo);
+      ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0}, this->mOutputLumiInfo);
     }
   };
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
@@ -117,7 +117,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   }
   if (mDoDigits) {
     LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits. IR rejected:" << mDecoder.getIRRejected() << " TCR rejected:" << mDecoder.getTCRRejected();
-    ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
+    ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0}, mOutputDigits);
   }
   if (mDoLumi) {
     uint32_t tfCountsT = 0;
@@ -157,7 +157,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       mOutputLumiInfo.printInputs();
       LOGP(info, "Orbit {}: {}/{} counts inp1/inp2 in {}/{} HBFs -> lumi_inp1 = {:.3e}+-{:.3e} lumi_inp2 = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
     }
-    ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
+    ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0}, mOutputLumiInfo);
   }
 }
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)

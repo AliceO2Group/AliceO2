@@ -147,15 +147,15 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.Finalize(mDigitsBC, mOrbitData);
 
     // send out to next stage
-    pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
-    pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, mOrbitData);
+    pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0}, mDigitsBC);
+    pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0}, mDigitsCh);
+    pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0}, mOrbitData);
     if (pc.outputs().isAllowed({"ZDC", "DIGITSLBL", 0})) {
-      pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0}, mLabels);
     }
 
     LOG(info) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"ZDC", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"ZDC", "ROMode", 0}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

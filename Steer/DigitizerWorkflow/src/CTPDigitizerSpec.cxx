@@ -79,9 +79,9 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto digits = mDigitizer.process(ginputs);
     // send out to next stage
     LOG(info) << "CTP DIGITS being sent.";
-    pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(Output{"CTP", "DIGITS", 0}, digits);
     LOG(info) << "CTP PRESENT being sent.";
-    pc.outputs().snapshot(Output{"CTP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"CTP", "ROMode", 0}, mROMode);
     timer.Stop();
     LOG(info) << "CTP Digitization took " << timer.CpuTime() << "s";
   }

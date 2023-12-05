@@ -161,10 +161,10 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     ncellsTrigger = 0;
   }
   LOG(debug) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", mSubspecificationOut}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", mSubspecificationOut}, mOutputTriggers);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputLabels);
+    ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", mSubspecificationOut}, mOutputLabels);
   }
 }
 

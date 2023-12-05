@@ -78,16 +78,16 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
     if (!digitsTR.size()) { // nothing to process
       mOutputClusters.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0}, mOutputClusters);
       if (mFullCluOutput) {
         mOutputCluElements.clear();
-        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUELEMENTS", 0, o2::framework::Lifetime::Timeframe}, mOutputCluElements);
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUELEMENTS", 0}, mOutputCluElements);
       }
       mOutputClusterTrigRecs.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGREC", 0}, mOutputClusterTrigRecs);
       if (mPropagateMC) {
         mOutputTruthCont.clear();
-        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0}, mOutputTruthCont);
       }
       return;
     }
@@ -120,13 +120,13 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   } else {
     LOG(debug) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters and " << mOutputClusterTrigRecs.size() << " TR";
   }
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0}, mOutputClusters);
   if (mFullCluOutput) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUELEMENTS", 0, o2::framework::Lifetime::Timeframe}, mOutputCluElements);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUELEMENTS", 0}, mOutputCluElements);
   }
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGREC", 0}, mOutputClusterTrigRecs);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0}, mOutputTruthCont);
   }
 }
 

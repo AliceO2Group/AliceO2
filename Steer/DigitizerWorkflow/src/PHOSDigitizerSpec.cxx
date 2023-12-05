@@ -160,16 +160,16 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   }
   LOG(debug) << "Have " << mLabels.getNElements() << " PHOS labels ";
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-  pc.outputs().snapshot(Output{"PHS", "DIGITS", 0, Lifetime::Timeframe}, mDigitsOut);
-  pc.outputs().snapshot(Output{"PHS", "DIGITTRIGREC", 0, Lifetime::Timeframe}, triggers);
+  pc.outputs().snapshot(Output{"PHS", "DIGITS", 0}, mDigitsOut);
+  pc.outputs().snapshot(Output{"PHS", "DIGITTRIGREC", 0}, triggers);
   if (pc.outputs().isAllowed({"PHS", "DIGITSMCTR", 0})) {
-    pc.outputs().snapshot(Output{"PHS", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"PHS", "DIGITSMCTR", 0}, mLabels);
   }
 
   // PHOS is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(debug) << "PHOS: Sending ROMode= " << roMode << " to GRPUpdater";
-  pc.outputs().snapshot(Output{"PHS", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  pc.outputs().snapshot(Output{"PHS", "ROMode", 0}, roMode);
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";
