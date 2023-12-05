@@ -113,8 +113,8 @@ class TOFCalibCollectorDevice : public o2::framework::Task
       auto entries = collectedInfo.size();
       // this means that we are ready to send the output
       auto entriesPerChannel = mCollector->getEntriesPerChannel();
-      output.snapshot(Output{o2::header::gDataOriginTOF, "COLLECTEDINFO", 0, Lifetime::Timeframe}, collectedInfo);
-      output.snapshot(Output{o2::header::gDataOriginTOF, "ENTRIESCH", 0, Lifetime::Timeframe}, entriesPerChannel);
+      output.snapshot(Output{o2::header::gDataOriginTOF, "COLLECTEDINFO", 0}, collectedInfo);
+      output.snapshot(Output{o2::header::gDataOriginTOF, "ENTRIESCH", 0}, entriesPerChannel);
       mCollector->initOutput(); // reset the output for the next round
     }
   }

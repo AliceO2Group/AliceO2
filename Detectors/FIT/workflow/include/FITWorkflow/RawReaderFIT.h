@@ -165,28 +165,28 @@ class RawReaderFIT : public RawReaderType
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc) const
   {
-    pc.outputs().snapshot(o2::framework::Output{mDataOrigin, Digit_t::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe}, mVecDigit);
+    pc.outputs().snapshot(o2::framework::Output{mDataOrigin, Digit_t::sChannelNameDPL, 0}, mVecDigit);
     if constexpr (sSubDigitExists) {
       std::apply([&](const auto&... subDigit) {
-        ((pc.outputs().snapshot(o2::framework::Output{mDataOrigin, (std::decay<decltype(subDigit)>::type::value_type::sChannelNameDPL), 0, o2::framework::Lifetime::Timeframe}, subDigit)), ...);
+        ((pc.outputs().snapshot(o2::framework::Output{mDataOrigin, (std::decay<decltype(subDigit)>::type::value_type::sChannelNameDPL), 0}, subDigit)), ...);
       },
                  mVecSubDigit);
     }
     if constexpr (sSingleSubDigitExists) {
       std::apply([&](const auto&... singleSubDigit) {
-        ((pc.outputs().snapshot(o2::framework::Output{mDataOrigin, (std::decay<decltype(singleSubDigit)>::type::value_type::sChannelNameDPL), 0, o2::framework::Lifetime::Timeframe}, singleSubDigit)), ...);
+        ((pc.outputs().snapshot(o2::framework::Output{mDataOrigin, (std::decay<decltype(singleSubDigit)>::type::value_type::sChannelNameDPL), 0}, singleSubDigit)), ...);
       },
                  mVecSingleSubDigit);
     }
     if constexpr (sUseTrgInput) {
-      pc.outputs().snapshot(o2::framework::Output{mDataOrigin, DetTrigInput_t::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe}, mVecTrgInput);
+      pc.outputs().snapshot(o2::framework::Output{mDataOrigin, DetTrigInput_t::sChannelNameDPL, 0}, mVecTrgInput);
     }
-    pc.outputs().snapshot(o2::framework::Output{mDataOrigin, "RawDataMetric", 0, o2::framework::Lifetime::Timeframe}, mVecRawDataMetric);
+    pc.outputs().snapshot(o2::framework::Output{mDataOrigin, "RawDataMetric", 0}, mVecRawDataMetric);
   }
   template <typename VecDigitType>
   auto& getRefVec(o2::framework::ProcessingContext& pc)
   {
-    auto& refVec = pc.outputs().make<VecDigitType>(o2::framework::Output{mDataOrigin, VecDigitType::value_type::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe});
+    auto& refVec = pc.outputs().make<VecDigitType>(o2::framework::Output{mDataOrigin, VecDigitType::value_type::sChannelNameDPL, 0});
     return refVec;
   }
   void enableEmptyTFprotection()

@@ -282,7 +282,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       auto roMode = isContinuous ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
       LOG(info) << "TPC: Sending ROMode= " << (mDigitizer.isContinuousReadout() ? "Continuous" : "Triggered")
                 << " to GRPUpdater from channel " << dh->subSpecification;
-      pc.outputs().snapshot(Output{"TPC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+      pc.outputs().snapshot(Output{"TPC", "ROMode", 0}, roMode);
     }
     mWriteGRP = false;
 
@@ -309,7 +309,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         return ContainerType(nullptr);
       } else {
         // default case
-        return &pc.outputs().make<std::vector<o2::tpc::Digit>>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe, header});
+        return &pc.outputs().make<std::vector<o2::tpc::Digit>>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), header});
       }
     };
     // lambda that snapshots the common mode vector to be sent out; prepares and attaches header with sector information
@@ -318,8 +318,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       header.activeSectors = activeSectors;
       if (!mInternalWriter) {
         // note that snapshoting only works with non-const references (to be fixed?)
-        pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
-                                     header},
+        pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(dh->subSpecification), header},
                               const_cast<std::vector<o2::tpc::CommonMode>&>(commonMode));
       }
     };
@@ -329,7 +328,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       header.activeSectors = activeSectors;
       if (mWithMCTruth) {
         if (!mInternalWriter) {
-          auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe, header});
+          auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification), header});
           labels.flatten_to(sharedlabels);
         }
       }
@@ -340,8 +339,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       header.activeSectors = activeSectors;
       if (!mInternalWriter) {
         LOG(info) << "TPC: Send TRIGGERS for sector " << sector << " channel " << dh->subSpecification << " | size " << events.size();
-        pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
-                                     header},
+        pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(dh->subSpecification), header},
                               const_cast<std::vector<DigiGroupRef>&>(events));
       }
     };

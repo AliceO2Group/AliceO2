@@ -120,17 +120,17 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.flush(mDigitsBC, mDigitsCh, mDigitsTrig, labels);
 
     // send out to next stage
-    pc.outputs().snapshot(Output{"FDD", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
-    pc.outputs().snapshot(Output{"FDD", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FDD", "TRIGGERINPUT", 0, Lifetime::Timeframe}, mDigitsTrig);
+    pc.outputs().snapshot(Output{"FDD", "DIGITSBC", 0}, mDigitsBC);
+    pc.outputs().snapshot(Output{"FDD", "DIGITSCH", 0}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FDD", "TRIGGERINPUT", 0}, mDigitsTrig);
     if (pc.outputs().isAllowed({"FDD", "DIGITLBL", 0})) {
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::fdd::MCLabel>>(Output{"FDD", "DIGITLBL", 0, Lifetime::Timeframe});
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::fdd::MCLabel>>(Output{"FDD", "DIGITLBL", 0});
       labels.flatten_to(sharedlabels);
       labels.clear_andfreememory();
     }
 
     LOG(info) << "FDD: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"FDD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"FDD", "ROMode", 0}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

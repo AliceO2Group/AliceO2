@@ -139,14 +139,14 @@ void TestDataReader::run(ProcessingContext& pc)
   if (mDiffFolderName.size() == 0) {
     cout << "No New Run -- No Need to Reset" << endl;
     mResetCommand = 0;
-    pc.outputs().snapshot(Output{"ITS", "TEST", 0, Lifetime::Timeframe}, mResetCommand);
+    pc.outputs().snapshot(Output{"ITS", "TEST", 0}, mResetCommand);
   }
 
   // New folders found, send the reset signal and reload configuration
   if (mDiffFolderName.size() > 0) {
     cout << "New Run Started -- Reset All Histograms" << endl;
     mResetCommand = 1;
-    pc.outputs().snapshot(Output{"ITS", "TEST", 0, Lifetime::Timeframe}, mResetCommand);
+    pc.outputs().snapshot(Output{"ITS", "TEST", 0}, mResetCommand);
     for (int i = 0; i < sNError; i++) {
       mErrors[i] = 0;
     }
@@ -264,11 +264,11 @@ void TestDataReader::run(ProcessingContext& pc)
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
         mFileInfo = mFileDone + mFileRemain * 10;
-        pc.outputs().snapshot(Output{"ITS", "Run", 0, Lifetime::Timeframe}, mRunNumber);
-        pc.outputs().snapshot(Output{"ITS", "File", 0, Lifetime::Timeframe}, mFileID);
-        pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVecTest[0]);
-        pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
-        pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigitsTest);
+        pc.outputs().snapshot(Output{"ITS", "Run", 0}, mRunNumber);
+        pc.outputs().snapshot(Output{"ITS", "File", 0}, mFileID);
+        pc.outputs().snapshot(Output{"ITS", "Error", 0}, mErrorsVecTest[0]);
+        pc.outputs().snapshot(Output{"ITS", "Finish", 0}, mFileInfo);
+        pc.outputs().snapshot(Output{"ITS", "DIGITS", 0}, mMultiDigitsTest);
         mNewFileInj = 0;
         mErrorsVecTest.clear();
         mDigitsTest.clear();
@@ -422,10 +422,10 @@ void TestDataReader::run(ProcessingContext& pc)
 
     cout << "RunIDS = " << mRunNumber << "   FileIDS = " << mFileID << endl;
 
-    pc.outputs().snapshot(Output{"ITS", "Run", 0, Lifetime::Timeframe}, mRunNumber);
-    pc.outputs().snapshot(Output{"ITS", "File", 0, Lifetime::Timeframe}, mFileID);
+    pc.outputs().snapshot(Output{"ITS", "Run", 0}, mRunNumber);
+    pc.outputs().snapshot(Output{"ITS", "File", 0}, mFileID);
 
-    pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVec[j]);
+    pc.outputs().snapshot(Output{"ITS", "Error", 0}, mErrorsVec[j]);
     mIndexPushEx = mIndexPush + mNDigits[j];
     LOG(debug) << "IndexPushEx = " << mIndexPushEx << "  mDigits.size() " << mDigits.size();
     if (mIndexPushEx > mDigits.size() - 5) {
@@ -436,11 +436,11 @@ void TestDataReader::run(ProcessingContext& pc)
 
     mFileInfo = mFileDone + mFileRemain * 10;
 
-    pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
+    pc.outputs().snapshot(Output{"ITS", "Finish", 0}, mFileInfo);
 
     LOG(debug) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 
-    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigits);
+    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0}, mMultiDigits);
 
     mMultiDigits.clear();
     mIndexPush = mIndexPush + mNDigits[j];
@@ -453,7 +453,7 @@ void TestDataReader::run(ProcessingContext& pc)
   //            << "mIndexPush = " << mIndexPush << "     mDigits.size() = " << mDigits.size();
   // while (mIndexPush < mDigits.size()) {
   // LOG(debug) << "mDigits.size() = " << mDigits.size();
-  //   pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mDigits[mIndexPush++]);
+  //   pc.outputs().snapshot(Output{"ITS", "DIGITS", 0}, mDigits[mIndexPush++]);
   //   if (mIndexPush % 100000 == 0)
   //     LOG(debug) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
   // }
@@ -483,7 +483,7 @@ void TestDataReader::run(ProcessingContext& pc)
     j = 0;
     mNDigits.clear();
     mFileDone = 1;
-    pc.outputs().snapshot(Output{"TST", "Finish", 0, Lifetime::Timeframe}, mFileDone);
+    pc.outputs().snapshot(Output{"TST", "Finish", 0}, mFileDone);
     PercentDone = 0;
     mErrorsVec.clear();
   }

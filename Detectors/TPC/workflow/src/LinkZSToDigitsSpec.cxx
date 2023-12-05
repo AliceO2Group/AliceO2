@@ -110,7 +110,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
         header.activeSectors = processAttributes->activeSectors;
         // digit for now are transported per sector, not per lane
         // pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe, header},
-        pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe, header},
+        pc.outputs().snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(sector), header},
                               const_cast<std::vector<o2::tpc::Digit>&>(digits));
       };
 

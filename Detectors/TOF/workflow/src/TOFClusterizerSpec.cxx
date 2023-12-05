@@ -224,25 +224,25 @@ class TOFDPLClustererTask
     }
 
     // send clusters
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClustersArray);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMULT", 0, Lifetime::Timeframe}, mMultPerLongBC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0}, mClustersArray);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMULT", 0}, mMultPerLongBC);
     // send labels
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClsLabels);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0}, mClsLabels);
     }
 
     if (mIsCalib) {
       std::vector<CalibInfoCluster>* clusterCalInfo = mClusterer.getInfoFromCluster();
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe}, *clusterCalInfo);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0}, *clusterCalInfo);
     }
 
     if (mIsCosmic) {
       std::vector<CosmicInfo>* cosmicInfo = mCosmicProcessor.getCosmicInfo();
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe}, *cosmicInfo);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0}, *cosmicInfo);
       std::vector<CalibInfoTrackCl>* cosmicTrack = mCosmicProcessor.getCosmicTrack();
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKCOS", 0, Lifetime::Timeframe}, *cosmicTrack);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKCOS", 0}, *cosmicTrack);
       std::vector<int>* cosmicTrackSize = mCosmicProcessor.getCosmicTrackSize();
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0, Lifetime::Timeframe}, *cosmicTrackSize);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0}, *cosmicTrackSize);
     }
 
     mTimer.Stop();

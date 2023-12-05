@@ -54,18 +54,18 @@ class DigitsReaderDeviceDPL
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
                                                  RootTreeReader::BranchDefinition<std::vector<Digit>>{
-                                                   Output{header::gDataOriginMCH, mDescriptions[0], 0, Lifetime::Timeframe}, "MCHDigit"},
+                                                   Output{header::gDataOriginMCH, mDescriptions[0], 0}, "MCHDigit"},
                                                  RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
-                                                   Output{header::gDataOriginMCH, mDescriptions[1], 0, Lifetime::Timeframe}, "MCHROFRecords"},
+                                                   Output{header::gDataOriginMCH, mDescriptions[1], 0}, "MCHROFRecords"},
                                                  RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{
-                                                   Output{header::gDataOriginMCH, mDescriptions[2], 0, Lifetime::Timeframe}, "MCHMCLabels"});
+                                                   Output{header::gDataOriginMCH, mDescriptions[2], 0}, "MCHMCLabels"});
     } else {
       mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
                                                  RootTreeReader::PublishingMode::Single,
                                                  RootTreeReader::BranchDefinition<std::vector<Digit>>{
-                                                   Output{header::gDataOriginMCH, mDescriptions[0], 0, Lifetime::Timeframe}, "MCHDigit"},
+                                                   Output{header::gDataOriginMCH, mDescriptions[0], 0}, "MCHDigit"},
                                                  RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
-                                                   Output{header::gDataOriginMCH, mDescriptions[1], 0, Lifetime::Timeframe}, "MCHROFRecords"});
+                                                   Output{header::gDataOriginMCH, mDescriptions[1], 0}, "MCHROFRecords"});
     }
   }
 

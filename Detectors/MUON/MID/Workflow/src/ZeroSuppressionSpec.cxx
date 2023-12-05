@@ -90,7 +90,7 @@ class ZeroSuppressionDeviceDPL
     }
 
     if (mUseMC) {
-      pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DATALABELS", 0, of::Lifetime::Timeframe}, outMCContainer);
+      pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DATALABELS", 0}, outMCContainer);
     }
   }
 

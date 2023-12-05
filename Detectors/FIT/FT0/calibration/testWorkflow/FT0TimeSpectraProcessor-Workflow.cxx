@@ -101,7 +101,7 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
       }
     }
 
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TIME_SPECTRA", 0, o2::framework::Lifetime::Timeframe}, timeSpectraInfoObject.getBase());
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TIME_SPECTRA", 0}, timeSpectraInfoObject.getBase());
   }
 };
 

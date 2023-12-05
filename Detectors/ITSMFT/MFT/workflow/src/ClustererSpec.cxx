@@ -89,17 +89,17 @@ void ClustererDPL::run(ProcessingContext& pc)
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
   mClusterer->process(mNThreads, reader, &clusCompVec, &clusPattVec, &clusROFVec, clusterLabels.get());
-  pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
-  pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
-  pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
+  pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0}, clusCompVec);
+  pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0}, clusROFVec);
+  pc.outputs().snapshot(Output{orig, "PATTERNS", 0}, clusPattVec);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, *clusterLabels.get()); // at the moment requires snapshot
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0}, *clusterLabels.get()); // at the moment requires snapshot
     std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs.size());
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
     }
-    pc.outputs().snapshot(Output{orig, "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, clusterMC2ROframes);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMC2ROF", 0}, clusterMC2ROframes);
   }
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF

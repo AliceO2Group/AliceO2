@@ -54,12 +54,12 @@ class MCTruthSourceTask : public o2::framework::Task
     if (mNew) {
       LOG(info) << "New serialization";
       // we need to flatten it and write to managed shared memory container
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TST", "LABELS", 0, Lifetime::Timeframe});
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TST", "LABELS", 0});
       container.flatten_to(sharedlabels);
       sleep(1);
     } else {
       LOG(info) << "Old serialization";
-      pc.outputs().snapshot({"TST", "LABELS", 0, Lifetime::Timeframe}, container);
+      pc.outputs().snapshot({"TST", "LABELS", 0}, container);
       sleep(1);
     }
 

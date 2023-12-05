@@ -64,7 +64,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       lumi = lumiPrev;
     }
   }
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0, Lifetime::Timeframe});
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0});
   auto iosize = mCTFCoder.encode(buffer, digits, lumi);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();

@@ -107,7 +107,7 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
   mWorker.process(bcrec, energy, tdc, info, wave);
 
   // Send intermediate calibration data
-  o2::framework::Output output("ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
+  o2::framework::Output output("ZDC", "WAVECALIBDATA", 0);
   pc.outputs().snapshot(output, mWorker.mData);
 }
 

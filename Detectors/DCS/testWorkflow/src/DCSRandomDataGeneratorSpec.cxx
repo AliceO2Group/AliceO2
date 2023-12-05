@@ -153,7 +153,7 @@ void DCSRandomDataGenerator::run(o2::framework::ProcessingContext& pc)
   auto timeNow = std::chrono::system_clock::now();
   timingInfo.creation = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
 
-  pc.outputs().snapshot(Output{"DCS", mDataDescription, 0, Lifetime::Timeframe}, dpcoms);
+  pc.outputs().snapshot(Output{"DCS", mDataDescription, 0}, dpcoms);
   mTFs++;
 }
 } // namespace

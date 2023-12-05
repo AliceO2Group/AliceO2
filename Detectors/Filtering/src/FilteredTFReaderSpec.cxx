@@ -45,15 +45,15 @@ void FilteredTFReader::run(ProcessingContext& pc)
 
   LOG(info) << "Pushing filtered TF: " << mFiltTF.header.asString();
   // ITS
-  pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, mFiltTF.ITSTrackROFs);
-  pc.outputs().snapshot(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe}, mFiltTF.ITSTracks);
-  pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, mFiltTF.ITSClusterIndices);
+  pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0}, mFiltTF.ITSTrackROFs);
+  pc.outputs().snapshot(Output{"ITS", "TRACKS", 0}, mFiltTF.ITSTracks);
+  pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0}, mFiltTF.ITSClusterIndices);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, mFiltTF.ITSTrackMCTruth);
+    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0}, mFiltTF.ITSTrackMCTruth);
   }
-  pc.outputs().snapshot(Output{"ITS", "CLUSTERSROF", 0, Lifetime::Timeframe}, mFiltTF.ITSClusterROFs);
-  pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe}, mFiltTF.ITSClusters);
-  pc.outputs().snapshot(Output{"ITS", "PATTERNS", 0, Lifetime::Timeframe}, mFiltTF.ITSClusterPatterns);
+  pc.outputs().snapshot(Output{"ITS", "CLUSTERSROF", 0}, mFiltTF.ITSClusterROFs);
+  pc.outputs().snapshot(Output{"ITS", "COMPCLUSTERS", 0}, mFiltTF.ITSClusters);
+  pc.outputs().snapshot(Output{"ITS", "PATTERNS", 0}, mFiltTF.ITSClusterPatterns);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

@@ -54,7 +54,7 @@ void TRDPHReader::run(ProcessingContext& pc)
   mTree->GetEntry(currEntry);
 
   LOG(info) << "Pushing vector of PH values filled with " << mPHValues.size() << " entries at tree entry " << currEntry;
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "PULSEHEIGHT", 0, Lifetime::Timeframe}, mPHValues);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "PULSEHEIGHT", 0}, mPHValues);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

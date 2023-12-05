@@ -117,7 +117,7 @@ class MaskMakerDeviceDPL
     if (mCounterSinceReset >= mNReset) {
       for (size_t itype = 0; itype < 2; ++itype) {
         auto masks = o2::mid::makeMasks(mScalers[itype], mCounterSinceReset, mThreshold, mRefMasks);
-        pc.outputs().snapshot(of::Output{header::gDataOriginMID, "MASKS", static_cast<header::DataHeader::SubSpecificationType>(itype + 1), of::Lifetime::Timeframe}, masks);
+        pc.outputs().snapshot(of::Output{header::gDataOriginMID, "MASKS", static_cast<header::DataHeader::SubSpecificationType>(itype + 1)}, masks);
       }
       mCounterSinceReset = 0;
       for (auto& scaler : mScalers) {

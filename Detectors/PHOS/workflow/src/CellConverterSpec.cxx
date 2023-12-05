@@ -44,12 +44,12 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
   if (!digitsTR.size()) { // nothing to process
     mOutputCells.clear();
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0}, mOutputCells);
     mOutputCellTrigRecs.clear();
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0}, mOutputCellTrigRecs);
     if (mPropagateMC) {
       mOutputTruthCont.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0}, mOutputTruthCont);
     }
     return;
   }
@@ -128,10 +128,10 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   }
   LOG(info) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
 
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0}, mOutputCellTrigRecs);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0}, mOutputTruthCont);
   }
 }
 

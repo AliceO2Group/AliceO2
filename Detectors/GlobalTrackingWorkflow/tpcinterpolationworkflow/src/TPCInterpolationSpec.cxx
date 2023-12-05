@@ -133,18 +133,18 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   LOGF(info, "TPC interpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
   if (SpacePointsCalibConfParam::Instance().writeUnfiltered) {
     // these are the residuals and tracks before outlier rejection; they are not used in production
-    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResidualsUnfiltered());
+    pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0}, mInterpolation.getClusterResidualsUnfiltered());
     if (mSendTrackData) {
-      pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracksUnfiltered());
+      pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0}, mInterpolation.getReferenceTracksUnfiltered());
     }
   }
-  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
-  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0, Lifetime::Timeframe}, mInterpolation.getTrackDataCompact());
+  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mInterpolation.getClusterResiduals());
+  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0}, mInterpolation.getTrackDataCompact());
   if (mSendTrackData) {
-    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
+    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0}, mInterpolation.getReferenceTracks());
   }
   if (mDebugOutput) {
-    pc.outputs().snapshot(Output{"GLO", "TRKDATAEXT", 0, Lifetime::Timeframe}, mInterpolation.getTrackDataExtended());
+    pc.outputs().snapshot(Output{"GLO", "TRKDATAEXT", 0}, mInterpolation.getTrackDataExtended());
   }
   mInterpolation.reset();
 }

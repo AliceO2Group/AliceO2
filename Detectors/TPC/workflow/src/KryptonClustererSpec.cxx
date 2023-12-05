@@ -75,7 +75,7 @@ class KrBoxClusterFinderDevice : public o2::framework::Task
   {
     o2::tpc::TPCSectorHeader header{sector};
     header.activeSectors = (0x1 << sector);
-    output.snapshot(Output{gDataOriginTPC, "KRCLUSTERS", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe, header}, clusters);
+    output.snapshot(Output{gDataOriginTPC, "KRCLUSTERS", static_cast<SubSpecificationType>(sector), header}, clusters);
   }
 };
 

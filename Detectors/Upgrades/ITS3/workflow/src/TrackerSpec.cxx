@@ -171,9 +171,9 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "IT3TrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "IT3TrackROF", 0}, rofsinput.begin(), rofsinput.end());
 
-  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"IT3", "IRFRAMES", 0, Lifetime::Timeframe});
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"IT3", "IRFRAMES", 0});
 
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
@@ -189,15 +189,15 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
-  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"IT3", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"IT3", "TRACKCLSID", 0});
   std::vector<o2::MCCompLabel> trackLabels;
   std::vector<MCCompLabel> verticesLabels;
-  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"IT3", "TRACKS", 0, Lifetime::Timeframe});
+  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"IT3", "TRACKS", 0});
   std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::MCCompLabel> allVerticesLabels;
 
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "VERTICESROF", 0, Lifetime::Timeframe});
-  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"IT3", "VERTICES", 0, Lifetime::Timeframe});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "VERTICESROF", 0});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"IT3", "VERTICES", 0});
 
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   timeFrame->resizeVectors(mNLayers);
@@ -314,9 +314,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       LOGP(info, "ITS3Tracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITS3Tracker pushed {} vertex labels", allVerticesLabels.size());
 
-      pc.outputs().snapshot(Output{"IT3", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-      pc.outputs().snapshot(Output{"IT3", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
-      pc.outputs().snapshot(Output{"IT3", "IT3TrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+      pc.outputs().snapshot(Output{"IT3", "TRACKSMCTR", 0}, allTrackLabels);
+      pc.outputs().snapshot(Output{"IT3", "VERTICESMCTR", 0}, allVerticesLabels);
+      pc.outputs().snapshot(Output{"IT3", "IT3TrackMC2ROF", 0}, mc2rofs);
     }
   }
   mTimer.Stop();

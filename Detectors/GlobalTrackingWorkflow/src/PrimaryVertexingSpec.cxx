@@ -152,12 +152,12 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     mVertexer.process(tracks, gids, ft0Data, vertices, vertexTrackIDs, v2tRefs, tracksMCInfo, lblVtx);
   }
 
-  pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, vertices);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_CONTID", 0, Lifetime::Timeframe}, vertexTrackIDs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX", 0}, vertices);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_CONTIDREFS"}, v2tRefs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_CONTID", 0}, vertexTrackIDs);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0, Lifetime::Timeframe}, lblVtx);
+    pc.outputs().snapshot(Output{"GLO", "PVTX_MCTR", 0}, lblVtx);
   }
 
   mTimer.Stop();

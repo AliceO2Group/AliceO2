@@ -43,6 +43,11 @@ struct Output {
   {
   }
 
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, header::Stack&& stack)
+    : origin(o), description(d), subSpec(s), metaHeader(std::move(stack))
+  {
+  }
+
   Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l,
          header::Stack&& stack)
     : origin(o), description(d), subSpec(s), lifetime(l), metaHeader(std::move(stack))

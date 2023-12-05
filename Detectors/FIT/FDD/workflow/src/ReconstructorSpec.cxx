@@ -54,8 +54,8 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
   }
   // do we ignore MC in this task?
   LOG(debug) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
-  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
-  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0}, mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0}, mRecChData);
 }
 
 DataProcessorSpec getFDDReconstructorSpec(bool useMC)

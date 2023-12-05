@@ -174,7 +174,7 @@ void CPVBadMapCalibDevice::sendOutput(DataAllocator& output)
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadChanMap", subSpec}, info);
   }
 
-  output.snapshot(o2::framework::Output{"CPV", "BADMAPCHANGE", 0, o2::framework::Lifetime::Timeframe}, mMapDiff);
+  output.snapshot(o2::framework::Output{"CPV", "BADMAPCHANGE", 0}, mMapDiff);
 }
 
 bool CPVBadMapCalibDevice::differFromCurrent()

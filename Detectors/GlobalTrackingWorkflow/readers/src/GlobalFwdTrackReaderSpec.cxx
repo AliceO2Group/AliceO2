@@ -65,9 +65,9 @@ void GlobalFwdTrackReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " Global Forward tracks at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "GLFWD", 0, Lifetime::Timeframe}, mTracks);
+  pc.outputs().snapshot(Output{"GLO", "GLFWD", 0}, mTracks);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "GLFWD_MC", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "GLFWD_MC", 0}, mLabels);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

@@ -171,8 +171,8 @@ struct MctracksToAod {
       }
     }
     ++timeframe;
-    pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
-    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, timeframe);
+    pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, "");
+    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, timeframe);
   }
 };
 

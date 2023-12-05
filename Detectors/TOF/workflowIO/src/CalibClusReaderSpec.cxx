@@ -39,13 +39,13 @@ void CalibClusReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(debug) << "Pushing " << mPclusInfos->size() << " TOF clusters calib info at entry " << ent;
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe}, mClusInfos);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0}, mClusInfos);
 
   if (mIsCosmics) {
     LOG(debug) << "Pushing " << mPcosmicInfo->size() << " TOF cosmics info at entry " << ent;
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe}, mCosmicInfo);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKCOS", 0, Lifetime::Timeframe}, mCosmicTrack);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0, Lifetime::Timeframe}, mCosmicTrackSize);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0}, mCosmicInfo);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKCOS", 0}, mCosmicTrack);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0}, mCosmicTrackSize);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

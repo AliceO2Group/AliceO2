@@ -328,11 +328,11 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(info) << "Digit Sorting took: " << std::chrono::duration_cast<std::chrono::milliseconds>(sortTime).count() << "ms";
   LOG(info) << "Processing time for parallel region: " << std::chrono::duration_cast<std::chrono::milliseconds>(parallelTime).count() << "ms";
 
-  pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
-  pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, triggerRecords);
-  pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsOut);
+  pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0}, tracklets);
+  pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0}, triggerRecords);
+  pc.outputs().snapshot(Output{"TRD", "DIGITS", 0}, digitsOut);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, lblTracklets);
+    pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0}, lblTracklets);
   }
 
   LOG(debug) << "TRD Trap Simulator Device exiting";

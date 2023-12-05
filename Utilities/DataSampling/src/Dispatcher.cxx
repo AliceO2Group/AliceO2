@@ -114,7 +114,6 @@ void Dispatcher::run(ProcessingContext& ctx)
               routeAsConcreteDataType.origin,
               routeAsConcreteDataType.description,
               partInputHeader->subSpecification,
-              part.spec->lifetime,
               std::move(headerStack)};
             send(ctx.outputs(), part, output);
           }

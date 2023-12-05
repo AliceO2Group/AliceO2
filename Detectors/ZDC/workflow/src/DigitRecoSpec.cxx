@@ -264,11 +264,11 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   }
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
-  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
-  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
-  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
-  pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
-  pc.outputs().snapshot(Output{"ZDC", "WAVE", 0, Lifetime::Timeframe}, recEvent.mWaveform);
+  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, recEvent.mRecBC);
+  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, recEvent.mEnergy);
+  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, recEvent.mTDCData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0}, recEvent.mInfo);
+  pc.outputs().snapshot(Output{"ZDC", "WAVE", 0}, recEvent.mWaveform);
   mTimer.Stop();
 }
 

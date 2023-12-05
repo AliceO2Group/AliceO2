@@ -77,16 +77,16 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
     counters.push_back(event.getCounters());
   }
 
-  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
-  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, o2::framework::Lifetime::Timeframe}, tracklets);
-  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, o2::framework::Lifetime::Timeframe}, triggers);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0}, digits);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRACKLETS", 0}, tracklets);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0}, triggers);
   if (generatestats) {
     accumulateStats();
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTFStats.mTFIDInfo);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0, o2::framework::Lifetime::Timeframe}, mTFStats);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0}, mTFStats);
   }
   if (sendLinkStats) {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "LINKSTATS", 0, o2::framework::Lifetime::Timeframe}, counters);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "LINKSTATS", 0}, counters);
   }
 
   std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
