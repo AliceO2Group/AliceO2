@@ -127,7 +127,7 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
     }
     // Send intermediate calibration data
     auto& summary = mWorker.mData.getSummary();
-    o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
+    o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0);
     pc.outputs().snapshot(outputData, summary);
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       // End of processing for this run
