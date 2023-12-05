@@ -2469,11 +2469,11 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
                                                                              const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap)
 {
   TrackQA trackQAHolder;
-  auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
+  auto contributorsGID = data.getTPCContributorGID(trackIndex);
   const auto& trackPar = data.getTrackParam(trackIndex);
   // auto src = trackIndex.getSource();
-  if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-    const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
+  if (contributorsGID.isIndexSet()) {
+    const auto& tpcOrig = data.getTPCTrack(contributorsGID.getIndex());
     trackQAHolder.trackID = trackIndex;
     /// getDCA - should be done  with the copy of TPC only track
     o2::track::TrackParametrization<float> tpcTMP = tpcOrig;                                       /// get backup of the track
@@ -2498,9 +2498,8 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
     }
     uint8_t byteMask = 0;
     for (int i = 0; i < 8; i++) {
-      {
-        if (clusterCounters[i] > 5)
-          byteMask |= (1 << i);
+      if (clusterCounters[i] > 5) {
+        byteMask |= (1 << i);
       }
     }
     trackQAHolder.tpcClusterByteMask = byteMask;
