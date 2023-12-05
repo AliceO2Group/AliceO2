@@ -104,8 +104,8 @@ void TPCVDriftTglCalibSpec::sendOutput(DataAllocator& output)
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
     LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
               << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL", i, Lifetime::Sporadic}, *image.get()); // vector<char>
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL", i, Lifetime::Sporadic}, w);            // root-serialized
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL", i}, *image.get()); // vector<char>
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL", i}, w);            // root-serialized
   }
   if (payloadVec.size()) {
     mCalibrator->initOutput(); // reset the outputs once they are already sent

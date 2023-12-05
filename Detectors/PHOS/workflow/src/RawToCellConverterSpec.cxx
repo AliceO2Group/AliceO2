@@ -115,7 +115,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0}, mOutputHWErrors);
       if (mFillChi2) {
         mOutputFitChi.clear();
-        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0}, mOutputFitChi);
       }
       return; // empty TF, nothing to process
     }
@@ -294,7 +294,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0}, mOutputHWErrors);
   if (mFillChi2) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0}, mOutputFitChi);
   }
 }
 

@@ -109,7 +109,7 @@ void GlobalFwdAssessmentSpec::sendOutput(DataAllocator& output)
   TObjArray objar;
   mGloFwdAssessment->getHistos(objar);
 
-  output.snapshot(Output{"GLO", "FWDASSESSMENT", 0, Lifetime::Sporadic}, objar);
+  output.snapshot(Output{"GLO", "FWDASSESSMENT", 0}, objar);
 
   TFile* f = new TFile(Form("GlobalForwardAssessment.root"), "RECREATE");
   objar.Write();
