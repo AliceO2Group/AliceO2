@@ -1054,8 +1054,9 @@ static auto haveKey(framework::pack<C...>, std::string const& key)
 }
 
 void notFoundColumn(const char* label, const char* key);
+void missingOptionalPreslice(const char* label, const char* key);
 
-template <typename T>
+template <typename T, bool OPT = false>
 static std::string getLabelFromTypeForKey(std::string const& key)
 {
   if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
@@ -1071,7 +1072,11 @@ static std::string getLabelFromTypeForKey(std::string const& key)
       return locate.second;
     }
   }
-  notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  if constexpr (!OPT) {
+    notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  } else {
+    return "[MISSING]";
+  }
   O2_BUILTIN_UNREACHABLE();
 }
 
@@ -1102,14 +1107,15 @@ constexpr static bool relatedBySortedIndex()
 
 namespace o2::framework
 {
-template <typename T, bool SORTED = true>
+template <typename T, bool OPT = false, bool SORTED = true>
 struct PresliceBase {
   constexpr static bool sorted = SORTED;
+  constexpr static bool optional = OPT;
   using target_t = T;
   const std::string binding;
 
   PresliceBase(expressions::BindingNode index_)
-    : binding{o2::soa::getLabelFromTypeForKey<T>(index_.name)},
+    : binding{o2::soa::getLabelFromTypeForKey<T, OPT>(index_.name)},
       bindingKey{binding, index_.name} {}
 
   void updateSliceInfo(std::conditional_t<SORTED, SliceInfoPtr, SliceInfoUnsortedPtr>&& si)
@@ -1117,13 +1123,18 @@ struct PresliceBase {
     sliceInfo = si;
   }
 
-  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
+  std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const
   {
+    if constexpr (OPT) {
+      if (isMissing()) {
+        return nullptr;
+      }
+    }
     if constexpr (SORTED) {
       auto [offset_, count] = sliceInfo.getSliceFor(value);
-      output = input->Slice(offset_, count);
+      auto output = input->Slice(offset_, count);
       offset = static_cast<int64_t>(offset_);
-      return arrow::Status::OK();
+      return output;
     } else {
       static_assert(SORTED, "Wrong method called for unsorted cache");
     }
@@ -1131,11 +1142,21 @@ struct PresliceBase {
 
   gsl::span<const int64_t> getSliceFor(int value) const
   {
+    if constexpr (OPT) {
+      if (isMissing()) {
+        return {};
+      }
+    }
     if constexpr (!SORTED) {
       return sliceInfo.getSliceFor(value);
     } else {
       static_assert(!SORTED, "Wrong method called for sorted cache");
     }
+  }
+
+  bool isMissing()
+  {
+    return binding == "[MISSING]";
   }
 
   StringPair const& getBindingKey() const
@@ -1149,9 +1170,15 @@ struct PresliceBase {
 };
 
 template <typename T>
-using PresliceUnsorted = PresliceBase<T, false>;
+using PresliceUnsorted = PresliceBase<T, false, false>;
 template <typename T>
-using Preslice = PresliceBase<T, true>;
+using PresliceUnsortedOptional = PresliceBase<T, true, false>;
+template <typename T>
+using Preslice = PresliceBase<T, false, true>;
+template <typename T>
+using PresliceOptional = PresliceBase<T, true, true>;
+
+
 } // namespace o2::framework
 
 namespace o2::soa
@@ -1183,40 +1210,44 @@ static constexpr auto extractBindings(framework::pack<Is...>)
 
 SelectionVector selectionToVector(gandiva::Selection const& sel);
 
-template <typename T, typename C>
-auto doSliceBy(T const* table, o2::framework::Preslice<C> const& container, int value)
+template <typename T, typename C, bool OPT, bool SORTED>
+auto doSliceBy(T const* table, o2::framework::PresliceBase<C, OPT, SORTED> const& container, int value)
 {
   if constexpr (o2::soa::is_binding_compatible_v<C, T>()) {
-    std::shared_ptr<arrow::Table> out;
-    uint64_t offset = 0;
-    auto status = container.getSliceFor(value, table->asArrowTable(), out, offset);
-    auto t = typename T::self_t({out}, offset);
-    table->copyIndexBindings(t);
-    t.bindInternalIndicesTo(table);
-    return t;
-  } else {
-    static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
-  }
-}
-
-template <typename T, typename C>
-auto doSliceBy(T const* table, o2::framework::PresliceUnsorted<C> const& container, int value)
-{
-  if constexpr (o2::soa::is_binding_compatible_v<C, T>()) {
-    auto selection = container.getSliceFor(value);
-    if constexpr (soa::is_soa_filtered_v<T>) {
-      auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
-      table->copyIndexBindings(t);
-      t.bindInternalIndicesTo(table);
-      return t;
+    if constexpr (OPT) {
+      if (container.isMissing()) {
+        missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.second.c_str());
+      }
     } else {
-      auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
-      table->copyIndexBindings(t);
-      t.bindInternalIndicesTo(table);
-      return t;
+      if constexpr (SORTED) {
+        uint64_t offset = 0;
+        auto out = container.getSliceFor(value, table->asArrowTable(), offset);
+        auto t = typename T::self_t({out}, offset);
+        table->copyIndexBindings(t);
+        t.bindInternalIndicesTo(table);
+        return t;
+      } else {
+        auto selection = container.getSliceFor(value);
+        if constexpr (soa::is_soa_filtered_v<T>) {
+          auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+          table->copyIndexBindings(t);
+          t.bindInternalIndicesTo(table);
+          t.intersectWithSelection(table->getSelectedRows()); // intersect filters
+          return t;
+        } else {
+          auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
+          table->copyIndexBindings(t);
+          t.bindInternalIndicesTo(table);
+          return t;
+        }
+      }
     }
   } else {
-    static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
+    if constexpr (SORTED) {
+      static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
+    } else {
+      static_assert(o2::framework::always_static_assert_v<C>, "Wrong PresliceUnsorted<> entry used: incompatible type");
+    }
   }
 }
 
@@ -1255,13 +1286,17 @@ auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, u
   }
 }
 
-template <typename T, typename C>
-auto doFilteredSliceBy(T const* table, o2::framework::Preslice<C> const& container, int value)
+template <typename T, typename C, bool OPT>
+auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, OPT> const& container, int value)
 {
   if constexpr (o2::soa::is_binding_compatible_v<C, T>()) {
+    if constexpr (OPT) {
+      if (container.isMissing()) {
+        missingOptionalPreslice(getLabelFromType<T>().data(), container.bindingKey.second.c_str());
+      }
+    }
     uint64_t offset = 0;
-    std::shared_ptr<arrow::Table> slice = nullptr;
-    auto status = container.getSliceFor(value, table->asArrowTable(), slice, offset);
+    auto slice = container.getSliceFor(value, table->asArrowTable(), offset);
     return prepareFilteredSlice(table, slice, offset);
   } else {
     static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
@@ -1293,6 +1328,7 @@ auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode
   auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
   if constexpr (soa::is_soa_filtered_v<T>) {
     auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
+    t.intersectWithSelection(table->getSelectedRows());
     table->copyIndexBindings(t);
     return t;
   } else {
@@ -1587,29 +1623,16 @@ class Table
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto [offset, count] = localCache.getSliceFor(value);
-    auto t = table_t({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
-    copyIndexBindings(t);
-    return t;
+    return doSliceByCached(this, node, value, cache);
   }
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto t = soa::Filtered<table_t>({this->asArrowTable()}, localCache.getSliceFor(value));
-    copyIndexBindings(t);
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
-  {
-    return doSliceBy(this, container, value);
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
     return doSliceBy(this, container, value);
   }
@@ -2603,14 +2626,8 @@ struct Join : JoinBase<Ts...> {
     return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
-  {
-    return doSliceBy(this, container, value);
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
     return doSliceBy(this, container, value);
   }
@@ -2836,23 +2853,17 @@ class FilteredBase : public T
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto t = doSliceByCachedUnsorted(this, node, value, cache);
-    t.intersectWithSelection(this->getSelectedRows());
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
-    return doFilteredSliceBy(this, container, value);
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
-  {
-    auto t = doSliceBy(this, container, value);
-    t.intersectWithSelection(this->getSelectedRows());
-    return t;
+    if constexpr (SORTED) {
+      return doFilteredSliceBy(this, container, value);
+    } else {
+      return doSliceBy(this, container, value);
+    }
   }
 
   auto select(framework::expressions::Filter const& f) const
@@ -2871,7 +2882,6 @@ class FilteredBase : public T
     return static_cast<int>(std::distance(mSelectedRows.begin(), locate));
   }
 
- protected:
   void sumWithSelection(SelectionVector const& selection)
   {
     mCached = true;
@@ -3036,23 +3046,17 @@ class Filtered : public FilteredBase<T>
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto t = doSliceByCachedUnsorted(this, node, value, cache);
-    t.intersectWithSelection(this->getSelectedRows());
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
-    return doFilteredSliceBy(this, container, value);
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
-  {
-    auto t = doSliceBy(this, container, value);
-    t.intersectWithSelection(this->getSelectedRows());
-    return t;
+    if constexpr (SORTED) {
+      return doFilteredSliceBy(this, container, value);
+    } else {
+      return doSliceBy(this, container, value);
+    }
   }
 
   auto select(framework::expressions::Filter const& f) const
@@ -3175,23 +3179,17 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto t = doSliceByCachedUnsorted(this, node, value, cache);
-    t.intersectWithSelection(this->getSelectedRows());
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
-    return doFilteredSliceBy(this, container, value);
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
-  {
-    auto t = doSliceBy(this, container, value);
-    t.intersectWithSelection(this->getSelectedRows());
-    return t;
+    if constexpr (SORTED) {
+      return doFilteredSliceBy(this, container, value);
+    } else {
+      return doSliceBy(this, container, value);
+    }
   }
 
  private:

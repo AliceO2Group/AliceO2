@@ -116,7 +116,12 @@ void notBoundTable(const char* tableName)
 
 void notFoundColumn(const char* label, const char* key)
 {
-  throw o2::framework::runtime_error_f(R"(Preslice not valid: table "%s" (or join based on it) does not have column "%s"")", label, key);
+  throw o2::framework::runtime_error_f(R"(Preslice not valid: table "%s" (or join based on it) does not have column "%s")", label, key);
+}
+
+void missingOptionalPreslice(const char* label, const char* key)
+{
+  throw o2::framework::runtime_error_f(R"(Optional Preslice with missing binding used: table "%s" (or join based on it) does not have column "%s")", label, key);
 }
 
 } // namespace o2::soa
