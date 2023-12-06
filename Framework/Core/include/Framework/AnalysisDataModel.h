@@ -500,7 +500,7 @@ namespace trackqa
 DECLARE_SOA_INDEX_COLUMN(Track, track);                              //! track to which this QA information belongs
 DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, int16_t);                       //! tpc only DCAr
 DECLARE_SOA_COLUMN(TPCDCAZ, tpcdcaZ, int16_t);                       //! tpc only DCAz
-DECLARE_SOA_COLUMN(TPCClusterByteMask, tpcClusterByteMask, uint8_t); // tracklet bitmask - track difided to 8 trakclets (152=8*19 rows) bit set in nCluster>thr (5)
+DECLARE_SOA_COLUMN(TPCClusterByteMask, tpcClusterByteMask, uint8_t); // tracklet bitmask - track defided to 8 tracklets (152=8*19 rows) bit set in nCluster>thr (5)
 DECLARE_SOA_COLUMN(TPCdEdxMax0R, tpcdEdxMax0R, uint8_t);             //! TPC dEdxQMax -ROC0/dEdx
 DECLARE_SOA_COLUMN(TPCdEdxMax1R, tpcdEdxMax1R, uint8_t);             //! TPC dEdxQMax -ROC1/dEdx
 DECLARE_SOA_COLUMN(TPCdEdxMax2R, tpcdEdxMax2R, uint8_t);             //! TPC dEdxQMax -ROC2/dEdx

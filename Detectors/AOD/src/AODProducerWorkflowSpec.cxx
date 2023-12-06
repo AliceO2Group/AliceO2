@@ -472,7 +472,8 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator));
           if (writeQAData) {
             auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);
-            addToTracksQATable(tracksQACursor, trackQAInfoHolder);
+            if (std::bitset<8>(trackQAInfoHolder.tpcClusterByteMask).count() >= mTrackQCNTrCut)
+              addToTracksQATable(tracksQACursor, trackQAInfoHolder);
           }
 
           if (extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
@@ -1665,6 +1666,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
+  mTrackQCNTrCut = ic.options().get<uint8_t>("trackqc-NTrCut");
   mGenerator = std::mt19937(std::random_device{}());
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
@@ -2515,6 +2517,7 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
     trackQAHolder.tpcdEdxTot3R = uint8_t(tpcOrig.getdEdx().dEdxTotOROC3 * dEdxNorm);
     ///
   }
+
   return trackQAHolder;
 }
 
@@ -2966,7 +2969,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
-      ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}}}};
+      ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}},
+      ConfigParamSpec{"trackqc-NTrCut", VariantType::UInt8, 4, {"Minimal length of the track - in amount of tracklets"}},
+    }};
 }
 
 } // namespace o2::aodproducer
