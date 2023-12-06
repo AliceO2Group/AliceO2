@@ -1178,7 +1178,6 @@ using Preslice = PresliceBase<T, false, true>;
 template <typename T>
 using PresliceOptional = PresliceBase<T, true, true>;
 
-
 } // namespace o2::framework
 
 namespace o2::soa
