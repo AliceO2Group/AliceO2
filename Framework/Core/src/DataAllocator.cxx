@@ -294,7 +294,7 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
     if (allowedOutputRoutes[ri].matcher.binding.value == ref.label) {
       auto spec = allowedOutputRoutes[ri].matcher;
       auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
-      return Output{dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack)};
+      return Output{dataType.origin, dataType.description, ref.subSpec, std::move(ref.headerStack)};
     }
   }
   std::string availableRoutes;
@@ -342,7 +342,7 @@ void DataAllocator::cookDeadBeef(const Output& spec)
   // We get the output route from the original spec, but we send it
   // using the binding of the deadbeef subSpecification.
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-  auto deadBeefOutput = Output{spec.origin, spec.description, 0xdeadbeef, Lifetime::Timeframe};
+  auto deadBeefOutput = Output{spec.origin, spec.description, 0xdeadbeef};
   auto headerMessage = headerMessageFromOutput(deadBeefOutput, routeIndex, header::gSerializationMethodNone, 0);
 
   addPartToContext(proxy.createOutputMessage(routeIndex, 0), deadBeefOutput, header::gSerializationMethodNone);

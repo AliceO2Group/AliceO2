@@ -51,11 +51,11 @@ struct DefaultKey {
   enum Lifetime lifetime = Lifetime::Timeframe;
 
   DefaultKey(const Output& desc)
-    : origin(desc.origin), description(desc.description), subSpec(desc.subSpec), lifetime(desc.lifetime)
+    : origin(desc.origin), description(desc.description), subSpec(desc.subSpec)
   {
   }
 
-  operator Output() const { return Output{origin, description, subSpec, lifetime}; }
+  operator Output() const { return Output{origin, description, subSpec}; }
 };
 } // namespace rtr
 
@@ -302,7 +302,7 @@ class GenericRootTreeReader
       }
 
       auto snapshot = [&context, &stackcreator](const KeyType& key, const auto& object) {
-        context.outputs().snapshot(Output{key.origin, key.description, key.subSpec, key.lifetime, std::move(stackcreator())}, object);
+        context.outputs().snapshot(Output{key.origin, key.description, key.subSpec, std::move(stackcreator())}, object);
       };
 
       char* data = nullptr;
@@ -310,7 +310,7 @@ class GenericRootTreeReader
       mBranch->GetEntry(entry);
 
       // execute hook if it was registered; if this return true do not proceed further
-      if (mPublishHook != nullptr && (*mPublishHook).hook(mName, context, Output{mKey.origin, mKey.description, mKey.subSpec, mKey.lifetime, std::move(stackcreator())}, data)) {
+      if (mPublishHook != nullptr && (*mPublishHook).hook(mName, context, Output{mKey.origin, mKey.description, mKey.subSpec, std::move(stackcreator())}, data)) {
 
       }
       // try to figureout when we need to do something special
