@@ -237,6 +237,14 @@ int GPUChainTracking::RunTPCDecompression()
   char* deviceFlatPts = (char*)inputGPUShadow.qTotU;
   GPUMemCpy(myStep, deviceFlatPts, cmprClsHost.qTotU, copySize, outputStream, true);
   SynchronizeStream(outputStream);
+
+  mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = cmprClsHost.nAttachedClusters + cmprClsHost.nUnattachedClusters;
+  //AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput);
+  AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
+  processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
+  WriteToConstantMemory(RecoStep::TPCDecompression, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
+
+
   /*
   unsigned int offset = 0;
   char direction = 1;
