@@ -37,17 +37,17 @@ struct FT0DigParam : o2::conf::ConfigurableParamHelper<FT0DigParam> {
   float mMip_in_V = 7;       // MIP to mV
   float mPe_in_mip = 0.004;  // invserse Np.e. in MIP 1./250.
   float mCfdShift = 1.66;    // ns
-  float mCFDShiftPos = 1.47; //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  float mCFDShiftPos = 1.47; // shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
   float mCFDdeadTime = 15.6; // ns
   float mCharge2amp = 0.22;
-  float mNoiseVar = 0.1;                               // noise level
-  float mNoisePeriod = 1 / 0.9;                        // GHz low frequency noise period;
-  static constexpr short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
-  static constexpr float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
-  static constexpr short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
+  float mNoiseVar = 0.1;              // noise level
+  float mNoisePeriod = 1 / 0.9;       // GHz low frequency noise period;
+  short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  float mAmpThresholdForReco = 5;     // only channels with amplitude higher will participate in calibration and collision time: 0.3 MIP
+  short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
-  static constexpr float mMV_2_Nchannels = 2.2857143;          // amplitude channel 7 mV ->16channels
-  static constexpr float mMV_2_NchannelsInverse = 0.437499997; // inverse amplitude channel 7 mV ->16channels
+  float mMV_2_Nchannels = 2.2857143;          // amplitude channel 7 mV ->16channels
+  float mMV_2_NchannelsInverse = 0.437499997; // inverse amplitude channel 7 mV ->16channels
 
   O2ParamDef(FT0DigParam, "FT0DigParam");
 };
