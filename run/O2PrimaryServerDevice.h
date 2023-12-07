@@ -44,6 +44,7 @@
 #include "SimPublishChannelHelper.h"
 #include <chrono>
 #include <CCDB/BasicCCDBManager.h>
+#include <TRandom3.h>
 
 namespace o2
 {
@@ -274,6 +275,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // initial initial seed --> we should store this somewhere
     mInitialSeed = vm["seed"].as<ULong_t>();
     mInitialSeed = o2::utils::RngHelper::setGRandomSeed(mInitialSeed);
+    mSeedGenerator.SetSeed(mInitialSeed);
     LOG(info) << "RNG INITIAL SEED " << mInitialSeed;
 
     mMaxEvents = conf.getNEvents();
@@ -350,6 +352,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // initial initial seed --> we should store this somewhere
     mInitialSeed = reconfig.startSeed;
     mInitialSeed = o2::utils::RngHelper::setGRandomSeed(mInitialSeed);
+    mSeedGenerator.SetSeed(mInitialSeed);
     LOG(info) << "RNG INITIAL SEED " << mInitialSeed;
 
     mMaxEvents = reconfig.nEvents;
@@ -511,8 +514,10 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       i.maxEvents = mMaxEvents;
       i.part = mPartCounter + 1;
       i.nparts = numberofparts;
-
-      i.seed = mUseFixedChunkSeed ? mFixedChunkSeed : mEventCounter + mInitialSeed;
+      // assign a deterministic (yet collision free seed) to process this particle chunk in Geant
+      // limit range to uint32_t since internal limit of TRandom (despite API suggesting otherwise)
+      const uint64_t drawnSeed = (uint64_t)(static_cast<double>(std::numeric_limits<uint32_t>::max()) * mSeedGenerator.Rndm());
+      i.seed = mUseFixedChunkSeed ? mFixedChunkSeed : drawnSeed;
       i.index = m.mParticles.size();
       i.mMCEventHeader = mEventHeader;
       m.mSubEventInfo = i;
@@ -665,6 +670,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   // some information specific to use case when we have a collision context
   o2::steer::DigitizationContext* mCollissionContext = nullptr; //!
   std::unordered_map<int, int> mEventID_to_CollID;              //!
+
+  TRandom3 mSeedGenerator; //! specific random generator for seed generation for work chunks
 };
 
 } // namespace devices
