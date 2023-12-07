@@ -67,15 +67,15 @@ std::set<DsIndex> getDsIndices(const std::set<dcs::Cathode>& cathodes)
     bool checkPlane = cathode.plane != dcs::Plane::Both;
     if (checkPlane) {
       const o2::mch::mapping::Segmentation& seg = o2::mch::mapping::segmentation(deId);
-      const auto& cathode = bending ? seg.bending() : seg.nonBending();
-      for (auto i = 0; i < cathode.nofDualSampas(); i++) {
-        int index = o2::mch::getDsIndex({deId, cathode.dualSampaId(i)});
+      const auto& plane = bending ? seg.bending() : seg.nonBending();
+      for (auto i = 0; i < plane.nofDualSampas(); i++) {
+        auto index = o2::mch::getDsIndex({deId, plane.dualSampaId(i)});
         dsIndices.emplace(index);
       }
     } else {
       const o2::mch::mapping::Segmentation& seg = o2::mch::mapping::segmentation(deId);
       seg.forEachDualSampa([&dsIndices, deId](int dualSampaId) {
-        int index = o2::mch::getDsIndex({deId, dualSampaId});
+        auto index = o2::mch::getDsIndex({deId, dualSampaId});
         dsIndices.emplace(index);
       });
     }
