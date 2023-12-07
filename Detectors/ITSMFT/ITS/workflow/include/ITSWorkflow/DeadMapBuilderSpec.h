@@ -85,10 +85,9 @@ class ITSDeadMapBuilder : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
-  void finalize();
+ 
   void stop() final;
-  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
-
+  
   //////////////////////////////////////////////////////////////////
  private:
 
@@ -96,20 +95,23 @@ class ITSDeadMapBuilder : public Task
   std::string mSelfName;
   
   bool DebugMode = false;
+  bool mDoLocalOutput = false;
   short int N_CHIPS = o2::itsmft::ChipMappingITS::getNChips();
   short int N_CHIPS_IB = o2::itsmft::ChipMappingITS::getNChips(0);
   int mTFLength = o2::base::GRPGeomHelper::getNHBFPerTF();  // TODO. returns 128 see https://github.com/AliceO2Group/AliceO2/blob/051b56f9f136e7977e83f5d26d922db9bd6ecef5/Detectors/Base/src/GRPGeomHelper.cxx#L233 and correct also default option is getSpec
-  std::set<short int> mChipsAlive;
   std::set<short int> mLanesAlive;
   uint mStepCounter=0;
   uint mTFCounter=0;
 
+  std::string mObjectName = "its_time_deadmap.root";
   std::string mLocalOutputDir;
+
+  std::string MAP_VERSION = "1"; // to change in case the encoding or the format change
   
-  ULong64_t mapelement_t0 = 0x0; // 7x<9b>              0: used for IB: chips = lanes
-  ULong64_t mapelement_t1 = 0x1; // 5x<12b>          0001: used for OB lanes
-  ULong64_t mapelement_t2 = 0x3; // 000.. <12b><12b> 0011: used for lane intervals
-  ULong64_t mapelement_t3 = 0x5; // 4x<15b>          0101: used for single chips
+  ULong64_t t0_identifier = 0x0; // 7x<9b>             0: used for IB: chips = lanes
+  ULong64_t t1_identifier = 0x1; // 5x<12b>         0001: used for OB lanes
+  ULong64_t t2_identifier = 0x3; // 2x<15b> 2x<15b> 0011: used for lane intervals
+  ULong64_t t3_identifier = 0x5; // 4x<15b>         0101: used for single chips
   std::vector<ULong64_t>* mDeadMapTF = new std::vector<ULong64_t>{};
 
   Long64_t mFirstOrbitTF = 0x0;
@@ -126,6 +128,8 @@ class ITSDeadMapBuilder : public Task
   
   void updateTimeDependentParams(ProcessingContext& pc);
   
+  // main method
+  std::pair<int, int> FillMapElement();  // returns dead lanes and number of words
 
   void finalizeOutput();
   void PrepareOutputCcdb(DataAllocator& output);
