@@ -472,8 +472,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           bool writeQAData = o2::math_utils::Tsallis::downsampleTsallisCharged(data.getTrackParam(trackIndex).getPt(), mTrackQCFraction, mSqrtS, weight, distr(mGenerator));
           if (writeQAData) {
             auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);
-            if (std::bitset<8>(trackQAInfoHolder.tpcClusterByteMask).count() >= mTrackQCNTrCut)
+            if (std::bitset<8>(trackQAInfoHolder.tpcClusterByteMask).count() >= mTrackQCNTrCut) {
               addToTracksQATable(tracksQACursor, trackQAInfoHolder);
+            }
           }
 
           if (extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
@@ -1666,7 +1667,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
-  mTrackQCNTrCut = ic.options().get<uint8_t>("trackqc-NTrCut");
+  mTrackQCNTrCut = ic.options().get<int64_t>("trackqc-NTrCut");
   mGenerator = std::mt19937(std::random_device{}());
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
@@ -2475,9 +2476,10 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
   const auto& trackPar = data.getTrackParam(trackIndex);
   // auto src = trackIndex.getSource();
   if (contributorsGID.isIndexSet()) {
-    const auto& tpcOrig = data.getTPCTrack(contributorsGID.getIndex());
+    const auto& tpcOrig = data.getTPCTrack(contributorsGID);
     trackQAHolder.trackID = trackIndex;
     /// getDCA - should be done  with the copy of TPC only track
+    // LOGP(info, "GloIdx: {} TPCIdx: {}, NTPCTracks: {}", trackIndex.asString(), contributorsGID.asString(), data.getTPCTracks().size());
     o2::track::TrackParametrization<float> tpcTMP = tpcOrig;                                       /// get backup of the track
     o2::base::Propagator::MatCorrType mMatType = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// should be parameterized
     o2::dataformats::VertexBase v = mVtx.getMeanVertex(collisionID < 0 ? 0.f : data.getPrimaryVertex(collisionID).getZ());
@@ -2970,7 +2972,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}},
-      ConfigParamSpec{"trackqc-NTrCut", VariantType::UInt8, 4, {"Minimal length of the track - in amount of tracklets"}},
+      ConfigParamSpec{"trackqc-NTrCut", VariantType::Int64, 4L, {"Minimal length of the track - in amount of tracklets"}},
     }};
 }
 
