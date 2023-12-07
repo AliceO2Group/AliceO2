@@ -333,37 +333,6 @@ std::vector<int> getDualSampasBorNB(int deId, bool isBending)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Getting all DualSampas of NChambers:
-std::vector<int> getAllDualSampas(int numChambers)
-{
-
-  std::vector<int> allDualSampas;
-  int count = 0;
-
-  for (int nChamber = 1; nChamber <= numChambers; nChamber++) {
-
-    std::vector<int> deIds = getAllDeIds(nChamber);
-    std::vector<int> dualSampas;
-
-    for (auto deId : deIds) {
-
-      std::vector<int> dsIds = getDualSampas(deId);
-
-      for (auto dsId : dsIds) {
-        dsId += count;
-        dualSampas.push_back(dsId);
-      }
-    }
-
-    count = dualSampas.back() + 1;
-    allDualSampas.insert(allDualSampas.end(), dualSampas.begin(), dualSampas.end());
-  }
-
-  return allDualSampas;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // Convert DsIndex (Global) to DsId (Local)
 uint16_t convertDsIndextoDsId(o2::mch::DsIndex dsIndex)
 {
@@ -761,9 +730,6 @@ int main(int argc, char* argv[])
   if (vm.count("green")) {
     green = true;
   }
-
-  // Get All dualSampas for 10 chambers
-  getAllDualSampas(10);
 
   // Define the bounding boxes for the 10 images:
   std::vector<o2::mch::contour::BBox<double>> bboxes = {
