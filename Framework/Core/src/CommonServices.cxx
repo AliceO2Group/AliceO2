@@ -425,7 +425,7 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
           if (concrete.subSpec == 0) {
             continue;
           }
-          auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec, output.matcher.lifetime});
+          auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec});
           stfDist.id = timingInfo.timeslice;
           stfDist.firstOrbit = timingInfo.firstTForbit;
           stfDist.runNumber = timingInfo.runNumber;

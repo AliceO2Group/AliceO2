@@ -67,11 +67,10 @@ DataProcessorSpec getSourceSpec()
       testFile->Close();
     }
 
-    constexpr auto persistency = Lifetime::Transient;
     auto reader = std::make_shared<RootTreeReader>("testtree",       // tree name
                                                    fileName.c_str(), // input file name
-                                                   RootTreeReader::BranchDefinition<std::vector<o2::test::TriviallyCopyable>>{Output{"TST", "ARRAYOFMSGBL", 0, persistency}, "msgblarray"},
-                                                   Output{"TST", "ARRAYOFDATA", 0, persistency},
+                                                   RootTreeReader::BranchDefinition<std::vector<o2::test::TriviallyCopyable>>{Output{"TST", "ARRAYOFMSGBL", 0}, "msgblarray"},
+                                                   Output{"TST", "ARRAYOFDATA", 0},
                                                    "dataarray",
                                                    RootTreeReader::PublishingMode::Single);
 
