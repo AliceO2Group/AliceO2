@@ -22,6 +22,7 @@ o2_add_library(GlobalTrackingStudy
                                      O2::GlobalTrackingWorkflowHelpers
                                      O2::DataFormatsGlobalTracking
                                      O2::DetectorsVertexing
+                                     O2::TPCWorkflow
                                      O2::SimulationDataFormat)
 
 o2_add_executable(study-workflow

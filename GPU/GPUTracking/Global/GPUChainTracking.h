@@ -206,6 +206,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     GPUCalibObjects mCalibObjects;
     char* mTpcTransformBuffer = nullptr;
     char* mTpcTransformRefBuffer = nullptr;
+    char* mTpcTransformMShapeBuffer = nullptr;
     char* mdEdxSplinesBuffer = nullptr;
     char* mMatLUTBuffer = nullptr;
     short mMemoryResFlat = -1;
@@ -262,6 +263,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Ptr to detector / calibration objects
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
   std::unique_ptr<TPCFastTransform> mTPCFastTransformRefU;           // Global TPC fast transformation ref object
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformMShapeU;        // Global TPC fast transformation for M-shape object
   std::unique_ptr<CorrectionMapsHelper> mTPCFastTransformHelperU;    // Global TPC fast transformation helper object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder

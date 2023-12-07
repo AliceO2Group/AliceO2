@@ -18,6 +18,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include "Framework/Logger.h"
+#include "CommonConstants/LHCConstants.h"
 
 using namespace o2::tpc;
 
@@ -29,6 +30,66 @@ void TPCScaler::dumpToFile(const char* file, const char* name)
   tree.Branch("TPCScaler", this);
   tree.Fill();
   out.WriteObject(&tree, name);
+}
+
+void TPCScaler::dumpToFile(const char* file, const char* name, double startTimeMS, double endTimeMS)
+{
+  TPCScaler scaler;
+  scaler.mIonDriftTimeMS = mIonDriftTimeMS;
+  scaler.mRun = mRun;
+  scaler.mFirstTFOrbit = (startTimeMS <= 0) ? mFirstTFOrbit : (mFirstTFOrbit + (startTimeMS - mTimeStampMS) / (o2::constants::lhc::LHCOrbitMUS * 0.001));
+  scaler.mTimeStampMS = (startTimeMS <= 0) ? mTimeStampMS : startTimeMS;
+  scaler.mIntegrationTimeMS = mIntegrationTimeMS;
+
+  const int dataIdx = (startTimeMS <= 0) ? 0 : getDataIdx(startTimeMS);
+  const int idxDataStart = (startTimeMS <= 0) ? 0 : dataIdx;
+  const int idxDataEndA = ((endTimeMS < 0) || (dataIdx > getNValues(Side::A))) ? getNValues(Side::A) : dataIdx;
+  const int idxDataEndC = ((endTimeMS < 0) || (dataIdx > getNValues(Side::C))) ? getNValues(Side::C) : dataIdx;
+  scaler.mScalerA = std::vector<float>(mScalerA.begin() + idxDataStart, mScalerA.begin() + idxDataEndA);
+  scaler.mScalerC = std::vector<float>(mScalerC.begin() + idxDataStart, mScalerC.begin() + idxDataEndC);
+  scaler.dumpToFile(file, name);
+}
+
+void TPCScaler::dumpToFileSlices(const char* file, const char* name, int minutesPerObject, float marginMS, float marginCCDBMinutes)
+{
+  if (getNValues(o2::tpc::Side::A) != getNValues(o2::tpc::Side::C)) {
+    LOGP(error, "Number of points stored for A-side and C-side is different");
+    return;
+  }
+  const long marginCCDBMS = marginCCDBMinutes * 60 * 1000;
+  const float msPerObjectTmp = minutesPerObject * 60 * 1000;
+  const int valuesPerSlice = static_cast<int>(msPerObjectTmp / mIntegrationTimeMS);
+  const int marginPerSlice = static_cast<int>(marginMS / mIntegrationTimeMS);
+  int nSlices = getNValues(Side::A) / valuesPerSlice; // number of output objects
+
+  LOGP(info, "Producing {} objects with a CCDB margin of {} ms and {} margin per slice", nSlices, marginCCDBMS, marginPerSlice);
+  if (nSlices == 0) {
+    nSlices = 1;
+  }
+
+  for (int i = 0; i < nSlices; ++i) {
+    const int idxDataStart = (i == 0) ? 0 : (i * valuesPerSlice - marginPerSlice);
+    int idxDataEnd = (i == nSlices - 1) ? getNValues(Side::A) : ((i + 1) * valuesPerSlice + marginPerSlice);
+    if (idxDataEnd > getNValues(Side::A)) {
+      idxDataEnd = getNValues(Side::A);
+    }
+
+    TPCScaler scaler;
+    scaler.mIonDriftTimeMS = mIonDriftTimeMS;
+    scaler.mRun = mRun;
+    scaler.mTimeStampMS = (i == 0) ? mTimeStampMS : (mTimeStampMS + idxDataStart * static_cast<double>(mIntegrationTimeMS));
+    scaler.mFirstTFOrbit = mFirstTFOrbit + (scaler.mTimeStampMS - mTimeStampMS) / (o2::constants::lhc::LHCOrbitMUS * 0.001);
+    scaler.mIntegrationTimeMS = mIntegrationTimeMS;
+    scaler.mScalerA = std::vector<float>(mScalerA.begin() + idxDataStart, mScalerA.begin() + idxDataEnd);
+    scaler.mScalerC = std::vector<float>(mScalerC.begin() + idxDataStart, mScalerC.begin() + idxDataEnd);
+
+    const long timePerSliceMS = valuesPerSlice * mIntegrationTimeMS;
+    const long tsCCDBStart = mTimeStampMS + i * timePerSliceMS;
+    const long tsCCDBStartMargin = (i == 0) ? (tsCCDBStart - marginCCDBMS) : tsCCDBStart;
+    const long tsCCDBEnd = (i == nSlices - 1) ? (getEndTimeStampMS(o2::tpc::Side::A) + marginCCDBMS) : (tsCCDBStart + timePerSliceMS);
+    const std::string fileOut = fmt::format("{}_{}_{}_{}.root", file, i, tsCCDBStartMargin, tsCCDBEnd - 1);
+    scaler.dumpToFile(fileOut.data(), name);
+  }
 }
 
 void TPCScaler::loadFromFile(const char* inpf, const char* name)
@@ -108,4 +169,10 @@ float TPCScalerWeights::getWeight(float deltaTime) const
     const float y = ((y0 * (x1 - x)) + y1 * (x - x0)) / (x1 - x0);
     return y;
   }
+}
+
+void TPCScaler::clampScalers(float minThreshold, float maxThreshold, Side side)
+{
+  auto& scaler = (side == o2::tpc::Side::A) ? mScalerA : mScalerC;
+  std::transform(std::begin(scaler), std::end(scaler), std::begin(scaler), [minThreshold, maxThreshold](auto val) { return std::clamp(val, minThreshold, maxThreshold); });
 }

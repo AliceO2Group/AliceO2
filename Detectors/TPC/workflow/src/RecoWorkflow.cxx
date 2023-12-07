@@ -22,6 +22,7 @@
 #include "TPCWorkflow/TPCTriggerWriterSpec.h"
 #include "TPCReaderWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClustererSpec.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 #include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "TPCWorkflow/EntropyEncoderSpec.h"
@@ -196,6 +197,9 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                            laneConfiguration,
                                                            &hook},
                                                          propagateMC));
+      if (sclOpts.needTPCScalersWorkflow()) { // for standalone tpc-reco workflow
+        specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == 2, sclOpts.enableMShapeCorrection));
+      }
     } else if (inputType == InputType::ClustersHardware) {
       specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                      "tpc-clusterhardware-reader",
@@ -213,6 +217,9 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       specs.emplace_back(o2::tpc::getClusterReaderSpec(propagateMC, &tpcSectors, &laneConfiguration));
       if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
         specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
+      }
+      if (sclOpts.needTPCScalersWorkflow()) { // for standalone tpc-reco workflow
+        specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == 2, sclOpts.enableMShapeCorrection));
       }
     } else if (inputType == InputType::CompClusters) {
       // TODO: need to check if we want to store the MC labels alongside with compressed clusters
@@ -446,6 +453,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.runTPCTracking = true;
     cfg.lumiScaleType = sclOpts.lumiType;
     cfg.lumiScaleMode = sclOpts.lumiMode;
+    cfg.enableMShape = sclOpts.enableMShapeCorrection;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;

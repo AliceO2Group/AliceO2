@@ -50,8 +50,8 @@ class TPCScaler
   /// \return returns number of stored TPC scaler values
   int getNValues(o2::tpc::Side side) const { return (side == o2::tpc::Side::A ? mScalerA.size() : mScalerC.size()); }
 
-  /// set the parameters for the coefficients of the polynomial
-  /// \param params parameter for the coefficients
+  /// set TPC scalers
+  /// \param values scaling values
   void setScaler(const std::vector<float>& values, const o2::tpc::Side side) { (side == o2::tpc::Side::A ? (mScalerA = values) : (mScalerC = values)); }
 
   /// \return returns ion drift time in ms
@@ -72,6 +72,19 @@ class TPCScaler
   /// dump this object to a file
   /// \param file output file
   void dumpToFile(const char* file, const char* name);
+
+  /// dump this object to a file for a given time range
+  /// \param file output file
+  /// \param startTime start time stamp in ms of the dumped object
+  /// \param endTime end time stamp in ms of the dumped object (if endTimeMS=-1 the end of the stored data is used)
+  void dumpToFile(const char* file, const char* name, double startTimeMS, double endTimeMS);
+
+  /// dump this object to several file each containing the scalers for n minutes
+  /// \param file output file
+  /// \param minutesPerObject minutes each output file is covering
+  /// \param marginMS additional margin to the beginning of each object (should be >= getIonDriftTimeMS())
+  /// \param marginCCDBMinutes margin for CCDB timestamp
+  void dumpToFileSlices(const char* file, const char* name, int minutesPerObject, float marginMS = 500, float marginCCDBMinutes = 1);
 
   /// load parameters from input file (which were written using the writeToFile method)
   /// \param inpf input file
@@ -113,6 +126,11 @@ class TPCScaler
 
   /// \return returns duration in ms for which the scalers are defined
   float getDurationMS(o2::tpc::Side side) const { return mIntegrationTimeMS * getNValues(side); }
+
+  /// clamp scaler values
+  /// \param minThreshold minimum accepted scaler value
+  /// \param maxThreshold maximum accepted scaler value
+  void clampScalers(float minThreshold, float maxThreshold, Side side);
 
   /// setting the weights for the scalers
   void setScalerWeights(const TPCScalerWeights& weights) { mScalerWeights = weights; }
