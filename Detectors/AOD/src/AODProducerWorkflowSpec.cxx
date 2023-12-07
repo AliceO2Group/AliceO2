@@ -473,6 +473,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           if (writeQAData) {
             auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);
             if (std::bitset<8>(trackQAInfoHolder.tpcClusterByteMask).count() >= mTrackQCNTrCut) {
+              trackQAInfoHolder.trackID = mTableTrID;
               addToTracksQATable(tracksQACursor, trackQAInfoHolder);
             }
           }
@@ -2477,7 +2478,6 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
   // auto src = trackIndex.getSource();
   if (contributorsGID.isIndexSet()) {
     const auto& tpcOrig = data.getTPCTrack(contributorsGID);
-    trackQAHolder.trackID = trackIndex;
     /// getDCA - should be done  with the copy of TPC only track
     // LOGP(info, "GloIdx: {} TPCIdx: {}, NTPCTracks: {}", trackIndex.asString(), contributorsGID.asString(), data.getTPCTracks().size());
     o2::track::TrackParametrization<float> tpcTMP = tpcOrig;                                       /// get backup of the track
