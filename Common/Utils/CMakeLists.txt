@@ -14,7 +14,7 @@ o2_add_library(CommonUtils
                        src/RootChain.cxx src/CompStream.cxx src/ShmManager.cxx
                        src/ValueMonitor.cxx
                        src/StringUtils.cxx
-                       src/ConfigurableParamHelper.cxx src/ConfigurableParam.cxx src/RootSerializableKeyValueStore.cxx
+                       src/ConfigurableParamReaders.cxx src/ConfigurableParamHelper.cxx src/ConfigurableParam.cxx src/RootSerializableKeyValueStore.cxx
                        src/KeyValParam.cxx
                        src/FileSystemUtils.cxx
                        src/FIFO.cxx
@@ -39,6 +39,7 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/MemFileHelper.h
                                   include/CommonUtils/ConfigurableParam.h
                                   include/CommonUtils/ConfigurableParamHelper.h
+                                  include/CommonUtils/ConfigurableParamReaders.h
                                   include/CommonUtils/ConfigurationMacroHelper.h
                                   include/CommonUtils/RootSerializableKeyValueStore.h
                                   include/CommonUtils/KeyValParam.h
