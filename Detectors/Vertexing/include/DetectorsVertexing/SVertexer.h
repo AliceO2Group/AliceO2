@@ -102,6 +102,7 @@ class SVertexer
     bool hasTPC = false;
     int8_t nITSclu = -1;
     bool compatibleProton = false; // dE/dx compatibility with proton hypothesis (FIXME: use better, uint8_t compat mask?)
+    bool bITSOB = false;           // ITS-only OB track, important for photons converting at tungsten wires
     bool hasITS() const
     {
       return nITSclu > 0;

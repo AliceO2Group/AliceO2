@@ -108,6 +108,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float mTPCTrackMaxDXYIni = 8.;             ///< don't consider as a seed (circles intersection) if XY distance exceeds this, for photon TPC-only track only
   float mTPCTrackMaxDCAXY2ToMeanVertex = 2.; ///< max DCA^2 of V0 from beam line (mean vertex) for prompt V0 candidates, for photon TPC-only track only
 
+  bool mITSTrackPhotonTune = true;       // use ITS-only photon tuning
   uint8_t mITSSAminNclu = 6;             // global requirement of at least this many ITS clusters if no TPC info present (N.B.: affects all secondary vertexing)
   uint8_t mITSSAminNcluCascades = 6;     // require at least this many ITS clusters if no TPC info present for cascade finding.
   bool mRequireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC

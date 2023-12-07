@@ -513,16 +513,19 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
       // get Nclusters in the ITS if available
       int8_t nITSclu = -1;
+      bool bITSOBonly = false;
       auto itsGID = recoData.getITSContributorGID(tvid);
       if (itsGID.getSource() == GIndex::ITS) {
         if (isITSloaded) {
           auto& itsTrack = recoData.getITSTrack(itsGID);
           nITSclu = itsTrack.getNumberOfClusters();
+          bITSOBonly = itsTrack.getFirstClusterLayer() > 3;
         }
       } else if (itsGID.getSource() == GIndex::ITSAB) {
         if (isITSTPCloaded) {
           auto& itsABTracklet = recoData.getITSABRef(itsGID);
           nITSclu = itsABTracklet.getNClusters();
+          bITSOBonly = itsABTracklet.getFirstEntry() > 3;
         }
       }
       if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
@@ -532,13 +535,13 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
-      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu) {
+      if (!hasTPC && ((nITSclu < mSVParams->mITSSAminNclu) && !(mSVParams->mITSTrackPhotonTune && bITSOBonly))) {
         continue; // reject short ITS-only
       }
 
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
-      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton});
+      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton, bITSOBonly});
       if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
         correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
       }
@@ -570,6 +573,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   auto& fitterV0 = mFitterV0[ithread];
   // Fast rough cuts on pairs before feeding to DCAFitter, tracks are not in the same Frame or at same X
   bool isTPConly = (seedP.gid.getSource() == GIndex::TPC || seedN.gid.getSource() == GIndex::TPC);
+  bool isITSOBonly = (seedP.bITSOB || seedN.bITSOB);
   if (mSVParams->mTPCTrackPhotonTune && isTPConly) {
     // Check if Tgl is close enough
     if (std::abs(seedP.getTgl() - seedN.getTgl()) > mSVParams->maxV0TglAbsDiff) {
@@ -661,7 +665,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   bool goodHyp = false;
   std::array<bool, NHypV0> hypCheckStatus{};
-  int nPID = (mSVParams->mTPCTrackPhotonTune && isTPConly) ? (Photon + 1) : NHypV0;
+  int nPID = ((mSVParams->mTPCTrackPhotonTune && isTPConly) || (mSVParams->mITSTrackPhotonTune && isITSOBonly)) ? (Photon + 1) : NHypV0;
   for (int ipid = 0; (ipid < nPID) && mSVParams->checkV0Hypothesis; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
       goodHyp = hypCheckStatus[ipid] = true;
@@ -726,11 +730,13 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
   bool checkFor3BodyDecays = mEnable3BodyDecays &&
+                             (!mSVParams->mITSTrackPhotonTune || !isITSOBonly) &&
                              (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) &&
                              (pt2V0 > 0.5) &&
                              (!mSVParams->mSkipTPCOnly3Body || !isTPConly);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
   bool checkForCascade = mEnableCascades &&
+                         (!mSVParams->mITSTrackPhotonTune || !isITSOBonly) &&
                          (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly) &&
                          r2v0 < mMaxR2ToMeanVertexCascV0 &&
                          (!mSVParams->checkV0Hypothesis || (goodLamForCascade || goodALamForCascade) &&
