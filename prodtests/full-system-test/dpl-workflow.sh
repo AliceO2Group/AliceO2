@@ -39,6 +39,10 @@ workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Process multiplicities
+{ source $O2DPG_ROOT/DATA/production/workflow-multiplicities.sh; [[ $? != 0 ]] && echo "workflow-multiplicities.sh failed" 1>&2 && exit 1; }
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
 source $GEN_TOPO_MYDIR/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
 workflow_has_parameter CALIB && { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && echo "setenv_calib.sh failed" 1>&2 && exit 1; }
@@ -60,11 +64,6 @@ if [[ $EPNSYNCMODE == 1 ]]; then
 elif [[ -z ${SYNCRAWMODE:-} ]]; then
   SYNCRAWMODE=0
 fi
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Process multiplicities
-
-{ source $O2DPG_ROOT/DATA/production/workflow-multiplicities.sh; [[ $? != 0 ]] && echo "workflow-multiplicities.sh failed" 1>&2 && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
