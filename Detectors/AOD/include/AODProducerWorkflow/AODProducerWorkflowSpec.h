@@ -229,7 +229,7 @@ class AODProducerWorkflowDPL : public Task
 
   bool mPropTracks{false};
   bool mPropMuons{false};
-  float mTrackQCFraction{0.05};
+  float mTrackQCFraction{0.00};
   int64_t mTrackQCNTrCut{4};
   float mSqrtS{13860.};
   std::mt19937 mGenerator; ///< random generator for trackQA sampling
