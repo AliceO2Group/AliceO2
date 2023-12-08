@@ -519,7 +519,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         if (isITSloaded) {
           auto& itsTrack = recoData.getITSTrack(itsGID);
           nITSclu = itsTrack.getNumberOfClusters();
-          if( itsTrack.hasHitOnLayer(6) && itsTrack.hasHitOnLayer(5) && itsTrack.hasHitOnLayer(4) && itsTrack.hasHitOnLayer(3)) {
+          if (itsTrack.hasHitOnLayer(6) && itsTrack.hasHitOnLayer(5) && itsTrack.hasHitOnLayer(4) && itsTrack.hasHitOnLayer(3)) {
             shortOBITSOnlyTrack = true;
           }
         }
@@ -536,7 +536,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
-      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu && (!shortOBITSOnlyTrack || mSVParams->mRejectITSonlyOBtrack) ) {
+      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu && (!shortOBITSOnlyTrack || mSVParams->mRejectITSonlyOBtrack)) {
         continue; // reject short ITS-only
       }
 
