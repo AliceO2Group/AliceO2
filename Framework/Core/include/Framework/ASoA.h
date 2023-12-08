@@ -1154,7 +1154,7 @@ struct PresliceBase {
     }
   }
 
-  bool isMissing()
+  bool isMissing() const
   {
     return binding == "[MISSING]";
   }
