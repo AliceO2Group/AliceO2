@@ -64,10 +64,12 @@ struct MagFieldHelper {
   bool negDip = 0;
   bool updated = false;
   bool verbose = false;
+  static constexpr float ZeroCurrent = 70.f;    // current below this threshold considered to be produce 0 field
+  static constexpr float DeltaThreshold = 0.2f; // update field on delta's exceeding this value
 
   void updateCurL3(float v)
   {
-    if (!(isSet & 0x1) || std::abs(v - curL3) > 0.1) {
+    if (!(isSet & 0x1) || (std::abs(v - curL3) > DeltaThreshold && (std::abs(v) > ZeroCurrent || std::abs(curL3) > ZeroCurrent))) {
       if (verbose) {
         LOG(info) << "L3 current will be updated from " << curL3 << " to " << v;
       }
@@ -78,7 +80,7 @@ struct MagFieldHelper {
   }
   void updateCurDip(float v)
   {
-    if (!(isSet & 0x2) || std::abs(v - curDip) > 0.1) {
+    if (!(isSet & 0x2) || (std::abs(v - curDip) > DeltaThreshold && (std::abs(v) > ZeroCurrent || std::abs(curDip) > ZeroCurrent))) {
       if (verbose) {
         LOG(info) << "Dipole current will be updated from " << curDip << " to " << v;
       }
