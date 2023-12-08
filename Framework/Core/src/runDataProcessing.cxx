@@ -878,7 +878,7 @@ bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
             LOGP(error, "Workflow crashed - PID {} ({}) was killed abnormally with {} and exited code was set to {}.", pid, id, strsignal(exitSignal), es);
           } else {
             es = 128;
-            LOGP(error, "PID {} ({}) did not exit correctly however it's not clear why. Exit code forced to {}.", pid, id, es);
+            LOGP(error, "Workflow crashed - PID {} ({}) did not exit correctly however it's not clear why. Exit code forced to {}.", pid, id, es);
           }
         }
         hasError |= true;
