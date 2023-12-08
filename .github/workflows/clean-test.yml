@@ -39,10 +39,6 @@ name: Clean PR checks
         description: build/O2/o2-cs8
         type: boolean
         default: true
-      'check_build/O2/o2-dataflow':
-        description: build/O2/o2-dataflow
-        type: boolean
-        default: true
       'check_build/O2/o2-dataflow-cs8':
         description: build/O2/o2-dataflow-cs8
         type: boolean
