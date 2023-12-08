@@ -535,8 +535,10 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
-      if (!hasTPC && ((nITSclu < mSVParams->mITSSAminNclu) && !(mSVParams->mITSTrackPhotonTune && bITSOBonly))) {
-        continue; // reject short ITS-only
+      if (!hasTPC &&
+          ((nITSclu < mSVParams->mITSSAminNclu) &&
+           (!mSVParams->mITSTrackPhotonTune || !bITSOBonly || mSVParams->mITSOBminNclu > nITSclu))) {
+        continue; // reject short ITS-only, only if(phototune) they are not OB-only tracks
       }
 
       int posneg = trc.getSign() < 0 ? 1 : 0;
