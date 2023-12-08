@@ -63,10 +63,11 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder = std::make_unique<RawPixelDecoder<Mapping>>();
     auto v0 = o2::utils::Str::tokenize(mInputSpec, ':');
     auto v1 = o2::utils::Str::tokenize(v0[1], '/');
+    auto v2 = o2::utils::Str::tokenize(v1[1], '?');
     header::DataOrigin dataOrig;
     header::DataDescription dataDesc;
     dataOrig.runtimeInit(v1[0].c_str());
-    dataDesc.runtimeInit(v1[1].c_str());
+    dataDesc.runtimeInit(v2[0].c_str());
     mDecoder->setUserDataOrigin(dataOrig);
     mDecoder->setUserDataDescription(dataDesc);
     mDecoder->init(); // is this no-op?
