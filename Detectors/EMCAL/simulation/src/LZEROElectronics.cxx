@@ -116,7 +116,7 @@ void LZEROElectronics::addNoiseDigits(Digit& d1)
   d1 += d;
 }
 //_______________________________________________________________________
-void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs)
+void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitlist, const o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs)
 {
   // std::map<unsigned int, std::list<Digit>> outputList;
   // LOG(info) << "DIG SIMONE fill in LZEROElectronics: beginning";
@@ -152,7 +152,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       Digit summedDigit;
       bool first = true;
       for (auto& ld : digitsList) {
-        LOG(info) << "DIG SIMONE fill in LZEROElectronics: after whichFastOr LD = " << whichFastOrTRU2 << ", whichTRU = " << whichTRU2 << ", AbsFastOr = " << fastor << ", getType() = " << ld.getType() << ", getAmplitude() = " << ld.getAmplitude() << ", getAmplitudeADC() = " << ld.getAmplitudeADC(ld.getType()) << ", isTRU = " << ld.getTRU() << ", TimeBin = " << counterDigitTimeBin;
+        // LOG(info) << "DIG SIMONE fill in LZEROElectronics: after whichFastOr LD = " << whichFastOrTRU2 << ", whichTRU = " << whichTRU2 << ", AbsFastOr = " << fastor << ", getType() = " << ld.getType() << ", getAmplitude() = " << ld.getAmplitude() << ", getAmplitudeADC() = " << ld.getAmplitudeADC(ld.getType()) << ", isTRU = " << ld.getTRU() << ", TimeBin = " << counterDigitTimeBin;
         // LOG(info) << "DIG SIMONE fill in LZEROElectronics: after whichFastOr LD = " << whichFastOrTRU2 << ", whichTRU = " << whichTRU2 << ", AbsFastOr = " << fastor << ", getAmplitude() = " << ld.getAmplitude() << ", getAmplitudeADC() = " << ld.getAmplitudeADC() << ", isTRU = " << ld.getTRU() << ", TimeBin = " << counterDigitTimeBin;
         // if(ld.getAmplitude() > 0.05) LOG(info) << "DIG SIMONE fill in LZEROElectronics: after whichFastOr LD = " << whichFastOrTRU2 << ", whichTRU = " << whichTRU2 << ", AbsFastOr = " << fastor << ", getAmplitude() = " << ld.getAmplitude() << ", getAmplitudeADC() = " << ld.getAmplitudeADC() << ", isTRU = " << ld.getTRU();
         if (first) {

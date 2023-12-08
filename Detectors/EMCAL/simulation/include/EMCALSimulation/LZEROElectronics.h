@@ -27,6 +27,7 @@
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/Patches.h"
 #include "EMCALBase/TriggerMappingV2.h"
+#include <fairlogger/Logger.h> // for LOG
 
 namespace o2
 {
@@ -39,7 +40,6 @@ namespace emcal
 struct EMCALTriggerInputs {
   o2::InteractionRecord mInterRecord;                               ///< Last known interaction record
   std::vector<std::tuple<int, int, double>> mLastTimesumAllFastOrs; ///< TRU ID, FastOrID with STU indexing, and its last Timesum
-  ClassDefNV(EMCALTriggerInputs, 1);
 };
 
 /// @brief Trigger Inputs object, summary of the entire information needed for the L1 algorithm
@@ -48,7 +48,6 @@ struct EMCALTriggerInputs {
 struct EMCALTriggerInputsPatch {
   o2::InteractionRecord mInterRecord;                                     ///< Last known interaction record
   std::vector<std::tuple<int, int, double, bool>> mLastTimesumAllPatches; ///< TRU ID, PatchID, and its last Timesum
-  ClassDefNV(EMCALTriggerInputsPatch, 1);
 };
 
 /// \class LZEROElectronics
@@ -101,7 +100,7 @@ class LZEROElectronics
   /// \param digitlist digits to be assigned to patches
   /// \param record interaction record time to be propagated
   /// \param patchesFromAllTRUs vector contained the patches of all TRUs
-  void fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs);
+  void fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitlist, const o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs);
 
   /// Getter for the pattern of peaks found by the LZERO algorithm
   /// \param p Patches object

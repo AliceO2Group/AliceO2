@@ -14,14 +14,8 @@
 #ifndef ALICEO2_EMCAL_DIGITTIMEBIN_H
 #define ALICEO2_EMCAL_DIGITTIMEBIN_H
 
-#include <array>
-#include <gsl/span>
-#include "Rtypes.h"
-#include "DataFormatsEMCAL/Cluster.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALSimulation/LabeledDigit.h"
-#include "DataFormatsEMCAL/Cell.h"
-#include "EMCALBase/Geometry.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2

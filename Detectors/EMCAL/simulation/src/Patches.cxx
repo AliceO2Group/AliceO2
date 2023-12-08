@@ -136,19 +136,19 @@ void Patches::assignModulesToAllPatches()
       // assigning a square
       if (mWhichSide == 0) {
         // A side
-        for (int k = 0; k < mPatchSize; k++) {   // row advancement
-          for (int l = 0; l < mPatchSize; l++) { // column advancement
+        for (int iRow = 0; iRow < mPatchSize; iRow++) {            // row advancement
+          for (int iColumn = 0; iColumn < mPatchSize; iColumn++) { // column advancement
             auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
-            IndexMapPatch.push_back(SeedID + k + l * 8);
+            IndexMapPatch.push_back(SeedID + iRow + iColumn * 8);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 8);
           }
         }
       } else if (mWhichSide == 1) {
         // C side
-        for (int k = 0; k < mPatchSize; k++) {   // row advancement
-          for (int l = 0; l < mPatchSize; l++) { // column advancement
+        for (int iRow = 0; iRow < mPatchSize; iRow++) {            // row advancement
+          for (int iColumn = 0; iColumn < mPatchSize; iColumn++) { // column advancement
             auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
-            IndexMapPatch.push_back(SeedID - k - l * 8);
+            IndexMapPatch.push_back(SeedID - iRow - iColumn * 8);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
           }
         }
@@ -173,19 +173,19 @@ void Patches::assignModulesToAllPatches()
       // assigning a square
       if (mWhichSide == 0) {
         // A side
-        for (int k = 0; k < mPatchSize; k++) {   // row advancement
-          for (int l = 0; l < mPatchSize; l++) { // column advancement
+        for (int iRow = 0; iRow < mPatchSize; iRow++) {            // row advancement
+          for (int iColumn = 0; iColumn < mPatchSize; iColumn++) { // column advancement
             auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
-            IndexMapPatch.push_back(SeedID + k + l * 24);
+            IndexMapPatch.push_back(SeedID + iRow + iColumn * 24);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID + k + l * 24);
           }
         }
       } else if (mWhichSide == 1) {
         // C side
-        for (int k = 0; k < mPatchSize; k++) {   // row advancement
-          for (int l = 0; l < mPatchSize; l++) { // column advancement
+        for (int iRow = 0; iRow < mPatchSize; iRow++) {            // row advancement
+          for (int iColumn = 0; iColumn < mPatchSize; iColumn++) { // column advancement
             auto& IndexMapPatch = std::get<1>(mIndexMapPatch[i]);
-            IndexMapPatch.push_back(SeedID - k - l * 8);
+            IndexMapPatch.push_back(SeedID - iRow - iColumn * 8);
             // (std::get<1>(mIndexMapPatch[i])).push_back(SeedID - k - l * 8);
           }
         }

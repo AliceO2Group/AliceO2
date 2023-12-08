@@ -15,20 +15,11 @@
 #include <deque>
 #include <iostream>
 #include <gsl/span>
-#include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsWriteoutBufferTRU.h"
-#include "EMCALSimulation/DigitsVectorStream.h"
 #include "EMCALSimulation/LZEROElectronics.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <fairlogger/Logger.h> // for LOG
 #include "EMCALBase/TriggerMappingV2.h"
-#include "TMath.h"
-
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/ControlService.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/DataRefUtils.h"
-#include "Framework/Lifetime.h"
 
 using namespace o2::emcal;
 
@@ -150,7 +141,7 @@ void DigitsWriteoutBufferTRU::init()
 
   mLiveTime = simParam->getLiveTime();
   mBusyTime = simParam->getBusyTime();
-  mPreTriggerTime = simParam->getPreTriggerTime();
+  // mPreTriggerTime = simParam->getPreTriggerTime();
   mNoPileupMode = simParam->isDisablePileup();
   mEndOfRun = 0;
 

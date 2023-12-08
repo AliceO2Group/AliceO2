@@ -15,14 +15,15 @@
 #define ALICEO2_EMCAL_PATCH_H
 
 #include <array>
+#include <vector>
 #include <gsl/span>
 #include "Rtypes.h"
-#include "DataFormatsEMCAL/Cluster.h"
-#include "DataFormatsEMCAL/Digit.h"
-#include "DataFormatsEMCAL/Cell.h"
-#include "EMCALBase/Geometry.h"
+// #include "DataFormatsEMCAL/Cluster.h"
+// #include "DataFormatsEMCAL/Digit.h"
+// #include "DataFormatsEMCAL/Cell.h"
+// #include "EMCALBase/Geometry.h"
 
-#include <fairlogger/Logger.h> // for LOG
+// #include <fairlogger/Logger.h> // for LOG
 
 namespace o2
 {

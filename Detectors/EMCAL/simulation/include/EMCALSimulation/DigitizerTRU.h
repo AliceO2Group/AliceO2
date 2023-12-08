@@ -47,11 +47,11 @@ namespace emcal
 /// \author Anders Knospe, University of Houston
 /// \author Hadi Hassan, ORNL
 /// \author Simone Ragoni, Creighton
-class DigitizerTRU : public TObject
+class DigitizerTRU
 {
  public:
   DigitizerTRU() = default;
-  ~DigitizerTRU() override = default;
+  ~DigitizerTRU() = default;
   DigitizerTRU(const DigitizerTRU&) = delete;
   DigitizerTRU& operator=(const DigitizerTRU&) = delete;
 
@@ -66,31 +66,21 @@ class DigitizerTRU : public TObject
 
   /// This is for the readout window that was interrupted by the end of the run
   void finish();
-  // void finish() { mDigits.finish(); }
 
   /// Steer conversion of hits to digits
-  void process(const gsl::span<const Digit> labeledDigit);
-  // void process(const std::vector<Digit>& labeledDigit);
+  void process(const gsl::span<const Digit> summableDigits);
 
   /// Postprocessing of the digits, gathers by Fastors, not by Tower/Cell
   /// \param sdigits results of the SDigitizer
   std::vector<std::tuple<int, Digit>> makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits);
-  // std::vector<Digit> makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits);
 
   void setEventTime(o2::InteractionTimeRecord record);
-  // double getTriggerTime() const { return mDigits.getTriggerTime(); }
-  // double getEventTime() const { return mDigits.getEventTime(); }
-  // bool isLive(double t) const { return mDigits.isLive(t); }
-  // bool isLive() const { return mDigits.isLive(); }
 
   /// Sets geometry for trigger mapping
   void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
   void setWindowStartTime(int time) { mTimeWindowStart = time; }
   void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }
-
-  // function returns true if the collision occurs 600ns before the readout window is open
-  // bool preTriggerCollision() const { return mDigits.preTriggerCollision(); }
 
   void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
 
@@ -117,16 +107,8 @@ class DigitizerTRU : public TObject
   /// raw pointers used here to allow interface with TF1
   static double rawResponseFunction(double* x, double* par);
 
-  // const std::vector<o2::emcal::Digit> &getDigits() const { return mDigits.getDigits(); }
-  // const std::vector<o2::emcal::TriggerRecord> &getTriggerRecords() const { return mDigits.getTriggerRecords(); }
-  // const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> &getMCLabels() const { return mDigits.getMCLabels(); }
-
  private:
-  short mEventTimeOffset = 0; ///< event time difference from trigger time (in number of bins)
-  short mPhase = 0;           ///< event phase
-  UInt_t mROFrameMin = 0;     ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;     ///< highest RO frame of current digits
-  // bool mSmearEnergy = false;            ///< do time and energy smearing
+  short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)
   bool mSmearEnergy = true;            ///< do time and energy smearing
   bool mSimulateTimeResponse = true;   ///< simulate time response
   const SimParam* mSimParam = nullptr; ///< SimParam object
@@ -153,7 +135,7 @@ class DigitizerTRU : public TObject
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;
   bool mEnableDebugStreaming = false;
 
-  ClassDefOverride(DigitizerTRU, 1);
+  ClassDefNV(DigitizerTRU, 1);
 };
 } // namespace emcal
 } // namespace o2

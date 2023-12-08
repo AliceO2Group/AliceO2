@@ -134,29 +134,25 @@ void DigitizerTRU::clear()
   mDigits.clear();
 }
 //_______________________________________________________________________
-// void DigitizerTRU::process(const std::vector<Digit>& labeledSDigits)
-void DigitizerTRU::process(const gsl::span<const Digit> labeledSDigits)
+void DigitizerTRU::process(const gsl::span<const Digit> summableDigits)
 {
 
-  auto processedSDigits = makeAnaloguesFastorSums(labeledSDigits);
+  auto processedSDigits = makeAnaloguesFastorSums(summableDigits);
 
   for (auto vectorelement : processedSDigits) {
-    // for (auto labeleddigit : processedSDigits) {
 
     int& fastorID = std::get<0>(vectorelement);
-    auto& labeleddigit = std::get<1>(vectorelement);
+    auto& digit = std::get<1>(vectorelement);
 
-    int tower = labeleddigit.getTower();
+    int tower = digit.getTower();
 
-    // sampleSDigit(labeleddigit.getDigit());
-    sampleSDigit(labeleddigit);
+    sampleSDigit(digit);
 
     if (mTempDigitVector.size() == 0) {
       continue;
     }
 
     mDigits.addDigits(fastorID, mTempDigitVector);
-    // mDigits.addDigits(tower, mTempDigitVector);
   }
 }
 //_______________________________________________________________________
@@ -245,17 +241,9 @@ void DigitizerTRU::sampleSDigit(const Digit& sDigit)
 
   Double_t energies[15];
   if (mSimulateTimeResponse) {
-    // for (int j = 0; j < mAmplitudeInTimeBins.at(0).size(); j++) {
-    //   double val = energy * (mAmplitudeInTimeBins.at(0).at(j));
-    //   energies[j] = val;
-    //   double digitTime = (mEventTimeOffset + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
-    //   Digit digit(tower, val, digitTime);
-    //   digit.setTRU();
-    //   mTempDigitVector.push_back(digit);
-    // }
     for (int sample = 0; sample < mAmplitudeInTimeBins[0].size(); sample++) {
 
-      double val = energy * (mAmplitudeInTimeBins[mPhase][sample]);
+      double val = energy * (mAmplitudeInTimeBins[0][sample]);
       energies[sample] = val;
       double digitTime = mEventTimeOffset * constants::EMCAL_TIMESAMPLE;
       Digit digit(tower, val, digitTime);
