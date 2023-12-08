@@ -476,23 +476,17 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
     } break;
     case ASYNCHRONOUS: {
       DownloaderRequestData* requestData = performData->requestData;
-
       if (requestData->headers) {
         for (auto& p : requestData->hoPair.header) {
           (*requestData->headers)[p.first] = p.second;
         }
       }
-      if (requestData->errorflag && requestData->headers) {
-        (*requestData->headers)["Error"] = "An error occurred during retrieval";
-      }
-
       // Log that transfer finished
       long httpCode;
       curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpCode);
       char* url;
       curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &url);
       LOG(debug) << "Transfer for " << url << " finished with code " << httpCode << "\n";
-
       std::string currentHost = requestData->hosts[performData->hostInd];
       std::string loggingMessage = prepareLogMessage(currentHost, requestData->userAgent, requestData->path, requestData->timestamp, requestData->headers, httpCode);
 
@@ -527,12 +521,18 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
       if (!rescheduled) {
         // No more transfers will be done for this request, do cleanup specific for ASYNCHRONOUS calls
+        if (!contentRetrieved) {
+          if (requestData->hoPair.object) {
+            requestData->hoPair.object->clear();
+          }
+          if (requestData->headers) {
+            (*requestData->headers)["Error"] = "An error occurred during retrieval";
+          }
+          LOGP(alarm, "Curl request to {}, response code: {}", url, httpCode);
+        }
         --(*performData->requestsLeft);
         delete requestData;
         delete performData->codeDestination;
-        if (!contentRetrieved) {
-          LOGP(alarm, "Curl request to {}, response code: {}", url, httpCode);
-        }
       }
     } break;
   }
