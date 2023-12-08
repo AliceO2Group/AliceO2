@@ -256,6 +256,10 @@ int CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, std
                                std::vector<char>::size_type maxSize) const
 {
   // We need the TClass for this type; will verify if dictionary exists
+  if (!obj) {
+    LOGP(error, "nullptr is provided for object {}/{}/{}", path, startValidityTimestamp, endValidityTimestamp);
+    return -1;
+  }
   CcdbObjectInfo info;
   auto img = createObjectImage(obj, tinfo, &info);
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(),
@@ -376,6 +380,10 @@ int CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, st
                           long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   // Prepare file
+  if (!rootObject) {
+    LOGP(error, "nullptr is provided for object {}/{}/{}", path, startValidityTimestamp, endValidityTimestamp);
+    return -1;
+  }
   CcdbObjectInfo info;
   auto img = createObjectImage(rootObject, &info);
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
