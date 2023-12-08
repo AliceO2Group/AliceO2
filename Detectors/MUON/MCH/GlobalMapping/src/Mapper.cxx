@@ -97,15 +97,15 @@ std::set<DsIndex> getDsIndices(dcs::Chamber ch, dcs::Plane plane)
 
 std::set<DsIndex> getDsIndices(const std::set<int>& solarIds)
 {
-  std::set<o2::mch::DsIndex> expectedDualSampas;
+  std::set<o2::mch::DsIndex> dualSampas;
   for (const auto& solarId : solarIds) {
     auto dsDetIds = o2::mch::raw::getDualSampas<o2::mch::raw::ElectronicMapperGenerated>(solarId);
     for (const auto& dsDetId : dsDetIds) {
-      int index = o2::mch::getDsIndex(dsDetId);
-      expectedDualSampas.emplace(index);
+      auto index = o2::mch::getDsIndex(dsDetId);
+      dualSampas.emplace(index);
     }
   }
-  return expectedDualSampas;
+  return dualSampas;
 }
 
 } // namespace o2::mch::dcs
