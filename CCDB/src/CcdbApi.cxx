@@ -1486,12 +1486,6 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   auto data = new DownloaderRequestData(); // Deleted in transferFinished of CCDBDownloader.cxx
   data->hoPair.object = &requestContext.dest;
 
-  auto signalError = [&chunk = requestContext.dest, &errorflag = data->errorflag]() {
-    chunk.clear();
-    chunk.reserve(1);
-    errorflag = true;
-  };
-
   std::function<bool(std::string)> localContentCallback = [this, &requestContext](std::string url) {
     return this->loadLocalContentToMemory(requestContext.dest, url);
   };
