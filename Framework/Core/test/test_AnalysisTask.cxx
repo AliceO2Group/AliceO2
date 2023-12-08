@@ -145,7 +145,10 @@ struct KTask {
 
 struct LTask {
   SliceCache cache;
+  Preslice<aod::Tracks> perCol = aod::track::collisionId;
+  PresliceOptional<aod::Tracks> perPart = aod::mctracklabel::mcParticleId;
   PresliceUnsorted<aod::McCollisionLabels> perMcCol = aod::mccollisionlabel::mcCollisionId;
+  PresliceUnsortedOptional<aod::Collisions> perMcColopt = aod::mccollisionlabel::mcCollisionId;
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
 };
 
