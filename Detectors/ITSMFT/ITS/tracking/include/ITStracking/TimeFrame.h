@@ -273,7 +273,12 @@ class TimeFrame
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
  protected:
-  template<typename T> void deepVectorClear(std::vector<T>& vec) { std::vector<T>().swap(vec); }
+  template <typename T>
+  void deepVectorClear(std::vector<T>& vec)
+  {
+    std::vector<T>().swap(vec);
+  }
+
  private:
   float mBz = 5.;
   int mBeamPosWeight = 0;
