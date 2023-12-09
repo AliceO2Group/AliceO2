@@ -29,7 +29,7 @@ o2::base::MatLayerCylSet mbLUT;
 
 bool testMBLUT(const std::string& lutFile = "matbud.root");
 
-bool buildMatBudLUT(int nTst = 30, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomNamePrefix = "o2sim");
+bool buildMatBudLUT(int nTst = 30, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomNamePrefix = "o2sim", const std::string& opts = "");
 
 struct LrData {
   float rMin = 0.f;
@@ -44,14 +44,14 @@ struct LrData {
 std::vector<LrData> lrData;
 void configLayers();
 
-bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNamePrefix)
+bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNamePrefix, const std::string& opts)
 {
   auto geomName = o2::base::NameConf::getGeomFileName(geomNamePrefix);
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
     std::cout << geomName << " does not exist. Will create it on the fly\n";
     std::stringstream str;
     // constructing an **unaligned** geom (Geant3 used since faster initialization) --> can be avoided by passing an existing geometry
-    str << "${O2_ROOT}/bin/o2-sim-serial -n 0 -e TGeant3 --configKeyValues=\"align-geom.mDetectors=none\" --field 0  -o " << geomNamePrefix;
+    str << "${O2_ROOT}/bin/o2-sim-serial -n 0 -e TGeant3 --configKeyValues \"" << opts << "\" --field 0  -o " << geomNamePrefix;
     gSystem->Exec(str.str().c_str());
   }
   o2::base::GeometryManager::loadGeometry(geomNamePrefix);
