@@ -46,7 +46,7 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   cmake_path(GET LLVM_SPIRV PARENT_PATH TMP_LLVM_SPIRV_PATH)
   add_custom_command(
       OUTPUT ${CL_BIN}.spirv
-      COMMAND ${CMAKE_COMMAND} -E env "PATH=${TMP_LLVM_SPIRV_PATH}:\$PATH" ${LLVM_CLANG}
+      COMMAND ${CMAKE_COMMAND} -E env "PATH=${TMP_LLVM_SPIRV_PATH}:\$$PATH" ${LLVM_CLANG}
               -O0
               --target=spirv64
               ${OCL_FLAGS}
