@@ -108,7 +108,7 @@ void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GP
   {
     std::unique_lock lk(mPipeline->mayInjectMutex);
     mPipeline->mayInjectCondition.wait(lk, [this, context]() { return mPipeline->mayInject && mPipeline->mayInjectTFId == context->mTFId; });
-    mPipeline->mayInjectTFId++;
+    mPipeline->mayInjectTFId = mPipeline->mayInjectTFId + 1;
     mPipeline->mayInject = false;
   }
   context->jobSubmitted = true;
