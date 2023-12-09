@@ -80,10 +80,10 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0}, mVecDigits);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0}, mVecChannelData);
     if constexpr (sUseTrgInput) {
-      pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TRIGGERINPUT", 0, o2::framework::Lifetime::Timeframe}, mVecTriggerInput);
+      pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TRIGGERINPUT", 0}, mVecTriggerInput);
     }
   }
   bool mDumpData;
@@ -136,11 +136,11 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, o2::framework::Lifetime::Timeframe}, mVecTrgExt);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0}, mVecDigits);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0}, mVecChannelData);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0}, mVecTrgExt);
     if constexpr (sUseTrgInput) {
-      pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TRIGGERINPUT", 0, o2::framework::Lifetime::Timeframe}, mVecTriggerInput);
+      pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TRIGGERINPUT", 0}, mVecTriggerInput);
     }
   }
   bool mDumpData;

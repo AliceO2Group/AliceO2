@@ -80,8 +80,8 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     LOG(alarm) << "Incorrect fit results";
   }
   // //Send result to QC
-  // ec.outputs().snapshot(o2::framework::Output{"PHS", "TRIGMAPDIFF", 0, o2::framework::Lifetime::Timeframe}, mTrigMapDiff);
-  // ec.outputs().snapshot(o2::framework::Output{"PHS", "TURNONDIFF", 0, o2::framework::Lifetime::Timeframe}, mTurnOnDiff);
+  // ec.outputs().snapshot(o2::framework::Output{"PHS", "TRIGMAPDIFF", 0}, mTrigMapDiff);
+  // ec.outputs().snapshot(o2::framework::Output{"PHS", "TURNONDIFF", 0}, mTurnOnDiff);
 }
 
 o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool useCCDB)

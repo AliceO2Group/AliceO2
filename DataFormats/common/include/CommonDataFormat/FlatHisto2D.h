@@ -35,7 +35,7 @@ namespace dataformats
   Fast 2D histo class which can be messages as
   FlatHisto2D<float> histo(nbinsX, xmin, xmax, nbinsY, ymin, ymax);
   histo.fill(...);
-  pc.outputs().snapshot(Output{"Origin", "Desc", 0, Lifetime::Timeframe}, histo.getBase());
+  pc.outputs().snapshot(Output{"Origin", "Desc", 0}, histo.getBase());
 
   and received (read only!) as
   const auto hdata = pc.inputs().get<gsl::span<float>>("histodata");
