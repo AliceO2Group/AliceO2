@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(MatBudLUT)
   std::string geomPrefix("matBudGeom");
   std::string matBudFile("matbud");
   matBudFile += std::to_string(getpid()) + ".root";
-  BOOST_CHECK(buildMatBudLUT(2, 20, matBudFile, geomPrefix + std::to_string(getpid()))); // generate LUT
+  BOOST_CHECK(buildMatBudLUT(2, 20, matBudFile, geomPrefix + std::to_string(getpid()), "align-geom.mDetectors=none")); // generate LUT
   BOOST_CHECK(testMBLUT(matBudFile));                                                    // test LUT manipulations
 
 #endif //!GPUCA_ALIGPUCODE
