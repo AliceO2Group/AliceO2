@@ -28,12 +28,11 @@ namespace ft0
 void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
 {
   auto t1 = std::chrono::high_resolution_clock::now();
-
   auto dummyOutput = [&pc, this]() {
     this->mVecDigits.resize(0);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0}, mVecDigits);
     this->mVecChannelData.resize(0);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0}, mVecChannelData);
   };
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
@@ -529,8 +528,8 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
     // Due to empty Digit container this dummy object will never participate in any further tasks.
     mVecChannelData.emplace_back();
   }
-  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
-  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0}, mVecDigits);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0}, mVecChannelData);
   auto t2 = std::chrono::high_resolution_clock::now();
   auto delay = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
   LOG(debug) << "Decoder delay: " << delay.count();

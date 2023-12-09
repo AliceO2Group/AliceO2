@@ -53,14 +53,14 @@ void ClusterReader::run(ProcessingContext& pc)
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
   // To be fixed once the names-definition class is ready
-  pc.outputs().snapshot(Output{mOrigin, "CLUSTERSROF", 0, Lifetime::Timeframe}, mClusROFRec);
-  pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0, Lifetime::Timeframe}, mClusterCompArray);
+  pc.outputs().snapshot(Output{mOrigin, "CLUSTERSROF", 0}, mClusROFRec);
+  pc.outputs().snapshot(Output{mOrigin, "COMPCLUSTERS", 0}, mClusterCompArray);
   if (mUsePatterns) {
-    pc.outputs().snapshot(Output{mOrigin, "PATTERNS", 0, Lifetime::Timeframe}, mPatternsArray);
+    pc.outputs().snapshot(Output{mOrigin, "PATTERNS", 0}, mPatternsArray);
   }
   if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClusterMCTruth);
-    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, mClusMC2ROFs);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMCTR", 0}, mClusterMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "CLUSTERSMC2ROF", 0}, mClusMC2ROFs);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
