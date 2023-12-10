@@ -2445,9 +2445,9 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   constexpr float ETAPHOS = 0.13653194;                             // nominal eta of the PHOS acceptance (at XPHOS): -log(tan((TMath::Pi()/2 - atan2(63, 460))/2))
   constexpr float ETAPHOSMARGIN = 0.17946979;                       // etat of the PHOS acceptance with 20 cm margin (at XPHOS): -log(tan((TMath::Pi()/2 + atan2(63+20., 460))/2)), not used, for the ref only
   constexpr float ETADCALPHOSSWITCH = (ETADCALINNER + ETAPHOS) / 2; // switch to DCAL to PHOS check if eta < this value
-  constexpr short SNONE = 0, SEMCAL = 0x1, SPHOS = 0x2;
+  constexpr short SNONE = 0, SEMCAL = 0x1, SPHOS = 0x2, SEMCAL1U = 0x4; // SEMCAL1U means consider tracks of this sector in the frame of +1 sector
   constexpr short SECTORTYPE[18] = {
-    SNONE, SNONE, SNONE, SNONE,                     // 0:3
+    SNONE, SNONE, SNONE, SEMCAL1U,                  // 0:3
     SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, SEMCAL, // 3:9 EMCAL only
     SNONE, SNONE,                                   // 10:11
     SPHOS,                                          // 12 PHOS only
@@ -2477,8 +2477,8 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   // rotate to proper sector
   int sector = o2::math_utils::angle2Sector(outTr.getPhiPos());
 
-  auto propExactSector = [&outTr, &sector, prop](float xprop) -> bool { // propagate exactly to xprop in the proper sector frame
-    int ntri = 0;
+  auto propExactSector = [&outTr, &sector, prop](float xprop, bool fixedSector = false) -> bool { // propagate exactly to xprop in the proper sector frame
+    int ntri = 0, sectorTmp = 0;
     while (ntri < 2) {
       auto outTrTmp = outTr;
       float alpha = o2::math_utils::sector2Angle(sector);
@@ -2488,8 +2488,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
         return false;
       }
       // make sure we are still in the target sector
-      int sectorTmp = o2::math_utils::angle2Sector(outTrTmp.getPhiPos());
-      if (sectorTmp == sector) {
+      if (fixedSector || ((sectorTmp = o2::math_utils::angle2Sector(outTrTmp.getPhiPos())) == sector)) {
         outTr = outTrTmp;
         break;
       }
@@ -2509,8 +2508,7 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
   }
 
   // check if we are in a good eta range
-  float r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY()), tg = std::atan2(r, outTr.getZ());
-  float eta = -std::log(std::tan(0.5f * tg)), etaAbs = std::abs(eta);
+  float eta = outTr.getEta(), etaAbs = std::abs(eta);
   if (etaAbs > ETAEMCAL) {
     LOGP(debug, "eta = {} is off at EMCAL radius", eta, outTr.asString());
     return;
@@ -2520,10 +2518,13 @@ void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfo
     if (!propExactSector(XPHOS)) {
       return;
     }
-    r = std::sqrt(outTr.getX() * outTr.getX() + outTr.getY() * outTr.getY());
-    tg = std::atan2(r, outTr.getZ());
-    eta = -std::log(std::tan(0.5f * tg));
-  } else if (!(SECTORTYPE[sector] & SEMCAL)) { // are in the sector with PHOS only
+    eta = outTr.getEta();
+  } else if (SECTORTYPE[sector] & SEMCAL1U) { // might be track from the following EMCAL sector
+    sector += 1;
+    if (!propExactSector(XEMCAL, true) || std::abs(eta = outTr.getEta()) > ETAEMCAL) {
+      return;
+    }
+  } else if (!(SECTORTYPE[sector] & SEMCAL)) { // we are in the sector with PHOS only
     return;
   }
   extraInfoHolder.trackPhiEMCAL = outTr.getPhiPos();
