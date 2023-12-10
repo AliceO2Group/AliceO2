@@ -72,9 +72,15 @@ std::string CCDBManagerInstance::getSummaryString() const
   return res;
 }
 
-void CCDBManagerInstance::endOfStream()
+void CCDBManagerInstance::report(bool longrep)
 {
   LOG(info) << "CCDBManager summary: " << getSummaryString();
+  if (longrep && mCachingEnabled) {
+    LOGP(info, "CCDB cache miss/hit/failures");
+    for (const auto& obj : mCache) {
+      LOGP(info, "  {}: {}/{}/{} ({}-{} bytes)", obj.first, obj.second.fetches, obj.second.queries - obj.second.fetches - obj.second.failures, obj.second.failures, obj.second.minSize, obj.second.maxSize);
+    }
+  }
 }
 
 } // namespace ccdb

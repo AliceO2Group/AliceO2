@@ -48,6 +48,8 @@ class CCDBManagerInstance
     std::string uuid;
     long startvalidity = 0;
     long endvalidity = -1;
+    size_t minSize = -1ULL;
+    size_t maxSize = 0;
     int queries = 0;
     int fetches = 0;
     int failures = 0;
@@ -176,7 +178,7 @@ class CCDBManagerInstance
 
   std::string getSummaryString() const;
 
-  void endOfStream();
+  void report(bool longrep = false);
 
  private:
   // method to print (fatal) error
@@ -221,8 +223,8 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
     }
   } else {
     auto& cached = mCache[path];
+    cached.queries++;
     if (mCheckObjValidityEnabled && cached.isValid(timestamp)) {
-      cached.queries++;
       return reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
     }
     ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
@@ -243,6 +245,12 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
         cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
       } catch (std::exception const& e) {
         reportFatal("Failed to read validity from CCDB response (Valid-From :  " + mHeaders["Valid-From"] + std::string(" Valid-Until: ") + mHeaders["Valid-Until"] + std::string(")"));
+      }
+      auto sh = mHeaders.find("fileSize");
+      if (sh != mHeaders.end()) {
+        size_t s = atol(sh->second.c_str());
+        cached.minSize = std::min(s, cached.minSize);
+        cached.maxSize = std::max(s, cached.minSize);
       }
     } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
       cached.failures++;
