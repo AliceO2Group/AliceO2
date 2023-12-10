@@ -390,6 +390,7 @@ class AODProducerWorkflowDPL : public Task
 
   struct TrackQA {
     GID trackID;
+    float tpcTime0;
     int16_t tpcdcaR;
     int16_t tpcdcaZ;
     uint8_t tpcClusterByteMask;

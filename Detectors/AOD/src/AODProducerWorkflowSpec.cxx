@@ -352,6 +352,7 @@ void AODProducerWorkflowDPL::addToTracksQATable(TracksQACursorType& tracksQACurs
     // truncateFloatFraction(trackQAInfoHolder.tpcdcaR, mTrackChi2),
     // truncateFloatFraction(trackQAInfoHolder.tpcdcaZ, mTrackChi2),
     trackQAInfoHolder.trackID,
+    trackQAInfoHolder.tpcTime0,
     trackQAInfoHolder.tpcdcaR,
     trackQAInfoHolder.tpcdcaZ,
     trackQAInfoHolder.tpcClusterByteMask,
@@ -2506,6 +2507,7 @@ AODProducerWorkflowDPL::TrackQA AODProducerWorkflowDPL::processBarrelTrackQA(int
         byteMask |= (1 << i);
       }
     }
+    trackQAHolder.tpcTime0 = tpcOrig.getTime0();
     trackQAHolder.tpcClusterByteMask = byteMask;
     float dEdxNorm = (tpcOrig.getdEdx().dEdxTotTPC > 0) ? 100. / tpcOrig.getdEdx().dEdxTotTPC : 0;
     trackQAHolder.tpcdEdxMax0R = uint8_t(tpcOrig.getdEdx().dEdxMaxIROC * dEdxNorm);

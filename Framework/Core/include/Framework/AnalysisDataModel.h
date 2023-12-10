@@ -498,6 +498,7 @@ namespace trackqa
 {
 // TRACKQA TABLE COLUMNS
 DECLARE_SOA_INDEX_COLUMN(Track, track);                              //! track to which this QA information belongs
+DECLARE_SOA_COLUMN(TPCTime0, tpcTime0, float);                       //! tpc only time0 (mTime0 in TPC track)
 DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, int16_t);                       //! tpc only DCAr
 DECLARE_SOA_COLUMN(TPCDCAZ, tpcdcaZ, int16_t);                       //! tpc only DCAz
 DECLARE_SOA_COLUMN(TPCClusterByteMask, tpcClusterByteMask, uint8_t); //! tracklet bitmask - track defining 8 tracklets (152=8*19 rows) bit set if nCluster>thr (default 5)
@@ -512,7 +513,8 @@ DECLARE_SOA_COLUMN(TPCdEdxTot3R, tpcdEdxTot3R, uint8_t);             //! TPC dEd
 } // namespace trackqa
 
 DECLARE_SOA_TABLE(TracksQA, "AOD", "TRACKQA", //! trackQA information - sampled QA information currently for the TPC
-                  o2::soa::Index<>, trackqa::TrackId, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
+                  o2::soa::Index<>, trackqa::TrackId, trackqa::TPCTime0, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
+                  //                  o2::soa::Index<>, trackqa::TrackId, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
                   trackqa::TPCdEdxMax0R, trackqa::TPCdEdxMax1R, trackqa::TPCdEdxMax2R, trackqa::TPCdEdxMax3R,
                   trackqa::TPCdEdxTot0R, trackqa::TPCdEdxTot1R, trackqa::TPCdEdxTot2R, trackqa::TPCdEdxTot3R);
 
