@@ -232,8 +232,8 @@ std::pair<int, int> ITSDeadMapBuilder::FillMapElementITS()
 
       if (laneUp - laneLow - 1 > 6) { // more than 6 lanes (or full stave) --> better to save in a single word
         bool isfilled = (mapelement_t2 != t2_identifier);
-        mapelement_t2 = mapelement_t2 | ((ULong64_t)((laneLow + 2) & 0xFFF) << 4 + 30 * isfilled);
-        mapelement_t2 = mapelement_t2 | ((ULong64_t)((laneUp - 1 + 1) & 0xFFF) << 19 + 30 * isfilled);
+        mapelement_t2 = mapelement_t2 | ((ULong64_t)((laneLow + 2) & 0xFFF) << (4 + 30 * isfilled));
+        mapelement_t2 = mapelement_t2 | ((ULong64_t)((laneUp - 1 + 1) & 0xFFF) << (19 + 30 * isfilled));
         dcount_t2 += (laneUp - laneLow - 1);
         if (isfilled) {
           mDeadMapTF->push_back(mapelement_t2);
