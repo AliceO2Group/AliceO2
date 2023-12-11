@@ -1253,7 +1253,7 @@ DECLARE_SOA_COLUMN(V0Type, v0Type, uint8_t);                            //! cust
 
 DECLARE_SOA_DYNAMIC_COLUMN(IsStandardV0, isStandardV0, //! is standard V0
                            [](uint8_t V0Type) -> bool { return V0Type & (1 << 0); });
-DECLARE_SOA_DYNAMIC_COLUMN(IsConversionCandidate, isConversionCandidate, //! is standard V0
+DECLARE_SOA_DYNAMIC_COLUMN(IsPhotonV0, isPhotonV0, //! is standard V0
                            [](uint8_t V0Type) -> bool { return V0Type & (1 << 1); });
 
 } // namespace v0
@@ -1268,7 +1268,8 @@ DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version
                             o2::soa::Index<>, v0::CollisionId,
                             v0::PosTrackId, v0::NegTrackId,
                             v0::V0Type,
-                            v0::IsStandardV0<v0::V0Type>);
+                            v0::IsStandardV0<v0::V0Type>,
+                            v0::IsPhotonV0<v0::V0Type>);
 
 using V0s = V0s_001; //! this defines the current default version
 using V0 = V0s::iterator;
