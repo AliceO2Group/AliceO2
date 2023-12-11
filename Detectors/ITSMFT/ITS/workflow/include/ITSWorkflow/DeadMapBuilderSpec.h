@@ -106,7 +106,7 @@ class ITSDeadMapBuilder : public Task
   ULong64_t t1_identifier = 0x1; // 5x<12b>         0001: used for OB lanes
   ULong64_t t2_identifier = 0x3; // 2x<15b> 2x<15b> 0011: used for lane intervals
   ULong64_t t3_identifier = 0x5; // 4x<15b>         0101: used for single chips
-  std::vector<ULong64_t>* mDeadMapTF = new std::vector<ULong64_t>{};
+  std::vector<ULong64_t>* mDeadMapTF = nullptr;
 
   Long64_t mFirstOrbitTF = 0x0;
 
@@ -114,10 +114,7 @@ class ITSDeadMapBuilder : public Task
 
   int mTFSampling = 1000;
 
-  TTree* mTreeObject = new TTree("map", "map");
-
-  /// Only for debug mode
-  TH2F* Htime = new TH2F("time", "time", 1000, 0, 5000, 10000, 0, 10000);
+  TTree* mTreeObject = nullptr;
 
   // main method
   std::pair<int, int> FillMapElementITS(); // returns number of dead lanes and number of words

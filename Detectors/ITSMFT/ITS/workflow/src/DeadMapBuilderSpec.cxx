@@ -35,6 +35,8 @@ ITSDeadMapBuilder::ITSDeadMapBuilder(const ITSDMInpConf& inpConf, std::string da
 ITSDeadMapBuilder::~ITSDeadMapBuilder()
 {
   // Clear dynamic memory
+  delete mDeadMapTF;
+  delete mTreeObject;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -43,6 +45,9 @@ void ITSDeadMapBuilder::init(InitContext& ic)
 
   LOG(info) << "ITSDeadMapBuilder init... " << mSelfName;
 
+  mDeadMapTF = new std::vector<ULong64_t>{};
+
+  mTreeObject = new TTree("map", "map");
   mTreeObject->Branch("orbit", &mFirstOrbitTF);
   mTreeObject->Branch("deadmap", &mDeadMapTF);
 
@@ -63,10 +68,11 @@ void ITSDeadMapBuilder::init(InitContext& ic)
 short int ITSDeadMapBuilder::getLaneIDFromChip(short int chip)
 {
   // TODO: does o2::itsmft::ChipMappingITS already contain this?
-  if (chip < N_CHIPS_IB)
+  if (chip < N_CHIPS_IB) {
     return chip;
-  else
+  } else {
     return N_CHIPS_IB + (short int)((chip - N_CHIPS_IB) / 7);
+  }
 }
 
 ///////////////////////////////////////////////
@@ -79,27 +85,31 @@ std::vector<short int> ITSDeadMapBuilder::decodeITSMapWord(ULong64_t word)
   if ((word & 0x1) == 0x0) { // _t0 aka IB
     for (int l = 0; l < 7; l++) {
       short int lanepp = (short int)((word >> (9 * l + 1)) & 0x1FF);
-      if (lanepp == 0)
+      if (lanepp == 0) {
         break;
+      }
       lanelist.push_back(lanepp - 1);
     }
   } else if ((word & 0xF) == 0x1) { // _t1 aka OB
     for (int l = 0; l < 5; l++) {
       short int lanepp = (short int)((word >> (12 * l + 4)) & 0xFFF);
-      if (lanepp == 0)
+      if (lanepp == 0) {
         break;
+      }
       lanelist.push_back(lanepp - 1);
     }
   } else if ((word & 0xF) == 0x3) { // _ t2 aka interval
     short int lanelowpp = (uint)((word >> 4) & 0x7FFF);
     short int laneuppp = (uint)((word >> 19) & 0x7FFF);
-    for (short int lane = lanelowpp; lane <= laneuppp; lane++)
+    for (short int lane = lanelowpp; lane <= laneuppp; lane++) {
       lanelist.push_back(lane - 1);
+    }
     lanelowpp = (short int)((word >> 34) & 0x7FFF);
     if (lanelowpp) {
       laneuppp = (short int)((word >> 49) & 0x7FFF);
-      for (short int lane = lanelowpp; lane <= laneuppp; lane++)
+      for (short int lane = lanelowpp; lane <= laneuppp; lane++) {
         lanelist.push_back(lane - 1);
+      }
     }
   } else { // word not recognized // for the use: add protection
     lanelist.push_back(-1);
@@ -119,13 +129,6 @@ void ITSDeadMapBuilder::finalizeOutput()
     outfile.cd();
     mTreeObject->Write();
     outfile.Close();
-  }
-  if (DebugMode) {
-    std::string localoutfilename2 = mLocalOutputDir + "/time.root";
-    TFile outfile2(localoutfilename2.c_str(), "RECREATE");
-    outfile2.cd();
-    Htime->Write();
-    outfile2.Close();
   }
   return;
 
@@ -148,8 +151,9 @@ void ITSDeadMapBuilder::run(ProcessingContext& pc)
 
   mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
-  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0)
+  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0) {
     return;
+  }
 
   mStepCounter++;
   LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
@@ -190,6 +194,7 @@ void ITSDeadMapBuilder::run(ProcessingContext& pc)
 
   mLanesAlive.insert(getLaneIDFromChip(N_CHIPS));
 
+  LOG(info) << "TF contains" << mLanesAlive.size() << " active elements";
   // filling the vector
   std::pair<int, int> fillresult = FillMapElementITS(); // first = n dead lanes, second = n words
 
@@ -200,8 +205,6 @@ void ITSDeadMapBuilder::run(ProcessingContext& pc)
   int difference = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
   LOG(info) << "Elapsed time in TF processing: " << difference / 1000. << " ms";
-  if (DebugMode)
-    Htime->Fill(difference / 1000., 1. * (fillresult.first));
 
   return;
 }
@@ -265,12 +268,15 @@ std::pair<int, int> ITSDeadMapBuilder::FillMapElementITS()
     } // end loop over alive lanes set
 
     // fill with last info in the buffer (partially empty words)
-    if (mapelement_t0 != t0_identifier)
+    if (mapelement_t0 != t0_identifier) {
       mDeadMapTF->push_back(mapelement_t0);
-    if (mapelement_t1 != t1_identifier)
+    }
+    if (mapelement_t1 != t1_identifier) {
       mDeadMapTF->push_back(mapelement_t1);
-    if (mapelement_t2 != t2_identifier)
+    }
+    if (mapelement_t2 != t2_identifier) {
       mDeadMapTF->push_back(mapelement_t2);
+    }
 
     int dcountTot = dcount_t0 + dcount_t1 + dcount_t2;
 
@@ -305,10 +311,10 @@ void ITSDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
   info.setAdjustableEOV();
 
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size() << "bytes, valid for"
+            << " of size " << image->size() << "bytes, valid for "
             << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_TimeDeadMap", 0}, *image);
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_TimeDeadMap", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_TimeDeadMap", 0}, info);
 
   return;
@@ -320,7 +326,7 @@ void ITSDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
 void ITSDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 {
   if (!isEnded && !mRunStopRequested) {
-    LOGF(info, "endOfStream report:", mSelfName);
+    LOG(info) << "endOfStream report:" << mSelfName;
     finalizeOutput();
     PrepareOutputCcdb(ec.outputs());
     isEnded = true;
@@ -333,7 +339,7 @@ void ITSDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 void ITSDeadMapBuilder::stop()
 {
   if (!isEnded) {
-    LOGF(info, "stop() report:", mSelfName);
+    LOG(info) << "stop() report:" << mSelfName;
     finalizeOutput();
     if (mDoLocalOutput) {
       LOG(info) << "stop() not sending object as output. ccdb will not be populated.";
@@ -372,7 +378,7 @@ DataProcessorSpec getITSDeadMapBuilderSpec(const ITSDMInpConf& inpConf, std::str
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<ITSDeadMapBuilder>(inpConf, datasource)},
-    Options{{"debug", VariantType::Bool, false, {"Developer debug mode. It saves extra objects to disk."}},
+    Options{{"debug", VariantType::Bool, false, {"Developer debug mode."}},
             {"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF Orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TFs."}},
             {"output-filename", VariantType::String, "its_time_deadmap.root", {"ROOT object file name."}},
