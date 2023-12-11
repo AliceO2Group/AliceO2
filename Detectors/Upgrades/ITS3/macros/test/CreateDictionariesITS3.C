@@ -168,7 +168,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   }
   clusTree->GetEntry(0);
   if (clusTree->GetEntries() > 1 && !hitfile.empty()) {
-    LOGP(error, "Hits are provided but the cluster tree containes {} entries, looks like real data");
+    LOGP(error, "Hits are provided but the cluster tree containes {} entries, looks like real data", clusTree->GetEntries());
     return;
   }
 
