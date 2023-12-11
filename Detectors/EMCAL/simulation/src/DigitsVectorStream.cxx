@@ -19,14 +19,18 @@
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsVectorStream.h"
 #include "CommonConstants/Triggers.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::emcal;
 
 void DigitsVectorStream::init()
 {
   mSimParam = &(o2::emcal::SimParam::Instance());
-
-  mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  auto randomSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  if (o2::conf::DigiParams::Instance().seed != 0) {
+    randomSeed = o2::conf::DigiParams::Instance().seed;
+  }
+  mRandomGenerator = new TRandom3(randomSeed);
 
   mRemoveDigitsBelowThreshold = mSimParam->doRemoveDigitsBelowThreshold();
   mSimulateNoiseDigits = mSimParam->doSimulateNoiseDigits();
