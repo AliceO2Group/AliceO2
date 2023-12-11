@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"

@@ -51,9 +51,9 @@ typedef struct DownloaderRequestData {
   long timestamp;
   HeaderObjectPair_t hoPair;
   std::map<std::string, std::string>* headers;
+  std::string userAgent;
 
   std::function<bool(std::string)> localContentCallback;
-  bool errorflag = false;
 } DownloaderRequestData;
 #endif
 
@@ -208,12 +208,17 @@ class CCDBDownloader
    */
   void runLoop(bool noWait);
 
- private:
+  /**
+   * Returns a message describing the transfer an it's result.
+   */
+  std::string prepareLogMessage(std::string host_url, std::string userAgent, const std::string& path, long ts, const std::map<std::string, std::string>* headers, long httpCode) const;
+
   /**
    * Leaves only the protocol and host part of the url, discrading path and metadata.
    */
   std::string trimHostUrl(std::string full_host_url) const;
 
+ private:
   /**
    * Recognizes whether the address is a full url, or a partial one (like for example "/Task/Detector/1") and combines it with potentialHost if needed.
    */

@@ -88,7 +88,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
           o2::header::Stack actual{*sectorHeaderMC};
           std::swap(mcHeaderStack, actual);
           if (sectorHeaderMC->sector() < 0) {
-            pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, fanSpec);
+            pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, std::move(mcHeaderStack)}, fanSpec);
           }
         }
       }
@@ -97,7 +97,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         o2::header::Stack actual{*sectorHeader};
         std::swap(rawHeaderStack, actual);
         if (sectorHeader->sector() < 0) {
-          pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, fanSpec);
+          pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, std::move(rawHeaderStack)}, fanSpec);
           return;
         }
       }
@@ -167,7 +167,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       // containers are created for clusters and MC labels per (sector,globalPadRow) address
       char* outputBuffer = nullptr;
       auto outputAllocator = [&pc, &fanSpec, &outputBuffer, &rawHeaderStack](size_t size) -> char* {
-        outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, Lifetime::Timeframe, std::move(rawHeaderStack)}, size).data();
+        outputBuffer = pc.outputs().newChunk(Output{gDataOriginTPC, DataDescription("CLUSTERNATIVE"), fanSpec, std::move(rawHeaderStack)}, size).data();
         return outputBuffer;
       };
       MCLabelContainer mcout;
@@ -188,7 +188,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
         // serialize the complete list of MC label containers
         ConstMCLabelContainer labelsFlat;
         mcout.flatten_to(labelsFlat);
-        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, Lifetime::Timeframe, std::move(mcHeaderStack)}, labelsFlat);
+        pc.outputs().snapshot(Output{gDataOriginTPC, DataDescription("CLNATIVEMCLBL"), fanSpec, std::move(mcHeaderStack)}, labelsFlat);
       }
     };
 

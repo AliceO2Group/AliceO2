@@ -119,7 +119,18 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
-      std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
+      std::vector<o2::emcal::LabeledDigit> summedDigits;
+      if (mRunSDitizer) {
+        summedDigits = mSumDigitizer.process(mHits);
+      } else {
+        for (auto& hit : mHits) {
+          o2::emcal::MCLabel digitlabel(hit.GetTrackID(), part.entryID, part.sourceID, false, 1.);
+          if (hit.GetEnergyLoss() < __DBL_EPSILON__) {
+            digitlabel.setAmplitudeFraction(0);
+          }
+          summedDigits.emplace_back(hit.GetDetectorID(), hit.GetEnergyLoss(), hit.GetTime(), digitlabel);
+        }
+      }
 
       // call actual digitization procedure
       mDigitizer.process(summedDigits);
@@ -129,15 +140,15 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mDigitizer.finish();
 
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mDigitizer.getDigits());
-  ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0, Lifetime::Timeframe}, mDigitizer.getTriggerRecords());
+  ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0}, mDigitizer.getDigits());
+  ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0}, mDigitizer.getTriggerRecords());
   if (ctx.outputs().isAllowed({"EMC", "DIGITSMCTR", 0})) {
-    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}, mDigitizer.getMCLabels());
+    ctx.outputs().snapshot(Output{"EMC", "DIGITSMCTR", 0}, mDigitizer.getMCLabels());
   }
   // EMCAL is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
   LOG(info) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
-  ctx.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  ctx.outputs().snapshot(Output{"EMC", "ROMode", 0}, roMode);
   // Create CTP digits
   std::vector<o2::ctp::CTPInputDigit> triggerinputs;
   for (auto& trg : mDigitizer.getTriggerRecords()) {
@@ -150,7 +161,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     nextdigit.inputsMask.set(0);
     triggerinputs.push_back(nextdigit);
   }
-  ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe}, triggerinputs);
+  ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";

@@ -26,6 +26,8 @@
 #pragma link C++ class o2::tpc::DigitDump;
 #pragma link C++ class o2::tpc::DigitDumpParam;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::DigitDumpParam> + ;
+#pragma link C++ class o2::tpc::CorrMapParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::CorrMapParam> + ;
 #pragma link C++ class o2::tpc::CalibPadGainTracks + ;
 #pragma link C++ class o2::tpc::FastHisto < float> + ;
 #pragma link C++ class o2::tpc::FastHisto < unsigned int> + ;
@@ -110,4 +112,5 @@
 #pragma link C++ class o2::tpc::TPCFastSpaceChargeCorrectionHelper + ;
 
 #pragma link C++ class o2::tpc::CalculatedEdx + ;
+#pragma link C++ class o2::tpc::TPCScaler + ;
 #endif

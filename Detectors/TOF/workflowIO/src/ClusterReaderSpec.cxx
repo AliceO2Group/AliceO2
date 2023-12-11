@@ -44,10 +44,10 @@ void ClusterReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(debug) << "Pushing " << mClustersPtr->size() << " TOF clusters at entry " << ent;
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMULT", 0, Lifetime::Timeframe}, mClustersMult);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0}, mClusters);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMULT", 0}, mClustersMult);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0}, mLabels);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

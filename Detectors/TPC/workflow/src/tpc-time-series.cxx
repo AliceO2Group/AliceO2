@@ -28,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
     {"enable-unbinned-root-output", VariantType::Bool, false, {"writing out unbinned track data"}},
+    {"tpc-only", VariantType::Bool, false, {"use only tpc tracks as input"}},
     {"material-type", VariantType::Int, 2, {"Type for the material budget during track propagation: 0=None, 1=Geo, 2=LUT"}}};
 
   std::swap(workflowOptions, options);
@@ -41,8 +42,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   const bool disableWriter = config.options().get<bool>("disable-root-output");
   const bool enableUnbinnedWriter = config.options().get<bool>("enable-unbinned-root-output");
+  const bool tpcOnly = config.options().get<bool>("tpc-only");
   auto materialType = static_cast<o2::base::Propagator::MatCorrType>(config.options().get<int>("material-type"));
-  workflow.emplace_back(o2::tpc::getTPCTimeSeriesSpec(disableWriter, materialType, enableUnbinnedWriter));
+  workflow.emplace_back(o2::tpc::getTPCTimeSeriesSpec(disableWriter, materialType, enableUnbinnedWriter, tpcOnly));
   if (!disableWriter) {
     workflow.emplace_back(o2::tpc::getTPCTimeSeriesWriterSpec());
   }

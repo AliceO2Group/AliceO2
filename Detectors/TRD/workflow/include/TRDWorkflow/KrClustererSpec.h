@@ -67,8 +67,8 @@ void TRDKrClustererDevice::run(ProcessingContext& pc)
   LOGP(info, "Found {} Kr clusters in {} input trigger records. Timing: CPU: {}, Real: {}",
        mKrClFinder.getKrClusters().size(), triggerRecords.size(), timer.CpuTime(), timer.RealTime());
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "KRCLUSTER", 0, Lifetime::Timeframe}, mKrClFinder.getKrClusters());
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGKRCLS", 0, Lifetime::Timeframe}, mKrClFinder.getKrTrigRecs());
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "KRCLUSTER", 0}, mKrClFinder.getKrClusters());
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGKRCLS", 0}, mKrClFinder.getKrTrigRecs());
 }
 
 void TRDKrClustererDevice::endOfStream(EndOfStreamContext& ec)

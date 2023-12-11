@@ -72,7 +72,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0}, rofsinput.begin(), rofsinput.end());
 
   ROFFilter filter = [](const o2::itsmft::ROFRecord& r) { return true; };
 
@@ -104,12 +104,12 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
-  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0});
   std::vector<o2::MCCompLabel> trackLabels;
   std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::mft::TrackLTF> tracks;
   std::vector<o2::mft::TrackLTFL> tracksL;
-  auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
+  auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0});
 
   std::uint32_t roFrameId = 0;
   int nROFs = rofs.size();
@@ -197,6 +197,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       int ncl = trc.getNumberOfPoints();
       for (int ic = 0; ic < ncl; ic++) {
         auto externalClusterID = trc.getExternalClusterIndex(ic);
+        auto clusterSize = trc.getExternalClusterSize(ic);
+        auto clusterLayer = trc.getExternalClusterLayer(ic);
+        trc.setClusterSize(clusterLayer, clusterSize);
         allClusIdx.push_back(externalClusterID);
       }
       allTracks.emplace_back(trc);
@@ -324,8 +327,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-    pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0}, allTrackLabels);
+    pc.outputs().snapshot(Output{"MFT", "TRACKSMC2ROF", 0}, mc2rofs);
   }
 
   mTimer[SWTot].Stop();

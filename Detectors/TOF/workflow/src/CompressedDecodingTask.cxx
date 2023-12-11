@@ -109,18 +109,18 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   // LOG(info) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
 
   // add digits in the output snapshot
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0}, *alldigits);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0}, *row);
 
   std::vector<uint8_t>& patterns = mDecoder.getPatterns();
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0}, patterns);
 
   std::vector<uint64_t>& errors = mDecoder.getErrors();
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0, Lifetime::Timeframe}, errors);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ERRORS", 0}, errors);
 
   DigitHeader& digitH = mDecoder.getDigitHeader();
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0}, digitH);
 
   auto diagnosticFrequency = mDecoder.getDiagnosticFrequency();
   diagnosticFrequency.setTimeStamp(mCreationTime / 1000);
@@ -130,7 +130,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   diagnosticFrequency.setTFIDInfo(tfinfo);
 
   //diagnosticFrequency.print();
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnosticFrequency);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0}, diagnosticFrequency);
 
   mDecoder.clear();
 

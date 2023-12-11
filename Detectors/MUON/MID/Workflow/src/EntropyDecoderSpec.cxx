@@ -66,9 +66,9 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   size_t insize = 0;
   for (uint32_t it = 0; it < NEvTypes; it++) {
     insize += cols[it].size() * sizeof(o2::mid::ColumnData);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", it, Lifetime::Timeframe}, cols[it]);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", it}, cols[it]);
     insize += rofs[it].size() * sizeof(o2::mid::ROFRecord);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATAROF", it, Lifetime::Timeframe}, rofs[it]);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATAROF", it}, rofs[it]);
   }
   iosize.rawIn = insize;
   pc.outputs().snapshot({"ctfrep", 0}, iosize);

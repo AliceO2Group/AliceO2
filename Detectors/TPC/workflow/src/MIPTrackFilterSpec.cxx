@@ -141,7 +141,7 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   mMIPTracks.clear();
 }
 
-void MIPTrackFilterDevice::sendOutput(DataAllocator& output) { output.snapshot(Output{header::gDataOriginTPC, "MIPS", 0, Lifetime::Timeframe}, mMIPTracks); }
+void MIPTrackFilterDevice::sendOutput(DataAllocator& output) { output.snapshot(Output{header::gDataOriginTPC, "MIPS", 0}, mMIPTracks); }
 
 void MIPTrackFilterDevice::endOfStream(EndOfStreamContext& eos)
 {

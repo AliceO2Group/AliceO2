@@ -22,6 +22,7 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCCalib/InterCalib.h"
 #include "ZDCCalib/InterCalibData.h"
 #include "ZDCCalib/InterCalibConfig.h"
 #ifndef ALICEO2_ZDC_INTERCALIBEPN_H_
@@ -42,6 +43,8 @@ class InterCalibEPN
   static constexpr int HidZEM = 4;
   static constexpr int HidZNI = 5;
   static constexpr int HidZPI = 6;
+  static constexpr int HidZPAX = 7;
+  static constexpr int HidZPCX = 8;
   static constexpr int NH = InterCalibData::NH;
   static constexpr int NPAR = InterCalibData::NPAR;
   void clear(int ih = -1);

@@ -21,6 +21,7 @@
 #include "Rtypes.h"
 #include "TPCCalibration/IDCContainer.h"
 #include "DataFormatsTPC/Defs.h"
+#include <boost/property_tree/ptree.hpp>
 
 namespace o2::tpc
 {

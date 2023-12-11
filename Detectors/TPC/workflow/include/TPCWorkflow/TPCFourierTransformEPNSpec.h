@@ -120,7 +120,7 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
 
   void sendOutput(DataAllocator& output, const Side side)
   {
-    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{side}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients());
+    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{side}}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients());
   }
 };
 

@@ -145,7 +145,10 @@ struct KTask {
 
 struct LTask {
   SliceCache cache;
+  Preslice<aod::Tracks> perCol = aod::track::collisionId;
+  PresliceOptional<aod::Tracks> perPart = aod::mctracklabel::mcParticleId;
   PresliceUnsorted<aod::McCollisionLabels> perMcCol = aod::mccollisionlabel::mcCollisionId;
+  PresliceUnsortedOptional<aod::Collisions> perMcColopt = aod::mccollisionlabel::mcCollisionId;
   void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
 };
 
@@ -153,6 +156,7 @@ TEST_CASE("AdaptorCompilation")
 {
   auto cfgc = makeEmptyConfigContext();
 
+  REQUIRE(brace_constructible_size<ATask>() == 1);
   auto task1 = adaptAnalysisTask<ATask>(*cfgc, TaskName{"test1"});
   REQUIRE(task1.inputs.size() == 2);
   REQUIRE(task1.outputs.size() == 1);

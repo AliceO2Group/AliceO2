@@ -127,6 +127,11 @@ void DCSConfigReader::parseConfig()
     conf.setType(0); // RU = 0
     conf.setVersion(verName);
     mDCSConfig.emplace_back(conf);
+    if (arrRUAdd[iRUconf] == 4097) {
+      const std::string& key = "MFTAlpideParam.roFrameLengthInBC";
+      const std::string& keyval = Form("%d", arrRUVal[iRUconf]);
+      mAlpideInfo.setValue(key, keyval);
+    }
   }
 
   if (mVerbose) {

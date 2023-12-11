@@ -155,15 +155,35 @@ inline const T CalDet<T>::getValue(const int sector, const int globalPadInSector
 {
   // This shold be a temporary speedup, a proper restructuring of Mapper and CalDet/CalArray is needed.
   // The default granularity for the moment should be ROC, for the assumptions below this should be assured
-  assert(mPadSubset == PadSubset::ROC);
-  int roc = sector;
+  const Mapper& mapper = Mapper::instance();
+  auto padPos = mapper.padPos(globalPadInSector); // global row in sector
+  const auto globalRow = padPos.getRow();
+
+  int rocNumber = sector;
   int padInROC = globalPadInSector;
   const int padsInIROC = Mapper::getPadsInIROC();
   if (globalPadInSector >= padsInIROC) {
-    roc += Mapper::getNumberOfIROCs();
+    rocNumber += Mapper::getNumberOfIROCs();
     padInROC -= padsInIROC;
   }
-  return mData[roc].getValue(padInROC);
+
+  switch (mPadSubset) {
+    case PadSubset::ROC: {
+      return mData[rocNumber].getValue(padInROC);
+      break;
+    }
+    case PadSubset::Partition: {
+      return T{};
+      break;
+    }
+    case PadSubset::Region: {
+      const ROC roc(rocNumber);
+      const auto mappedPad = padPos.getPad();
+      return mData[Mapper::REGION[globalRow] + roc.getSector() * Mapper::NREGIONS].getValue(Mapper::OFFSETCRUGLOBAL[globalRow] + mappedPad);
+      break;
+    }
+  }
+  return T{};
 }
 
 //______________________________________________________________________________

@@ -64,7 +64,7 @@ class ChamberEfficiency
   /// \param type Efficiency type
   /// \return Efficiency counter type
   EffCountType convert(EffType type) const;
-  std::unordered_map<int, ChEffCounter> mCounters; ///< Efficiency counters
+  std::unordered_map<uint16_t, ChEffCounter> mCounters; ///< Efficiency counters
 };
 
 ChamberEfficiency createDefaultChamberEfficiency();

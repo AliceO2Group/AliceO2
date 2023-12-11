@@ -233,6 +233,8 @@ class Decoder
 
   uint32_t mDebugLevel{0}; ///< Amount of debug information to print
 
+  uint32_t decodeTimeStamp(const char* data);
+
   /// \return status message: 1 = good, 0 = data length too short, -1 = decoding error
   int decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid);
   void decode(int feid);

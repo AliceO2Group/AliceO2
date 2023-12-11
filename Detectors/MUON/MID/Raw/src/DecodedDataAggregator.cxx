@@ -46,9 +46,9 @@ void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry, size_
   bool isRightSide = crateparams::isRightSide(crateId);
   try {
     uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(uniqueLocId);
-    auto rpcLineId = mCrateMapper.getRPCLine(deBoardId);
-    auto columnId = mCrateMapper.getColumnId(deBoardId);
-    auto lineId = mCrateMapper.getLineId(deBoardId);
+    auto rpcLineId = detparams::getRPCLine(detparams::getDEIdFromFEEId(deBoardId));
+    auto columnId = detparams::getColumnIdFromFEEId(deBoardId);
+    auto lineId = detparams::getLineIdFromFEEId(deBoardId);
     for (int ich = 0; ich < 4; ++ich) {
       if (((loc.firedChambers >> ich) & 0x1) == 0) {
         continue;

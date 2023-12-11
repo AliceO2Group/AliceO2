@@ -78,8 +78,8 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
 
   mMatcher.process(recoData, trackIndex, vtxRefs);
 
-  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, trackIndex);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, vtxRefs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0}, trackIndex);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0}, vtxRefs);
 
   mTimer.Stop();
   LOG(info) << "Made " << trackIndex.size() << " track associations for " << recoData.getPrimaryVertices().size()

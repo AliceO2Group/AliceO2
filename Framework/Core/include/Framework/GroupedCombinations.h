@@ -137,11 +137,11 @@ struct GroupedCombinationsGenerator {
     {
       return *mCurrentGrouped;
     }
-    bool operator==(const GroupedIterator& rh)
+    bool operator==(const GroupedIterator& rh) const
     {
       return (this->mIsEnd && rh.mIsEnd) || (this->mCurrent == rh.mCurrent);
     }
-    bool operator!=(const GroupedIterator& rh)
+    bool operator!=(const GroupedIterator& rh) const
     {
       return !(*this == rh);
     }

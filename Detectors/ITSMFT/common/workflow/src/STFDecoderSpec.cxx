@@ -63,10 +63,11 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder = std::make_unique<RawPixelDecoder<Mapping>>();
     auto v0 = o2::utils::Str::tokenize(mInputSpec, ':');
     auto v1 = o2::utils::Str::tokenize(v0[1], '/');
+    auto v2 = o2::utils::Str::tokenize(v1[1], '?');
     header::DataOrigin dataOrig;
     header::DataDescription dataDesc;
     dataOrig.runtimeInit(v1[0].c_str());
-    dataDesc.runtimeInit(v1[1].c_str());
+    dataDesc.runtimeInit(v2[0].c_str());
     mDecoder->setUserDataOrigin(dataOrig);
     mDecoder->setUserDataDescription(dataDesc);
     mDecoder->init(); // is this no-op?
@@ -139,6 +140,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<Digit> digVec;
   std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
+  auto& chipStatus = pc.outputs().make<std::vector<char>>(Output{orig, "CHIPSSTATUS", 0}, (size_t)Mapping::getNChips());
+
   try {
     mDecoder->startNewTF(pc.inputs());
     if (mDoDigits) {
@@ -167,10 +170,12 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       }
       lastIR = mDecoder->getInteractionRecord();
       if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
-        mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
+        mDecoder->fillDecodedDigits(digVec, digROFVec, chipStatus); // lot of copying involved
         if (mDoCalibData) {
           mDecoder->fillCalibData(calVec);
         }
+      } else {
+        mDecoder->fillChipsStatus(chipStatus);
       }
       if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
         mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
@@ -198,30 +203,29 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
   }
   if (mDoDigits) {
-    pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
-    pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
+    pc.outputs().snapshot(Output{orig, "DIGITS", 0}, digVec);
+    pc.outputs().snapshot(Output{orig, "DIGITSROF", 0}, digROFVec);
     mEstNDig = std::max(mEstNDig, size_t(digVec.size() * 1.2));
     mEstNROF = std::max(mEstNROF, size_t(digROFVec.size() * 1.2));
     if (mDoCalibData) {
-      pc.outputs().snapshot(Output{orig, "GBTCALIB", 0, Lifetime::Timeframe}, calVec);
+      pc.outputs().snapshot(Output{orig, "GBTCALIB", 0}, calVec);
       mEstNCalib = std::max(mEstNCalib, size_t(calVec.size() * 1.2));
     }
   }
 
   if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
-    pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
-    pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
-    pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
+    pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0}, clusCompVec);
+    pc.outputs().snapshot(Output{orig, "PATTERNS", 0}, clusPattVec);
+    pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0}, clusROFVec);
     mEstNClus = std::max(mEstNClus, size_t(clusCompVec.size() * 1.2));
     mEstNClusPatt = std::max(mEstNClusPatt, size_t(clusPattVec.size() * 1.2));
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
-
-  auto& linkErrors = pc.outputs().make<std::vector<GBTLinkDecodingStat>>(Output{orig, "LinkErrors", 0, Lifetime::Timeframe});
-  auto& decErrors = pc.outputs().make<std::vector<ChipError>>(Output{orig, "ChipErrors", 0, Lifetime::Timeframe});
+  auto& linkErrors = pc.outputs().make<std::vector<GBTLinkDecodingStat>>(Output{orig, "LinkErrors", 0});
+  auto& decErrors = pc.outputs().make<std::vector<ChipError>>(Output{orig, "ChipErrors", 0});
   mDecoder->collectDecodingErrors(linkErrors, decErrors);
 
-  pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
+  pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0}, mDecoder->getExternalTriggers());
 
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
     mDecoder->produceRawDataDumps(mDumpOnError, pc.services().get<o2::framework::TimingInfo>());
@@ -235,6 +239,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
   mTimer.Stop();
   auto tfID = pc.services().get<o2::framework::TimingInfo>().tfCounter;
+
   LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
@@ -364,6 +369,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
 
   outputs.emplace_back(inp.origin, "LinkErrors", 0, Lifetime::Timeframe);
   outputs.emplace_back(inp.origin, "ChipErrors", 0, Lifetime::Timeframe);
+  outputs.emplace_back(inp.origin, "CHIPSSTATUS", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.

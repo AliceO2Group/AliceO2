@@ -76,14 +76,14 @@ void StrangenessTrackingReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mStrangeTrack.size() << " strange tracks at entry " << ent;
-  pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0, Lifetime::Timeframe}, mStrangeTrack);
+  pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0}, mStrangeTrack);
 
   if (mUseMC) {
     LOG(info) << "Pushing " << mStrangeTrackMC.size() << " strange tracks MC labels at entry " << ent;
-    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mStrangeTrackMC);
+    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0}, mStrangeTrackMC);
   }
 
-  // pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
+  // pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0}, mPV2V0Ref);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

@@ -75,12 +75,12 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 
   if (mDoVdExBCalib) {
     mCalibrator.calculateAngResHistos();
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0}, mCalibrator.getAngResHistos());
   }
 
   if (mDoGainCalib) {
     mCalibrator.calculateGainCalibObjs();
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe}, mCalibrator.getGainCalibHistos());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0}, mCalibrator.getGainCalibHistos());
   }
 
   mCalibrator.reset();

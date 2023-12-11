@@ -628,6 +628,8 @@ void CTPRunScalers::printLMBRateVsT() const
 
 // returns the pair of global (levelled) interaction rate, as well as instantaneous interpolated
 // rate in Hz at a certain orbit number within the run
+// type - 7 : inputs
+// type - 1..6 : lmb,lma,l0b,l0a,l1b,l1a
 std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex, int type) const
 {
   if (mScalerRecordO2.size() <= 1) {
@@ -639,16 +641,41 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
   // orbit numbers
 
   // then we can use binary search to find the right entries
-  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), orbit, [&](CTPScalerRecordO2 const& a, uint32_t value) { return a.intRecord.orbit < value; });
+  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), orbit, [&](CTPScalerRecordO2 const& a, uint32_t value) { return a.intRecord.orbit <= value; });
   auto nextindex = iter - mScalerRecordO2.begin(); // this points to the first index that has orbit greater or equal to given orbit
 
   auto calcRate = [&](auto index1, auto index2) -> double {
     auto next = &mScalerRecordO2[index2];
     auto prev = &mScalerRecordO2[index1];
     auto timedelta = (next->intRecord.orbit - prev->intRecord.orbit) * 88.e-6; // converts orbits into time
-    auto s0 = &(prev->scalers[classindex]);                                    // type CTPScalerO2*
-    auto s1 = &(next->scalers[classindex]);
-    return (s1->lmBefore - s0->lmBefore) / timedelta; // rate --> should be made better by selecting on type
+    if (type < 7) {
+      auto s0 = &(prev->scalers[classindex]); // type CTPScalerO2*
+      auto s1 = &(next->scalers[classindex]);
+      switch (type) {
+        case 1:
+          return (s1->lmBefore - s0->lmBefore) / timedelta;
+        case 2:
+          return (s1->lmAfter - s0->lmAfter) / timedelta;
+        case 3:
+          return (s1->l0Before - s0->l0Before) / timedelta;
+        case 4:
+          return (s1->l0After - s0->l0After) / timedelta;
+        case 5:
+          return (s1->l1Before - s0->l1Before) / timedelta;
+        case 6:
+          return (s1->l1After - s0->l1After) / timedelta;
+        default:
+          LOG(error) << "Wrong type:" << type;
+          return -1; // wrong type
+      }
+    } else if (type == 7) {
+      auto s0 = &(prev->scalersInps[classindex]); // type CTPScalerO2*
+      auto s1 = &(next->scalersInps[classindex]);
+      return (s1 - s0) / timedelta;
+    } else {
+      LOG(error) << "Wrong type:" << type;
+      return -1; // wrong type
+    }
   };
 
   if (nextindex == 0 || nextindex == mScalerRecordO2.size()) {
@@ -656,13 +683,14 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
     LOG(info) << "query orbit " << orbit << " out of bounds; Just returning the global rate";
     return std::make_pair(/*global mean rate*/ calcRate(0, mScalerRecordO2.size() - 1), /* current rate */ -1);
   } else {
-
     return std::make_pair(/*global mean rate*/ calcRate(0, mScalerRecordO2.size() - 1), /* current rate */ calcRate(nextindex - 1, nextindex));
   }
   return std::make_pair(-1., -1.);
 }
 // returns the pair of global (levelled) interaction rate, as well as instantaneous interpolated
 // rate in Hz at a certain orbit number within the run
+// type - 7 : inputs
+// type - 1..6 : lmb,lma,l0b,l0a,l1b,l1a
 std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int classindex, int type) const
 {
   if (mScalerRecordO2.size() <= 1) {
@@ -674,21 +702,50 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
   // orbit numbers
 
   // then we can use binary search to find the right entries
-  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), timestamp, [&](CTPScalerRecordO2 const& a, uint32_t value) { return a.epochTime < value; });
-  auto nextindex = iter - mScalerRecordO2.begin(); // this points to the first index that has orbit greater or equal to given orbit
+  auto iter = std::lower_bound(mScalerRecordO2.begin(), mScalerRecordO2.end(), timestamp, [&](CTPScalerRecordO2 const& a, double value) { return a.epochTime <= value; });
+  // this points to the first index that has orbit greater to given orbit;
+  // If this is 0, it means that the above condition was false from the beginning, basically saying that the timestamp is below any of the ScalerRecords' orbits.
+  // If this is mScalerRecordO2.size(), it means mScalerRecordO2.end() was returned, condition was met throughout all ScalerRecords, basically saying the timestamp is above any of the ScalarRecordss orbits.
+  auto nextindex = iter - mScalerRecordO2.begin();
 
   auto calcRate = [&](auto index1, auto index2) -> double {
     auto next = &mScalerRecordO2[index2];
     auto prev = &mScalerRecordO2[index1];
     auto timedelta = (next->intRecord.orbit - prev->intRecord.orbit) * 88.e-6; // converts orbits into time
-    auto s0 = &(prev->scalers[classindex]);                                    // type CTPScalerO2*
-    auto s1 = &(next->scalers[classindex]);
-    return (s1->lmBefore - s0->lmBefore) / timedelta; // rate --> should be made better by selecting on type
+    // std::cout << "timedelta:" << timedelta << std::endl;
+    if (type < 7) {
+      auto s0 = &(prev->scalers[classindex]); // type CTPScalerO2*
+      auto s1 = &(next->scalers[classindex]);
+      switch (type) {
+        case 1:
+          return (s1->lmBefore - s0->lmBefore) / timedelta;
+        case 2:
+          return (s1->lmAfter - s0->lmAfter) / timedelta;
+        case 3:
+          return (s1->l0Before - s0->l0Before) / timedelta;
+        case 4:
+          return (s1->l0After - s0->l0After) / timedelta;
+        case 5:
+          return (s1->l1Before - s0->l1Before) / timedelta;
+        case 6:
+          return (s1->l1After - s0->l1After) / timedelta;
+        default:
+          LOG(error) << "Wrong type:" << type;
+          return -1; // wrong type
+      }
+    } else if (type == 7) {
+      // LOG(info) << "doing input:";
+      auto s0 = prev->scalersInps[classindex]; // type CTPScalerO2*
+      auto s1 = next->scalersInps[classindex];
+      return (s1 - s0) / timedelta;
+    } else {
+      LOG(error) << "Wrong type:" << type;
+      return -1; // wrong type
+    }
   };
-
   if (nextindex == 0 || nextindex == mScalerRecordO2.size()) {
     // orbit is out of bounds
-    LOG(info) << "query timestamp " << timestamp << " out of bounds; Just returning the global rate";
+    LOG(info) << "query timestamp " << (long)timestamp << " out of bounds; Just returning the global rate";
     return std::make_pair(/*global mean rate*/ calcRate(0, mScalerRecordO2.size() - 1), /* current rate */ -1);
   } else {
 

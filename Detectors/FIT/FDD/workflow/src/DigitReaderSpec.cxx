@@ -81,18 +81,18 @@ void DigitReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
 
   LOG(info) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *digitsBC);
-  pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *digitsCh);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0}, *digitsBC);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0}, *digitsCh);
 
   if (mUseMC) {
     // TODO: To be replaced with sending ConstMCTruthContainer as soon as reco workflow supports it
-    pc.outputs().snapshot(Output{mOrigin, "TRIGGERINPUT", 0, Lifetime::Timeframe}, *digitsTrig);
+    pc.outputs().snapshot(Output{mOrigin, "TRIGGERINPUT", 0}, *digitsTrig);
 
     std::vector<char> flatbuffer;
     mcTruthRootBuffer->copyandflatten(flatbuffer);
     o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> mcTruth;
     mcTruth.restore_from(flatbuffer.data(), flatbuffer.size());
-    pc.outputs().snapshot(Output{mOrigin, "DIGITLBL", 0, Lifetime::Timeframe}, mcTruth);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITLBL", 0}, mcTruth);
   }
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

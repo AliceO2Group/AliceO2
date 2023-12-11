@@ -297,11 +297,13 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       continue;
     }
     mPruneOps.push_back(PruneOp{si});
+    bool didDrop = false;
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
+          didDrop = true;
           LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
           LOGP(debug,
@@ -309,6 +311,16 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
                "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
                DataSpecUtils::describe(input), si, timestamp.value, newOldest.timeslice.value,
                mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+        }
+      }
+    }
+    // We did drop some data. Let's print what was missing.
+    if (didDrop) {
+      for (size_t mi = 0; mi < mInputs.size(); ++mi) {
+        auto& input = mInputs[mi];
+        auto& element = mCache[si * mInputs.size() + mi];
+        if (element.size() == 0) {
+          LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         }
       }
     }

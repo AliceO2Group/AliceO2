@@ -65,8 +65,8 @@ class RawReaderFDD : public RawReaderFDDBaseNorm
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFDD, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFDD, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFDD, "DIGITSBC", 0}, mVecDigits);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFDD, "DIGITSCH", 0}, mVecChannelData);
   }
   bool mDumpData;
   std::vector<Digit> mVecDigits;

@@ -49,10 +49,10 @@ void RecEventReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
 
   LOG(info) << "ZDC RecEventReader pushes " << mBCRecData->size() << " events with " << mBCRecData->size() << " energy, " << mZDCTDCData->size() << " TDC and " << mZDCInfo->size() << " info records at entry " << ent;
-  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, *mBCRecData);
-  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, *mZDCEnergy);
-  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, *mZDCTDCData);
-  pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, *mZDCInfo);
+  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, *mBCRecData);
+  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, *mZDCEnergy);
+  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, *mZDCTDCData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0}, *mZDCInfo);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

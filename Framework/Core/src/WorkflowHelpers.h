@@ -13,10 +13,8 @@
 
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/ForwardRoute.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataOutputDirector.h"
-#include "Framework/DataProcessorInfo.h"
 
 #include <cstddef>
 #include <vector>
@@ -24,6 +22,9 @@
 
 namespace o2::framework
 {
+static constexpr std::array<header::DataOrigin, 3> AODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}};
+static constexpr std::array<header::DataOrigin, 5> extendedAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}, header::DataOrigin{"AMD"}};
+static constexpr std::array<header::DataOrigin, 4> writableAODOrigins{header::DataOrigin{"AOD"}, header::DataOrigin{"AOD1"}, header::DataOrigin{"AOD2"}, header::DataOrigin{"DYN"}};
 
 inline static std::string debugWorkflow(std::vector<DataProcessorSpec> const& specs)
 {
@@ -227,6 +228,14 @@ struct WorkflowHelpers {
 
   /// returns only dangling outputs
   static std::vector<InputSpec> computeDanglingOutputs(WorkflowSpec const& workflow);
+
+  /// Validate that the nodes at the ends of the edges of the graph
+  /// are actually compatible with each other.
+  /// For example we should make sure that Lifetime::Timeframe inputs of
+  /// one node is not connected to an Output of Lifetime::Sporadic of another node.
+  static void validateEdges(WorkflowSpec const& workflow,
+                            std::vector<DeviceConnectionEdge> const& edges,
+                            std::vector<OutputSpec> const& outputs);
 };
 
 } // namespace o2::framework

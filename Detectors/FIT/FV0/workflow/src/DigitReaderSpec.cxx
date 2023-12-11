@@ -65,13 +65,13 @@ void DigitReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(debug) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
-  pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, digits);
-  pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0, Lifetime::Timeframe}, channels);
+  pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0}, digits);
+  pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0}, channels);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"FV0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+    pc.outputs().snapshot(Output{"FV0", "DIGITSMCTR", 0}, labels);
   }
   if (mUseTrgInput) {
-    pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe}, trgInput);
+    pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0}, trgInput);
   }
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

@@ -9,19 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_TPCTIMESERIESREADERSPEC_SPEC
-#define O2_TPC_TPCTIMESERIESREADERSPEC_SPEC
-
-#include "Framework/DataProcessorSpec.h"
-
-namespace o2
+void readAlpideCCDB(long timestamp = -1, float thresh = 0)
 {
-namespace tpc
-{
-
-o2::framework::DataProcessorSpec getTPCTimeSeriesReaderSpec();
-
-} // end namespace tpc
-} // end namespace o2
-
-#endif
+  o2::ccdb::CcdbApi api;
+  // api.init("alice-ccdb.cern.ch");
+  api.init("ccdb-test.cern.ch");
+  map<string, string> headers;
+  map<std::string, std::string> filter;
+  auto calib = api.retrieveFromTFileAny<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>>("MFT/Config/AlpideParam/", filter, timestamp, &headers);
+  calib->printKeyValues();
+}

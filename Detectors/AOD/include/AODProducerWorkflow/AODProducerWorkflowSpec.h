@@ -28,7 +28,9 @@
 #include "Steer/MCKinematicsReader.h"
 #include "TStopwatch.h"
 #include "ZDCBase/Constants.h"
+#include "GlobalTracking/MatchGlobalFwd.h"
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -226,6 +228,7 @@ class AODProducerWorkflowDPL : public Task
   }
 
   bool mPropTracks{false};
+  bool mPropMuons{false};
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
@@ -250,6 +253,7 @@ class AODProducerWorkflowDPL : public Task
   TString mRecoPass{""};
   TStopwatch mTimer;
   bool mEMCselectLeading{false};
+  uint64_t mEMCALTrgClassMask = 0;
 
   // unordered map connects global indices and table indices of barrel tracks
   std::unordered_map<GIndex, int> mGIDToTableID;
@@ -310,6 +314,8 @@ class AODProducerWorkflowDPL : public Task
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+
+  o2::globaltracking::MatchGlobalFwd mMatching;
 
   static constexpr int TOFTimePrecPS = 16; // required max error in ps for TOF tracks
   // truncation is enabled by default
@@ -537,6 +543,8 @@ class AODProducerWorkflowDPL : public Task
   void fillCaloTable(TCaloCursor& caloCellCursor, TCaloTRGCursor& caloTRGCursor,
                      TMCCaloLabelCursor& mcCaloCellLabelCursor, const std::map<uint64_t, int>& bcsMap,
                      const o2::globaltracking::RecoContainer& data);
+
+  std::set<uint64_t> filterEMCALIncomplete(const gsl::span<const o2::emcal::TriggerRecord> triggers);
 };
 
 /// create a processor spec

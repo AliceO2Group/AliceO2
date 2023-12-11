@@ -93,8 +93,8 @@ void DataDecoderTask2::run(framework::ProcessingContext& pc)
 
   // Output the Digits/Triggers vector
   orderTriggers();
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mTriggers);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0}, mDeco->mDigits);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0}, mTriggers);
 
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   return;
@@ -213,7 +213,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
       // The stream end !
       LOG(debug) << "End Page decoding !";
     }
-    //   std::cout << ">>>>" << pointerToTheFirst << "," << mDeco->mDigits.size() << std::endl;
+    // std::cout << "  fDigit=" << pointerToTheFirst << " lDigit=," << mDeco->mDigits.size() << " nDigit=" << mDeco->mDigits.size()-pointerToTheFirst << std::endl;
     mTriggers.push_back(o2::hmpid::Trigger(mDeco->mIntReco, pointerToTheFirst, mDeco->mDigits.size() - pointerToTheFirst));
     mTotalFrames++;
   }

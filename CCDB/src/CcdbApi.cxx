@@ -147,6 +147,10 @@ void CcdbApi::init(std::string const& host)
   // In addition, we can monitor exactly which objects are fetched and what is their content.
   // One can also distribute so obtained caches to sites without network access.
   //
+  // THE INFORMATION BELOW IS TEMPORARILY WRONG: the functionality of checking the validity if IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE
+  // is NOT set is broken. At the moment the code is modified to behave as if the IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE is always set
+  // whenever the ALICEO2_CCDB_LOCALCACHE is defined.
+  //
   // When used with the DPL CCDB fetcher (i.e. loadFileToMemory is called), in order to prefer the available snapshot w/o its validity
   // check an extra variable IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE must be defined, otherwhise the object will be fetched from the
   // server after the validity check and new snapshot will be created if needed
@@ -161,7 +165,7 @@ void CcdbApi::init(std::string const& host)
     }
     snapshotReport = fmt::format("(cache snapshots to dir={}", mSnapshotCachePath);
   }
-  if (getenv("IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE")) {
+  if (cachedir) { // || getenv("IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE")) {
     mPreferSnapshotCache = true;
     if (mSnapshotCachePath.empty()) {
       LOGP(fatal, "IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE is defined but the ALICEO2_CCDB_LOCALCACHE is not");
@@ -252,6 +256,10 @@ int CcdbApi::storeAsTFile_impl(const void* obj, std::type_info const& tinfo, std
                                std::vector<char>::size_type maxSize) const
 {
   // We need the TClass for this type; will verify if dictionary exists
+  if (!obj) {
+    LOGP(error, "nullptr is provided for object {}/{}/{}", path, startValidityTimestamp, endValidityTimestamp);
+    return -1;
+  }
   CcdbObjectInfo info;
   auto img = createObjectImage(obj, tinfo, &info);
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(),
@@ -372,6 +380,10 @@ int CcdbApi::storeAsTFile(const TObject* rootObject, std::string const& path, st
                           long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   // Prepare file
+  if (!rootObject) {
+    LOGP(error, "nullptr is provided for object {}/{}/{}", path, startValidityTimestamp, endValidityTimestamp);
+    return -1;
+  }
   CcdbObjectInfo info;
   auto img = createObjectImage(rootObject, &info);
   return storeAsBinaryFile(img->data(), img->size(), info.getFileName(), info.getObjectType(), path, metadata, startValidityTimestamp, endValidityTimestamp, maxSize);
@@ -1486,12 +1498,6 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   auto data = new DownloaderRequestData(); // Deleted in transferFinished of CCDBDownloader.cxx
   data->hoPair.object = &requestContext.dest;
 
-  auto signalError = [&chunk = requestContext.dest, &errorflag = data->errorflag]() {
-    chunk.clear();
-    chunk.reserve(1);
-    errorflag = true;
-  };
-
   std::function<bool(std::string)> localContentCallback = [this, &requestContext](std::string url) {
     return this->loadLocalContentToMemory(requestContext.dest, url);
   };
@@ -1533,6 +1539,7 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   data->path = requestContext.path;
   data->timestamp = requestContext.timestamp;
   data->localContentCallback = localContentCallback;
+  data->userAgent = mUniqueAgentID;
 
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
   initCurlOptionsForRetrieve(curl_handle, (void*)(&data->hoPair), writeCallback, false);
@@ -1570,7 +1577,7 @@ void CcdbApi::releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, s
 }
 
 void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
-                              long timestamp, std::map<std::string, std::string> headers,
+                              long timestamp, std::map<std::string, std::string>& headers,
                               std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const
 {
   if (createSnapshot) { // create named semaphore
@@ -1580,9 +1587,10 @@ void CcdbApi::getFromSnapshot(bool createSnapshot, std::string const& path,
       logStream << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << " for load to memory\n";
     }
   }
-
   if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced;
-    loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), &headers);
+    if (etag.empty()) {
+      loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), &headers);
+    }
     fromSnapshot = 1;
   } else if (mPreferSnapshotCache && std::filesystem::exists(snapshotpath)) {
     // if file is available, use it, otherwise cache it below from the server. Do this only when etag is empty since otherwise the object was already fetched and cached
@@ -1671,8 +1679,6 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
     // navigateSourcesAndLoadFile either retrieves file from snapshot immediately, or schedules it to be downloaded when mDownloader->runLoop is ran at a later time
     auto& requestContext = requestContexts.at(i);
     navigateSourcesAndLoadFile(requestContext, fromSnapshots.at(i), &requestCounter);
-    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
-               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
   }
 
   // Download the rest
@@ -1683,12 +1689,12 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
   // Save snapshots
   for (int i = 0; i < requestContexts.size(); i++) {
     auto& requestContext = requestContexts.at(i);
+    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
+               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
     if (!requestContext.dest.empty()) {
       if (requestContext.considerSnapshot && fromSnapshots.at(i) != 2) {
         saveSnapshot(requestContext);
       }
-    } else {
-      LOG(warning) << "Did not receive content for " << requestContext.path << "\n"; // Temporarily demoted to warning, since it floods the infologger
     }
   }
 }

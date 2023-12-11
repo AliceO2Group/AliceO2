@@ -135,6 +135,10 @@ o2::framework::ServiceSpec CommonServices::asyncQueue()
     .name = "async-queue",
     .init = simpleServiceInit<AsyncQueue, AsyncQueue>(),
     .configure = noConfiguration(),
+    .stop = [](ServiceRegistryRef services, void* service) {
+      auto& queue = services.get<AsyncQueue>();
+      AsyncQueueHelpers::reset(queue);
+    },
     .kind = ServiceKind::Serial};
 }
 
@@ -421,7 +425,7 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
           if (concrete.subSpec == 0) {
             continue;
           }
-          auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec, output.matcher.lifetime});
+          auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec});
           stfDist.id = timingInfo.timeslice;
           stfDist.firstOrbit = timingInfo.firstTForbit;
           stfDist.runNumber = timingInfo.runNumber;
@@ -505,6 +509,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
     .stop = [](ServiceRegistryRef services, void* service) {
       auto* decongestion = (DecongestionService*)service;
+      services.get<TimesliceIndex>().reset();
       decongestion->nextEnumerationTimeslice = 0;
       decongestion->nextEnumerationTimesliceRewinded = false;
       decongestion->lastTimeslice = 0;

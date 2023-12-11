@@ -123,7 +123,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool runTPCTracking = false;
     bool runTRDTracking = false;
     bool readTRDtracklets = false;
-    bool requireCTPLumi = false;
+    int lumiScaleType = 0; // 0=off, 1=CTP, 2=TPC scalers
     bool outputErrorQA = false;
     bool runITSTracking = false;
     bool itsOverrBeamEst = false;

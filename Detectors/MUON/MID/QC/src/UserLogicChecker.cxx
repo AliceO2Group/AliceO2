@@ -75,6 +75,9 @@ void UserLogicChecker::fillBoards(gsl::span<const ROBoard> data, gsl::span<const
     } else if (loc.triggerWord & raw::sEOX) {
       isInside->second = false;
     }
+    if (loc.triggerWord & raw::sPHY) {
+      continue; // Skip physics triggers since they are not present in UL
+    }
     if (isInside->second) {
       boards[id].push_back({rofIt->interactionRecord, loc});
     }

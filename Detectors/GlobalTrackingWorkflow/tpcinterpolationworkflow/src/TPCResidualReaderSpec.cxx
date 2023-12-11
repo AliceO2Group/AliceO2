@@ -251,7 +251,7 @@ void TPCResidualReader::run(ProcessingContext& pc)
   mTrackResiduals.closeOutputFile(); // FIXME remove when map output is handled properly
 
   // const auto& voxResArray = mTrackResiduals.getVoxelResults(); // array with one vector of results per sector
-  // pc.outputs().snapshot(Output{"GLO", "VOXELRESULTS", 0, Lifetime::Timeframe}, voxResArray); // send results as one large vector?
+  // pc.outputs().snapshot(Output{"GLO", "VOXELRESULTS", 0}, voxResArray); // send results as one large vector?
 
   pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

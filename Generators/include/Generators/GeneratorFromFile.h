@@ -92,7 +92,8 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
   int mEventsAvailable = 0;
   bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
   bool mContinueMode = false;    //! whether we want to continue simulation of previously inhibited tracks
-  ClassDefOverride(GeneratorFromO2Kine, 1);
+  bool mRoundRobin = false;      //! whether we want to take events from file in a round robin fashion
+  ClassDefOverride(GeneratorFromO2Kine, 2);
 };
 
 } // end namespace eventgen

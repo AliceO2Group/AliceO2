@@ -144,9 +144,9 @@ template <typename value_T>
 GPUd() bool TrackParametrization<value_T>::getPosDirGlo(gpu::gpustd::array<value_t, 9>& posdirp) const
 {
   // fill vector with lab x,y,z,px/p,py/p,pz/p,p,sinAlpha,cosAlpha
-  value_t ptI = gpu::CAMath::Abs(getQ2Pt());
+  value_t ptI = getPtInv();
   value_t snp = getSnp();
-  if (ptI < constants::math::Almost0 || gpu::CAMath::Abs(snp) > constants::math::Almost1) {
+  if (gpu::CAMath::Abs(snp) > constants::math::Almost1) {
     return false;
   }
   value_t &sn = posdirp[7], &cs = posdirp[8];
@@ -585,6 +585,9 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
   const auto fy = mP[0], sn = mP[2];
   const value_t kEps = 1.e-6;
   //
+  if (gpu::CAMath::Abs(getSnp()) > constants::math::Almost1) {
+    return false;
+  }
   auto crv = getCurvature(bz);
   while (gpu::CAMath::Abs(crv) > constants::math::Almost0) { // helix ?
     // get center of the track circle

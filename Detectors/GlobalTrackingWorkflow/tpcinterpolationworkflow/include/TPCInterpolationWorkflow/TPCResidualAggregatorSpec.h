@@ -19,6 +19,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "SpacePoints/ResidualAggregator.h"
+#include "TPCCalibration/VDriftHelper.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -101,7 +102,12 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
-    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
+    if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+      return;
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -121,9 +127,6 @@ class ResidualAggregatorDevice : public o2::framework::Task
     recoCont.collectData(pc, *mDataRequest);
     updateTimeDependentParams(pc);
     std::chrono::duration<double, std::milli> ccdbUpdateTime = std::chrono::high_resolution_clock::now() - runStartTime;
-
-    // assume that the orbit reset time (given here in ms) can change within a run
-    auto orbitResetTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS();
 
     // we always require the unbinned residuals and the associated track references
     auto residualsData = pc.inputs().get<gsl::span<o2::tpc::UnbinnedResid>>("unbinnedRes");
@@ -149,7 +152,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
     LOG(detail) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
-    mAggregator->process(residualsData, trackRefs, orbitResetTime, trkDataPtr, lumi);
+    mAggregator->process(residualsData, trackRefs, trkDataPtr, lumi);
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
     LOGP(debug, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
          std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
@@ -178,11 +181,22 @@ class ResidualAggregatorDevice : public o2::framework::Task
   void updateTimeDependentParams(ProcessingContext& pc)
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    mTPCVDriftHelper.extractCCDBInputs(pc);
+    if (mTPCVDriftHelper.isUpdated()) {
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+           mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+           mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+           mTPCVDriftHelper.getSourceName());
+      mAggregator->setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+      mTPCVDriftHelper.acknowledgeUpdate();
+    }
     if (!mInitDone) {
-      mInitDone = true;
       mAggregator->setDataTakingContext(pc.services().get<DataTakingContext>());
+      mAggregator->setOrbitResetTime(o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS());
+      mInitDone = true;
     }
   }
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   std::unique_ptr<o2::tpc::ResidualAggregator> mAggregator; ///< the TimeSlotCalibration device
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< optional CTP input
@@ -207,6 +221,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
     dataRequest->requestClusters(GID::getSourcesMask("CTP"), false);
   }
   auto& inputs = dataRequest->inputs;
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   inputs.emplace_back("unbinnedRes", "GLO", "UNBINNEDRES");
   inputs.emplace_back("trackRefs", "GLO", "TRKREFS");
   if (trackInput) {

@@ -492,7 +492,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // update currently requested AODs
         for (auto& d : workflow) {
           for (auto const& i : d.inputs) {
-            if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
+            if (DataSpecUtils::partialMatch(i, AODOrigins)) {
               auto copy = i;
               DataSpecUtils::updateInputList(requestedAODs, std::move(copy));
             }
@@ -520,10 +520,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       // ATTENTION: if there are dangling outputs the getGlobalAODSink
       // has to be created in any case!
       std::vector<InputSpec> outputsInputsAOD;
-      auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
 
       for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-        if (isAOD(outputsInputs[ii])) {
+        if (DataSpecUtils::partialMatch(outputsInputs[ii], extendedAODOrigins)) {
           auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
           if (!ds.empty() || isDangling[ii]) {
             outputsInputsAOD.emplace_back(outputsInputs[ii]);

@@ -32,6 +32,7 @@
 #include "TPCBase/CRUCalibHelpers.h"
 #include "TPCBase/CRU.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include <boost/property_tree/ptree.hpp>
 
 using namespace o2::tpc;
 size_t digitsInSaturateion(std::vector<Digit>& digits, bool correctCharge = false, CalPad* pedestals = nullptr, o2::utils::TreeStreamRedirector* stream = nullptr);

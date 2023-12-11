@@ -33,6 +33,7 @@
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 using namespace o2::framework;
 
@@ -56,7 +57,7 @@ namespace o2d = o2::dataformats;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mUseMC(useMC) {}
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool enableCCDBParams, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mSrc(src), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mEnableCCDBParams(enableCCDBParams), mUseMC(useMC) {}
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -69,6 +70,8 @@ class SecondaryVertexingSpec : public Task
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+  GTrackID::mask_t mSrc{};
+  bool mEnableCCDBParams = false;
   bool mEnableCascades = false;
   bool mEnable3BodyVertices = false;
   bool mEnableStrangenessTracking = false;
@@ -96,7 +99,9 @@ void SecondaryVertexingSpec::init(InitContext& ic)
     mStrTracker.setMCTruthOn(mUseMC);
     mVertexer.setStrangenessTracker(&mStrTracker);
   }
-  mTPCCorrMapsLoader.init(ic);
+  if (mSrc[GTrackID::TPC]) {
+    mTPCCorrMapsLoader.init(ic);
+  }
 }
 
 void SecondaryVertexingSpec::run(ProcessingContext& pc)
@@ -146,19 +151,30 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     mVertexer.setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "SVPARAM", 0)) {
+    LOG(info) << "SVertexer Params updated from ccdb";
+    return;
+  }
 }
 
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  mTPCVDriftHelper.extractCCDBInputs(pc);
-  mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  if (mSrc[GTrackID::TPC]) {
+    mTPCVDriftHelper.extractCCDBInputs(pc);
+    mTPCCorrMapsLoader.extractCCDBInputs(pc);
+  }
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     mVertexer.init();
+    if (mEnableCCDBParams) {
+      // for reading the calib objects from the CCDB
+      pc.inputs().get<o2::vertexing::SVertexerParams*>("SVParam");
+    }
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      SVertexerParams::Instance().printKeyValues();
+      // setting and or overwriting the configurable params
+      SVertexerParams::Instance().printKeyValues(true, true);
     }
     if (mEnableStrangenessTracking) {
       o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
@@ -166,23 +182,25 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
   }
   // we may have other params which need to be queried regularly
-  bool updateMaps = false;
-  if (mTPCCorrMapsLoader.isUpdated()) {
-    mVertexer.setTPCCorrMaps(&mTPCCorrMapsLoader);
-    mTPCCorrMapsLoader.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
-         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
-         mTPCVDriftHelper.getSourceName());
-    mVertexer.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
-    mTPCVDriftHelper.acknowledgeUpdate();
-    updateMaps = true;
-  }
-  if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
+  if (mSrc[GTrackID::TPC]) {
+    bool updateMaps = false;
+    if (mTPCCorrMapsLoader.isUpdated()) {
+      mVertexer.setTPCCorrMaps(&mTPCCorrMapsLoader);
+      mTPCCorrMapsLoader.acknowledgeUpdate();
+      updateMaps = true;
+    }
+    if (mTPCVDriftHelper.isUpdated()) {
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+           mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+           mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+           mTPCVDriftHelper.getSourceName());
+      mVertexer.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+      mTPCVDriftHelper.acknowledgeUpdate();
+      updateMaps = true;
+    }
+    if (updateMaps) {
+      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
+    }
   }
   if (mEnableStrangenessTracking) {
     if (o2::base::Propagator::Instance()->getNominalBz() != mStrTracker.getBz()) {
@@ -194,16 +212,24 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
 }
 
-DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC)
+DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool enableCCDBParams, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
     {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
     {"threads", VariantType::Int, 1, {"Number of threads"}}};
   auto dataRequest = std::make_shared<DataRequest>();
+  if (enableCCDBParams) {
+    dataRequest->inputs.emplace_back("SVParam", "GLO", "SVPARAM", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/SVertexerParam"));
+  }
   GTrackID::mask_t srcClus{};
   if (enableStrangenesTracking) {
-    src |= (srcClus = GTrackID::getSourceMask(GTrackID::Source::ITS));
+    src |= (srcClus = GTrackID::getSourceMask(GTrackID::ITS));
+  }
+  if (src[GTrackID::TPC]) {
+    srcClus |= GTrackID::getSourceMask(GTrackID::TPC);
+  }
+  if (srcClus.any()) {
     dataRequest->requestClusters(srcClus, useMC);
   }
   dataRequest->requestTracks(src, useMC);
@@ -217,20 +243,21 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
                                                               enableStrangenesTracking ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
-  o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
+  if (src[GTrackID::TPC]) {
+    o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
+    o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
+  }
+  outputs.emplace_back("GLO", "V0S_IDX", 0, Lifetime::Timeframe);     // found V0s indices
+  outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);         // found V0s
+  outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe); // prim.vertex -> V0s refs
 
-  outputs.emplace_back("GLO", "V0S_IDX", 0, Lifetime::Timeframe);        // found V0s indices
-  outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);            // found V0s
-  outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
-
-  outputs.emplace_back("GLO", "CASCS_IDX", 0, Lifetime::Timeframe);      // found Cascades indices
-  outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);          // found Cascades
-  outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe);  // prim.vertex -> Cascades refs
+  outputs.emplace_back("GLO", "CASCS_IDX", 0, Lifetime::Timeframe);     // found Cascades indices
+  outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);         // found Cascades
+  outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
 
   outputs.emplace_back("GLO", "DECAYS3BODY_IDX", 0, Lifetime::Timeframe); // found 3 body vertices indices
-  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);    // found 3 body vertices
-  outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe); // prim.vertex -> 3 body vertices refs
+  outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);     // found 3 body vertices
+  outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe);  // prim.vertex -> 3 body vertices refs
 
   if (enableStrangenesTracking) {
     outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe); // found strange track
@@ -245,7 +272,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     "secondary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc, enable3body, enableStrangenesTracking, useMC)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, src, enableCasc, enable3body, enableStrangenesTracking, enableCCDBParams, useMC)},
     opts};
 }
 

@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_TPCMERGETIMESERIESSPEC_SPEC
-#define O2_TPC_TPCMERGETIMESERIESSPEC_SPEC
+#ifndef O2_TPC_TPCSCALER_SPEC
+#define O2_TPC_TPCSCALER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -19,7 +19,7 @@ namespace o2
 namespace tpc
 {
 
-o2::framework::DataProcessorSpec getTPCMergeTimeSeriesSpec();
+o2::framework::DataProcessorSpec getTPCScalerSpec();
 
 } // end namespace tpc
 } // end namespace o2

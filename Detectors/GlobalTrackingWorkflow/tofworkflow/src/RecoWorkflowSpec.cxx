@@ -97,11 +97,11 @@ class TOFDPLRecoWorkflowTask
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPC", 0}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0}, mMatcher.getMatchedTOFLabelsVector());
     }
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0}, mMatcher.getCalibVector());
     mTimer.Stop();
   }
 

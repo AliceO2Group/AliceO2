@@ -82,8 +82,8 @@ class RawGBTDecoderDeviceDPL
 
     mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
-    pc.outputs().snapshot(o2::framework::Output{header::gDataOriginMID, "DECODED", dh->subSpecification, o2::framework::Lifetime::Timeframe}, data);
-    pc.outputs().snapshot(o2::framework::Output{header::gDataOriginMID, "DECODEDROF", dh->subSpecification, o2::framework::Lifetime::Timeframe}, rofRecords);
+    pc.outputs().snapshot(o2::framework::Output{header::gDataOriginMID, "DECODED", dh->subSpecification}, data);
+    pc.outputs().snapshot(o2::framework::Output{header::gDataOriginMID, "DECODEDROF", dh->subSpecification}, rofRecords);
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
     mNROFs += rofRecords.size();

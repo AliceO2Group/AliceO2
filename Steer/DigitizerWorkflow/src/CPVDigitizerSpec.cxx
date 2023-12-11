@@ -171,15 +171,15 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   }
   LOG(debug) << "Have " << mLabels.getNElements() << " CPV labels ";
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
-  pc.outputs().snapshot(Output{"CPV", "DIGITS", 0, Lifetime::Timeframe}, mDigitsOut);
-  pc.outputs().snapshot(Output{"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe}, triggers);
+  pc.outputs().snapshot(Output{"CPV", "DIGITS", 0}, mDigitsOut);
+  pc.outputs().snapshot(Output{"CPV", "DIGITTRIGREC", 0}, triggers);
   if (pc.outputs().isAllowed({"CPV", "DIGITSMCTR", 0})) {
-    pc.outputs().snapshot(Output{"CPV", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"CPV", "DIGITSMCTR", 0}, mLabels);
   }
   // CPV is always a triggered detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::PRESENT;
   LOG(debug) << "CPV: Sending ROMode= " << roMode << " to GRPUpdater";
-  pc.outputs().snapshot(Output{"CPV", "ROMode", 0, Lifetime::Timeframe}, roMode);
+  pc.outputs().snapshot(Output{"CPV", "ROMode", 0}, roMode);
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";

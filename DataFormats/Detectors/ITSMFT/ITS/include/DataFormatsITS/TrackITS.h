@@ -35,7 +35,8 @@ namespace its
 class TrackITS : public o2::track::TrackParCov
 {
   enum UserBits {
-    kNextROF = 1
+    kNextROF = 1 << 28,
+    kSharedClusters = 1 << 29
   };
 
   using Cluster = o2::itsmft::Cluster;
@@ -120,8 +121,10 @@ class TrackITS : public o2::track::TrackParCov
   }
   int getNFakeClusters();
 
-  void setNextROFbit(bool toggle = true) { setUserField((getUserField() & ~kNextROF) | (-toggle & kNextROF)); }
-  bool hasHitInNextROF() const { return getUserField() & kNextROF; }
+  void setNextROFbit(bool toggle = true) { mClusterSizes = toggle ? (mClusterSizes | kNextROF) : (mClusterSizes & ~kNextROF); }
+  bool hasHitInNextROF() const { return mClusterSizes & kNextROF; }
+  void setSharedClusters(bool toggle = true) { mClusterSizes = toggle ? (mClusterSizes | kSharedClusters) : (mClusterSizes & ~kSharedClusters); }
+  bool hasSharedClusters() const { return mClusterSizes & kSharedClusters; }
 
   void setClusterSize(int l, int size)
   {
@@ -137,7 +140,7 @@ class TrackITS : public o2::track::TrackParCov
 
   int getClusterSize(int l)
   {
-    if (l >= 8) {
+    if (l >= 7) {
       return 0;
     }
     return (mClusterSizes >> (l * 4)) & 0xf;

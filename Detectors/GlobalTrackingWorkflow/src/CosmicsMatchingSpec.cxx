@@ -99,9 +99,9 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
   updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   mMatching.process(recoData);
-  pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mMatching.getCosmicTracks());
+  pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0}, mMatching.getCosmicTracks());
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe}, mMatching.getCosmicTracksLbl());
+    pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0}, mMatching.getCosmicTracksLbl());
   }
   mTimer.Stop();
 }
@@ -172,7 +172,7 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
+DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -198,7 +198,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
 
   return DataProcessorSpec{
     "cosmics-matcher",

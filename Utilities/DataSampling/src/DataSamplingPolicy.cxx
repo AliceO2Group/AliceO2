@@ -128,7 +128,7 @@ Output DataSamplingPolicy::prepareOutput(const ConcreteDataMatcher& input, Lifet
   auto result = mPaths.find(input);
   if (result != mPaths.end()) {
     auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(result->second);
-    return Output{dataType.origin, dataType.description, input.subSpec, lifetime};
+    return Output{dataType.origin, dataType.description, input.subSpec};
   } else {
     return Output{header::gDataOriginInvalid, header::gDataDescriptionInvalid};
   }

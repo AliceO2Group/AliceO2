@@ -49,6 +49,12 @@ std::string demangle(std::string_view name)
 }
 } // end anonymous namespace
 
+CDBInterface::CDBInterface()
+{
+  auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+  mDeadChannelMapCreator.init(cdb.getURL());
+}
+
 //______________________________________________________________________________
 const CalPad& CDBInterface::getPedestals()
 {
@@ -87,7 +93,7 @@ const CalPad& CDBInterface::getPedestalsCRU()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("Pedestals");
+    return getFEEConfig().getPadMap(FEEConfig::PadConfig::Pedestals);
   }
 
   if (!mPedestalsCRU) {
@@ -135,8 +141,13 @@ const CalPad& CDBInterface::getZeroSuppressionThreshold()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ThresholdMap");
+    return getFEEConfig().getPadMap(FEEConfig::PadConfig::ThresholdMap);
   }
+
+  if (!mZeroSuppression) {
+    LOG(fatal) << "No valid zero suppression object was loaded";
+  }
+
   return *mZeroSuppression;
 }
 
@@ -178,7 +189,7 @@ const CalPad& CDBInterface::getITFraction()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ITfraction");
+    return getFEEConfig().getPadMap(FEEConfig::PadConfig::ITfraction);
   }
 
   if (!mITFraction) {
@@ -202,7 +213,7 @@ const CalPad& CDBInterface::getITExpLambda()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("ITexpLambda");
+    return getFEEConfig().getPadMap(FEEConfig::PadConfig::ITexpLambda);
   }
 
   if (!mITExpLambda) {
@@ -226,14 +237,62 @@ const CalPad& CDBInterface::getCMkValues()
     }
   } else {
     // return from CDB, assume that check for object existence are done there
-    return getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad)).at("CMkValues");
+    return getFEEConfig().getPadMap(FEEConfig::PadConfig::CMkValues);
   }
 
-  if (!mITExpLambda) {
+  if (!mCMkValues) {
     LOG(fatal) << "No valid ion tail slope (expLamda) parameters were loaded";
   }
 
-  return *mITExpLambda;
+  return *mCMkValues;
+}
+
+//______________________________________________________________________________
+const CDBInterface::CalPadFlagType& CDBInterface::getPadFlags()
+{
+  if (mUseDefaults) {
+    if (!mPadFlags) {
+      createDefaultPadFlags();
+    }
+  } else {
+    // return from CDB, assume that check for object existence are done there
+    return getObjectFromCDB<CalPadFlagType>(CDBTypeMap.at(CDBType::CalIDCPadStatusMapA));
+  }
+
+  if (!mPadFlags) {
+    LOG(fatal) << "No valid IDC PadFlags were loaded";
+  }
+
+  return *mPadFlags;
+}
+
+//______________________________________________________________________________
+const CalDet<bool>& CDBInterface::getDeadChannelMap()
+{
+  auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+  getFEEConfig();
+  mDeadChannelMapCreator.setDeadChannelMapIDCPadStatus(getPadFlags());
+  mDeadChannelMapCreator.finalizeDeadChannelMap();
+  return mDeadChannelMapCreator.getDeadChannelMap();
+}
+
+//______________________________________________________________________________
+const FEEConfig& CDBInterface::getFEEConfig()
+{
+  if (!mUseDefaults) {
+    auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+    mDeadChannelMapCreator.loadFEEConfigViaRunInfoTS(cdb.getTimestamp());
+
+    const auto feeConfig = mDeadChannelMapCreator.getFEEConfig();
+    if (feeConfig != nullptr) {
+      return *feeConfig;
+    }
+
+    LOGP(warning, "Could not retrieve FEEConfig");
+  }
+
+  createFEEConfig();
+  return *mFEEConfig;
 }
 
 //______________________________________________________________________________
@@ -476,6 +535,50 @@ void CDBInterface::createDefaultCMParams()
   *mCMkValues += 1.f;
 
   LOGP(info, "created default ion tail per-pad parameters");
+}
+
+//______________________________________________________________________________
+void CDBInterface::createDefaultPadFlags()
+{
+  mPadFlags = std::make_unique<CalPadFlagType>("CMkValues");
+
+  *mPadFlags = PadFlags::flagGoodPad;
+
+  LOGP(info, "created default pad flags");
+}
+
+//______________________________________________________________________________
+void CDBInterface::createFEEConfig()
+{
+  if (mFEEConfig) {
+    return;
+  }
+
+  if (!mUseDefaults) {
+    LOGP(info, "trying to load default FEEConfig");
+    mDeadChannelMapCreator.loadFEEConfig(7, 1680525888290); // load oldest physics configuration
+    if (mFEEConfig) {
+      return;
+    }
+  }
+
+  LOGP(info, "creating best guess FEEConfig");
+  auto feeConfig = new FEEConfig;
+  feeConfig->setAllLinksOn();
+  feeConfig->tag = FEEConfig::Tags::Physics30sigma;
+
+  if (!mUseDefaults) {
+    feeConfig->padMaps = getObjectFromCDB<CalPadMapType>(CDBTypeMap.at(CDBType::ConfigFEEPad));
+  } else {
+    auto& maps = feeConfig->padMaps;
+    maps["CMkValues"] = getCMkValues();
+    maps["ITexpLambda"] = getITExpLambda();
+    maps["ITfraction"] = getITFraction();
+    maps["ThresholdMap"] = getZeroSuppressionThreshold();
+    maps["Pedestals"] = getPedestalsCRU();
+  }
+
+  mFEEConfig.reset(feeConfig);
 }
 
 //______________________________________________________________________________

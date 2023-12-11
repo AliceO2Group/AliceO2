@@ -9,6 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
+#ifndef __HIPCC__
+#include "GPUReconstructionCUDADef.h" // This file should come first, if included
+#endif
+
 #include <thrust/fill.h>
 #include <thrust/execution_policy.h>
 
@@ -26,7 +30,6 @@
 
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
-#include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
 // clang-format off

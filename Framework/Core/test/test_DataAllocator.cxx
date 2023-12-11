@@ -45,7 +45,7 @@ using namespace o2::framework;
 // this function is only used to do the static checks for API return types
 void doTypeChecks()
 {
-  const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
+  const Output output{"TST", "DUMMY", 0};
   // we require references to objects owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<int>(output))>::value);
   static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<std::string>(output, "test"))>::value);
@@ -83,24 +83,24 @@ DataProcessorSpec getSourceSpec()
     // picked by the framework is no serialization
     test::MetaHeader meta1{42};
     test::MetaHeader meta2{23};
-    pc.outputs().snapshot(Output{"TST", "MESSAGEABLE", 0, Lifetime::Timeframe, {meta1, meta2}}, a);
-    pc.outputs().snapshot(Output{"TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe},
+    pc.outputs().snapshot(Output{"TST", "MESSAGEABLE", 0, {meta1, meta2}}, a);
+    pc.outputs().snapshot(Output{"TST", "MSGBLEROOTSRLZ", 0},
                           o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
     // from the fact that the type has a dictionary and can be ROOT-serialized.
-    pc.outputs().snapshot(Output{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe}, b);
+    pc.outputs().snapshot(Output{"TST", "ROOTNONTOBJECT", 0}, b);
     // vector of ROOT serializable class
-    pc.outputs().snapshot(Output{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe}, c);
+    pc.outputs().snapshot(Output{"TST", "ROOTVECTOR", 0}, c);
     // deque of simple types
-    pc.outputs().snapshot(Output{"TST", "DEQUE", 0, Lifetime::Timeframe}, testDequePayload);
+    pc.outputs().snapshot(Output{"TST", "DEQUE", 0}, testDequePayload);
     // likewise, passed anonymously with char type and class name
     o2::framework::ROOTSerialized<char, const char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
-    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe}, d);
+    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC", 0}, d);
     // vector of ROOT serializable class wrapped with TClass info as hint
     auto* cl = TClass::GetClass(typeid(decltype(c)));
     ASSERT_ERROR(cl != nullptr);
     o2::framework::ROOTSerialized<char, TClass> e(*((char*)&c), cl);
-    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe}, e);
+    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC2", 0}, e);
     // test the 'make' methods
     pc.outputs().make<o2::test::TriviallyCopyable>(OutputRef{"makesingle", 0}) = a;
     auto& multi = pc.outputs().make<o2::test::TriviallyCopyable>(OutputRef{"makespan", 0}, 3);
@@ -111,7 +111,7 @@ DataProcessorSpec getSourceSpec()
     // test the adopt method
     auto freefct = [](void* data, void* hint) {}; // simply ignore the cleanup for the test
     static std::string teststring = "adoptchunk";
-    pc.outputs().adoptChunk(Output{"TST", "ADOPTCHUNK", 0, Lifetime::Timeframe}, teststring.data(), teststring.length(), freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"TST", "ADOPTCHUNK", 0}, teststring.data(), teststring.length(), freefct, nullptr);
     // test resizable data chunk, initial size 0 and grow
     auto& growchunk = pc.outputs().newChunk(OutputRef{"growchunk", 0}, 0);
     growchunk.resize(sizeof(o2::test::TriviallyCopyable));
@@ -307,7 +307,7 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
     // forward the read-only span on a different route
-    pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}, object12);
+    pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0}, object12);
 
     LOG(info) << "extracting TNamed object from input13";
     auto object13 = pc.inputs().get<TNamed*>("input13");

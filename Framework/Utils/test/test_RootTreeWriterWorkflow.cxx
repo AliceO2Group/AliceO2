@@ -143,7 +143,7 @@ DataProcessorSpec getSourceSpec()
       o2::test::Polymorphic a(*counter);
       pc.outputs().snapshot(OutputRef{"output", 0}, a);
       pc.outputs().snapshot(OutputRef{"output", 1}, a);
-      int& metadata = pc.outputs().make<int>(Output{"TST", "METADATA", 0, Lifetime::Timeframe});
+      int& metadata = pc.outputs().make<int>(Output{"TST", "METADATA", 0});
       metadata = *counter;
       *counter = *counter + 1;
       if (*counter >= sTreeSize) {

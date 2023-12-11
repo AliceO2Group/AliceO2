@@ -37,6 +37,21 @@ namespace zdc
 using FirstEntry = int;
 using NElem = int;
 
+struct RecEventScale {
+  static std::array<float, NChannels> fe;
+  static std::array<float, NTDCChannels> fa;
+  static void reset();
+  static void setGeV();
+  static void setGeVZN();
+  static void setGeVZP();
+  static void setTeV();
+  static void setTeVZN();
+  static void setTeVZP();
+  static void setNucleonEnergy(float energy);
+  static void setNucleonEnergyZN(float energy);
+  static void setNucleonEnergyZP(float energy);
+};
+
 struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
   uint32_t channels = 0;                         /// pattern of channels acquired
@@ -244,12 +259,16 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   // Unit: cm
   void centroidZNA(float& x, float& y);
   void centroidZNC(float& x, float& y);
+  void centroidZPA(float& x, float& rms);
+  void centroidZPC(float& x, float& rms);
   float xZNA();
   float yZNA();
   float xZNC();
   float yZNC();
   float xZPA(); // Positive
   float xZPC(); // Negative
+  float rmsZPA();
+  float rmsZPC();
 
   void decodeInfo(uint8_t ch, uint16_t code);
   void decodeMapInfo(uint32_t ch, uint16_t code);

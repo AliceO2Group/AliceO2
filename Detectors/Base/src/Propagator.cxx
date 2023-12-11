@@ -618,6 +618,27 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 
 //____________________________________________________________
 template <typename value_T>
+GPUd() float PropagatorImpl<value_T>::estimateLTIncrement(const o2::track::TrackParametrization<value_type>& trc,
+                                                          const o2::math_utils::Point3D<value_type>& posStart,
+                                                          const o2::math_utils::Point3D<value_type>& posEnd) const
+{
+  // estimate helical step increment between 2 point
+  float dX = posEnd.X() - posStart.X(), dY = posEnd.Y() - posStart.Y(), dZ = posEnd.Z() - posStart.Z(), d2XY = dX * dX + dY * dY;
+  if (getNominalBz() != 0) { // circular arc = 2*R*asin(dXY/2R)
+    float b[3];
+    o2::math_utils::Point3D<float> posAv(0.5 * (posEnd.X() + posStart.X()), 0.5 * (posEnd.Y() + posStart.Y()), 0.5 * (posEnd.Z() + posStart.Z()));
+    getFieldXYZ(posAv, b);
+    float curvH = math_utils::detail::abs<value_type>(0.5f * trc.getCurvature(b[2])), asArg = curvH * math_utils::detail::sqrt<value_type>(d2XY);
+    if (curvH > 0.f) {
+      d2XY = asArg < 1.f ? math_utils::detail::asin<value_type>(asArg) / curvH : o2::constants::math::PIHalf / curvH;
+      d2XY *= d2XY;
+    }
+  }
+  return math_utils::detail::sqrt<value_type>(d2XY + dZ * dZ);
+}
+
+//____________________________________________________________
+template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
   value_T xdca = 0., ydca = 0., length = 0.; // , zdca = 0. // zdca might be used in future

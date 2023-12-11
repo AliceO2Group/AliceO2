@@ -15,7 +15,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ft0::CollisionTimeRecoTask + ;
 #pragma link C++ class o2::ft0::InteractionTag + ;
 
 #endif

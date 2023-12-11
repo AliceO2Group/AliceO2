@@ -50,6 +50,7 @@ struct MctracksToAod {
     }
     // TODO: include BC simulation
     auto bcCounter = 0UL;
+    int trackCounter = 0;
     for (auto i = 0U; i < Nparts; ++i) {
       auto record = sampler.generateCollisionTime();
       auto mcheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader", i);
@@ -118,19 +119,19 @@ struct MctracksToAod {
         int daughters[2];
 
         if (mctrack.getMotherTrackId() >= 0) {
-          mothers.push_back(mctrack.getMotherTrackId());
+          mothers.push_back(mctrack.getMotherTrackId() + trackCounter);
         }
         if (mctrack.getSecondMotherTrackId() >= 0) {
-          mothers.push_back(mctrack.getSecondMotherTrackId());
+          mothers.push_back(mctrack.getSecondMotherTrackId() + trackCounter);
         }
         daughters[0] = -1;
         daughters[1] = -1;
         if (mctrack.getFirstDaughterTrackId() >= 0 && mctrack.getLastDaughterTrackId() >= 0) {
-          daughters[0] = mctrack.getFirstDaughterTrackId();
-          daughters[1] = mctrack.getLastDaughterTrackId();
+          daughters[0] = mctrack.getFirstDaughterTrackId() + trackCounter;
+          daughters[1] = mctrack.getLastDaughterTrackId() + trackCounter;
         } else if (mctrack.getFirstDaughterTrackId() >= 0) {
-          daughters[0] = mctrack.getFirstDaughterTrackId();
-          daughters[1] = mctrack.getLastDaughterTrackId();
+          daughters[0] = mctrack.getFirstDaughterTrackId() + trackCounter;
+          daughters[1] = mctrack.getLastDaughterTrackId() + trackCounter;
         }
         int PdgCode = mctrack.GetPdgCode();
         int statusCode = 0;
@@ -169,10 +170,11 @@ struct MctracksToAod {
                     z,
                     t);
       }
+      trackCounter = trackCounter + mctracks.size();
     }
     ++timeframe;
-    pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
-    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, timeframe);
+    pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, "");
+    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, timeframe);
   }
 };
 

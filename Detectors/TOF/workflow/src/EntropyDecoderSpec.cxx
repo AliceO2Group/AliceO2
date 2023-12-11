@@ -81,7 +81,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   o2::dataformats::TFIDInfo tfinfo;
   o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
   diagnostic.setTFIDInfo(tfinfo);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnostic);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0}, diagnostic);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
   LOG(info) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";

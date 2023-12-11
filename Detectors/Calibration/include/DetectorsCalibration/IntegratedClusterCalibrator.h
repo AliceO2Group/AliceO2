@@ -211,12 +211,8 @@ struct TimeSeries {
   /// dump object to tree
   /// \param outFileName name of the output file
   /// \param nHBFPerTF number of orbits per TF
-  void dumpToTree(TTree& tree, const char* prefix = "", const int nHBFPerTF = 32) const;
   void setStartTime(long timeMS) { mTimeMS = timeMS; }
-  bool areSameSize() const { return sameSize(mDCAr_A_WeightedMean, mDCAr_C_WeightedMean, mDCAz_A_WeightedMean, mDCAz_C_WeightedMean, mDCAr_A_Median, mDCAr_C_Median, mDCAr_A_RMS, mDCAr_C_RMS, mDCAz_A_Median, mDCAz_C_Median, mDCAz_A_RMS, mDCAz_C_RMS, mDCAz_C_NTracks, mDCAr_A_NTracks, mDCAz_A_NTracks, mDCAz_C_NTracks); } ///< check if stored currents have same number of entries
-  bool isEmpty() const { return mDCAr_A_Median.empty(); }                                                                                                                                                                                                                                                                       ///< check if values are empty
 
-  size_t getEntries() const { return mDCAr_A_Median.size(); } ///< \return returns number of values stored
   /// \return returns total number of bins
   int getNBins() const { return mNBinsTgl + mNBinsPhi + mNBinsqPt + mMultBins + 1; }
 
@@ -234,78 +230,6 @@ struct TimeSeries {
 
   /// \return returns index for integrated over all bins
   int getIndexInt(int slice = 0) const { return getNBins() - 1 + slice * getNBins(); }
-
-  /// acummulate integrated currents at given index
-  /// \param posIndex index where data will be copied to
-  /// \param data integrated currents which will be copied
-  void fill(const unsigned int posIndex, const TimeSeries& data)
-  {
-    mNBinsPhi = data.mNBinsPhi;
-    mNBinsTgl = data.mNBinsTgl;
-    mNBinsqPt = data.mNBinsqPt;
-    mMultBins = data.mMultBins;
-    mTglMax = data.mTglMax;
-    mQPtMax = data.mQPtMax;
-    mMultMax = data.mMultMax;
-    fill(data.mDCAr_A_Median, mDCAr_A_Median, posIndex);
-    fill(data.mDCAr_C_Median, mDCAr_C_Median, posIndex);
-    fill(data.mDCAr_A_RMS, mDCAr_A_RMS, posIndex);
-    fill(data.mDCAr_C_RMS, mDCAr_C_RMS, posIndex);
-    fill(data.mDCAz_A_Median, mDCAz_A_Median, posIndex);
-    fill(data.mDCAz_C_Median, mDCAz_C_Median, posIndex);
-    fill(data.mDCAz_A_RMS, mDCAz_A_RMS, posIndex);
-    fill(data.mDCAz_C_RMS, mDCAz_C_RMS, posIndex);
-    fill(data.mDCAr_C_NTracks, mDCAr_C_NTracks, posIndex);
-    fill(data.mDCAr_A_NTracks, mDCAr_A_NTracks, posIndex);
-    fill(data.mDCAz_A_NTracks, mDCAz_A_NTracks, posIndex);
-    fill(data.mDCAz_C_NTracks, mDCAz_C_NTracks, posIndex);
-    fill(data.mDCAr_A_WeightedMean, mDCAr_A_WeightedMean, posIndex);
-    fill(data.mDCAr_C_WeightedMean, mDCAr_C_WeightedMean, posIndex);
-    fill(data.mDCAz_A_WeightedMean, mDCAz_A_WeightedMean, posIndex);
-    fill(data.mDCAz_C_WeightedMean, mDCAz_C_WeightedMean, posIndex);
-    fill(data.mMIPdEdxRatioQMaxA, mMIPdEdxRatioQMaxA, posIndex);
-    fill(data.mMIPdEdxRatioQMaxC, mMIPdEdxRatioQMaxC, posIndex);
-    fill(data.mMIPdEdxRatioQTotA, mMIPdEdxRatioQTotA, posIndex);
-    fill(data.mMIPdEdxRatioQTotC, mMIPdEdxRatioQTotC, posIndex);
-    fill(data.mTPCChi2A, mTPCChi2A, posIndex);
-    fill(data.mTPCChi2C, mTPCChi2C, posIndex);
-    fill(data.mTPCNClA, mTPCNClA, posIndex);
-    fill(data.mTPCNClC, mTPCNClC, posIndex);
-  }
-
-  void fill(const std::vector<float>& vecFrom, std::vector<float>& vecTo, const unsigned int posIndex) { std::copy(vecFrom.begin(), vecFrom.end(), vecTo.begin() + posIndex); }
-
-  /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
-  void insert(const unsigned int nDummyValues)
-  {
-    std::vector<float> vecTmp(nDummyValues, 0);
-    insert(mDCAr_A_Median, vecTmp);
-    insert(mDCAr_C_Median, vecTmp);
-    insert(mDCAr_A_RMS, vecTmp);
-    insert(mDCAr_C_RMS, vecTmp);
-    insert(mDCAz_A_Median, vecTmp);
-    insert(mDCAz_C_Median, vecTmp);
-    insert(mDCAz_A_RMS, vecTmp);
-    insert(mDCAz_C_RMS, vecTmp);
-    insert(mDCAr_C_NTracks, vecTmp);
-    insert(mDCAr_A_NTracks, vecTmp);
-    insert(mDCAz_A_NTracks, vecTmp);
-    insert(mDCAz_C_NTracks, vecTmp);
-    insert(mDCAr_A_WeightedMean, vecTmp);
-    insert(mDCAr_C_WeightedMean, vecTmp);
-    insert(mDCAz_A_WeightedMean, vecTmp);
-    insert(mDCAz_C_WeightedMean, vecTmp);
-    insert(mMIPdEdxRatioQMaxA, vecTmp);
-    insert(mMIPdEdxRatioQMaxC, vecTmp);
-    insert(mMIPdEdxRatioQTotA, vecTmp);
-    insert(mMIPdEdxRatioQTotC, vecTmp);
-    insert(mTPCChi2A, vecTmp);
-    insert(mTPCChi2C, vecTmp);
-    insert(mTPCNClA, vecTmp);
-    insert(mTPCNClC, vecTmp);
-  }
-
-  void insert(std::vector<float>& vec, const std::vector<float>& vecTmp) { vec.insert(vec.begin(), vecTmp.begin(), vecTmp.end()); }
 
   /// resize buffer for accumulated currents
   void resize(const unsigned int nTotal)
@@ -345,29 +269,6 @@ struct ITSTPC_Matching {
   std::vector<float> mITSTPC_A_Chi2Match; ///< ITS-TPC chi2 A-side
   std::vector<float> mITSTPC_C_Chi2Match; ///< ITS-TPC chi2 C-side
 
-  void dumpToTree(TTree& tree, const char* prefix, const int nHBFPerTF, const TimeSeries& timeSeriesRef) const;
-
-  /// acummulate integrated currents at given index
-  /// \param posIndex index where data will be copied to
-  /// \param data integrated currents which will be copied
-  void fill(const unsigned int posIndex, const ITSTPC_Matching& data)
-  {
-    std::copy(data.mITSTPC_A_MatchEff.begin(), data.mITSTPC_A_MatchEff.end(), mITSTPC_A_MatchEff.begin() + posIndex);
-    std::copy(data.mITSTPC_C_MatchEff.begin(), data.mITSTPC_C_MatchEff.end(), mITSTPC_C_MatchEff.begin() + posIndex);
-    std::copy(data.mITSTPC_A_Chi2Match.begin(), data.mITSTPC_A_Chi2Match.end(), mITSTPC_A_Chi2Match.begin() + posIndex);
-    std::copy(data.mITSTPC_C_Chi2Match.begin(), data.mITSTPC_C_Chi2Match.end(), mITSTPC_C_Chi2Match.begin() + posIndex);
-  }
-
-  /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
-  void insert(const unsigned int nDummyValues)
-  {
-    std::vector<float> vecTmp(nDummyValues, 0);
-    mITSTPC_A_MatchEff.insert(mITSTPC_A_MatchEff.begin(), vecTmp.begin(), vecTmp.end());
-    mITSTPC_C_MatchEff.insert(mITSTPC_C_MatchEff.begin(), vecTmp.begin(), vecTmp.end());
-    mITSTPC_A_Chi2Match.insert(mITSTPC_A_Chi2Match.begin(), vecTmp.begin(), vecTmp.end());
-    mITSTPC_C_Chi2Match.insert(mITSTPC_C_Chi2Match.begin(), vecTmp.begin(), vecTmp.end());
-  }
-
   /// resize buffer for accumulated currents
   void resize(const unsigned int nTotal)
   {
@@ -401,56 +302,6 @@ struct TimeSeriesdEdx {
   std::vector<float> mLogdEdx_C_OROC2_RMS;    ///< log(dedxOROC2 / dEdx) - C-side
   std::vector<float> mLogdEdx_C_OROC3_Median; ///< log(dedxOROC3 / dEdx) - C-side
   std::vector<float> mLogdEdx_C_OROC3_RMS;    ///< log(dedxOROC3 / dEdx) - C-side
-  void fill(const unsigned int posIndex, const TimeSeriesdEdx& data)
-  {
-    fill(data.mLogdEdx_A_Median, mLogdEdx_A_Median, posIndex);
-    fill(data.mLogdEdx_A_RMS, mLogdEdx_A_RMS, posIndex);
-    fill(data.mLogdEdx_A_IROC_Median, mLogdEdx_A_IROC_Median, posIndex);
-    fill(data.mLogdEdx_A_IROC_RMS, mLogdEdx_A_IROC_RMS, posIndex);
-    fill(data.mLogdEdx_A_OROC1_Median, mLogdEdx_A_OROC1_Median, posIndex);
-    fill(data.mLogdEdx_A_OROC1_RMS, mLogdEdx_A_OROC1_RMS, posIndex);
-    fill(data.mLogdEdx_A_OROC2_Median, mLogdEdx_A_OROC2_Median, posIndex);
-    fill(data.mLogdEdx_A_OROC2_RMS, mLogdEdx_A_OROC2_RMS, posIndex);
-    fill(data.mLogdEdx_A_OROC3_Median, mLogdEdx_A_OROC3_Median, posIndex);
-    fill(data.mLogdEdx_A_OROC3_RMS, mLogdEdx_A_OROC3_RMS, posIndex);
-    fill(data.mLogdEdx_C_Median, mLogdEdx_C_Median, posIndex);
-    fill(data.mLogdEdx_C_RMS, mLogdEdx_C_RMS, posIndex);
-    fill(data.mLogdEdx_C_IROC_Median, mLogdEdx_C_IROC_Median, posIndex);
-    fill(data.mLogdEdx_C_IROC_RMS, mLogdEdx_C_IROC_RMS, posIndex);
-    fill(data.mLogdEdx_C_OROC1_Median, mLogdEdx_C_OROC1_Median, posIndex);
-    fill(data.mLogdEdx_C_OROC1_RMS, mLogdEdx_C_OROC1_RMS, posIndex);
-    fill(data.mLogdEdx_C_OROC2_Median, mLogdEdx_C_OROC2_Median, posIndex);
-    fill(data.mLogdEdx_C_OROC2_RMS, mLogdEdx_C_OROC2_RMS, posIndex);
-    fill(data.mLogdEdx_C_OROC3_Median, mLogdEdx_C_OROC3_Median, posIndex);
-    fill(data.mLogdEdx_C_OROC3_RMS, mLogdEdx_C_OROC3_RMS, posIndex);
-  }
-
-  void fill(const std::vector<float>& vecFrom, std::vector<float>& vecTo, const unsigned int posIndex) { std::copy(vecFrom.begin(), vecFrom.end(), vecTo.begin() + posIndex); }
-  void insert(std::vector<float>& vec, const std::vector<float>& vecTmp) { vec.insert(vec.begin(), vecTmp.begin(), vecTmp.end()); }
-  void insert(const unsigned int nDummyValues)
-  {
-    std::vector<float> vecTmp(nDummyValues, 0);
-    insert(mLogdEdx_A_Median, vecTmp);
-    insert(mLogdEdx_A_RMS, vecTmp);
-    insert(mLogdEdx_A_IROC_Median, vecTmp);
-    insert(mLogdEdx_A_IROC_RMS, vecTmp);
-    insert(mLogdEdx_A_OROC1_Median, vecTmp);
-    insert(mLogdEdx_A_OROC1_RMS, vecTmp);
-    insert(mLogdEdx_A_OROC2_Median, vecTmp);
-    insert(mLogdEdx_A_OROC2_RMS, vecTmp);
-    insert(mLogdEdx_A_OROC3_Median, vecTmp);
-    insert(mLogdEdx_A_OROC3_RMS, vecTmp);
-    insert(mLogdEdx_C_Median, vecTmp);
-    insert(mLogdEdx_C_RMS, vecTmp);
-    insert(mLogdEdx_C_IROC_Median, vecTmp);
-    insert(mLogdEdx_C_IROC_RMS, vecTmp);
-    insert(mLogdEdx_C_OROC1_Median, vecTmp);
-    insert(mLogdEdx_C_OROC1_RMS, vecTmp);
-    insert(mLogdEdx_C_OROC2_Median, vecTmp);
-    insert(mLogdEdx_C_OROC2_RMS, vecTmp);
-    insert(mLogdEdx_C_OROC3_Median, vecTmp);
-    insert(mLogdEdx_C_OROC3_RMS, vecTmp);
-  }
 
   void resize(const unsigned int nTotal)
   {
@@ -529,8 +380,27 @@ struct TimeSeriesITSTPC {
   std::vector<float> mSqrtITSChi2_Ncl_A_RMS;    ///< sqrt(ITC chi2 / ncl)
   std::vector<float> mSqrtITSChi2_Ncl_C_RMS;    ///< sqrt(ITC chi2 / ncl)
 
-  // dump this object to a tree
-  void dumpToTree(const char* outFileName, const int nHBFPerTF = 32);
+  std::vector<float> mITSTPCDeltaP2_A_Median; ///< track param TPC - track param ITS-TPC for param 2 - A-side
+  std::vector<float> mITSTPCDeltaP3_A_Median; ///< track param TPC - track param ITS-TPC for param 3 - A-side
+  std::vector<float> mITSTPCDeltaP4_A_Median; ///< track param TPC - track param ITS-TPC for param 4 - A-side
+  std::vector<float> mITSTPCDeltaP2_C_Median; ///< track param TPC - track param ITS-TPC for param 2 - A-side
+  std::vector<float> mITSTPCDeltaP3_C_Median; ///< track param TPC - track param ITS-TPC for param 3 - A-side
+  std::vector<float> mITSTPCDeltaP4_C_Median; ///< track param TPC - track param ITS-TPC for param 4 - A-side
+  std::vector<float> mITSTPCDeltaP2_A_RMS;    ///< RMS of track param TPC - track param ITS-TPC for param 2 - A-side
+  std::vector<float> mITSTPCDeltaP3_A_RMS;    ///< RMS of track param TPC - track param ITS-TPC for param 3 - A-side
+  std::vector<float> mITSTPCDeltaP4_A_RMS;    ///< RMS of track param TPC - track param ITS-TPC for param 4 - A-side
+  std::vector<float> mITSTPCDeltaP2_C_RMS;    ///< RMS of track param TPC - track param ITS-TPC for param 2 - A-side
+  std::vector<float> mITSTPCDeltaP3_C_RMS;    ///< RMS of track param TPC - track param ITS-TPC for param 3 - A-side
+  std::vector<float> mITSTPCDeltaP4_C_RMS;    ///< RMS of track param TPC - track param ITS-TPC for param 4 - A-side
+
+  std::vector<float> mTPCSigmaY2A_Median; ///< sigmaY2 at vertex
+  std::vector<float> mTPCSigmaZ2A_Median; ///< sigmaZ2 at vertex
+  std::vector<float> mTPCSigmaY2C_Median; ///< sigmaY2 at vertex
+  std::vector<float> mTPCSigmaZ2C_Median; ///< sigmaZ2 at vertex
+  std::vector<float> mTPCSigmaY2A_RMS;    ///< sigmaY2 RMS at vertex
+  std::vector<float> mTPCSigmaZ2A_RMS;    ///< sigmaZ2 RMS at vertex
+  std::vector<float> mTPCSigmaY2C_RMS;    ///< sigmaY2 RMS at vertex
+  std::vector<float> mTPCSigmaZ2C_RMS;    ///< sigmaZ2 RMS at vertex
 
   void setStartTime(long timeMS)
   {
@@ -554,121 +424,6 @@ struct TimeSeriesITSTPC {
     mTSITSTPC.mTglMax = tglMax;
     mTSITSTPC.mQPtMax = qPtMax;
     mTSITSTPC.mMultMax = multMax;
-  }
-
-  bool areSameSize() const { return (mTSTPC.areSameSize() && mTSITSTPC.areSameSize()); } ///< check if stored currents have same number of entries
-  bool isEmpty() const { return mTSTPC.isEmpty(); }                                      ///< check if values are empty
-  size_t getEntries() const { return mTSTPC.getEntries(); }                              ///< \return returns number of values stored
-  void fill(const std::vector<float>& vecFrom, std::vector<float>& vecTo, const unsigned int posIndex) { std::copy(vecFrom.begin(), vecFrom.end(), vecTo.begin() + posIndex); }
-  void insert(std::vector<float>& vec, const std::vector<float>& vecTmp) { vec.insert(vec.begin(), vecTmp.begin(), vecTmp.end()); }
-
-  /// acummulate integrated currents at given index
-  /// \param posIndex index where data will be copied to
-  /// \param data integrated currents which will be copied
-  void fill(const unsigned int posIndex, const TimeSeriesITSTPC& data)
-  {
-    mTSTPC.fill(posIndex, data.mTSTPC);
-    mTSITSTPC.fill(posIndex, data.mTSITSTPC);
-    mITSTPCAll.fill(posIndex, data.mITSTPCAll);
-    mITSTPCStandalone.fill(posIndex, data.mITSTPCStandalone);
-    mITSTPCAfterburner.fill(posIndex, data.mITSTPCAfterburner);
-    mdEdxQTot.fill(posIndex, data.mdEdxQTot);
-    mdEdxQMax.fill(posIndex, data.mdEdxQMax);
-    fill(data.mDCAr_comb_A_Median, mDCAr_comb_A_Median, posIndex);
-    fill(data.mDCAz_comb_A_Median, mDCAz_comb_A_Median, posIndex);
-    fill(data.mDCAr_comb_A_RMS, mDCAr_comb_A_RMS, posIndex);
-    fill(data.mDCAz_comb_A_RMS, mDCAz_comb_A_RMS, posIndex);
-    fill(data.mDCAr_comb_C_Median, mDCAr_comb_C_Median, posIndex);
-    fill(data.mDCAz_comb_C_Median, mDCAz_comb_C_Median, posIndex);
-    fill(data.mDCAr_comb_C_RMS, mDCAr_comb_C_RMS, posIndex);
-    fill(data.mDCAz_comb_C_RMS, mDCAz_comb_C_RMS, posIndex);
-    fill(data.mITS_A_NCl_Median, mITS_A_NCl_Median, posIndex);
-    fill(data.mITS_A_NCl_RMS, mITS_A_NCl_RMS, posIndex);
-    fill(data.mITS_C_NCl_Median, mITS_C_NCl_Median, posIndex);
-    fill(data.mITS_C_NCl_RMS, mITS_C_NCl_RMS, posIndex);
-    fill(data.mSqrtITSChi2_Ncl_A_Median, mSqrtITSChi2_Ncl_A_Median, posIndex);
-    fill(data.mSqrtITSChi2_Ncl_C_Median, mSqrtITSChi2_Ncl_C_Median, posIndex);
-    fill(data.mSqrtITSChi2_Ncl_A_RMS, mSqrtITSChi2_Ncl_A_RMS, posIndex);
-    fill(data.mSqrtITSChi2_Ncl_C_RMS, mSqrtITSChi2_Ncl_C_RMS, posIndex);
-
-    const int iTF = posIndex / mTSTPC.getNBins();
-    nPrimVertices[iTF] = data.nPrimVertices.front();
-    nPrimVertices_ITS[iTF] = data.nPrimVertices_ITS.front();
-    nVertexContributors_ITS_Median[iTF] = data.nVertexContributors_ITS_Median.front();
-    nVertexContributors_ITS_RMS[iTF] = data.nVertexContributors_ITS_RMS.front();
-    vertexX_ITS_Median[iTF] = data.vertexX_ITS_Median.front();
-    vertexY_ITS_Median[iTF] = data.vertexY_ITS_Median.front();
-    vertexZ_ITS_Median[iTF] = data.vertexZ_ITS_Median.front();
-    vertexX_ITS_RMS[iTF] = data.vertexX_ITS_RMS.front();
-    vertexY_ITS_RMS[iTF] = data.vertexY_ITS_RMS.front();
-    vertexZ_ITS_RMS[iTF] = data.vertexZ_ITS_RMS.front();
-    nPrimVertices_ITSTPC[iTF] = data.nPrimVertices_ITSTPC.front();
-    nVertexContributors_ITSTPC_Median[iTF] = data.nVertexContributors_ITSTPC_Median.front();
-    nVertexContributors_ITSTPC_RMS[iTF] = data.nVertexContributors_ITSTPC_RMS.front();
-    vertexX_ITSTPC_Median[iTF] = data.vertexX_ITSTPC_Median.front();
-    vertexY_ITSTPC_Median[iTF] = data.vertexY_ITSTPC_Median.front();
-    vertexZ_ITSTPC_Median[iTF] = data.vertexZ_ITSTPC_Median.front();
-    vertexX_ITSTPC_RMS[iTF] = data.vertexX_ITSTPC_RMS.front();
-    vertexY_ITSTPC_RMS[iTF] = data.vertexY_ITSTPC_RMS.front();
-    vertexZ_ITSTPC_RMS[iTF] = data.vertexZ_ITSTPC_RMS.front();
-
-    const int iTFQ = quantileValues * posIndex / mTSTPC.getNBins();
-    fill(data.nVertexContributors_Quantiles, nVertexContributors_Quantiles, iTFQ);
-  }
-
-  /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
-  void insert(const unsigned int nDummyValues)
-  {
-    mTSTPC.insert(nDummyValues);
-    mTSITSTPC.insert(nDummyValues);
-    mITSTPCAll.insert(nDummyValues);
-    mITSTPCStandalone.insert(nDummyValues);
-    mITSTPCAfterburner.insert(nDummyValues);
-    mdEdxQTot.insert(nDummyValues);
-    mdEdxQMax.insert(nDummyValues);
-    std::vector<float> vecTmp(nDummyValues, 0);
-    insert(mDCAr_comb_A_Median, vecTmp);
-    insert(mDCAz_comb_A_Median, vecTmp);
-    insert(mDCAr_comb_A_RMS, vecTmp);
-    insert(mDCAz_comb_A_RMS, vecTmp);
-    insert(mDCAr_comb_C_Median, vecTmp);
-    insert(mDCAz_comb_C_Median, vecTmp);
-    insert(mDCAr_comb_C_RMS, vecTmp);
-    insert(mDCAz_comb_C_RMS, vecTmp);
-    insert(mITS_A_NCl_Median, vecTmp);
-    insert(mITS_A_NCl_RMS, vecTmp);
-    insert(mITS_C_NCl_Median, vecTmp);
-    insert(mITS_C_NCl_RMS, vecTmp);
-    insert(mSqrtITSChi2_Ncl_A_Median, vecTmp);
-    insert(mSqrtITSChi2_Ncl_C_Median, vecTmp);
-    insert(mSqrtITSChi2_Ncl_A_RMS, vecTmp);
-    insert(mSqrtITSChi2_Ncl_C_RMS, vecTmp);
-
-    const int nDummyValuesVtx = nDummyValues / mTSTPC.getNBins();
-    std::vector<float> vecTmpVtx(nDummyValuesVtx, 0);
-    insert(nPrimVertices, vecTmpVtx);
-    insert(nPrimVertices_ITS, vecTmpVtx);
-    insert(nVertexContributors_ITS_Median, vecTmpVtx);
-    insert(nVertexContributors_ITS_RMS, vecTmpVtx);
-    insert(vertexX_ITS_Median, vecTmpVtx);
-    insert(vertexY_ITS_Median, vecTmpVtx);
-    insert(vertexZ_ITS_Median, vecTmpVtx);
-    insert(vertexX_ITS_RMS, vecTmpVtx);
-    insert(vertexY_ITS_RMS, vecTmpVtx);
-    insert(vertexZ_ITS_RMS, vecTmpVtx);
-    insert(nPrimVertices_ITSTPC, vecTmpVtx);
-    insert(nVertexContributors_ITSTPC_Median, vecTmpVtx);
-    insert(nVertexContributors_ITSTPC_RMS, vecTmpVtx);
-    insert(vertexX_ITSTPC_Median, vecTmpVtx);
-    insert(vertexY_ITSTPC_Median, vecTmpVtx);
-    insert(vertexZ_ITSTPC_Median, vecTmpVtx);
-    insert(vertexX_ITSTPC_RMS, vecTmpVtx);
-    insert(vertexY_ITSTPC_RMS, vecTmpVtx);
-    insert(vertexZ_ITSTPC_RMS, vecTmpVtx);
-
-    const int nDummyValuesQ = quantileValues * nDummyValues / mTSTPC.getNBins();
-    std::vector<float> vecTmpQ(nDummyValuesQ, 0);
-    insert(nVertexContributors_Quantiles, vecTmpQ);
   }
 
   /// resize buffer for accumulated currents
@@ -697,6 +452,26 @@ struct TimeSeriesITSTPC {
     mSqrtITSChi2_Ncl_C_Median.resize(nTotal);
     mSqrtITSChi2_Ncl_A_RMS.resize(nTotal);
     mSqrtITSChi2_Ncl_C_RMS.resize(nTotal);
+    mITSTPCDeltaP2_A_Median.resize(nTotal);
+    mITSTPCDeltaP3_A_Median.resize(nTotal);
+    mITSTPCDeltaP4_A_Median.resize(nTotal);
+    mITSTPCDeltaP2_C_Median.resize(nTotal);
+    mITSTPCDeltaP3_C_Median.resize(nTotal);
+    mITSTPCDeltaP4_C_Median.resize(nTotal);
+    mITSTPCDeltaP2_A_RMS.resize(nTotal);
+    mITSTPCDeltaP3_A_RMS.resize(nTotal);
+    mITSTPCDeltaP4_A_RMS.resize(nTotal);
+    mITSTPCDeltaP2_C_RMS.resize(nTotal);
+    mITSTPCDeltaP3_C_RMS.resize(nTotal);
+    mITSTPCDeltaP4_C_RMS.resize(nTotal);
+    mTPCSigmaY2A_Median.resize(nTotal);
+    mTPCSigmaZ2A_Median.resize(nTotal);
+    mTPCSigmaY2C_Median.resize(nTotal);
+    mTPCSigmaZ2C_Median.resize(nTotal);
+    mTPCSigmaY2A_RMS.resize(nTotal);
+    mTPCSigmaZ2A_RMS.resize(nTotal);
+    mTPCSigmaY2C_RMS.resize(nTotal);
+    mTPCSigmaZ2C_RMS.resize(nTotal);
 
     const int nTotalVtx = nTotal / mTSTPC.getNBins();
     nPrimVertices.resize(nTotalVtx);
@@ -723,7 +498,7 @@ struct TimeSeriesITSTPC {
     nVertexContributors_Quantiles.resize(nTotalQ);
   }
 
-  ClassDefNV(TimeSeriesITSTPC, 3);
+  ClassDefNV(TimeSeriesITSTPC, 4);
 };
 
 } // end namespace tpc

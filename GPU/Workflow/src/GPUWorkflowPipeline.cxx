@@ -108,7 +108,7 @@ void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GP
   {
     std::unique_lock lk(mPipeline->mayInjectMutex);
     mPipeline->mayInjectCondition.wait(lk, [this, context]() { return mPipeline->mayInject && mPipeline->mayInjectTFId == context->mTFId; });
-    mPipeline->mayInjectTFId++;
+    mPipeline->mayInjectTFId = mPipeline->mayInjectTFId + 1;
     mPipeline->mayInject = false;
   }
   context->jobSubmitted = true;
@@ -177,7 +177,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
     ptrs.tpcZS = &tpcZS;
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
-    auto prepareBuffer = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0, Lifetime::Timeframe}, 0u);
+    auto prepareBuffer = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0}, 0u);
 
     size_t ptrsTotal = 0;
     const void* firstPtr = nullptr;

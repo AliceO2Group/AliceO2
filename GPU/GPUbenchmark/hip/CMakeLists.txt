@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 message(STATUS "Building GPU HIP benchmark")
-set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc -isystem /opt/rocm/include -fPIC")
+set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fgpu-rdc -isystem /opt/rocm/include -fPIC")
 
 o2_add_hipified_executable(gpu-memory-benchmark-hip
                            SOURCES ../cuda/benchmark.cu

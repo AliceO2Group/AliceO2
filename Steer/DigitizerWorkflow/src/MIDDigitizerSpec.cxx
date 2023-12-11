@@ -117,13 +117,13 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitsMerger.process(digitsAccum, labelsAccum, rofRecords);
 
     LOG(debug) << "MID: Sending " << digitsAccum.size() << " digits.";
-    pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, mDigitsMerger.getColumnData());
-    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, mDigitsMerger.getROFRecords());
+    pc.outputs().snapshot(Output{"MID", "DIGITS", 0}, mDigitsMerger.getColumnData());
+    pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0}, mDigitsMerger.getROFRecords());
     if (pc.outputs().isAllowed({"MID", "DIGITLABELS", 0})) {
-      pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
+      pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0}, mDigitsMerger.getMCContainer());
     }
     LOG(debug) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"MID", "ROMode", 0}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

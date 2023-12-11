@@ -249,8 +249,8 @@ o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(uint32_t 
   }
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPART"});
-  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"});
+  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPART"}, Lifetime::Sporadic);
+  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"}, Lifetime::Sporadic);
 
   const std::string id = "calib-tpc-caldet-merger-publisher";
 

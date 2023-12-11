@@ -84,6 +84,7 @@ void GeneratorHepMC::setup(const GeneratorFileOrCmdParam& param0,
   }
 
   mVersion = param.version;
+  mPrune = param.prune;
   setEventsToSkip(param.eventsToSkip);
 
   if (param.version != 0 and mCmd.empty()) {
@@ -121,10 +122,124 @@ Bool_t GeneratorHepMC::generateEvent()
 }
 
 /*****************************************************************/
+void GeneratorHepMC::pruneEvent(Select select)
+{
+  HepMC3::GenEvent& event = *mEvent;
+
+  auto particles = event.particles();
+  auto vertices = event.vertices();
+  std::list<HepMC3::GenParticlePtr> toRemove;
+
+  LOG(debug) << "HepMC events has " << particles.size()
+             << " particles and " << vertices.size()
+             << " vertices" << std::endl;
+
+  size_t nSelect = 0;
+  for (size_t i = 0; i < particles.size(); ++i) {
+    auto particle = particles[i];
+    if (select(particle)) {
+      nSelect++;
+      continue;
+    }
+
+    // Remove particle from the event
+    toRemove.push_back(particle);
+    LOG(debug) << " Remove " << std::setw(3) << particle->id();
+
+    auto endVtx = particle->end_vertex();
+    auto prdVtx = particle->production_vertex();
+    if (endVtx) {
+      // Disconnect this particle from its out going vertex
+      endVtx->remove_particle_in(particle);
+      LOG(debug) << " end " << std::setw(3) << endVtx->id();
+
+      if (prdVtx and prdVtx->id() != endVtx->id()) {
+        auto outbound = endVtx->particles_out();
+        auto inbound = endVtx->particles_in();
+        LOG(debug) << " prd " << std::setw(3) << prdVtx->id() << " "
+                   << std::setw(3) << outbound.size() << " out "
+                   << " "
+                   << std::setw(3) << inbound.size() << " in ";
+
+        // Other out-bound particles of the end vertex are attached as
+        // out-going to the production vertex of this particle.
+        for (auto outgoing : outbound) {
+          // This should also detach the particle from its old
+          // end-vertex.
+          if (outgoing) {
+            auto ee = outgoing->end_vertex();
+            if (not ee or ee->id() != prdVtx->id()) {
+              prdVtx->add_particle_out(outgoing);
+            }
+            LOG(debug) << "  " << std::setw(3) << outgoing->id();
+          }
+        }
+
+        // Other incoming particles to the end vertex of this
+        // particles are attached incoming particles to the production
+        // vertex of this particle.
+        for (auto incoming : inbound) {
+          if (incoming) {
+            auto pp = incoming->production_vertex();
+            if (not pp or pp->id() != prdVtx->id()) {
+              prdVtx->add_particle_in(incoming);
+            }
+
+            LOG(debug) << "  " << std::setw(3) << incoming->id();
+          }
+        }
+      }
+    }
+    if (prdVtx) {
+      prdVtx->remove_particle_out(particle);
+    }
+  }
+
+  LOG(debug) << "Selected " << nSelect << " particles\n"
+             << "Removing " << toRemove.size() << " particles";
+  size_t oldSize = particles.size();
+  for (auto particle : toRemove) {
+    event.remove_particle(particle);
+  }
+
+  std::list<HepMC3::GenVertexPtr> remVtx;
+  for (auto vtx : event.vertices()) {
+    if (not vtx or
+        (vtx->particles_out().empty() and
+         vtx->particles_in().empty())) {
+      remVtx.push_back(vtx);
+    }
+  }
+  LOG(debug) << "Removing " << remVtx.size() << " vertexes";
+  for (auto vtx : remVtx) {
+    event.remove_vertex(vtx);
+  }
+
+  LOG(debug) << "HepMC events was pruned from " << oldSize
+             << " particles to " << event.particles().size()
+             << " particles and " << event.vertices().size()
+             << " vertices";
+}
+
+/*****************************************************************/
 
 Bool_t GeneratorHepMC::importParticles()
 {
   /** import particles **/
+  if (mPrune) {
+    auto select = [](HepMC3::ConstGenParticlePtr particle) {
+      switch (particle->status()) {
+        case 1: // Final st
+        case 2: // Decayed
+        case 4: // Beam
+          return true;
+      }
+      // To also keep diffractive particles
+      // if (particle->pid() == 9902210) return true;
+      return false;
+    };
+    pruneEvent(select);
+  }
 
   /** loop over particles **/
   auto particles = mEvent->particles();
@@ -132,24 +247,10 @@ Bool_t GeneratorHepMC::importParticles()
 
     /** get particle information **/
     auto particle = particles.at(i);
-    auto pdg = particle->pid();
-    auto st = particle->status();
     auto momentum = particle->momentum();
     auto vertex = particle->production_vertex()->position();
-    auto parents = particle->parents();   // less efficient than via vertex
-    auto children = particle->children(); // less efficient than via vertex
-
-    /** get momentum information **/
-    auto px = momentum.x();
-    auto py = momentum.y();
-    auto pz = momentum.z();
-    auto et = momentum.t();
-
-    /** get vertex information **/
-    auto vx = vertex.x();
-    auto vy = vertex.y();
-    auto vz = vertex.z();
-    auto vt = vertex.t();
+    auto parents = particle->parents();
+    auto children = particle->children();
 
     /** get mother information **/
     auto m1 = parents.empty() ? -1 : parents.front()->id() - 1;
@@ -160,8 +261,23 @@ Bool_t GeneratorHepMC::importParticles()
     auto d2 = children.empty() ? -1 : children.back()->id() - 1;
 
     /** add to particle vector **/
-    mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
-    o2::mcutils::MCGenHelper::encodeParticleStatusAndTracking(mParticles.back(), st == 1);
+    mParticles.push_back(TParticle(particle->pid(),            // Particle type
+                                   particle->status(),         // Status code
+                                   m1,                         // First mother
+                                   m2,                         // Second mother
+                                   d1,                         // First daughter
+                                   d2,                         // Last daughter
+                                   momentum.x(),               // X-momentum
+                                   momentum.y(),               // Y-momentum
+                                   momentum.z(),               // Z-momentum
+                                   momentum.t(),               // Energy
+                                   vertex.x(),                 // Production X
+                                   vertex.y(),                 // Production Y
+                                   vertex.z(),                 // Production Z
+                                   vertex.t()));               // Production time
+    o2::mcutils::MCGenHelper::encodeParticleStatusAndTracking( //
+      mParticles.back(),                                       // Add to back
+      particle->status() == 1);                                // only final state are to be propagated
 
   } /** end of loop over particles **/
 

@@ -44,10 +44,10 @@ void DigitReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mDigits.size() << " Digits in " << mTRs.size() << " TriggerRecords at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-  pc.outputs().snapshot(Output{mOrigin, "DIGITTRIGREC", 0, Lifetime::Timeframe}, mTRs);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITS", 0}, mDigits);
+  pc.outputs().snapshot(Output{mOrigin, "DIGITTRIGREC", 0}, mTRs);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe}, mMCTruth);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSMCTR", 0}, mMCTruth);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

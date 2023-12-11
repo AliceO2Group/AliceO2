@@ -128,9 +128,9 @@ void HMPMatcherSpec::run(ProcessingContext& pc)
 
   mMatcher.run(recoData);
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
+  pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0}, mMatcher.getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
   if (mUseMC) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe}, mMatcher.getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0}, mMatcher.getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
   }
 
   mTimer.Stop();

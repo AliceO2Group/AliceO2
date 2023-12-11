@@ -13,6 +13,7 @@
 #define ALICEO2_FT0_DIGITIZER_H
 
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsFIT/DeadChannelMap.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
@@ -73,6 +74,7 @@ class Digitizer
 
   void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const*
                           caliboffsets) { mCalibOffset = caliboffsets; };
+  void setDeadChannelMap(o2::fit::DeadChannelMap const* deadChannelMap) { mDeadChannelMap = deadChannelMap; };
   double getTimeOffsetWrtBC() const { return mIntRecord.getTimeOffsetWrtBC(); }
 
   struct CFDOutput {
@@ -165,6 +167,7 @@ class Digitizer
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
   o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
+  o2::fit::DeadChannelMap const* mDeadChannelMap = nullptr;
 
   ClassDefNV(Digitizer, 3);
 };

@@ -81,9 +81,9 @@ DataProcessorSpec getClustererSpec(bool sendMC)
         // forward the control information
         // FIXME define and use flags in TPCSectorHeader
         o2::tpc::TPCSectorHeader header{sector};
-        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, {header}}, fanSpec);
         if (DataRefUtils::isValid(mclabelref)) {
-          pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {header}}, fanSpec);
+          pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, {header}}, fanSpec);
         }
         return;
       }
@@ -131,12 +131,12 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       }
       // FIXME: that should be a case for pmr, want to send the content of the vector as a binary
       // block by using move semantics
-      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, clusterArray.size());
+      auto outputPages = pc.outputs().make<ClusterHardwareContainer8kb>(Output{gDataOriginTPC, "CLUSTERHW", fanSpec, {*sectorHeader}}, clusterArray.size());
       std::copy(clusterArray.begin(), clusterArray.end(), outputPages.begin());
       if (DataRefUtils::isValid(mclabelref)) {
         ConstMCLabelContainer mcflat;
         mctruthArray.flatten_to(mcflat);
-        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, Lifetime::Timeframe, {*sectorHeader}}, mcflat);
+        pc.outputs().snapshot(Output{gDataOriginTPC, "CLUSTERHWMCLBL", fanSpec, {*sectorHeader}}, mcflat);
       }
     };
 

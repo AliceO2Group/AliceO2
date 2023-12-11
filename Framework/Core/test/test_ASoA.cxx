@@ -33,12 +33,12 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int x, int y) { return x + y; });
 DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int, test::x + test::y);
 } // namespace test
 
-DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
-DECLARE_SOA_TABLE(Points3Ds, "TST", "PTS3D", o2::soa::Index<>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points, "TEST", "POINTS", test::X, test::Y);
+DECLARE_SOA_TABLE(Points3Ds, "TEST", "PTS3D", o2::soa::Index<>, test::X, test::Y, test::Z);
 
-DECLARE_SOA_TABLE(Points3DsMk1, "TST", "PTS3D_1", o2::soa::Index<>, o2::soa::Marker<1>, test::X, test::Y, test::Z);
-DECLARE_SOA_TABLE(Points3DsMk2, "TST", "PTS3D_2", o2::soa::Index<>, o2::soa::Marker<2>, test::X, test::Y, test::Z);
-DECLARE_SOA_TABLE(Points3DsMk3, "TST", "PTS3D_3", o2::soa::Index<>, o2::soa::Marker<3>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk1, "TEST", "PTS3D_1", o2::soa::Index<>, o2::soa::Marker<1>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk2, "TEST", "PTS3D_2", o2::soa::Index<>, o2::soa::Marker<2>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk3, "TEST", "PTS3D_3", o2::soa::Index<>, o2::soa::Marker<3>, test::X, test::Y, test::Z);
 
 namespace test
 {
@@ -46,7 +46,7 @@ DECLARE_SOA_COLUMN_FULL(SomeBool, someBool, bool, "someBool");
 DECLARE_SOA_COLUMN_FULL(Color, color, int32_t, "color");
 } // namespace test
 
-DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color, test::SomeBool);
+DECLARE_SOA_TABLE(Infos, "TEST", "INFOS", test::Color, test::SomeBool);
 
 namespace test
 {
@@ -57,8 +57,8 @@ DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "_B");
 DECLARE_SOA_COLUMN_FULL(Thickness, thickness, int, "thickness");
 } // namespace test
 
-DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
-DECLARE_SOA_TABLE(SegmentsExtras, "TST", "SEGMENTSEX", test::Thickness);
+DECLARE_SOA_TABLE(Segments, "TEST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
+DECLARE_SOA_TABLE(SegmentsExtras, "TEST", "SEGMENTSEX", test::Thickness);
 
 namespace test
 {
@@ -66,7 +66,7 @@ DECLARE_SOA_COLUMN(L1, l1, std::vector<float>);
 DECLARE_SOA_COLUMN(L2, l2, std::vector<int>);
 } // namespace test
 
-DECLARE_SOA_TABLE(Lists, "TST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
+DECLARE_SOA_TABLE(Lists, "TEST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
 } // namespace o2::aod
 
 TEST_CASE("TestMarkers")
@@ -712,16 +712,16 @@ TEST_CASE("TestEmptyTables")
 
 namespace o2::aod
 {
-DECLARE_SOA_TABLE(Origints, "TST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
+DECLARE_SOA_TABLE(Origints, "TEST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
 namespace test
 {
 DECLARE_SOA_INDEX_COLUMN(Origint, origint);
 DECLARE_SOA_INDEX_COLUMN_FULL(AltOrigint, altOrigint, int, Origints, "_alt");
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Origint, origints);
 } // namespace test
-DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OrigintId);
-DECLARE_SOA_TABLE(OtherReferences, "TST", "OREFS", o2::soa::Index<>, test::AltOrigintId);
-DECLARE_SOA_TABLE(ManyReferences, "TST", "MREFS", o2::soa::Index<>, test::OrigintIds);
+DECLARE_SOA_TABLE(References, "TEST", "REFS", o2::soa::Index<>, test::OrigintId);
+DECLARE_SOA_TABLE(OtherReferences, "TEST", "OREFS", o2::soa::Index<>, test::AltOrigintId);
+DECLARE_SOA_TABLE(ManyReferences, "TEST", "MREFS", o2::soa::Index<>, test::OrigintIds);
 } // namespace o2::aod
 TEST_CASE("TestIndexToFiltered")
 {
@@ -786,9 +786,9 @@ DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(PointSeq, pointSeq);
 DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(PointSet, pointSet);
 } // namespace test
 
-DECLARE_SOA_TABLE(PointsRef, "TST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
-DECLARE_SOA_TABLE(PointsRefF, "TST", "PTSREFF", test::SinglePointId, test::Points3DIdSlice, test::Points3DIds);
-DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
+DECLARE_SOA_TABLE(PointsRef, "TEST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsRefF, "TEST", "PTSREFF", test::SinglePointId, test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsSelfIndex, "TEST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
                   test::PointSeqIdSlice, test::PointSetIds);
 } // namespace o2::aod
 
@@ -1099,7 +1099,7 @@ DECLARE_SOA_COLUMN(SmallIntArray, smallIntArray, int8_t[32]);
 DECLARE_SOA_BITMAP_COLUMN(BoolArray, boolArray, 32);
 } // namespace test
 
-DECLARE_SOA_TABLE(BILists, "TST", "BILISTS", o2::soa::Index<>, test::SmallIntArray, test::BoolArray);
+DECLARE_SOA_TABLE(BILists, "TEST", "BILISTS", o2::soa::Index<>, test::SmallIntArray, test::BoolArray);
 } // namespace o2::aod
 
 TEST_CASE("TestArrayColumns")

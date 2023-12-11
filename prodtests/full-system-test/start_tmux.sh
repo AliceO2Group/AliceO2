@@ -78,10 +78,10 @@ if [ $1 == "dd" ]; then
   export GPU_NUM_MEM_REG_CALLBACKS=$(($NUM_DPL_WORKFLOWS + 3))
 elif [ $1 == "tf" ]; then
   export CMD=tf-reader.sh
-  export GPU_NUM_MEM_REG_CALLBACKS=$((NUM_DPL_WORKFLOWS + 1))
+  export GPU_NUM_MEM_REG_CALLBACKS=$((NUM_DPL_WORKFLOWS + ${NUMAGPUIDS:-0}))
 elif [ $1 == "rr" ]; then
   export CMD=raw-reader.sh
-  export GPU_NUM_MEM_REG_CALLBACKS=$(($NUM_DPL_WORKFLOWS + 1))
+  export GPU_NUM_MEM_REG_CALLBACKS=$(($NUM_DPL_WORKFLOWS + ${NUMAGPUIDS:-0}))
 fi
 
 if [ "0$FST_TMUX_NOWAIT" != "01" ]; then
@@ -111,11 +111,6 @@ else
   FST_SLEEP2=30
 fi
 [[ ! -z $FST_TMUX_DD_WAIT ]] && FST_SLEEP2=$FST_TMUX_DD_WAIT
-
-if [[ ! -z $FST_TMUX_SINGLENUMA ]]; then
-  eval "FST_SLEEP$((FST_TMUX_SINGLENUMA ^ 1))=\"0; echo SKIPPED; sleep 1000; exit\""
-  export GPU_NUM_MEM_REG_CALLBACKS=$(($GPU_NUM_MEM_REG_CALLBACKS - 1))
-fi
 
 if workflow_has_parameter CALIB_PROXIES; then
   CALIB_COMMAND="$GEN_TOPO_MYDIR/aggregator-workflow.sh"

@@ -67,7 +67,7 @@ bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const s
   if (sampling.first != SamplingTypes::sampleAll) {
     auto sampleTrack = [&]() {
       if (samplingID == -1) {
-        LOGP(fatal, "Sampling type sampleID not supported for stream flag {}", streamFlag);
+        LOGP(fatal, "Sampling type sampleID not supported for stream flag {}", (int)streamFlag);
       }
       // sample on samplingID (e.g. track level)
       static thread_local std::unordered_map<StreamFlags, std::pair<size_t, bool>> idMap;

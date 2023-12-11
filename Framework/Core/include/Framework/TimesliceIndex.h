@@ -133,6 +133,9 @@ class TimesliceIndex
   OldestOutputInfo updateOldestPossibleOutput();
   [[nodiscard]] InputChannelInfo const& getChannelInfo(ChannelIndex channel) const;
 
+  // Reset the TimesliceIndex to its initial state
+  auto reset() -> void;
+
  private:
   /// @return the oldest slot possible so that we can eventually override it.
   /// This is the timeslices for all the in flight parts.

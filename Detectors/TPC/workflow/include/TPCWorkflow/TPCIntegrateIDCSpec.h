@@ -92,14 +92,14 @@ class TPCIntegrateIDCDevice : public o2::framework::Task
     for (const auto& idcs : mIDCs[sector].get()) {
       const header::DataHeader::SubSpecificationType subSpec{cru << 7};
       if (mIDCFormat == IDCFormat::Sim) {
-        output.snapshot(Output{gDataOriginTPC, getDataDescription(mIDCFormat), subSpec, Lifetime::Timeframe}, idcs);
+        output.snapshot(Output{gDataOriginTPC, getDataDescription(mIDCFormat), subSpec}, idcs);
       } else {
         // TODO
         // convert to format from thorsten here
         // send.......
         // DUMMY FOR NOW
         // const TPCCRUHeader cruheader{cru, mIntegrationIntervalsPerTF};
-        output.snapshot(Output{gDataOriginTPC, getDataDescription(mIDCFormat), subSpec, Lifetime::Timeframe}, idcs);
+        output.snapshot(Output{gDataOriginTPC, getDataDescription(mIDCFormat), subSpec}, idcs);
       }
       ++cru;
     }

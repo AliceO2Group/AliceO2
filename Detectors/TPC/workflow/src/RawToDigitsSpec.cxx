@@ -226,10 +226,10 @@ class TPCDigitDumpDevice : public o2::framework::Task
       o2::tpc::TPCSectorHeader header{isector};
       header.activeSectors = mActiveSectors;
       // digit for now are transported per sector, not per lane
-      output.snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe, header},
+      output.snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(isector), header},
                       mDigitDump.getDigits(isector));
       if (mSendCEdigits) {
-        output.snapshot(Output{"TPC", "CEDIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe, header},
+        output.snapshot(Output{"TPC", "CEDIGITS", static_cast<SubSpecificationType>(isector), header},
                         ceDigits[isector]);
       }
     }

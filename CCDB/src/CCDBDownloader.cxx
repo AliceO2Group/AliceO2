@@ -403,30 +403,37 @@ std::string CCDBDownloader::trimHostUrl(std::string full_host_url) const
 {
   CURLU* host_url = curl_url();
   curl_url_set(host_url, CURLUPART_URL, full_host_url.c_str(), 0);
-  // Get host part
+
+  // Get host part (the only critical part)
   char* host;
   CURLUcode host_result = curl_url_get(host_url, CURLUPART_HOST, &host, 0);
-  std::string host_name;
-  if (host_result == CURLUE_OK) {
-    // Host part present
-    host_name = host;
-    curl_free(host);
-  } else {
-    LOG(error) << "CCDBDownloader: Malformed url detected when processing redirect, could not identify the host part: " << host;
+  if (host_result != CURLUE_OK) {
+    LOG(error) << "CCDBDownloader: Malformed url detected when processing redirect, could not identify the host part: " << full_host_url;
     curl_url_cleanup(host_url);
     return "";
   }
   // Get scheme (protocol) part
   char* scheme;
   CURLUcode scheme_result = curl_url_get(host_url, CURLUPART_SCHEME, &scheme, 0);
+  // Get port
+  char* port;
+  CURLUcode port_result = curl_url_get(host_url, CURLUPART_PORT, &port, 0);
+
   curl_url_cleanup(host_url);
+
+  // Assemble parts
+  std::string trimmed_url = "";
   if (scheme_result == CURLUE_OK) {
-    // If protocol present combine with host
-    curl_free(scheme);
-    return scheme + std::string("://") + host_name;
-  } else {
-    return host_name;
+    trimmed_url += scheme + std::string("://");
+    free(scheme);
   }
+  trimmed_url += host;
+  free(host);
+  if (port_result == CURLUE_OK) {
+    trimmed_url += std::string(":") + port;
+    free(port);
+  }
+  return trimmed_url;
 }
 
 std::string CCDBDownloader::prepareRedirectedURL(std::string address, std::string potentialHost) const
@@ -469,38 +476,36 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
     } break;
     case ASYNCHRONOUS: {
       DownloaderRequestData* requestData = performData->requestData;
-
       if (requestData->headers) {
         for (auto& p : requestData->hoPair.header) {
           (*requestData->headers)[p.first] = p.second;
         }
       }
-      if (requestData->errorflag && requestData->headers) {
-        (*requestData->headers)["Error"] = "An error occurred during retrieval";
-      }
-
       // Log that transfer finished
       long httpCode;
       curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &httpCode);
       char* url;
       curl_easy_getinfo(easy_handle, CURLINFO_EFFECTIVE_URL, &url);
       LOG(debug) << "Transfer for " << url << " finished with code " << httpCode << "\n";
+      std::string currentHost = requestData->hosts[performData->hostInd];
+      std::string loggingMessage = prepareLogMessage(currentHost, requestData->userAgent, requestData->path, requestData->timestamp, requestData->headers, httpCode);
 
       // Get alternative locations for the same host
       auto locations = getLocations(&(requestData->hoPair.header));
 
       // React to received http code
-      if (404 == httpCode) {
-        LOG(error) << "Requested resource does not exist: " << url;
-      } else if (304 == httpCode) {
-        LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
-        contentRetrieved = true;
-      } else if (300 <= httpCode && httpCode < 400 && performData->locInd < locations.size()) {
-        followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
-      } else if (200 <= httpCode && httpCode < 300) {
-        contentRetrieved = true;
+      if (200 <= httpCode && httpCode < 400) {
+        LOG(debug) << loggingMessage;
+        if (304 == httpCode) {
+          LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
+          contentRetrieved = true;
+        } else if (300 <= httpCode && httpCode < 400 && performData->locInd < locations.size()) {
+          followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
+        } else if (200 <= httpCode && httpCode < 300) {
+          contentRetrieved = true;
+        }
       } else {
-        LOG(error) << "Error in fetching object " << url << ", curl response code:" << httpCode;
+        LOG(error) << loggingMessage;
       }
 
       // Check if content was retrieved, or scheduled to be retrieved
@@ -516,12 +521,18 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
       if (!rescheduled) {
         // No more transfers will be done for this request, do cleanup specific for ASYNCHRONOUS calls
+        if (!contentRetrieved) {
+          if (requestData->hoPair.object) {
+            requestData->hoPair.object->clear();
+          }
+          if (requestData->headers) {
+            (*requestData->headers)["Error"] = "An error occurred during retrieval";
+          }
+          LOGP(alarm, "Curl request to {}, response code: {}", url, httpCode);
+        }
         --(*performData->requestsLeft);
         delete requestData;
         delete performData->codeDestination;
-        if (!contentRetrieved) {
-          LOGP(alarm, "Curl request to {}, response code: {}", url, httpCode);
-        }
       }
     } break;
   }
@@ -685,6 +696,23 @@ void CCDBDownloader::asynchSchedule(CURL* handle, size_t* requestCounter)
   checkHandleQueue();
 
   // return codeVector;
+}
+
+std::string CCDBDownloader::prepareLogMessage(std::string host_url, std::string userAgent, const std::string& path, long ts, const std::map<std::string, std::string>* headers, long httpCode) const
+{
+  std::string upath{path};
+  if (headers) {
+    auto ent = headers->find("Valid-From");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+    ent = headers->find("ETag");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+  }
+  upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
+  return fmt::format("CcdbDownloader finished transfer {}{}{} for {} (agent_id: {}) with http code: {}", host_url, (host_url.back() == '/') ? "" : "/", upath, (ts < 0) ? getCurrentTimestamp() : ts, userAgent, httpCode);
 }
 
 } // namespace o2

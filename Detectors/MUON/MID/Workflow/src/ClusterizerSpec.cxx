@@ -99,13 +99,13 @@ class ClusterizerDeviceDPL
       // Clear the index correlations that will be used in the next cluster processing
       mCorrelation.clear();
 
-      pc.outputs().snapshot(of::Output{"MID", "CLUSTERSLABELS", 0, of::Lifetime::Timeframe}, mClusterLabeler.getContainer());
+      pc.outputs().snapshot(of::Output{"MID", "CLUSTERSLABELS", 0}, mClusterLabeler.getContainer());
       LOG(debug) << "Sent " << mClusterLabeler.getContainer().getIndexedSize() << " indexed clusters";
     }
 
-    pc.outputs().snapshot(of::Output{"MID", "CLUSTERS", 0, of::Lifetime::Timeframe}, mClusterizer.getClusters());
+    pc.outputs().snapshot(of::Output{"MID", "CLUSTERS", 0}, mClusterizer.getClusters());
     LOG(debug) << "Sent " << mClusterizer.getClusters().size() << " clusters";
-    pc.outputs().snapshot(of::Output{"MID", "CLUSTERSROF", 0, of::Lifetime::Timeframe}, mClusterizer.getROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "CLUSTERSROF", 0}, mClusterizer.getROFRecords());
     LOG(debug) << "Sent " << mClusterizer.getROFRecords().size() << " ROF";
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;

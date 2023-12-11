@@ -63,7 +63,7 @@ void IRFrameReaderSpec::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(debug) << "Pushing " << mIRF.size() << " IR-frames in at entry " << ent;
-  pc.outputs().snapshot(Output{mDataOrigin, "IRFRAMES", mSubSpec, Lifetime::Timeframe}, mIRF);
+  pc.outputs().snapshot(Output{mDataOrigin, "IRFRAMES", mSubSpec}, mIRF);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

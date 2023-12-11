@@ -170,9 +170,9 @@ class ExampleAlphabet
     // reference
     reference operator*();
     // comparison
-    bool operator==(const self_type& other);
+    bool operator==(const self_type& other) const;
     // comparison
-    bool operator!=(const self_type& other);
+    bool operator!=(const self_type& other) const;
 
    private:
   };
@@ -300,8 +300,8 @@ class ContiguousAlphabet
     // pointer operator->() const {return &mValue;}
     // reference operator[](size_type n) const;
 
-    bool operator==(const self_type& other) { return mValue == other.mValue && mIsEnd == other.mIsEnd; }
-    bool operator!=(const self_type& other) { return not(*this == other); }
+    bool operator==(const self_type& other) const { return mValue == other.mValue && mIsEnd == other.mIsEnd; }
+    bool operator!=(const self_type& other) const { return not(*this == other); }
 
    private:
     value_type mValue;

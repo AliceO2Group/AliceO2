@@ -23,9 +23,9 @@
 #include "TPCBase/ParameterGas.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/ConfigurableParamHelper.h>
-namespace o2
-{
-namespace tpc
+#include <boost/property_tree/ptree.hpp>
+
+namespace o2::tpc
 {
 
 constexpr float NominalTimeBin = 8 * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(ParameterElectronics_test1)
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCsaturation, 1024, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ZbinWidth, NominalTimeBin, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ElectronCharge, 1.602e-19, 1e-3);
-  BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::ZeroSuppression);
+  BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::Auto);
 
   BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCEleParam.NShapedPoints") == 8);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.PeakingTime"), 160e-3, 1e-3);
@@ -367,5 +367,4 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.KappaStack"), 32, 1e-12);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.EfficiencyStack"), 33, 1e-3);
 }
-} // namespace tpc
 } // namespace o2

@@ -62,7 +62,7 @@ class TrackerTraits
   virtual void findCellsNeighboursHybrid(const int iteration) { LOGP(error, "findCellsNeighboursHybrid: this method should never be called with CPU traits"); }
   virtual void findRoadsHybrid(const int iteration) { LOGP(error, "findRoadsHybrid: this method should never be called with CPU traits"); }
   virtual void findTracksHybrid(const int iteration) { LOGP(error, "findTracksHybrid: this method should never be called with CPU traits"); }
-  virtual void findTracks();
+  virtual void findTracks() { LOGP(error, "findTracks: this method is deprecated."); }
   virtual void extendTracks(const int iteration);
   virtual void findShortPrimaries();
   virtual void setBz(float bz);
@@ -98,7 +98,6 @@ class TrackerTraits
   float mBz = 5.f;
 
  private:
-  void traverseCellsTree(const int, const int);
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3);
   bool fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut = o2::constants::math::VeryBig, float chi2ndfcut = o2::constants::math::VeryBig, float maxQoverPt = o2::constants::math::VeryBig, int nCl = 0);
 

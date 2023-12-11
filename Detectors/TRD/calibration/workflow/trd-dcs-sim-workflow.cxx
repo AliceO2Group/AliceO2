@@ -31,20 +31,21 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftImon[00..539]", 0, 50.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftUmon[00..539]", 2249., 2250.});
 
-  // temperatures, pressures, config and other
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<std::string>{"trd_fedCFGtag[00..539]", "foo", "bar"});
+  // FED parameters
+  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_chamberStatus[00..539]", 1, 5});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<std::string>{"trd_CFGtag[00..539]", "foo", "bar"});
   // FIXME if I put a longer string here, e.g. "cf2_krypton_tb30:r5927" then dcs-random-data-generator crashes (std::bad_alloc or std::length_error)
 
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_fedChamberStatus[00..539]", 0, 255});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_fedEnvTemp[00..539]", 10., 40.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvTempCavern", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvTempP2", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvPressure00", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvPressure01", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvPressure02", 0, 100.});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_cavernHumidity", 0, 100.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runNo", 254, 255});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runType", 254, 255});
+  // Env parameters (temperatures, pressures, humidity)
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernTemperature", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"temperature_P2_external", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernAtmosPressure", 800, 1000.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"SurfaceAtmosPressure", 800, 1000.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"CavernAtmosPressure2", 800, 1000.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"UXC2Humidity", 0, 100.});
+
+  // Run parameters
+  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_fed_runNo", 254, 255});
 
   return o2::framework::WorkflowSpec{o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "TRD")};
 }

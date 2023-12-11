@@ -87,8 +87,8 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   //  decodeReadout(pc);
   // decodeRawFile(pc);
 
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mIntReco);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0}, mDeco->mDigits);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0}, mDeco->mIntReco);
 
   LOG(debug) << "Writing   Digitis=" << mDeco->mDigits.size() << "/" << mTotalDigits << " Frame=" << mTotalFrames << " IntRec " << mDeco->mIntReco;
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));

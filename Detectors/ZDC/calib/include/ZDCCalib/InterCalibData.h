@@ -27,16 +27,16 @@ namespace zdc
 
 struct InterCalibData {
   static constexpr int NPAR = 6;     /// Dimension of matrix (1 + 4 coefficients + offset)
-  static constexpr int NH = 7;       /// ZNA, ZPA, ZNC, ZPC, ZEM, ZNI, ZPI
+  static constexpr int NH = 9;       /// ZNA, ZPA, ZNC, ZPC, ZEM, ZNI, ZPI, ZPAX, ZPCX
   double mSum[NH][NPAR][NPAR] = {0}; /// Cumulated sums
   uint64_t mCTimeBeg = 0;            /// Time of processed time frame
   uint64_t mCTimeEnd = 0;            /// Time of processed time frame
-  static constexpr const char* DN[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM", "ZNI", "ZPI"};
+  static constexpr const char* DN[NH] = {"ZNA", "ZPA", "ZNC", "ZPC", "ZEM", "ZNI", "ZPI", "ZPAX", "ZPCX"};
   InterCalibData& operator+=(const InterCalibData& other);
   int getEntries(int ih) const;
   void print() const;
   void setCreationTime(uint64_t ctime);
-  ClassDefNV(InterCalibData, 1);
+  ClassDefNV(InterCalibData, 2);
 };
 
 } // namespace zdc

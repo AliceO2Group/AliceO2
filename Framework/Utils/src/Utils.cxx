@@ -28,7 +28,7 @@ namespace workflows
 Output getOutput(const o2f::OutputSpec outputSpec)
 {
   auto concrete = DataSpecUtils::asConcreteDataMatcher(outputSpec);
-  return Output{concrete.origin, concrete.description, concrete.subSpec, outputSpec.lifetime};
+  return Output{concrete.origin, concrete.description, concrete.subSpec};
 }
 
 // This method can convert a vector of OutputSpec into a vector of Output.

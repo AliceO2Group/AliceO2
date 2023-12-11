@@ -143,7 +143,7 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
     mDigitizer.setMCLabels(&mLabels);
 
     // digits are directly put into DPL owned resource
-    auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0, Lifetime::Timeframe});
+    auto& digitsAccum = pc.outputs().make<std::vector<itsmft::Digit>>(Output{mOrigin, "DIGITS", 0});
 
     auto accumulate = [this, &digitsAccum]() {
       // accumulate result of single event processing, called after processing every event supplied
@@ -216,17 +216,17 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
 
     // here we have all digits and labels and we can send them to consumer (aka snapshot it onto output)
 
-    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0, Lifetime::Timeframe}, mROFRecordsAccum);
+    pc.outputs().snapshot(Output{mOrigin, "DIGITSROF", 0}, mROFRecordsAccum);
     if (mWithMCTruth) {
-      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0, Lifetime::Timeframe}, mMC2ROFRecordsAccum);
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe});
+      pc.outputs().snapshot(Output{mOrigin, "DIGITSMC2ROF", 0}, mMC2ROFRecordsAccum);
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0});
       mLabelsAccum.flatten_to(sharedlabels);
       // free space of existing label containers
       mLabels.clear_andfreememory();
       mLabelsAccum.clear_andfreememory();
     }
     LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{mOrigin, "ROMode", 0}, mROMode);
 
     timer.Stop();
     LOG(info) << "Digitization took " << timer.CpuTime() << "s";

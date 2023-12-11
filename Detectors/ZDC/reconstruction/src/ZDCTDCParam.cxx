@@ -52,9 +52,28 @@ float ZDCTDCParam::getFactor(uint32_t ich) const
   }
 }
 
+void ZDCTDCParam::setOffset(uint32_t ich, float val)
+{
+  if (ich >= 0 && ich < NTDCChannels) {
+    tdc_offset[ich] = val;
+  } else {
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
+  }
+}
+
+float ZDCTDCParam::getOffset(uint32_t ich) const
+{
+  if (ich >= 0 && ich < NTDCChannels) {
+    return tdc_offset[ich];
+  } else {
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
+    return 0;
+  }
+}
+
 void ZDCTDCParam::print() const
 {
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(info) << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns factor = " << tdc_calib[itdc];
+    LOG(info) << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns factor = " << tdc_calib[itdc] << " offset = " << tdc_offset[itdc];
   }
 }

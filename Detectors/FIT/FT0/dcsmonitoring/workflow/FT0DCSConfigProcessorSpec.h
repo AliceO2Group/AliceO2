@@ -59,8 +59,8 @@ DataProcessorSpec getFT0DCSConfigProcessorSpec()
 
   return DataProcessorSpec{
     "ft0-dcs-config-processor",
-    Inputs{{"inputConfig", o2::header::gDataOriginFT0, "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", o2::header::gDataOriginFT0, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", o2::header::gDataOriginFT0, "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", o2::header::gDataOriginFT0, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSConfigProcessor>("FT0", ddDChM)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},

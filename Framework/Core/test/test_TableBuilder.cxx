@@ -240,7 +240,7 @@ TEST_CASE("TestSoAIntegration")
 
 TEST_CASE("TestDataAllocatorReturnType")
 {
-  const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
+  const Output output{"TST", "DUMMY", 0};
 }
 
 TEST_CASE("TestPodInjestion")

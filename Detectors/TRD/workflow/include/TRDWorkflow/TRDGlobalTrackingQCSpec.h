@@ -63,7 +63,7 @@ class TRDGlobalTrackingQC : public Task
     mQC.reset();
     mQC.setInput(recoData);
     mQC.run();
-    pc.outputs().snapshot(Output{"TRD", "TRACKINGQC", 0, Lifetime::Timeframe}, mQC.getTrackQC());
+    pc.outputs().snapshot(Output{"TRD", "TRACKINGQC", 0}, mQC.getTrackQC());
   }
   void endOfStream(framework::EndOfStreamContext& ec) final {}
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final
