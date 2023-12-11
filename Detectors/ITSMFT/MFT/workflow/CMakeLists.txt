@@ -19,6 +19,7 @@ o2_add_library(MFTWorkflow
                        src/TrackWriterSpec.cxx
                        src/MFTAssessmentSpec.cxx
                        src/TracksToRecordsSpec.cxx
+                       src/DeadMapBuilderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::SimulationDataFormat
@@ -28,6 +29,9 @@ o2_add_library(MFTWorkflow
                                      O2::DataFormatsMFT
                                      O2::ITSMFTWorkflow
                                      O2::MFTAlignment
+				     O2::DetectorsCalibration
+				     O2::DetectorsDCS
+                                     O2::DataFormatsDCS
                                      O2::GlobalTrackingWorkflowReaders)
 o2_add_executable(reco-workflow
                   SOURCES src/mft-reco-workflow.cxx
@@ -53,3 +57,8 @@ o2_add_executable(tracks2records-workflow
                   SOURCES src/mft-tracks2records-workflow.cxx
                   COMPONENT_NAME mft
                   PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)
+
+o2_add_executable(deadmap-builder-workflow
+                  SOURCES src/mft-deadmap-builder-workflow.cxx
+                  COMPONENT_NAME mft
+		  PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)	  
