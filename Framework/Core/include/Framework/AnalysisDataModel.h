@@ -1249,7 +1249,11 @@ namespace v0
 DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //! Positive track
 DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Negative track
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
-DECLARE_SOA_COLUMN(IsStandardV0, isStandardV0, bool);                   //! if V0 passes standalone V0 cuts in svertexer
+DECLARE_SOA_COLUMN(V0Type, v0Type, uint8_t);                            //! custom bitmap for various selections (see below)
+
+DECLARE_SOA_DYNAMIC_COLUMN(IsStandardV0, isStandardV0, //! is standard V0 
+                           [](uint8_t V0Type) -> bool { return V0Type & (1 << 0); });
+
 } // namespace v0
 
 DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
@@ -1261,7 +1265,8 @@ DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version
 DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version 002)
                             o2::soa::Index<>, v0::CollisionId,
                             v0::PosTrackId, v0::NegTrackId,
-                            v0::IsStandardV0);
+                            v0::V0Type, 
+                            v0::IsStandardV0<v0::V0Type>);
 
 using V0s = V0s_001; //! this defines the current default version
 using V0 = V0s::iterator;
