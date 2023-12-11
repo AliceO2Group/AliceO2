@@ -53,7 +53,6 @@ void MFTDeadMapBuilder::init(InitContext& ic)
   mDoLocalOutput = ic.options().get<bool>("local-output");
   mObjectName = ic.options().get<std::string>("output-filename");
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
-  
 
   LOG(info) << "Sampling one TF every " << mTFSampling;
 
@@ -142,9 +141,9 @@ void MFTDeadMapBuilder::run(ProcessingContext& pc)
 
   std::set<short int> universalSet;
   std::generate_n(std::inserter(universalSet, universalSet.begin()), 936, [n = 0]() mutable { return n++; });
-  std::set_difference(universalSet.begin(), universalSet.end(),        // Getting vector of dead chips
-                        mLanesAlive.begin(), mLanesAlive.end(),
-                        std::back_inserter(*mDeadMapTF));
+  std::set_difference(universalSet.begin(), universalSet.end(), // Getting vector of dead chips
+                      mLanesAlive.begin(), mLanesAlive.end(),
+                      std::back_inserter(*mDeadMapTF));
 
   // filling the tree
   mTreeObject->Fill();

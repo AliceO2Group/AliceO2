@@ -110,7 +110,6 @@ class MFTDeadMapBuilder : public Task
   void finalizeOutput();
   void PrepareOutputCcdb(DataAllocator& output);
 
-
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
 
