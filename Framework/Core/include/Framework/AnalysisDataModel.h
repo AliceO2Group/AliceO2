@@ -1249,7 +1249,7 @@ namespace v0
 DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //! Positive track
 DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Negative track
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
-DECLARE_SOA_COLUMN(IsStandardV0, isStandardV0, bool);                       //! if V0 passes standalone V0 cuts in svertexer
+DECLARE_SOA_COLUMN(IsStandardV0, isStandardV0, bool);                   //! if V0 passes standalone V0 cuts in svertexer
 } // namespace v0
 
 DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
@@ -1260,7 +1260,7 @@ DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version
                             v0::PosTrackId, v0::NegTrackId);
 DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version 002)
                             o2::soa::Index<>, v0::CollisionId,
-                            v0::PosTrackId, v0::NegTrackId, 
+                            v0::PosTrackId, v0::NegTrackId,
                             v0::IsStandardV0);
 
 using V0s = V0s_001; //! this defines the current default version
