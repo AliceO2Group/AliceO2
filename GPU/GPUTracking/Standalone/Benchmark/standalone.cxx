@@ -948,6 +948,7 @@ breakrun:
       printf("Error unregistering memory\n");
     }
   }
+  exit(0);
   rec->Exit();
 
   if (!configStandalone.noprompt) {
