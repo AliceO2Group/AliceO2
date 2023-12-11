@@ -660,7 +660,7 @@ TEST_CASE("DataQuery")
 
   auto result5 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=sporadic&ccdb-path=GLO/Config/GRPECS&key3=value3");
   REQUIRE(result5.size() == 1);
-  result5[0].lifetime = Lifetime::Sporadic;
+  REQUIRE(result5[0].lifetime == Lifetime::Sporadic);
   REQUIRE(result5[0].metadata.size() == 3);
   REQUIRE(result5[0].metadata[0].name == "lifetime");
   REQUIRE(result5[0].metadata[0].defaultValue.get<std::string>() == "sporadic");
@@ -668,6 +668,29 @@ TEST_CASE("DataQuery")
   REQUIRE(result5[0].metadata[1].defaultValue.get<std::string>() == "GLO/Config/GRPECS");
   REQUIRE(result5[0].metadata[2].name == "key3");
   REQUIRE(result5[0].metadata[2].defaultValue.get<std::string>() == "value3");
+}
+
+TEST_CASE("DataQueryLifetime")
+{
+  auto result0 = DataDescriptorQueryBuilder::parse("x:TST/A1?lifetime=timeframe");
+  REQUIRE(result0.size() == 1);
+  REQUIRE(result0[0].lifetime == Lifetime::Timeframe);
+  auto result1 = DataDescriptorQueryBuilder::parse("x:TST/A1?lifetime=sporadic");
+  REQUIRE(result1.size() == 1);
+  REQUIRE(result1[0].lifetime == Lifetime::Sporadic);
+  auto result2 = DataDescriptorQueryBuilder::parse("x:TST/A1?lifetime=condition");
+  REQUIRE(result2.size() == 1);
+  REQUIRE(result2[0].lifetime == Lifetime::Condition);
+
+  auto result3 = DataDescriptorQueryBuilder::parse("x:TST/A1/1?lifetime=timeframe");
+  REQUIRE(result3.size() == 1);
+  REQUIRE(result3[0].lifetime == Lifetime::Timeframe);
+  auto result4 = DataDescriptorQueryBuilder::parse("x:TST/A1/2?lifetime=sporadic");
+  REQUIRE(result4.size() == 1);
+  REQUIRE(result4[0].lifetime == Lifetime::Sporadic);
+  auto result5 = DataDescriptorQueryBuilder::parse("x:TST/A1/3?lifetime=condition");
+  REQUIRE(result5.size() == 1);
+  REQUIRE(result5[0].lifetime == Lifetime::Condition);
 }
 
 // Make sure that 10 and 1 subspect are matched differently
