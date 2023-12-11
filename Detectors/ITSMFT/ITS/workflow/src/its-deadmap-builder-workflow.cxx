@@ -23,7 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"chip-mod-selector", VariantType::Int, 0, {"Integer to be used with chip-mod-base for parallel chip access: if(chipID %% chipModSel != chipModBase), chip id skipped"}},
     ConfigParamSpec{"chip-mod-base", VariantType::Int, 1, {"Integer to be used with chip-mod-selector chip access: if(chipID %% chipModSel != chipModBase), chip id skipped"}},
-    ConfigParamSpec{"source",VariantType::String, "chipsstatus", {"Loop over: digits, clusters or chipsstatus"}}};
+    ConfigParamSpec{"source", VariantType::String, "chipsstatus", {"Loop over: digits, clusters or chipsstatus"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -42,9 +42,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   std::string datasource = configcontext.options().get<std::string>("source");
 
-  LOG(info) << "Building deadmaps from collection of:  "<< datasource;
+  LOG(info) << "Building deadmaps from collection of:  " << datasource;
 
-  wf.emplace_back(o2::its::getITSDeadMapBuilderSpec(inpConf,datasource));
+  wf.emplace_back(o2::its::getITSDeadMapBuilderSpec(inpConf, datasource));
 
   return wf;
 }
