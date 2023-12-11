@@ -78,7 +78,7 @@ o2_add_executable(deadmap-builder-workflow
                   SOURCES src/its-deadmap-builder-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
-		
+
 o2_add_executable(dcs-parser-workflow
                   SOURCES src/its-dcs-parser-workflow.cxx
                   COMPONENT_NAME its
