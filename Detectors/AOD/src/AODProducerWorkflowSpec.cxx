@@ -1264,7 +1264,11 @@ void AODProducerWorkflowDPL::addClustersToFwdTrkClsTable(const o2::globaltrackin
     int last = mchTrack.getLastClusterIdx();
     for (int i = first; i <= last; i++) {
       const auto& cluster = mchClusters[i];
-      fwdTrkClsCursor(fwdTrackId, cluster.x, cluster.y, cluster.z, (((cluster.ey < 5.) & 0x1) << 12) | (((cluster.ex < 5.) & 0x1) << 11) | cluster.getDEId());
+      fwdTrkClsCursor(fwdTrackId,
+                      truncateFloatFraction(cluster.x, mMuonCl),
+                      truncateFloatFraction(cluster.y, mMuonCl),
+                      truncateFloatFraction(cluster.z, mMuonCl),
+                      (((cluster.ey < 5.) & 0x1) << 12) | (((cluster.ex < 5.) & 0x1) << 11) | cluster.getDEId());
     }
   }
 }

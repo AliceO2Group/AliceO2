@@ -744,7 +744,7 @@ DECLARE_SOA_TABLE(AmbiguousFwdTracks, "AOD", "AMBIGUOUSFWDTR", //! Table for Fwd
 
 using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
 
-// Forward Tracks Cluster informationtrackclusters information
+// Forward Tracks Cluster information
 namespace fwdtrkcl
 {
 DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! Track index
