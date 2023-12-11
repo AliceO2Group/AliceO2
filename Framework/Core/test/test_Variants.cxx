@@ -226,7 +226,7 @@ TEST_CASE("Array2DTest")
   std::vector<std::string> s = {"one", "two", "three", "four"};
   Array2D ms(s, 4, 1);
   for (auto i = 0U; i < 4; ++i) {
-    REQUIRE(ms(i,0) == s[i]);
+    REQUIRE(ms(i, 0) == s[i]);
   }
 }
 
