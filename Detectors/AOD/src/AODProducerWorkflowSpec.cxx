@@ -475,6 +475,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             auto trackQAInfoHolder = processBarrelTrackQA(collisionID, collisionBC, trackIndex, data, bcsMap);
             if (std::bitset<8>(trackQAInfoHolder.tpcClusterByteMask).count() >= mTrackQCNTrCut) {
               trackQAInfoHolder.trackID = mTableTrID;
+              // LOGP(info, "orig time0 in bc: {} diffBCRef: {}, ttime: {} -> {}", trackQAInfoHolder.tpcTime0*8, extraInfoHolder.diffBCRef, extraInfoHolder.trackTime, (trackQAInfoHolder.tpcTime0 * 8 - extraInfoHolder.diffBCRef) * o2::constants::lhc::LHCBunchSpacingNS - extraInfoHolder.trackTime);
               trackQAInfoHolder.tpcTime0 = (trackQAInfoHolder.tpcTime0 * 8 - extraInfoHolder.diffBCRef) * o2::constants::lhc::LHCBunchSpacingNS - extraInfoHolder.trackTime;
               // difference between TPC track time0 and stored track nominal time in ns instead of TF start
               addToTracksQATable(tracksQACursor, trackQAInfoHolder);
@@ -2387,7 +2388,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
       bcOfTimeRef = fillBCSlice(extraInfoHolder.bcSlice, t - error, t + error, bcsMap);
     }
     extraInfoHolder.trackTime = float(t - bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS);
-    extraInfoHolder.diffBCRef = int(bcOfTimeRef - mStartIR.toLong());
+    extraInfoHolder.diffBCRef = int(bcOfTimeRef);
     LOGP(debug, "time : {}/{} -> {}/{} -> trunc: {}/{} CollID: {} Amb: {}", t, terr, t - bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS, terr,
          truncateFloatFraction(extraInfoHolder.trackTime, mTrackTime), truncateFloatFraction(extraInfoHolder.trackTimeRes, mTrackTimeError),
          collisionID, trackIndex.isAmbiguous());
