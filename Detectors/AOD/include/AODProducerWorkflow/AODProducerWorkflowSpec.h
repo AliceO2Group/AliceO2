@@ -385,6 +385,7 @@ class AODProducerWorkflowDPL : public Task
     float trackPhiEMCAL = -999.f;
     float trackTime = -999.f;
     float trackTimeRes = -999.f;
+    int diffBCRef = 0; // offset of time reference BC from the start of the orbit
     int bcSlice[2] = {-1, -1};
   };
 
