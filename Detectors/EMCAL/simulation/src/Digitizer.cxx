@@ -25,6 +25,7 @@
 #include <fairlogger/Logger.h> // for LOG
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "SimConfig/DigiParams.h"
 
 ClassImp(o2::emcal::Digitizer);
 
@@ -37,7 +38,11 @@ using namespace o2::emcal;
 void Digitizer::init()
 {
   mSimParam = &(o2::emcal::SimParam::Instance());
-  mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  auto randomSeed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  if (o2::conf::DigiParams::Instance().seed != 0) {
+    randomSeed = o2::conf::DigiParams::Instance().seed;
+  }
+  mRandomGenerator = new TRandom3(randomSeed);
 
   float tau = mSimParam->getTimeResponseTau();
   float N = mSimParam->getTimeResponsePower();
