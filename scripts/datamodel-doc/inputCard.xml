@@ -109,7 +109,7 @@
           o2::aod::FV0As, o2::aod::FT0s, o2::aod::FDDs, so2::aod::HMPIDs, o2::aod::Calos, o2::aod::CaloTriggers, o2::aod::Zdcs, o2::aod::FV0Cs, o2::aod::HMPIDs, o2::aod::CPVClusters
         </category>
         <category name="Strangeness">
-          o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades, o2::aod::Decays3Body
+          o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::V0Indices, o2::aod::V0CollRefs, o2::aod::V0Extras, o2::aod::V0TrackXs, o2::aod::StoredV0Cores, o2::aod::V0Covs, o2::aod::V0MCCores, o2::aod::V0MCMothers, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades, o2::aod::Decays3Body
         </category>
         <category name="Indices">
           o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse, o2::aod::MatchedBCCollisionsExclusiveMulti, o2::aod::MatchedBCCollisionsSparseMulti
