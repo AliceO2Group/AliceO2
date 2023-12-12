@@ -29,8 +29,8 @@ o2_add_library(MFTWorkflow
                                      O2::DataFormatsMFT
                                      O2::ITSMFTWorkflow
                                      O2::MFTAlignment
-				     O2::DetectorsCalibration
-				     O2::DetectorsDCS
+             O2::DetectorsCalibration
+             O2::DetectorsDCS
                                      O2::DataFormatsDCS
                                      O2::GlobalTrackingWorkflowReaders)
 o2_add_executable(reco-workflow
@@ -61,4 +61,4 @@ o2_add_executable(tracks2records-workflow
 o2_add_executable(deadmap-builder-workflow
                   SOURCES src/mft-deadmap-builder-workflow.cxx
                   COMPONENT_NAME mft
-		  PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)	  
+      PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)
