@@ -125,7 +125,7 @@ void DigitsVectorStream::fill(std::deque<o2::emcal::DigitTimebin>& digitlist, o2
   mTriggerRecords.emplace_back(record, o2::trigger::PhT, mStartIndex, numberOfNewDigits);
   mStartIndex = mDigits.size();
 
-  LOG(info) << "Have " << mStartIndex << " digits ";
+  LOG(info) << "Trigger Orbit " << record.orbit << ", BC " << record.bc << ": have " << numberOfNewDigits << " digits (" << mStartIndex << " total)";
 }
 
 //_______________________________________________________________________

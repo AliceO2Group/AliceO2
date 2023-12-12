@@ -233,10 +233,10 @@ double Digitizer::smearTime(double time, double energy)
 }
 
 //_______________________________________________________________________
-void Digitizer::setEventTime(o2::InteractionTimeRecord record)
+void Digitizer::setEventTime(o2::InteractionTimeRecord record, bool trigger)
 {
 
-  mDigits.forwardMarker(record);
+  mDigits.forwardMarker(record, trigger);
 
   mPhase = mSimParam->doSimulateL1Phase() ? mDigits.getPhase() : 0;
 
