@@ -477,8 +477,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // this will only be needed until digitizers take CCDB objects via DPL mechanism
     o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
     // activate caching
-    o2::ccdb::BasicCCDBManager::instance().setCaching(false);
-    // without this, caching does not seem to work
+    o2::ccdb::BasicCCDBManager::instance().setCaching(true);
+    // this is asking the manager to check validity only locally - no further query to server done
     o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
   }
   // update the digitization configuration with the right geometry file
