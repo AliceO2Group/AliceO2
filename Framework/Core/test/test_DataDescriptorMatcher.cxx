@@ -12,6 +12,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/InputSpec.h"
+#include "Framework/DataSpecUtils.h"
 #include "Headers/Stack.h"
 
 #include <catch_amalgamated.hpp>
@@ -688,8 +689,11 @@ TEST_CASE("DataQueryLifetime")
   auto result4 = DataDescriptorQueryBuilder::parse("x:TST/A1/2?lifetime=sporadic");
   REQUIRE(result4.size() == 1);
   REQUIRE(result4[0].lifetime == Lifetime::Sporadic);
-  auto result5 = DataDescriptorQueryBuilder::parse("x:TST/A1/3?lifetime=condition");
+  auto result5 = DataDescriptorQueryBuilder::parse("noiseMap:TRD/NOISEMAP?lifetime=condition&ccdb-path=TRD/Calib/NoiseMapMCM");
   REQUIRE(result5.size() == 1);
+  auto concrete = DataSpecUtils::asConcreteDataTypeMatcher(result5[0]);
+  REQUIRE(concrete.origin.as<std::string>() == "TRD");
+  REQUIRE(concrete.description.as<std::string>() == "NOISEMAP");
   REQUIRE(result5[0].lifetime == Lifetime::Condition);
 }
 
