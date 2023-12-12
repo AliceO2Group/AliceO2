@@ -161,13 +161,13 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   for (int iLayer{0}; iLayer < mUnsortedClusters.size(); ++iLayer) {
-    mUnsortedClusters[iLayer].clear();
-    mTrackingFrameInfo[iLayer].clear();
-    mClusterExternalIndices[iLayer].clear();
+    deepVectorClear(mUnsortedClusters[iLayer]);
+    deepVectorClear(mTrackingFrameInfo[iLayer]);
+    deepVectorClear(mClusterExternalIndices[iLayer]);
     mROframesClusters[iLayer].resize(1, 0);
 
     if (iLayer < 2) {
-      mTrackletsIndexROf[iLayer].clear();
+      deepVectorClear(mTrackletsIndexROf[iLayer]);
     }
   }
 
@@ -175,7 +175,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   mNrof = 0;
-  mClusterSize.clear();
+  deepVectorClear(mClusterSize);
   mClusterSize.reserve(clusters.size());
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
@@ -254,10 +254,10 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     if (maxLayers < trkParam.NLayers) {
       resetRofPV();
     }
-    mTracks.clear();
-    mTracksLabel.clear();
-    mLinesLabels.clear();
-    mVerticesLabels.clear();
+    deepVectorClear(mTracks);
+    deepVectorClear(mTracksLabel);
+    deepVectorClear(mLinesLabels);
+    deepVectorClear(mVerticesLabels);
     mTracks.resize(mNrof);
     mTracksLabel.resize(mNrof);
     mLinesLabels.resize(mNrof);
@@ -272,16 +272,16 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mIndexTableUtils.setTrackingParameters(trkParam);
     mPositionResolution.resize(trkParam.NLayers);
     mBogusClusters.resize(trkParam.NLayers, 0);
-    mLines.clear();
-    mTrackletClusters.clear();
+    deepVectorClear(mLines);
+    deepVectorClear(mTrackletClusters);
     for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
-      mClusters[iLayer].clear();
+      deepVectorClear(mClusters[iLayer]);
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
-      mUsedClusters[iLayer].clear();
+      deepVectorClear(mUsedClusters[iLayer]);
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
       mPositionResolution[iLayer] = std::sqrt(0.5 * (trkParam.SystErrorZ2[iLayer] + trkParam.SystErrorY2[iLayer]) + trkParam.LayerResolution[iLayer] * trkParam.LayerResolution[iLayer]);
     }
-    mIndexTables.clear();
+    deepVectorClear(mIndexTables);
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
@@ -312,7 +312,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
         const auto unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
         const int clustersNum{static_cast<int>(unsortedClusters.size())};
 
-        cHelper.clear();
+        deepVectorClear(cHelper);
         cHelper.resize(clustersNum);
 
         for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
@@ -366,8 +366,8 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     }
   }
 
-  mRoads.clear();
-  mRoadLabels.clear();
+  deepVectorClear(mRoads);
+  deepVectorClear(mRoadLabels);
 
   mMSangles.resize(trkParam.NLayers);
   mPhiCuts.resize(mClusters.size() - 1, 0.f);
@@ -391,19 +391,19 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
   }
 
   for (int iLayer{0}; iLayer < std::min((int)mTracklets.size(), maxLayers); ++iLayer) {
-    mTracklets[iLayer].clear();
-    mTrackletLabels[iLayer].clear();
+    deepVectorClear(mTracklets[iLayer]);
+    deepVectorClear(mTrackletLabels[iLayer]);
     if (iLayer < (int)mCells.size()) {
-      mCells[iLayer].clear();
-      mTrackletsLookupTable[iLayer].clear();
+      deepVectorClear(mCells[iLayer]);
+      deepVectorClear(mTrackletsLookupTable[iLayer]);
       mTrackletsLookupTable[iLayer].resize(mClusters[iLayer + 1].size(), 0);
-      mCellLabels[iLayer].clear();
+      deepVectorClear(mCellLabels[iLayer]);
     }
 
     if (iLayer < (int)mCells.size() - 1) {
-      mCellsLookupTable[iLayer].clear();
-      mCellsNeighbours[iLayer].clear();
-      mCellsNeighboursLUT[iLayer].clear();
+      deepVectorClear(mCellsLookupTable[iLayer]);
+      deepVectorClear(mCellsNeighbours[iLayer]);
+      deepVectorClear(mCellsNeighboursLUT[iLayer]);
     }
   }
 }
