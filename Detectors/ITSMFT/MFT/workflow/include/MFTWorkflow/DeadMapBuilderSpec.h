@@ -94,7 +94,7 @@ class MFTDeadMapBuilder : public Task
   std::string mObjectName = "mft_time_deadmap.root";
   std::string mLocalOutputDir;
 
-  std::vector<short int>* mDeadMapTF = new std::vector<short int>{};
+  std::vector<short int>* mDeadMapTF = nullptr;
 
   Long64_t mFirstOrbitTF = 0x0;
 
@@ -102,10 +102,7 @@ class MFTDeadMapBuilder : public Task
 
   int mTFSampling = 1000;
 
-  TTree* mTreeObject = new TTree("map", "map");
-
-  /// Only for debug mode
-  TH2F* Htime = new TH2F("time", "time", 1000, 0, 5000, 10000, 0, 10000);
+  TTree* mTreeObject = nullptr;
 
   void finalizeOutput();
   void PrepareOutputCcdb(DataAllocator& output);

@@ -36,6 +36,8 @@ MFTDeadMapBuilder::MFTDeadMapBuilder(std::string datasource)
 MFTDeadMapBuilder::~MFTDeadMapBuilder()
 {
   // Clear dynamic memory
+  delete mDeadMapTF;
+  delete mTreeObject;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -44,6 +46,9 @@ void MFTDeadMapBuilder::init(InitContext& ic)
 
   LOG(info) << "MFTDeadMapBuilder init... " << mSelfName;
 
+  mDeadMapTF = new std::vector<short int>{};
+
+  mTreeObject = new TTree("map", "map");
   mTreeObject->Branch("orbit", &mFirstOrbitTF);
   mTreeObject->Branch("deadmap", &mDeadMapTF);
 
@@ -71,13 +76,6 @@ void MFTDeadMapBuilder::finalizeOutput()
     mTreeObject->Write();
     outfile.Close();
   }
-  if (DebugMode) {
-    std::string localoutfilename2 = mLocalOutputDir + "/time.root";
-    TFile outfile2(localoutfilename2.c_str(), "RECREATE");
-    outfile2.cd();
-    Htime->Write();
-    outfile2.Close();
-  }
   return;
 
 } // finalizeOutput
@@ -99,8 +97,9 @@ void MFTDeadMapBuilder::run(ProcessingContext& pc)
 
   mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
-  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0)
+  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0){
     return;
+  }
 
   mStepCounter++;
   LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
@@ -152,8 +151,6 @@ void MFTDeadMapBuilder::run(ProcessingContext& pc)
   int difference = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
   LOG(info) << "Dead Chips: " << mDeadMapTF->size() << ", elapsed time in TF processing: " << difference / 1000. << " ms";
-  if (DebugMode)
-    Htime->Fill(difference / 1000., mDeadMapTF->size());
 
   return;
 }
@@ -181,7 +178,7 @@ void MFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
             << " of size " << image->size() << "bytes, valid for "
             << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_TimeDeadMap", 0}, *image);
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_TimeDeadMap", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_TimeDeadMap", 0}, info);
 
   return;
@@ -193,7 +190,7 @@ void MFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
 void MFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 {
   if (!isEnded && !mRunStopRequested) {
-    LOGF(info, "endOfStream report:", mSelfName);
+    LOG(info) << "endOfStream report: " << mSelfName;
     finalizeOutput();
     PrepareOutputCcdb(ec.outputs());
     isEnded = true;
@@ -206,7 +203,7 @@ void MFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 void MFTDeadMapBuilder::stop()
 {
   if (!isEnded) {
-    LOGF(info, "stop() report:", mSelfName);
+    LOGF(info) << "stop() report: " << mSelfName;
     finalizeOutput();
     if (mDoLocalOutput) {
       LOG(info) << "stop() not sending object as output. ccdb will not be populated.";
@@ -245,7 +242,7 @@ DataProcessorSpec getMFTDeadMapBuilderSpec(std::string datasource)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<MFTDeadMapBuilder>(datasource)},
-    Options{{"debug", VariantType::Bool, false, {"Developer debug mode. It saves extra objects to disk."}},
+    Options{{"debug", VariantType::Bool, false, {"Developer debug mode."}},
             {"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF Orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TFs."}},
             {"output-filename", VariantType::String, "mft_time_deadmap.root", {"ROOT object file name."}},
