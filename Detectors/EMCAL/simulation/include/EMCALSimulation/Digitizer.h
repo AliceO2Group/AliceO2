@@ -67,7 +67,7 @@ class Digitizer : public TObject
   /// Steer conversion of hits to digits
   void process(const std::vector<LabeledDigit>& labeledDigit);
 
-  void setEventTime(o2::InteractionTimeRecord record);
+  void setEventTime(o2::InteractionTimeRecord record, bool trigger);
   double getTriggerTime() const { return mDigits.getTriggerTime(); }
   double getEventTime() const { return mDigits.getEventTime(); }
   bool isLive(double t) const { return mDigits.isLive(t); }
