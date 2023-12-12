@@ -178,6 +178,8 @@ class CCDBManagerInstance
 
   std::string getSummaryString() const;
 
+  size_t getFetchedSize() const { return mFetchedSize; }
+
   void report(bool longrep = false);
 
  private:
@@ -192,10 +194,11 @@ class CCDBManagerInstance
   bool mCanDefault = false;                             // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                          // whether caching is enabled
   bool mCheckObjValidityEnabled = false;                // wether the validity of cached object is checked before proceeding to a CCDB API query
+  bool mFatalWhenNull = true;                           // if nullptr blob replies should be treated as fatal (can be set by user)
   long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
   long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
   long mTimerMS = 0;                                    // timer for queries
-  bool mFatalWhenNull = true;                           // if nullptr blob replies should be treated as fatal (can be set by user)
+  size_t mFetchedSize = 0;                              // total fetched size
   int mQueries = 0;                                     // total number of object queries
   int mFetches = 0;                                     // total number of succesful fetches from CCDB
   int mFailures = 0;                                    // total number of failed fetches
@@ -220,6 +223,11 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
       mFailures++;
     } else {
       mFetches++;
+      auto sh = mHeaders.find("fileSize");
+      if (sh != mHeaders.end()) {
+        size_t s = atol(sh->second.c_str());
+        mFetchedSize += s;
+      }
     }
   } else {
     auto& cached = mCache[path];
@@ -249,6 +257,7 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
       auto sh = mHeaders.find("fileSize");
       if (sh != mHeaders.end()) {
         size_t s = atol(sh->second.c_str());
+        mFetchedSize += s;
         cached.minSize = std::min(s, cached.minSize);
         cached.maxSize = std::max(s, cached.minSize);
       }

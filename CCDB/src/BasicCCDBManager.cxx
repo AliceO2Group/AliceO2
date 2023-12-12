@@ -54,7 +54,7 @@ std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, b
 
 std::string CCDBManagerInstance::getSummaryString() const
 {
-  std::string res = fmt::format("{} queries", mQueries);
+  std::string res = fmt::format("{} queries, {} bytes", mQueries, fmt::group_digits(mFetchedSize));
   if (mCachingEnabled) {
     res += fmt::format(" for {} objects", mCache.size());
   }
