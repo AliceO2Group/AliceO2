@@ -97,7 +97,7 @@ void MFTDeadMapBuilder::run(ProcessingContext& pc)
 
   mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
-  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0){
+  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0) {
     return;
   }
 
