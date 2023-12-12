@@ -33,7 +33,7 @@
 #include <set>
 #include <string>
 #include <vector>
-
+#include <random>
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using GIndex = o2::dataformats::VtxTrackIndex;
@@ -229,6 +229,10 @@ class AODProducerWorkflowDPL : public Task
 
   bool mPropTracks{false};
   bool mPropMuons{false};
+  float mTrackQCFraction{0.00};
+  int64_t mTrackQCNTrCut{4};
+  float mSqrtS{13860.};
+  std::mt19937 mGenerator; ///< random generator for trackQA sampling
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
@@ -381,7 +385,24 @@ class AODProducerWorkflowDPL : public Task
     float trackPhiEMCAL = -999.f;
     float trackTime = -999.f;
     float trackTimeRes = -999.f;
+    int diffBCRef = 0; // offset of time reference BC from the start of the orbit
     int bcSlice[2] = {-1, -1};
+  };
+
+  struct TrackQA {
+    GID trackID;
+    float tpcTime0;
+    int16_t tpcdcaR;
+    int16_t tpcdcaZ;
+    uint8_t tpcClusterByteMask;
+    uint8_t tpcdEdxMax0R;
+    uint8_t tpcdEdxMax1R;
+    uint8_t tpcdEdxMax2R;
+    uint8_t tpcdEdxMax3R;
+    uint8_t tpcdEdxTot0R;
+    uint8_t tpcdEdxTot1R;
+    uint8_t tpcdEdxTot2R;
+    uint8_t tpcdEdxTot3R;
   };
 
   // helper struct for addToFwdTracksTable()
@@ -462,6 +483,9 @@ class AODProducerWorkflowDPL : public Task
   template <typename TracksExtraCursorType>
   void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
 
+  template <typename TracksQACursorType>
+  void addToTracksQATable(TracksQACursorType& tracksQACursor, TrackQA& trackQAInfoHolder);
+
   template <typename mftTracksCursorType, typename AmbigMFTTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, AmbigMFTTracksCursorType& ambigMFTTracksCursor,
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID,
@@ -472,6 +496,8 @@ class AODProducerWorkflowDPL : public Task
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
   TrackExtraInfo processBarrelTrack(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+  TrackQA processBarrelTrackQA(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+
   bool propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar, const o2::globaltracking::RecoContainer& data, int colID);
   void extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track);
   void cacheTriggers(const o2::globaltracking::RecoContainer& recoData);
@@ -479,7 +505,7 @@ class AODProducerWorkflowDPL : public Task
   // helper for track tables
   // * fills tables collision by collision
   // * interaction time is for TOF information
-  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename AmbigTracksCursorType,
+  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
             typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
             typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
   void fillTrackTablesPerCollision(int collisionID,
@@ -490,6 +516,7 @@ class AODProducerWorkflowDPL : public Task
                                    TracksCursorType& tracksCursor,
                                    TracksCovCursorType& tracksCovCursor,
                                    TracksExtraCursorType& tracksExtraCursor,
+                                   TracksQACursorType& tracksQACursor,
                                    AmbigTracksCursorType& ambigTracksCursor,
                                    MFTTracksCursorType& mftTracksCursor,
                                    AmbigMFTTracksCursorType& ambigMFTTracksCursor,
