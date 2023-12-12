@@ -203,7 +203,7 @@ void MFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 void MFTDeadMapBuilder::stop()
 {
   if (!isEnded) {
-    LOGF(info) << "stop() report: " << mSelfName;
+    LOG(info) << "stop() report: " << mSelfName;
     finalizeOutput();
     if (mDoLocalOutput) {
       LOG(info) << "stop() not sending object as output. ccdb will not be populated.";
