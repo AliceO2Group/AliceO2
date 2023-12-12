@@ -22,7 +22,8 @@
 
 namespace o2::framework
 {
-namespace {
+namespace
+{
 /// Helper to get a Variant from a @a str
 template <VariantType T>
 inline Variant fromString(std::string const& str)
@@ -31,7 +32,7 @@ inline Variant fromString(std::string const& str)
   ss.str(str);
   return VariantJSONHelpers::read<T>(ss);
 }
-}
+} // namespace
 void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& schema,
                                            boost::property_tree::ptree& pt,
                                            boost::property_tree::ptree& provenance)
@@ -185,75 +186,53 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::Bool:
           pt.put(key, vmap[key].as<bool>());
           break;
-        case VariantType::ArrayInt:
-        {
+        case VariantType::ArrayInt: {
           auto v = fromString<VariantType::ArrayInt>(vmap[key].as<std::string>());
           pt.put_child(key, vectorToBranch<int>(v.get<int*>(), v.size()));
-        }
-          break;
-        case VariantType::ArrayFloat:
-        {
+        } break;
+        case VariantType::ArrayFloat: {
           auto v = fromString<VariantType::ArrayFloat>(vmap[key].as<std::string>());
           pt.put_child(key, vectorToBranch<float>(v.get<float*>(), v.size()));
-        }
-          break;
-        case VariantType::ArrayDouble:
-        {
+        } break;
+        case VariantType::ArrayDouble: {
           auto v = fromString<VariantType::ArrayDouble>(vmap[key].as<std::string>());
           pt.put_child(key, vectorToBranch<double>(v.get<double*>(), v.size()));
-        }
-          break;
+        } break;
         case VariantType::ArrayBool:
           //          pt.put_child(key, vectorToBranch<bool>(stringToVector<bool>(vmap[key].as<std::string>())));
           break;
-        case VariantType::ArrayString:
-        {
+        case VariantType::ArrayString: {
           auto v = fromString<VariantType::ArrayString>(vmap[key].as<std::string>());
           pt.put_child(key, vectorToBranch<std::string>(v.get<std::string*>(), v.size()));
-        }
-          break;
-        case VariantType::Array2DInt:
-        {
+        } break;
+        case VariantType::Array2DInt: {
           auto v = fromString<VariantType::Array2DInt>(vmap[key].as<std::string>());
           pt.put_child(key, array2DToBranch<int>(v.get<Array2D<int>>()));
-        }
-          break;
-        case VariantType::Array2DFloat:
-        {
+        } break;
+        case VariantType::Array2DFloat: {
           auto v = fromString<VariantType::Array2DFloat>(vmap[key].as<std::string>());
           pt.put_child(key, array2DToBranch<float>(v.get<Array2D<float>>()));
-        }
-          break;
-        case VariantType::Array2DDouble:
-        {
+        } break;
+        case VariantType::Array2DDouble: {
           auto v = fromString<VariantType::Array2DDouble>(vmap[key].as<std::string>());
           pt.put_child(key, array2DToBranch<double>(v.get<Array2D<double>>()));
-        }
-          break;
-        case VariantType::LabeledArrayInt:
-        {
+        } break;
+        case VariantType::LabeledArrayInt: {
           auto v = fromString<VariantType::LabeledArrayInt>(vmap[key].as<std::string>());
           pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<int>>()));
-        }
-          break;
-        case VariantType::LabeledArrayFloat:
-        {
+        } break;
+        case VariantType::LabeledArrayFloat: {
           auto v = fromString<VariantType::LabeledArrayFloat>(vmap[key].as<std::string>());
           pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<float>>()));
-        }
-          break;
-        case VariantType::LabeledArrayDouble:
-        {
+        } break;
+        case VariantType::LabeledArrayDouble: {
           auto v = fromString<VariantType::LabeledArrayDouble>(vmap[key].as<std::string>());
           pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<double>>()));
-        }
-          break;
-        case VariantType::LabeledArrayString:
-        {
+        } break;
+        case VariantType::LabeledArrayString: {
           auto v = fromString<VariantType::LabeledArrayString>(vmap[key].as<std::string>());
           pt.put_child(key, labeledArrayToBranch(v.get<LabeledArray<std::string>>()));
-        }
-          break;
+        } break;
         case VariantType::Dict:
           pt.put_child(key, vmap[key].as<boost::property_tree::ptree>());
           break;
