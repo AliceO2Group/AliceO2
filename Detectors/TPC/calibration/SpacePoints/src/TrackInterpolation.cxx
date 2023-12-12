@@ -575,7 +575,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   auto propagator = o2::base::Propagator::Instance();
   unsigned short rowPrev = 0; // used to calculate dRow of two consecutive cluster residuals
   unsigned short nMeasurements = 0;
-  uint8_t clRowPrev = -1; // used to identify and skip split clusters on the same pad row
+  uint8_t clRowPrev = constants::MAXGLOBALPADROW; // used to identify and skip split clusters on the same pad row
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
@@ -583,6 +583,11 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     if (clRowPrev == row) {
       // if there are split clusters we only take the first one on the pad row
       continue;
+    } else if (clRowPrev < constants::MAXGLOBALPADROW && clRowPrev > row) {
+      // we seem to be looping, abort this track
+      LOGP(debug, "TPC track with pT={} GeV and {} clusters has cluster {} on row {} while the previous cluster was on row {}",
+           mSeeds[iSeed].getPt(), trkTPC.getNClusterReferences(), iCl, row, clRowPrev);
+      return;
     } else {
       // this is the first cluster we see on this pad row
       clRowPrev = row;
@@ -618,6 +623,10 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   }
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
+  if (clusterResiduals.size() > constants::MAXGLOBALPADROW) {
+    LOGP(warn, "Extrapolated ITS-TPC track and found more reesiduals than possible ({})", clusterResiduals.size());
+    return;
+  }
   if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
     // track is good
     int nClValidated = 0;
