@@ -11,7 +11,6 @@
 
 #include <catch_amalgamated.hpp>
 #include "Framework/Variant.h"
-#include "Framework/VariantStringHelpers.h"
 #include "Framework/VariantPropertyTreeHelpers.h"
 #include "Framework/VariantJSONHelpers.h"
 #include <sstream>
@@ -168,7 +167,7 @@ TEST_CASE("VariantTest")
   }
   std::stringstream ssm;
   ssm << vmma;
-  REQUIRE(ssm.str() == "f[[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8], [0.9, 1, 1.1, 1.2]]");
+  REQUIRE(ssm.str() == "{\"values\":[[0.10000000149011612,0.20000000298023225,0.30000001192092898,0.4000000059604645],[0.5,0.6000000238418579,0.699999988079071,0.800000011920929],[0.8999999761581421,1.0,1.100000023841858,1.2000000476837159]]}");
 
   LabeledArray<float> laf{&m[0][0], 3, 4, {"r1", "r2", "r3"}, {"c1", "c2", "c3", "c4"}};
   Variant vlaf(laf);
@@ -253,7 +252,7 @@ TEST_CASE("LabeledArrayTest")
 
 TEST_CASE("VariantTreeConversionsTest")
 {
-  std::vector<std::string> vstrings{"0.1", "0.2", "0.3"};
+  std::vector<std::string> vstrings{"0 1", "0 2", "0 3"};
   Variant vvstr(std::move(vstrings));
 
   auto tree = vectorToBranch(vvstr.get<std::string*>(), vvstr.size());
@@ -326,7 +325,7 @@ TEST_CASE("VariantJSONConversionsTest")
     }
   }
 
-  std::vector<std::string> vstrings{"s1", "s2", "s3"};
+  std::vector<std::string> vstrings{"myoption_one", "myoption_two"};
   Variant vvstr(vstrings);
   std::stringstream osal;
   VariantJSONHelpers::write(osal, vvstr);
