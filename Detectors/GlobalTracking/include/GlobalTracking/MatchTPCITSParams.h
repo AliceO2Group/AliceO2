@@ -45,7 +45,9 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float minTPCTrackR = 50.; ///< cut on minimal TPC tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
   float minITSTrackR = 50.; ///< cut on minimal ITS tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
   int minTPCClusters = 25; ///< minimum number of clusters to consider
-  int askMinTPCRow = 15;   ///< disregard tracks starting above this row
+  int askMinTPCRow[36] = { ///< disregard tracks starting above this row
+                          15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+                          15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
 
   float cutMatchingChi2 = 30.f; ///< cut on matching chi2
 
@@ -90,6 +92,16 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 };
 
 } // namespace globaltracking
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::globaltracking::MatchTPCITSParams> : std::true_type {
+};
+} // namespace framework
+
 } // end namespace o2
 
 #endif
