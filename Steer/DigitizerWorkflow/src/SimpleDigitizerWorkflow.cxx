@@ -198,6 +198,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option to use/not use CCDB for EMCAL
   workflowOptions.push_back(ConfigParamSpec{"no-use-ccdb-emc", o2::framework::VariantType::Bool, false, {"Disable access to ccdb EMCAL simulation objects"}});
 
+  // option to require/not require CTP MB inputs in EMCAL
+  workflowOptions.push_back(ConfigParamSpec{"no-require-ctpinputs-emc", o2::framework::VariantType::Bool, false, {"Disable requirement of CTP min. bias inputs in EMCAL simulation"}});
+
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
   workflowOptions.push_back(ConfigParamSpec{"trd-digit-downscaling", VariantType::Int, 1, {"only keep TRD digits for every n-th trigger"}});
@@ -653,9 +656,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
     auto useCCDB = !configcontext.options().get<bool>("no-use-ccdb-emc");
+    bool requireCTPInputs = !configcontext.options().get<bool>("no-require-ctpinputs-emc");
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth, useCCDB));
+    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, requireCTPInputs, mctruth, useCCDB));
     // connect the EMCal digit writer
     writerSpecs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }
