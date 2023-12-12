@@ -158,7 +158,7 @@ if workflow_has_parameter CALIB_PROXIES; then
       if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
         add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
       fi
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --sporadic-outputs --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z ${CALIBDATASPEC_CALO_TF:-} ]]; then
