@@ -127,57 +127,58 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
   mStepCounter++;
   LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
 
-  mDeadElements.clear();
   mDeadMapTF->clear();
 
+  std::vector<bool> ElementsStatus(getElementIDFromChip(N_CHIPS), false);
+
   if (mDataSource == "digits") {
-    std::generate_n(std::inserter(mDeadElements, mDeadElements.begin()), getElementIDFromChip(N_CHIPS), [n = 0]() mutable { return n++; });
     const auto elements = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("elements");
     const auto ROFs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROFs");
     for (const auto& rof : ROFs) {
       auto elementsInTF = rof.getROFData(elements);
       for (const auto& el : elementsInTF) {
         uint16_t chipID = (uint16_t)el.getChipIndex();
-        mDeadElements.erase(getElementIDFromChip(chipID));
+        ElementsStatus.at(getElementIDFromChip(chipID)) = true;
       }
     }
   } else if (mDataSource == "clusters") {
-    std::generate_n(std::inserter(mDeadElements, mDeadElements.begin()), getElementIDFromChip(N_CHIPS), [n = 0]() mutable { return n++; });
     const auto elements = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("elements");
     const auto ROFs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROFs");
     for (const auto& rof : ROFs) {
       auto elementsInTF = rof.getROFData(elements);
       for (const auto& el : elementsInTF) {
         uint16_t chipID = (uint16_t)el.getSensorID();
-        mDeadElements.erase(getElementIDFromChip(chipID));
+        ElementsStatus.at(getElementIDFromChip(chipID)) = true;
       }
     }
   } else if (mDataSource == "chipsstatus") {
-    const auto elements = pc.inputs().get<std::vector<char>>("elements");
+    const auto elements = pc.inputs().get<gsl::span<char>>("elements");
     for (uint16_t chipID = 0; chipID < elements.size(); chipID++) {
-      if (!elements.at(chipID)) {
-        mDeadElements.insert(getElementIDFromChip(chipID));
+      if (elements[chipID]) {
+        ElementsStatus.at(getElementIDFromChip(chipID)) = true;
       }
     }
   }
 
-  std::set<uint16_t>::iterator itr;
+  int CountDead = 0;
 
-  for (itr = mDeadElements.begin(); itr != mDeadElements.end(); itr++) {
-    uint16_t el = *itr;
-    bool previous_exists = (itr != mDeadElements.begin()) && (*std::prev(itr) == (el - 1));
-    bool next_exists = (itr != mDeadElements.end()) && (*std::next(itr) == (el + 1));
-
-    if (!previous_exists && next_exists) {
+  for (uint16_t el = 0; el < ElementsStatus.size(); el++) {
+    if (ElementsStatus.at(el)) {
+      continue;
+    }
+    CountDead++;
+    bool previous_dead = (el > 0 && !ElementsStatus.at(el - 1));
+    bool next_dead = (el < ElementsStatus.size() - 1 && !ElementsStatus.at(el + 1));
+    if (!previous_dead && next_dead) {
       mDeadMapTF->push_back(el | (uint16_t)(0x8000));
-    } else if (previous_exists && next_exists) {
+    } else if (previous_dead && next_dead) {
       continue;
     } else {
       mDeadMapTF->push_back(el);
     }
   }
 
-  LOG(info) << "TF contains " << mDeadElements.size() << " dead elements, saved into " << mDeadMapTF->size() << " words.";
+  LOG(info) << "TF contains " << CountDead << " dead elements, saved into " << mDeadMapTF->size() << " words.";
 
   // filling the tree
   mTreeObject->Fill();
