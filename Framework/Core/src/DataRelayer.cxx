@@ -675,6 +675,9 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       notDirty++;
       continue;
     }
+    if (!mCompletionPolicy.callbackFull) {
+      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
+    }
     auto partial = getPartialRecord(li);
     // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
@@ -692,14 +695,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       return partial[idx].size();
     };
     InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
-    CompletionPolicy::CompletionOp action;
-    if (mCompletionPolicy.callback) {
-      action = mCompletionPolicy.callback(span);
-    } else if (mCompletionPolicy.callbackFull) {
-      action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
-    } else {
-      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
-    }
+    CompletionPolicy::CompletionOp action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
+
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {

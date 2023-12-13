@@ -91,7 +91,7 @@ class TPCSectorCompletionPolicy
       return std::regex_match(device.name.begin(), device.name.end(), std::regex(expression.c_str()));
     };
 
-    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers, pTpcSectorMask = mTpcSectorMask, orderCheck = mOrderCheck](framework::InputSpan const& inputs) -> framework::CompletionPolicy::CompletionOp {
+    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers, pTpcSectorMask = mTpcSectorMask, orderCheck = mOrderCheck](framework::InputSpan const& inputs, auto const&, auto&) -> framework::CompletionPolicy::CompletionOp {
       unsigned long tpcSectorMask = pTpcSectorMask ? *pTpcSectorMask : 0xFFFFFFFFF;
       std::bitset<NSectors> validSectors = 0;
       bool haveMatchedInput = false;
