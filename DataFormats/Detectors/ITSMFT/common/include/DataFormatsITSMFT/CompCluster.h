@@ -15,6 +15,7 @@
 #define ALICEO2_ITSMFT_COMPCLUSTER_H
 
 #include <Rtypes.h>
+#include <iosfwd>
 
 namespace o2
 {
