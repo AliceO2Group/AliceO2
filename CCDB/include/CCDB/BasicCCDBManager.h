@@ -132,7 +132,9 @@ class CCDBManagerInstance
     if (!isCachingEnabled()) {
       return false;
     }
-    return mCache[path].isValid(timestamp);
+    //return mCache[path].isValid(timestamp);
+    // IGNORE VALIDITY CHECK
+    return true;
   }
 
   /// check if checks of object validity before CCDB query is enabled
