@@ -11,7 +11,6 @@
 
 #include <catch_amalgamated.hpp>
 #include "Framework/Variant.h"
-#include "Framework/VariantStringHelpers.h"
 #include "Framework/VariantPropertyTreeHelpers.h"
 #include "Framework/VariantJSONHelpers.h"
 #include <sstream>
@@ -131,6 +130,16 @@ TEST_CASE("VariantTest")
     REQUIRE(strings[i] == (vscc.get<std::string*>())[i]);
   }
 
+  Variant vsca(vvstr);            // Copy constructor
+  Variant vsma(std::move(vvstr)); // Move constructor
+  Variant vscca = vsma;           // Copy assignment
+  for (auto i = 0u; i < vsma.size(); ++i) {
+    REQUIRE(vstrings[i] == (vsma.get<std::string*>())[i]);
+  }
+  for (auto i = 0u; i < vscca.size(); ++i) {
+    REQUIRE(vstrings[i] == (vscca.get<std::string*>())[i]);
+  }
+
   float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
   Array2D mm(&m[0][0], 3, 4);
   Variant vmm(mm);
@@ -158,7 +167,7 @@ TEST_CASE("VariantTest")
   }
   std::stringstream ssm;
   ssm << vmma;
-  REQUIRE(ssm.str() == "f[[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8], [0.9, 1, 1.1, 1.2]]");
+  REQUIRE(ssm.str() == "{\"values\":[[0.10000000149011612,0.20000000298023225,0.30000001192092898,0.4000000059604645],[0.5,0.6000000238418579,0.699999988079071,0.800000011920929],[0.8999999761581421,1.0,1.100000023841858,1.2000000476837159]]}");
 
   LabeledArray<float> laf{&m[0][0], 3, 4, {"r1", "r2", "r3"}, {"c1", "c2", "c3", "c4"}};
   Variant vlaf(laf);
@@ -213,6 +222,11 @@ TEST_CASE("Array2DTest")
       REQUIRE(vv[j] == mm(i, j));
     }
   }
+  std::vector<std::string> s = {"one", "two", "three", "four"};
+  Array2D ms(s, 4, 1);
+  for (auto i = 0U; i < 4; ++i) {
+    REQUIRE(ms(i, 0) == s[i]);
+  }
 }
 
 TEST_CASE("LabeledArrayTest")
@@ -236,7 +250,20 @@ TEST_CASE("LabeledArrayTest")
   }
 }
 
-TEST_CASE("VariantConversionsTest")
+TEST_CASE("VariantTreeConversionsTest")
+{
+  std::vector<std::string> vstrings{"0 1", "0 2", "0 3"};
+  Variant vvstr(std::move(vstrings));
+
+  auto tree = vectorToBranch(vvstr.get<std::string*>(), vvstr.size());
+  auto v = Variant(vectorFromBranch<std::string>(tree));
+
+  for (auto i = 0U; i < vvstr.size(); ++i) {
+    REQUIRE(vvstr.get<std::string*>()[i] == v.get<std::string*>()[i]);
+  }
+}
+
+TEST_CASE("VariantJSONConversionsTest")
 {
   int iarr[] = {1, 2, 3, 4, 5};
   Variant viarr(iarr, 5);
@@ -280,5 +307,34 @@ TEST_CASE("VariantConversionsTest")
     for (auto j = 0u; j < vlafc.get<LabeledArray<float>>().cols(); ++j) {
       REQUIRE(vlaf.get<LabeledArray<float>>().get(i, j) == vlafc.get<LabeledArray<float>>().get(i, j));
     }
+  }
+
+  std::string mS[3][4] = {{"a", "b", "c", "d"}, {"e", "f", "g", "h"}, {"i", "l", "m", "n"}};
+  LabeledArray<std::string> las{&mS[0][0], 3, 4, {"r1", "r2", "r3"}, {"c1", "c2", "c3", "c4"}};
+  Variant vms(las);
+  std::stringstream ossl;
+  VariantJSONHelpers::write(ossl, vms);
+
+  std::stringstream issl;
+  issl.str(ossl.str());
+  auto vmsa = VariantJSONHelpers::read<VariantType::LabeledArrayString>(issl);
+
+  for (auto i = 0U; i < vmsa.get<LabeledArray<std::string>>().rows(); ++i) {
+    for (auto j = 0U; j < vmsa.get<LabeledArray<std::string>>().cols(); ++j) {
+      REQUIRE(vmsa.get<LabeledArray<std::string>>().get(i, j) == vms.get<LabeledArray<std::string>>().get(i, j));
+    }
+  }
+
+  std::vector<std::string> vstrings{"myoption_one", "myoption_two"};
+  Variant vvstr(vstrings);
+  std::stringstream osal;
+  VariantJSONHelpers::write(osal, vvstr);
+
+  std::stringstream isal;
+  isal.str(osal.str());
+  auto vvstra = VariantJSONHelpers::read<VariantType::ArrayString>(isal);
+
+  for (auto i = 0U; i < vvstra.size(); ++i) {
+    REQUIRE(vstrings[i] == vvstra.get<std::string*>()[i]);
   }
 }
