@@ -63,10 +63,6 @@ namespace o2
 namespace itsmft
 {
 
-struct ITSDMInpConf {
-  int chipModSel = 0;
-  int chipModBase = 1;
-};
 
 class ITSMFTDeadMapBuilder : public Task
 {
