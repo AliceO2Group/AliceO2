@@ -63,7 +63,6 @@ namespace o2
 namespace itsmft
 {
 
-
 class ITSMFTDeadMapBuilder : public Task
 {
  public:
