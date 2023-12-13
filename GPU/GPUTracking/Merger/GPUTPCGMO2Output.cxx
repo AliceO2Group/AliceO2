@@ -46,6 +46,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
   for (unsigned int i = get_global_id(0); i < nTracks; i += get_global_size(0)) {
+    if (!tracks[i].OK()) {
+      continue;
+    }
     unsigned int nCl = 0;
     for (unsigned int j = 0; j < tracks[i].NClusters(); j++) {
       if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
