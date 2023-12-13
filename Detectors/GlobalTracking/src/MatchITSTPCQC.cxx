@@ -811,48 +811,48 @@ void MatchITSTPCQC::finalize()
   // first we use denominators and nominators to set the TEfficiency; later they are scaled
 
   // some checks
-  for (int i = 0; i < matchType::SIZE; ++i) {
-    for (int i = 0; i < mPtDen[i]->GetNbinsX(); ++i) {
-      if (mPtDen[i]->GetBinContent(i + 1) < mPtNum[i]->GetBinContent(i + 1)) {
-        LOG(error) << title[i] << ": bin " << i + 1 << " in [" << mPtNum[i]->GetBinLowEdge(i + 1) << " , " << mPtNum[i]->GetBinLowEdge(i + 1) + mPtNum[i]->GetBinWidth(i + 1) << "]: mPtDen[i] = " << mPtDen[i]->GetBinContent(i + 1) << ", mPtNum[i] = " << mPtNum[i]->GetBinContent(i + 1);
+  for (int ti = 0; ti < matchType::SIZE; ++ti) {
+    for (int i = 0; i < mPtDen[ti]->GetNbinsX(); ++i) {
+      if (mPtDen[ti]->GetBinContent(i + 1) < mPtNum[ti]->GetBinContent(i + 1)) {
+        LOG(error) << title[ti] << ": bin " << i + 1 << " in [" << mPtNum[ti]->GetBinLowEdge(i + 1) << " , " << mPtNum[ti]->GetBinLowEdge(i + 1) + mPtNum[ti]->GetBinWidth(i + 1) << "]: mPtDen[i] = " << mPtDen[ti]->GetBinContent(i + 1) << ", mPtNum[i] = " << mPtNum[ti]->GetBinContent(i + 1);
       }
     }
-    for (int i = 0; i < mPtDen_noEta0[i]->GetNbinsX(); ++i) {
-      if (mPtDen_noEta0[i]->GetBinContent(i + 1) < mPtNum_noEta0[i]->GetBinContent(i + 1)) {
-        LOG(error) << title[i] << ": bin " << i + 1 << " in [" << mPtNum_noEta0[i]->GetBinLowEdge(i + 1) << " , " << mPtNum_noEta0[i]->GetBinLowEdge(i + 1) + mPtNum_noEta0[i]->GetBinWidth(i + 1) << "]: mPtDen_noEta0[i] = " << mPtDen_noEta0[i]->GetBinContent(i + 1) << ", mPtNum_noEta0[i] = " << mPtNum_noEta0[i]->GetBinContent(i + 1);
+    for (int i = 0; i < mPtDen_noEta0[ti]->GetNbinsX(); ++i) {
+      if (mPtDen_noEta0[ti]->GetBinContent(i + 1) < mPtNum_noEta0[ti]->GetBinContent(i + 1)) {
+        LOG(error) << title[ti] << ": bin " << i + 1 << " in [" << mPtNum_noEta0[ti]->GetBinLowEdge(i + 1) << " , " << mPtNum_noEta0[ti]->GetBinLowEdge(i + 1) + mPtNum_noEta0[ti]->GetBinWidth(i + 1) << "]: mPtDen_noEta0[i] = " << mPtDen_noEta0[ti]->GetBinContent(i + 1) << ", mPtNum_noEta0[i] = " << mPtNum_noEta0[ti]->GetBinContent(i + 1);
       }
     }
-    for (int i = 0; i < mPhiDen[i]->GetNbinsX(); ++i) {
-      if (mPhiDen[i]->GetBinContent(i + 1) < mPhiNum[i]->GetBinContent(i + 1)) {
-        LOG(error) << title[i] << ": bin " << i + 1 << " in [" << mPhiNum[i]->GetBinLowEdge(i + 1) << " , " << mPhiNum[i]->GetBinLowEdge(i + 1) + mPhiNum[i]->GetBinWidth(i + 1) << "]: mPhiDen[i] = " << mPhiDen[i]->GetBinContent(i + 1) << ", mPhiNum[i] = " << mPhiNum[i]->GetBinContent(i + 1);
+    for (int i = 0; i < mPhiDen[ti]->GetNbinsX(); ++i) {
+      if (mPhiDen[ti]->GetBinContent(i + 1) < mPhiNum[ti]->GetBinContent(i + 1)) {
+        LOG(error) << title[ti] << ": bin " << i + 1 << " in [" << mPhiNum[ti]->GetBinLowEdge(i + 1) << " , " << mPhiNum[ti]->GetBinLowEdge(i + 1) + mPhiNum[ti]->GetBinWidth(i + 1) << "]: mPhiDen[i] = " << mPhiDen[ti]->GetBinContent(i + 1) << ", mPhiNum[i] = " << mPhiNum[ti]->GetBinContent(i + 1);
       }
     }
-    for (int i = 0; i < mEtaDen[i]->GetNbinsX(); ++i) {
-      if (mEtaDen[i]->GetBinContent(i + 1) < mEtaNum[i]->GetBinContent(i + 1)) {
-        LOG(error) << title[i] << ": bin " << i + 1 << " in [" << mEtaNum[i]->GetBinLowEdge(i + 1) << " , " << mEtaNum[i]->GetBinLowEdge(i + 1) + mEtaNum[i]->GetBinWidth(i + 1) << "]: mEtaDen[i] = " << mEtaDen[i]->GetBinContent(i + 1) << ", mEtaNum[i] = " << mEtaNum[i]->GetBinContent(i + 1);
+    for (int i = 0; i < mEtaDen[ti]->GetNbinsX(); ++i) {
+      if (mEtaDen[ti]->GetBinContent(i + 1) < mEtaNum[ti]->GetBinContent(i + 1)) {
+        LOG(error) << title[ti] << ": bin " << i + 1 << " in [" << mEtaNum[ti]->GetBinLowEdge(i + 1) << " , " << mEtaNum[ti]->GetBinLowEdge(i + 1) + mEtaNum[ti]->GetBinWidth(i + 1) << "]: mEtaDen[i] = " << mEtaDen[ti]->GetBinContent(i + 1) << ", mEtaNum[i] = " << mEtaNum[ti]->GetBinContent(i + 1);
       }
     }
 
     // filling the efficiency
-    setEfficiency(mFractionITSTPCmatch[i], mPtNum[i], mPtDen[i]);
-    setEfficiency(mFractionITSTPCmatch_noEta0[i], mPtNum_noEta0[i], mPtDen_noEta0[i]);
-    setEfficiency(mFractionITSTPCmatchPhi[i], mPhiNum[i], mPhiDen[i]);
-    setEfficiency(mFractionITSTPCmatchEta[i], mEtaNum[i], mEtaDen[i]);
-    setEfficiency(mFractionITSTPCmatchPhiVsPt[i], mPhiVsPtNum[i], mPhiVsPtDen[i], true);
-    setEfficiency(mFractionITSTPCmatchEtaVsPt[i], mEtaVsPtNum[i], mEtaVsPtDen[i], true);
-    setEfficiency(mFractionITSTPCmatch1OverPt[i], m1OverPtNum[i], m1OverPtDen[i]);
+    setEfficiency(mFractionITSTPCmatch[ti], mPtNum[ti], mPtDen[ti]);
+    setEfficiency(mFractionITSTPCmatch_noEta0[ti], mPtNum_noEta0[ti], mPtDen_noEta0[ti]);
+    setEfficiency(mFractionITSTPCmatchPhi[ti], mPhiNum[ti], mPhiDen[ti]);
+    setEfficiency(mFractionITSTPCmatchEta[ti], mEtaNum[ti], mEtaDen[ti]);
+    setEfficiency(mFractionITSTPCmatchPhiVsPt[ti], mPhiVsPtNum[ti], mPhiVsPtDen[ti], true);
+    setEfficiency(mFractionITSTPCmatchEtaVsPt[ti], mEtaVsPtNum[ti], mEtaVsPtDen[ti], true);
+    setEfficiency(mFractionITSTPCmatch1OverPt[ti], m1OverPtNum[ti], m1OverPtDen[ti]);
     if (mUseTrkPID) { // Vs Tracking PID hypothesis
       for (int j = 0; j < o2::track::PID::NIDs; ++j) {
-        setEfficiency(mFractionITSTPCmatchPtVsTrkPID[i][j], mPtNumVsTrkPID[i][j], mPtDenVsTrkPID[i][j]);
-        setEfficiency(mFractionITSTPCmatchPhiVsTrkPID[i][j], mPhiNumVsTrkPID[i][j], mPhiDenVsTrkPID[i][j]);
-        setEfficiency(mFractionITSTPCmatchEtaVsTrkPID[i][j], mEtaNumVsTrkPID[i][j], mEtaDenVsTrkPID[i][j]);
+        setEfficiency(mFractionITSTPCmatchPtVsTrkPID[ti][j], mPtNumVsTrkPID[ti][j], mPtDenVsTrkPID[ti][j]);
+        setEfficiency(mFractionITSTPCmatchPhiVsTrkPID[ti][j], mPhiNumVsTrkPID[ti][j], mPhiDenVsTrkPID[ti][j]);
+        setEfficiency(mFractionITSTPCmatchEtaVsTrkPID[ti][j], mEtaNumVsTrkPID[ti][j], mEtaDenVsTrkPID[ti][j]);
       }
     }
     if (mUseMC) {
-      setEfficiency(mFractionITSTPCmatchPhysPrim[i], mPtPhysPrimNum[i], mPtPhysPrimDen[i]);
-      setEfficiency(mFractionITSTPCmatchPhiPhysPrim[i], mPhiPhysPrimNum[i], mPhiPhysPrimDen[i]);
-      setEfficiency(mFractionITSTPCmatchEtaPhysPrim[i], mEtaPhysPrimNum[i], mEtaPhysPrimDen[i]);
-      setEfficiency(mFractionITSTPCmatchPhysPrim1OverPt[i], m1OverPtPhysPrimNum[i], m1OverPtPhysPrimDen[i]);
+      setEfficiency(mFractionITSTPCmatchPhysPrim[ti], mPtPhysPrimNum[ti], mPtPhysPrimDen[ti]);
+      setEfficiency(mFractionITSTPCmatchPhiPhysPrim[ti], mPhiPhysPrimNum[ti], mPhiPhysPrimDen[ti]);
+      setEfficiency(mFractionITSTPCmatchEtaPhysPrim[ti], mEtaPhysPrimNum[ti], mEtaPhysPrimDen[ti]);
+      setEfficiency(mFractionITSTPCmatchPhysPrim1OverPt[ti], m1OverPtPhysPrimNum[ti], m1OverPtPhysPrimDen[ti]);
     }
   }
   /*
