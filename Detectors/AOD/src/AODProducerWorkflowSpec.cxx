@@ -1156,6 +1156,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     const auto& v0 = v0s[iv0];
     auto trPosID = v0.getProngID(0);
     auto trNegID = v0.getProngID(1);
+    uint8_t v0flags = v0.getBits();
     int posTableIdx = -1, negTableIdx = -1, collID = -1;
     auto item = mGIDToTableID.find(trPosID);
     if (item != mGIDToTableID.end()) {
@@ -1176,7 +1177,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
       collID = itemV->second;
     }
     if (posTableIdx != -1 and negTableIdx != -1 and collID != -1) {
-      v0Cursor(collID, posTableIdx, negTableIdx);
+      v0Cursor(collID, posTableIdx, negTableIdx, v0flags);
       mV0ToTableID[int(iv0)] = mTableV0ID++;
     }
   }

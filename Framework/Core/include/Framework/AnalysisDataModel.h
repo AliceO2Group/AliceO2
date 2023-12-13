@@ -1271,7 +1271,7 @@ DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version
                             v0::IsStandardV0<v0::V0Type>,
                             v0::IsPhotonV0<v0::V0Type>);
 
-using V0s = V0s_001; //! this defines the current default version
+using V0s = V0s_002; //! this defines the current default version
 using V0 = V0s::iterator;
 
 namespace cascade
