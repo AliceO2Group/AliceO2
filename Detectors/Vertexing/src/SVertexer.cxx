@@ -663,9 +663,9 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // apply mass selections
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
 
-  bool goodHyp = false;
+  bool goodHyp = false, photonOnly = mSVParams->mTPCTrackPhotonTune && isTPConly;
   std::array<bool, NHypV0> hypCheckStatus{};
-  int nPID = (mSVParams->mTPCTrackPhotonTune && isTPConly) ? (Photon + 1) : NHypV0;
+  int nPID = photonOnly ? (Photon + 1) : NHypV0;
   for (int ipid = 0; (ipid < nPID) && mSVParams->checkV0Hypothesis; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
       goodHyp = hypCheckStatus[ipid] = true;
@@ -855,6 +855,13 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   if (nV0Used || !rejectIfNotCascade) { // need to add this v0
     mV0sIdxTmp[ithread].push_back(v0Idxnew);
+    if (!rejectIfNotCascade) {
+      mV0sIdxTmp[ithread].back().setStandaloneV0();
+    }
+    if (photonOnly) {
+      mV0sIdxTmp[ithread].back().setPhotonOnly();
+    }
+
     if (mSVParams->createFullV0s) {
       mV0sTmp[ithread].push_back(v0new);
     }

@@ -23,6 +23,16 @@ struct DataProcessorLabel {
   {
     return value == rhs.value;
   }
+
+  bool operator<(const DataProcessorLabel& rhs) const
+  {
+    return value < rhs.value;
+  }
+
+  bool operator>(const DataProcessorLabel& rhs) const
+  {
+    return value > rhs.value;
+  }
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_DATAPROCESSORLABEL_H_

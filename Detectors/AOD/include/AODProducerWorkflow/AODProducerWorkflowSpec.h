@@ -507,7 +507,7 @@ class AODProducerWorkflowDPL : public Task
   // * interaction time is for TOF information
   template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename TracksQACursorType, typename AmbigTracksCursorType,
             typename MFTTracksCursorType, typename AmbigMFTTracksCursorType,
-            typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType>
+            typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename AmbigFwdTracksCursorType, typename FwdTrkClsCursorType>
   void fillTrackTablesPerCollision(int collisionID,
                                    std::uint64_t collisionBC,
                                    const o2::dataformats::VtxTrackRef& trackRef,
@@ -523,7 +523,11 @@ class AODProducerWorkflowDPL : public Task
                                    FwdTracksCursorType& fwdTracksCursor,
                                    FwdTracksCovCursorType& fwdTracksCovCursor,
                                    AmbigFwdTracksCursorType& ambigFwdTracksCursor,
+                                   FwdTrkClsCursorType& fwdTrkClsCursor,
                                    const std::map<uint64_t, int>& bcsMap);
+
+  template <typename FwdTrkClsCursorType>
+  void addClustersToFwdTrkClsTable(const o2::globaltracking::RecoContainer& recoData, FwdTrkClsCursorType& fwdTrkClsCursor, GIndex trackID, int fwdTrackId);
 
   void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices, const o2::globaltracking::RecoContainer& data);
 

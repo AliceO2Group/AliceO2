@@ -770,6 +770,32 @@ DECLARE_SOA_TABLE(AmbiguousFwdTracks, "AOD", "AMBIGUOUSFWDTR", //! Table for Fwd
 
 using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
 
+// Forward Tracks Cluster information
+namespace fwdtrkcl
+{
+DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! Track index
+DECLARE_SOA_COLUMN(X, x, float);              //! Cluster x coordinate
+DECLARE_SOA_COLUMN(Y, y, float);              //! Cluster y coordinate
+DECLARE_SOA_COLUMN(Z, z, float);              //! Cluster z coordinate
+DECLARE_SOA_COLUMN(ClInfo, clInfo, uint16_t); //! Encoded detection element of cluster and cluster type along x and y
+DECLARE_SOA_DYNAMIC_COLUMN(DEId, deId, [](uint16_t info) -> uint16_t { return (info & 0x7FF); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsGoodX, isGoodX, [](uint16_t info) -> bool { return ((info & 0x800) >> 11); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsGoodY, isGoodY, [](uint16_t info) -> bool { return ((info & 0x1000) >> 12); });
+} // namespace fwdtrkcl
+
+DECLARE_SOA_TABLE(FwdTrkCls, "AOD", "FWDTRKCL", //! Forward Track Cluster information
+                  o2::soa::Index<>,
+                  fwdtrkcl::FwdTrackId,
+                  fwdtrkcl::X,
+                  fwdtrkcl::Y,
+                  fwdtrkcl::Z,
+                  fwdtrkcl::ClInfo,
+                  fwdtrkcl::DEId<fwdtrkcl::ClInfo>,
+                  fwdtrkcl::IsGoodX<fwdtrkcl::ClInfo>,
+                  fwdtrkcl::IsGoodY<fwdtrkcl::ClInfo>);
+
+using FwdTrkCl = FwdTrkCls::iterator;
+
 // HMPID information
 namespace hmpid
 {
@@ -1297,7 +1323,7 @@ DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version
                             v0::IsStandardV0<v0::V0Type>,
                             v0::IsPhotonV0<v0::V0Type>);
 
-using V0s = V0s_001; //! this defines the current default version
+using V0s = V0s_002; //! this defines the current default version
 using V0 = V0s::iterator;
 
 namespace cascade
