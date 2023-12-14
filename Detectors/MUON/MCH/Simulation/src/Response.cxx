@@ -90,6 +90,39 @@ uint32_t Response::nSamples(float charge) const
   return std::round(std::pow(charge / signalParam[1], 1. / signalParam[2]) + signalParam[0]);
 }
 //_____________________________________________________________________
+float Response::inclandbfield(float thetawire, float betagamma, float bx) const
+{
+ float yAngleEffect = 0;
+  //auxiliary variables for b-field and inclination angle effect
+  float eLossParticleElossMip = 0.0;
+  float sigmaEffect10degrees = 0.0; 
+  float sigmaEffectThetadegrees = 0.0;
+
+ if (isAngleEffect()) {
+    if (!isMagnetEffect()) {
+      thetawire = abs(thetawire);
+        if ( (betagamma > 3.2) && (thetawire * TMath::RadToDeg() <= 15.) ) {
+          betagamma = log(betagamma);//check if ln or log10
+          eLossParticleElossMip = eLossRatio(betagamma);
+          sigmaEffect10degrees = angleEffect10(eLossParticleElossMip);
+          sigmaEffectThetadegrees = sigmaEffect10degrees / angleEffectNorma(thetawire * TMath::RadToDeg());
+          if(o2::mch::Station() == o2::mch::Station::Type1) sigmaEffectThetadegrees /= 1.09833 + 0.017 * (thetawire * TMath::RadToDeg()); 
+          yAngleEffect = 0.0001 * gRandom->Gaus(0, sigmaEffectThetadegrees); //error due to the angle effect in cm
+        }
+    }else{
+       if ( (betagamma > 3.2) && (thetawire * TMath::RadToDeg() <= 15.) ) {
+       betagamma = log(betagamma);
+       eLossParticleElossMip = eLossRatio(betagamma);
+       sigmaEffect10degrees = angleEffect10(eLossParticleElossMip);
+       sigmaEffectThetadegrees = sigmaEffect10degrees / magAngleEffectNorma(thetawire * TMath::RadToDeg(), bx / 10. ); //check b-field unit in aliroot and O2
+       if(o2::mch::Station() == o2::mch::Station::Type1) sigmaEffectThetadegrees /= 1.09833 + 0.017 * (thetawire * TMath::RadToDeg());
+       yAngleEffect = 0.0001 * gRandom->Gaus(0, sigmaEffectThetadegrees);
+       }
+    }
+  }
+  return yAngleEffect;
+}
+//_____________________________________________________________________
 float Response::eLossRatio(float logbetagamma) const
 {
   // Ratio of particle mean eloss with respect MIP's Khalil Boudjemline, sep 2003, PhD.Thesis and Particle Data Book
