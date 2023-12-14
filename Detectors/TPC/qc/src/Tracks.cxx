@@ -85,6 +85,7 @@ void Tracks::initializeHistograms()
   // DCA Histograms
   for (const auto type : types) {
     mMapHist[fmt::format("hDCAr_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}", type).data(), fmt::format("DCAr {};#phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 250, -10., 10.);
+    mMapHist[fmt::format("hDCAr_{}_pTmin", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}_pTmin", type).data(), fmt::format("DCAr {} #it{{p}}_{{T}}^{{min}};#phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 250, -10., 10.);
   }
   // DCA vs variables Histograms
   mMapHist["hDCArVsPtPos"] = std::make_unique<TH2F>("hDCArVsPtPos", "DCAr Pos;#it{p}_{T} (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
@@ -93,6 +94,11 @@ void Tracks::initializeHistograms()
   mMapHist["hDCArVsPtNeg"] = std::make_unique<TH2F>("hDCArVsPtNeg", "DCAr Neg;#it{p}_{T} (GeV/#it{c});DCAr (cm)", logPtBinning.size() - 1, logPtBinning.data(), 250, -10., 10.);
   mMapHist["hDCArVsEtaNeg"] = std::make_unique<TH2F>("hDCArVsEtaNeg", "DCAr Neg;#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
   mMapHist["hDCArVsNClsNeg"] = std::make_unique<TH2F>("hDCArVsNClsNeg", "DCAr Neg;# TPC clusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
+  // DCA vs variables Histogram with pT min selection
+  mMapHist["hDCArVsEtaPos_pTmin"] = std::make_unique<TH2F>("hDCArVsEtaPos_pTmin", "DCAr Pos #it{p}_{T}^{min};#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
+  mMapHist["hDCArVsNClsPos_pTmin"] = std::make_unique<TH2F>("hDCArVsNClsPos_pTmin", "DCAr Pos #it{p}_{T}^{min};# TPC clusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
+  mMapHist["hDCArVsEtaNeg_pTmin"] = std::make_unique<TH2F>("hDCArVsEtaNeg_pTmin", "DCAr Neg #it{p}_{T}^{min};#eta;DCAr (cm)", 400, -2., 2., 250, -10., 10.);
+  mMapHist["hDCArVsNClsNeg_pTmin"] = std::make_unique<TH2F>("hDCArVsNClsNeg_pTmin", "DCAr Neg #it{p}_{T}^{min};# TPC clusters;DCAr (cm)", 400, -0.5, 399.5, 250, -10., 10.);
 }
 //______________________________________________________________________________
 void Tracks::resetHistograms()
@@ -138,10 +144,13 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     auto propagator = o2::base::Propagator::Instance(true);
     const int type = (track.getQ2Pt() < 0) + 2 * track.hasCSideClustersOnly();
     auto dcaHist = mMapHist[fmt::format("hDCAr_{}", types[type]).data()].get();
+    auto dcaHist_pTmin = mMapHist[fmt::format("hDCAr_{}_pTmin", types[type]).data()].get();
     const std::string signType((sign < 0) ? "Neg" : "Pos");
     auto dcaHistPT = mMapHist["hDCArVsPt" + signType].get();
     auto dcaHistEta = mMapHist["hDCArVsEta" + signType].get();
     auto dcaHistNCluster = mMapHist["hDCArVsNCls" + signType].get();
+    auto dcaHistEta_pTmin = mMapHist["hDCArVsEta" + signType + "_pTmin"].get();
+    auto dcaHistNCluster_pTmin = mMapHist["hDCArVsNCls" + signType + "_pTmin"].get();
 
     // set-up sampling for the DCA calculation
     Double_t sampleProb = 2;
@@ -161,10 +170,13 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
         if (propagator->propagateToDCABxByBz(refPoint, propTrack, 2.f, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
           const auto phi = o2::math_utils::to02PiGen(track.getPhi());
           dcaHistPT->Fill(pt, dca[0]);
+          dcaHist->Fill(phi, dca[0]);
+          dcaHistEta->Fill(eta, dca[0]);
+          dcaHistNCluster->Fill(nCls, dca[0]);
           if (pt > mCutMinPtDCAr) {
-            dcaHist->Fill(phi, dca[0]);
-            dcaHistEta->Fill(eta, dca[0]);
-            dcaHistNCluster->Fill(nCls, dca[0]);
+            dcaHist_pTmin->Fill(phi, dca[0]);
+            dcaHistEta_pTmin->Fill(eta, dca[0]);
+            dcaHistNCluster_pTmin->Fill(nCls, dca[0]);
           }
         }
       } else {
@@ -173,8 +185,11 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
           LOGP(error, "o2::base::Propagator not properly initialized, MatLUT ({}) and / or Field ({}) missing, will not fill DCA histograms", (void*)propagator->getMatLUT(), propagator->hasMagFieldSet());
           dcaHist->SetTitle(fmt::format("DCAr {} o2::base::Propagator not properly initialized", types[type]).data());
           dcaHistPT->SetTitle(fmt::format("DCAr #it{{p}}_{{T}} {} o2::base::Propagator not properly initialized", signType).data());
+          dcaHist_pTmin->SetTitle(fmt::format("DCAr {} #it{{p}}_{{T}}^{{min}} o2::base::Propagator not properly initialized", types[type]).data());
           dcaHistEta->SetTitle(fmt::format("DCAr #eta {} o2::base::Propagator not properly initialized", signType).data());
           dcaHistNCluster->SetTitle(fmt::format("DCAr nClusters {} o2::base::Propagator not properly initialized", signType).data());
+          dcaHistEta_pTmin->SetTitle(fmt::format("DCAr #eta {} #it{{p}}_{{T}}^{{min}} o2::base::Propagator not properly initialized", signType).data());
+          dcaHistNCluster_pTmin->SetTitle(fmt::format("DCAr nClusters {} #it{{p}}_{{T}}^{{min}} o2::base::Propagator not properly initialized", signType).data());
           reported = true;
         }
       }
