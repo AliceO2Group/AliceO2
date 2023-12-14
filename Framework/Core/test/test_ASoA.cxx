@@ -760,11 +760,11 @@ TEST_CASE("TestIndexToFiltered")
   r.bindExternalIndices(&f);
   auto it = r.begin();
   it.moveByIndex(23);
-  REQUIRE(it.origint().globalIndex() == 3);
+  REQUIRE(it.origint_as<Flt>().globalIndex() == 3);
   it++;
-  REQUIRE(it.origint().globalIndex() == 4);
+  REQUIRE(it.origint_as<Flt>().globalIndex() == 4);
   it++;
-  REQUIRE(it.origint().globalIndex() == 5);
+  REQUIRE(it.origint_as<Flt>().globalIndex() == 5);
 
   m.bindExternalIndices(&f);
   for (auto const& row : m) {
@@ -954,7 +954,7 @@ TEST_CASE("TestListColumns")
   }
   auto lt = b.finalize();
   o2::aod::Lists tbl{lt};
-  int s = 1;
+  auto s = 1U;
   for (auto& row : tbl) {
     auto f = row.l1();
     auto i = row.l2();
@@ -967,7 +967,7 @@ TEST_CASE("TestListColumns")
 
     for (auto j = 0u; j < f.size(); ++j) {
       REQUIRE(f[j] == 0.1231233f * (float)j + 0.1982798f);
-      REQUIRE(i[j] == j + 10);
+      REQUIRE(i[j] == (int)j + 10);
     }
     ++s;
   }
