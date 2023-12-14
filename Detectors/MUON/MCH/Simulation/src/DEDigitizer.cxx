@@ -83,7 +83,7 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto localY = lpos.Y();
 
   //calculate angle between track and wire assuming wire perpendicular to z-axis
-  auto thetawire = asin( (lexit.Y() - lentrance.Y()) / hitlengthZ);//check sign convention between O2 and Aliroot
+  auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ);//check sign convention between O2 and Aliroot
 
   //auxiliary variables for b-field and inclination angle effect
   float eLossParticleElossMip = 0.0;
