@@ -68,6 +68,21 @@ class Response
   /// compute the number of samples corresponding to the charge in ADC units
   uint32_t nSamples(float charge) const;
 
+  /// compute deteriation of y-resolution due to track inclination and B-field
+  float inclandbfield(float thetawire, float betagamma, float bx) const;
+
+
+ private:
+  MathiesonOriginal mMathieson{}; ///< Mathieson function
+  float mPitch = 0.f;             ///< anode-cathode pitch (cm)
+  float mChargeSlope = 0.f;       ///< charge slope used in E to charge conversion
+  float mChargeSpread = 0.f;      ///< width of the charge distribution (cm)
+  float mSigmaIntegration = 0.f;  ///< number of sigmas used for charge distribution
+  float mChargeCorr = 0.f;        ///< amplitude of charge correlation between cathodes
+  float mChargeThreshold = 0.f;   ///< minimum fraction of charge considered
+  bool mAngleEffect = true;       ///< switch for angle effect influencing charge deposition
+  bool mMagnetEffect = true;      ///< switch for magnetic field influencing charge deposition
+
   /// Ratio of particle mean eloss with respect MIP's Khalil Boudjemline, sep 2003, PhD.Thesis and Particle Data Book
   float eLossRatio(float logbetagamma) const;
   /// ToDo: check Aliroot formula vs PDG, if really log_10 and not ln or bug in Aliroot
@@ -82,17 +97,6 @@ class Response
   /// Magnetic field effect: Normalisation form theta=16 degres (eq. 10 degrees B=0) to theta between -20 and 20 (Lamia Benhabib jun 2006 )
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
   float magAngleEffectNorma(float angle, float bfield) const;
-
- private:
-  MathiesonOriginal mMathieson{}; ///< Mathieson function
-  float mPitch = 0.f;             ///< anode-cathode pitch (cm)
-  float mChargeSlope = 0.f;       ///< charge slope used in E to charge conversion
-  float mChargeSpread = 0.f;      ///< width of the charge distribution (cm)
-  float mSigmaIntegration = 0.f;  ///< number of sigmas used for charge distribution
-  float mChargeCorr = 0.f;        ///< amplitude of charge correlation between cathodes
-  float mChargeThreshold = 0.f;   ///< minimum fraction of charge considered
-  bool mAngleEffect = true;       ///< switch for angle effect influencing charge deposition
-  bool mMagnetEffect = true;      ///< switch for magnetic field influencing charge deposition
 };
 } // namespace mch
 } // namespace o2

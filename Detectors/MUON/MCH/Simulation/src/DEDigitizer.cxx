@@ -85,39 +85,13 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   //calculate angle between track and wire assuming wire perpendicular to z-axis
   auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ);//check sign convention between O2 and Aliroot
 
-  //auxiliary variables for b-field and inclination angle effect
-  float eLossParticleElossMip = 0.0;
-  float sigmaEffect10degrees = 0.0; 
-  float sigmaEffectThetadegrees = 0.0;
-  float yAngleEffect = 0.0;  
+  // bfield
   float b[3] = {0., 0., 0.};
-  //  TGeoGlobalMagField::Instance()->Field(lentrance, b);//need to add Field as member as transformation or find other example (e.g. tracking)
+  //  TGeoGlobalMagField::Instance()->Field(lentrance, b);//need to add Field as member as transformation or find other example (e.g. use TrackFitter.cxx as model)
 
   //calculate track betagamma
   auto betagamma = 1.;//todo: access track information
-
-  if (mResponse.isAngleEffect()) {
-    if (!mResponse.isMagnetEffect()) {
-      thetawire = abs(thetawire);
-        if ( (betagamma > 3.2) && (thetawire * TMath::RadToDeg() <= 15.) ) {
-          betagamma = log(betagamma);//check if ln or log10
-          eLossParticleElossMip = mResponse.eLossRatio(betagamma);
-          sigmaEffect10degrees = mResponse.angleEffect10(eLossParticleElossMip);
-          sigmaEffectThetadegrees = sigmaEffect10degrees / mResponse.angleEffectNorma(thetawire * TMath::RadToDeg());
-          if(o2::mch::Station() == o2::mch::Station::Type1) sigmaEffectThetadegrees /= 1.09833 + 0.017 * (thetawire * TMath::RadToDeg()); 
-          yAngleEffect = 0.0001 * gRandom->Gaus(0, sigmaEffectThetadegrees); //error due to the angle effect in cm
-        }
-    }else{
-       if ( (betagamma > 3.2) && (thetawire * TMath::RadToDeg() <= 15.) ) {
-       betagamma = log(betagamma);
-       eLossParticleElossMip = mResponse.eLossRatio(betagamma);
-       sigmaEffect10degrees = mResponse.angleEffect10(eLossParticleElossMip);
-       sigmaEffectThetadegrees = sigmaEffect10degrees / mResponse.magAngleEffectNorma(thetawire * TMath::RadToDeg(), b[0] / 10. ); //check b-field unit in aliroot and O2
-       if(o2::mch::Station() == o2::mch::Station::Type1) sigmaEffectThetadegrees /= 1.09833 + 0.017 * (thetawire * TMath::RadToDeg());
-       yAngleEffect = 0.0001 * gRandom->Gaus(0, sigmaEffectThetadegrees);
-       }
-    }
-  }
+  auto yAngleEffect = mResponse.inclandbfield(thetawire, betagamma, b[0]);
   localY += yAngleEffect;
 
 
