@@ -226,6 +226,9 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   if (enableStrangenesTracking) {
     src |= (srcClus = GTrackID::getSourceMask(GTrackID::ITS));
   }
+  if (GTrackID::includesDet(o2::detectors::DetID::TPC, src) && !src[GTrackID::TPC]) {
+    throw std::runtime_error("Tracks involving TPC were requested w/o requesting TPC-only tracks");
+  }
   if (src[GTrackID::TPC]) {
     srcClus |= GTrackID::getSourceMask(GTrackID::TPC);
   }
