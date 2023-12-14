@@ -19,6 +19,7 @@
 #include "GPUCommonDef.h"
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include <boost/property_tree/ptree.hpp>
 #if defined(DEBUG_STREAMER)
 #include "CommonUtils/TreeStreamRedirector.h"
 #include <tbb/concurrent_unordered_map.h>
@@ -141,7 +142,7 @@ class DebugStreamer
   std::string getUniqueTreeName(const char* tree, const size_t id = getCPUID()) const;
 
   /// set directly the debug level
-  static void setStreamFlags(const StreamFlags streamFlags) { o2::conf::ConfigurableParam::setValue("DebugStreamerParam", "streamLevel", static_cast<int>(streamFlags)); }
+  static void setStreamFlags(const StreamFlags streamFlags) { o2::conf::ConfigurableParam::setValue<int>("DebugStreamerParam", "streamLevel", static_cast<int>(streamFlags)); }
 
   /// enable specific streamer flag
   static void enableStream(const StreamFlags streamFlag);
