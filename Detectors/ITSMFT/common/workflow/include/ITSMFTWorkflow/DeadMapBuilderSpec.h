@@ -44,7 +44,7 @@
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DetectorsCalibration/Utils.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
-#include "DetectorsBase/GRPGeomHelper.h" //nicolo
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
 
@@ -91,17 +91,17 @@ class ITSMFTDeadMapBuilder : public Task
   std::string mObjectName;
   std::string mLocalOutputDir;
 
-  std::string MAP_VERSION = "1"; // to change in case the encoding or the format change
+  std::string MAP_VERSION = "2"; // to change in case the encoding or the format change
 
-  std::vector<uint16_t>* mDeadMapTF = nullptr;
+  std::vector<uint16_t> mDeadMapTF{};
 
-  Long64_t mFirstOrbitTF = 0x0;
+  unsigned long mFirstOrbitTF = 0x0;
 
   std::string mDataSource = "chipsstatus";
 
   int mTFSampling = 1000;
 
-  TTree* mTreeObject = nullptr;
+  std::map<unsigned long, std::vector<uint16_t>> mMapObject{};
 
   void finalizeOutput();
   void PrepareOutputCcdb(DataAllocator& output);
