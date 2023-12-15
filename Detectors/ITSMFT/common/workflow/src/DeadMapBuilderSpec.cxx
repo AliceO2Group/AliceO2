@@ -279,11 +279,11 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
 
   std::vector<OutputSpec> outputs;
   if (doMFT) {
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_TimeDeadMap"});
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_TimeDeadMap"});
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_TimeDeadMap"}, Lifetime::Sporadic);
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_TimeDeadMap"}, Lifetime::Sporadic);
   } else {
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_TimeDeadMap"});
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_TimeDeadMap"});
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_TimeDeadMap"}, Lifetime::Sporadic);
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_TimeDeadMap"}, Lifetime::Sporadic);
   }
 
   std::string detector = doMFT ? "mft" : "its";

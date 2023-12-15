@@ -20,8 +20,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"Expect MFT data"}},
-    ConfigParamSpec{"source", VariantType::String, "chipsstatus", {"Loop over: digits, clusters or chipsstatus"}}};
-
+    ConfigParamSpec{"source", VariantType::String, "chipsstatus", {"Loop over: digits, clusters or chipsstatus"}},
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  
   std::swap(workflowOptions, options);
 }
 
@@ -37,7 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool doMFT = configcontext.options().get<bool>("runmft");
   std::string datasource = configcontext.options().get<std::string>("source");
   std::string detector = doMFT ? "MFT" : "ITS";
-
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   LOG(info) << "Building " << detector << " deadmaps from collection of:  " << datasource;
   wf.emplace_back(o2::itsmft::getITSMFTDeadMapBuilderSpec(datasource, doMFT));
 
