@@ -91,7 +91,6 @@ class ITSMFTDeadMapBuilder : public Task
   std::string mObjectName;
   std::string mLocalOutputDir;
 
-
   std::string MAP_VERSION = "2"; // to change in case the encoding or the format change
 
   std::vector<uint16_t> mDeadMapTF{};
