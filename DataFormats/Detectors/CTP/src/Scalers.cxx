@@ -89,7 +89,7 @@ void CTPScalerRecordO2::printFromZero(std::ostream& stream, CTPScalerRecordO2& r
   stream << "printFromZero Orbit:" << intRecord.orbit - record0.intRecord.orbit << " BC:" << intRecord.bc;
   stream << " miliSeconds:" << std::setprecision(20) << epochTime - record0.epochTime << std::endl;
   // this-record0
-  for (int i = 0; i < scalers.size(); i++) {
+  for (uint32_t i = 0; i < scalers.size(); i++) {
     scalers[i].printFromZero(stream, record0.scalers[i]);
   }
   stream << std::endl;
@@ -130,7 +130,7 @@ void CTPRunScalers::printFromZero(std::ostream& stream) const
 void CTPRunScalers::printClasses(std::ostream& stream) const
 {
   stream << "CTP classes:";
-  for (int i = 0; i < mClassMask.size(); i++) {
+  for (uint32_t i = 0; i < mClassMask.size(); i++) {
     if (mClassMask[i]) {
       stream << " " << i;
     }
@@ -148,7 +148,7 @@ std::vector<uint32_t> CTPRunScalers::getClassIndexes() const
   return indexes;
 }
 // cls counted from 0
-int CTPRunScalers::getScalerIndexForClass(int cls) const
+int CTPRunScalers::getScalerIndexForClass(uint32_t cls) const
 {
   if (cls < 0 || cls >= 64) {
     LOG(error) << "Class index out of range:" << cls;
@@ -172,7 +172,7 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
   int ret = 0;
   int level = 0;
   std::string line;
-  int nclasses = 0;
+  uint32_t nclasses = 0;
   int nlines = 0;
   while (std::getline(iss, line)) {
     o2::utils::Str::trim(line);
@@ -192,7 +192,7 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
   }
   return 0;
 }
-int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& nclasses)
+int CTPRunScalers::processScalerLine(const std::string& line, int& level, uint32_t& nclasses)
 {
   //std::cout << "Processing line" << std::endl;
   if (line.size() == 0) {
@@ -225,13 +225,13 @@ int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& n
       return 2;
     } else {
       mRunNumber = std::stol(tokens[0]);
-      int numofclasses = std::stoi(tokens[1]);
+      uint32_t numofclasses = std::stoi(tokens[1]);
       if ((numofclasses + 2) != ntokens) {
         LOG(error) << "Wrong syntax of second line in CTP scalers";
         return 3;
       }
       mClassMask.reset();
-      for (int i = 0; i < numofclasses; i++) {
+      for (uint32_t i = 0; i < numofclasses; i++) {
         int index = std::stoi(tokens[i + 2]);
         mClassMask[index] = 1;
       }
@@ -336,7 +336,7 @@ int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTP
     o2scal.createCTPScalerO2FromRaw(rawscal, classesoverflows[k]);
     o2rec.scalers.push_back(o2scal);
   }
-  for (int i = 0; i < rawrec.scalersInps.size(); i++) {
+  for (uint32_t i = 0; i < rawrec.scalersInps.size(); i++) {
     uint64_t inpo2 = (uint64_t)(rawrec.scalersInps[i]) + 0xffffffffull * (uint64_t)(overflows[i]);
     o2rec.scalersInps.push_back(inpo2);
   }
@@ -441,7 +441,7 @@ int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScal
     LOG(warning) << "rec0 orbit:" << rec0.intRecord.orbit << "> rec1 orbit:" << rec1.intRecord.orbit << " skipping this record";
     return 1;
   }
-  for (int i = 0; i < rec0.scalers.size(); i++) {
+  for (uint32_t i = 0; i < rec0.scalers.size(); i++) {
     int k = (getClassIndexes())[i];
     updateOverflows(rec0.scalers[i], rec1.scalers[i], classesoverflows[k]);
   }
@@ -449,7 +449,7 @@ int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScal
 }
 int CTPRunScalers::checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1, errorCounters& eCnts) const
 {
-  for (int i = 0; i < rec0.scalers.size(); i++) {
+  for (uint32_t i = 0; i < rec0.scalers.size(); i++) {
     checkConsistency(rec0.scalers[i], rec1.scalers[i], eCnts);
   }
   return 0;
@@ -482,7 +482,7 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
 //
 int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const
 {
-  int NINPS = 48;
+  uint32_t NINPS = 48;
   if (rec0.scalersInps.size() < NINPS) {
     LOG(error) << "updateOverflowsInps.size < 48:" << rec0.scalersInps.size();
     return 1;
@@ -491,7 +491,7 @@ int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTP
     LOG(error) << "updateOverflowsInps.size < 48:" << rec1.scalersInps.size();
     return 2;
   }
-  for (int i = 0; i < NINPS; i++) {
+  for (uint32_t i = 0; i < NINPS; i++) {
     if (rec0.scalersInps[i] > rec1.scalersInps[i]) {
       overflow[i] += 1;
     }
@@ -508,14 +508,14 @@ int CTPRunScalers::printRates()
   LOG(info) << "Scaler rates for run:" << mRunNumber;
   CTPScalerRecordO2* scalrec0 = &mScalerRecordO2[0];
   uint32_t orbit0 = scalrec0->intRecord.orbit;
-  for (int i = 1; i < mScalerRecordO2.size(); i++) {
+  for (uint32_t i = 1; i < mScalerRecordO2.size(); i++) {
     CTPScalerRecordO2* scalrec1 = &mScalerRecordO2[i];
     double_t tt = (double_t)(scalrec1->intRecord.orbit - scalrec0->intRecord.orbit);
     double_t tinrun = (double_t)(scalrec1->intRecord.orbit - orbit0);
     tt = tt * 88e-6;
     tinrun = tinrun * 88e-6;
     std::cout << "==> Time wrt to SOR [s]:" << tinrun << " time intervale[s]:" << tt << std::endl;
-    for (int j = 0; j < scalrec1->scalers.size(); j++) {
+    for (uint32_t j = 0; j < scalrec1->scalers.size(); j++) {
       CTPScalerO2* s0 = &(scalrec0->scalers[j]);
       CTPScalerO2* s1 = &(scalrec1->scalers[j]);
       double_t rMB = (s1->lmBefore - s0->lmBefore) / tt;
@@ -544,7 +544,7 @@ int CTPRunScalers::printIntegrals()
   double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
   LOG(info) << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
 
-  for (int i = 0; i < mScalerRecordO2[0].scalers.size(); i++) {
+  for (uint32_t i = 0; i < mScalerRecordO2[0].scalers.size(); i++) {
     std::cout << i << " LMB " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore - mScalerRecordO2[0].scalers[i].lmBefore << std::endl;
     std::cout << i << " LMA " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmAfter - mScalerRecordO2[0].scalers[i].lmAfter << std::endl;
     std::cout << i << " L0B " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0Before - mScalerRecordO2[0].scalers[i].l0Before << std::endl;
@@ -609,7 +609,7 @@ int CTPRunScalers::printClassBRateAndIntegral(int iclsscalerindex)
 //
 void CTPRunScalers::printLMBRateVsT() const
 {
-  for (int i = 1; i < mScalerRecordO2.size(); i++) { // loop over time
+  for (uint32_t i = 1; i < mScalerRecordO2.size(); i++) { // loop over time
     auto prev = &mScalerRecordO2[i - 1];
     auto curr = &mScalerRecordO2[i];
     double_t tt = (double_t)(curr->intRecord.orbit - prev->intRecord.orbit);
