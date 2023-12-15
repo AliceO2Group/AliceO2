@@ -9,11 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//first version 8/2018, Sandro Wenzel
+// first version 8/2018, Sandro Wenzel
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/KeyValParam.h"
+#include "CommonUtils/ConfigurableParamReaders.h"
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -47,7 +48,6 @@ std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nu
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
 std::map<std::string, std::pair<std::type_info const&, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
 std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::sValueProvenanceMap = nullptr;
-std::string ConfigurableParam::sInputDir = "";
 std::string ConfigurableParam::sOutputDir = "";
 EnumRegistry* ConfigurableParam::sEnumRegistry = nullptr;
 
@@ -194,60 +194,28 @@ void ConfigurableParam::writeINI(std::string const& filename, std::string const&
 
 bool ConfigurableParam::configFileExists(std::string const& filepath)
 {
-  return std::filesystem::exists(o2::utils::Str::concat_string(sInputDir, filepath));
+  return std::filesystem::exists(o2::utils::Str::concat_string(ConfigurableParamReaders::getInputDir(), filepath));
 }
 
 // ------------------------------------------------------------------
 
-boost::property_tree::ptree ConfigurableParam::readConfigFile(std::string const& filepath)
+void ConfigurableParam::setValue(std::string const& key, std::string const& valuestring)
 {
-  auto inpfilename = o2::utils::Str::concat_string(sInputDir, filepath);
-  if (!std::filesystem::exists(inpfilename)) {
-    LOG(fatal) << inpfilename << " : config file does not exist!";
+  if (!sIsFullyInitialized) {
+    initialize();
   }
-
-  boost::property_tree::ptree pt;
-
-  if (boost::iends_with(inpfilename, ".ini")) {
-    pt = readINI(inpfilename);
-  } else if (boost::iends_with(inpfilename, ".json")) {
-    pt = readJSON(inpfilename);
-  } else {
-    LOG(fatal) << "Configuration file must have either .ini or .json extension";
-  }
-
-  return pt;
-}
-
-// ------------------------------------------------------------------
-
-boost::property_tree::ptree ConfigurableParam::readINI(std::string const& filepath)
-{
-  boost::property_tree::ptree pt;
+  assert(sPtree);
   try {
-    boost::property_tree::read_ini(filepath, pt);
-  } catch (const boost::property_tree::ptree_error& e) {
-    LOG(fatal) << "Failed to read INI config file " << filepath << " (" << e.what() << ")";
-  } catch (...) {
-    LOG(fatal) << "Unknown error when reading INI config file ";
+    if (sPtree->get_optional<std::string>(key).is_initialized()) {
+      sPtree->put(key, valuestring);
+      auto changed = updateThroughStorageMapWithConversion(key, valuestring);
+      if (changed != EParamUpdateStatus::Failed) {
+        sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+      }
+    }
+  } catch (std::exception const& e) {
+    std::cerr << "Error in setValue (string) " << e.what() << "\n";
   }
-
-  return pt;
-}
-
-// ------------------------------------------------------------------
-
-boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filepath)
-{
-  boost::property_tree::ptree pt;
-
-  try {
-    boost::property_tree::read_json(filepath, pt);
-  } catch (const boost::property_tree::ptree_error& e) {
-    LOG(fatal) << "Failed to read JSON config file " << filepath << " (" << e.what() << ")";
-  }
-
-  return pt;
 }
 
 // ------------------------------------------------------------------
@@ -258,7 +226,7 @@ void ConfigurableParam::writeJSON(std::string const& filename, std::string const
     LOG(info) << "ignoring writing of json file " << filename;
     return;
   }
-  initPropertyTree();     // update the boost tree before writing
+  initPropertyTree(); // update the boost tree before writing
   auto outfilename = o2::utils::Str::concat_string(sOutputDir, filename);
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
@@ -409,7 +377,7 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
     return;
   }
 
-  boost::property_tree::ptree pt = readConfigFile(cfgfile);
+  boost::property_tree::ptree pt = ConfigurableParamReaders::readConfigFile(cfgfile);
 
   std::vector<std::pair<std::string, std::string>> keyValPairs;
   auto request = o2::utils::Str::tokenize(paramsList, ',', true);
@@ -522,7 +490,7 @@ void ConfigurableParam::updateFromString(std::string const& configString)
 
   const auto& kv = o2::conf::KeyValParam::Instance();
   if (getProvenance("keyval.input_dir") != kCODE) {
-    sInputDir = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.input_dir));
+    ConfigurableParamReaders::setInputDir(o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.input_dir)));
   }
   if (getProvenance("keyval.output_dir") != kCODE) {
     if (kv.output_dir == "/dev/null") {
@@ -541,6 +509,8 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
     return el.size() > 0 && (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
   };
 
+  bool nonFatal = getenv("ALICEO2_CONFIGURABLEPARAM_WRONGKEYISNONFATAL") != nullptr;
+
   // Take a vector of param key/value pairs
   // and update the storage map for each of them by calling setValue.
   // 1. For string/scalar types this is simple.
@@ -553,6 +523,10 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
     std::string value = o2::utils::Str::trim_copy(keyValue.second);
 
     if (!keyInTree(sPtree, key)) {
+      if (nonFatal) {
+        LOG(warn) << "Ignoring non-existent ConfigurableParam key: " << key;
+        continue;
+      }
       LOG(fatal) << "Inexistant ConfigurableParam key: " << key;
     }
 

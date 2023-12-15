@@ -84,7 +84,7 @@ class MCTruthWriterTask : public o2::framework::Task
     }
     if (mIO) {
       // this triggers the reader process
-      pc.outputs().snapshot({"TST", "TRIGGERREAD", 0, Lifetime::Timeframe}, labelfilename);
+      pc.outputs().snapshot({"TST", "TRIGGERREAD", 0}, labelfilename);
     }
 
     // we should be only called once; tell DPL that this process is ready to exit

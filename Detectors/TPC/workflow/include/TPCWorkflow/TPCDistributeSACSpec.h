@@ -102,7 +102,7 @@ class TPCDistributeSACSpec : public o2::framework::Task
   void sendOutput(o2::framework::ProcessingContext& pc)
   {
     LOGP(info, "Sending SACs on lane: {} for {} TFs", mCurrentOutLane, mProcessedTFs);
-    pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionSACCCDB(), 0, Lifetime::Sporadic}, mCCDBTimeStamp);
+    pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionSACCCDB(), 0}, mCCDBTimeStamp);
     for (unsigned int i = 0; i < o2::tpc::GEMSTACKS; ++i) {
       pc.outputs().snapshot(Output{gDataOriginTPC, mDataDescrOut[mCurrentOutLane], header::DataHeader::SubSpecificationType{i}}, mSACs[i]);
     }

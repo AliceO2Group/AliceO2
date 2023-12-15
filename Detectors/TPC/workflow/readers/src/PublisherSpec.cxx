@@ -204,9 +204,9 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
         header.sectorBits = 0;
         header.activeSectors = processAttributes->activeSectors;
         for (auto const& subSpec : processAttributes->zeroLengthOutputs) {
-          pc.outputs().make<char>({dto.origin, dto.description, subSpec, Lifetime::Timeframe, {header}});
+          pc.outputs().make<char>({dto.origin, dto.description, subSpec, {header}});
           if (pc.outputs().isAllowed({mco.origin, mco.description, subSpec})) {
-            pc.outputs().make<char>({mco.origin, mco.description, subSpec, Lifetime::Timeframe, {header}});
+            pc.outputs().make<char>({mco.origin, mco.description, subSpec, {header}});
           }
         }
       }

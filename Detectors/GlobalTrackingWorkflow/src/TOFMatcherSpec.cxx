@@ -171,8 +171,8 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   static pmr::vector<o2::MCCompLabel> dummyMCLab;
 
   if (isTPCused) {
-    auto& mtcInfo = pc.outputs().make<std::vector<o2::dataformats::MatchInfoTOF>>(Output{o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe});
-    auto& mclabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{o2::header::gDataOriginTOF, "MCMTC_TPC", ss, Lifetime::Timeframe}) : dummyMCLab;
+    auto& mtcInfo = pc.outputs().make<std::vector<o2::dataformats::MatchInfoTOF>>(Output{o2::header::gDataOriginTOF, "MTC_TPC", ss});
+    auto& mclabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{o2::header::gDataOriginTOF, "MCMTC_TPC", ss}) : dummyMCLab;
     auto& tracksTPCTOF = pc.outputs().make<std::vector<o2::dataformats::TrackTPCTOF>>(OutputRef{"tpctofTracks", ss});
     auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size();
     LOG(debug) << (mDoTPCRefit ? "Refitting " : "Shifting Z for ") << nmatch << " matched TPC tracks with TOF time info";
@@ -180,48 +180,48 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   }
 
   if (isITSTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPC", 0}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITSTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITSTPC", 0}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     }
   }
 
   if (isTPCTRDused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPCTRD", ss, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPCTRD", ss}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_TPCTRD", ss, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_TPCTRD", ss}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
     }
   }
 
   if (isITSTPCTRDused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPCTRD", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPCTRD", 0}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITSTPCTRD", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITSTPCTRD", 0}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD));
     }
   }
 
   // TODO: TRD-matched tracks
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0}, mMatcher.getCalibVector());
 
   if (mPushMatchable) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(0));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(1));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_2", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(2));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_3", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(3));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_4", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(4));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_5", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(5));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_6", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(6));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_7", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(7));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_8", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(8));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_9", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(9));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_10", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(10));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_11", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(11));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_12", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(12));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_13", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(13));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_14", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(14));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_15", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(15));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_16", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(16));
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_17", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(17));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_0", 0}, mMatcher.getMatchedTracksPair(0));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_1", 0}, mMatcher.getMatchedTracksPair(1));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_2", 0}, mMatcher.getMatchedTracksPair(2));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_3", 0}, mMatcher.getMatchedTracksPair(3));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_4", 0}, mMatcher.getMatchedTracksPair(4));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_5", 0}, mMatcher.getMatchedTracksPair(5));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_6", 0}, mMatcher.getMatchedTracksPair(6));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_7", 0}, mMatcher.getMatchedTracksPair(7));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_8", 0}, mMatcher.getMatchedTracksPair(8));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_9", 0}, mMatcher.getMatchedTracksPair(9));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_10", 0}, mMatcher.getMatchedTracksPair(10));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_11", 0}, mMatcher.getMatchedTracksPair(11));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_12", 0}, mMatcher.getMatchedTracksPair(12));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_13", 0}, mMatcher.getMatchedTracksPair(13));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_14", 0}, mMatcher.getMatchedTracksPair(14));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_15", 0}, mMatcher.getMatchedTracksPair(15));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_16", 0}, mMatcher.getMatchedTracksPair(16));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_17", 0}, mMatcher.getMatchedTracksPair(17));
   }
 
   mTimer.Stop();

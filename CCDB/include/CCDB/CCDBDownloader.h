@@ -54,7 +54,6 @@ typedef struct DownloaderRequestData {
   std::string userAgent;
 
   std::function<bool(std::string)> localContentCallback;
-  bool errorflag = false;
 } DownloaderRequestData;
 #endif
 

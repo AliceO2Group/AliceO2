@@ -178,8 +178,8 @@ void EventBuilderSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
-  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginPHS, "CELLS", 0, framework::Lifetime::Timeframe}, outputCells);
-  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginPHS, "CELLTRIGREC", 0, framework::Lifetime::Timeframe}, outputTriggers);
+  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginPHS, "CELLS", 0}, outputCells);
+  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginPHS, "CELLTRIGREC", 0}, outputTriggers);
 }
 
 o2::framework::DataProcessorSpec o2::phos::getEventBuilderSpec()

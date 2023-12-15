@@ -400,7 +400,7 @@ void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float 
   uint8_t clSect = 0, clRow = 0;
   uint32_t clIdx = 0;
   tpcOrig.getClusterReference(mTPCTrackClusIdx, tpcOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
-  if (clRow > mParams->askMinTPCRow) {
+  if (clRow > mParams->askMinTPCRow[clSect]) {
     return;
   }
   // create working copy of track param

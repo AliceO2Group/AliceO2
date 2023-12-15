@@ -56,7 +56,7 @@ enum Pdg {
   kXiB0 = 5232,
   kXiCCPlusPlus = 4422,
   kXiCPlus = 4232,
-  kXiCZero = 4132,
+  kXiC0 = 4132,
   kDeuteron = 1000010020,
   kTriton = 1000010030,
   kHelium3 = 1000020030,
@@ -92,7 +92,7 @@ constexpr double MassXi0 = 1.31486;
 constexpr double MassXiB0 = 5.7924;
 constexpr double MassXiCCPlusPlus = 3.59798;
 constexpr double MassXiCPlus = 2.4679;
-constexpr double MassXiCZero = 2.471;
+constexpr double MassXiC0 = 2.471;
 constexpr double MassDeuteron = 1.87561294257;
 constexpr double MassTriton = 2.80892113298;
 constexpr double MassHelium3 = 2.80839160743;

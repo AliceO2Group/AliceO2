@@ -61,7 +61,7 @@ class MCTruthReaderTask : public o2::framework::Task
       br->GetEntry(0);
 
       // publish the labels in a const shared memory container
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TST", "LABELS2", 0, Lifetime::Timeframe});
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TST", "LABELS2", 0});
       iocontainer->copyandflatten(sharedlabels);
 
     } else {
@@ -74,7 +74,7 @@ class MCTruthReaderTask : public o2::framework::Task
       LOG(info) << "MCCONTAINER CHECK" << mccontainer->getNElements();
 
       // publish the original labels
-      pc.outputs().snapshot(Output{"TST", "LABELS2", 0, Lifetime::Timeframe}, *mccontainer);
+      pc.outputs().snapshot(Output{"TST", "LABELS2", 0}, *mccontainer);
     }
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

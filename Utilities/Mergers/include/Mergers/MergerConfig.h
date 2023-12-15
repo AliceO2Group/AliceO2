@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include "Framework/DataProcessorLabel.h"
 
 namespace o2::mergers
 {
@@ -95,7 +96,7 @@ struct MergerConfig {
   std::string monitoringUrl = "infologger:///debug?qc";
   std::string detectorName = "TST";
   ConfigEntry<ParallelismType> parallelismType = {ParallelismType::SplitInputs};
-  bool expendable = false;
+  std::vector<o2::framework::DataProcessorLabel> labels;
 };
 
 } // namespace o2::mergers

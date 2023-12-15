@@ -107,10 +107,10 @@ void TPCDataFilter::run(ProcessingContext& pc)
 void TPCDataFilter::sendOutput(ProcessingContext& pc)
 {
 
-  pc.outputs().snapshot(Output{"TPC", "TRACKSF", 0, Lifetime::Timeframe}, mTracksFiltered);
-  pc.outputs().snapshot(Output{"TPC", "CLUSREFSF", 0, Lifetime::Timeframe}, mTrackClusIdxFiltered);
+  pc.outputs().snapshot(Output{"TPC", "TRACKSF", 0}, mTracksFiltered);
+  pc.outputs().snapshot(Output{"TPC", "CLUSREFSF", 0}, mTrackClusIdxFiltered);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBLF", 0, Lifetime::Timeframe}, mTPCTrkLabelsFiltered);
+    pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBLF", 0}, mTPCTrkLabelsFiltered);
   }
 
   o2::tpc::TPCSectorHeader clusterOutputSectorHeader{0};
@@ -118,7 +118,7 @@ void TPCDataFilter::sendOutput(ProcessingContext& pc)
   for (int i = 0; i < o2::tpc::constants::MAXSECTOR; i++) {
     clusterOutputSectorHeader.sectorBits = (1ul << i);
     o2::header::DataHeader::SubSpecificationType subspec = i;
-    char* buffer = pc.outputs().make<char>({o2::header::gDataOriginTPC, "CLUSTERNATIVEF", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}},
+    char* buffer = pc.outputs().make<char>({o2::header::gDataOriginTPC, "CLUSTERNATIVEF", subspec, {clusterOutputSectorHeader}},
                                            mClusFiltered.nClustersSector[i] * sizeof(*mClusFiltered.clustersLinear) + sizeof(o2::tpc::ClusterCountIndex))
                      .data();
     o2::tpc::ClusterCountIndex* outIndex = reinterpret_cast<o2::tpc::ClusterCountIndex*>(buffer);
@@ -138,7 +138,7 @@ void TPCDataFilter::sendOutput(ProcessingContext& pc)
       }
       o2::dataformats::ConstMCLabelContainer contflat;
       cont.flatten_to(contflat);
-      pc.outputs().snapshot({o2::header::gDataOriginTPC, "CLNATIVEMCLBLF", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, contflat);
+      pc.outputs().snapshot({o2::header::gDataOriginTPC, "CLNATIVEMCLBLF", subspec, {clusterOutputSectorHeader}}, contflat);
     }
   }
 }

@@ -202,6 +202,8 @@ endif()
 
 # Detect and enable HIP
 if(ENABLE_HIP)
+  set(CMAKE_HIP_STANDARD 17)
+  set(CMAKE_HIP_STANDARD_REQUIRED TRUE)
   if(HIP_AMDGPUTARGET)
     set(AMDGPU_TARGETS "${HIP_AMDGPUTARGET}" CACHE STRING "AMD GPU targets to compile for" FORCE)
     set(GPU_TARGETS "${HIP_AMDGPUTARGET}" CACHE STRING "AMD GPU targets to compile for" FORCE)

@@ -72,20 +72,20 @@ void TRDTrackletReader::run(ProcessingContext& pc)
   mTreeTrklt->GetEntry(currEntry);
   LOG(info) << "Pushing " << mTriggerRecords.size() << " TRD trigger records at entry " << currEntry;
   LOG(info) << "Pushing " << mTracklets.size() << " uncalibrated TRD tracklets for these trigger records";
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0}, mTracklets);
   if (mUseTrackletTransform) {
     assert(mTreeTrklt->GetEntries() == mTreeCTrklt->GetEntries());
     mTreeCTrklt->GetEntry(currEntry);
     LOG(info) << "Pushing " << mTrackletsCal.size() << " calibrated TRD tracklets for these trigger records";
     LOG(info) << "Pushing " << mTrigRecMask.size() << " flags for the given TRD trigger records";
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe}, mTrackletsCal);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGRECMASK", 0, Lifetime::Timeframe}, mTrigRecMask);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "CTRACKLETS", 0}, mTrackletsCal);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGRECMASK", 0}, mTrigRecMask);
   }
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0}, mTriggerRecords);
   if (mUseMC) {
     LOG(info) << "Pushing " << mLabels.getNElements() << " TRD tracklet labels";
-    pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0}, mLabels);
   }
 
   if (mTreeTrklt->GetReadEntry() + 1 >= mTreeTrklt->GetEntries()) {

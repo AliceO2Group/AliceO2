@@ -115,8 +115,8 @@ void DigitReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  pc.outputs().snapshot(Output{"HMP", "DIGITS", 0, Lifetime::Timeframe}, mDigitsFromFile);
-  pc.outputs().snapshot(Output{"HMP", "INTRECORDS", 0, Lifetime::Timeframe}, mTriggersFromFile);
+  pc.outputs().snapshot(Output{"HMP", "DIGITS", 0}, mDigitsFromFile);
+  pc.outputs().snapshot(Output{"HMP", "INTRECORDS", 0}, mTriggersFromFile);
   mDigitsReceived += mDigitsFromFile.size();
   LOG(info) << "[HMPID DigitsReader - run() ] digits  = " << mDigitsFromFile.size();
 

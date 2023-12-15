@@ -53,7 +53,7 @@ void TRDCalibReader::run(ProcessingContext& pc)
   assert(currEntry < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(currEntry);
   LOG(info) << "Pushing angular residual histograms filled with " << mAngResids.getNEntries() << " entries at tree entry " << currEntry;
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mAngResids);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0}, mAngResids);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

@@ -64,7 +64,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
                     << *input.spec << ": " << *((int*)input.payload);
          auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
          //auto& data = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
-         auto& data = ctx.outputs().make<int>(Output{"TST", "PREPROC", dataheader->subSpecification, Lifetime::Timeframe});
+         auto& data = ctx.outputs().make<int>(Output{"TST", "PREPROC", dataheader->subSpecification});
          ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
          data = parallelContext.index1D();
        }
@@ -85,10 +85,10 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
          // TODO: there is a bug in the API for using OutputRef, returns an rvalue which can not be bound to
          // lvalue reference
          //auto& data = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
-         auto& data = ctx.outputs().make<int>(Output{"TST", "DATA", dataheader->subSpecification, Lifetime::Timeframe});
+         auto& data = ctx.outputs().make<int>(Output{"TST", "DATA", dataheader->subSpecification});
          data = ctx.inputs().get<int>(input.spec->binding.c_str());
          //auto& meta = ctx.outputs().make<int>(OutputRef{"metadt", dataheader->subSpecification});
-         auto& meta = ctx.outputs().make<int>(Output{"TST", "META", dataheader->subSpecification, Lifetime::Timeframe});
+         auto& meta = ctx.outputs().make<int>(Output{"TST", "META", dataheader->subSpecification});
          meta = dataheader->subSpecification;
        }
      }}},
@@ -145,7 +145,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           if (multiplicities[pipeline] == 0) {
             continue;
           }
-          ctx.outputs().make<int>(Output{"TST", "TRIGGER", subspecs[index], Lifetime::Timeframe}) = pipeline;
+          ctx.outputs().make<int>(Output{"TST", "TRIGGER", subspecs[index]}) = pipeline;
           multiplicities[pipeline++]--;
           if (pipeline >= nPipelines) {
             pipeline = 0;

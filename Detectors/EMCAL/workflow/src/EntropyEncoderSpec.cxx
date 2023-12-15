@@ -52,7 +52,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto triggers = pc.inputs().get<gsl::span<TriggerRecord>>("triggers");
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
 
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"EMC", "CTFDATA", 0, Lifetime::Timeframe});
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"EMC", "CTFDATA", 0});
   if (mSelIR) {
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }

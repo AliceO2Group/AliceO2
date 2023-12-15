@@ -31,6 +31,7 @@ o2_add_library(EMCALReconstruction
         src/DigitReader.cxx
         src/CTFCoder.cxx
         src/CTFHelper.cxx
+        src/StuDecoder.cxx
         PUBLIC_LINK_LIBRARIES O2::Headers
         AliceO2::InfoLogger
         O2::DataFormatsEMCAL
@@ -57,6 +58,7 @@ o2_target_root_dictionary(
         include/EMCALReconstruction/ClusterizerTask.h
         include/EMCALReconstruction/DigitReader.h
         include/EMCALReconstruction/RecoParam.h
+        include/EMCALReconstruction/StuDecoder.h
 )
 
 o2_add_executable(rawreader-file

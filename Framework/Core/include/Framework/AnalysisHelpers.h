@@ -551,6 +551,11 @@ struct Partition {
     expressions::updatePlaceholders(filter, context);
   }
 
+  [[nodiscard]] std::shared_ptr<arrow::Table> asArrowTable() const
+  {
+    return mFiltered->asArrowTable();
+  }
+
   o2::soa::Filtered<T>* operator->()
   {
     return mFiltered.get();

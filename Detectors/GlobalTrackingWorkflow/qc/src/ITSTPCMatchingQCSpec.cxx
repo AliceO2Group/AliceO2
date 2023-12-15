@@ -71,7 +71,7 @@ void ITSTPCMatchingQCDevice::sendOutput(DataAllocator& output)
 
   TObjArray objar;
   mMatchITSTPCQC->getHistos(objar);
-  output.snapshot(Output{"GLO", "ITSTPCMATCHQC", 0, Lifetime::Sporadic}, objar);
+  output.snapshot(Output{"GLO", "ITSTPCMATCHQC", 0}, objar);
 
   TFile* f = new TFile(Form("outITSTPCmatchingQC.root"), "RECREATE");
   objar.Write("ObjArray", TObject::kSingleKey);

@@ -62,9 +62,9 @@ void HMPMatchedReader::run(ProcessingContext& pc)
   mTree->GetEntry(currEntry);
   LOG(debug) << "Pushing " << mMatches.size() << " HMP matchings at entry " << currEntry;
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe}, mMatches);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0}, mMatches);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe}, mLabelHMP);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0}, mLabelHMP);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

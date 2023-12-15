@@ -49,14 +49,14 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   if (!digits.size()) { // nothing to process
     LOG(info) << "ClusterizerSpec::run() : no digits; moving on";
     mOutputClusters.clear();
-    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
+    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0}, mOutputClusters);
     mOutputClusterTrigRecs.clear();
-    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
+    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0}, mOutputClusterTrigRecs);
     mCalibDigits.clear();
-    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CALIBDIGITS", 0, o2::framework::Lifetime::Timeframe}, mCalibDigits);
+    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CALIBDIGITS", 0}, mCalibDigits);
     if (mPropagateMC) {
       mOutputTruthCont.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0}, mOutputTruthCont);
     }
     return;
   }
@@ -73,12 +73,12 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 
   LOG(debug) << "CPVClusterizer::run() : Received " << digitsTR.size() << " TR, calling clusterizer ...";
 
-  ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
-  ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
+  ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0}, mOutputClusters);
+  ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0}, mOutputClusterTrigRecs);
   if (mPropagateMC) {
-    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0}, mOutputTruthCont);
   }
-  ctx.outputs().snapshot(o2::framework::Output{"CPV", "CALIBDIGITS", 0, o2::framework::Lifetime::Timeframe}, mCalibDigits);
+  ctx.outputs().snapshot(o2::framework::Output{"CPV", "CALIBDIGITS", 0}, mCalibDigits);
   LOG(info) << "Finished, wrote  " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
 }
 o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getClusterizerSpec(bool propagateMC)

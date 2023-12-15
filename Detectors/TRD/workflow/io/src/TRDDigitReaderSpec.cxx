@@ -58,13 +58,13 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
   assert(currEntry < mTreeDigits->GetEntries()); // this should not happen
   mTreeDigits->GetEntry(currEntry);
   LOGP(info, "Pushing {} digits for tree entry {}", mDigits.size(), currEntry);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", mSubSpec, Lifetime::Timeframe}, mDigits);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", mSubSpec}, mDigits);
   if (mUseTriggerRecords) {
     LOGP(info, "Pushing {} trigger records for tree entry {}", mTriggerRecords.size(), currEntry);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", mSubSpec, Lifetime::Timeframe}, mTriggerRecords);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", mSubSpec}, mTriggerRecords);
   }
   if (mUseMC) {
-    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{o2::header::gDataOriginTRD, "LABELS", 0, Lifetime::Timeframe});
+    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{o2::header::gDataOriginTRD, "LABELS", 0});
     mLabels->copyandflatten(sharedlabels);
   }
   if (mTreeDigits->GetReadEntry() + 1 >= mTreeDigits->GetEntries()) {

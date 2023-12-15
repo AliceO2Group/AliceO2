@@ -722,11 +722,11 @@ void RawToCellConverterSpec::handleMinorPageError(const RawReaderMemory::MinorEr
 void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification}, cells);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification}, triggers);
   if (mCreateRawDataErrors) {
     LOG(debug) << "Sending " << decodingErrors.size() << " decoding errors";
-    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification}, decodingErrors);
   }
 }
 

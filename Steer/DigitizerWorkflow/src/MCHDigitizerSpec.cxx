@@ -111,12 +111,12 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     dataformats::MCLabelContainer labels{};
     auto nPileup = mDigitizer->digitize(rofs, digits, labels);
 
-    pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(Output{"MCH", "DIGITROFS", 0, Lifetime::Timeframe}, rofs);
+    pc.outputs().snapshot(Output{"MCH", "DIGITS", 0}, digits);
+    pc.outputs().snapshot(Output{"MCH", "DIGITROFS", 0}, rofs);
     if (pc.outputs().isAllowed({"MCH", "DIGITSLABELS", 0})) {
-      pc.outputs().snapshot(Output{"MCH", "DIGITSLABELS", 0, Lifetime::Timeframe}, labels);
+      pc.outputs().snapshot(Output{"MCH", "DIGITSLABELS", 0}, labels);
     }
-    pc.outputs().snapshot(Output{"MCH", "ROMode", 0, Lifetime::Timeframe},
+    pc.outputs().snapshot(Output{"MCH", "ROMode", 0},
                           DigitizerParam::Instance().continuous ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::TRIGGERING);
 
     // we should be only called once; tell DPL that this process is ready to exit

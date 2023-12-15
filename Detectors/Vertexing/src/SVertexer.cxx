@@ -117,15 +117,15 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
   std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
 
   // dpl output
-  auto& v0sIdx = pc.outputs().make<std::vector<V0Index>>(o2f::Output{"GLO", "V0S_IDX", 0, o2f::Lifetime::Timeframe});
-  auto& cascsIdx = pc.outputs().make<std::vector<CascadeIndex>>(o2f::Output{"GLO", "CASCS_IDX", 0, o2f::Lifetime::Timeframe});
-  auto& body3Idx = pc.outputs().make<std::vector<Decay3BodyIndex>>(o2f::Output{"GLO", "DECAYS3BODY_IDX", 0, o2f::Lifetime::Timeframe});
-  auto& fullv0s = pc.outputs().make<std::vector<V0>>(o2f::Output{"GLO", "V0S", 0, o2f::Lifetime::Timeframe});
-  auto& fullcascs = pc.outputs().make<std::vector<Cascade>>(o2f::Output{"GLO", "CASCS", 0, o2f::Lifetime::Timeframe});
-  auto& full3body = pc.outputs().make<std::vector<Decay3Body>>(o2f::Output{"GLO", "DECAYS3BODY", 0, o2f::Lifetime::Timeframe});
-  auto& v0Refs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_V0REFS", 0, o2f::Lifetime::Timeframe});
-  auto& cascRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_CASCREFS", 0, o2f::Lifetime::Timeframe});
-  auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_3BODYREFS", 0, o2f::Lifetime::Timeframe});
+  auto& v0sIdx = pc.outputs().make<std::vector<V0Index>>(o2f::Output{"GLO", "V0S_IDX", 0});
+  auto& cascsIdx = pc.outputs().make<std::vector<CascadeIndex>>(o2f::Output{"GLO", "CASCS_IDX", 0});
+  auto& body3Idx = pc.outputs().make<std::vector<Decay3BodyIndex>>(o2f::Output{"GLO", "DECAYS3BODY_IDX", 0});
+  auto& fullv0s = pc.outputs().make<std::vector<V0>>(o2f::Output{"GLO", "V0S", 0});
+  auto& fullcascs = pc.outputs().make<std::vector<Cascade>>(o2f::Output{"GLO", "CASCS", 0});
+  auto& full3body = pc.outputs().make<std::vector<Decay3Body>>(o2f::Output{"GLO", "DECAYS3BODY", 0});
+  auto& v0Refs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_V0REFS", 0});
+  auto& cascRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_CASCREFS", 0});
+  auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_3BODYREFS", 0});
 
   // sorted V0s
   v0sIdx.reserve(mNV0s);
@@ -214,8 +214,8 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
       }
     }
 
-    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
-    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
+    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0});
+    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0});
     o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
     strTracksOut.resize(mNStrangeTracks);
     strClustOut.resize(mNStrangeTracks);
@@ -239,7 +239,7 @@ void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
     }
 
     if (mStrTracker->getMCTruthOn()) {
-      auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
+      auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0});
       strTrMCLableOut.swap(mcLabsOut);
     }
   }
@@ -513,11 +513,15 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
       // get Nclusters in the ITS if available
       int8_t nITSclu = -1;
+      bool shortOBITSOnlyTrack = false;
       auto itsGID = recoData.getITSContributorGID(tvid);
       if (itsGID.getSource() == GIndex::ITS) {
         if (isITSloaded) {
           auto& itsTrack = recoData.getITSTrack(itsGID);
           nITSclu = itsTrack.getNumberOfClusters();
+          if (itsTrack.hasHitOnLayer(6) && itsTrack.hasHitOnLayer(5) && itsTrack.hasHitOnLayer(4) && itsTrack.hasHitOnLayer(3)) {
+            shortOBITSOnlyTrack = true;
+          }
         }
       } else if (itsGID.getSource() == GIndex::ITSAB) {
         if (isITSTPCloaded) {
@@ -532,7 +536,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         continue;
       }
 
-      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu) {
+      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu && (!shortOBITSOnlyTrack || mSVParams->mRejectITSonlyOBtrack)) {
         continue; // reject short ITS-only
       }
 
@@ -659,9 +663,9 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // apply mass selections
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
 
-  bool goodHyp = false;
+  bool goodHyp = false, photonOnly = mSVParams->mTPCTrackPhotonTune && isTPConly;
   std::array<bool, NHypV0> hypCheckStatus{};
-  int nPID = (mSVParams->mTPCTrackPhotonTune && isTPConly) ? (Photon + 1) : NHypV0;
+  int nPID = photonOnly ? (Photon + 1) : NHypV0;
   for (int ipid = 0; (ipid < nPID) && mSVParams->checkV0Hypothesis; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
       goodHyp = hypCheckStatus[ipid] = true;
@@ -851,6 +855,13 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   if (nV0Used || !rejectIfNotCascade) { // need to add this v0
     mV0sIdxTmp[ithread].push_back(v0Idxnew);
+    if (!rejectIfNotCascade) {
+      mV0sIdxTmp[ithread].back().setStandaloneV0();
+    }
+    if (photonOnly) {
+      mV0sIdxTmp[ithread].back().setPhotonOnly();
+    }
+
     if (mSVParams->createFullV0s) {
       mV0sTmp[ithread].push_back(v0new);
     }

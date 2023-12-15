@@ -18,7 +18,7 @@
 #include <cassert>
 #include <map>
 #include <unordered_map>
-#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
 #include <typeinfo>
 #include <iostream>
 #include <array>
@@ -176,15 +176,10 @@ class ConfigurableParam
   static void printAllRegisteredParamNames();
   static void printAllKeyValuePairs(bool useLogger = false);
 
-  static const std::string& getInputDir() { return sInputDir; }
   static const std::string& getOutputDir() { return sOutputDir; }
 
-  static void setInputDir(const std::string& d) { sInputDir = d; }
   static void setOutputDir(const std::string& d) { sOutputDir = d; }
 
-  static boost::property_tree::ptree readINI(std::string const& filepath);
-  static boost::property_tree::ptree readJSON(std::string const& filepath);
-  static boost::property_tree::ptree readConfigFile(std::string const& filepath);
   static bool configFileExists(std::string const& filepath);
 
   // writes a human readable JSON file of all parameters
@@ -196,10 +191,12 @@ class ConfigurableParam
   template <typename T>
   static T getValueAs(std::string key)
   {
-    if (!sIsFullyInitialized) {
-      initialize();
-    }
-    return sPtree->get<T>(key);
+    return [](auto* tree, const std::string& key) -> T {
+      if (!sIsFullyInitialized) {
+        initialize();
+      }
+      return tree->template get<T>(key);
+    }(sPtree, key);
   }
 
   template <typename T>
@@ -208,19 +205,21 @@ class ConfigurableParam
     if (!sIsFullyInitialized) {
       initialize();
     }
-    assert(sPtree);
-    try {
-      auto key = mainkey + "." + subkey;
-      if (sPtree->get_optional<std::string>(key).is_initialized()) {
-        sPtree->put(key, x);
-        auto changed = updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
-        if (changed != EParamUpdateStatus::Failed) {
-          sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+    return [&subkey, &x, &mainkey](auto* tree) -> void {
+      assert(tree);
+      try {
+        auto key = mainkey + "." + subkey;
+        if (tree->template get_optional<std::string>(key).is_initialized()) {
+          tree->put(key, x);
+          auto changed = updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
+          if (changed != EParamUpdateStatus::Failed) {
+            sValueProvenanceMap->find(key)->second = kRT; // set to runtime
+          }
         }
+      } catch (std::exception const& e) {
+        std::cerr << "Error in setValue (T) " << e.what() << "\n";
       }
-    } catch (std::exception const& e) {
-      std::cerr << "Error in setValue (T) " << e.what() << "\n";
-    }
+    }(sPtree);
   }
 
   static void setProvenance(std::string const& mainkey, std::string const& subkey, EParamProvenance p)
@@ -242,25 +241,7 @@ class ConfigurableParam
 
   // specialized for std::string
   // which means that the type will be converted internally
-  static void setValue(std::string const& key, std::string const& valuestring)
-  {
-    if (!sIsFullyInitialized) {
-      initialize();
-    }
-    assert(sPtree);
-    try {
-      if (sPtree->get_optional<std::string>(key).is_initialized()) {
-        sPtree->put(key, valuestring);
-        auto changed = updateThroughStorageMapWithConversion(key, valuestring);
-        if (changed != EParamUpdateStatus::Failed) {
-          sValueProvenanceMap->find(key)->second = kRT; // set to runtime
-        }
-      }
-    } catch (std::exception const& e) {
-      std::cerr << "Error in setValue (string) " << e.what() << "\n";
-    }
-  }
-
+  static void setValue(std::string const& key, std::string const& valuestring);
   static void setEnumValue(const std::string&, const std::string&);
   static void setArrayValue(const std::string&, const std::string&);
 
@@ -321,7 +302,6 @@ class ConfigurableParam
   // (stored as a vector of pairs <enumValueLabel, enumValueInt>)
   static EnumRegistry* sEnumRegistry;
 
-  static std::string sInputDir;
   static std::string sOutputDir;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }

@@ -23,9 +23,9 @@
 #include "TPCBase/ParameterGas.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/ConfigurableParamHelper.h>
-namespace o2
-{
-namespace tpc
+#include <boost/property_tree/ptree.hpp>
+
+namespace o2::tpc
 {
 
 constexpr float NominalTimeBin = 8 * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
@@ -367,5 +367,4 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test2)
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.KappaStack"), 32, 1e-12);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.EfficiencyStack"), 33, 1e-3);
 }
-} // namespace tpc
 } // namespace o2

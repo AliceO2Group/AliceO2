@@ -9,60 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHMappingInterface/CathodeSegmentation.h"
 #define BOOST_TEST_MODULE Test MCHGlobalMapping Mapper
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+#include "MCHConditions/Chamber.h"
 #include "MCHConditions/DCSAliases.h"
+#include "MCHGlobalMapping/DsIndex.h"
 #include "MCHGlobalMapping/Mapper.h"
+#include "MCHMappingInterface/CathodeSegmentation.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawElecMap/Mapper.h"
+#include <algorithm>
 
 using namespace o2::mch::dcs;
+using namespace o2::mch;
 
 namespace
 {
-
-/* Build the list of expected dual sampa indices from a set of Cathodes */
-std::set<int> getExpectedDualSampas(const std::set<Cathode>& cathodes)
-{
-  std::set<int> expectedDualSampas;
-  for (const auto& expectedCathode : cathodes) {
-    auto deId = expectedCathode.deId;
-    bool bending = expectedCathode.plane == Plane::Bending;
-    bool checkPlane = expectedCathode.plane != Plane::Both;
-    if (checkPlane) {
-      o2::mch::mapping::CathodeSegmentation cathode(deId, bending);
-      for (auto i = 0; i < cathode.nofDualSampas(); i++) {
-        int index = o2::mch::getDsIndex({deId, cathode.dualSampaId(i)});
-        expectedDualSampas.emplace(index);
-      }
-    } else {
-      const o2::mch::mapping::Segmentation& seg = o2::mch::mapping::segmentation(deId);
-      seg.forEachDualSampa([&expectedDualSampas, deId](int dualSampaId) {
-        int index = o2::mch::getDsIndex({deId, dualSampaId});
-        expectedDualSampas.emplace(index);
-      });
-    }
-  }
-  return expectedDualSampas;
-}
-
-/* Build the list of expected dual sampa indices from a set of solar Ids */
-std::set<int> getExpectedDualSampas(const std::set<int>& solarIds)
-{
-  std::set<int> expectedDualSampas;
-  for (const auto& solarId : solarIds) {
-    auto dsDetIds = o2::mch::raw::getDualSampas<o2::mch::raw::ElectronicMapperGenerated>(solarId);
-    for (const auto& dsDetId : dsDetIds) {
-      int index = o2::mch::getDsIndex(dsDetId);
-      expectedDualSampas.emplace(index);
-    }
-  }
-  return expectedDualSampas;
-}
 
 std::string expandAlias(std::string_view shortAlias)
 {
@@ -86,7 +51,7 @@ void compareToExpectation(const std::map<std::string, std::set<T>>& expected)
     // this is the function we are testing
     auto dsix = o2::mch::dcs::aliasToDsIndices(alias);
 
-    std::set<int> expectedDualSampas = getExpectedDualSampas(e.second);
+    std::set<o2::mch::DsIndex> expectedDualSampas = getDsIndices(e.second);
 
     BOOST_TEST_CONTEXT(fmt::format("alias {}", alias))
     {
@@ -99,6 +64,45 @@ void compareToExpectation(const std::map<std::string, std::set<T>>& expected)
 }
 
 } // namespace
+
+BOOST_AUTO_TEST_CASE(IncorrectCathodeShouldGetZeroIndices)
+{
+  BOOST_CHECK_EQUAL(getDsIndices({{10, Plane::Both}}).size(), 0);
+}
+
+BOOST_AUTO_TEST_CASE(CheckDsIndexRangePerChamberPlane)
+{
+  // note that indices in ranges might overlap, this is not an error
+  std::vector<std::tuple<int, int, int, int>> vexpected = {
+    {0, 1578, 226, 1803},         // chamber 1, min_bending, max_bending, min_nonBending, max_nonBending
+    {1804, 3382, 2030, 3607},     // chamber 2
+    {3608, 5154, 3829, 5375},     // chamber 3
+    {5376, 6922, 5597, 7143},     // chamber 4
+    {7144, 8312, 7190, 8351},     // chamber 5
+    {8352, 9539, 8399, 9579},     // chamber 6
+    {9580, 11253, 9630, 11299},   // chamber 7
+    {11300, 12973, 11350, 13019}, // chamber 8
+    {13020, 14873, 13070, 14919}, // chamber 9
+    {14920, 16773, 14970, 16819}, // chamber 10
+  };
+  for (auto chamberId = 0; chamberId < 10; chamberId++) {
+    BOOST_TEST_CONTEXT(fmt::format("chamberId {}", chamberId))
+    {
+      auto ch = chamber(chamberId).value();
+      const auto b = getDsIndices(ch, Plane::Bending);
+      const auto nb = getDsIndices(ch, Plane::NonBending);
+      BOOST_REQUIRE(b.size() > 0);
+      BOOST_REQUIRE(nb.size() > 0);
+      const auto [bmin, bmax] = std::minmax_element(b.begin(), b.end());
+      const auto [nbmin, nbmax] = std::minmax_element(nb.begin(), nb.end());
+      const auto expected = vexpected[chamberId];
+      BOOST_REQUIRE_EQUAL(*bmin, std::get<0>(expected));
+      BOOST_REQUIRE_EQUAL(*bmax, std::get<1>(expected));
+      BOOST_REQUIRE_EQUAL(*nbmin, std::get<2>(expected));
+      BOOST_REQUIRE_EQUAL(*nbmax, std::get<3>(expected));
+    }
+  }
+}
 
 BOOST_AUTO_TEST_CASE(HVSlatIDToDsIndex)
 {

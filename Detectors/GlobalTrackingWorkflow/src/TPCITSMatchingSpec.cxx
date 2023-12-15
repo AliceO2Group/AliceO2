@@ -14,11 +14,13 @@
 #include <vector>
 
 #include "GlobalTracking/MatchTPCITS.h"
+#include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -103,12 +105,12 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   static pmr::vector<o2::MCCompLabel> dummyMCLab, dummyMCLabAB;
   static pmr::vector<o2::dataformats::Triplet<float, float, float>> dummyCalib;
 
-  auto& matchedTracks = pc.outputs().make<std::vector<o2::dataformats::TrackTPCITS>>(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe});
-  auto& ABTrackletRefs = pc.outputs().make<std::vector<o2::itsmft::TrkClusRef>>(Output{"GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe});
-  auto& ABTrackletClusterIDs = pc.outputs().make<std::vector<int>>(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe});
-  auto& matchLabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}) : dummyMCLab;
-  auto& ABTrackletLabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}) : dummyMCLabAB;
-  auto& calib = mCalibMode ? pc.outputs().make<std::vector<o2::dataformats::Triplet<float, float, float>>>(Output{"GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}) : dummyCalib;
+  auto& matchedTracks = pc.outputs().make<std::vector<o2::dataformats::TrackTPCITS>>(Output{"GLO", "TPCITS", 0});
+  auto& ABTrackletRefs = pc.outputs().make<std::vector<o2::itsmft::TrkClusRef>>(Output{"GLO", "TPCITSAB_REFS", 0});
+  auto& ABTrackletClusterIDs = pc.outputs().make<std::vector<int>>(Output{"GLO", "TPCITSAB_CLID", 0});
+  auto& matchLabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"GLO", "TPCITS_MC", 0}) : dummyMCLab;
+  auto& ABTrackletLabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"GLO", "TPCITSAB_MC", 0}) : dummyMCLabAB;
+  auto& calib = mCalibMode ? pc.outputs().make<std::vector<o2::dataformats::Triplet<float, float, float>>>(Output{"GLO", "TPCITS_VDTGL", 0}) : dummyCalib;
 
   mMatching.run(recoData, matchedTracks, ABTrackletRefs, ABTrackletClusterIDs, matchLabels, ABTrackletLabels, calib);
 
@@ -133,6 +135,10 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "ITSTPCPARAM", 0)) {
+    LOG(info) << "ITS-TPC Matching params updated from ccdb";
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMatching.setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -154,6 +160,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
+    pc.inputs().get<o2::globaltracking::MatchTPCITSParams*>("MatchParam");
 
     //  Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -203,6 +210,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   if ((src & GTrackID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any()) { // preliminary stage of extended workflow ?
     dataRequest->setMatchingInputStrict();
   }
+  dataRequest->inputs.emplace_back("MatchParam", "GLO", "ITSTPCPARAM", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/ITSTPCParam"));
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestTPCClusters(false);

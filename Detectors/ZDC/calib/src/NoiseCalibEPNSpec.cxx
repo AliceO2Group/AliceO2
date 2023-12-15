@@ -113,19 +113,19 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
     if (mVerbosity > DbgMedium && mModTF > 0) {
       LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " >= mModTF=" << mModTF;
     }
-    o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0, Lifetime::Sporadic);
+    o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0);
     pc.outputs().snapshot(outputData, summary);
     for (int ih = 0; ih < NChannels; ih++) {
       {
-        o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Sporadic);
+        o2::framework::Output output("ZDC", "NOISE_1DH", ih);
         pc.outputs().snapshot(output, mWorker.mH[0][ih]->getBase());
       }
       {
-        o2::framework::Output output("ZDC", "NOISE_1DH_S", ih, Lifetime::Sporadic);
+        o2::framework::Output output("ZDC", "NOISE_1DH_S", ih);
         pc.outputs().snapshot(output, mWorker.mH[1][ih]->getBase());
       }
       {
-        o2::framework::Output output("ZDC", "NOISE_1DH_D", ih, Lifetime::Sporadic);
+        o2::framework::Output output("ZDC", "NOISE_1DH_D", ih);
         pc.outputs().snapshot(output, mWorker.mH[2][ih]->getBase());
       }
     }

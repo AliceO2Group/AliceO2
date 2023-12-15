@@ -19,6 +19,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "DataFormatsTPC/LtrCalibData.h"
 #include "TPCWorkflow/ApplyCCDBCalibSpec.h"
+#include <boost/property_tree/ptree.hpp>
 
 using namespace o2::framework;
 

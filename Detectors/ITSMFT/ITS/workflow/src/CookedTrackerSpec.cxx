@@ -95,7 +95,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
   }
 
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0}, rofsinput.begin(), rofsinput.end());
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
@@ -116,11 +116,11 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   o2::its::ROframe event(0, 7);
   mVertexerPtr->adoptTimeFrame(mTimeFrame);
 
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
-  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
-  auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
-  auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
-  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0});
+  auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0});
+  auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0});
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0});
 
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = mTracker.getContinuousMode() ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
@@ -201,8 +201,8 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks and " << vertices.size() << " vertices";
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
-    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
+    pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0}, trackLabels);
+    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0}, mc2rofs);
   }
   mTimer.Stop();
 }

@@ -132,13 +132,13 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     flushDigitsAndLabels();
 
     // send out to next stage
-    pc.outputs().snapshot(Output{"HMP", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    pc.outputs().snapshot(Output{"HMP", "INTRECORDS", 0, Lifetime::Timeframe}, mIntRecord);
+    pc.outputs().snapshot(Output{"HMP", "DIGITS", 0}, digitsAccum);
+    pc.outputs().snapshot(Output{"HMP", "INTRECORDS", 0}, mIntRecord);
     if (pc.outputs().isAllowed({"HMP", "DIGITLBL", 0})) {
-      pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
+      pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0}, labelAccum);
     }
     LOG(info) << "HMP: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"HMP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"HMP", "ROMode", 0}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

@@ -1054,8 +1054,9 @@ static auto haveKey(framework::pack<C...>, std::string const& key)
 }
 
 void notFoundColumn(const char* label, const char* key);
+void missingOptionalPreslice(const char* label, const char* key);
 
-template <typename T>
+template <typename T, bool OPT = false>
 static std::string getLabelFromTypeForKey(std::string const& key)
 {
   if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
@@ -1071,7 +1072,11 @@ static std::string getLabelFromTypeForKey(std::string const& key)
       return locate.second;
     }
   }
-  notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  if constexpr (!OPT) {
+    notFoundColumn(getLabelFromType<std::decay_t<T>>().data(), key.data());
+  } else {
+    return "[MISSING]";
+  }
   O2_BUILTIN_UNREACHABLE();
 }
 
@@ -1102,14 +1107,15 @@ constexpr static bool relatedBySortedIndex()
 
 namespace o2::framework
 {
-template <typename T, bool SORTED = true>
+template <typename T, bool OPT = false, bool SORTED = true>
 struct PresliceBase {
   constexpr static bool sorted = SORTED;
+  constexpr static bool optional = OPT;
   using target_t = T;
   const std::string binding;
 
   PresliceBase(expressions::BindingNode index_)
-    : binding{o2::soa::getLabelFromTypeForKey<T>(index_.name)},
+    : binding{o2::soa::getLabelFromTypeForKey<T, OPT>(index_.name)},
       bindingKey{binding, index_.name} {}
 
   void updateSliceInfo(std::conditional_t<SORTED, SliceInfoPtr, SliceInfoUnsortedPtr>&& si)
@@ -1117,13 +1123,18 @@ struct PresliceBase {
     sliceInfo = si;
   }
 
-  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
+  std::shared_ptr<arrow::Table> getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, uint64_t& offset) const
   {
+    if constexpr (OPT) {
+      if (isMissing()) {
+        return nullptr;
+      }
+    }
     if constexpr (SORTED) {
       auto [offset_, count] = sliceInfo.getSliceFor(value);
-      output = input->Slice(offset_, count);
+      auto output = input->Slice(offset_, count);
       offset = static_cast<int64_t>(offset_);
-      return arrow::Status::OK();
+      return output;
     } else {
       static_assert(SORTED, "Wrong method called for unsorted cache");
     }
@@ -1131,11 +1142,21 @@ struct PresliceBase {
 
   gsl::span<const int64_t> getSliceFor(int value) const
   {
+    if constexpr (OPT) {
+      if (isMissing()) {
+        return {};
+      }
+    }
     if constexpr (!SORTED) {
       return sliceInfo.getSliceFor(value);
     } else {
       static_assert(!SORTED, "Wrong method called for sorted cache");
     }
+  }
+
+  bool isMissing() const
+  {
+    return binding == "[MISSING]";
   }
 
   StringPair const& getBindingKey() const
@@ -1149,9 +1170,14 @@ struct PresliceBase {
 };
 
 template <typename T>
-using PresliceUnsorted = PresliceBase<T, false>;
+using PresliceUnsorted = PresliceBase<T, false, false>;
 template <typename T>
-using Preslice = PresliceBase<T, true>;
+using PresliceUnsortedOptional = PresliceBase<T, true, false>;
+template <typename T>
+using Preslice = PresliceBase<T, false, true>;
+template <typename T>
+using PresliceOptional = PresliceBase<T, true, true>;
+
 } // namespace o2::framework
 
 namespace o2::soa
@@ -1166,6 +1192,14 @@ using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 template <typename T>
 inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
+template <typename T>
+class FilteredBase;
+template <typename T>
+class Filtered;
+
+template <typename T>
+inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
+
 /// Helper function to extract bound indices
 template <typename... Is>
 static constexpr auto extractBindings(framework::pack<Is...>)
@@ -1173,10 +1207,135 @@ static constexpr auto extractBindings(framework::pack<Is...>)
   return framework::pack<typename Is::binding_t...>{};
 }
 
-template <typename T>
-class Filtered;
-
 SelectionVector selectionToVector(gandiva::Selection const& sel);
+
+template <typename T, typename C, bool OPT, bool SORTED>
+auto doSliceBy(T const* table, o2::framework::PresliceBase<C, OPT, SORTED> const& container, int value)
+{
+  if constexpr (o2::soa::is_binding_compatible_v<C, T>()) {
+    if constexpr (OPT) {
+      if (container.isMissing()) {
+        missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.second.c_str());
+      }
+    } else {
+      if constexpr (SORTED) {
+        uint64_t offset = 0;
+        auto out = container.getSliceFor(value, table->asArrowTable(), offset);
+        auto t = typename T::self_t({out}, offset);
+        table->copyIndexBindings(t);
+        t.bindInternalIndicesTo(table);
+        return t;
+      } else {
+        auto selection = container.getSliceFor(value);
+        if constexpr (soa::is_soa_filtered_v<T>) {
+          auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+          table->copyIndexBindings(t);
+          t.bindInternalIndicesTo(table);
+          t.intersectWithSelection(table->getSelectedRows()); // intersect filters
+          return t;
+        } else {
+          auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
+          table->copyIndexBindings(t);
+          t.bindInternalIndicesTo(table);
+          return t;
+        }
+      }
+    }
+  } else {
+    if constexpr (SORTED) {
+      static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
+    } else {
+      static_assert(o2::framework::always_static_assert_v<C>, "Wrong PresliceUnsorted<> entry used: incompatible type");
+    }
+  }
+}
+
+template <typename T>
+auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
+{
+  if (offset >= table->tableSize()) {
+    if constexpr (soa::is_soa_filtered_v<T>) {
+      Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
+      table->copyIndexBindings(fresult);
+      return fresult;
+    } else {
+      typename T::self_t fresult{{{slice}}, SelectionVector{}, 0};
+      table->copyIndexBindings(fresult);
+      return fresult;
+    }
+  }
+  auto start = offset;
+  auto end = start + slice->num_rows();
+  auto mSelectedRows = table->getSelectedRows();
+  auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
+  auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
+  SelectionVector slicedSelection{start_iterator, stop_iterator};
+  std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                 [&start](int64_t idx) {
+                   return idx - static_cast<int64_t>(start);
+                 });
+  if constexpr (soa::is_soa_filtered_v<T>) {
+    Filtered<typename T::base_t> fresult{{{slice}}, std::move(slicedSelection), start};
+    table->copyIndexBindings(fresult);
+    return fresult;
+  } else {
+    typename T::self_t fresult{{{slice}}, std::move(slicedSelection), start};
+    table->copyIndexBindings(fresult);
+    return fresult;
+  }
+}
+
+template <typename T, typename C, bool OPT>
+auto doFilteredSliceBy(T const* table, o2::framework::PresliceBase<C, OPT> const& container, int value)
+{
+  if constexpr (o2::soa::is_binding_compatible_v<C, T>()) {
+    if constexpr (OPT) {
+      if (container.isMissing()) {
+        missingOptionalPreslice(getLabelFromType<T>().data(), container.bindingKey.second.c_str());
+      }
+    }
+    uint64_t offset = 0;
+    auto slice = container.getSliceFor(value, table->asArrowTable(), offset);
+    return prepareFilteredSlice(table, slice, offset);
+  } else {
+    static_assert(o2::framework::always_static_assert_v<C>, "Wrong Preslice<> entry used: incompatible type");
+  }
+}
+
+template <typename T>
+auto doSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+{
+  auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto [offset, count] = localCache.getSliceFor(value);
+  auto t = typename T::self_t({table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
+  table->copyIndexBindings(t);
+  return t;
+}
+
+template <typename T>
+auto doFilteredSliceByCached(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+{
+  auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  auto [offset, count] = localCache.getSliceFor(value);
+  auto slice = table->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+  return prepareFilteredSlice(table, slice, offset);
+}
+
+template <typename T>
+auto doSliceByCachedUnsorted(T const* table, framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+{
+  auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<T>(node.name), node.name});
+  if constexpr (soa::is_soa_filtered_v<T>) {
+    auto t = typename T::self_t({table->asArrowTable()}, localCache.getSliceFor(value));
+    t.intersectWithSelection(table->getSelectedRows());
+    table->copyIndexBindings(t);
+    return t;
+  } else {
+    auto t = Filtered<T>({table->asArrowTable()}, localCache.getSliceFor(value));
+    table->copyIndexBindings(t);
+    return t;
+  }
+}
 
 template <typename T>
 auto select(T const& t, framework::expressions::Filter const& f)
@@ -1192,6 +1351,7 @@ template <typename... C>
 class Table
 {
  public:
+  using self_t = Table<C...>;
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
   using column_types = framework::pack<typename C::type...>;
@@ -1462,54 +1622,18 @@ class Table
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto [offset, count] = localCache.getSliceFor(value);
-    auto t = table_t({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
-    copyIndexBindings(t);
-    return t;
+    return doSliceByCached(this, node, value, cache);
   }
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto t = soa::Filtered<table_t>({this->asArrowTable()}, localCache.getSliceFor(value));
-    copyIndexBindings(t);
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
-      std::shared_ptr<arrow::Table> out;
-      uint64_t offset = 0;
-      auto status = container.getSliceFor(value, mTable, out, offset);
-      auto t = table_t({out}, offset);
-      copyIndexBindings(t);
-      t.bindInternalIndicesTo(this);
-      return t;
-    } else {
-      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
-    }
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
-  {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
-      auto selection = container.getSliceFor(value);
-      auto t = soa::Filtered<table_t>({this->asArrowTable()}, selection);
-      copyIndexBindings(t);
-      t.bindInternalIndicesTo(this);
-      return t;
-    } else {
-      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
-    }
-  }
-
-  auto slice(uint64_t start, uint64_t end) const
-  {
-    return rawSlice(start, end);
+    return doSliceBy(this, container, value);
   }
 
   auto rawSlice(uint64_t start, uint64_t end) const
@@ -2483,6 +2607,7 @@ struct Join : JoinBase<Ts...> {
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
 
+  using self_t = Join<Ts...>;
   using table_t = base;
   using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
@@ -2492,49 +2617,18 @@ struct Join : JoinBase<Ts...> {
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto [offset, count] = localCache.getSliceFor(value);
-    auto t = Join<Ts...>({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
-    this->copyIndexBindings(t);
-    return t;
+    return doSliceByCached(this, node, value, cache);
   }
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto t = Filtered<Join<Ts...>>({this->asArrowTable()}, localCache.getSliceFor(value));
-    this->copyIndexBindings(t);
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
-      std::shared_ptr<arrow::Table> out;
-      uint64_t offset = 0;
-      auto status = container.getSliceFor(value, this->asArrowTable(), out, offset);
-      auto t = table_t({out}, offset);
-      this->copyIndexBindings(t);
-      t.bindInternalIndicesTo(this);
-      return t;
-    } else {
-      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
-    }
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
-  {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
-      auto selection = container.getSliceFor(value);
-      auto t = soa::Filtered<std::decay_t<decltype(*this)>>({this->asArrowTable()}, selection);
-      this->copyIndexBindings(t);
-      t.bindInternalIndicesTo(this);
-      return t;
-    } else {
-      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
-    }
+    return doSliceBy(this, container, value);
   }
 
   template <typename T>
@@ -2753,77 +2847,21 @@ class FilteredBase : public T
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto [offset, count] = localCache.getSliceFor(value);
-    auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-    if (offset >= this->tableSize()) {
-      self_t fresult{{slice}, SelectionVector{}, 0}; // empty slice
-      this->copyIndexBindings(fresult);
-      return fresult;
-    }
-    auto start = static_cast<uint64_t>(offset);
-    auto end = start + slice->num_rows();
-    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&start](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    self_t fresult{{slice}, std::move(slicedSelection), start};
-    this->copyIndexBindings(fresult);
-    return fresult;
+    return doFilteredSliceByCached(this, node, value, cache);
   }
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, localCache.getSliceFor(value)};
-    t.intersectWithSelection(this->getSelectedRows());
-    this->copyIndexBindings(t);
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
   }
 
-  template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
-      uint64_t offset = 0;
-      std::shared_ptr<arrow::Table> result = nullptr;
-      auto status = container.getSliceFor(value, this->asArrowTable(), result, offset);
-      if (offset >= static_cast<uint64_t>(this->tableSize())) {
-        self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
-        this->copyIndexBindings(fresult);
-        return fresult;
-      }
-      auto start = offset;
-      auto end = start + result->num_rows();
-      auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
-      auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
-      SelectionVector slicedSelection{start_iterator, stop_iterator};
-      std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                     [&start](int64_t idx) {
-                       return idx - static_cast<int64_t>(start);
-                     });
-      self_t fresult{{result}, std::move(slicedSelection), start};
-      this->copyIndexBindings(fresult);
-      return fresult;
+    if constexpr (SORTED) {
+      return doFilteredSliceBy(this, container, value);
     } else {
-      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
-    }
-  }
-
-  template <typename T1>
-  auto sliceBy(o2::framework::PresliceUnsorted<T1> const& container, int value) const
-  {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
-      auto selection = container.getSliceFor(value);
-      auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, selection};
-      t.intersectWithSelection(this->getSelectedRows());
-      this->copyIndexBindings(t);
-      return t;
-    } else {
-      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
+      return doSliceBy(this, container, value);
     }
   }
 
@@ -2841,19 +2879,6 @@ class FilteredBase : public T
       return -1;
     }
     return static_cast<int>(std::distance(mSelectedRows.begin(), locate));
-  }
-
- protected:
-  auto slice(uint64_t start, uint64_t end)
-  {
-    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    return self_t{{this->asArrowTable()->Slice(start, end - start + 1)}, std::move(slicedSelection), start};
   }
 
   void sumWithSelection(SelectionVector const& selection)
@@ -2921,6 +2946,7 @@ template <typename T>
 class Filtered : public FilteredBase<T>
 {
  public:
+  using base_t = T;
   using self_t = Filtered<T>;
   using table_t = typename FilteredBase<T>::table_t;
   using originals = originals_pack_t<T>;
@@ -3006,36 +3032,36 @@ class Filtered : public FilteredBase<T>
     return operator*=(other.getSelectedRows());
   }
 
+  template <typename T1>
+  auto rawSliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  {
+    return (table_t)this->sliceBy(container, value);
+  }
+
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto [offset, count] = localCache.getSliceFor(value);
-    auto slice = this->asArrowTable()->Slice(offset, count);
-    if (offset >= this->tableSize()) {
-      self_t fresult{{slice}, SelectionVector{}, 0}; // empty slice
-      this->copyIndexBindings(fresult);
-      return fresult;
-    }
-    auto start = offset;
-    auto end = start + slice->num_rows();
-    auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&start](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    self_t fresult{{slice}, std::move(slicedSelection), static_cast<uint64_t>(start)};
-    this->copyIndexBindings(fresult);
-    return fresult;
+    return doFilteredSliceByCached(this, node, value, cache);
   }
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, localCache.getSliceFor(value)};
-    t.intersectWithSelection(this->getSelectedRows());
-    this->copyIndexBindings(t);
+    return doSliceByCachedUnsorted(this, node, value, cache);
+  }
+
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
+  {
+    if constexpr (SORTED) {
+      return doFilteredSliceBy(this, container, value);
+    } else {
+      return doSliceBy(this, container, value);
+    }
+  }
+
+  auto select(framework::expressions::Filter const& f) const
+  {
+    auto t = o2::soa::select(*this, f);
+    copyIndexBindings(t);
     return t;
   }
 };
@@ -3045,6 +3071,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 {
  public:
   using self_t = Filtered<Filtered<T>>;
+  using base_t = T;
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
   using originals = originals_pack_t<T>;
 
@@ -3146,34 +3173,22 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    auto [offset, count] = localCache.getSliceFor(value);
-    auto start = static_cast<uint64_t>(offset);
-    auto slice = this->asArrowTable()->Slice(start, count);
-    auto end = start + slice->num_rows();
-    auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&start](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    SelectionVector copy = slicedSelection;
-    Filtered<T> filteredTable{{slice}, std::move(slicedSelection), start};
-    std::vector<Filtered<T>> filtered{filteredTable};
-    self_t fresult{std::move(filtered), std::move(copy), start};
-    this->copyIndexBindings(fresult);
-    return fresult;
+    return doFilteredSliceByCached(this, node, value, cache);
   }
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
-    std::vector<Filtered<T>> filtered{Filtered<T>{{this->asArrowTable()}, localCache.getSliceFor(value)}};
-    auto t = std::decay_t<decltype(*this)>{std::move(filtered), localCache.getSliceFor(value)};
-    t.intersectWithSelection(this->getSelectedRows());
-    this->copyIndexBindings(t);
-    return t;
+    return doSliceByCachedUnsorted(this, node, value, cache);
+  }
+
+  template <typename T1, bool OPT, bool SORTED>
+  auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
+  {
+    if constexpr (SORTED) {
+      return doFilteredSliceBy(this, container, value);
+    } else {
+      return doSliceBy(this, container, value);
+    }
   }
 
  private:
@@ -3186,9 +3201,6 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return outTables;
   }
 };
-
-template <typename T>
-inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.

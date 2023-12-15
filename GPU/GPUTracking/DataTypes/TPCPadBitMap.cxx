@@ -16,7 +16,6 @@
 
 #include "GPUTPCGeometry.h"
 #include "DataFormatsTPC/Constants.h"
-#include "TPCBase/CalDet.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -29,6 +28,9 @@ TPCPadBitMap::TPCPadBitMap()
     offset += geo.NPads(r);
   }
 }
+
+#ifndef GPUCA_STANDALONE
+#include "TPCBase/CalDet.h"
 
 TPCPadBitMap::TPCPadBitMap(const o2::tpc::CalDet<bool>& map) : TPCPadBitMap()
 {
@@ -44,3 +46,4 @@ void TPCPadBitMap::setFromMap(const o2::tpc::CalDet<bool>& map)
     }
   }
 }
+#endif

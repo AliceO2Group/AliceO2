@@ -185,7 +185,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     LOGP(debug, "Fetching object for route {}", DataSpecUtils::describe(route.matcher));
     objCnt++;
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-    Output output{concrete.origin, concrete.description, concrete.subSpec, route.matcher.lifetime};
+    Output output{concrete.origin, concrete.description, concrete.subSpec};
     auto&& v = allocator.makeVector<char>(output);
     std::map<std::string, std::string> metadata;
     std::map<std::string, std::string> headers;
@@ -343,7 +343,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
             checkValidity = true; // never skip check if the cache is empty
           }
           LOG(debug) << "checkValidity = " << checkValidity << " for TF " << timingInfo.timeslice;
-          Output output{"CTP", "OrbitReset", 0, Lifetime::Condition};
+          Output output{"CTP", "OrbitReset", 0};
           Long64_t newOrbitResetTime = orbitResetTime;
           auto&& v = allocator.makeVector<char>(output);
           const auto& api = helper->getAPI(path);

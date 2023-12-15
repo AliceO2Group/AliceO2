@@ -129,8 +129,8 @@ class SACProcessorDevice : public Task
 
   void sendData(DataAllocator& output)
   {
-    output.snapshot(Output{"TPC", "REFTIMESAC", 0, Lifetime::Timeframe}, mDecoder.getDecodedData().referenceTime);
-    output.snapshot(Output{"TPC", "DECODEDSAC", 0, Lifetime::Timeframe}, mDecoder.getDecodedData().getGoodData());
+    output.snapshot(Output{"TPC", "REFTIMESAC", 0}, mDecoder.getDecodedData().referenceTime);
+    output.snapshot(Output{"TPC", "DECODEDSAC", 0}, mDecoder.getDecodedData().getGoodData());
     mDecoder.clearDecodedData();
   }
 

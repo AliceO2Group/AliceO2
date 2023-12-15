@@ -160,7 +160,7 @@ DataProcessorSpec generateData(const std::string nameRootFile, const std::string
         o2::pmr::vector<o2::emcal::TriggerRecord> TriggerOutput;
         TriggerOutput.emplace_back(0, 0, 0, CellOutput.size());
 
-        ctx.outputs().adoptContainer(Output{o2::header::gDataOriginEMC, "CELLS", 0, Lifetime::Timeframe}, std::move(CellOutput));
-        ctx.outputs().adoptContainer(Output{o2::header::gDataOriginEMC, "CELLSTRGR", 0, Lifetime::Timeframe}, std::move(TriggerOutput));
+        ctx.outputs().adoptContainer(Output{o2::header::gDataOriginEMC, "CELLS", 0}, std::move(CellOutput));
+        ctx.outputs().adoptContainer(Output{o2::header::gDataOriginEMC, "CELLSTRGR", 0}, std::move(TriggerOutput));
       }}};
 }

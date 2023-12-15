@@ -69,11 +69,11 @@ void DigitReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "ZDCDigitReader pushed " << zdcOrbitData.size() << " orbits with " << zdcBCData.size() << " bcs and " << zdcChData.size() << " digits";
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, zdcOrbitData);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, zdcBCData);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, zdcChData);
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0}, zdcOrbitData);
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0}, zdcBCData);
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0}, zdcChData);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, labels);
+    pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0}, labels);
   }
   uint64_t nextEntry = mTree->GetReadEntry() + 1;
   if (nextEntry >= mTree->GetEntries() || (mLastEntry >= 0 && nextEntry > mLastEntry)) {

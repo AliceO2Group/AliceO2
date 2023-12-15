@@ -114,10 +114,10 @@ void TDCCalibEPNSpec::run(ProcessingContext& pc)
     if (mVerbosity > DbgMedium && mModTF > 0) {
       LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " >= mModTF=" << mModTF;
     }
-    o2::framework::Output output("ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
+    o2::framework::Output output("ZDC", "TDCCALIBDATA", 0);
     pc.outputs().snapshot(output, mWorker.mData);
     for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-      o2::framework::Output output("ZDC", "TDC_1DH", ih, Lifetime::Timeframe);
+      o2::framework::Output output("ZDC", "TDC_1DH", ih);
       pc.outputs().snapshot(output, mWorker.mTDC[ih]->getBase());
     }
     mWorker.clear();

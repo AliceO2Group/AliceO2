@@ -110,6 +110,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   uint8_t mITSSAminNclu = 6;             // global requirement of at least this many ITS clusters if no TPC info present (N.B.: affects all secondary vertexing)
   uint8_t mITSSAminNcluCascades = 6;     // require at least this many ITS clusters if no TPC info present for cascade finding.
+  bool mRejectITSonlyOBtrack = false;    // reject tracks in OB with 4 hits (keep false for more low pt conversions)
   bool mRequireTPCforCascBaryons = true; // require that baryon daughter of cascade has TPC
   bool mSkipTPCOnlyCascade = true;       // skip TPC only tracks when doing cascade finding
   bool mSkipTPCOnly3Body = true;         // skip TPC only tracks when doing cascade finding
@@ -135,8 +136,8 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   //
   // cuts on different Cascade PID params
   bool checkCascadeHypothesis = true;
-  float pidCutsXiMinus[SVertexHypothesis::NPIDParams] = {0.0, 10, 0.0, 4.0, 0.0, 1.56315e-03, 2.23279e-04, 2.75136e-02, 3.309};          // XiMinus
-  float pidCutsOmegaMinus[SVertexHypothesis::NPIDParams] = {0.0, 10, 0.0, 4.0, 0.0, 1.43572e-03, 6.94416e-04, 2.13534e+05, 1.48889e+01}; // OmegaMinus
+  float pidCutsXiMinus[SVertexHypothesis::NPIDParams] = {0.0, 15, 0.01, 4.0, 0.0, 1.56315e-03, 2.23279e-04, 2.75136e-02, 3.309};          // XiMinus
+  float pidCutsOmegaMinus[SVertexHypothesis::NPIDParams] = {0.0, 15, 0.01, 4.0, 0.0, 1.43572e-03, 6.94416e-04, 2.13534e+05, 1.48889e+01}; // OmegaMinus
   float maximalCascadeWidth = 0.006;
   //
   // cuts on different 3 body PID params

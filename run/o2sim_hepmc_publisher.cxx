@@ -135,8 +135,8 @@ struct O2simHepmcPublisher {
       }
 
       // add to the message
-      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcHeader);
-      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mcTracks);
+      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcHeader);
+      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0}, mcTracks);
       mcTracks.clear();
       ++eventCounter;
     }

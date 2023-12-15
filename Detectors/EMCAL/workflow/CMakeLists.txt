@@ -25,8 +25,20 @@ o2_add_library(EMCALWorkflow
         src/CellRecalibratorSpec.cxx
         src/EntropyDecoderSpec.cxx
         src/StandaloneAODProducerSpec.cxx
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsCTP O2::DataFormatsEMCAL O2::EMCALSimulation O2::Steer
-        O2::DPLUtils O2::EMCALBase O2::EMCALCalib O2::EMCALCalibration O2::EMCALReconstruction O2::Algorithm O2::MathUtils)
+        PUBLIC_LINK_LIBRARIES O2::Framework
+        O2::DataFormatsCTP
+        O2::DataFormatsEMCAL
+        O2::DataFormatsFT0
+        O2::DataFormatsFV0
+        O2::EMCALSimulation
+        O2::Steer
+        O2::DPLUtils
+        O2::EMCALBase
+        O2::EMCALCalib
+        O2::EMCALCalibration
+        O2::EMCALReconstruction
+        O2::Algorithm
+        O2::MathUtils)
 
 o2_add_executable(reco-workflow
         COMPONENT_NAME emcal

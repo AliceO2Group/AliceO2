@@ -65,7 +65,7 @@ void MatchMFTMCHReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " MFTMCH matches at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "MTC_MFTMCH", 0, Lifetime::Timeframe}, mTracks);
+  pc.outputs().snapshot(Output{"GLO", "MTC_MFTMCH", 0}, mTracks);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
