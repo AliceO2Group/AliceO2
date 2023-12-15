@@ -340,7 +340,7 @@ void CTPRunManager::printCounters()
 {
   int NDET = 18;
   int NINPS = 48;
-  //int NCLKFP = 7;
+  // int NCLKFP = 7;
   int NLTG_start = NRUNS;
   int NCLKFP_start = NLTG_start + NDET * 32;
   int NINPS_start = NCLKFP_start + 7;
