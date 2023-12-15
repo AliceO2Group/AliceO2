@@ -2117,7 +2117,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
       if constexpr (o2::soa::is_soa_filtered_v<T>) {                                             \
         auto result = std::vector<typename T::iterator>();                                       \
         for (auto const& i : *mColumnIterator) {                                                 \
-          auto pos = mBinding.get<T>() -> isInSelectedRows(i);                                   \
+          auto pos = mBinding.get<T>()->isInSelectedRows(i);                                     \
           if (pos > 0) {                                                                         \
             result.push_back(mBinding.get<T>()->iteratorAt(pos));                                \
           }                                                                                      \
