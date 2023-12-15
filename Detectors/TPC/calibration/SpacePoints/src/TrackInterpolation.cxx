@@ -160,6 +160,7 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
       int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
       for (int i = idMin; i < idMax; i++) {
         auto vid = trackIndex[i];
+        auto vidOrig = vid; // in case only ITS-TPC tracks are configured vid might be overwritten. We need to remember it for the PID
         if (mParams->ignoreNonPVContrib && !vid.isPVContributor()) {
           continue;
         }
@@ -183,6 +184,7 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
           continue;
         }
         mSeeds.push_back(mRecoCont->getITSTrack(gidTable[GTrackID::ITS]).getParamOut());
+        mSeeds.back().setPID(mRecoCont->getTrackParam(vidOrig).getPID());
         mGIDs.push_back(vid);
         mGIDtables.push_back(gidTable);
         mTrackTimes.push_back(pv.getTimeStamp().getTimeStamp());
