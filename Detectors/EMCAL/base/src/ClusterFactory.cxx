@@ -18,6 +18,8 @@
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/AnalysisCluster.h"
 #include "DataFormatsEMCAL/Constants.h"
+#include "DataFormatsEMCAL/CellLabel.h"
+#include "DataFormatsEMCAL/ClusterLabel.h"
 #include "EMCALBase/Geometry.h"
 #include "MathUtils/Cartesian.h"
 
@@ -38,13 +40,14 @@ void ClusterFactory<InputType>::reset()
   mInputsContainer = gsl::span<const InputType>();
   mCellsIndices = gsl::span<int>();
   mLookUpInit = false;
+  mCellLabelContainer = gsl::span<const o2::emcal::CellLabel>();
 }
 
 ///
 /// evaluates cluster parameters: position, shower shape, primaries ...
 //____________________________________________________________________________
 template <class InputType>
-o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIndex) const
+o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIndex, o2::emcal::ClusterLabel* clusterLabel) const
 {
   if (clusterIndex >= mClustersContainer.size()) {
     throw ClusterRangeException(clusterIndex, mClustersContainer.size());
@@ -86,9 +89,19 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
 
   std::vector<unsigned short> cellsIdices;
 
+  size_t iCell = 0;
   for (auto cellIndex : inputsIndices) {
     cellsIdices.push_back(cellIndex);
+    if ((clusterLabel != nullptr) && (mCellLabelContainer.size() > 0)) {
+      for (size_t iLabel = 0; iLabel < mCellLabelContainer[iCell].GetLabelSize(); iLabel++) {
+        clusterLabel->addValue(mCellLabelContainer[iCell].GetLabel(iLabel),
+                               mCellLabelContainer[iCell].GetAmplitudeFraction(iLabel) * mInputsContainer[iCell].getEnergy());
+      }
+      iCell++;
+    }
   }
+  clusterLabel->orderLabels();
+  clusterLabel->normalize(cellAmp);
 
   clusterAnalysis.setCellsIndices(cellsIdices);
 

@@ -11,6 +11,8 @@
 #ifndef ALICEO2_EMCAL_CLUSTERFACTORY_H_
 #define ALICEO2_EMCAL_CLUSTERFACTORY_H_
 #include <array>
+#include <vector>
+#include <optional>
 #include <utility>
 #include <gsl/span>
 #include "Rtypes.h"
@@ -19,6 +21,8 @@
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/AnalysisCluster.h"
+#include "DataFormatsEMCAL/CellLabel.h"
+#include "DataFormatsEMCAL/ClusterLabel.h"
 #include "EMCALBase/Geometry.h"
 #include "MathUtils/Cartesian.h"
 
@@ -230,7 +234,7 @@ class ClusterFactory
 
   ///
   /// evaluates cluster parameters: position, shower shape, primaries ...
-  AnalysisCluster buildCluster(int index) const;
+  AnalysisCluster buildCluster(int index, o2::emcal::ClusterLabel* clusterLabel = nullptr) const;
 
   void SetECALogWeight(Float_t w) { mLogWeight = w; }
   float GetECALogWeight() const { return mLogWeight; }
@@ -331,13 +335,16 @@ class ClusterFactory
   bool getUseWeightExotic() const { return mUseWeightExotic; }
   void setUseWeightExotic(float useWeightExotic) { mUseWeightExotic = useWeightExotic; }
 
-  void setContainer(gsl::span<const o2::emcal::Cluster> clusterContainer, gsl::span<const InputType> cellContainer, gsl::span<const int> indicesContainer)
+  void setContainer(gsl::span<const o2::emcal::Cluster> clusterContainer, gsl::span<const InputType> cellContainer, gsl::span<const int> indicesContainer, std::optional<gsl::span<const o2::emcal::CellLabel>> cellLabelContainer = std::nullopt)
   {
     mClustersContainer = clusterContainer;
     mInputsContainer = cellContainer;
     mCellsIndices = indicesContainer;
     if (!getLookUpInit()) {
       setLookUpTable();
+    }
+    if (cellLabelContainer) {
+      mCellLabelContainer = cellLabelContainer.value();
     }
   }
 
@@ -425,10 +432,11 @@ class ClusterFactory
   float mExoticCellInCrossMinAmplitude = 0.1; ///<  Minimum energy of cells in cross, if lower not considered in cross
   bool mUseWeightExotic = false;              ///<  States if weights should be used for exotic cell cut
 
-  gsl::span<const o2::emcal::Cluster> mClustersContainer; ///< Container for all the clusters in the event
-  gsl::span<const InputType> mInputsContainer;            ///< Container for all the cells/digits in the event
-  gsl::span<const int> mCellsIndices;                     ///< Container for cells indices in the event
-  std::array<short, 17664> mLoolUpTowerToIndex;           ///< Lookup table to match tower id with cell index, needed for exotic check
+  gsl::span<const o2::emcal::Cluster> mClustersContainer;    ///< Container for all the clusters in the event
+  gsl::span<const InputType> mInputsContainer;               ///< Container for all the cells/digits in the event
+  gsl::span<const int> mCellsIndices;                        ///< Container for cells indices in the event
+  std::array<short, 17664> mLoolUpTowerToIndex;              ///< Lookup table to match tower id with cell index, needed for exotic check
+  gsl::span<const o2::emcal::CellLabel> mCellLabelContainer; ///< Container for all the cell labels in the event
 
   ClassDefNV(ClusterFactory, 2);
 };
