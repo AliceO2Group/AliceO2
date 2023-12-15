@@ -36,8 +36,7 @@ ITSMFTDeadMapBuilder::ITSMFTDeadMapBuilder(std::string datasource, bool doMFT)
 ITSMFTDeadMapBuilder::~ITSMFTDeadMapBuilder()
 {
   // Clear dynamic memory
-  delete mDeadMapTF;
-  delete mTreeObject;
+  return;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -52,11 +51,9 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
     N_CHIPS = o2::itsmft::ChipMappingITS::getNChips();
   }
 
-  mDeadMapTF = new std::vector<uint16_t>{};
+  mDeadMapTF.clear();
 
-  mTreeObject = new TTree("ccdb_object", "ccdb_object");
-  mTreeObject->Branch("orbit", &mFirstOrbitTF);
-  mTreeObject->Branch("deadmap", &mDeadMapTF);
+  mMapObject.clear();
 
   mTFSampling = ic.options().get<int>("tf-sampling");
   mTFLength = ic.options().get<int>("tf-length");
@@ -95,13 +92,11 @@ void ITSMFTDeadMapBuilder::finalizeOutput()
   if (mDoLocalOutput) {
     std::string localoutfilename = mLocalOutputDir + "/" + mObjectName;
     TFile outfile(localoutfilename.c_str(), "RECREATE");
-    outfile.cd();
-    mTreeObject->Write();
+    outfile.WriteObjectAny(&mMapObject, "std::map<unsigned long, std::vector<uint16_t>>", "ccdb_object");
     outfile.Close();
   }
   return;
-
-} // finalizeOutput
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Main running function
@@ -120,14 +115,14 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 
   mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
-  if ((Long64_t)(mFirstOrbitTF / mTFLength) % mTFSampling != 0) {
+  if ((unsigned long)(mFirstOrbitTF / mTFLength) % mTFSampling != 0) {
     return;
   }
 
   mStepCounter++;
   LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
 
-  mDeadMapTF->clear();
+  mDeadMapTF.clear();
 
   std::vector<bool> ElementsStatus(getElementIDFromChip(N_CHIPS), false);
 
@@ -170,18 +165,18 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     bool previous_dead = (el > 0 && !ElementsStatus.at(el - 1));
     bool next_dead = (el < ElementsStatus.size() - 1 && !ElementsStatus.at(el + 1));
     if (!previous_dead && next_dead) {
-      mDeadMapTF->push_back(el | (uint16_t)(0x8000));
+      mDeadMapTF.push_back(el | (uint16_t)(0x8000));
     } else if (previous_dead && next_dead) {
       continue;
     } else {
-      mDeadMapTF->push_back(el);
+      mDeadMapTF.push_back(el);
     }
   }
 
-  LOG(info) << "TF contains " << CountDead << " dead elements, saved into " << mDeadMapTF->size() << " words.";
+  LOG(info) << "TF contains " << CountDead << " dead elements, saved into " << mDeadMapTF.size() << " words.";
 
-  // filling the tree
-  mTreeObject->Fill();
+  // filling the map
+  mMapObject[mFirstOrbitTF] = mDeadMapTF;
 
   end = std::chrono::high_resolution_clock::now();
   int difference = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -207,7 +202,8 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
 
   o2::ccdb::CcdbObjectInfo info((path + name_str), "time_dead_map", mObjectName, md, tstart, tend);
 
-  auto image = o2::ccdb::CcdbApi::createObjectImage(mTreeObject, &info);
+  auto image = o2::ccdb::CcdbApi::createObjectImage(&mMapObject, &info);
+  info.setFileName(mObjectName);
 
   info.setAdjustableEOV();
 
@@ -241,7 +237,7 @@ void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// DDS stop method: simply close the latest tree
+// DDS stop method: create local output if endOfStream not processed
 void ITSMFTDeadMapBuilder::stop()
 {
   if (!isEnded) {
