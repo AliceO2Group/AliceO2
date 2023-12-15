@@ -22,7 +22,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"Expect MFT data"}},
     ConfigParamSpec{"source", VariantType::String, "chipsstatus", {"Loop over: digits, clusters or chipsstatus"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-  
+
   std::swap(workflowOptions, options);
 }
 
