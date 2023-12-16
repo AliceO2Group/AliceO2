@@ -58,7 +58,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mTFSampling = ic.options().get<int>("tf-sampling");
   mTFLength = ic.options().get<int>("tf-length");
   mDoLocalOutput = ic.options().get<bool>("local-output");
-  mObjectName = ic.options().get<std::string>("output-filename");
+  mObjectName = ic.options().get<std::string>("outfile");
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
 
   LOG(info) << "Sampling one TF every " << mTFSampling;
@@ -296,7 +296,7 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     AlgorithmSpec{adaptFromTask<ITSMFTDeadMapBuilder>(datasource, doMFT)},
     Options{{"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
-            {"output-filename", VariantType::String, objectname_default, {"ROOT object file name."}},
+            {"outfile", VariantType::String, objectname_default, {"ROOT object file name."}},
             {"local-output", VariantType::Bool, false, {"Save ROOT tree file locally."}},
             {"output-dir", VariantType::String, "./", {"ROOT tree local output directory."}}}};
 }
