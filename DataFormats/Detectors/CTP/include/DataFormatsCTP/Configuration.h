@@ -63,7 +63,7 @@ struct CTPInput {
   std::uint64_t inputMask = 0;
   o2::detectors::DetID::ID detID = 16; // CTP
   bool neg = 1;
-  int getIndex() const { return ((inputMask > 0) ? 1 + log2(inputMask) : 0xff); }
+  uint32_t getIndex() const { return ((inputMask > 0) ? 1 + log2(inputMask) : 0xff); }
   std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
   void setRun3DetName(std::string& run2Name);
   void printStream(std::ostream& strem) const;
@@ -124,8 +124,8 @@ struct CTPInputsConfiguration {
   void printStream(std::ostream& strem) const;
   static CTPInputsConfiguration defaultInputConfig;
   static void initDefaultInputConfig();
-  static std::string getInputNameFromIndex100(int index);
-  static std::string getInputNameFromIndex(int index);
+  static std::string getInputNameFromIndex100(uint32_t index);
+  static std::string getInputNameFromIndex(uint32_t index);
   static int getInputIndexFromName(std::string& name);
   ClassDefNV(CTPInputsConfiguration, 0);
 };
@@ -164,7 +164,7 @@ class CTPConfiguration
   bool isBCMaskInConfig(const std::string maskname) const;
   const BCMask* isBCMaskInConfigP(const std::string bcmask) const;
   const CTPInput* isInputInConfig(const std::string inpname) const;
-  const CTPInput* isInputInConfig(const int index) const;
+  const CTPInput* isInputInConfig(const uint32_t index) const;
   const CTPDescriptor* isDescriptorInConfig(const std::string descname, int& index) const;
   void createInputsInDecriptorsFromNames();
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
