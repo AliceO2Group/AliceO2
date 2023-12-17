@@ -218,55 +218,75 @@ void CalibTimeSlewingParamTOF::setTimeSlewingInfo(int channel, float offsetold, 
   // work with float to avoid to loose precision due to short (in case offset will be adjust before to move deltat to short)
   std::vector<float> deltat;
 
-  float minVal = 0;
-  float maxVal = 0;
+  float minVal = 100000;
+  float maxVal = -100000;
 
-  if (nnew >= nold) { // use new binning
-    int j = 0;
-    for (int i = 0; i < nnew; i++) {
-      while (j < nold && oldtot[j + 1] < newtot[i]) {
-        j++;
-      }
-      float val = float(newdt[i]) + olddt[j];
-      //      printf("%d %d -> %f\n",i,j,val);
-      deltat.push_back(val);
-      if (val < minVal) {
-        minVal = val;
-      }
-      if (val > maxVal) {
-        maxVal = val;
-      }
-    }
-    float recentering = (minVal + maxVal) * 0.5;
-    (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
-    //    printf("update channel offset for sec=%d/ch=%d -> %f\n",sector,channel,(*(mGlobalOffset[sector]))[channel]);
-    (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
+  // new scheme
+  int k1 = 0;
+  int k2 = 0;
 
-    for (int i = 0; i < nnew; i++) {
-      (*(mTimeSlewing[sector])).emplace_back(newtot[i], (short)(deltat[i] - recentering));
-      //      printf("%d) %d\n",i,(*(mTimeSlewing[sector]))[i]);
-    }
-  } else { // use old binning
-    int j = 0;
-    for (int i = 0; i < nold; i++) {
-      while (j < nnew && newtot[j + 1] < oldtot[i]) {
-        j++;
+  int ntotFin = 0;
+  std::vector<short> totFin;
+
+  while (k1 < nnew && k2 < nold) {
+    if (newtot[k1] == oldtot[k2]) {
+      k1++;
+    } else if (newtot[k1] < oldtot[k2]) {
+      totFin.push_back(newtot[k1]);
+      if (k2 > 0) {
+        deltat.push_back(float(newdt[k1]) + olddt[k2 - 1]);
+      } else {
+        deltat.push_back(float(newdt[k1] + olddt[k2]));
       }
-      float val = float(olddt[i]) + newdt[j];
-      deltat.push_back(val);
-      if (val < minVal) {
-        minVal = val;
+      k1++;
+    } else {
+      totFin.push_back(oldtot[k2]);
+      if (k1 > 0) {
+        deltat.push_back(float(olddt[k2]) + newdt[k1 - 1]);
+      } else {
+        deltat.push_back(float(olddt[k2] + newdt[k1]));
       }
-      if (val > maxVal) {
-        maxVal = val;
+      k2++;
+    }
+  }
+
+  if (k1 < nnew) {
+    while (k1 < nnew) {
+      totFin.push_back(newtot[k1]);
+      if (nold) {
+        deltat.push_back(float(newdt[k1]) + olddt[nold - 1]);
+      } else {
+        deltat.push_back(float(newdt[k1]));
       }
+      k1++;
     }
-    float recentering = (minVal + maxVal) * 0.5;
-    (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
-    (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
-    for (int i = 0; i < nold; i++) {
-      (*(mTimeSlewing[sector])).emplace_back(oldtot[i], (short)(deltat[i] - recentering));
+  } else if (k2 < nold) {
+    while (k2 < nold) {
+      totFin.push_back(oldtot[k2]);
+      if (nnew) {
+        deltat.push_back(float(olddt[k2]) + newdt[nnew - 1]);
+      } else {
+        deltat.push_back(float(olddt[k2]));
+      }
+      k2++;
     }
+  }
+
+  for (int i = 0; i < deltat.size(); i++) {
+    if (deltat[i] < minVal) {
+      minVal = deltat[i];
+    }
+    if (deltat[i] > maxVal) {
+      maxVal = deltat[i];
+    }
+  }
+
+  float recentering = (minVal + maxVal) * 0.5;
+  (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
+  (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
+
+  for (int i = 0; i < deltat.size(); i++) {
+    (*(mTimeSlewing[sector])).emplace_back(totFin[i], (short)(deltat[i] - recentering));
   }
 }
 //______________________________________________
