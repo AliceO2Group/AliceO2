@@ -74,7 +74,7 @@ struct ITSAvgClusSizeParamConfig : public o2::conf::ConfigurableParamHelper<ITSA
 };
 
 struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyParamConfig> {
-  std::string outFileName = "its_PIDSstudy.root";
+  std::string outFileName = "its_PIDStudy.root";
   // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
   // to-do: grab from CCDB when available
   float mBBpars[5] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};

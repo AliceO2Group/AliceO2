@@ -72,9 +72,11 @@ using PID = o2::track::PID;
 
 // structure for storing the output tree
 struct particle {
+  // mc properties
   int pdg = -1;
+  bool fakeMatch = 0;
+  // reco properties
   int sign = -1;
-  float rofBC;
   float p, pt, pTPC, pITS, eta, phi, tgL, chi2ITS, chi2TPC, chi2ITSTPC;
   int nClusTPC;
   float dEdx, nSigmaDeu, nSigmaP, nSigmaK, nSigmaPi, nSigmaE;
@@ -118,11 +120,7 @@ class PIDStudy : public Task
   std::vector<int> mClusterSizes;
   gsl::span<const o2::itsmft::CompClusterExt> mClusters;
   gsl::span<const int> mInputITSidxs;
-  std::vector<o2::MCTrack> mMCTracks;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
-
-  // output vector
-  std::vector<particle> mParticles;
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::string mOutName;
@@ -136,10 +134,6 @@ void PIDStudy::init(InitContext& ic)
 
   if (mUseMC) { // for counting the missed K0shorts
     mKineReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-    for (int iEvent{0}; iEvent < mKineReader->getNEvents(0); iEvent++) {
-      auto mctrk = mKineReader->getTracks(0, iEvent);
-      mMCTracks.insert(mMCTracks.end(), mctrk.begin(), mctrk.end());
-    }
   }
   auto& params = o2::its::study::PIDStudyParamConfig::Instance();
   mOutName = params.outFileName;
@@ -192,9 +186,16 @@ void PIDStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
   loadData(recoData);
   auto ITSTPCtracks = recoData.getTPCITSTracks();
+  LOGP(debug, "Found {} ITSTPC tracks.", ITSTPCtracks.size());
 
-  LOG(debug) << "Data loaded, looping over tracks..."
-             << ", number of ITS-TPC tracks: " << ITSTPCtracks.size();
+  gsl::span<const o2::MCCompLabel> mcLabelsITS, mcLabelsTPC;
+  if (mUseMC) {
+    mcLabelsITS = recoData.getITSTracksMCLabels();
+    mcLabelsTPC = recoData.getTPCTracksMCLabels();
+    LOGP(debug, "Found {} ITS labels.", mcLabelsITS.size());
+    LOGP(debug, "Found {} TPC labels.", mcLabelsTPC.size());
+  }
+
   for (unsigned int iTrack{0}; iTrack < ITSTPCtracks.size(); ++iTrack) {
 
     auto& ITSTPCtrack = ITSTPCtracks[iTrack];
@@ -204,6 +205,17 @@ void PIDStudy::process(o2::globaltracking::RecoContainer& recoData)
     particle part;
     auto ITStrack = recoData.getITSTrack(ITSTPCtrack.getRefITS());
     auto TPCtrack = recoData.getTPCTrack(ITSTPCtrack.getRefTPC());
+
+    if (mUseMC) {
+      // MC info
+      auto& mcLabelITS = mcLabelsITS[ITSTPCtrack.getRefITS().getIndex()];
+      auto& mcLabelTPC = mcLabelsTPC[ITSTPCtrack.getRefTPC().getIndex()];
+      if (mcLabelITS.getTrackID() != (int)mcLabelTPC.getTrackID()) {
+        part.fakeMatch = 1;
+      }
+      auto mctrk = mKineReader->getTrack(mcLabelITS);
+      part.pdg = mctrk->GetPdgCode();
+    }
 
     part.sign = ITSTPCtrack.getSign();
     part.clSizesITS = getTrackClusterSizes(ITStrack);
@@ -236,6 +248,10 @@ void PIDStudy::process(o2::globaltracking::RecoContainer& recoData)
     part.nSigmaPi = computeNSigma(PID::Pion, TPCtrack, 0.07);
     part.nSigmaE = computeNSigma(PID::Electron, TPCtrack, 0.07);
 
+    if (mUseMC) {
+      (*mDBGOut) << "outTree"
+                 << "pdg=" << part.pdg << "fakeMatch=" << part.fakeMatch;
+    }
     (*mDBGOut) << "outTree"
                << "sign=" << part.sign << "p=" << part.p << "pt=" << part.pt << "pTPC=" << part.pTPC << "pITS=" << part.pITS
                << "eta=" << part.eta << "phi=" << part.phi << "tgL=" << part.tgL << "chi2ITS=" << part.chi2ITS << "chi2TPC="
