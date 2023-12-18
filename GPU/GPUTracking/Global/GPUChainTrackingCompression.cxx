@@ -233,13 +233,12 @@ int GPUChainTracking::RunTPCDecompression()
   TransferMemoryResourcesToGPU(myStep, &Decompressor, 0);
 
   int outputStream = 0;
+  bool toGPU = true;
   CompressedClusters& inputGPUShadow = DecompressorShadow.mInputGPU;
   //char* deviceFlatPts = (char*)inputGPUShadow.qTotU;
   //GPUMemCpy(myStep, deviceFlatPts, cmprClsHost.qTotU, copySize, outputStream, true);
   SynchronizeStream(outputStream);
 
-  unsigned int offset = 0;
-  bool toGPU = true;
 
   GPUMemCpyAlways(myStep, inputGPUShadow.qTotU, cmprClsHost.qTotU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.qTotU[0]), outputStream, toGPU);
   GPUMemCpyAlways(myStep, inputGPUShadow.qMaxU, cmprClsHost.qMaxU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.qMaxU[0]), outputStream, toGPU);
@@ -265,6 +264,8 @@ int GPUChainTracking::RunTPCDecompression()
   GPUMemCpyAlways(myStep, inputGPUShadow.sliceA, cmprClsHost.sliceA, cmprClsHost.nTracks * sizeof(cmprClsHost.sliceA[0]), outputStream, toGPU);
   GPUMemCpyAlways(myStep, inputGPUShadow.timeA, cmprClsHost.timeA, cmprClsHost.nTracks * sizeof(cmprClsHost.timeA[0]), outputStream, toGPU);
   GPUMemCpyAlways(myStep, inputGPUShadow.padA, cmprClsHost.padA, cmprClsHost.nTracks * sizeof(cmprClsHost.padA[0]), outputStream, toGPU);
+
+  runKernel<GPUMemClean16>(GetGridAutoStep(0, RecoStep::TPCDecompression), krnlRunRangeNone, krnlEventNone, DecompressorShadow.mNativeClustersIndex, NSLICES * GPUCA_ROW_COUNT * sizeof(DecompressorShadow.mNativeClustersIndex[0]));
 
 
   mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = cmprClsHost.nAttachedClusters + cmprClsHost.nUnattachedClusters;
@@ -292,7 +293,7 @@ int GPUChainTracking::RunTPCDecompression()
   gatherTimer.Stop();
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   if (mRec->IsGPU()) {
-    runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::test>({1,1,0}, krnlRunRangeNone, krnlEventNone);
+    runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::test>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
 
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
     processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;

@@ -19,6 +19,7 @@
 #include "GPUProcessor.h"
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
+#include "GPUO2DataTypes.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
@@ -49,16 +50,31 @@ class GPUTPCDecompression : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersInputGPU(void* mem);
-  void* SetPointersMemory(void* mem);
+  void* SetPointersTmpNativeBuffers(void* mem);
 #endif
 
  protected:
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
   o2::tpc::CompressedClusters mInputGPU;
+  unsigned int mMaxNativeClustersPerBuffer;
+  unsigned int* mNativeClustersIndex;
+  o2::tpc::ClusterNative* mTmpNativeClusters;
+/*  class ConcurrentClusterNativeBuffer{
+    size_t mIndex;
+    size_t mCapacity = 10;
+    o2::tpc::ClusterNative* mCmprClsBuffer;
+   public:
+    ConcurrentClusterNativeBuffer();
+    void push_back(ClusterNative cluster);
+  };*/
+//  ConcurrentClusterNativeBuffer* tmpBuffer;
+
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
 
   short mMemoryResInputGPU = -1;
+
+
 };
 } // namespace GPUCA_NAMESPACE::gpu
 #endif // GPUTPCDECOMPRESSION_H

@@ -23,10 +23,28 @@ using namespace o2::tpc;
 template <>
 GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::test>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
-  GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   GPUTPCDecompression& GPUrestrict() decompressor = processors.tpcDecompressor;
+  CompressedClusters& GPUrestrict() cmprClusters = decompressor.mInputGPU;
+  const GPUParam& GPUrestrict() param = processors.param;
+
+  unsigned int offset = 0, lasti = 0;
+  const unsigned int maxTime = (param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
+
+  for (unsigned int i = get_global_id(0); i < cmprClusters.nTracks; i += get_global_size(0)) {
+    while (lasti < i) {
+      offset += cmprClusters.nTrackClusters[lasti++];
+    }
+    lasti++;
+    //decompressTrack(clustersCompressed, param, maxTime, i, offset, clusters, locks);
+
+  }
   if (!iThread && !iBlock) {
-    GPUInfo("==== on GPU nAttCl = {%d}, nUnAttCl = {%d}, nTracks = {%d}",decompressor.mInputGPU.nAttachedClusters,decompressor.mInputGPU.nUnattachedClusters,decompressor.mInputGPU.nTracks);
+    GPUInfo("==== on GPU nAttCl = %d, nUnAttCl = %d, nTracks = %d",cmprClusters.nAttachedClusters,cmprClusters.nUnattachedClusters,cmprClusters.nTracks);
+    GPUInfo("=== sizeof(CluserNative) = %lu", sizeof(ClusterNative));
+    /*int * test = new int[10];
+    test[0] = 1;
+    GPUInfo("==== got it %p -- %d",(void*)test,test[0]);
+    delete[] test;*/
   }
 
 }
