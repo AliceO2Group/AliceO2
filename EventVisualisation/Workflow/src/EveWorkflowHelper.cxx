@@ -35,6 +35,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "PHOSBase/Geometry.h"
 #include "EMCALBase/Geometry.h"
+#include "EMCALCalib/CellRecalibrator.h"
 #include <TGeoBBox.h>
 #include <tuple>
 #include <gsl/span>
@@ -644,6 +645,30 @@ void EveWorkflowHelper::drawEMC(GID gid)
   const gsl::span cellsForTrigger(cells.data() + trig.getFirstEntry(), trig.getNumberOfObjects());
 
   for (const auto& cell : cellsForTrigger) {
+    if (!(cell.getType() == o2::emcal::ChannelType_t::HIGH_GAIN || cell.getType() == o2::emcal::ChannelType_t::LOW_GAIN)) {
+      // Select FEE cells (excluding LEDMON or TRU cells)
+      continue;
+    }
+    auto cellTime = cell.getTimeStamp();
+    auto cellEnergy = cell.getEnergy();
+    if (mEMCALCalib) {
+      // try to recalibrate cell in case calibration is available (bad channel removal, energy calibration, time calibration)
+      auto calibCell = mEMCALCalib->getCalibratedCell(cell);
+      if (!calibCell) {
+        // cell was rejected by bad channel calib
+        continue;
+      }
+      cellTime = calibCell->getTimeStamp();
+      cellEnergy = calibCell->getEnergy();
+    }
+    if (std::abs(cellTime) > mEMCALMaxCellTime) {
+      // cell rejected by time cut (pileup or noise)
+      continue;
+    }
+    if (cellEnergy < mEMCALMinCellEnergy) {
+      // cell rejected by energy cut (rejection of soft cells)
+      continue;
+    }
     const auto id = cell.getTower();
     // Point3D with x,y,z coordinates of cell with absId inside SM
     const auto relPosCell = this->mEMCALGeom->RelPosCellInSModule(id);
@@ -657,7 +682,7 @@ void EveWorkflowHelper::drawEMC(GID gid)
     TVector3 vPos(gPos.data());
 
     auto vCalo = mEvent.addCalo({.time = static_cast<float>(time),
-                                 .energy = cell.getEnergy(),
+                                 .energy = cellEnergy,
                                  .phi = (float)vPos.Phi(),
                                  .eta = (float)vPos.Eta(),
                                  .PID = 0,

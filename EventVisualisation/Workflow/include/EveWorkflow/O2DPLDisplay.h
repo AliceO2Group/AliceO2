@@ -19,6 +19,8 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "EMCALCalib/CellRecalibrator.h"
+#include "EMCALWorkflow/CalibLoader.h"
 #include "EveWorkflow/DetectorData.h"
 #include "Framework/Task.h"
 #include <memory>
@@ -54,12 +56,13 @@ class O2DPLDisplaySpec : public o2::framework::Task
                    o2::dataformats::GlobalTrackID::mask_t clMask,
                    std::shared_ptr<o2::globaltracking::DataRequest> dataRequest,
                    std::shared_ptr<o2::base::GRPGeomRequest> gr,
+                   std::shared_ptr<o2::emcal::CalibLoader> emcCalibLoader,
                    const std::string& jsonPath, const std::string& ext,
                    std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks,
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
-                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers, float primaryVertexMinZ, float primaryVertexMaxZ, float primaryVertexMinX, float primaryVertexMaxX, float primaryVertexMinY, float primaryVertexMaxY)
-    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY), mRunType(o2::parameters::GRPECS::NONE)
+                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers, float primaryVertexMinZ, float primaryVertexMaxZ, float primaryVertexMinX, float primaryVertexMaxX, float primaryVertexMinY, float primaryVertexMaxY, float maxEMCALCellTime, float minEMCALCellEnergy)
+    : mDisableWrite(disableWrite), mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEMCALCalibLoader(emcCalibLoader), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mPrimaryVertexMinZ(primaryVertexMinZ), mPrimaryVertexMaxZ(primaryVertexMaxZ), mPrimaryVertexMinX(primaryVertexMinX), mPrimaryVertexMaxX(primaryVertexMaxX), mPrimaryVertexMinY(primaryVertexMinY), mPrimaryVertexMaxY(primaryVertexMaxY), mEMCALMaxCellTime(maxEMCALCellTime), mEMCALMinCellEnergy(minEMCALCellEnergy), mRunType(o2::parameters::GRPECS::NONE)
 
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
@@ -99,6 +102,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
   float mPrimaryVertexMaxX;                // maximum x position of the primary vertex
   float mPrimaryVertexMinY;                // minimum y position of the primary vertex
   float mPrimaryVertexMaxY;                // maximum y position of the primary vertex
+  float mEMCALMaxCellTime;                 // max abs EMCAL cell time (in ns)
+  float mEMCALMinCellEnergy;               // min EMCAL cell energy (in GeV)
   int mEventCounter = 0;
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
 
@@ -108,6 +113,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
   o2::parameters::GRPECS::RunType mRunType;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  std::shared_ptr<o2::emcal::CalibLoader> mEMCALCalibLoader;
+  std::unique_ptr<o2::emcal::CellRecalibrator> mEMCALCalibrator;
 };
 
 } // namespace o2::event_visualisation
