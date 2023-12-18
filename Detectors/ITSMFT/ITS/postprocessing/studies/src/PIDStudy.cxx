@@ -9,9 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file AvgClusSize.cxx
-/// \brief Study to calculate average cluster size per track in the ITS
-/// \author Tucker Hwang mhwang@cern.ch
+/// \file PIDStudy.cxx
+/// \brief Study to evaluate the PID performance of the ITS
+/// \author Francesco Mazzaschi, fmazzasc@cern.ch
 
 #include "ITSStudies/PIDStudy.h"
 #include "ITSStudies/ITSStudiesConfigParam.h"
