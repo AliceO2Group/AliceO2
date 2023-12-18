@@ -114,6 +114,7 @@ class PIDStudy : public Task
   bool mUseMC;
 
   PIDResponse mPIDresponse;
+  float mBBres;
   // Data
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
@@ -138,6 +139,7 @@ void PIDStudy::init(InitContext& ic)
   auto& params = o2::its::study::PIDStudyParamConfig::Instance();
   mOutName = params.outFileName;
   mPIDresponse.setBetheBlochParams(params.mBBpars);
+  mBBres = params.mBBres;
   LOGP(info, "PID size study initialized.");
 
   // prepare output tree
@@ -242,11 +244,11 @@ void PIDStudy::process(o2::globaltracking::RecoContainer& recoData)
     part.dEdx = TPCtrack.getdEdx().dEdxTotTPC;
     part.nClusTPC = TPCtrack.getNClusters();
     // 7% resolution for all particles
-    part.nSigmaDeu = computeNSigma(PID::Deuteron, TPCtrack, 0.07);
-    part.nSigmaP = computeNSigma(PID::Proton, TPCtrack, 0.07);
-    part.nSigmaK = computeNSigma(PID::Kaon, TPCtrack, 0.07);
-    part.nSigmaPi = computeNSigma(PID::Pion, TPCtrack, 0.07);
-    part.nSigmaE = computeNSigma(PID::Electron, TPCtrack, 0.07);
+    part.nSigmaDeu = computeNSigma(PID::Deuteron, TPCtrack, mBBres);
+    part.nSigmaP = computeNSigma(PID::Proton, TPCtrack, mBBres);
+    part.nSigmaK = computeNSigma(PID::Kaon, TPCtrack, mBBres);
+    part.nSigmaPi = computeNSigma(PID::Pion, TPCtrack, mBBres);
+    part.nSigmaE = computeNSigma(PID::Electron, TPCtrack, mBBres);
 
     if (mUseMC) {
       (*mDBGOut) << "outTree"

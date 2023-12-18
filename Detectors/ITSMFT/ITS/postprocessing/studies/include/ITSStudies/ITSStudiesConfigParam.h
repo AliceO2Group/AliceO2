@@ -78,6 +78,7 @@ struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyPa
   // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
   // to-do: grab from CCDB when available
   float mBBpars[5] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};
+  float mBBres = 0.07; // default: 7% resolution
   O2ParamDef(PIDStudyParamConfig, "PIDStudyParam");
 };
 
