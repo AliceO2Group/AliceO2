@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file PIDStudy.h
-/// \author Tucker Hwang mhwang@cern.ch
+/// \author Francesco Mazzaschi, fmazzasc@cern.ch
 
 #ifndef O2_PID_STUDY_H
 #define O2_PID_STUDY_H
