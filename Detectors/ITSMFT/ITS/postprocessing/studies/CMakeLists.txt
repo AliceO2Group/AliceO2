@@ -12,6 +12,7 @@
 o2_add_library(ITSPostprocessing
                SOURCES src/ImpactParameter.cxx
                        src/AvgClusSize.cxx
+                       src/PIDStudy.cxx
                        src/ITSStudiesConfigParam.cxx
                        src/TrackCheck.cxx
                        src/Helpers.cxx

@@ -9,7 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSStudies/ITSStudiesConfigParam.h"
+/// \file PIDStudy.h
+/// \author Francesco Mazzaschi, fmazzasc@cern.ch
+
+#ifndef O2_PID_STUDY_H
+#define O2_PID_STUDY_H
+
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include <Steer/MCKinematicsReader.h>
 
 namespace o2
 {
@@ -17,16 +25,12 @@ namespace its
 {
 namespace study
 {
-static auto& sAvgClusSizeParamITS = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
-static auto& sPIDStudyParamITS = o2::its::study::PIDStudyParamConfig::Instance();
-static auto& sCheckTracksParamsITS = o2::its::study::ITSCheckTracksParamConfig::Instance();
-static auto& sImpactParameterParamsITS = o2::its::study::ITSImpactParameterParamConfig::Instance();
 
-O2ParamImpl(o2::its::study::ITSAvgClusSizeParamConfig);
-O2ParamImpl(o2::its::study::PIDStudyParamConfig);
-O2ParamImpl(o2::its::study::ITSCheckTracksParamConfig);
-O2ParamImpl(o2::its::study::ITSImpactParameterParamConfig);
+using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
+o2::framework::DataProcessorSpec getPIDStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
 } // namespace study
 } // namespace its
 } // namespace o2
+
+#endif
