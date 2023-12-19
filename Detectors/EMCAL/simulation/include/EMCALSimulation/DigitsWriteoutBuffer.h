@@ -81,7 +81,7 @@ class DigitsWriteoutBuffer
   unsigned int getBufferSize() const { return mBufferSize; }
 
   /// forward the marker for every 100 ns
-  void forwardMarker(o2::InteractionTimeRecord record);
+  void forwardMarker(o2::InteractionTimeRecord record, bool trigger);
 
   /// Setters for the live time, busy time, pre-trigger time
   void setLiveTime(unsigned int liveTime) { mLiveTime = liveTime; }

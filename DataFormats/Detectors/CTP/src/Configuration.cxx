@@ -1044,6 +1044,18 @@ void CTPInputsConfiguration::printStream(std::ostream& stream) const
     input.printStream(stream);
   }
 }
+//
+// EMBA - software generated input for EMC - Min Bias Accepted
+//
+const std::vector<CTPInput> CTPInputsConfiguration::CTPInputsDefault =
+  {
+    CTPInput("MT0A", "FT0", 1), CTPInput("MT0C", "FT0", 2), CTPInput("MTVX", "FT0", 3), CTPInput("MTSC", "FT0", 4), CTPInput("MTCE", "FT0", 5),
+    CTPInput("MVBA", "FV0", 6), CTPInput("MVOR", "FV0", 7), CTPInput("MVIR", "FV0", 8), CTPInput("MVNC", "FV0", 9), CTPInput("MVCH", "FV0", 10),
+    CTPInput("0UCE", "FDD", 13), CTPInput("0USC", "FDD", 15), CTPInput("0UVX", "FDD", 16), CTPInput("0U0C", "FDD", 17), CTPInput("0U0A", "FDD", 18),
+    CTPInput("0DMC", "EMC", 14), CTPInput("0DJ1", "EMC", 41), CTPInput("0DG1", "EMC", 42), CTPInput("0DJ2", "EMC", 43), CTPInput("0DG2", "EMC", 44),
+    CTPInput("0EMC", "EMC", 21), CTPInput("0EJ1", "EMC", 37), CTPInput("0EG1", "EMC", 38), CTPInput("0EJ2", "EMC", 39), CTPInput("0EG2", "EMC", 40),
+    CTPInput("0PH0", "PHS", 22), CTPInput("1PHL", "PHS", 27), CTPInput("1PHH", "PHS", 28), CTPInput("1PHL", "PHM", 29),
+    CTPInput("1ZED", "ZDC", 25), CTPInput("1ZNC", "ZDC", 26), CTPInput("EMBA", "EMC", 48)};
 void CTPInputsConfiguration::initDefaultInputConfig()
 {
   defaultInputConfig.CTPInputs.push_back(CTPInput("MT0A", "FT0", 1));
