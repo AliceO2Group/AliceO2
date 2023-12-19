@@ -642,8 +642,8 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   auto& trPProp = fitterV0.getTrack(0, cand);
   auto& trNProp = fitterV0.getTrack(1, cand);
-  trPProp.getPID()==PID::Helium3 || trPProp.getPID()==PID::Alpha ? trPProp.setAbsCharge(2) : trPProp.setAbsCharge(1);
-  trNProp.getPID()==PID::Helium3 || trNProp.getPID()==PID::Alpha ? trNProp.setAbsCharge(2) : trNProp.setAbsCharge(1);
+  trPProp.setAbsCharge(trPProp.getPID().getCharge());
+  trNProp.setAbsCharge(trNProp.getPID().getCharge());
   std::array<float, 3> pP{}, pN{};
   trPProp.getPxPyPzGlo(pP);
   trNProp.getPxPyPzGlo(pN);
