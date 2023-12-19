@@ -201,9 +201,9 @@ void PIDStudy::process(o2::globaltracking::RecoContainer& recoData)
   for (unsigned int iTrack{0}; iTrack < ITSTPCtracks.size(); ++iTrack) {
 
     auto& ITSTPCtrack = ITSTPCtracks[iTrack];
-    if (ITSTPCtrack.getRefITS().getSource() == GTrackID::ITSAB) // excluding Afterburned tracks
+    if (ITSTPCtrack.getRefITS().getSource() == GTrackID::ITSAB) { // excluding Afterburned tracks
       continue;
-
+    }
     particle part;
     auto ITStrack = recoData.getITSTrack(ITSTPCtrack.getRefITS());
     auto TPCtrack = recoData.getTPCTrack(ITSTPCtrack.getRefTPC());
