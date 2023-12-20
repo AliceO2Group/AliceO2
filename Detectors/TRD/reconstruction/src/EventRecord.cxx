@@ -93,7 +93,6 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   LOG(debug) << "Preparing for sending and sending data took  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
   if (mConfigEventPresent) {
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "CONFEVT", 0}, mConfigEventData);
-    // pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "CONFEVT", 0, o2::framework::Lifetime::Condition}, mConfigEventData);
   }
 }
 

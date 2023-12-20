@@ -27,6 +27,7 @@
 #include "TRDBase/FeeParam.h"
 
 #include "DataFormatsTRD/TrapConfigEvent.h"
+#include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawData.h"
@@ -108,6 +109,7 @@ class TrapSimulator
 
   // Initialize MCM by the position parameters
   void init(TrapConfigEvent* trapconfig, int det, int rob, int mcm);
+  void init(TrapConfig* trapconfig, int det, int rob, int mcm);
 
   bool checkInitialized() const { return mInitialized; }
 
@@ -195,7 +197,7 @@ class TrapSimulator
 
   static bool readPackedConfig(TrapConfigEvent* cfg, int hc, unsigned int* data, int size);
 
-  // DMEM addresses
+  // DMEM addresses None of these are accesable from a trapconfig event.
   static constexpr int mgkDmemAddrLUTcor0 = 0xC02A;
   static constexpr int mgkDmemAddrLUTcor1 = 0xC028;
   static constexpr int mgkDmemAddrLUTnbins = 0xC029;
@@ -213,7 +215,9 @@ class TrapSimulator
   static constexpr int mgkDmemAddrDeflCutEnd = 0xc055;   // DMEM end address of deflection cut
   static constexpr int mgkDmemAddrTimeOffset = 0xc3fe;   // DMEM address of time offset t0
   static constexpr int mgkDmemAddrYcorr = 0xc3ff;        // DMEM address of y correction (mis-alignment)
-  static constexpr int mQ2Startbin = 3;                  // Start range of Q2, for now here. TODO pull from a revised TrapConfigEvent?
+                                                         // DMEM addresses None of these are accesable from a trapconfig event.
+
+  static constexpr int mQ2Startbin = 3;              // Start range of Q2, for now here. TODO pull from a revised TrapConfigEvent?
   static constexpr int mQ2Endbin = 5;                // End range of Q2, also pull from a revised trapconfig at some point.
 
   static const int mgkFormatIndex;   // index for format settings in stream
@@ -275,6 +279,9 @@ class TrapSimulator
   // Parameter classes
   FeeParam* mFeeParam{FeeParam::instance()}; // FEE parameters, a singleton
   TrapConfigEvent* mTrapConfigEvent{nullptr}; // TRAP config
+  TrapConfig* mTrapConfig{nullptr};           // TRAP config
+  bool mUseTrapConfigEvent{false};            // this is temporary until we fully migrate to TrapConfigEvent
+
   // wrappers for trap config events.
   uint32_t getTrapReg(uint32_t reg, uint32_t det, uint32_t rob, uint32_t mcm);
 
