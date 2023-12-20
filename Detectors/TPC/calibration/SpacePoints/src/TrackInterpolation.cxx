@@ -184,7 +184,7 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
           continue;
         }
         mSeeds.push_back(mRecoCont->getITSTrack(gidTable[GTrackID::ITS]).getParamOut());
-        mSeeds.back().setPID(mRecoCont->getTrackParam(vidOrig).getPID());
+        mSeeds.back().setPID(mRecoCont->getTrackParam(vidOrig).getPID(), true);
         mGIDs.push_back(vid);
         mGIDtables.push_back(gidTable);
         mTrackTimes.push_back(pv.getTimeStamp().getTimeStamp());
