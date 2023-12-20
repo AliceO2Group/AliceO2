@@ -1689,9 +1689,9 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
   // Save snapshots
   for (int i = 0; i < requestContexts.size(); i++) {
     auto& requestContext = requestContexts.at(i);
-    logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
-               fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
     if (!requestContext.dest.empty()) {
+      logReading(requestContext.path, requestContext.timestamp, &requestContext.headers,
+                 fmt::format("{}{}", requestContext.considerSnapshot ? "load to memory" : "retrieve", fromSnapshots.at(i) ? " from snapshot" : ""));
       if (requestContext.considerSnapshot && fromSnapshots.at(i) != 2) {
         saveSnapshot(requestContext);
       }

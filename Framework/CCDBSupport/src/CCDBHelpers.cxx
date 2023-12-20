@@ -210,7 +210,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second.etag;
-      checkValidity = int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF) >= chRate;
+      checkValidity = std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate;
     } else {
       checkValidity = true; // never skip check if the cache is empty
     }
@@ -335,7 +335,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
-          bool checkValidity = int(timingInfo.tfCounter - helper->lastCheckedTFCounterOrbReset) >= helper->queryPeriodGlo;
+          bool checkValidity = std::abs(int(timingInfo.tfCounter - helper->lastCheckedTFCounterOrbReset)) >= helper->queryPeriodGlo;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
             etag = url2uuid->second.etag;
