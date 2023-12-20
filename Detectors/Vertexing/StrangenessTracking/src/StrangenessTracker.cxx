@@ -121,7 +121,15 @@ void StrangenessTracker::processV0(int iv0, const V0& v0, const V0Index& v0Idx, 
   auto posTrack = v0.getProng(kV0DauPos);
   auto negTrack = v0.getProng(kV0DauNeg);
   auto alphaV0 = calcV0alpha(v0);
-  alphaV0 > 0 ? posTrack.setAbsCharge(2) : negTrack.setAbsCharge(2);
+  if (alphaV0 > 0) {
+    if (posTrack.getPID() != PID::Alpha) {
+      posTrack.setPID(PID::Helium3, true);
+    }
+  } else {
+    if (negTrack.getPID() != PID::Alpha) {
+      negTrack.setPID(PID::Helium3, true);
+    }
+  }
   V0 correctedV0; // recompute V0 for Hypertriton
   if (!recreateV0(posTrack, negTrack, correctedV0, iThread)) {
     return;

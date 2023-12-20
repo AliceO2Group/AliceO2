@@ -165,8 +165,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
       if (pidRemap >= 0) {
         pid = pidRemap;
       }
-      oTrack.setPID(pid);
-      oTrack.getParamOut().setPID(pid);
+      oTrack.setPID(pid, true);
+      oTrack.getParamOut().setPID(pid, true);
     }
 
     unsigned int nOutCl = tmpData[i].x;
