@@ -66,7 +66,7 @@ void CalibratorConfigEvents::init()
     LOGP(info, "Could not find a halfchamberstatusqc for this time, searching for a known time");
     // TODO ...
   }
-  setMaskedHalfChambers(halfChamberStatus->getBitSet());
+  //  setMaskedHalfChambers(halfChamberStatus->getBitSet());
 }
 
 void CalibratorConfigEvents::process(const gsl::span<MCMEvent>& MCMEvents)
