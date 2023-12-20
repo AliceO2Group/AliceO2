@@ -530,7 +530,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   if (detRefs[GTrackID::ITS].isIndexSet()) { // this is ITS track
     const auto& trkITS = mITSTracksArray[detRefs[GTrackID::ITS]];
     outerParam = trkITS.getParamOut();
-    outerParam.setPID(recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()).getPID());
+    outerParam.setPID(recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()).getPID(), true);
     nCl = trkITS.getNumberOfClusters();
     clEntry = trkITS.getFirstClusterEntry();
     chi2Out = trkITS.getChi2();

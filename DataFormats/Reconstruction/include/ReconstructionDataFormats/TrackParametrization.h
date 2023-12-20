@@ -160,7 +160,7 @@ class TrackParametrization
   GPUd() value_t getCharge2Pt() const;
   GPUd() int getAbsCharge() const;
   GPUd() PID getPID() const;
-  GPUd() void setPID(const PID pid);
+  GPUd() void setPID(const PID pid, bool passCharge = false);
 
   /// calculate cos^2 and cos of track direction in rphi-tracking
   GPUd() value_t getCsp2() const;
@@ -370,10 +370,12 @@ GPUdi() PID TrackParametrization<value_T>::getPID() const
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() void TrackParametrization<value_T>::setPID(const PID pid)
+GPUdi() void TrackParametrization<value_T>::setPID(const PID pid, bool passCharge)
 {
   mPID = pid;
-  //  setAbsCharge(pid.getCharge()); // If needed, user should change the charge via corr. setter
+  if (passCharge) {
+    setAbsCharge(pid.getCharge()); // If needed, user should change the charge via corr. setter
+  }
 }
 
 //____________________________________________________________
