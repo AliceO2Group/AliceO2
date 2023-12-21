@@ -184,6 +184,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
+  auto fatalLogger = [&](std::string s) { LOG(fatal) << s; };
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
 
   o2::its::FastMultEst multEst; // mult estimator
@@ -252,7 +253,11 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
 
     mITSTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
-    mITSTracker->clustersToTracksHybrid(logger, errorLogger);
+    if (!mSpecConfig.itsTrackingMode) {
+      mITSTracker->clustersToTracksHybrid(logger, errorLogger);
+    } else {
+      mITSTracker->clustersToTracksHybrid(logger, fatalLogger);
+    }
     size_t totTracks{mITSTimeFrame->getNumberOfTracks()}, totClusIDs{mITSTimeFrame->getNumberOfUsedClusters()};
     allTracks.reserve(totTracks);
     allClusIdx.reserve(totClusIDs);
@@ -319,6 +324,8 @@ void GPURecoWorkflowSpec::initFunctionITS(InitContext& ic)
     for (auto& param : trackParams) {
       param.ZBins = 64;
       param.PhiBins = 32;
+      param.CellsPerClusterLimit = 1.e3f;
+      param.TrackletsPerClusterLimit = 1.e3f;
     }
     trackParams[1].TrackletMinPt = 0.2f;
     trackParams[1].CellDeltaTanLambdaSigma *= 2.;
