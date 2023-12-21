@@ -148,7 +148,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
   if (matcher == ConcreteDataMatcher("TPC", "CorrMapRef", 0)) {
     setCorrMapRef((o2::gpu::TPCFastTransform*)obj);
     mCorrMapRef->rectifyAfterReadingFromFile();
-    if (getMeanLumiRefOverride() == 0 && mCorrMapRef->getLumi() > 0.) {
+    if (getMeanLumiRefOverride() == 0) {
       setMeanLumiRef(mCorrMapRef->getLumi());
     }
     LOGP(debug, "MeanLumiRefOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiRefOverride(), mCorrMapRef->getLumi(), getMeanLumiRef());
