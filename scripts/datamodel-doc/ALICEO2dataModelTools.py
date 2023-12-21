@@ -86,7 +86,7 @@ class define:
             else:
               expandedLine += line[ind:]
             continue
-        
+
           # substitute variables vars
           vars = "".join(line[ind:].split("(")[1:]).split(")")[0].split(",")
           if len(vars) != len(self.vars):
