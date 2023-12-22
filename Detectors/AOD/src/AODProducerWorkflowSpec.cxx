@@ -1557,8 +1557,8 @@ void AODProducerWorkflowDPL::addToCaloTable(TCaloHandler& caloHandler, TCaloCurs
     if (mUseMC) {
       // Common for PHOS and EMCAL
       //  loop over all MC Labels for the current cell
-      std::vector<int32_t> particleIds = {0};
-      std::vector<float> amplitudeFraction = {0.f};
+      std::vector<int32_t> particleIds;
+      std::vector<float> amplitudeFraction;
       if (!mEMCselectLeading) {
         particleIds.reserve(cellMClabels.size());
         amplitudeFraction.reserve(cellMClabels.size());
@@ -1585,6 +1585,7 @@ void AODProducerWorkflowDPL::addToCaloTable(TCaloHandler& caloHandler, TCaloCurs
               particleIds.emplace_back(iter->second);
             } else {
               particleIds.emplace_back(-1); // should the mc particle not be in mToStore make sure something (e.g. -1) is saved in particleIds so the length of particleIds is the same es amplitudeFraction!
+              amplitudeFraction.emplace_back(0.f);
               LOG(warn) << "CaloTable: Could not find track for mclabel (" << mclabel.getSourceID() << "," << mclabel.getEventID() << "," << mclabel.getTrackID() << ") in the AOD MC store";
               if (mMCKineReader) {
                 auto mctrack = mMCKineReader->getTrack(mclabel);
@@ -1599,6 +1600,10 @@ void AODProducerWorkflowDPL::addToCaloTable(TCaloHandler& caloHandler, TCaloCurs
       if (mEMCselectLeading) {
         amplitudeFraction.emplace_back(tmpMaxAmplitude);
         particleIds.emplace_back(tmpindex);
+      }
+      if (particleIds.size() == 0) {
+        particleIds.emplace_back(-1);
+        amplitudeFraction.emplace_back(0.f);
       }
       mcCaloCellLabelCursor(particleIds,
                             amplitudeFraction);
