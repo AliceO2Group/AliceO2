@@ -48,9 +48,6 @@ void DigitizerTRU::init()
 
   float tau = mSimParam->getTimeResponseTau();
   float N = mSimParam->getTimeResponsePower();
-  // /*maybe*/ float delay = std::fmod(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE, 1);
-  // /*maybe*/ mDelay = ((int)(std::floor(mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE)));
-  // /*maybe*/ mTimeWindowStart = ((unsigned int)(std::floor(mSimParam->getTimeBinOffset() / constants::EMCAL_TIMESAMPLE)));
 
   mSmearEnergy = mSimParam->doSmearEnergy();
   mSimulateTimeResponse = mSimParam->doSimulateTimeResponse();
@@ -61,28 +58,10 @@ void DigitizerTRU::init()
   mTriggerMap = new TriggerMappingV2(mGeometry);
   LZERO.setGeometry(mGeometry);
   LZERO.init();
-  // /*maybe*/ mAmplitudeInTimeBins.clear();
 
   // Parameters from data (@Martin Poghosyan)
   tau = 61.45 / 25.; // 61.45 ns, according to the fact that the
   N = 2.;
-
-  // // for each phase create a template distribution
-  // TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
-  // RawResponse.SetParameters(1., 0., tau, N, 0.);
-  // RawResponse.SetParameter(1,  425. / o2::emcal::constants::EMCAL_TIMESAMPLE);
-
-  // // only one phase
-  // std::vector<double> sf;
-  // double integralTimeResponse = 0.;
-  // for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
-  //   // sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
-  //   // integralTimeResponse += (RawResponse.Eval(j - mTimeWindowStart));
-  //   sf.push_back(RawResponse.Eval(j));
-  //   integralTimeResponse += (RawResponse.Eval(j));
-  //   LOG(info) << "DIG SIMONE init in DigitizerTRU: amplitudes[" << j << "] = " << sf[j];
-  // }
-  // mAmplitudeInTimeBins.push_back(sf);
 
   if (mSimulateTimeResponse) {
     // for each phase create a template distribution
@@ -98,7 +77,21 @@ void DigitizerTRU::init()
       for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
         mAmplitudeInTimeBins[phase][sample] = RawResponse.Eval(sample);
         if (phase == 0)
-          LOG(info) << "DIG SIMONE init in DigitizerTRU: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[phase][sample];
+          LOG(info) << "DIG TRU init in DigitizerTRU: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[phase][sample];
+      }
+
+      // Rescale the TRU time response function
+      // so that the sum of the samples at [5], [6], [7] and [8]
+      // is equal to 1
+      auto maxElement = std::max_element(mAmplitudeInTimeBins[phase].begin(), mAmplitudeInTimeBins[phase].end());
+      double rescalingFactor = *(maxElement - 1) + *maxElement + *(maxElement + 1) + *(maxElement + 2);
+      rescalingFactor /= (5. / 3.93);   // the slope seen in the single fastOr correlation
+      rescalingFactor /= (45. / 39.25); // the slope seen in the single fastOr correlation
+      // double rescalingFactor =  mAmplitudeInTimeBins[phase][5] + mAmplitudeInTimeBins[phase][6] + mAmplitudeInTimeBins[phase][7] + mAmplitudeInTimeBins[phase][8];
+      for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
+        mAmplitudeInTimeBins[phase][sample] /= rescalingFactor;
+        if (phase == 0)
+          LOG(info) << "DIG TRU init in DigitizerTRU after RESCALING: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[phase][sample];
       }
     }
   } else {
@@ -156,7 +149,6 @@ void DigitizerTRU::process(const gsl::span<const Digit> summableDigits)
   }
 }
 //_______________________________________________________________________
-// std::vector<Digit> DigitizerTRU::makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits)
 std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits)
 {
   std::unordered_map<int, Digit> sdigitsFastOR;
@@ -166,26 +158,11 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
     int fastorIndex = mTriggerMap->getAbsFastORIndexFromCellIndex(towerid);
     auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    // if(dig.getAmplitude() > 0.1) LOG(info) << "DIG SIMONE makeAnaloguesFastorSums in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
-    // LOG(info) << "DIG SIMONE makeAnaloguesFastorSums in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
     auto found = sdigitsFastOR.find(fastorIndex);
     if (found != sdigitsFastOR.end()) {
       // sum energy
-      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums: found->first, getAmplitude() = " << (found->second).getAmplitude() << ", getAmplitudeADC() = " << (found->second).getAmplitudeADC() << ", isTRU = " << (found->second).getTRU();
-      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:          dig, getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
-      // (found->second) += dig;
-      // auto& previousDig = found->second;
-      // previousDig += dig;
-      // // (found->second) += dig;
-      // Digit summedDigit = found->second;
-      // summedDigit += dig;
-      // (found->second) = summedDigit;
-
       Digit digitToSum((found->second).getTower(), dig.getAmplitude(), (found->second).getTimeStamp());
       (found->second) += digitToSum;
-      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:          sum, getAmplitude() = " << (found->second).getAmplitude() << ", getAmplitudeADC() = " << (found->second).getAmplitudeADC() << ", isTRU = " << (found->second).getTRU();
-      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:  previousDig, getAmplitude() = " << (previousDig).getAmplitude() << ", getAmplitudeADC() = " << (previousDig).getAmplitudeADC() << ", isTRU = " << (previousDig).getTRU();
-      // LOG(info) << "DIG SIMONE sum energy makeAnaloguesFastorSums:  summedDigit, getAmplitude() = " << (summedDigit).getAmplitude() << ", getAmplitudeADC() = " << (summedDigit).getAmplitudeADC() << ", isTRU = " << (summedDigit).getTRU();
     } else {
       // create new digit
       fastorIndicesFound.emplace_back(fastorIndex);
@@ -200,7 +177,6 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
     int fastorIndex = elem.first;
     auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    // LOG(info) << "DIG SIMONE makeAnaloguesFastorSums AFTER LOOP in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
   }
 
   // Setting them to be TRU digits
@@ -213,12 +189,8 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
     int fastorIndex = elem.first;
     auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
     auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    // LOG(info) << "DIG SIMONE makeAnaloguesFastorSums AFTER setTRU in DigitizerTRU: whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << fastorIndex << ", getAmplitude() = " << dig.getAmplitude() << ", getAmplitudeADC() = " << dig.getAmplitudeADC() << ", isTRU = " << dig.getTRU();
   }
 
-  // std::vector<Digit> outputFastorSDigits;
-  // std::for_each(fastorIndicesFound.begin(), fastorIndicesFound.end(), [&outputFastorSDigits, &sdigitsFastOR](int fastorIndex) { outputFastorSDigits.push_back(sdigitsFastOR[fastorIndex]); });
-  // return outputFastorSDigits;
   std::vector<std::tuple<int, Digit>> outputFastorSDigits;
   std::for_each(fastorIndicesFound.begin(), fastorIndicesFound.end(), [&outputFastorSDigits, &sdigitsFastOR](int fastorIndex) { outputFastorSDigits.emplace_back(fastorIndex, sdigitsFastOR[fastorIndex]); });
   return outputFastorSDigits;
@@ -299,18 +271,6 @@ double DigitizerTRU::smearTime(double time, double energy)
 //_______________________________________________________________________
 void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
 {
-  // auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
-  // TriggerMappingV2  mTriggerMap(geom);
-  // auto mTimeBins = mDigits.getTimeBins();
-  // for (auto& digitsTimeBin : mTimeBins) {
-  //   for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
-  //     // Digit loop
-  //     // The peak finding algorithm is run after getting out of the loop!
-  //     auto whichTRU2 = std::get<0>(mTriggerMap.getTRUFromAbsFastORIndex(fastor));
-  //     auto whichFastOrTRU2 = std::get<1>(mTriggerMap.getTRUFromAbsFastORIndex(fastor));
-  //     LOG(info) << "DIG SIMONE setEventTime in DigitizerTRU: in loop whichFastOr = " << whichFastOrTRU2 << ", whichTRU = " << whichTRU2 << ", AbsFastOr = " << fastor;
-  //   }
-  // }
 
   // For the digitisation logic, at this time you would do:
   // mDigits.forwardMarker(record);
@@ -395,21 +355,6 @@ void DigitizerTRU::setPatches()
   FullCside.init();
   ThirdAside.init();
   ThirdCside.init();
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[0]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[1]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[2]);
-
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[0]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[1]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[2]);
-
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[0]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[1]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[2]);
-
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[0]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[1]);
-  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[2]);
 
   for (int j = 0; j < 3; j++)
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 0,1,2    EMCAL A-side, Full

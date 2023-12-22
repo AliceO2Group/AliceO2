@@ -44,6 +44,12 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t getTimeResponseThreshold() const { return mTimeResponseThreshold; }
   Int_t getBCPhaseSwap() const { return mSwapPhase; }
 
+  // Parameters used in TRU Digitizer
+  Float_t getPinNoiseTRU() const { return mPinNoiseTRU; }
+
+  // Parameters used in LZERO
+  Float_t getThresholdLZERO() const { return mThresholdLZERO; }
+
   // Parameters used in SDigitizer
   Float_t getA() const { return mA; }
   Float_t getB() const { return mB; }
@@ -78,6 +84,12 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t mTimeResponsePower{2};         ///< Raw time response function power parameter
   Float_t mTimeResponseThreshold{0.001}; ///< Raw time response function energy threshold
   Int_t mSwapPhase{0};                   ///< BC phase swap similar to data
+
+  // TRU Digitizer
+  Float_t mPinNoiseTRU{0.04}; ///< Electronics noise in EMC, TRU, normalised by fastOr
+
+  // LZERO peak finding
+  Float_t mThresholdLZERO{132.}; ///< ADC threshold for peak finding in the LZEROElectronics
 
   // SDigitizer
   Float_t mA{0.};                 ///< Pedestal parameter
