@@ -19,7 +19,7 @@ namespace o2
 namespace tpc
 {
 
-o2::framework::DataProcessorSpec getTPCScalerSpec();
+o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableWeights);
 
 } // end namespace tpc
 } // end namespace o2

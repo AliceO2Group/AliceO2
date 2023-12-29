@@ -34,7 +34,7 @@ namespace tpc
 class TPCScalerSpec : public Task
 {
  public:
-  TPCScalerSpec(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req){};
+  TPCScalerSpec(std::shared_ptr<o2::base::GRPGeomRequest> req, bool enableWeights) : mCCDBRequest(req), mEnableWeights(enableWeights){};
 
   void init(framework::InitContext& ic) final
   {
@@ -47,6 +47,12 @@ class TPCScalerSpec : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     if (pc.inputs().isValid("tpcscaler")) {
       pc.inputs().get<TTree*>("tpcscaler");
+    }
+
+    if (mEnableWeights) {
+      if (pc.inputs().isValid("tpcscalerw")) {
+        pc.inputs().get<TPCScalerWeights*>("tpcscalerw");
+      }
     }
 
     if (pc.services().get<o2::framework::TimingInfo>().runNumber != mTPCScaler.getRun()) {
@@ -73,19 +79,35 @@ class TPCScalerSpec : public Task
         LOGP(info, "Setting ion drift time to: {}", mIonDriftTimeMS);
         mTPCScaler.setIonDriftTimeMS(mIonDriftTimeMS);
       }
+      if (mScalerWeights.isValid()) {
+        LOGP(info, "Setting TPC scaler weights");
+        mTPCScaler.setScalerWeights(mScalerWeights);
+        mTPCScaler.useWeights(true);
+      }
+    }
+    if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCSCALERWCCDB", 0)) {
+      LOGP(info, "Updating TPC scaler weights");
+      mScalerWeights = *(TPCScalerWeights*)obj;
+      mTPCScaler.setScalerWeights(mScalerWeights);
+      mTPCScaler.useWeights(true);
     }
   }
 
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< info for CCDB request
+  const bool mEnableWeights{false};                       ///< use weights for TPC scalers
+  TPCScalerWeights mScalerWeights{};                      ///< scaler weights
   float mIonDriftTimeMS{-1};                              ///< ion drift time
   TPCScaler mTPCScaler;                                   ///< tpc scaler
 };
 
-o2::framework::DataProcessorSpec getTPCScalerSpec()
+o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableWeights)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tpcscaler", o2::header::gDataOriginTPC, "TPCSCALERCCDB", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalScaler), {}, 1)); // time-dependent
+  if (enableWeights) {
+    inputs.emplace_back("tpcscalerw", o2::header::gDataOriginTPC, "TPCSCALERWCCDB", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalScalerWeights), {}, 0)); // non time-dependent
+  }
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 false,                          // GRPECS=true for nHBF per TF
@@ -102,7 +124,7 @@ o2::framework::DataProcessorSpec getTPCScalerSpec()
     "tpc-scaler",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest, enableWeights)},
     Options{
       {"ion-drift-time", VariantType::Float, -1.f, {"Overwrite ion drift time if a value >0 is provided"}}}};
 }

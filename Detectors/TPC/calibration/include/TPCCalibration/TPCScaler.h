@@ -27,6 +27,17 @@ namespace o2::tpc
 Class for storing the scalers which are used to calculate an estimate for the mean space-charge density for the last ion drift time
 */
 
+struct TPCScalerWeights {
+  float getWeight(float deltaTime) const;
+  bool isValid() const { return (mSamplingTimeMS > 0 && !mWeights.empty()); }
+  float getDurationMS() const { return mSamplingTimeMS * mWeights.size(); }
+  float mSamplingTimeMS = -1;  ///< sampling of the stored weights
+  float mFirstTimeStampMS = 0; ///< first timestamp
+  std::vector<float> mWeights; ///< stored weights
+
+  ClassDefNV(TPCScalerWeights, 1);
+};
+
 class TPCScaler
 {
  public:
@@ -87,6 +98,9 @@ class TPCScaler
   /// \return return first time in ms
   double getStartTimeStampMS() const { return mTimeStampMS; }
 
+  /// \return return end time in ms
+  double getEndTimeStampMS(o2::tpc::Side side) const { return mTimeStampMS + getDurationMS(side); }
+
   /// \return returns integration time for each scaler value
   float getIntegrationTimeMS() const { return mIntegrationTimeMS; }
 
@@ -97,16 +111,36 @@ class TPCScaler
   /// \param timestamp timestamp for which the last values are used to calculate the mean
   float getMeanScaler(double timestamp, o2::tpc::Side side) const;
 
- private:
-  float mIonDriftTimeMS{200};    ///< ion drift time in ms
-  int mRun{};                    ///< run for which this object is valid
-  unsigned int mFirstTFOrbit{};  ///< first TF orbit of the stored scalers
-  double mTimeStampMS{};         ///< time stamp of the first stored values
-  float mIntegrationTimeMS{1.};  ///< integration time for each stored value in ms
-  std::vector<float> mScalerA{}; ///< TPC scaler for A-side
-  std::vector<float> mScalerC{}; ///< TPC scaler for C-side
+  /// \return returns duration in ms for which the scalers are defined
+  float getDurationMS(o2::tpc::Side side) const { return mIntegrationTimeMS * getNValues(side); }
 
-  ClassDefNV(TPCScaler, 1);
+  /// setting the weights for the scalers
+  void setScalerWeights(const TPCScalerWeights& weights) { mScalerWeights = weights; }
+
+  /// \return returns stored weights for TPC scalers
+  const auto& getScalerWeights() const { return mScalerWeights; }
+
+  /// enable usage of weights
+  void useWeights(bool useWeights) { mUseWeights = useWeights; }
+
+  /// return if weights are used
+  bool weightsUsed() const { return mUseWeights; }
+
+ private:
+  float mIonDriftTimeMS{200};        ///< ion drift time in ms
+  int mRun{};                        ///< run for which this object is valid
+  unsigned int mFirstTFOrbit{};      ///< first TF orbit of the stored scalers
+  double mTimeStampMS{};             ///< time stamp of the first stored values
+  float mIntegrationTimeMS{1.};      ///< integration time for each stored value in ms
+  std::vector<float> mScalerA{};     ///< TPC scaler for A-side
+  std::vector<float> mScalerC{};     ///< TPC scaler for C-side
+  TPCScalerWeights mScalerWeights{}; ///< weights for the scalers for A-side
+  bool mUseWeights{false};           ///< use weights when calculating the mean scaler
+
+  // get index to data for given timestamp
+  int getDataIdx(double timestamp) const { return (timestamp - mTimeStampMS) / mIntegrationTimeMS + 0.5; }
+
+  ClassDefNV(TPCScaler, 2);
 };
 
 } // namespace o2::tpc

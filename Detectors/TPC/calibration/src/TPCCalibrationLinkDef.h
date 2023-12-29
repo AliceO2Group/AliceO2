@@ -113,4 +113,5 @@
 
 #pragma link C++ class o2::tpc::CalculatedEdx + ;
 #pragma link C++ class o2::tpc::TPCScaler + ;
+#pragma link C++ struct o2::tpc::TPCScalerWeights + ;
 #endif
