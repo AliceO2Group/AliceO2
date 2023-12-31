@@ -646,6 +646,12 @@ void spawnDevice(uv_loop_t* loop,
   if (id == 0) {
     // We allow being debugged and do not terminate on SIGTRAP
     signal(SIGTRAP, SIG_IGN);
+    // We immediately ignore SIGUSR1 and SIGUSR2 so that we do not
+    // get killed by the parent trying to force stepping children.
+    // We will re-enable them later on, when it is actually safe to
+    // do so.
+    signal(SIGUSR1, SIG_IGN);
+    signal(SIGUSR2, SIG_IGN);
 
     // This is the child.
     // For stdout / stderr, we close the read part of the pipe, the
