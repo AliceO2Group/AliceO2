@@ -449,7 +449,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
   // Do not propagate tracks outside the ALICE detector
   if (gpu::CAMath::Abs(dx) > 1e5 || gpu::CAMath::Abs(this->getY()) > 1e5 || gpu::CAMath::Abs(this->getZ()) > 1e5) {
-    LOGP(warning, "Anomalous track, target X:{:f}", xk);
+    LOG(warning) << "Anomalous track, target X:" << xk;
     //    print();
     return false;
   }
