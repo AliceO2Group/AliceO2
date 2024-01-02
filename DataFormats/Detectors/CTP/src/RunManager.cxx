@@ -160,6 +160,11 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
 {
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
+  if (topic.find("clear") != std::string::npos) {
+    mRunsLoaded.clear();
+    LOG(info) << "Loaded runs cleared.";
+    return 0;
+  }
   if (topic.find("ctpconfig") != std::string::npos) {
     LOG(info) << "ctpconfig received";
     loadRun(message);
@@ -189,11 +194,11 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     tokens = o2::utils::Str::tokenize(message, ' ');
   }
   if (tokens.size() != (CTPRunScalers::NCOUNTERS + 1)) {
-    if (tokens.size() == (CTPRunScalers::NCOUNTERS)) {
+    if (tokens.size() == (CTPRunScalers::NCOUNTERSv2 + 1)) {
       mNew = 0;
-      LOG(warning) << "v1 scaler size, using external orbit";
+      LOG(warning) << "v2 scaler size";
     } else {
-      LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1;
+      LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1 << " or " << CTPRunScalers::NCOUNTERSv2 + 1;
       return 1;
     }
   }

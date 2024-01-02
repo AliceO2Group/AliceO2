@@ -115,7 +115,8 @@ class CTPRunScalers
   // v1
   // static constexpr uint32_t NCOUNTERS = 1070;
   // v2 - orbitid added at the end
-  static constexpr uint32_t NCOUNTERS = 1071;
+  static constexpr uint32_t NCOUNTERSv2 = 1071;
+  static constexpr uint32_t NCOUNTERS = 1085;
   static std::vector<std::string> scalerNames;
 
   void printLMBRateVsT() const; // prints LMB interaction rate vs time for debugging
