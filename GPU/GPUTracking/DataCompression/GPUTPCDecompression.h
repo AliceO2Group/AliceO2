@@ -50,15 +50,21 @@ class GPUTPCDecompression : public GPUProcessor
   void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersInputGPU(void* mem);
-  void* SetPointersTmpNativeBuffers(void* mem);
+  void* SetPointersTmpNativeBuffersGPU(void* mem);
+  void* SetPointersTmpNativeBuffersOutput(void* mem);
+  void* SetPointersTmpNativeBuffersInput(void* mem);
+
 #endif
 
  protected:
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
   o2::tpc::CompressedClusters mInputGPU;
+
   unsigned int mMaxNativeClustersPerBuffer;
   unsigned int* mNativeClustersIndex;
+  unsigned int* mUnattachedClustersOffsets;
   o2::tpc::ClusterNative* mTmpNativeClusters;
+  o2::tpc::ClusterNativeAccess* mClusterNativeAccess;
 /*  class ConcurrentClusterNativeBuffer{
     size_t mIndex;
     size_t mCapacity = 10;
@@ -73,7 +79,8 @@ class GPUTPCDecompression : public GPUProcessor
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
 
   short mMemoryResInputGPU = -1;
-
+  short mResourceTmpIndexes = -1;
+  short mResourceTmpClustersOffsets = -1;
 
 };
 } // namespace GPUCA_NAMESPACE::gpu
