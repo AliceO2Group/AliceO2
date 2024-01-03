@@ -484,21 +484,21 @@ bool TrackParCovFwd::getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const
   cv[3] = 0;
   cv[4] = 0;
   cv[5] = 0;
-  cv[6] = -mCovariances(0, 2) * py - mCovariances(0, 4)*px*pt*q;
-  cv[7] = -mCovariances(1, 2) * py - mCovariances(1, 4)*px*pt*q;
+  cv[6] = -mCovariances(0, 2) * py - mCovariances(0, 4) * px * pt * q;
+  cv[7] = -mCovariances(1, 2) * py - mCovariances(1, 4) * px * pt * q;
   cv[8] = 0;
-  cv[9] = 2 * mCovariances(2, 4)*px*py*q*pt  + mCovariances(2, 2)*py*py + mCovariances(4, 4)*px*px*pt*pt;
-  cv[10] = mCovariances(0, 2) * px - mCovariances(0, 4) *py*pt*q;
-  cv[11] = mCovariances(1, 2) * px - mCovariances(1, 4) *py*pt*q;
+  cv[9] = 2 * mCovariances(2, 4) * px * py * q * pt + mCovariances(2, 2) * py * py + mCovariances(4, 4) * px * px * pt * pt;
+  cv[10] = mCovariances(0, 2) * px - mCovariances(0, 4) * py * pt * q;
+  cv[11] = mCovariances(1, 2) * px - mCovariances(1, 4) * py * pt * q;
   cv[12] = 0;
-  cv[13] = mCovariances(2, 4)*(py*py-px*px)*q*pt - mCovariances(2, 2)*px*py + mCovariances(4, 4)*px*py*pt*pt;
-  cv[14] = -2 * mCovariances(2, 4)*px*py*q*pt + mCovariances(2, 2)*px*px + mCovariances(4, 4)*py*py*pt*pt;
-  cv[15] = mCovariances(0, 3) * pt - mCovariances(0, 4) *pt*pz*q;
-  cv[16] = mCovariances(1, 3) * pt - mCovariances(1, 4) *pt*pz*q;
+  cv[13] = mCovariances(2, 4) * (py * py - px * px) * q * pt - mCovariances(2, 2) * px * py + mCovariances(4, 4) * px * py * pt * pt;
+  cv[14] = -2 * mCovariances(2, 4) * px * py * q * pt + mCovariances(2, 2) * px * px + mCovariances(4, 4) * py * py * pt * pt;
+  cv[15] = mCovariances(0, 3) * pt - mCovariances(0, 4) * pt * pz * q;
+  cv[16] = mCovariances(1, 3) * pt - mCovariances(1, 4) * pt * pz * q;
   cv[17] = 0;
-  cv[18] = -mCovariances(2, 3)*py*pt - mCovariances(3, 4)*px*q*pt*pt + mCovariances(2, 4)*py*pz*q*pt + mCovariances(4, 4)*px*pz*pt*pt;
-  cv[19] = mCovariances(2, 3)*px*pt - mCovariances(3, 4)*q*pt*pt*py - mCovariances(2, 4)*px*pz*q*pt + mCovariances(4, 4)*py*pz*pt*pt;
-  cv[20] = -2 * mCovariances(3, 4)*pz*q*pt*pt + mCovariances(3, 3)*pt*pt + mCovariances(4, 4)*pz*pz*pt*pt;
+  cv[18] = -mCovariances(2, 3) * py * pt - mCovariances(3, 4) * px * q * pt * pt + mCovariances(2, 4) * py * pz * q * pt + mCovariances(4, 4) * px * pz * pt * pt;
+  cv[19] = mCovariances(2, 3) * px * pt - mCovariances(3, 4) * q * pt * pt * py - mCovariances(2, 4) * px * pz * q * pt + mCovariances(4, 4) * py * pz * pt * pt;
+  cv[20] = -2 * mCovariances(3, 4) * pz * q * pt * pt + mCovariances(3, 3) * pt * pt + mCovariances(4, 4) * pz * pz * pt * pt;
 
   return true;
 }
