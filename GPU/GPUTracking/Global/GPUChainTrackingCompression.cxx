@@ -288,25 +288,33 @@ int GPUChainTracking::RunTPCDecompression()
     }
   }
   LOGP(info,"decoded = {}",decodedAttachedClusters);
+  TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression,Decompressor.mResourceTmpClustersOffsets,0);
   if (decodedAttachedClusters != cmprClsHost.nAttachedClusters) {
          GPUWarning("My version: %u / %u clusters failed track model decoding (%f %%)", cmprClsHost.nAttachedClusters - decodedAttachedClusters, cmprClsHost.nAttachedClusters, 100.f * (float)(cmprClsHost.nAttachedClusters - decodedAttachedClusters) / (float)cmprClsHost.nAttachedClusters);
   } else {
          GPUInfo("My version: all attached clusters have been decoded");
   }
 
+  Decompressor.mNativeClustersBuffer = mInputsHost->mPclusterNativeOutput;
+  DecompressorShadow.mNativeClustersBuffer = mInputsShadow->mPclusterNativeBuffer;
   mClusterNativeAccess->clustersLinear = mInputsShadow->mPclusterNativeBuffer;
-  mClusterNativeAccess->setOffsetPtrs();/*
+  mClusterNativeAccess->setOffsetPtrs();
   mIOPtrs.clustersNative = mClusterNativeAccess.get();
   *mInputsHost->mPclusterNativeAccess = *mIOPtrs.clustersNative;
   processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
   WriteToConstantMemory(RecoStep::TPCDecompression, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
+  WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), 0);
   TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, 0);
   mClusterNativeAccess->clustersLinear = mInputsHost->mPclusterNativeOutput;
   mClusterNativeAccess->setOffsetPtrs();
   *mInputsHost->mPclusterNativeAccess = *mIOPtrs.clustersNative;
   processors()->ioPtrs.clustersNative = mInputsHost->mPclusterNativeAccess;
-*/
 
+  runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step1unattached>(GetGridAutoStep(0, RecoStep::TPCDecompression), krnlRunRangeNone, krnlEventNone);
+
+  ClusterNative* tmpBuffer = new ClusterNative[mInputsHost->mNClusterNative];
+  //GPUMemCpy(RecoStep::TPCDecompression,mInputsHost->mPclusterNativeOutput,mInputsShadow->mPclusterNativeBuffer, sizeof(mInputsShadow->mPclusterNativeBuffer[0]) * mIOPtrs.clustersNative->nClustersTotal,0,false);
+  GPUMemCpy(RecoStep::TPCDecompression,tmpBuffer,mInputsShadow->mPclusterNativeBuffer, sizeof(mInputsShadow->mPclusterNativeBuffer[0]) * mIOPtrs.clustersNative->nClustersTotal,0,false);
 
   TPCClusterDecompressor decomp;
   auto allocator = [this](size_t size) {
@@ -336,6 +344,10 @@ int GPUChainTracking::RunTPCDecompression()
     TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, 0);
     SynchronizeStream(0);
   }
+
+  LOGP(info,"==== My version/cpu version: {}/{}", tmpBuffer[0].qTot,mInputsHost->mPclusterNativeOutput[0].qTot);
+
+  delete[] tmpBuffer;
   // mRec->PopNonPersistentMemory(RecoStep::TPCCompression, qStr2Tag("TPCDCMPR"));
 //#endif
   return 0;
