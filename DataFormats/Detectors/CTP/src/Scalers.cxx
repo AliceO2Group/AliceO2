@@ -396,9 +396,9 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
   //
   int64_t difThres = 2;
   int64_t dif = (scal1.lmAfter - scal0.lmAfter) - (scal1.lmBefore - scal0.lmBefore);
-  if ( dif <= difThres) {
+  if (dif <= difThres) {
     eCnts.lmBlmAd1++;
-  } else if ( dif > difThres) {
+  } else if (dif > difThres) {
     eCnts.lmBlmA++;
     if (eCnts.lmBlmA < eCnts.MAXPRINT) {
       LOG(error) << "LMA > LMB error:" << dif;
@@ -406,7 +406,7 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     ret++;
   }
   dif = (scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before);
-  if ( dif <= difThres) {
+  if (dif <= difThres) {
     eCnts.l0Bl0Ad1++;
   } else if (dif > difThres) {
     eCnts.l0Bl0A++;
@@ -416,7 +416,7 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     ret++;
   }
   dif = (scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before);
-  if ( dif <= difThres) {
+  if (dif <= difThres) {
     eCnts.l1Bl1Ad1++;
   } else if (dif > difThres) {
     eCnts.l1Bl1A++;
@@ -430,9 +430,9 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     // ret++;
   }
   dif = (scal1.l1Before - scal0.l1Before) - (scal1.l0After - scal0.l0After);
-  if ( dif <= difThres) {
+  if (dif <= difThres) {
     eCnts.l0Al1Bd1++;
-  } else if( dif > difThres) {
+  } else if (dif > difThres) {
     eCnts.l0Al1B++;
     if (eCnts.l0Al1B < eCnts.MAXPRINT) {
       LOG(error) << "L1B > L0A Before error:" << dif;
@@ -498,8 +498,8 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
 int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const
 {
   static int iPrint = 0;
-  if(mRunNumber < 545367) {
-    if(iPrint < 1) {
+  if (mRunNumber < 545367) {
+    if (iPrint < 1) {
       LOG(info) << "CTP Input scalers not available for run:" << mRunNumber;
       iPrint++;
     }

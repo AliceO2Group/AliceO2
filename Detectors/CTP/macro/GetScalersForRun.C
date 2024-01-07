@@ -88,7 +88,7 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
     }
   }
   std::vector<CTPScalerRecordO2> recs = ctpscalers->getScalerRecordO2();
-  if(recs[0].scalersInps.size() == 48) {
+  if (recs[0].scalersInps.size() == 48) {
     std::cout << "ZNC:";
     int inp = 26;
     double_t nbc = bcs.size();
