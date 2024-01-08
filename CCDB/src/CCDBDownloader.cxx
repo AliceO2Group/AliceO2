@@ -529,6 +529,10 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
             (*requestData->headers)["Error"] = "An error occurred during retrieval";
           }
           LOGP(alarm, "Curl request to {}, response code: {}", url, httpCode);
+        } else {
+          if (requestData->headers && requestData->headers->find("fileSize") == requestData->headers->end()) {
+            (*requestData->headers)["fileSize"] = fmt::format("{}", requestData->hoPair.object ? requestData->hoPair.object->size() : 0);
+          }
         }
         --(*performData->requestsLeft);
         delete requestData;

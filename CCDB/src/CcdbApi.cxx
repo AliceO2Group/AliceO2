@@ -824,6 +824,9 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
     if ((isSnapshotMode() || mPreferSnapshotCache) && headers->find("ETag") == headers->end()) { // generate dummy ETag to profit from the caching
       (*headers)["ETag"] = filename;
     }
+    if (headers->find("fileSize") == headers->end()) {
+      (*headers)["fileSize"] = fmt::format("{}", f.GetEND());
+    }
   }
   return extractFromTFile(f, tcl);
 }
@@ -849,7 +852,7 @@ bool CcdbApi::initTGrid() const
   return mAlienInstance != nullptr;
 }
 
-void* CcdbApi::downloadFilesystemContent(std::string const& url, std::type_info const& tinfo) const
+void* CcdbApi::downloadFilesystemContent(std::string const& url, std::type_info const& tinfo, std::map<string, string>* headers) const
 {
   if ((url.find("alien:/", 0) != std::string::npos) && !initTGrid()) {
     return nullptr;
@@ -859,6 +862,9 @@ void* CcdbApi::downloadFilesystemContent(std::string const& url, std::type_info 
   if (memfile) {
     auto cl = tinfo2TClass(tinfo);
     auto content = extractFromTFile(*memfile, cl);
+    if (headers && headers->find("fileSize") == headers->end()) {
+      (*headers)["fileSize"] = fmt::format("{}", memfile->GetEND());
+    }
     delete memfile;
     return content;
   }
@@ -894,7 +900,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
 
   // let's see first of all if the url is something specific that curl cannot handle
   if ((url.find("alien:/", 0) != std::string::npos) || (url.find("file:/", 0) != std::string::npos)) {
-    return downloadFilesystemContent(url, tinfo);
+    return downloadFilesystemContent(url, tinfo, headers);
   }
   // add other final cases here
   // example root://
@@ -925,6 +931,9 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
     if (200 <= response_code && response_code < 300) {
       // good response and the content is directly provided and should have been dumped into "chunk"
       content = interpretAsTMemFileAndExtract(chunk.memory, chunk.size, tinfo);
+      if (headers && headers->find("fileSize") == headers->end()) {
+        (*headers)["fileSize"] = fmt::format("{}", chunk.size);
+      }
     } else if (response_code == 304) {
       // this means the object exist but I am not serving
       // it since it's already in your possession
@@ -1764,6 +1773,9 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     }
     if ((isSnapshotMode() || mPreferSnapshotCache) && localHeaders->find("ETag") == localHeaders->end()) { // generate dummy ETag to profit from the caching
       (*localHeaders)["ETag"] = path;
+    }
+    if (localHeaders->find("fileSize") == localHeaders->end()) {
+      (*localHeaders)["fileSize"] = fmt::format("{}", memFile.GetEND());
     }
   }
   return;
