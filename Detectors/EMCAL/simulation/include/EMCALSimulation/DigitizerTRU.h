@@ -115,9 +115,9 @@ class DigitizerTRU
 
   std::vector<Digit> mTempDigitVector; ///< temporary digit storage
   // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
-  o2::emcal::DigitsWriteoutBufferTRU mDigits; ///< used to sort digits by tower
-  o2::emcal::LZEROElectronics LZERO;          ///< to start the trigger
-  std::vector<TRUElectronics> patchesFromAllTRUs;    ///< patches from all TRUs
+  o2::emcal::DigitsWriteoutBufferTRU mDigits;     ///< used to sort digits by tower
+  o2::emcal::LZEROElectronics LZERO;              ///< to start the trigger
+  std::vector<TRUElectronics> patchesFromAllTRUs; ///< patches from all TRUs
 
   TRandom3* mRandomGenerator = nullptr; ///< random number generator
   std::array<double, constants::EMCAL_MAXTIMEBINS>
