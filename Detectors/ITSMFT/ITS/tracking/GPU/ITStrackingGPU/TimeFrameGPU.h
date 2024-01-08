@@ -190,7 +190,7 @@ class TimeFrameGPU : public TimeFrame
   void initialiseHybrid(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceSAFitting();
-  void loadTrackingFrameInfoDevice();
+  void loadTrackingFrameInfoDevice(const int);
   void loadUnsortedClustersDevice();
   void loadClustersDevice();
   void loadTrackletsDevice();
@@ -199,7 +199,7 @@ class TimeFrameGPU : public TimeFrame
   void loadTrackSeedsChi2Device();
   void loadRoadsDevice();
   void loadTrackSeedsDevice(std::vector<CellSeed>&);
-  void createTrackITSExtDevice(const std::vector<CellSeed>& seeds);
+  void createTrackITSExtDevice(const std::vector<CellSeed>&);
   void createTrackITSExtDevice(); // deprecated
   void downloadTrackITSExtDevice();
   void initDeviceChunks(const int, const int);

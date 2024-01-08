@@ -870,9 +870,7 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
   mTimeFrameGPU->initialiseHybrid(iteration, mTrkParams[iteration], nLayers);
-  mTimeFrameGPU->loadClustersDevice();
-  mTimeFrameGPU->loadUnsortedClustersDevice();
-  mTimeFrameGPU->loadTrackingFrameInfoDevice();
+  mTimeFrameGPU->loadTrackingFrameInfoDevice(iteration);
 }
 
 template <int nLayers>
@@ -1165,14 +1163,12 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::computeTrackletsHybrid(const int iteration)
 {
   TrackerTraits::computeLayerTracklets(iteration);
-  mTimeFrameGPU->loadTrackletsDevice();
 }
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::computeCellsHybrid(const int iteration)
 {
   TrackerTraits::computeLayerCells(iteration);
-  mTimeFrameGPU->loadCellsDevice();
 };
 
 template <int nLayers>
@@ -1202,6 +1198,10 @@ void TrackerTraitsGPU<nLayers>::findRoadsHybrid(const int iteration)
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
       trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
+    }
+    if (!trackSeeds.size()) {
+      LOGP(info, "No track seeds found, skipping track finding");
+      continue;
     }
     mTimeFrameGPU->createTrackITSExtDevice(trackSeeds);
     mTimeFrameGPU->loadTrackSeedsDevice(trackSeeds);
@@ -1265,12 +1265,15 @@ void TrackerTraitsGPU<nLayers>::findRoadsHybrid(const int iteration)
       mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
     }
   }
+  if (iteration == 2) {
+    mTimeFrameGPU->unregisterHostMemory(0); // FIXME this needs to work also with sync
+  }
 };
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
 {
-  // LOGP(info, "propagator device pointer: {}", (void*)mTimeFrameGPU->getDevicePropagator());
+  LOGP(info, "propagator device pointer: {}", (void*)mTimeFrameGPU->getDevicePropagator());
   mTimeFrameGPU->createTrackITSExtDevice();
   gpu::fitTracksKernel<<<20, 512>>>(mTimeFrameGPU->getDeviceArrayClusters(),          // Cluster** foundClusters,
                                     mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster** foundUnsortedClusters,
@@ -1287,7 +1290,6 @@ void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
                                     mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
                                     mTimeFrameGPU->getDevicePropagator());            // const o2::base::Propagator* propagator
   mTimeFrameGPU->downloadTrackITSExtDevice();
-  discardResult(cudaDeviceSynchronize());
   auto& tracks = mTimeFrameGPU->getTrackITSExt();
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });

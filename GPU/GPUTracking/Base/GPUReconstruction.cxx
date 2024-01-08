@@ -676,7 +676,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
     if (pool > poolend) {
-      GPUError("Insufficient unmanaged memory: missing %lu", (size_t)((char*)pool - (char*)poolend));
+      GPUError("Insufficient unmanaged memory: missing %lu bytes", (size_t)((char*)pool - (char*)poolend));
       throw std::bad_alloc();
     }
     UpdateMaxMemoryUsed();

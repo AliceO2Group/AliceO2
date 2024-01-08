@@ -106,6 +106,7 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
   double total{0.};
   mTraits->UpdateTrackingParameters(mTrkParams);
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
+    LOGP(info, "Iteration {}", iteration);
     total += evaluateTask(&Tracker::initialiseTimeFrameHybrid, "Hybrid Timeframe initialisation", logger, iteration);
     total += evaluateTask(&Tracker::computeTrackletsHybrid, "Hybrid Tracklet finding", logger, iteration);
     logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
@@ -115,7 +116,7 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
     }
     float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
     if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
-      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections.", trackletsPerCluster));
+      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections. Current limit is {}", trackletsPerCluster, mTrkParams[iteration].TrackletsPerClusterLimit));
       break;
     }
 
@@ -127,7 +128,7 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
     }
     float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
     if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
-      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections.", cellsPerCluster));
+      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections. Current limit is {}", cellsPerCluster, mTrkParams[iteration].CellsPerClusterLimit));
       break;
     }
     total += evaluateTask(&Tracker::findCellsNeighboursHybrid, "Hybrid Neighbour finding", logger, iteration);
