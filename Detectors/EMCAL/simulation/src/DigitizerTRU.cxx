@@ -46,8 +46,8 @@ void DigitizerTRU::init()
   mSimParam = &(o2::emcal::SimParam::Instance());
   mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
-  float tau = mSimParam->getTimeResponseTau();
-  float N = mSimParam->getTimeResponsePower();
+  float tau = mSimParam->getTimeResponseTauTRU();
+  float N = mSimParam->getTimeResponsePowerTRU();
 
   mSmearEnergy = mSimParam->doSmearEnergy();
   mSimulateTimeResponse = mSimParam->doSimulateTimeResponse();
@@ -60,8 +60,8 @@ void DigitizerTRU::init()
   LZERO.init();
 
   // Parameters from data (@Martin Poghosyan)
-  tau = 61.45 / 25.; // 61.45 ns, according to the fact that the
-  N = 2.;
+  // tau = 61.45 / 25.; // 61.45 ns, according to the fact that the
+  // N = 2.;
 
   if (mSimulateTimeResponse) {
     // for each phase create a template distribution
@@ -69,37 +69,34 @@ void DigitizerTRU::init()
     RawResponse.SetParameters(1., 0., tau, N, 0.);
     RawResponse.SetParameter(1, 425. / o2::emcal::constants::EMCAL_TIMESAMPLE);
 
-    for (int phase = 0; phase < 1; phase++) {
-      // parameter 1: Handling phase + delay
-      // phase: 25 ns * phase index (-4)
-      // delay: Average signal delay
-      RawResponse.SetParameter(1, 0.25 * phase + mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE);
-      for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
-        mAmplitudeInTimeBins[phase][sample] = RawResponse.Eval(sample);
-        if (phase == 0)
-          LOG(info) << "DIG TRU init in DigitizerTRU: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[phase][sample];
-      }
+    // parameter 1: Handling phase + delay
+    // phase: 25 ns * phase index (-4)
+    // delay: Average signal delay
+    RawResponse.SetParameter(1, mSimParam->getSignalDelay() / constants::EMCAL_TIMESAMPLE);
+    for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
+      mAmplitudeInTimeBins[sample] = RawResponse.Eval(sample);
+      LOG(info) << "DIG TRU init in DigitizerTRU: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[sample];
+    }
 
-      // Rescale the TRU time response function
-      // so that the sum of the samples at [5], [6], [7] and [8]
-      // is equal to 1
-      auto maxElement = std::max_element(mAmplitudeInTimeBins[phase].begin(), mAmplitudeInTimeBins[phase].end());
-      double rescalingFactor = *(maxElement - 1) + *maxElement + *(maxElement + 1) + *(maxElement + 2);
-      rescalingFactor /= (5. / 3.93);   // the slope seen in the single fastOr correlation
-      rescalingFactor /= (45. / 39.25); // the slope seen in the single fastOr correlation
-      // double rescalingFactor =  mAmplitudeInTimeBins[phase][5] + mAmplitudeInTimeBins[phase][6] + mAmplitudeInTimeBins[phase][7] + mAmplitudeInTimeBins[phase][8];
-      for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
-        mAmplitudeInTimeBins[phase][sample] /= rescalingFactor;
-        if (phase == 0)
-          LOG(info) << "DIG TRU init in DigitizerTRU after RESCALING: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[phase][sample];
-      }
+    // Rescale the TRU time response function
+    // so that the sum of the samples at [5], [6], [7] and [8]
+    // is equal to 1
+    auto maxElement = std::max_element(mAmplitudeInTimeBins.begin(), mAmplitudeInTimeBins.end());
+    double rescalingFactor = *(maxElement - 1) + *maxElement + *(maxElement + 1) + *(maxElement + 2);
+    double normalisationTRU = mSimParam->getTimeResponseNormalisationTRU();
+    rescalingFactor /= normalisationTRU;
+    // rescalingFactor /= (5. / 3.93);   // the slope seen in the single fastOr correlation
+    // rescalingFactor /= (45. / 39.25); // the slope seen in the single fastOr correlation
+    for (int sample = 0; sample < constants::EMCAL_MAXTIMEBINS; sample++) {
+      mAmplitudeInTimeBins[sample] /= rescalingFactor;
+      LOG(info) << "DIG TRU init in DigitizerTRU after RESCALING: amplitudes[" << sample << "] = " << mAmplitudeInTimeBins[sample];
     }
   } else {
   }
 
   if (mEnableDebugStreaming) {
     mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebugTRU.root", "RECREATE");
-    mDebugStreamPatch = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebugPatchTRU.root", "RECREATE");
+    // mDebugStreamPatch = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebugPatchTRU.root", "RECREATE");
   }
 }
 //_______________________________________________________________________
@@ -213,9 +210,9 @@ void DigitizerTRU::sampleSDigit(const Digit& sDigit)
 
   Double_t energies[15];
   if (mSimulateTimeResponse) {
-    for (int sample = 0; sample < mAmplitudeInTimeBins[0].size(); sample++) {
+    for (int sample = 0; sample < mAmplitudeInTimeBins.size(); sample++) {
 
-      double val = energy * (mAmplitudeInTimeBins[0][sample]);
+      double val = energy * (mAmplitudeInTimeBins[sample]);
       energies[sample] = val;
       double digitTime = mEventTimeOffset * constants::EMCAL_TIMESAMPLE;
       Digit digit(tower, val, digitTime);
@@ -318,22 +315,22 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
                           << "\n";
         }
       }
-      for (auto& trigger : TriggerInputsPatches) {
-        auto lastTimeSum = trigger.mLastTimesumAllPatches.end() - 1;
-        for (auto& patches : trigger.mLastTimesumAllPatches) {
-          auto WhichTRU = std::get<0>(patches);
-          auto WhichPatch = std::get<1>(patches);
-          auto PatchTimesum = std::get<2>(patches);
-          auto isFired = std::get<3>(patches);
-          (*mDebugStreamPatch).GetFile()->cd();
-          (*mDebugStreamPatch) << "L0TimesumsPatch"
-                               << "WhichTRU=" << WhichTRU
-                               << "WhichPatch=" << WhichPatch
-                               << "PatchTimesum=" << PatchTimesum
-                               << "isFired=" << isFired
-                               << "\n";
-        }
-      }
+      // for (auto& trigger : TriggerInputsPatches) {
+      //   auto lastTimeSum = trigger.mLastTimesumAllPatches.end() - 1;
+      //   for (auto& patches : trigger.mLastTimesumAllPatches) {
+      //     auto WhichTRU = std::get<0>(patches);
+      //     auto WhichPatch = std::get<1>(patches);
+      //     auto PatchTimesum = std::get<2>(patches);
+      //     auto isFired = std::get<3>(patches);
+      //     (*mDebugStreamPatch).GetFile()->cd();
+      //     (*mDebugStreamPatch) << "L0TimesumsPatch"
+      //                          << "WhichTRU=" << WhichTRU
+      //                          << "WhichPatch=" << WhichPatch
+      //                          << "PatchTimesum=" << PatchTimesum
+      //                          << "isFired=" << isFired
+      //                          << "\n";
+      //   }
+      // }
     }
   }
 }
@@ -347,10 +344,10 @@ void DigitizerTRU::setPatches()
 
   patchesFromAllTRUs.clear();
   // patchesFromAllTRUs.resize();
-  Patches FullAside(2, 0, 0);
-  Patches FullCside(2, 1, 0);
-  Patches ThirdAside(2, 0, 1);
-  Patches ThirdCside(2, 1, 1);
+  TRUElectronics FullAside(2, 0, 0);
+  TRUElectronics FullCside(2, 1, 0);
+  TRUElectronics ThirdAside(2, 0, 1);
+  TRUElectronics ThirdCside(2, 1, 1);
   FullAside.init();
   FullCside.init();
   ThirdAside.init();

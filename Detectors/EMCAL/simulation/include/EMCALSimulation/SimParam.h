@@ -46,6 +46,9 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
 
   // Parameters used in TRU Digitizer
   Float_t getPinNoiseTRU() const { return mPinNoiseTRU; }
+  Float_t getTimeResponseTauTRU() const { return mTimeResponseTauTRU; }
+  Float_t getTimeResponsePowerTRU() const { return mTimeResponsePowerTRU; }
+  Float_t getTimeResponseNormalisationTRU() const { return mTimeResponseNormalisationTRU; }
 
   // Parameters used in LZERO
   Float_t getThresholdLZERO() const { return mThresholdLZERO; }
@@ -86,7 +89,10 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Int_t mSwapPhase{0};                   ///< BC phase swap similar to data
 
   // TRU Digitizer
-  Float_t mPinNoiseTRU{0.04}; ///< Electronics noise in EMC, TRU, normalised by fastOr
+  Float_t mPinNoiseTRU{0.04};               ///< Electronics noise in EMC, TRU, normalised by fastOr
+  Float_t mTimeResponseTauTRU{61.45 / 25.}; ///< Raw time response function tau parameter TRU from Martin Poghosyan
+  Float_t mTimeResponsePowerTRU{2.};        ///< Raw time response function power parameter TRU from Martin Poghosyan 
+  Float_t mTimeResponseNormalisationTRU{(5. / 3.93)*(45. / 39.25)};///< Raw time response function normalisation parameter TRU from correlation studies 
 
   // LZERO peak finding
   Float_t mThresholdLZERO{132.}; ///< ADC threshold for peak finding in the LZEROElectronics

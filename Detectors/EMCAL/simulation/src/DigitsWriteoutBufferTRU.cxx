@@ -25,7 +25,7 @@ using namespace o2::emcal;
 
 //_____________________________________________________________________
 //
-void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord, std::vector<Patches>& patchesFromAllTRUs, LZEROElectronics& LZERO)
+void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, InteractionRecord& nextInteractionRecord, std::vector<TRUElectronics>& patchesFromAllTRUs, LZEROElectronics& LZERO)
 {
   int eventTimeBin = 13;
   bool needsEmptyTimeBins = false;

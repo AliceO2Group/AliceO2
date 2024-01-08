@@ -11,7 +11,7 @@
 
 o2_add_library(EMCALSimulation
                SOURCES src/Detector.cxx src/Digitizer.cxx src/DigitizerTRU.cxx src/SDigitizer.cxx
-                       src/DigitsWriteoutBuffer.cxx src/DigitsWriteoutBufferTRU.cxx src/LZEROElectronics.cxx src/Patches.cxx src/DigitsVectorStream.cxx src/SpaceFrame.cxx src/SimParam.cxx
+                       src/DigitsWriteoutBuffer.cxx src/DigitsWriteoutBufferTRU.cxx src/LZEROElectronics.cxx src/TRUElectronics.cxx src/DigitsVectorStream.cxx src/SpaceFrame.cxx src/SimParam.cxx
                        src/LabeledDigit.cxx src/RawWriter.cxx
                PUBLIC_LINK_LIBRARIES ROOT::TreePlayer O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw O2::EMCALReconstruction O2::DataFormatsCTP)
 
@@ -23,7 +23,7 @@ o2_target_root_dictionary(EMCALSimulation
                                   include/EMCALSimulation/DigitsWriteoutBuffer.h
                                   include/EMCALSimulation/DigitsWriteoutBufferTRU.h
                                   include/EMCALSimulation/LZEROElectronics.h
-                                  include/EMCALSimulation/Patches.h
+                                  include/EMCALSimulation/TRUElectronics.h
                                   include/EMCALSimulation/DigitTimebin.h
                                   include/EMCALSimulation/DigitsVectorStream.h
                                   include/EMCALSimulation/RawWriter.h

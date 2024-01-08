@@ -30,7 +30,7 @@ using namespace o2::emcal;
 //
 // It checks if there is a rising trend on four consecutive Timebins
 // If yes, then it compares the integral to a programmable threshold
-bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
+bool LZEROElectronics::peakFinderOnPatch(TRUElectronics& p, unsigned int patchID)
 {
   auto& CurrentPatchTimeSum = p.mTimesum[patchID];
   auto& TimeSums = std::get<1>(CurrentPatchTimeSum);
@@ -55,7 +55,7 @@ bool LZEROElectronics::peakFinderOnPatch(Patches& p, unsigned int patchID)
 //_____________________________________________________________________
 // Peak finding algorithm on all patches
 // It fills the mPeakFound vector with potential 1s
-bool LZEROElectronics::peakFinderOnAllPatches(Patches& p)
+bool LZEROElectronics::peakFinderOnAllPatches(TRUElectronics& p)
 {
   bool isFoundGlobal = false;
   p.mFiredPatches.clear();
@@ -84,7 +84,7 @@ void LZEROElectronics::clear()
 {
 }
 //________________________________________________________
-void LZEROElectronics::updatePatchesADC(Patches& p)
+void LZEROElectronics::updatePatchesADC(TRUElectronics& p)
 {
   p.updateADC();
 }
@@ -102,7 +102,7 @@ void LZEROElectronics::addNoiseDigits(Digit& d1)
   d1 += d;
 }
 //_______________________________________________________________________
-void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitlist, const o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs)
+void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitlist, const o2::InteractionRecord record, std::vector<TRUElectronics>& patchesFromAllTRUs)
 {
   int counterDigitTimeBin = 0;
   int sizemDigitMap = -999;
@@ -116,13 +116,9 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
 
     counterDigitTimeBin++;
 
-    int counterhelp = 0;
     for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
       // Digit loop
       // The peak finding algorithm is run after getting out of the loop!
-
-      auto whichTRU2 = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
-      auto whichFastOrTRU2 = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
 
       if (digitsList.size() == 0) {
         continue;
@@ -157,8 +153,7 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
         continue;
       }
 
-      auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
-      auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastor));
+      auto [whichTRU, whichFastOrTRU] = mTriggerMap->getTRUFromAbsFastORIndex(fastor);
 
       auto whichFastOr = std::get<1>(mTriggerMap->convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
@@ -166,10 +161,9 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
 
       digIndex++;
-      counterhelp++;
     }
 
-    // Evaluate -> peak finder (ALL Patches in ALL TRUs)
+    // Evaluate -> peak finder (ALL TRUElectronics in ALL TRUs)
     // in case peak found:
     // - Create trigger input (IR of that timebin - delay [typically 8 or 9 samples - rollback (0)])
     // - Create L1 timesums (trivial - last time integral) -> Collect from all fastOrs in ALL TRUs
@@ -197,13 +191,10 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       TriggerInputsForL1.mInterRecord = record;
       int whichTRU = 0;
       for (auto& patches : patchesFromAllTRUs) {
-        if (whichTRU < 52) {
-          int whichFastOr = 0;
-          for (auto& fastor : patches.mFastOrs) {
-            TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, std::get<1>(mTriggerMap->convertFastORIndexSTUtoTRU(mTriggerMap->convertTRUIndexTRUtoSTU(whichTRU), whichFastOr, o2::emcal::TriggerMappingV2::DetType_t::DET_EMCAL)), fastor.timesum()));
-            // TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, whichFastOr, fastor.timesum()));
-            whichFastOr++;
-          }
+        int whichFastOr = 0;
+        for (auto& fastor : patches.mFastOrs) {
+          TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, std::get<1>(mTriggerMap->convertFastORIndexSTUtoTRU(mTriggerMap->convertTRUIndexTRUtoSTU(whichTRU), whichFastOr, o2::emcal::TriggerMappingV2::DetType_t::DET_EMCAL)), fastor.timesum()));
+          whichFastOr++;
         }
         whichTRU++;
       }

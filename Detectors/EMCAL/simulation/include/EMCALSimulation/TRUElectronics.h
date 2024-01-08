@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Patches.h
-/// \brief EMCAL Patches for the LZEROElectronics
+/// \file TRUElectronics.h
+/// \brief EMCAL TRUElectronics for the LZEROElectronics
 #ifndef ALICEO2_EMCAL_PATCH_H
 #define ALICEO2_EMCAL_PATCH_H
 
@@ -63,27 +63,27 @@ struct FastOrStruct {
   }
 };
 
-/// \struct Patches
-/// \brief Patches creator, based on the Patches
+/// \struct TRUElectronics
+/// \brief TRUElectronics creator, based on the TRUElectronics
 /// \ingroup EMCALsimulation
 /// \author Markus Fasel, ORNL
 /// \author Simone Ragoni, Creighton U.
 /// \date 03/12/2022
 ///
 
-struct Patches {
+struct TRUElectronics {
 
   /// \brief Main constructor
   /// \param patchSize patch size: 2x2, or 4x4
   /// \param whichSide 0 = A side, 1 = C side
   /// \param whichSuperModuleSize 0 = Full 1 = 1/3
-  Patches(int patchSize, int whichSide, int whichSuperModuleSize);
+  TRUElectronics(int patchSize, int whichSide, int whichSuperModuleSize);
 
   /// \brief Default constructor
-  Patches();
+  TRUElectronics();
 
   /// \brief Destructor
-  ~Patches() = default;
+  ~TRUElectronics() = default;
 
   /// \brief Clear internal members
   void clear();
@@ -121,7 +121,7 @@ struct Patches {
   std::vector<std::tuple<int, double>> mPreviousTimebinADCvalue;            //!<! ADC that was just removed from the time bins
   std::vector<FastOrStruct> mFastOrs;                                       //!<! FastOr objects
 
-  ClassDefNV(Patches, 1);
+  ClassDefNV(TRUElectronics, 1);
 };
 
 } // namespace emcal

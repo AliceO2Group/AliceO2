@@ -9,30 +9,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Patches.cxx
-/// \brief Implementation of the EMCAL Patches for the LZEROElectronics
+/// \file TRUElectronics.cxx
+/// \brief Implementation of the EMCAL TRUElectronics for the LZEROElectronics
 #include <cstring>
 #include <gsl/span>
 #include <fairlogger/Logger.h> // for LOG
-#include "EMCALSimulation/Patches.h"
+#include "EMCALSimulation/TRUElectronics.h"
 #include "EMCALBase/TriggerMappingV2.h"
 
 using namespace o2::emcal;
 
 //____________________________________________________________________________
-Patches::Patches() : mPatchSize(2), mWhichSide(0), mWhichSuperModuleSize(0)
+TRUElectronics::TRUElectronics() : mPatchSize(2), mWhichSide(0), mWhichSuperModuleSize(0)
 {
   // DEFAULT CONSTRUCTOR
   mFastOrs.resize(96);
 }
 //____________________________________________________________________________
-Patches::Patches(int patchSize, int whichSide, int whichSuperModuleSize) : mPatchSize(patchSize), mWhichSide(whichSide), mWhichSuperModuleSize(whichSuperModuleSize)
+TRUElectronics::TRUElectronics(int patchSize, int whichSide, int whichSuperModuleSize) : mPatchSize(patchSize), mWhichSide(whichSide), mWhichSuperModuleSize(whichSuperModuleSize)
 {
   // CONSTRUCTOR
   mFastOrs.resize(96);
 }
 //____________________________________________________________________________
-void Patches::init()
+void TRUElectronics::init()
 {
   mIndexMapPatch.resize(77);
   for (auto IndexMapPatch : mIndexMapPatch) {
@@ -54,7 +54,7 @@ void Patches::init()
   assignModulesToAllPatches();
 }
 //____________________________________________________________________________
-void Patches::clear()
+void TRUElectronics::clear()
 {
   mIndexMapPatch.clear();
   mFiredFastOrIndexMapPatch.clear();
@@ -64,7 +64,7 @@ void Patches::clear()
   mPreviousTimebinADCvalue.clear();
 }
 //____________________________________________________________________________
-void Patches::assignSeedModuleToPatchWithSTUIndexingFullModule(int& patchID)
+void TRUElectronics::assignSeedModuleToPatchWithSTUIndexingFullModule(int& patchID)
 {
   if (mWhichSide == 0) {
     // A side
@@ -81,7 +81,7 @@ void Patches::assignSeedModuleToPatchWithSTUIndexingFullModule(int& patchID)
   }
 }
 //____________________________________________________________________________
-void Patches::assignSeedModuleToPatchWithSTUIndexingOneThirdModule(int& patchID)
+void TRUElectronics::assignSeedModuleToPatchWithSTUIndexingOneThirdModule(int& patchID)
 {
   if (mWhichSide == 0) {
     // A side
@@ -98,7 +98,7 @@ void Patches::assignSeedModuleToPatchWithSTUIndexingOneThirdModule(int& patchID)
   }
 }
 //____________________________________________________________________________
-void Patches::assignSeedModuleToAllPatches()
+void TRUElectronics::assignSeedModuleToAllPatches()
 {
   if (mWhichSuperModuleSize == 0) {
     // Full Size
@@ -115,15 +115,11 @@ void Patches::assignSeedModuleToAllPatches()
   }
 }
 //____________________________________________________________________________
-void Patches::assignModulesToAllPatches()
+void TRUElectronics::assignModulesToAllPatches()
 {
   if (mWhichSuperModuleSize == 0) {
     // Full Size
     for (int i = 0; i < 77; i++) {
-      // std::get<0>(mIndexMapPatch[i]) = i;
-      // std::get<0>(mFiredFastOrIndexMapPatch[i]) = i;
-      // std::get<0>(mADCvalues[i]) = i;
-      // std::get<0>(mPreviousTimebinADCvalue[i]) = i;
       auto& mIndexMapPatchID = std::get<0>(mIndexMapPatch[i]);
       auto& mFiredFastOrIndexMapPatchID = std::get<0>(mFiredFastOrIndexMapPatch[i]);
       auto& mADCvaluesID = std::get<0>(mADCvalues[i]);
@@ -157,10 +153,6 @@ void Patches::assignModulesToAllPatches()
   } else if (mWhichSuperModuleSize == 1) {
     // One third Size
     for (int i = 0; i < 69; i++) {
-      // std::get<0>(mIndexMapPatch[i]) = i;
-      // std::get<0>(mFiredFastOrIndexMapPatch[i]) = i;
-      // std::get<0>(mADCvalues[i]) = i;
-      // std::get<0>(mPreviousTimebinADCvalue[i]) = i;
       auto& mIndexMapPatchID = std::get<0>(mIndexMapPatch[i]);
       auto& mFiredFastOrIndexMapPatchID = std::get<0>(mFiredFastOrIndexMapPatch[i]);
       auto& mADCvaluesID = std::get<0>(mADCvalues[i]);
@@ -193,52 +185,8 @@ void Patches::assignModulesToAllPatches()
     }
   }
 }
-// //________________________________________________________
-// void Patches::updateADC()
-// {
-//   for (auto& patch : mADCvalues) {
-//     double integralPreviousADC = 0;
-//     auto& ADCvalues = std::get<1>(patch);
-//     auto& PatchID = std::get<0>(patch);
-//     if (ADCvalues.size() == 4) {
-//       std::get<1>(mPreviousTimebinADCvalue[PatchID]) = ADCvalues.front();
-//       ADCvalues.erase(ADCvalues.begin());
-//       // LOG(info) << "DIG SIMONE updateADC in Patches: size = 4";
-//     } else {
-//       // LOG(info) << "DIG SIMONE updateADC in Patches: size != 4";
-//     }
-//     double integralADCnew = 0;
-//     auto fastorattempt = std::get<1>(mIndexMapPatch[PatchID]);
-//     // if( fastorattempt.size() != 0 )LOG(info) << "DIG SIMONE updateADC in Patches: fastorattempt.size() = " << fastorattempt.size();
-
-//     for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {
-//       auto elem = mFastOrs[FastOrs].mADCvalues;
-//       if (elem.size() == 0){
-//         // LOG(info) << "DIG SIMONE updateADC in Patches: elem.size() == 0 ";
-//         continue;
-//       }
-//       auto it = elem.end() - 1;
-//       auto pointedvalue = *it;
-//       // LOG(info) << "DIG SIMONE updateADC in Patches: pointedvalue = " << pointedvalue;
-//       integralADCnew += pointedvalue;
-//     }
-//     // LOG(info) << "DIG SIMONE updateADC in Patches: integralADCnew = " << integralADCnew;
-//     ADCvalues.push_back(integralADCnew);
-
-//     // Saving the timesum
-//     auto& CurrentPatchTimesum = std::get<1>(mTimesum[PatchID]);
-//     if (CurrentPatchTimesum.size() == 4) {
-//       CurrentPatchTimesum.erase(CurrentPatchTimesum.begin());
-//     }
-//     double IntegralADCvalues = 0;
-//     for (auto ADC : ADCvalues) {
-//       IntegralADCvalues += ADC;
-//     }
-//     CurrentPatchTimesum.push_back(IntegralADCvalues);
-//   }
-// }
 //________________________________________________________
-void Patches::updateADC()
+void TRUElectronics::updateADC()
 {
   // Loop over all patches and their ADC values
   for (auto& patch : mADCvalues) {
@@ -250,7 +198,7 @@ void Patches::updateADC()
       ADCvalues.erase(ADCvalues.begin());
     } else {
       if (ADCvalues.size() > 4)
-        LOG(info) << "DIG SIMONE updateADC in Patches: ERROR!!!!! ";
+        LOG(info) << "DIG SIMONE updateADC in TRUElectronics: ERROR!!!!! ";
     }
     double integralADCnew = 0;
 
@@ -277,30 +225,5 @@ void Patches::updateADC()
       IntegralADCvalues += ADC;
     }
     CurrentPatchTimesum.push_back(IntegralADCvalues);
-    // if( CurrentPatchTimesum[0] > 0.01  || CurrentPatchTimesum[1] > 0.01 || CurrentPatchTimesum[2] > 0.01 || CurrentPatchTimesum[3] > 0.01 ) {
-    //   // LOG(info) << "DIG SIMONE updateADC patch: CurrentPatchTimesum[0,1,2,3] = " << CurrentPatchTimesum[0] << ", " << CurrentPatchTimesum[1] << ", "<< CurrentPatchTimesum[2] << ", " << CurrentPatchTimesum[3];
-    //   double recordedvalues[4][4];
-    //   int counter = 0;
-    //   for (auto FastOrs : std::get<1>(mIndexMapPatch[PatchID])) {
-    //     // LOG(info) << "DIG SIMONE updateADC patch: FastOr number = " << FastOrs;
-    //     auto elem = mFastOrs[FastOrs].mADCvalues;
-    //     // auto it = elem.begin();
-    //     // auto pointedvalue = *it;
-    //     auto it = elem.end() - 1;
-    //     auto pointedvalue = *it;
-    //     recordedvalues[counter][3] = pointedvalue;
-    //     it-=1;
-    //     pointedvalue = *it;
-    //     recordedvalues[counter][2] = pointedvalue;
-    //     it-=1;
-    //     pointedvalue = *it;
-    //     recordedvalues[counter][1] = pointedvalue;
-    //     it-=1;
-    //     pointedvalue = *it;
-    //     recordedvalues[counter][0] = pointedvalue;
-    //     // LOG(info) << "DIG SIMONE updateADC patch: FastOr[0,1,2,3] = " << recordedvalues[counter][0] << ", " << recordedvalues[counter][1] << ", "<< recordedvalues[counter][2] << ", " << recordedvalues[counter][3];
-    //     counter++;
-    //   }
-    // }
   }
 }

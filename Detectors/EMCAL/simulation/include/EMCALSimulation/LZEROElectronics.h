@@ -25,7 +25,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "EMCALSimulation/SimParam.h"
-#include "EMCALSimulation/Patches.h"
+#include "EMCALSimulation/TRUElectronics.h"
 #include "EMCALBase/TriggerMappingV2.h"
 #include <fairlogger/Logger.h> // for LOG
 
@@ -81,17 +81,17 @@ class LZEROElectronics
   void setThreshold(double threshold) { mThreshold = threshold; }
 
   /// Implements the peak finder algorithm on the patch
-  /// \param p Patches object
+  /// \param p TRUElectronics object
   /// \param patchID Patch ID to implement the peak finding algorithm
-  bool peakFinderOnPatch(Patches& p, unsigned int patchID);
+  bool peakFinderOnPatch(TRUElectronics& p, unsigned int patchID);
 
   /// Calls the peak finder algorithm on all patches
-  /// \param p Patches object
-  bool peakFinderOnAllPatches(Patches& p);
+  /// \param p TRUElectronics object
+  bool peakFinderOnAllPatches(TRUElectronics& p);
 
   /// Update patches
-  /// \param p Patches object
-  void updatePatchesADC(Patches& p);
+  /// \param p TRUElectronics object
+  void updatePatchesADC(TRUElectronics& p);
 
   /// Add noise to this digit
   void addNoiseDigits(Digit& d1);
@@ -100,11 +100,11 @@ class LZEROElectronics
   /// \param digitlist digits to be assigned to patches
   /// \param record interaction record time to be propagated
   /// \param patchesFromAllTRUs vector contained the patches of all TRUs
-  void fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitlist, const o2::InteractionRecord record, std::vector<Patches>& patchesFromAllTRUs);
+  void fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitlist, const o2::InteractionRecord record, std::vector<TRUElectronics>& patchesFromAllTRUs);
 
   /// Getter for the pattern of peaks found by the LZERO algorithm
-  /// \param p Patches object
-  const std::vector<int>& getFiredPatches(Patches& p) const
+  /// \param p TRUElectronics object
+  const std::vector<int>& getFiredPatches(TRUElectronics& p) const
   {
     return p.mFiredPatches;
   }

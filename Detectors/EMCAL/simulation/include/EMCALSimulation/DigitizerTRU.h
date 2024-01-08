@@ -95,14 +95,14 @@ class DigitizerTRU
   void endDebugStream()
   {
     mDebugStream->Close();
-    mDebugStreamPatch->Close();
+    // mDebugStreamPatch->Close();
   }
 
   /// Getter for debug mode
   bool isDebugMode() { return mEnableDebugStreaming; }
 
   /// Getter for patches
-  std::vector<Patches> getPatchesVector() { return patchesFromAllTRUs; }
+  std::vector<TRUElectronics> getPatchesVector() { return patchesFromAllTRUs; }
 
   /// raw pointers used here to allow interface with TF1
   static double rawResponseFunction(double* x, double* par);
@@ -117,10 +117,10 @@ class DigitizerTRU
   // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
   o2::emcal::DigitsWriteoutBufferTRU mDigits; ///< used to sort digits by tower
   o2::emcal::LZEROElectronics LZERO;          ///< to start the trigger
-  std::vector<Patches> patchesFromAllTRUs;    ///< patches from all TRUs
+  std::vector<TRUElectronics> patchesFromAllTRUs;    ///< patches from all TRUs
 
   TRandom3* mRandomGenerator = nullptr; ///< random number generator
-  std::array<std::array<double, constants::EMCAL_MAXTIMEBINS>, 1>
+  std::array<double, constants::EMCAL_MAXTIMEBINS>
     mAmplitudeInTimeBins; ///< template of the sampled time response function: amplitude of signal for each time bin (per phase)
 
   TriggerMappingV2* mTriggerMap = nullptr; ///< Trigger map for tower to fastor ID
@@ -132,7 +132,7 @@ class DigitizerTRU
   int mPreviousTriggerSize = 0;  ///< To save the data
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
-  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;
+  // std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;
   bool mEnableDebugStreaming = false;
 
   ClassDefNV(DigitizerTRU, 1);
