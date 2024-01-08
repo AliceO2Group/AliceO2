@@ -51,41 +51,41 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   mTraits->UpdateTrackingParameters(mTrkParams);
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation", logger, iteration);
-    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger, iteration);
-    logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
-    if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      error(fmt::format("Too much memory used during trackleting in iteration {}, check the detector status and/or the selections.", iteration));
-      break;
-    }
-    float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
-    if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
-      error(fmt::format("Too many tracklets per cluster ({}) in iteration {}, check the detector status and/or the selections. Current limit is {}", trackletsPerCluster, iteration, mTrkParams[iteration].TrackletsPerClusterLimit));
-      break;
-    }
+    int nROFsIterations = mTrkParams[iteration].nROFsPerIterations > 0 ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
+    for (int iROFs{0}; iROFs < nROFsIterations; ++iROFs) {
+      total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger, iteration, iROFs);
+      logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
+      if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
+        error(fmt::format("Too much memory used during trackleting in iteration {}, check the detector status and/or the selections.", iteration));
+        break;
+      }
+      float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
+      if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
+        error(fmt::format("Too many tracklets per cluster ({}) in iteration {}, check the detector status and/or the selections. Current limit is {}", trackletsPerCluster, iteration, mTrkParams[iteration].TrackletsPerClusterLimit));
+        break;
+      }
 
-    total += evaluateTask(&Tracker::computeCells, "Cell finding", logger, iteration);
-    logger(fmt::format("\t- Number of Cells: {}", mTraits->getTFNumberOfCells()));
-    if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      error(fmt::format("Too much memory used during cell finding in iteration {}, check the detector status and/or the selections.", iteration));
-      break;
-    }
-    float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
-    if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
-      error(fmt::format("Too many cells per cluster ({}) in iteration {}, check the detector status and/or the selections. Current limit is {}", cellsPerCluster, iteration, mTrkParams[iteration].CellsPerClusterLimit));
-      break;
-    }
+      total += evaluateTask(&Tracker::computeCells, "Cell finding", logger, iteration);
+      logger(fmt::format("\t- Number of Cells: {}", mTraits->getTFNumberOfCells()));
+      if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
+        error(fmt::format("Too much memory used during cell finding in iteration {}, check the detector status and/or the selections.", iteration));
+        break;
+      }
+      float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
+      if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
+        error(fmt::format("Too many cells per cluster ({}) in iteration {}, check the detector status and/or the selections. Current limit is {}", cellsPerCluster, iteration, mTrkParams[iteration].CellsPerClusterLimit));
+        break;
+      }
 
-    total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
-    logger(fmt::format("\t- Number of neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
-    total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
-    logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
-    // total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
-    // logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
+      total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
+      logger(fmt::format("\t- Number of neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
+      total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
+      logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
+    }
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
   }
 
   total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", logger);
-  /// TODO: Add desperate tracking, aka the extension of short primaries to recover holes in layer 3
 
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
@@ -108,7 +108,7 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
     LOGP(info, "Iteration {}", iteration);
     total += evaluateTask(&Tracker::initialiseTimeFrameHybrid, "Hybrid Timeframe initialisation", logger, iteration);
-    total += evaluateTask(&Tracker::computeTrackletsHybrid, "Hybrid Tracklet finding", logger, iteration);
+    total += evaluateTask(&Tracker::computeTrackletsHybrid, "Hybrid Tracklet finding", logger, iteration, iteration); // TODO: iteration argument put just for the sake of the interface, to be updated with the proper ROF slicing
     logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during trackleting, check the detector status and/or the selections.");
@@ -144,9 +144,9 @@ void Tracker::initialiseTimeFrame(int& iteration)
   mTraits->initialiseTimeFrame(iteration);
 }
 
-void Tracker::computeTracklets(int& iteration)
+void Tracker::computeTracklets(int& iteration, int& iROFslice)
 {
-  mTraits->computeLayerTracklets(iteration);
+  mTraits->computeLayerTracklets(iteration, iROFslice);
 }
 
 void Tracker::computeCells(int& iteration)
@@ -169,7 +169,7 @@ void Tracker::initialiseTimeFrameHybrid(int& iteration)
   mTraits->initialiseTimeFrameHybrid(iteration);
 }
 
-void Tracker::computeTrackletsHybrid(int& iteration)
+void Tracker::computeTrackletsHybrid(int& iteration, int&)
 {
   mTraits->computeTrackletsHybrid(iteration);
 }
@@ -396,6 +396,10 @@ void Tracker::getGlobalConfiguration()
     mTraits->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   }
   setNThreads(tc.nThreads);
+  int nROFsPerIterations = tc.nROFsPerIterations > 0 ? tc.nROFsPerIterations : -1;
+  if (tc.nOrbitsPerIterations > 0) {
+    /// code to be used when the number of ROFs per orbit is known, this gets priority over the number of ROFs per iteration
+  }
   for (auto& params : mTrkParams) {
     if (params.NLayers == 7) {
       for (int i{0}; i < 7; ++i) {
@@ -412,6 +416,7 @@ void Tracker::getGlobalConfiguration()
     params.NSigmaCut *= tc.nSigmaCut > 0 ? tc.nSigmaCut : 1.f;
     params.CellDeltaTanLambdaSigma *= tc.deltaTanLres > 0 ? tc.deltaTanLres : 1.f;
     params.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
+    params.nROFsPerIterations = nROFsPerIterations;
     for (int iD{0}; iD < 3; ++iD) {
       params.Diamond[iD] = tc.diamondPos[iD];
     }

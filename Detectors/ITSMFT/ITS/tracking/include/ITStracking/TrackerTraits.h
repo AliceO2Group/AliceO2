@@ -52,7 +52,7 @@ class TrackerTraits
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame* tf);
   virtual void initialiseTimeFrame(const int iteration);
-  virtual void computeLayerTracklets(const int iteration);
+  virtual void computeLayerTracklets(const int iteration, int iROFslice);
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
