@@ -21,6 +21,8 @@
 using namespace o2::ctp;
 void errorCounters::printStream(std::ostream& stream) const
 {
+  stream << "Counter warnings diff 1 lmBlmA:" << lmBlmAd1 << " lmAl0B:" << lmAl0Bd1 << " l0Bl0A:" << l0Bl0Ad1 << " l0Al1B: " << l0Al1Bd1 << " l1Bl1A:" << l1Bl1Ad1;
+  stream << std::endl;
   stream << "Counter errorrs: lmB:" << lmB << " l0B:" << l0B << " l1B:" << l1B << " lmA:" << lmA << " l0A:" << l0A << " l1A:" << l1A;
   stream << " lmBlmA:" << lmBlmA << " lmAl0B:" << lmAl0B << " l0Bl0A:" << l0Bl0A << " l0Al1B: " << l0Al1B << " l1Bl1A:" << l1Bl1A;
   stream << std::endl;
@@ -392,24 +394,34 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
   // LMB >= LMA >= L0B >= L0A >= L1B >= L1A: 5 relations
   // broken for classes started at L0
   //
-  if ((scal1.lmAfter - scal0.lmAfter) > (scal1.lmBefore - scal0.lmBefore)) {
+  int64_t difThres = 2;
+  int64_t dif = (scal1.lmAfter - scal0.lmAfter) - (scal1.lmBefore - scal0.lmBefore);
+  if (dif <= difThres) {
+    eCnts.lmBlmAd1++;
+  } else if (dif > difThres) {
     eCnts.lmBlmA++;
     if (eCnts.lmBlmA < eCnts.MAXPRINT) {
-      LOG(error) << "LMA > LMB error:" << ((scal1.lmAfter - scal0.lmAfter) - (scal1.lmBefore - scal0.lmBefore));
+      LOG(error) << "LMA > LMB error:" << dif;
     }
     ret++;
   }
-  if ((scal1.l0After - scal0.l0After) > (scal1.l0Before - scal0.l0Before)) {
+  dif = (scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before);
+  if (dif <= difThres) {
+    eCnts.l0Bl0Ad1++;
+  } else if (dif > difThres) {
     eCnts.l0Bl0A++;
     if (eCnts.l0Bl0A < eCnts.MAXPRINT) {
-      LOG(error) << "L0A > L0B error:" << ((scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before));
+      LOG(error) << "L0A > L0B error:" << dif;
     }
     ret++;
   }
-  if ((scal1.l1After - scal0.l1After) > (scal1.l1Before - scal0.l1Before)) {
+  dif = (scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before);
+  if (dif <= difThres) {
+    eCnts.l1Bl1Ad1++;
+  } else if (dif > difThres) {
     eCnts.l1Bl1A++;
     if (eCnts.l1Bl1A < eCnts.MAXPRINT) {
-      LOG(error) << "L1A > L1B error:" << ((scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before));
+      LOG(error) << "L1A > L1B error:" << dif;
     }
     ret++;
   }
@@ -417,10 +429,13 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     // LOG(warning) << "L0B > LMA ok if L0 class.";
     // ret++;
   }
-  if ((scal1.l1Before - scal0.l1Before) > (scal1.l0After - scal0.l0After)) {
+  dif = (scal1.l1Before - scal0.l1Before) - (scal1.l0After - scal0.l0After);
+  if (dif <= difThres) {
+    eCnts.l0Al1Bd1++;
+  } else if (dif > difThres) {
     eCnts.l0Al1B++;
     if (eCnts.l0Al1B < eCnts.MAXPRINT) {
-      LOG(error) << "L1B > L0A Before error:" << ((scal1.l1Before - scal0.l1Before) - (scal1.l0After - scal0.l0After));
+      LOG(error) << "L1B > L0A Before error:" << dif;
     }
     ret++;
   }
@@ -482,6 +497,14 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
 //
 int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const
 {
+  static int iPrint = 0;
+  if (mRunNumber < 545367) {
+    if (iPrint < 1) {
+      LOG(info) << "CTP Input scalers not available for run:" << mRunNumber;
+      iPrint++;
+    }
+    return 0;
+  }
   uint32_t NINPS = 48;
   if (rec0.scalersInps.size() < NINPS) {
     LOG(error) << "updateOverflowsInps.size < 48:" << rec0.scalersInps.size();

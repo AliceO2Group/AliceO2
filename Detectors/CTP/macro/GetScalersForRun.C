@@ -87,25 +87,29 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
       std::cout << cls.name << ":" << iznc << std::endl;
     }
   }
-  std::cout << "ZNC:";
-  int inp = 26;
-  double_t nbc = bcs.size();
-  double_t frev = 11245;
-  double_t sigmaratio = 28.;
   std::vector<CTPScalerRecordO2> recs = ctpscalers->getScalerRecordO2();
-  double_t time0 = recs[0].epochTime;
-  double_t timeL = recs[recs.size() - 1].epochTime;
-  double_t Trun = timeL - time0;
-  double_t integral = recs[recs.size() - 1].scalersInps[inp - 1] - recs[0].scalersInps[inp - 1];
-  double_t rate = integral / Trun;
-  double_t rat = integral / Trun / nbc / frev;
-  double_t mu = -TMath::Log(1 - rat);
-  double_t pp = 1 - mu / (TMath::Exp(mu) - 1);
-  double_t ratepp = mu * nbc * frev;
-  double_t integralpp = ratepp * Trun;
-  std::cout << "Rate:" << rate / sigmaratio << " Integral:" << integral << " mu:" << mu << " Pileup prob:" << pp;
-  std::cout << " Integralpp:" << integralpp << " Ratepp:" << ratepp / sigmaratio << std::endl;
-  // ctpscalers->printInputRateAndIntegral(26);
+  if (recs[0].scalersInps.size() == 48) {
+    std::cout << "ZNC:";
+    int inp = 26;
+    double_t nbc = bcs.size();
+    double_t frev = 11245;
+    double_t sigmaratio = 28.;
+    double_t time0 = recs[0].epochTime;
+    double_t timeL = recs[recs.size() - 1].epochTime;
+    double_t Trun = timeL - time0;
+    double_t integral = recs[recs.size() - 1].scalersInps[inp - 1] - recs[0].scalersInps[inp - 1];
+    double_t rate = integral / Trun;
+    double_t rat = integral / Trun / nbc / frev;
+    double_t mu = -TMath::Log(1 - rat);
+    double_t pp = 1 - mu / (TMath::Exp(mu) - 1);
+    double_t ratepp = mu * nbc * frev;
+    double_t integralpp = ratepp * Trun;
+    std::cout << "Rate:" << rate / sigmaratio << " Integral:" << integral << " mu:" << mu << " Pileup prob:" << pp;
+    std::cout << " Integralpp:" << integralpp << " Ratepp:" << ratepp / sigmaratio << std::endl;
+    // ctpscalers->printInputRateAndIntegral(26);
+  } else {
+    std::cout << "Inputs not available" << std::endl;
+  }
   //
   if (tsc != 255) {
     std::cout << "TSC:";
@@ -122,7 +126,7 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   }
   if (iznc != 255) {
     std::cout << "ZNC class:";
-    int integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
+    int64_t integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
     std::cout << integral << std::endl;
   }
 }
