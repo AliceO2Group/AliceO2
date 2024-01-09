@@ -59,6 +59,7 @@
 #include "TPCSimulation/GEMAmplification.h"
 #endif
 #include <boost/property_tree/ptree.hpp>
+#include "DataFormatsTPC/Helpers.h"
 
 using namespace o2::tpc;
 void fillTPCHits(const float theta, const float phi, const float dedx, std::vector<HitGroup>& hitGroupSector, std::pair<GlobalPosition3D, GlobalPosition3D>& trackInfo);
