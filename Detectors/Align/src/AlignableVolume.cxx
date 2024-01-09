@@ -42,10 +42,6 @@
   G_0*delta_0 ... G^-1_{j-2}*G_{j-1}*delta_{j-1}*G^-1_{j-1}*G_j*delta_j =
   Delta_0 * Delta_{1} ... Delta_{j-1}*Delta_{j}... * G_j
 
-  -> Delta_j = G'_{j-1} * G^-1_{j-1} * G_j * G'^-1_j
-  where G and G' are modified and original L2G matrices
-
-
   From this by induction one gets relation between local and global deltas:
 
   Delta_j = Z_j * delta_j * Z^-1_j
@@ -713,7 +709,7 @@ bool AlignableVolume::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
 }
 
 //_________________________________________________________________
-void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg) const
+void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg, const TGeoHMatrix* envelopeDelta) const
 {
   // create final alignment matrix, accounting for eventual prealignment
   //
@@ -727,8 +723,22 @@ void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg) const
   // but this creates precision problem.
   // Therefore we use explicitly cached Deltas from prealignment object.
   //
+  // If (parent) envelopeDelta is provided, it is simply added on top of its proper global delta matrix
+
   const AlignableVolume* par = getParent();
-  if (createGloDeltaMatrix(alg) && par) { // account parent matrices only if the alg matrix is non-trivial
+  bool nonTrivial = createGloDeltaMatrix(alg);
+  if (envelopeDelta) {
+    if (nonTrivial) {
+      alg.MultiplyLeft(envelopeDelta);
+    } else {
+      alg = *envelopeDelta;
+    }
+    nonTrivial = true;
+  }
+  // Account parent matrices only if the alg matrix is non-trivial.
+  // Also, if parent is dummy envelope, it is already accounted via envelopeDelta
+  if (nonTrivial && (par && !par->isDummyEnvelope())) {
+    // if envelopeDelta is provided, then there should be
     TGeoHMatrix dchain;
     while (par) {
       dchain.MultiplyLeft(&par->getGlobalDeltaRef());
@@ -788,16 +798,27 @@ void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignPar
     return;
   }
   TGeoHMatrix algM;
-  createAlignmenMatrix(algM);
-  if (envelopeDelta) {             // apply dummy parent envelope matrix
-    algM.Multiply(*envelopeDelta); // RS TOCHECK !!!
-  }
+  bool nonTrivial = false;
   if (!isDummyEnvelope()) {
+    createAlignmenMatrix(algM, envelopeDelta);
     arr.emplace_back(getSymName(), getVolID(), algM, true).rectify(AlignConfig::Instance().alignParamZero);
+    envelopeDelta = nullptr;
+  } else {
+    nonTrivial = createGloDeltaMatrix(algM);
+    if (envelopeDelta) {
+      if (nonTrivial) {
+        algM.MultiplyLeft(envelopeDelta);
+      } else {
+        algM = *envelopeDelta;
+      }
+      nonTrivial = true;
+    }
+    envelopeDelta = &algM;
   }
+
   int nch = getNChildren();
   for (int ich = 0; ich < nch; ich++) {
-    getChild(ich)->createAlignmentObjects(arr, isDummyEnvelope() ? &algM : nullptr);
+    getChild(ich)->createAlignmentObjects(arr, nonTrivial ? envelopeDelta : nullptr);
   }
 }
 

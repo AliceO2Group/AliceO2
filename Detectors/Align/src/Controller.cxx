@@ -164,6 +164,10 @@ void Controller::process()
     bool useVertexConstrain = false;
     if (vtx) {
       auto nContrib = vtx->getNContributors();
+      // check cov matrix since data reconstructed with < 6797a257f5ab8ffaec32d56dddb0a321939bdf1c may have negative errors
+      if (vtx->getSigmaX2() < 0. || vtx->getSigmaY2() < 0. || vtx->getSigmaZ2() < 0.) {
+        continue;
+      }
       useVertexConstrain = nContrib >= algConf.vtxMinCont && nContrib <= algConf.vtxMaxCont;
       mStat.data[ProcStat::kInput][ProcStat::kVertices]++;
     }
@@ -180,6 +184,7 @@ void Controller::process()
       int start = trackRef.getFirstEntryOfSource(src), end = start + trackRef.getEntriesOfSource(src);
       for (int ti = start; ti < end; ti++) {
         auto trackIndex = primVerGIs[ti];
+        mAlgTrack->setCurrentTrackID(trackIndex);
         bool tpcIn = false;
         if (trackIndex.isAmbiguous()) {
           auto& ambSeen = ambigTable[trackIndex];
@@ -398,7 +403,7 @@ void Controller::processCosmic()
   auto timerStart = std::chrono::system_clock::now();
   const auto tracks = mRecoData->getCosmicTracks();
   if (!tracks.size()) {
-    LOGP(info, "Sipping TF {}: No cosmic tracks", mNTF);
+    LOGP(info, "Skipping TF {}: No cosmic tracks", mNTF);
     mNTF++;
     return;
   }
@@ -426,6 +431,7 @@ void Controller::processCosmic()
       int npntDet = 0;
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::ITS].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::ITS], algConf.minITSClustersCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -446,6 +452,7 @@ void Controller::processCosmic()
       ((AlignableDetectorTPC*)det)->setTrackTimeStamp(track.getTimeMUS().getTimeStamp());
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::TPC].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TPC], algConf.minTPCClustersCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -466,6 +473,7 @@ void Controller::processCosmic()
       int npntDet = 0;
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::TRD].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TRD], algConf.minTRDTrackletsCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -485,6 +493,7 @@ void Controller::processCosmic()
       int npntDet = 0;
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::TOF].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TOF], algConf.minTOFClustersCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;

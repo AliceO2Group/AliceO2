@@ -306,8 +306,8 @@ template <typename value_T>
 template <typename T>
 GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const BaseCluster<T>& p) const -> value_t
 {
-  const dim2_t pyz = {p.getY(), p.getZ()};
-  const dim3_t cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
+  const dim2_t pyz = {value_T(p.getY()), value_T(p.getZ())};
+  const dim3_t cov = {value_T(p.getSigmaY2()), value_T(p.getSigmaYZ()), value_T(p.getSigmaZ2())};
   return getPredictedChi2(pyz, cov);
 }
 
@@ -337,8 +337,8 @@ template <typename value_T>
 template <typename T>
 GPUdi() bool TrackParametrizationWithError<value_T>::update(const BaseCluster<T>& p)
 {
-  const dim2_t pyz = {p.getY(), p.getZ()};
-  const dim3_t cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
+  const dim2_t pyz = {value_T(p.getY()), value_T(p.getZ())};
+  const dim3_t cov = {value_T(p.getSigmaY2()), value_T(p.getSigmaYZ()), value_T(p.getSigmaZ2())};
   return update(pyz, cov);
 }
 
