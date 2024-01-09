@@ -21,10 +21,10 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 
 #endif
+#include "DataFormatsITSMFT/CompCluster.h"
 
 using namespace std;
 
