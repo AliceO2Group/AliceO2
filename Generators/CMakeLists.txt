@@ -30,6 +30,7 @@ o2_add_library(Generators
                        src/GeneratorFromFile.cxx
                        src/GeneratorFromO2KineParam.cxx
                        src/PrimaryGenerator.cxx
+                       src/PrimaryGeneratorParam.cxx
                        src/TriggerExternalParam.cxx
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
@@ -71,6 +72,7 @@ set(headers
     include/Generators/GeneratorFromFile.h
     include/Generators/GeneratorFromO2KineParam.h
     include/Generators/PrimaryGenerator.h
+    include/Generators/PrimaryGeneratorParam.h
     include/Generators/TriggerExternalParam.h
     include/Generators/TriggerParticleParam.h
     include/Generators/BoxGunParam.h
@@ -81,11 +83,11 @@ set(headers
 
 if (pythia6_FOUND)
    list(APPEND headers include/Generators/GeneratorPythia6.h
-   	       include/Generators/GeneratorPythia6Param.h)
+                       include/Generators/GeneratorPythia6Param.h)
 endif()
 
 if(pythia_FOUND)
-  list(APPEND headers 
+  list(APPEND headers
               include/Generators/GeneratorPythia8.h
               include/Generators/DecayerPythia8.h
               include/Generators/GeneratorPythia8Param.h
@@ -137,8 +139,8 @@ o2_add_test_root_macro(share/external/trigger_mpi.C
 o2_add_test_root_macro(share/egconfig/pythia8_userhooks_charm.C
         PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)
-endif()		       
-		     
+endif()
+
 o2_data_file(COPY share/external DESTINATION Generators)
 o2_data_file(COPY share/egconfig DESTINATION Generators)
 o2_data_file(COPY share/pythia8 DESTINATION Generators)

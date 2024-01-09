@@ -19,6 +19,7 @@
 #include "Generators/Trigger.h"
 #include <functional>
 #include <vector>
+#include <unordered_map>
 
 namespace o2
 {
@@ -61,12 +62,12 @@ class Generator : public FairGenerator
   Bool_t Init() override;
 
   /** Abstract method ReadEvent must be implemented by any derived class.
-	It has to handle the generation of input tracks (reading from input
-	file) and the handing of the tracks to the FairPrimaryGenerator. I
-	t is called from FairMCApplication.
-	*@param pStack The stack
-	*@return kTRUE if successful, kFALSE if not
-	**/
+  has to handle the generation of input tracks (reading from input
+  file) and the handing of the tracks to the FairPrimaryGenerator. It is
+  called from FairMCApplication.
+  *@param pStack The stack
+  *@return kTRUE if successful, kFALSE if not
+  **/
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) final;
 
   /** methods to override **/
@@ -109,6 +110,10 @@ class Generator : public FairGenerator
   Bool_t boostEvent();
   Bool_t triggerEvent();
 
+  /** to handle cocktail constituents **/
+  void addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription);
+  void notifySubGenerator(int subGeneratorId) { mSubGeneratorId = subGeneratorId; }
+
   /** generator interface **/
   void* mInterface = nullptr;
   std::string mInterfaceName;
@@ -136,7 +141,15 @@ class Generator : public FairGenerator
   /** lorentz boost data members **/
   Double_t mBoost;
 
-  ClassDefOverride(Generator, 1);
+ private:
+  void updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const;
+
+  // collect an ID and a short description of sub-generator entities
+  std::unordered_map<int, std::string> mSubGeneratorsIdToDesc;
+  // the current ID of the sub-generator used in the current event (if applicable)
+  int mSubGeneratorId = -1;
+
+  ClassDefOverride(Generator, 2);
 
 }; /** class Generator **/
 

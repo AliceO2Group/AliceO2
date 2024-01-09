@@ -72,6 +72,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCUtils.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "ZDCBase/Constants.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "GPUTPCGMMergedTrackHit.h"
@@ -1882,10 +1883,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         if (nParts == 1 || sourceID == 0) {
           // FIXME:
           // use generators' names for generatorIDs (?)
-          short generatorID = sourceID;
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          bool isValid{};
+          int subGeneratorId{-1};
+          if (header.hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
+            subGeneratorId = header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid);
+          }
           mcCollisionsCursor(bcID,
-                             generatorID,
+                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, subGeneratorId),
                              truncateFloatFraction(header.GetX(), mCollisionPosition),
                              truncateFloatFraction(header.GetY(), mCollisionPosition),
                              truncateFloatFraction(header.GetZ(), mCollisionPosition),

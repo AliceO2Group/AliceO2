@@ -15,7 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/ParticleStatus.h"
-#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "TFile.h"
 #include "TParticle.h"
