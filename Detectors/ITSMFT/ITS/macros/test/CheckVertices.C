@@ -29,6 +29,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #endif
+#include "DataFormatsITSMFT/CompCluster.h"
 
 o2::MCCompLabel getMainLabel(std::vector<o2::MCCompLabel>& labs);
 
