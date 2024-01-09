@@ -581,11 +581,16 @@ void TrackerTraits::findRoads(const int iteration)
       for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
         lastCellSeed.swap(updatedCellSeed);
         lastCellId.swap(updatedCellId);
-        updatedCellSeed.clear();
+        std::vector<CellSeed>().swap(updatedCellSeed); /// tame the memory peaks
         updatedCellId.clear();
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
-      trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
+      for (auto& seed : updatedCellSeed) {
+        if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
+          continue;
+        }
+        trackSeeds.push_back(seed);
+      }
     }
 
     std::vector<TrackITSExt> tracks(trackSeeds.size());
@@ -593,9 +598,6 @@ void TrackerTraits::findRoads(const int iteration)
 #pragma omp parallel for num_threads(mNThreads)
     for (size_t seedId = 0; seedId < trackSeeds.size(); ++seedId) {
       const CellSeed& seed{trackSeeds[seedId]};
-      if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
-        continue;
-      }
       TrackITSExt temporaryTrack{seed};
       temporaryTrack.resetCovariance();
       temporaryTrack.setChi2(0);
