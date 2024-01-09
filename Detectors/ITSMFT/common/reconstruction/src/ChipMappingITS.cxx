@@ -243,10 +243,10 @@ std::vector<ChipMappingITS::Overlaps> ChipMappingITS::getOverlapsInfo() const
     int ruTp = getRUType(sta);
     if (ruTp == IB) {
       int chOnLr = id - getFirstChipsOnLayer(lay), chPerSStave = getNChipsOnRUType(ruTp);
-      vval.lowRow = getFirstChipsOnLayer(lay) + (chOnLr - chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay);  // chips overlapping from rowMin side with other chips high row side
-      vval.highRow = getFirstChipsOnLayer(lay) + (chOnLr + chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay); // chips overlapping from rowMax side with other chips low row side
-      vval.lowRowOverlap = ChipMappingITS::Overlaps::HighRow;
-      vval.highRowOverlap = ChipMappingITS::Overlaps::LowRow;
+      vval.rowSide[ChipMappingITS::Overlaps::LowRow] = getFirstChipsOnLayer(lay) + (chOnLr - chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay);  // chips overlapping from rowMin side with other chips high row side
+      vval.rowSide[ChipMappingITS::Overlaps::HighRow] = getFirstChipsOnLayer(lay) + (chOnLr + chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay); // chips overlapping from rowMax side with other chips low row side
+      vval.rowSideOverlap[ChipMappingITS::Overlaps::LowRow] = ChipMappingITS::Overlaps::HighRow;
+      vval.rowSideOverlap[ChipMappingITS::Overlaps::HighRow] = ChipMappingITS::Overlaps::LowRow;
     } else {
       int staOv = sta, modOv = mod;
       auto NChipsModule = NChipsPerModuleSB[ruTp];
@@ -261,8 +261,8 @@ std::vector<ChipMappingITS::Overlaps> ChipMappingITS::getOverlapsInfo() const
           staOv = getFirstStavesOnLr(lay) + (sta - getFirstStavesOnLr(lay) + 1 + getNStavesOnLr(lay)) % getNStavesOnLr(lay); // stave above
         }
       }
-      vval.highRow = getGlobalChipIDSW(lay, staOv, modOv, NChipsModule - 1 - chip);
-      vval.highRowOverlap = ChipMappingITS::Overlaps::HighRow;
+      vval.rowSide[ChipMappingITS::Overlaps::HighRow] = getGlobalChipIDSW(lay, staOv, modOv, NChipsModule - 1 - chip);
+      vval.rowSideOverlap[ChipMappingITS::Overlaps::HighRow] = ChipMappingITS::Overlaps::HighRow;
     }
   }
   return v;
