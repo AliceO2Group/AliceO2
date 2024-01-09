@@ -52,6 +52,13 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minTRDTracklets = 3; // min TRD tracklets to accept the track
   int minTPCClusters = 10; // discard tracks with less clusters
   int minTOFClusters = 1;  // min TOF clusters to accept track
+  int maxTPCRowsCombined = 1;        // allow combining clusters on so many rows to a single cluster
+  int discardEdgePadrows = 3;        // discard padrow if its distance to stack edge padrow < this
+  float discardSectorEdgeDepth = 2.; // discard clusters too close to the sector edge
+  float ITSOverlapMargin = 0.15;     // consider for overlaps only clusters within this marging from the chip edge (in cm)
+  float ITSOverlapMaxChi2 = 16;      // max chi2 between track and overlapping cluster
+  int ITSOverlapEdgeRows = 1;        // require clusters to not have pixels closer than this distance from the edge
+  float ITSOverlapMaxDZ = 0.3;       // max difference in Z for clusters on overlapping ITS chips to consider as candidate for a double hit
 
   int minPointTotalCosm = 4;      // total min number of alignment point to account cosmic track
   int minDetectorsCosm = 1;       // min number of detectors per cosmic track

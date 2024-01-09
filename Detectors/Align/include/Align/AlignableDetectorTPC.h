@@ -38,9 +38,31 @@ class AlignableDetectorTPC final : public AlignableDetector
   void setTrackTimeStamp(float t) { mTrackTimeStamp = t; }
   float getTrackTimeStamp() const { return mTrackTimeStamp; }
 
+  int getStack(int padrow) const
+  {
+    for (int i = 0; i < 4; i++) {
+      if (padrow <= mStackMinMaxRow[i].second) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  int getDistanceToStackEdge(int padrow) const
+  {
+    // distance to the stack min or max padrow
+    auto st = getStack(padrow);
+    if (st < 0) {
+      return -999;
+    }
+    return std::min(padrow - mStackMinMaxRow[st].first, mStackMinMaxRow[st].second - padrow);
+  }
+
  protected:
   //
   float mTrackTimeStamp = 0.f; // use track timestamp in \mus
+  static constexpr int NSTACKS = 4;
+  const std::array<std::pair<int, int>, NSTACKS> mStackMinMaxRow = {std::pair<int, int>{0, 62}, std::pair<int, int>{63, 96}, std::pair<int, int>{97, 126}, std::pair<int, int>{127, 151}};
 
   ClassDef(AlignableDetectorTPC, 1);
 };

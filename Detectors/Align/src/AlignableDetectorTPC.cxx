@@ -84,7 +84,7 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
   }
   int npointsIni = mNPoints;
   auto prop = o2::base::Propagator::Instance(); // float version!
-
+  constexpr float TAN10 = 0.17632698;
   const auto clusterIdxStruct = recoData->getTPCTracksClusterRefs();
   const auto clusterNativeAccess = recoData->inputsTPCclusters->clusterIndex;
   bool fail = false;
@@ -107,8 +107,10 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
   bool stopLoop = false;
   int npoints = 0;
   for (int i = start; i != stop; i += cl ? 0 : direction) {
-    float x, y, z, charge = 0.f;
+    float x, y, z, xTmp, yTmp, zTmp, charge = 0.f;
     int clusters = 0;
+    double combRow = 0;
+
     while (true) {
       if (!cl) {
         auto clTmp = &trk.getCluster(clusterIdxStruct, i, clusterNativeAccess, sector, row);
@@ -123,29 +125,60 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
           }
           break;
         }
+        if (algConf.discardEdgePadrows > 0 && getDistanceToStackEdge(row) < algConf.discardEdgePadrows) {
+          if (i + direction != stop) {
+            i += direction;
+            continue;
+          } else {
+            stopLoop = true;
+            break;
+          }
+        }
+        mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), xTmp, yTmp, zTmp, tOffset);
+        if (algConf.discardSectorEdgeDepth > 0) {
+          if (std::abs(yTmp) + algConf.discardSectorEdgeDepth > xTmp * TAN10) {
+            if (i + direction != stop) {
+              i += direction;
+              continue;
+            } else {
+              stopLoop = true;
+              break;
+            }
+          }
+        }
+
         cl = clTmp;
         nextState = TPCShMap[cl - clusterNativeAccess.clustersLinear];
       }
-      if (clusters == 0 || (row == currentRow && sector == currentSector)) {
+      if (clusters == 0 || (sector == currentSector && std::abs(row - currentRow) < algConf.maxTPCRowsCombined)) {
         if (clusters == 1) {
           x *= charge;
           y *= charge;
           z *= charge;
+          combRow *= charge;
         }
         if (clusters == 0) {
-          mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
+          x = xTmp;
+          y = yTmp;
+          z = zTmp;
+          // mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
           currentRow = row;
           currentSector = sector;
           charge = cl->qTot;
           clusterState = nextState;
+          combRow = row;
+          LOGP(debug, "starting a supercluster at row {} of sector {} -> {},{},{}", currentRow, currentSector, x, y, z);
         } else {
-          float xx, yy, zz;
-          mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
-          x += xx * cl->qTot;
-          y += yy * cl->qTot;
-          z += zz * cl->qTot;
+          // float xx, yy, zz;
+          // mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
+          x += xTmp * cl->qTot;
+          y += yTmp * cl->qTot;
+          z += zTmp * cl->qTot;
+          combRow += row * cl->qTot;
           charge += cl->qTot;
           clusterState |= nextState;
+          npntCut--;
+          LOGP(debug, "merging cluster #{} at row {} to a supercluster starting at row {} ", clusters + 1, row, currentRow);
         }
         cl = nullptr;
         clusters++;
@@ -165,6 +198,8 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
       x /= charge;
       y /= charge;
       z /= charge;
+      currentRow = combRow / charge;
+      LOGP(debug, "Combined cluster of {} subclusters: row {} , {},{},{}", clusters, currentRow, x, y, z);
     }
 
     if (!trkParam.rotate(math_utils::detail::sector2Angle<float>(currentSector)) || !prop->PropagateToXBxByBz(trkParam, x, algConf.maxSnp)) {
@@ -173,18 +208,27 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
     if (!npoints) {
       trkParam.setZ(z);
     }
+
+    auto* sectSensor = (AlignableSensorTPC*)getSensor(currentSector);
+    const auto* sysE = sectSensor->getAddError(); // additional syst error
+
     gpu::gpustd::array<float, 2> p = {y, z};
     gpu::gpustd::array<float, 3> c = {0, 0, 0};
     mController->getTPCParam()->GetClusterErrors2(currentRow, z, trkParam.getSnp(), trkParam.getTgl(), c[0], c[2]);
+    if (sysE[0] > 0.f) {
+      c[0] += sysE[0] * sysE[0];
+    }
+    if (sysE[1] > 0.f) {
+      c[2] += sysE[1] * sysE[1];
+    }
+
     mController->getTPCParam()->UpdateClusterError2ByState(clusterState, c[0], c[2]);
     if (!trkParam.update(p, c)) {
       break;
     }
 
-    auto* sectSensor = (AlignableSensorTPC*)getSensor(currentSector);
     auto& pnt = algTrack->addDetectorPoint();
-    const auto* sysE = sectSensor->getAddError(); // additional syst error
-    pnt.setYZErrTracking(c[0] + sysE[0] * sysE[0], c[1], c[2] + sysE[1] * sysE[1]);
+    pnt.setYZErrTracking(c[0], c[1], c[2]);
     if (getUseErrorParam()) { // errors will be calculated just before using the point in the fit, using track info
       pnt.setNeedUpdateFromTrack();
     }

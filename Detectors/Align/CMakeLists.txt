@@ -9,7 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_compile_options(-O0 -g -fPIC)
+#add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(Align
                SOURCES  src/GeometricalConstraint.cxx
