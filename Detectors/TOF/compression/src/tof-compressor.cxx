@@ -44,7 +44,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(paranoid);
   workflowOptions.push_back(ignoreStf);
   workflowOptions.push_back(payloadlim);
-  workflowOptions.emplace_back(ConfigParamSpec{"old", VariantType::Bool, false, {"use the non-DPL version of the compressor"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
@@ -60,10 +59,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto verbose = cfgc.options().get<bool>("tof-compressor-verbose");
   auto paranoid = cfgc.options().get<bool>("tof-compressor-paranoid");
   auto ignoreStf = cfgc.options().get<bool>("ignore-dist-stf");
-  auto old = cfgc.options().get<bool>("old");
-  if (old) {
-    LOGP(error, "--old option is not actually supported, using the new version");
-  }
   auto payloadLim = cfgc.options().get<long>("payload-limit");
 
   std::vector<OutputSpec> outputs;
