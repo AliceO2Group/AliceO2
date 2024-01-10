@@ -112,6 +112,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mCalibObjects.mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get()); // just to reserve the space
   mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
+  mCalibObjects.mFastTransformHelper->setLumiScaleType(mSpecConfig.lumiScaleType);
   mCalibObjects.mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
   if (mSpecConfig.outputTracks) {
     mCalibObjects.mFastTransformHelper->init(ic);

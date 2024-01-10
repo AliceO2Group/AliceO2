@@ -58,7 +58,11 @@ namespace globaltracking
 class TOFMatcherSpec : public Task
 {
  public:
-  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT, bool tpcRefit, bool strict, bool pushMatchable, int lanes = 1) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict), mPushMatchable(pushMatchable), mNlanes(lanes) {}
+  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool useMC, bool useFIT, bool tpcRefit, bool strict, bool pushMatchable, int lanes = 1) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict), mPushMatchable(pushMatchable), mNlanes(lanes)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+  }
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -313,7 +317,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     "tof-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict, pushMatchable, nlanes)},
+    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, sclOpts, useMC, useFIT, tpcRefit, strict, pushMatchable, nlanes)},
     opts};
 }
 

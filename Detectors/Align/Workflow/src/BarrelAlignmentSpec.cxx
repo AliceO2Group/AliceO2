@@ -85,9 +85,13 @@ class BarrelAlignmentSpec : public Task
                   CheckConstaints = 0x1 << 1,
                   GenPedeFiles = 0x1 << 2,
                   LabelPedeResults = 0x1 << 3 };
-  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec,
+  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, const o2::tpc::CorrectionMapsLoaderGloOpts& tpcOpt,
                       DetID::mask_t detmask, bool cosmic, int postprocess, bool useMC, bool loadTPCCalib)
-    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC), mLoadTPCCalib(loadTPCCalib) {}
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC), mLoadTPCCalib(loadTPCCalib)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(tpcOpt.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(tpcOpt.lumiMode);
+  }
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -401,7 +405,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC, loadTPCCalib)},
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, sclOpts, dets, enableCosmic, postprocess, useMC, loadTPCCalib)},
     opts};
 }
 

@@ -57,7 +57,11 @@ namespace o2d = o2::dataformats;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool enableCCDBParams, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mSrc(src), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mEnableCCDBParams(enableCCDBParams), mUseMC(useMC) {}
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool enableCCDBParams, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mSrc(src), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mEnableCCDBParams(enableCCDBParams), mUseMC(useMC)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+  }
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -275,7 +279,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     "secondary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, src, enableCasc, enable3body, enableStrangenesTracking, enableCCDBParams, useMC)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, sclOpts, src, enableCasc, enable3body, enableStrangenesTracking, enableCCDBParams, useMC)},
     opts};
 }
 

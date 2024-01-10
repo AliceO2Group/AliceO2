@@ -187,13 +187,21 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
 //________________________________________________________
 void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
 {
+  if (getLumiScaleMode() < 0) {
+    LOGP(fatal, "TPC correction lumi scaling mode is not set");
+  }
   const auto& inputRouts = ic.services().get<const o2::framework::DeviceSpec>().inputs;
   for (const auto& route : inputRouts) {
     if (route.matcher == InputSpec{"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe}) {
-      setLumiScaleType(1);
+      if (getLumiScaleType() != 1) {
+        LOGP(fatal, "Lumi scaling source CTP is not compatible with TPC correction lumi scaler type {}", getLumiScaleType());
+      }
       break;
     } else if (route.matcher == InputSpec{"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe}) {
-      setLumiScaleType(2);
+      if (getLumiScaleType() != 2) {
+        LOGP(fatal, "Lumi scaling source TPCScaler is not compatible with TPC correction lumi scaler type {}", getLumiScaleType());
+      }
+      break;
     }
   }
 }
@@ -211,7 +219,6 @@ void CorrectionMapsLoader::copySettings(const CorrectionMapsLoader& src)
   setLumiScaleMode(src.getLumiScaleMode());
   mInstLumiFactor = src.mInstLumiFactor;
   mCTPLumiSource = src.mCTPLumiSource;
-  mLumiScaleMode = src.mLumiScaleMode;
 }
 
 #endif // #ifndef GPUCA_GPUCODE_DEVICE
