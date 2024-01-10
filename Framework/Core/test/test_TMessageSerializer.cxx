@@ -13,7 +13,6 @@
 #include "Framework/RuntimeError.h"
 #include "TestClasses.h"
 #include <catch_amalgamated.hpp>
-#include <catch_amalgamated.hpp>
 #include <utility>
 
 using namespace o2::framework;
