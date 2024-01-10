@@ -33,8 +33,6 @@ class TrackletTransformer
   void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
   void setApplyXOR() { mApplyXOR = true; }
 
-  float calculateY(int hcid, int column, int position, const PadPlane* padPlane) const;
-
   float calculateZ(int padrow, const PadPlane* padPlane) const;
 
   float calculateDy(int hcid, int slope, const PadPlane* padPlane) const;
