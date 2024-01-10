@@ -43,8 +43,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #endif
+#define ENABLE_UPGRADES
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 static constexpr int nLayers = 4; // 3 Layers + 1 combined outer layer
 

@@ -12,7 +12,17 @@
 /// \file CheckTracksITS3.C
 /// \brief Simple macro to check ITS3 tracks
 
+#include <iostream>
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <TROOT.h>
+
+#include "DataFormatsITS/TrackITS.h"
+#include "TGeoGlobalMagField.h"
+#include "Field/MagneticField.h"
+#include "DetectorsBase/Propagator.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "DataFormatsITS3/CompCluster.h"
+#endif
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -26,22 +36,12 @@
 #include <THStack.h>
 #include <TLegend.h>
 #include <TPad.h>
-#include <TROOT.h>
-
-#include "TGeoGlobalMagField.h"
-#include "Field/MagneticField.h"
-#include "DataFormatsITS3/CompCluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITS/TrackITS.h"
-#include "DetectorsBase/Propagator.h"
-#include "ITSBase/GeometryTGeo.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-
-#endif
 
 using namespace std;
 

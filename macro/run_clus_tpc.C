@@ -14,8 +14,8 @@
 #include "FairParRootFileIo.h"
 #include <FairRootFileSink.h>
 
-#include "TPCReconstruction/ClustererTask.h"
 #endif
+#include "TPCReconstruction/ClustererTask.h"
 
 void run_clus_tpc(std::string outputfile = "o2clus_tpc.root", std::string inputfile = "o2dig.root",
                   std::string paramfile = "o2sim_par.root", bool isContinuous = true, unsigned threads = 0);

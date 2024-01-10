@@ -1,6 +1,18 @@
 /// \file CheckClusters.C
 /// \brief Simple macro to check ITSU clusters
 
+#include <TCanvas.h>
+#include <TFile.h>
+#include <TH2F.h>
+#include <TNtuple.h>
+#include <TString.h>
+#include <TTree.h>
+
+#include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "ITSMFTSimulation/Hit.h"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TCanvas.h>
 #include <TFile.h>

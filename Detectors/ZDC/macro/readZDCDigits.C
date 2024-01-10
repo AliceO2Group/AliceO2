@@ -5,13 +5,13 @@
 #include <TStopwatch.h>
 #include <memory>
 #include <iostream>
-#include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #endif
 
+#include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "Framework/Logger.h"
 

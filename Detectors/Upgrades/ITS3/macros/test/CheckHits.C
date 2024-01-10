@@ -31,12 +31,12 @@
 #include <utility>
 #include <vector>
 
+#endif
 #define ENABLE_UPGRADES
 #include "CommonConstants/MathConstants.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "SimulationDataFormat/MCTrack.h"
-#endif
 
 using o2::itsmft::Hit;
 
