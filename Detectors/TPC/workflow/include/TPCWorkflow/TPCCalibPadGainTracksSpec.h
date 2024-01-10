@@ -44,13 +44,15 @@ namespace tpc
 class TPCCalibPadGainTracksDevice : public o2::framework::Task
 {
  public:
-  TPCCalibPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB) : mPublishAfter(publishAfterTFs), mDebug(debug), mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mDisablePolynomialsCCDB(disablePolynomialsCCDB), mCCDBRequest(req)
+  TPCCalibPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB) : mPublishAfter(publishAfterTFs), mDebug(debug), mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mDisablePolynomialsCCDB(disablePolynomialsCCDB), mCCDBRequest(req)
   {
     if (!polynomialsFile.empty()) {
       LOGP(info, "Loading polynomials from file {}", polynomialsFile);
       mPadGainTracks.loadPolTopologyCorrectionFromFile(polynomialsFile.data());
       mDisablePolynomialsCCDB = true;
     }
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
   }
 
   void init(o2::framework::InitContext& ic) final
@@ -302,7 +304,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     "calib-tpc-gainmap-tracks",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(ccdbRequest, publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
+    AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(ccdbRequest, sclOpts, publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
     opts}; // end DataProcessorSpec
 }
 

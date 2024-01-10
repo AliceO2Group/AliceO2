@@ -151,13 +151,14 @@ class CorrectionMapsHelper
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
   bool mOwner = false;    // is content of pointers owned by the helper
-  int mLumiScaleType = 0; // require CTP Lumi for mInstLumi
+  // these 2 are global options, must be set by the workflow global options
+  int mLumiScaleType = -1; // require CTP Lumi for mInstLumi
+  int mLumiScaleMode = -1; // scaling-mode of the correciton maps
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)
   float mMeanLumiRef = 0.;                                      // mean luminosity of the ref map (a.u)
   float mLumiScale = 0.;                                        // precalculated mInstLumi/mMeanLumi
-  int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
   float mMeanLumiOverride = -1.f;                               // optional value to override mean lumi
   float mMeanLumiRefOverride = -1.f;                            // optional value to override ref mean lumi
   float mInstLumiOverride = -1.f;                               // optional value to override inst lumi
