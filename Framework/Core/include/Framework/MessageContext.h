@@ -498,9 +498,7 @@ class MessageContext
   void clear()
   {
     // Verify that everything has been sent on clear.
-    for (auto& m : mMessages) {
-      assert(m->empty());
-    }
+    assert(std::all_of(mMessages.begin(), mMessages.end(), [](auto& m) { return m->empty(); }));
     mMessages.clear();
   }
 
