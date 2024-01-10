@@ -86,6 +86,7 @@ struct TrackingParameters {
   float MaxChi2NDF = 30.f;
   bool UseTrackFollower = false;
   bool FindShortTracks = false;
+  bool PerPrimaryVertexProcessing = false;
 };
 
 inline int TrackingParameters::CellMinimumLevel()

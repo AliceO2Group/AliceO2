@@ -51,7 +51,7 @@ namespace its
 
 constexpr int debugLevel{0};
 
-void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice)
+void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, int iVertex)
 {
   TimeFrame* tf = mTimeFrame;
 
@@ -74,6 +74,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice)
   int endROF{mTrkParams[iteration].nROFsPerIterations > 0 ? std::min((iROFslice + 1) * mTrkParams[iteration].nROFsPerIterations + mTrkParams[iteration].DeltaROF, tf->getNrof()) : tf->getNrof()};
   for (int rof0{startROF}; rof0 < endROF; ++rof0) {
     gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
+    const int startVtx{iVertex >= 0 ? iVertex : 0};
+    const int endVtx{iVertex >= 0 ? std::min(iVertex + 1, static_cast<int>(primaryVertices.size())) : static_cast<int>(primaryVertices.size())};
     int minRof = std::max(startROF, rof0 - mTrkParams[iteration].DeltaROF);
     int maxRof = std::min(endROF - 1, rof0 + mTrkParams[iteration].DeltaROF);
 #pragma omp parallel for num_threads(mNThreads)
@@ -94,7 +96,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice)
         }
         const float inverseR0{1.f / currentCluster.radius};
 
-        for (auto& primaryVertex : primaryVertices) {
+        for (int iV{startVtx}; iV < endVtx; ++iV) {
+          auto& primaryVertex{primaryVertices[iV]};
           const float resolution = std::sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 
           const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
@@ -402,17 +405,16 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
   std::ofstream off(fmt::format("cellneighs{}.txt", iteration));
 #endif
   for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
-
+    const int nextLayerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer + 1].size())};
+    mTimeFrame->getCellsNeighboursLUT()[iLayer].clear();
+    mTimeFrame->getCellsNeighboursLUT()[iLayer].resize(nextLayerCellsNum, 0);
     if (mTimeFrame->getCells()[iLayer + 1].empty() ||
         mTimeFrame->getCellsLookupTable()[iLayer].empty()) {
+      mTimeFrame->getCellsNeighbours()[iLayer].clear();
       continue;
     }
 
     int layerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
-    const int nextLayerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer + 1].size())};
-
-    mTimeFrame->getCellsNeighboursLUT()[iLayer].clear();
-    mTimeFrame->getCellsNeighboursLUT()[iLayer].resize(nextLayerCellsNum, 0);
     std::vector<std::pair<int, int>> cellsNeighbours;
     cellsNeighbours.reserve(nextLayerCellsNum);
 

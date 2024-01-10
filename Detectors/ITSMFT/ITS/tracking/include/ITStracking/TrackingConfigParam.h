@@ -76,6 +76,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   int nThreads = 1;
   int nOrbitsPerIterations = 0;
   int nROFsPerIterations = 0;
+  bool perPrimaryVertexProcessing = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
