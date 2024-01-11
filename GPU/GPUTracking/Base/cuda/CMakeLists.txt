@@ -131,6 +131,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   target_link_libraries(${MODULE} PUBLIC GPUTracking)
   set(targetName ${MODULE})
   install(TARGETS GPUTrackingCUDA)
+  # set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
