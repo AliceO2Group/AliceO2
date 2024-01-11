@@ -553,8 +553,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
                                       vecLab[6]};
 
   // Do the helix step
-  value_t sgn = this->getSign();
-  g3helx3(sgn * bb, step, vect);
+  value_t q = this->getCharge();
+  g3helx3(q * bb, step, vect);
 
   // Rotate back to the Global System
   vecLab[0] = cosphi * costet * vect[0] - sinphi * vect[1] + cosphi * sintet * vect[2];
@@ -593,7 +593,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   this->setZ(z);
   this->setSnp(vecLab[4] * t);
   this->setTgl(vecLab[5] * t);
-  this->setQ2Pt(sgn * t / vecLab[6]);
+  this->setQ2Pt(q * t / vecLab[6]);
 
   return true;
 }
