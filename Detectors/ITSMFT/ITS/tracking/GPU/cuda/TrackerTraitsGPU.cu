@@ -874,7 +874,7 @@ void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 }
 
 template <int nLayers>
-void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
+void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int, int)
 {
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
