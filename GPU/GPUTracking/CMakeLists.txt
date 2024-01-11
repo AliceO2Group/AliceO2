@@ -145,7 +145,6 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDInterfaces.h
     Base/GPUConstantMem.h
     Base/GPUParamRTC.h
-    Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
     TPCConvert/GPUTPCConvertImpl.h
@@ -255,6 +254,17 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
 endif()
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include_onthefly)
+file(GENERATE
+     OUTPUT include_onthefly/GPUReconstructionKernels.h
+     INPUT Base/GPUReconstructionKernels.template.h
+)
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "O2")
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/include_onthefly)
+endif()
+set(HDRS_INSTALL ${HDRS_INSTALL} ${CMAKE_CURRENT_BINARY_DIR}/include_onthefly/GPUReconstructionKernels.h)
+include(kernels.cmake)
+
 # Optional sources depending on optional dependencies
 if(GPUCA_EVENT_DISPLAY)
   add_subdirectory(display)
@@ -329,6 +339,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Debug
                                             DataCompression
                                             TPCClusterFinder
+                                            ${CMAKE_CURRENT_BINARY_DIR}/include_onthefly
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
   target_include_directories(
