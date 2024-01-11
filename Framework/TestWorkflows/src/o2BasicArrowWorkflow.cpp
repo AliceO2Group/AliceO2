@@ -34,12 +34,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       [](ProcessingContext& ctx) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        auto& builder = ctx.outputs().make<TableBuilder>(Output{"TPC", "CLUSTERS", 0});
-        auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+        auto builder = ctx.outputs().make<TableBuilder>(Output{"TPC", "CLUSTERS", 0});
+        auto rowWriter = builder->persist<float, float, float>({"x", "y", "z"});
         for (size_t i = 0; i < 3; ++i) {
           rowWriter(0, 0.f, 0.f, 0.f);
         }
-        builder.finalize();
+        builder->finalize();
       }}};
 
   return {timeframeReader};
