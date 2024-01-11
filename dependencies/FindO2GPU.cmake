@@ -298,3 +298,4 @@ endif()
 
 # if we end up here without a FATAL, it means we have found the "O2GPU" package
 set(O2GPU_FOUND TRUE)
+include("${CMAKE_CURRENT_LIST_DIR}/../GPU/GPUTracking/cmake/kernel_helpers.cmake")
