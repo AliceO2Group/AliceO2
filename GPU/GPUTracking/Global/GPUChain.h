@@ -178,18 +178,8 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
-#ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
-  template <class S, int I = 0, int J = -1>
-  inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone)
-  {
-    return mRec->runKernel<S, I, J>(x, y);
-  }
-  template <class S, int I = 0, int J = -1, typename... Args>
-  inline int runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args&&... args)
-#else
   template <class S, int I = 0, int J = -1, typename... Args>
   inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, Args&&... args)
-#endif
   {
     return mRec->runKernel<S, I, J, Args...>(x, y, z, std::forward<Args>(args)...);
   }
