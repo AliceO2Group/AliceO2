@@ -196,7 +196,7 @@ void Tracker::initialiseTimeFrameHybrid(int& iteration)
 
 void Tracker::computeTrackletsHybrid(int& iteration, int&, int&)
 {
-  mTraits->computeTrackletsHybrid(iteration);
+  mTraits->computeTrackletsHybrid(iteration, iteration, iteration); // placeholder for the proper ROF/vertex slicing
 }
 
 void Tracker::computeCellsHybrid(int& iteration)
