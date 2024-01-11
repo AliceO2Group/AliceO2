@@ -91,7 +91,6 @@ Important parameters influencing the transport simulation are:
 | Stack | Parameters influencing the particle stack. Example include whether the stack does kinematics pruning or whether it keeps secondaries at all. |
 | SimCutParams | Parameters allowing to set some sime geometry stepping cuts in R, Z, etc. |
 | Diamond | Parameter allowing to set the interaction vertex location and the spread/width. Is used in all event generators. |
-| Pythia6 | Parameters that influence the pythia6 generator. |
 | Pythia8 | Parameters that influence the pythia8 generator. |
 | HepMC | Parameters that influence the HepMC generator. |
 | TriggerParticle | Parameters influencing the trigger mechanism in particle generators. |
@@ -136,13 +135,6 @@ You may contribute to the documentation by asking a question
 #### 1. **How can I interface an event generator from ALIROOT**?
 In order to access event generators from ALIROOT, such as `THijing` or `TPyhtia6`, you may use the `-g external` command line option followed by a ROOT macro setting up the event 
 generator. Examples thereof are available in the installation directory `$O2_ROOT/share/Generators/external`.
-
-For example, in order to simulate with 10 Pythia6 events, the following command can be run:
-```
-o2-sim -n 10 -g external --configKeyValues 'GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/pythia6.C'
-```
-Macro arguments can be passed setting `GeneratorExternal.funcName`  
-`GeneratorExternal.funcName=pythia6(14000., "pythia.settings")`.
 
 Users may write there own macros in order to customize to their needs.
 
@@ -312,37 +304,6 @@ Pythia8::UserHooks*
   pythia8_userhooks_charm()
 {
   return new UserHooksCharm();
-```
-
-
-### Pythia6 interface
-A new Pythia6 interface is provided via GeneratorPythia6. This complies with the o2::eventgen::Generator protocol, and hence the user is allowed to use all the trigger functionalities. The class can also be used for DeepTriggers as this modified macro shows.
-
-```
-//   usage: o2sim --trigger external --configKeyValues "TriggerExternal.fileName=trigger_mpi.C;TriggerExternal.funcName="trigger_mpi()"'
-
-#include "Generators/Trigger.h"
-#include "Pythia8/Pythia.h"
-#include "TPythia6.h"
-
-o2::eventgen::DeepTrigger
-  trigger_mpi(int mpiMin = 15)
-{
-  return [mpiMin](void* interface, std::string name) -> bool {
-    int nMPI = 0;
-    if (!name.compare("pythia8")) {
-      auto py8 = reinterpret_cast<Pythia8::Pythia*>(interface);
-      nMPI = py8->info.nMPI();
-    }
-    else if (!name.compare("pythia6")) {
-      auto py6 = reinterpret_cast<TPythia6*>(interface);
-      nMPI = py6->GetMSTI(31);
-    }
-    else
-      LOG(fatal) << "Cannot define MPI for generator interface \'" << name << "\'";
-    return nMPI >= mpiMin;
-  };
-}
 ```
 
 ## Development
