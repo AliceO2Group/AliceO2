@@ -496,6 +496,7 @@ class MessageContext
   o2::header::Stack* findMessageHeaderStack(const Output& spec);
   int countDeviceOutputs(bool excludeDPLOrigin = false);
   void fakeDispatch() { mDidDispatch = true; }
+  bool didDispatch() { return mDidDispatch; }
   o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);
   std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> findMessageHeaders(const Output& spec);
 

@@ -162,6 +162,48 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
     .uniqueId = simpleServiceId<StreamContext>(),
     .init = simpleServiceInit<StreamContext, StreamContext, ServiceKind::Stream>(),
     .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext& context, void* service) {
+      auto* stream = (StreamContext*)service;
+      auto& routes = context.services().get<DeviceSpec const>().outputs;
+      // Notice I need to do this here, because different invocation for
+      // the same stream might be referring to different data processors.
+      // We should probably have a context which is per stream of a specific
+      // data processor.
+      stream->routeCreated.resize(routes.size());
+      // Reset the routeCreated at every processing step
+      std::fill(stream->routeCreated.begin(), stream->routeCreated.end(), false); },
+    .postProcessing = [](ProcessingContext& processingContext, void* service) {
+      auto* stream = (StreamContext*)service;
+      auto& routes = processingContext.services().get<DeviceSpec const>().outputs;
+      auto& timeslice = processingContext.services().get<TimingInfo>().timeslice;
+      auto& messageContext = processingContext.services().get<MessageContext>();
+      // Check if we never created any data for this timeslice
+      // if we did not, but we still have didDispatched set to true
+      // it means it was created out of band.
+      bool didCreate = false;
+      for (size_t ri = 0; ri < routes.size(); ++ri) {
+        if (stream->routeCreated[ri] == true) {
+          didCreate = true;
+          break;
+        }
+      }
+      if (didCreate == false && messageContext.didDispatch() == true) {
+        LOGP(debug, "Data created out of band");
+        return;
+      }
+      for (size_t ri = 0; ri < routes.size(); ++ri) {
+        if (stream->routeCreated[ri] == true) {
+          continue;
+        }
+        auto &route = routes[ri];
+        auto &matcher = route.matcher;
+        if ((timeslice % route.maxTimeslices) != route.timeslice) {
+          continue;
+        }
+        if (matcher.lifetime == Lifetime::Timeframe) {
+          LOGP(error, "Expected Lifetime::Timeframe data {} was not created for timeslice {} and might result in dropped timeframes", DataSpecUtils::describe(matcher), timeslice);
+        }
+      } },
     .kind = ServiceKind::Stream};
 }
 
