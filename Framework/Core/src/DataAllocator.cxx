@@ -19,6 +19,7 @@
 #include "Framework/FairMQResizableBuffer.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/StreamContext.h"
 #include "Headers/Stack.h"
 
 #include <fairmq/Device.h>
@@ -47,10 +48,12 @@ DataAllocator::DataAllocator(ServiceRegistryRef contextRegistry)
 RouteIndex DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
 {
   auto& allowedOutputRoutes = mRegistry.get<DeviceSpec const>().outputs;
+  auto& stream = mRegistry.get<o2::framework::StreamContext>();
   // FIXME: we should take timeframeId into account as well.
   for (auto ri = 0; ri < allowedOutputRoutes.size(); ++ri) {
     auto& route = allowedOutputRoutes[ri];
     if (DataSpecUtils::match(route.matcher, spec.origin, spec.description, spec.subSpec) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
+      stream.routeCreated[ri] = true;
       return RouteIndex{ri};
     }
   }
