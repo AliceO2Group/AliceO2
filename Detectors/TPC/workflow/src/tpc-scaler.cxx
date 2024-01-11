@@ -23,7 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"enableWeights", VariantType::Bool, false, {"Enable weights for TPC scalers"}}};
+    {"disableWeights", VariantType::Bool, false, {"Disable weights for TPC scalers"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -33,7 +33,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   WorkflowSpec workflow;
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
-  const bool enableWeights = config.options().get<bool>("enableWeights");
+  const bool enableWeights = !(config.options().get<bool>("disableWeights"));
   workflow.emplace_back(o2::tpc::getTPCScalerSpec(enableWeights));
   return workflow;
 }
