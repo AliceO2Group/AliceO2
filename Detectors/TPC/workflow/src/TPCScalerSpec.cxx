@@ -40,6 +40,7 @@ class TPCScalerSpec : public Task
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mIonDriftTimeMS = ic.options().get<float>("ion-drift-time");
+    mMaxTimeWeightsMS = ic.options().get<float>("max-time-for-weights");
   }
 
   void run(ProcessingContext& pc) final
@@ -83,6 +84,9 @@ class TPCScalerSpec : public Task
         LOGP(info, "Setting TPC scaler weights");
         mTPCScaler.setScalerWeights(mScalerWeights);
         mTPCScaler.useWeights(true);
+        if (mIonDriftTimeMS == -1) {
+          overWriteIntegrationTime();
+        }
       }
     }
     if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCSCALERWCCDB", 0)) {
@@ -90,6 +94,10 @@ class TPCScalerSpec : public Task
       mScalerWeights = *(TPCScalerWeights*)obj;
       mTPCScaler.setScalerWeights(mScalerWeights);
       mTPCScaler.useWeights(true);
+      // in case ion drift time is not specified it is overwritten by the value in the weight object
+      if (mIonDriftTimeMS == -1) {
+        overWriteIntegrationTime();
+      }
     }
   }
 
@@ -98,7 +106,21 @@ class TPCScalerSpec : public Task
   const bool mEnableWeights{false};                       ///< use weights for TPC scalers
   TPCScalerWeights mScalerWeights{};                      ///< scaler weights
   float mIonDriftTimeMS{-1};                              ///< ion drift time
+  float mMaxTimeWeightsMS{500};                           ///< maximum integration time when weights are used
   TPCScaler mTPCScaler;                                   ///< tpc scaler
+
+  void overWriteIntegrationTime()
+  {
+    float integrationTime = std::abs(mScalerWeights.mFirstTimeStampMS);
+    if (integrationTime <= 0) {
+      return;
+    }
+    if (integrationTime > mMaxTimeWeightsMS) {
+      integrationTime = mMaxTimeWeightsMS;
+    }
+    LOGP(info, "Setting maximum integration time for weights to: {}", integrationTime);
+    mTPCScaler.setIonDriftTimeMS(integrationTime);
+  }
 };
 
 o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableWeights)
@@ -126,7 +148,8 @@ o2::framework::DataProcessorSpec getTPCScalerSpec(bool enableWeights)
     outputs,
     AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest, enableWeights)},
     Options{
-      {"ion-drift-time", VariantType::Float, -1.f, {"Overwrite ion drift time if a value >0 is provided"}}}};
+      {"ion-drift-time", VariantType::Float, -1.f, {"Overwrite ion drift time if a value >0 is provided"}},
+      {"max-time-for-weights", VariantType::Float, 500.f, {"Maximum possible integration time in ms when weights are used"}}}};
 }
 
 } // namespace tpc
