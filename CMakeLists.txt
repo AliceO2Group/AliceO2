@@ -11,7 +11,7 @@
 
 # Preamble
 
-cmake_minimum_required(VERSION 3.21.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.27.1 FATAL_ERROR)
 
 # it's important to specify accurately the list of languages. for instance C and
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
@@ -140,4 +140,3 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 set_root_pcm_dependencies()
-
