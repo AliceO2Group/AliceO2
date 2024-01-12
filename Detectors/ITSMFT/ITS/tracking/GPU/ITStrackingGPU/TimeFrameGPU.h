@@ -199,9 +199,8 @@ class TimeFrameGPU : public TimeFrame
   void loadTrackSeedsChi2Device();
   void loadRoadsDevice();
   void loadTrackSeedsDevice(std::vector<CellSeed>&);
-  void createTrackITSExtDevice(const std::vector<CellSeed>&);
-  void createTrackITSExtDevice(); // deprecated
-  void downloadTrackITSExtDevice();
+  void createTrackITSExtDevice(const unsigned int&);
+  void downloadTrackITSExtDevice(std::vector<CellSeed>&);
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);

@@ -19,6 +19,7 @@ if(HIP_ENABLED)
                          ../cuda/Stream.cu
                          ../cuda/TrackerTraitsGPU.cu
                          ../cuda/TracerGPU.cu
+                         ../cuda/TrackingKernels.cu
                          ../cuda/VertexerTraitsGPU.cu
                          ../cuda/Utils.cu
                  PUBLIC_INCLUDE_DIRECTORIES ../

@@ -44,10 +44,7 @@ class TrackerTraitsGPU : public TrackerTraits
   void computeTrackletsHybrid(const int iteration, int, int) override;
   void computeCellsHybrid(const int iteration) override;
   void findCellsNeighboursHybrid(const int iteration) override;
-  void findRoadsHybrid(const int iteration) override;
-  void findTracksHybrid(const int iteration) override;
 
-  void findTracks() override;
   void extendTracks(const int iteration) override;
 
   // TimeFrameGPU information forwarding
