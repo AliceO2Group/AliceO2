@@ -66,16 +66,6 @@ class GPUDebugTiming
 
 #include "GPUReconstructionIncludesDevice.h"
 
-/*
-// Not using templated kernel any more, since nvidia profiler does not resolve template names
-template <class T, int I, typename... Args>
-GPUg() void runKernelCUDA(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
-{
-  GPUshared() typename T::GPUSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice_internal], args...);
-}
-*/
-
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \

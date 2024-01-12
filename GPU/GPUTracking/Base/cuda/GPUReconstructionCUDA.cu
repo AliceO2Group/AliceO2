@@ -577,3 +577,5 @@ void GPUReconstructionCUDA::endGPUProfiling()
 {
   GPUFailedMsg(cudaProfilerStop());
 }
+
+template class GPUReconstructionKernels<GPUReconstructionCUDABackend>;
