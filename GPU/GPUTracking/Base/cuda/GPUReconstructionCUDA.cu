@@ -345,22 +345,19 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
       }
     }
 #endif
-    void* devPtrConstantMem;
-    if (mProcessingSettings.rtc.enable) {
-      mDeviceConstantMemRTC.resize(mInternals->rtcModules.size());
-    }
+    void* devPtrConstantMem = nullptr;
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-    devPtrConstantMem = GetBackendConstSymbolAddress();
+    runConstantRegistrators();
+    devPtrConstantMem = mDeviceConstantMemList[0];
     if (mProcessingSettings.rtc.enable) {
-      for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
-        GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&mDeviceConstantMemRTC[i], nullptr, *mInternals->rtcModules[i], "gGPUConstantMemBuffer"));
+      for (unsigned int i = 0; i < mInternals->rtcModules.size(); i++) {
+        CUdeviceptr tmp;
+        GPUFailedMsg(cuModuleGetGlobal(&tmp, nullptr, *mInternals->rtcModules[i], "gGPUConstantMemBuffer"));
+        mDeviceConstantMemList.emplace_back((void*)tmp);
       }
     }
 #else
     GPUFailedMsg(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
-    for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
-      mDeviceConstantMemRTC[i] = devPtrConstantMem;
-    }
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
@@ -373,8 +370,8 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     mMaxThreads = master->mMaxThreads;
     mDeviceName = master->mDeviceName;
     mDeviceConstantMem = master->mDeviceConstantMem;
-    mDeviceConstantMemRTC.resize(master->mDeviceConstantMemRTC.size());
-    std::copy(master->mDeviceConstantMemRTC.begin(), master->mDeviceConstantMemRTC.end(), mDeviceConstantMemRTC.begin());
+    mDeviceConstantMemList.resize(master->mDeviceConstantMemList.size());
+    std::copy(master->mDeviceConstantMemList.begin(), master->mDeviceConstantMemList.end(), mDeviceConstantMemList.begin());
     mInternals = master->mInternals;
     GPUFailedMsg(cudaSetDevice(mDeviceId));
 
@@ -469,9 +466,9 @@ size_t GPUReconstructionCUDA::TransferMemoryInternal(GPUMemoryResource* res, int
 size_t GPUReconstructionCUDA::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
 {
   std::unique_ptr<GPUParamRTC> tmpParam;
-  for (unsigned int i = 0; i < 1 + mDeviceConstantMemRTC.size(); i++) {
-    void* basePtr = i ? mDeviceConstantMemRTC[i - 1] : mDeviceConstantMem;
-    if (i && basePtr == (void*)mDeviceConstantMem) {
+  for (unsigned int i = 0; i < 1 + mDeviceConstantMemList.size(); i++) {
+    void* basePtr = i ? mDeviceConstantMemList[i - 1] : mDeviceConstantMem;
+    if (basePtr == nullptr || i && basePtr == (void*)mDeviceConstantMem) {
       continue;
     }
     if (stream == -1) {
