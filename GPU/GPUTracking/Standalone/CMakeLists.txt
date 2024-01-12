@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # Some general CMake settings
-cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 project(GPUTrackingStandalone)
 include(FeatureSummary)
 set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
