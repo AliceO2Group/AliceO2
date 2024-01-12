@@ -21,6 +21,7 @@
 #include "GPULogging.h"
 #include <vector>
 #include <memory>
+#include <string>
 
 namespace GPUCA_NAMESPACE
 {
@@ -29,6 +30,7 @@ namespace gpu
 struct GPUReconstructionCUDAInternals {
   std::vector<std::unique_ptr<CUmodule>> rtcModules;     // module for RTC compilation
   std::vector<std::unique_ptr<CUfunction>> rtcFunctions; // vector of ptrs to RTC kernels
+  std::vector<std::string> rtcKernelNames;               // names of kernels
   cudaStream_t Streams[GPUCA_MAX_STREAMS];               // Pointer to array of CUDA Streams
 
   template <bool multi, class T, int I = 0>

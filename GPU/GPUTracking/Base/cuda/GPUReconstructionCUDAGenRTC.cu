@@ -229,13 +229,15 @@ int GPUReconstructionCUDA::genRTC()
 
   int j = 0;
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
-#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                          \
-  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
-  mInternals->rtcFunctions.emplace_back(new CUfunction);                                               \
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                           \
+  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size());  \
+  mInternals->rtcFunctions.emplace_back(new CUfunction);                                                \
+  mInternals->rtcKernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))); \
   GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtc.compilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
-#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                          \
-  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
-  mInternals->rtcFunctions.emplace_back(new CUfunction);                                              \
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                     \
+  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size());            \
+  mInternals->rtcFunctions.emplace_back(new CUfunction);                                                         \
+  mInternals->rtcKernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))); \
   GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtc.compilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
