@@ -247,3 +247,19 @@ int GPUReconstructionCUDA::genRTC()
 #endif
   return 0;
 }
+
+template <bool multi, class T, int I>
+int GPUReconstructionCUDAInternals::getRTCkernelNum(int k)
+{
+  static int num = k;
+  if (num < 0) {
+    throw std::runtime_error("Invalid kernel");
+  }
+  return num;
+}
+
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                             \
+  template int GPUReconstructionCUDAInternals::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k); \
+  template int GPUReconstructionCUDAInternals::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
