@@ -26,44 +26,6 @@ texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
 texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 #endif
 
-class GPUDebugTiming
-{
- public:
-  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
-  {
-    if (mDo) {
-      if (mDeviceTimers) {
-        mRec->GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
-      } else {
-        mTimer.ResetStart();
-      }
-    }
-  }
-  ~GPUDebugTiming()
-  {
-    if (mDo) {
-      if (mDeviceTimers) {
-        mRec->GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
-        mRec->GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDeviceTimers[1]));
-        float v;
-        mRec->GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDeviceTimers[0], (cudaEvent_t)mDeviceTimers[1]));
-        mXYZ.t = v * 1.e-3;
-      } else {
-        mRec->GPUFailedMsg(cudaStreamSynchronize(mStreams[mXYZ.x.stream]));
-        mXYZ.t = mTimer.GetCurrentElapsedTime();
-      }
-    }
-  }
-
- private:
-  GPUReconstruction::deviceEvent* mDeviceTimers;
-  cudaStream_t* mStreams;
-  GPUReconstruction::krnlSetup& mXYZ;
-  GPUReconstructionCUDABackend* mRec;
-  HighResTimer mTimer;
-  bool mDo;
-};
-
 #include "GPUReconstructionIncludesDevice.h"
 
 #undef GPUCA_KRNL_REG
@@ -79,29 +41,11 @@ class GPUDebugTiming
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
-template <bool multi, class T, int I>
-int GPUReconstructionCUDAInternals::getRTCkernelNum(int k)
-{
-  static int num = k;
-  if (num < 0) {
-    throw std::runtime_error("Invalid kernel");
-  }
-  return num;
-}
-
 template <>
 void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
 {
   GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   GPUFailedMsg(cudaMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
-}
-
-static void getArgPtrs(const void** pArgs) {}
-template <typename T, typename... Args>
-static void getArgPtrs(const void** pArgs, const T& arg, const Args&... args)
-{
-  *pArgs = &arg;
-  getArgPtrs(pArgs + 1, args...);
 }
 
 template <class T, int I, typename... Args>
@@ -118,7 +62,7 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
     pArgs[0] = &mDeviceConstantMemRTC[0];
 #endif
     pArgs[arg_offset] = &y.start;
-    getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
+    GPUReconstructionCUDAInternals::getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
     if (y.num <= 1) {
       GPUFailedMsg(cuLaunchKernel(*mInternals->rtcFunctions[mInternals->getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     } else {
@@ -153,10 +97,8 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
   return 0;
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                                                           \
-  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments)); \
-  template int GPUReconstructionCUDAInternals::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);                               \
-  template int GPUReconstructionCUDAInternals::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
+  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
