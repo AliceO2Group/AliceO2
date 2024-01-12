@@ -59,7 +59,7 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
     int arg_offset = 0;
 #ifdef GPUCA_NO_CONSTANT_MEMORY
     arg_offset = 1;
-    pArgs[0] = &mDeviceConstantMemRTC[0];
+    pArgs[0] = &mDeviceConstantMem;
 #endif
     pArgs[arg_offset] = &y.start;
     GPUReconstructionCUDAInternals::getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
@@ -102,13 +102,12 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
-void* GPUReconstructionCUDABackend::GetBackendConstSymbolAddress()
-{
-  void* retVal = nullptr;
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-  GPUFailedMsg(cudaGetSymbolAddress(&retVal, gGPUConstantMemBuffer));
-#endif
-  return retVal;
-}
-
 template class GPUReconstructionKernels<GPUReconstructionCUDABackend>;
+
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+static GPUReconstructionDeviceBase::deviceConstantMemRegistration registerConstSymbol([]() {
+  void* retVal = nullptr;
+  GPUReconstructionCUDA::GPUFailedMsgI(cudaGetSymbolAddress(&retVal, gGPUConstantMemBuffer));
+  return retVal;
+});
+#endif
