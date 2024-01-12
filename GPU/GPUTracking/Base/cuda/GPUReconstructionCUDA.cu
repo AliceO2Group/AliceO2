@@ -578,4 +578,17 @@ void GPUReconstructionCUDA::endGPUProfiling()
   GPUFailedMsg(cudaProfilerStop());
 }
 
+void GPUReconstructionCUDABackend::PrintKernelOccupancies()
+{
+  int maxBlocks = 0, threads = 0, suggestedBlocks = 0, nRegs = 0, sMem = 0;
+  GPUFailedMsg(cudaSetDevice(mDeviceId));
+  for (unsigned int i = 0; i < mInternals->rtcFunctions.size(); i++) {
+    GPUFailedMsg(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->rtcFunctions[i], 0, 0, 0));
+    GPUFailedMsg(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->rtcFunctions[i], threads, 0));
+    GPUFailedMsg(cuFuncGetAttribute(&nRegs, CU_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->rtcFunctions[i]));
+    GPUFailedMsg(cuFuncGetAttribute(&sMem, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, *mInternals->rtcFunctions[i]));
+    GPUInfo("Kernel: %50s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d, Regs: %3d, smem: %3d", mInternals->rtcKernelNames[i].c_str(), threads, maxBlocks, suggestedBlocks, nRegs, sMem);
+  }
+}
+
 template class GPUReconstructionKernels<GPUReconstructionCUDABackend>;
