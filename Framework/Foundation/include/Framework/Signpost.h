@@ -12,12 +12,38 @@
 #define O2_FRAMEWORK_SIGNPOST_H_
 
 #include <atomic>
+#include <array>
 
 struct o2_log_handle_t {
   char const* name = nullptr;
   void* log = nullptr;
   o2_log_handle_t* next = nullptr;
 };
+
+// Helper function which replaces engineering types with a printf
+// compatible format string.
+template <auto N>
+constexpr auto remove_engineering_type(char const (&src)[N])
+{
+  std::array<char, N> res = {};
+  // do whatever string manipulation you want in res.
+  char* t = res.data();
+  for (int i = 0; i < N; ++i) {
+    if (src[i] == '%' && src[i + 1] == '{') {
+      *t++ = src[i];
+      while (src[i] != '}' && src[i] != 0) {
+        ++i;
+      }
+      if (src[i] == 0) {
+        *t = 0;
+        return res;
+      }
+    } else {
+      *t++ = src[i];
+    }
+  }
+  return res;
+}
 
 // Loggers registry is actually a feature available to all platforms
 // We use this to register the loggers and to walk over them.
@@ -71,10 +97,10 @@ void* _o2_log_create(char const* name, char const* category);
 #define O2_LOG_DEBUG(log, ...) os_log_debug(private_o2_log_##log, __VA_ARGS__)
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer) os_signpost_id_t name = os_signpost_id_make_with_pointer(private_o2_log_##log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log) os_signpost_id_t name = os_signpost_id_generate(private_o2_log_##log)
-#define O2_SIGNPOST_EVENT_EMIT(log, id, name, ...) os_signpost_event_emit(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_START(log, id, name, ...) os_signpost_interval_begin(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_END(log, id, name, ...) os_signpost_interval_end(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_ENG_TYPE(x, what) "%{xcode:" #x "}" what
+// FIXME: use __VA_OPT__ when available in C++20
+#define O2_SIGNPOST_EVENT_EMIT(log, id, name, format, ...) os_signpost_event_emit(private_o2_log_##log, id, name, format, ##__VA_ARGS__)
+#define O2_SIGNPOST_START(log, id, name, format, ...) os_signpost_interval_begin(private_o2_log_##log, id, name, format, ##__VA_ARGS__)
+#define O2_SIGNPOST_END(log, id, name, format, ...) os_signpost_interval_end(private_o2_log_##log, id, name, format, ##__VA_ARGS__)
 
 #ifdef O2_SIGNPOST_IMPLEMENTATION
 /// We use a wrapper so that we can keep track of the logs.
@@ -465,10 +491,9 @@ void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 #define O2_LOG_DEBUG(log, ...) O2_LOG_MACRO(__VA_ARGS__)
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer) _o2_signpost_id_t name = _o2_signpost_id_make_with_pointer(private_o2_log_##log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log) _o2_signpost_id_t name = _o2_signpost_id_generate_local(private_o2_log_##log)
-#define O2_SIGNPOST_EVENT_EMIT(log, id, name, ...) _o2_signpost_event_emit(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_START(log, id, name, ...) _o2_signpost_interval_begin(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_END(log, id, name, ...) _o2_signpost_interval_end(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_ENG_TYPE(x, what) "%" what
+#define O2_SIGNPOST_EVENT_EMIT(log, id, name, format, ...) _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__)
+#define O2_SIGNPOST_START(log, id, name, format, ...) _o2_signpost_interval_begin(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__)
+#define O2_SIGNPOST_END(log, id, name, format, ...) _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__)
 #else // This is the release implementation, it does nothing.
 #define O2_DECLARE_DYNAMIC_LOG(x)
 #define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(x)
@@ -478,10 +503,9 @@ void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 #define O2_LOG_DEBUG(log, ...)
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log)
-#define O2_SIGNPOST_EVENT_EMIT(log, id, name, ...)
-#define O2_SIGNPOST_START(log, id, name, ...)
-#define O2_SIGNPOST_END(log, id, name, ...)
-#define O2_ENG_TYPE(x)
+#define O2_SIGNPOST_EVENT_EMIT(log, id, name, format, ...)
+#define O2_SIGNPOST_START(log, id, name, format, ...)
+#define O2_SIGNPOST_END(log, id, name, format, ...)
 #endif
 
 #endif // O2_FRAMEWORK_SIGNPOST_H_

@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 
   // This has an engineering type, which we will not use on Linux / FairLogger
   O2_SIGNPOST_ID_FROM_POINTER(id4, test_Signpost, &id3);
-  O2_SIGNPOST_START(test_Signpost, id4, "Test category", "A signpost with an engineering type formatter " O2_ENG_TYPE(size - in - bytes, "d"), 1);
+  O2_SIGNPOST_START(test_Signpost, id4, "Test category", "A signpost with an engineering type formatter %{size-in-bytes}d", 1);
   O2_SIGNPOST_END(test_Signpost, id4, "Test category", "A signpost interval from a pointer");
 
   O2_SIGNPOST_START(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will not see, because they are off by default");
