@@ -163,8 +163,9 @@ find_package(Clang)
 set_package_properties(Clang PROPERTIES TYPE OPTIONAL)
 endif()
 
-
+if(CMAKE_PROJECT_NAME STREQUAL "O2")
 find_package(O2GPU)
+endif()
 
 find_package(FastJet)
 
