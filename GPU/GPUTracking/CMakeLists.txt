@@ -520,6 +520,6 @@ endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   if(NOT ${CMAKE_SYSTEM} MATCHES Darwin)
-    add_subdirectory(Benchmark)
+    add_subdirectory(Standalone/Benchmark)
   endif()
 endif()
