@@ -24,6 +24,13 @@
 #include "GPUReconstructionIncludes.h"
 #include "GPUParamRTC.h"
 
+#if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
+#include "utils/qGetLdBinarySymbols.h"
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) QGET_LD_BINARY_SYMBOLS(GPUCA_M_CAT3(cuda_kernel_module_fatbin_krnl_, GPUCA_M_KRNL_NAME(x_class), _fatbin))
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#endif
+
 static constexpr size_t REQUIRE_MIN_MEMORY = 1024L * 1024 * 1024;
 static constexpr size_t REQUIRE_MEMORY_RESERVED = 512L * 1024 * 1024;
 static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED_PER_SM = 40L * 1024 * 1024;
@@ -48,8 +55,8 @@ GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsDevi
 GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
 {
   if (mMaster == nullptr) {
-    for (unsigned int i = 0; i < mInternals->rtcModules.size(); i++) {
-      cuModuleUnload(*mInternals->rtcModules[i]);
+    for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
+      cuModuleUnload(*mInternals->kernelModules[i]);
     }
     delete mInternals;
   }
@@ -322,17 +329,25 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
         throw std::runtime_error("Runtime compilation failed");
       }
     }
+#if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
+    else {
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)       \
+  mInternals->kernelModules.emplace_back(std::make_unique<CUmodule>()); \
+  GPUFailedMsg(cuModuleLoadData(mInternals->kernelModules.back().get(), GPUCA_M_CAT3(_binary_cuda_kernel_module_fatbin_krnl_, GPUCA_M_KRNL_NAME(x_class), _fatbin_start)));
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+      loadKernelModules(true, false);
+    }
+#endif
 #endif
     void* devPtrConstantMem = nullptr;
 #ifndef GPUCA_NO_CONSTANT_MEMORY
     runConstantRegistrators();
     devPtrConstantMem = mDeviceConstantMemList[0];
-    if (mProcessingSettings.rtc.enable) {
-      for (unsigned int i = 0; i < mInternals->rtcModules.size(); i++) {
-        CUdeviceptr tmp;
-        GPUFailedMsg(cuModuleGetGlobal(&tmp, nullptr, *mInternals->rtcModules[i], "gGPUConstantMemBuffer"));
-        mDeviceConstantMemList.emplace_back((void*)tmp);
-      }
+    for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
+      CUdeviceptr tmp;
+      GPUFailedMsg(cuModuleGetGlobal(&tmp, nullptr, *mInternals->kernelModules[i], "gGPUConstantMemBuffer"));
+      mDeviceConstantMemList.emplace_back((void*)tmp);
     }
 #else
     GPUFailedMsg(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
@@ -557,13 +572,42 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 {
   int maxBlocks = 0, threads = 0, suggestedBlocks = 0, nRegs = 0, sMem = 0;
   GPUFailedMsg(cudaSetDevice(mDeviceId));
-  for (unsigned int i = 0; i < mInternals->rtcFunctions.size(); i++) {
-    GPUFailedMsg(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->rtcFunctions[i], 0, 0, 0));
-    GPUFailedMsg(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->rtcFunctions[i], threads, 0));
-    GPUFailedMsg(cuFuncGetAttribute(&nRegs, CU_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->rtcFunctions[i]));
-    GPUFailedMsg(cuFuncGetAttribute(&sMem, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, *mInternals->rtcFunctions[i]));
-    GPUInfo("Kernel: %50s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d, Regs: %3d, smem: %3d", mInternals->rtcKernelNames[i].c_str(), threads, maxBlocks, suggestedBlocks, nRegs, sMem);
+  for (unsigned int i = 0; i < mInternals->kernelFunctions.size(); i++) {
+    GPUFailedMsg(cuOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0, 0));
+    GPUFailedMsg(cuOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->kernelFunctions[i], threads, 0));
+    GPUFailedMsg(cuFuncGetAttribute(&nRegs, CU_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->kernelFunctions[i]));
+    GPUFailedMsg(cuFuncGetAttribute(&sMem, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, *mInternals->kernelFunctions[i]));
+    GPUInfo("Kernel: %50s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d, Regs: %3d, smem: %3d", mInternals->kernelNames[i].c_str(), threads, maxBlocks, suggestedBlocks, nRegs, sMem);
   }
+}
+
+int GPUReconstructionCUDA::loadKernelModules(bool perKernel, bool perSingleMulti)
+{
+  int j = 0;
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                  \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward) \
+  j += !perSingleMulti;
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                             \
+  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size()); \
+  mInternals->kernelFunctions.emplace_back(new CUfunction);                                               \
+  mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))));      \
+  GPUFailedMsg(cuModuleGetFunction(mInternals->kernelFunctions.back().get(), *mInternals->kernelModules[perKernel ? (j += perSingleMulti) : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                  \
+  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size());      \
+  mInternals->kernelFunctions.emplace_back(new CUfunction);                                                   \
+  mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))); \
+  GPUFailedMsg(cuModuleGetFunction(mInternals->kernelFunctions.back().get(), *mInternals->kernelModules[perKernel ? (j += perSingleMulti) : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+
+  for (unsigned int i = 0; i < mInternals->kernelNames.size(); i++) {
+    if (mProcessingSettings.debugLevel >= 3) {
+      GPUInfo("Loaded module for kernel %s", mInternals->kernelNames[i].c_str());
+    }
+  }
+  return 0;
 }
 
 template class GPUReconstructionKernels<GPUReconstructionCUDABackend>;
