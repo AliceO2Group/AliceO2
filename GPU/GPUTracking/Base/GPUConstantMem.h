@@ -129,9 +129,6 @@ static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + si
 #if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
 GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer;
 #endif // GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
-#ifdef GPUCA_CONSTANT_AS_ARGUMENT
-static GPUConstantMemCopyable gGPUConstantMemBufferHost;
-#endif // GPUCA_CONSTANT_AS_ARGUMENT
 #endif // !GPUCA_GPUCODE_HOSTONLY
 #endif
 

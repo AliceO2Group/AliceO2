@@ -22,15 +22,9 @@
 
 // clang-format off
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
-    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
-    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
-    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
-  #else
-    #define GPUCA_CONSMEM_PTR
-    #define GPUCA_CONSMEM_CALL
-    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-  #endif
+  #define GPUCA_CONSMEM_PTR
+  #define GPUCA_CONSMEM_CALL
+  #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
 #else
   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
@@ -535,9 +529,6 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
 
 size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
 {
-#ifdef GPUCA_CONSTANT_AS_ARGUMENT
-  memcpy(((char*)&gGPUConstantMemBufferHost) + offset, src, size);
-#endif
 #ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice));
