@@ -482,6 +482,12 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   endif()
 endif()
 
+set_source_files_properties(DataCompression/GPUTPCCompressionTrackModel.cxx
+                            DataCompression/GPUTPCCompressionKernels.cxx
+                            DataCompression/TPCClusterDecompressor.cxx
+                            TARGET_DIRECTORY ${targetName}
+                            PROPERTIES COMPILE_FLAGS "-fno-fast-math -ffp-contract=off")
+
 # Add compile definitions and libraries depending on available optional dependencies
 if(GPUCA_QA)
   message(STATUS "Building GPU QA")
