@@ -31,10 +31,10 @@ namespace gpu
 #define GPUFailedMsgI(x) GPUFailedMsgAI(x, __FILE__, __LINE__)
 
 struct GPUReconstructionCUDAInternals {
-  std::vector<std::unique_ptr<CUmodule>> rtcModules;     // module for RTC compilation
-  std::vector<std::unique_ptr<CUfunction>> rtcFunctions; // vector of ptrs to RTC kernels
-  std::vector<std::string> rtcKernelNames;               // names of kernels
-  cudaStream_t Streams[GPUCA_MAX_STREAMS];               // Pointer to array of CUDA Streams
+  std::vector<std::unique_ptr<CUmodule>> kernelModules;     // module for RTC compilation
+  std::vector<std::unique_ptr<CUfunction>> kernelFunctions; // vector of ptrs to RTC kernels
+  std::vector<std::string> kernelNames;                     // names of kernels
+  cudaStream_t Streams[GPUCA_MAX_STREAMS];                  // Pointer to array of CUDA Streams
 
   template <bool multi, class T, int I = 0>
   static int getRTCkernelNum(int k = -1);

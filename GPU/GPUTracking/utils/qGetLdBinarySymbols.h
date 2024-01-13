@@ -15,9 +15,10 @@
 #ifndef QGETLDBINARYSYMBOLS_H
 #define QGETLDBINARYSYMBOLS_H
 
-#define QGET_LD_BINARY_SYMBOLS(filename)        \
-  extern "C" char _binary_##filename##_start[]; \
-  extern "C" char _binary_##filename##_end[];   \
-  static size_t _binary_##filename##_len = _binary_##filename##_end - _binary_##filename##_start;
+#define QGET_LD_BINARY_CAT3(a, b, c) a##b##c
+#define QGET_LD_BINARY_SYMBOLS(filename)                             \
+  extern "C" char QGET_LD_BINARY_CAT3(_binary_, filename, _start)[]; \
+  extern "C" char QGET_LD_BINARY_CAT3(_binary_, filename, _end)[];   \
+  static size_t QGET_LD_BINARY_CAT3(_binary_, filename, _len) = QGET_LD_BINARY_CAT3(_binary_, filename, _end) - QGET_LD_BINARY_CAT3(_binary_, filename, _start);
 
 #endif // QGETLDBINARYSYMBOLS_H

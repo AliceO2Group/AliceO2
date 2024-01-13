@@ -48,7 +48,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 else()
   set(OPENCL_HEADER_FILTER "${CMAKE_SOURCE_DIR}/GPU")
 endif()
-set(OPENCL_HEADER_FILTER "^${OPENCL_HEADER_FILTER}|^${CMAKE_BINARY_DIR}.*include_onthefly")
+set(OPENCL_HEADER_FILTER "^${OPENCL_HEADER_FILTER}|^${CMAKE_BINARY_DIR}.*include_gpu_onthefly")
 
 # executes OpenCL compiler wrapper to build binary object
 add_custom_command(

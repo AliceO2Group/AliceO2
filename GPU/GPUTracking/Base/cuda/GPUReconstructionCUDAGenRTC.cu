@@ -124,7 +124,7 @@ int GPUReconstructionCUDA::genRTC()
           if (fread(buffer.data(), 1, len, fp) != len) {
             throw std::runtime_error("Cache file corrupt");
           }
-          FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".o").c_str(), "w+b");
+          FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".cubin").c_str(), "w+b");
           if (fp2 == nullptr) {
             throw std::runtime_error("Cannot open tmp file");
           }
@@ -168,7 +168,7 @@ int GPUReconstructionCUDA::genRTC()
       }
       fclose(fp);
       std::string command = std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
-      command += " -cubin -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".o";
+      command += " -cubin -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".cubin";
       if (mProcessingSettings.debugLevel >= 3) {
         printf("Running command %s\n", command.c_str());
       }
@@ -200,7 +200,7 @@ int GPUReconstructionCUDA::genRTC()
 
       std::vector<char> buffer;
       for (unsigned int i = 0; i < nCompile; i++) {
-        FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".o").c_str(), "rb");
+        FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".cubin").c_str(), "rb");
         if (fp2 == nullptr) {
           throw std::runtime_error("Cannot open cuda module file");
         }
@@ -224,28 +224,13 @@ int GPUReconstructionCUDA::genRTC()
   }
 
   for (unsigned int i = 0; i < nCompile; i++) {
-    mInternals->rtcModules.emplace_back(std::make_unique<CUmodule>());
-    GPUFailedMsg(cuModuleLoad(mInternals->rtcModules.back().get(), (filename + "_" + std::to_string(i) + ".o").c_str()));
+    mInternals->kernelModules.emplace_back(std::make_unique<CUmodule>());
+    GPUFailedMsg(cuModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
     remove((filename + "_" + std::to_string(i) + ".cu").c_str());
-    remove((filename + "_" + std::to_string(i) + ".o").c_str());
+    remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
   }
 
-  int j = 0;
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
-#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                           \
-  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size());  \
-  mInternals->rtcFunctions.emplace_back(new CUfunction);                                                \
-  mInternals->rtcKernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))); \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtc.compilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
-#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                     \
-  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size());            \
-  mInternals->rtcFunctions.emplace_back(new CUfunction);                                                         \
-  mInternals->rtcKernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))); \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtc.compilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
-#include "GPUReconstructionKernels.h"
-#undef GPUCA_KRNL
-#undef GPUCA_KRNL_LOAD_single
-#undef GPUCA_KRNL_LOAD_multi
+  loadKernelModules(mProcessingSettings.rtc.compilePerKernel);
 
 #endif
   return 0;
