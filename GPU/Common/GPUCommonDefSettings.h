@@ -28,7 +28,6 @@
 //#define GPUCA_HIP_NO_CONSTANT_MEMORY           // Do not use constant memory for HIP
 //#define GPUCA_OPENCL_NO_CONSTANT_MEMORY        // Do not use constant memory for OpenCL 1.2
 #define GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY       // Do not use constant memory for OpenCL C++ - MANDATORY as OpenCL cannot cast between __constant and __generic yet!
-//#define GPUCA_HIP_CONSTANT_AS_ARGUMENT         // Pass HIP constant memory as function argument instead of explicit constant memory
 
 // clang-format on
 
