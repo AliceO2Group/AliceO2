@@ -136,15 +136,6 @@ static GPUConstantMemCopyable gGPUConstantMemBufferHost;
 #endif
 
 // Must be placed here, to avoid circular header dependency
-GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const
-{
-#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM) && !defined(GPUCA_GPUCODE_HOSTONLY)
-  return GPUCA_CONSMEM.param;
-#else
-  return mConstantMem->param;
-#endif
-}
-
 GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetConstantMem() const
 {
 #if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM) && !defined(GPUCA_GPUCODE_HOSTONLY)
@@ -152,6 +143,11 @@ GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetC
 #else
   return mConstantMem;
 #endif
+}
+
+GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const
+{
+  return GetConstantMem()->param;
 }
 
 GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const
