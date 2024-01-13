@@ -127,13 +127,7 @@ union GPUConstantMemCopyable {
 static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
 #ifndef GPUCA_GPUCODE_HOSTONLY
 #if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer; // HIP constant memory symbol address cannot be obtained when in namespace
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
+GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer;
 #endif // GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 #ifdef GPUCA_CONSTANT_AS_ARGUMENT
 static GPUConstantMemCopyable gGPUConstantMemBufferHost;
