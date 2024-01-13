@@ -18,7 +18,72 @@
 
 namespace o2::framework
 {
-DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const std::string& runId)
+static DIMessages::RegisterDevice::Specs::Input toRegisterMessageSpec(const InputRoute& input) {
+  boost::optional<std::string> origin;
+  boost::optional<std::string> description;
+  boost::optional<uint32_t> subSpec;
+
+  if (std::holds_alternative<ConcreteDataMatcher>(input.matcher.matcher)) {
+    origin = std::get<ConcreteDataMatcher>(input.matcher.matcher).origin.str;
+    description = std::get<ConcreteDataMatcher>(input.matcher.matcher).description.str;
+    subSpec = std::get<ConcreteDataMatcher>(input.matcher.matcher).subSpec;
+  }
+
+  return DIMessages::RegisterDevice::Specs::Input{
+    .binding = input.matcher.binding,
+    .sourceChannel = input.sourceChannel,
+    .timeslice = input.timeslice,
+    .origin = origin,
+    .description = description,
+    .subSpec = subSpec};
+}
+
+static DIMessages::RegisterDevice::Specs::Output toRegisterMessageSpec(const OutputRoute& output) {
+  std::string origin;
+  std::string description;
+  boost::optional<uint32_t> subSpec;
+
+  if (std::holds_alternative<ConcreteDataMatcher>(output.matcher.matcher)) {
+    origin = std::get<ConcreteDataMatcher>(output.matcher.matcher).origin.str;
+    description = std::get<ConcreteDataMatcher>(output.matcher.matcher).description.str;
+    subSpec = std::get<ConcreteDataMatcher>(output.matcher.matcher).subSpec;
+  } else {
+    origin = std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).origin.str;
+    description = std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).description.str;
+  }
+
+  return DIMessages::RegisterDevice::Specs::Output{
+    .binding = output.matcher.binding.value,
+    .channel = output.channel,
+    .timeslice = output.timeslice,
+    .maxTimeslices = output.maxTimeslices,
+    .origin = origin,
+    .description = description,
+    .subSpec = subSpec};
+}
+
+static DIMessages::RegisterDevice::Specs::Forward toRegisterMessageSpec(const ForwardRoute& forward) {
+  boost::optional<std::string> origin;
+  boost::optional<std::string> description;
+  boost::optional<uint32_t> subSpec;
+
+  if (std::holds_alternative<ConcreteDataMatcher>(forward.matcher.matcher)) {
+    origin = std::get<ConcreteDataMatcher>(forward.matcher.matcher).origin.str;
+    description = std::get<ConcreteDataMatcher>(forward.matcher.matcher).description.str;
+    subSpec = std::get<ConcreteDataMatcher>(forward.matcher.matcher).subSpec;
+  }
+
+  return DIMessages::RegisterDevice::Specs::Forward{
+    .binding = forward.matcher.binding,
+    .timeslice = forward.timeslice,
+    .maxTimeslices = forward.maxTimeslices,
+    .channel = forward.channel,
+    .origin = origin,
+    .description = description,
+    .subSpec = subSpec};
+}
+
+static DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const std::string& runId)
 {
   DIMessages::RegisterDevice msg;
   msg.name = spec.name;
@@ -26,70 +91,17 @@ DIMessages::RegisterDevice createRegisterMessage(DeviceSpec const& spec, const s
 
   msg.specs.inputs = std::vector<DIMessages::RegisterDevice::Specs::Input>{};
   std::transform(spec.inputs.begin(), spec.inputs.end(), std::back_inserter(msg.specs.inputs), [](const InputRoute& input) -> DIMessages::RegisterDevice::Specs::Input {
-    boost::optional<std::string> origin;
-    boost::optional<std::string> description;
-    boost::optional<uint32_t> subSpec;
-
-    if (std::holds_alternative<ConcreteDataMatcher>(input.matcher.matcher)) {
-      origin = std::get<ConcreteDataMatcher>(input.matcher.matcher).origin.str;
-      description = std::get<ConcreteDataMatcher>(input.matcher.matcher).description.str;
-      subSpec = std::get<ConcreteDataMatcher>(input.matcher.matcher).subSpec;
-    }
-
-    return DIMessages::RegisterDevice::Specs::Input{
-      .binding = input.matcher.binding,
-      .sourceChannel = input.sourceChannel,
-      .timeslice = input.timeslice,
-      .origin = origin,
-      .description = description,
-      .subSpec = subSpec};
+    return toRegisterMessageSpec(input);
   });
 
   msg.specs.outputs = std::vector<DIMessages::RegisterDevice::Specs::Output>{};
   std::transform(spec.outputs.begin(), spec.outputs.end(), std::back_inserter(msg.specs.outputs), [](const OutputRoute& output) -> DIMessages::RegisterDevice::Specs::Output {
-    std::string origin;
-    std::string description;
-    boost::optional<uint32_t> subSpec;
-
-    if (std::holds_alternative<ConcreteDataMatcher>(output.matcher.matcher)) {
-      origin = std::get<ConcreteDataMatcher>(output.matcher.matcher).origin.str;
-      description = std::get<ConcreteDataMatcher>(output.matcher.matcher).description.str;
-      subSpec = std::get<ConcreteDataMatcher>(output.matcher.matcher).subSpec;
-    } else {
-      origin = std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).origin.str;
-      description = std::get<ConcreteDataTypeMatcher>(output.matcher.matcher).description.str;
-    }
-
-    return DIMessages::RegisterDevice::Specs::Output{
-      .binding = output.matcher.binding.value,
-      .channel = output.channel,
-      .timeslice = output.timeslice,
-      .maxTimeslices = output.maxTimeslices,
-      .origin = origin,
-      .description = description,
-      .subSpec = subSpec};
+    return toRegisterMessageSpec(output);
   });
 
   msg.specs.forwards = std::vector<DIMessages::RegisterDevice::Specs::Forward>{};
   std::transform(spec.forwards.begin(), spec.forwards.end(), std::back_inserter(msg.specs.forwards), [](const ForwardRoute& forward) -> DIMessages::RegisterDevice::Specs::Forward {
-    boost::optional<std::string> origin;
-    boost::optional<std::string> description;
-    boost::optional<uint32_t> subSpec;
-
-    if (std::holds_alternative<ConcreteDataMatcher>(forward.matcher.matcher)) {
-      origin = std::get<ConcreteDataMatcher>(forward.matcher.matcher).origin.str;
-      description = std::get<ConcreteDataMatcher>(forward.matcher.matcher).description.str;
-      subSpec = std::get<ConcreteDataMatcher>(forward.matcher.matcher).subSpec;
-    }
-
-    return DIMessages::RegisterDevice::Specs::Forward{
-      .binding = forward.matcher.binding,
-      .timeslice = forward.timeslice,
-      .maxTimeslices = forward.maxTimeslices,
-      .channel = forward.channel,
-      .origin = origin,
-      .description = description,
-      .subSpec = subSpec};
+    return toRegisterMessageSpec(forward);
   });
 
   msg.specs.maxInputTimeslices = spec.maxInputTimeslices;

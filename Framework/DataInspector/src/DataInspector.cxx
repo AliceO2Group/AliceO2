@@ -70,15 +70,15 @@ std::string encode64(const char* data, uint64_t size)
 }
 
 void addPayload(Document& message,
-                const header::DataHeader* header,
-                const DataRef& ref,
+                uint64_t payloadSize,
+                const char* payload,
                 Document::AllocatorType& alloc)
 {
-  message.AddMember("payload", Value(encode64(ref.payload, header->payloadSize).c_str(), alloc), alloc);
+  message.AddMember("payload", Value(encode64(payload, payloadSize).c_str(), alloc), alloc);
   message.AddMember("payloadEndianness", Value(endianness, alloc), alloc);
 }
 
-void addBasicHeaderInfo(Document& message, const header::DataHeader* header, Document::AllocatorType& alloc)
+void addBasicDataHeaderInfo(Document& message, const header::DataHeader* header, Document::AllocatorType& alloc)
 {
   std::string origin = header->dataOrigin.as<std::string>();
   std::string description = header->dataDescription.as<std::string>();
@@ -96,6 +96,18 @@ void addBasicHeaderInfo(Document& message, const header::DataHeader* header, Doc
   message.AddMember("payloadSplitIndex", Value(header->splitPayloadIndex), alloc);
 }
 
+void addBasicDataProcessingHeaderInfo(Document& message, const DataProcessingHeader* header, Document::AllocatorType& alloc)
+{
+  message.AddMember("startTime", Value(header->startTime), alloc);
+  message.AddMember("duration", Value(header->duration), alloc);
+  message.AddMember("creationTimer", Value(header->creation), alloc);
+}
+
+void addBasicOutputObjHeaderInfo(Document& message, const OutputObjHeader* header, Document::AllocatorType& alloc)
+{
+  message.AddMember("taskHash", Value(header->mTaskHash), alloc);
+}
+
 void buildDocument(Document& message, std::string sender, const DataRef& ref)
 {
   message.SetObject();
@@ -106,17 +118,14 @@ void buildDocument(Document& message, std::string sender, const DataRef& ref)
   for (; baseHeader != nullptr; baseHeader = baseHeader->next()) {
     if (baseHeader->description == header::DataHeader::sHeaderType) {
       const auto* header = header::get<header::DataHeader*>(baseHeader->data());
-      addBasicHeaderInfo(message, header, alloc);
-      addPayload(message, header, ref, alloc);
+      addBasicDataHeaderInfo(message, header, alloc);
+      addPayload(message, header->payloadSize, ref.payload, alloc);
     } else if (baseHeader->description == DataProcessingHeader::sHeaderType) {
       const auto* header = header::get<DataProcessingHeader*>(baseHeader->data());
-
-      message.AddMember("startTime", Value(header->startTime), alloc);
-      message.AddMember("duration", Value(header->duration), alloc);
-      message.AddMember("creationTimer", Value(header->creation), alloc);
+      addBasicDataProcessingHeaderInfo(message, header, alloc);
     } else if (baseHeader->description == OutputObjHeader::sHeaderType) {
       const auto* header = header::get<OutputObjHeader*>(baseHeader->data());
-      message.AddMember("taskHash", Value(header->mTaskHash), alloc);
+      addBasicOutputObjHeaderInfo(message, header, alloc);
     }
   }
 }
