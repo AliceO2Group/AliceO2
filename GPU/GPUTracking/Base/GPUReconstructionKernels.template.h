@@ -20,7 +20,7 @@
 #endif
 
 // clang-format off
-$<LIST:JOIN,$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS>,>
+$<JOIN:$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS>,>
 // clang-format on
 
 #ifdef GPUCA_KRNL_NOOCL1
