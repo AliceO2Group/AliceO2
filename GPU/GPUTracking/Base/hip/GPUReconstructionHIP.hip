@@ -44,11 +44,11 @@
 #include "HIPThrustHelpers.h"
 #include "GPUReconstructionIncludes.h"
 
+using namespace GPUCA_NAMESPACE::gpu;
+
 #ifdef GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
 #endif
-
-using namespace GPUCA_NAMESPACE::gpu;
 
 __global__ void dummyInitKernel(void*) {}
 
