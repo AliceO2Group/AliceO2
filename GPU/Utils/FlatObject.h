@@ -132,7 +132,10 @@ T* resizeArray(T*& ptr, int oldSize, int newSize, T* newPtr = nullptr)
       newPtr = new T[newSize];
     }
     int mcp = std::min(newSize, oldSize);
-    std::memmove(newPtr, ptr, mcp * sizeof(T));
+    if (mcp) {
+      assert(ptr);
+      std::memmove(newPtr, ptr, mcp * sizeof(T));
+    }
     if (newSize > oldSize) {
       std::memset(newPtr + mcp, 0, (newSize - oldSize) * sizeof(T));
     }
