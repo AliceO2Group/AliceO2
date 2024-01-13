@@ -15,7 +15,7 @@ set(SRCS
     standalone.cxx
     ../../utils/qconfig.cxx
     ../../Base/GPUReconstructionTimeframe.cxx)
-    
+
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     o2_add_executable(standalone-benchmark
                       COMPONENT_NAME gpu
