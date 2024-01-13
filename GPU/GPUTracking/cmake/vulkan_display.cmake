@@ -22,7 +22,7 @@ function(add_glslc_shader TARGET SHADER)
     set(spirv-file ${CMAKE_CURRENT_BINARY_DIR}/shaders/${input-file-rel}.spv)
     get_filename_component(output-dir ${spirv-file} DIRECTORY)
     file(MAKE_DIRECTORY ${output-dir})
-    
+
     add_custom_command(
         OUTPUT ${spirv-file}
         COMMAND ${Vulkan_GLSLC_EXECUTABLE} -o ${spirv-file} ${input-file-abs}

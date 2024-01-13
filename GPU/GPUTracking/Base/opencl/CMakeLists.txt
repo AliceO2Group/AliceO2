@@ -42,7 +42,7 @@ add_executable(opencl_compiler
 target_link_libraries(opencl_compiler PUBLIC OpenCL::OpenCL)
 set_property(TARGET opencl_compiler
              PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-             
+
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(OPENCL_HEADER_FILTER "${CMAKE_SOURCE_DIR}")
 else()
