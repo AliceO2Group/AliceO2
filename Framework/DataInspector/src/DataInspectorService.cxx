@@ -18,7 +18,8 @@
 
 namespace o2::framework
 {
-static DIMessages::RegisterDevice::Specs::Input toRegisterMessageSpec(const InputRoute& input) {
+static DIMessages::RegisterDevice::Specs::Input toRegisterMessageSpec(const InputRoute& input)
+{
   boost::optional<std::string> origin;
   boost::optional<std::string> description;
   boost::optional<uint32_t> subSpec;
@@ -38,7 +39,8 @@ static DIMessages::RegisterDevice::Specs::Input toRegisterMessageSpec(const Inpu
     .subSpec = subSpec};
 }
 
-static DIMessages::RegisterDevice::Specs::Output toRegisterMessageSpec(const OutputRoute& output) {
+static DIMessages::RegisterDevice::Specs::Output toRegisterMessageSpec(const OutputRoute& output)
+{
   std::string origin;
   std::string description;
   boost::optional<uint32_t> subSpec;
@@ -62,7 +64,8 @@ static DIMessages::RegisterDevice::Specs::Output toRegisterMessageSpec(const Out
     .subSpec = subSpec};
 }
 
-static DIMessages::RegisterDevice::Specs::Forward toRegisterMessageSpec(const ForwardRoute& forward) {
+static DIMessages::RegisterDevice::Specs::Forward toRegisterMessageSpec(const ForwardRoute& forward)
+{
   boost::optional<std::string> origin;
   boost::optional<std::string> description;
   boost::optional<uint32_t> subSpec;
