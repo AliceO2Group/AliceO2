@@ -109,6 +109,12 @@ class TPCFastTransform : public FlatObject
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject() instead
   TPCFastTransform& operator=(const TPCFastTransform&) CON_DELETE;
 
+  inline void destroy()
+  {
+    mCorrection.destroy();
+    FlatObject::destroy();
+  }
+
 /// Destructor
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(GPUCA_O2_LIB)
   ~TPCFastTransform()
