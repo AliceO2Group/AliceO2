@@ -28,19 +28,6 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 
 #include "GPUReconstructionIncludesDevice.h"
 
-#undef GPUCA_KRNL_REG
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
-  GPUCA_KRNL_PROP(x_class, x_attributes)                          \
-  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward)
-#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
-  GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
-#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward) \
-  GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
-
-#include "GPUReconstructionKernels.h"
-#undef GPUCA_KRNL
-
 template <>
 void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
 {
@@ -97,8 +84,16 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
   return 0;
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
+#undef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)             \
+  GPUCA_KRNL_PROP(x_class, x_attributes)                                      \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward) \
   template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
+#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
+#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward) \
+  GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 
