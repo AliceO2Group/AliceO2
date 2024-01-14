@@ -125,12 +125,16 @@ union GPUConstantMemCopyable {
 
 #if defined(GPUCA_GPUCODE) && defined(GPUCA_NOCOMPAT)
 static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
-#ifndef GPUCA_GPUCODE_HOSTONLY
-#if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+#endif
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+#if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM) && !defined(GPUCA_GPUCODE_HOSTONLY)
 GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer;
 #endif // GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
-#endif // !GPUCA_GPUCODE_HOSTONLY
-#endif
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
 
 // Must be placed here, to avoid circular header dependency
 GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetConstantMem() const
