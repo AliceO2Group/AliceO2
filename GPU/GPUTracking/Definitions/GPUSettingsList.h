@@ -77,7 +77,7 @@ AddOptionRTC(extraClusterErrorSplitPadSharedSingleY2, float, 0.03f, "", 0, "Addi
 AddOptionRTC(extraClusterErrorFactorSplitPadSharedSingleY2, float, 3.0f, "", 0, "Multiplicative extra cluster error for Y2 if splitpad, shared, or single set")
 AddOptionRTC(extraClusterErrorSplitTimeSharedSingleZ2, float, 0.03f, "", 0, "Additive extra cluster error for Z2 if splittime, shared, or single set")
 AddOptionRTC(extraClusterErrorFactorSplitTimeSharedSingleZ2, float, 3.0f, "", 0, "Multiplicative extra cluster error for Z2 if splittime, shared, or single set")
-AddOptionArrayRTC(errorsCECrossing, float, 5, (0.f, 0.f, 0.f, 0.f, 0.f), "", 0, "Extra errors to add to track when crossing CE, depending on addErrorsCECrossing")
+AddOptionArray(errorsCECrossing, float, 5, (0.f, 0.f, 0.f, 0.f, 0.f), "", 0, "Extra errors to add to track when crossing CE, depending on addErrorsCECrossing") // BUG: CUDA cannot yet hand AddOptionArrayRTC
 AddOptionRTC(globalTrackingYRangeUpper, float, 0.85f, "", 0, "Inner portion of y-range in slice that is not used in searching for global track candidates")
 AddOptionRTC(globalTrackingYRangeLower, float, 0.85f, "", 0, "Inner portion of y-range in slice that is not used in searching for global track candidates")
 AddOptionRTC(trackFollowingYFactor, float, 4.f, "", 0, "Weight of y residual vs z residual in tracklet constructor")
@@ -89,7 +89,7 @@ AddOptionRTC(maxTimeBinAboveThresholdIn1000Bin, unsigned short, 500, "", 0, "Exc
 AddOptionRTC(maxConsecTimeBinAboveThreshold, unsigned short, 200, "", 0, "Except pad from cluster finding if number of consecutive charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(noisyPadSaturationThreshold, unsigned short, 700, "", 0, "Threshold where a timebin is considered saturated, disabling the noisy pad check for that pad")
 AddOptionRTC(trackFitCovLimit, unsigned short, 1000, "", 0, "Abort fit when y/z cov exceed the limit")
-AddOption(addErrorsCECrossing, unsigned char, 0, "", 0, "Add additional custom track errors when crossing CE, 0 = no custom errors but att 0.5 to sigma_z^2, 1 = only to cov diagonal, 2 = preserve correlations")
+AddOptionRTC(addErrorsCECrossing, unsigned char, 0, "", 0, "Add additional custom track errors when crossing CE, 0 = no custom errors but att 0.5 to sigma_z^2, 1 = only to cov diagonal, 2 = preserve correlations")
 AddOptionRTC(trackMergerMinPartHits, unsigned char, 10, "", 0, "Minimum hits of track part during track merging")
 AddOptionRTC(trackMergerMinTotalHits, unsigned char, 20, "", 0, "Minimum total of track part during track merging")
 AddOptionRTC(mergerCERowLimit, unsigned char, 5, "", 0, "Distance from first / last row in order to attempt merging accross CE")
@@ -132,7 +132,7 @@ AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data direct
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 AddOptionRTC(enablePID, char, 1, "", 0, "Enable PID response")
 AddOptionRTC(PID_useNsigma, char, 1, "", 0, "Use nSigma instead of absolute distance in PID response")
-AddOptionArrayRTC(PID_remap, char, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)")
+AddOptionArray(PID_remap, char, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet hand AddOptionArrayRTC
 AddHelp("help", 'h')
 EndConfig()
 

@@ -173,6 +173,9 @@ int GPUReconstructionCUDA::genRTC()
         printf("Running command %s\n", command.c_str());
       }
       if (system(command.c_str())) {
+        if (mProcessingSettings.debugLevel >= 3) {
+          printf("Source code file: %s", filename.c_str());
+        }
         throw std::runtime_error("Error during CUDA compilation");
       }
     }
