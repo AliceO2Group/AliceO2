@@ -36,29 +36,7 @@ __global__ void dummyInitKernel(void*)
 {
 }
 
-#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
-#include "ITStrackingGPU/TrackerTraitsGPU.h"
-#include "ITStrackingGPU/VertexerTraitsGPU.h"
-#include "ITStrackingGPU/TimeFrameGPU.h"
-#else
-namespace o2::its
-{
-class VertexerTraitsGPU : public VertexerTraits
-{
-};
-template <int NLayers = 7>
-class TrackerTraitsGPU : public TrackerTraits
-{
-};
-namespace gpu
-{
-template <int NLayers = 7>
-class TimeFrameGPU : public TimeFrame
-{
-};
-} // namespace gpu
-} // namespace o2::its
-#endif
+#include "GPUReconstructionIncludesITS.h"
 
 GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
 {

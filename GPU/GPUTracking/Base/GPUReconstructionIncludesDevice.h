@@ -105,23 +105,6 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTrackingRefit.cxx"
 #include "GPUTrackingRefitKernel.cxx"
 
-#if !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS) && !defined(GPUCA_GPUCODE_GENRTC)
-#include "VertexerTraitsHIP.hip.cxx"
-#include "ContextHIP.hip.cxx"
-#include "DeviceStoreVertexerHIP.hip.cxx"
-#include "ClusterLinesHIP.hip.cxx"
-#include "UtilsHIP.hip.cxx"
-#elif !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS) && !defined(GPUCA_GPUCODE_GENRTC)
-#include "TrackerTraitsNV.cu"
-#include "VertexerTraitsGPU.cu"
-#include "Context.cu"
-#include "Stream.cu"
-#include "DeviceStoreNV.cu"
-#include "DeviceStoreVertexerGPU.cu"
-#include "ClusterLinesGPU.cu"
-#include "Utils.cu"
-#endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
-
 #endif // GPUCA_HAVE_O2HEADERS
 #endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
 

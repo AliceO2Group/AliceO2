@@ -55,6 +55,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #endif
 
+#include "GPUReconstructionIncludesITS.h"
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
