@@ -46,28 +46,7 @@ __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantM
 
 __global__ void dummyInitKernel(void*) {}
 
-#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
-#include "ITStrackingGPU/VertexerTraitsGPU.h"
-#include "ITStrackingGPU/TrackerTraitsGPU.h"
-#else
-namespace o2::its
-{
-class VertexerTraitsGPU : public VertexerTraits
-{
-};
-template <int NLayers = 7>
-class TrackerTraitsGPU : public TrackerTraits
-{
-};
-namespace gpu
-{
-template <int NLayers = 7>
-class TimeFrameGPU : public TimeFrame
-{
-};
-} // namespace gpu
-} // namespace o2::its
-#endif
+#include "GPUReconstructionIncludesITS.h"
 
 class GPUDebugTiming
 {
