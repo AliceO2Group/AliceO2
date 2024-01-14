@@ -18,7 +18,7 @@
 #include <deque>
 #include <memory>
 
-#include "Rtypes.h"  // for Digitizer::Class
+#include "Rtypes.h" // for Digitizer::Class
 #include "TObject.h" // for TObject
 
 #include "ITSMFTSimulation/ChipDigitsContainer.h"
