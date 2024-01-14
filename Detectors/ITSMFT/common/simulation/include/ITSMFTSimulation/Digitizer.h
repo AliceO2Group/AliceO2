@@ -18,7 +18,7 @@
 #include <deque>
 #include <memory>
 
-#include "Rtypes.h" // for Digitizer::Class
+#include "Rtypes.h"  // for Digitizer::Class
 #include "TObject.h" // for TObject
 
 #include "ITSMFTSimulation/ChipDigitsContainer.h"
@@ -59,7 +59,7 @@ class Digitizer : public TObject
   o2::itsmft::DigiParams& getParams() { return (o2::itsmft::DigiParams&)mParams; }
   const o2::itsmft::DigiParams& getParams() const { return mParams; }
   void setNoiseMap(const o2::itsmft::NoiseMap* mp) { mNoiseMap = mp; }
-  void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
+  void setDeadChannelsMap(o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
   void init();
 
@@ -111,8 +111,8 @@ class Digitizer : public TObject
 
   static constexpr float sec2ns = 1e9;
 
-  o2::itsmft::DigiParams mParams; ///< digitization parameters
-  o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  o2::itsmft::DigiParams mParams;          ///< digitization parameters
+  o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
   double mCollisionTimeWrtROF;
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
@@ -137,7 +137,7 @@ class Digitizer : public TObject
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
   const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
-  const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
+  o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
 
   ClassDefOverride(Digitizer, 2);
 };

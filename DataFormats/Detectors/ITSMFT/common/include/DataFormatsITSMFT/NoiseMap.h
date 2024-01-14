@@ -169,7 +169,32 @@ class NoiseMap
   // Methods required by the calibration framework
   void print();
   void fill(const gsl::span<const CompClusterExt> data);
-  void merge(const NoiseMap* prev) {}
+  void merge(const NoiseMap* prev, bool sumstrobes = false)
+  {
+    if (prev == nullptr) {
+      return;
+    }
+    if (mNoisyPixels.size() != prev->size()) {
+      LOGP(error, "Trying to merge NoiseMap with different sizes: {} vs {}. Doing nothing.", mNoisyPixels.size(), prev->size());
+      return;
+    }
+    if (sumstrobes) {
+      mNumOfStrobes += prev->getNumberOfStrobes();
+    }
+
+    for (size_t chipID = 0; chipID < mNoisyPixels.size(); chipID++) {
+
+      const auto* prevChipMap = prev->getChipMap(chipID);
+
+      if (prevChipMap) {
+        // Iterate over previous map and add its entries
+        for (const auto& p : *prevChipMap) {
+          mNoisyPixels[chipID][p.first] = std::max(mNoisyPixels[chipID][p.first], p.second);
+        }
+      }
+    }
+  }
+
   const std::map<int, int>* getChipMap(int chip) const { return chip < (int)mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
 
   std::map<int, int>& getChip(int chip) { return mNoisyPixels[chip]; }
