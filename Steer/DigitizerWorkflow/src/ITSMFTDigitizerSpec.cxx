@@ -199,7 +199,12 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     if (matcher == ConcreteDataMatcher(mOrigin, "TimeDeadMap", 0)) {
       o2::itsmft::TimeDeadMap* timedeadmap = (o2::itsmft::TimeDeadMap*)obj;
       if (!timedeadmap->isDefault()) {
-        timedeadmap->decodeMap(mFirstOrbitTF, mDeadMap, true);
+        timedeadmap->decodeMap(mFirstOrbitTF, *mDeadMap, true);
+        static bool UpdateDone = false;
+        if (UpdateDone) {
+          LOGP(fatal, "Attempt to add time-dependent map to already modified static map");
+        }
+        UpdateDone = true;
         mDigitizer.setDeadChannelsMap(mDeadMap);
         LOG(info) << mID.getName() << " time-dependent dead map updated";
       } else {

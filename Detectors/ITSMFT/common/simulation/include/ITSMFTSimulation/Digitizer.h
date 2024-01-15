@@ -59,7 +59,7 @@ class Digitizer : public TObject
   o2::itsmft::DigiParams& getParams() { return (o2::itsmft::DigiParams&)mParams; }
   const o2::itsmft::DigiParams& getParams() const { return mParams; }
   void setNoiseMap(const o2::itsmft::NoiseMap* mp) { mNoiseMap = mp; }
-  void setDeadChannelsMap(o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
+  void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
   void init();
 
@@ -137,7 +137,7 @@ class Digitizer : public TObject
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
   const o2::itsmft::NoiseMap* mNoiseMap = nullptr;
-  o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
+  const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
 
   ClassDefOverride(Digitizer, 2);
 };

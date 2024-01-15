@@ -40,12 +40,12 @@ class TimeDeadMap
   /// Destructor
   ~TimeDeadMap() = default;
 
-  void fillMap(unsigned long firstOrbit, std::vector<uint16_t> deadVect)
+  void fillMap(unsigned long firstOrbit, const std::vector<uint16_t>& deadVect)
   {
     mEvolvingDeadMap[firstOrbit] = deadVect;
   };
 
-  void fillMap(std::vector<uint16_t> deadVect)
+  void fillMap(const std::vector<uint16_t>& deadVect)
   {
     mStaticDeadMap = deadVect;
   }
@@ -56,25 +56,25 @@ class TimeDeadMap
     mStaticDeadMap.clear();
   }
 
-  void decodeMap(o2::itsmft::NoiseMap* noisemap)
+  void decodeMap(o2::itsmft::NoiseMap& noisemap)
   { // for static part only
     if (mMAP_VERSION != "3") {
       LOG(error) << "Trying to decode static part of deadmap version " << mMAP_VERSION << ". Not implemented, doing nothing.";
       return;
     }
     for (int iel = 0; iel < mStaticDeadMap.size(); iel++) {
-      uint16_t w = mStaticDeadMap.at(iel);
-      noisemap->maskFullChip(w & 0x7FFF);
+      uint16_t w = mStaticDeadMap[iel];
+      noisemap.maskFullChip(w & 0x7FFF);
       if (w & 0x8000) {
         for (int w2 = (w & 0x7FFF) + 1; w2 < mStaticDeadMap.at(iel + 1); w2++) {
-          noisemap->maskFullChip(w2);
+          noisemap.maskFullChip(w2);
         }
       }
     }
   }
 
-  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap* noisemap, bool includeStaticMap = true) // for time-dependent and (optionally) static part
-  {
+  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true)
+  { // for time-dependent and (optionally) static part
 
     if (mMAP_VERSION != "3" && mMAP_VERSION != "4") {
       LOG(error) << "Trying to decode time-dependent deadmap version " << mMAP_VERSION << ". Not implemented, doing nothing.";
@@ -101,18 +101,18 @@ class TimeDeadMap
 
     for (int iel = 0; iel < closestVec.size(); iel++) {
       uint16_t w = closestVec.at(iel);
-      noisemap->maskFullChip(w & 0x7FFF);
+      noisemap.maskFullChip(w & 0x7FFF);
       if (w & 0x8000) {
         for (int w2 = (w & 0x7FFF) + 1; w2 < closestVec.at(iel + 1); w2++) {
-          noisemap->maskFullChip(w2);
+          noisemap.maskFullChip(w2);
         }
       }
     }
   };
 
-  std::string getMapVersion() { return mMAP_VERSION; };
+  std::string getMapVersion() const { return mMAP_VERSION; };
 
-  unsigned long getEvolvingMapSize() { return mEvolvingDeadMap.size(); };
+  unsigned long getEvolvingMapSize() const { return mEvolvingDeadMap.size(); };
 
   std::vector<unsigned long> getEvolvingMapKeys()
   {
@@ -126,6 +126,10 @@ class TimeDeadMap
 
   long getMapAtOrbit(unsigned long orbit, std::vector<uint16_t>& mmap)
   { // fills mmap and returns orbit - upper_bound
+    if (mEvolvingDeadMap.empty()) {
+      LOG(warning) << "Requested orbit " << orbit << "from an empty time-dependent map. Returning empty vector.";
+      return (long)orbit;
+    }
     auto closest = mEvolvingDeadMap.lower_bound(orbit);
     if (closest != mEvolvingDeadMap.end()) {
       mmap = closest->second;
