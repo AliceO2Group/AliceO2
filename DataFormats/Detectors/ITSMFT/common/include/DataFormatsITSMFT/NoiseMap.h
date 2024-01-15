@@ -105,7 +105,7 @@ class NoiseMap
   void applyProbThreshold(float t, long int n, float relErr = 0.2f, int minChipID = 0, int maxChipID = 24119)
   {
     // Remove from the maps all pixels with the firing probability below the threshold
-    // Apply the cut only for chips between minChipID and maxChipID (included).
+    // Apply the cut only for chips between minChipID and maxChipID (included)
     if (n < 1) {
       LOGP(alarm, "Cannot apply threshold with {} ROFs scanned", n);
       return;
