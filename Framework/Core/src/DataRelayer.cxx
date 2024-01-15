@@ -318,6 +318,9 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
     if (didDrop) {
       for (size_t mi = 0; mi < mInputs.size(); ++mi) {
         auto& input = mInputs[mi];
+        if (input.lifetime == Lifetime::Timer) {
+          continue;
+        }
         auto& element = mCache[si * mInputs.size() + mi];
         if (element.size() == 0) {
           LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
