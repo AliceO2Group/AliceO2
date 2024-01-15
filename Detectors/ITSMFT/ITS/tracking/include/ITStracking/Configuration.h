@@ -64,6 +64,7 @@ struct TrackingParameters {
   std::vector<float> SystErrorZ2 = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
   int ZBins{256};
   int PhiBins{128};
+  int nROFsPerIterations = -1;
   bool UseDiamond = false;
   float Diamond[3] = {0.f, 0.f, 0.f};
 
@@ -85,6 +86,7 @@ struct TrackingParameters {
   float MaxChi2NDF = 30.f;
   bool UseTrackFollower = false;
   bool FindShortTracks = false;
+  bool PerPrimaryVertexProcessing = false;
 };
 
 inline int TrackingParameters::CellMinimumLevel()

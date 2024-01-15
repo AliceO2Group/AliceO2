@@ -51,7 +51,7 @@ namespace its
 
 constexpr int debugLevel{0};
 
-void TrackerTraits::computeLayerTracklets(const int iteration)
+void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, int iVertex)
 {
   TimeFrame* tf = mTimeFrame;
 
@@ -60,12 +60,22 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
   std::ofstream off(fmt::format("tracklets{}.txt", iter++));
 #endif
 
+  for (int iLayer = 0; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+    tf->getTracklets()[iLayer].clear();
+    tf->getTrackletsLabel(iLayer).clear();
+    if (iLayer > 0) {
+      std::fill(tf->getTrackletsLookupTable()[iLayer - 1].begin(), tf->getTrackletsLookupTable()[iLayer - 1].end(), 0);
+    }
+  }
+
   const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
-  int startROF{0};
-  int endROF{tf->getNrof()};
+  int startROF{mTrkParams[iteration].nROFsPerIterations > 0 ? std::max(iROFslice * mTrkParams[iteration].nROFsPerIterations - mTrkParams[iteration].DeltaROF, 0) : 0};
+  int endROF{mTrkParams[iteration].nROFsPerIterations > 0 ? std::min((iROFslice + 1) * mTrkParams[iteration].nROFsPerIterations + mTrkParams[iteration].DeltaROF, tf->getNrof()) : tf->getNrof()};
   for (int rof0{startROF}; rof0 < endROF; ++rof0) {
     gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
+    const int startVtx{iVertex >= 0 ? iVertex : 0};
+    const int endVtx{iVertex >= 0 ? std::min(iVertex + 1, static_cast<int>(primaryVertices.size())) : static_cast<int>(primaryVertices.size())};
     int minRof = std::max(startROF, rof0 - mTrkParams[iteration].DeltaROF);
     int maxRof = std::min(endROF - 1, rof0 + mTrkParams[iteration].DeltaROF);
 #pragma omp parallel for num_threads(mNThreads)
@@ -86,7 +96,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
         }
         const float inverseR0{1.f / currentCluster.radius};
 
-        for (auto& primaryVertex : primaryVertices) {
+        for (int iV{startVtx}; iV < endVtx; ++iV) {
+          auto& primaryVertex{primaryVertices[iV]};
           const float resolution = std::sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 
           const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
@@ -262,6 +273,14 @@ void TrackerTraits::computeLayerCells(const int iteration)
   std::ofstream off(fmt::format("cells{}.txt", iter++));
 #endif
 
+  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
+    mTimeFrame->getCells()[iLayer].clear();
+    mTimeFrame->getCellsLabel(iLayer).clear();
+    if (iLayer > 0) {
+      mTimeFrame->getCellsLookupTable()[iLayer - 1].clear();
+    }
+  }
+
   TimeFrame* tf = mTimeFrame;
 #pragma omp parallel for num_threads(mNThreads)
   for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
@@ -276,7 +295,6 @@ void TrackerTraits::computeLayerCells(const int iteration)
     resolution = resolution > 1.e-12 ? resolution : 1.f;
 #endif
     const int currentLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer].size())};
-
     for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
 
       const Tracklet& currentTracklet{tf->getTracklets()[iLayer][iTracklet]};
@@ -387,17 +405,16 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
   std::ofstream off(fmt::format("cellneighs{}.txt", iteration));
 #endif
   for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
-
+    const int nextLayerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer + 1].size())};
+    mTimeFrame->getCellsNeighboursLUT()[iLayer].clear();
+    mTimeFrame->getCellsNeighboursLUT()[iLayer].resize(nextLayerCellsNum, 0);
     if (mTimeFrame->getCells()[iLayer + 1].empty() ||
         mTimeFrame->getCellsLookupTable()[iLayer].empty()) {
+      mTimeFrame->getCellsNeighbours()[iLayer].clear();
       continue;
     }
 
     int layerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
-    const int nextLayerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer + 1].size())};
-
-    mTimeFrame->getCellsNeighboursLUT()[iLayer].clear();
-    mTimeFrame->getCellsNeighboursLUT()[iLayer].resize(nextLayerCellsNum, 0);
     std::vector<std::pair<int, int>> cellsNeighbours;
     cellsNeighbours.reserve(nextLayerCellsNum);
 
@@ -566,11 +583,16 @@ void TrackerTraits::findRoads(const int iteration)
       for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
         lastCellSeed.swap(updatedCellSeed);
         lastCellId.swap(updatedCellId);
-        updatedCellSeed.clear();
+        std::vector<CellSeed>().swap(updatedCellSeed); /// tame the memory peaks
         updatedCellId.clear();
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
-      trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
+      for (auto& seed : updatedCellSeed) {
+        if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
+          continue;
+        }
+        trackSeeds.push_back(seed);
+      }
     }
 
     std::vector<TrackITSExt> tracks(trackSeeds.size());
@@ -578,9 +600,6 @@ void TrackerTraits::findRoads(const int iteration)
 #pragma omp parallel for num_threads(mNThreads)
     for (size_t seedId = 0; seedId < trackSeeds.size(); ++seedId) {
       const CellSeed& seed{trackSeeds[seedId]};
-      if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
-        continue;
-      }
       TrackITSExt temporaryTrack{seed};
       temporaryTrack.resetCovariance();
       temporaryTrack.setChi2(0);
