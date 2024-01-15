@@ -78,13 +78,13 @@ class Tracker
 
  private:
   void initialiseTimeFrame(int& iteration);
-  void computeTracklets(int& iteration);
+  void computeTracklets(int& iteration, int& iROFslice, int& iVertex);
   void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
 
   void initialiseTimeFrameHybrid(int& iteration);
-  void computeTrackletsHybrid(int& iteration);
+  void computeTrackletsHybrid(int& iteration, int& iROFslice, int& iVertex);
   void computeCellsHybrid(int& iteration);
   void findCellsNeighboursHybrid(int& iteration);
   void findRoadsHybrid(int& iteration);

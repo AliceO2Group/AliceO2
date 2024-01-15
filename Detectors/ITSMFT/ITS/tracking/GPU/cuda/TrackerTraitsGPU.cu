@@ -874,7 +874,7 @@ void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 }
 
 template <int nLayers>
-void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
+void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration, int, int)
 {
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
@@ -1160,9 +1160,9 @@ int TrackerTraitsGPU<nLayers>::getTFNumberOfCells() const
 ////////////////////////////////////////////////////////////////////////////////
 // Hybrid tracking
 template <int nLayers>
-void TrackerTraitsGPU<nLayers>::computeTrackletsHybrid(const int iteration)
+void TrackerTraitsGPU<nLayers>::computeTrackletsHybrid(const int iteration, int, int)
 {
-  TrackerTraits::computeLayerTracklets(iteration);
+  TrackerTraits::computeLayerTracklets(iteration, iteration, iteration);
 }
 
 template <int nLayers>

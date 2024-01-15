@@ -74,6 +74,9 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   float trackletsPerClusterLimit = -1.f;
   int findShortTracks = -1;
   int nThreads = 1;
+  int nOrbitsPerIterations = 0;
+  int nROFsPerIterations = 0;
+  bool perPrimaryVertexProcessing = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

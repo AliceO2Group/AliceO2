@@ -33,7 +33,7 @@ class TrackerTraitsGPU : public TrackerTraits
   // void computeLayerCells() final;
   void adoptTimeFrame(TimeFrame* tf) override;
   void initialiseTimeFrame(const int iteration) override;
-  void computeLayerTracklets(const int iteration) final;
+  void computeLayerTracklets(const int iteration, int, int) final;
   void computeLayerCells(const int iteration) override;
   void setBz(float) override;
   void findCellsNeighbours(const int iteration) override;
@@ -41,7 +41,7 @@ class TrackerTraitsGPU : public TrackerTraits
 
   // Methods to get CPU execution from traits
   void initialiseTimeFrameHybrid(const int iteration) override { initialiseTimeFrame(iteration); };
-  void computeTrackletsHybrid(const int iteration) override;
+  void computeTrackletsHybrid(const int iteration, int, int) override;
   void computeCellsHybrid(const int iteration) override;
   void findCellsNeighboursHybrid(const int iteration) override;
   void findRoadsHybrid(const int iteration) override;
