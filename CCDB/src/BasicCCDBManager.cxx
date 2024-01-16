@@ -83,5 +83,10 @@ void CCDBManagerInstance::report(bool longrep)
   }
 }
 
+void CCDBManagerInstance::endOfStream()
+{
+  report(true);
+}
+
 } // namespace ccdb
 } // namespace o2
