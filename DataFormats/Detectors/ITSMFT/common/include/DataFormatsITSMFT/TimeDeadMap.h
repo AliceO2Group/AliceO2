@@ -125,9 +125,9 @@ class TimeDeadMap
   void getStaticMap(std::vector<uint16_t>& mmap) { mmap = mStaticDeadMap; };
 
   long getMapAtOrbit(unsigned long orbit, std::vector<uint16_t>& mmap)
-  { // fills mmap and returns orbit - upper_bound
+  { // fills mmap and returns orbit - lower_bound
     if (mEvolvingDeadMap.empty()) {
-      LOG(warning) << "Requested orbit " << orbit << "from an empty time-dependent map. Returning empty vector.";
+      LOG(warning) << "Requested orbit " << orbit << "from an empty time-dependent map. Doing nothing";
       return (long)orbit;
     }
     auto closest = mEvolvingDeadMap.lower_bound(orbit);
