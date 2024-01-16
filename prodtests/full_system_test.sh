@@ -198,7 +198,7 @@ if [[ $ENABLE_GPU_TEST != "0" ]]; then
 fi
 STAGES+=" ASYNC"
 
-if [[ ! $RANS_OPT =~ (--ctf-dict +)(none) ]] ; then
+if [[ ${RANS_OPT:-} =~ (--ans-version +)(compat) ]] ; then
   # Give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
   # In order to use CCDB dictionaries, pass CTFDICTFILE=ccdb CREATECTFDICT=0
   [[ ! -z "$CREATECTFDICT" ]] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
