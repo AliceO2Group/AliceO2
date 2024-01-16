@@ -111,6 +111,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 
     size_t si = 0;
     bool missingSporadic = false;
+    bool needsProcessing = false;
     size_t currentTimeslice = -1;
     for (auto& input : inputs) {
       assert(si < specs.size());
@@ -127,6 +128,9 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
           currentTimeslice = dph->startTime;
         }
       }
+      if (input.header != nullptr && spec.lifetime != Lifetime::Condition) {
+        needsProcessing = true;
+      }
     }
     // If some sporadic inputs are missing, we wait for them util we are sure they will not come,
     // i.e. until the oldest possible timeslice is beyond the timeslice of the input.
@@ -136,7 +140,8 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
     if (missingSporadic && currentTimeslice >= oldestPossibleTimeslice) {
       return CompletionPolicy::CompletionOp::Retry;
     }
-    return CompletionPolicy::CompletionOp::Consume;
+    // We only consume if we have something which needs processing.
+    return needsProcessing ? CompletionPolicy::CompletionOp::Consume : CompletionPolicy::CompletionOp::Discard;
   };
   return CompletionPolicy{name, matcher, callback};
 }
