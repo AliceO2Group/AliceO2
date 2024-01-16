@@ -230,7 +230,7 @@ o2_add_test(CheckStackG4
 set_tests_properties(o2sim_checksimkinematics_G4
                      PROPERTIES FIXTURES_REQUIRED G4)
 
-# GEANT3 simulation fails on Macs and it's barely used any more, so disable it.
+# GEANT3 simulation fails on Macs, so disable it.
 if(NOT APPLE)
 o2_add_test_command(NAME o2sim_G3
                     WORKING_DIRECTORY ${SIMTESTDIR}
