@@ -43,6 +43,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
         if (i++ % 2 == 0) {
           outputs.make<int>(OutputRef{"a2"}, 1);
         }
+        sleep(1);
       })},
   };
   DataProcessorSpec d{

@@ -57,6 +57,13 @@ struct DeviceState {
     DATA_CONNECTED = 1 << 19,     // Data channel connected
   };
 
+  enum LogStreams : int {
+    NO_LOG = 0,
+    DEVICE_LOG = 1 << 0,             // Log for Data Processing Device activities.
+    COMPLETION_LOG = 1 << 1,         // Log for the completion policy of the device.
+    MONITORING_SERVICE_LOG = 1 << 2, // Log for the monitoring service flushing.
+  };
+
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;
@@ -93,6 +100,8 @@ struct DeviceState {
   int loopReason = 0;
   /// Bitmask of LoopReason to trace
   int tracingFlags = 0;
+  /// Bitmask of log streams which are available
+  int logStreams = 0;
   /// Stack of the severity, so that we can display only
   /// the bits we are interested in.
   std::vector<int> severityStack;
