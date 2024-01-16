@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 
   O2_SIGNPOST_START(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will not see, because they are off by default");
   O2_SIGNPOST_END(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will not see, because they are off by default");
-  O2_LOG_ENABLE_DYNAMIC(test_SignpostDynamic);
+  O2_LOG_ENABLE(test_SignpostDynamic);
 #ifdef __APPLE__
   // On Apple there is no way to turn on signposts in the logger, so we do not display this message
   O2_SIGNPOST_START(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will see, because we turned them on");
