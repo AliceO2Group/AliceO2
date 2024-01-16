@@ -23,6 +23,7 @@
 #include "FrameworkGUIDataRelayerUsage.h"
 #include "PaletteHelpers.h"
 #include "FrameworkGUIState.h"
+#include "Framework/Signpost.h"
 #include <DebugGUI/icons_font_awesome.h>
 
 #include <fmt/format.h>
@@ -34,6 +35,7 @@
 #include <cinttypes>
 #include <numeric>
 
+O2_DECLARE_DYNAMIC_LOG(driver);
 // Make sure we can use aggregated initialisers.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -506,7 +508,7 @@ void displayDeviceMetrics(const char* label,
     case MetricsDisplayStyle::Lines: {
       auto xAxisFlags = ImPlotAxisFlags_None;
       auto yAxisFlags = ImPlotAxisFlags_LockMin;
-      //ImPlot::FitNextPlotAxes(true, true, true, true);
+      // ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", {-1, -1}, axisFlags)) {
         ImPlot::SetupAxes("time", "value", xAxisFlags, yAxisFlags);
         ImPlot::SetupAxisFormat(ImAxis_Y1, formatSI, nullptr);
@@ -1092,6 +1094,17 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     (void)retVal;
   }
 #endif
+
+  static bool selectedSignpost = false;
+  if (ImGui::CollapsingHeader("Signposts", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::Checkbox("Driver", &selectedSignpost)) {
+      if (selectedSignpost) {
+        O2_LOG_ENABLE(driver);
+      } else {
+        O2_LOG_DISABLE(driver);
+      }
+    }
+  }
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
     ImGui::Text("#%lu: %s", i, DriverInfoHelper::stateToString(driverInfo.states[i]));
