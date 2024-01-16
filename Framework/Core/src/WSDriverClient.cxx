@@ -16,9 +16,14 @@
 #include "Framework/DeviceSpec.h"
 #include "DriverClientContext.h"
 #include "DPLWebSocket.h"
+#include "Framework/Signpost.h"
 #include <uv.h>
 #include <string_view>
 #include <charconv>
+
+O2_DECLARE_DYNAMIC_LOG(device);
+O2_DECLARE_DYNAMIC_LOG(completion);
+O2_DECLARE_DYNAMIC_LOG(monitoring_service);
 
 namespace o2::framework
 {
@@ -150,6 +155,41 @@ void on_connect(uv_connect_t* connection, int status)
     }
     LOGP(info, "Tracing flags set to {}", tracingFlags);
     state.tracingFlags = tracingFlags;
+  });
+
+  client->observe("/log-streams", [ref = context->ref](std::string_view cmd) {
+    auto& state = ref.get<DeviceState>();
+    static constexpr int prefixSize = std::string_view{"/log-streams "}.size();
+    if (prefixSize > cmd.size()) {
+      LOG(error) << "Malformed log-streams request";
+      return;
+    }
+    cmd.remove_prefix(prefixSize);
+    int logStreams = 0;
+
+    auto error = std::from_chars(cmd.data(), cmd.data() + cmd.size(), logStreams);
+    if (error.ec != std::errc()) {
+      LOG(error) << "Malformed log-streams mask";
+      return;
+    }
+    LOGP(info, "Logstreams flags set to {}", logStreams);
+    state.logStreams = logStreams;
+    if ((state.logStreams & DeviceState::LogStreams::DEVICE_LOG) != 0) {
+      O2_LOG_ENABLE(device);
+    } else {
+      O2_LOG_DISABLE(device);
+    }
+    if ((state.logStreams & DeviceState::LogStreams::COMPLETION_LOG) != 0) {
+      O2_LOG_ENABLE(completion);
+    } else {
+      O2_LOG_DISABLE(completion);
+    }
+
+    if ((state.logStreams & DeviceState::LogStreams::MONITORING_SERVICE_LOG) != 0) {
+      O2_LOG_ENABLE(monitoring_service);
+    } else {
+      O2_LOG_DISABLE(monitoring_service);
+    }
   });
 
   // Client will be filled in the line after. I can probably have a single

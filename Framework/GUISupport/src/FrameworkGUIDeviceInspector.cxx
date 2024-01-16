@@ -400,6 +400,17 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
   }
 
+  bool logsChanged = false;
+  if (ImGui::CollapsingHeader("Signposts", ImGuiTreeNodeFlags_DefaultOpen)) {
+    logsChanged = ImGui::CheckboxFlags("Device", &control.logStreams, DeviceState::LogStreams::DEVICE_LOG);
+    logsChanged = ImGui::CheckboxFlags("Completion", &control.logStreams, DeviceState::LogStreams::COMPLETION_LOG);
+    logsChanged = ImGui::CheckboxFlags("Monitoring", &control.logStreams, DeviceState::LogStreams::MONITORING_SERVICE_LOG);
+    if (logsChanged && control.controller) {
+      std::string cmd = fmt::format("/log-streams {}", control.logStreams);
+      control.controller->write(cmd.c_str(), cmd.size());
+    }
+  }
+
   bool flagsChanged = false;
   if (ImGui::CollapsingHeader("Event loop tracing", ImGuiTreeNodeFlags_DefaultOpen)) {
     flagsChanged |= ImGui::CheckboxFlags("METRICS_MUST_FLUSH", &control.tracingFlags, DeviceState::LoopReason::METRICS_MUST_FLUSH);
