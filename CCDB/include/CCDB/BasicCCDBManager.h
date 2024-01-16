@@ -182,6 +182,8 @@ class CCDBManagerInstance
 
   void report(bool longrep = false);
 
+  void endOfStream();
+
  private:
   // method to print (fatal) error
   void reportFatal(std::string_view s);
