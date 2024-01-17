@@ -50,7 +50,7 @@ void execFromPlugin(const char* libname, const char* funcname)
 
 void execSetupFromPlugin(const char* libname, const char* funcname)
 {
-  LOG(info) << "Seting up transport engine from library " << libname;
+  LOG(info) << "Setting up transport engine from library " << libname;
   execFromPlugin(libname, funcname);
 }
 
