@@ -464,12 +464,7 @@ class MessageContext
   /// Prepares the context to create messages for the given timeslice. This
   /// expects that the previous context was already sent and can be completely
   /// discarded.
-  void clear()
-  {
-    // Verify that everything has been sent on clear.
-    assert(std::all_of(mMessages.begin(), mMessages.end(), [](auto& m) { return m->empty(); }));
-    mMessages.clear();
-  }
+  void clear();
 
   FairMQDeviceProxy& proxy()
   {
@@ -494,7 +489,7 @@ class MessageContext
   /// return the headers of the 1st (from the end) matching message checking first in mMessages then in mScheduledMessages
   o2::header::DataHeader* findMessageHeader(const Output& spec);
   o2::header::Stack* findMessageHeaderStack(const Output& spec);
-  int countDeviceOutputs(bool excludeDPLOrigin = false);
+  [[nodiscard]] int countDeviceOutputs(bool excludeDPLOrigin = false) const;
   void fakeDispatch() { mDidDispatch = true; }
   bool didDispatch() { return mDidDispatch; }
   o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);

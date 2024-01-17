@@ -80,12 +80,11 @@ o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
   return nullptr;
 }
 
-int MessageContext::countDeviceOutputs(bool excludeDPLOrigin)
+int MessageContext::countDeviceOutputs(bool excludeDPLOrigin) const
 {
   // If we dispatched some messages before the end of the callback
   // we need to account for them as well.
   int noutputs = mDidDispatch ? 1 : 0;
-  mDidDispatch = false;
   constexpr o2::header::DataOrigin DataOriginDPL{"DPL"};
   for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
     if (!excludeDPLOrigin || (*it)->header()->dataOrigin != DataOriginDPL) {
@@ -98,6 +97,14 @@ int MessageContext::countDeviceOutputs(bool excludeDPLOrigin)
     }
   }
   return noutputs;
+}
+
+void MessageContext::clear()
+{
+  // Verify that everything has been sent on clear.
+  assert(std::all_of(mMessages.begin(), mMessages.end(), [](auto& m) { return m->empty(); }));
+  mDidDispatch = false;
+  mMessages.clear();
 }
 
 int64_t MessageContext::addToCache(std::unique_ptr<fair::mq::Message>& toCache)
