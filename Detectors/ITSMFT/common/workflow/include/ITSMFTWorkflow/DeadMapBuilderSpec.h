@@ -42,6 +42,7 @@
 #include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
+#include "DataFormatsITSMFT/TimeDeadMap.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -91,7 +92,7 @@ class ITSMFTDeadMapBuilder : public Task
   std::string mObjectName;
   std::string mLocalOutputDir;
 
-  std::string MAP_VERSION = "2"; // to change in case the encoding or the format change
+  std::string MAP_VERSION = "3"; // to change in case the encoding or the format change
 
   std::vector<uint16_t> mDeadMapTF{};
 
@@ -101,14 +102,14 @@ class ITSMFTDeadMapBuilder : public Task
 
   int mTFSampling = 1000;
 
-  std::map<unsigned long, std::vector<uint16_t>> mMapObject{};
+  o2::itsmft::TimeDeadMap mMapObject;
 
   void finalizeOutput();
   void PrepareOutputCcdb(DataAllocator& output);
 
   // Utils
 
-  uint16_t getElementIDFromChip(uint16_t);
+  std::vector<uint16_t> getChipIDsOnSameCable(uint16_t);
 
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
