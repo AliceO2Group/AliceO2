@@ -16,6 +16,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TimeDeadMap.h"
 
 namespace o2
 {
@@ -54,6 +55,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mDeadMapTF.clear();
 
   mMapObject.clear();
+  mMapObject.setMapVersion(MAP_VERSION);
 
   mTFSampling = ic.options().get<int>("tf-sampling");
   mTFLength = ic.options().get<int>("tf-length");
@@ -66,21 +68,17 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   return;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-uint16_t ITSMFTDeadMapBuilder::getElementIDFromChip(uint16_t chip)
+///////////////////////////////////////////////////////////////////
+// TODO: can ChipMappingITS help here?
+std::vector<uint16_t> ITSMFTDeadMapBuilder::getChipIDsOnSameCable(uint16_t chip)
 {
-  // MFT - no grouping
-  if (mRunMFT) {
-    return (uint16_t)chip;
-  }
-  // ITS - group chips into lanes
-  // TODO: does o2::itsmft::ChipMappingITS already contain this?
-  else {
-    if (chip < N_CHIPS_ITSIB) {
-      return (uint16_t)chip;
-    } else {
-      return N_CHIPS_ITSIB + (uint16_t)((chip - N_CHIPS_ITSIB) / 7);
-    }
+  if (mRunMFT || chip < N_CHIPS_ITSIB) {
+    return std::vector<uint16_t>{chip};
+  } else {
+    uint16_t firstchipcable = 7 * (uint16_t)((chip - N_CHIPS_ITSIB) / 7) + N_CHIPS_ITSIB;
+    std::vector<uint16_t> chipList(7);
+    std::generate(chipList.begin(), chipList.end(), [&firstchipcable]() { return firstchipcable++; });
+    return chipList;
   }
 }
 
@@ -92,7 +90,7 @@ void ITSMFTDeadMapBuilder::finalizeOutput()
   if (mDoLocalOutput) {
     std::string localoutfilename = mLocalOutputDir + "/" + mObjectName;
     TFile outfile(localoutfilename.c_str(), "RECREATE");
-    outfile.WriteObjectAny(&mMapObject, "std::map<unsigned long, std::vector<uint16_t>>", "ccdb_object");
+    outfile.WriteObjectAny(&mMapObject, "o2::itsmft::TimeDeadMap", "ccdb_object");
     outfile.Close();
   }
   return;
@@ -124,7 +122,7 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 
   mDeadMapTF.clear();
 
-  std::vector<bool> ElementsStatus(getElementIDFromChip(N_CHIPS), false);
+  std::vector<bool> ChipStatus(N_CHIPS, false);
 
   if (mDataSource == "digits") {
     const auto elements = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("elements");
@@ -132,8 +130,7 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     for (const auto& rof : ROFs) {
       auto elementsInTF = rof.getROFData(elements);
       for (const auto& el : elementsInTF) {
-        uint16_t chipID = (uint16_t)el.getChipIndex();
-        ElementsStatus.at(getElementIDFromChip(chipID)) = true;
+        ChipStatus.at((int)el.getChipIndex()) = true;
       }
     }
   } else if (mDataSource == "clusters") {
@@ -142,28 +139,40 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     for (const auto& rof : ROFs) {
       auto elementsInTF = rof.getROFData(elements);
       for (const auto& el : elementsInTF) {
-        uint16_t chipID = (uint16_t)el.getSensorID();
-        ElementsStatus.at(getElementIDFromChip(chipID)) = true;
+        ChipStatus.at((int)el.getSensorID()) = true;
       }
     }
   } else if (mDataSource == "chipsstatus") {
     const auto elements = pc.inputs().get<gsl::span<char>>("elements");
     for (uint16_t chipID = 0; chipID < elements.size(); chipID++) {
       if (elements[chipID]) {
-        ElementsStatus.at(getElementIDFromChip(chipID)) = true;
+        ChipStatus.at(chipID) = true;
+      }
+    }
+  }
+
+  // for ITS, declaring dead only chips belonging to lane with no hits
+  if (!mRunMFT) {
+    for (uint16_t el = N_CHIPS_ITSIB; el < ChipStatus.size(); el++) {
+      if (ChipStatus.at(el)) {
+        std::vector<uint16_t> chipincable = getChipIDsOnSameCable(el);
+        for (uint16_t el2 : chipincable) {
+          ChipStatus.at(el2) = true;
+          el = el2;
+        }
       }
     }
   }
 
   int CountDead = 0;
 
-  for (uint16_t el = 0; el < ElementsStatus.size(); el++) {
-    if (ElementsStatus.at(el)) {
+  for (uint16_t el = 0; el < ChipStatus.size(); el++) {
+    if (ChipStatus.at(el)) {
       continue;
     }
     CountDead++;
-    bool previous_dead = (el > 0 && !ElementsStatus.at(el - 1));
-    bool next_dead = (el < ElementsStatus.size() - 1 && !ElementsStatus.at(el + 1));
+    bool previous_dead = (el > 0 && !ChipStatus.at(el - 1));
+    bool next_dead = (el < ChipStatus.size() - 1 && !ChipStatus.at(el + 1));
     if (!previous_dead && next_dead) {
       mDeadMapTF.push_back(el | (uint16_t)(0x8000));
     } else if (previous_dead && next_dead) {
@@ -173,10 +182,10 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << "TF contains " << CountDead << " dead elements, saved into " << mDeadMapTF.size() << " words.";
+  LOG(info) << "TF contains " << CountDead << " dead chips, saved into " << mDeadMapTF.size() << " words.";
 
   // filling the map
-  mMapObject[mFirstOrbitTF] = mDeadMapTF;
+  mMapObject.fillMap(mFirstOrbitTF, mDeadMapTF);
 
   end = std::chrono::high_resolution_clock::now();
   int difference = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -197,10 +206,10 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
   std::map<std::string, std::string> md = {
     {"map_version", MAP_VERSION}};
 
-  std::string path = mRunMFT ? "MFT/Calib" : "ITS/Calib/";
-  std::string name_str = "time_dead_map";
+  std::string path = mRunMFT ? "MFT/Calib/" : "ITS/Calib/";
+  std::string name_str = "TimeDeadMap";
 
-  o2::ccdb::CcdbObjectInfo info((path + name_str), "time_dead_map", mObjectName, md, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info((path + name_str), name_str, mObjectName, md, tstart, tend);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mMapObject, &info);
   info.setFileName(mObjectName);
@@ -212,11 +221,11 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
             << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
   if (mRunMFT) {
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_TimeDeadMap", 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_TimeDeadMap", 0}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 1}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 1}, info);
   } else {
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_TimeDeadMap", 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_TimeDeadMap", 0}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
   }
 
   return;
@@ -278,13 +287,8 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
   }
 
   std::vector<OutputSpec> outputs;
-  if (doMFT) {
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_TimeDeadMap"}, Lifetime::Sporadic);
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_TimeDeadMap"}, Lifetime::Sporadic);
-  } else {
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_TimeDeadMap"}, Lifetime::Sporadic);
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_TimeDeadMap"}, Lifetime::Sporadic);
-  }
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap"}, Lifetime::Sporadic);
 
   std::string detector = doMFT ? "mft" : "its";
   std::string objectname_default = detector + "_time_deadmap.root";
