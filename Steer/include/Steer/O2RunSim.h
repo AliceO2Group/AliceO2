@@ -60,7 +60,7 @@ class O2RunSim : public FairRunSim
     fRootManager->InitSink();
 
     // original FairRunSim follows
-    FairGeoLoader* loader = new FairGeoLoader(fLoaderName->Data(), "Geo Loader");
+    FairGeoLoader* loader = new FairGeoLoader(fLoaderName.Data(), "Geo Loader");
     FairGeoInterface* GeoInterFace = loader->getGeoInterface();
     GeoInterFace->SetNoOfSets(ListOfModules->GetEntries());
     GeoInterFace->setMediaFile(MatFname.Data());
