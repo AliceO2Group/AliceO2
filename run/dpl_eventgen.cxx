@@ -19,6 +19,7 @@
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h> // simple timer from ROOT
+#include <memory>
 
 using namespace o2::framework;
 
@@ -35,11 +36,14 @@ struct GeneratorTask {
   int nEvents = 0;
   int eventCounter = 0;
   int tfCounter = 0;
-  o2::eventgen::GeneratorService genservice;
+
+  // a pointer because object should only be constructed in the device (not during DPL workflow setup)
+  std::unique_ptr<o2::eventgen::GeneratorService> genservice;
   TStopwatch timer;
 
   void init(o2::framework::InitContext& /*ic*/)
   {
+    genservice.reset(new o2::eventgen::GeneratorService);
     o2::utils::RngHelper::setGRandomSeed(seed);
     nEvents = eventNum;
     // helper to parse vertex option; returns true if parsing ok, false if failure
@@ -53,9 +57,9 @@ struct GeneratorTask {
     o2::conf::ConfigurableParam::updateFromString((std::string)params);
     // initialize the service
     if (vtxmode == o2::conf::VertexMode::kDiamondParam) {
-      genservice.initService(generator, trigger, o2::eventgen::DiamondParamVertexOption());
+      genservice->initService(generator, trigger, o2::eventgen::DiamondParamVertexOption());
     } else if (vtxmode == o2::conf::VertexMode::kNoVertex) {
-      genservice.initService(generator, trigger, o2::eventgen::NoVertexOption());
+      genservice->initService(generator, trigger, o2::eventgen::NoVertexOption());
     } else if (vtxmode == o2::conf::VertexMode::kCCDB) {
       LOG(warn) << "Not yet supported. This needs definition of a timestamp and fetching of the MeanVertex CCDB object";
     }
@@ -68,7 +72,7 @@ struct GeneratorTask {
     o2::dataformats::MCEventHeader mcheader;
     for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
       mctracks.clear();
-      genservice.generateEvent_MCTracks(mctracks, mcheader);
+      genservice->generateEvent_MCTracks(mctracks, mcheader);
       pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcheader);
       pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0}, mctracks);
       ++eventCounter;

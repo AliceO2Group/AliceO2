@@ -122,7 +122,6 @@ std::string EnumRegistry::toString() const
     out.append("\n");
   }
 
-  LOG(info) << out;
   return out;
 }
 
