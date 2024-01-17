@@ -82,6 +82,13 @@ struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyPa
   O2ParamDef(PIDStudyParamConfig, "PIDStudyParam");
 };
 
+struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<AnomalyStudyParamConfig> {
+  std::string outFileName = "its_AnomalyStudy.root";
+
+  O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
+};
+
+
 struct ITSImpactParameterParamConfig : public o2::conf::ConfigurableParamHelper<ITSImpactParameterParamConfig> {
   std::string outFileName = "its_ImpParameter.root";
   int minNumberOfContributors = 0;
