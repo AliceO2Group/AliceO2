@@ -20,7 +20,7 @@
 #include "HitAnalysis/HitAnalysis.h"
 
 #include <fairlogger/Logger.h> // for LOG
-
+#include <FairRootManager.h>
 #include <TH1.h> // for TH1, TH1D, TH1F
 #include <TFile.h>
 
