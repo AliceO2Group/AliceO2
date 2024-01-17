@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_SIGNPOST_H_
 #define O2_FRAMEWORK_SIGNPOST_H_
 
+#include "Framework/CompilerBuiltins.h"
 #include <atomic>
 #include <array>
 #ifdef __APPLE__
@@ -460,22 +461,22 @@ void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 // they are compatible between the two implementations, we also use remove_engineering_type to remove
 // the engineering types from the format string, so that we can use the same format string for both.
 #define O2_SIGNPOST_EVENT_EMIT(log, id, name, format, ...) __extension__({                                          \
-  if (O2_SIGNPOST_ENABLED_MAC(log)) {                                                                               \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
     O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
-  } else if (private_o2_log_##log->stacktrace) {                                                                    \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
 })
 #define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \
-  if (O2_SIGNPOST_ENABLED_MAC(log)) {                                                                                   \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                              \
     O2_SIGNPOST_START_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
-  } else if (private_o2_log_##log->stacktrace) {                                                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                   \
     _o2_signpost_interval_begin(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }
 #define O2_SIGNPOST_END(log, id, name, format, ...)                                                                   \
-  if (O2_SIGNPOST_ENABLED_MAC(log)) {                                                                                 \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                            \
     O2_SIGNPOST_END_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
-  } else if (private_o2_log_##log->stacktrace) {                                                                      \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                 \
     _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }
 #else // This is the release implementation, it does nothing.
