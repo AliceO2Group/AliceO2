@@ -439,6 +439,13 @@ void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 {
   log->stacktrace = stacktrace;
 }
+// A C function which can be used to enable the signposts
+extern "C" {
+void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
+{
+  log->stacktrace = stacktrace;
+}
+}
 #endif // O2_SIGNPOST_IMPLEMENTATION
 
 #if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(NDEBUG)
