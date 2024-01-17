@@ -538,3 +538,17 @@ perf script -i perf.data > profile.linux-perf.txt
 ```
 
 and then you can either upload it to https://www.speedscope.app or use chrome://tracing.
+
+## Internal debug log streams
+
+Debug log entries for several DPL components are now provided via the Signpost API.
+
+Such streams can be enabled using the "Signpost" part of the Device Inspector GUI.
+
+Alternatively for the case were the GUI is not available, you can attach to a process via GDB / LLDB and invoke the `o2_debug_log_set_stacktrace` function, passing it the log you want to enable and the amount of stacktrace you want to see. E.g. to enable a log created with `O2_DECLARE_DYNAMIC_LOG(completion)` you can use:
+
+```
+p o2_debug_log_set_stacktrace(private_o2_log_completion, 1)
+```
+
+If you are on a mac, you can also use Instruments to visualise your Signpost, just like any other macOS application. In order to do so you need to enable the "Signpost" instrument, making sure you add `ch.cern.aliceo2.completion` to the list of loggers to watch.
