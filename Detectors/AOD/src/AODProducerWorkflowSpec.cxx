@@ -441,6 +441,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
       fwdTracksCursor.reserve(nToReserve + fwdTracksCursor.lastIndex());
       fwdTracksCovCursor.reserve(nToReserve + fwdTracksCovCursor.lastIndex());
     } else {
+      if (mThinner && src == GIndex::Source::TPC) {
+        nToReserve = mV0TPCs;
+      }
       tracksCursor.reserve(nToReserve + tracksCursor.lastIndex());
       tracksCovCursor.reserve(nToReserve + tracksCovCursor.lastIndex());
       tracksExtraCursor.reserve(nToReserve + tracksExtraCursor.lastIndex());
@@ -466,6 +469,8 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
         } else {
           // barrel track: normal tracks table
           if (trackIndex.isAmbiguous() && mGIDToTableID.find(trackIndex) != mGIDToTableID.end()) { // was it already stored ?
+            continue;
+          } else if (mThinner && src == GIndex::Source::TPC && mGIDUsedBySVtx.find(trackIndex) == mGIDUsedBySVtx.end()) {
             continue;
           }
           auto extraInfoHolder = processBarrelTrack(collisionID, collisionBC, trackIndex, data, bcsMap);
@@ -1710,6 +1715,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
   mPropMuons = ic.options().get<bool>("propagate-muons");
+  mThinner = ic.options().get<bool>("thinner");
   mTrackQCFraction = ic.options().get<float>("trackqc-fraction");
   mTrackQCNTrCut = ic.options().get<int64_t>("trackqc-NTrCut");
   mGenerator = std::mt19937(std::random_device{}());
@@ -1766,6 +1772,9 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mV0Amplitude = 0xFFFFFFFF;
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
+  }
+  if (mThinner) {
+    LOGP(info, "AO2D thinning activated!");
   }
   // Initialize ZDC helper maps
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
@@ -2129,22 +2138,35 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mGIDToTableFwdID.clear(); // reset the tables to be used by 'fillTrackTablesPerCollision'
   mGIDToTableMFTID.clear();
 
-  if (mPropTracks) {
-    auto v0s = recoData.getV0sIdx();
-    auto cascades = recoData.getCascadesIdx();
-    auto decays3Body = recoData.getDecays3BodyIdx();
+  if (mPropTracks || mThinner) {
+    const auto v0s = recoData.getV0sIdx();
+    const auto cascades = recoData.getCascadesIdx();
+    const auto decays3Body = recoData.getDecays3BodyIdx();
     mGIDUsedBySVtx.reserve(v0s.size() * 2 + cascades.size() + decays3Body.size() * 3);
     for (const auto& v0 : v0s) {
-      mGIDUsedBySVtx.insert(v0.getProngID(0));
-      mGIDUsedBySVtx.insert(v0.getProngID(1));
+      for (int iProng{0}; iProng < 2; ++iProng) {
+        const auto id = v0.getProngID(iProng);
+        mGIDUsedBySVtx.insert(id);
+        if (id.getSource() == GIndex::TPC) {
+          ++mV0TPCs;
+        }
+      }
     }
     for (const auto& cascade : cascades) {
-      mGIDUsedBySVtx.insert(cascade.getBachelorID());
+      const auto id = cascade.getBachelorID();
+      mGIDUsedBySVtx.insert(id);
+      if (id.getSource() == GIndex::TPC) {
+        ++mV0TPCs;
+      }
     }
     for (const auto& id3Body : decays3Body) {
-      mGIDUsedBySVtx.insert(id3Body.getProngID(0));
-      mGIDUsedBySVtx.insert(id3Body.getProngID(1));
-      mGIDUsedBySVtx.insert(id3Body.getProngID(2));
+      for (int iProng{0}; iProng < 3; ++iProng) {
+        const auto id = id3Body.getProngID(iProng);
+        mGIDUsedBySVtx.insert(id);
+        if (id.getSource() == GIndex::TPC) {
+          ++mV0TPCs;
+        }
+      }
     }
   }
 
@@ -2310,6 +2332,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mTableCollID = 0;
   mV0ToTableID.clear();
   mTableV0ID = 0;
+  mV0TPCs = 0;
+  mGIDUsedBySVtx.clear();
 
   mIndexTableFwd.clear();
   mIndexFwdID = 0;
@@ -2317,8 +2341,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mIndexMFTID = 0;
 
   mBCLookup.clear();
-
-  mGIDUsedBySVtx.clear();
 
   originCursor(tfNumber);
 
@@ -3020,6 +3042,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"propagate-muons", VariantType::Bool, false, {"Propagate muons to IP"}},
       ConfigParamSpec{"trackqc-fraction", VariantType::Float, float(0.1), {"Fraction of tracks to QC"}},
       ConfigParamSpec{"trackqc-NTrCut", VariantType::Int64, 4L, {"Minimal length of the track - in amount of tracklets"}},
+      ConfigParamSpec{"thinner", VariantType::Bool, false, {"Use AO2D thinner (only keep TPC tracks associated to V0s)"}},
     }};
 }
 

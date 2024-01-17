@@ -229,6 +229,7 @@ class AODProducerWorkflowDPL : public Task
 
   bool mPropTracks{false};
   bool mPropMuons{false};
+  bool mThinner{false};
   float mTrackQCFraction{0.00};
   int64_t mTrackQCNTrCut{4};
   float mSqrtS{13860.};
@@ -236,8 +237,6 @@ class AODProducerWorkflowDPL : public Task
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
   o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
-
-  std::unordered_set<GIndex> mGIDUsedBySVtx;
 
   int mNThreads = 1;
   bool mUseMC = true;
@@ -274,6 +273,8 @@ class AODProducerWorkflowDPL : public Task
   // unordered map connects global indices and table indices of V0s (needed for cascades references)
   std::unordered_map<GIndex, int> mV0ToTableID;
   int mTableV0ID{0};
+  int mV0TPCs{0};
+  std::unordered_set<GIndex> mGIDUsedBySVtx; //// Optionally, exclude tracks from V0 prongs being propagated to PV
 
   // Strangeness tracking indices lookup tables
   std::vector<int> mVertexStrLUT;                    /// LUT for accessing strangeness tracks for each vertex
