@@ -185,6 +185,7 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
       // if we did not, but we still have didDispatched set to true
       // it means it was created out of band.
       bool didCreate = false;
+      O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
       for (size_t ri = 0; ri < routes.size(); ++ri) {
         if (stream->routeUserCreated[ri] == true) {
           didCreate = true;
@@ -192,24 +193,29 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
         }
       }
       if (didCreate == false && messageContext.didDispatch() == true) {
-        O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
-        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band");
-        LOGP(debug, "Data created out of band");
+        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band didCreate == %b && messageContext.didDispatch == %b",
+                               didCreate,
+                               messageContext.didDispatch());
         return;
       }
       for (size_t ri = 0; ri < routes.size(); ++ri) {
-        if (stream->routeUserCreated[ri] == true) {
-          continue;
-        }
         auto &route = routes[ri];
         auto &matcher = route.matcher;
+        if (stream->routeUserCreated[ri] == true) {
+          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created by user. ri = %" PRIu64 ", %{public}s",
+                                 (uint64_t)ri, DataSpecUtils::describe(matcher).c_str());
+          continue;
+        }
         if ((timeslice % route.maxTimeslices) != route.timeslice) {
+          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Route ri = %" PRIu64 ", skipped",
+                                 (uint64_t)ri);
           continue;
         }
         if (matcher.lifetime == Lifetime::Timeframe) {
           LOGP(error, "Expected Lifetime::Timeframe data {} was not created for timeslice {} and might result in dropped timeframes", DataSpecUtils::describe(matcher), timeslice);
         }
-      } },
+      } 
+      },
     .kind = ServiceKind::Stream};
 }
 
@@ -510,10 +516,11 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
     },
     .postForwarding = [](ProcessingContext& ctx, void* service) {
       auto* decongestion = reinterpret_cast<DecongestionService*>(service);
-      if (decongestion->isFirstInTopology == false) {
-        LOGP(debug, "We are not the first in the topology, do not update the oldest possible timeslice");
+      if (O2_BUILTIN_LIKELY(decongestion->isFirstInTopology == false)) {
         return;
       }
+      O2_SIGNPOST_ID_FROM_POINTER(cid, data_processor_context, service);
+      O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "postForwardingCallbacks", "We are the first one in the topology, we need to update the oldest possible timeslice");
       auto& timesliceIndex = ctx.services().get<TimesliceIndex>();
       auto& relayer = ctx.services().get<DataRelayer>();
       timesliceIndex.updateOldestPossibleOutput();
