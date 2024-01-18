@@ -192,6 +192,7 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
           break;
         }
       }
+      O2_LOG_ENABLE(stream_context);
       if (didCreate == false && messageContext.didDispatch() == true) {
         O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band didCreate == %b && messageContext.didDispatch == %b",
                                didCreate,
@@ -215,6 +216,7 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
           LOGP(error, "Expected Lifetime::Timeframe data {} was not created for timeslice {} and might result in dropped timeframes", DataSpecUtils::describe(matcher), timeslice);
         }
       } 
+      O2_LOG_DISABLE(stream_context);
       },
     .kind = ServiceKind::Stream};
 }
