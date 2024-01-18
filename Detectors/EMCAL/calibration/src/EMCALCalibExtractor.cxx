@@ -30,7 +30,6 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
 {
   // create the output histogram
   boostHisto eSumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, mNcells, "CELL ID"));
-
   // create a slice for each cell with energies ranging from emin to emax
   auto hEnergyCol = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100., "t-texp"));
   auto hEnergyRow = boost::histogram::make_histogram(boost::histogram::axis::regular<>(250, 0, 250., "t-texp"));
@@ -47,9 +46,8 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
 
     for (int cellID = 0; cellID < mNcells; cellID++) {
       auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
-      auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
-      auto position = geo->GlobalRowColFromIndex(cellID);
+      auto position = mGeometry->GlobalRowColFromIndex(cellID);
       int row = std::get<0>(position);
       int col = std::get<1>(position);
 
@@ -101,9 +99,8 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
 
     // Scale each cell by the deviation of the mean of the column and the global mean
     for (int iCell = 0; iCell < mNcells; iCell++) {
-      auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
-      auto position = geo->GlobalRowColFromIndex(iCell);
+      auto position = mGeometry->GlobalRowColFromIndex(iCell);
       int col = std::get<1>(position);
       if (hEnergyCol.at(col) > 0.) {
         // will need to change the 100 depending on the number of energy bins we end up having
@@ -115,9 +112,8 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
 
     // Scale each cell by the deviation of the mean of the row and the global mean
     for (int iCell = 0; iCell < mNcells; iCell++) {
-      auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
-      auto position = geo->GlobalRowColFromIndex(iCell);
+      auto position = mGeometry->GlobalRowColFromIndex(iCell);
       int row = std::get<0>(position);
       if (hEnergyRow.at(row) > 0.) {
         // will need to change the 100 depending on the number of energy bins we end up having
