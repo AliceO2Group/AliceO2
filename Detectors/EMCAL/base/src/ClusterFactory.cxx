@@ -25,17 +25,9 @@
 
 using namespace o2::emcal;
 
-template <typename InputType>
-ClusterFactory<InputType>::ClusterFactory()
-{
-  mGeomPtr = o2::emcal::Geometry::GetInstance();
-}
-
 template <class InputType>
 ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<const int> cellsIndices)
 {
-  mGeomPtr = o2::emcal::Geometry::GetInstance();
-
   setContainer(clustersContainer, inputsContainer, cellsIndices);
 }
 

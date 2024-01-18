@@ -190,6 +190,9 @@ Geometry::~Geometry()
 Geometry* Geometry::GetInstance()
 {
   Geometry* rv = static_cast<Geometry*>(sGeom);
+  if (!rv) {
+    throw GeometryNotInitializedException();
+  }
   return rv;
 }
 

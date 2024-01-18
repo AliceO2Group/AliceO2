@@ -188,7 +188,7 @@ class ClusterFactory
 
   ///
   /// Dummy constructor
-  ClusterFactory();
+  ClusterFactory() = default;
 
   ///
   /// \brief Constructor initializing the ClusterFactory
