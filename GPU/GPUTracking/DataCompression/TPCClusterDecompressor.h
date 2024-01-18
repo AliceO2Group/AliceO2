@@ -40,8 +40,6 @@ class TPCClusterDecompressor
   static void decompressTrack(const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param, const unsigned int maxTime, const unsigned int i, unsigned int& offset, Args&... args);
   template <typename... Args>
   static void decompressHits(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int start, const unsigned int end, Args&... args);
-
- protected:
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

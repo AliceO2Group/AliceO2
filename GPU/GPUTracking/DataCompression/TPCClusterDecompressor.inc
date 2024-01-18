@@ -37,15 +37,17 @@ static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters
   return clusterVector.back();
 }
 
-static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
+static inline const auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
 {
   std::vector<ClusterNative>& clusterVector = clusters[slice][row];
   auto& lock = locks[slice][row];
   while (lock.test_and_set(std::memory_order_acquire)) {
   }
-  auto& cluster = decompressTrackStore(clustersCompressed, offset, slice, row, pad, time, clusterVector);
+  // Note the return type is ClusterNative, not auto&, since a different thread might append another cluster, and the vector expansion can change the cluster pointer, so the cluster reference might be invalid
+  // TODO: A new version that might use a plain array + counter to fill the clusters should change this and the function return type to auto&
+  ClusterNative retVal = decompressTrackStore(clustersCompressed, offset, slice, row, pad, time, clusterVector);
   lock.clear(std::memory_order_release);
-  return cluster;
+  return retVal;
 }
 
 template <typename... Args>
