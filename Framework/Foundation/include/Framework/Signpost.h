@@ -460,7 +460,13 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 #define O2_LOG_DISABLE(log) _o2_log_set_stacktrace(private_o2_log_##log, 0)
 // For the moment we simply use LOG DEBUG. We should have proper activities so that we can
 // turn on and off the printing.
-#define O2_LOG_DEBUG(log, ...) O2_LOG_MACRO(__VA_ARGS__)
+#define O2_LOG_DEBUG(log, ...) __extension__({                        \
+  if (O2_BUILTIN_UNLIKELY(O2_LOG_ENABLED(log))) {                     \
+    O2_LOG_MACRO(__VA_ARGS__);                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) { \
+    O2_LOG_MACRO(__VA_ARGS__);                                        \
+  }                                                                   \
+})
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer) _o2_signpost_id_t name = _o2_signpost_id_make_with_pointer(private_o2_log_##log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log) _o2_signpost_id_t name = _o2_signpost_id_generate_local(private_o2_log_##log)
 // In case Instruments is attached, we switch to the Apple signpost API otherwise, both one
