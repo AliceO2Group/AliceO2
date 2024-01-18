@@ -17,10 +17,10 @@
 #ifndef AliceO2_TPC_CLUSTERS_H
 #define AliceO2_TPC_CLUSTERS_H
 
-//root includes
+// root includes
 #include "TCanvas.h"
 
-//o2 includes
+// o2 includes
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Defs.h"
@@ -49,9 +49,9 @@ class Clusters
 
   void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
 
-  void normalize();
+  void normalize(const float nHBFPerTF = 128);
 
-  inline void analyse() { Clusters::normalize(); }
+  inline void analyse() { Clusters::normalize(); } // deprecated
 
   void denormalize();
 
@@ -61,12 +61,16 @@ class Clusters
 
   void dumpToFile(std::string filename, int type = 0);
 
+  void setnHBFperTF(float nHBFPerTF){
+     mNHBFperTF = nHBFPerTF;
+  }
   const CalPad& getNClusters() const { return mNClusters; }
   const CalPad& getQMax() const { return mQMax; }
   const CalPad& getQTot() const { return mQTot; }
   const CalPad& getSigmaTime() const { return mSigmaTime; }
   const CalPad& getSigmaPad() const { return mSigmaPad; }
   const CalPad& getTimeBin() const { return mTimeBin; }
+  const CalPad& getOccupancy() const { return mOccupancy; }
 
   CalPad& getNClusters() { return mNClusters; }
   CalPad& getQMax() { return mQMax; }
@@ -74,6 +78,7 @@ class Clusters
   CalPad& getSigmaTime() { return mSigmaTime; }
   CalPad& getSigmaPad() { return mSigmaPad; }
   CalPad& getTimeBin() { return mTimeBin; }
+  CalPad& getOccupancy() { return mOccupancy; }
 
   void endTF() { ++mProcessedTFs; }
 
@@ -86,8 +91,10 @@ class Clusters
   CalPad mSigmaTime{"Sigma_Time"};
   CalPad mSigmaPad{"Sigma_Pad"};
   CalPad mTimeBin{"Time_Bin"};
+  CalPad mOccupancy{"Occupancy"};
   size_t mProcessedTFs{0};
   bool mIsNormalized{false};
+  float mNHBFperTF{128};
 
   ClassDefNV(Clusters, 1)
 };
