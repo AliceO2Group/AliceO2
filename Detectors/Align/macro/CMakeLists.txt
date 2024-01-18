@@ -10,10 +10,15 @@
 # or submit itself to any jurisdiction.
 
 install(FILES algconf.C
+              algDump.C
               MPRec2Mille.C
         DESTINATION share/Detectors/Align/macro)
 
 o2_add_test_root_macro(algconf.C
+                       PUBLIC_LINK_LIBRARIES O2::Align
+                       LABELS align COMPILE_ONLY)
+
+o2_add_test_root_macro(algDump.C
                        PUBLIC_LINK_LIBRARIES O2::Align
                        LABELS align COMPILE_ONLY)
 
