@@ -320,10 +320,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       mInputRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
-    for (auto& route : mInputRoutes) {
-      assert(route.channel.value != -1);
-      assert(route.channel.value < mInputChannels.size());
-    }
+    assert(std::all_of(mInputRoutes.begin(), mInputRoutes.end(), [s = mInputChannels.size()](RouteState const& route) { return route.channel.value != -1 && route.channel.value < s; }));
     LOGP(detail, "Total input channels found {}, total routes {}", mInputChannels.size(), mInputRoutes.size());
     assert(mInputRoutes.size() == inputs.size());
   }
