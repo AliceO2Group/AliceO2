@@ -59,9 +59,11 @@ struct DeviceState {
 
   enum LogStreams : int {
     NO_LOG = 0,
-    DEVICE_LOG = 1 << 0,             // Log for Data Processing Device activities.
-    COMPLETION_LOG = 1 << 1,         // Log for the completion policy of the device.
-    MONITORING_SERVICE_LOG = 1 << 2, // Log for the monitoring service flushing.
+    DEVICE_LOG = 1 << 0,                 // Log for Data Processing Device activities.
+    COMPLETION_LOG = 1 << 1,             // Log for the completion policy of the device.
+    MONITORING_SERVICE_LOG = 1 << 2,     // Log for the monitoring service flushing.
+    DATA_PROCESSOR_CONTEXT_LOG = 1 << 3, // Log for the DataProcessorContext callbacks
+    STREAM_CONTEXT_LOG = 1 << 4,         // Log for the StreamContext callbacks
   };
 
   std::vector<InputChannelInfo> inputChannelInfos;

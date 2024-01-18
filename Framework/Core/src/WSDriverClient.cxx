@@ -24,6 +24,8 @@
 O2_DECLARE_DYNAMIC_LOG(device);
 O2_DECLARE_DYNAMIC_LOG(completion);
 O2_DECLARE_DYNAMIC_LOG(monitoring_service);
+O2_DECLARE_DYNAMIC_LOG(data_processor_context);
+O2_DECLARE_DYNAMIC_LOG(stream_context);
 
 namespace o2::framework
 {
@@ -184,11 +186,20 @@ void on_connect(uv_connect_t* connection, int status)
     } else {
       O2_LOG_DISABLE(completion);
     }
-
     if ((state.logStreams & DeviceState::LogStreams::MONITORING_SERVICE_LOG) != 0) {
       O2_LOG_ENABLE(monitoring_service);
     } else {
       O2_LOG_DISABLE(monitoring_service);
+    }
+    if ((state.logStreams & DeviceState::LogStreams::DATA_PROCESSOR_CONTEXT_LOG) != 0) {
+      O2_LOG_ENABLE(data_processor_context);
+    } else {
+      O2_LOG_DISABLE(data_processor_context);
+    }
+    if ((state.logStreams & DeviceState::LogStreams::STREAM_CONTEXT_LOG) != 0) {
+      O2_LOG_ENABLE(stream_context);
+    } else {
+      O2_LOG_DISABLE(stream_context);
     }
   });
 

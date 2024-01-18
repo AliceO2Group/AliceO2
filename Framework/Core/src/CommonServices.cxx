@@ -57,6 +57,7 @@
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <Monitoring/MonitoringFactory.h>
+#include "Framework/Signpost.h"
 
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
@@ -78,6 +79,9 @@ using Value = o2::monitoring::tags::Value;
 // This is to allow C++20 aggregate initialisation
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
+
+O2_DECLARE_DYNAMIC_LOG(data_processor_context);
+O2_DECLARE_DYNAMIC_LOG(stream_context);
 
 namespace o2::framework
 {
@@ -188,6 +192,8 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
         }
       }
       if (didCreate == false && messageContext.didDispatch() == true) {
+        O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
+        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band");
         LOGP(debug, "Data created out of band");
         return;
       }
