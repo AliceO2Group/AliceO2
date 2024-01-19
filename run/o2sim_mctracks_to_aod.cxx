@@ -9,182 +9,149 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/AnalysisTask.h"
-#include "Framework/runDataProcessing.h"
-#include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/MCUtils.h"
-#include "Framework/AnalysisDataModel.h"
-#include "SimulationDataFormat/InteractionSampler.h"
+// #include "O2RivetExporter.h"
+#include "../Detectors/AOD/include/AODProducerWorkflow/AODMcProducerHelpers.h"
+#include <Framework/AnalysisTask.h>
+#include <SimulationDataFormat/InteractionSampler.h>
+#include <Framework/runDataProcessing.h>
 
-using namespace o2::framework;
+template <typename T>
+using Configurable = o2::framework::Configurable<T>;
 
-struct MctracksToAod {
-  Produces<o2::aod::McCollisions> mcollisions;
-  Produces<o2::aod::StoredMcParticles_001> mcparticles;
+struct Task {
+  /** @{
+      @name Types used */
+  using Collisions = o2::aod::McCollisions;
+  // using Particles          = o2::aod::McParticles; //
+  using Particles = o2::aod::StoredMcParticles_001;
+  using XSections = o2::aod::HepMCXSections;
+  using PdfInfos = o2::aod::HepMCPdfInfos;
+  using HeavyIons = o2::aod::HepMCHeavyIons;
+  using InteractionSampler = o2::steer::InteractionSampler;
+  /** @} */
 
-  // optional extra info from HepMC (if found in header)
-  Produces<o2::aod::HepMCXSections> hepmcxsections;
-  Produces<o2::aod::HepMCPdfInfos> hepmcpdfinfos;
-  Produces<o2::aod::HepMCHeavyIons> hepmcheavyions;
+  /** @{
+      @name Produced data */
+  /** Collision header */
+  o2::framework::Produces<Collisions> mCollisions;
+  /** Particles in collision */
+  o2::framework::Produces<Particles> mParticles;
+  /** Cross-section information */
+  o2::framework::Produces<XSections> mXSections;
+  /** Parton-distribution-function information */
+  o2::framework::Produces<PdfInfos> mPdfInfos;
+  /** Heavy-ion colllision information */
+  o2::framework::Produces<HeavyIons> mHeavyIons;
+  /** @} */
+  /** @{
+    @name Configurable parameters */
+  Configurable<float> IR{"interaction-rate", 100.f,
+                         "Interaction rate to simulate"};
+  Configurable<bool> filt{"filter-mctracks", false,
+                          "Filter tracks"};
+  /** @} */
 
-  Configurable<float> IR{"interaction-rate", 100.f, "Interaction rate to simulate"};
+  /** Number of timeframes */
+  uint64_t mTimeFrame = 0;
+  /** Interaction simulation */
+  InteractionSampler mSampler;
+  /** Whether to filter tracks */
+  bool mFilter;
 
-  uint64_t timeframe = 0;
-  o2::steer::InteractionSampler sampler;
-
+  /** Initialize */
   void init(o2::framework::InitContext& /*ic*/)
   {
-    sampler.setInteractionRate(IR);
-    sampler.setFirstIR({0, 0});
-    sampler.init();
+    mSampler.setInteractionRate(IR);
+    mSampler.setFirstIR({0, 0});
+    mSampler.init();
+    mFilter = filt;
   }
 
+  /** Run the conversion */
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto Nparts = pc.inputs().getNofParts(0);
-    auto Nparts_verify = pc.inputs().getNofParts(1);
-    if (Nparts != Nparts_verify) {
-      LOG(warn) << "Mismatch between number of MC headers and number of track vectors: " << Nparts << " != " << Nparts_verify << ", shipping the empty timeframe";
+    LOG(info) << "=== Running extended MC AOD exporter ===";
+    using namespace o2::aodmchelpers;
+    using McHeader = o2::dataformats::MCEventHeader;
+    using McTrack = o2::MCTrack;
+    using McTracks = std::vector<McTrack>;
+
+    auto nParts = pc.inputs().getNofParts(0);
+    auto nPartsVerify = pc.inputs().getNofParts(1);
+    if (nParts != nPartsVerify) {
+      LOG(warn) << "Mismatch between number of MC headers and "
+                << "number of track vectors: " << nParts
+                << " != " << nPartsVerify
+                << ", shipping the empty timeframe";
       return;
     }
     // TODO: include BC simulation
     auto bcCounter = 0UL;
-    int trackCounter = 0;
-    for (auto i = 0U; i < Nparts; ++i) {
-      auto record = sampler.generateCollisionTime();
-      auto mcheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader", i);
-      auto mctracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks", i);
+    size_t offset = 0;
+    for (auto i = 0U; i < nParts; ++i) {
+      LOG(info) << "--- Loop over " << nParts << " parts ---";
 
-      mcollisions(bcCounter++, // bcId
-                  0,           // generatorId
-                  mcheader->GetX(),
-                  mcheader->GetY(),
-                  mcheader->GetZ(),
-                  record.timeInBCNS * 1.e-3, // ns to ms
-                  1.,                        // weight
-                  mcheader->GetB());
-      bool valid;
-      if (mcheader->hasInfo("Accepted")) {
-        auto ptHard = mcheader->hasInfo("PtHard") ? mcheader->getInfo<float>("PtHard", valid) : 0.f;
-        auto nMPI = mcheader->hasInfo("MPI") ? mcheader->getInfo<int>("MPI", valid) : -1;
-        auto processId = mcheader->hasInfo("ProcessId") ? mcheader->getInfo<int>("ProcessId", valid) : -1;
-        hepmcxsections(
-          mcollisions.lastIndex(),
-          0,
-          mcheader->getInfo<uint64_t>("Accepted", valid),
-          mcheader->getInfo<uint64_t>("Attempted", valid),
-          mcheader->getInfo<float>("XsectGen", valid),
-          mcheader->getInfo<float>("XsectErr", valid),
-          ptHard,
-          nMPI,
-          processId);
-      }
-      if (mcheader->hasInfo("Id1")) {
-        hepmcpdfinfos(
-          mcollisions.lastIndex(),
-          0,
-          mcheader->getInfo<int>("Id1", valid),
-          mcheader->getInfo<int>("Id2", valid),
-          mcheader->getInfo<int>("PdfId1", valid),
-          mcheader->getInfo<int>("PdfId2", valid),
-          mcheader->getInfo<float>("X1", valid),
-          mcheader->getInfo<float>("X2", valid),
-          mcheader->getInfo<float>("scale", valid),
-          mcheader->getInfo<float>("Pdf1", valid),
-          mcheader->getInfo<float>("Pdf2", valid));
-      }
-      if (mcheader->hasInfo("NcollHard")) {
-        hepmcheavyions(
-          mcollisions.lastIndex(),
-          0,
-          mcheader->getInfo<int>("NcollHard", valid),
-          mcheader->getInfo<int>("NpartProj", valid),
-          mcheader->getInfo<int>("NpartTarg", valid),
-          mcheader->getInfo<int>("Ncoll", valid),
-          mcheader->getInfo<int>("NNwoundedCollisions", valid),
-          mcheader->getInfo<int>("NwoundedNCollisions", valid),
-          mcheader->getInfo<int>("NwoundedNwoundedCollisions", valid),
-          mcheader->getInfo<int>("SpectatorNeutrons", valid),
-          mcheader->getInfo<int>("SpectatorProtons", valid),
-          mcheader->getInfo<float>("ImpactParameter", valid),
-          mcheader->getInfo<float>("EventPlaneAngle", valid),
-          mcheader->getInfo<float>("Eccentricity", valid),
-          mcheader->getInfo<float>("SigmaInelNN", valid),
-          mcheader->getInfo<float>("Centrality", valid));
-      }
+      auto record = mSampler.generateCollisionTime();
+      auto header = pc.inputs().get<McHeader*>("mcheader", i);
+      auto tracks = pc.inputs().get<McTracks>("mctracks", i);
 
-      for (auto& mctrack : mctracks) {
-        std::vector<int> mothers;
-        int daughters[2];
+      LOG(info) << "Updating collision table";
+      auto genID = updateMCCollisions(mCollisions.cursor,
+                                      bcCounter,
+                                      record.timeInBCNS * 1.e-3,
+                                      *header,
+                                      0,
+                                      i);
 
-        if (mctrack.getMotherTrackId() >= 0) {
-          mothers.push_back(mctrack.getMotherTrackId() + trackCounter);
-        }
-        if (mctrack.getSecondMotherTrackId() >= 0) {
-          mothers.push_back(mctrack.getSecondMotherTrackId() + trackCounter);
-        }
-        daughters[0] = -1;
-        daughters[1] = -1;
-        if (mctrack.getFirstDaughterTrackId() >= 0 && mctrack.getLastDaughterTrackId() >= 0) {
-          daughters[0] = mctrack.getFirstDaughterTrackId() + trackCounter;
-          daughters[1] = mctrack.getLastDaughterTrackId() + trackCounter;
-        } else if (mctrack.getFirstDaughterTrackId() >= 0) {
-          daughters[0] = mctrack.getFirstDaughterTrackId() + trackCounter;
-          daughters[1] = mctrack.getLastDaughterTrackId() + trackCounter;
-        }
-        int PdgCode = mctrack.GetPdgCode();
-        int statusCode = 0;
-        float weight = mctrack.getWeight();
-        float px = mctrack.Px();
-        float py = mctrack.Py();
-        float pz = mctrack.Pz();
-        float e = mctrack.GetEnergy();
-        float x = mctrack.GetStartVertexCoordinatesX();
-        float y = mctrack.GetStartVertexCoordinatesY();
-        float z = mctrack.GetStartVertexCoordinatesZ();
-        float t = mctrack.GetStartVertexCoordinatesT();
-        int flags = 0;
-        if (!mctrack.isPrimary()) {
-          flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
-          statusCode = mctrack.getProcess();
-        } else {
-          statusCode = mctrack.getStatusCode().fullEncoding;
-        }
-        if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mctrack, mctracks)) {
-          flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
-        }
-        mcparticles(mcollisions.lastIndex(), // collisionId,
-                    PdgCode,
-                    statusCode,
-                    flags,
-                    mothers,
-                    daughters,
-                    weight,
-                    px,
-                    py,
-                    pz,
-                    e,
-                    x,
-                    y,
-                    z,
-                    t);
-      }
-      trackCounter = trackCounter + mctracks.size();
+      LOG(info) << "Updating HepMC tables";
+      updateHepMCXSection(mXSections.cursor, bcCounter, genID, *header);
+      updateHepMCPdfInfo(mPdfInfos.cursor, bcCounter, genID, *header);
+      updateHepMCHeavyIon(mHeavyIons.cursor, bcCounter, genID, *header);
+
+      LOG(info) << "Updating particles table";
+      TrackToIndex preselect;
+      offset = updateParticles(mParticles.cursor,
+                               bcCounter,
+                               tracks,
+                               preselect,
+                               offset,
+                               mFilter,
+                               false);
+
+      LOG(info) << "Increment BC counter";
+      bcCounter++;
     }
-    ++timeframe;
+    using o2::framework::Lifetime;
+    using o2::framework::Output;
+
+    ++mTimeFrame;
     pc.outputs().snapshot(Output{"TFF", "TFFilename", 0}, "");
-    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, timeframe);
+    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0}, mTimeFrame);
   }
 };
 
+using WorkflowSpec = o2::framework::WorkflowSpec;
+using TaskName = o2::framework::TaskName;
+using DataProcessorSpec = o2::framework::DataProcessorSpec;
+using ConfigContext = o2::framework::ConfigContext;
+using InputSpec = o2::framework::InputSpec;
+using OutputSpec = o2::framework::OutputSpec;
+using Lifetime = o2::framework::Lifetime;
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto dSpec = adaptAnalysisTask<MctracksToAod>(cfgc);
-  dSpec.inputs.emplace_back("mctracks", "MC", "MCTRACKS", 0., Lifetime::Timeframe);
-  dSpec.inputs.emplace_back("mcheader", "MC", "MCHEADER", 0., Lifetime::Timeframe);
-  dSpec.outputs.emplace_back("TFF", "TFFilename");
-  dSpec.outputs.emplace_back("TFN", "TFNumber");
+  using o2::framework::adaptAnalysisTask;
 
-  return {dSpec};
+  auto spec = adaptAnalysisTask<Task>(cfgc);
+  spec.inputs.emplace_back("mctracks", "MC", "MCTRACKS", 0.,
+                           Lifetime::Timeframe);
+  spec.inputs.emplace_back("mcheader", "MC", "MCHEADER", 0.,
+                           Lifetime::Timeframe);
+  spec.outputs.emplace_back("TFF", "TFFilename");
+  spec.outputs.emplace_back("TFN", "TFNumber");
+
+  return {spec};
 }
+//
+// EOF
+//
