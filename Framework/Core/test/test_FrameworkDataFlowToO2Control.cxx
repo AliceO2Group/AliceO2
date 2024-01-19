@@ -31,7 +31,7 @@ namespace
 {
 WorkflowSpec defineDataProcessing()
 {
-  return {{.name = "A",                                                                  //
+  return {{.name = "A",                                                          //
            .outputs = Outputs{OutputSpec{"TST", "A1"}, OutputSpec{"TST", "A2"}}, // A1 will be consumed twice, A2 is dangling
            .algorithm = AlgorithmSpec{},                                         //
            .options = {ConfigParamSpec{"channel-config", VariantType::String,    // raw input channel

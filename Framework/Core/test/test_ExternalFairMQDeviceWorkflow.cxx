@@ -403,7 +403,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         output.AddPart(std::move(inputs.At(msgidx)));
       }
     }
-    auto &messageContext = services.get<MessageContext>();
+    auto& messageContext = services.get<MessageContext>();
     o2::framework::sendOnChannel(*device, output, channelName, (size_t)-1);
     messageContext.fakeDispatch();
     return output.Size() != 0;

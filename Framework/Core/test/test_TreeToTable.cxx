@@ -53,7 +53,7 @@ TEST_CASE("TreeToTableConversion")
   t1.Branch("xyzw", xyzw, "xyzw[96]/F");
   t1.Branch("small", &b, "small/b");
 
-  //fill the tree
+  // fill the tree
   int ntruein[2] = {0};
   for (int i = 0; i < ndp; i++) {
     ok = (i % 2) == 0;
