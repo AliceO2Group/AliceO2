@@ -33,6 +33,23 @@ enum AcceptanceType_t { EMCAL_ACCEPTANCE = 1,
 
 const std::string DEFAULT_GEOMETRY = "EMCAL_COMPLETE12SMV1_DCAL_8SM";
 
+/// \class GeometryNotInitializedException
+/// \brief Error handling access to non-initialized geometry
+/// \ingroup EMCALbase
+class GeometryNotInitializedException final : public std::exception
+{
+ public:
+  /// \brief Constructor
+  GeometryNotInitializedException() = default;
+
+  /// \brief Destructor
+  ~GeometryNotInitializedException() noexcept final = default;
+
+  /// \brief Access to error message
+  /// \return Error message
+  const char* what() const noexcept { return "Geometry not initialized"; }
+};
+
 /// \class InvalidModuleException
 /// \brief Error Handling when an invalid module ID (outside the limits) is called
 /// \ingroup EMCALbase
