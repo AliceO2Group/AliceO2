@@ -32,7 +32,7 @@ static BindingNode testInt{"testInt", 6, atype::INT32};
 
 namespace o2::aod::track
 {
-DECLARE_SOA_EXPRESSION_COLUMN(Pze, pz, float, o2::aod::track::tgl*(1.f / o2::aod::track::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(Pze, pz, float, o2::aod::track::tgl * (1.f / o2::aod::track::signed1Pt));
 } // namespace o2::aod::track
 
 TEST_CASE("TestTreeParsing")

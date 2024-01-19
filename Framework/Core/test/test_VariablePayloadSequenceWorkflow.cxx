@@ -56,7 +56,7 @@ namespace test
 // a header with the information expected in the payload
 // will be sent on the header stack
 struct SequenceDesc : public o2::header::BaseHeader {
-  //static data for this header type/version
+  // static data for this header type/version
   static constexpr uint32_t sVersion{1};
   static constexpr o2::header::HeaderType sHeaderType{o2::header::String2<uint64_t>("SequDesc")};
   static constexpr o2::header::SerializationMethod sSerializationMethod{o2::header::gSerializationMethodNone};
