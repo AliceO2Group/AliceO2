@@ -19,7 +19,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-
 using namespace o2::framework;
 
 struct FakeCluster {

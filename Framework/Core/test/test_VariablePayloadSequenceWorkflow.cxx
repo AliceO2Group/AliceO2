@@ -217,7 +217,6 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         ASSERT_ERROR(*reinterpret_cast<size_t const*>(ref.payload) == sd->initialValue + nSequencePayloads);
         ++nSequencePayloads;
       }
-      //LOG(info) << "input " << ref.spec->binding << " has data {" << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/" << dh->subSpecification << "}: " << *reinterpret_cast<size_t const*>(ref.payload);
     }
     for (auto const& [channel, count] : active) {
       ++counters[channel];
