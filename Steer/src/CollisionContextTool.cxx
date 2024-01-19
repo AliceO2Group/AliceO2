@@ -45,7 +45,7 @@ struct Options {
   bool printContext = false;
   std::string bcpatternfile;
   int tfid = 0;          // tfid -> used to calculate start orbit for collisions
-  uint32_t firstOrbit = 0;    // first orbit in run (orbit offset)
+  uint32_t firstOrbit = 0; // first orbit in run (orbit offset)
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
   bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
