@@ -769,8 +769,7 @@ void RecEventFlat::printEvent() const
       continue;
     }
     for (int32_t ipos = 0; ipos < nhit; ipos++) {
-      printf("%9u.%04u T %2d %s = %g @ %g \n", mCurB.ir.orbit, mCurB.ir.bc, ich, ChannelNames[ich].data(),
-             FTDCAmp * TDCAmp[itdc][ipos], FTDCVal * TDCVal[itdc][ipos]);
+      printf("%9u.%04u T %2d %s = %g @ %g \n", mCurB.ir.orbit, mCurB.ir.bc, ich, ChannelNames[ich].data(), TDCAmp[itdc][ipos], FTDCVal * TDCVal[itdc][ipos]);
     }
   }
   // Energy
