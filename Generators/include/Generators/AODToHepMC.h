@@ -24,6 +24,7 @@
 #include <HepMC3/GenCrossSection.h>
 #include <HepMC3/WriterAscii.h>
 #include <fstream>
+#define AODTOHEPMC_WITH_HEAVYION
 
 namespace o2
 {
@@ -391,6 +392,11 @@ struct AODToHepMC {
    */
   virtual void init();
   /**
+   * Call before starting to process an event.  This clears the
+   * current event and internal data structures.
+   */
+  virtual void startEvent();
+  /**
    * Process the collision header and tracks
    *
    * @param collision Header information
@@ -407,8 +413,17 @@ struct AODToHepMC {
    */
   virtual void process(Header const& collision,
                        XSections const& xsections,
-                       PdfInfos const& pdfs,
-                       HeavyIons const& heavyions);
+                       PdfInfos const& pdfs
+#ifdef AODTOHEPMC_WITH_HEAVYION
+                       ,
+                       HeavyIons const& heavyions
+#endif
+  );
+  /**
+   * Call after process an.  Thisf finalises the event and optionally
+   * outputs to dump.
+   */
+  virtual void endEvent();
   /**
    * End of run - closes output file if enabled.  This is called via
    * specialisation of o2::framework::OutputManager<AODToHepMC>.
