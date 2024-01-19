@@ -29,18 +29,18 @@ namespace o2
 namespace globaltracking
 {
 
-void ITSTPCMatchingQCDevice::init(InitContext& ic)
+void ITSTPCMatchingQCDevice::init(InitContext& /*ic*/)
 {
-  const o2::globaltracking::ITSTPCMatchingQCParams* params = &o2::globaltracking::ITSTPCMatchingQCParams::Instance();
+  const o2::globaltracking::ITSTPCMatchingQCParams& params = o2::globaltracking::ITSTPCMatchingQCParams::Instance();
 
   mMatchITSTPCQC = std::make_unique<o2::globaltracking::MatchITSTPCQC>();
   mMatchITSTPCQC->init();
   mMatchITSTPCQC->setDataRequest(mDataRequest);
-  mMatchITSTPCQC->setPtCut(params->minPtCut);
-  mMatchITSTPCQC->setEtaCut(params->etaCut);
-  mMatchITSTPCQC->setMinNTPCClustersCut(params->minNTPCClustersCut);
-  mMatchITSTPCQC->setMinDCAtoBeamPipeDistanceCut(params->minDCACut);
-  mMatchITSTPCQC->setMinDCAtoBeamPipeYCut(params->minDCACutY);
+  mMatchITSTPCQC->setPtCut(params.minPtCut);
+  mMatchITSTPCQC->setEtaCut(params.etaCut);
+  mMatchITSTPCQC->setMinNTPCClustersCut(params.minNTPCClustersCut);
+  mMatchITSTPCQC->setMinDCAtoBeamPipeDistanceCut(params.minDCACut);
+  mMatchITSTPCQC->setMinDCAtoBeamPipeYCut(params.minDCACutY);
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   if (mUseMC) {
     mMatchITSTPCQC->setUseMC(mUseMC);
@@ -74,6 +74,10 @@ void ITSTPCMatchingQCDevice::sendOutput(DataAllocator& output)
   output.snapshot(Output{"GLO", "ITSTPCMATCHQC", 0}, objar);
 
   TFile* f = new TFile(Form("outITSTPCmatchingQC.root"), "RECREATE");
+  if (f == nullptr) {
+    LOGP(error, "Cannot write QC to file 'outITSTPCmatchingQC.root'");
+    return;
+  }
   objar.Write("ObjArray", TObject::kSingleKey);
   f->Close();
 }

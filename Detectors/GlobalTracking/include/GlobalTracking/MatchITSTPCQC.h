@@ -59,7 +59,7 @@ class MatchITSTPCQC
   bool init();
   void initDataRequest();
   void run(o2::framework::ProcessingContext& ctx);
-  void setDataRequest(std::shared_ptr<o2::globaltracking::DataRequest> dr) { mDataRequest = dr; }
+  void setDataRequest(const std::shared_ptr<o2::globaltracking::DataRequest>& dr) { mDataRequest = dr; }
   void finalize();
   void reset();
 
@@ -87,6 +87,14 @@ class MatchITSTPCQC
   TH2F* getHistoEtaVsPtDen(matchType m) const { return mEtaVsPtDen[m]; }
   TEfficiency* getFractionITSTPCmatchEtaVsPt(matchType m) const { return mFractionITSTPCmatchEtaVsPt[m]; }
 
+  TH2F* getHistoClsVsPtNum(matchType m) const { return mClsVsPtNum[m]; }
+  TH2F* getHistoClsVsPtDen(matchType m) const { return mClsVsPtDen[m]; }
+  TEfficiency* getFractionITSTPCmatchClsVsPt(matchType m) const { return mFractionITSTPCmatchClsVsPt[m]; }
+
+  TH2F* getHistoChi2VsPtNum(matchType m) const { return mChi2VsPtNum[m]; }
+  TH2F* getHistoChi2VsPtDen(matchType m) const { return mChi2VsPtDen[m]; }
+  TEfficiency* getFractionITSTPCmatchChi2VsPt(matchType m) const { return mFractionITSTPCmatchChi2VsPt[m]; }
+
   TH1F* getHistoPtPhysPrimNum(matchType m) const { return mPtPhysPrimNum[m]; }
   TH1F* getHistoPtPhysPrimDen(matchType m) const { return mPtPhysPrimDen[m]; }
   TEfficiency* getFractionITSTPCmatchPhysPrim(matchType m) const { return mFractionITSTPCmatchPhysPrim[m]; }
@@ -107,6 +115,9 @@ class MatchITSTPCQC
   TH1F* getHistoChi2Refit() const { return mChi2Refit; }
   TH2F* getHistoTimeResVsPt() const { return mTimeResVsPt; }
   TH1F* getHistoDCAr() const { return mDCAr; }
+  TH2F* getHistoDCArVsPtNum() const { return mDCArVsPtNum; }
+  TH2F* getHistoDCArVsPtDen() const { return mDCArVsPtDen; }
+  TEfficiency* getFractionITSTPCmatchDCArVsPt() const { return mFractionITSTPCmatchDCArVsPt; }
 
   TH1D* getHisto1OverPtNum(matchType m) const { return m1OverPtNum[m]; }
   TH1D* getHisto1OverPtDen(matchType m) const { return m1OverPtDen[m]; }
@@ -122,7 +133,7 @@ class MatchITSTPCQC
   /// \tparam T type of the publisher
   /// \param publisher the publisher e.g. getObjectsManager()
   template <typename T>
-  void publishHistograms(std::shared_ptr<T> publisher)
+  void publishHistograms(const std::shared_ptr<T>& publisher)
   {
     for (int i = 0; i < matchType::SIZE; ++i) {
       publisher->startPublishing(mPtNum[i]);
@@ -178,6 +189,14 @@ class MatchITSTPCQC
       publisher->startPublishing(mEtaVsPtDen[i]);
       publisher->startPublishing(mFractionITSTPCmatchEtaVsPt[i]);
 
+      publisher->startPublishing(mClsVsPtNum[i]);
+      publisher->startPublishing(mClsVsPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchClsVsPt[i]);
+
+      publisher->startPublishing(mChi2VsPtNum[i]);
+      publisher->startPublishing(mChi2VsPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchChi2VsPt[i]);
+
       publisher->startPublishing(m1OverPtNum[i]);
       publisher->startPublishing(m1OverPtDen[i]);
       publisher->startPublishing(mFractionITSTPCmatch1OverPt[i]);
@@ -193,6 +212,9 @@ class MatchITSTPCQC
     publisher->startPublishing(mResidualPhi);
     publisher->startPublishing(mResidualEta);
     publisher->startPublishing(mDCAr);
+    publisher->startPublishing(mDCArVsPtNum);
+    publisher->startPublishing(mDCArVsPtDen);
+    publisher->startPublishing(mFractionITSTPCmatchDCArVsPt);
   }
 
   void setSources(GID::mask_t src) { mSrc = src; }
@@ -288,6 +310,14 @@ class MatchITSTPCQC
   TH2F* mEtaVsPtNum[matchType::SIZE] = {};
   TH2F* mEtaVsPtDen[matchType::SIZE] = {};
   TEfficiency* mFractionITSTPCmatchEtaVsPt[matchType::SIZE] = {};
+  // Clusters
+  TH2F* mClsVsPtNum[matchType::SIZE] = {};
+  TH2F* mClsVsPtDen[matchType::SIZE] = {};
+  TEfficiency* mFractionITSTPCmatchClsVsPt[matchType::SIZE] = {};
+  // Chi2
+  TH2F* mChi2VsPtNum[matchType::SIZE] = {};
+  TH2F* mChi2VsPtDen[matchType::SIZE] = {};
+  TEfficiency* mFractionITSTPCmatchChi2VsPt[matchType::SIZE] = {};
   // Eta split per PID hypothesis in tracking
   TH1D* mEtaNumVsTrkPID[matchType::SIZE][track::PID::NIDs] = {};
   TH1D* mEtaDenVsTrkPID[matchType::SIZE][track::PID::NIDs] = {};
@@ -301,6 +331,9 @@ class MatchITSTPCQC
   TH1F* mChi2Refit = nullptr;
   TH2F* mTimeResVsPt = nullptr;
   TH1F* mDCAr = nullptr;
+  TH2F* mDCArVsPtNum = nullptr;
+  TH2F* mDCArVsPtDen = nullptr;
+  TEfficiency* mFractionITSTPCmatchDCArVsPt = nullptr;
   // 1/Pt
   TH1D* m1OverPtNum[matchType::SIZE] = {};
   TH1D* m1OverPtDen[matchType::SIZE] = {};
