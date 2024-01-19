@@ -2,6 +2,8 @@
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
+# This should trigger an error.
+#
 # This software is distributed under the terms of the GNU General Public
 # License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
@@ -11,7 +13,7 @@
 
 # Preamble
 
-cmake_minimum_required(VERSION 3.27.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.27.1 FATAL_ERROR)      
 
 # it's important to specify accurately the list of languages. for instance C and
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
