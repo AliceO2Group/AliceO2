@@ -125,8 +125,11 @@ o2_add_executable(hepmc-publisher
 
 o2_add_executable(mctracks-to-aod
                   COMPONENT_NAME sim
-                  SOURCES o2sim_mctracks_to_aod.cxx
+                  SOURCES o2sim_mctracks_to_aod.cxx ../Detectors/AOD/src/AODMcProducerHelpers.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat)
+target_include_directories(O2exe-sim-mctracks-to-aod
+                           PRIVATE
+                          ../Detectors/AOD/include)
 
 o2_add_executable(mc-to-hepmc
                   COMPONENT_NAME aod

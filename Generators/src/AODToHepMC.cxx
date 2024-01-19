@@ -35,15 +35,20 @@ void AODToHepMC::init()
              << "  Output precision:      " << mPrecision;
 }
 // -------------------------------------------------------------------
-void AODToHepMC::process(Header const& collision,
-                         Tracks const& tracks)
+void AODToHepMC::startEvent()
 {
-  LOG(debug) << "--- Processing track information";
+  LOG(debug) << ">>> Starting an event";
   mBeams.clear();
   mOrphans.clear();
   mParticles.clear();
   mVertices.clear();
   mEvent.clear();
+}
+// -------------------------------------------------------------------
+void AODToHepMC::process(Header const& collision,
+                         Tracks const& tracks)
+{
+  LOG(debug) << "--- Processing track information";
 
   makeHeader(collision);
   makeParticles(tracks);
@@ -52,13 +57,29 @@ void AODToHepMC::process(Header const& collision,
 // -------------------------------------------------------------------
 void AODToHepMC::process(Header const& collision,
                          XSections const& xsections,
-                         PdfInfos const& pdfs,
-                         HeavyIons const& heavyions)
+                         PdfInfos const& pdfs
+#ifdef AODTOHEPMC_WITH_HEAVYION
+                         ,
+                         HeavyIons const& heavyions
+#endif
+)
 {
   LOG(debug) << "--- Processing auxiliary information";
   makeXSection(xsections);
   makePdfInfo(pdfs);
+#ifdef AODTOHEPMC_WITH_HEAVYION
   makeHeavyIon(heavyions, collision);
+#endif
+}
+// -------------------------------------------------------------------
+void AODToHepMC::endEvent()
+{
+  LOG(debug) << "<<< an event";
+  if (not mWriter) {
+    return;
+  }
+  // If we have a writer, then dump event to output file
+  mWriter->write_event(mEvent);
 }
 // ===================================================================
 void AODToHepMC::makeEvent(Header const& collision,
@@ -105,10 +126,6 @@ void AODToHepMC::makeEvent(Header const& collision,
   }
   // Flesh out the tracks based on daughter information.
   fleshOut(tracks);
-  if (mWriter) {
-    // If we have a writer, then dump event to output file
-    mWriter->write_event(mEvent);
-  }
 }
 // -------------------------------------------------------------------
 void AODToHepMC::makeHeader(Header const& header)
@@ -134,6 +151,7 @@ void AODToHepMC::makeHeader(Header const& header)
 // -------------------------------------------------------------------
 void AODToHepMC::makeXSection(XSections const& xsections)
 {
+  LOG(debug) << "--- Process cross-section information";
   if (not mCrossSec) {
     // If we do not have a cross-sections object, create it
     mCrossSec = std::make_shared<HepMC3::GenCrossSection>();
@@ -144,6 +162,7 @@ void AODToHepMC::makeXSection(XSections const& xsections)
 
   if (xsections.size() <= 0) {
     // If we have no info, skip the rest
+    LOG(warning) << "??? No input cross-section";
     return;
   }
 
@@ -156,6 +175,7 @@ void AODToHepMC::makeXSection(XSections const& xsections)
 // -------------------------------------------------------------------
 void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 {
+  LOG(debug) << "--- Process PDF information";
   if (not mPdf) {
     // If we do not have a Parton Distribution Function object, create it
     mPdf = std::make_shared<HepMC3::GenPdfInfo>();
@@ -166,6 +186,7 @@ void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 
   if (pdfs.size() <= 0) {
     // If we have no PDF info, skip the rest
+    LOG(warning) << "??? No input pdf-info, skipping";
     return;
   }
 
@@ -184,6 +205,7 @@ void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
                               Header const& header)
 {
+  LOG(debug) << "--- Process input heavy-ion header";
   if (not mIon) {
     // Generate heavy ion element if it doesn't exist
     mIon = std::make_shared<HepMC3::GenHeavyIon>();
@@ -215,6 +237,7 @@ void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
 
   if (heavyions.size() <= 0) {
     // If we have no heavy-ion information, skip the rest
+    LOG(warning) << "??? No input heavy-ion header, skipping";
     return;
   }
 
