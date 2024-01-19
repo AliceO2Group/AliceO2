@@ -41,14 +41,14 @@ o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
   TARGETVARNAME targetName
-  SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx
+  SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx src/AODMcProducerHelpers.cxx
   PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
 )
 
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-mc-producer
-  SOURCES src/aod-mc-producer-workflow.cxx src/AODMcProducerWorkflowSpec.cxx
+  SOURCES src/aod-mc-producer-workflow.cxx src/AODMcProducerWorkflowSpec.cxx src/AODMcProducerHelpers.cxx
   PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
 )
 

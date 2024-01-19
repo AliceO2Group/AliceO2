@@ -20,6 +20,7 @@
 #include <boost/unordered_map.hpp>
 #include <string>
 #include <vector>
+#include <Framework/AnalysisHelpers.h>
 
 namespace o2::aodhelpers
 {
@@ -48,6 +49,15 @@ struct TripletEqualTo {
 
 typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> TripletsMap_t;
 
+template <typename T>
+framework::Produces<T> createTableCursor(framework::ProcessingContext& pc)
+{
+  framework::Produces<T> c;
+  c.resetCursor(pc.outputs()
+                  .make<framework::TableBuilder>(framework::OutputForTable<T>::ref()));
+  c.setLabel(o2::aod::MetadataTrait<T>::metadata::tableLabel());
+  return c;
+}
 } // namespace o2::aodhelpers
 
 #endif /* O2_AODPRODUCER_HELPERS */
