@@ -75,8 +75,9 @@ void AODToHepMC::process(Header const& collision,
 void AODToHepMC::endEvent()
 {
   LOG(debug) << "<<< an event";
-  if (not mWriter)
+  if (not mWriter) {
     return;
+  }
   // If we have a writer, then dump event to output file
   mWriter->write_event(mEvent);
 }
