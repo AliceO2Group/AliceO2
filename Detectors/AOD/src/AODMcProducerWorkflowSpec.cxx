@@ -13,156 +13,18 @@
 
 #include "AODProducerWorkflow/AODMcProducerWorkflowSpec.h"
 #include "AODProducerWorkflow/AODProducerHelpers.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataTypes.h"
-#include "Framework/TableBuilder.h"
-#include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "O2Version.h"
 #include "TString.h"
-#include <vector>
 
 using namespace o2::framework;
-using namespace o2::math_utils::detail;
 
 namespace o2::aodmcproducer
 {
 
-template <typename MCParticlesCursorType>
-void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
-                                                    const MCParticlesCursorType& mcParticlesCursor)
-{
-  using o2::aodhelpers::Triplet_t;
-
-  int tableIndex = 1;
-  for (auto& colInfo : mMCColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo[2];
-    int source = colInfo[1];
-    int mcColId = colInfo[0];
-    std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
-    // mark tracks to be stored per event
-    // loop over stack of MC particles from end to beginning: daughters are stored after mothers
-    if (mFilterMC) {
-      for (int particle = mcParticles.size() - 1; particle >= 0; particle--) {
-        // we store all primary particles == particles put by generator
-        if (mcParticles[particle].isPrimary() ||
-            o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles) ||
-            o2::mcutils::MCTrackNavigator::isKeepPhysics(mcParticles[particle], mcParticles)) {
-          mToStore[Triplet_t(source, event, particle)] = 1;
-        } else {
-          continue;
-        }
-        // we store mothers and daughters of particles that are to be saved
-        int mother0 = mcParticles[particle].getMotherTrackId();
-        if (mother0 != -1) {
-          mToStore[Triplet_t(source, event, mother0)] = 1;
-        }
-        int mother1 = mcParticles[particle].getSecondMotherTrackId();
-        if (mother1 != -1) {
-          mToStore[Triplet_t(source, event, mother1)] = 1;
-        }
-        int daughter0 = mcParticles[particle].getFirstDaughterTrackId();
-        if (daughter0 != -1) {
-          mToStore[Triplet_t(source, event, daughter0)] = 1;
-        }
-        int daughterL = mcParticles[particle].getLastDaughterTrackId();
-        if (daughterL != -1) {
-          mToStore[Triplet_t(source, event, daughterL)] = 1;
-        }
-      }
-      // enumerate saved mc particles and their relatives to get mother/daughter relations
-      for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
-        auto mapItem = mToStore.find(Triplet_t(source, event, particle));
-        if (mapItem != mToStore.end()) {
-          mapItem->second = tableIndex - 1;
-          tableIndex++;
-        }
-      }
-    } else {
-      // if all mc particles are stored, all mc particles will be enumerated
-      for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
-        mToStore[Triplet_t(source, event, particle)] = tableIndex - 1;
-        tableIndex++;
-      }
-    }
-
-    // second part: fill survived mc tracks into the AOD table
-    for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
-      if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
-        continue;
-      }
-      int statusCode = 0;
-      uint8_t flags = 0;
-      if (!mcParticles[particle].isPrimary()) {
-        flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
-        statusCode = mcParticles[particle].getProcess();
-      } else {
-        statusCode = mcParticles[particle].getStatusCode().fullEncoding;
-      }
-      if (source == 0) {
-        flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
-      }
-      if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mcParticles[particle], mcParticles)) {
-        flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
-      }
-      float weight = mcParticles[particle].getWeight();
-      std::vector<int> mothers;
-      int mcMother0 = mcParticles[particle].getMotherTrackId();
-      auto item = mToStore.find(Triplet_t(source, event, mcMother0));
-      if (item != mToStore.end()) {
-        mothers.push_back(item->second);
-      }
-      int mcMother1 = mcParticles[particle].getSecondMotherTrackId();
-      item = mToStore.find(Triplet_t(source, event, mcMother1));
-      if (item != mToStore.end()) {
-        mothers.push_back(item->second);
-      }
-      int daughters[2] = {-1, -1}; // slice
-      int mcDaughter0 = mcParticles[particle].getFirstDaughterTrackId();
-      item = mToStore.find(Triplet_t(source, event, mcDaughter0));
-      if (item != mToStore.end()) {
-        daughters[0] = item->second;
-      }
-      int mcDaughterL = mcParticles[particle].getLastDaughterTrackId();
-      item = mToStore.find(Triplet_t(source, event, mcDaughterL));
-      if (item != mToStore.end()) {
-        daughters[1] = item->second;
-        if (daughters[0] < 0) {
-          LOG(error) << "AOD problematic daughter case observed";
-          daughters[0] = daughters[1]; /// Treat the case of first negative label (pruned in the kinematics)
-        }
-      } else {
-        daughters[1] = daughters[0];
-      }
-      if (daughters[0] > daughters[1]) {
-        std::swap(daughters[0], daughters[1]);
-      }
-      auto pX = (float)mcParticles[particle].Px();
-      auto pY = (float)mcParticles[particle].Py();
-      auto pZ = (float)mcParticles[particle].Pz();
-      auto energy = (float)mcParticles[particle].GetEnergy();
-      mcParticlesCursor(0,
-                        mcColId,
-                        mcParticles[particle].GetPdgCode(),
-                        statusCode,
-                        flags,
-                        mothers,
-                        daughters,
-                        truncateFloatFraction(weight, mMcParticleW),
-                        truncateFloatFraction(pX, mMcParticleMom),
-                        truncateFloatFraction(pY, mMcParticleMom),
-                        truncateFloatFraction(pZ, mMcParticleMom),
-                        truncateFloatFraction(energy, mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].Vx(), mMcParticlePos),
-                        truncateFloatFraction((float)mcParticles[particle].Vy(), mMcParticlePos),
-                        truncateFloatFraction((float)mcParticles[particle].Vz(), mMcParticlePos),
-                        truncateFloatFraction((float)mcParticles[particle].T(), mMcParticlePos));
-    }
-    mcReader.releaseTracksForSourceAndEvent(source, event);
-  }
-}
-
+//------------------------------------------------------------------
 void AODMcProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
@@ -172,13 +34,13 @@ void AODMcProducerWorkflowDPL::init(InitContext& ic)
   mRecoPass = ic.options().get<std::string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mFilterMC = ic.options().get<int>("filter-mctracks");
-  mTruncate = ic.options().get<int>("enable-truncation");
+  int truncate = ic.options().get<int>("enable-truncation");
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
   }
 
   // set no truncation if selected by user
-  if (mTruncate != 1) {
+  if (truncate == 0) {
     LOG(info) << "Truncation is not used!";
     mCollisionPosition = 0xFFFFFFFF;
     mMcParticleW = 0xFFFFFFFF;
@@ -192,112 +54,218 @@ void AODMcProducerWorkflowDPL::init(InitContext& ic)
     // parse list of sim prefixes into vector
     mSimPrefix = ic.options().get<std::string>("mckine-fname");
   }
+  std::string hepmcUpdate = ic.options().get<std::string>("hepmc-update");
+  HepMCUpdate when = (hepmcUpdate == "never"           //
+                        ? HepMCUpdate::never           //
+                        : hepmcUpdate == "always"      //
+                            ? HepMCUpdate::always      //
+                            : hepmcUpdate == "all"     //
+                                ? HepMCUpdate::allKeys //
+                                : HepMCUpdate::anyKey);
+  mXSectionUpdate = when;
+  mPdfInfoUpdate = when;
+  mHeavyIonUpdate = when;
 
   mTimer.Reset();
 }
 
+//------------------------------------------------------------------
+void AODMcProducerWorkflowDPL::updateHeader(CollisionCursor& collisionCursor,
+                                            XSectionCursor& xSectionCursor,
+                                            PdfInfoCursor& pdfInfoCursor,
+                                            HeavyIonCursor& heavyIonCursor,
+                                            const MCEventHeader& header,
+                                            int collisionID, // Index
+                                            int bcID,
+                                            float time,
+                                            short generatorID,
+                                            int sourceID)
+{
+  using aodmchelpers::updateHepMCHeavyIon;
+  using aodmchelpers::updateHepMCPdfInfo;
+  using aodmchelpers::updateHepMCXSection;
+  using aodmchelpers::updateMCCollisions;
+
+  auto genID = updateMCCollisions(collisionCursor,
+                                  bcID,
+                                  time,
+                                  header,
+                                  generatorID,
+                                  sourceID,
+                                  mCollisionPosition);
+  mXSectionUpdate = (updateHepMCXSection(xSectionCursor,  //
+                                         collisionID,     //
+                                         genID,           //
+                                         header,          //
+                                         mXSectionUpdate) //
+                       ? HepMCUpdate::always              //
+                       : HepMCUpdate::never);
+  mPdfInfoUpdate = (updateHepMCPdfInfo(pdfInfoCursor,  //
+                                       collisionID,    //
+                                       genID,          //
+                                       header,         //
+                                       mPdfInfoUpdate) //
+                      ? HepMCUpdate::always            //
+                      : HepMCUpdate::never);
+  mHeavyIonUpdate = (updateHepMCHeavyIon(heavyIonCursor,  //
+                                         collisionID,     //
+                                         genID,           //
+                                         header,          //
+                                         mHeavyIonUpdate) //
+                       ? HepMCUpdate::always              //
+                       : HepMCUpdate::never);
+}
+
+//------------------------------------------------------------------
 void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
   uint64_t tfNumber = mTFNumber;
 
-  auto mcCollisionsBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::McCollisions>::ref());
-  auto mcParticlesBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::StoredMcParticles>::ref());
-  auto originTableBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::Origins>::ref());
+  using namespace o2::aodmchelpers;
+  using namespace o2::aodhelpers;
 
-  auto mcCollisionsCursor = mcCollisionsBuilder->cursor<o2::aod::McCollisions>();
-  auto mcParticlesCursor = mcParticlesBuilder->cursor<o2::aod::StoredMcParticles>();
-  auto originCursor = originTableBuilder->cursor<o2::aod::Origins>();
+  auto collisionsCursor = createTableCursor<McCollisions>(pc);
+  auto particlesCursor = createTableCursor<McParticles>(pc);
+  auto originCursor = createTableCursor<Origins>(pc);
+  auto xSectionCursor = createTableCursor<XSections>(pc);
+  auto pdfInfoCursor = createTableCursor<PdfInfos>(pc);
+  auto heavyIonCursor = createTableCursor<HeavyIons>(pc);
 
-  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
-
-  if (!mEnableEmbed) {
-    mcReader = std::make_unique<o2::steer::MCKinematicsReader>(mSimPrefix, steer::MCKinematicsReader::Mode::kMCKine);
+  // --- Create our reader -------------------------------------------
+  std::unique_ptr<MCKinematicsReader> reader;
+  if (not mEnableEmbed) {
+    reader =
+      std::make_unique<MCKinematicsReader>(mSimPrefix,
+                                           MCKinematicsReader::Mode::kMCKine);
   } else {
-    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    reader = std::make_unique<MCKinematicsReader>("collisioncontext.root");
   }
 
-  // filling mcCollision table
+  // --- Container of event indexes ---------------------------------
+  using EventInfo = std::vector<std::tuple<int, int, int>>;
+  EventInfo eventInfo;
+
+  // --- Fill collision and HepMC aux tables ------------------------
   // dummy time information
-  int bcID = 0;
   float time = 0;
 
-  auto updateMCCollisions = [this, bcID, time, &mcCollisionsCursor](dataformats::MCEventHeader const& header, short generatorID, int sourceID) {
-    bool isValid = false;
-    int subGeneratorId{-1};
-    if (header.hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
-      subGeneratorId = header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid);
-    }
-    float mcColWeight = 1.;
-    if (header.hasInfo("weight")) {
-      mcColWeight = header.getInfo<float>("weight", isValid);
-    }
-    mcCollisionsCursor(0,
-                       bcID,
-                       o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, subGeneratorId),
-                       truncateFloatFraction(header.GetX(), mCollisionPosition),
-                       truncateFloatFraction(header.GetY(), mCollisionPosition),
-                       truncateFloatFraction(header.GetZ(), mCollisionPosition),
-                       truncateFloatFraction(time, mCollisionPosition),
-                       truncateFloatFraction(mcColWeight, mCollisionPosition),
-                       header.GetB());
-  };
-
-  if (!mEnableEmbed) { // simply store all MC events into table
+  if (not mEnableEmbed) {
+    // simply store all MC events into table
     int icol = 0;
-    int nSources = mcReader->getNSources();
+    int nSources = reader->getNSources();
     for (int isrc = 0; isrc < nSources; isrc++) {
       short generatorID = isrc;
-      int nEvents = mcReader->getNEvents(isrc);
+      int nEvents = reader->getNEvents(isrc);
       for (int ievt = 0; ievt < nEvents; ievt++) {
-        auto& header = mcReader->getMCEventHeader(isrc, ievt);
-        updateMCCollisions(header, generatorID, isrc);
-        mMCColToEvSrc.emplace_back(std::vector<int>{icol, isrc, ievt});
+        auto& header = reader->getMCEventHeader(isrc, ievt);
+        updateHeader(collisionsCursor.cursor,
+                     xSectionCursor.cursor,
+                     pdfInfoCursor.cursor,
+                     heavyIonCursor.cursor,
+                     header,
+                     ievt,
+                     ievt, // BC is the same as collision index
+                     time,
+                     generatorID,
+                     isrc);
+
+        eventInfo.emplace_back(std::make_tuple(icol, isrc, ievt));
         icol++;
       }
     }
-  } else { // treat embedded events using collisioncontext: injected events will be stored together with background events into the same collisions
-    int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
-    const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
-    const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
-    for (int icol = 0; icol < nMCCollisions; icol++) {
-      auto& colParts = mcParts[icol];
+  } else {
+    // treat embedded events using collisioncontext: injected events
+    // will be stored together with background events into the same
+    // collisions
+    int nCollisions = reader->getDigitizationContext()->getNCollisions();
+    const auto& records = reader->getDigitizationContext()->getEventRecords();
+    const auto& parts = reader->getDigitizationContext()->getEventParts();
+    for (int icol = 0; icol < nCollisions; icol++) {
+      auto& colParts = parts[icol];
       auto nParts = colParts.size();
       for (auto colPart : colParts) {
         auto eventID = colPart.entryID;
         auto sourceID = colPart.sourceID;
-        // enable embedding: if several colParts exist, then they are saved as one collision
+        // enable embedding: if several colParts exist, then they are
+        // saved as one collision
         if (nParts == 1 || sourceID == 0) {
+          // Make collision header from first source only
           short generatorID = sourceID;
-          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
-          updateMCCollisions(header, generatorID, sourceID);
+          auto& header = reader->getMCEventHeader(sourceID, eventID);
+
+          updateHeader(collisionsCursor.cursor,
+                       xSectionCursor.cursor,
+                       pdfInfoCursor.cursor,
+                       heavyIonCursor.cursor,
+                       header,
+                       icol,
+                       icol, // BC is the same as collision index
+                       time,
+                       generatorID,
+                       sourceID);
         }
-        mMCColToEvSrc.emplace_back(std::vector<int>{icol, sourceID, eventID}); // point background and injected signal events to one collision
+        // point background and injected signal events to one collision
+        eventInfo.emplace_back(std::make_tuple(icol, sourceID, eventID));
       }
     }
   }
 
-  std::sort(mMCColToEvSrc.begin(), mMCColToEvSrc.end(),
-            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
+  // Sort the event information
+  std::sort(eventInfo.begin(), eventInfo.end(),
+            [](typename EventInfo::const_reference left,
+               typename EventInfo::const_reference right) { //
+              return (std::get<0>(left) < std::get<0>(right));
+            });
 
-  // filling mc particles table
-  fillMCParticlesTable(*mcReader, mcParticlesCursor);
+  // Loop over available events and update the tracks table
+  size_t offset = 0;
+  for (auto& colInfo : eventInfo) {
+    int event = std::get<2>(colInfo);
+    int source = std::get<1>(colInfo);
+    int collisionID = std::get<0>(colInfo);
+    auto tracks = reader->getTracks(source, event);
 
-  mMCColToEvSrc.clear();
-  mToStore.clear();
+    TrackToIndex preselect;
+    offset = updateParticles(particlesCursor.cursor,
+                             collisionID,
+                             tracks,
+                             preselect,
+                             offset,
+                             mFilterMC,
+                             source == 0,
+                             mMcParticleW,
+                             mMcParticleMom,
+                             mMcParticlePos);
 
-  originCursor(0, tfNumber);
+    reader->releaseTracksForSourceAndEvent(source, event);
+  }
 
-  // sending metadata to writer
-  if (!mIsMDSent) {
-    TString dataType = "MC";
-    TString O2Version = o2::fullVersion();
-    TString ROOTVersion = ROOT_RELEASE;
-    mMetaDataKeys = {"DataType", "Run", "O2Version", "ROOTVersion", "RecoPassName", "AnchorProduction", "AnchorPassName", "LPMProductionTag"};
-    mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag};
-    pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0}, mMetaDataKeys);
-    pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, mMetaDataVals);
+  // --- Update the origin and the time-frame ------------------------
+  originCursor(tfNumber);
+
+  // --- Sending metadata to writer if not done already --------------
+  if (not mIsMDSent) {
+    TString o2Version = o2::fullVersion();
+    std::vector<TString> metaDataKeys = {"DataType",
+                                         "Run",
+                                         "O2Version",
+                                         "ROOTVersion",
+                                         "RecoPassName",
+                                         "AnchorProduction",
+                                         "AnchorPassName",
+                                         "LPMProductionTag"};
+    std::vector<TString> metaDataVals = {"MC",
+                                         "3",
+                                         TString{o2::fullVersion()},
+                                         ROOT_RELEASE,
+                                         mRecoPass,
+                                         mAnchorProd,
+                                         mAnchorPass,
+                                         mLPMProdTag};
+    pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0}, metaDataKeys);
+    pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0}, metaDataVals);
     mIsMDSent = true;
   }
 
@@ -318,10 +286,20 @@ void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext&)
 
 DataProcessorSpec getAODMcProducerWorkflowSpec()
 {
+  using McCollisions = AODMcProducerWorkflowDPL::McCollisions;
+  using McParticles = AODMcProducerWorkflowDPL::McParticles;
+  using Origins = AODMcProducerWorkflowDPL::Origins;
+  using XSections = AODMcProducerWorkflowDPL::XSections;
+  using PdfInfos = AODMcProducerWorkflowDPL::PdfInfos;
+  using HeavyIons = AODMcProducerWorkflowDPL::HeavyIons;
+
   std::vector<OutputSpec> outputs{
-    OutputForTable<aod::McCollisions>::spec(),
-    OutputForTable<aod::StoredMcParticles>::spec(),
-    OutputForTable<aod::Origins>::spec(),
+    OutputForTable<McCollisions>::spec(),
+    OutputForTable<McParticles>::spec(),
+    OutputForTable<Origins>::spec(),
+    OutputForTable<XSections>::spec(),
+    OutputForTable<PdfInfos>::spec(),
+    OutputForTable<HeavyIons>::spec(),
     OutputSpec{"TFN", "TFNumber"},
     OutputSpec{"TFF", "TFFilename"},
     OutputSpec{"AMD", "AODMetadataKeys"},
@@ -341,7 +319,11 @@ DataProcessorSpec getAODMcProducerWorkflowSpec()
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
       ConfigParamSpec{"filter-mctracks", VariantType::Int, 1, {"Store only physical primary MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
       ConfigParamSpec{"enable-embedding", VariantType::Int, 0, {"Use collisioncontext.root to process embedded events"}},
-      ConfigParamSpec{"mckine-fname", VariantType::String, "o2sim", {"MC kinematics file name prefix: e.g. 'o2sim', 'bkg', 'sgn_1'. Used only if 'enable-embedding' is 0"}}}};
+      ConfigParamSpec{"mckine-fname", VariantType::String, "o2sim", {"MC kinematics file name prefix: e.g. 'o2sim', 'bkg', 'sgn_1'. Used only if 'enable-embedding' is 0"}},
+      ConfigParamSpec{"hepmc-update", VariantType::String, "always", {"When to update HepMC Aux tables: always - force update, never - never update, all - if all keys are present, any - when any key is present (not valid yet)"}}}};
 }
 
 } // namespace o2::aodmcproducer
+//
+// EOF
+//
