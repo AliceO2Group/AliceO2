@@ -108,7 +108,7 @@ o2_log_handle_t* o2_walk_logs(bool (*callback)(char const* name, void* log, void
 #endif // __APPLE__
 
 // Unless we are on apple we enable checking for signposts only if in debug mode or if we force them.
-#if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(NDEBUG)
+#if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(O2_NSIGNPOSTS)
 #define O2_LOG_ENABLED(log) private_o2_log_##log->stacktrace
 #else
 #define O2_LOG_ENABLED(log) false
@@ -448,7 +448,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 }
 #endif // O2_SIGNPOST_IMPLEMENTATION
 
-#if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(NDEBUG)
+#if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(O2_NSIGNPOSTS)
 /// Dynamic logs need to be enabled via the O2_LOG_ENABLE macro. Notice this will only work
 /// for the logger based logging, since the Apple version needs instruments to enable them.
 #define O2_DECLARE_DYNAMIC_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 1)
