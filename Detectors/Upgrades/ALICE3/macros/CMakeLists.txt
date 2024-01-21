@@ -9,11 +9,5 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Passive)
-add_subdirectory(TRK)
-add_subdirectory(FT3)
-add_subdirectory(FCT)
-add_subdirectory(AOD)
-add_subdirectory(IOTOF)
-add_subdirectory(RICH)
-add_subdirectory(macros)
+o2_add_test_root_macro(scanXX0.C
+                       LABELS alice3)
