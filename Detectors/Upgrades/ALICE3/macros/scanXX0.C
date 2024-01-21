@@ -296,5 +296,5 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
     }
     break;
   }
-    canv->SaveAs("alice3_material_vsphietaz.pdf");
+  canv->SaveAs("alice3_material_vsphietaz.pdf");
 }
