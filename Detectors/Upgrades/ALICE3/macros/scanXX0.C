@@ -16,29 +16,57 @@
 
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "TCanvas.h"
-#include "TFile.h"
-#include "TGeoManager.h"
-#include "TH2F.h"
-#include "TMath.h"
-#include "TRandom.h"
-#include "TSystem.h"
+#include <TCanvas.h>
+#include <TFile.h>
+#include <TGeoManager.h>
+#include <TH2F.h>
+#include <TMath.h>
+#include <TRandom.h>
+#include <TSystem.h>
 #include <TLegend.h>
 #include <TStyle.h>
-
-#include "TGeoMaterial.h"
-#include "TGeoMedium.h"
+#include <TGeoMaterial.h>
+#include <TGeoMedium.h>
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
 #include <TPaveText.h>
 #include <TROOT.h>
 #include <TText.h>
+#include <THStack.h>
 
 // #include "FairGeoParSet.h"     // for FairGeoParSet
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
 
-#include <unordered_map>
+#include <vector>
+#include <string>
+#include <algorithm>
 #endif
+
+constexpr int nBinsPhiScan = 90;
+constexpr int nBinsEtaScan = 200;
+constexpr int nBinsZvtxScan = 300;
+constexpr float maxEtaScan = 8.;
+constexpr int n = 1e4;      // testtracks
+constexpr float len = 1000; // cm
+
+void vacuumFormMaterial(TGeoMaterial* mat)
+{
+  constexpr double kAirA = 14.00674;
+  constexpr double kAirZ = 7.;
+  constexpr double kAirDensity = 0.0; // set for vacuum
+  constexpr double kAirRadLen = std::numeric_limits<double>::max();
+  // LOGP(info, "Vacuum forming {} ...", mat->GetName());
+  // std::cout << "\t A = " << mat->GetA() << " -> " << kAirA << std::endl;
+  // std::cout << "\t Z = " << mat->GetZ() << " -> " << kAirZ << std::endl;
+  // std::cout << "\t Density = " << mat->GetDensity() << " -> " << kAirDensity << std::endl;
+  // std::cout << "\t RadLen = " << mat->GetRadLen() << " -> " << kAirRadLen << std::endl;
+
+  // Make this material air-like
+  mat->SetA(kAirA);
+  mat->SetZ(kAirZ);
+  mat->SetDensity(kAirDensity);
+  mat->SetRadLen(kAirRadLen);
+}
 
 //______________________________________________________________________
 void ComputeMaterialBudget(double rmin, double rmax, double etaPos,
@@ -47,13 +75,10 @@ void ComputeMaterialBudget(double rmin, double rmax, double etaPos,
 {
   // Ancillary function to compute material budget between rmin and rmax
 
-  int n = 1e6; // testtracks
-
-  float len = 900; // cm
-  TH1F* nParticlesVsPhi = new TH1F("", "", 90, phiMin, phiMax);
-  TH1F* nParticlesVsEta = new TH1F("", "", 200, -2, 2);
-  TH1F* nParticlesVsZvtx = new TH1F("", "", 300, -len / 2, len / 2);
-  TH2F* nParticlesVsPhiEta = new TH2F("", "", 200, -2, 2, 45, phiMax, phiMax);
+  TH1F* nParticlesVsPhi = new TH1F("", "", nBinsPhiScan, phiMin, phiMax);
+  TH1F* nParticlesVsEta = new TH1F("", "", nBinsEtaScan, -maxEtaScan, maxEtaScan);
+  TH1F* nParticlesVsZvtx = new TH1F("", "", nBinsZvtxScan, -len / 2, len / 2);
+  TH2F* nParticlesVsPhiEta = new TH2F("", "", nBinsZvtxScan, -maxEtaScan, maxEtaScan, nBinsPhiScan, phiMax, phiMax);
 
   double x1, y1, z1, x2, y2, z2;
 
@@ -61,7 +86,7 @@ void ComputeMaterialBudget(double rmin, double rmax, double etaPos,
 
     // PHI VS ETA
     double phi = gRandom->Uniform(phiMin, phiMax);
-    double eta = gRandom->Uniform(-4, 4);
+    double eta = gRandom->Uniform(-maxEtaScan, maxEtaScan);
     double theta = TMath::ATan(TMath::Exp(-eta)) * 2;
     x1 = rmin * TMath::Cos(phi);
     y1 = rmin * TMath::Sin(phi);
@@ -131,8 +156,9 @@ void ComputeMaterialBudget(double rmin, double rmax, double etaPos,
   }
 }
 
-void printMaterialDefinitions(TGeoManager* gman)
+std::vector<std::string> printMaterialDefinitions(TGeoManager* gman)
 {
+  std::vector<std::string> materialNames;
   TGeoMedium* med;
   TGeoMaterial* mat;
   char mediaName[50], matName[50], shortName[50];
@@ -146,10 +172,37 @@ void printMaterialDefinitions(TGeoManager* gman)
     med = (TGeoMedium*)(gman->GetListOfMedia()->At(i));
     mat = med->GetMaterial();
     LOGP(info, "{:5.1f} {:6.1f} {:8.3f} {:13.1f} {:11.1f}\t {}", mat->GetA(), mat->GetZ(), mat->GetDensity(), mat->GetRadLen(), mat->GetIntLen(), mat->GetName());
+
+    std::vector<std::string> tokens;
+    std::string matNameStr(mat->GetName());
+    if (matNameStr.back() == '$') {
+      matNameStr.pop_back();
+    }
+    size_t pos = 0;
+    while ((pos = matNameStr.find("_")) != std::string::npos) {
+      std::string part = matNameStr.substr(0, pos);
+      tokens.push_back(part);
+      matNameStr.erase(0, pos + 1);
+    }
+    std::transform(matNameStr.begin(), matNameStr.end(), matNameStr.begin(), ::toupper);
+    tokens.push_back(matNameStr);
+    if (tokens.back() == "NF") { // Manually manage air_NF
+      continue;
+    }
+    if (std::find(materialNames.begin(), materialNames.end(), tokens.back()) == materialNames.end()) {
+      materialNames.push_back(tokens.back());
+    }
   }
+
+  // print material names for debug
+  for (auto& name : materialNames) {
+    LOGP(info, "Unique material name: {}", name);
+  }
+
+  return materialNames;
 }
 
-void scanXX0(const string fileName = "o2sim_geometry.root", const string path = "./")
+void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string OnlyMat = "all", const string fileName = "o2sim_geometry.root", const string path = "./")
 {
   gStyle->SetPadTopMargin(0.035);
   gStyle->SetPadRightMargin(0.035);
@@ -160,8 +213,12 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
   gStyle->SetPadTickY(1);
   gStyle->SetOptStat(0);
   gStyle->SetOptTitle(0);
+  gStyle->SetPalette(kSolar);
 
   double etaPos = 1.;
+
+  TCanvas* canvStack = new TCanvas("canvStack", "canvStack", 2400, 800);
+  canvStack->Divide(3, 1);
 
   TCanvas* canv = new TCanvas("canv", "canv", 2400, 800);
   canv->Divide(3, 1);
@@ -181,31 +238,48 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
   legVsZvtx->SetTextSize(0.045);
   legVsZvtx->SetHeader("ALICE 3, #it{#varphi} = #pi/2, #it{#eta} = 0");
 
+  auto* xOverX0VsPhiStack = new THStack("xOverX0VsPhi", "");
+  auto* xOverX0VsEtaStack = new THStack("xOverX0VsEta", "");
+  auto* xOverX0VsZvtxStack = new THStack("xOverX0VsZvtx", "");
+
   std::vector<TH1F*> xOverX0VsPhi;
   std::vector<TH1F*> xOverX0VsEta;
   std::vector<TH1F*> xOverX0VsZvtx;
 
   TGeoManager::Import((path + fileName).c_str());
-  printMaterialDefinitions(gGeoManager);
+  auto materials = printMaterialDefinitions(gGeoManager);
 
-  const double rmin = 0.2;
-  const double rmax = 100.;
   const double phiMin = 0;
   const double phiMax = 2 * TMath::Pi();
-  const double len = 900.;
-  std::array<int, 3> colors = {kGray + 2, kAzure + 4, kRed + 1};
+  const double len = 1000.;
+  std::vector<int> colors = {kAzure + 4, kRed + 1};
 
-  for (size_t iMedium{0}; gGeoManager->GetListOfMedia()->GetEntries(); ++iMedium) {
-    // Custom cooking
-    // for (int i = 0; i < nMedia; i++) {
-    //   med = (TGeoMedium*)(gman->GetListOfMedia()->At(i));
-    //   mat = med->GetMaterial();
-    //   mat->SetDensity(0.);
-    // }
+  // delete gGeoManager; // We re-import the geometry at each iteration
+  int count = 2;
+  auto cols = TColor::GetPalette();
 
-    xOverX0VsPhi.emplace_back(new TH1F(Form("xOverX0VsPhi_step%zu", iMedium), "", 90, phiMin, phiMax));
-    xOverX0VsEta.emplace_back(new TH1F(Form("xOverX0VsEta_step%zu", iMedium), "", 200, -2, 2));
-    xOverX0VsZvtx.emplace_back(new TH1F(Form("xOverX0VsZvtx_step%zu", iMedium), "", 300, -len / 2, len / 2));
+  for (size_t iMaterial{0}; iMaterial < materials.size(); ++iMaterial) {
+    if (OnlyMat != "all" && materials[iMaterial] != OnlyMat) {
+      continue;
+    }
+    TGeoManager::Import((path + fileName).c_str());
+    LOGP(info, " ********* Processing material: {} ********* ", materials[iMaterial]);
+    auto nMedia = gGeoManager->GetListOfMedia()->GetEntries();
+    for (int i = 0; i < nMedia; i++) {
+      auto* med = (TGeoMedium*)(gGeoManager->GetListOfMedia()->At(i));
+      auto* mat = med->GetMaterial();
+      std::string matname{mat->GetName()};
+      std::transform(matname.begin(), matname.end(), matname.begin(), ::toupper);
+      if (matname.find(materials[iMaterial]) == std::string::npos) {
+        vacuumFormMaterial(mat);
+      } else {
+        LOGP(info, "\t {} found as {} element.", materials[iMaterial], iMaterial);
+      }
+    }
+
+    xOverX0VsPhi.emplace_back(new TH1F(Form("xOverX0VsPhi_step%zu", iMaterial), "", nBinsPhiScan, phiMin, phiMax));
+    xOverX0VsEta.emplace_back(new TH1F(Form("xOverX0VsEta_step%zu", iMaterial), "", nBinsEtaScan, -maxEtaScan, maxEtaScan));
+    xOverX0VsZvtx.emplace_back(new TH1F(Form("xOverX0VsZvtx_step%zu", iMaterial), "", nBinsZvtxScan, -len / 2, len / 2));
 
     ComputeMaterialBudget(rmin, rmax, etaPos, phiMin, phiMax, xOverX0VsPhi.back(), xOverX0VsEta.back(), xOverX0VsZvtx.back());
 
@@ -236,8 +310,8 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
     xOverX0VsPhi.back()->GetYaxis()->SetTitleSize(0.05);
     xOverX0VsPhi.back()->GetYaxis()->SetLabelSize(0.045);
     xOverX0VsPhi.back()->GetYaxis()->SetDecimals();
-    xOverX0VsPhi.back()->SetFillColorAlpha(colors[0], 0.5);
-    xOverX0VsPhi.back()->SetLineColor(colors[0]);
+    xOverX0VsPhi.back()->SetFillColorAlpha(iMaterial + 2, 0.5);
+    xOverX0VsPhi.back()->SetLineColor(iMaterial + 2);
     xOverX0VsPhi.back()->SetLineWidth(2);
 
     xOverX0VsEta.back()->GetXaxis()->SetTitle("#it{#eta}");
@@ -247,8 +321,8 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
     xOverX0VsEta.back()->GetYaxis()->SetTitleSize(0.05);
     xOverX0VsEta.back()->GetYaxis()->SetLabelSize(0.045);
     xOverX0VsEta.back()->GetYaxis()->SetDecimals();
-    xOverX0VsEta.back()->SetFillColorAlpha(colors[0], 0.5);
-    xOverX0VsEta.back()->SetLineColor(colors[0]);
+    xOverX0VsEta.back()->SetFillColorAlpha(iMaterial + 2, 0.5);
+    xOverX0VsEta.back()->SetLineColor(iMaterial + 2);
     xOverX0VsEta.back()->SetLineWidth(2);
 
     xOverX0VsZvtx.back()->GetXaxis()->SetTitle("#it{Z}_{vtx} (cm)");
@@ -258,8 +332,8 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
     xOverX0VsZvtx.back()->GetYaxis()->SetTitleSize(0.05);
     xOverX0VsZvtx.back()->GetYaxis()->SetLabelSize(0.045);
     xOverX0VsZvtx.back()->GetYaxis()->SetDecimals();
-    xOverX0VsZvtx.back()->SetFillColorAlpha(colors[0], 0.5);
-    xOverX0VsZvtx.back()->SetLineColor(colors[0]);
+    xOverX0VsZvtx.back()->SetFillColorAlpha(iMaterial + 2, 0.5);
+    xOverX0VsZvtx.back()->SetLineColor(iMaterial + 2);
     xOverX0VsZvtx.back()->SetLineWidth(2);
 
     if (xOverX0VsPhi.size() == 1) {
@@ -267,41 +341,55 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
       legVsEta->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsEta), "");
       legVsZvtx->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsZvtx), "");
     }
-    legVsPhi->AddEntry(xOverX0VsPhi.back(), "Total", "f");
-    legVsEta->AddEntry(xOverX0VsPhi.back(), "Total", "f");
-    legVsZvtx->AddEntry(xOverX0VsZvtx.back(), "Total", "f");
+    legVsPhi->AddEntry(xOverX0VsPhi.back(), materials[iMaterial].c_str(), "f");
+    legVsEta->AddEntry(xOverX0VsPhi.back(), materials[iMaterial].c_str(), "f");
+    legVsZvtx->AddEntry(xOverX0VsZvtx.back(), materials[iMaterial].c_str(), "f");
 
     canv->cd(1)->SetGrid();
     if (xOverX0VsPhi.size() == 1) {
       xOverX0VsPhi.back()->SetMinimum(1.e-4);
-      xOverX0VsPhi.back()->SetMaximum(20.f);
+      // xOverX0VsPhi.back()->SetMaximum(20.f);
       xOverX0VsPhi.back()->DrawCopy("HISTO");
       legVsPhi->Draw();
+      xOverX0VsPhiStack->Add(xOverX0VsPhi.back());
     } else {
       xOverX0VsPhi.back()->DrawCopy("HISTO SAME");
+      xOverX0VsPhiStack->Add(xOverX0VsPhi.back());
     }
 
     canv->cd(2)->SetGrid();
     if (xOverX0VsEta.size() == 1) {
       xOverX0VsEta.back()->SetMinimum(1.e-4);
-      xOverX0VsEta.back()->SetMaximum(60.f);
+      // xOverX0VsEta.back()->SetMaximum(60.f);
       xOverX0VsEta.back()->DrawCopy("HISTO");
       legVsEta->Draw();
+      xOverX0VsEtaStack->Add(xOverX0VsEta.back());
     } else {
       xOverX0VsEta.back()->DrawCopy("HISTO SAME");
+      xOverX0VsEtaStack->Add(xOverX0VsEta.back());
     }
 
     canv->cd(3)->SetGrid();
     if (xOverX0VsZvtx.size() == 1) {
       xOverX0VsZvtx.back()->SetMinimum(1.e-4);
-      xOverX0VsZvtx.back()->SetMaximum(120.f);
+      // xOverX0VsZvtx.back()->SetMaximum(120.f);
       xOverX0VsZvtx.back()->DrawCopy("HISTO");
-      // firstPlot = 0;
       legVsZvtx->Draw();
+      xOverX0VsZvtxStack->Add(xOverX0VsZvtx.back());
     } else {
       xOverX0VsZvtx.back()->DrawCopy("HISTO SAME");
+      xOverX0VsZvtxStack->Add(xOverX0VsZvtx.back());
     }
-    break;
+    delete gGeoManager;
   }
+  canvStack->cd(1)->SetGrid();
+  xOverX0VsPhiStack->Draw("HISTO");
+  canvStack->cd(2)->SetGrid();
+  xOverX0VsEtaStack->Draw("HISTO");
+  canvStack->cd(3)->SetGrid();
+  xOverX0VsZvtxStack->Draw("HISTO");
+  canvStack->BuildLegend(0.25, 0.6, 0.85, 0.9);
+
   canv->SaveAs("alice3_material_vsphietaz.pdf");
+  canvStack->SaveAs("alice3_material_vsphietaz_stack.pdf");
 }
