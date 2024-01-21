@@ -22,7 +22,7 @@
 using namespace o2::passive;
 
 Alice3Magnet::~Alice3Magnet() = default;
-Alice3Magnet::Alice3Magnet() : Alice3PassiveBase("A3MAG", "") {}
+Alice3Magnet::Alice3Magnet() : Alice3PassiveBase("ALICE3_MAGNET", "") {}
 Alice3Magnet::Alice3Magnet(const char* name, const char* title) : Alice3PassiveBase(name, title) {}
 Alice3Magnet::Alice3Magnet(const Alice3Magnet& rhs) = default;
 
@@ -77,13 +77,13 @@ void Alice3Magnet::createMaterials()
   deemax = -.3;   // Maximum fractional energy loss, DLS
   stmin = -.8;
 
-  matmgr.Mixture("A3MAG", 1, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Material("A3MAG", 9, "Al1$", 26.98, 13., 2.7, 8.9, 37.2);
-  matmgr.Material("A3MAG", 19, "Cu1$", 63.55, 29., 8.96, 1.6, 18.8);
+  matmgr.Mixture("ALICE3_MAGNET", 1, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Material("ALICE3_MAGNET", 9, "ALUMINIUM$", 26.98, 13., 2.7, 8.9, 37.2);
+  matmgr.Material("ALICE3_MAGNET", 19, "COPPER$", 63.55, 29., 8.96, 1.436, 15.1);
 
-  matmgr.Medium("A3MAG", 1, "VACUUM", 1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("A3MAG", 9, "ALU_C0", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("A3MAG", 19, "CU_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3_MAGNET", 1, "VACUUM", 1, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3_MAGNET", 9, "ALUMINIUM", 9, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3_MAGNET", 19, "COPPER", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Alice3Magnet::ConstructGeometry()
@@ -97,9 +97,9 @@ void Alice3Magnet::ConstructGeometry()
   }
 
   auto& matmgr = o2::base::MaterialManager::Instance();
-  auto kMedAl = matmgr.getTGeoMedium("A3MAG_ALU_C0");
-  auto kMedCu = matmgr.getTGeoMedium("A3MAG_CU_C0");
-  auto kMedVac = matmgr.getTGeoMedium("A3MAG_VACUUM");
+  auto kMedAl = matmgr.getTGeoMedium("ALICE3_MAGNET_ALUMINIUM");
+  auto kMedCu = matmgr.getTGeoMedium("ALICE3_MAGNET_COPPER");
+  auto kMedVac = matmgr.getTGeoMedium("ALICE3_MAGNET_VACUUM");
 
   // inner wrap
   LOGP(debug, "Alice 3 magnet: creating inner wrap with inner radius {} and thickness {}", mInnerWrapInnerRadius, mInnerWrapThickness);

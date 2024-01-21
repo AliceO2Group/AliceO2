@@ -37,6 +37,7 @@
 // #include "FairGeoParSet.h"     // for FairGeoParSet
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
 
+#include <unordered_map>
 #endif
 
 //______________________________________________________________________
@@ -136,16 +137,15 @@ void printMaterialDefinitions(TGeoManager* gman)
   TGeoMaterial* mat;
   char mediaName[50], matName[50], shortName[50];
 
-  Int_t nMedia = gman->GetListOfMedia()->GetEntries();
+  int nMedia = gman->GetListOfMedia()->GetEntries();
 
   LOGP(info, " =================== ALICE 3 Material Properties ================= ");
   LOGP(info, "    A      Z   d (g/cm3)  RadLen (cm)  IntLen (cm)\t Name\n");
 
-  // Loop on media, select ITS3 materials, print their characteristics
-  for (Int_t i = 0; i < nMedia; i++) {
+  for (int i = 0; i < nMedia; i++) {
     med = (TGeoMedium*)(gman->GetListOfMedia()->At(i));
     mat = med->GetMaterial();
-    LOGP(info, "{:5.1f} {:6.1f} {:8.3f} {:13.3f} {:11.3f}\t {}", mat->GetA(), mat->GetZ(), mat->GetDensity(), mat->GetRadLen(), mat->GetIntLen(), mat->GetName());
+    LOGP(info, "{:5.1f} {:6.1f} {:8.3f} {:13.1f} {:11.1f}\t {}", mat->GetA(), mat->GetZ(), mat->GetDensity(), mat->GetRadLen(), mat->GetIntLen(), mat->GetName());
   }
 }
 
@@ -196,6 +196,13 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
   std::array<int, 3> colors = {kGray + 2, kAzure + 4, kRed + 1};
 
   for (size_t iMedium{0}; gGeoManager->GetListOfMedia()->GetEntries(); ++iMedium) {
+    // Custom cooking
+    // for (int i = 0; i < nMedia; i++) {
+    //   med = (TGeoMedium*)(gman->GetListOfMedia()->At(i));
+    //   mat = med->GetMaterial();
+    //   mat->SetDensity(0.);
+    // }
+
     xOverX0VsPhi.emplace_back(new TH1F(Form("xOverX0VsPhi_step%zu", iMedium), "", 90, phiMin, phiMax));
     xOverX0VsEta.emplace_back(new TH1F(Form("xOverX0VsEta_step%zu", iMedium), "", 200, -2, 2));
     xOverX0VsZvtx.emplace_back(new TH1F(Form("xOverX0VsZvtx_step%zu", iMedium), "", 300, -len / 2, len / 2));
@@ -287,7 +294,7 @@ void scanXX0(const string fileName = "o2sim_geometry.root", const string path = 
     canv->cd(3)->SetGrid();
     if (xOverX0VsZvtx.size() == 1) {
       xOverX0VsZvtx.back()->SetMinimum(1.e-4);
-      xOverX0VsZvtx.back()->SetMaximum(100.f);
+      xOverX0VsZvtx.back()->SetMaximum(120.f);
       xOverX0VsZvtx.back()->DrawCopy("HISTO");
       // firstPlot = 0;
       legVsZvtx->Draw();

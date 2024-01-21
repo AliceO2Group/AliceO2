@@ -83,11 +83,8 @@ void Alice3Pipe::ConstructGeometry()
   // Media
   auto& matmgr = o2::base::MaterialManager::Instance();
 
-  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("ALICE3PIPE_BE");
-  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM");
-  const TGeoMedium* kMedVacNF = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_NF");
-  const TGeoMedium* kMedVacHC = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_HC");
-  const TGeoMedium* kMedVacNFHC = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_NFHC");
+  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("ALICE3_PIPE_BE");
+  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("ALICE3_PIPE_VACUUM");
 
   // Top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -197,20 +194,14 @@ void Alice3Pipe::createMaterials()
 
   auto& matmgr = o2::base::MaterialManager::Instance();
 
-  //    Beryllium
-  matmgr.Material("ALICE3PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
-  matmgr.Medium("ALICE3PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  // Beryllium
+  matmgr.Material("ALICE3_PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
+  matmgr.Medium("ALICE3_PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
-  //    Vacuum
-  matmgr.Mixture("ALICE3PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("ALICE3PIPE", 36, "VACUUM$_NF", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("ALICE3PIPE", 56, "VACUUM$_HC ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("ALICE3PIPE", 76, "VACUUM$_NFHC", aAir, zAir, dAir1, 4, wAir);
+  // Vacuum
+  matmgr.Mixture("ALICE3_PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
 
-  matmgr.Medium("ALICE3PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3PIPE", 36, "VACUUM_NF", 36, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3PIPE", 56, "VACUUM_HC", 56, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3PIPE", 76, "VACUUM_NFHC", 76, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3_PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 // ----------------------------------------------------------------------------

@@ -58,13 +58,13 @@ void TRKServices::createMaterials()
   float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
 
-  matmgr.Mixture("TRKSERVICES", 66, "CER$", aCer, zCer, dCer, 2, wCer); // Ceramic for cold plate
-  matmgr.Material("TRKSERVICES", 67, "COP", 63.546, 29, 8.96, 1, 1.);   // Copper for cables
-  matmgr.Mixture("TRKSERVICES", 68, "VAC", aAir, zAir, dAir, 4, wAir);  // Vacuum for placeholding cables
+  matmgr.Mixture("ALICE3_TRKSERVICES", 66, "CERAMIC$", aCer, zCer, dCer, 2, wCer);   // Ceramic for cold plate
+  matmgr.Material("ALICE3_TRKSERVICES", 67, "COPPER", 63.546, 29, 8.96, 1.43, 15.1); // Copper for cables
+  matmgr.Mixture("ALICE3_TRKSERVICES", 68, "VACUUM", aAir, zAir, dAir, 4, wAir);     // Vacuum for placeholding cables
 
-  matmgr.Medium("TRKSERVICES", 1, "CER", 66, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // Ceramic for cold plate
-  matmgr.Medium("TRKSERVICES", 2, "COP", 67, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // Copper for cables
-  matmgr.Medium("TRKSERVICES", 3, "VAC", 68, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // Vacuum for placeholding cables
+  matmgr.Medium("ALICE3_TRKSERVICES", 1, "CERAMIC", 66, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // Ceramic for cold plate
+  matmgr.Medium("ALICE3_TRKSERVICES", 2, "COPPER", 67, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);  // Copper for cables
+  matmgr.Medium("ALICE3_TRKSERVICES", 3, "VACUUM", 68, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);  // Vacuum for placeholding cables
 }
 
 void TRKServices::createServices(TGeoVolume* motherVolume)
@@ -77,7 +77,7 @@ void TRKServices::createServices(TGeoVolume* motherVolume)
 void TRKServices::createColdplate(TGeoVolume* motherVolume)
 {
   auto& matmgr = o2::base::MaterialManager::Instance();
-  const TGeoMedium* medCeramic = matmgr.getTGeoMedium("TRKSERVICES_CER");
+  const TGeoMedium* medCeramic = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_CERAMIC");
 
   TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", mColdPlateRMin, mColdPlateRMin + mColdPlateThickness, mColdPlateZLength / 2.);
   TGeoVolume* coldPlateVolume = new TGeoVolume("TRK_COLDPLATE", coldPlate, medCeramic);
@@ -93,7 +93,7 @@ void TRKServices::createColdplate(TGeoVolume* motherVolume)
 void TRKServices::createCables(TGeoVolume* motherVolume)
 {
   auto& matmgr = o2::base::MaterialManager::Instance();
-  const TGeoMedium* medCopper = matmgr.getTGeoMedium("TRKSERVICES_COP");
+  const TGeoMedium* medCopper = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_COPPER");
 
   // Inner Tracker Services
   // Get geometry information from TRK which is already present
@@ -102,8 +102,8 @@ void TRKServices::createCables(TGeoVolume* motherVolume)
   float zLengthInnerCables = ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz();
   LOGP(info, "Building service disk for Inner Tracker rminInnerCables is: {} rmaxInnerCables is {} Dz is {}", rMinInnerCables, rMaxInnerCables, zLengthInnerCables);
 
-  TGeoMedium* medVac = matmgr.getTGeoMedium("TRKSERVICES_VAC");
-  TGeoMedium* medCop = matmgr.getTGeoMedium("TRKSERVICES_COP");
+  TGeoMedium* medVac = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_VACUUM");
+  TGeoMedium* medCop = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_COPPER");
 
   for (size_t iCableFan{0}; iCableFan < mCableFanWeights.size(); ++iCableFan) {
     TGeoTube* cableFan = new TGeoTube("TRK_CABLEFAN_MIDsh", rMinInnerCables, rMaxInnerCables, mMiddleDiskThickness * mCableFanWeights[iCableFan]);

@@ -53,16 +53,22 @@ void Alice3Absorber::createMaterials()
   auto& matmgr = o2::base::MaterialManager::Instance();
   // Define materials for muon absorber
   //
-  Int_t isxfld = 2.;
-  Float_t sxmgmx = 10.;
+  int isxfld = 2.;
+  float sxmgmx = 10.;
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
 
   //
   // Steel
   //
-  Float_t asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
-  Float_t zsteel[4] = {26., 24., 28., 14.};
-  Float_t wsteel[4] = {.715, .18, .1, .005};
+  float asteel[4] = {55.847, 51.9961, 58.6934, 28.0855};
+  float zsteel[4] = {26., 24., 28., 14.};
+  float wsteel[4] = {.715, .18, .1, .005};
+
+  // Iron
+  float airon[2] = {55.845, 56.};
+  float ziron[2] = {26., 26.};
+  float wiron[2] = {.923, .077};
+
   //
   // Air
   //
@@ -75,7 +81,7 @@ void Alice3Absorber::createMaterials()
   // ****************
   //     Defines tracking media parameters.
   //
-  Float_t epsil, stmin, tmaxfd, deemax, stemax;
+  float epsil, stmin, tmaxfd, deemax, stemax;
   epsil = .001;   // Tracking precision,
   stemax = -0.01; // Maximum displacement for multiple scat
   tmaxfd = -20.;  // Maximum angle due to field deflection
@@ -84,17 +90,18 @@ void Alice3Absorber::createMaterials()
   // ***************
   //
 
-  matmgr.Mixture("ALICE3ABSO", 16, "VACUUM0$", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Medium("ALICE3ABSO", 16, "VA_C0", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Mixture("ALICE3_ABSORBER", 16, "VACUUM$", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Medium("ALICE3_ABSORBER", 16, "VA_C0", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //
   //    Steel
-  matmgr.Mixture("ALICE3ABSO", 19, "STAINLESS STEEL0$", asteel, zsteel, 7.88, 4, wsteel);
-  matmgr.Mixture("ALICE3ABSO", 39, "STAINLESS STEEL1$", asteel, zsteel, 7.88, 4, wsteel);
-  matmgr.Mixture("ALICE3ABSO", 59, "STAINLESS STEEL2$", asteel, zsteel, 7.88, 4, wsteel);
-  matmgr.Medium("ALICE3ABSO", 19, "ST_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3ABSO", 39, "ST_C1", 39, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3ABSO", 59, "ST_C3", 59, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  // matmgr.Mixture("ALICE3_ABSORBER", 19, "STAINLESS_STEEL$", asteel, zsteel, 7.88, 4, wsteel);
+  // matmgr.Medium("ALICE3_ABSORBER", 19, "ST_C0", 19, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+
+  //
+  //   Iron
+  matmgr.Material("ALICE3_ABSORBER", 26, "IRON$", 55.845, 26., 7.874, 1.757, 17.1);
+  matmgr.Medium("ALICE3_ABSORBER", 26, "FE", 26, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 void Alice3Absorber::ConstructGeometry()
@@ -112,9 +119,8 @@ void Alice3Absorber::ConstructGeometry()
   // Media
   //
 
-  auto kMedVac = matmgr.getTGeoMedium("ALICE3ABSO_VA_C0");
-  auto kMedSteel = matmgr.getTGeoMedium("ALICE3ABSO_ST_C0");
-  auto kMedSteelSh = matmgr.getTGeoMedium("ALICE3ABSO_ST_C3");
+  auto kMedVac = matmgr.getTGeoMedium("ALICE3_ABSORBER_VA_C0");
+  auto kMedIron = matmgr.getTGeoMedium("ALICE3_ABSORBER_FE");
 
   // The top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -147,7 +153,7 @@ void Alice3Absorber::ConstructGeometry()
   // Insert
   absorings->SetName("absorings");
 
-  TGeoVolume* abso = new TGeoVolume("Absorber", absorings, kMedSteel);
+  TGeoVolume* abso = new TGeoVolume("Absorber", absorings, kMedIron);
 
   abso->SetVisibility(1);
   abso->SetTransparency(50);

@@ -43,7 +43,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   LOGP(info, "Media: {} {}", (void*)medSi, (void*)medAir);
@@ -74,7 +74,7 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
@@ -103,7 +103,7 @@ void FTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
@@ -135,7 +135,7 @@ void BTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);

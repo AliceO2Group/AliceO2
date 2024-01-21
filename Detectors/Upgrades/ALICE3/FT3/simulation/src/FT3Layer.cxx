@@ -70,7 +70,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-    TGeoMedium* medSi = gGeoManager->GetMedium("FT3_SI$");
+    TGeoMedium* medSi = gGeoManager->GetMedium("FT3_SILICON$");
     TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
 
     TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
