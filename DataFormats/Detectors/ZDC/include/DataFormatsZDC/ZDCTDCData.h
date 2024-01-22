@@ -30,7 +30,6 @@ namespace zdc
 struct ZDCTDCDataErr {
 
   static uint32_t mErrVal[NTDCChannels]; // Errors in encoding TDC values
-  static uint32_t mErrAmp[NTDCChannels]; // Errors in encoding TDC amplitudes
   static uint32_t mErrId;                // Errors with TDC Id
 
   static void print()
@@ -41,11 +40,6 @@ struct ZDCTDCDataErr {
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       if (mErrVal[itdc] > 0) {
         LOG(error) << "TDCVal itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " was out of range #times = " << mErrVal[itdc];
-      }
-    }
-    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-      if (mErrAmp[itdc] > 0) {
-        LOG(warning) << "TDCAmp itdc=" << itdc << " " << ChannelNames[TDCSignal[itdc]] << " was out of range #times = " << mErrAmp[itdc];
       }
     }
   }
