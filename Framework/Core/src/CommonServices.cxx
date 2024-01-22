@@ -193,7 +193,7 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
         }
       }
       if (didCreate == false && messageContext.didDispatch() == true) {
-        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band didCreate == %b && messageContext.didDispatch == %b",
+        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band didCreate == %d && messageContext.didDispatch == %d",
                                didCreate,
                                messageContext.didDispatch());
         return;
@@ -219,8 +219,7 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
         if (matcher.lifetime == Lifetime::Timeframe) {
           LOGP(error, "Expected Lifetime::Timeframe data {} was not created for timeslice {} and might result in dropped timeframes", DataSpecUtils::describe(matcher), timeslice);
         }
-      } 
-      },
+      } },
     .kind = ServiceKind::Stream};
 }
 
