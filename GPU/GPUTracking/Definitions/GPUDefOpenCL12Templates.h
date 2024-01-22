@@ -83,7 +83,7 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE4(type) type
 #endif
 
-#if defined(GPUCA_NO_CONSTANT_MEMORY) || defined(GPUCA_CONSTANT_AS_ARGUMENT)
+#if defined(GPUCA_NO_CONSTANT_MEMORY)
   #undef MEM_CONSTANT
   #define MEM_CONSTANT(type) MEM_GLOBAL(type)
 #endif

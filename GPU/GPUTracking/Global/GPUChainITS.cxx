@@ -13,9 +13,9 @@
 /// \author David Rohr
 
 #include "GPUChainITS.h"
-#include "GPUReconstructionIncludesITS.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStracking/ExternalAllocator.h"
+#include "GPUReconstructionIncludesITS.h"
 #include <algorithm>
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -83,7 +83,7 @@ o2::its::TimeFrame* GPUChainITS::GetITSTimeframe()
   if (mITSTimeFrame == nullptr) {
     mRec->GetITSTraits(nullptr, nullptr, &mITSTimeFrame);
   }
-#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS) // Do not access ITS traits related classes if not compiled in standalone version
+#if !defined(GPUCA_STANDALONE)
   if (mITSTimeFrame->mIsGPU) {
     auto doFWExtAlloc = [this](size_t size) -> void* { return rec()->AllocateUnmanagedMemory(size, GPUMemoryResource::MEMORY_GPU); };
 

@@ -60,14 +60,16 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/SimFieldUtils.h)
 
 if(BUILD_SIMULATION)
-  o2_add_test(
-    MatBudLUT
-    SOURCES test/testMatBudLUT.cxx
-    COMPONENT_NAME DetectorsBase
-    PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTReconstruction
-    LABELS detectorsbase
-    ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+  if (NOT APPLE)
+    o2_add_test(
+      MatBudLUT
+      SOURCES test/testMatBudLUT.cxx
+      COMPONENT_NAME DetectorsBase
+      PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTReconstruction
+      LABELS detectorsbase
+      ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+  endif()
 
   o2_add_test(
     MCStack

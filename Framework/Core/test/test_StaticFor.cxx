@@ -57,8 +57,6 @@ TEST_CASE("TestStaticFor")
     constexpr int index = i.value;
 
     // compiler will complain if constexpr is not enforced for index access:
-    //CONST_STR(staticNames[index]);    // works
-    //CONST_STR(staticNames[i.value]);  // fails
 
     constexpr auto sayHello = CONST_STR("Hello ") + CONST_STR(staticNames[index]);
 

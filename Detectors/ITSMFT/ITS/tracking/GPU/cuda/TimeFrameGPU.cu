@@ -34,15 +34,9 @@
 #define THRUST_NAMESPACE thrust::hip
 // clang-format off
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
-    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
-    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
-    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
-  #else
-    #define GPUCA_CONSMEM_PTR
-    #define GPUCA_CONSMEM_CALL
-    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-  #endif
+  #define GPUCA_CONSMEM_PTR
+  #define GPUCA_CONSMEM_CALL
+  #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
 #else
   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,

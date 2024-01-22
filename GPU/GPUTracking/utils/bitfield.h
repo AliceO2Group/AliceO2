@@ -15,7 +15,7 @@
 #ifndef Q_BITFIELD_H
 #define Q_BITFIELD_H
 
-#if !defined(GPUCA_NOCOMPAT_ALLOPENCL) && !defined(GPUCA_GPUCODE_GENRTC)
+#if !defined(GPUCA_NOCOMPAT_ALLOPENCL) && !defined(GPUCA_GPUCODE_COMPILEKERNELS)
 #include <type_traits>
 #endif
 

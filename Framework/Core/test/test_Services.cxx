@@ -94,7 +94,7 @@ static ServiceRegistry::Salt salt_1 = ServiceRegistry::Salt{1, 0};
 static ServiceRegistry::Salt salt_2 = ServiceRegistry::Salt{2, 0};
 static ServiceRegistry::Salt salt_3 = ServiceRegistry::Salt{3, 0};
 static ServiceRegistry::Salt salt_1_1 = ServiceRegistry::Salt{1, 1};
-}
+} // namespace o2::framework
 
 TEST_CASE("TestSerialServices")
 {

@@ -18,9 +18,7 @@
 #include <cassert>
 #include <thread>
 
-#ifndef GPUCA_GPUCODE_GENRTC
 #include <cub/cub.cuh>
-#endif
 
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/Configuration.h"

@@ -42,12 +42,13 @@ add_executable(opencl_compiler
 target_link_libraries(opencl_compiler PUBLIC OpenCL::OpenCL)
 set_property(TARGET opencl_compiler
              PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-             
+
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(OPENCL_HEADER_FILTER "${CMAKE_SOURCE_DIR}")
 else()
   set(OPENCL_HEADER_FILTER "${CMAKE_SOURCE_DIR}/GPU")
 endif()
+set(OPENCL_HEADER_FILTER "^${OPENCL_HEADER_FILTER}|^${CMAKE_BINARY_DIR}.*include_gpu_onthefly")
 
 # executes OpenCL compiler wrapper to build binary object
 add_custom_command(
@@ -59,7 +60,7 @@ add_custom_command(
           ${CL_SRC}
           --
           "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
-          "-I$<JOIN:$<FILTER:$<FILTER:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr>,INCLUDE,^${OPENCL_HEADER_FILTER}>,$<SEMICOLON>-I>"
+          "-I$<JOIN:$<FILTER:$<FILTER:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr>,INCLUDE,${OPENCL_HEADER_FILTER}>,$<SEMICOLON>-I>"
           -DGPUCA_GPULIBRARY=OCL1
           -x clc++
   MAIN_DEPENDENCY ${CL_SRC}

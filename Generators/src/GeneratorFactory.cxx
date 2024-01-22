@@ -20,10 +20,6 @@
 #include <Generators/GeneratorFromFile.h>
 #include <Generators/GeneratorTParticle.h>
 #include <Generators/GeneratorTParticleParam.h>
-#ifdef GENERATORS_WITH_PYTHIA6
-#include <Generators/GeneratorPythia6.h>
-#include <Generators/GeneratorPythia6Param.h>
-#endif
 #ifdef GENERATORS_WITH_PYTHIA8
 #include <Generators/GeneratorPythia8.h>
 #include <Generators/GeneratorPythia8Param.h>
@@ -184,21 +180,6 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
     hepmcGen->setup(param0, param, conf);
     primGen->AddGenerator(hepmcGen);
-#endif
-#ifdef GENERATORS_WITH_PYTHIA6
-  } else if (genconfig.compare("pythia6") == 0) {
-    // pythia6 pp
-    // configures pythia6 according to param
-    auto& param = GeneratorPythia6Param::Instance();
-    LOG(info) << "Init \'Pythia6\' generator with following parameters";
-    LOG(info) << param;
-    auto py6Gen = new o2::eventgen::GeneratorPythia6();
-    py6Gen->setConfig(param.config);
-    py6Gen->setFrame(param.frame);
-    py6Gen->setBeam(param.beam);
-    py6Gen->setTarget(param.target);
-    py6Gen->setWin(param.win);
-    primGen->AddGenerator(py6Gen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA8
   } else if (genconfig.compare("alldets") == 0) {

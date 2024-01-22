@@ -33,13 +33,12 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 {
  public:
   ~GPUReconstructionCUDABackend() override;
-  int GPUFailedMsgAI(const long long int error, const char* file, int line);
+  static int GPUFailedMsgAI(const long long int error, const char* file, int line);
   void GPUFailedMsgA(const long long int error, const char* file, int line);
 
  protected:
   GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg);
 
-  void* GetBackendConstSymbolAddress();
   void PrintKernelOccupancies() override;
 
   template <class T, int I = 0, typename... Args>
@@ -89,8 +88,8 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 
  private:
-  std::vector<void*> mDeviceConstantMemRTC;
   int genRTC();
+  int loadKernelModules(bool perKernel, bool perSingleMulti = true);
 };
 
 } // namespace gpu

@@ -1,3 +1,14 @@
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
+#
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
 # This is the configuration file for the standalone build
 # Its options do not affect the O2 build !!!!
 
@@ -10,7 +21,6 @@ set(CONFIG_VC 1)
 set(CONFIG_FMT 1)
 set(CONFIG_ROOT 1)
 set(CONFIG_O2_EXTENSIONS 1)
-set(CONFIG_O2_ITS_TRAITS 0)
 set(BUILD_EVENT_DISPLAY 1)
 set(BUILD_EVENT_DISPLAY_FREETYPE 1)
 set(BUILD_EVENT_DISPLAY_VULKAN 1)
@@ -27,3 +37,4 @@ set(HIP_AMDGPUTARGET "default")
 #set(CUDA_COMPUTETARGET 86 89)
 set(CUDA_COMPUTETARGET "default")
 #set(FORCE_OPENCL2_ALL ON)
+#set(GPUCA_CUDA_COMPILE_MODE perkernel)

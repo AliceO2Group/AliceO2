@@ -63,11 +63,11 @@ class EMCALCalibExtractor
   EMCALCalibExtractor()
   {
     LOG(info) << "initialized EMCALCalibExtractor";
-    if (!mGeometry) {
+    try {
+      // Try to access geometry initialized ountside
       mGeometry = o2::emcal::Geometry::GetInstance();
-      if (!mGeometry) {
-        mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000); // fallback option
-      }
+    } catch (o2::emcal::GeometryNotInitializedException& e) {
+      mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000); // fallback option
     }
     // mNcells = mGeometry->GetNCells();
   };

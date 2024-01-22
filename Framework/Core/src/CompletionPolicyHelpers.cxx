@@ -15,11 +15,15 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Logger.h"
+#include "Framework/TimesliceIndex.h"
 #include "Framework/TimingInfo.h"
 #include "DecongestionService.h"
+#include "Framework/Signpost.h"
 
 #include <cassert>
 #include <regex>
+
+O2_DECLARE_DYNAMIC_LOG(completion);
 
 namespace o2::framework
 {
@@ -107,12 +111,46 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 {
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
     assert(inputs.size() == specs.size());
+    O2_SIGNPOST_ID_GENERATE(sid, completion);
+    O2_SIGNPOST_START(completion, sid, "consumeWhenAll", "Completion policy invoked");
+
+    size_t si = 0;
+    bool missingSporadic = false;
+    bool needsProcessing = false;
+    size_t currentTimeslice = -1;
     for (auto& input : inputs) {
-      if (input.header == nullptr) {
+      assert(si < specs.size());
+      auto& spec = specs[si++];
+      if (input.header == nullptr && spec.lifetime != Lifetime::Sporadic) {
+        O2_SIGNPOST_END(completion, sid, "consumeWhenAll", "Completion policy returned %{public}s due to missing input %lu", "Wait", si);
         return CompletionPolicy::CompletionOp::Wait;
       }
+      if (input.header == nullptr && spec.lifetime == Lifetime::Sporadic) {
+        O2_SIGNPOST_EVENT_EMIT(completion, sid, "consumeWhenAll", "Missing sporadic found for route index %lu", si);
+        missingSporadic = true;
+      }
+      if (input.header != nullptr && currentTimeslice == -1) {
+        auto const* dph = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input);
+        if (dph && !TimingInfo::timesliceIsTimer(dph->startTime)) {
+          currentTimeslice = dph->startTime;
+          O2_SIGNPOST_EVENT_EMIT(completion, sid, "consumeWhenAll", "currentTimeslice %lu from route index %lu", currentTimeslice, si);
+        }
+      }
+      if (input.header != nullptr && spec.lifetime != Lifetime::Condition) {
+        needsProcessing = true;
+      }
     }
-    return CompletionPolicy::CompletionOp::Consume;
+    // If some sporadic inputs are missing, we wait for them util we are sure they will not come,
+    // i.e. until the oldest possible timeslice is beyond the timeslice of the input.
+    auto& timesliceIndex = ref.get<TimesliceIndex>();
+    auto oldestPossibleTimeslice = timesliceIndex.getOldestPossibleInput().timeslice.value;
+
+    if (missingSporadic && currentTimeslice >= oldestPossibleTimeslice) {
+      O2_SIGNPOST_END(completion, sid, "consumeWhenAll", "Completion policy returned %{public}s for timeslice %lu > oldestPossibleTimeslice %lu", "Retry", currentTimeslice, oldestPossibleTimeslice);
+      return CompletionPolicy::CompletionOp::Retry;
+    }
+    O2_SIGNPOST_END(completion, sid, "consumeWhenAll", "Completion policy returned %{public}s for timeslice %lu <= oldestPossibleTimeslice %lu", needsProcessing ? "Consume" : "Discard", currentTimeslice, oldestPossibleTimeslice);
+    return needsProcessing ? CompletionPolicy::CompletionOp::Consume : CompletionPolicy::CompletionOp::Discard;
   };
   return CompletionPolicy{name, matcher, callback};
 }

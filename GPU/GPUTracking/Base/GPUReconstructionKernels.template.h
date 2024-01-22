@@ -9,7 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R+Preghenella - January 2020
+/// \file GPUReconstructionKernels.h
+/// \author David Rohr
 
-#include "Generators/GeneratorPythia6Param.h"
-O2ParamImpl(o2::eventgen::GeneratorPythia6Param);
+// No header protection, this may be used multiple times
+#include "GPUReconstructionKernelMacros.h"
+
+#if !defined(GPUCA_OPENCL1) && (!defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE))
+#define GPUCA_KRNL_NOOCL1
+#endif
+
+// clang-format off
+$<JOIN:$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNELS>,>
+// clang-format on
+
+#ifdef GPUCA_KRNL_NOOCL1
+#undef GPUCA_KRNL_NOOCL1
+#endif

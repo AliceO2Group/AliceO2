@@ -450,14 +450,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   Inputs checkerInputs;
   if (bypassProxies != ProxyBypass::None) {
     checkerInputs.emplace_back(InputSpec{"datain", ConcreteDataTypeMatcher{"TST", "DATA"}, Lifetime::Timeframe});
-    //for (unsigned int i = 0; i < pState->nChannels; i++) {
-    //  checkerInputs.emplace_back(InputSpec{{"datain"}, "TST", "DATA", i, Lifetime::Timeframe});
-    //}
   } else {
     checkerInputs.emplace_back(InputSpec{"datain", ConcreteDataTypeMatcher{"PRX", "DATA"}, Lifetime::Timeframe});
-    //for (unsigned int i = 0; i < pState->nChannels; i++) {
-    //  checkerInputs.emplace_back(InputSpec{{"datain"}, "PRX", "DATA", i, Lifetime::Timeframe});
-    //}
   }
   workflow.emplace_back(DataProcessorSpec{"checker",
                                           std::move(checkerInputs),

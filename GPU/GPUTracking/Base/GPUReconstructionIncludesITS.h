@@ -15,32 +15,42 @@
 #ifndef GPURECONSTRUCTIONINCLDUESITS_H
 #define GPURECONSTRUCTIONINCLDUESITS_H
 
-#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_STANDALONE)
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/TimeFrame.h"
+#if defined(__CUDACC__) || defined(__HIPCC__)
+#include "ITStrackingGPU/TrackerTraitsGPU.h"
+#include "ITStrackingGPU/VertexerTraitsGPU.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
+#endif
 #else
-namespace o2
+namespace o2::its
 {
-namespace its
-{
-class TrackerTraits
-{
-};
-class TrackerTraitsCPU : public TrackerTraits
-{
-};
 class VertexerTraits
+{
+};
+class TrackerTraits
 {
 };
 class TimeFrame
 {
 };
-} // namespace its
-} // namespace o2
-#if defined(GPUCA_HAVE_O2HEADERS)
-#include "ITStracking/Road.h"
-#include "ITStracking/Cluster.h"
-#endif
+class VertexerTraitsGPU : public VertexerTraits
+{
+};
+template <int NLayers = 7>
+class TrackerTraitsGPU : public TrackerTraits
+{
+};
+namespace gpu
+{
+template <int NLayers = 7>
+class TimeFrameGPU : public TimeFrame
+{
+};
+} // namespace gpu
+} // namespace o2::its
 #endif
 
 #endif

@@ -22,15 +22,9 @@
 
 // clang-format off
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
-    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
-    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
-    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
-  #else
-    #define GPUCA_CONSMEM_PTR
-    #define GPUCA_CONSMEM_CALL
-    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-  #endif
+  #define GPUCA_CONSMEM_PTR
+  #define GPUCA_CONSMEM_CALL
+  #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
 #else
   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
@@ -44,36 +38,15 @@
 #include "HIPThrustHelpers.h"
 #include "GPUReconstructionIncludes.h"
 
+using namespace GPUCA_NAMESPACE::gpu;
+
 #ifdef GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantMemBuffer; }
 #endif
 
-using namespace GPUCA_NAMESPACE::gpu;
-
 __global__ void dummyInitKernel(void*) {}
 
-#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
-#include "ITStrackingGPU/VertexerTraitsGPU.h"
-#include "ITStrackingGPU/TrackerTraitsGPU.h"
-#else
-namespace o2::its
-{
-class VertexerTraitsGPU : public VertexerTraits
-{
-};
-template <int NLayers = 7>
-class TrackerTraitsGPU : public TrackerTraits
-{
-};
-namespace gpu
-{
-template <int NLayers = 7>
-class TimeFrameGPU : public TimeFrame
-{
-};
-} // namespace gpu
-} // namespace o2::its
-#endif
+#include "GPUReconstructionIncludesITS.h"
 
 class GPUDebugTiming
 {
@@ -114,16 +87,6 @@ class GPUDebugTiming
 };
 
 #include "GPUReconstructionIncludesDevice.h"
-
-/*
-// Not using templated kernel any more, since nvidia profiler does not resolve template names
-template <class T, int I, typename... Args>
-GPUg() void runKernelHIP(GPUCA_CONSMEM_PTR int iSlice_internal, Args... args)
-{
-  GPUshared() typename T::GPUSharedMemory smem;
-  T::template Thread<I>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, T::Processor(GPUCA_CONSMEM)[iSlice_internal], args...);
-}
-*/
 
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
@@ -545,9 +508,6 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
 
 size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
 {
-#ifdef GPUCA_CONSTANT_AS_ARGUMENT
-  memcpy(((char*)&gGPUConstantMemBufferHost) + offset, src, size);
-#endif
 #ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(hipMemcpyToSymbol(HIP_SYMBOL(gGPUConstantMemBuffer), src, size, offset, hipMemcpyHostToDevice));

@@ -13,9 +13,9 @@ message(STATUS "Building GPU Standalone Benchmark")
 
 set(SRCS
     standalone.cxx
-    ../utils/qconfig.cxx
-    ../Base/GPUReconstructionTimeframe.cxx)
-    
+    ../../utils/qconfig.cxx
+    ../../Base/GPUReconstructionTimeframe.cxx)
+
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
     o2_add_executable(standalone-benchmark
                       COMPONENT_NAME gpu
@@ -32,5 +32,5 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
 endif()
 
 if(ROOT_FOUND)
-  target_sources(${targetName} PRIVATE ../qa/genEvents.cxx)
+  target_sources(${targetName} PRIVATE ../../qa/genEvents.cxx)
 endif()

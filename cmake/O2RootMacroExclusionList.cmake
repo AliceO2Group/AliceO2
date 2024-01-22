@@ -83,10 +83,6 @@ if(NOT ENABLE_UPGRADES)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${upgradeMacros})
 endif()
 
-if(NOT pythia6_FOUND)
-  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/pythia6.C)
-endif()
-
 list(REMOVE_DUPLICATES O2_ROOT_MACRO_EXCLUSION_LIST)
 
 # check exclusion list contains only existing macros

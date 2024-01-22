@@ -33,6 +33,8 @@ class GPUTPCRow;
 
 #define SemLockName "AliceHLTTPCGPUTrackerInitLockSem"
 
+std::vector<void* (*)()> GPUReconstructionDeviceBase::mDeviceConstantMemRegistrators;
+
 GPUReconstructionDeviceBase::GPUReconstructionDeviceBase(const GPUSettingsDeviceBackend& cfg, size_t sizeCheck) : GPUReconstructionCPU(cfg)
 {
   if (sizeCheck != sizeof(GPUReconstructionDeviceBase)) {
@@ -316,4 +318,16 @@ void GPUReconstructionDeviceBase::unregisterRemainingRegisteredMemory()
     unregisterMemoryForGPU_internal(ptr);
   }
   mRegisteredMemoryPtrs.clear();
+}
+
+GPUReconstructionDeviceBase::deviceConstantMemRegistration::deviceConstantMemRegistration(void* (*reg)())
+{
+  GPUReconstructionDeviceBase::mDeviceConstantMemRegistrators.emplace_back(reg);
+}
+
+void GPUReconstructionDeviceBase::runConstantRegistrators()
+{
+  for (unsigned int i = 0; i < mDeviceConstantMemRegistrators.size(); i++) {
+    mDeviceConstantMemList.emplace_back(mDeviceConstantMemRegistrators[i]());
+  }
 }

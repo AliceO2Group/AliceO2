@@ -16,7 +16,7 @@ if(DEFINED CUDA_COMPUTETARGET)
 endif()
 message(STATUS "Building GPUTracking with CUDA support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAKernels.cu GPUReconstructionCUDAGenRTC.cu)
+set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAGenRTC.cu GPUReconstructionCUDAKernels.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstructionCUDADef.h GPUReconstructionCUDAIncludes.h CUDAThrustHelpers.h)
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
@@ -27,9 +27,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   else()
     set(defineIncludeSrc "${MODULE}")
   endif()
-  set(CURTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
-                    -DGPUCA_GPUCODE_GENRTC
-  )
+  set(CURTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},COMPILE_DEFINITIONS>,$<SEMICOLON>-D>")
   set(CURTC_INCLUDES "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:${defineIncludeSrc},INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>"
                     -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
                     -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
@@ -57,6 +55,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   else()
     set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
   endif()
+
   set(CURTC_SRC ${GPUDIR}/Base/cuda/GPUReconstructionCUDArtc.cu)
   set(CURTC_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionCUDArtc)
 
@@ -91,11 +90,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
       ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
+      ${CMAKE_CURRENT_SOURCE_DIR}
     PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITStrackingCUDA O2::FrameworkFoundation3rdparty
     TARGETVARNAME targetName)
 
-  target_compile_definitions(
-    ${targetName} PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+  target_compile_definitions(${targetName} PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
   set_target_properties(${targetName} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -124,6 +123,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS ${targetName} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -131,6 +131,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   target_link_libraries(${MODULE} PUBLIC GPUTracking)
   set(targetName ${MODULE})
   install(TARGETS GPUTrackingCUDA)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
 target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
@@ -141,4 +142,40 @@ if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -fopenmp")
+endif()
+
+if(NOT DEFINED GPUCA_CUDA_COMPILE_MODE)
+  if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+    set(GPUCA_CUDA_COMPILE_MODE "onefile")
+  else()
+    set(GPUCA_CUDA_COMPILE_MODE "perkernel")
+  endif()
+endif()
+if(GPUCA_CUDA_COMPILE_MODE STREQUAL "onefile")
+  target_compile_definitions(${targetName} PRIVATE GPUCA_KERNEL_COMPILE_MODE=0)
+elseif(GPUCA_CUDA_COMPILE_MODE STREQUAL "perkernel")
+  add_library(GPUTrackingCUDAKernels OBJECT $<JOIN:$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNEL_NAMES>,REPLACE,[^A-Za-z0-9]+,_>,PREPEND,${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_>,APPEND,.cu>, >)
+  set_property(TARGET GPUTrackingCUDAKernels PROPERTY CUDA_FATBIN_COMPILATION ON)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_KERNEL_COMPILE_MODE=1)
+  target_compile_definitions(GPUTrackingCUDAKernels PRIVATE $<TARGET_PROPERTY:${targetName},COMPILE_DEFINITIONS>)
+  target_include_directories(GPUTrackingCUDAKernels PRIVATE $<TARGET_PROPERTY:${targetName},INCLUDE_DIRECTORIES>)
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/cuda_kernel_module_fatbin)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUTrackingCUDAKernelModules.o
+    COMMAND cp -u $<TARGET_OBJECTS:GPUTrackingCUDAKernels> ${CMAKE_CURRENT_BINARY_DIR}/cuda_kernel_module_fatbin/
+    COMMAND ${CMAKE_LINKER} --relocatable --format binary --output ${CMAKE_CURRENT_BINARY_DIR}/GPUTrackingCUDAKernelModules.o $<PATH:RELATIVE_PATH,$<LIST:TRANSFORM,$<PATH:GET_FILENAME,$<TARGET_OBJECTS:GPUTrackingCUDAKernels>>,PREPEND,${CMAKE_CURRENT_BINARY_DIR}/cuda_kernel_module_fatbin/>,${CMAKE_CURRENT_BINARY_DIR}>
+    DEPENDS GPUTrackingCUDAKernels $<TARGET_OBJECTS:GPUTrackingCUDAKernels>
+    COMMENT "Compiling fatbin kernels"
+    VERBATIM
+    COMMAND_EXPAND_LISTS
+  )
+  target_sources(${targetName} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/GPUTrackingCUDAKernelModules.o)
+  set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GPUTrackingCUDAKernelModules.o PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+elseif(GPUCA_CUDA_COMPILE_MODE STREQUAL "rdc")
+  message(FATAL_ERROR "CUDA RDC compilation of GPUReconstruction ios not yet working!")
+  target_compile_definitions(${targetName} PRIVATE GPUCA_KERNEL_COMPILE_MODE=2)
+  set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  target_sources(${targetName} PRIVATE $<JOIN:$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNEL_NAMES>,REPLACE,[^A-Za-z0-9]+,_>,PREPEND,${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_>,APPEND,.cu>, >)
+else()
+  message(FATAL_ERROR "Invalid compile mode")
 endif()
