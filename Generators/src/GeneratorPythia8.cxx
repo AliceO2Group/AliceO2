@@ -25,6 +25,9 @@
 #include "Pythia8Plugins/PowhegHooks.h"
 #include "TSystem.h"
 #include "ZDCBase/FragmentParam.h"
+#include <CommonUtils/ConfigurationMacroHelper.h>
+#include <filesystem>
+#include <CommonUtils/FileSystemUtils.h>
 
 #include <iostream>
 #include <unordered_map>
@@ -137,6 +140,8 @@ Bool_t GeneratorPythia8::Init()
     LOG(fatal) << "Failed to init \'Pythia8\': init returned with error";
     return false;
   }
+
+  initUserFilterCallback();
 
   /** success **/
   return true;
@@ -507,6 +512,28 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
 }
 
 /*****************************************************************/
+void GeneratorPythia8::initUserFilterCallback()
+{
+  mUserFilterFcn = [](Pythia8::Particle const&) -> bool { return true; };
+
+  auto& filter = GeneratorPythia8Param::Instance().particleFilter;
+  if (filter.size() > 0) {
+    LOG(info) << "Initializing the callback for user-based particle pruning";
+    auto expandedFileName = o2::utils::expandShellVarsInFileName(filter);
+    LOG(info) << "filename is " << expandedFileName;
+    if (std::filesystem::exists(filter)) {
+      // if the filter is in a file we will compile the hook on the fly
+      mUserFilterFcn = o2::conf::GetFromMacro<UserFilterFcn>(filter, "filterPythia()", "o2::eventgen::GeneratorPythia8::UserFilterFcn", "o2mc_pythia8_userfilter_hook");
+      LOG(info) << "Hook initialized from file " << expandedFileName;
+    } else {
+      // if it's not a file we interpret it as a C++ lambda string and JIT it directly;
+      LOG(error) << "Did not find a file " << expandedFileName << " ; Will not execute hook";
+    }
+    mApplyPruning = true;
+  }
+}
+
+/*****************************************************************/
 
 Bool_t
   GeneratorPythia8::importParticles(Pythia8::Event& event)
@@ -517,10 +544,12 @@ Bool_t
   // event information) Here, we aim to filter out everything before
   // hadronization with the motivation to reduce the size of the MC
   // event record in the AOD.
+
+  std::function<bool(const Pythia8::Particle&)> partonSelect = [](const Pythia8::Particle&) { return true; };
   if (not GeneratorPythia8Param::Instance().includePartonEvent) {
 
     // Select pythia particles
-    auto particleSelect = [](const Pythia8::Particle& particle) {
+    partonSelect = [](const Pythia8::Particle& particle) {
       switch (particle.statusHepMC()) {
         case 1: // Final st
         case 2: // Decayed
@@ -531,8 +560,12 @@ Bool_t
       // if (particle.id() == 9902210) return true;
       return false;
     };
+    mApplyPruning = true;
+  }
 
-    pruneEvent(event, particleSelect);
+  if (mApplyPruning) {
+    auto finalSelect = [partonSelect, this](const Pythia8::Particle& p) { return partonSelect(p) && mUserFilterFcn(p); };
+    pruneEvent(event, finalSelect);
   }
 
   /* loop over particles */
