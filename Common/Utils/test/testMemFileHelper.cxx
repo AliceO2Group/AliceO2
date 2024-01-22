@@ -40,3 +40,35 @@ BOOST_AUTO_TEST_CASE(test_memfile_helper)
   BOOST_CHECK(rvec);
   BOOST_CHECK(*rvec == vec);
 }
+
+#include "CommonUtils/FileSystemUtils.h"
+#include <cstdlib>
+
+BOOST_AUTO_TEST_CASE(test_expandenv)
+{
+  {
+    std::string noenv("simple_file.root");
+    auto expandedFileName = o2::utils::expandShellVarsInFileName(noenv);
+    BOOST_CHECK(expandedFileName.size() > 0);
+    BOOST_CHECK_EQUAL(expandedFileName, noenv);
+  }
+
+  {
+    std::string withenv("${PWD}/simple_file.root");
+    auto expandedFileName = o2::utils::expandShellVarsInFileName(withenv);
+    BOOST_CHECK(expandedFileName.size() > 0);
+  }
+
+  {
+    setenv("FOO_123", "BAR", 0);
+    std::string withenv("/tmp/${FOO_123}/simple_file.root");
+    auto expandedFileName = o2::utils::expandShellVarsInFileName(withenv);
+    BOOST_CHECK_EQUAL(expandedFileName, "/tmp/BAR/simple_file.root");
+  }
+
+  { // what if the variable doesn't exist --> should return unmodified string
+    std::string withenv("/tmp/${FOO_DOESNOTEXIST}/simple_file.root");
+    auto expandedFileName = o2::utils::expandShellVarsInFileName(withenv);
+    BOOST_CHECK_EQUAL(expandedFileName, withenv);
+  }
+}
