@@ -21,6 +21,9 @@
 #include "Framework/WorkflowSpec.h"
 #include "MCHStatus/StatusMap.h"
 #include "MCHStatus/StatusMapCreatorParam.h"
+#include "MCHRawElecMap/Mapper.h"
+#include "MCHMappingInterface/Segmentation.h"
+#include "MCHConstants/DetectionElements.h"
 #include <fmt/format.h>
 #include <functional>
 #include <iostream>
@@ -48,12 +51,91 @@ class StatusMapCreatorTask
  public:
   StatusMapCreatorTask() = default;
 
-  void updateStatusMap()
-  {
-    mStatusMap.clear();
-    mStatusMap.add(mBadChannels, StatusMap::kBadPedestal);
-    mStatusMap.add(mRejectList, StatusMap::kRejectList);
-    mStatusMapUpdated = true;
+    void updateStatusMap()
+    {
+      mStatusMap.clear();
+     
+      //create filtered vectors to reject unphysical Solar Id, Elink Id, Channel Id stored in the Bad Channel CCDB
+      std::vector<o2::mch::DsChannelId> filteredBadChannels;
+      std::vector<o2::mch::DsChannelId> filteredRejectList;
+        
+        for (const auto& channel : mBadChannels) {
+            // Check if the channel has a (SolarId, LinkId, channelId)  that corresponds to a valid Detection Element and valid Pad
+            auto group =  o2::mch::raw::groupFromElinkId(channel.getElinkId());
+            auto index =  o2::mch::raw::indexFromElinkId(channel.getElinkId());
+            o2::mch::raw::DsElecId dsElecId(channel.getSolarId(), group.value(), index.value());
+            auto mElec2DetMapper = o2::mch::raw::createElec2DetMapper<o2::mch::raw::ElectronicMapperGenerated>();
+            std::optional<o2::mch::raw::DsDetId> dsDetId = mElec2DetMapper(dsElecId);
+            if(!dsDetId){
+                LOGP(info, "No detection element associated to this channel from Bad Channels CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             channel.getSolarId(), channel.getElinkId(), channel.getChannel());
+                continue;}
+            auto deId = dsDetId->deId();
+            if(!deId){
+                LOGP(info, "No detection element id associated to this channel from Bad Channels CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             channel.getSolarId(), channel.getElinkId(), channel.getChannel());
+                continue;}
+            const auto& seg = o2::mch::mapping::segmentation(deId);
+            auto dsId = dsDetId->dsId();
+            if(!dsId){
+                LOGP(info, "No ds element associated to this channel from Bad Channels CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             channel.getSolarId(), channel.getElinkId(), channel.getChannel());
+                continue;}
+            int dePadIndex = seg.findPadByFEE(dsId, channel.getChannel());
+            if (!seg.isValid(dePadIndex)){
+                LOGP(info, "No Valid Pad index associated to this channel from Bad Channels CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             channel.getSolarId(), channel.getElinkId(), channel.getChannel());
+                continue;
+            }
+            
+           
+            LOGP(info, "List of Valid Channels from Bad Channels CCDB - SolarId: {} ElinkId: {} Channel: {}. This channel is kept",
+                         channel.getSolarId(), channel.getElinkId(), channel.getChannel());
+            filteredBadChannels.push_back(channel);
+        }
+        
+        
+        for (const auto& rlchannel : mRejectList) {
+            // Check if the channel has a (SolarId, LinkId, channelId)  that corresponds to a valid Detection Element and valid pad
+            auto rlgroup =  o2::mch::raw::groupFromElinkId(rlchannel.getElinkId());
+            auto rlindex =  o2::mch::raw::indexFromElinkId(rlchannel.getElinkId());
+            o2::mch::raw::DsElecId rldsElecId(rlchannel.getSolarId(), rlgroup.value(), rlindex.value());
+            auto rlmElec2DetMapper = o2::mch::raw::createElec2DetMapper<o2::mch::raw::ElectronicMapperGenerated>();
+            std::optional<o2::mch::raw::DsDetId> rldsDetId = rlmElec2DetMapper(rldsElecId);
+            if(!rldsDetId){
+                LOGP(info, "No detection element associated to this channel from Reject List CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             rlchannel.getSolarId(), rlchannel.getElinkId(), rlchannel.getChannel());
+                continue;}
+            auto rldeId = rldsDetId->deId();
+            if(!rldeId){
+                LOGP(info, "No detection element id associated to this channel from Reject List CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             rlchannel.getSolarId(), rlchannel.getElinkId(), rlchannel.getChannel());
+                continue;}
+            const auto& rlseg = o2::mch::mapping::segmentation(rldeId);
+            auto rldsId = rldsDetId->dsId();
+            if(!rldsId){
+                LOGP(info, "No ds element associated to this channel from Reject List CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             rlchannel.getSolarId(), rlchannel.getElinkId(), rlchannel.getChannel());
+                continue;}
+            int rldePadIndex = rlseg.findPadByFEE(rldsId, rlchannel.getChannel());
+            if (!rlseg.isValid(rldePadIndex)){
+                LOGP(info, "No Valid Pad index associated to this channel from Reject List CCDB - SolarId: {} ElinkId: {} Channel: {}. Skip this channel",
+                             rlchannel.getSolarId(), rlchannel.getElinkId(), rlchannel.getChannel());
+                continue;
+            }
+            
+           
+            LOGP(info, "List of Valid Channels from Reject List CCDB - SolarId: {} ElinkId: {} Channel: {}. This channel is kept",
+                         rlchannel.getSolarId(), rlchannel.getElinkId(), rlchannel.getChannel());
+            filteredRejectList.push_back(rlchannel);
+      }
+
+
+      // Update the StatusMap with the filtered vector
+      mStatusMap.add(filteredBadChannels, StatusMap::kBadPedestal);
+      mStatusMap.add(filteredRejectList, StatusMap::kRejectList);
+        
+      mStatusMapUpdated = true;
   }
 
   void
