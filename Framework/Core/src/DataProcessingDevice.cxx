@@ -2297,8 +2297,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       if (spec.forwards.empty() == false) {
         auto& timesliceIndex = ref.get<TimesliceIndex>();
         forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false);
-        continue;
       }
+      continue;
     }
     // If there is no optional inputs we canForwardEarly
     // the messages to that parallel processing can happen.
