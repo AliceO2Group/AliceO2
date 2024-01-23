@@ -77,6 +77,7 @@ DataProcessorSpec getSourceSpec()
     o2::test::TriviallyCopyable a(42, 23, 0xdead);
     o2::test::Polymorphic b(0xbeef);
     std::vector<o2::test::Polymorphic> c{{0xaffe}, {0xd00f}};
+    std::vector<o2::test::Base*> ptrVec{new o2::test::Polymorphic{0xaffe}, new o2::test::Polymorphic{0xd00f}};
     std::deque<int> testDequePayload{10, 20, 30};
 
     // class TriviallyCopyable is both messageable and has a dictionary, the default
@@ -152,6 +153,9 @@ DataProcessorSpec getSourceSpec()
     // make a vector of POD and set some data
     pc.outputs().make<std::vector<int>>(OutputRef{"podvector"}) = {10, 21, 42};
 
+    // vector of pointers to ROOT serializable objects
+    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDPTRVEC", 0}, ptrVec);
+
     // now we are done and signal this downstream
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -159,6 +163,9 @@ DataProcessorSpec getSourceSpec()
     ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 0}) == true);
     ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 1}) == false);
     ASSERT_ERROR(pc.outputs().isAllowed({"TST", "NOWAY", 0}) == false);
+    for (auto ptr : ptrVec) {
+      delete ptr;
+    }
   };
 
   return DataProcessorSpec{"source", // name of the processor
@@ -183,7 +190,8 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
-                            OutputSpec{{"podvector"}, "TST", "PODVECTOR", 0, Lifetime::Timeframe}},
+                            OutputSpec{{"podvector"}, "TST", "PODVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{{"inputPtrVec"}, "TST", "ROOTSERLZDPTRVEC", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -343,6 +351,18 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(podvector.size() == 3);
     ASSERT_ERROR(podvector[0] == 10 && podvector[1] == 21 && podvector[2] == 42);
 
+    LOG(info) << "extracting vector of o2::test::Base* from inputPtrVec";
+    auto ptrVec = pc.inputs().get<std::vector<o2::test::Base*>>("inputPtrVec");
+    ASSERT_ERROR(ptrVec.size() == 2);
+    auto ptrVec0 = dynamic_cast<o2::test::Polymorphic*>(ptrVec[0]);
+    auto ptrVec1 = dynamic_cast<o2::test::Polymorphic*>(ptrVec[1]);
+    ASSERT_ERROR(ptrVec0 != nullptr);
+    ASSERT_ERROR(ptrVec1 != nullptr);
+    ASSERT_ERROR(*ptrVec0 == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(*ptrVec1 == o2::test::Polymorphic(0xd00f));
+    delete ptrVec[0];
+    delete ptrVec[1];
+
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
 
@@ -365,7 +385,8 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input16", "TST", "DEQUE", 0, Lifetime::Timeframe},
                             InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"inputPODvector", "TST", "PODVECTOR", 0, Lifetime::Timeframe},
-                            InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
+                            InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe},
+                            InputSpec{"inputPtrVec", "TST", "ROOTSERLZDPTRVEC", 0, Lifetime::Timeframe}},
                            Outputs{OutputSpec{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
