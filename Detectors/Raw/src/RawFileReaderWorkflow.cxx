@@ -216,35 +216,6 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   auto tfID = mReader->getNextTFToRead();
   int nlinks = mReader->getNLinks();
 
-  if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
-    if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
-      mLoopsDone++;
-      tfID = 0;
-      LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
-    } else {
-      if (!mRawChannelName.empty()) { // send endOfStream message to raw channel
-        o2f::SourceInfoHeader exitHdr;
-        exitHdr.state = o2f::InputChannelState::Completed;
-        const auto exitStack = o2::header::Stack(o2h::DataHeader(o2h::gDataDescriptionInfo, o2h::gDataOriginAny, 0, 0), o2f::DataProcessingHeader(), exitHdr);
-        auto fmqFactory = device->GetChannel(mRawChannelName, 0).Transport();
-        auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
-        auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
-        memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
-        fair::mq::Parts eosMsg;
-        eosMsg.AddPart(std::move(hdEOSMessage));
-        eosMsg.AddPart(std::move(plEOSMessage));
-        device->Send(eosMsg, mRawChannelName);
-        LOG(info) << "Sent EoS message to " << mRawChannelName;
-      } else {
-        ctx.services().get<o2f::ControlService>().endOfStream();
-      }
-      ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
-      mTimer.Stop();
-      LOGP(info, "Finished: payload of {} bytes in {} messages sent for {} TFs, total timing: Real:{:3f}/CPU:{:3f}", mSentSize, mSentMessages, mTFCounter, mTimer.RealTime(), mTimer.CpuTime());
-      return;
-    }
-  }
-
   if (tfID < mMinTFID) {
     tfID = mMinTFID;
   }
@@ -367,6 +338,34 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   mSentMessages += tfNParts;
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
+
+  if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
+    if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
+      mLoopsDone++;
+      tfID = 0;
+      LOG(info) << "Shall start new loop " << mLoopsDone << " from the beginning of data";
+    } else {
+      if (!mRawChannelName.empty()) { // send endOfStream message to raw channel
+        o2f::SourceInfoHeader exitHdr;
+        exitHdr.state = o2f::InputChannelState::Completed;
+        const auto exitStack = o2::header::Stack(o2h::DataHeader(o2h::gDataDescriptionInfo, o2h::gDataOriginAny, 0, 0), o2f::DataProcessingHeader(), exitHdr);
+        auto fmqFactory = device->GetChannel(mRawChannelName, 0).Transport();
+        auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
+        auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
+        memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
+        fair::mq::Parts eosMsg;
+        eosMsg.AddPart(std::move(hdEOSMessage));
+        eosMsg.AddPart(std::move(plEOSMessage));
+        device->Send(eosMsg, mRawChannelName);
+        LOG(info) << "Sent EoS message to " << mRawChannelName;
+      } else {
+        ctx.services().get<o2f::ControlService>().endOfStream();
+      }
+      ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
+      mTimer.Stop();
+      LOGP(info, "Finished: payload of {} bytes in {} messages sent for {} TFs, total timing: Real:{:3f}/CPU:{:3f}", mSentSize, mSentMessages, mTFCounter, mTimer.RealTime(), mTimer.CpuTime());
+    }
+  }
 }
 
 //_________________________________________________________
