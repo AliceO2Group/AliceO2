@@ -52,7 +52,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<gsl::span<CTPDigit>>("digits");
   static LumiInfo lumiPrev;
   const int maxDumRep = 5;
-  int dumRep = 0;
+  static int dumRep = 0;
   LumiInfo lumi{};
   if (!mNoLumi) {
     if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(LumiInfo)) {
