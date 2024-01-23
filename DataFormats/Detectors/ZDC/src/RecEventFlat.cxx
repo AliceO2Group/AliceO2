@@ -589,7 +589,7 @@ void RecEventFlat::centroidZPA(float& x, float& rms)
     if (d >= 0) {
       d = TMath::Sqrt(d);
     } else {
-      LOGF(error, "%s FOP exception @ %d", __FILE__, __LINE__);
+      LOGF(warn, "%s FOP exception @ %d", __FILE__, __LINE__);
       d = -std::numeric_limits<float>::infinity();
     }
   }
