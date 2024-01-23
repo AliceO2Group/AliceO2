@@ -518,12 +518,11 @@ void GeneratorPythia8::initUserFilterCallback()
 
   auto& filter = GeneratorPythia8Param::Instance().particleFilter;
   if (filter.size() > 0) {
-    LOG(info) << "Initializing the callback for user-based particle pruning";
+    LOG(info) << "Initializing the callback for user-based particle pruning " << filter;
     auto expandedFileName = o2::utils::expandShellVarsInFileName(filter);
-    LOG(info) << "filename is " << expandedFileName;
-    if (std::filesystem::exists(filter)) {
+    if (std::filesystem::exists(expandedFileName)) {
       // if the filter is in a file we will compile the hook on the fly
-      mUserFilterFcn = o2::conf::GetFromMacro<UserFilterFcn>(filter, "filterPythia()", "o2::eventgen::GeneratorPythia8::UserFilterFcn", "o2mc_pythia8_userfilter_hook");
+      mUserFilterFcn = o2::conf::GetFromMacro<UserFilterFcn>(expandedFileName, "filterPythia()", "o2::eventgen::GeneratorPythia8::UserFilterFcn", "o2mc_pythia8_userfilter_hook");
       LOG(info) << "Hook initialized from file " << expandedFileName;
     } else {
       // if it's not a file we interpret it as a C++ lambda string and JIT it directly;
