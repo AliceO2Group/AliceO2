@@ -44,7 +44,7 @@ void IntegratingMerger::init(framework::InitContext& ictx)
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 
   // clear the state before starting the run, especially important for START->STOP->START sequence
-  ictx.services().get<CallbackService>().set<CallbackService::Id::Start>([this]() mutable { clear(); });
+  ictx.services().get<CallbackService>().set<CallbackService::Id::Start>([this]() { clear(); });
 
   // set detector field in infologger
   try {
