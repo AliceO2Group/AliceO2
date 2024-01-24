@@ -12,6 +12,14 @@
 #ifndef O2_TRK_SERVICES_H
 #define O2_TRK_SERVICES_H
 
+////// Inputs from F. Reidt, 11-2023
+//                         Material 1	   Fraction	  X_0 (cm)	Material 2	Fraction	X_0 (cm)
+// Fiber			             SiO2          0,5	      12,29	    PE	        0,5	      45
+// Power bundle, no jacket Cu	           0,09	      1,44	    PE	        0,91	    45
+// Power bundle			       Cu	           0,06	      1,44	    PE	        0,94	    45
+// Water bundle			       PU	           0,56	      19	      H2O	        0,44	    36,08
+// Water bundle disk			 PU	           0,44	      19	      H2O	        0,56	    36,08
+
 #include <TGeoManager.h>
 #include <FairModule.h>
 
@@ -29,6 +37,7 @@ class TRKServices : public FairModule
   void createServices(TGeoVolume* motherVolume);
   void createColdplate(TGeoVolume* motherVolume);
   void createCables(TGeoVolume* motherVolume);
+  void createMiddleCables(TGeoVolume* motherVolume);
 
  protected:
   // Coldplate
@@ -36,8 +45,12 @@ class TRKServices : public FairModule
   float mColdPlateZLength;
   float mColdPlateThickness;
   float mColdPlateX0;
-
   // Cables
+  float mFiberComposition[2] = {0.5, 0.5};               // SiO2, PE
+  float mPowerBundleComposition[2] = {0.09, 0.91};       // Cu, PE
+  float mPowerBundleJacketComposition[2] = {0.06, 0.94}; // Cu, PE
+  float mWaterBundleComposition[2] = {0.56, 0.44};       // PU, H2O
+  float mWaterBundleDiskComposition[2] = {0.44, 0.56};   // PU, H2O
   float mMiddleDiskThickness = 1.0;                      // cm
   std::vector<float> mCableFanWeights = {0.5, 0.3, 0.2}; // relative weights of the fan layers
 
