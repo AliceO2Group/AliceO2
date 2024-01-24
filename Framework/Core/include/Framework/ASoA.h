@@ -1243,28 +1243,27 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, OPT, SORTED> const
       if (container.isMissing()) {
         missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.second.c_str());
       }
+    }
+    if constexpr (SORTED) {
+      uint64_t offset = 0;
+      auto out = container.getSliceFor(value, table->asArrowTable(), offset);
+      auto t = typename T::self_t({out}, offset);
+      table->copyIndexBindings(t);
+      t.bindInternalIndicesTo(table);
+      return t;
     } else {
-      if constexpr (SORTED) {
-        uint64_t offset = 0;
-        auto out = container.getSliceFor(value, table->asArrowTable(), offset);
-        auto t = typename T::self_t({out}, offset);
+      auto selection = container.getSliceFor(value);
+      if constexpr (soa::is_soa_filtered_v<T>) {
+        auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+        table->copyIndexBindings(t);
+        t.bindInternalIndicesTo(table);
+        t.intersectWithSelection(table->getSelectedRows()); // intersect filters
+        return t;
+      } else {
+        auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
         table->copyIndexBindings(t);
         t.bindInternalIndicesTo(table);
         return t;
-      } else {
-        auto selection = container.getSliceFor(value);
-        if constexpr (soa::is_soa_filtered_v<T>) {
-          auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
-          table->copyIndexBindings(t);
-          t.bindInternalIndicesTo(table);
-          t.intersectWithSelection(table->getSelectedRows()); // intersect filters
-          return t;
-        } else {
-          auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
-          table->copyIndexBindings(t);
-          t.bindInternalIndicesTo(table);
-          return t;
-        }
       }
     }
   } else {
