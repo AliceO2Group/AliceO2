@@ -531,13 +531,6 @@ struct Partition {
     }
   }
 
-  void bindInternalIndices()
-  {
-    if (mFiltered != nullptr) {
-      mFiltered->bindInternalIndices();
-    }
-  }
-
   template <typename E>
   void bindInternalIndicesTo(E* ptr)
   {
