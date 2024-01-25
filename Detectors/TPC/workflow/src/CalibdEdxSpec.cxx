@@ -65,6 +65,11 @@ class CalibdEdxDevice : public Task
     mCalib->set2DFitThreshold(minEntries2D);
     mCalib->setElectronCut(fitThreshold, fitPasses, fitThresholdLowFactor);
     mCalib->setMaterialType(mMatType);
+
+    o2::base::Propagator::Instance()->setTGeoFallBackAllowed(false);
+    if (mMatType == o2::base::Propagator::MatCorrType::USEMatCorrTGeo) {
+      LOG(error) << "Must not configure TGeo for material correction as that is not available for processing";
+    }
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
