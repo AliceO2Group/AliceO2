@@ -1627,6 +1627,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - rate is an option of FairMQ device for ConditionalRun
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
+  char const* defaultSignposts = getenv("DPL_SIGNPOSTS") ? getenv("DPL_SIGNPOSTS") : "";
   forwardedDeviceOptions.add_options()                                                                                                                               //
     ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                                                                      //
     ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                                                                    //
