@@ -21,6 +21,7 @@
 
 class TObject;
 class VectorOfTObject;
+class VectorOfTObjectPtr;
 
 namespace o2::mergers::algorithm
 {
@@ -33,6 +34,7 @@ void merge(TObject* const target, TObject* const other);
 /// If such item exists it is merged into the target object. If not than the item is pushed to the end
 /// of targets vector.
 void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others);
+
 void deleteTCollections(TObject* obj);
 void deleteVectorTObject(VectorOfTObject* vec);
 

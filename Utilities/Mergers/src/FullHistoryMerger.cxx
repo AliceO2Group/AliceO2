@@ -138,7 +138,7 @@ void FullHistoryMerger::updateCache(const DataRef& ref)
 
 void FullHistoryMerger::mergeCache()
 {
-  LOG(debug) << "Merging " << mCache.size() + 1 << " objects.";
+  LOG(info) << "Merging " << mCache.size() + 1 << " objects.";
 
   mMergedObject = object_store_helpers::extractObjectFrom(mFirstObjectSerialized.second);
   assert(!std::holds_alternative<std::monostate>(mMergedObject));
@@ -171,24 +171,33 @@ void FullHistoryMerger::mergeCache()
       mObjectsMerged += target->size();
     }
   }
+
+  LOG(info) << "Merging done correctly.";
+}
+
+template <typename TypeToSnapshot>
+bool snapshot(framework::DataAllocator& allocator, header::DataHeader::SubSpecificationType subSpec, ObjectStore& mergedObject, std::unordered_map<std::string, ObjectStore>& cache, int updatesReceived)
+{
+  LOG(info) << "Trying to snaphost: " << typeid(TypeToSnapshot).name();
+  if (!std::holds_alternative<TypeToSnapshot>(mergedObject)) {
+    return false;
+  }
+  allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), subSpec},
+                     *std::get<TypeToSnapshot>(mergedObject));
+  LOG(info) << "Published the merged object containing " << cache.size() + 1 << " incomplete objects. "
+            << updatesReceived << " updates were received during the last cycle.";
+  return true;
 }
 
 void FullHistoryMerger::publish(framework::DataAllocator& allocator)
 {
-  // todo see if std::visit is faster here
+  LOG(info) << "Starting publish";
+
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
     LOG(info) << "No objects received since start or reset, nothing to publish";
-  } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<MergeInterfacePtr>(mMergedObject));
-    LOG(info) << "Published the merged object containing " << mCache.size() + 1 << " incomplete objects. "
-              << mUpdatesReceived << " updates were received during the last cycle.";
-  } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<TObjectPtr>(mMergedObject));
-    LOG(info) << "Published the merged object containing " << mCache.size() + 1 << " incomplete objects. "
-              << mUpdatesReceived << " updates were received during the last cycle.";
-  } else {
+  } else if (!snapshot<MergeInterfacePtr>(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived) &&
+             !snapshot<TObjectPtr>(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived) &&
+             !snapshot<VectorOfTObjectPtr>(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived)) {
     throw std::runtime_error("mMergedObjectIntegral' variant has no value.");
   }
 
@@ -201,6 +210,8 @@ void FullHistoryMerger::publish(framework::DataAllocator& allocator)
   mCollector->send({mCyclesSinceReset, "cycles_since_reset"});
   mObjectsMerged = 0;
   mUpdatesReceived = 0;
+
+  LOG(info) << "Publish done correctly";
 }
 
 } // namespace o2::mergers
