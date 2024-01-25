@@ -20,7 +20,8 @@
 #include <variant>
 #include <memory>
 #include <vector>
-#include "Framework/DataRef.h"
+#include <Framework/DataRef.h>
+#include <Framework/DataAllocator.h>
 
 class TObject;
 
@@ -31,17 +32,23 @@ class MergeInterface;
 
 using TObjectPtr = std::shared_ptr<TObject>;
 using VectorOfTObject = std::vector<TObject*>;
-using VectorOfTObjectPtr = std::shared_ptr<VectorOfTObject>;
-using VectorOfTObjectPtrPtr = std::shared_ptr<std::vector<TObjectPtr>>;
+using VectorOfTObjectPtr = std::vector<TObjectPtr>;
 using MergeInterfacePtr = std::shared_ptr<MergeInterface>;
-// using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtr, MergeInterfacePtr>;
-using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtrPtr, MergeInterfacePtr>;
+using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtr, MergeInterfacePtr>;
 
 namespace object_store_helpers
 {
 
 /// \brief Takes a DataRef, deserializes it (if type is supported) and puts into an ObjectStore
 ObjectStore extractObjectFrom(const framework::DataRef& ref);
+
+/// \brief Helper function that converts vector of smart pointers to the vector of raw pointers that is serializable
+///        Destroy original vector after destroying vector with raw pointers to avoid undefined behavior
+VectorOfTObject toRawPointers(const VectorOfTObjectPtr&);
+
+/// \brief Used in FullHistorMerger's and IntegratingMerger's publish function. Checks mergedObject for every state that is NOT monostate
+///        and creates snapshot if underlying object to the framework
+bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& mergedObject);
 
 } // namespace object_store_helpers
 

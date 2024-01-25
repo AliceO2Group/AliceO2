@@ -106,6 +106,11 @@ void IntegratingMerger::merge(ObjectStore& target, ObjectStore&& other)
     // We expect that if the first object inherited MergeInterface, then all should.
     auto otherAsMergeInterface = std::get<MergeInterfacePtr>(other);
     std::get<MergeInterfacePtr>(target)->merge(otherAsMergeInterface.get());
+  } else if (std::holds_alternative<VectorOfTObjectPtr>(target)) {
+    // We expect that if the first object was Vector of TObjects, then all should.
+    auto targetAsVector = std::get<VectorOfTObjectPtr>(target);
+    auto otherAsVector = std::get<VectorOfTObjectPtr>(other);
+    algorithm::merge(targetAsVector, otherAsVector);
   } else {
     LOG(error) << "The target variant has an unrecognized value";
   }
@@ -130,14 +135,7 @@ void IntegratingMerger::publishIntegral(framework::DataAllocator& allocator)
 {
   if (std::holds_alternative<std::monostate>(mMergedObjectIntegral)) {
     LOG(info) << "No objects received since start or reset, nothing to publish";
-  } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObjectIntegral)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<MergeInterfacePtr>(mMergedObjectIntegral));
-    LOG(info) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
-              << " including " << mDeltasMerged << " in the last cycle.";
-  } else if (std::holds_alternative<TObjectPtr>(mMergedObjectIntegral)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<TObjectPtr>(mMergedObjectIntegral));
+  } else if (object_store_helpers::snapshot(allocator, mSubSpec, mMergedObjectIntegral)) {
     LOG(info) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
               << " including " << mDeltasMerged << " in the last cycle.";
   } else {
@@ -161,6 +159,10 @@ void IntegratingMerger::publishMovingWindow(framework::DataAllocator& allocator)
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
                        *std::get<TObjectPtr>(mMergedObjectLastCycle));
     LOG(info) << "Published a moving window with " << mDeltasMerged << " deltas.";
+  } else if (std::holds_alternative<VectorOfTObjectPtr>(mMergedObjectLastCycle)) {
+    const auto& mergedVector = std::get<VectorOfTObjectPtr>(mMergedObjectLastCycle);
+    const auto vectorToSnapshot = object_store_helpers::toRawPointers(mergedVector);
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec}, vectorToSnapshot);
   } else {
     LOG(error) << "mMergedObjectIntegral' variant has an unrecognized value.";
   }

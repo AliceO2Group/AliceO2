@@ -26,6 +26,7 @@
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/CustomMergeableTObject.h"
 #include "Mergers/CustomMergeableObject.h"
+#include "Mergers/ObjectStore.h"
 
 #include <TObjArray.h>
 #include <TObjString.h>
@@ -353,7 +354,7 @@ BOOST_AUTO_TEST_CASE(AverageHisto)
 
 BOOST_AUTO_TEST_SUITE(VectorOfHistos)
 
-gsl::span<float> to_span(std::unique_ptr<TH1F>& histo)
+gsl::span<float> to_span(std::shared_ptr<TH1F>& histo)
 {
   return {histo->GetArray(), static_cast<uint>(histo->GetSize())};
 }
@@ -366,25 +367,26 @@ gsl::span<T, N> to_array(T (&&arr)[N])
 
 BOOST_AUTO_TEST_CASE(SameLength, *boost::unit_test::tolerance(0.001))
 {
-  auto target1_1 = std::make_unique<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  auto target1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   target1_1->Fill(5);
   target1_1->Fill(5);
 
-  auto target1_2 = std::make_unique<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  auto target1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
   target1_2->Fill(5);
   target1_2->Fill(5);
   target1_2->Fill(5);
   target1_2->Fill(5);
 
-  std::vector<TObject*> target = {target1_1.get(), target1_2.get()};
+  VectorOfTObjectPtr target{target1_1, target1_2};
 
-  auto other1_1 = std::make_unique<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   other1_1->Fill(5);
 
-  auto other1_2 = std::make_unique<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  auto other1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
   other1_2->Fill(5);
   other1_2->Fill(5);
-  std::vector<TObject*> other{other1_1.get(), other1_2.get()};
+
+  VectorOfTObjectPtr other{other1_1, other1_2};
 
   BOOST_TEST(target.size() == 2);
   BOOST_TEST(other.size() == 2);
@@ -407,22 +409,22 @@ BOOST_AUTO_TEST_CASE(SameLength, *boost::unit_test::tolerance(0.001))
 
 BOOST_AUTO_TEST_CASE(TargetLonger, *boost::unit_test::tolerance(0.001))
 {
-  auto target1_1 = std::make_unique<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  auto target1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   target1_1->Fill(5);
   target1_1->Fill(5);
 
-  auto target1_2 = std::make_unique<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  auto target1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
   target1_2->Fill(5);
   target1_2->Fill(5);
   target1_2->Fill(5);
   target1_2->Fill(5);
 
-  std::vector<TObject*> target{target1_1.get(), target1_2.get()};
+  VectorOfTObjectPtr target{target1_1, target1_2};
 
-  auto other1_1 = std::make_unique<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   other1_1->Fill(5);
 
-  std::vector<TObject*> other{other1_1.get()};
+  VectorOfTObjectPtr other{other1_1};
 
   BOOST_TEST(target.size() == 2);
   BOOST_TEST(other.size() == 1);
@@ -443,19 +445,20 @@ BOOST_AUTO_TEST_CASE(TargetLonger, *boost::unit_test::tolerance(0.001))
 
 BOOST_AUTO_TEST_CASE(OtherLonger, *boost::unit_test::tolerance(0.001))
 {
-  auto target1_1 = std::make_unique<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  auto target1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   target1_1->Fill(5);
   target1_1->Fill(5);
 
-  std::vector<TObject*> target = {target1_1.get()};
+  VectorOfTObjectPtr target{target1_1};
 
-  auto other1_1 = std::make_unique<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
-
+  auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   other1_1->Fill(5);
-  auto other1_2 = std::make_unique<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+
+  auto other1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
   other1_2->Fill(5);
   other1_2->Fill(5);
-  std::vector<TObject*> other{other1_1.get(), other1_2.get()};
+
+  VectorOfTObjectPtr other{other1_1, other1_2};
 
   BOOST_TEST(target.size() == 1);
   BOOST_TEST(other.size() == 2);

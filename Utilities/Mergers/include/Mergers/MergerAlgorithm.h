@@ -17,11 +17,9 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include "Mergers/MergeInterface.h"
+#include "ObjectStore.h"
 
 class TObject;
-class VectorOfTObject;
-class VectorOfTObjectPtr;
 
 namespace o2::mergers::algorithm
 {
@@ -33,7 +31,7 @@ void merge(TObject* const target, TObject* const other);
 /// Iterates through others vector and searches for the object with the same name in targets vector.
 /// If such item exists it is merged into the target object. If not than the item is pushed to the end
 /// of targets vector.
-void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others);
+void merge(VectorOfTObjectPtr& targets, const VectorOfTObjectPtr& others);
 
 void deleteTCollections(TObject* obj);
 

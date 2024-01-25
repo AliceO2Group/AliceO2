@@ -41,20 +41,7 @@ void customize(std::vector<CompletionPolicy>& policies)
 #include <memory>
 #include <random>
 
-using namespace std::chrono;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
-
-static std::default_random_engine eng{std::random_device{}()};
-
-std::string random_histname()
-{
-  std::uniform_int_distribution<int> distr(0, 9);
-  std::string prefix{"histo_"};
-  for (size_t i = 0; i != 10; ++i) {
-    prefix.append(std::to_string(distr(eng)));
-  }
-  return prefix;
-}
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
@@ -63,7 +50,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
   // one 1D histo
   {
-    WorkflowSpec specs; // enable comment to disable the workflow
+    // WorkflowSpec specs; // enable comment to disable the workflow
 
     size_t producersAmount = 8;
     Inputs mergersInputs;
@@ -91,7 +78,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{"main"}, "TST", "HISTO", 0});
     MergerConfig config;
-    config.inputObjectTimespan = {InputObjectsTimespan::FullHistory};
+    config.inputObjectTimespan = {InputObjectsTimespan::LastDifference};
     std::vector<std::pair<size_t, size_t>> param = {{5, 1}};
     config.publicationDecision = {PublicationDecision::EachNSeconds, param};
     config.mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
@@ -188,7 +175,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   {
     using VectorOfHistos = std::vector<TObject*>;
 
-    // WorkflowSpec specs; // enable comment to disable the workflow
+    WorkflowSpec specs; // enable comment to disable the workflow
     size_t producersAmount = 8;
     Inputs mergersInputs;
     for (size_t p = 0; p < producersAmount; p++) {
@@ -202,10 +189,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           auto subspec = static_cast<SubSpecificationType>(p + 1);
           auto vectorOfHistos = std::make_unique<VectorOfHistos>(2);
           int i = 0;
-          std::uniform_int_distribution<int> distr(-10, 10);
           for (auto& hist_ptr : *vectorOfHistos) {
-            auto* hist = new TH1F(random_histname().c_str(), "histo", 10, -10, 10);
-            // LOG(info) << "filling: " << p / (double)producersAmount << "\n";
+            const auto histoname = std::string{"histo"} + std::to_string(++i);
+            auto* hist = new TH1F(histoname.c_str(), histoname.c_str(), 10, 0, 10);
             hist->Fill(p / (double)producersAmount);
             hist_ptr = hist;
           }

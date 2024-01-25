@@ -16,19 +16,20 @@
 
 #include "Mergers/MergerAlgorithm.h"
 
-#include "Mergers/MergeInterface.h"
 #include "Framework/Logger.h"
+#include "Mergers/MergeInterface.h"
+#include "Mergers/MergeInterface.h"
 #include "Mergers/ObjectStore.h"
 
+#include <TEfficiency.h>
+#include <TGraph.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
 #include <THn.h>
-#include <TTree.h>
 #include <THnSparse.h>
 #include <TObjArray.h>
-#include <TGraph.h>
-#include <TEfficiency.h>
+#include <TTree.h>
 
 namespace o2::mergers::algorithm
 {
@@ -129,15 +130,14 @@ void merge(TObject* const target, TObject* const other)
   }
 }
 
-void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others)
+void merge(VectorOfTObjectPtr& targets, const VectorOfTObjectPtr& others)
 {
   for (const auto& other : others) {
     if (const auto target_same_name = std::find_if(targets.begin(), targets.end(), [&other](const auto& target) {
-          // GetName returns const char*
           return std::string_view{other->GetName()} == std::string_view{target->GetName()};
         });
         target_same_name != targets.end()) {
-      merge(*target_same_name, other);
+      merge(target_same_name->get(), other.get());
     } else {
       targets.push_back(other);
     }

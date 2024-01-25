@@ -18,6 +18,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Mergers/MergeInterface.h"
 #include "Mergers/MergerAlgorithm.h"
+#include "Mergers/MergerBuilder.h"
 #include <TObject.h>
 #include <string_view>
 
@@ -60,6 +61,20 @@ MergeInterface* castToMergeInterface(bool inheritsFromTObject, void* object, TCl
   return objectAsMergeInterface;
 }
 
+std::optional<ObjectStore> extractVector(o2::framework::FairTMessage& ftm, TClass* storedClass)
+{
+  if (!storedClass->InheritsFrom(TClass::GetClass(typeid(VectorOfTObject)))) {
+    return std::nullopt;
+  }
+
+  auto* object = readObject(storedClass, ftm);
+  auto* extractedVector = static_cast<VectorOfTObject*>(object);
+  auto result = std::vector<TObjectPtr>{};
+  result.reserve(extractedVector->size());
+  std::transform(extractedVector->begin(), extractedVector->end(), std::back_inserter(result), [](const auto& rawTObject) { return TObjectPtr(rawTObject, algorithm::deleteTCollections); });
+  return result;
+}
+
 ObjectStore extractObjectFrom(const framework::DataRef& ref)
 {
   // We do extraction on the low level to efficiently determine if the message
@@ -81,15 +96,8 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
     throw std::runtime_error(concat(errorPrefix, "Unknown stored class"sv));
   }
 
-  if (storedClass->InheritsFrom(TClass::GetClass(typeid(VectorOfTObject)))) {
-    auto* object = readObject(storedClass, ftm);
-    // return VectorOfTObjectPtr(static_cast<VectorOfTObject*>(object), algorithm::deleteVectorTObject);
-
-    auto* extractedVector = static_cast<VectorOfTObject*>(object);
-    auto result = std::make_shared<std::vector<TObjectPtr>>();
-    result->reserve(extractedVector->size());
-    std::transform(extractedVector->begin(), extractedVector->end(), std::back_inserter(*result), [](const auto& rawTObject) { return TObjectPtr(rawTObject, algorithm::deleteTCollections); });
-    return result;
+  if (const auto extractedVector = extractVector(ftm, storedClass)) {
+    return extractedVector.value();
   }
 
   const bool inheritsFromMergeInterface = storedClass->InheritsFrom(TClass::GetClass(typeid(MergeInterface)));
@@ -108,6 +116,54 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
   } else {
     return TObjectPtr(static_cast<TObject*>(object), algorithm::deleteTCollections);
   }
+}
+
+VectorOfTObject toRawPointers(const VectorOfTObjectPtr& vector)
+{
+  // NOTE: MT - it might be worth it to create custom stack allocators for this case
+  VectorOfTObject result{};
+  result.reserve(vector.size());
+  std::transform(vector.begin(), vector.end(), std::back_inserter(result), [](const auto& ptr) { return ptr.get(); });
+  return result;
+}
+
+template <typename TypeToSnapshot>
+struct snapshoter {
+  static bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& object)
+  {
+    if (!std::holds_alternative<TypeToSnapshot>(object)) {
+      return false;
+    }
+
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), subSpec}, *std::get<TypeToSnapshot>(object));
+
+    return true;
+  }
+};
+
+template <>
+struct snapshoter<VectorOfTObjectPtr> {
+  static bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& object)
+  {
+    if (!std::holds_alternative<VectorOfTObjectPtr>(object)) {
+      return false;
+    }
+
+    // NOTE: it might be worth it to create custom stack allocators
+    const auto& mergedVector = std::get<VectorOfTObjectPtr>(object);
+    const auto vectorToSnapshot = object_store_helpers::toRawPointers(mergedVector);
+
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), subSpec}, vectorToSnapshot);
+
+    return true;
+  }
+};
+
+bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& mergedObject)
+{
+  return snapshoter<MergeInterfacePtr>::snapshot(allocator, subSpec, mergedObject) ||
+         snapshoter<TObjectPtr>::snapshot(allocator, subSpec, mergedObject) ||
+         snapshoter<VectorOfTObjectPtr>::snapshot(allocator, subSpec, mergedObject);
 }
 
 } // namespace object_store_helpers
