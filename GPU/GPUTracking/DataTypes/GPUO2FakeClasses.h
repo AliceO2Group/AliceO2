@@ -116,6 +116,9 @@ class GPUTPCCompression
  public:
   GPUFakeEmpty* mOutput;
 };
+class GPUTPCDecompression
+{
+};
 class GPUTPCClusterFinder
 {
 };

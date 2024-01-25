@@ -66,15 +66,6 @@ class GPUTPCDecompression : public GPUProcessor
   o2::tpc::ClusterNative* mTmpNativeClusters;
   o2::tpc::ClusterNativeAccess* mClusterNativeAccess;
   o2::tpc::ClusterNative* mNativeClustersBuffer;
-/*  class ConcurrentClusterNativeBuffer{
-    size_t mIndex;
-    size_t mCapacity = 10;
-    o2::tpc::ClusterNative* mCmprClsBuffer;
-   public:
-    ConcurrentClusterNativeBuffer();
-    void push_back(ClusterNative cluster);
-  };*/
-//  ConcurrentClusterNativeBuffer* tmpBuffer;
 
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
@@ -82,7 +73,6 @@ class GPUTPCDecompression : public GPUProcessor
   short mMemoryResInputGPU = -1;
   short mResourceTmpIndexes = -1;
   short mResourceTmpClustersOffsets = -1;
-
 };
 } // namespace GPUCA_NAMESPACE::gpu
 #endif // GPUTPCDECOMPRESSION_H

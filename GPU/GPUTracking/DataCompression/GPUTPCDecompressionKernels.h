@@ -41,7 +41,7 @@ class GPUTPCDecompressionKernels : public GPUKernelTemplate
   enum K : int {
     step0attached = 0,
     step1unattached = 1,
-    prepareAccess = 2
+    // prepareAccess = 2
   };
 
   template <int iKernel = defaultKernel>
@@ -50,10 +50,11 @@ class GPUTPCDecompressionKernels : public GPUKernelTemplate
   GPUdi() static o2::tpc::ClusterNative decompressTrackStore(const o2::tpc::CompressedClusters& cmprClusters, const unsigned int clusterOffset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, GPUTPCDecompression& decompressor, bool& stored);
   GPUdi() static void decompressHits(const o2::tpc::CompressedClusters& cmprClusters, const unsigned int start, const unsigned int end, o2::tpc::ClusterNative* clusterNativeBuffer);
 
-  GPUd() static unsigned int computeLinearTmpBufferIndex(unsigned int slice, unsigned int row, unsigned int maxClustersPerBuffer){
+  GPUd() static unsigned int computeLinearTmpBufferIndex(unsigned int slice, unsigned int row, unsigned int maxClustersPerBuffer)
+  {
     return slice * (GPUCA_ROW_COUNT * maxClustersPerBuffer) + row * maxClustersPerBuffer;
   }
 };
 
-}
+} // namespace GPUCA_NAMESPACE::gpu
 #endif // GPUTPCDECOMPRESSIONKERNELS_H

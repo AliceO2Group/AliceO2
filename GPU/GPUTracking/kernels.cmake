@@ -26,6 +26,7 @@ o2_gpu_kernel_file_list(TPCCLUSTERFINDER ERRORS ClusterAccumulator.cxx)
 o2_gpu_kernel_file_list(TRDTRACKER GPUTRDTrack.cxx GPUTRDTracker.cxx GPUTRDTrackletWord.cxx GeometryBase.cxx)
 o2_gpu_kernel_file_list(GLOBALREFIT TPCMERGER O2PROPAGATOR MATLUT GPUTrackingRefit.cxx)
 
+<<<<<<< HEAD
 o2_gpu_add_kernel("GPUTPCNeighboursFinder"                       "= TPCTRACKER"                                          LB_OCL1 single)
 o2_gpu_add_kernel("GPUTPCNeighboursCleaner"                      "= TPCTRACKER"                                          LB_OCL1 single)
 o2_gpu_add_kernel("GPUTPCStartHitsFinder"                        "= TPCTRACKER"                                          LB_OCL1 single)
@@ -98,6 +99,8 @@ o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, buffered32"   "GPUTPCCompress
 o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, buffered64"   "GPUTPCCompressionKernels"                              LB      simple)
 o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, buffered128"  "GPUTPCCompressionKernels"                              LB      simple)
 o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, multiBlock"   "GPUTPCCompressionKernels"                              LB      simple)
+o2_gpu_add_kernel("GPUTPCDecompressionKernels, step0attached"    "= TPCDECOMPRESSION"                                    LB      simple)
+o2_gpu_add_kernel("GPUTPCDecompressionKernels, step1unattached"  "= TPCDECOMPRESSION"                                    LB      simple)
 o2_gpu_add_kernel("GPUTPCCFCheckPadBaseline"                     "= TPCCLUSTERFINDER"                                    LB      single)
 o2_gpu_add_kernel("GPUTPCCFChargeMapFiller, fillIndexMap"        "= TPCCLUSTERFINDER"                                    LB      single)
 o2_gpu_add_kernel("GPUTPCCFChargeMapFiller, fillFromDigits"      "= TPCCLUSTERFINDER"                                    LB      single)

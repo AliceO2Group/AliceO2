@@ -19,7 +19,6 @@ project(O2 LANGUAGES C CXX VERSION 1.2.0)
 
 include(CTest)
 
-set(CUDA_COMPUTETARGET 75)
 set(GPUCA_NO_FAST_MATH 1)
 
 # Project wide setup
