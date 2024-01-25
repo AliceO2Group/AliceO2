@@ -20,6 +20,7 @@
 #include "Mergers/MergeInterface.h"
 
 class TObject;
+class VectorOfTObject;
 
 namespace o2::mergers::algorithm
 {
@@ -33,6 +34,7 @@ void merge(TObject* const target, TObject* const other);
 /// of targets vector.
 void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others);
 void deleteTCollections(TObject* obj);
+void deleteVectorTObject(VectorOfTObject* vec);
 
 } // namespace o2::mergers::algorithm
 

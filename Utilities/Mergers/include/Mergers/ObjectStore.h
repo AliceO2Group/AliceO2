@@ -19,6 +19,7 @@
 
 #include <variant>
 #include <memory>
+#include <vector>
 #include "Framework/DataRef.h"
 
 class TObject;
@@ -29,8 +30,10 @@ namespace o2::mergers
 class MergeInterface;
 
 using TObjectPtr = std::shared_ptr<TObject>;
+using VectorOfTObject = std::vector<TObject*>;
+using VectorOfTObjectPtr = std::shared_ptr<VectorOfTObject>;
 using MergeInterfacePtr = std::shared_ptr<MergeInterface>;
-using ObjectStore = std::variant<std::monostate, TObjectPtr, MergeInterfacePtr>;
+using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtr, MergeInterfacePtr>;
 
 namespace object_store_helpers
 {
@@ -42,4 +45,4 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref);
 
 } // namespace o2::mergers
 
-#endif //O2_OBJECTSTORE_H
+#endif // O2_OBJECTSTORE_H

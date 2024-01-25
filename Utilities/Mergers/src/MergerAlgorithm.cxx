@@ -18,6 +18,7 @@
 
 #include "Mergers/MergeInterface.h"
 #include "Framework/Logger.h"
+#include "Mergers/ObjectStore.h"
 
 #include <TH1.h>
 #include <TH2.h>
@@ -132,7 +133,7 @@ void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others)
 {
   for (const auto& other : others) {
     if (const auto target_same_name = std::find_if(targets.begin(), targets.end(),
-                                                   [&other](const auto& target) { return other->GetName() == target.GetName(); });
+                                                   [&other](const auto& target) { return other->GetName() == target->GetName(); });
         target_same_name != targets.end()) {
       merge(*target_same_name, other);
     } else {
@@ -153,6 +154,15 @@ void deleteTCollections(TObject* obj)
     delete c;
   } else {
     delete obj;
+  }
+}
+
+void deleteVectorTObject(VectorOfTObject* vec)
+{
+  for (auto& tObject : *vec) {
+    if (tObject != nullptr) {
+      deleteTCollections(tObject);
+    }
   }
 }
 
