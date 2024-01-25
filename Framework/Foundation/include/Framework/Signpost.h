@@ -179,7 +179,7 @@ struct _o2_log_t {
   // 0 means the log is disabled.
   // 1 means only the current signpost is printed.
   // >1 means the current signpost and n levels of the stacktrace are printed.
-  std::atomic<int> stacktrace = 0;
+  int stacktrace = 0;
 
   // Default stacktrace level for the log, when enabled.
   int defaultStacktrace = 1;
