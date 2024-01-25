@@ -44,6 +44,18 @@ void customize(std::vector<CompletionPolicy>& policies)
 using namespace std::chrono;
 using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
 
+static std::default_random_engine eng{std::random_device{}()};
+
+std::string random_histname()
+{
+  std::uniform_int_distribution<int> distr(0, 9);
+  std::string prefix{"histo_"};
+  for (size_t i = 0; i != 10; ++i) {
+    prefix.append(std::to_string(distr(eng)));
+  }
+  return prefix;
+}
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
 
@@ -173,10 +185,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   }
 
   // vector merge
-  // WorkflowSpec specs; // enable comment to disable the workflow
   {
     using VectorOfHistos = std::vector<TObject*>;
 
+    // WorkflowSpec specs; // enable comment to disable the workflow
     size_t producersAmount = 8;
     Inputs mergersInputs;
     for (size_t p = 0; p < producersAmount; p++) {
@@ -187,18 +199,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         Outputs{{{"mo"}, "TST", "VEC", static_cast<SubSpecificationType>(p + 1), Lifetime::Sporadic}},
         AlgorithmSpec{static_cast<AlgorithmSpec::ProcessCallback>([p, producersAmount, srand(p)](ProcessingContext& processingContext) mutable {
           usleep(100000);
-          static int i = 0;
-          if (i++ >= 1000) {
-            return;
-          }
           auto subspec = static_cast<SubSpecificationType>(p + 1);
           auto vectorOfHistos = std::make_unique<VectorOfHistos>(2);
+          int i = 0;
+          std::uniform_int_distribution<int> distr(-10, 10);
           for (auto& hist_ptr : *vectorOfHistos) {
-            auto* hist = new TH1F();
+            auto* hist = new TH1F(random_histname().c_str(), "histo", 10, -10, 10);
+            // LOG(info) << "filling: " << p / (double)producersAmount << "\n";
             hist->Fill(p / (double)producersAmount);
             hist_ptr = hist;
           }
           processingContext.outputs().snapshot(OutputRef{"mo", subspec}, *vectorOfHistos);
+          for_each(vectorOfHistos->begin(), vectorOfHistos->end(), [](auto& histoPtr) { delete histoPtr; });
         })}};
       specs.push_back(producer);
     }
@@ -208,7 +220,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{"main"}, "TST", "VEC", 0});
     MergerConfig config;
-    config.inputObjectTimespan = {InputObjectsTimespan::FullHistory};
+    config.inputObjectTimespan = {InputObjectsTimespan::LastDifference};
     std::vector<std::pair<size_t, size_t>> param = {{5, 1}};
     config.publicationDecision = {PublicationDecision::EachNSeconds, param};
     config.mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
@@ -224,15 +236,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{static_cast<AlgorithmSpec::InitCallback>([](InitContext&) {
         return static_cast<AlgorithmSpec::ProcessCallback>([](ProcessingContext& processingContext) mutable {
           LOG(info) << "printer invoked";
-          auto vectorOfHistos = processingContext.inputs().get<VectorOfHistos>("vec");
-          std::string bins = "BINS:";
-          for (const auto& histoObject : vectorOfHistos) {
-            auto* histo = dynamic_cast<TH1F*>(histoObject);
+          auto dataRef = processingContext.inputs().get("vec");
+          auto vectorOfHistos = DataRefUtils::as<ROOTSerialized<std::vector<TObject*>>>(dataRef);
+          for (const auto& histoObject : *vectorOfHistos) {
+            std::string bins = "BINS:";
+            auto* histo = static_cast<TH1F*>(histoObject);
             for (int i = 1; i <= histo->GetNbinsX(); i++) {
               bins += " " + std::to_string((int)histo->GetBinContent(i));
             }
+            delete histo;
+            LOG(info) << bins;
           }
-          LOG(info) << bins;
         });
       })}};
     specs.push_back(printer);

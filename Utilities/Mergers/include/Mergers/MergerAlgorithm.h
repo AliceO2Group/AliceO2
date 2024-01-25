@@ -36,7 +36,6 @@ void merge(TObject* const target, TObject* const other);
 void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others);
 
 void deleteTCollections(TObject* obj);
-void deleteVectorTObject(VectorOfTObject* vec);
 
 } // namespace o2::mergers::algorithm
 

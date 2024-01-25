@@ -132,23 +132,12 @@ void merge(TObject* const target, TObject* const other)
 void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others)
 {
   for (const auto& other : others) {
-    if (const auto target_same_name = std::find_if(targets.begin(), targets.end(),
-                                                   [&other](const auto& target) { return other->GetName() == target->GetName(); });
+    if (const auto target_same_name = std::find_if(targets.begin(), targets.end(), [&other](const auto& target) {
+          // GetName returns const char*
+          return std::string_view{other->GetName()} == std::string_view{target->GetName()};
+        });
         target_same_name != targets.end()) {
       merge(*target_same_name, other);
-    } else {
-      targets.push_back(other);
-    }
-  }
-}
-
-void merge(std::vector<std::shared_ptr<TObject>>& targets, const std::vector<std::shared_ptr<TObject>>& others)
-{
-  for (const auto& other : others) {
-    if (const auto target_same_name = std::find_if(targets.begin(), targets.end(),
-                                                   [&other](const auto& target) { return other->GetName() == target->GetName(); });
-        target_same_name != targets.end()) {
-      merge(target_same_name->get(), other.get());
     } else {
       targets.push_back(other);
     }
@@ -167,15 +156,6 @@ void deleteTCollections(TObject* obj)
     delete c;
   } else {
     delete obj;
-  }
-}
-
-void deleteVectorTObject(VectorOfTObject* vec)
-{
-  for (auto& tObject : *vec) {
-    if (tObject != nullptr) {
-      deleteTCollections(tObject);
-    }
   }
 }
 
