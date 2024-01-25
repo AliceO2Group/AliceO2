@@ -26,6 +26,7 @@
 #include "TTree.h"
 #include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 using namespace o2::framework;
 
