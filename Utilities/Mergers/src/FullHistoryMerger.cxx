@@ -163,12 +163,14 @@ void FullHistoryMerger::mergeCache()
       target->merge(other.get());
       mObjectsMerged++;
     }
-  } else if (std::holds_alternative<VectorOfTObjectPtr>(mMergedObject)) {
-    auto target = std::get<VectorOfTObjectPtr>(mMergedObject);
+    // } else if (std::holds_alternative<VectorOfTObjectPtr>(mMergedObject)) {
+  } else if (std::holds_alternative<VectorOfTObjectPtrPtr>(mMergedObject)) {
+    auto target = std::get<VectorOfTObjectPtrPtr>(mMergedObject);
     for (auto& [_, entry] : mCache) {
-      auto other = std::get<VectorOfTObjectPtr>(entry);
-      algorithm::merge(*target.get(), *other.get());
-      mObjectsMerged += target->size();
+      // auto other = std::get<VectorOfTObjectPtr>(entry);
+      // algorithm::merge(*target.get(), *other.get());
+      // mObjectsMerged += target->size();
+      auto other = std::get<VectorOfTObjectPtrPtr>(entry);
     }
   }
 
@@ -182,22 +184,43 @@ bool snapshot(framework::DataAllocator& allocator, header::DataHeader::SubSpecif
   if (!std::holds_alternative<TypeToSnapshot>(mergedObject)) {
     return false;
   }
+
   allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), subSpec},
                      *std::get<TypeToSnapshot>(mergedObject));
+
   LOG(info) << "Published the merged object containing " << cache.size() + 1 << " incomplete objects. "
             << updatesReceived << " updates were received during the last cycle.";
   return true;
 }
 
+bool snapshot_from_vector(framework::DataAllocator& allocator, header::DataHeader::SubSpecificationType subSpec, ObjectStore& mergedObject, std::unordered_map<std::string, ObjectStore>& cache, int updatesReceived)
+{
+  LOG(info) << "Trying to snaphost: " << typeid(VectorOfTObjectPtrPtr).name();
+  if (!std::holds_alternative<VectorOfTObjectPtrPtr>(mergedObject)) {
+    return false;
+  }
+
+  // NOTE: it might be worth it to create custom stack allocators
+  const auto& mergedVector = std::get<VectorOfTObjectPtrPtr>(mergedObject);
+  VectorOfTObject vectorToSnapshot{};
+  vectorToSnapshot.reserve(mergedVector->size());
+  std::transform(mergedVector->begin(), mergedVector->end(), std::back_inserter(vectorToSnapshot), [](const auto& ptr) { return ptr.get(); });
+
+  allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), subSpec}, vectorToSnapshot);
+
+  LOG(info) << "Published the merged object containing " << cache.size() + 1 << " incomplete objects. "
+            << updatesReceived << " updates were received during the last cycle.";
+
+  return true;
+}
+
 void FullHistoryMerger::publish(framework::DataAllocator& allocator)
 {
-  LOG(info) << "Starting publish";
-
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
     LOG(info) << "No objects received since start or reset, nothing to publish";
   } else if (!snapshot<MergeInterfacePtr>(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived) &&
              !snapshot<TObjectPtr>(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived) &&
-             !snapshot<VectorOfTObjectPtr>(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived)) {
+             !snapshot_from_vector(allocator, mSubSpec, mMergedObject, mCache, mUpdatesReceived)) {
     throw std::runtime_error("mMergedObjectIntegral' variant has no value.");
   }
 

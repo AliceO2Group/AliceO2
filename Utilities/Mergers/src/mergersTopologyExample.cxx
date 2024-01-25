@@ -223,13 +223,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       Outputs{},
       AlgorithmSpec{static_cast<AlgorithmSpec::InitCallback>([](InitContext&) {
         return static_cast<AlgorithmSpec::ProcessCallback>([](ProcessingContext& processingContext) mutable {
-          // LOG(info) << "printer invoked";
-          // auto vectorOfHistos = processingContext.inputs().get<std::vector<TObject*>*>("vec");
-          // std::string bins = "BINS:";
-          // for (int i = 1; i <= ->GetNbinsX(); i++) {
-          //   bins += " " + std::to_string((int)histo->GetBinContent(i));
-          // }
-          // LOG(info) << bins;
+          LOG(info) << "printer invoked";
+          auto vectorOfHistos = processingContext.inputs().get<VectorOfHistos>("vec");
+          std::string bins = "BINS:";
+          for (const auto& histoObject : vectorOfHistos) {
+            auto* histo = dynamic_cast<TH1F*>(histoObject);
+            for (int i = 1; i <= histo->GetNbinsX(); i++) {
+              bins += " " + std::to_string((int)histo->GetBinContent(i));
+            }
+          }
+          LOG(info) << bins;
         });
       })}};
     specs.push_back(printer);

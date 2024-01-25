@@ -142,6 +142,19 @@ void merge(std::vector<TObject*>& targets, const std::vector<TObject*>& others)
   }
 }
 
+void merge(std::vector<std::shared_ptr<TObject>>& targets, const std::vector<std::shared_ptr<TObject>>& others)
+{
+  for (const auto& other : others) {
+    if (const auto target_same_name = std::find_if(targets.begin(), targets.end(),
+                                                   [&other](const auto& target) { return other->GetName() == target->GetName(); });
+        target_same_name != targets.end()) {
+      merge(target_same_name->get(), other.get());
+    } else {
+      targets.push_back(other);
+    }
+  }
+}
+
 void deleteTCollections(TObject* obj)
 {
   if (auto c = dynamic_cast<TCollection*>(obj)) {

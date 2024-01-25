@@ -32,8 +32,10 @@ class MergeInterface;
 using TObjectPtr = std::shared_ptr<TObject>;
 using VectorOfTObject = std::vector<TObject*>;
 using VectorOfTObjectPtr = std::shared_ptr<VectorOfTObject>;
+using VectorOfTObjectPtrPtr = std::shared_ptr<std::vector<TObjectPtr>>;
 using MergeInterfacePtr = std::shared_ptr<MergeInterface>;
-using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtr, MergeInterfacePtr>;
+// using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtr, MergeInterfacePtr>;
+using ObjectStore = std::variant<std::monostate, TObjectPtr, VectorOfTObjectPtrPtr, MergeInterfacePtr>;
 
 namespace object_store_helpers
 {

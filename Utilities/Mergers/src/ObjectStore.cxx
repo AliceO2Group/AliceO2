@@ -83,7 +83,13 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
 
   if (storedClass->InheritsFrom(TClass::GetClass(typeid(VectorOfTObject)))) {
     auto* object = readObject(storedClass, ftm);
-    return VectorOfTObjectPtr(static_cast<VectorOfTObject*>(object), algorithm::deleteVectorTObject);
+    // return VectorOfTObjectPtr(static_cast<VectorOfTObject*>(object), algorithm::deleteVectorTObject);
+
+    auto* extractedVector = static_cast<VectorOfTObject*>(object);
+    auto result = std::make_shared<std::vector<TObjectPtr>>();
+    result->reserve(extractedVector->size());
+    std::transform(extractedVector->begin(), extractedVector->end(), std::back_inserter(*result), [](const auto& rawTObject) { return TObjectPtr(rawTObject, algorithm::deleteTCollections); });
+    return result;
   }
 
   const bool inheritsFromMergeInterface = storedClass->InheritsFrom(TClass::GetClass(typeid(MergeInterface)));
