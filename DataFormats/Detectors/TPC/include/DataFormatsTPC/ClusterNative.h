@@ -31,7 +31,7 @@ template <class T>
 class ConstMCTruthContainer;
 template <class T>
 class ConstMCTruthContainerView;
-}
+} // namespace dataformats
 } // namespace o2
 
 namespace o2
@@ -155,6 +155,17 @@ struct ClusterNative {
     } else {
       return (this->getFlags() < rhs.getFlags());
     }
+  }
+
+  GPUd() bool operator==(const ClusterNative& rhs) const
+  {
+    return this->getTimePacked() == rhs.getTimePacked() &&
+           this->padPacked == rhs.padPacked &&
+           this->sigmaTimePacked == rhs.sigmaTimePacked &&
+           this->sigmaPadPacked == rhs.sigmaPadPacked &&
+           this->qMax == rhs.qMax &&
+           this->qTot == rhs.qTot &&
+           this->getFlags() == rhs.getFlags();
   }
 };
 

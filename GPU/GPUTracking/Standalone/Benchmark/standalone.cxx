@@ -612,7 +612,8 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     if (configStandalone.testSyncAsync) {
       printf("Running synchronous phase\n");
     }
-    const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent)];
+    const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size())
+                                                                                                                                    : (iEvent - configStandalone.StartEvent)];
     chainTrackingUse->mIOPtrs = ioPtrs;
     if (iteration == (configStandalone.proc.doublePipeline ? 2 : (configStandalone.runs - 1))) {
       if (configStandalone.proc.doublePipeline && timerPipeline) {
@@ -667,7 +668,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
         chainTrackingAsync->mIOPtrs.rawClusters[i] = nullptr;
         chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
       }
-      chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
+      chainTrackingAsync->mIOPtrs.clustersNative = chainTrackingUse->mIOPtrs.clustersNative; // todo: revert back to nullptr
       recAsync->SetResetTimers(iRun < configStandalone.runsInit);
       tmpRetVal = recAsync->RunChains();
       if (tmpRetVal == 0 || tmpRetVal == 2) {
@@ -864,7 +865,8 @@ int main(int argc, char** argv)
           if (grp.continuousMaxTimeBin == 0) {
             printf("Cannot override max time bin for non-continuous data!\n");
           } else {
-            grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+            grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits)
+                                                                                                                                                                                      : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
             rec->UpdateSettings(&grp);
             if (recAsync) {
@@ -948,7 +950,7 @@ breakrun:
       printf("Error unregistering memory\n");
     }
   }
-  //exit(0);
+  // exit(0);
   rec->Exit();
 
   if (!configStandalone.noprompt) {
