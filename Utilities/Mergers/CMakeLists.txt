@@ -87,3 +87,9 @@ o2_add_test(ObjectStore
   COMPONENT_NAME mergers
   PUBLIC_LINK_LIBRARIES O2::Mergers
   LABELS utils)
+
+o2_add_test(TopologyHistosIntegrating
+  SOURCES test/test_MergerTopologyHistosIntegrating.cxx
+  COMPONENT_NAME mergers
+  PUBLIC_LINK_LIBRARIES O2::Mergers
+  LABELS utils)
