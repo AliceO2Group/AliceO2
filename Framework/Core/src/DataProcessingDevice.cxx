@@ -2283,6 +2283,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     }
 
     bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
+                         action.op == CompletionPolicy::CompletionOp::ConsumeExisting ||
                          action.op == CompletionPolicy::CompletionOp::Discard;
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
     if (action.op != CompletionPolicy::CompletionOp::Discard &&
