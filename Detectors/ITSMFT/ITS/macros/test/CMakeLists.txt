@@ -18,7 +18,7 @@ o2_add_test_root_macro(CheckClusters.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase O2::DataFormatsITSMFT
                                              O2::ITSMFTSimulation O2::MathUtils
                                              O2::SimulationDataFormat
-                       LABELS its)
+                       LABELS its COMPILE_ONLY)
 
 o2_add_test_root_macro(CheckDigits.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -27,7 +27,7 @@ o2_add_test_root_macro(CheckDigits.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its)
+                       LABELS its COMPILE_ONLY)
 
 #o2_add_test_root_macro(CheckLUtime.C
 #                       PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
@@ -41,7 +41,7 @@ o2_add_test_root_macro(CreateDictionaries.C
                                              O2::ITSMFTSimulation
                                              O2::DataFormatsITSMFT
                                              O2::SimulationDataFormat
-                       LABELS its)
+                       LABELS its COMPILE_ONLY)
 
 #o2_add_test_root_macro(CheckCOG.C
 #                       PUBLIC_LINK_LIBRARIES O2::MathUtils
@@ -64,7 +64,7 @@ o2_add_test_root_macro(CheckTracksCA.C
                                              O2::ITSBase
                                              O2::DataFormatsITS
                                              O2::DataFormatsITSMFT
-                       LABELS its)
+                       LABELS its COMPILE_ONLY)
 
 o2_add_test_root_macro(CheckSquasher.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat

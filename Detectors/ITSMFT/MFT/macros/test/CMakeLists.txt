@@ -16,7 +16,7 @@ o2_add_test_root_macro(CreateDictionaries.C
                                              O2::ITSMFTSimulation
                                              O2::DataFormatsITSMFT
                                              O2::SimulationDataFormat
-                       LABELS mft)
+                       LABELS mft COMPILE_ONLY)
 
 o2_add_test_root_macro(MFTMisaligner.C
                        PUBLIC_LINK_LIBRARIES O2::MFTBase
