@@ -164,10 +164,10 @@ void FullHistoryMerger::mergeCache()
       mObjectsMerged++;
     }
 
-  } else if (std::holds_alternative<VectorOfTObjectPtr>(mMergedObject)) {
-    auto target = std::get<VectorOfTObjectPtr>(mMergedObject);
+  } else if (std::holds_alternative<VectorOfTObjectPtrs>(mMergedObject)) {
+    auto target = std::get<VectorOfTObjectPtrs>(mMergedObject);
     for (auto& [_, entry] : mCache) {
-      auto other = std::get<VectorOfTObjectPtr>(entry);
+      auto other = std::get<VectorOfTObjectPtrs>(entry);
       algorithm::merge(target, other);
       mObjectsMerged += target.size();
     }

@@ -38,8 +38,7 @@ static std::string concat(Args&&... arguments)
   return std::move(ss.str());
 }
 
-template <typename TypeToRead>
-void* readObject(TypeToRead&& type, o2::framework::FairTMessage& ftm)
+void* readObject(const TClass* type, o2::framework::FairTMessage& ftm)
 {
   using namespace std::string_view_literals;
   auto* object = ftm.ReadObjectAny(type);
@@ -61,14 +60,13 @@ MergeInterface* castToMergeInterface(bool inheritsFromTObject, void* object, TCl
   return objectAsMergeInterface;
 }
 
-std::optional<ObjectStore> extractVector(o2::framework::FairTMessage& ftm, TClass* storedClass)
+std::optional<ObjectStore> extractVector(o2::framework::FairTMessage& ftm, const TClass* storedClass)
 {
-  if (!storedClass->InheritsFrom(TClass::GetClass(typeid(VectorOfTObject)))) {
+  if (!storedClass->InheritsFrom(TClass::GetClass(typeid(VectorOfRawTObjects)))) {
     return std::nullopt;
   }
 
-  auto* object = readObject(storedClass, ftm);
-  auto* extractedVector = static_cast<VectorOfTObject*>(object);
+  const auto* extractedVector = static_cast<VectorOfRawTObjects*>(readObject(storedClass, ftm));
   auto result = std::vector<TObjectPtr>{};
   result.reserve(extractedVector->size());
   std::transform(extractedVector->begin(), extractedVector->end(), std::back_inserter(result), [](const auto& rawTObject) { return TObjectPtr(rawTObject, algorithm::deleteTCollections); });
@@ -118,17 +116,17 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
   }
 }
 
-VectorOfTObject toRawPointers(const VectorOfTObjectPtr& vector)
+VectorOfRawTObjects toRawObserverPointers(const VectorOfTObjectPtrs& vector)
 {
   // NOTE: MT - it might be worth it to create custom stack allocators for this case
-  VectorOfTObject result{};
+  VectorOfRawTObjects result{};
   result.reserve(vector.size());
   std::transform(vector.begin(), vector.end(), std::back_inserter(result), [](const auto& ptr) { return ptr.get(); });
   return result;
 }
 
 template <typename TypeToSnapshot>
-struct snapshoter {
+struct Snapshoter {
   static bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& object)
   {
     if (!std::holds_alternative<TypeToSnapshot>(object)) {
@@ -142,16 +140,16 @@ struct snapshoter {
 };
 
 template <>
-struct snapshoter<VectorOfTObjectPtr> {
+struct Snapshoter<VectorOfTObjectPtrs> {
   static bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& object)
   {
-    if (!std::holds_alternative<VectorOfTObjectPtr>(object)) {
+    if (!std::holds_alternative<VectorOfTObjectPtrs>(object)) {
       return false;
     }
 
     // NOTE: it might be worth it to create custom stack allocators
-    const auto& mergedVector = std::get<VectorOfTObjectPtr>(object);
-    const auto vectorToSnapshot = object_store_helpers::toRawPointers(mergedVector);
+    const auto& mergedVector = std::get<VectorOfTObjectPtrs>(object);
+    const auto vectorToSnapshot = object_store_helpers::toRawObserverPointers(mergedVector);
 
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), subSpec}, vectorToSnapshot);
 
@@ -161,9 +159,9 @@ struct snapshoter<VectorOfTObjectPtr> {
 
 bool snapshot(framework::DataAllocator& allocator, const header::DataHeader::SubSpecificationType subSpec, const ObjectStore& mergedObject)
 {
-  return snapshoter<MergeInterfacePtr>::snapshot(allocator, subSpec, mergedObject) ||
-         snapshoter<TObjectPtr>::snapshot(allocator, subSpec, mergedObject) ||
-         snapshoter<VectorOfTObjectPtr>::snapshot(allocator, subSpec, mergedObject);
+  return Snapshoter<MergeInterfacePtr>::snapshot(allocator, subSpec, mergedObject) ||
+         Snapshoter<TObjectPtr>::snapshot(allocator, subSpec, mergedObject) ||
+         Snapshoter<VectorOfTObjectPtrs>::snapshot(allocator, subSpec, mergedObject);
 }
 
 } // namespace object_store_helpers

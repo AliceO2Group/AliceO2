@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <TH1.h>
+#include <gsl/span>
 #define BOOST_TEST_MODULE Test Utilities MergerObjectStore
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -20,7 +21,6 @@
 #include "Headers/DataHeader.h"
 #include "Framework/DataRef.h"
 
-#include <TH1I.h>
 #include <TMessage.h>
 #include <boost/test/unit_test.hpp>
 
@@ -33,7 +33,6 @@ using namespace o2::mergers;
 BOOST_AUTO_TEST_SUITE(TestObjectExtraction)
 
 template <typename TypeToDataRef>
-
 DataRef makeDataRef(TypeToDataRef* obj)
 {
   DataRef ref;
@@ -127,14 +126,14 @@ BOOST_AUTO_TEST_CASE(VectorOfHistos1D)
 {
   auto histo = std::make_shared<TH1F>("histo 1d", "histo 1d", 100, 0, 100);
   histo->Fill(5);
-  VectorOfTObjectPtr vectorWithData{histo};
+  VectorOfTObjectPtrs vectorWithData{histo};
 
   auto vectorToDataRef = object_store_helpers::toRawPointers(vectorWithData);
 
   DataRef ref = makeDataRef(&vectorToDataRef);
   auto objStore = object_store_helpers::extractObjectFrom(ref);
-  BOOST_CHECK(std::holds_alternative<VectorOfTObjectPtr>(objStore));
-  auto extractedVector = std::get<VectorOfTObjectPtr>(objStore);
+  BOOST_CHECK(std::holds_alternative<VectorOfTObjectPtrs>(objStore));
+  auto extractedVector = std::get<VectorOfTObjectPtrs>(objStore);
   BOOST_CHECK(extractedVector.size() == 1);
   auto* extractedHisto = dynamic_cast<TH1F*>(extractedVector[0].get());
   BOOST_CHECK(gsl::span(histo->GetArray(), histo->GetSize()) == gsl::span(extractedHisto->GetArray(), extractedHisto->GetSize()));

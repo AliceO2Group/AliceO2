@@ -18,7 +18,6 @@
 
 #include "Framework/Logger.h"
 #include "Mergers/MergeInterface.h"
-#include "Mergers/MergeInterface.h"
 #include "Mergers/ObjectStore.h"
 
 #include <TEfficiency.h>
@@ -130,14 +129,14 @@ void merge(TObject* const target, TObject* const other)
   }
 }
 
-void merge(VectorOfTObjectPtr& targets, const VectorOfTObjectPtr& others)
+void merge(VectorOfTObjectPtrs& targets, const VectorOfTObjectPtrs& others)
 {
   for (const auto& other : others) {
-    if (const auto target_same_name = std::find_if(targets.begin(), targets.end(), [&other](const auto& target) {
+    if (const auto targetSameName = std::find_if(targets.begin(), targets.end(), [&other](const auto& target) {
           return std::string_view{other->GetName()} == std::string_view{target->GetName()};
         });
-        target_same_name != targets.end()) {
-      merge(target_same_name->get(), other.get());
+        targetSameName != targets.end()) {
+      merge(targetSameName->get(), other.get());
     } else {
       targets.push_back(other);
     }

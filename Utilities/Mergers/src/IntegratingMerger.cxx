@@ -106,10 +106,10 @@ void IntegratingMerger::merge(ObjectStore& target, ObjectStore&& other)
     // We expect that if the first object inherited MergeInterface, then all should.
     auto otherAsMergeInterface = std::get<MergeInterfacePtr>(other);
     std::get<MergeInterfacePtr>(target)->merge(otherAsMergeInterface.get());
-  } else if (std::holds_alternative<VectorOfTObjectPtr>(target)) {
+  } else if (std::holds_alternative<VectorOfTObjectPtrs>(target)) {
     // We expect that if the first object was Vector of TObjects, then all should.
-    auto targetAsVector = std::get<VectorOfTObjectPtr>(target);
-    auto otherAsVector = std::get<VectorOfTObjectPtr>(other);
+    auto targetAsVector = std::get<VectorOfTObjectPtrs>(target);
+    const auto otherAsVector = std::get<VectorOfTObjectPtrs>(other);
     algorithm::merge(targetAsVector, otherAsVector);
   } else {
     LOG(error) << "The target variant has an unrecognized value";
@@ -159,9 +159,9 @@ void IntegratingMerger::publishMovingWindow(framework::DataAllocator& allocator)
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
                        *std::get<TObjectPtr>(mMergedObjectLastCycle));
     LOG(info) << "Published a moving window with " << mDeltasMerged << " deltas.";
-  } else if (std::holds_alternative<VectorOfTObjectPtr>(mMergedObjectLastCycle)) {
-    const auto& mergedVector = std::get<VectorOfTObjectPtr>(mMergedObjectLastCycle);
-    const auto vectorToSnapshot = object_store_helpers::toRawPointers(mergedVector);
+  } else if (std::holds_alternative<VectorOfTObjectPtrs>(mMergedObjectLastCycle)) {
+    const auto& mergedVector = std::get<VectorOfTObjectPtrs>(mMergedObjectLastCycle);
+    const auto vectorToSnapshot = object_store_helpers::toRawObserverPointers(mergedVector);
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec}, vectorToSnapshot);
   } else {
     LOG(error) << "mMergedObjectIntegral' variant has an unrecognized value.";
