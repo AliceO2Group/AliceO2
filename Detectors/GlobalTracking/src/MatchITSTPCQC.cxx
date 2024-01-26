@@ -680,7 +680,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           std::array<float, 2> dca;
           if (trkRef.propagateParamToDCA(v, mBz, &dca)) {
             mDCAr->Fill(dca[0]);
-            mDCArVsPtNum->Fill(trkRef.getPt(), dca[0]);
+            if (!mUseMC) {
+              mDCArVsPtNum->Fill(trkRef.getPt(), dca[0]);
+            }
           }
           LOG(debug) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
         }
