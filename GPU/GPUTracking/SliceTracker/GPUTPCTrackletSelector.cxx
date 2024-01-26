@@ -61,9 +61,11 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
 
     GPUCA_UNROLL(, U(1))
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
-      gap++;
       calink ih = tracker.TrackletRowHits()[tracklet.FirstHit() + (irow - firstRow)];
-      if (ih != CALINK_INVAL) {
+      if (ih != CALINK_DEAD_CHANNEL) {
+        gap++;
+      }
+      if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
         GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
         bool own = (tracker.HitWeight(row, ih) <= w);
         bool sharedOK = ((nShared < nHits * kMaxShared));
