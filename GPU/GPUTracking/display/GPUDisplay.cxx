@@ -714,7 +714,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
     float4 oldpos;
     for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
       const calink rowHit = tracker.TrackletRowHits()[tracklet.FirstHit() + (j - tracklet.FirstRow())];
-      if (rowHit != CALINK_INVAL) {
+      if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
         const GPUTPCRow& row = tracker.Data().Row(j);
         const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, rowHit));
         oldpos = mGlobalPos[cid];

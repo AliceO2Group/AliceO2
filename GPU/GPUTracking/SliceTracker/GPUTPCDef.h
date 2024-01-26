@@ -19,6 +19,8 @@
 #include "GPUDef.h"
 
 #define CALINK_INVAL ((calink) -1)
+#define CALINK_DEAD_CHANNEL ((calink) -2)
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
