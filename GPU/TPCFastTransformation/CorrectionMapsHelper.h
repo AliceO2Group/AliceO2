@@ -155,6 +155,16 @@ class CorrectionMapsHelper
 
   bool getScaleInverse() const { return mScaleInverse; }
 
+  /// return returns if the correction map for the M-shape correction is a dummy spline object
+  GPUd() bool isCorrMapMShapeDummy() const
+  {
+    if (mCorrMapMShape) {
+      // just check for the first spline the number of knots which are 4 in case of default spline object
+      return mCorrMapMShape->getCorrection().getSpline(0, 0).getNumberOfKnots() == 4;
+    }
+    return true;
+  }
+
  protected:
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,

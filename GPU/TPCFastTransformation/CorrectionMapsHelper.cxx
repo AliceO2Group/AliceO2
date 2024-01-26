@@ -98,5 +98,5 @@ void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& 
 //________________________________________________________
 void CorrectionMapsHelper::reportScaling()
 {
-  LOGP(info, "Map scaling update: InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumiRef={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(), getLumiScaleMode());
+  LOGP(info, "Map scaling update: InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumiRef={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}, is M-Shape map valid: {}, is M-Shape default: {}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(), getLumiScaleMode(), (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
 }
