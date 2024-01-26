@@ -115,8 +115,12 @@ GPUconstexpr() int CovarMap[kNParams][kNParams] = {{0, 1, 3, 6, 10},
 GPUconstexpr() int DiagMap[kNParams] = {0, 2, 5, 9, 14};
 
 constexpr float HugeF = o2::constants::math::VeryBig;
-constexpr float MaxPT = 100000.;       // do not allow pTs exceeding this value (to avoid NANs)
-constexpr float MinPTInv = 1. / MaxPT; // do not allow q/pTs less this value (to avoid NANs)
+constexpr float MaxPT = 100000.;                  // do not allow pTs exceeding this value (to avoid NANs)
+constexpr float MinPTInv = 1. / MaxPT;            // do not allow q/pTs less this value (to avoid NANs)
+constexpr float ELoss2EKinThreshInv = 1. / 0.025; // do not allow E.Loss correction step with dE/Ekin above the inverse of this value
+constexpr int MaxELossIter = 50;                  // max number of iteration for the ELoss to account for BB dependence on beta*gamma
+// uncomment this to enable correction for BB dependence on beta*gamma via BB derivative
+// #define _BB_NONCONST_CORR_
 
 template <typename value_T = float>
 class TrackParametrization
@@ -193,6 +197,11 @@ class TrackParametrization
   GPUd() value_t getPInv() const;
   GPUd() value_t getP() const;
   GPUd() value_t getPt() const;
+  GPUd() value_t getE2() const;
+  GPUd() value_t getE() const;
+  GPUd() static inline value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
+  GPUd() static inline value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
+  GPUd() static inline value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
 
   GPUd() value_t getTheta() const;
   GPUd() value_t getEta() const;
@@ -210,7 +219,7 @@ class TrackParametrization
   GPUd() math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
-  GPUd() bool correctForELoss(value_t xrho, bool anglecorr = false, value_t dedx = kCalcdEdxAuto);
+  GPUd() bool correctForELoss(value_t xrho, bool anglecorr = false);
   GPUd() bool rotateParam(value_t alpha);
   GPUd() bool propagateParamTo(value_t xk, value_t b);
   GPUd() bool propagateParamTo(value_t xk, const dim3_t& b);
@@ -583,6 +592,22 @@ GPUdi() auto TrackParametrization<value_T>::getP() const -> value_t
 {
   // return the track momentum
   return 1.f / getPInv(); // getPInv is already protected against being 0
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() auto TrackParametrization<value_T>::getE2() const -> value_t
+{
+  // return the track energy^2
+  return getP2() + getPID().getMass2();
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() auto TrackParametrization<value_T>::getE() const -> value_t
+{
+  // return the track energy
+  return gpu::CAMath::Sqrt(getE2());
 }
 
 //____________________________________________________________
