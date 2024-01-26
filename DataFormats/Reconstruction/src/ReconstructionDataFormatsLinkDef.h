@@ -30,6 +30,7 @@
 #pragma link C++ class o2::track::TrackParFwd + ;
 #pragma link C++ class o2::track::PID + ;
 #pragma link C++ class o2::track::TrackLTIntegral + ;
+#pragma link C++ class std::vector < o2::track::TrackLTIntegral> + ;
 
 #pragma link C++ class o2::track::TrackParCovFwd + ;
 #pragma link C++ class std::vector < o2::track::TrackParCovFwd> + ;

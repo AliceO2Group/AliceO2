@@ -987,7 +987,7 @@ GPUd() value_T TrackParametrizationWithError<value_T>::update(const o2::dataform
 
 //______________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, value_t xrho, bool anglecorr, value_t dedx)
+GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, value_t xrho, bool anglecorr)
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the crossed material.
@@ -999,84 +999,117 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
   constexpr value_t kMSConst2 = 0.0136f * 0.0136f;
-  constexpr value_t kMaxELossFrac = 0.3f; // max allowed fractional eloss
   constexpr value_t kMinP = 0.01f;        // kill below this momentum
 
+  value_t csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
+  value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
+  if (anglecorr) {                                                // Apply angle correction, if requested
+    value_t angle = gpu::CAMath::Sqrt(cst2I / csp2);
+    x2x0 *= angle;
+    xrho *= angle;
+  }
+  auto m = this->getPID().getMass();
+  int charge2 = this->getAbsCharge() * this->getAbsCharge();
+  value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
+  value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
+  if (m > 0 && xrho != 0.f) {
+    value_t ekin = e - m, dedx1 = this->getdEdxBBOpt(bg), dedx = dedx1, dedxDer = 0.;
+    if (charge2 != 1) {
+      dedx *= charge2;
+    }
+    value_t dE = dedx * xrho;
+    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
+    if (na > MaxELossIter) {
+      na = MaxELossIter;
+    }
+    if (na > 1) {
+      dE /= na;
+      xrho /= na;
+#ifdef _BB_NONCONST_CORR_
+      dedxDer = this->getBetheBlochSolidDerivativeApprox(dedx1, bg); // require correction for non-constantness of dedx vs betagamma
+      if (charge2 != 1) {
+        dedxDer *= charge2;
+      }
+#endif
+    }
+    while (na--) {
+#ifdef _BB_NONCONST_CORR_
+      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+        if (xrho < 0) {
+          dedxDer = -dedxDer; // E.loss ( -> positive derivative)
+        }
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        dE *= corrC;
+      }
+#endif
+      e += dE;
+      if (e > m) { // stopped
+        p = gpu::CAMath::Sqrt(e * e - this->getPID().getMass2());
+      } else {
+        return false;
+      }
+      if (na) {
+        bg = p * massInv;
+        dedx = this->getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+        dedxDer = this->getBetheBlochSolidDerivativeApprox(dedx, bg);
+#endif
+        if (charge2 != 1) {
+          dedx *= charge2;
+#ifdef _BB_NONCONST_CORR_
+          dedxDer *= charge2;
+#endif
+        }
+        dE = dedx * xrho;
+      }
+    }
+
+    if (p < kMinP) {
+      return false;
+    }
+    dETot = e - e0;
+  } // end of e.loss correction
+
+  // Calculating the multiple scattering corrections******************
   value_t& fC22 = mC[kSigSnp2];
   value_t& fC33 = mC[kSigTgl2];
   value_t& fC43 = mC[kSigQ2PtTgl];
   value_t& fC44 = mC[kSigQ2Pt2];
   //
-  value_t csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
-  value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
-  // Apply angle correction, if requested
-  if (anglecorr) {
-    value_t angle = gpu::CAMath::Sqrt(cst2I / csp2);
-    x2x0 *= angle;
-    xrho *= angle;
-  }
-  value_t p = this->getP();
-  value_t p2 = p * p;
-  value_t e2 = p2 + this->getPID().getMass2();
-  value_t beta2 = p2 / e2;
-
-  // Calculating the multiple scattering corrections******************
   value_t cC22(0.f), cC33(0.f), cC43(0.f), cC44(0.f);
   if (x2x0 != 0.f) {
-    value_t theta2 = kMSConst2 / (beta2 * p2) * gpu::CAMath::Abs(x2x0);
-    if (this->getAbsCharge() != 1) {
-      theta2 *= this->getAbsCharge() * this->getAbsCharge();
+    value_t beta2 = p02 / e2, theta2 = kMSConst2 / (beta2 * p02) * gpu::CAMath::Abs(x2x0);
+    value_t fp34 = this->getTgl();
+    if (charge2 != 1) {
+      theta2 *= charge2;
+      fp34 *= this->getCharge2Pt();
     }
     if (theta2 > constants::math::PI * constants::math::PI) {
       return false;
     }
-    value_t fp34 = this->getTgl() * this->getCharge2Pt();
     value_t t2c2I = theta2 * cst2I;
     cC22 = t2c2I * csp2;
     cC33 = t2c2I * cst2I;
     cC43 = t2c2I * fp34;
     cC44 = theta2 * fp34 * fp34;
-    // optimes this
+    // optimize this
     //    cC22 = theta2*((1.-getSnp())*(1.+getSnp()))*(1. + this->getTgl()*getTgl());
     //    cC33 = theta2*(1. + this->getTgl()*getTgl())*(1. + this->getTgl()*getTgl());
     //    cC43 = theta2*getTgl()*this->getQ2Pt()*(1. + this->getTgl()*getTgl());
     //    cC44 = theta2*getTgl()*this->getQ2Pt()*getTgl()*this->getQ2Pt();
   }
 
-  // Calculating the energy loss corrections************************
-  value_t cP4 = 1.f;
-  if ((xrho != 0.f) && (beta2 < 1.f)) {
-    if (dedx < kCalcdEdxAuto + constants::math::Almost1) { // request to calculate dedx on the fly
-      dedx = BetheBlochSolid(p / this->getPID().getMass());
-      if (this->getAbsCharge() != 1) {
-        dedx *= this->getAbsCharge() * this->getAbsCharge();
-      }
-    }
-
-    value_t dE = dedx * xrho;
-    value_t e = gpu::CAMath::Sqrt(e2);
-    if (gpu::CAMath::Abs(dE) > kMaxELossFrac * e) {
-      return false; // 30% energy loss is too much!
-    }
-    value_t eupd = e + dE;
-    value_t pupd2 = eupd * eupd - this->getPID().getMass2();
-    if (pupd2 < kMinP * kMinP) {
-      return false;
-    }
-    cP4 = p / gpu::CAMath::Sqrt(pupd2);
-    //
-    // Approximate energy loss fluctuation (M.Ivanov)
-    constexpr value_t knst = 0.07f; // To be tuned.
-    value_t sigmadE = knst * gpu::CAMath::Sqrt(gpu::CAMath::Abs(dE)) * e / p2 * this->getCharge2Pt();
-    cC44 += sigmadE * sigmadE;
-  }
+  // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
+  constexpr value_t knst = 0.07f; // To be tuned.
+  value_t sigmadE = knst * gpu::CAMath::Sqrt(gpu::CAMath::Abs(dETot)) * e0 / p02 * this->getCharge2Pt();
+  cC44 += sigmadE * sigmadE;
 
   // Applying the corrections*****************************
   fC22 += cC22;
   fC33 += cC33;
   fC43 += cC43;
   fC44 += cC44;
-  this->setQ2Pt(this->getQ2Pt() * cP4);
+  this->setQ2Pt(this->getQ2Pt() * p0 / p);
 
   checkCovariance();
 
