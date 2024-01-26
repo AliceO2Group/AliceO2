@@ -375,8 +375,14 @@ class CcdbApi //: public DatabaseInterface
   void getFromSnapshot(bool createSnapshot, std::string const& path,
                        long timestamp, std::map<std::string, std::string>& headers,
                        std::string& snapshotpath, o2::pmr::vector<char>& dest, int& fromSnapshot, std::string const& etag) const;
-  void releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, std::string path) const;
-  boost::interprocess::named_semaphore* createNamedSempahore(std::string path) const;
+  void releaseNamedSemaphore(boost::interprocess::named_semaphore* sem, std::string const& path) const;
+  boost::interprocess::named_semaphore* createNamedSemaphore(std::string const& path) const;
+  static std::string determineSemaphoreName(std::string const& basedir, std::string const& objectpath);
+  // queries and optionally removes a named semaphore from the system
+  // returns true when successful (either found or found + removed)
+  static bool removeSemaphore(std::string const& name, bool remove = false);
+  static void removeLeakingSemaphores(std::string const& basedir, bool remove = false);
+
   void loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders = nullptr) const;
   void loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                         std::map<std::string, std::string> const& metadata, long timestamp,
