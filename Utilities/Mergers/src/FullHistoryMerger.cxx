@@ -51,6 +51,9 @@ void FullHistoryMerger::init(framework::InitContext& ictx)
   mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 
+  // clear the state before starting the run, especially important for START->STOP->START sequence
+  ictx.services().get<CallbackService>().set<CallbackService::Id::Start>([this]() { clear(); });
+
   // set detector field in infologger
   try {
     auto& ilContext = ictx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();

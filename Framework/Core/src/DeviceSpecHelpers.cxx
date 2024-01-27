@@ -1074,8 +1074,6 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
 
   WorkflowHelpers::constructGraph(workflow, logicalEdges, outputs, availableForwardsInfo);
 
-  WorkflowHelpers::validateEdges(workflow, logicalEdges, outputs);
-
   // We need to instanciate one device per (me, timeIndex) in the
   // DeviceConnectionEdge. For each device we need one new binding
   // server per (me, other) -> port Moreover for each (me, other,
@@ -1122,10 +1120,13 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                        inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer, overrideServices);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
-  for (auto& device : devices) {
+  std::map<std::string, DataProcessorPoliciesInfo> policies;
+  for (DeviceSpec& device : devices) {
     bool hasPolicy = false;
+    policies[device.name].completionPolicyName = "unknown";
     for (auto& policy : completionPolicies) {
       if (policy.matcher(device) == true) {
+        policies[policy.name].completionPolicyName = policy.name;
         device.completionPolicy = policy;
         hasPolicy = true;
         break;
@@ -1158,6 +1159,15 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
       throw runtime_error_f("Unable to find a resource policy for %s", device.id.c_str());
     }
   }
+  // Iterate of the workflow and create a consistent vector of DataProcessorPoliciesInfo
+  std::vector<DataProcessorPoliciesInfo> policiesVector;
+  for (size_t wi = 0; wi < workflow.size(); ++wi) {
+    auto& processor = workflow[wi];
+    auto& info = policies[processor.name];
+    policiesVector.push_back(info);
+  }
+
+  WorkflowHelpers::validateEdges(workflow, policiesVector, logicalEdges, outputs);
 
   for (auto& device : devices) {
     device.resourceMonitoringInterval = resourcesMonitoringInterval;
@@ -1627,6 +1637,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - rate is an option of FairMQ device for ConditionalRun
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
+  char const* defaultSignposts = getenv("DPL_SIGNPOSTS") ? getenv("DPL_SIGNPOSTS") : "";
   forwardedDeviceOptions.add_options()                                                                                                                               //
     ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                                                                      //
     ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                                                                    //
@@ -1664,7 +1675,10 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)")                                                              //
+    ("signposts", bpo::value<std::string>(),                                                                                                                         //
+     "comma separated list of signposts to enable (any of `completion`, `data_processor_context`, `stream_context`, `device`, `monitoring_service`)")                //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;
 }

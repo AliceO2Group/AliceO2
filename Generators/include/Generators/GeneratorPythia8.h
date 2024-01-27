@@ -16,6 +16,7 @@
 
 #include "Generators/Generator.h"
 #include "Pythia8/Pythia.h"
+#include <functional>
 
 namespace o2
 {
@@ -160,6 +161,8 @@ class GeneratorPythia8 : public Generator
     getNfreeSpec(mPythia.info, nFreenProj, nFreepProj, nFreenTarg, nFreepTarg);
   };
 
+  typedef std::function<bool(const Pythia8::Particle&)> UserFilterFcn;
+
  protected:
   /** copy constructor **/
   GeneratorPythia8(const GeneratorPythia8&);
@@ -170,7 +173,7 @@ class GeneratorPythia8 : public Generator
    * @name Some function definitions
    */
   /** Select particles when pruning event */
-  typedef bool (*Select)(const Pythia8::Particle& particle);
+  typedef UserFilterFcn Select;
   /** Get relatives (mothers or daughters) of a particle */
   typedef std::vector<int> (*GetRelatives)(const Pythia8::Particle&);
   /** Set relatives (mothers or daughters) of a particle */
@@ -261,6 +264,11 @@ class GeneratorPythia8 : public Generator
    * Pythia8::UserHooks object */
   std::string mHooksFuncName;
   /** @} */
+
+  UserFilterFcn mUserFilterFcn = [](Pythia8::Particle const&) -> bool { return true; };
+  void initUserFilterCallback();
+
+  bool mApplyPruning = false;
 
   ClassDefOverride(GeneratorPythia8, 1);
 

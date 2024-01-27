@@ -17,6 +17,15 @@
 
 namespace o2::soa
 {
+void accessingInvalidIndexFor(const char* getter)
+{
+  throw o2::framework::runtime_error_f("Accessing invalid index for %s", getter);
+}
+void dereferenceWithWrongType()
+{
+  throw o2::framework::runtime_error_f("Trying to dereference index with a wrong type in _as<>. Note that if you have several compatible index targets in your process() signature, the last one will be the one actually bound to the getter.");
+}
+
 SelectionVector selectionToVector(gandiva::Selection const& sel)
 {
   SelectionVector rows;

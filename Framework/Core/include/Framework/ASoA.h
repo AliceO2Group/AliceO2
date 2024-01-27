@@ -13,14 +13,12 @@
 #define O2_FRAMEWORK_ASOA_H_
 
 #include "Framework/Pack.h"
-#include "Headers/DataHeader.h"
-#include "Framework/CheckTypes.h"
 #include "Framework/FunctionalHelpers.h"
+#include "Headers/DataHeader.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
-#include "Framework/RuntimeError.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/SliceCache.h"
 #include <arrow/table.h>
@@ -31,6 +29,7 @@
 #include <fmt/format.h>
 #include <typeinfo>
 #include <gsl/span>
+#include <limits>
 
 #define DECLARE_SOA_METADATA()       \
   template <typename T>              \
@@ -45,6 +44,30 @@ DECLARE_SOA_METADATA();
 
 namespace o2::soa
 {
+
+struct Binding {
+  void const* ptr = nullptr;
+  size_t hash = 0;
+
+  template <typename T>
+  void bind(T const* table)
+  {
+    ptr = table;
+    hash = typeHash<T>();
+  }
+
+  template <typename T>
+  T const* get() const
+  {
+    if (hash == typeHash<T>()) {
+      return static_cast<T const*>(ptr);
+    }
+    return nullptr;
+  }
+};
+
+void accessingInvalidIndexFor(const char* getter);
+void dereferenceWithWrongType();
 
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
@@ -889,7 +912,7 @@ struct RowViewCore : public IP, C... {
   template <typename... Cs>
   auto getIndexBindingsImpl(framework::pack<Cs...>) const
   {
-    return std::vector<void const*>{static_cast<Cs const&>(*this).getCurrentRaw()...};
+    return std::vector<o2::soa::Binding>{static_cast<Cs const&>(*this).getCurrentRaw()...};
   }
 
   auto getIndexBindings() const
@@ -904,23 +927,26 @@ struct RowViewCore : public IP, C... {
   }
 
   template <typename... Cs>
-  void doSetCurrentIndexRaw(framework::pack<Cs...> p, std::vector<void const*>&& ptrs)
+  void doSetCurrentIndexRaw(framework::pack<Cs...> p, std::vector<o2::soa::Binding>&& ptrs)
   {
     (Cs::setCurrentRaw(ptrs[framework::has_type_at_v<Cs>(p)]), ...);
   }
 
-  template <typename... Cs>
-  void doSetCurrentInternal(framework::pack<Cs...>, void const* ptr)
+  template <typename... Cs, typename I>
+  void doSetCurrentInternal(framework::pack<Cs...>, I const* ptr)
   {
-    (Cs::setCurrentRaw(ptr), ...);
+    o2::soa::Binding b;
+    b.bind(ptr);
+    (Cs::setCurrentRaw(b), ...);
   }
 
-  void bindExternalIndicesRaw(std::vector<void const*>&& ptrs)
+  void bindExternalIndicesRaw(std::vector<o2::soa::Binding>&& ptrs)
   {
-    doSetCurrentIndexRaw(external_index_columns_t{}, std::forward<std::vector<void const*>>(ptrs));
+    doSetCurrentIndexRaw(external_index_columns_t{}, std::forward<std::vector<o2::soa::Binding>>(ptrs));
   }
 
-  void bindInternalIndices(void const* table)
+  template <typename I>
+  void bindInternalIndices(I const* table)
   {
     doSetCurrentInternal(internal_index_columns_t{}, table);
   }
@@ -1217,28 +1243,27 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, OPT, SORTED> const
       if (container.isMissing()) {
         missingOptionalPreslice(getLabelFromType<std::decay_t<T>>().data(), container.bindingKey.second.c_str());
       }
+    }
+    if constexpr (SORTED) {
+      uint64_t offset = 0;
+      auto out = container.getSliceFor(value, table->asArrowTable(), offset);
+      auto t = typename T::self_t({out}, offset);
+      table->copyIndexBindings(t);
+      t.bindInternalIndicesTo(table);
+      return t;
     } else {
-      if constexpr (SORTED) {
-        uint64_t offset = 0;
-        auto out = container.getSliceFor(value, table->asArrowTable(), offset);
-        auto t = typename T::self_t({out}, offset);
+      auto selection = container.getSliceFor(value);
+      if constexpr (soa::is_soa_filtered_v<T>) {
+        auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
+        table->copyIndexBindings(t);
+        t.bindInternalIndicesTo(table);
+        t.intersectWithSelection(table->getSelectedRows()); // intersect filters
+        return t;
+      } else {
+        auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
         table->copyIndexBindings(t);
         t.bindInternalIndicesTo(table);
         return t;
-      } else {
-        auto selection = container.getSliceFor(value);
-        if constexpr (soa::is_soa_filtered_v<T>) {
-          auto t = soa::Filtered<typename T::base_t>({table->asArrowTable()}, selection);
-          table->copyIndexBindings(t);
-          t.bindInternalIndicesTo(table);
-          t.intersectWithSelection(table->getSelectedRows()); // intersect filters
-          return t;
-        } else {
-          auto t = soa::Filtered<T>({table->asArrowTable()}, selection);
-          table->copyIndexBindings(t);
-          t.bindInternalIndicesTo(table);
-          return t;
-        }
       }
     }
   } else {
@@ -1357,6 +1382,7 @@ class Table
   using column_types = framework::pack<typename C::type...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
+  using internal_index_columns_t = framework::selected_pack<is_self_index_t, C...>;
 
   static constexpr auto hashes()
   {
@@ -1521,6 +1547,16 @@ class Table
     }
   }
 
+  auto& cached_begin()
+  {
+    return mBegin;
+  }
+
+  auto const& cached_begin() const
+  {
+    return mBegin;
+  }
+
   unfiltered_iterator begin()
   {
     return unfiltered_iterator(mBegin);
@@ -1548,7 +1584,6 @@ class Table
   unfiltered_iterator rawIteratorAt(uint64_t i) const
   {
     auto it = mBegin + i;
-    it.bindInternalIndices((void*)this);
     return it;
   }
 
@@ -1591,14 +1626,26 @@ class Table
     mBegin.bindExternalIndices(current...);
   }
 
-  void bindInternalIndicesTo(void const* ptr)
+  template <typename I>
+  void bindInternalIndicesTo(I const* ptr)
   {
     mBegin.bindInternalIndices(ptr);
   }
 
-  void bindExternalIndicesRaw(std::vector<void const*>&& ptrs)
+  void bindInternalIndicesExplicit(o2::soa::Binding binding)
   {
-    mBegin.bindExternalIndicesRaw(std::forward<std::vector<void const*>>(ptrs));
+    doBindInternalIndicesExplicit(internal_index_columns_t{}, binding);
+  }
+
+  template <typename... Cs>
+  void doBindInternalIndicesExplicit(framework::pack<Cs...>, o2::soa::Binding binding)
+  {
+    (static_cast<Cs>(mBegin).setCurrentRaw(binding), ...);
+  }
+
+  void bindExternalIndicesRaw(std::vector<o2::soa::Binding>&& ptrs)
+  {
+    mBegin.bindExternalIndicesRaw(std::forward<std::vector<o2::soa::Binding>>(ptrs));
   }
 
   template <typename T, typename... Cs>
@@ -1638,12 +1685,12 @@ class Table
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    return table_t{mTable->Slice(start, end - start + 1), start};
+    return self_t{mTable->Slice(start, end - start + 1), start};
   }
 
   auto emptySlice() const
   {
-    return table_t{mTable->Slice(0, 0), 0};
+    return self_t{mTable->Slice(0, 0), 0};
   }
 
  protected:
@@ -1743,9 +1790,9 @@ std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table*
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1)
+typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = std::numeric_limits<uint64_t>::max(), uint64_t ai = std::numeric_limits<uint64_t>::max())
 {
-  if (ci == -1 || ai == -1) {
+  if (ci == std::numeric_limits<uint64_t>::max() || ai == std::numeric_limits<uint64_t>::max()) {
     auto colIterator = static_cast<C>(rowIterator).getIterator();
     ci = colIterator.mCurrentChunk;
     ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
@@ -1754,25 +1801,25 @@ typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator,
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = -1)
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
 {
-  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+  if (globalIndex != std::numeric_limits<uint64_t>::max() && globalIndex != *std::get<0>(rowIterator.getIndices())) {
     rowIterator.setCursor(globalIndex);
   }
   return rowIterator.template getDynamicColumn<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex = -1)
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
 {
-  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+  if (globalIndex != std::numeric_limits<uint64_t>::max() && globalIndex != *std::get<0>(rowIterator.getIndices())) {
     rowIterator.setCursor(globalIndex);
   }
   return rowIterator.template getId<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1)
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = std::numeric_limits<uint64_t>::max(), uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
 {
   using decayed = std::decay_t<C>;
   if constexpr (decayed::persistent::value) {
@@ -1787,12 +1834,11 @@ typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t 
 }
 
 template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1)
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci = std::numeric_limits<uint64_t>::max(), uint64_t ai = std::numeric_limits<uint64_t>::max(), uint64_t globalIndex = std::numeric_limits<uint64_t>::max())
 {
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
 }
 } // namespace row_helpers
-
 } // namespace o2::soa
 
 #define DECLARE_SOA_VERSIONING()                                                                    \
@@ -1971,16 +2017,21 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                   \
     auto _Getter_##_as() const                                                              \
     {                                                                                       \
-      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                       \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                   \
         o2::soa::notBoundTable(#_Table_);                                                   \
       }                                                                                     \
+      auto t = mBinding.get<T>();                                                           \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                              \
+        o2::soa::dereferenceWithWrongType();                                                \
+      }                                                                                     \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                         \
-        return static_cast<T const*>(mBinding)->emptySlice();                               \
+        return t->emptySlice();                                                             \
       }                                                                                     \
       auto a = *mColumnIterator;                                                            \
-      auto t = static_cast<T const*>(mBinding)->rawSlice(a[0], a[1]);                       \
-      static_cast<T const*>(mBinding)->copyIndexBindings(t);                                \
-      return t;                                                                             \
+      auto r = t->rawSlice(a[0], a[1]);                                                     \
+      t->copyIndexBindings(r);                                                              \
+      r.bindInternalIndicesTo(t);                                                           \
+      return r;                                                                             \
     }                                                                                       \
                                                                                             \
     auto _Getter_() const                                                                   \
@@ -1989,24 +2040,24 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     }                                                                                       \
                                                                                             \
     template <typename T>                                                                   \
-    bool setCurrent(T* current)                                                             \
+    bool setCurrent(T const* current)                                                       \
     {                                                                                       \
       if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                     \
         assert(current != nullptr);                                                         \
-        this->mBinding = current;                                                           \
+        this->mBinding.bind(current);                                                       \
         return true;                                                                        \
       }                                                                                     \
       return false;                                                                         \
     }                                                                                       \
                                                                                             \
-    bool setCurrentRaw(void const* current)                                                 \
+    bool setCurrentRaw(o2::soa::Binding current)                                            \
     {                                                                                       \
       this->mBinding = current;                                                             \
       return true;                                                                          \
     }                                                                                       \
-    binding_t const* getCurrent() const { return static_cast<binding_t const*>(mBinding); } \
-    void const* getCurrentRaw() const { return mBinding; }                                  \
-    void const* mBinding = nullptr;                                                         \
+    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }               \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                             \
+    o2::soa::Binding mBinding;                                                              \
   };
 
 #define DECLARE_SOA_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
@@ -2048,8 +2099,12 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
         o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      auto t = mBinding.get<T>();                                                                \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
+        o2::soa::dereferenceWithWrongType();                                                     \
       }                                                                                          \
       return getIterators<T>();                                                                  \
     }                                                                                            \
@@ -2057,8 +2112,12 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                        \
     auto filtered_##_Getter_##_as() const                                                        \
     {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
         o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      auto t = mBinding.get<T>();                                                                \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
+        o2::soa::dereferenceWithWrongType();                                                     \
       }                                                                                          \
       return getFilteredIterators<T>();                                                          \
     }                                                                                            \
@@ -2068,7 +2127,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     {                                                                                            \
       auto result = std::vector<typename T::unfiltered_iterator>();                              \
       for (auto& i : *mColumnIterator) {                                                         \
-        result.push_back(static_cast<T const*>(mBinding)->rawIteratorAt(i));                     \
+        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                   \
       }                                                                                          \
       return result;                                                                             \
     }                                                                                            \
@@ -2079,9 +2138,9 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
       if constexpr (o2::soa::is_soa_filtered_v<T>) {                                             \
         auto result = std::vector<typename T::iterator>();                                       \
         for (auto const& i : *mColumnIterator) {                                                 \
-          auto pos = static_cast<T const*>(mBinding)->isInSelectedRows(i);                       \
+          auto pos = mBinding.get<T>()->isInSelectedRows(i);                                     \
           if (pos > 0) {                                                                         \
-            result.push_back(static_cast<T const*>(mBinding)->iteratorAt(pos));                  \
+            result.push_back(mBinding.get<T>()->iteratorAt(pos));                                \
           }                                                                                      \
         }                                                                                        \
         return result;                                                                           \
@@ -2099,19 +2158,27 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                        \
     auto _Getter_##_first_as() const                                                             \
     {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
         o2::soa::notBoundTable(#_Table_);                                                        \
       }                                                                                          \
-      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+      auto t = mBinding.get<T>();                                                                \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
+        o2::soa::dereferenceWithWrongType();                                                     \
+      }                                                                                          \
+      return t->rawIteratorAt((*mColumnIterator)[0]);                                            \
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
     auto _Getter_##_last_as() const                                                              \
     {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
         o2::soa::notBoundTable(#_Table_);                                                        \
       }                                                                                          \
-      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
+      auto t = mBinding.get<T>();                                                                \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
+        o2::soa::dereferenceWithWrongType();                                                     \
+      }                                                                                          \
+      return t->rawIteratorAt((*mColumnIterator).back());                                        \
     }                                                                                            \
                                                                                                  \
     auto _Getter_first() const                                                                   \
@@ -2125,24 +2192,24 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
-    bool setCurrent(T* current)                                                                  \
+    bool setCurrent(T const* current)                                                            \
     {                                                                                            \
       if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                          \
         assert(current != nullptr);                                                              \
-        this->mBinding = current;                                                                \
+        this->mBinding.bind(current);                                                            \
         return true;                                                                             \
       }                                                                                          \
       return false;                                                                              \
     }                                                                                            \
                                                                                                  \
-    bool setCurrentRaw(void const* current)                                                      \
+    bool setCurrentRaw(o2::soa::Binding current)                                                 \
     {                                                                                            \
       this->mBinding = current;                                                                  \
       return true;                                                                               \
     }                                                                                            \
-    binding_t const* getCurrent() const { return static_cast<binding_t const*>(mBinding); }      \
-    void const* getCurrentRaw() const { return mBinding; }                                       \
-    void const* mBinding = nullptr;                                                              \
+    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }                    \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                  \
+    o2::soa::Binding mBinding;                                                                   \
   };
 
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
@@ -2183,13 +2250,17 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                                                         \
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
-      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                                                             \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                                         \
         o2::soa::notBoundTable(#_Table_);                                                                                         \
       }                                                                                                                           \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                               \
-        throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                                        \
+        o2::soa::accessingInvalidIndexFor(#_Getter_);                                                                             \
       }                                                                                                                           \
-      return static_cast<T const*>(mBinding)->rawIteratorAt(*mColumnIterator);                                                    \
+      auto t = mBinding.get<T>();                                                                                                 \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                                                    \
+        o2::soa::dereferenceWithWrongType();                                                                                      \
+      }                                                                                                                           \
+      return t->rawIteratorAt(*mColumnIterator);                                                                                  \
     }                                                                                                                             \
                                                                                                                                   \
     auto _Getter_() const                                                                                                         \
@@ -2202,20 +2273,20 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     {                                                                                                                             \
       if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                                                           \
         assert(current != nullptr);                                                                                               \
-        this->mBinding = current;                                                                                                 \
+        this->mBinding.bind(current);                                                                                             \
         return true;                                                                                                              \
       }                                                                                                                           \
       return false;                                                                                                               \
     }                                                                                                                             \
                                                                                                                                   \
-    bool setCurrentRaw(void const* current)                                                                                       \
+    bool setCurrentRaw(o2::soa::Binding current)                                                                                  \
     {                                                                                                                             \
       this->mBinding = current;                                                                                                   \
       return true;                                                                                                                \
     }                                                                                                                             \
-    binding_t const* getCurrent() const { return static_cast<binding_t const*>(mBinding); }                                       \
-    void const* getCurrentRaw() const { return mBinding; }                                                                        \
-    void const* mBinding = nullptr;                                                                                               \
+    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }                                                     \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                                                   \
+    o2::soa::Binding mBinding;                                                                                                    \
   };                                                                                                                              \
   static const o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" #_Table_ _Suffix_, typeid(_Name_##Id).hash_code(), \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
@@ -2258,18 +2329,22 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     auto _Getter_##_as() const                                                                                          \
     {                                                                                                                   \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                                     \
-        throw o2::framework::runtime_error_f("Accessing invalid index for %s", #_Getter_);                              \
+        o2::soa::accessingInvalidIndexFor(#_Getter_);                                                                   \
       }                                                                                                                 \
-      return static_cast<T const*>(mBinding)->rawIteratorAt(*mColumnIterator);                                          \
+      auto t = mBinding.get<T>();                                                                                       \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                                          \
+        o2::soa::dereferenceWithWrongType();                                                                            \
+      }                                                                                                                 \
+      return t->rawIteratorAt(*mColumnIterator);                                                                        \
     }                                                                                                                   \
                                                                                                                         \
-    bool setCurrentRaw(void const* current)                                                                             \
+    bool setCurrentRaw(o2::soa::Binding current)                                                                        \
     {                                                                                                                   \
       this->mBinding = current;                                                                                         \
       return true;                                                                                                      \
     }                                                                                                                   \
-    void const* getCurrentRaw() const { return mBinding; }                                                              \
-    void const* mBinding = nullptr;                                                                                     \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                                         \
+    o2::soa::Binding mBinding;                                                                                          \
   };                                                                                                                    \
   static const o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" _Label_, typeid(_Name_##Id).hash_code(), \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
@@ -2312,23 +2387,27 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                  \
     auto _Getter_##_as() const                                                             \
     {                                                                                      \
+      auto t = mBinding.get<T>();                                                          \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                             \
+        o2::soa::dereferenceWithWrongType();                                               \
+      }                                                                                    \
       if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                        \
-        return static_cast<T const*>(mBinding)->emptySlice();                              \
+        return t->emptySlice();                                                            \
       }                                                                                    \
       auto a = *mColumnIterator;                                                           \
-      auto t = static_cast<T const*>(mBinding)->rawSlice(a[0], a[1]);                      \
-      static_cast<T const*>(mBinding)->copyIndexBindings(t);                               \
-      t.bindInternalIndicesTo(mBinding);                                                   \
-      return t;                                                                            \
+      auto r = t->rawSlice(a[0], a[1]);                                                    \
+      t->copyIndexBindings(r);                                                             \
+      r.bindInternalIndicesTo(t);                                                          \
+      return r;                                                                            \
     }                                                                                      \
                                                                                            \
-    bool setCurrentRaw(void const* current)                                                \
+    bool setCurrentRaw(o2::soa::Binding current)                                           \
     {                                                                                      \
       this->mBinding = current;                                                            \
       return true;                                                                         \
     }                                                                                      \
-    void const* getCurrentRaw() const { return mBinding; }                                 \
-    void const* mBinding = nullptr;                                                        \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                            \
+    o2::soa::Binding mBinding;                                                             \
   };
 
 #define DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, "_" #_Name_)
@@ -2367,6 +2446,10 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                        \
     auto _Getter_##_as() const                                                                   \
     {                                                                                            \
+      auto t = mBinding.get<T>();                                                                \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
+        o2::soa::dereferenceWithWrongType();                                                     \
+      }                                                                                          \
       return getIterators<T>();                                                                  \
     }                                                                                            \
                                                                                                  \
@@ -2375,7 +2458,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     {                                                                                            \
       auto result = std::vector<typename T::unfiltered_iterator>();                              \
       for (auto& i : *mColumnIterator) {                                                         \
-        result.push_back(static_cast<T const*>(mBinding)->rawIteratorAt(i));                     \
+        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                   \
       }                                                                                          \
       return result;                                                                             \
     }                                                                                            \
@@ -2383,22 +2466,22 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     template <typename T>                                                                        \
     auto _Getter_##_first_as() const                                                             \
     {                                                                                            \
-      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator)[0]);              \
+      return mBinding.get<T>()->rawIteratorAt((*mColumnIterator)[0]);                            \
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
     auto _Getter_##_last_as() const                                                              \
     {                                                                                            \
-      return static_cast<T const*>(mBinding)->rawIteratorAt((*mColumnIterator).back());          \
+      return mBinding.get<T>()->rawIteratorAt((*mColumnIterator).back());                        \
     }                                                                                            \
                                                                                                  \
-    bool setCurrentRaw(void const* current)                                                      \
+    bool setCurrentRaw(o2::soa::Binding current)                                                 \
     {                                                                                            \
       this->mBinding = current;                                                                  \
       return true;                                                                               \
     }                                                                                            \
-    void const* getCurrentRaw() const { return mBinding; }                                       \
-    void const* mBinding = nullptr;                                                              \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                  \
+    o2::soa::Binding mBinding;                                                                   \
   };
 
 #define DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, "_" #_Name_)
@@ -2612,8 +2695,20 @@ struct Join : JoinBase<Ts...> {
   using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
+  using unfiltered_iterator = iterator;
+  using unfiltered_const_iterator = const_iterator;
   using filtered_iterator = typename table_t::template RowViewFiltered<FilteredBase<Join<Ts...>>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
+
+  iterator begin()
+  {
+    return iterator{this->cached_begin()};
+  }
+
+  const_iterator begin() const
+  {
+    return const_iterator{this->cached_begin()};
+  }
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
@@ -2629,6 +2724,27 @@ struct Join : JoinBase<Ts...> {
   auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
   {
     return doSliceBy(this, container, value);
+  }
+
+  iterator rawIteratorAt(uint64_t i) const
+  {
+    auto it = iterator{this->cached_begin()} + i;
+    return it;
+  }
+
+  iterator iteratorAt(uint64_t i) const
+  {
+    return rawIteratorAt(i);
+  }
+
+  auto rawSlice(uint64_t start, uint64_t end) const
+  {
+    return self_t{{this->asArrowTable()->Slice(start, end - start + 1)}, start};
+  }
+
+  auto emptySlice() const
+  {
+    return self_t{{this->asArrowTable()->Slice(0, 0)}, 0};
   }
 
   template <typename T>
@@ -2817,12 +2933,13 @@ class FilteredBase : public T
     mFilteredBegin.bindExternalIndices(current...);
   }
 
-  void bindExternalIndicesRaw(std::vector<void const*>&& ptrs)
+  void bindExternalIndicesRaw(std::vector<o2::soa::Binding>&& ptrs)
   {
-    mFilteredBegin.bindExternalIndicesRaw(std::forward<std::vector<void const*>>(ptrs));
+    mFilteredBegin.bindExternalIndicesRaw(std::forward<std::vector<o2::soa::Binding>>(ptrs));
   }
 
-  void bindInternalIndicesTo(void const* ptr)
+  template <typename I>
+  void bindInternalIndicesTo(I const* ptr)
   {
     mFilteredBegin.bindInternalIndices(ptr);
   }

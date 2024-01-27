@@ -1214,8 +1214,14 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-bool validateLifetime(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+bool validateLifetime(std::ostream& errors,
+                      DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorPoliciesInfo const& producerPolicies,
+                      DataProcessorSpec const& consumer, InputSpec const& input, DataProcessorPoliciesInfo const& consumerPolicies)
 {
+  // In case the completion policy is consume-any, we do not need to check anything.
+  if (consumerPolicies.completionPolicyName == "consume-any") {
+    return true;
+  }
   if (input.lifetime == Lifetime::Timeframe && output.lifetime == Lifetime::Sporadic) {
     errors << fmt::format("Input {} of {} has lifetime Timeframe, but output {} of {} has lifetime Sporadic\n",
                           DataSpecUtils::describe(input).c_str(), consumer.name,
@@ -1225,7 +1231,9 @@ bool validateLifetime(std::ostream& errors, DataProcessorSpec const& producer, O
   return true;
 }
 
-bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+bool validateExpendable(std::ostream& errors,
+                        DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorPoliciesInfo const& producerPolicies,
+                        DataProcessorSpec const& consumer, InputSpec const& input, DataProcessorPoliciesInfo const& consumerPolicies)
 {
   auto isExpendable = [](DataProcessorLabel const& label) {
     return label.value == "expendable";
@@ -1244,8 +1252,12 @@ bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer,
   return true;
 }
 
-using Validator = std::function<bool(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)>;
+using Validator = std::function<bool(std::ostream& errors,
+                                     DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorPoliciesInfo const& producerPolicies,
+                                     DataProcessorSpec const& consumer, InputSpec const& input, DataProcessorPoliciesInfo const& consumerPolicies)>;
+
 void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
+                                    std::vector<DataProcessorPoliciesInfo> const& policies,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
@@ -1262,10 +1274,12 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
   for (auto& edge : edges) {
     DataProcessorSpec const& producer = workflow[edge.producer];
     DataProcessorSpec const& consumer = workflow[edge.consumer];
+    DataProcessorPoliciesInfo const& producerPolicies = policies[edge.producer];
+    DataProcessorPoliciesInfo const& consumerPolicies = policies[edge.consumer];
     OutputSpec const& output = outputs[edge.outputGlobalIndex];
     InputSpec const& input = consumer.inputs[edge.consumerInputIndex];
     for (auto& validator : defaultValidators) {
-      hasErrors |= !validator(errors, producer, output, consumer, input);
+      hasErrors |= !validator(errors, producer, output, producerPolicies, consumer, input, consumerPolicies);
     }
   }
   if (hasErrors) {

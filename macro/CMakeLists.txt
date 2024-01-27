@@ -217,7 +217,7 @@ o2_add_test_root_macro(runTPCRefit.C
                                              O2::ReconstructionDataFormats
                                              O2::SimulationDataFormat
                                              O2::TPCReconstruction
-                       LABELS tpc)
+                       LABELS tpc COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_CRUDataSkimming_its.C

@@ -977,10 +977,12 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     }
     boost::program_options::options_description optsDesc;
     ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+    char const* defaultSignposts = getenv("DPL_SIGNPOSTS");
     optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
       ("dpl-tracing-flags", bpo::value<std::string>()->default_value(""), "pipe `|` separate list of events to be traced")                                                                 //
+      ("signposts", bpo::value<std::string>()->default_value(defaultSignposts ? defaultSignposts : ""), "comma separated list of signposts to enable")                                     //
       ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                    //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
@@ -2947,6 +2949,29 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     } else {
       LOGP(error, "Invalid log level '{}'", logLevel);
       exit(1);
+    }
+  }
+
+  if (varmap.count("signposts")) {
+    auto signpostsToEnable = varmap["signposts"].as<std::string>();
+    auto matchingLogEnabler = [](char const* name, void* l, void* context) {
+      auto* log = (_o2_log_t*)l;
+      auto* selectedName = (char const*)context;
+      std::string prefix = "ch.cern.aliceo2.";
+      if (strcmp(name, (prefix + selectedName).data()) == 0) {
+        LOGP(info, "Enabling signposts for {}", *selectedName);
+        _o2_log_set_stacktrace(log, 1);
+        return false;
+      }
+      return true;
+    };
+    // Split signpostsToEnable by comma using strtok_r
+    char* saveptr;
+    char* src = const_cast<char*>(signpostsToEnable.data());
+    auto* token = strtok_r(src, ",", &saveptr);
+    while (token) {
+      o2_walk_logs(matchingLogEnabler, token);
+      token = strtok_r(nullptr, ",", &saveptr);
     }
   }
 
