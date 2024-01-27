@@ -1675,7 +1675,6 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)")                                                              //
     ("signposts", bpo::value<std::string>(),                                                                                                                         //
      "comma separated list of signposts to enable (any of `completion`, `data_processor_context`, `stream_context`, `device`, `monitoring_service`)")                //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //

@@ -988,7 +988,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
       ("infologger-mode", bpo::value<std::string>()->default_value(defaultInfologgerMode), "O2_INFOLOGGER_MODE override");
-
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
   });
 
