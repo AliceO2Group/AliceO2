@@ -15,6 +15,7 @@
 #include "Framework/DeviceSpec.h"
 #include "DIMessages.h"
 #include "Framework/ControlService.h"
+#include <cstdlib>
 
 namespace o2::framework
 {
@@ -199,9 +200,9 @@ ServiceSpec* DIServicePlugin::create()
   return new ServiceSpec{
     .name = "data-inspector-proxy",
     .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
-      auto proxyAddress = options.GetPropertyAsString("inspector-address");
-      auto proxyPort = std::stoi(options.GetPropertyAsString("inspector-port"));
-      auto runId = options.GetPropertyAsString("inspector-id");
+      std::string proxyAddress = std::getenv("O2_DATAINSPECTOR_ADDRESS");
+      auto proxyPort = std::stoi(std::getenv("O2_DATAINSPECTOR_PORT"));
+      std::string runId = std::getenv("O2_DATAINSPECTOR_ID");
 
       const auto& spec = services.get<const DeviceSpec>();
       if (DataInspector::isNonInternalDevice(spec)) {
