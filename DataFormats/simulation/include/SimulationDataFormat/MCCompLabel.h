@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include "GPUCommonRtypes.h"
+#include <string>
 
 namespace o2
 {
@@ -138,6 +139,7 @@ class MCCompLabel
   }
 
   void print() const;
+  std::string asString() const;
 
   static constexpr int maxSourceID() { return maskSrcID; }
   static constexpr int maxEventID() { return maskEvID; }
