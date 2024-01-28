@@ -160,9 +160,9 @@ void CcdbApi::init(std::string const& host)
   namespace fs = std::filesystem;
   if (cachedir) {
     if (cachedir[0] == 0) {
-      mSnapshotCachePath = fs::canonical(fs::absolute("."));
+      mSnapshotCachePath = fs::weakly_canonical(fs::absolute("."));
     } else {
-      mSnapshotCachePath = fs::canonical(fs::absolute(cachedir));
+      mSnapshotCachePath = fs::weakly_canonical(fs::absolute(cachedir));
     }
     snapshotReport = fmt::format("(cache snapshots to dir={}", mSnapshotCachePath);
   }
@@ -1595,27 +1595,31 @@ void CcdbApi::removeLeakingSemaphores(std::string const& snapshotdir, bool remov
 {
   namespace fs = std::filesystem;
   std::string fileName{"snapshot.root"};
-  auto absolutesnapshotdir = fs::canonical(fs::absolute(snapshotdir));
-  for (const auto& entry : fs::recursive_directory_iterator(absolutesnapshotdir)) {
-    if (entry.is_directory()) {
-      const fs::path& currentDir = fs::canonical(fs::absolute(entry.path()));
-      fs::path filePath = currentDir / fileName;
-      if (fs::exists(filePath) && fs::is_regular_file(filePath)) {
-        std::cout << "Directory with file '" << fileName << "': " << currentDir << std::endl;
+  try {
+    auto absolutesnapshotdir = fs::weakly_canonical(fs::absolute(snapshotdir));
+    for (const auto& entry : fs::recursive_directory_iterator(absolutesnapshotdir)) {
+      if (entry.is_directory()) {
+        const fs::path& currentDir = fs::canonical(fs::absolute(entry.path()));
+        fs::path filePath = currentDir / fileName;
+        if (fs::exists(filePath) && fs::is_regular_file(filePath)) {
+          std::cout << "Directory with file '" << fileName << "': " << currentDir << std::endl;
 
-        // we need to obtain the path relative to snapshotdir
-        auto pathtokens = o2::utils::Str::tokenize(currentDir, '/', true);
-        auto numtokens = pathtokens.size();
-        if (numtokens < 3) {
-          // cannot be a CCDB path
-          continue;
+          // we need to obtain the path relative to snapshotdir
+          auto pathtokens = o2::utils::Str::tokenize(currentDir, '/', true);
+          auto numtokens = pathtokens.size();
+          if (numtokens < 3) {
+            // cannot be a CCDB path
+            continue;
+          }
+          // path are last 3 entries
+          std::string path = pathtokens[numtokens - 3] + "/" + pathtokens[numtokens - 2] + "/" + pathtokens[numtokens - 1];
+          auto semaname = o2::ccdb::CcdbApi::determineSemaphoreName(absolutesnapshotdir, path);
+          removeSemaphore(semaname, remove);
         }
-        // path are last 3 entries
-        std::string path = pathtokens[numtokens - 3] + "/" + pathtokens[numtokens - 2] + "/" + pathtokens[numtokens - 1];
-        auto semaname = o2::ccdb::CcdbApi::determineSemaphoreName(absolutesnapshotdir, path);
-        removeSemaphore(semaname, remove);
       }
     }
+  } catch (std::exception const& e) {
+    LOG(info) << "Semaphore search had exception " << e.what();
   }
 }
 
