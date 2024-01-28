@@ -34,4 +34,3 @@ endif()
 add_subdirectory(TestWorkflows)
 
 add_subdirectory(AODMerger)
-add_subdirectory(DataInspector)
