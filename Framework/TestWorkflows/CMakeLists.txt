@@ -21,6 +21,10 @@ o2_add_dpl_workflow(wait-until-possible
                   SOURCES test/test_WaitUntilPossible.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(basic-arrow-workflow
+                  SOURCES src/o2BasicArrowWorkflow.cpp
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(o2rootmessage-workflow
                   SOURCES "src/test_o2RootMessageWorkflow.cxx"
                   COMPONENT_NAME TestWorkflows)
