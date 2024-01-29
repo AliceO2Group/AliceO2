@@ -84,10 +84,10 @@ struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyPa
 
 struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<AnomalyStudyParamConfig> {
   std::string outFileName = "its_AnomalyStudy.root";
+  size_t nTimeFramesOffset = 500;
 
   O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
 };
-
 
 struct ITSImpactParameterParamConfig : public o2::conf::ConfigurableParamHelper<ITSImpactParameterParamConfig> {
   std::string outFileName = "its_ImpParameter.root";

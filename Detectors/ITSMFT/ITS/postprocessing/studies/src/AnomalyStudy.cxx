@@ -20,7 +20,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
-#include <TH2D.h>
+#include <TH2F.h>
 #include <TCanvas.h>
 
 namespace o2::its::study
@@ -52,7 +52,6 @@ class AnomalyStudy : public Task
  private:
   bool mUseMC;
   int mTFCount{0};
-  const int mNumberOfStaves[7] = {12, 16, 20, 24, 30, 42, 48};
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
@@ -64,8 +63,8 @@ class AnomalyStudy : public Task
   o2::itsmft::ChipMappingITS mChipMapping;
 
   // Histos
-  std::vector<std::unique_ptr<TH2D>> mTFvsPhiHist;
-  std::vector<std::unique_ptr<TH2D>> mTFvsPhiClusSizeHist;
+  std::vector<std::unique_ptr<TH2F>> mTFvsPhiHist;
+  std::vector<std::unique_ptr<TH2F>> mTFvsPhiClusSizeHist;
 };
 
 void AnomalyStudy::updateTimeDependentParams(ProcessingContext& pc)
@@ -85,11 +84,11 @@ void AnomalyStudy::init(InitContext& ic)
   prepareOutput();
   mTFvsPhiHist.resize(7);
   mTFvsPhiClusSizeHist.resize(7);
+  auto nTF = o2::its::study::AnomalyStudyParamConfig::Instance().nTimeFramesOffset;
   for (unsigned int i = 0; i < 7; i++) {
-    mTFvsPhiHist[i].reset(new TH2D(Form("tf_phi_occup_layer_%d", i), " ; #phi ; # TF; Counts", mNumberOfStaves[i] * 10, -TMath::Pi(), TMath::Pi(), 1000, 0.5, 1000.5));
-    mTFvsPhiClusSizeHist[i].reset(new TH2D(Form("tf_phi_clsize_layer_%d", i), "; #phi; # TF ; <Cluster Size>", mNumberOfStaves[i] * 10, -TMath::Pi(), TMath::Pi(), 1000, 0.5, 1000.5));
+    mTFvsPhiHist[i].reset(new TH2F(Form("tf_phi_occup_layer_%d", i), " ; #phi ; # TF; Counts", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF+0.5));
+    mTFvsPhiClusSizeHist[i].reset(new TH2F(Form("tf_phi_clsize_layer_%d", i), "; #phi; # TF ; <Cluster Size>", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF+0.5));
   }
-  LOGP(info, "Initialized {} TFvsPhi histos", mTFvsPhiHist.size());
 }
 
 void AnomalyStudy::run(ProcessingContext& pc)
@@ -170,7 +169,8 @@ void AnomalyStudy::prepareOutput()
 
 void AnomalyStudy::getClusterPatterns(gsl::span<const o2::itsmft::CompClusterExt>& ITSclus, gsl::span<const unsigned char>& ITSpatt, const o2::itsmft::TopologyDictionary& mdict)
 {
-  mPatterns.reserve(ITSclus.size());
+  mPatterns.clear();
+  mPatterns.resize(ITSclus.size());
   auto pattIt = ITSpatt.begin();
 
   for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {

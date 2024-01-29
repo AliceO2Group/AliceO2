@@ -101,7 +101,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     anyStudy = true;
     srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
     srcCls = GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
-    o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
+    if (!configcontext.options().get<bool>("input-from-upstream")) {
+      o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
+    }
     specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
     // o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
     // o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
@@ -110,7 +112,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     anyStudy = true;
     // srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
     srcCls = GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
-    o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
+    if (!configcontext.options().get<bool>("input-from-upstream")) {
+      o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
+    }
     // o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
     // o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
     specs.emplace_back(o2::its::study::getAnomalyStudy(srcCls, useMC));
