@@ -293,7 +293,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       }
 
       GPUbarrier();
-      if (storeLater > 0) {
+      if (storeLater >= 0) {
         sortBuffer[storeLater] = i;
       }
       totalCount += count;
