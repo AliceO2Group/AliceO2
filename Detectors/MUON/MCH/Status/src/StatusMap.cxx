@@ -30,17 +30,18 @@ void assertValidMask(uint32_t mask)
 
 void StatusMap::add(gsl::span<const DsChannelId> badchannels, uint32_t mask)
 {
-    assertValidMask(mask);
-    for (auto id : badchannels) {
-        try {
-            ChannelCode cc(id.getSolarId(), id.getElinkId(), id.getChannel());
-            mStatus[cc] |= mask;
-        } catch (const std::exception& e) {
-            // Catch exceptions thrown by the ChannelCode constructor
-            LOGP(warning, "Error processing channel - SolarId: {} ElinkId: {} Channel: {}. Error: {}. This channel is skipped.",
-                 id.getSolarId(), id.getElinkId(), id.getChannel(), e.what());
-        }
+  assertValidMask(mask);
+  for (auto id : badchannels) {
+    try {
+      ChannelCode cc(id.getSolarId(), id.getElinkId(), id.getChannel());
+      mStatus[cc] |= mask;
     }
+    catch (const std::exception& e) {
+      // Catch exceptions thrown by the ChannelCode constructor
+      LOGP(warning, "Error processing channel - SolarId: {} ElinkId: {} Channel: {}. Error: {}. This channel is skipped.",
+                 id.getSolarId(), id.getElinkId(), id.getChannel(), e.what());
+    }
+  }
 }
 
 void StatusMap::add(gsl::span<const ChannelCode> badchannels, uint32_t mask)
