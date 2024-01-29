@@ -780,7 +780,10 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
     }
     int charge2 = getAbsCharge() * getAbsCharge();
     value_t p = getP(), p0 = p, p2 = p * p, e2 = p2 + getPID().getMass2(), massInv = 1. / m, bg = p * massInv;
-    value_t e = gpu::CAMath::Sqrt(e2), ekin = e - m, dedx1 = getdEdxBBOpt(bg), dedx = dedx1, dedxDer = 0.;
+    value_t e = gpu::CAMath::Sqrt(e2), ekin = e - m, dedx = getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+    value_t dedxDer = 0., dedx1 = dedx;
+#endif
     if (charge2 != 1) {
       dedx *= charge2;
     }

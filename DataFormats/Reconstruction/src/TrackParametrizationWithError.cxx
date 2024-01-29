@@ -1013,7 +1013,10 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   value_t p = this->getP(), p0 = p, p02 = p * p, e2 = p02 + this->getPID().getMass2(), massInv = 1. / m, bg = p * massInv, dETot = 0.;
   value_t e = gpu::CAMath::Sqrt(e2), e0 = e;
   if (m > 0 && xrho != 0.f) {
-    value_t ekin = e - m, dedx1 = this->getdEdxBBOpt(bg), dedx = dedx1, dedxDer = 0.;
+    value_t ekin = e - m, dedx = this->getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+    value_t dedxDer = 0., dedx1 = dedx;
+#endif
     if (charge2 != 1) {
       dedx *= charge2;
     }
