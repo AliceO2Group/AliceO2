@@ -23,7 +23,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"disableWeights", VariantType::Bool, false, {"Disable weights for TPC scalers"}}};
+    {"enable-M-shape-correction", VariantType::Bool, false, {"Enable M-shape distortion correction"}},
+    {"disable-IDC-scalers", VariantType::Bool, false, {"Disable TPC scalers for space-charge distortion fluctuation correction"}}};
+
   std::swap(workflowOptions, options);
 }
 
@@ -33,7 +35,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   WorkflowSpec workflow;
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
-  const bool enableWeights = !(config.options().get<bool>("disableWeights"));
-  workflow.emplace_back(o2::tpc::getTPCScalerSpec(enableWeights));
+  const auto enableMShape = config.options().get<bool>("enable-M-shape-correction");
+  const auto enableIDCs = !config.options().get<bool>("disable-IDC-scalers");
+  workflow.emplace_back(o2::tpc::getTPCScalerSpec(enableIDCs, enableMShape));
   return workflow;
 }

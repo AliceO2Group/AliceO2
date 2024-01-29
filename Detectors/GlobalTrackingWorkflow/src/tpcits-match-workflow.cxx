@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
@@ -87,6 +88,9 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   }
 
   o2::framework::WorkflowSpec specs;
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
   specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useMC, sclOpt));
 
   if (!configcontext.options().get<bool>("disable-root-output")) {

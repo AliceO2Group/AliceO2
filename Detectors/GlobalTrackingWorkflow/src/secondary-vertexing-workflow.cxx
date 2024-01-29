@@ -17,6 +17,7 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 #include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -96,7 +97,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     src = src | GID::getSourcesMask("CTP");
   }
   WorkflowSpec specs;
-
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
   specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, enableCCDBParams, useMC, sclOpt));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed

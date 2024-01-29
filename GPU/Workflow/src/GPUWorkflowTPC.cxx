@@ -110,10 +110,13 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
   mCalibObjects.mFastTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mCalibObjects.mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  mCalibObjects.mFastTransformMShape = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get()); // just to reserve the space
   mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
   mCalibObjects.mFastTransformHelper->setLumiScaleType(mSpecConfig.lumiScaleType);
+  mCalibObjects.mFastTransformHelper->setCorrMapMShape(mCalibObjects.mFastTransformMShape.get());
   mCalibObjects.mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
+  mCalibObjects.mFastTransformHelper->enableMShapeCorrection(mSpecConfig.enableMShape);
   if (mSpecConfig.outputTracks) {
     mCalibObjects.mFastTransformHelper->init(ic);
   }
@@ -358,12 +361,21 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
           newCalibObjects.fastTransformRef = mCalibObjects.mFastTransformRef.get();
           mustUpdateHelper = true;
         }
+        if (mTPCVDriftHelper->isUpdated() || mCalibObjects.mFastTransformHelper->isUpdatedMapMShape()) {
+          oldCalibObjects.mFastTransformMShape = std::move(mCalibObjects.mFastTransformMShape);
+          mCalibObjects.mFastTransformMShape.reset(new TPCFastTransform);
+          mCalibObjects.mFastTransformMShape->cloneFromObject(*mCalibObjects.mFastTransformHelper->getCorrMapMShape(), nullptr);
+          o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCalibObjects.mFastTransformMShape, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
+          newCalibObjects.fastTransformMShape = mCalibObjects.mFastTransformMShape.get();
+          mustUpdateHelper = true;
+        }
         if (mustUpdateHelper || mCalibObjects.mFastTransformHelper->isUpdatedLumi()) {
           oldCalibObjects.mFastTransformHelper = std::move(mCalibObjects.mFastTransformHelper);
           mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader);
           mCalibObjects.mFastTransformHelper->copySettings(*oldCalibObjects.mFastTransformHelper);
           mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get());
           mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
+          mCalibObjects.mFastTransformHelper->setCorrMapMShape(mCalibObjects.mFastTransformMShape.get());
           mCalibObjects.mFastTransformHelper->acknowledgeUpdate();
           newCalibObjects.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
         }

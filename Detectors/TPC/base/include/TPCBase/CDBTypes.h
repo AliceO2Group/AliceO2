@@ -79,6 +79,7 @@ enum class CDBType {
   CalTimeSeries,       ///< integrated DCAs for longer time interval
   CalScaler,           ///< Scaler from IDCs or combined estimator
   CalScalerWeights,    ///< Weights for scalers
+  CalMShape,           ///< calibration object for M-shape distortions
                        ///
   CorrMapParam,        ///< parameters for CorrectionMapsLoader configuration
                        ///
@@ -144,6 +145,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalTimeSeries, "TPC/Calib/TimeSeries"},
   {CDBType::CalScaler, "TPC/Calib/Scaler"},
   {CDBType::CalScalerWeights, "TPC/Calib/ScalerWeights"},
+  {CDBType::CalMShape, "TPC/Calib/MShapePotential"},
   // correction maps loader params
   {CDBType::CorrMapParam, "TPC/Calib/CorrMapParam"},
   // distortion maps

@@ -97,6 +97,12 @@ class TPCFastSpaceChargeCorrectionHelper
 
   void testGeometry(const TPCFastTransformGeo& geo) const;
 
+  /// initialise inverse transformation
+  void initInverse(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn);
+
+  /// initialise inverse transformation from linear combination of several input corrections
+  void initInverse(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn);
+
  private:
   /// geometry initialization
   void initGeometry();
@@ -106,9 +112,6 @@ class TPCFastSpaceChargeCorrectionHelper
 
   /// initialise max drift length
   void initMaxDriftLength(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn);
-
-  /// initialise inverse transformation
-  void initInverse(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn);
 
   static TPCFastSpaceChargeCorrectionHelper* sInstance; ///< singleton instance
   bool mIsInitialized = 0;                              ///< initialization flag
