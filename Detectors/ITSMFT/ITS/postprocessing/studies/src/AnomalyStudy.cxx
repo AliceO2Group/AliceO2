@@ -65,6 +65,7 @@ class AnomalyStudy : public Task
 
   // Histos
   std::vector<std::unique_ptr<TH2D>> mTFvsPhiHist;
+  std::vector<std::unique_ptr<TH2D>> mTFvsPhiClusSizeHist;
 };
 
 void AnomalyStudy::updateTimeDependentParams(ProcessingContext& pc)
@@ -82,11 +83,11 @@ void AnomalyStudy::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   prepareOutput();
-  int count{0};
   mTFvsPhiHist.resize(7);
-  for (auto& hist : mTFvsPhiHist) {
-    hist.reset(new TH2D(Form("tf_phi_layer_%d", count), Form("tf_phi_layer_%d", count), mNumberOfStaves[count] * 10, -TMath::Pi(), TMath::Pi(), 100, 0.5, 100.5));
-    count++;
+  mTFvsPhiClusSizeHist.resize(7);
+  for (unsigned int i = 0; i < 7; i++) {
+    mTFvsPhiHist[i].reset(new TH2D(Form("tf_phi_occup_layer_%d", i), " ; #phi ; # TF; Counts", mNumberOfStaves[i] * 10, -TMath::Pi(), TMath::Pi(), 1000, 0.5, 1000.5));
+    mTFvsPhiClusSizeHist[i].reset(new TH2D(Form("tf_phi_clsize_layer_%d", i), "; #phi; # TF ; <Cluster Size>", mNumberOfStaves[i] * 10, -TMath::Pi(), TMath::Pi(), 1000, 0.5, 1000.5));
   }
   LOGP(info, "Initialized {} TFvsPhi histos", mTFvsPhiHist.size());
 }
@@ -103,8 +104,10 @@ void AnomalyStudy::endOfStream(EndOfStreamContext&)
 {
   TFile* f = TFile::Open(o2::its::study::AnomalyStudyParamConfig::Instance().outFileName.c_str(), "recreate");
   // Iterate over all the histograms and write them to the file
-  for (auto& hist : mTFvsPhiHist) {
-    hist->Write();
+  for (unsigned int i = 0; i < 7; i++) {
+    mTFvsPhiClusSizeHist[i]->Divide(mTFvsPhiHist[i].get());
+    mTFvsPhiHist[i]->Write();
+    mTFvsPhiClusSizeHist[i]->Write();
   }
 
   f->Close();
@@ -126,10 +129,15 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
   mTFCount++;
   LOGP(info, "Processing TF: {}", mTFCount);
+  // if (mTFCount > 50) {
+  //   return;
+  // }
   int rofCount = 0;
   auto clusRofRecords = recoData.getITSClustersROFRecords();
   auto compClus = recoData.getITSClusters();
   auto clusPatt = recoData.getITSClustersPatterns();
+
+  mPatterns.clear();
   getClusterPatterns(compClus, clusPatt, *mDict);
   auto pattIt = clusPatt.begin();
   std::vector<ITSCluster> globalClusters;
@@ -143,66 +151,21 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
     for (unsigned int clusInd{0}; clusInd < clustersInRof.size(); clusInd++) {
       const auto& compClus = clustersInRof[clusInd];
       auto& locClus = locClustersInRof[clusInd];
-      mChipMapping.expandChipInfoHW(compClus.getChipID(), lay, sta, ssta, mod, chipInMod);
-
-      // LOG(info) << "Cluster in layer " << lay << " stave " << sta << " sub-stave " << ssta << " module " << mod << " chip " << chipInMod;
-      // LOG(info) << "Cluster in layer " << locClus.getLayer() << " stave " << locClus.getStave() << " sub-stave " << locClus.getSubStave() << " module " << locClus.getModule() << " chip " << locClus.getChipID();
-      // LOGP(info, "Filling {} layer with phi {} and count {}", lay, TMath::ATan2(locClus.getY(), locClus.getX()), mTFCount);
+      auto& clusPattern = patternsInRof[clusInd];
       auto gloC = locClus.getXYZGlo(*mGeom);
+      mChipMapping.expandChipInfoHW(compClus.getChipID(), lay, sta, ssta, mod, chipInMod);
       mTFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount);
-      // if (!lay) { // Inner barrel
-      //   auto col = clus.getCol();
-      //   auto row = clus.getRow();
-      //   int ic = 0, ir = 0;
-
-      //   auto colSpan = patternsInRof[clusInd].getColumnSpan();
-      //   auto rowSpan = patternsInRof[clusInd].getRowSpan();
-      //   auto nBits = rowSpan * colSpan;
-
-      //   for (int i = 2; i < patternsInRof[clusInd].getUsedBytes() + 2; i++) {
-      //     unsigned char tempChar = patternsInRof[clusInd].getByte(i);
-      //     int s = 128; // 0b10000000
-      //     while (s > 0) {
-      //       if ((tempChar & s) != 0) // checking active pixels
-      //       {
-      //         mLayerChipHists[lay][sta * nChipStavesIB + chipInMod]->Fill(col + ic, row + ir);
-      //       }
-      //       ic++;
-      //       s >>= 1;
-      //       if ((ir + 1) * ic == nBits) {
-      //         break;
-      //       }
-      //       if (ic == colSpan) {
-      //         ic = 0;
-      //         ir++;
-      //       }
-      //       if ((ir + 1) * ic == nBits) {
-      //         break;
-      //       }
-      //     }
-      //   }
-      // }
+      if(clusPattern.getNPixels() == 0) {
+        LOGP(info, "Cluster with 0 pixels");
+        LOGP(info, "LayerID: {}", lay);
+      }
+      mTFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount, clusPattern.getNPixels());
     }
   }
 }
 
 void AnomalyStudy::prepareOutput()
 {
-  // auto& params = o2::its::study::ITSClusDistributionParamConfig::Instance();
-  // mNClusDistHist = std::make_unique<TH1F>("nClusDist", "Cluster distribution", 300, 0, 200e3);
-  // mLayerChipHists.resize(3); // only inner barrel atm
-  // int lCount{0};
-  // for (auto& lHists : mLayerChipHists) {
-  //   lHists.resize(nChipStavesIB * nStavesIB[lCount]);
-  //   int cID{0};
-  //   for (auto& cHist : lHists) {
-  //     cHist = std::make_unique<TH2D>(Form("l%d_s%d_c%d", lCount, cID / nChipStavesIB, cID % nChipStavesIB),
-  //                                    Form("l%d_s%d_c%d", lCount, cID / nChipStavesIB, cID % nChipStavesIB),
-  //                                    256, -0.5, 1023.5, 128, -0.5, 511.5);
-  //     cID++;
-  //   }
-  //   lCount++;
-  // }
 }
 
 void AnomalyStudy::getClusterPatterns(gsl::span<const o2::itsmft::CompClusterExt>& ITSclus, gsl::span<const unsigned char>& ITSpatt, const o2::itsmft::TopologyDictionary& mdict)
@@ -214,14 +177,11 @@ void AnomalyStudy::getClusterPatterns(gsl::span<const o2::itsmft::CompClusterExt
     auto& clus = ITSclus[iClus];
 
     auto pattID = clus.getPatternID();
-    int npix;
     o2::itsmft::ClusterPattern patt;
 
     if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mdict.isGroup(pattID)) {
       patt.acquirePattern(pattIt);
-      npix = patt.getNPixels();
     } else {
-      npix = mdict.getNpixels(pattID);
       patt = mdict.getPattern(pattID);
     }
 
