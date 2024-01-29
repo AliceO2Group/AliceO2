@@ -38,8 +38,14 @@ namespace tpc
 {
 
 struct CorrectionMapsLoaderGloOpts {
-  int lumiType = 0;
-  int lumiMode = 0;
+  int lumiType = 0; ///< 0: no scaling, 1: CTP, 2: IDC
+  int lumiMode = 0; ///< 0: classical scaling, 1: Using of the derivative map, 2: Using of the derivative map for MC
+  bool enableMShapeCorrection = false;
+
+  bool needTPCScalersWorkflow() const
+  {
+    return lumiType == 2 || enableMShapeCorrection;
+  }
 };
 
 class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
@@ -55,6 +61,7 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   void updateVDrift(float vdriftCorr, float vdrifRef, float driftTimeOffset = 0);
   void init(o2::framework::InitContext& ic);
   void copySettings(const CorrectionMapsLoader& src);
+  void updateInverse(); /// recalculate inverse correction
 
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, const CorrectionMapsLoaderGloOpts& gloOpts);
   static void addGlobalOptions(std::vector<o2::framework::ConfigParamSpec>& options);
@@ -67,6 +74,7 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
 
   float mInstLumiFactor = 1.0; // multiplicative factor for inst. lumi
   int mCTPLumiSource = 0;      // 0: main, 1: alternative CTP lumi source
+  std::unique_ptr<GPUCA_NAMESPACE::gpu::TPCFastTransform> mCorrMapMShape{nullptr};
 #endif
 };
 

@@ -114,4 +114,7 @@
 #pragma link C++ class o2::tpc::CalculatedEdx + ;
 #pragma link C++ class o2::tpc::TPCScaler + ;
 #pragma link C++ struct o2::tpc::TPCScalerWeights + ;
+#pragma link C++ class o2::tpc::TPCMShapeCorrection + ;
+#pragma link C++ struct o2::tpc::TPCMShape + ;
+#pragma link C++ struct o2::tpc::BoundaryPotentialIFC + ;
 #endif

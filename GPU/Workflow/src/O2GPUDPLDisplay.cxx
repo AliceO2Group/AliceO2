@@ -68,10 +68,13 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformRef = std::move(TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformMShape = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformHelper->setCorrMap(mFastTransform.get());
   mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
+  mFastTransformHelper->setCorrMapMShape(mFastTransformMShape.get());
   mConfig->configCalib.fastTransform = mFastTransformHelper->getCorrMap();
   mConfig->configCalib.fastTransformRef = mFastTransformHelper->getCorrMapRef();
+  mConfig->configCalib.fastTransformMShape = mFastTransformHelper->getCorrMapMShape();
   mConfig->configCalib.fastTransformHelper = mFastTransformHelper.get();
 
   mTrdGeo.reset(new o2::trd::GeometryFlat());

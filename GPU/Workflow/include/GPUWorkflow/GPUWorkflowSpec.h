@@ -104,6 +104,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct Config {
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
+    bool enableMShape = false;
     int enableDoublePipeline = 0;
     int tpcDeadMapSources = -1;
     bool decompressTPC = false;
@@ -148,6 +149,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct calibObjectStruct {
     std::unique_ptr<TPCFastTransform> mFastTransform;
     std::unique_ptr<TPCFastTransform> mFastTransformRef;
+    std::unique_ptr<TPCFastTransform> mFastTransformMShape;
     std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
     std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
     std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;

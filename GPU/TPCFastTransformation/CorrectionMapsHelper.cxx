@@ -20,13 +20,16 @@ void CorrectionMapsHelper::clear()
   if (mOwner) {
     delete mCorrMap;
     delete mCorrMapRef;
+    delete mCorrMapMShape;
   }
   mCorrMap = nullptr;
   mCorrMapRef = nullptr;
+  mCorrMapMShape = nullptr;
   mUpdatedFlags = 0;
   mInstLumi = 0.f;
   mMeanLumi = 0.f;
   mMeanLumiRef = 0.f;
+  mScaleInverse = false;
 }
 
 void CorrectionMapsHelper::setOwner(bool v)
@@ -55,6 +58,14 @@ void CorrectionMapsHelper::setCorrMapRef(TPCFastTransform* m)
   mCorrMapRef = m;
 }
 
+void CorrectionMapsHelper::setCorrMapMShape(TPCFastTransform* m)
+{
+  if (mOwner) {
+    delete mCorrMapMShape;
+  }
+  mCorrMapMShape = m;
+}
+
 //________________________________________________________
 void CorrectionMapsHelper::setCorrMap(std::unique_ptr<TPCFastTransform>&& m)
 {
@@ -75,8 +86,17 @@ void CorrectionMapsHelper::setCorrMapRef(std::unique_ptr<TPCFastTransform>&& m)
   mCorrMapRef = m.release();
 }
 
+void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& m)
+{
+  if (!mOwner) {
+    throw std::runtime_error("we must not take the ownership from a unique ptr if mOwnerMShape is not set");
+  }
+  delete mCorrMapMShape;
+  mCorrMapMShape = m.release();
+}
+
 //________________________________________________________
 void CorrectionMapsHelper::reportScaling()
 {
-  LOGP(info, "Map scaling update: InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumi(), getLumiScale(), getLumiScaleMode());
+  LOGP(info, "Map scaling update: InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumiRef={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}, is M-Shape map valid: {}, is M-Shape default: {}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(), getLumiScaleMode(), (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
 }

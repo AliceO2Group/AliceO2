@@ -693,7 +693,7 @@ void SpaceCharge<DataT>::calcEField(const Side side)
   auto stop = timer::now();
   std::chrono::duration<float> time = stop - start;
   const float totalTime = time.count();
-  LOGP(info, "electric field calculation took {}s", totalTime);
+  LOGP(detail, "electric field calculation took {}s", totalTime);
 }
 
 template <typename DataT>
@@ -1501,7 +1501,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
   auto stop = timer::now();
   std::chrono::duration<float> time = stop - start;
   const float totalTime = time.count();
-  LOGP(info, "calcGlobalCorrections took {}s", totalTime);
+  LOGP(detail, "calcGlobalCorrections took {}s", totalTime);
 }
 
 template <typename DataT>
@@ -2628,7 +2628,7 @@ void SpaceCharge<DataT>::setBFields(o2::parameters::GRPMagField& magField)
   auto& gasParam = ParameterGas::Instance();
   float vDrift = gasParam.DriftV; // drift velocity in cm/us
   const float omegaTau = -10. * bzField * vDrift / std::abs(getEzField(Side::A));
-  LOGP(info, "Setting omegaTau to {} for {}kG", omegaTau, bzField);
+  LOGP(detail, "Setting omegaTau to {} for {}kG", omegaTau, bzField);
   const float t1 = 1.;
   const float t2 = 1.;
   setOmegaTauT1T2(omegaTau, t1, t2);
@@ -3480,11 +3480,11 @@ void SpaceCharge<DataT>::setIFCChargeUpFallingPot(const float deltaPot, const fl
         return pot;
       } else if (type == 2) {
         // 1/x dependency steep fall off!
-        const float offsZ = 1;
+        const float offsZ = 1 + offs;
         const float zEndTmp = zEnd - zMaxDeltaPot + offsZ;
         const float p1 = deltaPot / (1 / offsZ - 1 / zEndTmp);
         const float p2 = -p1 / zEndTmp;
-        const float absZShifted = absZ - zMaxDeltaPot;
+        const float absZShifted = absZ - zMaxDeltaPot + offsZ;
         DataT pot = p2 + p1 / absZShifted;
         return pot;
       } else if (type == 0 || type == 3) {
@@ -3746,6 +3746,72 @@ void SpaceCharge<DataT>::initAfterReadingFromFile()
 {
   mGrid3D[Side::A] = RegularGrid(GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices), mParamGrid);
   mGrid3D[Side::C] = RegularGrid(GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices), mParamGrid);
+}
+
+template <typename DataT>
+float SpaceCharge<DataT>::getDCAr(float tgl, const int nPoints, const float phi, o2::utils::TreeStreamRedirector* pcstream) const
+{
+  const float rmin = getRMin(o2::tpc::Side::A);
+  std::vector<float> dRphi;
+  std::vector<float> r;
+  dRphi.reserve(nPoints);
+  r.reserve(nPoints);
+  for (int i = 0; i < nPoints; ++i) {
+    float radius = rmin + i;
+    float z = tgl * radius;
+    DataT distZ = 0;
+    DataT distR = 0;
+    DataT distRPhi = 0;
+    getDistortionsCyl(z, radius, phi, o2::tpc::Side::A, distZ, distR, distRPhi);
+    dRphi.emplace_back(distRPhi);
+    r.emplace_back(radius);
+  }
+
+  TF1 fPol("pol2", "pol2", rmin, r.back());
+  fPol.SetParameter(0, 0);
+  fPol.SetParameter(1, 0);
+  fPol.SetParameter(2, 0);
+  TGraph gr(r.size(), r.data(), dRphi.data());
+  gr.Fit(&fPol, "QNRC");
+  float dca = fPol.Eval(0);
+  if (pcstream) {
+    std::vector<double> params{fPol.GetParameter(0), fPol.GetParameter(1), fPol.GetParameter(2)};
+    std::vector<float> rInterpol;
+    std::vector<float> dRPhiInterpol;
+    std::vector<float> distanceInterpol;
+
+    for (int i = 0; i < 500; ++i) {
+      float radius = rmin + float(i) / 10;
+      rInterpol.emplace_back(radius);
+      dRPhiInterpol.emplace_back(fPol.Eval(radius));
+      distanceInterpol.emplace_back(std::sqrt(rInterpol.back() * rInterpol.back() + dRPhiInterpol.back() * dRPhiInterpol.back()));
+    }
+
+    for (int i = -200; i < 200; ++i) {
+      float radius = float(i) / 10;
+      rInterpol.emplace_back(radius);
+      dRPhiInterpol.emplace_back(fPol.Eval(radius));
+      distanceInterpol.emplace_back(std::sqrt(rInterpol.back() * rInterpol.back() + dRPhiInterpol.back() * dRPhiInterpol.back()));
+    }
+    (*pcstream) << "tree"
+                << "r=" << r
+                << "dRphi=" << dRphi
+                << "tgl=" << tgl
+                << "dca=" << dca
+                << "rInterpol=" << rInterpol
+                << "dRPhiInterpol=" << dRPhiInterpol
+                << "distanceInterpol=" << distanceInterpol
+                << "param=" << params
+                << "\n";
+  }
+  return dca;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setPotential(int iz, int ir, int iphi, Side side, float val)
+{
+  initContainer(mPotential[side], true);
+  mPotential[side](iz, ir, iphi) = val;
 }
 
 using DataTD = double;

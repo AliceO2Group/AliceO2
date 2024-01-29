@@ -270,15 +270,18 @@ GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
 
 parse_TPC_CORR_SCALING()
 {
+local IGNOREIDC=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; [[ ${1#*=} == "2" ]] && NEED_TPC_SCALERS_WF=1; shift 1;;
-    --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; [[ ${2} == "2" ]] && NEED_TPC_SCALERS_WF=1; shift 2;;
+    --lumi-type=*) TPC_CORR_OPT+=" --lumi-type ${1#*=}"; [[ ${1#*=} == "2" ]] && { NEED_TPC_SCALERS_WF=1; IGNOREIDC=0; }; shift 1;;
+    --lumi-type) TPC_CORR_OPT+=" --lumi-type ${2}"; [[ ${2} == "2" ]] && { NEED_TPC_SCALERS_WF=1; IGNOREIDC=0; }; shift 2;;
+    --enable-M-shape-correction) TPC_CORR_OPT+=" --enable-M-shape-correction"; NEED_TPC_SCALERS_WF=1; TPC_SCALERS_CONF+=" --enable-M-shape-correction" ; shift 1;;
     --corrmap-lumi-mode=*) TPC_CORR_OPT+=" --corrmap-lumi-mode ${1#*=}"; shift 1;;
     --corrmap-lumi-mode) TPC_CORR_OPT+=" --corrmap-lumi-mode ${2}"; shift 2;;
     *) TPC_CORR_KEY+="$1;"; shift 1;;
   esac
 done
+[[ ${NEED_TPC_SCALERS_WF:-} == 1 ]] && [[ $IGNOREIDC == 1 ]] && TPC_SCALERS_CONF+=" --disable-IDC-scalers"
 }
 
 parse_TPC_CORR_SCALING $TPC_CORR_SCALING

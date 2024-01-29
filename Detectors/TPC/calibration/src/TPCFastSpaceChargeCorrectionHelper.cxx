@@ -28,6 +28,7 @@
 #include "Riostream.h"
 #include <fairlogger/Logger.h>
 #include <thread>
+#include "TStopwatch.h"
 
 using namespace o2::gpu;
 
@@ -653,10 +654,22 @@ void TPCFastSpaceChargeCorrectionHelper::initMaxDriftLength(o2::gpu::TPCFastSpac
 
 void TPCFastSpaceChargeCorrectionHelper::initInverse(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn)
 {
-  /// initialise inverse transformation
+  std::vector<o2::gpu::TPCFastSpaceChargeCorrection*> corr{&correction};
+  initInverse(corr, std::vector<float>{1}, prn);
+}
 
+void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFastSpaceChargeCorrection*>& corrections, const std::vector<float>& scaling, bool prn)
+{
+  /// initialise inverse transformation
+  TStopwatch watch;
   LOG(info) << "fast space charge correction helper: init inverse";
 
+  if (corrections.size() != scaling.size()) {
+    LOGP(error, "Input corrections and scaling values have different size");
+    return;
+  }
+
+  auto& correction = *(corrections.front());
   initMaxDriftLength(correction, prn);
 
   double tpcR2min = mGeo.getRowInfo(0).x - 1.;
@@ -709,6 +722,17 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(o2::gpu::TPCFastSpaceCharge
           for (double v = v0; v < v1 + stepV; v += stepV) {
             float dx, du, dv;
             correction.getCorrection(slice, row, u, v, dx, du, dv);
+            dx *= scaling[0];
+            du *= scaling[0];
+            dv *= scaling[0];
+            // add remaining corrections
+            for (int i = 1; i < corrections.size(); ++i) {
+              float dxTmp, duTmp, dvTmp;
+              corrections[i]->getCorrection(slice, row, u, v, dxTmp, duTmp, dvTmp);
+              dx += dxTmp * scaling[i];
+              du += duTmp * scaling[i];
+              dv += dvTmp * scaling[i];
+            }
             double cx = x + dx;
             double cu = u + du;
             double cv = v + dv;
@@ -789,6 +813,8 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(o2::gpu::TPCFastSpaceCharge
     }
 
   } // slice
+  float duration = watch.RealTime();
+  LOGP(info, "Inverse took: {}s", duration);
 }
 
 } // namespace tpc
