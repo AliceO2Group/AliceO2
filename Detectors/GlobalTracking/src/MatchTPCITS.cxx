@@ -1224,6 +1224,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
 {
   // propagate track to matching reference X, making sure its assigned alpha
   // is consistent with TPC sector
+  constexpr float TgHalfSector = 0.17632698f;
   bool refReached = false;
   refReached = mParams->XMatchingRef < 10.; // RS: tmp, to cover XMatchingRef~0
   int trialsLeft = 2;
@@ -1232,7 +1233,7 @@ bool MatchTPCITS::propagateToRefX(o2::track::TrackParCov& trc)
       break;
     }
     // make sure the track is indeed within the sector defined by alpha
-    if (fabs(trc.getY()) < mParams->XMatchingRef * tan(o2::constants::math::SectorSpanRad / 2)) {
+    if (fabs(trc.getY()) < mParams->XMatchingRef * TgHalfSector) {
       refReached = true;
       break; // ok, within
     }
