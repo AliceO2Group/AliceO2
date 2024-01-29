@@ -65,6 +65,8 @@ class AnomalyStudy : public Task
   // Histos
   std::vector<std::unique_ptr<TH2F>> mTFvsPhiHist;
   std::vector<std::unique_ptr<TH2F>> mTFvsPhiClusSizeHist;
+  std::vector<std::unique_ptr<TH2F>> mROFvsPhiHist;
+  std::vector<std::unique_ptr<TH2F>> mROFvsPhiClusSizeHist;
 };
 
 void AnomalyStudy::updateTimeDependentParams(ProcessingContext& pc)
@@ -82,12 +84,18 @@ void AnomalyStudy::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   prepareOutput();
+
   mTFvsPhiHist.resize(7);
   mTFvsPhiClusSizeHist.resize(7);
+  mROFvsPhiHist.resize(7);
+  mROFvsPhiClusSizeHist.resize(7);
   auto nTF = o2::its::study::AnomalyStudyParamConfig::Instance().nTimeFramesOffset;
+  auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
   for (unsigned int i = 0; i < 7; i++) {
-    mTFvsPhiHist[i].reset(new TH2F(Form("tf_phi_occup_layer_%d", i), " ; #phi ; # TF; Counts", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF+0.5));
-    mTFvsPhiClusSizeHist[i].reset(new TH2F(Form("tf_phi_clsize_layer_%d", i), "; #phi; # TF ; <Cluster Size>", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF+0.5));
+    mTFvsPhiHist[i].reset(new TH2F(Form("tf_phi_occup_layer_%d", i), " ; #phi ; # TF; Counts", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
+    mTFvsPhiClusSizeHist[i].reset(new TH2F(Form("tf_phi_clsize_layer_%d", i), "; #phi; # TF ; <Cluster Size>", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
+    mROFvsPhiHist[i].reset(new TH2F(Form("rof_phi_layer_%d", i), Form("rof_phi_layer_%d", i), 150, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
+    mROFvsPhiClusSizeHist[i].reset(new TH2F(Form("rof_phi_clsize_layer_%d", i), Form("rof_phi_clsize_layer_%d", i), 150, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
   }
 }
 
@@ -107,6 +115,9 @@ void AnomalyStudy::endOfStream(EndOfStreamContext&)
     mTFvsPhiClusSizeHist[i]->Divide(mTFvsPhiHist[i].get());
     mTFvsPhiHist[i]->Write();
     mTFvsPhiClusSizeHist[i]->Write();
+    mROFvsPhiHist[i]->Write();
+    mROFvsPhiClusSizeHist[i]->Divide(mROFvsPhiHist[i].get());
+    mROFvsPhiClusSizeHist[i]->Write();
   }
 
   f->Close();
@@ -128,25 +139,23 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
   mTFCount++;
   LOGP(info, "Processing TF: {}", mTFCount);
-  // if (mTFCount > 50) {
-  //   return;
-  // }
+  auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
   int rofCount = 0;
   auto clusRofRecords = recoData.getITSClustersROFRecords();
   auto compClus = recoData.getITSClusters();
   auto clusPatt = recoData.getITSClustersPatterns();
 
-  mPatterns.clear();
   getClusterPatterns(compClus, clusPatt, *mDict);
   auto pattIt = clusPatt.begin();
   std::vector<ITSCluster> globalClusters;
   o2::its::ioutils::convertCompactClusters(compClus, pattIt, globalClusters, mDict);
 
   int lay, sta, ssta, mod, chipInMod;
-  for (auto& rofRecord : clusRofRecords) {
-    auto clustersInRof = rofRecord.getROFData(compClus);
-    auto patternsInRof = rofRecord.getROFData(mPatterns);
-    auto locClustersInRof = rofRecord.getROFData(globalClusters);
+  for (unsigned int iRof{0}; iRof < clusRofRecords.size(); ++iRof) {
+    auto clustersInRof = clusRofRecords[iRof].getROFData(compClus);
+    auto patternsInRof = clusRofRecords[iRof].getROFData(mPatterns);
+    auto locClustersInRof = clusRofRecords[iRof].getROFData(globalClusters);
+    LOGP(info, "Processing ROF: {}/{} with {} clusters", rofCount, nROF, clustersInRof.size());
     for (unsigned int clusInd{0}; clusInd < clustersInRof.size(); clusInd++) {
       const auto& compClus = clustersInRof[clusInd];
       auto& locClus = locClustersInRof[clusInd];
@@ -154,11 +163,14 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
       auto gloC = locClus.getXYZGlo(*mGeom);
       mChipMapping.expandChipInfoHW(compClus.getChipID(), lay, sta, ssta, mod, chipInMod);
       mTFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount);
-      if(clusPattern.getNPixels() == 0) {
+      mROFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount * nROF + rofCount);
+      if (clusPattern.getNPixels() == 0) {
         LOGP(info, "Cluster with 0 pixels");
         LOGP(info, "LayerID: {}", lay);
       }
       mTFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount, clusPattern.getNPixels());
+      mROFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount * nROF + rofCount, clusPattern.getNPixels());
+      ++rofCount;
     }
   }
 }
