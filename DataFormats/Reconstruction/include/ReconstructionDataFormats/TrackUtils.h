@@ -162,12 +162,12 @@ GPUd() value_T BetheBlochSolidOpt(value_T bg)
   // The default values for the kp* parameters are for silicon.
   // The returned value is in [GeV/(g/cm^2)].
   //
+  //  constexpr value_T rho = 2.33;
+  //  constexpr value_T meanI = 173e-9;
   constexpr value_T mK = 0.307075e-3; // [GeV*cm^2/g]
   constexpr value_T me = 0.511e-3;    // [GeV/c^2]
-  constexpr value_T rho = 2.33;
   constexpr value_T kp1 = 0.20 * 2.303;
   constexpr value_T kp2 = 3.00 * 2.303;
-  constexpr value_T meanI = 173e-9;
   constexpr value_T meanZA = 0.49848;
   constexpr value_T lhwI = -1.7175226;         // gpu::CAMath::Log(28.816 * 1e-9 * gpu::CAMath::Sqrt(rho * meanZA) / meanI);
   constexpr value_T log2muTomeanI = 8.6839805; // gpu::CAMath::Log( 2. * me / meanI);
