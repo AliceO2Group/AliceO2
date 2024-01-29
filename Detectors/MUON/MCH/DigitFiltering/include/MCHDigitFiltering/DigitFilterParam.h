@@ -29,7 +29,7 @@ struct DigitFilterParam : public o2::conf::ConfigurableParamHelper<DigitFilterPa
   bool rejectBackground = true; ///< attempts to reject background (loose background selection, don't kill signal)
   bool selectSignal = false;    ///< attempts to select only signal (strict background selection, might loose signal)
   int timeOffset = 120;         ///< digit time calibration offset
-  uint32_t statusMask = 0;      ///< mask to reject digits based on the statusmap (0=no rejection,1=badchannels from ped calib only,2=badchannels from rejectlist,3=1+2)
+  uint32_t statusMask = 3;      ///< mask to reject digits based on the statusmap (0=no rejection,1=badchannels from ped calib only,2=badchannels from rejectlist,3=1+2)
 
   O2ParamDef(DigitFilterParam, "MCHDigitFilter");
 };
