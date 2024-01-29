@@ -16,18 +16,19 @@
 
 #include "Mergers/MergerAlgorithm.h"
 
-#include "Mergers/MergeInterface.h"
 #include "Framework/Logger.h"
+#include "Mergers/MergeInterface.h"
+#include "Mergers/ObjectStore.h"
 
+#include <TEfficiency.h>
+#include <TGraph.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
 #include <THn.h>
-#include <TTree.h>
 #include <THnSparse.h>
 #include <TObjArray.h>
-#include <TGraph.h>
-#include <TEfficiency.h>
+#include <TTree.h>
 
 namespace o2::mergers::algorithm
 {
@@ -124,6 +125,20 @@ void merge(TObject* const target, TObject* const other)
     if (errorCode == -1) {
       LOG(error) << "Failed to merge the input object '" + std::string(other->GetName()) + "' of type '" + std::string(other->ClassName()) //
                       + " and the target object '" + std::string(target->GetName()) + "' of type '" + std::string(target->ClassName()) + "'";
+    }
+  }
+}
+
+void merge(VectorOfTObjectPtrs& targets, const VectorOfTObjectPtrs& others)
+{
+  for (const auto& other : others) {
+    if (const auto targetSameName = std::find_if(targets.begin(), targets.end(), [&other](const auto& target) {
+          return std::string_view{other->GetName()} == std::string_view{target->GetName()};
+        });
+        targetSameName != targets.end()) {
+      merge(targetSameName->get(), other.get());
+    } else {
+      targets.push_back(std::shared_ptr<TObject>(other->Clone(), deleteTCollections));
     }
   }
 }

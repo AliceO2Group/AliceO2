@@ -14,6 +14,9 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
+#include <boost/test/tools/interface.hpp>
+#include <gsl/span>
+#include <memory>
 #define BOOST_TEST_MODULE Test Utilities MergerAlgorithm
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -23,6 +26,7 @@
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/CustomMergeableTObject.h"
 #include "Mergers/CustomMergeableObject.h"
+#include "Mergers/ObjectStore.h"
 
 #include <TObjArray.h>
 #include <TObjString.h>
@@ -36,12 +40,12 @@
 #include <TGraph.h>
 #include <TProfile.h>
 
-//using namespace o2::framework;
+// using namespace o2::framework;
 using namespace o2::mergers;
 
-const size_t bins = 10;
-const size_t min = 0;
-const size_t max = 10;
+constexpr size_t bins = 10;
+constexpr size_t min = 0;
+constexpr size_t max = 10;
 
 BOOST_AUTO_TEST_CASE(MergerEmptyObjects)
 {
@@ -343,4 +347,139 @@ BOOST_AUTO_TEST_CASE(AverageHisto)
 
   BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
   BOOST_CHECK_CLOSE(target->GetBinContent(other->FindBin(5)), 1.0, 0.001);
+
+  delete target;
+  delete other;
 }
+
+BOOST_AUTO_TEST_SUITE(VectorOfHistos)
+
+gsl::span<float> to_span(std::shared_ptr<TH1F>& histo)
+{
+  return {histo->GetArray(), static_cast<uint>(histo->GetSize())};
+}
+
+template <typename T, std::size_t N>
+gsl::span<T, N> to_array(T (&&arr)[N])
+{
+  return arr;
+}
+
+BOOST_AUTO_TEST_CASE(SameLength, *boost::unit_test::tolerance(0.001))
+{
+  auto target1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  target1_1->Fill(5);
+  target1_1->Fill(5);
+
+  auto target1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  target1_2->Fill(5);
+  target1_2->Fill(5);
+  target1_2->Fill(5);
+  target1_2->Fill(5);
+
+  VectorOfTObjectPtrs target{target1_1, target1_2};
+
+  auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  other1_1->Fill(5);
+
+  auto other1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  other1_2->Fill(5);
+  other1_2->Fill(5);
+
+  VectorOfTObjectPtrs other{other1_1, other1_2};
+
+  BOOST_TEST(target.size() == 2);
+  BOOST_TEST(other.size() == 2);
+
+  BOOST_TEST(to_span(target1_1) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(target1_2) == to_array({0., 0., 0., 0., 0., 0., 4., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_1) == to_array({0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_2) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+
+  BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+
+  BOOST_TEST(target.size() == 2);
+  BOOST_TEST(other.size() == 2);
+
+  BOOST_TEST(to_span(target1_1) == to_array({0., 0., 0., 0., 0., 0., 3., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(target1_2) == to_array({0., 0., 0., 0., 0., 0., 6., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_1) == to_array({0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_2) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(TargetLonger, *boost::unit_test::tolerance(0.001))
+{
+  auto target1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  target1_1->Fill(5);
+  target1_1->Fill(5);
+
+  auto target1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  target1_2->Fill(5);
+  target1_2->Fill(5);
+  target1_2->Fill(5);
+  target1_2->Fill(5);
+
+  VectorOfTObjectPtrs target{target1_1, target1_2};
+
+  auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  other1_1->Fill(5);
+
+  VectorOfTObjectPtrs other{other1_1};
+
+  BOOST_TEST(target.size() == 2);
+  BOOST_TEST(other.size() == 1);
+
+  BOOST_TEST(to_span(target1_1) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(target1_2) == to_array({0., 0., 0., 0., 0., 0., 4., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_1) == to_array({0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+
+  BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+
+  BOOST_TEST(target.size() == 2);
+  BOOST_TEST(other.size() == 1);
+
+  BOOST_TEST(to_span(target1_1) == to_array({0., 0., 0., 0., 0., 0., 3., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(target1_2) == to_array({0., 0., 0., 0., 0., 0., 4., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_1) == to_array({0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+}
+
+BOOST_AUTO_TEST_CASE(OtherLonger, *boost::unit_test::tolerance(0.001))
+{
+  auto target1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  target1_1->Fill(5);
+  target1_1->Fill(5);
+
+  VectorOfTObjectPtrs target{target1_1};
+
+  auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
+  other1_1->Fill(5);
+
+  auto other1_2 = std::make_shared<TH1F>("histo 1-2", "histo 1-2", bins, min, max);
+  other1_2->Fill(5);
+  other1_2->Fill(5);
+
+  VectorOfTObjectPtrs other{other1_1, other1_2};
+
+  BOOST_TEST(target.size() == 1);
+  BOOST_TEST(other.size() == 2);
+
+  BOOST_TEST(std::string_view{target[0]->GetName()} == "histo 1-1");
+
+  BOOST_TEST(to_span(target1_1) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_1) == to_array({0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_2) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+
+  BOOST_CHECK_NO_THROW(algorithm::merge(target, other));
+
+  BOOST_TEST(target.size() == 2);
+  BOOST_TEST(other.size() == 2);
+
+  BOOST_TEST(std::string_view{target[0]->GetName()} == "histo 1-1");
+  BOOST_TEST(std::string_view{target[1]->GetName()} == "histo 1-2");
+
+  BOOST_TEST(to_span(target1_1) == to_array({0., 0., 0., 0., 0., 0., 3., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_1) == to_array({0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+  BOOST_TEST(to_span(other1_2) == to_array({0., 0., 0., 0., 0., 0., 2., 0., 0., 0., 0., 0.}), boost::test_tools::per_element());
+}
+
+BOOST_AUTO_TEST_SUITE_END()

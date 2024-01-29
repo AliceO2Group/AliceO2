@@ -18,5 +18,6 @@
 #pragma link C++ class o2::mergers::MergeInterface + ;
 #pragma link C++ class o2::mergers::CustomMergeableObject + ;
 #pragma link C++ class o2::mergers::CustomMergeableTObject + ;
+#pragma link C++ class std::vector < TObject*> + ;
 
 #endif
