@@ -138,7 +138,7 @@ void merge(VectorOfTObjectPtrs& targets, const VectorOfTObjectPtrs& others)
         targetSameName != targets.end()) {
       merge(targetSameName->get(), other.get());
     } else {
-      targets.push_back(other);
+      targets.push_back(std::shared_ptr<TObject>(other->Clone(), deleteTCollections));
     }
   }
 }

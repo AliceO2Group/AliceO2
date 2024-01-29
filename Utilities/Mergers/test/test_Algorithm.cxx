@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(SameLength, *boost::unit_test::tolerance(0.001))
   target1_2->Fill(5);
   target1_2->Fill(5);
 
-  VectorOfTObjectPtr target{target1_1, target1_2};
+  VectorOfTObjectPtrs target{target1_1, target1_2};
 
   auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   other1_1->Fill(5);
@@ -386,7 +386,7 @@ BOOST_AUTO_TEST_CASE(SameLength, *boost::unit_test::tolerance(0.001))
   other1_2->Fill(5);
   other1_2->Fill(5);
 
-  VectorOfTObjectPtr other{other1_1, other1_2};
+  VectorOfTObjectPtrs other{other1_1, other1_2};
 
   BOOST_TEST(target.size() == 2);
   BOOST_TEST(other.size() == 2);
@@ -419,12 +419,12 @@ BOOST_AUTO_TEST_CASE(TargetLonger, *boost::unit_test::tolerance(0.001))
   target1_2->Fill(5);
   target1_2->Fill(5);
 
-  VectorOfTObjectPtr target{target1_1, target1_2};
+  VectorOfTObjectPtrs target{target1_1, target1_2};
 
   auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   other1_1->Fill(5);
 
-  VectorOfTObjectPtr other{other1_1};
+  VectorOfTObjectPtrs other{other1_1};
 
   BOOST_TEST(target.size() == 2);
   BOOST_TEST(other.size() == 1);
@@ -449,7 +449,7 @@ BOOST_AUTO_TEST_CASE(OtherLonger, *boost::unit_test::tolerance(0.001))
   target1_1->Fill(5);
   target1_1->Fill(5);
 
-  VectorOfTObjectPtr target{target1_1};
+  VectorOfTObjectPtrs target{target1_1};
 
   auto other1_1 = std::make_shared<TH1F>("histo 1-1", "histo 1-1", bins, min, max);
   other1_1->Fill(5);
@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_CASE(OtherLonger, *boost::unit_test::tolerance(0.001))
   other1_2->Fill(5);
   other1_2->Fill(5);
 
-  VectorOfTObjectPtr other{other1_1, other1_2};
+  VectorOfTObjectPtrs other{other1_1, other1_2};
 
   BOOST_TEST(target.size() == 1);
   BOOST_TEST(other.size() == 2);

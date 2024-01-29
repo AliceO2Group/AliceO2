@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(VectorOfHistos1D)
   histo->Fill(5);
   VectorOfTObjectPtrs vectorWithData{histo};
 
-  auto vectorToDataRef = object_store_helpers::toRawPointers(vectorWithData);
+  auto vectorToDataRef = object_store_helpers::toRawObserverPointers(vectorWithData);
 
   DataRef ref = makeDataRef(&vectorToDataRef);
   auto objStore = object_store_helpers::extractObjectFrom(ref);
