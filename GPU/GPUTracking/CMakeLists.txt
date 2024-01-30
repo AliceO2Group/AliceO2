@@ -513,3 +513,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
     add_subdirectory(Standalone/Benchmark)
   endif()
 endif()
+
+if(${GPUCA_NO_FAST_MATH})
+  target_compile_definitions(${targetName} PUBLIC GPUCA_NO_FAST_MATH)
+endif()
