@@ -86,6 +86,7 @@ struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<Anomal
   std::string outFileName = "its_AnomalyStudy.root";
   size_t nTimeFramesOffset = 500;
   size_t nRofTimeFrames = 192;
+  float nPhiBinsMultiplier = 1.f;
 
   O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
 };

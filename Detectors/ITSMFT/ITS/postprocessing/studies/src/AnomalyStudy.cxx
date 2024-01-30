@@ -32,7 +32,6 @@ using ITSCluster = o2::BaseCluster<float>;
 class AnomalyStudy : public Task
 {
   static constexpr int nChipStavesIB{9};
-  static constexpr std::array<int, 3> nStavesIB{12, 16, 20};
 
  public:
   AnomalyStudy(std::shared_ptr<DataRequest> dr,
@@ -52,6 +51,7 @@ class AnomalyStudy : public Task
  private:
   bool mUseMC;
   int mTFCount{0};
+  const int mNumberOfStaves[7] = {12, 16, 20, 24, 30, 42, 48};
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
@@ -91,11 +91,13 @@ void AnomalyStudy::init(InitContext& ic)
   mROFvsPhiClusSizeHist.resize(7);
   auto nTF = o2::its::study::AnomalyStudyParamConfig::Instance().nTimeFramesOffset;
   auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
+
   for (unsigned int i = 0; i < 7; i++) {
-    mTFvsPhiHist[i].reset(new TH2F(Form("tf_phi_occup_layer_%d", i), " ; #phi ; # TF; Counts", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
-    mTFvsPhiClusSizeHist[i].reset(new TH2F(Form("tf_phi_clsize_layer_%d", i), "; #phi; # TF ; <Cluster Size>", 150, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
-    mROFvsPhiHist[i].reset(new TH2F(Form("rof_phi_occup_layer_%d", i), "; #phi; # ROF; Counts", 150, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
-    mROFvsPhiClusSizeHist[i].reset(new TH2F(Form("rof_phi_clsize_layer_%d", i), "; #phi; # ROF; <Cluster Size>", 150, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
+    int phiBins = o2::its::study::AnomalyStudyParamConfig::Instance().nPhiBinsMultiplier * mNumberOfStaves[i];
+    mTFvsPhiHist[i].reset(new TH2F(Form("tf_phi_occup_layer_%d", i), Form("Occupancy layer %d ; #phi ; # TF; Counts", i), phiBins, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
+    mTFvsPhiClusSizeHist[i].reset(new TH2F(Form("tf_phi_clsize_layer_%d", i), Form("Cluster size layer %d ; #phi; # TF ; #lt Cluster Size #gt", i), phiBins, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
+    mROFvsPhiHist[i].reset(new TH2F(Form("rof_phi_occup_layer_%d", i), Form("Occupancy layer %d ; #phi; # ROF; Counts", i), phiBins, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
+    mROFvsPhiClusSizeHist[i].reset(new TH2F(Form("rof_phi_clsize_layer_%d", i), Form("Cluster size layer %d; #phi; # ROF; #lt Cluster Size #gt", i), phiBins, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
   }
 }
 
