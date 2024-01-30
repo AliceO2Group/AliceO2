@@ -220,6 +220,20 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
           LOGP(error, "Expected Lifetime::Timeframe data {} was not created for timeslice {} and might result in dropped timeframes", DataSpecUtils::describe(matcher), timeslice);
         }
       } },
+    .preEOS = [](EndOfStreamContext& context, void* service) {
+      // We need to reset the routeUserCreated because the end of stream
+      // uses a different context which does not know about the routes.
+      // FIXME: This should be fixed in a different way, but for now it will
+      // allow TPC IDC to work.
+      auto* stream = (StreamContext*)service;
+      auto& routes = context.services().get<DeviceSpec const>().outputs;
+      // Notice I need to do this here, because different invocation for
+      // the same stream might be referring to different data processors.
+      // We should probably have a context which is per stream of a specific
+      // data processor.
+      stream->routeUserCreated.resize(routes.size());
+      // Reset the routeUserCreated at every processing step
+      std::fill(stream->routeUserCreated.begin(), stream->routeUserCreated.end(), false); },
     .kind = ServiceKind::Stream};
 }
 
