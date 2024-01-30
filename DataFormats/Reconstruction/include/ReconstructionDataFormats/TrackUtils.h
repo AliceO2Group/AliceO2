@@ -164,25 +164,25 @@ GPUd() value_T BetheBlochSolidOpt(value_T bg)
   //
   //  constexpr value_T rho = 2.33;
   //  constexpr value_T meanI = 173e-9;
+  //  constexpr value_T me = 0.511e-3;    // [GeV/c^2]
+
   constexpr value_T mK = 0.307075e-3; // [GeV*cm^2/g]
-  constexpr value_T me = 0.511e-3;    // [GeV/c^2]
   constexpr value_T kp1 = 0.20 * 2.303;
   constexpr value_T kp2 = 3.00 * 2.303;
   constexpr value_T meanZA = 0.49848;
   constexpr value_T lhwI = -1.7175226;         // gpu::CAMath::Log(28.816 * 1e-9 * gpu::CAMath::Sqrt(rho * meanZA) / meanI);
   constexpr value_T log2muTomeanI = 8.6839805; // gpu::CAMath::Log( 2. * me / meanI);
 
-  value_T bg2 = bg * bg, beta2 = bg2 / (1 + bg2);
-  value_T maxT = 2.f * me * bg2; // neglecting the electron mass
+  value_T bg2 = bg * bg, beta2 = bg2 / (1. + bg2);
 
   //*** Density effect
   value_T d2 = 0.;
   const value_T x = gpu::CAMath::Log(bg);
   if (x > kp2) {
-    d2 = lhwI + x - 0.5f;
+    d2 = lhwI - 0.5f + x;
   } else if (x > kp1) {
     value_T r = (kp2 - x) / (kp2 - kp1);
-    d2 = lhwI + x - 0.5 + (0.5 - lhwI - kp1) * r * r * r;
+    d2 = lhwI - 0.5 + x + (0.5 - lhwI - kp1) * r * r * r;
   }
   auto dedx = mK * meanZA / beta2 * (log2muTomeanI + x + x - beta2 - d2);
   return dedx > 0. ? dedx : 0.;
