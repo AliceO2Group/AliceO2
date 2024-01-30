@@ -12,6 +12,8 @@
 #define _USE_MATH_DEFINES
 
 #include <cmath>
+// for std::find
+#include <algorithm>
 
 // root includes
 #include "TStyle.h"
@@ -23,6 +25,7 @@
 // o2 includes
 #include "DataFormatsTPC/dEdxInfo.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/PIDResponse.h"
 #include "TPCQC/PID.h"
 #include "TPCQC/Helpers.h"
 
@@ -37,16 +40,20 @@ struct binning {
 
 constexpr std::array<float, 5> xks{90.f, 108.475f, 151.7f, 188.8f, 227.65f};
 const std::vector<std::string_view> rocNames{"TPC", "IROC", "OROC1", "OROC2", "OROC3"};
+//const std::vector<std::string_view> SpeciesNames{"Proton", "Pion", "Kaon", "Deuteron", "Triton"};
+//const std::vector<std::string_view> SpeciesNames{"Pion", "Kaon", "Proton", "Deuteron"};
+//const std::vector<std::string_view> chargeName{"Minus", "Plus"};
 const std::vector<int> nclCuts{60, 25, 14, 12, 10};
 const std::vector<int> nclMax{152, 63, 34, 30, 25};
-const binning binsdEdxTot{2000, 20., 6000.};
-const binning binsdEdxMax{2000, 20., 2000.};
+const binning binsdEdxTot{2000, 0., 6000.};
+const binning binsdEdxMax{2000, 0., 2000.};
 const int mipTot = 50;
 const int mipMax = 50;
 const binning binsdEdxMIPTot{100, mipTot / 3., mipTot * 3.};
 const binning binsdEdxMIPMax{100, mipMax / 3., mipMax * 3.};
 const binning binsSec{36, 0., 36.};
 const auto bins = o2::tpc::qc::helpers::makeLogBinning(200, 0.05, 20);
+o2::tpc::PIDResponse mPID;
 
 //______________________________________________________________________________
 void PID::initializeHistograms()
@@ -87,7 +94,12 @@ void PID::initializeHistograms()
     mMapHist["hdEdxMaxMIPVsSec"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxMIPVsSec_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";sector;d#it{E}/d#it{x}_{Max} (arb. unit)").data(), binsSec.bins, binsSec.min, binsSec.max, binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
     mMapHist["hMIPNclVsTgl"].emplace_back(std::make_unique<TH2F>(fmt::format("hMIPNclVsTgl_{}", name).data(), (fmt::format("rec. clusters {}", name) + ";#tan(#lambda);d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 50, -2, 2, nclMax[idEdxType], 0, nclMax[idEdxType]));
     mMapHist["hMIPNclVsTglSub"].emplace_back(std::make_unique<TH2F>(fmt::format("hMIPNclVsTglSub_{}", name).data(), (fmt::format("rec. + sub-thrs. clusters {}", name) + ";#tan(#lambda);d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 50, -2, 2, nclMax[idEdxType], 0, nclMax[idEdxType]));
+
+    mMapHistCanvas["hdEdxVspHypoPos"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxVspHypoPos_{}", name).data(), (fmt::format("Q_{{Tot}} Pos {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binsdEdxTot.bins, binsdEdxTot.min, binsdEdxTot.max));
+    mMapHistCanvas["hdEdxVspHypoNeg"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxVspHypoNeg_{}", name).data(), (fmt::format("Q_{{Tot}} Neg {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binsdEdxTot.bins, binsdEdxTot.min, binsdEdxTot.max));
   }
+  mMapCanvas["CdEdxPIDHypothesisVsp"].emplace_back(std::make_unique<TCanvas>("CdEdxPIDHypothesisVsp", "PID Hypothesis Ratio"));
+  mMapCanvas["CdEdxPIDHypothesisVsp"].at(0)->Divide(5, 2);
 }
 
 //______________________________________________________________________________
@@ -98,18 +110,24 @@ void PID::resetHistograms()
       hist->Reset();
     }
   }
+  for (const auto& pair : mMapHistCanvas) {
+    for (auto& hist : pair.second) {
+      hist->Reset();
+    }
+  }
 }
 
 //______________________________________________________________________________
-bool PID::processTrack(const o2::tpc::TrackTPC& track)
+bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t NTracks)
 {
-  // ===| variables required for cutting and filling |===
+  // ===| variables required for cutting and filling |===trackObj
   const auto& dEdx = track.getdEdx();
   const auto pTPC = track.getP();
   const auto tgl = track.getTgl();
   const auto snp = track.getSnp();
   const auto phi = track.getPhi();
   const auto ncl = uint8_t(track.getNClusters());
+  float dEdxRatio = -1;
 
   const auto eta = track.getEta();
   mMapHist["hdEdxTotVspBeforeCuts"][0]->Fill(phi, dEdx.dEdxTotTPC);
@@ -118,14 +136,17 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
   if (pTPC < mCutMinpTPC || pTPC > mCutMaxpTPC || ncl < mCutMinnCls) {
     return true;
   }
+
   const std::vector<float> dEdxTot{dEdx.dEdxTotTPC, dEdx.dEdxTotIROC, dEdx.dEdxTotOROC1, dEdx.dEdxTotOROC2, dEdx.dEdxTotOROC3};
   const std::vector<float> dEdxMax{dEdx.dEdxMaxTPC, dEdx.dEdxMaxIROC, dEdx.dEdxMaxOROC1, dEdx.dEdxMaxOROC2, dEdx.dEdxMaxOROC3};
   const std::vector<uint8_t> dEdxNcl{static_cast<uint8_t>(dEdx.NHitsIROC + dEdx.NHitsOROC1 + dEdx.NHitsOROC2 + dEdx.NHitsOROC3), dEdx.NHitsIROC, dEdx.NHitsOROC1, dEdx.NHitsOROC2, dEdx.NHitsOROC3};
   const std::vector<uint8_t> dEdxNclSub{static_cast<uint8_t>(dEdx.NHitsSubThresholdIROC + dEdx.NHitsSubThresholdOROC1 + dEdx.NHitsSubThresholdOROC2 + dEdx.NHitsSubThresholdOROC3), dEdx.NHitsSubThresholdIROC, dEdx.NHitsSubThresholdOROC1, dEdx.NHitsSubThresholdOROC2, dEdx.NHitsSubThresholdOROC3};
   mMapHist["hdEdxVsTgl"][0]->Fill(tgl, dEdxTot[0]);
 
+  if (dEdx.dEdxTotTPC <= 0.) {
+    return true;
+  }
   if (std::abs(tgl) < mCutAbsTgl) {
-
     mMapHist["hdEdxVsPhi"][0]->Fill(phi, dEdxTot[0]);
     mMapHist["hdEdxVsncls"][0]->Fill(ncl, dEdxTot[0]);
     mMapHist["hNClsPID"][0]->Fill(dEdxNcl[0]);
@@ -139,7 +160,7 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
   }
   for (size_t idEdxType = 0; idEdxType < rocNames.size(); ++idEdxType) {
     bool ok = false;
-    float sec = 18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[idEdxType], 2, ok).Phi()) / o2::constants::math::TwoPI;
+    float sec = 18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[idEdxType], 2, ok).Phi()) / o2::constants::math::TwoPI; /// ask Max. WHat does this function (getXYZGloAt) return, its relation to ok? .M
     if (track.hasCSideClusters()) {
       sec += 18.f;
     }
@@ -153,7 +174,20 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
     if (std::abs(tgl) < mCutAbsTgl) {
       mMapHist["hdEdxTotVsp"][idEdxType]->Fill(pTPC, dEdxTot[idEdxType]);
       mMapHist["hdEdxMaxVsp"][idEdxType]->Fill(pTPC, dEdxMax[idEdxType]);
+      for (size_t iSpecies = 0; iSpecies < o2::track::PID::NIDs; ++iSpecies) {
+        dEdxRatio = dEdxTot[idEdxType] / mPID.getExpectedSignal(track, static_cast<o2::track::PID::ID>(iSpecies));
+      }
+      const auto PIDHypothesis = mPID.getMostProbablePID(track, mCutKrangeMin, mCutKrangeMax, mCutPrangeMin, mCutPrangeMax, mCutDrangeMin, mCutDrangeMax, mCutTrangeMin, mCutTrangeMax);
+      int Hypothesis = static_cast<int>(PIDHypothesis) + 1;
+      if (static_cast<int>(PIDHypothesis) <= o2::track::PID::NIDs) {
+        if (track.getCharge() > 0) {
+          mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), Hypothesis);
+        } else {
+          mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), Hypothesis);
+        }
+      }
     }
+
     // ===| cuts and  histogram filling for MIPs |===
     if (pTPC > mCutMinpTPCMIPs && pTPC < mCutMaxpTPCMIPs) {
       mMapHist["hdEdxTotMIPVsTgl"][idEdxType]->Fill(tgl, dEdxTot[idEdxType]);
@@ -186,6 +220,19 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
     }
   }
 
+  for (auto const& pairC : mMapCanvas) {
+    for (auto& canv : pairC.second) {
+      //LOGP(error, pairC.first);
+      int h = 1;
+      for (auto const& pairH : mMapHistCanvas) {
+        for (auto& hist : pairH.second) {
+          canv->cd(h);
+          hist->Draw();
+          h++;
+        }
+      }
+    }
+  }
   return true;
 }
 
