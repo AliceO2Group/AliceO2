@@ -46,6 +46,7 @@
 #include <regex>
 #include <cstdio>
 #include <string>
+#include <unordered_set>
 
 namespace o2::ccdb
 {
@@ -54,6 +55,39 @@ using namespace std;
 
 std::mutex gIOMutex; // to protect TMemFile IO operations
 unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
+
+/**
+ * Object, encapsulating a semaphore, regulating
+ * concurrent (multi-process) access to CCDB snapshot files.
+ * Intended to be used with smart pointers to achieve automatic resource
+ * cleanup after the smart pointer goes out of scope.
+ */
+class CCDBSemaphore
+{
+ public:
+  CCDBSemaphore(std::string const& cachepath, std::string const& path);
+  ~CCDBSemaphore();
+
+ private:
+  boost::interprocess::named_semaphore* mSem = nullptr;
+  std::string mSemName{}; // name under which semaphore is kept by the OS kernel
+};
+
+// Small registry class with the purpose that a static object
+// ensures cleanup of registered semaphores even when programs
+// "crash".
+class SemaphoreRegistry
+{
+ public:
+  SemaphoreRegistry() = default;
+  ~SemaphoreRegistry();
+  void add(CCDBSemaphore const* ptr);
+  void remove(CCDBSemaphore const* ptr);
+
+ private:
+  std::unordered_set<CCDBSemaphore const*> mStore;
+};
+static SemaphoreRegistry gSemaRegistry;
 
 CcdbApi::CcdbApi()
 {
@@ -1010,10 +1044,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
 {
   if (!mSnapshotCachePath.empty()) {
     // protect this sensitive section by a multi-process named semaphore
-    boost::interprocess::named_semaphore* sem = createNamedSemaphore(path);
-    if (sem) {
-      sem->wait(); // wait until we can enter (no one else there)
-    }
+    auto semaphore_barrier = std::make_unique<CCDBSemaphore>(mSnapshotCachePath, path);
     std::string logfile = mSnapshotCachePath + "/log";
     std::fstream out(logfile, ios_base::out | ios_base::app);
     if (out.is_open()) {
@@ -1031,7 +1062,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     } else {
       out << "CCDB-access[" << getpid() << "]  ... " << mUniqueAgentID << "serving from local snapshot " << snapshotfile << "\n";
     }
-    releaseNamedSemaphore(sem, path);
+
     auto res = extractFromLocalFile(snapshotfile, tinfo, headers);
     if (!snapshoting) { // if snapshot was created at this call, the log was already done
       logReading(path, timestamp, headers, "retrieve from snapshot");
@@ -1652,10 +1683,7 @@ void CcdbApi::saveSnapshot(RequestContext& requestContext) const
 {
   // Consider saving snapshot
   if (!mSnapshotCachePath.empty() && !(mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath)) { // store in the snapshot only if the object was not read from the snapshot
-    auto sem = createNamedSemaphore(requestContext.path);
-    if (sem) {
-      sem->wait(); // wait until we can enter (no one else there)
-    }
+    auto semaphore_barrier = std::make_unique<CCDBSemaphore>(mSnapshotCachePath, requestContext.path);
 
     auto snapshotdir = getSnapshotDir(mSnapshotCachePath, requestContext.path);
     std::string snapshotpath = getSnapshotFile(mSnapshotCachePath, requestContext.path);
@@ -1674,7 +1702,6 @@ void CcdbApi::saveSnapshot(RequestContext& requestContext) const
       // now open the same file as root file and store metadata
       updateMetaInformationInLocalFile(snapshotpath, &requestContext.headers, &querysummary);
     }
-    releaseNamedSemaphore(sem, requestContext.path);
   }
 }
 
@@ -1703,14 +1730,10 @@ void CcdbApi::navigateSourcesAndLoadFile(RequestContext& requestContext, int& fr
 
   std::string snapshotpath;
   if (mInSnapshotMode || std::filesystem::exists(snapshotpath = getSnapshotFile(mSnapshotCachePath, requestContext.path))) {
-    boost::interprocess::named_semaphore* sem = createNamedSemaphore(requestContext.path);
-    if (sem) {
-      sem->wait(); // wait until we can enter (no one else there)
-    }
+    auto semaphore_barrier = std::make_unique<CCDBSemaphore>(mSnapshotCachePath, requestContext.path);
     // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
     // this would mean that the object was is already fetched and in this mode we don't to validity checks!
     getFromSnapshot(createSnapshot, requestContext.path, requestContext.timestamp, requestContext.headers, snapshotpath, requestContext.dest, fromSnapshot, requestContext.etag);
-    releaseNamedSemaphore(sem, requestContext.path);
   } else { // look on the server
     scheduleDownload(requestContext, requestCounter);
   }
@@ -1884,6 +1907,59 @@ CURLcode CcdbApi::CURL_perform(CURL* handle) const
     usleep(mCurlDelayRetries * i);
   }
   return result;
+}
+
+/**
+ * Object, encapsulating a semaphore, regulating
+ * concurrent (multi-process) access to CCDB snapshot files.
+ */
+CCDBSemaphore::CCDBSemaphore(std::string const& snapshotpath, std::string const& path)
+{
+  LOG(debug) << "Entering semaphore barrier";
+  mSemName = CcdbApi::determineSemaphoreName(snapshotpath, path);
+  try {
+    mSem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, mSemName.c_str(), 1);
+  } catch (std::exception e) {
+    LOG(warn) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
+    mSem = nullptr;
+  }
+  // automatically wait
+  if (mSem) {
+    gSemaRegistry.add(this);
+    mSem->wait();
+  }
+}
+
+CCDBSemaphore::~CCDBSemaphore()
+{
+  LOG(debug) << "Ending semaphore barrier";
+  if (mSem) {
+    mSem->post();
+    if (mSem->try_wait()) { // if nobody else is waiting remove the semaphore resource
+      mSem->post();
+      boost::interprocess::named_semaphore::remove(mSemName.c_str());
+    }
+    gSemaRegistry.remove(this);
+  }
+}
+
+SemaphoreRegistry::~SemaphoreRegistry()
+{
+  LOG(debug) << "Cleaning up semaphore registry with count " << mStore.size();
+  for (auto& s : mStore) {
+    delete s;
+    mStore.erase(s);
+  }
+}
+
+void SemaphoreRegistry::add(CCDBSemaphore const* ptr)
+{
+  mStore.insert(ptr);
+}
+
+void SemaphoreRegistry::remove(CCDBSemaphore const* ptr)
+{
+  mStore.erase(ptr);
 }
 
 } // namespace o2::ccdb
