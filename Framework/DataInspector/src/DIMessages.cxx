@@ -24,7 +24,7 @@ Document toJson(const DIMessages::RegisterDevice::Specs::Input& input)
 
   doc.AddMember("binding", Value(input.binding.c_str(), alloc), alloc);
   doc.AddMember("sourceChannel", Value(input.sourceChannel.c_str(), alloc), alloc);
-  doc.AddMember("timeslice", Value((uint64_t) input.timeslice), alloc);
+  doc.AddMember("timeslice", Value((uint64_t)input.timeslice), alloc);
 
   if (input.origin.has_value()) {
     doc.AddMember("origin", Value(input.origin.value().c_str(), alloc), alloc);
@@ -47,8 +47,8 @@ Document toJson(const DIMessages::RegisterDevice::Specs::Output& output)
 
   doc.AddMember("binding", Value(output.binding.c_str(), alloc), alloc);
   doc.AddMember("channel", Value(output.channel.c_str(), alloc), alloc);
-  doc.AddMember("timeslice", Value((uint64_t) output.timeslice), alloc);
-  doc.AddMember("maxTimeslices", Value((uint64_t) output.maxTimeslices), alloc);
+  doc.AddMember("timeslice", Value((uint64_t)output.timeslice), alloc);
+  doc.AddMember("maxTimeslices", Value((uint64_t)output.maxTimeslices), alloc);
 
   doc.AddMember("origin", Value(output.origin.c_str(), alloc), alloc);
   doc.AddMember("description", Value(output.description.c_str(), alloc), alloc);
@@ -67,8 +67,8 @@ Document toJson(const DIMessages::RegisterDevice::Specs::Forward& forward)
 
   doc.AddMember("binding", Value(forward.binding.c_str(), alloc), alloc);
   doc.AddMember("channel", Value(forward.channel.c_str(), alloc), alloc);
-  doc.AddMember("timeslice", Value((uint64_t) forward.timeslice), alloc);
-  doc.AddMember("maxTimeslices", Value((uint64_t) forward.maxTimeslices), alloc);
+  doc.AddMember("timeslice", Value((uint64_t)forward.timeslice), alloc);
+  doc.AddMember("maxTimeslices", Value((uint64_t)forward.maxTimeslices), alloc);
 
   if (forward.origin.has_value()) {
     doc.AddMember("origin", Value(forward.origin.value().c_str(), alloc), alloc);
@@ -89,10 +89,10 @@ Document specToJson(const DIMessages::RegisterDevice::Specs& specs)
   doc.SetObject();
   auto& alloc = doc.GetAllocator();
 
-  doc.AddMember("rank", Value((uint64_t) specs.rank), alloc);
-  doc.AddMember("nSlots", Value((uint64_t) specs.nSlots), alloc);
-  doc.AddMember("inputTimesliceId", Value((uint64_t) specs.inputTimesliceId), alloc);
-  doc.AddMember("maxInputTimeslices", Value((uint64_t) specs.maxInputTimeslices), alloc);
+  doc.AddMember("rank", Value((uint64_t)specs.rank), alloc);
+  doc.AddMember("nSlots", Value((uint64_t)specs.nSlots), alloc);
+  doc.AddMember("inputTimesliceId", Value((uint64_t)specs.inputTimesliceId), alloc);
+  doc.AddMember("maxInputTimeslices", Value((uint64_t)specs.maxInputTimeslices), alloc);
 
   Value inputsArray;
   inputsArray.SetArray();
