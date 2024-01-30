@@ -1306,7 +1306,7 @@ bool HmpidDecoder2::setUpStream(void* Buffer, long BufferLen)
   if (mVerbose > 6) {
     std::cout << "HMPID Decoder2 : setUpStream() "
               << "Buffer addr = " << std::hex << mActualStreamPtr << " End addr = " << mEndStreamPtr
-              << " BufferLen = " << std::dec <<  BufferLen << std::endl;
+              << " BufferLen = " << std::dec << BufferLen << std::endl;
     if (BufferLen < 256) {
       dumpMemory((const void*)mActualStreamPtr, (std::size_t)BufferLen);
     }
