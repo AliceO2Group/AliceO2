@@ -2150,13 +2150,10 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     auto& relayer = ref.get<DataRelayer>();
     auto& timingInfo = ref.get<TimingInfo>();
     auto timeslice = relayer.getTimesliceForSlot(i);
+    // We report wether or not this timing info refers to a new Run.
     timingInfo.globalRunNumberChanged = !TimingInfo::timesliceIsTimer(timeslice.value) && dataProcessorContext.lastRunNumberProcessed != timingInfo.runNumber;
     // A switch to runNumber=0 should not appear and thus does not set globalRunNumberChanged, unless it is seen in the first processed timeslice
     timingInfo.globalRunNumberChanged &= (dataProcessorContext.lastRunNumberProcessed == -1 || timingInfo.runNumber != 0);
-    // We report wether or not this timing info refers to a new Run.
-    if (timingInfo.globalRunNumberChanged) {
-      dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
-    }
     // FIXME: for now there is only one stream, however we
     //        should calculate this correctly once we finally get the
     //        the StreamContext in.
@@ -2373,6 +2370,12 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         } else {
           O2_SIGNPOST_EVENT_EMIT(device, pcid, "device", "No processing callback provided. Switching to %{public}s.", "Idle");
           state.streaming = StreamingState::Idle;
+        }
+        if (shouldProcess(action)) {
+          auto& timingInfo = ref.get<TimingInfo>();
+          if (timingInfo.globalRunNumberChanged) {
+            context.lastRunNumberProcessed = timingInfo.runNumber;
+          }
         }
 
         // Notify the sink we just consumed some timeframe data
