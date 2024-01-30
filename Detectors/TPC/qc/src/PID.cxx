@@ -177,7 +177,7 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t NTracks)
       for (size_t iSpecies = 0; iSpecies < o2::track::PID::NIDs; ++iSpecies) {
         dEdxRatio = dEdxTot[idEdxType] / mPID.getExpectedSignal(track, static_cast<o2::track::PID::ID>(iSpecies));
       }
-      const auto PIDHypothesis = mPID.getMostProbablePID(track, mCutKrangeMin, mCutKrangeMax, mCutPrangeMin, mCutPrangeMax, mCutDrangeMin, mCutDrangeMax, mCutTrangeMin, mCutTrangeMax);
+      const auto PIDHypothesis = mPID.getMostProbablePID(track, mCutKrangeMin, mCutKrangeMax, mCutPrangeMin, mCutPrangeMax, mCutDrangeMin, mCutDrangeMax, mCutTrangeMin, mCutTrangeMax,1,mPIDSigma);
       int Hypothesis = static_cast<int>(PIDHypothesis) + 1;
       if (static_cast<int>(PIDHypothesis) <= o2::track::PID::NIDs) {
         if (track.getCharge() > 0) {
