@@ -908,7 +908,7 @@ bool HmpidDecoder2::decodeBufferFast()
       }
       break;
     }
-  } 
+  }
   // cycle in order to update info for the last event
   for (int i = 0; i < mNumberOfEquipments; i++) {
     if (mTheEquipments[i]->mNumberOfEvents > 0) {
@@ -1111,7 +1111,8 @@ void HmpidDecoder2::dumpHmpidError(HmpidEquipment* eq, int ErrorField, int mHeBC
 /// Prints a block of memory
 /// @param[in] MemoryStartPtr : the pointer to the begin
 /// @param[in] Dimension : the block dimension in bytes
-void HmpidDecoder2::dumpMemory(const void* MemoryStartPtr, std::size_t Dimension) {
+void HmpidDecoder2::dumpMemory(const void* MemoryStartPtr, std::size_t Dimension)
+{
   const unsigned char* data = static_cast<const unsigned char*>(MemoryStartPtr);
   for (std::size_t i = 0; i < Dimension; i += 16) {
     std::cout << std::hex << std::setw(4) << std::setfill('0') << i << " : ";
@@ -1257,7 +1258,7 @@ uint32_t HmpidDecoder2::readWordFromStream()
   uint32_t word = 0;
   if (mActualStreamPtr > mEndStreamPtr) {
     throw TH_BUFFERPOINTERTOEND;
-    return(word);
+    return (word);
   }
   word = *mActualStreamPtr;
   mActualStreamPtr++;
@@ -1304,9 +1305,9 @@ bool HmpidDecoder2::setUpStream(void* Buffer, long BufferLen)
 
   if (mVerbose > 6) {
     std::cout << "HMPID Decoder2 : setUpStream() "
-              << "Buffer addr = " <<  std::hex << mActualStreamPtr << " End addr = " << mEndStreamPtr << " BufferLen = " << std::dec <<  BufferLen << std::endl;
+              << "Buffer addr = " << std::hex << mActualStreamPtr << " End addr = " << mEndStreamPtr << " BufferLen = " << std::dec <<  BufferLen << std::endl;
     if (BufferLen < 256) {
-      dumpMemory((const void*) mActualStreamPtr, (std::size_t) BufferLen);
+      dumpMemory((const void*)mActualStreamPtr, (std::size_t)BufferLen);
     }
   }
   return (true);
