@@ -466,11 +466,14 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   endif()
 endif()
 
+# Disable all non-deterministic floating point to make TPC track model encoding / decoding precise
 set_source_files_properties(DataCompression/GPUTPCCompressionTrackModel.cxx
                             DataCompression/GPUTPCCompressionKernels.cxx
                             DataCompression/TPCClusterDecompressor.cxx
                             TARGET_DIRECTORY ${targetName}
-                            PROPERTIES COMPILE_FLAGS "-fno-fast-math -ffp-contract=off")
+                            PROPERTIES
+                            COMPILE_FLAGS "${GPUCA_CXX_NO_FAST_MATH_FLAGS}"
+                            COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
 
 # Add compile definitions and libraries depending on available optional dependencies
 if(GPUCA_QA)
