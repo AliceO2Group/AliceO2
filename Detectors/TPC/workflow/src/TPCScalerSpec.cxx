@@ -87,7 +87,7 @@ class TPCScalerSpec : public Task
     const double timestamp = orbitResetTimeMS + firstTFOrbit * o2::constants::lhc::LHCOrbitMUS * 0.001;
 
     if (mEnableMShape) {
-      if (pc.services().get<o2::framework::TimingInfo>().runNumber != mMShapeTPCScaler.getRun()) {
+      if ((mMShapeTPCScaler.getRun() != -1) && pc.services().get<o2::framework::TimingInfo>().runNumber != mMShapeTPCScaler.getRun()) {
         LOGP(error, "Run number {} of processed data and run number {} of loaded TPC M-shape scaler doesnt match!", pc.services().get<o2::framework::TimingInfo>().runNumber, mMShapeTPCScaler.getRun());
       }
 
@@ -190,6 +190,9 @@ class TPCScalerSpec : public Task
     if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "MSHAPEPOTCCDB", 0)) {
       LOGP(info, "Updating M-shape TPC scaler");
       mMShapeTPCScaler.setFromTree(*((TTree*)obj));
+      if (mMShapeTPCScaler.getRun() == -1) {
+        LOGP(info, "Loaded default M-Shape correction object from CCDB");
+      }
     }
   }
 
