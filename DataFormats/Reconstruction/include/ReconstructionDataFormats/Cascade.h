@@ -43,6 +43,9 @@ class Cascade : public V0
   void setV0Track(const Track& t) { mProngs[0] = t; }
   void setBachelorTrack(const Track& t) { mProngs[1] = t; }
 
+  float calcMass2AsXiMinus() const { return calcMass2PID(PID::Lambda, PID::Pion); }
+  float calcMass2AsOmegaMinus() const { return calcMass2PID(PID::Lambda, PID::Kaon); }
+
   ClassDefNV(Cascade, 2);
 };
 
