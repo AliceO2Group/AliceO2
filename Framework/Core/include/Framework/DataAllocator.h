@@ -174,10 +174,10 @@ class DataAllocator
   decltype(auto) make(const Output& spec, Args... args)
   {
     auto& timingInfo = mRegistry.get<TimingInfo>();
-    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
     auto& context = mRegistry.get<MessageContext>();
 
     if constexpr (is_specialization_v<T, UninitializedVector>) {
+      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
       using ValueType = typename T::value_type;
 
@@ -187,6 +187,7 @@ class DataAllocator
                       std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...)
         .get();
     } else if constexpr (is_specialization_v<T, std::vector> && has_messageable_value_type<T>::value) {
+      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
@@ -195,6 +196,7 @@ class DataAllocator
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
       return context.add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...).get();
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
+      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
       if constexpr (enable_root_serialization<T>::value) {
@@ -233,6 +235,7 @@ class DataAllocator
         if constexpr (is_messageable<T>::value == true) {
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
+          auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
 
           fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
           return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
