@@ -40,9 +40,6 @@ struct binning {
 
 constexpr std::array<float, 5> xks{90.f, 108.475f, 151.7f, 188.8f, 227.65f};
 const std::vector<std::string_view> rocNames{"TPC", "IROC", "OROC1", "OROC2", "OROC3"};
-//const std::vector<std::string_view> SpeciesNames{"Proton", "Pion", "Kaon", "Deuteron", "Triton"};
-//const std::vector<std::string_view> SpeciesNames{"Pion", "Kaon", "Proton", "Deuteron"};
-//const std::vector<std::string_view> chargeName{"Minus", "Plus"};
 const std::vector<int> nclCuts{60, 25, 14, 12, 10};
 const std::vector<int> nclMax{152, 63, 34, 30, 25};
 const binning binsdEdxTot{2000, 0., 6000.};
