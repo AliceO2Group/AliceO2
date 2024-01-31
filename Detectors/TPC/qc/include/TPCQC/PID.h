@@ -107,7 +107,7 @@ class PID
   // Map for Canvases to be published
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>> mMapCanvas;
   // Map for Histograms which will be put onto the canvases, and not published separately
-  std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHistCanvas; 
+  std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHistCanvas;
   ClassDefNV(PID, 1)
 };
 } // namespace qc
