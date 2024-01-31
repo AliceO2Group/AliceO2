@@ -31,6 +31,37 @@ void TPCMShapeCorrection::dumpToFile(const char* file, const char* name)
   out.WriteObject(&tree, name);
 }
 
+void TPCMShapeCorrection::dumpToFileSlices(const char* file, const char* name, int nSlices)
+{
+  const int nPotentials = mMShapes.mTimeMS.size();
+  const int nValuesPerSlice = std::round(nPotentials / float(nSlices) + 0.5);
+  for (int i = 0; i < nSlices; ++i) {
+    TPCMShapeCorrection corr = *this;
+    const int idx = i * nValuesPerSlice;
+    const int nOffsStart = (i == 0) ? 0 : 1;
+    const size_t idxStart = idx - nOffsStart;
+    const int nOffsEnd = (i == nSlices - 1) ? 0 : 1;
+    int idxEnd = (idx + nValuesPerSlice + 2 * nOffsEnd);
+    idxEnd = std::clamp(idxEnd, 0, nPotentials);
+
+    corr.mMShapes.mTimeMS = std::vector<double>(mMShapes.mTimeMS.begin() + idxStart, mMShapes.mTimeMS.begin() + idxEnd);
+    corr.mMShapes.mBoundaryPotentialIFC = std::vector<BoundaryPotentialIFC>(mMShapes.mBoundaryPotentialIFC.begin() + idxStart, mMShapes.mBoundaryPotentialIFC.begin() + idxEnd);
+
+    long tsCCDBStart = corr.mMShapes.mTimeMS[nOffsStart];
+    if (i == 0) {
+      tsCCDBStart -= 2. * mMaxDeltaTimeMS;
+    }
+
+    long tsCCDBEnd = corr.mMShapes.mTimeMS[corr.mMShapes.mTimeMS.size() - 1 - nOffsEnd];
+    // add additional validation offset for last object
+    if (i == nSlices - 1) {
+      tsCCDBEnd += 2. * mMaxDeltaTimeMS;
+    }
+    const std::string fileOut = fmt::format("{}_{}_{}_{}.root", file, i, tsCCDBStart, tsCCDBEnd);
+    corr.dumpToFile(fileOut.data(), name);
+  }
+}
+
 void TPCMShapeCorrection::loadFromFile(const char* inpf, const char* name)
 {
   TFile out(inpf, "READ");

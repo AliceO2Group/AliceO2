@@ -78,6 +78,11 @@ class TPCMShapeCorrection
   /// \param name name of the output object
   void dumpToFile(const char* file, const char* name);
 
+  /// dump this object to several files each containing the correction for n minutes
+  /// \param file output file
+  /// \param nSlices number of slices
+  void dumpToFileSlices(const char* file, const char* name, int nSlices);
+
   /// load from input file (which were written using the dumpToFile method)
   /// \param inpf input file
   /// \param name name of the object in the file
