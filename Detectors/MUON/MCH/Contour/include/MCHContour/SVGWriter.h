@@ -90,6 +90,29 @@ class SVGWriter
     }
   }
 
+  template <typename T>
+  void polygon(const o2::mch::contour::Polygon<T>& p, const std::string& fillColor)
+  {
+    // modification
+    mSVGBuffer << R"(<polygon fill=")" << fillColor << R"(" points=")";
+    auto vertices = getVertices(p);
+    for (auto j = 0; j < vertices.size(); ++j) {
+      auto v = vertices[j];
+      mSVGBuffer << v.x << "," << v.y << ' ';
+    }
+    mSVGBuffer << R"("/>)"
+               << "\n";
+  }
+
+  template <typename T>
+  void contour(const o2::mch::contour::Contour<T>& c, const std::string& color)
+  {
+
+    for (auto& p : c.getPolygons()) {
+      polygon(p, color);
+    }
+  }
+
   void points(const std::vector<std::pair<double, double>>& pts, double radius = 0.05)
   {
     for (auto& p : pts) {
@@ -104,8 +127,7 @@ class SVGWriter
 
   void writeSVG(std::ostream& os)
   {
-    os << boost::format(R"(<svg width="%d" height="%d" viewBox="%f %f %f %f">
-)") % mWidth %
+    os << boost::format(R"(<svg width="%d" height="%d" viewBox="%f %f %f %f">)") % mWidth %
             mHeight % mViewingBox.xmin() % mViewingBox.ymin() % mViewingBox.width() % mViewingBox.height();
 
     os << mSVGBuffer.str();
