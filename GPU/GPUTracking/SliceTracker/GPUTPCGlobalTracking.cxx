@@ -90,7 +90,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
       int i = 0;
       while (i < nHits) {
         const calink rowHit = rowHits[rowIndex];
-        if (rowHit != CALINK_INVAL) {
+        if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * tracker.CommonMemory()->nTracklets]);
           tracker.TrackHits()[hitId + i].Set(rowIndex, rowHit);
           // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().constBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
@@ -102,7 +102,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
       int i = nHits - 1;
       while (i >= 0) {
         const calink rowHit = rowHits[rowIndex];
-        if (rowHit != CALINK_INVAL) {
+        if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * tracker.CommonMemory()->nTracklets]);
           tracker.TrackHits()[hitId + i].Set(rowIndex, rowHit);
           i--;
