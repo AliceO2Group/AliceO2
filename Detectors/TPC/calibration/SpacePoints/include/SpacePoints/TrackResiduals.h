@@ -440,6 +440,9 @@ class TrackResiduals
   /// clear member to be able to process new sector or new input files
   void clear();
 
+  /// output tree
+  TTree* getOutputTree() { return mTreeOut.get(); }
+
  private:
   std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
 
