@@ -101,7 +101,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
 #endif
     calink ih = rowHits[iRow];
     tracker.TrackletRowHits()[hitout + (iRow - r.mFirstRow)] = ih;
-    if (ih != CALINK_INVAL) {
+    if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
       CA_MAKE_SHARED_REF(GPUTPCRow, row, tracker.Row(iRow), s.mRows[iRow]);
       tracker.MaximizeHitWeight(row, ih, w);
     }
@@ -393,7 +393,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
 #endif
     } while (0);
   }
-  if (r.mNHits == 8 && r.mNMissed == 0 && rowHit != CALINK_INVAL && rowHits && tracker.Param().par.continuousTracking) {
+  if (r.mNHits == 8 && r.mNMissed == 0 && rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL && rowHits && tracker.Param().par.continuousTracking) {
     GPUglobalref() const cahit2* hits = tracker.HitData(row);
     const GPUglobalref() MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row1 = tracker.Row(r.mFirstRow);
     const GPUglobalref() MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row2 = tracker.Row(r.mLastRow);
