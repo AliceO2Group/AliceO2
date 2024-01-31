@@ -399,7 +399,7 @@ class DataAllocator
                     "\n - std::vector of messageable structures or pointers to those"
                     "\n - types with ROOT dictionary and implementing ROOT ClassDef interface");
     }
-    addPartToContext(std::move(payloadMessage), spec, serializationType);
+    addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationType);
   }
 
   /// Take a snapshot of a raw data array which can be either POD or may contain a serialized
@@ -527,7 +527,7 @@ class DataAllocator
                                                size_t payloadSize);                                 //
 
   Output getOutputByBind(OutputRef&& ref);
-  void addPartToContext(fair::mq::MessagePtr&& payload,
+  void addPartToContext(RouteIndex routeIndex, fair::mq::MessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
 };

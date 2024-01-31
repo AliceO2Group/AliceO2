@@ -119,11 +119,9 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
   return o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, spec.metaHeader});
 }
 
-void DataAllocator::addPartToContext(fair::mq::MessagePtr&& payloadMessage, const Output& spec,
+void DataAllocator::addPartToContext(RouteIndex routeIndex, fair::mq::MessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  auto& timingInfo = mRegistry.get<TimingInfo>();
-  RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto headerMessage = headerMessageFromOutput(spec, routeIndex, serializationMethod, 0);
 
   // FIXME: this is kind of ugly, we know that we can change the content of the
@@ -284,7 +282,7 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
   fair::mq::MessagePtr payloadMessage(proxy.createOutputMessage(routeIndex, payloadSize));
   memcpy(payloadMessage->GetData(), payload, payloadSize);
 
-  addPartToContext(std::move(payloadMessage), spec, serializationMethod);
+  addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationMethod);
 }
 
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
@@ -348,7 +346,7 @@ void DataAllocator::cookDeadBeef(const Output& spec)
   auto deadBeefOutput = Output{spec.origin, spec.description, 0xdeadbeef};
   auto headerMessage = headerMessageFromOutput(deadBeefOutput, routeIndex, header::gSerializationMethodNone, 0);
 
-  addPartToContext(proxy.createOutputMessage(routeIndex, 0), deadBeefOutput, header::gSerializationMethodNone);
+  addPartToContext(routeIndex, proxy.createOutputMessage(routeIndex, 0), deadBeefOutput, header::gSerializationMethodNone);
 }
 
 } // namespace o2::framework
