@@ -222,7 +222,6 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t NTracks)
 
   for (auto const& pairC : mMapCanvas) {
     for (auto& canv : pairC.second) {
-      //LOGP(error, pairC.first);
       int h = 1;
       for (auto const& pairH : mMapHistCanvas) {
         for (auto& hist : pairH.second) {
