@@ -43,8 +43,8 @@ using namespace o2::emcal;
 void DigitizerTRU::init()
 {
   setPatches();
-  mSimParam = &(o2::emcal::SimParam::Instance());
-  mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
+  // mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
   float tau = mSimParam->getTimeResponseTauTRU();
   float N = mSimParam->getTimeResponsePowerTRU();
@@ -55,7 +55,6 @@ void DigitizerTRU::init()
   mDigits.init();
   mDigits.reserve(15);
 
-  mTriggerMap = new TriggerMappingV2(mGeometry);
   LZERO.setGeometry(mGeometry);
   LZERO.init();
 
@@ -148,13 +147,14 @@ void DigitizerTRU::process(const gsl::span<const Digit> summableDigits)
 //_______________________________________________________________________
 std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const gsl::span<const Digit> sdigits)
 {
+  TriggerMappingV2 mTriggerMap(mGeometry);
   std::unordered_map<int, Digit> sdigitsFastOR;
   std::vector<int> fastorIndicesFound;
   for (const auto& dig : sdigits) {
     o2::emcal::TriggerMappingV2::IndexCell towerid = dig.getTower();
-    int fastorIndex = mTriggerMap->getAbsFastORIndexFromCellIndex(towerid);
-    auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
+    int fastorIndex = mTriggerMap.getAbsFastORIndexFromCellIndex(towerid);
+    auto whichTRU = std::get<0>(mTriggerMap.getTRUFromAbsFastORIndex(fastorIndex));
+    auto whichFastOrTRU = std::get<1>(mTriggerMap.getTRUFromAbsFastORIndex(fastorIndex));
     auto found = sdigitsFastOR.find(fastorIndex);
     if (found != sdigitsFastOR.end()) {
       // sum energy
@@ -172,8 +172,8 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
   for (auto& elem : sdigitsFastOR) {
     auto dig = elem.second;
     int fastorIndex = elem.first;
-    auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
+    auto whichTRU = std::get<0>(mTriggerMap.getTRUFromAbsFastORIndex(fastorIndex));
+    auto whichFastOrTRU = std::get<1>(mTriggerMap.getTRUFromAbsFastORIndex(fastorIndex));
   }
 
   // Setting them to be TRU digits
@@ -184,8 +184,8 @@ std::vector<std::tuple<int, Digit>> DigitizerTRU::makeAnaloguesFastorSums(const 
   for (auto& elem : sdigitsFastOR) {
     auto dig = elem.second;
     int fastorIndex = elem.first;
-    auto whichTRU = std::get<0>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
-    auto whichFastOrTRU = std::get<1>(mTriggerMap->getTRUFromAbsFastORIndex(fastorIndex));
+    auto whichTRU = std::get<0>(mTriggerMap.getTRUFromAbsFastORIndex(fastorIndex));
+    auto whichFastOrTRU = std::get<1>(mTriggerMap.getTRUFromAbsFastORIndex(fastorIndex));
   }
 
   std::vector<std::tuple<int, Digit>> outputFastorSDigits;
@@ -255,14 +255,18 @@ void DigitizerTRU::sampleSDigit(const Digit& sDigit)
 //_______________________________________________________________________
 double DigitizerTRU::smearEnergy(double energy)
 {
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
   Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
-  energy *= mRandomGenerator->Poisson(fluct) / fluct;
+  TRandom3 mRandomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  energy *= mRandomGenerator.Poisson(fluct) / fluct;
   return energy;
 }
 //_______________________________________________________________________
 double DigitizerTRU::smearTime(double time, double energy)
 {
-  return mRandomGenerator->Gaus(time + mSimParam->getSignalDelay(), mSimParam->getTimeResolution(energy));
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
+  TRandom3 mRandomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  return mRandomGenerator.Gaus(time + mSimParam->getSignalDelay(), mSimParam->getTimeResolution(energy));
 }
 
 //_______________________________________________________________________

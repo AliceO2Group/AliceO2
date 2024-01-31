@@ -198,7 +198,7 @@ void TRUElectronics::updateADC()
       ADCvalues.erase(ADCvalues.begin());
     } else {
       if (ADCvalues.size() > 4)
-        LOG(info) << "DIG SIMONE updateADC in TRUElectronics: ERROR!!!!! ";
+        LOG(debug) << "DIG TRU updateADC in TRUElectronics: ERROR!!!!! ";
     }
     double integralADCnew = 0;
 

@@ -108,10 +108,10 @@ class DigitizerTRU
   static double rawResponseFunction(double* x, double* par);
 
  private:
-  short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)
-  bool mSmearEnergy = true;            ///< do time and energy smearing
-  bool mSimulateTimeResponse = true;   ///< simulate time response
-  const SimParam* mSimParam = nullptr; ///< SimParam object
+  short mEventTimeOffset = 0;        ///< event time difference from trigger time (in number of bins)
+  bool mSmearEnergy = true;          ///< do time and energy smearing
+  bool mSimulateTimeResponse = true; ///< simulate time response
+  // const SimParam* mSimParam = nullptr; ///< SimParam object
 
   std::vector<Digit> mTempDigitVector; ///< temporary digit storage
   // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
@@ -119,12 +119,12 @@ class DigitizerTRU
   o2::emcal::LZEROElectronics LZERO;              ///< to start the trigger
   std::vector<TRUElectronics> patchesFromAllTRUs; ///< patches from all TRUs
 
-  TRandom3* mRandomGenerator = nullptr; ///< random number generator
+  // TRandom3* mRandomGenerator = nullptr; ///< random number generator
   std::array<double, constants::EMCAL_MAXTIMEBINS>
     mAmplitudeInTimeBins; ///< template of the sampled time response function: amplitude of signal for each time bin (per phase)
 
-  TriggerMappingV2* mTriggerMap = nullptr; ///< Trigger map for tower to fastor ID
-  Geometry* mGeometry = nullptr;           ///< EMCAL geometry
+  // TriggerMappingV2* mTriggerMap = nullptr; ///< Trigger map for tower to fastor ID
+  Geometry* mGeometry = nullptr; ///< EMCAL geometry
 
   int mTimeWindowStart = 7;      ///< The start of the time window
   int mDelay = 7;                ///< number of (full) time bins corresponding to the signal time delay

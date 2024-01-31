@@ -72,10 +72,8 @@ bool LZEROElectronics::peakFinderOnAllPatches(TRUElectronics& p)
 //________________________________________________________
 void LZEROElectronics::init()
 {
-  mSimParam = &(o2::emcal::SimParam::Instance());
-  mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
   mSimulateNoiseDigits = mSimParam->doSimulateNoiseDigits();
-  mTriggerMap = new TriggerMappingV2(mGeometry);
   setThreshold(mSimParam->getThresholdLZERO());
   // setThreshold(132.);
 }
@@ -91,11 +89,12 @@ void LZEROElectronics::updatePatchesADC(TRUElectronics& p)
 //_______________________________________________________________________
 void LZEROElectronics::addNoiseDigits(Digit& d1)
 {
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
   double amplitude = d1.getAmplitude();
   double sigma = mSimParam->getPinNoiseTRU();
-  // double sigma = 0.04;
 
-  uint16_t noise = std::floor(std::abs(mRandomGenerator->Gaus(0, sigma) / constants::EMCAL_TRU_ADCENERGY)); // ADC
+  TRandom3 mRandomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  uint16_t noise = std::floor(std::abs(mRandomGenerator.Gaus(0, sigma) / constants::EMCAL_TRU_ADCENERGY)); // ADC
 
   Digit d(d1.getTower(), 0., noise, d1.getTimeStamp());
 
@@ -106,6 +105,7 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
 {
   int counterDigitTimeBin = 0;
   int sizemDigitMap = -999;
+  TriggerMappingV2 mTriggerMap(mGeometry);
 
   for (auto& digitsTimeBin : digitlist) {
     // Inside the DigitTimebinTRU
@@ -149,13 +149,9 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
         addNoiseDigits(summedDigit);
       }
 
-      if (summedDigit.getAmplitude() < 0) {
-        continue;
-      }
+      auto [whichTRU, whichFastOrTRU] = mTriggerMap.getTRUFromAbsFastORIndex(fastor);
 
-      auto [whichTRU, whichFastOrTRU] = mTriggerMap->getTRUFromAbsFastORIndex(fastor);
-
-      auto whichFastOr = std::get<1>(mTriggerMap->convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
+      auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
       fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
@@ -193,7 +189,7 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       for (auto& patches : patchesFromAllTRUs) {
         int whichFastOr = 0;
         for (auto& fastor : patches.mFastOrs) {
-          TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, std::get<1>(mTriggerMap->convertFastORIndexSTUtoTRU(mTriggerMap->convertTRUIndexTRUtoSTU(whichTRU), whichFastOr, o2::emcal::TriggerMappingV2::DetType_t::DET_EMCAL)), fastor.timesum()));
+          TriggerInputsForL1.mLastTimesumAllFastOrs.push_back(std::make_tuple(whichTRU, std::get<1>(mTriggerMap.convertFastORIndexSTUtoTRU(mTriggerMap.convertTRUIndexTRUtoSTU(whichTRU), whichFastOr, o2::emcal::TriggerMappingV2::DetType_t::DET_EMCAL)), fastor.timesum()));
           whichFastOr++;
         }
         whichTRU++;

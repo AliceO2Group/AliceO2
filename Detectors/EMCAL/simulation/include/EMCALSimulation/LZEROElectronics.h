@@ -115,7 +115,7 @@ class LZEROElectronics
   /// Getter for the trigger inputs found by the LZERO algorithm
   const std::vector<EMCALTriggerInputs>& getTriggerInputs() const
   {
-    LOG(info) << "DIG SIMONE getTriggerInputs in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
+    LOG(debug) << "DIG TRU getTriggerInputs in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
     return mTriggers;
   }
 
@@ -127,13 +127,13 @@ class LZEROElectronics
 
  private:
   double mThreshold = 0;
-  TRandom3* mRandomGenerator = nullptr;                ///< random number generator
-  const SimParam* mSimParam = nullptr;                 ///< SimParam object
+  // TRandom3* mRandomGenerator = nullptr;                ///< random number generator
+  // const SimParam* mSimParam = nullptr;                 ///< SimParam object
   std::vector<EMCALTriggerInputs> mTriggers;           ///< Triggers to be sent out
   std::vector<EMCALTriggerInputsPatch> mTriggersPatch; ///< Triggers to be sent out
   bool mSimulateNoiseDigits = true;                    ///< simulate noise digits
-  TriggerMappingV2* mTriggerMap = nullptr;             ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
-  Geometry* mGeometry = nullptr;                       ///< EMCAL geometry
+  // TriggerMappingV2* mTriggerMap = nullptr;             ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
+  Geometry* mGeometry = nullptr; ///< EMCAL geometry
 
   ClassDefNV(LZEROElectronics, 2);
 };

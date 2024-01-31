@@ -36,8 +36,8 @@ using namespace o2::emcal;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  mSimParam = &(o2::emcal::SimParam::Instance());
-  mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
+  // mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
   float tau = mSimParam->getTimeResponseTau();
   float N = mSimParam->getTimeResponsePower();
@@ -147,6 +147,7 @@ void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
 //_______________________________________________________________________
 void Digitizer::sampleSDigit(const Digit& sDigit)
 {
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
   mTempDigitVector.clear();
   Int_t tower = sDigit.getTower();
   Double_t energy = sDigit.getAmplitude();
@@ -217,19 +218,24 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
 //_______________________________________________________________________
 double Digitizer::smearEnergy(double energy)
 {
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
+  TRandom3 mRandomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
   Double_t fluct = (energy * mSimParam->getMeanPhotonElectron()) / mSimParam->getGainFluctuations();
-  energy *= mRandomGenerator->Poisson(fluct) / fluct;
+  energy *= mRandomGenerator.Poisson(fluct) / fluct;
   return energy;
 }
 
 double Digitizer::smearTime(double time, double energy)
 {
-  return mRandomGenerator->Gaus(time + mSimParam->getSignalDelay(), mSimParam->getTimeResolution(energy));
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
+  TRandom3 mRandomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  return mRandomGenerator.Gaus(time + mSimParam->getSignalDelay(), mSimParam->getTimeResolution(energy));
 }
 
 //_______________________________________________________________________
 void Digitizer::setEventTime(o2::InteractionTimeRecord record)
 {
+  auto mSimParam = &(o2::emcal::SimParam::Instance());
 
   mDigits.forwardMarker(record);
 

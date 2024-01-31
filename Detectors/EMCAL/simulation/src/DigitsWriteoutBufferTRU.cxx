@@ -31,18 +31,6 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
   bool needsEmptyTimeBins = false;
   int nProcessedTimeBins = 0;
 
-  // auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
-  // TriggerMappingV2  mTriggerMap(geom);
-  // for (auto& digitsTimeBin : mTimeBins) {
-  //   for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
-  //     // Digit loop
-  //     // The peak finding algorithm is run after getting out of the loop!
-  //     auto whichTRU2 = std::get<0>(mTriggerMap.getTRUFromAbsFastORIndex(fastor));
-  //     auto whichFastOrTRU2 = std::get<1>(mTriggerMap.getTRUFromAbsFastORIndex(fastor));
-  //     LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: in loop whichFastOr = " << whichFastOrTRU2 << ", whichTRU = " << whichTRU2 << ", AbsFastOr = " << fastor;
-  //   }
-  // }
-
   std::deque<o2::emcal::DigitTimebinTRU>
     mDequeTime;
 
@@ -51,23 +39,19 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
   // Checking the Interaction Record for the time of the next event in BC units
   // Difference becomes the new marker if the collision happens before 13 samples
   auto difference = nextInteractionRecord.toLong() - mCurrentInteractionRecord.toLong();
-  // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: beginning";
   if (mNoPileupMode || difference >= 13 || isEnd) {
     // Next collision happening way after the current one, just
     // send out and clear entire buffer
     // Simplification and optimization at software level - hardware would continuosly sample, but here we don't need to allocate memory dynamically which we are never going to use
     // Also in a dedicated no-pileup mode we always write out after each collision.
     for (auto& time : mTimeBins) {
-      // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before mDequeTime.push_back";
       mDequeTime.push_back(time);
     }
-    // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
-    // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before LZERO.fill";
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
     auto TriggerInputs = LZERO.getTriggerInputs();
     auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
     int nIter = TriggerInputs.size();
-    LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: size of TriggerInputs = " << nIter;
+    LOG(debug) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: size of TriggerInputs = " << nIter;
     // for (auto& patches : patchesFromAllTRUs) {
     //   LZERO.updatePatchesADC(patches);
     //   LZERO.peakFinderOnAllPatches(patches);
@@ -87,20 +71,16 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
         break;
       }
 
-      // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before mDequeTime.push_back";
       mDequeTime.push_back(time);
-      // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
 
       ++nProcessedTimeBins;
     }
 
-    // mDigitStream.fill(mDequeTime, mCurrentInteractionRecord);
-    // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: before LZERO.fill";
     LZERO.fill(mDequeTime, mCurrentInteractionRecord, patchesFromAllTRUs);
     auto TriggerInputs = LZERO.getTriggerInputs();
     auto TriggerInputsPatches = LZERO.getTriggerInputsPatches();
     int nIter = TriggerInputs.size();
-    LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: size of TriggerInputs = " << nIter;
+    LOG(debug) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: size of TriggerInputs = " << nIter;
     // for (auto& patches : patchesFromAllTRUs) {
     //   LZERO.updatePatchesADC(patches);
     //   LZERO.peakFinderOnAllPatches(patches);
@@ -115,7 +95,6 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     }
     reserve(15);
   }
-  // LOG(info) << "DIG SIMONE fillOutputContainer in DigitsWriteoutBufferTRU: end";
 }
 //________________________________________________________
 // Constructor: reserves space to keep always a minimum buffer size
@@ -141,7 +120,6 @@ void DigitsWriteoutBufferTRU::init()
 
   mLiveTime = simParam->getLiveTime();
   mBusyTime = simParam->getBusyTime();
-  // mPreTriggerTime = simParam->getPreTriggerTime();
   mNoPileupMode = simParam->isDisablePileup();
   mEndOfRun = 0;
 
@@ -168,11 +146,6 @@ void DigitsWriteoutBufferTRU::addDigits(unsigned int towerID, std::vector<Digit>
 
     auto& buffEntry = mTimeBins[ientry];
     auto& dig = digList.at(ientry);
-    // auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
-    // TriggerMappingV2  mTriggerMap(geom);
-    // auto whichTRU = std::get<0>(mTriggerMap.getTRUFromAbsFastORIndex(towerID));
-    // auto whichFastOrTRU = std::get<1>(mTriggerMap.getTRUFromAbsFastORIndex(towerID));
-    // LOG(info) << "DIG SIMONE addDigits in WriteoutTRU: after whichFastOr = " << whichFastOrTRU << ", whichTRU = " << whichTRU << ", AbsFastOr = " << towerID;
 
     auto towerEntry = buffEntry.mDigitMap->find(towerID);
     if (towerEntry == buffEntry.mDigitMap->end()) {
