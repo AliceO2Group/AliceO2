@@ -92,11 +92,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   if (inputs.size() == 0) {
     throw std::runtime_error("invalid dataspec '" + inputConfig + "'");
   }
+  bool isResilient = false;
   // we need to set the lifetime of the inputs to sporadic if requested
   if (sporadicInputs) {
     for (auto& input : inputs) {
       input.lifetime = Lifetime::Sporadic;
     }
+    isResilient = true;
   }
 
   // we build the default channel configuration from the binding of the first input
@@ -133,5 +135,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::vector<DataProcessorSpec> workflow;
   workflow.emplace_back(std::move(specifyFairMQDeviceOutputProxy(processorName.c_str(), inputs, defaultChannelConfig.c_str())));
+  if (getenv("DPL_OUTPUT_PROXY_WHENANY") && atoi(getenv("DPL_OUTPUT_PROXY_WHENANY"))) {
+    isResilient = true;
+  }
+  if (isResilient) {
+    workflow.back().labels.push_back({"resilient"});
+  }
   return workflow;
 }
