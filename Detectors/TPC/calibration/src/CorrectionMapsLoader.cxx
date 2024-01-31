@@ -264,8 +264,12 @@ void CorrectionMapsLoader::updateInverse()
   if (mLumiScaleMode == 1 || mLumiScaleMode == 2) {
     LOGP(info, "Recalculating the inverse correction");
     setUpdatedMap();
-    std::vector<float> scaling{1, mLumiScale, 1};
-    std::vector<o2::gpu::TPCFastSpaceChargeCorrection*> corr{&(mCorrMap->getCorrection()), &(mCorrMapRef->getCorrection()), &(mCorrMapMShape->getCorrection())};
+    std::vector<float> scaling{1, mLumiScale};
+    std::vector<o2::gpu::TPCFastSpaceChargeCorrection*> corr{&(mCorrMap->getCorrection()), &(mCorrMapRef->getCorrection())};
+    if (mCorrMapMShape) {
+      scaling.emplace_back(1);
+      corr.emplace_back(&(mCorrMapMShape->getCorrection()));
+    }
     TPCFastSpaceChargeCorrectionHelper::instance()->initInverse(corr, scaling, false);
   } else {
     LOGP(info, "Reinitializing inverse correction with lumi scale mode {} not supported for now", mLumiScaleMode);
