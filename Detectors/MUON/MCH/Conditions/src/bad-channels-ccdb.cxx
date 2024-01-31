@@ -19,6 +19,7 @@
 #include "DataFormatsMCH/DsChannelId.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "MCHGlobalMapping/DsIndex.h"
 
 namespace po = boost::program_options;
 
@@ -50,6 +51,7 @@ void uploadBadChannels(const std::string ccdbUrl,
                        uint64_t startTimestamp,
                        uint64_t endTimestamp,
                        std::vector<uint16_t> solarsToReject,
+                       std::vector<uint16_t> dsToReject,
                        bool makeDefault)
 {
   BadChannelsVector bv;
@@ -71,12 +73,29 @@ void uploadBadChannels(const std::string ccdbUrl,
     }
   }
 
+  for (auto ds : dsToReject) {
+    if (ds >= o2::mch::NumberOfDualSampas) {
+      std::cout << "Error: invalid DS index" << std::endl;
+      continue;
+    }
+    o2::mch::raw::DsDetId dsDetId = o2::mch::getDsDetId(ds);
+    o2::mch::mapping::Segmentation seg(dsDetId.deId());
+    for (uint8_t channel = 0; channel < 64; channel++) {
+      auto dsElecId = det2elec(dsDetId);
+      auto padId = seg.findPadByFEE(dsDetId.dsId(), channel);
+      if (seg.isValid(padId)) {
+        const auto c = o2::mch::DsChannelId(dsElecId->solarId(), dsElecId->elinkId(), channel);
+        bv.emplace_back(c);
+      }
+    }
+  }
+
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
   auto dest = ccdbPath(badChannelType);
   std::cout << "storing default MCH bad channels (valid from "
-            << startTimestamp << "to " << endTimestamp << ") to "
+            << startTimestamp << " to " << endTimestamp << ") to "
             << dest << "\n";
 
   if (makeDefault) {
@@ -120,7 +139,8 @@ int main(int argc, char** argv)
       ("query,q",po::bool_switch(&query),"dump bad channel object from CCDB")
       ("verbose,v",po::bool_switch(&verbose),"verbose output")
       ("solar,s",po::value<std::vector<uint16_t>>()->multitoken(),"solar ids to reject")
-      ;
+      ("dsToReject,d", po::value<std::vector<uint16_t>>()->multitoken(), "dual sampas indices to reject")
+        ;
   // clang-format on
 
   po::options_description cmdline;
@@ -152,11 +172,15 @@ int main(int argc, char** argv)
 
   if (put) {
     std::vector<uint16_t> solarsToReject;
+    std::vector<uint16_t> dsToReject;
     if (vm.count("solar")) {
       solarsToReject = vm["solar"].as<std::vector<uint16_t>>();
     }
+    if (vm.count("dsToReject")) {
+      dsToReject = vm["dsToReject"].as<std::vector<uint16_t>>();
+    }
 
-    uploadBadChannels(ccdbUrl, badChannelType, startTimestamp, endTimestamp, solarsToReject, uploadDefault);
+    uploadBadChannels(ccdbUrl, badChannelType, startTimestamp, endTimestamp, solarsToReject, dsToReject, uploadDefault);
   }
   return 0;
 }
