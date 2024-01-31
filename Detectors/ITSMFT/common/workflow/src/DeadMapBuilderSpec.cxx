@@ -46,6 +46,13 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
 
   LOG(info) << "ITSMFTDeadMapBuilder init... " << mSelfName;
 
+  mTFSampling = ic.options().get<int>("tf-sampling");
+  mTFLength = ic.options().get<int>("tf-length");
+  mDoLocalOutput = ic.options().get<bool>("local-output");
+  mObjectName = ic.options().get<std::string>("outfile");
+  mLocalOutputDir = ic.options().get<std::string>("output-dir");
+  mSkipStaticMap = ic.options().get<bool>("skip-static-map");
+
   if (mRunMFT) {
     N_CHIPS = o2::itsmft::ChipMappingMFT::getNChips();
   } else {
@@ -53,15 +60,13 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   }
 
   mDeadMapTF.clear();
-
+  mStaticChipStatus.clear();
   mMapObject.clear();
   mMapObject.setMapVersion(MAP_VERSION);
 
-  mTFSampling = ic.options().get<int>("tf-sampling");
-  mTFLength = ic.options().get<int>("tf-length");
-  mDoLocalOutput = ic.options().get<bool>("local-output");
-  mObjectName = ic.options().get<std::string>("outfile");
-  mLocalOutputDir = ic.options().get<std::string>("output-dir");
+  if (!mSkipStaticMap) {
+    mStaticChipStatus.resize(N_CHIPS, false);
+  }
 
   LOG(info) << "Sampling one TF every " << mTFSampling;
 
@@ -86,6 +91,20 @@ std::vector<uint16_t> ITSMFTDeadMapBuilder::getChipIDsOnSameCable(uint16_t chip)
 
 void ITSMFTDeadMapBuilder::finalizeOutput()
 {
+
+  if (!mSkipStaticMap) {
+    std::vector<uint16_t> staticmap{};
+
+    for (int el = 0; el < mStaticChipStatus.size(); el++) {
+      if (!mStaticChipStatus[el]) {
+        staticmap.push_back((uint16_t)el);
+      }
+    }
+
+    LOG(info) << "Filling static part of the map with " << staticmap.size() << " dead chips";
+
+    mMapObject.fillMap(staticmap);
+  }
 
   if (mDoLocalOutput) {
     std::string localoutfilename = mLocalOutputDir + "/" + mObjectName;
@@ -148,6 +167,14 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
       if (elements[chipID]) {
         ChipStatus.at(chipID) = true;
       }
+    }
+  }
+
+  // do AND operation before unmasking the full ITS lane
+
+  if (!mSkipStaticMap) {
+    for (size_t el = 0; el < mStaticChipStatus.size(); el++) {
+      mStaticChipStatus[el] = mStaticChipStatus[el] || ChipStatus[el];
     }
   }
 
@@ -300,6 +327,7 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     AlgorithmSpec{adaptFromTask<ITSMFTDeadMapBuilder>(datasource, doMFT)},
     Options{{"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
+            {"skip-static-map", VariantType::Bool, false, {"Do not fill static part of the map."}},
             {"outfile", VariantType::String, objectname_default, {"ROOT object file name."}},
             {"local-output", VariantType::Bool, false, {"Save ROOT tree file locally."}},
             {"output-dir", VariantType::String, "./", {"ROOT tree local output directory."}}}};

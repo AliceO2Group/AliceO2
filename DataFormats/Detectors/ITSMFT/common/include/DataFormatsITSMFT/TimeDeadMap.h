@@ -58,7 +58,7 @@ class TimeDeadMap
 
   void decodeMap(o2::itsmft::NoiseMap& noisemap)
   { // for static part only
-    if (mMAP_VERSION != "3") {
+    if (mMAP_VERSION == "3") {
       LOG(error) << "Trying to decode static part of deadmap version " << mMAP_VERSION << ". Not implemented, doing nothing.";
       return;
     }
