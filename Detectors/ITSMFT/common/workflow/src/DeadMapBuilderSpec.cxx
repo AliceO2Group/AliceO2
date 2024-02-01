@@ -53,6 +53,8 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
   mSkipStaticMap = ic.options().get<bool>("skip-static-map");
 
+  mTimeStart = o2::ccdb::getCurrentTimestamp();
+
   if (mRunMFT) {
     N_CHIPS = o2::itsmft::ChipMappingMFT::getNChips();
   } else {
@@ -63,6 +65,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mStaticChipStatus.clear();
   mMapObject.clear();
   mMapObject.setMapVersion(MAP_VERSION);
+  mRunNumber = -1;
 
   if (!mSkipStaticMap) {
     mStaticChipStatus.resize(N_CHIPS, false);
@@ -94,14 +97,24 @@ void ITSMFTDeadMapBuilder::finalizeOutput()
 
   if (!mSkipStaticMap) {
     std::vector<uint16_t> staticmap{};
-
-    for (int el = 0; el < mStaticChipStatus.size(); el++) {
-      if (!mStaticChipStatus[el]) {
-        staticmap.push_back((uint16_t)el);
+    int staticmap_chipcounter = 0;
+    for (uint16_t el = 0; el < mStaticChipStatus.size(); el++) {
+      if (mStaticChipStatus[el]) {
+        continue;
+      }
+      staticmap_chipcounter++;
+      bool previous_dead = (el > 0 && !mStaticChipStatus[el - 1]);
+      bool next_dead = (el < mStaticChipStatus.size() - 1 && !mStaticChipStatus[el + 1]);
+      if (!previous_dead && next_dead) {
+        staticmap.push_back(el | (uint16_t)(0x8000));
+      } else if (previous_dead && next_dead) {
+        continue;
+      } else {
+        staticmap.push_back(el);
       }
     }
 
-    LOG(info) << "Filling static part of the map with " << staticmap.size() << " dead chips";
+    LOG(info) << "Filling static part of the map with " << staticmap_chipcounter << " dead chips, saved into " << staticmap.size() << " words";
 
     mMapObject.fillMap(staticmap);
   }
@@ -121,6 +134,12 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 {
   if (mRunStopRequested) { // give up when run stop request arrived
     return;
+  }
+
+  if (mRunNumber < 0) {
+    auto tInfo = pc.services().get<o2::framework::TimingInfo>();
+    mRunNumber = tInfo.runNumber;
+    LOG(info) << "Run number is " << mRunNumber;
   }
 
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
@@ -226,9 +245,7 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
 {
 
-  long tstart = o2::ccdb::getCurrentTimestamp();
-  long secinyear = 365L * 24 * 3600;
-  long tend = o2::ccdb::getFutureTimestamp(secinyear);
+  long tend = o2::ccdb::getCurrentTimestamp();
 
   std::map<std::string, std::string> md = {
     {"map_version", MAP_VERSION}};
@@ -236,7 +253,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
   std::string path = mRunMFT ? "MFT/Calib/" : "ITS/Calib/";
   std::string name_str = "TimeDeadMap";
 
-  o2::ccdb::CcdbObjectInfo info((path + name_str), name_str, mObjectName, md, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info((path + name_str), name_str, mObjectName, md, mTimeStart - 120 * 1000, tend + 60 * 1000);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mMapObject, &info);
   info.setFileName(mObjectName);
@@ -254,8 +271,6 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
   }
-
-  LOG(info) << "AAA snapshots created";
 
   return;
 }

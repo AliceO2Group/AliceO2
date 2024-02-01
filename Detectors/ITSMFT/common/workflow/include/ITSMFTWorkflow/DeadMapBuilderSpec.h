@@ -89,6 +89,9 @@ class ITSMFTDeadMapBuilder : public Task
 
   uint mStepCounter = 0;
   uint mTFCounter = 0;
+  int mRunNumber = -1;
+
+  long mTimeStart = -1; // TODO: better to use RCT info?
 
   std::string mObjectName;
   std::string mLocalOutputDir;
