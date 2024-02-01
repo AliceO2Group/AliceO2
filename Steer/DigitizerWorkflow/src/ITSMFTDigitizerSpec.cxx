@@ -92,7 +92,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       if (!mDigits.size()) {
         return; // no digits were flushed, nothing to accumulate
       }
-      static int fixMC2ROF = 0; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
       auto ndigAcc = digitsAccum.size();
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
 
@@ -200,11 +199,10 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       o2::itsmft::TimeDeadMap* timedeadmap = (o2::itsmft::TimeDeadMap*)obj;
       if (!timedeadmap->isDefault()) {
         timedeadmap->decodeMap(mFirstOrbitTF, *mDeadMap, true);
-        static bool UpdateDone = false;
-        if (UpdateDone) {
+        if (mTimeDeadMapUpdated) {
           LOGP(fatal, "Attempt to add time-dependent map to already modified static map");
         }
-        UpdateDone = true;
+        mTimeDeadMapUpdated = true;
         mDigitizer.setDeadChannelsMap(mDeadMap);
         LOG(info) << mID.getName() << " time-dependent dead map updated";
       } else {
@@ -301,6 +299,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   o2::itsmft::NoiseMap* mDeadMap = nullptr;
 
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
+  bool mTimeDeadMapUpdated = false;
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 
