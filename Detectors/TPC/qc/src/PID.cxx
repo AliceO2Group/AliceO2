@@ -25,7 +25,6 @@
 // o2 includes
 #include "DataFormatsTPC/dEdxInfo.h"
 #include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsTPC/PIDResponse.h"
 #include "TPCQC/PID.h"
 #include "TPCQC/Helpers.h"
 
@@ -50,7 +49,6 @@ const binning binsdEdxMIPTot{100, mipTot / 3., mipTot * 3.};
 const binning binsdEdxMIPMax{100, mipMax / 3., mipMax * 3.};
 const binning binsSec{36, 0., 36.};
 const auto bins = o2::tpc::qc::helpers::makeLogBinning(200, 0.05, 20);
-o2::tpc::PIDResponse mPID;
 
 //______________________________________________________________________________
 void PID::initializeHistograms()

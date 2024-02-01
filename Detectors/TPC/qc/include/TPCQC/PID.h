@@ -54,7 +54,7 @@ class PID
 
   /// bool extracts intormation from track and fills it to histograms
   /// @return true if information can be extracted and filled to histograms
-  bool processTrack(const o2::tpc::TrackTPC& track, size_t NTracks);
+  bool processTrack(const o2::tpc::TrackTPC& track, size_t nTracks);
 
   /// Initialize all histograms
   void initializeHistograms();
@@ -92,17 +92,7 @@ class PID
   float mCutMaxpTPC = 20.f;      // pTPC max value
   float mCutMinpTPCMIPs = 0.45f; // pTPC min value for MIPs
   float mCutMaxpTPCMIPs = 0.55f; // pTPC max value for MIPs
-  // ===| The following parameters are used to set up the getMostProbablePID() function. It needs some hardcoded cuts in the overlap region.
-  // ===| They are taken from O2/GPU/GPUTracking/Definitions/GPUSettingsList.h
-  float mCutKrangeMin = 0.47f; // minMomentum for Kaons in dEdx overlap region
-  float mCutKrangeMax = 0.57f; // maxMomentum for Kaons in dEdx overlap region
-  float mCutPrangeMin = 0.93f; // minMomentum for Protons in dEdx overlap region
-  float mCutPrangeMax = 1.03f; // maxMomentum for Protons in dEdx overlap region
-  float mCutDrangeMin = 1.88f; // minMomentum for Deuterons in dEdx overlap region
-  float mCutDrangeMax = 1.98f; // maxMomentum for Deuterons in dEdx overlap region
-  float mCutTrangeMin = 2.84f; // minMomentum for Tritons in dEdx overlap region
-  float mCutTrangeMax = 2.94f; // maxMomentum for Tritons in dEdx overlap region
-  float mPIDSigma = 0.06f;     // relative sigma for PID in combination with UseNSigma (hardcoded to 1)
+
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHist;
   // Map for Canvases to be published
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>> mMapCanvas;
