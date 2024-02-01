@@ -42,6 +42,7 @@ void Digitizer::init()
     randomSeed = o2::conf::DigiParams::Instance().seed;
   }
   mRandomGenerator = new TRandom3(randomSeed);
+  
   float tau = mSimParam->getTimeResponseTau();
   float N = mSimParam->getTimeResponsePower();
 
