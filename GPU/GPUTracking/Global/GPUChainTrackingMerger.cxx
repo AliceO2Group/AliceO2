@@ -136,14 +136,14 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGMMergerUnpackGlobal>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, i);
   }
   runKernel<GPUTPCGMMergerUnpackSaveNumber>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 2 * NSLICES);
-  DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpSliceTracks, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpSliceTracks, *mDebugFile);
 
   runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, 0);
   runKernel<GPUMemClean16>({1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}, krnlRunRangeNone, {}, MergerShadowAll.TmpCounter(), NSLICES * sizeof(*MergerShadowAll.TmpCounter()));
   runKernel<GPUTPCGMMergerMergeWithinPrepare>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   RunTPCTrackingMerger_MergeBorderTracks(1, 0, deviceType);
   RunTPCTrackingMerger_Resolve(0, 1, deviceType);
-  DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpMergedWithinSlices, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpMergedWithinSlices, *mDebugFile);
 
   runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, 0);
   runKernel<GPUMemClean16>({1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}, krnlRunRangeNone, {}, MergerShadowAll.TmpCounter(), 2 * NSLICES * sizeof(*MergerShadowAll.TmpCounter()));
@@ -158,20 +158,20 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   runKernel<GPUTPCGMMergerMergeSlicesPrepare>(GetGridBlk(std::max(2u, numBlocks), 0, deviceType), krnlRunRangeNone, krnlEventNone, 0, 1, 1);
   RunTPCTrackingMerger_MergeBorderTracks(0, -1, deviceType);
   RunTPCTrackingMerger_Resolve(0, 1, deviceType);
-  DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpMergedBetweenSlices, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpMergedBetweenSlices, *mDebugFile);
 
   runKernel<GPUMemClean16>({1, -WarpSize(), 0, deviceType, RecoStep::TPCMerging}, krnlRunRangeNone, {}, MergerShadowAll.TmpCounter(), 2 * NSLICES * sizeof(*MergerShadowAll.TmpCounter()));
 
   runKernel<GPUTPCGMMergerLinkGlobalTracks>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   runKernel<GPUTPCGMMergerCollect>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
-  DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpCollected, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpCollected, *mDebugFile);
 
   if (param().rec.tpc.mergeCE) {
     runKernel<GPUTPCGMMergerClearLinks>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, 1);
     RunTPCTrackingMerger_MergeBorderTracks(-1, 1, deviceType);
     RunTPCTrackingMerger_MergeBorderTracks(-1, 2, deviceType);
     runKernel<GPUTPCGMMergerMergeCE>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
-    DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpMergeCE, *mDebugFile);
+    DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpMergeCE, *mDebugFile);
   }
   int waitForTransfer = 0;
   if (doGPUall) {
@@ -199,7 +199,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGMMergerPrepareClusters, 2>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   }
 
-  DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpFitPrepare, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpFitPrepare, *mDebugFile);
 
   if (doGPUall) {
     CondWaitEvent(waitForTransfer, &mEvents->single);
@@ -229,7 +229,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     SynchronizeStream(0);
   }
 
-  DoDebugAndDump(RecoStep::TPCMerging, 0, Merger, &GPUTPCGMMerger::DumpRefit, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, Merger, &GPUTPCGMMerger::DumpRefit, *mDebugFile);
   runKernel<GPUTPCGMMergerFinalize, 0>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   if (!param().rec.nonConsecutiveIDs) {
     runKernel<GPUTPCGMMergerFinalize, 1>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
@@ -244,7 +244,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGMMergerMergeLoopers, 1>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     runKernel<GPUTPCGMMergerMergeLoopers, 2>(doGPUall ? GetGrid(Merger.Memory()->nLooperMatchCandidates, 0, deviceType) : GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   }
-  DoDebugAndDump(RecoStep::TPCMerging, 0, doGPUall, Merger, &GPUTPCGMMerger::DumpFinal, *mDebugFile);
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpFinal, *mDebugFile);
 
   if (doGPUall) {
     RecordMarker(&mEvents->single, 0);

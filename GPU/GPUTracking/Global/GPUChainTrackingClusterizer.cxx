@@ -711,7 +711,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (fragment.index == 0) {
           runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpadIsNoisy, TPC_PADS_IN_SECTOR * sizeof(*clustererShadow.mPpadIsNoisy));
         }
-        DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Zeroed Charges", doGPU);
+        DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Zeroed Charges", doGPU);
 
         if (doGPU) {
           if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice] && mCFContext->zsVersion != -1) {
@@ -799,7 +799,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (!mIOPtrs.tpcZS) {
           runKernel<GPUTPCCFChargeMapFiller, GPUTPCCFChargeMapFiller::fillFromDigits>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
         }
-        if (DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpDigits, *mDebugFile)) {
+        if (DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpDigits, *mDebugFile)) {
           clusterer.DumpChargeMap(*mDebugFile, "Charges", doGPU);
         }
 
@@ -818,11 +818,11 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
 
         runKernel<GPUTPCCFPeakFinder>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
-        DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpPeaks, *mDebugFile);
+        DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpPeaks, *mDebugFile);
 
         RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 0, doGPU, lane);
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
-        DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpPeaksCompacted, *mDebugFile);
+        DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpPeaksCompacted, *mDebugFile);
       }
       GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
       for (int lane = 0; lane < maxLane; lane++) {
@@ -837,11 +837,11 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::noiseSuppression>(GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}, {});
         runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::updatePeaks>(GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}, {});
-        DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpSuppressedPeaks, *mDebugFile);
+        DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpSuppressedPeaks, *mDebugFile);
 
         RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 1, doGPU, lane);
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
-        DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpSuppressedPeaksCompacted, *mDebugFile);
+        DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpSuppressedPeaksCompacted, *mDebugFile);
       }
       GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
       for (int lane = 0; lane < maxLane; lane++) {
@@ -862,7 +862,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
 
         runKernel<GPUTPCCFDeconvolution>(GetGrid(clusterer.mPmemory->counters.nPositions, lane), {iSlice}, {});
-        DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Split Charges", doGPU);
+        DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Split Charges", doGPU);
 
         runKernel<GPUTPCCFClusterizer>(GetGrid(clusterer.mPmemory->counters.nClusters, lane), {iSlice}, {}, 0);
         if (doGPU && propagateMCLabels) {
@@ -878,7 +878,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
         TransferMemoryResourcesToHost(RecoStep::TPCClusterFinding, &clusterer, lane);
         laneHasData[lane] = true;
-        if (DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, *mDebugFile)) {
+        if (DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpCountedPeaks, *mDebugFile)) {
           clusterer.DumpClusters(*mDebugFile);
         }
       }
