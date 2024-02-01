@@ -113,6 +113,12 @@ void PID::resetHistograms()
 }
 
 //______________________________________________________________________________
+
+// dummy version to make it compatible with old QC version.
+bool PID::processTrack(const o2::tpc::TrackTPC& track)
+{
+  return true;
+}
 bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
 {
   // ===| variables required for cutting and filling |===

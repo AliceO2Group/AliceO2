@@ -56,6 +56,9 @@ class PID
   /// @return true if information can be extracted and filled to histograms
   bool processTrack(const o2::tpc::TrackTPC& track, size_t nTracks);
 
+  // dummy version to make it compatible with old QC version
+  bool processTrack(const o2::tpc::TrackTPC& track);
+
   /// Initialize all histograms
   void initializeHistograms();
 
