@@ -143,16 +143,27 @@ void merge(VectorOfTObjectPtrs& targets, const VectorOfTObjectPtrs& others)
   }
 }
 
+void deleteRecursive(TCollection* Coll)
+{
+  // I can iterate a collection
+  Coll->SetOwner(false);
+  auto ITelem = Coll->MakeIterator();
+  while (auto* element = ITelem->Next()) {
+    if (auto* Coll2 = dynamic_cast<TCollection*>(element)) {
+      Coll2->SetOwner(false);
+      deleteRecursive(Coll2);
+    }
+    Coll->Remove(element); // Remove from mother collection
+    delete element;        // Delete payload
+  }
+  delete ITelem;
+}
+
 void deleteTCollections(TObject* obj)
 {
-  if (auto c = dynamic_cast<TCollection*>(obj)) {
-    c->SetOwner(false);
-    auto iter = c->MakeIterator();
-    while (auto element = iter->Next()) {
-      deleteTCollections(element);
-    }
-    delete iter;
-    delete c;
+  if (auto* L = dynamic_cast<TCollection*>(obj)) {
+    deleteRecursive(L);
+    delete L;
   } else {
     delete obj;
   }
