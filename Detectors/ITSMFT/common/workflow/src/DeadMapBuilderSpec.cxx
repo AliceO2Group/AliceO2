@@ -255,6 +255,8 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
   }
 
+  LOG(info) << "AAA snapshots created";
+
   return;
 }
 
@@ -266,7 +268,11 @@ void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
   if (!isEnded && !mRunStopRequested) {
     LOG(info) << "endOfStream report:" << mSelfName;
     finalizeOutput();
-    PrepareOutputCcdb(ec.outputs());
+    if (mMapObject.getEvolvingMapSize() > 0) {
+      PrepareOutputCcdb(ec.outputs());
+    } else {
+      LOG(warning) << "Time-dependent dead map is empty and will not be forwarded as output";
+    }
     isEnded = true;
   }
   return;
