@@ -67,8 +67,8 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 class TrackMCStudy : public Task
 {
  public:
-  TrackMCStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src) {}
+  TrackMCStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool checkMatching)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mCheckMatching(checkMatching) {}
   ~TrackMCStudy() final = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -114,7 +114,6 @@ void TrackMCStudy::init(InitContext& ic)
   mcReader.initFromDigitContext("collisioncontext.root");
 
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("trackMCStudy.root", "recreate");
-  mCheckMatching = ic.options().get<bool>("check-its-tpc");
   mVerbose = ic.options().get<int>("device-verbosity");
   mTPCDCAYCut = ic.options().get<float>("max-tpc-dcay");
   mTPCDCAZCut = ic.options().get<float>("max-tpc-dcaz");
@@ -303,6 +302,14 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
       }
       const auto& trcTPCOrig = recoData.getTPCTrack(vidTPC);
       const auto& trcITSOrig = recoData.getITSTrack(vidITS);
+      int lowestTPCRow = -1;
+      if (recoData.inputsTPCclusters) {
+        uint8_t clSect = 0, clRow = 0;
+        uint32_t clIdx = 0;
+        const auto clRefs = recoData.getTPCTracksClusterRefs();
+        trcTPCOrig.getClusterReference(clRefs, trcTPCOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
+        lowestTPCRow = clRow;
+      }
       float tpcT0 = trcTPCOrig.getTime0(), tF = trcTPCOrig.getDeltaTFwd(), tB = trcTPCOrig.getDeltaTBwd();
       TBracket tpcBr((tpcT0 - tB) * mTPCTBinMUS, (tpcT0 + tF) * mTPCTBinMUS);
 
@@ -320,6 +327,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
                  << "tpcRef=" << trcTPC
                  << "itsOrig=" << trcITSOrig
                  << "tpcOrig=" << trcTPCOrig
+                 << "tpcLowestRow=" << lowestTPCRow
                  << "\n";
       break;
     }
@@ -411,7 +419,7 @@ float TrackMCStudy::getDCAYCut(float pt) const
   return fun.Eval(pt);
 }
 
-DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters)
+DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool checkMatching)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -434,10 +442,9 @@ DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask
     "track-mc-study",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackMCStudy>(dataRequest, ggRequest, srcTracks)},
+    AlgorithmSpec{adaptFromTask<TrackMCStudy>(dataRequest, ggRequest, srcTracks, checkMatching)},
     Options{
       {"device-verbosity", VariantType::Int, 0, {"Verbosity level"}},
-      {"check-its-tpc", VariantType::Bool, false, {"Special output for failed ITS-TPC matches"}},
       {"dcay-vs-pt", VariantType::String, "0.0105 + 0.0350 / pow(x, 1.1)", {"Formula for global tracks DCAy vs pT cut"}},
       {"min-tpc-clusters", VariantType::Int, 60, {"Cut on TPC clusters"}},
       {"max-tpc-dcay", VariantType::Float, 2.f, {"Cut on TPC dcaY"}},
