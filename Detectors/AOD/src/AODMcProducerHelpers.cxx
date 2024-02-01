@@ -245,7 +245,7 @@ void updateParticle(const ParticleCursor& cursor,
   if ((id = mapping(track.getFirstDaughterTrackId())) >= 0) {
     daughters[0] = id;
   }
-  if ((id = mapping(track.getFirstDaughterTrackId())) >= 0) {
+  if ((id = mapping(track.getLastDaughterTrackId())) >= 0) {
     daughters[1] = id;
   } else {
     daughters[1] = daughters[0];
