@@ -115,16 +115,15 @@ void PID::resetHistograms()
 }
 
 //______________________________________________________________________________
-bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t NTracks)
+bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
 {
-  // ===| variables required for cutting and filling |===trackObj
+  // ===| variables required for cutting and filling |===
   const auto& dEdx = track.getdEdx();
   const auto pTPC = track.getP();
   const auto tgl = track.getTgl();
   const auto snp = track.getSnp();
   const auto phi = track.getPhi();
   const auto ncl = uint8_t(track.getNClusters());
-  float dEdxRatio = -1;
 
   const auto eta = track.getEta();
   mMapHist["hdEdxTotVspBeforeCuts"][0]->Fill(phi, dEdx.dEdxTotTPC);
@@ -157,7 +156,7 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t NTracks)
   }
   for (size_t idEdxType = 0; idEdxType < rocNames.size(); ++idEdxType) {
     bool ok = false;
-    float sec = 18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[idEdxType], 2, ok).Phi()) / o2::constants::math::TwoPI; /// ask Max. WHat does this function (getXYZGloAt) return, its relation to ok? .M
+    float sec = 18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[idEdxType], 2, ok).Phi()) / o2::constants::math::TwoPI;
     if (track.hasCSideClusters()) {
       sec += 18.f;
     }
@@ -171,17 +170,17 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t NTracks)
     if (std::abs(tgl) < mCutAbsTgl) {
       mMapHist["hdEdxTotVsp"][idEdxType]->Fill(pTPC, dEdxTot[idEdxType]);
       mMapHist["hdEdxMaxVsp"][idEdxType]->Fill(pTPC, dEdxMax[idEdxType]);
-      for (size_t iSpecies = 0; iSpecies < o2::track::PID::NIDs; ++iSpecies) {
-        dEdxRatio = dEdxTot[idEdxType] / mPID.getExpectedSignal(track, static_cast<o2::track::PID::ID>(iSpecies));
-      }
-      const auto PIDHypothesis = mPID.getMostProbablePID(track, mCutKrangeMin, mCutKrangeMax, mCutPrangeMin, mCutPrangeMax, mCutDrangeMin, mCutDrangeMax, mCutTrangeMin, mCutTrangeMax, 1, mPIDSigma);
-      int Hypothesis = static_cast<int>(PIDHypothesis) + 1;
-      if (static_cast<int>(PIDHypothesis) <= o2::track::PID::NIDs) {
-        if (track.getCharge() > 0) {
-          mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), Hypothesis);
-        } else {
-          mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), Hypothesis);
-        }
+      const auto pidHypothesis = track.getPID().getID();
+      if (pidHypothesis <= o2::track::PID::NIDs) {
+        //TH1* pidHist = mMapHistCanvas["hdEdxVspHypoPos"][idEdxType];
+        auto pidHist = mMapHistCanvas[(track.getCharge() > 0) ? "hdEdxVspHypoPos" : "hdEdxVspHypoNeg"][idEdxType].get();
+        pidHist->SetBinContent(pidHist->GetXaxis()->FindBin(pTPC), pidHist->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
+
+        //if (track.getCharge() > 0) {
+        //  mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
+        //} else {
+        //  mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
+        //}
       }
     }
 
