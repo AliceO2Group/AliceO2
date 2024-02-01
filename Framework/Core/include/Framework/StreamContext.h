@@ -69,7 +69,8 @@ struct StreamContext {
   // for a given iteration.
   // This is in the stream context to allow tracking data creation on a per thread
   // basis.
-  std::vector<bool> routeUserCreated;
+  std::vector<bool> routeDPLCreated;
+  std::vector<bool> routeCreated;
 };
 
 } // namespace o2::framework
