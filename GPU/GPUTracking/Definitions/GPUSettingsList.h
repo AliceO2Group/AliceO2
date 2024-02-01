@@ -69,6 +69,8 @@ AddOptionRTC(PID_EDrangeMax, float, 1.98f, "", 0, "max P of electron/d BB bands 
 AddOptionRTC(PID_ETrangeMin, float, 2.84f, "", 0, "min P of electron/t BB bands crossing")
 AddOptionRTC(PID_ETrangeMax, float, 2.94f, "", 0, "max P of electron/t BB bands crossing")
 AddOptionRTC(PID_sigma, float, 0.06f, "", 0, "relative sigma for PID in combination with PID_useNsigma")
+AddOptionRTC(minTrackdEdxMax, float, 20.0f, "", 0, "min accepted dEdxMaxTPC of the track")
+AddOptionRTC(minTrackdEdxMax2Tot, float, 0.67, "", 0, "min accepted dEdxMaxTPC/dEdxTotTPC of the track")
 AddOptionRTC(extraClusterErrorEdgeY2, float, 0.35f, "", 0, "Additive extra cluster error for Y2 if edge flag set")
 AddOptionRTC(extraClusterErrorEdgeZ2, float, 0.15f, "", 0, "Additive extra cluster error for Z2 if edge flag set")
 AddOptionRTC(extraClusterErrorSingleY2, float, 0.2f, "", 0, "Additive extra cluster error for Y2 if edge single set")
