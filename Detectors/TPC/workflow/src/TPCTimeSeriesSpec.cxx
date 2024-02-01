@@ -1342,6 +1342,7 @@ class TPCTimeSeries : public Task
                             << "nClITS=" << nClITS
                             << "chi2ITS=" << chi2ITS
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
+                            << "PID=" << trkOrig.getPID()
                             //
                             << "deltaPar0=" << deltaP0
                             << "deltaPar1=" << deltaP1
