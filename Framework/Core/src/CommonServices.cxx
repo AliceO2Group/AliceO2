@@ -173,9 +173,11 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
       // the same stream might be referring to different data processors.
       // We should probably have a context which is per stream of a specific
       // data processor.
-      stream->routeUserCreated.resize(routes.size());
-      // Reset the routeUserCreated at every processing step
-      std::fill(stream->routeUserCreated.begin(), stream->routeUserCreated.end(), false); },
+      stream->routeDPLCreated.resize(routes.size());
+      stream->routeCreated.resize(routes.size());
+      // Reset the routeDPLCreated at every processing step
+      std::fill(stream->routeDPLCreated.begin(), stream->routeDPLCreated.end(), false);
+      std::fill(stream->routeCreated.begin(), stream->routeCreated.end(), false); },
     .postProcessing = [](ProcessingContext& processingContext, void* service) {
       auto* stream = (StreamContext*)service;
       auto& routes = processingContext.services().get<DeviceSpec const>().outputs;
@@ -184,44 +186,52 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
       // Check if we never created any data for this timeslice
       // if we did not, but we still have didDispatched set to true
       // it means it was created out of band.
-      bool didCreate = false;
+      bool userDidCreate = false;
       O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
       for (size_t ri = 0; ri < routes.size(); ++ri) {
-        if (stream->routeUserCreated[ri] == true) {
-          didCreate = true;
+        if (stream->routeCreated[ri] == true && stream->routeDPLCreated[ri] == false) {
+          userDidCreate = true;
           break;
         }
       }
-      if (didCreate == false && messageContext.didDispatch() == true) {
-        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band didCreate == %d && messageContext.didDispatch == %d",
-                               didCreate,
+      O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "userDidCreate == %d && didDispatch == %d",
+                             userDidCreate,
+                             messageContext.didDispatch());
+      if (userDidCreate == false && messageContext.didDispatch() == true) {
+        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created out of band userDidCreate == %d && messageContext.didDispatch == %d",
+                               userDidCreate,
                                messageContext.didDispatch());
         return;
       }
-      if (didCreate == false && messageContext.didDispatch() == false) {
+      if (userDidCreate == false && messageContext.didDispatch() == false) {
         O2_SIGNPOST_ID_FROM_POINTER(cid, stream_context, service);
-        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "No data created");
+        O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "No data created.");
         return;
       }
       for (size_t ri = 0; ri < routes.size(); ++ri) {
         auto &route = routes[ri];
         auto &matcher = route.matcher;
-        if (stream->routeUserCreated[ri] == true) {
-          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created by user. ri = %" PRIu64 ", %{public}s",
+        if (stream->routeDPLCreated[ri] == true) {
+          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Data created by DPL. ri = %" PRIu64 ", %{public}s",
                                  (uint64_t)ri, DataSpecUtils::describe(matcher).c_str());
           continue;
         }
-        if ((timeslice % route.maxTimeslices) != route.timeslice) {
-          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Route ri = %" PRIu64 ", skipped",
+        if (stream->routeCreated[ri] == true) {
+          continue;
+        } if ((timeslice % route.maxTimeslices) != route.timeslice) {
+          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks", "Route ri = %" PRIu64 ", skipped because of pipelining.",
                                  (uint64_t)ri);
           continue;
         }
         if (matcher.lifetime == Lifetime::Timeframe) {
+          O2_SIGNPOST_EVENT_EMIT(stream_context, cid, "postProcessingCallbacks",
+                                 "Expected Lifetime::Timeframe data %{public}s was not created for timeslice %" PRIu64 " and might result in dropped timeframes",
+                                 DataSpecUtils::describe(matcher).c_str(), (uint64_t)timeslice);
           LOGP(error, "Expected Lifetime::Timeframe data {} was not created for timeslice {} and might result in dropped timeframes", DataSpecUtils::describe(matcher), timeslice);
         }
       } },
     .preEOS = [](EndOfStreamContext& context, void* service) {
-      // We need to reset the routeUserCreated because the end of stream
+      // We need to reset the routeDPLCreated / routeCreated because the end of stream
       // uses a different context which does not know about the routes.
       // FIXME: This should be fixed in a different way, but for now it will
       // allow TPC IDC to work.
@@ -231,9 +241,11 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
       // the same stream might be referring to different data processors.
       // We should probably have a context which is per stream of a specific
       // data processor.
-      stream->routeUserCreated.resize(routes.size());
-      // Reset the routeUserCreated at every processing step
-      std::fill(stream->routeUserCreated.begin(), stream->routeUserCreated.end(), false); },
+      stream->routeDPLCreated.resize(routes.size());
+      stream->routeCreated.resize(routes.size());
+      // Reset the routeCreated / routeDPLCreated at every processing step
+      std::fill(stream->routeCreated.begin(), stream->routeCreated.end(), false);
+      std::fill(stream->routeDPLCreated.begin(), stream->routeDPLCreated.end(), false); },
     .kind = ServiceKind::Stream};
 }
 
@@ -505,7 +517,10 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
           stfDist.runNumber = timingInfo.runNumber;
           // We mark it as not created, because we do should not account for it when
           // checking if we created all the data for a timeslice.
-          streamContext.routeUserCreated[oi] = false;
+          O2_SIGNPOST_ID_FROM_POINTER(sid, stream_context, &streamContext);
+          O2_SIGNPOST_EVENT_EMIT(stream_context, sid, "finaliseOutputs", "Route %" PRIu64 " (%{public}s) was created by DPL.", (uint64_t)oi,
+                                 DataSpecUtils::describe(output.matcher).c_str());
+          streamContext.routeDPLCreated[oi] = true;
         }
       } },
     .kind = ServiceKind::Global};
