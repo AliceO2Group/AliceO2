@@ -104,7 +104,6 @@ class Track
   int mCurrentChamber = -1;                    ///< current chamber on which the current parameters are given
   bool mConnected = false;                     ///< flag telling if this track shares cluster(s) with another
   bool mRemovable = false;                     ///< flag telling if this track should be deleted
-
 };
 
 } // namespace mch
