@@ -40,8 +40,13 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
   const GPUTPCGMMergedTrack* tracks = merger.OutputTracks();
   const unsigned int nTracks = merger.NOutputTracks();
   const GPUTPCGMMergedTrackHit* trackClusters = merger.Clusters();
+  const GPUdEdxInfo* tracksdEdx = merger.OutputTracksdEdx();
+
   constexpr unsigned char flagsReject = getFlagsReject();
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
+  const float minTrackdEdxMax = merger.Param().rec.tpc.minTrackdEdxMax;
+  const float minTrackdEdxMax2Tot = merger.Param().rec.tpc.minTrackdEdxMax2Tot;
+  bool cutOnTrackdEdx = merger.Param().par.dodEdx && merger.Param().rec.tpc.minTrackdEdxMax2Tot > 0.;
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
@@ -66,6 +71,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
       continue;
     }
     if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (unsigned int)merger.Param().rec.tpc.minNClustersFinalTrack) {
+      continue;
+    }
+    if (cutOnTrackdEdx && (tracksdEdx[i].dEdxMaxTPC < merger.Param().rec.tpc.minTrackdEdxMax || tracksdEdx[i].dEdxMaxTPC < tracksdEdx[i].dEdxTotTPC * merger.Param().rec.tpc.minTrackdEdxMax2Tot) && !(tracksdEdx[i].dEdxMaxTPC == 0 && CAMath::Abs(tracks[i].GetParam().GetDzDs()) > 0.03f)) {
       continue;
     }
     unsigned int myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
