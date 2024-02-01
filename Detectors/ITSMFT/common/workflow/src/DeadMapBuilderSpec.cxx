@@ -65,7 +65,6 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mStaticChipStatus.clear();
   mMapObject.clear();
   mMapObject.setMapVersion(MAP_VERSION);
-  mRunNumber = -1;
 
   if (!mSkipStaticMap) {
     mStaticChipStatus.resize(N_CHIPS, false);
@@ -134,12 +133,6 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 {
   if (mRunStopRequested) { // give up when run stop request arrived
     return;
-  }
-
-  if (mRunNumber < 0) {
-    auto tInfo = pc.services().get<o2::framework::TimingInfo>();
-    mRunNumber = tInfo.runNumber;
-    LOG(info) << "Run number is " << mRunNumber;
   }
 
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
