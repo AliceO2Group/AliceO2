@@ -172,15 +172,8 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
       mMapHist["hdEdxMaxVsp"][idEdxType]->Fill(pTPC, dEdxMax[idEdxType]);
       const auto pidHypothesis = track.getPID().getID();
       if (pidHypothesis <= o2::track::PID::NIDs) {
-        //TH1* pidHist = mMapHistCanvas["hdEdxVspHypoPos"][idEdxType];
         auto pidHist = mMapHistCanvas[(track.getCharge() > 0) ? "hdEdxVspHypoPos" : "hdEdxVspHypoNeg"][idEdxType].get();
         pidHist->SetBinContent(pidHist->GetXaxis()->FindBin(pTPC), pidHist->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
-
-        //if (track.getCharge() > 0) {
-        //  mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoPos"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
-        //} else {
-        //  mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->SetBinContent(mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetXaxis()->FindBin(pTPC), mMapHistCanvas["hdEdxVspHypoNeg"][idEdxType]->GetYaxis()->FindBin(dEdxTot[idEdxType]), pidHypothesis + 1);
-        //}
       }
     }
 
