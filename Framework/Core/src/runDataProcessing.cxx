@@ -2951,6 +2951,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  static pid_t pid = getpid();
   if (varmap.count("signposts")) {
     auto signpostsToEnable = varmap["signposts"].as<std::string>();
     auto matchingLogEnabler = [](char const* name, void* l, void* context) {
@@ -2961,6 +2962,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
         LOGP(info, "Enabling signposts for {}", *selectedName);
         _o2_log_set_stacktrace(log, 1);
         return false;
+      } else {
+        LOGP(info, "Signpost stream \"{}\" disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
       }
       return true;
     };
@@ -2972,6 +2975,13 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       o2_walk_logs(matchingLogEnabler, token);
       token = strtok_r(nullptr, ",", &saveptr);
     }
+  } else {
+    auto printAllSignposts = [](char const* name, void* l, void* context) {
+      auto* log = (_o2_log_t*)l;
+      LOGP(detail, "Signpost stream {} disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
+      return true;
+    };
+    o2_walk_logs(printAllSignposts, nullptr);
   }
 
   auto evaluateBatchOption = [&varmap]() -> bool {
