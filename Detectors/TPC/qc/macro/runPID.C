@@ -98,7 +98,7 @@ void runPID(std::string outputFileName = "PID", std::string_view inputFileName =
     // ---| track loop |---
     for (int k = 0; k < nTracks; k++) {
       auto track = (*tpcTracks)[k];
-      pid.processTrack(track);
+      pid.processTrack(track, nTracks);
     }
   }
 
