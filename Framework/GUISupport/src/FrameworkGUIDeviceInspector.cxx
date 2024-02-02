@@ -354,6 +354,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
   deviceInfoTable("Outputs:", ProcessingStateId::OUTPUT_MATCHERS, states, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
+  if (ImGui::CollapsingHeader("Labels", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (auto& label : spec.labels) {
+      ImGui::Text("%s", label.value.c_str());
+    }
+  }
   servicesTable("Services", spec.services);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     static ImGuiTextFilter filter;
