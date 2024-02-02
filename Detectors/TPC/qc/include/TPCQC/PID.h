@@ -24,6 +24,7 @@
 
 // root includes
 #include "TH1.h"
+#include "TCanvas.h"
 
 // o2 includes
 #include "DataFormatsTPC/Defs.h"
@@ -53,6 +54,9 @@ class PID
 
   /// bool extracts intormation from track and fills it to histograms
   /// @return true if information can be extracted and filled to histograms
+  bool processTrack(const o2::tpc::TrackTPC& track, size_t nTracks);
+
+  // dummy version to make it compatible with old QC version
   bool processTrack(const o2::tpc::TrackTPC& track);
 
   /// Initialize all histograms
@@ -78,7 +82,9 @@ class PID
     mCutMaxpTPCMIPs = maxpTPCMIPs;
   }
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() { return mMapHist; }
+  std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>>& getMapOfCanvas() { return mMapCanvas; }
   const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() const { return mMapHist; }
+  const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>>& getMapOfCanvas() const { return mMapCanvas; }
 
  private:
   int mCutMinnCls = 60;          // minimum N clusters
@@ -89,7 +95,12 @@ class PID
   float mCutMaxpTPC = 20.f;      // pTPC max value
   float mCutMinpTPCMIPs = 0.45f; // pTPC min value for MIPs
   float mCutMaxpTPCMIPs = 0.55f; // pTPC max value for MIPs
+
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHist;
+  // Map for Canvases to be published
+  std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>> mMapCanvas;
+  // Map for Histograms which will be put onto the canvases, and not published separately
+  std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHistCanvas;
   ClassDefNV(PID, 1)
 };
 } // namespace qc
