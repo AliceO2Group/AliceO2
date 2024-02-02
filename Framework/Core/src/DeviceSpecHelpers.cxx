@@ -679,19 +679,27 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
     assert(policyPtr != nullptr);
 
     if (edge.isForward == false) {
+      auto& matcher = outputsMatchers[edge.outputGlobalIndex];
+      if (matcher.enabled == false) {
+        throw runtime_error_f("Output %s is disabled but it was still used in topology", DataSpecUtils::describe(matcher).data());
+      }
       OutputRoute route{
         edge.timeIndex,
         consumer.maxInputTimeslices,
-        outputsMatchers[edge.outputGlobalIndex],
+        matcher,
         channel.name,
         policyPtr,
       };
       device.outputs.emplace_back(route);
     } else {
+      auto& matcher = workflow[edge.consumer].inputs[edge.consumerInputIndex];
+      if (matcher.enabled == false) {
+        throw runtime_error_f("Output %s is disabled but it was still used in topology", DataSpecUtils::describe(matcher).data());
+      }
       ForwardRoute route{
         edge.timeIndex,
         consumer.maxInputTimeslices,
-        workflow[edge.consumer].inputs[edge.consumerInputIndex],
+        matcher,
         channel.name};
       device.forwards.emplace_back(route);
     }
@@ -915,6 +923,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
     auto const& inputSpec = consumer.inputs[edge.consumerInputIndex];
     auto const& sourceChannel = consumerDevice.inputChannels[ci].name;
+    if (inputSpec.enabled == false) {
+      throw runtime_error_f("Input %s is disabled but it was still used in topology", DataSpecUtils::describe(inputSpec).data());
+    }
 
     InputRoute route{
       inputSpec,

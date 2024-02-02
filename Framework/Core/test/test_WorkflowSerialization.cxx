@@ -120,3 +120,41 @@ TEST_CASE("TestVerifyWildcard")
   // also check if the conversion to ConcreteDataMatcher is working at import
   // REQUIRE(std::get_if<ConcreteDataTypeMatcher>(&w1[0].inputs[0].matcher) != nullptr);;
 }
+
+/// Verify that disabled inputs / outputs are serialised correctly
+TEST_CASE("TestDisabled")
+{
+  using namespace o2::framework;
+  WorkflowSpec w0{
+    DataProcessorSpec{
+      .name = "A",
+      .inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}},
+      .outputs = {{"CP2", "1"}, {"CL2", "2"}},
+    }};
+
+  w0[0].inputs[0].enabled = false;
+  w0[0].outputs[1].enabled = false;
+
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
+    {"A", "test_Framework_test_SerializationWorkflow", {}},
+  };
+
+  CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
+
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
+  CommandInfo commandInfoIn;
+
+  std::ostringstream firstDump;
+  WorkflowSerializationHelpers::dump(firstDump, w0, dataProcessorInfoOut, commandInfoOut);
+  std::istringstream is;
+  is.str(firstDump.str());
+  WorkflowSpec w1;
+  WorkflowSerializationHelpers::import(is, w1, dataProcessorInfoIn, commandInfoIn);
+  REQUIRE(w1.size() == 1);
+  REQUIRE(w1[0].inputs.size() == 2);
+  REQUIRE(w1[0].inputs[0].enabled == false);
+  REQUIRE(w1[0].inputs[1].enabled == true);
+  REQUIRE(w1[0].outputs.size() == 2);
+  REQUIRE(w1[0].outputs[0].enabled == true);
+  REQUIRE(w1[0].outputs[1].enabled == false);
+}

@@ -74,6 +74,9 @@ struct InputSpec {
 
   /// A set of configurables which can be used to customise the InputSpec.
   std::vector<ConfigParamSpec> metadata;
+  /// Wether or not the input is to be considered enabled.
+  /// Useful to programmatically disable inputs e.g. for the ProcessorOptions.
+  bool enabled = true;
 
   friend std::ostream& operator<<(std::ostream& stream, InputSpec const& arg);
   bool operator==(InputSpec const& that) const;

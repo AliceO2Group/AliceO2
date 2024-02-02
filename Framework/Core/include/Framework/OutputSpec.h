@@ -86,6 +86,10 @@ struct OutputSpec {
   /// A set of configurables which can be used to customise the InputSpec.
   std::vector<ConfigParamSpec> metadata;
 
+  /// Wether or not this output is enabled. This is useful to decide programmatically
+  /// wether or not to produce a given output.
+  bool enabled = true;
+
   friend std::ostream& operator<<(std::ostream& stream, OutputSpec const& arg);
 };
 

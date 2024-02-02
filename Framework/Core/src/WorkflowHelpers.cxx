@@ -841,11 +841,13 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     for (size_t wi = 0; wi < workflow.size(); ++wi) {
       auto& producer = workflow[wi];
 
-      for (size_t oi = 0; oi < producer.outputs.size(); ++oi) {
-        auto& out = producer.outputs[oi];
+      for (auto& output : producer.outputs) {
+        if (output.enabled == false) {
+          continue;
+        }
         auto uniqueOutputId = outputs.size();
         availableOutputsInfo.emplace_back(LogicalOutputInfo{wi, uniqueOutputId, false});
-        outputs.push_back(out);
+        outputs.push_back(output);
       }
     }
   };
@@ -879,6 +881,10 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   std::vector<bool> matches(constOutputs.size());
   for (size_t consumer = 0; consumer < workflow.size(); ++consumer) {
     for (size_t input = 0; input < workflow[consumer].inputs.size(); ++input) {
+      // Skip disabled inputs.
+      if (workflow[consumer].inputs[input].enabled == false) {
+        continue;
+      }
       forwards.clear();
       for (size_t i = 0; i < constOutputs.size(); i++) {
         matches[i] = DataSpecUtils::match(workflow[consumer].inputs[input], constOutputs[i]);
