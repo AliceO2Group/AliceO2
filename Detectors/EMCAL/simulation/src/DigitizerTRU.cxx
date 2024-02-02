@@ -293,11 +293,13 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
     } else {
       mWasTriggerFound = false;
     }
-    if (TriggerInputsAll.size() > 0 && mWasTriggerFound == true)
+    if (TriggerInputsAll.size() > 0 && mWasTriggerFound == true) {
       TriggerInputs.push_back(TriggerInputsAll.back());
+    }
     std::vector<o2::emcal::EMCALTriggerInputsPatch> TriggerInputsPatches;
-    if (TriggerInputsPatchesAll.size() > 0 && mWasTriggerFound == true)
+    if (TriggerInputsPatchesAll.size() > 0 && mWasTriggerFound == true) {
       TriggerInputsPatches.push_back(TriggerInputsPatchesAll.back());
+    }
     int nIter = TriggerInputs.size();
 
     if (nIter != 0) {
@@ -357,42 +359,58 @@ void DigitizerTRU::setPatches()
   ThirdAside.init();
   ThirdCside.init();
 
-  for (int j = 0; j < 3; j++)
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 0,1,2    EMCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 3,4,5    EMCAL C-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 6,7,8    EMCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 9,10,11  EMCAL C-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 12,13,14 EMCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 15,16,17 EMCAL C-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 18,19,20 EMCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 21,22,23 EMCAL C-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 24,25,26 EMCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 27,28,29 EMCAL C-side, Full
-  patchesFromAllTRUs.push_back(ThirdAside);  // TRU ID 30 EMCAL A-side, Third
-  patchesFromAllTRUs.push_back(ThirdCside);  // TRU ID 31 EMCAL C-side, Third
-  for (int j = 0; j < 3; j++)
+  }
+  patchesFromAllTRUs.push_back(ThirdAside); // TRU ID 30 EMCAL A-side, Third
+  patchesFromAllTRUs.push_back(ThirdCside); // TRU ID 31 EMCAL C-side, Third
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 32,33,34 DCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 35,36,37 DCAL C-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 38,39,40 DCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 41,42,43 DCAL C-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullAside); // TRU ID 44,45,46 DCAL A-side, Full
-  for (int j = 0; j < 3; j++)
+  }
+  for (int j = 0; j < 3; j++) {
     patchesFromAllTRUs.push_back(FullCside); // TRU ID 47,48,49 DCAL C-side, Full
-  patchesFromAllTRUs.push_back(ThirdAside);  // TRU ID 50 DCAL A-side, Third
-  patchesFromAllTRUs.push_back(ThirdCside);  // TRU ID 51 DCAL C-side, Third
+  }
+  patchesFromAllTRUs.push_back(ThirdAside); // TRU ID 50 DCAL A-side, Third
+  patchesFromAllTRUs.push_back(ThirdCside); // TRU ID 51 DCAL C-side, Third
 
   while (patchesFromAllTRUs[30].mPatchIDSeedFastOrIDs.size() > 69) {
     patchesFromAllTRUs[30].mPatchIDSeedFastOrIDs.pop_back();

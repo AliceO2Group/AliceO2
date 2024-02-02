@@ -176,12 +176,14 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       auto firedPatches = getFiredPatches(patches);
-      if (foundPeakCurrentTRU)
+      if (foundPeakCurrentTRU) {
         foundPeak = true;
+      }
     }
 
-    if (foundPeak == true)
+    if (foundPeak == true) {
       LOG(debug) << "DIG TRU fill in LZEROElectronics: foundPeak = " << foundPeak;
+    }
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
       TriggerInputsForL1.mInterRecord = record;

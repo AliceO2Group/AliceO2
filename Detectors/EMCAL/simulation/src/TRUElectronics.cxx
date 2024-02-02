@@ -197,8 +197,9 @@ void TRUElectronics::updateADC()
       std::get<1>(mPreviousTimebinADCvalue[PatchID]) = ADCvalues.front();
       ADCvalues.erase(ADCvalues.begin());
     } else {
-      if (ADCvalues.size() > 4)
+      if (ADCvalues.size() > 4) {
         LOG(debug) << "DIG TRU updateADC in TRUElectronics: ERROR!!!!! ";
+      }
     }
     double integralADCnew = 0;
 
