@@ -221,12 +221,10 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
       if (getLumiScaleType() != 1) {
         LOGP(fatal, "Lumi scaling source CTP is not compatible with TPC correction lumi scaler type {}", getLumiScaleType());
       }
-      break;
     } else if (route.matcher == InputSpec{"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe}) {
       if (getLumiScaleType() != 2) {
         LOGP(fatal, "Lumi scaling source TPCScaler is not compatible with TPC correction lumi scaler type {}", getLumiScaleType());
       }
-      break;
       setLumiScaleType(2);
     } else if (route.matcher == InputSpec{"mshape", o2::header::gDataOriginTPC, "TPCMSHAPE", 0, Lifetime::Timeframe}) {
       enableMShapeCorrection(true);
