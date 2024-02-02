@@ -169,6 +169,17 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
     prepareITSData(recoData);
   }
 
+  auto getLowestPadrow = [&recoData](const o2::tpc::TrackTPC& trc) {
+    if (recoData.inputsTPCclusters) {
+      uint8_t clSect = 0, clRow = 0;
+      uint32_t clIdx = 0;
+      const auto clRefs = recoData.getTPCTracksClusterRefs();
+      trc.getClusterReference(clRefs, trc.getNClusterReferences() - 1, clSect, clRow, clIdx);
+      return int(clRow);
+    }
+    return -1;
+  };
+
   std::map<o2::MCCompLabel, std::vector<VTIndexV>> MCTRMap;
 
   for (int iv = 0; iv < nv; iv++) {
@@ -219,6 +230,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
   std::vector<o2::track::TrackParCov> recTracks;
   std::vector<VTIndex> recGIDs;
   std::vector<bool> recFakes;
+  std::vector<int16_t> lowestPadrows;
 
   for (auto ent : MCTRMap) {
     auto lbl = ent.first;
@@ -251,6 +263,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
     recTracks.clear();
     recGIDs.clear();
     recFakes.clear();
+    lowestPadrows.clear();
     if (mVerbose > 1) {
       LOGP(info, "[{}] Lbl:{} PDG:{:+5d} (par: {:+5d}) | MC: {}", vgids.size(), lbl.asString(), pdg, pdgParent, mctrO2.asString());
     }
@@ -267,7 +280,11 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
       recGIDs.push_back(vid);
       recFakes.push_back(recoData.getTrackMCLabel(vid).isFake());
       if (mCheckMatching) {
+        lowestPadrows.push_back(-1);
         auto msk = vid.getSourceDetectorsMask();
+        if (msk[DetID::TPC]) {
+          lowestPadrows.back() = getLowestPadrow(recoData.getTPCTrack(recoData.getTPCContributorGID(vid)));
+        }
         if (msk[DetID::ITS] && msk[DetID::TPC]) {
           itstpcMatch = true;
         } else {
@@ -288,7 +305,12 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
                << "pdgPar=" << pdgParent
                << "recTr=" << recTracks
                << "recGID=" << recGIDs
-               << "recFake=" << recFakes
+               << "recFake=" << recFakes;
+    if (mCheckMatching) {
+      (*mDBGOut) << "tracks"
+                 << "lowestPadRow=" << lowestPadrows;
+    }
+    (*mDBGOut) << "tracks"
                << "\n";
 
     // special ITS-TPC matching failure output
@@ -302,14 +324,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
       }
       const auto& trcTPCOrig = recoData.getTPCTrack(vidTPC);
       const auto& trcITSOrig = recoData.getITSTrack(vidITS);
-      int lowestTPCRow = -1;
-      if (recoData.inputsTPCclusters) {
-        uint8_t clSect = 0, clRow = 0;
-        uint32_t clIdx = 0;
-        const auto clRefs = recoData.getTPCTracksClusterRefs();
-        trcTPCOrig.getClusterReference(clRefs, trcTPCOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
-        lowestTPCRow = clRow;
-      }
+      int lowestTPCRow = lowestPadrows[entTPC];
       float tpcT0 = trcTPCOrig.getTime0(), tF = trcTPCOrig.getDeltaTFwd(), tB = trcTPCOrig.getDeltaTBwd();
       TBracket tpcBr((tpcT0 - tB) * mTPCTBinMUS, (tpcT0 + tF) * mTPCTBinMUS);
 
