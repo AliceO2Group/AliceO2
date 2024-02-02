@@ -131,12 +131,8 @@ class CTFHelper
 
     inline friend I operator+(difference_type i, const I& iter) { return iter + i; };
 
-    bool operator!=(const I& other) const noexcept { return mIndex != other.mIndex; }
     bool operator==(const I& other) const noexcept { return mIndex == other.mIndex; }
-    bool operator>(const I& other) const noexcept { return mIndex > other.mIndex; }
-    bool operator<(const I& other) const noexcept { return mIndex < other.mIndex; }
-    bool operator>=(const I& other) const noexcept { return mIndex >= other.mIndex; }
-    bool operator<=(const I& other) const noexcept { return mIndex <= other.mIndex; }
+    bool operator<=>(const I& other) const noexcept { return mIndex <=> other.mIndex; }
 
    protected:
     gsl::span<const OrderRef> mOrder{};
