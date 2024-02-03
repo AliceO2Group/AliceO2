@@ -130,7 +130,7 @@ if [[ $SYNCMODE == 1 ]]; then
     fi
     ITSTPC_CONFIG_KEY+="tpcitsMatch.safeMarginTimeCorrErr=5.;tpcitsMatch.cutMatchingChi2=60;"
     if [[ -z $TRACKTUNETPCINNER ]]; then # account for extra TPC errors
-      TRACKTUNETPCINNER="trackTuneParams.sourceLevelTPC=true;trackTuneParams.tpcCovInnerType=1;trackTuneParams.useTPCInnerCorr=false;trackTuneParams.tpcCovInner[0]=0.25;trackTuneParams.tpcCovInner[2]=2.25e-4;trackTuneParams.tpcCovInner[3]=2.25e-4;trackTuneParams.tpcCovInner[4]=0.0256;"
+      TRACKTUNETPCINNER="trackTuneParams.sourceLevelTPC=true;trackTuneParams.tpcCovInnerType=1;trackTuneParams.useTPCInnerCorr=false;trackTuneParams.tpcCovInner[0]=0.5;trackTuneParams.tpcCovInner[2]=0.01;trackTuneParams.tpcCovInner[3]=0.01;trackTuneParams.tpcCovInner[4]=0.1;"
     fi
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
@@ -278,6 +278,7 @@ while [[ $# -gt 0 ]]; do
     --enable-M-shape-correction) TPC_CORR_OPT+=" --enable-M-shape-correction"; NEED_TPC_SCALERS_WF=1; TPC_SCALERS_CONF+=" --enable-M-shape-correction" ; shift 1;;
     --corrmap-lumi-mode=*) TPC_CORR_OPT+=" --corrmap-lumi-mode ${1#*=}"; shift 1;;
     --corrmap-lumi-mode) TPC_CORR_OPT+=" --corrmap-lumi-mode ${2}"; shift 2;;
+    --disable-ctp-lumi-request) TPC_CORR_OPT+=" --disable-ctp-lumi-request"; shift 1;;
     *) TPC_CORR_KEY+="$1;"; shift 1;;
   esac
 done

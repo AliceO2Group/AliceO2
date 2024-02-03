@@ -189,10 +189,10 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (mSrc[GTrackID::TPC]) {
     bool updateMaps = false;
     if (mTPCCorrMapsLoader.isUpdated()) {
-      mVertexer.setTPCCorrMaps(&mTPCCorrMapsLoader);
       mTPCCorrMapsLoader.acknowledgeUpdate();
       updateMaps = true;
     }
+    mVertexer.setTPCCorrMaps(&mTPCCorrMapsLoader);
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,

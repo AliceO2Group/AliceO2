@@ -105,6 +105,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
     bool enableMShape = false;
+    bool enableCTPLumi = false;
     int enableDoublePipeline = 0;
     int tpcDeadMapSources = -1;
     bool decompressTPC = false;

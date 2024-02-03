@@ -188,10 +188,10 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     mTPCCorrMapsLoader.extractCCDBInputs(pc);
     bool updateMaps = false;
     if (mTPCCorrMapsLoader.isUpdated()) {
-      mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
       mTPCCorrMapsLoader.acknowledgeUpdate();
       updateMaps = true;
     }
+    mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,

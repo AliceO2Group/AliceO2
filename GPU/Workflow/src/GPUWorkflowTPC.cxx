@@ -413,19 +413,26 @@ void GPURecoWorkflowSpec::doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* b
       throw std::runtime_error("Buffer does not match span");
     }
     o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
+    float scale = mCalibObjects.mFastTransformHelper->getInstLumiCTP();
+    if (scale < 0.f) {
+      scale = 0.f;
+    }
+    auto diagInner = trackTune.getCovInnerTotal(scale);
+    auto diagOuter = trackTune.getCovOuterTotal(scale);
+
     for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
       auto& trc = tpcTracks[itr];
       if (trackTune.useTPCInnerCorr) {
         trc.updateParams(trackTune.tpcParInner);
       }
       if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
-        trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
+        trc.updateCov(diagInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
       }
       if (trackTune.useTPCOuterCorr) {
         trc.getParamOut().updateParams(trackTune.tpcParOuter);
       }
       if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
-        trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
+        trc.getParamOut().updateCov(diagOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
       }
     }
   }

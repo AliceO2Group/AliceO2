@@ -133,10 +133,10 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
   bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
-    mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateMaps = true;
   }
+  mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,

@@ -148,7 +148,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (src[GID::TPC] && refitTPCTOF) { // load clusters
     clustermask |= GID::getSourceMask(GID::TPC);
   }
-  if (sclOpt.lumiType == 1) {
+  if (sclOpt.requestCTPLumi) {
     src = src | GID::getSourcesMask("CTP");
   }
   if (useMC) {

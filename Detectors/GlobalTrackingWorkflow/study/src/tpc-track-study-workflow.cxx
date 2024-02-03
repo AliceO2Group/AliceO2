@@ -65,7 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
-  if (sclOpt.lumiType == 1) {
+  if (sclOpt.requestCTPLumi) {
     srcTrc = srcTrc | GID::getSourcesMask("CTP");
     srcCls = srcCls | GID::getSourcesMask("CTP");
   }

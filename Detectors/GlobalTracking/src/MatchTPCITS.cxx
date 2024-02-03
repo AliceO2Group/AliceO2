@@ -55,6 +55,7 @@ using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<doub
 using MatrixD4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepStd<double, 4>>;
 using NAMES = o2::base::NameConf;
 using GTrackID = o2::dataformats::GlobalTrackID;
+using TrackTunePar = o2::globaltracking::TrackTuneParams;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
 
 LinksPoolMT* TPCABSeed::gLinksPool = nullptr;
@@ -265,6 +266,14 @@ void MatchTPCITS::updateTimeDependentParams()
   o2::math_utils::Point3D<float> p0(90., 1., 1), p1(90., 100., 100.);
   auto matbd = o2::base::Propagator::Instance()->getMatBudget(mParams->matCorr, p0, p1);
   mTPCmeanX0Inv = matbd.meanX2X0 / matbd.length;
+
+  const auto& trackTune = TrackTuneParams::Instance();
+  float scale = mTPCCorrMapsHelper->getInstLumiCTP();
+  if (scale < 0.f) {
+    scale = 0.f;
+  }
+  mCovDiagInner = trackTune.getCovInnerTotal(scale);
+  mCovDiagOuter = trackTune.getCovOuterTotal(scale);
 }
 
 //______________________________________________
@@ -419,15 +428,15 @@ void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float 
                 MinusOne,
                 (extConstrained || tpcOrig.hasBothSidesClusters()) ? TrackLocTPC::Constrained : (tpcOrig.hasASideClustersOnly() ? TrackLocTPC::ASide : TrackLocTPC::CSide)});
   // propagate to matching Xref
-  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+  const auto& trackTune = TrackTuneParams::Instance();
   // only TPC standalone need to be corrected on the input, provided they were not corrected at the source level,
   // other inputs are corrected in respective upstream matching processes
   if (srcGID.getSource() == GTrackID::TPC && !trackTune.sourceLevelTPC) {
     if (trackTune.useTPCInnerCorr) {
       trc.updateParams(trackTune.tpcParInner);
     }
-    if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-      trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    if (trackTune.tpcCovInnerType != TrackTuneParams::AddCovType::Disable) {
+      trc.updateCov(mCovDiagInner, trackTune.tpcCovInnerType == TrackTuneParams::AddCovType::WithCorrelations);
     }
   }
   if (!propagateToRefX(trc)) {
@@ -1449,12 +1458,12 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
     tofL.addX2X0(lInt * mTPCmeanX0Inv);
     propagator->PropagateToXBxByBz(tracOut, o2::constants::geom::XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
 
-    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+    const auto& trackTune = TrackTuneParams::Instance();
     if (trackTune.useTPCOuterCorr) {
       tracOut.updateParams(trackTune.tpcParOuter);
     }
-    if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-      tracOut.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    if (trackTune.tpcCovOuterType != TrackTuneParams::AddCovType::Disable) {
+      tracOut.updateCov(mCovDiagOuter, trackTune.tpcCovOuterType == TrackTuneParams::AddCovType::WithCorrelations);
     }
   }
   trfit.setChi2Match(tpcMatchRec.chi2);
@@ -1583,12 +1592,12 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2
     tofL.addStep(lInt, tracOut.getP2Inv());
     tofL.addX2X0(lInt * mTPCmeanX0Inv);
     propagator->PropagateToXBxByBz(tracOut, o2::constants::geom::XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
-    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+    const auto& trackTune = TrackTuneParams::Instance();
     if (trackTune.useTPCOuterCorr) {
       tracOut.updateParams(trackTune.tpcParOuter);
     }
-    if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-      tracOut.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    if (trackTune.tpcCovOuterType != TrackTuneParams::AddCovType::Disable) {
+      tracOut.updateCov(mCovDiagOuter, trackTune.tpcCovOuterType == TrackTuneParams::AddCovType::WithCorrelations);
     }
   }
 
