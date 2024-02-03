@@ -46,7 +46,9 @@ void TrackReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   using TrackTunePar = o2::globaltracking::TrackTuneParams;
   const auto& trackTune = TrackTunePar::Instance();
-  if (trackTune.sourceLevelTPC &&
+  // Normally we should not apply tuning here as with sourceLevelTPC==true it is already applied in the tracking.
+  // Note that there is no way to apply lumi scaling here!!!
+  if ((trackTune.sourceLevelTPC && trackTune.applyWhenReading) &&
       (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
        trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
     for (auto& trc : mTracksOut) {

@@ -97,7 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (GID::includesDet(DetID::TOF, src)) {
     src |= GID::getSourceMask(GID::TOF);
   }
-  if (sclOpt.lumiType == 1) {
+  if (sclOpt.requestCTPLumi) {
     src = src | GID::getSourcesMask("CTP");
   }
   GID::mask_t srcCl = src;

@@ -117,10 +117,10 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
   // we may have other params which need to be queried regularly
   bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
-    mMatcher.setTPCCorrMaps(&mTPCCorrMapsLoader);
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateMaps = true;
   }
+  mMatcher.setTPCCorrMaps(&mTPCCorrMapsLoader);
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
