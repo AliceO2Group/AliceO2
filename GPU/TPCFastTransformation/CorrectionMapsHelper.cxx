@@ -22,10 +22,12 @@ void CorrectionMapsHelper::clear()
     delete mCorrMapRef;
     delete mCorrMapMShape;
   }
+  mLumiCTPAvailable = false;
   mCorrMap = nullptr;
   mCorrMapRef = nullptr;
   mCorrMapMShape = nullptr;
   mUpdatedFlags = 0;
+  mInstLumiCTP = 0.f;
   mInstLumi = 0.f;
   mMeanLumi = 0.f;
   mMeanLumiRef = 0.f;
@@ -95,8 +97,26 @@ void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& 
   mCorrMapMShape = m.release();
 }
 
+void CorrectionMapsHelper::updateLumiScale(bool report)
+{
+  if (canUseCorrections()) {
+    mLumiScale = -1.f;
+  } else if ((mLumiScaleMode == 1) || (mLumiScaleMode == 2)) {
+    mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
+    LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
+  } else {
+    mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
+  }
+  setUpdatedLumi();
+  if (report) {
+    reportScaling();
+  }
+}
+
 //________________________________________________________
 void CorrectionMapsHelper::reportScaling()
 {
-  LOGP(info, "Map scaling update: InstLumiOverride={}, LumiScaleType={} -> instLumi={}, meanLumiRef={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}, is M-Shape map valid: {}, is M-Shape default: {}", getInstLumiOverride(), getLumiScaleType(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(), getLumiScaleMode(), (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
+  LOGP(info, "Map scaling update: LumiScaleType={} instLumi(CTP)={} instLumi(scaling)={} meanLumiRef={}, meanLumi={} -> LumiScale={} lumiScaleMode={}, M-Shape map valid: {}, M-Shape default: {}",
+       mLumiScaleType == 0 ? "NoScaling" : (mLumiScaleType == 1 ? "LumiCTP" : "TPCScaler"), getInstLumiCTP(), getInstLumi(), getMeanLumiRef(), getMeanLumi(), getLumiScale(),
+       mLumiScaleMode == 0 ? "Linear" : "Derivative", (mCorrMapMShape != nullptr), isCorrMapMShapeDummy());
 }

@@ -34,6 +34,7 @@ class CorrectionMapsHelper
   CorrectionMapsHelper() = default;
   ~CorrectionMapsHelper() { clear(); }
   CorrectionMapsHelper(const CorrectionMapsHelper&) = delete;
+  void updateLumiScale(bool report = false);
   void clear();
 
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const
@@ -66,7 +67,14 @@ class CorrectionMapsHelper
   void setCorrMapRef(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void setCorrMapMShape(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void reportScaling();
-  void setInstLumi(float v, bool report = true)
+  void setInstLumiCTP(float v)
+  {
+    if (v != mInstLumiCTP) {
+      mInstLumiCTP = v;
+    }
+  }
+
+  void setInstLumi(float v, bool report = false)
   {
     if (v != mInstLumi) {
       mInstLumi = v;
@@ -74,7 +82,7 @@ class CorrectionMapsHelper
     }
   }
 
-  void setMeanLumi(float v, bool report = true)
+  void setMeanLumi(float v, bool report = false)
   {
     if (v != mMeanLumi) {
       mMeanLumi = v;
@@ -93,26 +101,11 @@ class CorrectionMapsHelper
   {
     if (v != mLumiScaleMode) {
       mLumiScaleMode = v;
-      updateLumiScale();
+      updateLumiScale(false);
     }
   }
 
-  void updateLumiScale(bool report = true)
-  {
-    if (mMeanLumi < 0.f || mInstLumi < 0.f) {
-      mLumiScale = -1.f;
-    } else if ((mLumiScaleMode == 1) || (mLumiScaleMode == 2)) {
-      mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
-      LOGP(debug, "mInstLumi: {}  mMeanLumi: {} mMeanLumiRef: {}", mInstLumi, mMeanLumi, mMeanLumiRef);
-    } else {
-      mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
-    }
-    setUpdatedLumi();
-    if (report) {
-      reportScaling();
-    }
-  }
-
+  GPUd() float getInstLumiCTP() const { return mInstLumiCTP; }
   GPUd() float getInstLumi() const { return mInstLumi; }
   GPUd() float getMeanLumi() const { return mMeanLumi; }
   GPUd() float getMeanLumiRef() const { return mMeanLumiRef; }
@@ -137,19 +130,20 @@ class CorrectionMapsHelper
 #endif
   void setOwner(bool v);
   void acknowledgeUpdate() { mUpdatedFlags = 0; }
-
+  void setLumiCTPAvailable(bool v) { mLumiCTPAvailable = v; }
+  bool getLumiCTPAvailable() const { return mLumiCTPAvailable; }
   void setLumiScaleType(int v) { mLumiScaleType = v; }
   int getLumiScaleType() const { return mLumiScaleType; }
   void enableMShapeCorrection(bool v) { mEnableMShape = v; }
   bool getUseMShapeCorrection() const { return mEnableMShape; }
-
+  bool canUseCorrections() const { return mMeanLumi >= 0.; }
   void setMeanLumiOverride(float f) { mMeanLumiOverride = f; }
   void setMeanLumiRefOverride(float f) { mMeanLumiRefOverride = f; }
   float getMeanLumiOverride() const { return mMeanLumiOverride; }
   float getMeanLumiRefOverride() const { return mMeanLumiRefOverride; }
 
-  void setInstLumiOverride(float f) { mInstLumiOverride = f; }
-  float getInstLumiOverride() const { return mInstLumiOverride; }
+  void setInstCTPLumiOverride(float f) { mInstCTPLumiOverride = f; }
+  float getInstCTPLumiOverride() const { return mInstCTPLumiOverride; }
 
   int getUpdateFlags() const { return mUpdatedFlags; }
 
@@ -171,24 +165,26 @@ class CorrectionMapsHelper
                      LumiBit = 0x4,
                      MapMShapeBit = 0x10 };
   bool mOwner = false; // is content of pointers owned by the helper
+  bool mLumiCTPAvailable = false; // is CTP Lumi available
   // these 2 are global options, must be set by the workflow global options
-  int mLumiScaleType = -1; // require CTP Lumi for mInstLumi
+  int mLumiScaleType = -1; // use CTP Lumi (1) or TPCScaler (2) for the correction scaling, 0 - no scaling
   int mLumiScaleMode = -1; // scaling-mode of the correciton maps
   int mUpdatedFlags = 0;
-  float mInstLumi = 0.;                                            // instanteneous luminosity (a.u)
-  float mMeanLumi = 0.;                                            // mean luminosity of the map (a.u)
-  float mMeanLumiRef = 0.;                                         // mean luminosity of the ref map (a.u)
+  float mInstLumiCTP = 0.;                                         // instanteneous luminosity from CTP (a.u)
+  float mInstLumi = 0.;                                            // instanteneous luminosity (a.u) used for TPC corrections scaling
+  float mMeanLumi = 0.;                                            // mean luminosity of the map (a.u) used for TPC corrections scaling
+  float mMeanLumiRef = 0.;                                         // mean luminosity of the ref map (a.u) used for TPC corrections scaling reference
   float mLumiScale = 0.;                                           // precalculated mInstLumi/mMeanLumi
   float mMeanLumiOverride = -1.f;                                  // optional value to override mean lumi
   float mMeanLumiRefOverride = -1.f;                               // optional value to override ref mean lumi
-  float mInstLumiOverride = -1.f;                                  // optional value to override inst lumi
+  float mInstCTPLumiOverride = -1.f;                               // optional value to override inst lumi from CTP
   bool mEnableMShape = false;                                      ///< use v shape correction
   bool mScaleInverse{false};                                       // if set to false the inverse correction is already scaled and will not scaled again
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};       // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr};    // reference transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapMShape{nullptr}; // correction map for v-shape distortions on A-side
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(CorrectionMapsHelper, 5);
+  ClassDefNV(CorrectionMapsHelper, 6);
 #endif
 };
 
