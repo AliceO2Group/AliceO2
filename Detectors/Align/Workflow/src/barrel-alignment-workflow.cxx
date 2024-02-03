@@ -141,7 +141,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       }
       LOG(info) << "adding TOF request";
     }
-    if (sclOpt.lumiType == 1) {
+    if (sclOpt.requestCTPLumi) {
       src = src | GID::getSourcesMask("CTP");
     }
     // write the configuration used for the workflow

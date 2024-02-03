@@ -65,6 +65,8 @@ namespace o2
 namespace trd
 {
 
+using TrackTunePar = o2::globaltracking::TrackTuneParams;
+
 void TRDGlobalTracking::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
@@ -127,12 +129,18 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
       mBase->setLocalGainFactors(pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").get());
     }
   }
-
   bool updateCalib = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateCalib = true;
   }
+  const auto& trackTune = TrackTuneParams::Instance();
+  float scale = mTPCCorrMapsLoader.getInstLumiCTP();
+  if (scale < 0.f) {
+    scale = 0.f;
+  }
+  mCovDiagInner = trackTune.getCovInnerTotal(scale);
+  mCovDiagOuter = trackTune.getCovOuterTotal(scale);
 
   if (mTPCVDriftHelper.isUpdated()) {
     auto& elParam = o2::tpc::ParameterElectronics::Instance();
@@ -319,7 +327,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   }
 
   // load input tracks
-  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+  const auto& trackTune = TrackTuneParams::Instance();
   LOG(debug) << "Start loading input seeds into TRD tracker";
   int nTracksLoadedITSTPC = 0;
   int nTracksLoadedTPC = 0;
@@ -360,8 +368,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       if (trackTune.useTPCOuterCorr) {
         trkLoad.updateParams(trackTune.tpcParOuter);
       }
-      if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-        trkLoad.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+      if (trackTune.tpcCovOuterType != TrackTuneParams::AddCovType::Disable) {
+        trkLoad.updateCov(mCovDiagOuter, trackTune.tpcCovOuterType == TrackTuneParams::AddCovType::WithCorrelations);
       }
     }
     auto trackGID = GTrackID(iTrk, GTrackID::TPC);
@@ -591,8 +599,8 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   trk.getLTIntegralOut().addStep(lInt, trk.getP2Inv());
   // trk.getLTIntegralOut().addX2X0(lInt * mTPCmeanX0Inv); // do we need to account for the material budget here? probably
 
-  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
-  if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable || trackTune.useTPCInnerCorr) { // if needed, correct TPC track in the middle of TPC->ITS refit
+  const auto& trackTune = TrackTuneParams::Instance();
+  if (trackTune.tpcCovInnerType != TrackTuneParams::AddCovType::Disable || trackTune.useTPCInnerCorr) { // if needed, correct TPC track in the middle of TPC->ITS refit
     if (!propagator->PropagateToXBxByBz(trk, o2::constants::geom::XTPCInnerRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, &trk.getLTIntegralOut())) {
       LOG(debug) << "Propagation to TPC inner reference X for ITS refit inwards failed";
       return false;
@@ -600,8 +608,8 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     if (!trackTune.useTPCInnerCorr) {
       trk.updateParams(trackTune.tpcParInner);
     }
-    if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-      trk.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    if (trackTune.tpcCovInnerType != TrackTuneParams::AddCovType::Disable) {
+      trk.updateCov(mCovDiagInner, trackTune.tpcCovInnerType == TrackTuneParams::AddCovType::WithCorrelations);
     }
   }
 
@@ -685,12 +693,12 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     LOG(debug) << "Final propagation to inner TPC radius failed (not removing the track because of this)";
   }
 
-  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance(); // if needed, correct the track after inward TPC refit
+  const auto& trackTune = TrackTuneParams::Instance(); // if needed, correct the track after inward TPC refit
   if (!trackTune.useTPCInnerCorr) {
     trk.updateParams(trackTune.tpcParInner);
   }
-  if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-    trk.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+  if (trackTune.tpcCovInnerType != TrackTuneParams::AddCovType::Disable) {
+    trk.updateCov(mCovDiagInner, trackTune.tpcCovInnerType == TrackTuneParams::AddCovType::WithCorrelations);
   }
 
   propagator->estimateLTFast(trk.getLTIntegralOut(), trk); // guess about initial value for the track integral from the origin
@@ -715,8 +723,8 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
     trkParam = &trk.getOuterParam();
     trkParam->setUserField(trk.getUserField()); // pileup timing info
 
-    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
-    if ((trackTune.useTPCOuterCorr || trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) &&
+    const auto& trackTune = TrackTuneParams::Instance();
+    if ((trackTune.useTPCOuterCorr || trackTune.tpcCovOuterType != TrackTuneParams::AddCovType::Disable) &&
         (!tpcSA || !trackTune.sourceLevelTPC)) { // for TPC standalone make sure correction was not applied ad the source level
       if (!propagator->PropagateToXBxByBz(*trkParam, o2::constants::geom::XTPCOuterRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
         LOG(debug) << "Propagation to TPC outer reference X for TRD outward refit failed";
@@ -725,8 +733,8 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
       if (trackTune.useTPCOuterCorr) {
         trkParam->updateParams(trackTune.tpcParOuter);
       }
-      if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
-        trkParam->updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+      if (trackTune.tpcCovOuterType != TrackTuneParams::AddCovType::Disable) {
+        trkParam->updateCov(mCovDiagOuter, trackTune.tpcCovOuterType == TrackTuneParams::AddCovType::WithCorrelations);
       }
     }
   }

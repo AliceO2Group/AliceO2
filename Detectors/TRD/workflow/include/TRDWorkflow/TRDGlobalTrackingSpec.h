@@ -99,7 +99,8 @@ class TRDGlobalTracking : public o2::framework::Task
   gsl::span<const int> mITSABTrackClusIdx;                            ///< input ITSAB track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;           ///< cluster patterns dictionary
-
+  std::array<float, 5> mCovDiagInner{};                               ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::array<float, 5> mCovDiagOuter{};                               ///< total cov.matrix extra diagonal error from TrackTuneParams
   // PID
   PIDPolicy mPolicy{PIDPolicy::DEFAULT}; ///< Model to load an evaluate
   std::unique_ptr<PIDBase> mBase;        ///< PID engine

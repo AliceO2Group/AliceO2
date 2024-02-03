@@ -611,6 +611,9 @@ class MatchTPCITS
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
 
+  std::array<float, 5> mCovDiagInner{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+
   const o2::itsmft::ChipMappingITS ITSChMap{};
 
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
