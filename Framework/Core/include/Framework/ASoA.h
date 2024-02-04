@@ -1775,17 +1775,20 @@ void notBoundTable(const char* tableName);
 
 namespace row_helpers
 {
+template <typename T>
+concept PersistentColumn = std::is_same_v<typename T::persistent, std::true_type>;
+
 template <typename... Cs>
 std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, framework::pack<Cs...>)
+  requires(PersistentColumn<Cs> && ...)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow columns: only persistent columns accepted (not dynamic and not index ones");
   return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
 }
 
 template <typename... Cs>
 std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, framework::pack<Cs...>, uint64_t ci)
+  requires(PersistentColumn<Cs> && ...)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow chunks: only persistent columns accepted (not dynamic and not index ones");
   return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
 }
 
