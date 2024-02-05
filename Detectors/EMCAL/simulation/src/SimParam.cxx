@@ -30,11 +30,13 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCal::SimParam.mGainFluctuations = " << mGainFluctuations;
   stream << "\nEMCal::SimParam.mPinNoise = " << mPinNoise;
   stream << "\nEMCal::SimParam.mPinNoiseLG = " << mPinNoiseLG;
+  stream << "\nEMCal::SimParam.mPinNoiseTRU = " << mPinNoiseTRU;
   stream << "\nEMCal::SimParam.mTimeResolutionPar0 = " << mTimeResolutionPar0;
   stream << "\nEMCal::SimParam.mTimeResolutionPar1 = " << mTimeResolutionPar1;
   stream << "\nEMCal::SimParam.mTimeResponseTau = " << mTimeResponseTau;
   stream << "\nEMCal::SimParam.mTimeResponsePower = " << mTimeResponsePower;
   stream << "\nEMCal::SimParam.mTimeResponseThreshold = " << mTimeResponseThreshold;
+  stream << "\nEMCal::SimParam.mThresholdLZERO = " << mThresholdLZERO;
   stream << "\nEMCal::SimParam.mNADCEC = " << mNADCEC;
   stream << "\nEMCal::SimParam.mSwapPhase = " << mSwapPhase;
   stream << "\nEMCal::SimParam.mA = " << mA;

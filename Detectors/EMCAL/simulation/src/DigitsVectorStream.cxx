@@ -51,7 +51,6 @@ void DigitsVectorStream::addNoiseDigits(LabeledDigit& d1)
 
   d1 += d;
 }
-
 //_______________________________________________________________________
 void DigitsVectorStream::fill(std::deque<o2::emcal::DigitTimebin>& digitlist, o2::InteractionRecord record)
 {
