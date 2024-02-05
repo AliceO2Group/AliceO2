@@ -21,6 +21,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include <TH2F.h>
+#include <TF1.h>
 #include <TCanvas.h>
 
 namespace o2::its::study
@@ -85,19 +86,25 @@ void AnomalyStudy::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   prepareOutput();
 
-  mTFvsPhiHist.resize(7);
-  mTFvsPhiClusSizeHist.resize(7);
-  mROFvsPhiHist.resize(7);
-  mROFvsPhiClusSizeHist.resize(7);
+  auto nLayProc = o2::its::study::AnomalyStudyParamConfig::Instance().nLayersToProcess;
   auto nTF = o2::its::study::AnomalyStudyParamConfig::Instance().nTimeFramesOffset;
   auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
+  auto doROFAnalysis = o2::its::study::AnomalyStudyParamConfig::Instance().doROFAnalysis;
 
-  for (unsigned int i = 0; i < 7; i++) {
+  mTFvsPhiHist.resize(nLayProc);
+  mTFvsPhiClusSizeHist.resize(nLayProc);
+  if (doROFAnalysis) {
+    mROFvsPhiHist.resize(nLayProc);
+    mROFvsPhiClusSizeHist.resize(nLayProc);
+  }
+  for (unsigned int i = 0; i < nLayProc; i++) {
     int phiBins = o2::its::study::AnomalyStudyParamConfig::Instance().nPhiBinsMultiplier * mNumberOfStaves[i];
     mTFvsPhiHist[i].reset(new TH2F(Form("tf_phi_occup_layer_%d", i), Form("Occupancy layer %d ; #phi ; # TF; Counts", i), phiBins, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
     mTFvsPhiClusSizeHist[i].reset(new TH2F(Form("tf_phi_clsize_layer_%d", i), Form("Cluster size layer %d ; #phi; # TF ; #lt Cluster Size #gt", i), phiBins, -TMath::Pi(), TMath::Pi(), nTF, 0.5, nTF + 0.5));
-    mROFvsPhiHist[i].reset(new TH2F(Form("rof_phi_occup_layer_%d", i), Form("Occupancy layer %d ; #phi; # ROF; Counts", i), phiBins, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
-    mROFvsPhiClusSizeHist[i].reset(new TH2F(Form("rof_phi_clsize_layer_%d", i), Form("Cluster size layer %d; #phi; # ROF; #lt Cluster Size #gt", i), phiBins, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
+    if (doROFAnalysis) {
+      mROFvsPhiHist[i].reset(new TH2F(Form("rof_phi_occup_layer_%d", i), Form("Occupancy layer %d ; #phi; # ROF; Counts", i), phiBins, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
+      mROFvsPhiClusSizeHist[i].reset(new TH2F(Form("rof_phi_clsize_layer_%d", i), Form("Cluster size layer %d; #phi; # ROF; #lt Cluster Size #gt", i), phiBins, -TMath::Pi(), TMath::Pi(), nROF * nTF, 0.5, nROF * nTF + 0.5));
+    }
   }
 }
 
@@ -112,16 +119,52 @@ void AnomalyStudy::run(ProcessingContext& pc)
 void AnomalyStudy::endOfStream(EndOfStreamContext&)
 {
   TFile* f = TFile::Open(o2::its::study::AnomalyStudyParamConfig::Instance().outFileName.c_str(), "recreate");
-  // Iterate over all the histograms and write them to the file
-  for (unsigned int i = 0; i < 7; i++) {
+  auto nLayProc = o2::its::study::AnomalyStudyParamConfig::Instance().nLayersToProcess;
+  auto doROFAnalysis = o2::its::study::AnomalyStudyParamConfig::Instance().doROFAnalysis;
+
+  // Iterate over all the histograms and compute the averages
+  for (unsigned int i = 0; i < nLayProc; i++) {
     mTFvsPhiClusSizeHist[i]->Divide(mTFvsPhiHist[i].get());
-    mTFvsPhiHist[i]->Write();
-    mTFvsPhiClusSizeHist[i]->Write();
-    mROFvsPhiHist[i]->Write();
-    mROFvsPhiClusSizeHist[i]->Divide(mROFvsPhiHist[i].get());
-    mROFvsPhiClusSizeHist[i]->Write();
+    if (doROFAnalysis) {
+      mROFvsPhiClusSizeHist[i]->Divide(mROFvsPhiHist[i].get());
+    }
   }
 
+  // Fit slices along x of the 2D histograms
+  for (unsigned int i = 0; i < nLayProc; ++i) {
+    // TF1 constant fit
+    TObjArray aSlices;
+    auto f1 = new TF1(Form("f1_%d", i), "pol0", -TMath::Pi(), TMath::Pi());
+    mTFvsPhiClusSizeHist[i]->FitSlicesX(f1, 0, -1, 0, "QNR", &aSlices);
+    // Save slices to file
+    for (unsigned int j = 0; j < aSlices.GetEntries(); ++j) {
+      auto h = (TH1D*)aSlices.At(j);
+      h->SetMinimum(0);
+      h->Write();
+    }
+
+    // Do the same for ROFs
+    if (doROFAnalysis) {
+      TObjArray aSlicesROF;
+      auto f1ROF = new TF1(Form("f1ROF_%d", i), "pol0", -TMath::Pi(), TMath::Pi());
+      mROFvsPhiClusSizeHist[i]->FitSlicesX(f1ROF, 0, -1, 0, "QNR", &aSlicesROF);
+      // Save slices to file
+      for (unsigned int j = 0; j < aSlicesROF.GetEntries(); ++j) {
+        auto h = (TH1D*)aSlicesROF.At(j);
+        h->SetMinimum(0);
+        h->Write();
+      }
+    }
+  }
+
+  for (unsigned int i = 0; i < nLayProc; i++) {
+    mTFvsPhiHist[i]->Write();
+    mTFvsPhiClusSizeHist[i]->Write();
+    if (doROFAnalysis) {
+      mROFvsPhiHist[i]->Write();
+      mROFvsPhiClusSizeHist[i]->Write();
+    }
+  }
   f->Close();
 }
 
@@ -142,6 +185,8 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
   mTFCount++;
   LOGP(info, "Processing TF: {}", mTFCount);
   auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
+  auto nLayProc = o2::its::study::AnomalyStudyParamConfig::Instance().nLayersToProcess;
+  auto doROFAnalysis = o2::its::study::AnomalyStudyParamConfig::Instance().doROFAnalysis;
   int rofCount = 0;
   auto clusRofRecords = recoData.getITSClustersROFRecords();
   auto compClus = recoData.getITSClusters();
@@ -164,10 +209,15 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
       auto& clusPattern = patternsInRof[clusInd];
       auto gloC = locClus.getXYZGlo(*mGeom);
       mChipMapping.expandChipInfoHW(compClus.getChipID(), lay, sta, ssta, mod, chipInMod);
+      if (lay >= nLayProc) {
+        continue;
+      }
       mTFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount);
-      mROFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), (mTFCount - 1) * nROF + rofCount);
       mTFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount, clusPattern.getNPixels());
-      mROFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), (mTFCount - 1) * nROF + rofCount, clusPattern.getNPixels());
+      if (doROFAnalysis) {
+        mROFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), (mTFCount - 1) * nROF + rofCount);
+        mROFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), (mTFCount - 1) * nROF + rofCount, clusPattern.getNPixels());
+      }
     }
     ++rofCount;
   }

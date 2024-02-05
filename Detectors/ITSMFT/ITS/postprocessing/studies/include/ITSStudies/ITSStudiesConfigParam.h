@@ -84,9 +84,11 @@ struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyPa
 
 struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<AnomalyStudyParamConfig> {
   std::string outFileName = "its_AnomalyStudy.root";
+  size_t nLayersToProcess = 3;
   size_t nTimeFramesOffset = 500;
   size_t nRofTimeFrames = 192;
   float nPhiBinsMultiplier = 1.f;
+  bool doROFAnalysis = false;
 
   O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
 };
