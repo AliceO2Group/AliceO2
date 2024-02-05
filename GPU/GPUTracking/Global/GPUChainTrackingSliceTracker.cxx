@@ -17,6 +17,8 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTPCClusterData.h"
+#include "GPUTrackingInputProvider.h"
+#include "GPUTPCClusterOccupancyMap.h"
 #include "utils/strtag.h"
 #include <fstream>
 
@@ -143,6 +145,20 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     return (2);
   }
 
+  if (param().rec.tpc.occupancyMapTimeBins) {
+    AllocateRegisteredMemory(mInputsHost->mResourceOccupancyMap, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcOccupancyMap)]);
+    ReleaseEvent(mEvents->init);
+    auto* ptr = doGPU ? mInputsShadow->mTPCClusterOccupancyMap : mInputsHost->mTPCClusterOccupancyMap;
+    runKernel<GPUMemClean16>(GetGridAutoStep(mRec->NStreams() - 1, RecoStep::TPCSliceTracking), krnlRunRangeNone, {}, ptr, GPUTPCClusterOccupancyMapBin::getTotalSize(param()));
+    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fill>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, mRec->NStreams() - 1), krnlRunRangeNone, krnlEventNone, ptr);
+    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fold>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, mRec->NStreams() - 1), krnlRunRangeNone, {&mEvents->init}, ptr);
+    if (doGPU) {
+      TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, mInputsHost->mResourceOccupancyMap);
+    } else {
+      TransferMemoryResourceLinkToGPU(RecoStep::TPCSliceTracking, mInputsHost->mResourceOccupancyMap);
+    }
+  }
+
   int streamMap[NSLICES];
 
   bool error = false;
@@ -170,7 +186,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         GPUInfo("Waiting for helper thread %d", iSlice % (GetProcessingSettings().nDeviceHelperThreads + 1) - 1);
       }
       while (HelperDone(iSlice % (GetProcessingSettings().nDeviceHelperThreads + 1) - 1) < (int)iSlice) {
-        ;
       }
       if (HelperError(iSlice % (GetProcessingSettings().nDeviceHelperThreads + 1) - 1)) {
         error = 1;

@@ -57,6 +57,7 @@ set(SRCS
     SliceTracker/GPUTPCSliceData.cxx
     SliceTracker/GPUTPCSliceOutput.cxx
     SliceTracker/GPUTPCTrackletConstructor.cxx
+    SliceTracker/GPUTPCCreateOccupancyMap.cxx
     SliceTracker/GPUTPCNeighboursFinder.cxx
     SliceTracker/GPUTPCGrid.cxx
     SliceTracker/GPUTPCTrackletSelector.cxx
@@ -90,6 +91,7 @@ set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
     DataTypes/GPUNewCalibValues.cxx
+    DataTypes/GPUTPCClusterOccupancyMap.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUProcessor.cxx

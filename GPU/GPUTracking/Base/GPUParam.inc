@@ -77,9 +77,9 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, 
       } else if (rec.tpc.sysClusErrorZRegion > kEpsZBoundary && sideC) {
         return 0; // don't apply to C-side clusters if the Z-boundary is for A-region
       }
-      const float dz = CAMath::Abs((rec.tpc.sysClusErrorZRegion-z)*rec.tpc.sysClusErrorZRegionSigInv);
+      const float dz = CAMath::Abs((rec.tpc.sysClusErrorZRegion - z) * rec.tpc.sysClusErrorZRegionSigInv);
       if (dz < kMaxExpArgZ) { // is it small enough to call exp?
-        argExp += 0.5f * dz*dz;
+        argExp += 0.5f * dz * dz;
         if (argExp<kMaxExpArg) {
           sysErr = rec.tpc.sysClusErrorInner0 * CAMath::Exp(-argExp);
         }
