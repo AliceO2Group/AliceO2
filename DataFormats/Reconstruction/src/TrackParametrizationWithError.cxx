@@ -1103,7 +1103,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   }
 
   // the energy loss correction contribution to cov.matrix: approximate energy loss fluctuation (M.Ivanov)
-  constexpr value_t knst = 0.07f; // To be tuned.
+  constexpr value_t knst = 0.0007f; // To be tuned.
   value_t sigmadE = knst * gpu::CAMath::Sqrt(gpu::CAMath::Abs(dETot)) * e0 / p02 * this->getCharge2Pt();
   cC44 += sigmadE * sigmadE;
 

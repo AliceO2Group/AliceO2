@@ -463,7 +463,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::CalculateFitParameters(GPUTPCTrackFitParam
 
   // Approximate energy loss fluctuation (M.Ivanov)
 
-  const float knst = 0.07f; // To be tuned.
+  const float knst = 0.0007f; // To be tuned.
   par.sigmadE2 = knst * par.EP2 * qpt;
   par.sigmadE2 = par.sigmadE2 * par.sigmadE2;
 
