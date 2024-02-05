@@ -384,7 +384,7 @@ struct AnalysisDataProcessorBuilder {
         return true;
       },
                              task);
-
+      overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_soa_iterator_v<std::decay_t<G>>) {
         auto slicer = GroupSlicer(groupingTable, associatedTables, slices);
         for (auto& slice : slicer) {
@@ -406,7 +406,6 @@ struct AnalysisDataProcessorBuilder {
           invokeProcessWithArgsGeneric(task, processingFunction, slice.groupingElement(), associatedSlices);
         }
       } else {
-        overwriteInternalIndices(associatedTables, associatedTables);
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
