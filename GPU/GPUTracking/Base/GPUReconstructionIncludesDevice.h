@@ -43,6 +43,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCGlobalTracking.cxx"
 
 #if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
+#include "GPUTPCClusterOccupancyMap.cxx"
+#include "GPUTPCCreateOccupancyMap.cxx"
+
 // Files for TPC Merger
 #include "GPUTPCGMMerger.cxx"
 #include "GPUTPCGMMergerGPU.cxx"

@@ -16,6 +16,7 @@
 #include "GPUDataTypes.h"
 #include "GPUTRDTrackletWord.h"
 #include "GPUReconstruction.h"
+#include "GPUTPCClusterOccupancyMap.h"
 #include "GPUErrors.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -75,10 +76,19 @@ void* GPUTrackingInputProvider::SetPointersInputTRD(void* mem)
   return mem;
 }
 
+void* GPUTrackingInputProvider::SetPointersTPCOccupancyMap(void* mem)
+{
+  if (mHoldTPCOccupancyMap) {
+    computePointerWithAlignment(mem, mTPCClusterOccupancyMap, GPUTPCClusterOccupancyMapBin::getNBins(mRec->GetParam()));
+  }
+  return mem;
+}
+
 void GPUTrackingInputProvider::RegisterMemoryAllocation()
 {
   mResourceErrorCodes = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersErrorCodes, GPUMemoryResource::MEMORY_PERMANENT, "ErrorCodes");
   mResourceZS = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputZS, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_PERMANENT, "InputZS");
+  mResourceOccupancyMap = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersTPCOccupancyMap, GPUMemoryResource::MEMORY_INOUT | GPUMemoryResource::MEMORY_CUSTOM, "OccupancyMap");
   mResourceClusterNativeAccess = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeAccess, GPUMemoryResource::MEMORY_INPUT, "ClusterNativeAccess");
   mResourceClusterNativeBuffer = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeBuffer, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeBuffer");
   mResourceClusterNativeOutput = mRec->RegisterMemoryAllocation(this, &GPUTrackingInputProvider::SetPointersInputClusterNativeOutput, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "ClusterNativeOutput");
@@ -89,5 +99,6 @@ void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mHoldTPCZS = io.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding);
   mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && mRec->IsGPU();
-  mHoldTPCClusterNativeOutput = (io.tpcZS || io.tpcPackedDigits || io.tpcCompressedClusters);
+  mHoldTPCOccupancyMap = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && mRec->GetParam().rec.tpc.occupancyMapTimeBins;
+  mHoldTPCClusterNativeOutput = io.tpcZS || io.tpcPackedDigits || io.tpcCompressedClusters;
 }
