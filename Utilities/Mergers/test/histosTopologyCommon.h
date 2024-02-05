@@ -113,7 +113,7 @@ class HistosMergerTestGenerator
         AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
           // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers
           return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5](ProcessingContext& processingContext) mutable {
-            auto histo = processingContext.inputs().get<TH1F*>("histo");
+            const auto histo = processingContext.inputs().get<TH1F*>("histo");
             if (HistosMergerTestGenerator<HistoSize>::compareHistoToExpected(expectedResult, *histo.get())) {
               processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
               return;

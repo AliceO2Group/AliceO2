@@ -83,19 +83,31 @@ o2_add_test(Algorithm
             LABELS utils)
 
 o2_add_test(ObjectStore
-  SOURCES test/test_ObjectStore.cxx
-  COMPONENT_NAME mergers
-  PUBLIC_LINK_LIBRARIES O2::Mergers
-  LABELS utils)
+            SOURCES test/test_ObjectStore.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
 
 o2_add_test(TopologyHistosIntegrating
-  SOURCES test/test_MergerTopologyHistosIntegrating.cxx
-  COMPONENT_NAME mergers
-  PUBLIC_LINK_LIBRARIES O2::Mergers
-  LABELS utils)
+            SOURCES test/test_MergerTopologyHistosIntegrating.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
 
 o2_add_test(TopologyHistosFullHistory
-  SOURCES test/test_MergerTopologyHistosFullHistory.cxx
-  COMPONENT_NAME mergers
-  PUBLIC_LINK_LIBRARIES O2::Mergers
-  LABELS utils)
+            SOURCES test/test_MergerTopologyHistosFullHistory.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyCustomIntegrating
+            SOURCES test/test_MergerTopologyCustomIntegrating.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyCustomFullHistory
+            SOURCES test/test_MergerTopologyCustomFullHistory.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
