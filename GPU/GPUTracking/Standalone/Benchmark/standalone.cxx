@@ -668,7 +668,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
         chainTrackingAsync->mIOPtrs.rawClusters[i] = nullptr;
         chainTrackingAsync->mIOPtrs.nRawClusters[i] = 0;
       }
-      chainTrackingAsync->mIOPtrs.clustersNative = chainTrackingUse->mIOPtrs.clustersNative; // todo: revert back to nullptr
+      chainTrackingAsync->mIOPtrs.clustersNative = nullptr;
       recAsync->SetResetTimers(iRun < configStandalone.runsInit);
       tmpRetVal = recAsync->RunChains();
       if (tmpRetVal == 0 || tmpRetVal == 2) {
