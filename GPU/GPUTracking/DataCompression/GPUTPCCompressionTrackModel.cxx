@@ -840,7 +840,7 @@ GPUd() void GPUTPCCompressionTrackModel::calculateMaterialCorrection()
 
   // Approximate energy loss fluctuation (M.Ivanov)
 
-  const float knst = 0.07f; // To be tuned.
+  const float knst = 0.0007f; // To be tuned.
   mMaterial.sigmadE2 = knst * mMaterial.EP2 * qpt;
   mMaterial.sigmadE2 = mMaterial.sigmadE2 * mMaterial.sigmadE2;
 
