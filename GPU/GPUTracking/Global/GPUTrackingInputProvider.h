@@ -33,6 +33,7 @@ namespace gpu
 {
 
 struct GPUTrackingInOutZS;
+struct GPUTPCClusterOccupancyMapBin;
 class GPUTRDTrackletWord;
 class GPUTRDSpacePoint;
 
@@ -44,6 +45,7 @@ class GPUTrackingInputProvider : public GPUProcessor
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
 
+  void* SetPointersTPCOccupancyMap(void* mem);
   void* SetPointersInputZS(void* mem);
   void* SetPointersInputClusterNativeAccess(void* mem);
   void* SetPointersInputClusterNativeBuffer(void* mem);
@@ -58,10 +60,12 @@ class GPUTrackingInputProvider : public GPUProcessor
   unsigned short mResourceClusterNativeOutput = -1;
   unsigned short mResourceErrorCodes = -1;
   unsigned short mResourceTRD = -1;
+  unsigned short mResourceOccupancyMap = -1;
 
   bool mHoldTPCZS = false;
   bool mHoldTPCClusterNative = false;
   bool mHoldTPCClusterNativeOutput = false;
+  bool mHoldTPCOccupancyMap = false;
   unsigned int mNClusterNative = 0;
 
   GPUTrackingInOutZS* mPzsMeta = nullptr;
@@ -80,6 +84,8 @@ class GPUTrackingInputProvider : public GPUProcessor
   o2::tpc::ClusterNativeAccess* mPclusterNativeAccess = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeBuffer = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeOutput = nullptr;
+
+  GPUTPCClusterOccupancyMapBin* mTPCClusterOccupancyMap = nullptr;
 
   unsigned int* mErrorCodes = nullptr;
 };

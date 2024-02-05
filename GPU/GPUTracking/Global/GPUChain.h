@@ -199,10 +199,14 @@ class GPUChain
   {
     return mRec->getTimer<T, J>(name, num);
   }
+  // Get GRID with NBLOCKS minimal such that nThreads * NBLOCS >= totalItems
   krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  // Get GRID with NBLOCKS minimal such that ideal number of threads * NBLOCKS >= totalItems
   krnlExec GetGrid(unsigned int totalItems, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  // Get GRID with specified number of blocks, each block with ideal number of threads
   krnlExec GetGridBlk(unsigned int nBlocks, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   krnlExec GetGridBlkStep(unsigned int nBlocks, int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  // Get GRID with ideal number of threads / blocks for GPU
   krnlExec GetGridAuto(int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   krnlExec GetGridAutoStep(int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
 
