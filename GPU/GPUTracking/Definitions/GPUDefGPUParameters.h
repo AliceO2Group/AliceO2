@@ -310,6 +310,12 @@
   #ifndef GPUCA_LB_GPUTRDTrackerKernels_gpuVersion
     #define GPUCA_LB_GPUTRDTrackerKernels_gpuVersion 512
   #endif
+  #ifndef GPUCA_LB_GPUTPCCreateOccupancyMap_fill
+    #define GPUCA_LB_GPUTPCCreateOccupancyMap_fill 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCCreateOccupancyMap_fold
+    #define GPUCA_LB_GPUTPCCreateOccupancyMap_fold 256
+  #endif
   #ifndef GPUCA_LB_GPUTRDTrackerKernels_o2Version
     #define GPUCA_LB_GPUTRDTrackerKernels_o2Version 512
   #endif

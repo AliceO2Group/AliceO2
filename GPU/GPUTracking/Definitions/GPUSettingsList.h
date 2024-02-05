@@ -90,6 +90,7 @@ AddOptionRTC(trackMergerFactor2General, float, 3.5f * 3.5f, "", 0, "General fact
 AddOptionRTC(maxTimeBinAboveThresholdIn1000Bin, unsigned short, 500, "", 0, "Except pad from cluster finding if total number of charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(maxConsecTimeBinAboveThreshold, unsigned short, 200, "", 0, "Except pad from cluster finding if number of consecutive charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(noisyPadSaturationThreshold, unsigned short, 700, "", 0, "Threshold where a timebin is considered saturated, disabling the noisy pad check for that pad")
+AddOptionRTC(occupancyMapTimeBins, unsigned short, 100, "", 0, "Number of timebins per histogram bin of occupancy map (0 = disable occupancy map)")
 AddOptionRTC(trackFitCovLimit, unsigned short, 1000, "", 0, "Abort fit when y/z cov exceed the limit")
 AddOptionRTC(addErrorsCECrossing, unsigned char, 0, "", 0, "Add additional custom track errors when crossing CE, 0 = no custom errors but att 0.5 to sigma_z^2, 1 = only to cov diagonal, 2 = preserve correlations")
 AddOptionRTC(trackMergerMinPartHits, unsigned char, 10, "", 0, "Minimum hits of track part during track merging")
