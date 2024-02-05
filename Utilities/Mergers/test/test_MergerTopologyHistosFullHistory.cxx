@@ -17,21 +17,23 @@
 #include <cstdlib>
 #include "histosTopologyCommon.h"
 
-o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const&)
+using namespace o2::framework;
+using namespace o2::mergers;
+
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   constexpr size_t producersCount = 8;
 
   constexpr size_t binsCount = 10;
   constexpr double min = 0;
   constexpr double max = 10;
-
-  o2::framework::WorkflowSpec specs;
+  WorkflowSpec specs;
 
   o2::framework::HistosMergerTestGenerator generator(std::array<float, 12>{0., 0., 1., 1., 1., 1., 9., 1., 1., 1., 0., 0.}, binsCount, min, max);
 
   const auto mergersInputs = generator.generateHistoProducers(specs, producersCount);
 
-  generator.generateMergers(specs, mergersInputs, o2::mergers::InputObjectsTimespan::LastDifference);
+  generator.generateMergers(specs, mergersInputs, InputObjectsTimespan::LastDifference);
 
   generator.generateChecker(specs);
 

@@ -93,3 +93,9 @@ o2_add_test(TopologyHistosIntegrating
   COMPONENT_NAME mergers
   PUBLIC_LINK_LIBRARIES O2::Mergers
   LABELS utils)
+
+o2_add_test(TopologyHistosFullHistory
+  SOURCES test/test_MergerTopologyHistosFullHistory.cxx
+  COMPONENT_NAME mergers
+  PUBLIC_LINK_LIBRARIES O2::Mergers
+  LABELS utils)
