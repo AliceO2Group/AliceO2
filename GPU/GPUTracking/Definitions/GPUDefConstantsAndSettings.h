@@ -68,7 +68,6 @@
 //#define GPUCA_FULL_CLUSTERDATA                      // Store all cluster information in the cluster data, also those not needed for tracking.
 //#define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME        // Propagate Pad, Row, Time cluster information to GM
 //#define GPUCA_GM_USE_FULL_FIELD                     // Use offline magnetic field during GMPropagator prolongation
-//#define GPUCA_TPC_USE_STAT_ERROR                    // Use statistical errors from offline in track fit
 
 // clang-format on
 
