@@ -44,8 +44,6 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
 
   constexpr unsigned char flagsReject = getFlagsReject();
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
-  const float minTrackdEdxMax = merger.Param().rec.tpc.minTrackdEdxMax;
-  const float minTrackdEdxMax2Tot = merger.Param().rec.tpc.minTrackdEdxMax2Tot;
   bool cutOnTrackdEdx = merger.Param().par.dodEdx && merger.Param().rec.tpc.minTrackdEdxMax2Tot > 0.;
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
