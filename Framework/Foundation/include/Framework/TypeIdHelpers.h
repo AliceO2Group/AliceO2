@@ -19,12 +19,33 @@
 
 namespace o2::framework
 {
+#ifdef __CLING__
+template <typename T>
+struct unique_type_id {
+  static constexpr auto get() noexcept
+    {
+      constexpr std::string_view full_name{__PRETTY_FUNCTION__};
+      return full_name;
+    }
+
+    static constexpr std::string_view value{get()};
+};
+
+template <typename T>
+  inline constexpr auto unique_type_id_v = unique_type_id<T>::value;
+#endif
+
 struct TypeIdHelpers {
   template <typename T>
   constexpr static uint32_t uniqueId()
   {
+#ifdef __CLING__
+    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
+    return r;
+#else
     constexpr std::source_location l{std::source_location::current()};
     return compile_time_hash(l.function_name());
+#endif
   }
 };
 
@@ -33,8 +54,12 @@ struct TypeIdHelpers {
 template <typename T>
 constexpr static std::string_view type_name()
 {
+#ifdef __CLING__
+  constexpr std::string_view wrapped_name{unique_type_id_v<T>};
+#else
   constexpr std::source_location l{std::source_location::current()};
   constexpr std::string_view wrapped_name{l.function_name()};
+#endif
   const std::string_view left_marker{"T = "};
   const std::string_view right_marker{"]"};
   const auto left_marker_index = wrapped_name.find(left_marker);
