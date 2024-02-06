@@ -163,10 +163,4 @@ constexpr auto get_size(const std::string_view& str)
     return const_str_details::as_chars<literal_to_chars>(); \
   }()
 
-template <typename T>
-constexpr auto typeHash()
-{
-  return compile_time_hash(typeid(T).name());
-}
-
 #endif // O2_FRAMEWORK_STRINGHELPERS_H

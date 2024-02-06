@@ -14,35 +14,17 @@
 
 #include <string_view>
 #include <sstream>
+#include <source_location>
 #include "Framework/StringHelpers.h"
 
 namespace o2::framework
 {
-
-template <typename T>
-struct unique_type_id {
-  static constexpr auto get() noexcept
-  {
-    constexpr std::string_view full_name{__PRETTY_FUNCTION__};
-    return full_name;
-  }
-
-  static constexpr std::string_view value{get()};
-};
-
-template <typename T>
-inline constexpr auto unique_type_id_v = unique_type_id<T>::value;
-
 struct TypeIdHelpers {
-  /// Return a unique id for a given type
-  /// This works just fine with GCC and CLANG,
-  /// C++20 will allow us to use:
-  ///    std::source_location::current().function_name();
   template <typename T>
   constexpr static uint32_t uniqueId()
   {
-    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
-    return r;
+    constexpr std::source_location l{std::source_location::current()};
+    return compile_time_hash(l.function_name());
   }
 };
 
@@ -51,7 +33,8 @@ struct TypeIdHelpers {
 template <typename T>
 constexpr static std::string_view type_name()
 {
-  constexpr std::string_view wrapped_name{unique_type_id_v<T>};
+  constexpr std::source_location l{std::source_location::current()};
+  constexpr std::string_view wrapped_name{l.function_name()};
   const std::string_view left_marker{"T = "};
   const std::string_view right_marker{"]"};
   const auto left_marker_index = wrapped_name.find(left_marker);
