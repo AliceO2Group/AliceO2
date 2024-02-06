@@ -286,7 +286,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSClsSizeInLayer, itsClsSizeInLayer, //! Size of the ITS cluster in a given layer
                            [](uint32_t itsClusterSizes, int layer) -> uint8_t {
-                             if (layer >= 7) {
+                             if (layer >= 7 || layer < 0) {
                                return 0;
                              }
                              return (itsClusterSizes >> (layer * 4)) & 0xf;
@@ -1629,12 +1629,39 @@ namespace aod
 {
 namespace mctracklabel
 {
-DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 0-6: mismatch at ITS layer. Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64. Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);            //! MC particle
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);                //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 0-6: mismatch at ITS layer. Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64. Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
+DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInITS, mcMismatchInITS, //! Mismatch in the ITS layer
+                           [](uint16_t mcMask, int layer) -> bool {
+                             if (layer >= 7 || layer < 0) {
+                               return false;
+                             }
+                             return (mcMask & 1 << layer);
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInTPC, mcMismatchInTPC, //! Mismatch in the TPC
+                           [](uint16_t mcMask, int layer) -> bool {
+                             if (layer >= 10 || layer < 7) {
+                               return false;
+                             }
+                             return (mcMask & 1 << layer);
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInTRD, mcMismatchInTRD, //! Mismatch in the TRD
+                           [](uint16_t mcMask) -> bool { return (mcMask & 1 << 10); });
+DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInTOF, mcMismatchInTOF, //! Mismatch in the TOF
+                           [](uint16_t mcMask) -> bool { return (mcMask & 1 << 11); });
+
+DECLARE_SOA_DYNAMIC_COLUMN(McMismatch, mcMismatch, //! Mismatch
+                           [](uint16_t mcMask) -> bool { return (mcMask & 1 << 15); });
+
 } // namespace mctracklabel
 
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //! Table joined to the track table containing the MC index
-                  mctracklabel::McParticleId, mctracklabel::McMask);
+                  mctracklabel::McParticleId, mctracklabel::McMask,
+                  mctracklabel::McMismatchInITS<mctracklabel::McMask>,
+                  mctracklabel::McMismatchInTPC<mctracklabel::McMask>,
+                  mctracklabel::McMismatchInTRD<mctracklabel::McMask>,
+                  mctracklabel::McMismatchInTOF<mctracklabel::McMask>,
+                  mctracklabel::McMismatch<mctracklabel::McMask>);
 using McTrackLabel = McTrackLabels::iterator;
 
 namespace mcmfttracklabel
