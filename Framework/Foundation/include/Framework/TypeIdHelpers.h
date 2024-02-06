@@ -23,16 +23,16 @@ namespace o2::framework
 template <typename T>
 struct unique_type_id {
   static constexpr auto get() noexcept
-    {
-      constexpr std::string_view full_name{__PRETTY_FUNCTION__};
-      return full_name;
-    }
+  {
+    constexpr std::string_view full_name{__PRETTY_FUNCTION__};
+    return full_name;
+  }
 
-    static constexpr std::string_view value{get()};
+  static constexpr std::string_view value{get()};
 };
 
 template <typename T>
-  inline constexpr auto unique_type_id_v = unique_type_id<T>::value;
+inline constexpr auto unique_type_id_v = unique_type_id<T>::value;
 #endif
 
 struct TypeIdHelpers {
