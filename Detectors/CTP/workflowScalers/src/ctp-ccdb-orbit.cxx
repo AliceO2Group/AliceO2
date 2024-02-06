@@ -50,9 +50,9 @@ int main(int argc, char** argv)
     add_option("output-dir,d", bpo::value<std::string>()->default_value("./"), "output dir");
     add_option("ccdb", bpo::value<std::string>()->default_value("test"), "choose databse: test or prod else no writing to ccdb");
     add_option("action,a", bpo::value<std::string>()->default_value(""), "sox - first orbit otherwise orbit reset");
-    add_option("run-number,r", bpo::value<int64_t>()->default_value(123),"run number");
-    add_option("time,t", bpo::value<int64_t>()->default_value(0),"current time");
-    add_option("sox-orbit,x", bpo::value<int64_t>()->default_value(0),"SOX orbit");
+    add_option("run-number,r", bpo::value<int64_t>()->default_value(123), "run number");
+    add_option("time,t", bpo::value<int64_t>()->default_value(0), "current time");
+    add_option("sox-orbit,x", bpo::value<int64_t>()->default_value(0), "SOX orbit");
 
     //
     opt_all.add(opt_general).add(opt_hidden);
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
     }
     bpo::notify(vm);
   } catch (bpo::error& e) {
-      std::cerr << "ERROR: " << e.what() << std::endl
+    std::cerr << "ERROR: " << e.what() << std::endl
               << std::endl;
     std::cerr << opt_general << std::endl;
     exit(1);
@@ -90,24 +90,25 @@ int main(int argc, char** argv)
   }
   //
   std::string ccdbAddress;
-  if(vm["ccdb"].as<std::string>() == "prod") {
+  if (vm["ccdb"].as<std::string>() == "prod") {
     std::cout << " Writing to " << prodCCDB << std::endl;
     ccdbAddress = prodCCDB;
-  }  else if(vm["ccdb"].as<std::string>() == "test") {
+  } else if (vm["ccdb"].as<std::string>() == "test") {
     std::cout << " Writing to " << testCCDB << std::endl;
     ccdbAddress = testCCDB;
-  }  else {
+  } else {
     std::cout << "Nothing written to CCDB." << std::endl;
     ccdbAddress = "none";
   }
-  if(ccdbAddress != "none") {
-    //auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+  if (ccdbAddress != "none") {
+    // auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
     o2::ccdb::CcdbApi api;
     api.init(ccdbAddress.c_str());
-    std::map<std::string,std::string> metadata;
+    std::map<std::string, std::string> metadata;
     int64_t runnum = vm["run-number"].as<int64_t>();
-    metadata["runNumber"] = std::to_string(runnum);;
-    //long tmin = vm["time"].as<int64_t>();
+    metadata["runNumber"] = std::to_string(runnum);
+    ;
+    // long tmin = vm["time"].as<int64_t>();
     auto now = std::chrono::system_clock::now();
     long tmin = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     long tmax = tmin + 381928219;
@@ -115,19 +116,21 @@ int main(int argc, char** argv)
     api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
   }
   //
-  if(vm["output-file"].as<std::string>() != "none") {
-    std::string file = vm["output-dir"].as<std::string>()+vm["output-file"].as<std::string>();
-    TFile *f = TFile::Open(file.c_str(), "RECREATE");
+  if (vm["output-file"].as<std::string>() != "none") {
+    std::string file = vm["output-dir"].as<std::string>() + vm["output-file"].as<std::string>();
+    TFile* f = TFile::Open(file.c_str(), "RECREATE");
     if (f == nullptr) {
-      std::cout << "Error: File" << file << " could not be open for writing !!!" << std::endl;;
+      std::cout << "Error: File" << file << " could not be open for writing !!!" << std::endl;
+      ;
       return 1;
     } else {
-      std::cout << "File" << file << " being writen." << std::endl;;
+      std::cout << "File" << file << " being writen." << std::endl;
+      ;
       f->WriteObject(&vect, "ccdb_object");
       f->Close();
     }
   } else {
-      std::cout << "No file written" << std::endl;
+    std::cout << "No file written" << std::endl;
   }
   return 0;
 }

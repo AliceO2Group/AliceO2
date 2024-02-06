@@ -83,7 +83,7 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
       vch = cls.getIndex();
       std::cout << cls.name << ":" << vch << std::endl;
     }
-    //if (cls.name.find("C1ZNC-B-NOPF-CRU") != std::string::npos) {
+    // if (cls.name.find("C1ZNC-B-NOPF-CRU") != std::string::npos) {
     if (cls.name.find("C1ZNC-B-NOPF") != std::string::npos) {
       iznc = cls.getIndex();
       std::cout << cls.name << ":" << iznc << std::endl;
@@ -128,11 +128,11 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   }
   if (iznc != 255) {
     std::cout << "ZNC class:";
-    //uint64_t integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
+    // uint64_t integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
     auto zncrate = ctpscalers->getRateGivenT(0, iznc, 6);
-    std::cout << "ZNC class rate:" << zncrate.first/28. << std::endl;
+    std::cout << "ZNC class rate:" << zncrate.first / 28. << std::endl;
   } else {
     std::cout << "ZNC class not available" << std::endl;
   }
-  //ctpRateFetcher ctprate;
+  // ctpRateFetcher ctprate;
 }
