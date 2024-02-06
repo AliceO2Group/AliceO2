@@ -59,7 +59,9 @@ void CalibInfoReader::run(ProcessingContext& pc)
       TFile* fin = TFile::Open(filename);
       mTree = (TTree*)fin->Get("calibTOF");
       mCurrentEntry = 0;
-      mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+      if (mTree->GetBranch("TOFCalibInfo")) {
+        mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+      }
       mTree->SetBranchAddress("TOFDiaInfo", &mPdia);
 
       LOG(debug) << "Open " << filename;

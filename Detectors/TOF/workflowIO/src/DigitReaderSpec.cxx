@@ -21,6 +21,7 @@
 #include "TOFWorkflowIO/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -79,6 +80,12 @@ void DigitReader::run(ProcessingContext& pc)
     mFiller.setReadoutWindowData(mRow, mPatterns);
     mFiller.fillDiagnosticFrequency();
     mDiagnostic = mFiller.getDiagnosticFrequency();
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
+    mDiagnostic.setTimeStamp(creationTime / 1000);
+    // add TFIDInfo
+    o2::dataformats::TFIDInfo tfinfo;
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+    mDiagnostic.setTFIDInfo(tfinfo);
 
     // add digits loaded in the output snapshot
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0}, mDigits);
