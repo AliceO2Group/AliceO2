@@ -52,7 +52,6 @@ using ulong = unsigned long;
 #define TPC_MAX_FRAGMENT_LEN_GPU 4000
 #define TPC_MAX_FRAGMENT_LEN_HOST 1000
 #define TPC_MAX_FRAGMENT_LEN_PADDED(size) ((size) + 2 * GPUCF_PADDING_TIME)
-#define TPC_MAX_TIME_BIN_TRIGGERED 600
 
 #if 0
 #define DBG_PRINT(msg, ...) printf(msg "\n", __VA_ARGS__)
