@@ -99,7 +99,7 @@ void CorrectionMapsHelper::setCorrMapMShape(std::unique_ptr<TPCFastTransform>&& 
 
 void CorrectionMapsHelper::updateLumiScale(bool report)
 {
-  if (canUseCorrections()) {
+  if (!canUseCorrections()) {
     mLumiScale = -1.f;
   } else if ((mLumiScaleMode == 1) || (mLumiScaleMode == 2)) {
     mLumiScale = mMeanLumiRef ? (mInstLumi - mMeanLumi) / mMeanLumiRef : 0.f;
