@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_HISTOSTOPOLOGYCOMMON_H_
-#define ALICEO2_HISTOSTOPOLOGYCOMMON_H_
+#ifndef ALICEO2_CUSTOMSTOPOLOGYCOMMON_H_
+#define ALICEO2_CUSTOMSTOPOLOGYCOMMON_H_
 
 #include <chrono>
 #include <cstddef>
@@ -51,11 +51,6 @@ class CustomMergerTestGenerator
     : mExpectedResult{expectedResult}
   {
   }
-
-  CustomMergerTestGenerator(const CustomMergerTestGenerator&) = default;
-  CustomMergerTestGenerator(CustomMergerTestGenerator&&) = default;
-  CustomMergerTestGenerator& operator=(const CustomMergerTestGenerator&) = default;
-  CustomMergerTestGenerator& operator=(CustomMergerTestGenerator&&) = default;
 
   Inputs generateHistoProducers(WorkflowSpec& specs, size_t numberOfProducers)
   {

@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_HISTOSTOPOLOGYCOMMON_H_
-#define ALICEO2_HISTOSTOPOLOGYCOMMON_H_
+#ifndef ALICEO2_VECTORTOPOLOGYCOMMON_H_
+#define ALICEO2_VECTORTOPOLOGYCOMMON_H_
 
 #include <array>
 #include <chrono>
@@ -28,6 +28,7 @@
 #include <Framework/ControlService.h>
 #include <Mergers/MergerInfrastructureBuilder.h>
 #include <Mergers/MergerBuilder.h>
+#include <Mergers/ObjectStore.h>
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
@@ -42,50 +43,61 @@ namespace o2::framework
 using SubSpecificationType = header::DataHeader::SubSpecificationType;
 
 template <size_t HistoSize>
-class HistosMergerTestGenerator
+class VectorMergerTestGenerator
 {
   static constexpr const char origin[] = {"TST"};
-  static constexpr const char description[] = {"HISTO"};
+  static constexpr const char description[] = {"VEC"};
 
  public:
-  HistosMergerTestGenerator(std::array<float, HistoSize>&& expectedResult, size_t histoBinsCount, double histoMin, double histoMax)
+  VectorMergerTestGenerator(std::vector<std::array<float, HistoSize>>&& expectedResult, size_t histoBinsCount, double histoMin, double histoMax)
     : mExpectedResult{expectedResult}, mHistoBinsCount{histoBinsCount}, mHistoMin{histoMin}, mHistoMax{histoMax}
   {
   }
 
   Inputs generateHistoProducers(WorkflowSpec& specs, size_t numberOfProducers)
   {
-    Inputs inputs{};
-    for (size_t producerIdx = 1; producerIdx != numberOfProducers + 1; ++producerIdx) {
-      inputs.push_back({"mo", origin, description, static_cast<SubSpecificationType>(producerIdx), Lifetime::Sporadic});
-      specs.push_back(DataProcessorSpec{
-        std::string{"producer-histo"} + std::to_string(producerIdx),
+    Inputs mergersInputs;
+
+    for (size_t producerIdx = 1; producerIdx < numberOfProducers + 1; ++producerIdx) {
+      mergersInputs.push_back({"mo", origin, description, static_cast<SubSpecificationType>(producerIdx), Lifetime::Sporadic});
+      DataProcessorSpec producer{
+        "producer-vec" + std::to_string(producerIdx),
         Inputs{},
         Outputs{{{"mo"}, origin, description, static_cast<SubSpecificationType>(producerIdx), Lifetime::Sporadic}},
-        AlgorithmSpec{
-          static_cast<AlgorithmSpec::ProcessCallback>([histoBinsCount = mHistoBinsCount, histoMin = mHistoMin, histoMax = mHistoMax, producerIdx, dataSent = false](ProcessingContext& processingContext) mutable {
-            if (dataSent) {
-              std::this_thread::sleep_for(std::chrono::milliseconds{100});
-              return;
-            }
-            TH1F& histo = processingContext.outputs().make<TH1F>(
-              Output{origin, description, static_cast<SubSpecificationType>(producerIdx)},
-              "histo", "histo", histoBinsCount, histoMin, histoMax);
-            histo.Fill(5);
-            histo.Fill(producerIdx);
-            dataSent = true;
-          })}});
+        AlgorithmSpec{static_cast<AlgorithmSpec::ProcessCallback>([producerIdx, numberOfProducers, binsCount = mHistoBinsCount, histoMin = mHistoMin, histoMax = mHistoMax, sent = false](ProcessingContext& processingContext) mutable {
+          if (sent) {
+            std::this_thread::sleep_for(std::chrono::milliseconds{100});
+            return;
+          }
+
+          const auto subspec = static_cast<SubSpecificationType>(producerIdx);
+          auto vectorOfHistos = std::make_unique<mergers::VectorOfRawTObjects>(2);
+
+          int i = 0;
+          for (auto& hist_ptr : *vectorOfHistos) {
+            const auto histoname = std::string{"histo"} + std::to_string(++i);
+            auto* hist = new TH1F(histoname.c_str(), histoname.c_str(), binsCount, histoMin, histoMax);
+            hist->Fill(producerIdx);
+            hist->Fill(5);
+            hist_ptr = hist;
+          }
+
+          processingContext.outputs().snapshot(OutputRef{"mo", subspec}, *vectorOfHistos);
+          for_each(vectorOfHistos->begin(), vectorOfHistos->end(), [](auto& histoPtr) { delete histoPtr; });
+          sent = true;
+        })}};
+      specs.push_back(producer);
     }
-    return inputs;
+    return mergersInputs;
   }
 
-  void generateMergers(WorkflowSpec& specs, const Inputs& producerInputs, mergers::InputObjectsTimespan mergerType)
+  void generateMergers(WorkflowSpec& specs, const Inputs& mergersInputs, mergers::InputObjectsTimespan mergerType)
   {
     using namespace mergers;
 
     MergerInfrastructureBuilder mergersBuilder;
-    mergersBuilder.setInfrastructureName("histos");
-    mergersBuilder.setInputSpecs(producerInputs);
+    mergersBuilder.setInfrastructureName("vec");
+    mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{"main"}, origin, description, 0});
     MergerConfig config;
     config.inputObjectTimespan = {mergerType};
@@ -102,22 +114,33 @@ class HistosMergerTestGenerator
   {
     specs.push_back(DataProcessorSpec{
       "data-checker",
-      Inputs{{"histo", origin, description, 0, Lifetime::Sporadic}},
+      Inputs{{"vec", origin, description, 0, Lifetime::Sporadic}},
       Outputs{},
       AlgorithmSpec{
         AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
           // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers
-          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5](ProcessingContext& processingContext) mutable {
-            const auto histo = processingContext.inputs().get<TH1F*>("histo");
-            if (HistosMergerTestGenerator<HistoSize>::compareHistoToExpected(expectedResult, *histo.get())) {
+          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 0, retries = 5](ProcessingContext& processingContext) mutable {
+            if (retryNumber++ == retries) {
               processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
+              LOG(fatal) << "received wrong data\n";
               return;
-            } else {
-              if (retryNumber++ == retries) {
-                processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
-                LOG(fatal) << "received incorrect data";
-              }
             }
+
+            auto dataRef = processingContext.inputs().get("vec");
+            auto vectorOfHistos = DataRefUtils::as<ROOTSerialized<std::vector<TObject*>>>(dataRef);
+
+            if (vectorOfHistos->size() == expectedResult.size()) {
+              size_t resultIdx = 0;
+              for (const auto histo : *vectorOfHistos) {
+                if (!VectorMergerTestGenerator<HistoSize>::compareHistoToExpected(expectedResult[resultIdx++], *dynamic_cast<TH1F*>(histo))) {
+                  return;
+                }
+              }
+            } else {
+              return;
+            }
+
+            processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
           }};
         }}}});
   }
@@ -128,7 +151,7 @@ class HistosMergerTestGenerator
     return gsl::span{expected} == gsl::span(histo.GetArray(), histo.GetSize());
   }
 
-  std::array<float, HistoSize> mExpectedResult;
+  std::vector<std::array<float, HistoSize>> mExpectedResult;
   size_t mHistoBinsCount;
   double mHistoMin;
   double mHistoMax;

@@ -111,3 +111,15 @@ o2_add_test(TopologyCustomFullHistory
             COMPONENT_NAME mergers
             PUBLIC_LINK_LIBRARIES O2::Mergers
             LABELS utils)
+
+o2_add_test(TopologyVectorIntegrating
+            SOURCES test/test_MergerTopologyVectorIntegrating.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyVectorFullHistory
+            SOURCES test/test_MergerTopologyVectorFullHistory.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
