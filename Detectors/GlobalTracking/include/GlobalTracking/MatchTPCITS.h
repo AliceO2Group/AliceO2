@@ -113,7 +113,8 @@ enum TrackRejFlag : int {
   RejectOnTgl,
   RejectOnQ2Pt,
   RejectOnChi2,
-  NSigmaShift = 10
+  NSigmaShift = 10,
+  RejectoOnPIDCorr = 20
 };
 
 ///< TPC track parameters propagated to reference X, with time bracket and index of
@@ -139,7 +140,7 @@ struct TrackLocTPC : public o2::track::TrackParCov {
     return constraint == Constrained ? 0. : (constraint == ASide ? dt : -dt);
   }
 
-  ClassDefNV(TrackLocTPC, 1);
+  ClassDefNV(TrackLocTPC, 2);
 };
 
 ///< ITS track outward parameters propagated to reference X, with time bracket and index of
@@ -151,6 +152,8 @@ struct TrackLocITS : public o2::track::TrackParCov {
   int sourceID = 0;                    ///< track origin id
   int roFrame = MinusOne;              ///< ITS readout frame assigned to this track
   int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
+  float xrho = 0;                      ///< x*rho seen during propagation to reference X (as pion)
+  float dL = 0;                        ///< distance integrated during propagation to reference X (as pion)
   bool hasCloneBefore() const { return getUserField() & CloneBefore; }
   bool hasCloneAfter() const { return getUserField() & CloneAfter; }
   int getCloneShift() const { return hasCloneBefore() ? -1 : (hasCloneAfter() ? 1 : 0); }
@@ -479,8 +482,8 @@ class MatchTPCITS
 
   int compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const;
   float getPredictedChi2NoZ(const o2::track::TrackParCov& trITS, const o2::track::TrackParCov& trTPC) const;
-  bool propagateToRefX(o2::track::TrackParCov& trc);
-  void addLastTrackCloneForNeighbourSector(int sector);
+  bool propagateToRefX(o2::track::TrackParCov& trc, o2::track::TrackLTIntegral* lti = nullptr);
+  void addLastTrackCloneForNeighbourSector(int sector, o2::track::TrackLTIntegral* trackLTInt = nullptr);
 
   ///------------------- manipulations with matches records ----------------------
   bool registerMatchRecordTPC(int iITS, int iTPC, float chi2, int candIC = MinusOne);
@@ -575,7 +578,7 @@ class MatchTPCITS
 
   float YMaxAtXMatchingRef = 999.; ///< max Y in the sector at reference X
 
-  float mSectEdgeMargin2 = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
+  float mSectEdgeMargin = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
 
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
