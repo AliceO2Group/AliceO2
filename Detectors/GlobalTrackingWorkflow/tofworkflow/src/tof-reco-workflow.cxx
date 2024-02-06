@@ -32,6 +32,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 
 #include <string>
 #include <stdexcept>
@@ -71,6 +72,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"orbits-per-tf", VariantType::Int, -1, {"default(-1) from GRP/CCDB, a valid value is required to run compressor for epn"}},
     {"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}},
     {"for-calib", VariantType::Bool, false, {"to disable check on problematic, otherwise masked for new calibrations"}},
+    {"calib-dia", VariantType::Bool, false, {"enabling writing calib for diagnostics"}},
     {"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -147,6 +149,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto orbitPerTF = cfgc.options().get<int>("orbits-per-tf");
   auto ccdb_url = o2::base::NameConf::getCCDBServer();
   auto isForCalib = cfgc.options().get<bool>("for-calib");
+  auto writingDia = cfgc.options().get<bool>("calib-dia");
 
   LOG(debug) << "TOF RECO WORKFLOW configuration";
   LOG(debug) << "TOF input = " << cfgc.options().get<std::string>("input-type");
@@ -203,6 +206,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       LOG(debug) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));
     }
+  }
+
+  if (writingDia) {
+    specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", false, true, true));
   }
 
   LOG(debug) << "Number of active devices = " << specs.size();
