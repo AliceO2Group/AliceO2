@@ -112,7 +112,7 @@ void* GPUTPCSliceData::SetPointersRows(void* mem)
 GPUd() void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ)
 {
   maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
-  maxZ = mem->param.par.continuousMaxTimeBin > 0 ? mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.par.continuousMaxTimeBin) + 50 : 300;
+  maxZ = (mem->param.par.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.par.continuousMaxTimeBin)) : mem->param.tpcGeometry.TPCLength()) + 50;
   maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
 }
 
