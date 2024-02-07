@@ -35,20 +35,6 @@ template <typename T>
 inline constexpr auto unique_type_id_v = unique_type_id<T>::value;
 #endif
 
-struct TypeIdHelpers {
-  template <typename T>
-  constexpr static uint32_t uniqueId()
-  {
-#ifdef __CLING__
-    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
-    return r;
-#else
-    constexpr std::source_location l{std::source_location::current()};
-    return compile_time_hash(l.function_name());
-#endif
-  }
-};
-
 #ifndef __CLING__
 /// Workaround GCC optimizing out unused template parameter
 template <typename T>
@@ -57,6 +43,19 @@ consteval static std::string_view type_name_impl(T*)
   return std::source_location::current().function_name();
 }
 #endif
+
+struct TypeIdHelpers {
+  template <typename T>
+  constexpr static uint32_t uniqueId()
+  {
+#ifdef __CLING__
+    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
+    return r;
+#else
+    return compile_time_hash(type_name_impl<T>(nullptr));
+#endif
+  }
+};
 
 /// Return pure type name with no namespaces etc.
 /// Works with GCC and CLANG
