@@ -49,19 +49,29 @@ struct TypeIdHelpers {
   }
 };
 
+/// Workaround GCC optimizing out unused template parameter
+template <typename T>
+consteval static std::string_view type_name_impl(T*)
+{
+  return std::source_location::current().function_name();
+}
+
 /// Return pure type name with no namespaces etc.
-/// Works fine with GCC and CLANG
+/// Works with GCC and CLANG
 template <typename T>
 constexpr static std::string_view type_name()
 {
 #ifdef __CLING__
   constexpr std::string_view wrapped_name{unique_type_id_v<T>};
 #else
-  constexpr std::source_location l{std::source_location::current()};
-  constexpr std::string_view wrapped_name{l.function_name()};
+  constexpr std::string_view wrapped_name = type_name_impl<T>(nullptr);
 #endif
   const std::string_view left_marker{"T = "};
+#ifdef __clang__
   const std::string_view right_marker{"]"};
+#else
+  const std::string_view right_marker{";"};
+#endif
   const auto left_marker_index = wrapped_name.find(left_marker);
   const auto start_index = left_marker_index + left_marker.size();
   const auto end_index = wrapped_name.find(right_marker, left_marker_index);
