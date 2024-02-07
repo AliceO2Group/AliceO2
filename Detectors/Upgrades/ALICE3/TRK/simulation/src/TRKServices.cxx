@@ -117,9 +117,9 @@ void TRKServices::createServices(TGeoVolume* motherVolume)
 {
   createMaterials();
   createColdplate(motherVolume);
-  // createCables(motherVolume);
   createMiddleServices(motherVolume);
   createOuterDisksServices(motherVolume);
+  createOuterBarrelServices(motherVolume);
 }
 
 void TRKServices::createColdplate(TGeoVolume* motherVolume)
@@ -163,37 +163,37 @@ void TRKServices::createOuterDisksServices(TGeoVolume* motherVolume)
     rMinInnerServices += siO2FiberThick + peFiberThick;
     TGeoVolume* outerDisksFiberSIO2Volume = new TGeoVolume("TRK_OUTERDISKS_FIBER_SIO2", outerDisksFiberSIO2, medSiO2);
     TGeoVolume* outerDisksFiberPEVolume = new TGeoVolume("TRK_OUTERDISKS_FIBER_PE", outerDisksFiberPE, medPE);
-    outerDisksFiberSIO2Volume->SetLineColor(kWhite);
-    outerDisksFiberPEVolume->SetLineColor(kGreen);
+    outerDisksFiberSIO2Volume->SetLineColor(kPink);
+    outerDisksFiberPEVolume->SetLineColor(kPink);
     auto* combiTrans = new TGeoCombiTrans(0, 0, translation, nullptr);
     motherVolume->AddNode(outerDisksFiberSIO2Volume, 1, combiTrans);
     motherVolume->AddNode(outerDisksFiberPEVolume, 1, combiTrans);
 
     // Create power lines: 11.86mm
-    float cuThick = 0.09 * 1.186;
+    float cuPowerThick = 0.09 * 1.186;
     float pePowerThick = 0.91 * 1.186;
 
-    TGeoTube* outerDisksPowerCu = new TGeoTube("TRK_OUTERDISKS_POWER_CUsh", rMinInnerServices, rMinInnerServices + cuThick, zLengthInnerServices / 2);
-    TGeoTube* outerDisksPowerPE = new TGeoTube("TRK_OUTERDISKS_POWER_PEsh", rMinInnerServices + cuThick, rMinInnerServices + cuThick + pePowerThick, zLengthInnerServices / 2);
-    rMinInnerServices += cuThick + pePowerThick;
+    TGeoTube* outerDisksPowerCu = new TGeoTube("TRK_OUTERDISKS_POWER_CUsh", rMinInnerServices, rMinInnerServices + cuPowerThick, zLengthInnerServices / 2);
+    TGeoTube* outerDisksPowerPE = new TGeoTube("TRK_OUTERDISKS_POWER_PEsh", rMinInnerServices + cuPowerThick, rMinInnerServices + cuPowerThick + pePowerThick, zLengthInnerServices / 2);
+    rMinInnerServices += cuPowerThick + pePowerThick;
     TGeoVolume* outerDisksPowerCuVolume = new TGeoVolume("TRK_OUTERDISKS_POWER_CU", outerDisksPowerCu, medCu);
     TGeoVolume* outerDisksPowerPEVolume = new TGeoVolume("TRK_OUTERDISKS_POWER_PE", outerDisksPowerPE, medPE);
-    outerDisksPowerCuVolume->SetLineColor(kOrange);
-    outerDisksPowerPEVolume->SetLineColor(kGreen);
+    outerDisksPowerCuVolume->SetLineColor(kPink);
+    outerDisksPowerPEVolume->SetLineColor(kPink);
     motherVolume->AddNode(outerDisksPowerCuVolume, 1, combiTrans);
     motherVolume->AddNode(outerDisksPowerPEVolume, 1, combiTrans);
 
     // Create cooling: 6.47mm
-    float puThick = 0.56 * 0.647;
-    float h2oThick = 0.44 * 0.647;
+    float puCoolingThick = 0.56 * 0.647;
+    float h2oCoolingThick = 0.44 * 0.647;
 
-    TGeoTube* outerDisksCoolingPU = new TGeoTube("TRK_OUTERDISKS_COOLING_PUsh", rMinInnerServices, rMinInnerServices + puThick, zLengthInnerServices / 2);
-    TGeoTube* outerDisksCoolingH2O = new TGeoTube("TRK_OUTERDISKS_COOLING_H2Osh", rMinInnerServices + puThick, rMinInnerServices + puThick + h2oThick, zLengthInnerServices / 2);
-    // rMinInnerServices += puThick + h2oThick;
+    TGeoTube* outerDisksCoolingPU = new TGeoTube("TRK_OUTERDISKS_COOLING_PUsh", rMinInnerServices, rMinInnerServices + puCoolingThick, zLengthInnerServices / 2);
+    TGeoTube* outerDisksCoolingH2O = new TGeoTube("TRK_OUTERDISKS_COOLING_H2Osh", rMinInnerServices + puCoolingThick, rMinInnerServices + puCoolingThick + h2oCoolingThick, zLengthInnerServices / 2);
+    // rMinInnerServices += puCoolingThick + h2oCoolingThick;
     TGeoVolume* outerDisksCoolingPUVolume = new TGeoVolume("TRK_OUTERDISKS_COOLING_PU", outerDisksCoolingPU, medPU);
     TGeoVolume* outerDisksCoolingH2OVolume = new TGeoVolume("TRK_OUTERDISKS_COOLING_H2O", outerDisksCoolingH2O, medH2O);
-    outerDisksCoolingPUVolume->SetLineColor(kBlue);
-    outerDisksCoolingH2OVolume->SetLineColor(kAzure);
+    outerDisksCoolingPUVolume->SetLineColor(kPink);
+    outerDisksCoolingH2OVolume->SetLineColor(kPink);
     motherVolume->AddNode(outerDisksCoolingPUVolume, 1, combiTrans);
     motherVolume->AddNode(outerDisksCoolingH2OVolume, 1, combiTrans);
   }
@@ -213,69 +213,93 @@ void TRKServices::createMiddleServices(TGeoVolume* motherVolume)
   // Create fibers: 3.07mm, 50% SiO2, 50% PE
   float siO2FiberThick = 0.5 * 0.307;
   float peFiberThick = 0.5 * 0.307;
+  float puCoolingThick = 0.56 * 0.474;
+  float h2oCoolingThick = 0.44 * 0.474;
+  float cuPowerThick = 0.09 * 1.09;
+  float pePowerThick = 0.91 * 1.09;
+  const float totalThickness = siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick + h2oCoolingThick;
 
   // Get geometry information from TRK which is already present
   float rMinMiddleServices = 35.f; // ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetRmax();
   const float rMinMiddleBarrel = rMinMiddleServices;
-  float zLengthMiddleServices = 141.f; // ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz();
+  const float zLengthMiddleServices = 143.f; // ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz();
 
-  LOGP(info, "Building service disk for Middle Tracker rminMiddleServices is: {} Dz is {}", rMinMiddleServices, /* rMaxMiddleServices,*/ zLengthMiddleServices);
-  TGeoTube* middleBarrelFiberSIO2 = new TGeoTube("TRK_MID_FIBER_SIO2sh", rMinMiddleServices, rMinMiddleServices + siO2FiberThick, zLengthMiddleServices);
-  TGeoTube* middleBarrelFiberPE = new TGeoTube("TRK_MID_FIBER_PEsh", rMinMiddleServices + siO2FiberThick, rMinMiddleServices + siO2FiberThick + peFiberThick, zLengthMiddleServices);
+  LOGP(info, "Building service disk for Middle Tracker rminMiddleServices is: {} Dz is {}", rMinMiddleServices, /* rMaxMiddleServices,*/ zLengthMiddleServices + totalThickness);
+  TGeoTube* middleBarrelFiberSIO2 = new TGeoTube("TRK_MID_FIBER_SIO2sh", rMinMiddleServices, rMinMiddleServices + siO2FiberThick, zLengthMiddleServices + totalThickness);
+  TGeoTube* middleBarrelFiberPE = new TGeoTube("TRK_MID_FIBER_PEsh", rMinMiddleServices + siO2FiberThick, rMinMiddleServices + siO2FiberThick + peFiberThick, zLengthMiddleServices + totalThickness);
   rMinMiddleServices = rMinMiddleServices + siO2FiberThick + peFiberThick;
   TGeoVolume* middleBarrelFiberSIO2Volume = new TGeoVolume("TRK_MID_FIBER_SIO2", middleBarrelFiberSIO2, medSiO2);
   TGeoVolume* middleBarrelFiberPEVolume = new TGeoVolume("TRK_MID_FIBER_PE", middleBarrelFiberPE, medPE);
-  middleBarrelFiberSIO2Volume->SetLineColor(kWhite);
-  middleBarrelFiberPEVolume->SetLineColor(kGreen);
+  middleBarrelFiberSIO2Volume->SetLineColor(kYellow);
+  middleBarrelFiberPEVolume->SetLineColor(kYellow);
   motherVolume->AddNode(middleBarrelFiberSIO2Volume, 1, nullptr);
   motherVolume->AddNode(middleBarrelFiberPEVolume, 1, nullptr);
 
   // Create powerlines: 10.9mm, 9% Cu, 91% PE
-  float cuThick = 0.09 * 1.09;
-  float pePowerThick = 0.91 * 1.09;
-
-  TGeoTube* middleBarrelPowerCu = new TGeoTube("TRK_MID_POWER_CUsh", rMinMiddleServices, rMinMiddleServices + cuThick, zLengthMiddleServices);
-  TGeoTube* middleBarrelPowerPE = new TGeoTube("TRK_MID_POWER_PEsh", rMinMiddleServices + cuThick, rMinMiddleServices + cuThick + pePowerThick, zLengthMiddleServices);
-  rMinMiddleServices = rMinMiddleServices + cuThick + pePowerThick;
+  TGeoTube* middleBarrelPowerCu = new TGeoTube("TRK_MID_POWER_CUsh", rMinMiddleServices, rMinMiddleServices + cuPowerThick, zLengthMiddleServices + totalThickness);
+  TGeoTube* middleBarrelPowerPE = new TGeoTube("TRK_MID_POWER_PEsh", rMinMiddleServices + cuPowerThick, rMinMiddleServices + cuPowerThick + pePowerThick, zLengthMiddleServices + totalThickness);
+  rMinMiddleServices = rMinMiddleServices + cuPowerThick + pePowerThick;
   TGeoVolume* middleBarrelPowerCuVolume = new TGeoVolume("TRK_MID_POWER_CU", middleBarrelPowerCu, medCu);
   TGeoVolume* middleBarrelPowerPEVolume = new TGeoVolume("TRK_MID_POWER_PE", middleBarrelPowerPE, medPE);
-  middleBarrelPowerCuVolume->SetLineColor(kOrange);
-  middleBarrelPowerPEVolume->SetLineColor(kGreen);
+  middleBarrelPowerCuVolume->SetLineColor(kYellow);
+  middleBarrelPowerPEVolume->SetLineColor(kYellow);
   motherVolume->AddNode(middleBarrelPowerCuVolume, 1, nullptr);
   motherVolume->AddNode(middleBarrelPowerPEVolume, 1, nullptr);
 
   // Create cooling pipes: 4.74mm, 56% PU, 44% H2O
-  float puThick = 0.56 * 0.474;
-  float h2oThick = 0.44 * 0.474;
-
-  TGeoTube* middleBarrelCoolingPU = new TGeoTube("TRK_MID_COOLING_PUsh", rMinMiddleServices, rMinMiddleServices + puThick, zLengthMiddleServices);
-  TGeoTube* middleBarrelCoolingH2O = new TGeoTube("TRK_MID_COOLING_H2Osh", rMinMiddleServices + puThick, rMinMiddleServices + puThick + h2oThick, zLengthMiddleServices);
-  rMinMiddleServices = rMinMiddleServices + puThick + h2oThick;
+  TGeoTube* middleBarrelCoolingPU = new TGeoTube("TRK_MID_COOLING_PUsh", rMinMiddleServices, rMinMiddleServices + puCoolingThick, zLengthMiddleServices + totalThickness);
+  TGeoTube* middleBarrelCoolingH2O = new TGeoTube("TRK_MID_COOLING_H2Osh", rMinMiddleServices + puCoolingThick, rMinMiddleServices + puCoolingThick + h2oCoolingThick, zLengthMiddleServices + totalThickness);
+  rMinMiddleServices = rMinMiddleServices + puCoolingThick + h2oCoolingThick;
   TGeoVolume* middleBarrelCoolingPUVolume = new TGeoVolume("TRK_MID_COOLING_PU", middleBarrelCoolingPU, medPU);
   TGeoVolume* middleBarrelCoolingH2OVolume = new TGeoVolume("TRK_MID_COOLING_H2O", middleBarrelCoolingH2O, medH2O);
-  middleBarrelCoolingPUVolume->SetLineColor(kBlue);
-  middleBarrelCoolingH2OVolume->SetLineColor(kAzure);
+  middleBarrelCoolingPUVolume->SetLineColor(kYellow);
+  middleBarrelCoolingH2OVolume->SetLineColor(kYellow);
   motherVolume->AddNode(middleBarrelCoolingPUVolume, 1, nullptr);
   motherVolume->AddNode(middleBarrelCoolingH2OVolume, 1, nullptr);
 
   // Barrel to forward connection disks
-  float rMaxMiddleServicesBarFwd = 74.5f + siO2FiberThick + peFiberThick + cuThick + pePowerThick + puThick + h2oThick;
+  float rMaxMiddleServicesBarFwd = 74.5f + siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick + h2oCoolingThick;
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
+    // Create fibers: 3.07mm, 50% SiO2, 50% PE
     TGeoTube* middleBarFwdFiberSIO2 = new TGeoTube("TRK_MIDBARFWD_FIBER_SIO2sh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, siO2FiberThick);
     TGeoTube* middleBarFwdFiberPE = new TGeoTube("TRK_MIDBARFWD_FIBER_PEsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, peFiberThick);
     TGeoVolume* middleBarFwdFiberSIO2Volume = new TGeoVolume("TRK_MIDBARFWD_FIBER_SIO2", middleBarFwdFiberSIO2, medSiO2);
     TGeoVolume* middleBarFwdFiberPEVolume = new TGeoVolume("TRK_MIDBARFWD_FIBER_PE", middleBarFwdFiberPE, medPE);
-    middleBarFwdFiberSIO2Volume->SetLineColor(kWhite);
-    middleBarFwdFiberPEVolume->SetLineColor(kGreen);
+    middleBarFwdFiberSIO2Volume->SetLineColor(kYellow);
+    middleBarFwdFiberPEVolume->SetLineColor(kYellow);
     auto* rot = new TGeoRotation("", 0, 0, 180);
-    auto* combiTransSIO2 = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick / 2 + 141.f), rot);
-    auto* combiTransPE = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick / 2 + 141.f), rot);
+    auto* combiTransSIO2 = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick / 2 + zLengthMiddleServices), rot);
+    auto* combiTransPE = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick / 2 + zLengthMiddleServices), rot);
     motherVolume->AddNode(middleBarFwdFiberSIO2Volume, 1, combiTransSIO2);
     motherVolume->AddNode(middleBarFwdFiberPEVolume, 1, combiTransPE);
+
+    // Create powerlines: 10.9mm, 9% Cu, 91% PE
+    TGeoTube* middleBarFwdPowerCu = new TGeoTube("TRK_MIDBARFWD_POWER_CUsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, cuPowerThick);
+    TGeoTube* middleBarFwdPowerPE = new TGeoTube("TRK_MIDBARFWD_POWER_PEsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, pePowerThick);
+    TGeoVolume* middleBarFwdPowerCuVolume = new TGeoVolume("TRK_MIDBARFWD_POWER_CU", middleBarFwdPowerCu, medCu);
+    TGeoVolume* middleBarFwdPowerPEVolume = new TGeoVolume("TRK_MIDBARFWD_POWER_PE", middleBarFwdPowerPE, medPE);
+    middleBarFwdPowerCuVolume->SetLineColor(kYellow);
+    middleBarFwdPowerPEVolume->SetLineColor(kYellow);
+    auto* combiTransCu = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick / 2 + zLengthMiddleServices), rot);
+    auto* combiTransPEPower = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick / 2 + zLengthMiddleServices), rot);
+    motherVolume->AddNode(middleBarFwdPowerCuVolume, 1, combiTransCu);
+    motherVolume->AddNode(middleBarFwdPowerPEVolume, 1, combiTransPEPower);
+
+    // Create cooling pipes: 4.74mm, 56% PU, 44% H2O
+    TGeoTube* middleBarFwdCoolingPU = new TGeoTube("TRK_MIDBARFWD_COOLING_PUsh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, puCoolingThick);
+    TGeoTube* middleBarFwdCoolingH2O = new TGeoTube("TRK_MIDBARFWD_COOLING_H2Osh", rMinMiddleBarrel, rMaxMiddleServicesBarFwd, h2oCoolingThick);
+    TGeoVolume* middleBarFwdCoolingPUVolume = new TGeoVolume("TRK_MIDBARFWD_COOLING_PU", middleBarFwdCoolingPU, medPU);
+    TGeoVolume* middleBarFwdCoolingH2OVolume = new TGeoVolume("TRK_MIDBARFWD_COOLING_H2O", middleBarFwdCoolingH2O, medH2O);
+    middleBarFwdCoolingPUVolume->SetLineColor(kYellow);
+    middleBarFwdCoolingH2OVolume->SetLineColor(kYellow);
+    auto* combiTransCoolingPU = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick / 2 + zLengthMiddleServices), rot);
+    auto* combiTransCoolingH2O = new TGeoCombiTrans(0, 0, (int)orientation * (siO2FiberThick + peFiberThick + cuPowerThick + pePowerThick + puCoolingThick + h2oCoolingThick / 2 + zLengthMiddleServices), rot);
+    motherVolume->AddNode(middleBarFwdCoolingPUVolume, 1, combiTransCoolingPU);
+    motherVolume->AddNode(middleBarFwdCoolingH2OVolume, 1, combiTransCoolingH2O);
   }
 
   // Forward part
-  float zLengthMiddleServicesFwd = 201.f; // 201cm
+  const float zLengthMiddleServicesFwd = 350.f - (143.f + totalThickness);
 
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {
     // Create fibers: 3.07mm, 50% SiO2, 50% PE
@@ -283,44 +307,44 @@ void TRKServices::createMiddleServices(TGeoVolume* motherVolume)
     float peFiberThick = 0.5 * 0.307;
     float rMinMiddleServicesFwd = 74.5f; // 74.5cm
 
-    float translation = (int)orientation * (149.f + zLengthMiddleServicesFwd / 2); // ±149cm
+    float translation = (int)orientation * (143.f + totalThickness + zLengthMiddleServicesFwd / 2);
 
     TGeoTube* middleFwdFiberSIO2 = new TGeoTube("TRK_MIDFWD_FIBER_SIO2sh", rMinMiddleServicesFwd, rMinMiddleServicesFwd + siO2FiberThick, zLengthMiddleServicesFwd / 2);
     TGeoTube* middleFwdFiberPE = new TGeoTube("TRK_MIDFWD_FIBER_PEsh", rMinMiddleServicesFwd + siO2FiberThick, rMinMiddleServicesFwd + siO2FiberThick + peFiberThick, zLengthMiddleServicesFwd / 2);
     rMinMiddleServicesFwd += siO2FiberThick + peFiberThick;
     TGeoVolume* middleFwdFiberSIO2Volume = new TGeoVolume("TRK_MIDFWD_FIBER_SIO2", middleFwdFiberSIO2, medSiO2);
     TGeoVolume* middleFwdFiberPEVolume = new TGeoVolume("TRK_MIDFWD_FIBER_PE", middleFwdFiberPE, medPE);
-    middleFwdFiberSIO2Volume->SetLineColor(kWhite);
-    middleFwdFiberPEVolume->SetLineColor(kGreen);
+    middleFwdFiberSIO2Volume->SetLineColor(kYellow);
+    middleFwdFiberPEVolume->SetLineColor(kYellow);
     auto* combiTrans = new TGeoCombiTrans(0, 0, translation, nullptr);
     motherVolume->AddNode(middleFwdFiberSIO2Volume, 1, combiTrans);
     motherVolume->AddNode(middleFwdFiberPEVolume, 1, combiTrans);
 
     // Create powerlines: 10.9mm, 9% Cu, 91% PE
-    float cuThick = 0.09 * 1.09;
+    float cuPowerThick = 0.09 * 1.09;
     float pePowerThick = 0.91 * 1.09;
 
-    TGeoTube* middleFwdPowerCu = new TGeoTube("TRK_MIDFWD_POWER_CUsh", rMinMiddleServicesFwd, rMinMiddleServicesFwd + cuThick, zLengthMiddleServicesFwd / 2);
-    TGeoTube* middleFwdPowerPE = new TGeoTube("TRK_MIDFWD_POWER_PEsh", rMinMiddleServicesFwd + cuThick, rMinMiddleServicesFwd + cuThick + pePowerThick, zLengthMiddleServicesFwd / 2);
-    rMinMiddleServicesFwd += cuThick + pePowerThick;
+    TGeoTube* middleFwdPowerCu = new TGeoTube("TRK_MIDFWD_POWER_CUsh", rMinMiddleServicesFwd, rMinMiddleServicesFwd + cuPowerThick, zLengthMiddleServicesFwd / 2);
+    TGeoTube* middleFwdPowerPE = new TGeoTube("TRK_MIDFWD_POWER_PEsh", rMinMiddleServicesFwd + cuPowerThick, rMinMiddleServicesFwd + cuPowerThick + pePowerThick, zLengthMiddleServicesFwd / 2);
+    rMinMiddleServicesFwd += cuPowerThick + pePowerThick;
     TGeoVolume* middleFwdPowerCuVolume = new TGeoVolume("TRK_MIDFWD_POWER_CU", middleFwdPowerCu, medCu);
     TGeoVolume* middleFwdPowerPEVolume = new TGeoVolume("TRK_MIDFWD_POWER_PE", middleFwdPowerPE, medPE);
-    middleFwdPowerCuVolume->SetLineColor(kOrange);
-    middleFwdPowerPEVolume->SetLineColor(kGreen);
+    middleFwdPowerCuVolume->SetLineColor(kYellow);
+    middleFwdPowerPEVolume->SetLineColor(kYellow);
     motherVolume->AddNode(middleFwdPowerCuVolume, 1, combiTrans);
     motherVolume->AddNode(middleFwdPowerPEVolume, 1, combiTrans);
 
     // Create cooling pipes: 4.74mm, 56% PU, 44% H2O
-    float puThick = 0.56 * 0.474;
-    float h2oThick = 0.44 * 0.474;
+    float puCoolingThick = 0.56 * 0.474;
+    float h2oCoolingThick = 0.44 * 0.474;
 
-    TGeoTube* middleFwdCoolingPU = new TGeoTube("TRK_MIDFWD_COOLING_PUsh", rMinMiddleServicesFwd, rMinMiddleServicesFwd + puThick, zLengthMiddleServicesFwd / 2);
-    TGeoTube* middleFwdCoolingH2O = new TGeoTube("TRK_MIDFWD_COOLING_H2Osh", rMinMiddleServicesFwd + puThick, rMinMiddleServicesFwd + puThick + h2oThick, zLengthMiddleServicesFwd / 2);
-    // rMinMiddleServicesFwd += puThick + h2oThick;
+    TGeoTube* middleFwdCoolingPU = new TGeoTube("TRK_MIDFWD_COOLING_PUsh", rMinMiddleServicesFwd, rMinMiddleServicesFwd + puCoolingThick, zLengthMiddleServicesFwd / 2);
+    TGeoTube* middleFwdCoolingH2O = new TGeoTube("TRK_MIDFWD_COOLING_H2Osh", rMinMiddleServicesFwd + puCoolingThick, rMinMiddleServicesFwd + puCoolingThick + h2oCoolingThick, zLengthMiddleServicesFwd / 2);
+    // rMinMiddleServicesFwd += puCoolingThick + h2oCoolingThick;
     TGeoVolume* middleFwdCoolingPUVolume = new TGeoVolume("TRK_MIDFWD_COOLING_PU", middleFwdCoolingPU, medPU);
     TGeoVolume* middleFwdCoolingH2OVolume = new TGeoVolume("TRK_MIDFWD_COOLING_H2O", middleFwdCoolingH2O, medH2O);
-    middleFwdCoolingPUVolume->SetLineColor(kBlue);
-    middleFwdCoolingH2OVolume->SetLineColor(kAzure);
+    middleFwdCoolingPUVolume->SetLineColor(kYellow);
+    middleFwdCoolingH2OVolume->SetLineColor(kYellow);
     motherVolume->AddNode(middleFwdCoolingPUVolume, 1, combiTrans);
     motherVolume->AddNode(middleFwdCoolingH2OVolume, 1, combiTrans);
   }
@@ -330,93 +354,55 @@ void TRKServices::createOuterBarrelServices(TGeoVolume* motherVolume)
 {
   auto& matmgr = o2::base::MaterialManager::Instance();
 
+  TGeoMedium* medSiO2 = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_SILICONDIOXIDE");
+  TGeoMedium* medPE = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_POLYETHYLENE");
+  TGeoMedium* medCu = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_COPPER");
+  TGeoMedium* medPU = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_POLYURETHANE");
+  TGeoMedium* medH2O = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_WATER");
+
   // Fiber 0.269 cm
-  // Cooling 1.432 cm
+  const float siO2FiberThick = 0.5 * 0.269;
+  const float peFiberThick = 0.5 * 0.269;
+  float rMinOuterBarrelServices = ((TGeoTube*)motherVolume->GetNode(Form("%s10_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetRmax();
+  const float zLengthOuterBarrelServices = 350.f; // 175cm
+
+  TGeoTube* outerBarrelFiberSIO2 = new TGeoTube("TRK_OUTERBARREL_FIBER_SIO2sh", rMinOuterBarrelServices, rMinOuterBarrelServices + siO2FiberThick, zLengthOuterBarrelServices);
+  TGeoTube* outerBarrelFiberPE = new TGeoTube("TRK_OUTERBARREL_FIBER_PEsh", rMinOuterBarrelServices + siO2FiberThick, rMinOuterBarrelServices + siO2FiberThick + peFiberThick, zLengthOuterBarrelServices);
+  rMinOuterBarrelServices += siO2FiberThick + peFiberThick;
+  TGeoVolume* outerBarrelFiberSIO2Volume = new TGeoVolume("TRK_OUTERBARREL_FIBER_SIO2", outerBarrelFiberSIO2, medSiO2);
+  TGeoVolume* outerBarrelFiberPEVolume = new TGeoVolume("TRK_OUTERBARREL_FIBER_PE", outerBarrelFiberPE, medPE);
+  outerBarrelFiberSIO2Volume->SetLineColor(kCyan);
+  outerBarrelFiberPEVolume->SetLineColor(kCyan);
+  motherVolume->AddNode(outerBarrelFiberSIO2Volume, 1, nullptr);
+  motherVolume->AddNode(outerBarrelFiberPEVolume, 1, nullptr);
+
   // Power 0.430 cm
-}
+  const float cuPowerThick = 0.09 * 0.430;
+  const float pePowerThick = 0.91 * 0.430;
 
-void TRKServices::createCables(TGeoVolume* motherVolume)
-{
-  auto& matmgr = o2::base::MaterialManager::Instance();
-  const TGeoMedium* medCopper = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_COPPER");
+  TGeoTube* outerBarrelPowerCu = new TGeoTube("TRK_OUTERBARREL_POWER_CUsh", rMinOuterBarrelServices, rMinOuterBarrelServices + cuPowerThick, zLengthOuterBarrelServices);
+  TGeoTube* outerBarrelPowerPE = new TGeoTube("TRK_OUTERBARREL_POWER_PEsh", rMinOuterBarrelServices + cuPowerThick, rMinOuterBarrelServices + cuPowerThick + pePowerThick, zLengthOuterBarrelServices);
+  rMinOuterBarrelServices += cuPowerThick + pePowerThick;
+  TGeoVolume* outerBarrelPowerCuVolume = new TGeoVolume("TRK_OUTERBARREL_POWER_CU", outerBarrelPowerCu, medCu);
+  TGeoVolume* outerBarrelPowerPEVolume = new TGeoVolume("TRK_OUTERBARREL_POWER_PE", outerBarrelPowerPE, medPE);
+  outerBarrelPowerCuVolume->SetLineColor(kCyan);
+  outerBarrelPowerPEVolume->SetLineColor(kCyan);
+  motherVolume->AddNode(outerBarrelPowerCuVolume, 1, nullptr);
+  motherVolume->AddNode(outerBarrelPowerPEVolume, 1, nullptr);
 
-  // Inner Tracker Services
-  // Get geometry information from TRK which is already present
-  float rMinInnerCables = ((TGeoTube*)motherVolume->GetNode(Form("%s3_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetRmin();
-  float rMaxInnerCables = 35.0; // ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetRmax();
-  float zLengthInnerCables = ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz();
-  LOGP(info, "Building service disk for Inner Tracker rminInnerCables is: {} rmaxInnerCables is {} Dz is {}", rMinInnerCables, rMaxInnerCables, zLengthInnerCables);
+  // Cooling 1.432 cm
+  const float puCoolingThick = 0.56 * 1.432;
+  const float h2oCoolingThick = 0.44 * 1.432;
 
-  TGeoMedium* medAir = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_AIR");
-  TGeoMedium* medCop = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_COPPER");
-
-  for (size_t iCableFan{0}; iCableFan < mCableFanWeights.size(); ++iCableFan) {
-    TGeoTube* cableFan = new TGeoTube("TRK_CABLEFAN_MIDsh", rMinInnerCables, rMaxInnerCables, mMiddleDiskThickness * mCableFanWeights[iCableFan]);
-    TGeoVolume* cableFanVolume = new TGeoVolume("TRK_CABLEFAN_MID", cableFan, !(iCableFan % 2) ? medAir : medCop);
-    cableFanVolume->SetLineColor(!(iCableFan % 2) ? kGray : kBlack);
-    auto* rot = new TGeoRotation(Form("TRK_CABLEFAN_MID_ROT_%d", (int)iCableFan), 0, 0, 180);
-    float incrShiftW = std::accumulate(mCableFanWeights.begin(), mCableFanWeights.begin() + iCableFan + 1, -mCableFanWeights[0]);
-    auto* combiTrans = new TGeoCombiTrans(0, 0, zLengthInnerCables + 0.5 * mMiddleDiskThickness + incrShiftW * mMiddleDiskThickness, rot);
-
-    LOGP(info, "Inserting {} in {} at Z={} position which is {} + {} ", cableFanVolume->GetName(), motherVolume->GetName(), zLengthInnerCables + incrShiftW * mMiddleDiskThickness, zLengthInnerCables, incrShiftW * mMiddleDiskThickness);
-    motherVolume->AddNode(cableFanVolume, 1, combiTrans);
-  }
-
-  // Outer Tracker Services
-  // Get geometry information from TRK which is already present
-  float rMinOuterCables = 35.0 + mMiddleDiskThickness; // ((TGeoTube*)motherVolume->GetNode(Form("%s8_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetRmin();
-  float rMaxOuterCables = ((TGeoTube*)motherVolume->GetNode(Form("%s10_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetRmax();
-  float zLengthOuterCables = ((TGeoTube*)motherVolume->GetNode(Form("%s10_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz();
-  LOGP(info, "Building service disk for Outer Tracker rminOuterCables is: {} rmaxOuterCables is {} Dz is {}", rMinOuterCables, rMaxOuterCables, zLengthOuterCables);
-
-  for (size_t iCableFan{0}; iCableFan < mCableFanWeights.size(); ++iCableFan) {
-    TGeoTube* cableFan = new TGeoTube("TRK_CABLEFAN_EXTsh", rMinOuterCables, rMaxOuterCables, mMiddleDiskThickness * mCableFanWeights[iCableFan]);
-    TGeoVolume* cableFanVolume = new TGeoVolume("TRK_CABLEFAN_EXT", cableFan, !(iCableFan % 2) ? medAir : medCop);
-    cableFanVolume->SetLineColor(!(iCableFan % 2) ? kGray : kBlack);
-    auto* rot = new TGeoRotation(Form("TRK_CABLEFAN_EXT_ROT_%d", (int)iCableFan), 0, 0, 180);
-    float incrShiftW = std::accumulate(mCableFanWeights.begin(), mCableFanWeights.begin() + iCableFan + 1, -mCableFanWeights[0]);
-    auto* combiTrans = new TGeoCombiTrans(0, 0, zLengthOuterCables + 0.5 * mMiddleDiskThickness + incrShiftW * mMiddleDiskThickness, rot);
-
-    LOGP(info, "Inserting {} in {} at Z={} position which is {} + {} ", cableFanVolume->GetName(), motherVolume->GetName(), zLengthOuterCables + incrShiftW * mMiddleDiskThickness, zLengthOuterCables, incrShiftW * mMiddleDiskThickness);
-    motherVolume->AddNode(cableFanVolume, 1, combiTrans);
-  }
-
-  // FWD disks services, middle triplet
-  // I put them here for convenience, ideally one would eventually have TRK and FT3 merged
-
-  float rMinFwdCables = 35.0;
-  float rMaxFwdCables = rMinFwdCables + mMiddleDiskThickness;
-  float zLengthFwdCables = ((TGeoTube*)motherVolume->GetNode(Form("%s8_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz() -
-                           ((TGeoTube*)motherVolume->GetNode(Form("%s7_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz() + mMiddleDiskThickness;
-
-  LOGP(info, "Building service disk for FWD rminFwdCables is: {} rmaxFwdCables is {} Dz is {}", rMinFwdCables, rMaxFwdCables, zLengthFwdCables);
-  for (size_t iCableLayer{0}; iCableLayer < mCableFanWeights.size(); ++iCableLayer) {
-    TGeoTube* middleCableLayer = new TGeoTube("TRK_CABLELAYER_MIDsh", rMinFwdCables, rMaxFwdCables + mMiddleDiskThickness * mCableFanWeights[iCableLayer], zLengthFwdCables / 2.);
-    TGeoVolume* middleCableLayerVolume = new TGeoVolume("TRK_CABLELAYER_MID", middleCableLayer, !(iCableLayer % 2) ? medAir : medCop);
-    middleCableLayerVolume->SetLineColor(!(iCableLayer % 2) ? kGray : kBlack);
-    auto* combiTrans = new TGeoCombiTrans(0, 0, zLengthInnerCables + (zLengthFwdCables) / 2, nullptr);
-
-    LOGP(info, "Inserting {} in {} at Z={} position which is {} + {} ", middleCableLayerVolume->GetName(), motherVolume->GetName(), zLengthInnerCables + zLengthFwdCables / 2, zLengthInnerCables, zLengthFwdCables / 2);
-    motherVolume->AddNode(middleCableLayerVolume, 1, combiTrans);
-  }
-
-  // FWD disks services, outer triplet
-  // I put them here for convenience, ideally one would eventually have TRK and FT3 merged
-
-  rMinFwdCables = rMaxOuterCables;
-  rMaxFwdCables = rMinFwdCables + mMiddleDiskThickness;
-  zLengthFwdCables = 400.0 - ((TGeoTube*)motherVolume->GetNode(Form("%s10_1", GeometryTGeo::getTRKLayerPattern()))->GetVolume()->GetShape())->GetDz() + mMiddleDiskThickness;
-
-  LOGP(info, "Building service disk for FWD rminFwdCables is: {} rmaxFwdCables is {} Dz is {}", rMinFwdCables, rMaxFwdCables, zLengthFwdCables);
-  for (size_t iCableLayer{0}; iCableLayer < mCableFanWeights.size(); ++iCableLayer) {
-    TGeoTube* outerCableLayer = new TGeoTube("TRK_CABLELAYER_EXTsh", rMinFwdCables, rMaxFwdCables + mMiddleDiskThickness * mCableFanWeights[iCableLayer], zLengthFwdCables / 2.);
-    TGeoVolume* outerCableLayerVolume = new TGeoVolume("TRK_CABLELAYER_EXT", outerCableLayer, !(iCableLayer % 2) ? medAir : medCop);
-    outerCableLayerVolume->SetLineColor(!(iCableLayer % 2) ? kGray : kBlack);
-    auto* combiTrans = new TGeoCombiTrans(0, 0, zLengthOuterCables + (zLengthFwdCables) / 2, nullptr);
-
-    LOGP(info, "Inserting {} in {} at Z={} position which is {} + {} ", outerCableLayerVolume->GetName(), motherVolume->GetName(), zLengthOuterCables + zLengthFwdCables / 2, zLengthOuterCables, zLengthFwdCables / 2);
-    motherVolume->AddNode(outerCableLayerVolume, 1, combiTrans);
-  }
+  TGeoTube* outerBarrelCoolingPU = new TGeoTube("TRK_OUTERBARREL_COOLING_PUsh", rMinOuterBarrelServices, rMinOuterBarrelServices + puCoolingThick, zLengthOuterBarrelServices);
+  TGeoTube* outerBarrelCoolingH2O = new TGeoTube("TRK_OUTERBARREL_COOLING_H2Osh", rMinOuterBarrelServices + puCoolingThick, rMinOuterBarrelServices + puCoolingThick + h2oCoolingThick, zLengthOuterBarrelServices);
+  // rMinOuterBarrelServices += puCoolingThick + h2oCoolingThick;
+  TGeoVolume* outerBarrelCoolingPUVolume = new TGeoVolume("TRK_OUTERBARREL_COOLING_PU", outerBarrelCoolingPU, medPU);
+  TGeoVolume* outerBarrelCoolingH2OVolume = new TGeoVolume("TRK_OUTERBARREL_COOLING_H2O", outerBarrelCoolingH2O, medH2O);
+  outerBarrelCoolingPUVolume->SetLineColor(kCyan);
+  outerBarrelCoolingH2OVolume->SetLineColor(kCyan);
+  motherVolume->AddNode(outerBarrelCoolingPUVolume, 1, nullptr);
+  motherVolume->AddNode(outerBarrelCoolingH2OVolume, 1, nullptr);
 }
 } // namespace trk
 } // namespace o2
