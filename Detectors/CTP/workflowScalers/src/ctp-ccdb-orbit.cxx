@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     add_option("ccdb", bpo::value<std::string>()->default_value("test"), "choose databse: test or prod else no writing to ccdb");
     add_option("action,a", bpo::value<std::string>()->default_value(""), "sox - first orbit otherwise orbit reset");
     add_option("run-number,r", bpo::value<int64_t>()->default_value(123), "run number");
-    add_option("time,t", bpo::value<int64_t>()->default_value(0), "current time");
+    add_option("testReset,t", bpo::value<bool>()->default_value(0), "0 = CTP/Calib/OrbitReset; 1 = CTP/Calib/OrbitResetTest");
     add_option("sox-orbit,x", bpo::value<int64_t>()->default_value(0), "SOX orbit");
 
     //
@@ -72,21 +72,25 @@ int main(int argc, char** argv)
     exit(2);
   }
   std::string action = vm["action"].as<std::string>();
-  int64_t t = vm["time"].as<int64_t>();
   std::vector<int64_t> vect;
   std::string ccdbPath;
+  auto now = std::chrono::system_clock::now();
+  long tt = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   if (action == "sox") {
     // write to CTP/Calib/FirstRunOrbit
     std::cout << "===> FirsRunOrbit" << std::endl;
-    vect.push_back(t);
+    vect.push_back(tt);
     vect.push_back(vm["run-number"].as<int64_t>());
     vect.push_back(vm["sox-orbit"].as<int64_t>());
     ccdbPath = "CTP/Calib/FirstRunOrbit";
   } else {
     // write to CTP/Calib/OrbitReset
     std::cout << "===> ResetOrbit" << std::endl;
-    vect.push_back(t);
+    vect.push_back(tt);
     ccdbPath = "CTP/Calib/OrbitReset";
+    if(vm["testReset"].as<bool>()) {
+      ccdbPath += "Test";
+    }
   }
   //
   std::string ccdbAddress;
@@ -107,10 +111,7 @@ int main(int argc, char** argv)
     std::map<std::string, std::string> metadata;
     int64_t runnum = vm["run-number"].as<int64_t>();
     metadata["runNumber"] = std::to_string(runnum);
-    ;
-    // long tmin = vm["time"].as<int64_t>();
-    auto now = std::chrono::system_clock::now();
-    long tmin = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    long tmin = tt;
     long tmax = tmin + 381928219;
     std::cout << "Storing:" << ccdbPath << " " << metadata["runNumber"] << " tmin:" << tmin << " tmax:" << tmax << std::endl;
     api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
@@ -121,16 +122,14 @@ int main(int argc, char** argv)
     TFile* f = TFile::Open(file.c_str(), "RECREATE");
     if (f == nullptr) {
       std::cout << "Error: File" << file << " could not be open for writing !!!" << std::endl;
-      ;
       return 1;
     } else {
       std::cout << "File" << file << " being writen." << std::endl;
-      ;
       f->WriteObject(&vect, "ccdb_object");
       f->Close();
     }
   } else {
-    std::cout << "No file written" << std::endl;
+    std::cout << "No file created" << std::endl;
   }
   return 0;
 }
