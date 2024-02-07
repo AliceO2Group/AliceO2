@@ -87,7 +87,7 @@ void TPCScaler::dumpToFileSlices(const char* file, const char* name, int minutes
     const long tsCCDBStart = mTimeStampMS + i * timePerSliceMS;
     const long tsCCDBStartMargin = (i == 0) ? (tsCCDBStart - marginCCDBMS) : tsCCDBStart;
     const long tsCCDBEnd = (i == nSlices - 1) ? (getEndTimeStampMS(o2::tpc::Side::A) + marginCCDBMS) : (tsCCDBStart + timePerSliceMS);
-    const std::string fileOut = fmt::format("{}_{}_{}_{}.root", file, i, tsCCDBStartMargin, tsCCDBEnd - 1);
+    const std::string fileOut = fmt::format("{}_{}_{}_{}.root", file, i, tsCCDBStartMargin, tsCCDBEnd);
     scaler.dumpToFile(fileOut.data(), name);
   }
 }
