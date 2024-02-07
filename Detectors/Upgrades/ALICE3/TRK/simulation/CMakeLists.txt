@@ -14,6 +14,7 @@ o2_add_library(TRKSimulation
                        src/Detector.cxx
                        src/TRKServices.cxx
                PUBLIC_LINK_LIBRARIES O2::TRKBase
+                                     O2::FT3Simulation
                                      O2::ITSMFTSimulation)
 
 o2_target_root_dictionary(TRKSimulation

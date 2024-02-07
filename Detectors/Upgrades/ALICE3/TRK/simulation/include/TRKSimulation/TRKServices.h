@@ -30,6 +30,20 @@ namespace trk
 
 class TRKServices : public FairModule
 {
+  enum class Orientation { kASide = 1,
+                           kCSide = -1 };
+  // TRK services overview: three componenets
+  //
+  // ==================================================
+  // ============||      Outer           ||============
+  // =========|| ||       Tracker        || ||=========
+  //          || ||======================|| ||
+  //          ||      Inner + Middle        ||
+  //          ||         Tracker            ||
+  //          || ||======================|| ||
+  // =========|| ||                      || ||=========  ---> createDisksServices
+  // ============||                      ||============  ---> createMiddleBarrelServices
+  // ==================================================  ---> createOuterServices
  public:
   TRKServices() = default;
   TRKServices(float rMin, float zLength, float thickness);
@@ -37,7 +51,9 @@ class TRKServices : public FairModule
   void createServices(TGeoVolume* motherVolume);
   void createColdplate(TGeoVolume* motherVolume);
   void createCables(TGeoVolume* motherVolume);
-  void createMiddleCables(TGeoVolume* motherVolume);
+  void createMiddleServices(TGeoVolume* motherVolume);
+  void createOuterDisksServices(TGeoVolume* motherVolume);
+  void createOuterBarrelServices(TGeoVolume* motherVolume);
 
  protected:
   // Coldplate
@@ -45,7 +61,8 @@ class TRKServices : public FairModule
   float mColdPlateZLength;
   float mColdPlateThickness;
   float mColdPlateX0;
-  // Cables
+
+  // Services
   float mFiberComposition[2] = {0.5, 0.5};               // SiO2, PE
   float mPowerBundleComposition[2] = {0.09, 0.91};       // Cu, PE
   float mPowerBundleJacketComposition[2] = {0.06, 0.94}; // Cu, PE
