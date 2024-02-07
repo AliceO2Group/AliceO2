@@ -795,13 +795,17 @@ class TableBuilder
   template <typename T>
   auto cursor()
   {
-    return cursorHelper(typename T::table_t::persistent_columns_t{});
+    return [this]<typename... Cs>(pack<Cs...>) {
+      return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
+    }(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename T, typename E>
   auto cursor()
   {
-    return cursorHelper2<E>(typename T::table_t::persistent_columns_t{});
+    return [this]<typename... Cs>(pack<Cs...>) {
+      return this->template persist<E>({Cs::columnLabel()...});
+    }(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
@@ -861,21 +865,6 @@ class TableBuilder
   std::shared_ptr<arrow::Table> finalize();
 
  private:
-  /// Helper which actually creates the insertion cursor. Notice that the
-  /// template argument T is a o2::soa::Table which contains only the
-  /// persistent columns.
-  template <typename... Cs>
-  auto cursorHelper(framework::pack<Cs...>)
-  {
-    return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
-  }
-
-  template <typename E, typename... Cs>
-  auto cursorHelper2(framework::pack<Cs...>)
-  {
-    return this->template persist<E>({Cs::columnLabel()...});
-  }
-
   bool (*mFinalizer)(std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
   void (*mDestructor)(void* holders);
   void* mHolders;
