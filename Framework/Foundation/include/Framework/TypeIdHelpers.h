@@ -52,7 +52,7 @@ struct TypeIdHelpers {
     constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
     return r;
 #else
-    return compile_time_hash(type_name_impl<T>(nullptr));
+    return compile_time_hash(type_name_impl<T>(nullptr).data());
 #endif
   }
 };
