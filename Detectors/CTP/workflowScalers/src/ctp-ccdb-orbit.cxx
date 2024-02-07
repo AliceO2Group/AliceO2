@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     std::map<std::string, std::string> metadata;
     long tmin = tt;
     long tmax = tmin + 381928219;
-    if(action == "sox") {
+    if (action == "sox") {
       int64_t runnum = vm["run-number"].as<int64_t>();
       metadata["runNumber"] = std::to_string(runnum);
       std::cout << "Storing:" << ccdbPath << " " << metadata["runNumber"] << " tmin:" << tmin << " tmax:" << tmax << std::endl;
