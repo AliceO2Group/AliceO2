@@ -44,19 +44,6 @@ consteval static std::string_view type_name_impl(T*)
 }
 #endif
 
-struct TypeIdHelpers {
-  template <typename T>
-  constexpr static uint32_t uniqueId()
-  {
-#ifdef __CLING__
-    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
-    return r;
-#else
-    return compile_time_hash(type_name_impl<T>(nullptr).data());
-#endif
-  }
-};
-
 /// Return pure type name with no namespaces etc.
 /// Works with GCC and CLANG
 template <typename T>
@@ -79,6 +66,19 @@ constexpr static std::string_view type_name()
   const auto length = end_index - start_index;
   return wrapped_name.substr(start_index, length);
 }
+
+struct TypeIdHelpers {
+  template <typename T>
+  constexpr static uint32_t uniqueId()
+  {
+#ifdef __CLING__
+    constexpr uint32_t r = crc32(unique_type_id_v<T>.data(), unique_type_id_v<T>.size());
+    return r;
+#else
+    return compile_time_hash(type_name<T>().data());
+#endif
+  }
+};
 
 /// Convert a CamelCase task struct name to snake-case task name
 inline static std::string type_to_task_name(std::string_view& camelCase)
