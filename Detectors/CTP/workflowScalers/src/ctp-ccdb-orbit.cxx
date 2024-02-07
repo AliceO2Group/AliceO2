@@ -109,12 +109,17 @@ int main(int argc, char** argv)
     o2::ccdb::CcdbApi api;
     api.init(ccdbAddress.c_str());
     std::map<std::string, std::string> metadata;
-    int64_t runnum = vm["run-number"].as<int64_t>();
-    metadata["runNumber"] = std::to_string(runnum);
     long tmin = tt;
     long tmax = tmin + 381928219;
-    std::cout << "Storing:" << ccdbPath << " " << metadata["runNumber"] << " tmin:" << tmin << " tmax:" << tmax << std::endl;
-    api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
+    if(action == "sox") {
+      int64_t runnum = vm["run-number"].as<int64_t>();
+      metadata["runNumber"] = std::to_string(runnum);
+      std::cout << "Storing:" << ccdbPath << " " << metadata["runNumber"] << " tmin:" << tmin << " tmax:" << tmax << std::endl;
+      api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
+    } else {
+      std::cout << "Storing:" << ccdbPath << " tmin:" << tmin << " tmax:" << tmax << std::endl;
+      api.storeAsTFileAny(&(vect), ccdbPath, metadata, tmin, tmax);
+    }
   }
   //
   if (vm["output-file"].as<std::string>() != "none") {
