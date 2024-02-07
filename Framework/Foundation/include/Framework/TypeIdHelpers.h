@@ -49,12 +49,14 @@ struct TypeIdHelpers {
   }
 };
 
+#ifndef __CLING__
 /// Workaround GCC optimizing out unused template parameter
 template <typename T>
 consteval static std::string_view type_name_impl(T*)
 {
   return std::source_location::current().function_name();
 }
+#endif
 
 /// Return pure type name with no namespaces etc.
 /// Works with GCC and CLANG
