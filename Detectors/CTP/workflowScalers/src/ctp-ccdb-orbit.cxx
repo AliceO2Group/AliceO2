@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     std::cout << "===> ResetOrbit" << std::endl;
     vect.push_back(tt);
     ccdbPath = "CTP/Calib/OrbitReset";
-    if(vm["testReset"].as<bool>()) {
+    if (vm["testReset"].as<bool>()) {
       ccdbPath += "Test";
     }
   }
