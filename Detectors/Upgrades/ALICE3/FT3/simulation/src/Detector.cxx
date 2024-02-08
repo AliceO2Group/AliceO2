@@ -65,7 +65,7 @@ void Detector::buildFT3FromFile(std::string configFileName)
   // This simple file reader is not failproof. Do not add empty lines!
 
   /*
-  # Sample MFT configuration
+  # Sample FT3 configuration
   # z_layer    r_in    r_out   Layerx2X0
   -45.3       2.5     9.26    0.0042
   -46.7       2.5     9.26    0.0042
@@ -160,15 +160,15 @@ void Detector::buildBasicFT3(const FT3BaseParam& param)
   mLayerID.clear();
   mLayers.resize(2);
 
-  for (Int_t direction : {0, 1}) {
-    for (Int_t layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
+  for (int direction : {0, 1}) {
+    for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
       std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber + mNumberOfLayers * direction);
       mLayerName[direction][layerNumber] = layerName;
 
       // Adds evenly spaced layers
-      Float_t layerZ = z_first + (layerNumber * z_length / (mNumberOfLayers - 1)) * std::copysign(1, z_first);
-      Float_t rIn = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaIn))));
-      Float_t rOut = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaOut))));
+      float layerZ = z_first + (layerNumber * z_length / (mNumberOfLayers - 1)) * std::copysign(1, z_first);
+      float rIn = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaIn))));
+      float rOut = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaOut))));
       auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, layerZ, rIn, rOut, Layerx2X0);
     }
   }
@@ -183,9 +183,9 @@ void Detector::buildFT3V1()
   LOG(info) << "Building FT3 Detector: V1";
 
   mNumberOfLayers = 10;
-  Float_t sensorThickness = 30.e-4;
-  Float_t layersx2X0 = 1.e-2;
-  std::vector<std::array<Float_t, 5>> layersConfig{
+  float sensorThickness = 30.e-4;
+  float layersx2X0 = 1.e-2;
+  std::vector<std::array<float, 5>> layersConfig{
     {26., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
     {30., .5, 3., 0.1f * layersx2X0},
     {34., .5, 3., 0.1f * layersx2X0},
@@ -230,9 +230,9 @@ void Detector::buildFT3V3b()
   LOG(info) << "Building FT3 Detector: V3b";
 
   mNumberOfLayers = 12;
-  Float_t sensorThickness = 30.e-4;
-  Float_t layersx2X0 = 1.e-2;
-  std::vector<std::array<Float_t, 5>> layersConfig{
+  float sensorThickness = 30.e-4;
+  float layersx2X0 = 1.e-2;
+  std::vector<std::array<float, 5>> layersConfig{
     {26., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
     {30., .5, 3., 0.1f * layersx2X0},
     {34., .5, 3., 0.1f * layersx2X0},
@@ -271,7 +271,55 @@ void Detector::buildFT3V3b()
 }
 
 //_________________________________________________________________________________________________
-Detector::Detector(Bool_t active)
+void Detector::buildFT3Scoping()
+{
+  // Build FT3 detector according to the scoping document
+
+  LOG(info) << "Building FT3 Detector: Scoping document version";
+
+  mNumberOfLayers = 12;
+  float sensorThickness = 30.e-4;
+  float layersx2X0 = 1.e-2;
+  std::vector<std::array<float, 5>> layersConfig{
+    {26., .5, 2.5, 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
+    {30., .5, 2.5, 0.1f * layersx2X0},
+    {34., .5, 2.5, 0.1f * layersx2X0},
+    {77., 5.0, 35., layersx2X0},
+    {100., 5.0, 35., layersx2X0},
+    {122., 5.0, 35., layersx2X0},
+    {150., 5.0, 68.f, layersx2X0},
+    {180., 5.0, 68.f, layersx2X0},
+    {220., 5.0, 68.f, layersx2X0},
+    {260., 5.0, 68.f, layersx2X0},
+    {300., 5.0, 68.f, layersx2X0},
+    {350., 5.0, 68.f, layersx2X0}};
+
+  mLayerName.resize(2);
+  mLayerName[0].resize(mNumberOfLayers);
+  mLayerName[1].resize(mNumberOfLayers);
+  mLayerID.clear();
+  mLayers.resize(2);
+
+  for (auto direction : {0, 1}) {
+    for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
+      std::string directionName = std::to_string(direction);
+      std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + std::string("_") + std::to_string(layerNumber);
+      mLayerName[direction][layerNumber] = layerName;
+      auto& z = layersConfig[layerNumber][0];
+
+      auto& rIn = layersConfig[layerNumber][1];
+      auto& rOut = layersConfig[layerNumber][2];
+      auto& x0 = layersConfig[layerNumber][3];
+
+      LOG(info) << "Adding Layer " << layerName << " at z = " << z;
+      // Add layers
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, x0);
+    }
+  }
+}
+
+//_________________________________________________________________________________________________
+Detector::Detector(bool active)
   : o2::base::DetImpl<Detector>("FT3", active),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
@@ -287,7 +335,7 @@ Detector::Detector(Bool_t active)
   } else {
     switch (ft3BaseParam.geoModel) {
       case Default:
-        buildFT3V3b(); // FT3V3b
+        buildFT3Scoping(); // FT3Scoping
         break;
       case Telescope:
         buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)
@@ -365,14 +413,14 @@ void Detector::InitializeO2Detector()
 }
 
 //_________________________________________________________________________________________________
-Bool_t Detector::ProcessHits(FairVolume* vol)
+bool Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
   if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
 
-  Int_t lay = 0, volID = vol->getMCid();
+  int lay = 0, volID = vol->getMCid();
   while ((lay <= mLayerID.size()) && (volID != mLayerID[lay])) {
     ++lay;
   }
@@ -443,33 +491,33 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 //_________________________________________________________________________________________________
 void Detector::createMaterials()
 {
-  Int_t ifield = 2;
-  Float_t fieldm = 10.0;
+  int ifield = 2;
+  float fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
 
-  Float_t tmaxfdSi = 0.1;    // .10000E+01; // Degree
-  Float_t stemaxSi = 0.0075; //  .10000E+01; // cm
-  Float_t deemaxSi = 0.1;    // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  Float_t epsilSi = 1.0E-4;  // .10000E+01;
-  Float_t stminSi = 0.0;     // cm "Default value used"
+  float tmaxfdSi = 0.1;    // .10000E+01; // Degree
+  float stemaxSi = 0.0075; //  .10000E+01; // cm
+  float deemaxSi = 0.1;    // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  float epsilSi = 1.0E-4;  // .10000E+01;
+  float stminSi = 0.0;     // cm "Default value used"
 
-  Float_t tmaxfdAir = 0.1;        // .10000E+01; // Degree
-  Float_t stemaxAir = .10000E+01; // cm
-  Float_t deemaxAir = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  Float_t epsilAir = 1.0E-4;      // .10000E+01;
-  Float_t stminAir = 0.0;         // cm "Default value used"
+  float tmaxfdAir = 0.1;        // .10000E+01; // Degree
+  float stemaxAir = .10000E+01; // cm
+  float deemaxAir = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  float epsilAir = 1.0E-4;      // .10000E+01;
+  float stminAir = 0.0;         // cm "Default value used"
 
   // AIR
-  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
-  Float_t zAir[4] = {6., 7., 8., 18.};
-  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
-  Float_t dAir = 1.20479E-3;
+  float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  float zAir[4] = {6., 7., 8., 18.};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
+  float dAir = 1.20479E-3;
 
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
-  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 //_________________________________________________________________________________________________
@@ -531,19 +579,19 @@ void Detector::createGeometry()
 
   if (mLayers.size() == 2) { // V1 and telescope
     if (!A3IPvac) {
-      for (Int_t direction : {0, 1}) { // Backward layers at mLayers[0]; Forward layers at mLayers[1]
+      for (int direction : {0, 1}) { // Backward layers at mLayers[0]; Forward layers at mLayers[1]
         std::string directionString = direction ? "Forward" : "Backward";
         LOG(info) << "Creating FT3 " << directionString << " layers:";
-        for (Int_t iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
+        for (int iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
           mLayers[direction][iLayer].createLayer(volFT3);
         }
       }
       vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     } else { // If beampipe is enabled append inner disks to beampipe filling volume, this should be temporary.
-      for (Int_t direction : {0, 1}) {
+      for (int direction : {0, 1}) {
         std::string directionString = direction ? "Forward" : "Backward";
         LOG(info) << "Creating FT3 " << directionString << " layers:";
-        for (Int_t iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
+        for (int iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
           if (iLayer < 3) {
             mLayers[direction][iLayer].createLayer(volIFT3);
           } else {
@@ -569,7 +617,7 @@ void Detector::createGeometry()
   if (mLayers.size() == 1) { // All layers registered at mLayers[0], used when building from file
     LOG(info) << "Creating FT3 layers:";
     if (A3IPvac) {
-      for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+      for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
         if (std::abs(mLayers[0][iLayer].getZ()) < 25) {
           mLayers[0][iLayer].createLayer(volIFT3);
         } else {
@@ -579,7 +627,7 @@ void Detector::createGeometry()
       A3IPvac->AddNode(volIFT3, 2, new TGeoTranslation(0., 0., 0.));
       vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     } else {
-      for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+      for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
         mLayers[0][iLayer].createLayer(volFT3);
       }
       vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
@@ -604,8 +652,8 @@ void Detector::defineSensitiveVolumes()
 
   // The names of the FT3 sensitive volumes have the format: FT3Sensor_(0,1)_(0...sNumberLayers-1)
   if (mLayers.size() == 2) {
-    for (Int_t direction : {0, 1}) {
-      for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+    for (int direction : {0, 1}) {
+      for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
         volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
         v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer));
         LOG(info) << "Adding FT3 Sensitive Volume => " << v->GetName();
@@ -615,7 +663,7 @@ void Detector::defineSensitiveVolumes()
   }
 
   if (mLayers.size() == 1) {
-    for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+    for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
       v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer));
       LOG(info) << "Adding FT3 Sensitive Volume => " << v->GetName();

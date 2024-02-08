@@ -47,7 +47,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);

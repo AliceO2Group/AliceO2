@@ -49,7 +49,7 @@ Ring::Ring(int rPosId,
   if (!medAerogel) {
     LOGP(fatal, "RICH: Aerogel medium not found");
   }
-  TGeoMedium* medSi = gGeoManager->GetMedium("RCH_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("RCH_SILICON$");
   if (!medSi) {
     LOGP(fatal, "RICH: Silicon medium not found");
   }

@@ -95,7 +95,7 @@ void FCTLayer::createDiskLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("FCT_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("FCT_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("FCT_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
@@ -175,7 +175,7 @@ void FCTLayer::createConverterLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-  TGeoMedium* medPb = gGeoManager->GetMedium("FCT_Pb$");
+  TGeoMedium* medPb = gGeoManager->GetMedium("FCT_LEAD$");
   TGeoMedium* medAir = gGeoManager->GetMedium("FCT_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medPb);
