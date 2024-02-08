@@ -781,6 +781,30 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 template <typename... C>
 class Table;
 
+template <typename... Cs>
+constexpr auto select_persistent(framework::pack<Cs...>)
+{
+  return framework::selected_pack<is_persistent_t, Cs...>{};
+}
+
+template <typename... Cs>
+constexpr auto select_external_index(framework::pack<Cs...>)
+{
+  return framework::selected_pack<is_external_index_t, Cs...>{};
+}
+
+template <typename... Cs>
+constexpr auto select_internal_index(framework::pack<Cs...>)
+{
+  return framework::selected_pack<is_self_index_t, Cs...>{};
+}
+
+template <typename... Cs>
+constexpr auto select_dynamic(framework::pack<Cs...>)
+{
+  return framework::selected_pack<is_dynamic_t, Cs...>{};
+}
+
 /// Similar to a pair but not a pair, to avoid
 /// exposing the second type everywhere.
 template <typename C>
@@ -1377,12 +1401,6 @@ auto select(T const& t, framework::expressions::Filter const& f)
 }
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
-
-template <typename... Cs>
-constexpr auto select_persistent(framework::pack<Cs...>)
-{
-  return framework::selected_pack<is_persistent_t, Cs...>{};
-}
 
 template <typename... Cs>
 using select_persistent_t = decltype(select_persistent(framework::pack<Cs...>{}));
