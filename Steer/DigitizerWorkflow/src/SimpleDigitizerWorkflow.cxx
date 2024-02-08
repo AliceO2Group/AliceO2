@@ -158,6 +158,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"skipDet", VariantType::String, "none", {skiphelp}});
 
+  // especially useful if digit files are required later on in a simulation chain.
+  // so if --onlyDet <detlist> is set, one can then be sure to find all those digi files, especially those for which the detector
+  // hit files do not exist (e.g. because the detector was not readout during data taking)
+  std::string forceaccepthelp("Whether or not to always rely on accept/skip filters for detectors, independent of GRP content");
+  workflowOptions.push_back(
+    ConfigParamSpec{"forceSelectedDets", VariantType::Bool, false, {forceaccepthelp}});
+
   std::string onlyctxhelp("Produce only the digitization context; Don't actually digitize");
   workflowOptions.push_back(ConfigParamSpec{"only-context", o2::framework::VariantType::Bool, false, {onlyctxhelp}});
 
@@ -547,13 +554,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       return false;
     }
     auto accepted = accept(id);
+
+    // always comply with the filter choice?
+    auto forceAccepted = configcontext.options().get<bool>("forceSelectedDets");
     bool is_ingrp = isInGRPReadout(id);
+    // final decision on whether or not this detector will be digitized
+    auto isRun = accepted && (forceAccepted || is_ingrp);
     if (gIsMaster) {
       LOG(info) << id.getName()
                 << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
-                << " is skipped? " << (!accepted ? "yes" : "no");
+                << " is taken although not in grp? " << (!is_ingrp && (accepted && forceAccepted) ? "yes" : "no") << ";"
+                << " is skipped? " << (!accepted ? "yes" : "no") << ";"
+                << " is run? " << (isRun ? "yes" : "no");
     }
-    return accepted && is_ingrp;
+    return isRun;
   };
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
