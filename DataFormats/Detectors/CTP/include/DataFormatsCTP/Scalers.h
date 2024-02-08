@@ -150,6 +150,7 @@ class CTPRunScalers
   {
     return std::make_pair((unsigned long)mScalerRecordRaw[0].intRecord.orbit, (unsigned long)mScalerRecordRaw[mScalerRecordRaw.size() - 1].intRecord.orbit);
   }
+
  private:
   // map from class index to overflow
   // overflow counts how many time class scalerers overflowed
