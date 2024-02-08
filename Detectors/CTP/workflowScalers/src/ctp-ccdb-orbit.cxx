@@ -32,7 +32,8 @@
 #include <vector>
 #include <string>
 namespace bpo = boost::program_options;
-
+//
+// get object from ccdb  auto pp = ccdbMgr.getSpecific<std::vector<long>>("CTP/Calib/OrbitResetTest")
 int main(int argc, char** argv)
 {
   const std::string testCCDB = "http://ccdb-test.cern.ch:8080";
@@ -48,7 +49,7 @@ int main(int argc, char** argv)
     add_option("help,h", "Print this help message");
     add_option("output-file,o", bpo::value<std::string>()->default_value("none"), "output file name, none - file not created");
     add_option("output-dir,d", bpo::value<std::string>()->default_value("./"), "output dir");
-    add_option("ccdb", bpo::value<std::string>()->default_value("test"), "choose databse: test or prod else no writing to ccdb");
+    add_option("ccdb", bpo::value<std::string>()->default_value("test"), "choose databse: test- test ccdb; prod - production ccdb; else ccdb parameter");
     add_option("action,a", bpo::value<std::string>()->default_value(""), "sox - first orbit otherwise orbit reset");
     add_option("run-number,r", bpo::value<int64_t>()->default_value(123), "run number");
     add_option("testReset,t", bpo::value<bool>()->default_value(0), "0 = CTP/Calib/OrbitReset; 1 = CTP/Calib/OrbitResetTest");
@@ -95,15 +96,13 @@ int main(int argc, char** argv)
   //
   std::string ccdbAddress;
   if (vm["ccdb"].as<std::string>() == "prod") {
-    std::cout << " Writing to " << prodCCDB << std::endl;
     ccdbAddress = prodCCDB;
   } else if (vm["ccdb"].as<std::string>() == "test") {
-    std::cout << " Writing to " << testCCDB << std::endl;
     ccdbAddress = testCCDB;
   } else {
-    std::cout << "Nothing written to CCDB." << std::endl;
-    ccdbAddress = "none";
+    ccdbAddress = vm["ccdb"].as<std::string>();
   }
+  std::cout << " Writing to db:" << ccdbAddress << std::endl;
   if (ccdbAddress != "none") {
     // auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
     o2::ccdb::CcdbApi api;
