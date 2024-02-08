@@ -797,7 +797,7 @@ class TableBuilder
   {
     return [this]<typename... Cs>(pack<Cs...>) {
       return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
-    }(typename T::table_t::persistent_columns_t{});
+    }(o2::soa::select_persistent(typename T::table_t::columns{}));
   }
 
   template <typename T, typename E>
@@ -805,7 +805,7 @@ class TableBuilder
   {
     return [this]<typename... Cs>(pack<Cs...>) {
       return this->template persist<E>({Cs::columnLabel()...});
-    }(typename T::table_t::persistent_columns_t{});
+    }(o2::soa::select_persistent(typename T::table_t::columns{}));
   }
 
   template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>

@@ -14,8 +14,6 @@
 
 #include "Framework/HistogramSpec.h" // only for VARIABLE_WIDTH
 #include "Framework/Pack.h"
-#include "Framework/ArrowTypes.h"
-#include <optional>
 
 namespace o2::framework
 {
@@ -267,9 +265,6 @@ struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeo
   {
     return BinningPolicyBase<sizeof...(Ts)>::template getBin<T2s...>(data);
   }
-
-  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, Ts...>;
-
  private:
   std::tuple<Ls...> mBinningFunctions;
 };
@@ -296,8 +291,6 @@ struct ColumnBinningPolicy : BinningPolicyBase<sizeof...(Ts)> {
   {
     return BinningPolicyBase<sizeof...(Ts)>::template getBin<typename Ts::type...>(data);
   }
-
-  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, Ts...>;
 };
 
 template <typename C>
@@ -321,8 +314,6 @@ struct NoBinningPolicy {
   {
     return std::get<0>(data);
   }
-
-  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C>;
 };
 
 } // namespace o2::framework

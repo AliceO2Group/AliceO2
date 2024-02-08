@@ -68,12 +68,6 @@ struct Binding {
 void accessingInvalidIndexFor(const char* getter);
 void dereferenceWithWrongType();
 
-template <typename... C>
-auto createFieldsFromColumns(framework::pack<C...>)
-{
-  return std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...};
-}
-
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>
@@ -574,6 +568,18 @@ struct is_index<Ref<Args...>, Ref> : std::true_type {
 template <typename T>
 using is_index_t = is_index<T, Index>;
 
+template <typename... C>
+auto createFieldsFromColumns(framework::pack<C...>)
+{
+  std::vector<std::shared_ptr<arrow::Field>> result;
+  ([&](){
+    if constexpr(soa::is_persistent_v<C>) {
+      result.push_back(C::asArrowField());
+    }
+  }(),...);
+  return result;
+}
+
 struct IndexPolicyBase {
   /// Position inside the current table
   int64_t mRowIndex = 0;
@@ -789,7 +795,6 @@ struct RowViewCore : public IP, C... {
   using policy_t = IP;
   using table_t = o2::soa::Table<C...>;
   using all_columns = framework::pack<C...>;
-  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
   constexpr inline static bool has_index_v = framework::pack_size(index_columns_t{}) > 0;
@@ -800,7 +805,7 @@ struct RowViewCore : public IP, C... {
     : IP{policy},
       C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
-    bindIterators(persistent_columns_t{});
+    bindIterators(all_columns{});
     bindAllDynamicColumns(dynamic_columns_t{});
     // In case we have an index column might need to constrain the actual
     // number of rows in the view to the range provided by the index.
@@ -816,7 +821,7 @@ struct RowViewCore : public IP, C... {
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
-    bindIterators(persistent_columns_t{});
+    bindIterators(all_columns{});
     bindAllDynamicColumns(dynamic_columns_t{});
   }
 
@@ -824,7 +829,7 @@ struct RowViewCore : public IP, C... {
   {
     IP::operator=(static_cast<IP&&>(other));
     (void(static_cast<C&>(*this) = static_cast<C&&>(other)), ...);
-    bindIterators(persistent_columns_t{});
+    bindIterators(all_columns{});
     bindAllDynamicColumns(dynamic_columns_t{});
   }
 
@@ -832,7 +837,7 @@ struct RowViewCore : public IP, C... {
   {
     IP::operator=(static_cast<IP const&>(other));
     (void(static_cast<C&>(*this) = static_cast<C const&>(other)), ...);
-    bindIterators(persistent_columns_t{});
+    bindIterators(all_columns{});
     bindAllDynamicColumns(dynamic_columns_t{});
     return *this;
   }
@@ -972,7 +977,11 @@ struct RowViewCore : public IP, C... {
   auto bindIterators(framework::pack<PC...>)
   {
     using namespace o2::soa;
-    (void(PC::mColumnIterator.mCurrentPos = &this->mRowIndex), ...);
+    ([&](){
+      if constexpr (soa::is_persistent_v<PC>) {
+        PC::mColumnIterator.mCurrentPos = &this->mRowIndex;
+      }
+    }(), ...);
   }
 
   template <typename... DC>
@@ -1069,7 +1078,7 @@ static auto hasColumnForKey(framework::pack<C...>, std::string const& key)
 template <typename T>
 static std::pair<bool, std::string> hasKey(std::string const& key)
 {
-  return {hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
+  return {hasColumnForKey(typename T::columns{}, key), getLabelFromType<T>()};
 }
 
 template <typename... C>
@@ -1369,6 +1378,15 @@ auto select(T const& t, framework::expressions::Filter const& f)
 
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
 
+template <typename... Cs>
+constexpr auto select_persistent(framework::pack<Cs...>)
+{
+  return framework::selected_pack<is_persistent_t, Cs...>{};
+}
+
+template <typename... Cs>
+using select_persistent_t = decltype(select_persistent(framework::pack<Cs...>{}));
+
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
 template <typename... C>
@@ -1379,7 +1397,6 @@ class Table
   using table_t = Table<C...>;
   using columns = framework::pack<C...>;
   using column_types = framework::pack<typename C::type...>;
-  using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
   using internal_index_columns_t = framework::selected_pack<is_self_index_t, C...>;
 
@@ -1538,7 +1555,7 @@ class Table
   {
     if constexpr (framework::has_type_conditional_v<is_binding_compatible, Key, external_index_columns_t>) {
       using IC = framework::pack_element_t<framework::has_type_at_conditional<is_binding_compatible, Key>(external_index_columns_t{}), external_index_columns_t>;
-      return mColumnChunks[framework::has_type_at<IC>(persistent_columns_t{})];
+      return mColumnChunks[framework::has_type_at<IC>(select_persistent(columns{}))];
     } else if constexpr (std::is_same_v<table_t, Key>) {
       return nullptr;
     } else {
@@ -2691,7 +2708,6 @@ struct Join : JoinBase<Ts...> {
 
   using self_t = Join<Ts...>;
   using table_t = base;
-  using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
   using unfiltered_iterator = iterator;
@@ -2801,7 +2817,6 @@ struct Concat : ConcatBase<T1, T2> {
   using left_t = T1;
   using right_t = T2;
   using table_t = ConcatBase<T1, T2>;
-  using persistent_columns_t = typename table_t::persistent_columns_t;
 
   using iterator = typename table_t::template RowView<Concat<T1, T2>, T1, T2>;
   using filtered_iterator = typename table_t::template RowViewFiltered<Concat<T1, T2>, T1, T2>;
@@ -2826,7 +2841,6 @@ class FilteredBase : public T
   using self_t = FilteredBase<T>;
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
-  using persistent_columns_t = typename T::persistent_columns_t;
   using external_index_columns_t = typename T::external_index_columns_t;
 
   template <typename P, typename... Os>

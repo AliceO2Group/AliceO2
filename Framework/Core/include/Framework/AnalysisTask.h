@@ -147,10 +147,10 @@ struct AnalysisDataProcessorBuilder {
     using dT = std::decay_t<T>;
     if constexpr (is_enumeration_v<dT> == false) {
       if constexpr (soa::is_soa_filtered_v<dT>) {
-        auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
+        auto fields = createFieldsFromColumns(typename dT::table_t::columns{});
         eInfos.emplace_back(ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields));
       } else if constexpr (soa::is_soa_iterator_v<dT>) {
-        auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
+        auto fields = createFieldsFromColumns(typename dT::parent_t::columns{});
         if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
           eInfos.emplace_back(ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
         }

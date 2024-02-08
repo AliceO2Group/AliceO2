@@ -225,7 +225,7 @@ struct RootTableBuilderHelpers {
   template <typename T>
   static void convertASoA(TableBuilder& builder, TTreeReader& reader)
   {
-    return convertASoAColumns(builder, reader, typename T::persistent_columns_t{});
+    return convertASoAColumns(builder, reader, o2::soa::select_persistent(typename T::columns{}));
   }
 };
 

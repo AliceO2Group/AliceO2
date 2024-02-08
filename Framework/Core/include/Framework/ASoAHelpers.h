@@ -92,7 +92,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  auto persistentColumns = typename BP<Cs...>::persistent_columns_t{};
+  auto persistentColumns = o2::soa::select_persistent(framework::pack<Cs...>{});
   constexpr auto persistentColumnsCount = pack_size(persistentColumns);
   auto arrowColumns = o2::soa::row_helpers::getArrowColumns(arrowTable, persistentColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();

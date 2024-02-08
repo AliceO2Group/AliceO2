@@ -552,7 +552,7 @@ TEST_CASE("TestDereference")
 
 TEST_CASE("TestSchemaCreation")
 {
-  auto schema = std::make_shared<arrow::Schema>(createFieldsFromColumns(o2::aod::Points::persistent_columns_t{}));
+  auto schema = std::make_shared<arrow::Schema>(createFieldsFromColumns(o2::aod::Points::columns{}));
   REQUIRE(schema->num_fields() == 2);
   REQUIRE(schema->field(0)->name() == "fX");
   REQUIRE(schema->field(1)->name() == "fY");

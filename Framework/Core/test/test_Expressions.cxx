@@ -166,7 +166,7 @@ TEST_CASE("TestGandivaTreeCreation")
   REQUIRE(gandiva_expression2->ToString() == "if (bool less_than_or_equal_to(float absf((float) fSigned1Pt), (const float) 1.17549e-38 raw(7fffe1))) { (const float) 8.50709e+37 raw(7e80001f) } else { float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt)) }");
 
   auto projector_b = createProjector(schema2, ptespecs, resfield2);
-  auto fields = o2::soa::createFieldsFromColumns(o2::aod::Tracks::persistent_columns_t{});
+  auto fields = o2::soa::createFieldsFromColumns(o2::aod::Tracks::columns{});
   auto schema_p = std::make_shared<arrow::Schema>(fields);
   auto projector_alt = o2::framework::expressions::createProjectors(o2::framework::pack<o2::aod::track::Pt>{}, fields, schema_p);
 

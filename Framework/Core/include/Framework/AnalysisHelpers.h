@@ -124,11 +124,11 @@ struct OutputForTable {
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename T>
-struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::persistent_columns_t>::table> {
+struct Produces : WritingCursor<typename soa::PackToTable<decltype(o2::soa::select_persistent(typename T::table_t::columns{}))>::table> {
 };
 
 template <template <typename...> class T, typename... C>
-struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
+struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<decltype(o2::soa::select_persistent(typename T<C...>::table_t::columns{}))>::table> {
 };
 
 /// Helper template for table transformations
@@ -233,7 +233,7 @@ template <typename T, typename Key>
 inline std::shared_ptr<arrow::ChunkedArray> getIndexToKey(arrow::Table* table)
 {
   using IC = framework::pack_element_t<framework::has_type_at_conditional<soa::is_binding_compatible, Key>(typename T::external_index_columns_t{}), typename T::external_index_columns_t>;
-  return table->column(framework::has_type_at<IC>(typename T::persistent_columns_t{}));
+  return table->column(framework::has_type_at<IC>(o2::soa::select_persistent(typename T::columns{})));
 }
 
 template <typename C>
@@ -309,17 +309,6 @@ struct IndexBuilder {
     return makeArrowTable(label,
                           {self.template result<C1>(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->template result<Cs>()...},
                           {self.field(), std::static_pointer_cast<typename Reduction<Key, Cs>::type>(columnBuilders[framework::has_type_at_v<Cs>(framework::pack<Cs...>{})])->field()...});
-  }
-
-  template <typename IDX, typename Key, typename T1, typename... T>
-  static auto makeIndex(Key const& key, std::tuple<T1, T...>&& tables)
-  {
-    auto t = IDX{indexBuilder(o2::aod::MetadataTrait<IDX>::metadata::tableLabel(),
-                              typename o2::aod::MetadataTrait<IDX>::metadata::index_pack_t{},
-                              key,
-                              std::make_tuple(std::decay_t<T1>{{std::get<T1>(tables)}}, std::decay_t<T>{{std::get<T>(tables)}}...))};
-    t.bindExternalIndices(&key, &std::get<T1>(tables), &std::get<T>(tables)...);
-    return t;
   }
 };
 
