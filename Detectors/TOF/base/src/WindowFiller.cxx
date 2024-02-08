@@ -448,6 +448,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
 void WindowFiller::fillDiagnosticFrequency()
 {
   bool isTOFempty = true;
+  mDiagnosticFrequency.clear();
   // fill diagnostic frequency
   for (int j = 0; j < mReadoutWindowData.size(); j++) {
     mDiagnosticFrequency.fillROW();
