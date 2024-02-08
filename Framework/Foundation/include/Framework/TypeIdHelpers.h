@@ -14,12 +14,14 @@
 
 #include <string_view>
 #include <sstream>
+#if __cplusplus >= 202002L
 #include <source_location>
+#endif
 #include "Framework/StringHelpers.h"
 
 namespace o2::framework
 {
-#ifdef __CLING__
+#if defined(__CLING__) || __cplusplus < 202002L
 template <typename T>
 struct unique_type_id {
   static constexpr auto get() noexcept
@@ -35,7 +37,7 @@ template <typename T>
 inline constexpr auto unique_type_id_v = unique_type_id<T>::value;
 #endif
 
-#ifndef __CLING__
+#if !defined(__CLING__) && __cplusplus >= 202002L
 /// Workaround GCC optimizing out unused template parameter
 template <typename T>
 consteval static std::string_view type_name_impl(T*)
@@ -49,17 +51,18 @@ consteval static std::string_view type_name_impl(T*)
 template <typename T>
 constexpr static std::string_view type_name()
 {
-#ifdef __CLING__
+#if defined(__CLING__) || __cplusplus < 202002L
   constexpr std::string_view wrapped_name{unique_type_id_v<T>};
 #else
   constexpr std::string_view wrapped_name = type_name_impl<T>(nullptr);
 #endif
   const std::string_view left_marker{"T = "};
-#ifdef __clang__
-  const std::string_view right_marker{"]"};
-#else
+#if !defined(__clang__) && __cplusplus >= 202002L
   const std::string_view right_marker{";"};
+#else
+  const std::string_view right_marker{"]"};
 #endif
+
   const auto left_marker_index = wrapped_name.find(left_marker);
   const auto start_index = left_marker_index + left_marker.size();
   const auto end_index = wrapped_name.find(right_marker, left_marker_index);
