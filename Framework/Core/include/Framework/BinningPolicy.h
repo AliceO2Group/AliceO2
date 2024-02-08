@@ -265,6 +265,7 @@ struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeo
   {
     return BinningPolicyBase<sizeof...(Ts)>::template getBin<T2s...>(data);
   }
+
  private:
   std::tuple<Ls...> mBinningFunctions;
 };
