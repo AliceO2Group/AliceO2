@@ -110,7 +110,8 @@ class CTPRunScalers
   int printInputRateAndIntegral(int inp);
   int printClassBRateAndIntegralII(int icls);
   int printClassBRateAndIntegral(int iclsinscalers);
-
+  //
+  int addOrbitOffset(uint32_t offset);
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
   // v1
@@ -129,16 +130,25 @@ class CTPRunScalers
   /// same with absolute  timestamp (not orbit) as argument
   std::pair<double, double> getRateGivenT(double timestamp, int classindex, int type) const;
 
-  /// retrieves time boundaries of this scaler object
+  /// retrieves time boundaries of this scaler object from O2 scalers
   std::pair<unsigned long, unsigned long> getTimeLimit() const
   {
     return std::make_pair((unsigned long)mScalerRecordO2[0].epochTime * 1000, (unsigned long)mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime * 1000);
   }
-
-  /// retrieves orbit boundaries of this scaler object
+  /// retrieves time boundaries of this scaler object from Raw: should be same as from O2 and can be used without convertRawToO2 call
+  std::pair<unsigned long, unsigned long> getTimeLimitFromRaw() const
+  {
+    return std::make_pair((unsigned long)mScalerRecordRaw[0].epochTime * 1000, (unsigned long)mScalerRecordRaw[mScalerRecordRaw.size() - 1].epochTime * 1000);
+  }
+  /// retrieves orbit boundaries of this scaler object from O2
   std::pair<unsigned long, unsigned long> getOrbitLimit() const
   {
     return std::make_pair((unsigned long)mScalerRecordO2[0].intRecord.orbit, (unsigned long)mScalerRecordO2[mScalerRecordO2.size() - 1].intRecord.orbit);
+  }
+  /// retrieves orbit boundaries of this scaler object from Raw: should be same as from O2 and can be used without convertRawToO2 call
+  std::pair<unsigned long, unsigned long> getOrbitLimitFromRaw() const
+  {
+    return std::make_pair((unsigned long)mScalerRecordRaw[0].intRecord.orbit, (unsigned long)mScalerRecordRaw[mScalerRecordRaw.size() - 1].intRecord.orbit);
   }
 
  private:
