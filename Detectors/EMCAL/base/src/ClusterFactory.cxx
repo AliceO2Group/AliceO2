@@ -90,9 +90,10 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
   std::vector<unsigned short> cellsIdices;
 
   size_t iCell = 0;
+  bool addClusterLabels = ((clusterLabel != nullptr) && (mCellLabelContainer.size() > 0));
   for (auto cellIndex : inputsIndices) {
     cellsIdices.push_back(cellIndex);
-    if ((clusterLabel != nullptr) && (mCellLabelContainer.size() > 0)) {
+    if (addClusterLabels) {
       for (size_t iLabel = 0; iLabel < mCellLabelContainer[iCell].GetLabelSize(); iLabel++) {
         clusterLabel->addValue(mCellLabelContainer[iCell].GetLabel(iLabel),
                                mCellLabelContainer[iCell].GetAmplitudeFraction(iLabel) * mInputsContainer[iCell].getEnergy());
@@ -100,8 +101,10 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
       iCell++;
     }
   }
-  clusterLabel->orderLabels();
-  clusterLabel->normalize(cellAmp);
+  if (addClusterLabels) {
+    clusterLabel->orderLabels();
+    clusterLabel->normalize(cellAmp);
+  }
 
   clusterAnalysis.setCellsIndices(cellsIdices);
 
