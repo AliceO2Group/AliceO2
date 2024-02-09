@@ -179,6 +179,12 @@ elseif(GPUCA_CUDA_COMPILE_MODE STREQUAL "perkernel")
                               PROPERTIES
                               COMPILE_FLAGS "${GPUCA_CUDA_NO_FAST_MATH_FLAGS}"
                               COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
+  set_source_files_properties(${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step0attached.cu
+                              ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step1unattached.cu
+                              TARGET_DIRECTORY ${targetName}
+                              PROPERTIES
+                              COMPILE_FLAGS "${GPUCA_CUDA_NO_FAST_MATH_FLAGS}"
+                              COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
 elseif(GPUCA_CUDA_COMPILE_MODE STREQUAL "rdc")
   message(FATAL_ERROR "CUDA RDC compilation of GPUReconstruction ios not yet working!")
   target_compile_definitions(${targetName} PRIVATE GPUCA_KERNEL_COMPILE_MODE=2)
