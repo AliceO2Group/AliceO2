@@ -93,7 +93,7 @@ INTERACTION_TAG_CONFIG_KEY=
 : ${ITSEXTRAERR:=}
 : ${TRACKTUNETPCINNER:=}
 : ${ITSTPC_CONFIG_KEY:=}
-: ${AOD_INPUT:=$TRACK_SOURCES}
+: ${AOD_SOURCES:=$TRACK_SOURCES}
 : ${AODPROD_OPT:=}
 
 [[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
@@ -599,7 +599,7 @@ workflow_has_parameter GPU_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-gpu-display
 # AOD
 [[ ${SECTVTX_ON:-} != "1" ]] && AODPROD_OPT+=" --disable-secondary-vertices "
 AODPROD_OPT+=" $STRTRACKING "
-workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile \"AO2D\" --aod-writer-resmode UPDATE $DISABLE_MC --pipeline $(get_N aod-producer-workflow AOD REST 1 AODPROD)"
+workflow_has_parameter AOD && [[ ! -z "$AOD_SOURCES" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_SOURCES $DISABLE_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile \"AO2D\" --aod-writer-resmode UPDATE $DISABLE_MC --pipeline $(get_N aod-producer-workflow AOD REST 1 AODPROD)"
 
 # extra workflows in case we want to extra ITS/MFT info for dead channel maps to then go to CCDB for MC
 : ${ALIEN_JDL_PROCESSITSDEADMAP:=}
@@ -650,7 +650,19 @@ if [[ "${FST_BENCHMARK_STARTUP:-}" == "1" ]]; then
   eval $WORKFLOW2
 else
   [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE:-}"
-  [[ $WORKFLOWMODE == "print" || ${PRINT_WORKFLOW:-} == "1" ]] && echo "#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
+  if [[ $WORKFLOWMODE == "print" || ${PRINT_WORKFLOW:-} == "1" ]] ; then
+    echo "# defined detectors and sources: "
+    echo "#export WORKFLOW_DETECTORS=$WORKFLOW_DETECTORS"
+    echo "#export TRD_SOURCES=$TRD_SOURCES"
+    echo "#export TOF_SOURCES=$TOF_SOURCES"
+    echo "#export HMP_SOURCES=$HMP_SOURCES"
+    echo "#export TRACK_SOURCES=$TRACK_SOURCES"
+    echo "#export VERTEXING_SOURCES=$VERTEXING_SOURCES"
+    echo "#export VERTEX_TRACK_MATCHING_SOURCES=$VERTEX_TRACK_MATCHING_SOURCES"
+    echo "#export SVERTEXING_SOURCES=$SVERTEXING_SOURCES"
+    echo "#export AOD_SOURCES=$AOD_SOURCES"
+    echo "\n\n#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
+  fi
   if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi
 fi
 
