@@ -88,6 +88,7 @@ struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<Anomal
   size_t nTimeFramesOffset = 500;
   size_t nRofTimeFrames = 192;
   float nPhiBinsMultiplier = 1.f;
+  float pValueCut = 0.05;
   bool doROFAnalysis = false;
 
   O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");

@@ -23,6 +23,7 @@
 #include <TH2F.h>
 #include <TF1.h>
 #include <TCanvas.h>
+#include <TStopwatch.h>
 
 namespace o2::its::study
 {
@@ -52,6 +53,7 @@ class AnomalyStudy : public Task
  private:
   bool mUseMC;
   int mTFCount{0};
+  TStopwatch mStopwatch;
   const int mNumberOfStaves[7] = {12, 16, 20, 24, 30, 42, 48};
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
@@ -131,11 +133,19 @@ void AnomalyStudy::endOfStream(EndOfStreamContext&)
   }
 
   // Fit slices along x of the 2D histograms
-  for (unsigned int i = 0; i < nLayProc; ++i) {
-    // TF1 constant fit
+  for (unsigned int iLayer = 0; iLayer < nLayProc; ++iLayer) {
+    int phiBins = o2::its::study::AnomalyStudyParamConfig::Instance().nPhiBinsMultiplier * mNumberOfStaves[iLayer];
     TObjArray aSlices;
-    auto f1 = new TF1(Form("f1_%d", i), "pol0", -TMath::Pi(), TMath::Pi());
-    mTFvsPhiClusSizeHist[i]->FitSlicesX(f1, 0, -1, 0, "QNR", &aSlices);
+    auto* f1 = new TF1(Form("f1_%d", iLayer), "pol0", -TMath::Pi(), TMath::Pi());
+    auto* hPValue = new TH1F(Form("pValue_%d", iLayer), Form("pValue_%d", iLayer), mTFvsPhiClusSizeHist[iLayer]->GetNbinsY(), 0.5, mTFvsPhiClusSizeHist[iLayer]->GetNbinsY() + 0.5);
+    mTFvsPhiClusSizeHist[iLayer]->FitSlicesX(f1, 0, -1, 0, "QNR", &aSlices);
+    auto* hChi2 = (TH1D*)aSlices.At(1);
+    for (auto iTF{0}; iTF < hChi2->GetEntries(); ++iTF) {
+      auto pValue = TMath::Prob(hChi2->GetBinContent(iTF + 1) * (phiBins - 1), phiBins - 1);
+      // LOGP(info, "Layer: {} TF: {} Chi2: {} Pvalue: {}", iLayer, iTF, hChi2->GetBinContent(iTF + 1), pValue);
+      hPValue->SetBinContent(iTF + 1, pValue);
+    }
+    hPValue->Write();
     // Save slices to file
     for (unsigned int j = 0; j < aSlices.GetEntries(); ++j) {
       auto h = (TH1D*)aSlices.At(j);
@@ -146,8 +156,8 @@ void AnomalyStudy::endOfStream(EndOfStreamContext&)
     // Do the same for ROFs
     if (doROFAnalysis) {
       TObjArray aSlicesROF;
-      auto f1ROF = new TF1(Form("f1ROF_%d", i), "pol0", -TMath::Pi(), TMath::Pi());
-      mROFvsPhiClusSizeHist[i]->FitSlicesX(f1ROF, 0, -1, 0, "QNR", &aSlicesROF);
+      auto f1ROF = new TF1(Form("f1ROF_%d", iLayer), "pol0", -TMath::Pi(), TMath::Pi());
+      mROFvsPhiClusSizeHist[iLayer]->FitSlicesX(f1ROF, 0, -1, 0, "QNR", &aSlicesROF);
       // Save slices to file
       for (unsigned int j = 0; j < aSlicesROF.GetEntries(); ++j) {
         auto h = (TH1D*)aSlicesROF.At(j);
@@ -182,8 +192,8 @@ void AnomalyStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 // custom
 void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
+  mStopwatch.Start();
   mTFCount++;
-  LOGP(info, "Processing TF: {}", mTFCount);
   auto nROF = o2::its::study::AnomalyStudyParamConfig::Instance().nRofTimeFrames;
   auto nLayProc = o2::its::study::AnomalyStudyParamConfig::Instance().nLayersToProcess;
   auto doROFAnalysis = o2::its::study::AnomalyStudyParamConfig::Instance().doROFAnalysis;
@@ -212,15 +222,18 @@ void AnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
       if (lay >= nLayProc) {
         continue;
       }
-      mTFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount);
-      mTFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), mTFCount, clusPattern.getNPixels());
+      float phi = TMath::ATan2(gloC.Y(), gloC.X());
+      mTFvsPhiHist[lay]->Fill(phi, mTFCount);
+      mTFvsPhiClusSizeHist[lay]->Fill(phi, mTFCount, clusPattern.getNPixels());
       if (doROFAnalysis) {
-        mROFvsPhiHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), (mTFCount - 1) * nROF + rofCount);
-        mROFvsPhiClusSizeHist[lay]->Fill(TMath::ATan2(gloC.Y(), gloC.X()), (mTFCount - 1) * nROF + rofCount, clusPattern.getNPixels());
+        mROFvsPhiHist[lay]->Fill(phi, (mTFCount - 1) * nROF + rofCount);
+        mROFvsPhiClusSizeHist[lay]->Fill(phi, (mTFCount - 1) * nROF + rofCount, clusPattern.getNPixels());
       }
     }
     ++rofCount;
   }
+  mStopwatch.Stop();
+  LOGP(info, "Processed TF: {} in {} s", mTFCount, mStopwatch.RealTime());
 }
 
 void AnomalyStudy::prepareOutput()
