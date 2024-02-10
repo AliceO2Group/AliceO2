@@ -20,7 +20,7 @@
 
 #include <cstring>
 
-namespace o2::framework::DataInspector
+namespace o2::framework::data_inspector
 {
 inline bool isNonInternalDevice(const DeviceSpec& spec)
 {
@@ -28,6 +28,6 @@ inline bool isNonInternalDevice(const DeviceSpec& spec)
 }
 
 std::vector<DIMessage> serializeO2Messages(const std::vector<DataRef>& refs, const std::string& deviceName);
-} // namespace o2::framework::DataInspector
+} // namespace o2::framework::data_inspector
 
 #endif // O2_DATAINSPECTOR_H

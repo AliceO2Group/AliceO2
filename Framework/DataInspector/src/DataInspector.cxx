@@ -44,7 +44,7 @@
 
 using namespace rapidjson;
 
-namespace o2::framework::DataInspector
+namespace o2::framework::data_inspector
 {
 #if BOOST_ENDIAN_BIG_BYTE
 static const auto endianness = "BIG";
@@ -147,4 +147,4 @@ std::vector<DIMessage> serializeO2Messages(const std::vector<DataRef>& refs, con
 
   return messages;
 }
-} // namespace o2::framework::DataInspector
+} // namespace o2::framework::data_inspector

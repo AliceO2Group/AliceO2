@@ -205,7 +205,7 @@ ServiceSpec* DIServicePlugin::create()
       std::string runId = std::getenv("O2_DATAINSPECTOR_ID");
 
       const auto& spec = services.get<const DeviceSpec>();
-      if (DataInspector::isNonInternalDevice(spec)) {
+      if (data_inspector::isNonInternalDevice(spec)) {
         auto* diService = new DataInspectorProxyService(services, spec, proxyAddress, proxyPort, runId);
         return ServiceHandle{TypeIdHelpers::uniqueId<DataInspectorProxyService>(), diService};
       } else {
@@ -238,7 +238,7 @@ ServiceSpec* DIServicePlugin::create()
               }
 
               // Send copy to proxy
-              auto proxyMessages = DataInspector::serializeO2Messages(refs, registry.get < DeviceSpec const>().name);
+              auto proxyMessages = data_inspector::serializeO2Messages(refs, registry.get<DeviceSpec const>().name);
               for (auto &proxyMessage: proxyMessages) {
                 diService.send(std::move(proxyMessage));
               }
