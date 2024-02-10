@@ -493,6 +493,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
                                               const std::vector<SendingPolicy>& sendingPolicies,
+                                              const std::vector<ForwardingPolicy>& forwardingPolicies,
                                               std::string const& channelPrefix,
                                               ComputingOffer const& defaultOffer,
                                               OverrideServiceSpecs const& overrideServices)
@@ -656,7 +657,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
   // whether this is a real OutputRoute or if it's a forward from
   // a previous consumer device.
   // FIXME: where do I find the InputSpec for the forward?
-  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges, &sendingPolicies, &configContext](
+  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges, &sendingPolicies, &forwardingPolicies, &configContext](
                                                   size_t ei, size_t di, size_t ci) {
     assert(ei < logicalEdges.size());
     assert(di < devices.size());
@@ -670,29 +671,40 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
     assert(edge.outputGlobalIndex < outputsMatchers.size());
     // Iterate over all the policies and apply the first one that matches.
     SendingPolicy const* policyPtr = nullptr;
+    ForwardingPolicy const* forwardPolicyPtr = nullptr;
     for (auto& policy : sendingPolicies) {
       if (policy.matcher(producer, consumer, configContext)) {
         policyPtr = &policy;
         break;
       }
     }
+    assert(forwardingPolicies.empty() == false);
+    for (auto& policy : forwardingPolicies) {
+      if (policy.matcher(producer, consumer, configContext)) {
+        forwardPolicyPtr = &policy;
+        break;
+      }
+    }
     assert(policyPtr != nullptr);
+    assert(forwardPolicyPtr != nullptr);
 
     if (edge.isForward == false) {
       OutputRoute route{
-        edge.timeIndex,
-        consumer.maxInputTimeslices,
-        outputsMatchers[edge.outputGlobalIndex],
-        channel.name,
-        policyPtr,
+        .timeslice = edge.timeIndex,
+        .maxTimeslices = consumer.maxInputTimeslices,
+        .matcher = outputsMatchers[edge.outputGlobalIndex],
+        .channel = channel.name,
+        .policy = policyPtr,
       };
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route{
-        edge.timeIndex,
-        consumer.maxInputTimeslices,
-        workflow[edge.consumer].inputs[edge.consumerInputIndex],
-        channel.name};
+        .timeslice = edge.timeIndex,
+        .maxTimeslices = consumer.maxInputTimeslices,
+        .matcher = workflow[edge.consumer].inputs[edge.consumerInputIndex],
+        .channel = channel.name,
+        .policy = forwardPolicyPtr,
+      };
       device.forwards.emplace_back(route);
     }
   };
@@ -1051,6 +1063,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<ResourcePolicy> const& resourcePolicies,
                                                        std::vector<CallbacksPolicy> const& callbacksPolicies,
                                                        std::vector<SendingPolicy> const& sendingPolicies,
+                                                       std::vector<ForwardingPolicy> const& forwardingPolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
@@ -1111,7 +1124,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.memory /= deviceCount + 1;
 
   processOutEdgeActions(configContext, devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, sendingPolicies, channelPrefix, defaultOffer, overrideServices);
+                        outActions, workflow, outputs, channelPolicies, sendingPolicies, forwardingPolicies, channelPrefix, defaultOffer, overrideServices);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());

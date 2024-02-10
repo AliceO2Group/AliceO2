@@ -11,14 +11,16 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 
-#include "Framework/TimesliceIndex.h"
-#include <fairmq/FwdDecls.h>
+#include <cstddef>
 
 namespace o2::framework
 {
-
+struct ServiceRegistryRef;
+struct ForwardChannelInfo;
+struct ForwardChannelState;
+struct OutputChannelInfo;
 struct OutputChannelSpec;
-class FairMQDeviceProxy;
+struct OutputChannelState;
 
 /// Generic helpers for DataProcessing releated functions.
 struct DataProcessingHelpers {
@@ -26,15 +28,13 @@ struct DataProcessingHelpers {
   /// @param device the fair::mq::Device which needs to send the EndOfStream message
   /// @param channel the OutputChannelSpec of the channel which needs to be signaled
   ///        for EndOfStream
-  static void sendEndOfStream(fair::mq::Device& device, OutputChannelSpec const& channel);
+  static void sendEndOfStream(ServiceRegistryRef const& ref, OutputChannelSpec const& channel);
   /// @returns true if we did send the oldest possible timeslice message, false otherwise.
-  static bool sendOldestPossibleTimeframe(ForwardChannelInfo const& info, ForwardChannelState& state, size_t timeslice);
+  static bool sendOldestPossibleTimeframe(ServiceRegistryRef const& ref, ForwardChannelInfo const& info, ForwardChannelState& state, size_t timeslice);
   /// @returns true if we did send the oldest possible timeslice message, false otherwise.
-  static bool sendOldestPossibleTimeframe(OutputChannelInfo const& info, OutputChannelState& state, size_t timeslice);
-  static void broadcastOldestPossibleTimeslice(FairMQDeviceProxy& proxy, size_t timeslice);
-
- private:
-  static void sendOldestPossibleTimeframe(fair::mq::Channel& channel, size_t timeslice);
+  static bool sendOldestPossibleTimeframe(ServiceRegistryRef const& ref, OutputChannelInfo const& info, OutputChannelState& state, size_t timeslice);
+  /// Broadcast the oldest possible timeslice to all channels in output
+  static void broadcastOldestPossibleTimeslice(ServiceRegistryRef const& ref, size_t timeslice);
 };
 
 } // namespace o2::framework

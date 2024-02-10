@@ -680,19 +680,15 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
     if (forwardedParts[fi].Size() == 0) {
       continue;
     }
-    auto channel = proxy.getForwardChannel(ChannelIndex{fi});
-    LOG(debug) << "Forwarding to " << channel->GetName() << " " << fi;
+    ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+    LOG(debug) << "Forwarding to " << info.name << " " << fi;
     // in DPL we are using subchannel 0 only
     auto& parts = forwardedParts[fi];
-    int timeout = 30000;
-    auto res = channel->Send(parts, timeout);
-    if (res == (size_t)fair::mq::TransferCode::timeout) {
-      LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout / 1000, channel->GetName());
-      channel->Send(parts);
-      LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
-    } else if (res == (size_t)fair::mq::TransferCode::error) {
-      LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+    if (info.policy == nullptr) {
+      LOG(error) << "Forwarding to " << info.name << " " << fi << " has no policy";
+      continue;
     }
+    info.policy->forward(parts, ChannelIndex{fi}, registry);
   }
 
   auto& asyncQueue = registry.get<AsyncQueue>();
@@ -713,7 +709,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
           LOG(debug) << "Skipping channel";
           continue;
         }
-        if (DataProcessingHelpers::sendOldestPossibleTimeframe(info, state, oldestTimeslice.timeslice.value)) {
+        if (DataProcessingHelpers::sendOldestPossibleTimeframe(registry, info, state, oldestTimeslice.timeslice.value)) {
           LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestTimeslice.timeslice.value);
         }
       }
@@ -1678,8 +1674,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
     for (auto& channel : spec.outputChannels) {
       LOGP(detail, "Sending end of stream to {}", channel.name);
-      auto& rawDevice = ref.get<RawDeviceService>();
-      DataProcessingHelpers::sendEndOfStream(*rawDevice.device(), channel);
+      DataProcessingHelpers::sendEndOfStream(ref, channel);
     }
     // This is needed because the transport is deleted before the device.
     relayer.clear();
@@ -2460,8 +2455,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "Broadcasting end of stream");
     for (auto& channel : spec.outputChannels) {
-      auto& rawDevice = ref.get<RawDeviceService>();
-      DataProcessingHelpers::sendEndOfStream(*rawDevice.device(), channel);
+      DataProcessingHelpers::sendEndOfStream(ref, channel);
     }
     switchState(StreamingState::Idle);
   }

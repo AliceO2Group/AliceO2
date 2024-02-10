@@ -1650,6 +1650,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.resourcePolicies,
                                                             driverInfo.callbacksPolicies,
                                                             driverInfo.sendingPolicies,
+                                                            driverInfo.forwardingPolicies,
                                                             runningWorkflow.devices,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
@@ -2644,6 +2645,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 {
   std::vector<std::string> currentArgs;
   std::vector<PluginInfo> plugins;
+  std::vector<ForwardingPolicy> forwardingPolicies = ForwardingPolicy::createDefaultPolicies();
 
   for (int ai = 1; ai < argc; ++ai) {
     currentArgs.emplace_back(argv[ai]);
@@ -3001,6 +3003,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   };
   DriverInfo driverInfo{
     .sendingPolicies = sendingPolicies,
+    .forwardingPolicies = forwardingPolicies,
     .callbacksPolicies = callbacksPolicies};
   driverInfo.states.reserve(10);
   driverInfo.sigintRequested = false;
