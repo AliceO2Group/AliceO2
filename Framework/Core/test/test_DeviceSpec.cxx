@@ -421,6 +421,7 @@ TEST_CASE("TestOutEdgeProcessingHelpers")
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto sendingPolicies = SendingPolicy::createDefaultPolicies();
+  auto forwardingPolicies = ForwardingPolicy::createDefaultPolicies();
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
@@ -429,7 +430,7 @@ TEST_CASE("TestOutEdgeProcessingHelpers")
   defaultOffer.memory = 0.01;
 
   DeviceSpecHelpers::processOutEdgeActions(*configContext, devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
-                                           actions, workflow, globalOutputs, channelPolicies, sendingPolicies, "", defaultOffer);
+                                           actions, workflow, globalOutputs, channelPolicies, sendingPolicies, forwardingPolicies, "", defaultOffer);
 
   std::vector<DeviceId> expectedDeviceIndex = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}};
   REQUIRE(devices.size() == 4);
@@ -713,6 +714,7 @@ TEST_CASE("TestSimpleWildcard")
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto sendingPolicies = SendingPolicy::createDefaultPolicies();
+  auto forwardingPolicies = ForwardingPolicy::createDefaultPolicies();
 
   std::vector<DeviceSpec> devices;
   std::vector<DeviceId> deviceIndex;
@@ -751,7 +753,7 @@ TEST_CASE("TestSimpleWildcard")
   defaultOffer.memory = 0.01;
 
   DeviceSpecHelpers::processOutEdgeActions(*configContext, devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
-                                           outActions, workflow, globalOutputs, channelPolicies, sendingPolicies, "", defaultOffer);
+                                           outActions, workflow, globalOutputs, channelPolicies, sendingPolicies, forwardingPolicies, "", defaultOffer);
 
   REQUIRE(devices.size() == 2);
   ; // Two devices have outputs: A and Timer

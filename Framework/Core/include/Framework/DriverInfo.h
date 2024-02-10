@@ -111,6 +111,9 @@ struct DriverInfo {
   /// These are the policies which can be applied to decide how
   /// we send data.
   std::vector<SendingPolicy> sendingPolicies;
+  /// These are the policies which can be applied to decide how
+  /// we forward data.
+  std::vector<ForwardingPolicy> forwardingPolicies;
   /// The argc with which the driver was started.
   int argc;
   /// The argv with which the driver was started.
