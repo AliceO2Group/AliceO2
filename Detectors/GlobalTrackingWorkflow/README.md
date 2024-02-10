@@ -28,4 +28,23 @@ o2-cosmics-match-workflow --shm-segment-size 10000000000 --run | tee cosmics.log
 
 One can account contributions of a limited set of track sources (currently by default: ITS, TPC, ITS-TPC, TPC-TOF, ITS-TPC-TOF) by providing optiont `--track-sources`.
 
+## Using TF throttling when reading root files from detectors processing (tracks, clusters etc.)
 
+The workflows driven by the input from the root files produced by detectors (e.g. by the `o2-global-track-cluster-reader`), can be preceded by the
+`o2-reader-driver-workflow` which will allow to have TF throttling via usual `--timeframes-rate-limit <NTF>` and  `--timeframes-rate-limit-ipcid <ID>`
+options.
+The `o2-reader-driver-workflow` as well as all reader workflows must be provided with the `--hbfutils-config <tf_idinfo_file>,upstream` option, with <tf_idinfo_file> being the file produced by the
+`o2-tfidinfo-writer-workflow` (usually o2_tfidinfo.root file). If this file is in the working directory, then the `--hbfutils-config` option can be shortened to `upstream` only.
+
+The `o2-reader-driver-workflow` is not supported for `o2simdigitizerworkflow_configuration.ini` version of the `--hbfutils-config`, since it is used only for MC,
+where by construction there is only 1 TF, hence the throttling is meaningless.
+
+Option `--max-tf <n>` of the `o2-reader-driver-workflow` allows to inject only 1st <n> TFs by the dowsntream readers.
+
+A typical invocation of the throttled workflow is:
+
+```
+GLOSET=" --shm-segment-size 24000000000 --timeframes-rate-limit 2 --timeframes-rate-limit-ipcid 0"
+HBFSET=" --hbfutils-config upstream,o2_tfidinfo.root "
+o2-reader-driver-workflow $GLOSET $HBFSET --max-tf 3 | o2-global-track-cluster-reader $GLOSET $HBFSET --disable-mc --track-types <...> --cluster-types <...> | [<other readers> $GLOSET $HBFSET ] | <consumer workflows > $GLOSET --run
+```

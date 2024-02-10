@@ -38,31 +38,57 @@ namespace o2f = o2::framework;
 /// In case the configcontext has relevant option, the HBFUtils will be beforehand updated from the file indicated by this option.
 /// (only those fields of HBFUtils which were not modified before, e.g. by ConfigurableParam::updateFromString)
 
+int HBFUtilsInitializer::NTFs = 0;
+
 //_________________________________________________________
 HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext, o2f::WorkflowSpec& wf)
 {
-  auto updateHBFUtils = [&configcontext]() -> std::string {
+  bool upstream = false; // timing info will be provided from upstream readers-driver, just subscribe to it
+
+  auto updateHBFUtils = [&configcontext, &upstream]() -> std::string {
     static bool done = false;
     static std::string confTFInfo{};
     if (!done) {
       bool helpasked = configcontext.helpOnCommandLine(); // if help is asked, don't take for granted that the ini file is there, don't produce an error if it is not!
       auto conf = configcontext.options().isSet(HBFConfOpt) ? configcontext.options().get<std::string>(HBFConfOpt) : "";
+      HBFOpt opt = HBFOpt::NONE;
+      upstream = false;
       if (!conf.empty()) {
-        auto opt = getOptType(conf);
-        if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::conf::ConfigurableParam::configFileExists(conf)))) {
-          o2::conf::ConfigurableParam::updateFromFile(conf, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
-          const auto& hbfu = o2::raw::HBFUtils::Instance();
-          hbfu.checkConsistency();
-          confTFInfo = HBFUSrc;
-        } else if (opt == HBFOpt::HBFUTILS) {
-          const auto& hbfu = o2::raw::HBFUtils::Instance();
-          hbfu.checkConsistency();
-          confTFInfo = HBFUSrc;
-        } else if (opt == HBFOpt::ROOT) {
-          confTFInfo = conf;
+        auto vopts = o2::utils::Str::tokenize(conf, ',');
+        for (const auto& optStr : vopts) {
+          if (optStr == UpstreamOpt) {
+            upstream = true;
+            continue;
+          }
+          if (!confTFInfo.empty()) {
+            throw std::runtime_error(fmt::format("too many options in {} {}", HBFConfOpt, conf));
+          }
+          opt = getOptType(optStr);
+          if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::conf::ConfigurableParam::configFileExists(confTFInfo)))) {
+            o2::conf::ConfigurableParam::updateFromFile(optStr, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
+            const auto& hbfu = o2::raw::HBFUtils::Instance();
+            hbfu.checkConsistency();
+            confTFInfo = HBFUSrc;
+          } else if (opt == HBFOpt::HBFUTILS) {
+            const auto& hbfu = o2::raw::HBFUtils::Instance();
+            hbfu.checkConsistency();
+            confTFInfo = HBFUSrc;
+          } else if (opt == HBFOpt::ROOT) {
+            confTFInfo = optStr;
+          }
         }
       }
       done = true;
+      if (opt != HBFOpt::NONE) {
+        if (upstream) {
+          if (opt != HBFOpt::ROOT) {
+            throw std::runtime_error(fmt::format("invalid option {}: upstream can be used only with root file providing TFIDInfo", conf));
+          }
+        }
+      } else if (upstream) {
+        confTFInfo = "o2_tfidinfo.root";
+        LOGP(debug, "--hbfutils-config input type is not provided but upstream keyword is found: assume {}", confTFInfo);
+      }
     }
     return confTFInfo;
   };
@@ -70,13 +96,16 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
   if (configcontext.options().hasOption("disable-root-input") && configcontext.options().get<bool>("disable-root-input")) {
     return; // we apply HBFUtilsInitializer only in case of root readers
   }
-
   const auto& hbfu = o2::raw::HBFUtils::Instance();
   for (auto& spec : wf) {
     if (spec.inputs.empty()) {
       auto conf = updateHBFUtils();
-      o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{HBFTFInfoOpt, o2f::VariantType::String, conf, {"root file with per-TF info"}});
-      o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{DelayOpt, o2f::VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
+      if (!upstream || spec.name == ReaderDriverDevice) {
+        o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{HBFTFInfoOpt, o2f::VariantType::String, conf, {"root file with per-TF info"}});
+        o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{DelayOpt, o2f::VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
+      } else { // subsribe to upstream timing info from readers-driver
+        spec.inputs.emplace_back(o2f::InputSpec{"driverInfo", "GLO", "READER_DRIVER", 0, o2f::Lifetime::Timeframe});
+      }
     }
   }
 }
@@ -114,6 +143,7 @@ std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(c
     throw std::runtime_error(fmt::format("Failed to read tfidinfo vector from {}", fname));
   }
   std::vector<o2::dataformats::TFIDInfo> v(*vptr);
+  NTFs = v.size();
   return v;
 }
 
@@ -174,5 +204,5 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
 
 void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts, const std::string& defOpt)
 {
-  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, defOpt, {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info or "none")"}});
+  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, defOpt, {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info (augmented with ,upstream if reader-driver is used) or "none")"}});
 }
