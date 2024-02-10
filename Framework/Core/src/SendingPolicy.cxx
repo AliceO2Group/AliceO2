@@ -29,7 +29,7 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
 {
   return {SendingPolicy{
             .name = "dispatcher",
-            .matcher = [](DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const&) { 
+            .matcher = [](DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const&) {
                 if (source.name == "Dispatcher") {
                   return true;
                 }
@@ -102,6 +102,23 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
                 LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
               } else if (res == (size_t) fair::mq::TransferCode::error) {
                 LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+              } }},
+          SendingPolicy{
+            .name = "expendable",
+            .matcher = [](DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const&) {
+              auto has_label = [](DataProcessorLabel const& label) {
+                return label.value == "expendable";
+              };
+              return std::find_if(dest.labels.begin(), dest.labels.end(), has_label) != dest.labels.end(); },
+            .send = [](fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+              auto &proxy = registry.get<FairMQDeviceProxy>();
+              auto *channel = proxy.getOutputChannel(channelIndex);
+              auto timeout = 1000;
+              auto res = channel->Send(parts, timeout);
+              if (res == (size_t)fair::mq::TransferCode::timeout) {
+                LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on expendable channel {}.", timeout/1000, channel->GetName());
+              } else if (res == (size_t) fair::mq::TransferCode::error) {
+                LOGP(info, "Error while sending on channel {}", channel->GetName());
               } }},
           SendingPolicy{
             .name = "default",
