@@ -572,11 +572,12 @@ template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
 {
   std::vector<std::shared_ptr<arrow::Field>> result;
-  ([&](){
-    if constexpr(soa::is_persistent_v<C>) {
+  ([&]() {
+    if constexpr (soa::is_persistent_v<C>) {
       result.push_back(C::asArrowField());
     }
-  }(),...);
+  }(),
+   ...);
   return result;
 }
 
@@ -1001,11 +1002,12 @@ struct RowViewCore : public IP, C... {
   auto bindIterators(framework::pack<PC...>)
   {
     using namespace o2::soa;
-    ([&](){
+    ([&]() {
       if constexpr (soa::is_persistent_v<PC>) {
         PC::mColumnIterator.mCurrentPos = &this->mRowIndex;
       }
-    }(), ...);
+    }(),
+     ...);
   }
 
   template <typename... DC>
