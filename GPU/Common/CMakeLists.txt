@@ -46,8 +46,20 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                 PUBLIC_LINK_LIBRARIES O2::${MODULE}
                 COMPONENT_NAME GPU
                 LABELS gpu)
+    o2_add_test(GPUSMatrixImp NAME test_GPUSMatrixImpCUDA
+                SOURCES test/testGPUSMatrixImp.cu
+                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+                COMPONENT_NAME GPU
+                LABELS gpu)
   endif()
-
+  if (HIP_ENABLED)
+    o2_add_test(GPUSMatrixImpHIP NAME test_GPUSMatrixImpHIP
+                SOURCES test/testGPUSMatrixImp.cu
+                HIPIFIED test
+                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+                COMPONENT_NAME GPU
+                LABELS gpu)
+  endif()
   install(FILES ${HDRS_INSTALL} DESTINATION include/GPU)
 endif()
 
