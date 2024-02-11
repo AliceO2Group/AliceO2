@@ -354,18 +354,26 @@ if [[ ! -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS} ]] || [[ ! -z ${WORKFL
   for i in ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS//,/ }; do
     export INPUT_DETECTOR_LIST=$(echo $INPUT_DETECTOR_LIST | sed -e "s/,$i,/,/g" -e "s/^$i,//" -e "s/,$i"'$'"//" -e "s/^$i"'$'"//")
   done
+
   GLOBAL_READER_OPTIONS=
   has_detector ITS && SYNCMODE==1 && GLOBAL_READER_OPTIONS+=" --ir-frames-its"
-  add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS $GLOBAL_READER_OPTIONS $DISABLE_MC --hbfutils-config o2_tfidinfo.root"
-  has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --fv0-digit-infile o2_fv0digits.root"
-  has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --mid-digit-infile mid-digits-decoded.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-errors-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
-  has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "$DISABLE_MC --digit-subspec 0 --disable-trigrec --hbfutils-config o2_tfidinfo.root"
-  has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$DISABLE_MC --input-type digits --output-type NONE --hbfutils-config o2_tfidinfo.root"
+
+  if [[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]]; then
+    HBFINI_OPTIONS=" --hbfutils-config o2_tfidinfo.root,upstream "
+    add_W o2-reader-driver-workflow "$HBFINI_OPTIONS"
+  else
+    HBFINI_OPTIONS=" --hbfutils-config o2_tfidinfo.root "
+  fi
+  add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS $GLOBAL_READER_OPTIONS $DISABLE_MC $HBFINI_OPTIONS"
+  has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --fv0-digit-infile o2_fv0digits.root"
+  has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mid-digit-infile mid-digits-decoded.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-errors-reader-workflow "$HBFINI_OPTIONS" "" 0
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "$HBFINI_OPTIONS" "" 0
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "$HBFINI_OPTIONS" "" 0
+  has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "$DISABLE_MC --digit-subspec 0 --disable-trigrec $HBFINI_OPTIONS"
+  has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$DISABLE_MC --input-type digits --output-type NONE $HBFINI_OPTIONS"
 fi
 
 if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
