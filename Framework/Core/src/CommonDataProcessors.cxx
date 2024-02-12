@@ -41,6 +41,7 @@
 #include "Framework/RateLimiter.h"
 #include "Framework/Plugins.h"
 #include "Framework/DeviceSpec.h"
+#include "WorkflowHelpers.h"
 #include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
@@ -370,8 +371,7 @@ DataProcessorSpec
         }
 
         // skip non-AOD refs
-        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD")) &&
-            !DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("DYN"))) {
+        if (!DataSpecUtils::partialMatch(*ref.spec, writableAODOrigins)) {
           continue;
         }
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
