@@ -107,7 +107,7 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
             .name = "expendable",
             .matcher = [](DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const&) {
               auto has_label = [](DataProcessorLabel const& label) {
-                return label.value == "expendable";
+                return label.value == "expendable" || label.value == "non-critical";
               };
               return std::find_if(dest.labels.begin(), dest.labels.end(), has_label) != dest.labels.end(); },
             .send = [](fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
