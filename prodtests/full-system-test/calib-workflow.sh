@@ -31,7 +31,7 @@ if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
 fi
 if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
   : ${SCALEEVENTS_TPC_RESPADGAIN:=40}
-  add_W o2-tpc-calib-gainmap-tracks "--publish-after-tfs 30 --useEveryNthTF $SCALEEVENTS_TPC_RESPADGAIN  $TPC_CORR_SCALING"
+  add_W o2-tpc-calib-gainmap-tracks "--publish-after-tfs 30 --useEveryNthTF $SCALEEVENTS_TPC_RESPADGAIN $TPC_CORR_OPT" "$TPC_CORR_KEY"
 fi
 if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; fi
 if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
