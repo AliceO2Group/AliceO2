@@ -92,7 +92,7 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
   tracklet.SetLastRow(r.mLastRow);
   tracklet.SetFirstHit(hitout);
   tracklet.SetParam(tParam.GetParam());
-  int w = tracker.CalculateHitWeight(r.mNHits, tParam.GetChi2(), r.mISH);
+  int w = tracker.CalculateHitWeight(r.mNHits, tParam.GetChi2());
   tracklet.SetHitWeight(w);
 #ifdef __HIPCC__ // Todo: fixme!
   for (int iRow = r.mFirstRow - 1; ++iRow <= r.mLastRow; /*iRow++*/) {

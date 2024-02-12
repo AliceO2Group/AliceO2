@@ -23,6 +23,7 @@ o2_gpu_add_kernel("GPUMemClean16"                                NO_OCL1 "simple
 o2_gpu_add_kernel("GPUTPCGlobalTrackingCopyNumbers"              NO_OCL1 single int n)
 o2_gpu_add_kernel("GPUTPCCreateSliceData"                        LB      single)
 o2_gpu_add_kernel("GPUTPCGlobalTracking"                         LB      single)
+o2_gpu_add_kernel("GPUTPCSectorDebugSortKernels, hitData"        NO      single)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fill"               LB      simple GPUTPCClusterOccupancyMapBin* map)
 o2_gpu_add_kernel("GPUTPCCreateOccupancyMap, fold"               LB      simple GPUTPCClusterOccupancyMapBin* map)
 o2_gpu_add_kernel("GPUTPCGMMergerTrackFit"                       LB      simple int mode)
