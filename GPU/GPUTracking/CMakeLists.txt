@@ -41,6 +41,7 @@ set(SRCS
     SliceTracker/GPUTPCSliceData.cxx
     SliceTracker/GPUTPCSliceOutput.cxx
     SliceTracker/GPUTPCTrackletConstructor.cxx
+    SliceTracker/GPUTPCSectorDebugSortKernels.cxx
     SliceTracker/GPUTPCCreateOccupancyMap.cxx
     SliceTracker/GPUTPCNeighboursFinder.cxx
     SliceTracker/GPUTPCGrid.cxx

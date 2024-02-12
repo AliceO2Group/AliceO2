@@ -33,6 +33,7 @@
 #include "GPUTPCGlobalTracking.h"
 #include "GPUTRDTrackerKernels.h"
 #include "GPUTPCCreateOccupancyMap.h"
+#include "GPUTPCSectorDebugSortKernels.h"
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTPCGMMergerGPU.h"
 #endif

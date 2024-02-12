@@ -192,6 +192,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         continue;
       }
     }
+    if (GetProcessingSettings().comparableDebutOutput) {
+      runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::hitData>(GetGridBlk(GPUCA_ROW_COUNT, useStream), {iSlice});
+    }
     if (!doGPU && trk.CheckEmptySlice() && GetProcessingSettings().debugLevel == 0) {
       continue;
     }

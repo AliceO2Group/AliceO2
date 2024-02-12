@@ -208,7 +208,7 @@ class GPUTPCTracker : public GPUProcessor
  * only one. So a unique number (row index is good) is added in the least significant part of
  * the weight
  */
-  GPUdi() static int CalculateHitWeight(int NHits, float chi2, int)
+  GPUdi() static int CalculateHitWeight(int NHits, float chi2)
   {
     const float chi2_suppress = 6.f;
     float weight = (((float)NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
