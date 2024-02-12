@@ -24,6 +24,7 @@
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "FT0Reconstruction/InteractionTag.h"
@@ -268,7 +269,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
       LOGP(info, "[{}] Lbl:{} PDG:{:+5d} (par: {:+5d}) | MC: {}", vgids.size(), lbl.asString(), pdg, pdgParent, mctrO2.asString());
     }
     bool itstpcMatch = false;
-    int entITS = -1, entTPC = -1;
+    int entITS = -1, entTPC = -1, entITSTPC = -1;
     for (size_t i = 0; i < vgids.size(); i++) {
       auto vid = vgids[i].second;
       auto lbl = recoData.getTrackMCLabel(vid);
@@ -287,6 +288,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
         }
         if (msk[DetID::ITS] && msk[DetID::TPC]) {
           itstpcMatch = true;
+          entITSTPC = i;
         } else {
           if (vid.getSource() == VTIndex::ITS) {
             entITS = i;
@@ -314,36 +316,71 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
                << "\n";
 
     // special ITS-TPC matching failure output
-    while (mCheckMatching && !itstpcMatch && entITS > -1 && entTPC > -1) { // ITS and TPC were found but matching failed
-      auto vidITS = vgids[entITS].second;
-      auto vidTPC = recoData.getTPCContributorGID(vgids[entTPC].second); // might be TPC match to outer detector, extract TPC
-      auto trcTPC = recoData.getTrackParam(vidTPC);
-      auto trcITS = recoData.getTrackParam(vidITS);
-      if (!propagateToRefX(trcTPC, trcITS)) {
-        break;
-      }
-      const auto& trcTPCOrig = recoData.getTPCTrack(vidTPC);
-      const auto& trcITSOrig = recoData.getITSTrack(vidITS);
-      int lowestTPCRow = lowestPadrows[entTPC];
-      float tpcT0 = trcTPCOrig.getTime0(), tF = trcTPCOrig.getDeltaTFwd(), tB = trcTPCOrig.getDeltaTBwd();
-      TBracket tpcBr((tpcT0 - tB) * mTPCTBinMUS, (tpcT0 + tF) * mTPCTBinMUS);
+    while (mCheckMatching) {
+      if (!itstpcMatch && entITS > -1 && entTPC > -1) { // ITS and TPC were found but matching failed
+        auto vidITS = vgids[entITS].second;
+        auto vidTPC = recoData.getTPCContributorGID(vgids[entTPC].second); // might be TPC match to outer detector, extract TPC
+        auto trcTPC = recoData.getTrackParam(vidTPC);
+        auto trcITS = recoData.getTrackParam(vidITS);
+        if (!propagateToRefX(trcTPC, trcITS)) {
+          break;
+        }
+        const auto& trcTPCOrig = recoData.getTPCTrack(vidTPC);
+        const auto& trcITSOrig = recoData.getITSTrack(vidITS);
+        int lowestTPCRow = lowestPadrows[entTPC];
+        float tpcT0 = trcTPCOrig.getTime0(), tF = trcTPCOrig.getDeltaTFwd(), tB = trcTPCOrig.getDeltaTBwd();
+        TBracket tpcBr((tpcT0 - tB) * mTPCTBinMUS, (tpcT0 + tF) * mTPCTBinMUS);
 
-      (*mDBGOut) << "failMatch"
-                 << "mcTr=" << mctrO2
-                 << "pdg=" << pdg
-                 << "pdgPar=" << pdgParent
-                 << "fakeITS=" << recoData.getTrackMCLabel(vidITS)
-                 << "fakeTPC=" << recoData.getTrackMCLabel(vidTPC)
-                 << "gidITS=" << vidITS
-                 << "gidTPC=" << vidTPC
-                 << "itsBracket=" << mITSROFBracket[mITSROF[vidITS.getIndex()]]
-                 << "tpcBracket=" << tpcBr
-                 << "itsRef=" << trcITS
-                 << "tpcRef=" << trcTPC
-                 << "itsOrig=" << trcITSOrig
-                 << "tpcOrig=" << trcTPCOrig
-                 << "tpcLowestRow=" << lowestTPCRow
-                 << "\n";
+        (*mDBGOut) << "failMatch"
+                   << "mcTr=" << mctrO2
+                   << "pdg=" << pdg
+                   << "pdgPar=" << pdgParent
+                   << "labelITS=" << recoData.getTrackMCLabel(vidITS)
+                   << "labelTPC=" << recoData.getTrackMCLabel(vidTPC)
+                   << "gidITS=" << vidITS
+                   << "gidTPC=" << vidTPC
+                   << "itsBracket=" << mITSROFBracket[mITSROF[vidITS.getIndex()]]
+                   << "tpcBracket=" << tpcBr
+                   << "itsRef=" << trcITS
+                   << "tpcRef=" << trcTPC
+                   << "itsOrig=" << trcITSOrig
+                   << "tpcOrig=" << trcTPCOrig
+                   << "tpcLowestRow=" << lowestTPCRow
+                   << "\n";
+      } else if (itstpcMatch) { // match was found
+        auto contribIDs = recoData.getSingleDetectorRefs(vgids[entITSTPC].second);
+        auto vidMatch = contribIDs[VTIndex::ITSTPC];
+        auto vidTPC = contribIDs[VTIndex::TPC];
+        auto vidITS = contribIDs[VTIndex::ITSAB].isSourceSet() ? contribIDs[VTIndex::ITSAB] : contribIDs[VTIndex::ITS];
+        const auto& trcTPCOrig = recoData.getTPCTrack(vidTPC);
+        o2::MCCompLabel itsLb;
+        int nITScl = 0;
+        if (vidITS.getSource() == VTIndex::ITS) {
+          itsLb = recoData.getTrackMCLabel(vidITS);
+          nITScl = recoData.getITSTrack(vidITS).getNClusters();
+        } else {
+          itsLb = recoData.getITSABMCLabels()[vidITS];
+          nITScl = recoData.getITSABRefs()[vidITS].getNClusters();
+        }
+        int lowestTPCRow = lowestPadrows[entITSTPC];
+        const auto& trackITSTPC = recoData.getTPCITSTrack(vidMatch);
+        float timeTB = trackITSTPC.getTimeMUS().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS / 8; // ITS-TPC time in TPC timebins
+
+        (*mDBGOut) << "match"
+                   << "mcTr=" << mctrO2
+                   << "pdg=" << pdg
+                   << "pdgPar=" << pdgParent
+                   << "labelMatch=" << recoData.getTrackMCLabel(vidMatch)
+                   << "labelTPC=" << recoData.getTrackMCLabel(vidTPC)
+                   << "labelITS=" << itsLb
+                   << "gidTPC=" << vidTPC
+                   << "gidITS=" << vidITS
+                   << "tpcOrig=" << trcTPCOrig
+                   << "itstpc=" << ((o2::track::TrackParCov&)trackITSTPC)
+                   << "timeTB=" << timeTB
+                   << "tpcLowestRow=" << lowestTPCRow
+                   << "\n";
+      }
       break;
     }
   }
