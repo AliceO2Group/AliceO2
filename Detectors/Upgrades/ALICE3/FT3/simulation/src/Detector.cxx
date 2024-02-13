@@ -106,10 +106,17 @@ void Detector::buildFT3FromFile(std::string configFileName)
     iss >> r_out;
     iss >> Layerx2X0;
 
-    std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::string("_") + std::to_string(layerNumber);
+    int direction = 1; // Forwards
+    if(z_layer < 0){
+      // Backwards
+      direction = 0;
+    }
+
+    std::string directionName = std::to_string(direction);
+    std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + std::string("_") + std::to_string(layerNumber);
     mLayerName[0].push_back(layerName);
-    LOG(info) << "Adding Layer " << layerName << " at z = " << z_layer << " ; r_in = " << r_in << " ; r_out = " << r_out << " x/X0 = " << Layerx2X0;
-    auto& thisLayer = mLayers[0].emplace_back(0, layerNumber, layerName, z_layer, r_in, r_out, Layerx2X0);
+    LOG(info) << "Adding Layer " << layerName << " at z = " << z_layer << " ; direction = " << direction << " ; r_in = " << r_in << " ; r_out = " << r_out << " x/X0 = " << Layerx2X0;
+    auto& thisLayer = mLayers[0].emplace_back(direction, layerNumber, layerName, z_layer, r_in, r_out, Layerx2X0);
     layerNumber++;
   }
 
@@ -665,7 +672,7 @@ void Detector::defineSensitiveVolumes()
   if (mLayers.size() == 1) {
     for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
-      v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer));
+      v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mLayers[0][iLayer].getDirection(), iLayer));
       LOG(info) << "Adding FT3 Sensitive Volume => " << v->GetName();
       AddSensitiveVolume(v);
     }

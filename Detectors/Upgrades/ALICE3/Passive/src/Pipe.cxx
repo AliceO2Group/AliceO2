@@ -18,7 +18,7 @@
 #include "TGeoMaterial.h"       // for TGeoMaterial
 #include "TGeoMedium.h"         // for TGeoMedium
 #include "TGeoVolume.h"         // for TGeoVolume
-#include "TGeoCompositeShape.h" // forTGeoCompositeShape
+#include "TGeoCompositeShape.h" // for TGeoCompositeShape
 #include "TCanvas.h"
 // force availability of assert
 #ifdef NDEBUG
@@ -128,13 +128,13 @@ void Alice3Pipe::ConstructGeometry()
 
 
     // IRIS vacuum vessel and coldplate dimensions
-    float coldplateRIn = 2.6f;
-    float coldplateThick = 150.e-3;
-    float coldplateLength = 50.f;
-    float irisVacuumVesselInnerRIn = 0.48f;
+    float coldplateRIn = 2.6f; // cm
+    float coldplateThick = 150.e-3; // cm
+    float coldplateLength = 50.f; // cm
+    float irisVacuumVesselInnerRIn = 0.48f;  // cm
     float irisVacuumVesselOuterRIn = coldplateRIn + coldplateThick;
-    float irisVacuumVesselLength = 70.f;
-    float irisVacuumVesselThick = 150.e-3;
+    float irisVacuumVesselLength = 70.f; // cm
+    float irisVacuumVesselThick = 150.e-4; // cm
 
     // Excavate vacuum for hosting cold plate and IRIS tracker
     TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", coldplateRIn, coldplateRIn + coldplateThick, coldplateLength / 2.);
@@ -178,20 +178,9 @@ void Alice3Pipe::ConstructGeometry()
     }
     subtractorsFormula += tempSubtractorsFormula;
   }
-  if(subtractorsFormula.Length()){
-    LOG(info) << "Subtractors formula before : " << subtractorsFormula;
-    subtractorsFormula = Form("-(%s)", subtractorsFormula.Data());
-    LOG(info) << "Subtractors formula after: " << subtractorsFormula;
-
-    vacuumComposite = new TGeoCompositeShape("VACUUM_BASEsh", (compositeFormula + subtractorsFormula).Data());
-    vacuumVolume = new TGeoVolume("VACUUM_BASE", vacuumComposite, kMedVac);
-  } else {
-    vacuumComposite = new TGeoCompositeShape("VACUUM_BASEsh", compositeFormula.Data());
-    vacuumVolume = new TGeoVolume("VACUUM_BASE", vacuumComposite, kMedVac);
-  }
   
   // Pipe tubes
-  Double_t pipeLengthHalf = mA3IPLength/2. - mVacuumVesselRIn - mVacuumVesselLength/2.;
+  Double_t pipeLengthHalf = mA3IPLength/2. - mVacuumVesselThick - mVacuumVesselLength/2.;
   TGeoTube* pipe = new TGeoTube("PIPEsh", mPipeRIn, mPipeRIn + mPipeThick, pipeLengthHalf/2.);
   TGeoTube* vacuumVesselTube = new TGeoTube("VACUUM_VESSEL_TUBEsh", mVacuumVesselRIn, mVacuumVesselRIn + mVacuumVesselThick, mVacuumVesselLength/2.);
   TGeoTube* vacuumVesselWall = new TGeoTube("VACUUM_VESSEL_WALLsh", mPipeRIn, mVacuumVesselRIn + mVacuumVesselThick, mVacuumVesselThick/2.);
@@ -207,11 +196,23 @@ void Alice3Pipe::ConstructGeometry()
   posPipePosZSide->RegisterYourself();
   
   // Pipe composite shape and volume
-  TString pipeCompositeFormula = "PIPEsh:PIPENEGZ"
-                                  "+PIPEsh:PIPEPOSZ"
-                                  "+VACUUM_VESSEL_WALLsh:WALLNEGZ"
-                                  "+VACUUM_VESSEL_WALLsh:WALLPOSZ"
-                                  "+VACUUM_VESSEL_TUBEsh";
+  TString pipeCompositeFormula = "VACUUM_VESSEL_WALLsh:WALLNEGZ"
+                                 "+VACUUM_VESSEL_WALLsh:WALLPOSZ"
+                                 "+VACUUM_VESSEL_TUBEsh"
+                                 "+PIPEsh:PIPEPOSZ"
+                                 "+PIPEsh:PIPENEGZ";
+
+  if(subtractorsFormula.Length()){
+    LOG(info) << "Subtractors formula before : " << subtractorsFormula;
+    subtractorsFormula = Form("-(%s)", subtractorsFormula.Data());
+    LOG(info) << "Subtractors formula after: " << subtractorsFormula;
+
+    vacuumComposite = new TGeoCompositeShape("VACUUM_BASEsh", (compositeFormula + subtractorsFormula).Data());
+    vacuumVolume = new TGeoVolume("VACUUM_BASE", vacuumComposite, kMedVac);
+  } else {
+    vacuumComposite = new TGeoCompositeShape("VACUUM_BASEsh", compositeFormula.Data());
+    vacuumVolume = new TGeoVolume("VACUUM_BASE", vacuumComposite, kMedVac);
+  }
   
   TGeoCompositeShape* pipeComposite = new TGeoCompositeShape("A3IPsh", pipeCompositeFormula);
   TGeoVolume* pipeVolume = new TGeoVolume("A3IP", pipeComposite, kMedBe);
@@ -222,15 +223,6 @@ void Alice3Pipe::ConstructGeometry()
 
   vacuumVolume->SetLineColor(kGreen + 3);
   pipeVolume->SetLineColor(kGreen + 3);
-
-  TCanvas *c1 = new TCanvas("c1", "c1", 500, 500);
-  vacuumVolume->Draw();
-  c1->Print("vacuumVolume.pdf");
-
-  TCanvas *c2 = new TCanvas("c2", "c2", 500, 500);
-  c2->cd();
-  pipeVolume->Draw();
-  c2->Print("pipeVolume.pdf");
 }
 
 void Alice3Pipe::createMaterials()
