@@ -18,7 +18,7 @@
 template <typename T>
 using Configurable = o2::framework::Configurable<T>;
 
-struct Task {
+struct MctracksToAod {
   /** @{
       @name Types used */
   using Collisions = o2::aod::McCollisions;
@@ -142,7 +142,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   using o2::framework::adaptAnalysisTask;
 
-  auto spec = adaptAnalysisTask<Task>(cfgc);
+  auto spec = adaptAnalysisTask<MctracksToAod>(cfgc);
   spec.inputs.emplace_back("mctracks", "MC", "MCTRACKS", 0.,
                            Lifetime::Timeframe);
   spec.inputs.emplace_back("mcheader", "MC", "MCHEADER", 0.,
