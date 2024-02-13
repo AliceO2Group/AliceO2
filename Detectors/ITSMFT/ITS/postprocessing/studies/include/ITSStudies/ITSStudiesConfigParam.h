@@ -82,6 +82,18 @@ struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyPa
   O2ParamDef(PIDStudyParamConfig, "PIDStudyParam");
 };
 
+struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<AnomalyStudyParamConfig> {
+  std::string outFileName = "its_AnomalyStudy.root";
+  size_t nLayersToProcess = 3;
+  size_t nTimeFramesOffset = 500;
+  size_t nRofTimeFrames = 192;
+  float nPhiBinsMultiplier = 1.f;
+  float pValueCut = 0.05;
+  bool doROFAnalysis = false;
+
+  O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
+};
+
 struct ITSImpactParameterParamConfig : public o2::conf::ConfigurableParamHelper<ITSImpactParameterParamConfig> {
   std::string outFileName = "its_ImpParameter.root";
   int minNumberOfContributors = 0;
