@@ -178,9 +178,8 @@ void TRKServices::createColdplate(TGeoVolume* motherVolume)
                                   "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLNEGZ"
                                   "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLPOSZ";
   TGeoCompositeShape* irisVacuumVesselComposite = new TGeoCompositeShape("TRK_IRISVACUUMVESSELsh", irisCompositeFormula);
-  // const TGeoMedium* medAl5083 = matmgr.getTGeoMedium("IRISVACUUMVESSEL_AL5083");
-  // TGeoVolume* irisVacuumVesselVolume = new TGeoVolume("TRK_IRISVACUUMVESSEL", irisVacuumVesselComposite, medAl5083);
-  const TGeoMedium* medBe = matmgr.getTGeoMedium("IRISVACUUMVESSEL_BE");
+
+  const TGeoMedium* medBe = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_BERYLLIUM");
   TGeoVolume* irisVacuumVesselVolume = new TGeoVolume("TRK_IRISVACUUMVESSEL", irisVacuumVesselComposite, medBe);
 
   irisVacuumVesselVolume->SetVisibility(1);

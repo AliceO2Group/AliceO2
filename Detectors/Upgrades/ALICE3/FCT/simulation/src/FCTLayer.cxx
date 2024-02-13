@@ -41,9 +41,7 @@ FCTLayer::~FCTLayer() = default;
 
 FCTLayer::FCTLayer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut_SideL, Float_t Layerx2X0, Int_t type) : mLayerNumber(layerNumber), mLayerName(layerName), mx2X0(Layerx2X0), mType(type), mInnerRadius(rIn)
 {
-  // Creates a simple parametrized FCT layer covering the given
-  // (rIn, rOut_SideL) range at the z layer position
-  mZ = -std::abs(z);
+  mZ = z;
   if (type == 0 || type == 2) { // Disk
     mOuterRadius = rOut_SideL;
   } else if (type == 1) { // Square
