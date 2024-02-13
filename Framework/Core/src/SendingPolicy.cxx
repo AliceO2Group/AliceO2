@@ -39,9 +39,9 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
                     return true;
                   }
                 }
-                // Check if any of the destination's labels is "expendable" or "non-critical"
+                // Check if any of the destination's labels is "expendable"
                 for (auto const& label : dest.labels) {
-                  if (label.value == "expendable" || label.value == "non-critical") {
+                  if (label.value == "expendable") {
                     return true;
                   }
                 }
