@@ -94,7 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC,TPC-TRD,TPC-TOF,ITS-TPC-TRD,ITS-TPC-TOF,TPC-TRD-TOF,ITS-TPC-TRD-TOF");
 
-  GID::mask_t src = alowedSources;
+  GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
 
   GID::mask_t mcmaskcl;
   GID::mask_t nonemask = GID::getSourcesMask(GID::NONE);
