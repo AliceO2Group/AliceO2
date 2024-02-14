@@ -82,7 +82,7 @@ void GPUChainTracking::RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char
 
 int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
 {
-  if (GetProcessingSettings().debugLevel >= 6 && GetProcessingSettings().comparableDebutOutput && param().rec.tpc.mergerReadFromTrackerDirectly) {
+  if (GetProcessingSettings().comparableDebutOutput && param().rec.tpc.mergerReadFromTrackerDirectly) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       GPUTPCTracker& trk = processors()->tpcTrackers[i];
       TransferMemoryResourcesToHost(RecoStep::NoRecoStep, &trk);

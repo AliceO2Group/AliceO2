@@ -258,7 +258,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (!(doGPU || GetProcessingSettings().debugLevel >= 1) || GetProcessingSettings().trackletConstructorInPipeline) {
       runKernel<GPUTPCTrackletConstructor>(GetGridAuto(useStream), {iSlice});
       DoDebugAndDump(RecoStep::TPCSliceTracking, 128, trk, &GPUTPCTracker::DumpTrackletHits, *mDebugFile);
-      if (GetProcessingSettings().debugMask & 256 && !GetProcessingSettings().comparableDebutOutput) {
+      if (GetProcessingSettings().debugMask & 256 && GetProcessingSettings().comparableDebutOutput < 2) {
         trk.DumpHitWeights(*mDebugFile);
       }
     }
@@ -364,7 +364,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         if (GetProcessingSettings().keepAllMemory) {
           TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &processors()->tpcTrackers[iSlice], -1, true);
           if (!GetProcessingSettings().trackletConstructorInPipeline) {
-            if (GetProcessingSettings().debugMask & 256 && !GetProcessingSettings().comparableDebutOutput) {
+            if (GetProcessingSettings().debugMask & 256 && GetProcessingSettings().comparableDebutOutput < 2) {
               processors()->tpcTrackers[iSlice].DumpHitWeights(*mDebugFile);
             }
           }
