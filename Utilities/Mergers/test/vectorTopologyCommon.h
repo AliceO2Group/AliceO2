@@ -79,12 +79,7 @@ class VectorMergerTestGenerator
         "producer-vec" + std::to_string(producerIdx),
         Inputs{},
         Outputs{{{"mo"}, origin, description, static_cast<SubSpecificationType>(producerIdx), Lifetime::Sporadic}},
-        AlgorithmSpec{static_cast<AlgorithmSpec::ProcessCallback>([producerIdx, numberOfProducers, binsCount = mHistoBinsCount, histoMin = mHistoMin, histoMax = mHistoMax, sent = false](ProcessingContext& processingContext) mutable {
-          if (sent) {
-            std::this_thread::sleep_for(std::chrono::milliseconds{100});
-            return;
-          }
-
+        AlgorithmSpec{static_cast<AlgorithmSpec::ProcessCallback>([producerIdx, numberOfProducers, binsCount = mHistoBinsCount, histoMin = mHistoMin, histoMax = mHistoMax](ProcessingContext& processingContext) mutable {
           const auto subspec = static_cast<SubSpecificationType>(producerIdx);
           auto vectorOfHistos = std::make_unique<mergers::VectorOfRawTObjects>(2);
 
@@ -99,7 +94,7 @@ class VectorMergerTestGenerator
 
           processingContext.outputs().snapshot(OutputRef{"mo", subspec}, *vectorOfHistos);
           for_each(vectorOfHistos->begin(), vectorOfHistos->end(), [](auto& histoPtr) { delete histoPtr; });
-          sent = true;
+          processingContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         })}};
       specs.push_back(producer);
     }

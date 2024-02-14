@@ -61,15 +61,11 @@ class CustomMergerTestGenerator
         "producer-custom" + std::to_string(p),
         Inputs{},
         Outputs{{{"mo"}, origin, description, static_cast<SubSpecificationType>(p + 1), Lifetime::Sporadic}},
-        AlgorithmSpec{static_cast<AlgorithmSpec::ProcessCallback>([p, numberOfProducers, sent = false](ProcessingContext& processingContext) mutable {
-          if (sent) {
-            std::this_thread::sleep_for(std::chrono::milliseconds{100});
-            return;
-          }
-          sent = true;
+        AlgorithmSpec{static_cast<AlgorithmSpec::ProcessCallback>([p, numberOfProducers](ProcessingContext& processingContext) mutable {
           auto customObject = std::make_unique<mergers::CustomMergeableObject>(1);
           auto subspec = static_cast<SubSpecificationType>(p + 1);
           processingContext.outputs().snapshot(OutputRef{"mo", subspec}, *customObject);
+          processingContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
         })}};
       specs.push_back(producer);
     }

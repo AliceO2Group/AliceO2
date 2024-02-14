@@ -65,17 +65,13 @@ class HistosMergerTestGenerator
         Inputs{},
         Outputs{{{"mo"}, origin, description, static_cast<SubSpecificationType>(producerIdx), Lifetime::Sporadic}},
         AlgorithmSpec{
-          static_cast<AlgorithmSpec::ProcessCallback>([histoBinsCount = mHistoBinsCount, histoMin = mHistoMin, histoMax = mHistoMax, producerIdx, dataSent = false](ProcessingContext& processingContext) mutable {
-            if (dataSent) {
-              std::this_thread::sleep_for(std::chrono::milliseconds{100});
-              return;
-            }
+          static_cast<AlgorithmSpec::ProcessCallback>([histoBinsCount = mHistoBinsCount, histoMin = mHistoMin, histoMax = mHistoMax, producerIdx](ProcessingContext& processingContext) mutable {
             TH1F& histo = processingContext.outputs().make<TH1F>(
               Output{origin, description, static_cast<SubSpecificationType>(producerIdx)},
               "histo", "histo", histoBinsCount, histoMin, histoMax);
             histo.Fill(5);
             histo.Fill(producerIdx);
-            dataSent = true;
+            processingContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
           })}});
     }
     return inputs;
