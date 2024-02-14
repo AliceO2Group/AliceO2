@@ -284,6 +284,7 @@ auto homogeneous_apply_refs(L l, T&& object)
   using type = std::decay_t<T>;
   constexpr int nesting = B ? 1 : 0;
   constexpr unsigned long numElements = brace_constructible_size<type>() - nesting;
+  static_assert(numElements < 99, "Too many elements in the struct");
   // clang-format off
   if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 9)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 8)
