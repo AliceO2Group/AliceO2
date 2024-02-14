@@ -780,18 +780,19 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
 //
 int CTPRunScalers::addOrbitOffset(uint32_t offset)
 {
+  int over = 0;
   LOG(info) << "Subtracting from orbit " << offset;
   for (auto& screc : mScalerRecordRaw) {
     uint32_t orbit = screc.intRecord.orbit;
     uint32_t orbitnew = 0;
-    if (orbit >= offset) {
-      orbitnew = orbit - offset;
-    } else {
-      orbitnew = 0xffffffff - offset;
-      orbitnew = orbit + 1 + orbitnew;
-      LOG(error) << "Orbit overflow - should never happen. Run:" << mRunNumber;
+    orbitnew = orbit - offset;
+    if(orbit < offset) {
+      over++;
     }
     screc.intRecord.orbit = orbitnew;
+  }
+  if( over != 0 && over != mScalerRecordRaw.size()) {
+    LOG(warning) << "Orbit overflow inside run. Run:" << mRunNumber;
   }
   return 0;
 }
