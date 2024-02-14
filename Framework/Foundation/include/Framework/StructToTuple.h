@@ -135,10 +135,12 @@ struct UniversalType {
 template <typename T>
 consteval auto brace_constructible_size(auto... Members)
 {
-  if constexpr (requires { T{Members...}; } == false)
+  if constexpr (requires { T{Members...}; } == false) {
+    static_assert(sizeof...(Members) != 0, "You need to make sure that you have implicit constructors or that you call the explicit constructor correctly.");
     return sizeof...(Members) - 1;
-  else
+  } else {
     return brace_constructible_size<T>(Members..., UniversalType{});
+  }
 }
 #else
 template <typename T>
