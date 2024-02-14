@@ -28,6 +28,10 @@
 #define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
 #define GPUCA_O2_INTERFACE    // To suppress errors related to the weird dependency between itsgputracking and GPUTracking
 
+#include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
+#include "GPUCommonLogger.h"
+
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
 #else

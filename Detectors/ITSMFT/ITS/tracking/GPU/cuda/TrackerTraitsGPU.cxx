@@ -16,11 +16,7 @@
 #include <unistd.h>
 #include <thread>
 
-#include "ITStracking/Constants.h"
-#include "ITStracking/Configuration.h"
-#include "ITStracking/IndexTableUtils.h"
-#include "ITStracking/MathUtils.h"
-#include "DetectorsBase/Propagator.h"
+#define INVALID_TRIGGER_ERROR_NO_HOST_CODE // workaround to fix undefined type in GPUg() protection on host
 #include "DataFormatsITS/TrackITS.h"
 
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
@@ -30,8 +26,7 @@ namespace o2
 {
 namespace its
 {
-using gpu::utils::checkGPUError;
-using namespace constants::its2;
+constexpr int UnusedIndex{-1};;
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
@@ -385,7 +380,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       int nShared = 0;
       bool isFirstShared{false};
       for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
-        if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        if (track.getClusterIndex(iLayer) == UnusedIndex) {
           continue;
         }
         nShared += int(mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
@@ -398,7 +393,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
 
       std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
       for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
-        if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        if (track.getClusterIndex(iLayer) == UnusedIndex) {
           continue;
         }
         mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));

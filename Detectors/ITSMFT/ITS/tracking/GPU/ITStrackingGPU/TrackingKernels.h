@@ -15,7 +15,7 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonLogger.h"
-#include "GPUCommonAlgorithmThrust.h"
+// #include "GPUCommonAlgorithmThrust.h"
 
 namespace o2
 {

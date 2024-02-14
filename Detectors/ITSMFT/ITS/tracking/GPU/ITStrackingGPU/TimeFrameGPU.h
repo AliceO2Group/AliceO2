@@ -27,10 +27,6 @@
 
 #include <gsl/gsl>
 
-#include "GPUCommonDef.h"
-#include "GPUCommonMath.h"
-#include "GPUCommonLogger.h"
-
 namespace o2
 {
 namespace gpu

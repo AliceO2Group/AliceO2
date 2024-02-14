@@ -17,7 +17,7 @@ if(HIP_ENABLED)
                          ../cuda/Context.cu
                          ../cuda/TimeFrameGPU.cu
                          ../cuda/Stream.cu
-                         ../cuda/TrackerTraitsGPU.cu
+                         ../cuda/TrackerTraitsGPU.cxx
                          ../cuda/TracerGPU.cu
                          ../cuda/TrackingKernels.cu
                          ../cuda/VertexerTraitsGPU.cu
@@ -48,12 +48,5 @@ if(HIP_ENABLED)
                                        O2::SimulationDataFormat
                                        O2::ReconstructionDataFormats
                                        hip::host
-                                       hip::device
-                                       hip::hipcub
                  TARGETVARNAME targetName)
-
-  if(O2_HIP_CMAKE_LINK_FLAGS)
-    # Need to add gpu target also to link flags due to gpu-rdc option
-    target_link_options(${targetName} PRIVATE ${O2_HIP_CMAKE_LINK_FLAGS})
-  endif()
 endif()
