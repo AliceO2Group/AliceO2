@@ -786,12 +786,12 @@ int CTPRunScalers::addOrbitOffset(uint32_t offset)
     uint32_t orbit = screc.intRecord.orbit;
     uint32_t orbitnew = 0;
     orbitnew = orbit - offset;
-    if(orbit < offset) {
+    if (orbit < offset) {
       over++;
     }
     screc.intRecord.orbit = orbitnew;
   }
-  if( over != 0 && over != mScalerRecordRaw.size()) {
+  if (over != 0 && over != mScalerRecordRaw.size()) {
     LOG(warning) << "Orbit overflow inside run. Run:" << mRunNumber;
   }
   return 0;
