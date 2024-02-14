@@ -29,6 +29,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceConfigInfo.h"
+#include "Framework/DeviceController.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
 #include "Framework/DeviceConfig.h"
@@ -1113,7 +1114,7 @@ void gui_callback(uv_timer_s* ctx)
   if (gui->plugin->supportsDeferredClose()) {
     // For now, there is nothing for which we want to defer the close
     // so if the flag is set, we simply exit
-    if (*(gui->guiQuitRequested)) {
+    if (*(gui->guiQuitRequested) && *(gui->allChildrenGone)) {
       return;
     }
     void* draw_data = nullptr;
@@ -1342,7 +1343,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   DebugGUI* debugGUI = nullptr;
   void* window = nullptr;
-  decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  GuiCallbackContext guiContext;
+  decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl, guiContext)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   auto initDebugGUI = []() -> DebugGUI* {
@@ -1429,7 +1431,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   ServiceRegistryRef ref{serviceRegistry};
   ref.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
-  GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
@@ -1923,7 +1924,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             uv_timer_stop(gui_timer);
           }
 
-          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl, guiContext);
           guiContext.callback = [&serviceRegistry, &driverServices, &debugGUI, &infos, &runningWorkflow, &dataProcessorInfos, &metricsInfos, &driverInfo, &controls, &driverControl, callback]() {
             callback();
             for (auto& service : driverServices) {
@@ -2109,7 +2110,17 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
         // We send SIGTERM to make sure we do the STOP transition in FairMQ
-        killChildren(infos, SIGTERM);
+        if (driverInfo.processingPolicies.termination == TerminationPolicy::WAIT) {
+          for (size_t di = 0; di < infos.size(); ++di) {
+            auto& info = infos[di];
+            auto& control = controls[di];
+            if (info.active == true) {
+              control.controller->write("/shutdown", strlen("/shutdown"));
+            }
+          }
+        } else {
+          killChildren(infos, SIGTERM);
+        }
         // We have a timer to send SIGUSR1 to make sure we advance all devices
         // in a timely manner.
         force_step_timer.data = &infos;

@@ -26,6 +26,7 @@ namespace o2::framework
 
 class DriverInfo;
 class DriverControl;
+class GuiCallbackContext;
 
 namespace gui
 {
@@ -37,7 +38,8 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                          std::vector<DeviceMetricsInfo> const& metricsInfos,
                                          DriverInfo const& driverInfo,
                                          std::vector<DeviceControl>& controls,
-                                         DriverControl& driverControl);
+                                         DriverControl& driverControl,
+                                         GuiCallbackContext& context);
 
 void updateMousePos(float x, float y);
 void updateMouseButton(bool clicked);

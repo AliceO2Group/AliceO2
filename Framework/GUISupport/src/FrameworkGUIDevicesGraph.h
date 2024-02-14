@@ -19,6 +19,11 @@
 
 #include <vector>
 
+namespace o2::framework
+{
+enum struct TerminationPolicy;
+} // namespace o2::framework
+
 namespace o2::framework::gui
 {
 
@@ -30,7 +35,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
                            std::vector<DataProcessingStates> const& allStates,
                            std::vector<DataProcessorInfo> const& metadata,
                            std::vector<DeviceControl>& controls,
-                           std::vector<DeviceMetricsInfo> const& metricsInfos);
+                           std::vector<DeviceMetricsInfo> const& metricsInfos,
+                           TerminationPolicy terminationPolicy);
 
 } // namespace o2::framework::gui
 

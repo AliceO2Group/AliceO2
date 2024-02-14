@@ -365,7 +365,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
                            std::vector<DataProcessingStates> const& allStates,
                            std::vector<DataProcessorInfo> const& metadata,
                            std::vector<DeviceControl>& controls,
-                           std::vector<DeviceMetricsInfo> const& metricsInfos)
+                           std::vector<DeviceMetricsInfo> const& metricsInfos,
+                           enum TerminationPolicy terminationPolicy)
 {
   ImGui::SetNextWindowPos(ImVec2(0, 0), 0);
   if (state.bottomPaneVisible) {
@@ -893,7 +894,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto& metadatum = metadata[group.metadataId];
 
       if (state.rightPaneVisible) {
-        gui::displayDeviceInspector(spec, info, states, metrics, metadatum, control);
+        gui::displayDeviceInspector(spec, info, states, metrics, metadatum, control, terminationPolicy);
       }
     } else {
       ImGui::TextWrapped("Select a node in the topology to display information about it");
