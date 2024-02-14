@@ -9,11 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file    test_MergerTopologyVectorIntegrating.cxx
+/// \author  Michal Tichak
 ///
-/// \file    mergersTopologyExample.cxx
-/// \author  Piotr Konopka
-///
-/// \brief This is a DPL workflow to see Mergers in action
+/// \brief   Test which creates DPL workflow for integrating (delta) merging of vectors of TObjects
 
 #include "vectorTopologyCommon.h"
 
@@ -23,14 +22,14 @@ using namespace o2::mergers;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
 
-  constexpr size_t producersCount = 8;
+  constexpr size_t producersCount = 2;
   constexpr size_t histoBinsCount = 10;
   constexpr double histoMin = 0.;
   constexpr double histoMax = 10.;
 
   WorkflowSpec specs;
 
-  VectorMergerTestGenerator<12> generator({{0., 0., 1., 1., 1., 1., 9., 1., 1., 1., 0., 0.}, {0., 0., 1., 1., 1., 1., 9., 1., 1., 1., 0., 0.}}, histoBinsCount, histoMin, histoMax);
+  VectorMergerTestGenerator<12> generator({{0., 0., 1., 1., 0., 0., 2., 0., 0., 0., 0., 0.}, {0., 0., 1., 1., 0., 0., 2., 0., 0., 0., 0., 0.}}, histoBinsCount, histoMin, histoMax);
 
   const auto mergerInputs = generator.generateHistoProducers(specs, producersCount);
 

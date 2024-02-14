@@ -29,6 +29,8 @@
 #include <Mergers/MergerInfrastructureBuilder.h>
 #include <Mergers/MergerBuilder.h>
 
+#include "common.h"
+
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   o2::mergers::MergerBuilder::customizeInfrastructure(policies);
@@ -106,28 +108,26 @@ class HistosMergerTestGenerator
       Outputs{},
       AlgorithmSpec{
         AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
-          // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers
+          // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers,
+          // number of retries is chosen arbitrarily as we need to retry at least twice
           return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5](ProcessingContext& processingContext) mutable {
             const auto histo = processingContext.inputs().get<TH1F*>("histo");
-            if (HistosMergerTestGenerator<HistoSize>::compareHistoToExpected(expectedResult, *histo.get())) {
+
+            LOG(info) << "RETRY: " << retryNumber << ": comparing: " << std::to_string(histo) << " to the expected: " << std::to_string(expectedResult);
+            if (std::equal(expectedResult.begin(), expectedResult.end(), histo->GetArray(), histo->GetArray() + histo->GetSize())) {
               processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
               return;
-            } else {
-              if (retryNumber++ == retries) {
-                processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
-                LOG(fatal) << "received incorrect data";
-              }
+            }
+
+            if (retryNumber++ >= retries) {
+              processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
+              LOG(fatal) << "received incorrect data: " << std::to_string(histo) << ", expected: " << std::to_string(gsl::span(expectedResult));
             }
           }};
         }}}});
   }
 
  private:
-  static bool compareHistoToExpected(const std::array<float, HistoSize>& expected, const TH1F& histo)
-  {
-    return gsl::span{expected} == gsl::span(histo.GetArray(), histo.GetSize());
-  }
-
   std::array<float, HistoSize> mExpectedResult;
   size_t mHistoBinsCount;
   double mHistoMin;

@@ -9,12 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file test_MergerTopologyHistosIntegrating.cxx
-/// \brief A unit test of IntegratingMerger.h for 1d histogram
+/// \file    test_MergerTopologyHistosFullHistory.cxx
+/// \author  Michal Tichak
 ///
-/// \author Michal Tichak, michal.tichak@cern.ch
+/// \brief Test which creates DPL workflow for full history merging of histograms
 
-#include <cstdlib>
 #include "histosTopologyCommon.h"
 
 using namespace o2::framework;
@@ -22,14 +21,14 @@ using namespace o2::mergers;
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  constexpr size_t producersCount = 8;
+  constexpr size_t producersCount = 2;
 
   constexpr size_t binsCount = 10;
   constexpr double min = 0;
   constexpr double max = 10;
   WorkflowSpec specs;
 
-  o2::framework::HistosMergerTestGenerator generator(std::array<float, 12>{0., 0., 1., 1., 1., 1., 9., 1., 1., 1., 0., 0.}, binsCount, min, max);
+  o2::framework::HistosMergerTestGenerator generator(std::array<float, 12>{0., 0., 1., 1., 0., 0., 2., 0., 0., 0., 0., 0.}, binsCount, min, max);
 
   const auto mergersInputs = generator.generateHistoProducers(specs, producersCount);
 

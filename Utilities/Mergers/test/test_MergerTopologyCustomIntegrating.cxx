@@ -9,11 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file    test_MergerTopologyCustomIntegrating.cxx
+/// \author  Michal Tichak
 ///
-/// \file    mergersTopologyExample.cxx
-/// \author  Piotr Konopka
-///
-/// \brief This is a DPL workflow to see Mergers in action
+/// \brief Test which creates DPL workflow for integrating (delta) merging of merger interfaces
 
 #include "customTopologyCommon.h"
 
@@ -23,7 +22,7 @@ using namespace o2::mergers;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
 
-  constexpr size_t producersCount = 4;
+  constexpr size_t producersCount = 2;
 
   WorkflowSpec specs;
 

@@ -30,6 +30,8 @@
 #include <Mergers/MergerBuilder.h>
 #include <Mergers/ObjectStore.h>
 
+#include "common.h"
+
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   o2::mergers::MergerBuilder::customizeInfrastructure(policies);
@@ -41,6 +43,19 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 namespace o2::framework
 {
 using SubSpecificationType = header::DataHeader::SubSpecificationType;
+
+template <size_t Size>
+using ExpectedType = std::array<float, Size>;
+
+template <typename Deleter, size_t Size>
+bool operator==(const std::unique_ptr<const std::vector<TObject*>, Deleter>& vectorOfHistos, std::vector<ExpectedType<Size>>& expected)
+{
+  return std::equal(vectorOfHistos->begin(), vectorOfHistos->end(), expected.begin(), expected.end(),
+                    [](TObject* const object, const ExpectedType<Size>& array) {
+                      const auto& histo = *dynamic_cast<TH1F const*>(object);
+                      return std::equal(array.begin(), array.end(), histo.GetArray(), histo.GetArray() + histo.GetSize());
+                    });
+}
 
 template <size_t HistoSize>
 class VectorMergerTestGenerator
@@ -118,40 +133,29 @@ class VectorMergerTestGenerator
       Outputs{},
       AlgorithmSpec{
         AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
-          // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers
-          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 0, retries = 5](ProcessingContext& processingContext) mutable {
-            if (retryNumber++ == retries) {
+          // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers.
+          // number of retries was chosen a bit randomly, as we need to have at least 2 runs through this function because of publish
+          // timers inside of the mergers
+          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5](ProcessingContext& processingContext) mutable {
+            const auto vectorOfHistos = processingContext.inputs().get<std::vector<TObject*>*>("vec");
+
+            LOG(info) << "RETRY: " << retryNumber << ": comparing: " << std::to_string(vectorOfHistos) << " to the expected: " << std::to_string(expectedResult);
+            if (vectorOfHistos == expectedResult) {
               processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
-              LOG(fatal) << "received wrong data\n";
               return;
             }
 
-            auto dataRef = processingContext.inputs().get("vec");
-            auto vectorOfHistos = DataRefUtils::as<ROOTSerialized<std::vector<TObject*>>>(dataRef);
-
-            if (vectorOfHistos->size() == expectedResult.size()) {
-              size_t resultIdx = 0;
-              for (const auto histo : *vectorOfHistos) {
-                if (!VectorMergerTestGenerator<HistoSize>::compareHistoToExpected(expectedResult[resultIdx++], *dynamic_cast<TH1F*>(histo))) {
-                  return;
-                }
-              }
-            } else {
+            if (retryNumber++ > retries) {
+              processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
+              LOG(fatal) << "received wrong data: " << std::to_string(vectorOfHistos) << ", expected: " << std::to_string(expectedResult);
               return;
             }
-
-            processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
           }};
         }}}});
   }
 
  private:
-  static bool compareHistoToExpected(const std::array<float, HistoSize>& expected, const TH1F& histo)
-  {
-    return gsl::span{expected} == gsl::span(histo.GetArray(), histo.GetSize());
-  }
-
-  std::vector<std::array<float, HistoSize>> mExpectedResult;
+  std::vector<ExpectedType<HistoSize>> mExpectedResult;
   size_t mHistoBinsCount;
   double mHistoMin;
   double mHistoMax;

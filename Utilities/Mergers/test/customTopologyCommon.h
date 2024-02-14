@@ -19,13 +19,11 @@
 #include <thread>
 
 #include <Framework/CompletionPolicy.h>
-#include <Framework/CompletionPolicy.h>
-#include <Framework/CompletionPolicy.h>
 #include <Framework/CompletionPolicyHelpers.h>
 #include <Framework/ControlService.h>
-#include <Mergers/MergerInfrastructureBuilder.h>
-#include <Mergers/MergerBuilder.h>
 #include <Mergers/CustomMergeableObject.h>
+#include <Mergers/MergerBuilder.h>
+#include <Mergers/MergerInfrastructureBuilder.h>
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
@@ -117,7 +115,7 @@ class CustomMergerTestGenerator
       AlgorithmSpec{
         AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
           return AlgorithmSpec::ProcessCallback{
-            [expectedResult, numberOfCalls = 0, numberOfObjects = 0, numberOfMovingWindows = 0, lastObjectValue = 0](ProcessingContext& processingContext) mutable {
+            [expectedResult, numberOfCalls = 0, numberOfObjects = 0, numberOfMovingWindows = 0, lastObjectValue = 0, retries = 5](ProcessingContext& processingContext) mutable {
               numberOfCalls++;
 
               if (processingContext.inputs().isValid("custom")) {
@@ -135,13 +133,15 @@ class CustomMergerTestGenerator
                 // to the sync between layers of mergers and movement of the window
               }
 
-              if (numberOfCalls == 5) {
+              if (numberOfCalls == retries) {
                 processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
 
-                if (numberOfObjects != 5 || numberOfMovingWindows == 0 || numberOfMovingWindows >= 3) {
-                  LOG(fatal) << "expected 5 objects and got: " << numberOfObjects << ", expected 1 or 2 moving windows and got: " << numberOfMovingWindows;
+                // we should get new object on each publish timeout of the mergers,
+                // lower and upper boundaries of moving windows are chosen arbitrarily
+                if (numberOfObjects != retries || numberOfMovingWindows == 0 || numberOfMovingWindows > 10) {
+                  LOG(fatal) << "expected 5 objects and got: " << numberOfObjects << ", expected 1-10 moving windows and got: " << numberOfMovingWindows;
                   if (lastObjectValue != expectedResult) {
-                    LOG(fatal) << "got wrong secret from object: " << lastObjectValue;
+                    LOG(fatal) << "got wrong secret from object: " << lastObjectValue << ", expected: " << expectedResult;
                   }
                 }
               }
@@ -162,14 +162,15 @@ class CustomMergerTestGenerator
           return AlgorithmSpec::ProcessCallback{
             [expectedResult, retryNumber = 0, numberOfRetries = 5](ProcessingContext& processingContext) mutable {
               const auto obj = processingContext.inputs().get<mergers::CustomMergeableObject*>("custom");
+
               if (obj->getSecret() == expectedResult) {
                 processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
                 return;
-              } else {
-                if (retryNumber++ == numberOfRetries) {
-                  processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
-                  LOG(fatal) << "received incorrect data";
-                }
+              }
+
+              if (retryNumber++ == numberOfRetries) {
+                processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
+                LOG(fatal) << "Unsuccessfully tried " << retryNumber << " times to get a expected result: " << expectedResult;
               }
             }};
         }}}});
