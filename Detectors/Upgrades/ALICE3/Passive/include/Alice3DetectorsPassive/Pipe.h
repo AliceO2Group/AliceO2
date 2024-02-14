@@ -58,13 +58,13 @@ class Alice3Pipe : public Alice3PassiveBase
   Alice3Pipe(const Alice3Pipe& orig) = default;
   Alice3Pipe& operator=(const Alice3Pipe&);
 
-  float mPipeRIn = 0.;  // inner diameter of the pipe
-  float mPipeThick = 0.; // inner beam pipe section thickness
-  float mA3IPLength = 0.;   // Length of A3IP
+  float mPipeRIn = 0.;    // inner diameter of the pipe
+  float mPipeThick = 0.;  // inner beam pipe section thickness
+  float mA3IPLength = 0.; // Length of A3IP
 
-  float mVacuumVesselRIn = 0.;  // inner diameter of the vacuum vessel
-  float mVacuumVesselThick = 0.; // outer beam pipe section thickness
-  float mVacuumVesselLength = 0.;   // half length of the outer beampipe around the IP
+  float mVacuumVesselRIn = 0.;    // inner diameter of the vacuum vessel
+  float mVacuumVesselThick = 0.;  // outer beam pipe section thickness
+  float mVacuumVesselLength = 0.; // half length of the outer beampipe around the IP
 
   bool mIsTRKActivated = true; // If TRK is not active don't create TRK layers allocations in the vacuum volume
   bool mIsFT3Activated = true;

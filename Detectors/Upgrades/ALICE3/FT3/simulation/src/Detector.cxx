@@ -22,12 +22,12 @@
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes
-#include "FairDetector.h"    // for FairDetector
+#include "FairDetector.h"      // for FairDetector
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
-#include "FairRootManager.h" // for FairRootManager
-#include "FairRun.h"         // for FairRun
-#include "FairRuntimeDb.h"   // for FairRuntimeDb
-#include "FairVolume.h"      // for FairVolume
+#include "FairRootManager.h"   // for FairRootManager
+#include "FairRun.h"           // for FairRun
+#include "FairRuntimeDb.h"     // for FairRuntimeDb
+#include "FairVolume.h"        // for FairVolume
 #include "FairRootManager.h"
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
@@ -107,7 +107,7 @@ void Detector::buildFT3FromFile(std::string configFileName)
     iss >> Layerx2X0;
 
     int direction = 1; // Forwards
-    if(z_layer < 0){
+    if (z_layer < 0) {
       // Backwards
       direction = 0;
     }

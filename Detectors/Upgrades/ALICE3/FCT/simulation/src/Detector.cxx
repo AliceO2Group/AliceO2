@@ -22,13 +22,13 @@
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes
-#include "FairDetector.h"    // for FairDetector
-#include <fairlogger/Logger.h>     // for LOG, LOG_IF
-#include "FairModule.h"      // for FairModule
-#include "FairRootManager.h" // for FairRootManager
-#include "FairRun.h"         // for FairRun
-#include "FairRuntimeDb.h"   // for FairRuntimeDb
-#include "FairVolume.h"      // for FairVolume
+#include "FairDetector.h"      // for FairDetector
+#include <fairlogger/Logger.h> // for LOG, LOG_IF
+#include "FairModule.h"        // for FairModule
+#include "FairRootManager.h"   // for FairRootManager
+#include "FairRun.h"           // for FairRun
+#include "FairRuntimeDb.h"     // for FairRuntimeDb
+#include "FairVolume.h"        // for FairVolume
 #include "FairRootManager.h"
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
@@ -323,7 +323,7 @@ void Detector::InitializeO2Detector()
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
-  if(!(fMC->TrackCharge())){
+  if (!(fMC->TrackCharge())) {
     return kFALSE;
   }
 

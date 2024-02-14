@@ -35,7 +35,7 @@ TRKServices::TRKServices(float rMin, float zLength, float thickness)
   mZLengthIRISVacV = 70.;
   mThicknessIRISVacV = 150.e-4;
   mRInIRISVacV = 0.48;
-  mROutIRISVacV = mColdPlateRMin + mColdPlateThickness;;
+  mROutIRISVacV = mColdPlateRMin + mColdPlateThickness;
 }
 
 void TRKServices::createMaterials()
@@ -91,7 +91,7 @@ void TRKServices::createMaterials()
   // Aluminium 5083 - alloy of Mn, Fe, Cu, Mg, Si, Zn, Cr, Ti, Al
   // Al5083 is considered as material for the iris vacuum vessel
   // https://www.smithmetal.com/5083.htm
-  float aAl5083[9] = {54.938, 55.845, 63.546, 24.305, 28.086, 65.38, 51.996, 47.867, 26.982}; 
+  float aAl5083[9] = {54.938, 55.845, 63.546, 24.305, 28.086, 65.38, 51.996, 47.867, 26.982};
   float zAl5083[9] = {25., 26., 29., 12., 14., 30., 24., 22., 13.};
   // The concentration of certain metals in Al5083 have a range. What will be used for the alloy for the iris vacuum vessel will have to be checked
   float wAl5083[9] = {0.007, 0.004, 0.001, 0.0445, 0.004, 0.0025, 0.0015, 0.0015, 0.934};
@@ -99,7 +99,7 @@ void TRKServices::createMaterials()
 
   // AlBeMet AM162H is a nanocomposite, not an alloy
   // Considered here as well https://indico.cern.ch/event/1168385/contributions/5355805/attachments/2681743/4652030/Jul%2010%201030-1045%20AM%20(Hawaii)%20M1Or1C-05%20AlBeMet.pdf
-  float aAlBeMet[2] = {26.982, 9.012}; 
+  float aAlBeMet[2] = {26.982, 9.012};
   float zAlBeMet[2] = {13., 4.};
   float wAlBeMet[2] = {0.38, 0.62};
   float dAlBeMet = 2.071;
@@ -128,17 +128,16 @@ void TRKServices::createMaterials()
   // coolingBundle->AddElement(gGeoManager->GetMaterial("POLYURETHANE"), 0.56);
   // coolingBundle->AddElement(gGeoManager->GetMaterial("WATER"), 0.44);
 
-  matmgr.Medium("ALICE3_TRKSERVICES", 1, "CERAMIC", 66, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);        // Ceramic for cold plate
-  matmgr.Medium("ALICE3_TRKSERVICES", 2, "COPPER", 67, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);         // Copper for cables
-  matmgr.Medium("ALICE3_TRKSERVICES", 3, "AIR", 68, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);            // Air for placeholding cables
-  matmgr.Medium("ALICE3_TRKSERVICES", 4, "POLYETHYLENE", 69, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);   // Polyethylene for fibers
-  matmgr.Medium("ALICE3_TRKSERVICES", 5, "POLYURETHANE", 70, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);   // Polyurethane for cooling pipes
-  matmgr.Medium("ALICE3_TRKSERVICES", 6, "SILICONDIOXIDE", 71, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // Fused silica SiO2
-  matmgr.Medium("ALICE3_TRKSERVICES", 7, "WATER", 72, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);          // Water for cooling pipes
-  matmgr.Medium("ALICE3_TRKSERVICES", 8, "BERYLLIUM", 73, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);      // Beryllium for IRIS vacuum vessel
-  matmgr.Medium("ALICE3_TRKSERVICES", 9, "ALUMINIUM5083", 74, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);         // Al5083 for IRIS vacuum vessel
-  matmgr.Medium("ALICE3_TRKSERVICES", 10, "ALUMINIUM-BERYLLIUM-METAL", 75, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);       // AlBeMet for IRIS vacuum vessel
-
+  matmgr.Medium("ALICE3_TRKSERVICES", 1, "CERAMIC", 66, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                    // Ceramic for cold plate
+  matmgr.Medium("ALICE3_TRKSERVICES", 2, "COPPER", 67, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                     // Copper for cables
+  matmgr.Medium("ALICE3_TRKSERVICES", 3, "AIR", 68, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                        // Air for placeholding cables
+  matmgr.Medium("ALICE3_TRKSERVICES", 4, "POLYETHYLENE", 69, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);               // Polyethylene for fibers
+  matmgr.Medium("ALICE3_TRKSERVICES", 5, "POLYURETHANE", 70, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);               // Polyurethane for cooling pipes
+  matmgr.Medium("ALICE3_TRKSERVICES", 6, "SILICONDIOXIDE", 71, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);             // Fused silica SiO2
+  matmgr.Medium("ALICE3_TRKSERVICES", 7, "WATER", 72, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                      // Water for cooling pipes
+  matmgr.Medium("ALICE3_TRKSERVICES", 8, "BERYLLIUM", 73, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);                  // Beryllium for IRIS vacuum vessel
+  matmgr.Medium("ALICE3_TRKSERVICES", 9, "ALUMINIUM5083", 74, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin);              // Al5083 for IRIS vacuum vessel
+  matmgr.Medium("ALICE3_TRKSERVICES", 10, "ALUMINIUM-BERYLLIUM-METAL", 75, 0, ifield, fieldm, tmaxfd, stemax, deemax, epsil, stmin); // AlBeMet for IRIS vacuum vessel
 }
 
 void TRKServices::createServices(TGeoVolume* motherVolume)
@@ -166,17 +165,18 @@ void TRKServices::createColdplate(TGeoVolume* motherVolume)
   motherVolume->AddNode(coldPlateVolume, 1, nullptr);
 
   // IRIS Tracker Vacuum Vessel
-  TGeoTube* irisVacuumVesselInnerTube = new TGeoTube("TRK_IRISVACUUMVESSEL_INNERTUBEsh", mRInIRISVacV, mRInIRISVacV + mThicknessIRISVacV, mZLengthIRISVacV/2.);
-  TGeoTube* irisVacuumVesselOuterTube = new TGeoTube("TRK_IRISVACUUMVESSEL_OUTERTUBEsh", mROutIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mZLengthIRISVacV/2.);
-  TGeoTube* irisVacuumVesselWall = new TGeoTube("TRK_IRISVACUUMVESSEL_WALLsh", mRInIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mThicknessIRISVacV/2.);
-  TGeoTranslation* irisVacVWallNegZ = new TGeoTranslation("IRISVACVWALLNEGZ", 0., 0., -mZLengthIRISVacV/2. - mThicknessIRISVacV/2.);
+  TGeoTube* irisVacuumVesselInnerTube = new TGeoTube("TRK_IRISVACUUMVESSEL_INNERTUBEsh", mRInIRISVacV, mRInIRISVacV + mThicknessIRISVacV, mZLengthIRISVacV / 2.);
+  TGeoTube* irisVacuumVesselOuterTube = new TGeoTube("TRK_IRISVACUUMVESSEL_OUTERTUBEsh", mROutIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mZLengthIRISVacV / 2.);
+  TGeoTube* irisVacuumVesselWall = new TGeoTube("TRK_IRISVACUUMVESSEL_WALLsh", mRInIRISVacV, mROutIRISVacV + mThicknessIRISVacV, mThicknessIRISVacV / 2.);
+  TGeoTranslation* irisVacVWallNegZ = new TGeoTranslation("IRISVACVWALLNEGZ", 0., 0., -mZLengthIRISVacV / 2. - mThicknessIRISVacV / 2.);
   irisVacVWallNegZ->RegisterYourself();
-  TGeoTranslation* irisVacVWallPosZ = new TGeoTranslation("IRISVACVWALLPOSZ", 0., 0., mZLengthIRISVacV/2. + mThicknessIRISVacV/2.);
+  TGeoTranslation* irisVacVWallPosZ = new TGeoTranslation("IRISVACVWALLPOSZ", 0., 0., mZLengthIRISVacV / 2. + mThicknessIRISVacV / 2.);
   irisVacVWallPosZ->RegisterYourself();
-  TString irisCompositeFormula = "TRK_IRISVACUUMVESSEL_INNERTUBEsh"
-                                  "+TRK_IRISVACUUMVESSEL_OUTERTUBEsh"
-                                  "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLNEGZ"
-                                  "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLPOSZ";
+  TString irisCompositeFormula =
+    "TRK_IRISVACUUMVESSEL_INNERTUBEsh"
+    "+TRK_IRISVACUUMVESSEL_OUTERTUBEsh"
+    "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLNEGZ"
+    "+TRK_IRISVACUUMVESSEL_WALLsh:IRISVACVWALLPOSZ";
   TGeoCompositeShape* irisVacuumVesselComposite = new TGeoCompositeShape("TRK_IRISVACUUMVESSELsh", irisCompositeFormula);
 
   const TGeoMedium* medBe = matmgr.getTGeoMedium("ALICE3_TRKSERVICES_BERYLLIUM");
@@ -188,7 +188,6 @@ void TRKServices::createColdplate(TGeoVolume* motherVolume)
   LOGP(info, "Creating IRIS Tracker vacuum vessel");
   LOGP(info, "Inserting {} in {} ", irisVacuumVesselVolume->GetName(), motherVolume->GetName());
   motherVolume->AddNode(irisVacuumVesselVolume, 1, nullptr);
-
 }
 
 void TRKServices::createOuterDisksServices(TGeoVolume* motherVolume)
