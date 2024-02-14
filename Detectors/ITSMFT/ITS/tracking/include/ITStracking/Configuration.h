@@ -87,6 +87,7 @@ struct TrackingParameters {
   bool UseTrackFollower = false;
   bool FindShortTracks = false;
   bool PerPrimaryVertexProcessing = false;
+  bool SaveTimeBenchmarks = false;
 };
 
 inline int TrackingParameters::CellMinimumLevel()

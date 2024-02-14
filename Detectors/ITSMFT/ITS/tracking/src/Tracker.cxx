@@ -442,6 +442,7 @@ void Tracker::getGlobalConfiguration()
     params.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
     params.nROFsPerIterations = nROFsPerIterations;
     params.PerPrimaryVertexProcessing = tc.perPrimaryVertexProcessing;
+    params.SaveTimeBenchmarks = tc.saveTimeBenchmarks;
     for (int iD{0}; iD < 3; ++iD) {
       params.Diamond[iD] = tc.diamondPos[iD];
     }

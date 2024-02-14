@@ -138,7 +138,7 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
     }
     logger(sstream.str());
 
-    if (constants::SaveTimeBenchmarks) {
+    if (mTrkParams[0].SaveTimeBenchmarks) {
       std::stringstream str2file;
       std::string taskNameStr(taskName);
       std::transform(taskNameStr.begin(), taskNameStr.end(), taskNameStr.begin(),

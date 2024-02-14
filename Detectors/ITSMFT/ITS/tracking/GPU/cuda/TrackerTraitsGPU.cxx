@@ -26,7 +26,7 @@ namespace o2
 {
 namespace its
 {
-constexpr int UnusedIndex{-1};;
+constexpr int UnusedIndex{-1};
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
