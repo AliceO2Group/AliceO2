@@ -250,7 +250,16 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.debugLevel < 1) {
     mProcessingSettings.deviceTimers = false;
   }
-  if (mProcessingSettings.debugLevel >= 6 && mProcessingSettings.comparableDebutOutput) {
+  if (mProcessingSettings.comparableDebutOutput == -1) {
+    mProcessingSettings.comparableDebutOutput = mProcessingSettings.debugLevel >= 6;
+  }
+  if (mProcessingSettings.comparableDebutOutput) {
+#ifndef GPUCA_NO_FAST_MATH
+    GPUError("Warning, comparableDebutOutput needs GPUCA_NO_FAST_MATH, otherwise results will never be deterministic!");
+#endif
+    mProcessingSettings.overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
+  }
+  if (mProcessingSettings.comparableDebutOutput && mProcessingSettings.debugLevel >= 6) {
     mProcessingSettings.nTPCClustererLanes = 1;
     if (mProcessingSettings.trackletConstructorInPipeline < 0) {
       mProcessingSettings.trackletConstructorInPipeline = 1;
