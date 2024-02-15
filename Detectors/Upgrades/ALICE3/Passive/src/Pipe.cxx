@@ -121,7 +121,7 @@ void Alice3Pipe::ConstructGeometry()
       auto& layerData = layersQuotas[iLayer];
       trkLayerShapes.emplace_back(new TGeoTube(Form("TRKLAYER_%dsh", iLayer), layerData[0], layerData[0] + layerData[2], layerData[1] / 2.));
       if (iLayer != 0) {
-        subtractorsFormula += Form("+");
+        subtractorsFormula += "+";
       }
       subtractorsFormula += Form("TRKLAYER_%dsh", iLayer);
     }
