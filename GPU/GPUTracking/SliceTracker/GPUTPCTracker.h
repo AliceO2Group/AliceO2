@@ -230,7 +230,8 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NStartHits() const { return &mCommonMem->nStartHits; }
 
   GPUhd() GPUglobalref() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
-  GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
+  GPUhd() GPUglobalref() const GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
+  GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() { return mTrackletStartHits; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackletTmpStartHits() const { return mTrackletTmpStartHits; }
   MEM_CLASS_PRE2()
   GPUhd() GPUglobalref() const MEM_LG2(GPUTPCTracklet) & Tracklet(int i) const { return mTracklets[i]; }
