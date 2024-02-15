@@ -1862,7 +1862,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   LOG(info) << __func__ << " itdc=" << itdc << " " << ChannelNames[isig] << " @ ibun=" << ibun << " " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
             << " tdc=" << tdc << " -> " << TDCValCorr << " shift=" << tdc_shift[itdc] << " -> TDCVal=" << TDCVal << "=" << TDCVal * o2::zdc::FTDCVal
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]) << " = " << mOffset[isig]
-            << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " offset=" << tdc_offset[itdc] << " -> TDCAmp=" << TDCAmp 
+            << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " offset=" << tdc_offset[itdc] << " -> TDCAmp=" << TDCAmp
             << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
   mAssignedTDC[itdc]++;
 #endif

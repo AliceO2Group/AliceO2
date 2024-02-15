@@ -49,7 +49,7 @@ struct ZDCTDCData {
 
   uint8_t id = 0xff; // channel ID
   int16_t val = 0;   // tdc value
-  float amp = 0;   // tdc amplitude
+  float amp = 0;     // tdc amplitude
 
   ZDCTDCData() = default;
 
