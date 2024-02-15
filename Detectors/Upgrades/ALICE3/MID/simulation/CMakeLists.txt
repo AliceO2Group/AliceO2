@@ -9,13 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Passive)
-add_subdirectory(TRK)
-add_subdirectory(ECal)
-add_subdirectory(FT3)
-add_subdirectory(FCT)
-add_subdirectory(AOD)
-add_subdirectory(IOTOF)
-add_subdirectory(RICH)
-add_subdirectory(MID)
-add_subdirectory(macros)
+o2_add_library(MI3Simulation
+               SOURCES src/Detector.cxx
+               SOURCES src/MIDLayer.cxx
+               PUBLIC_LINK_LIBRARIES O2::MI3Base
+                                     O2::ITSMFTSimulation)
+
+o2_target_root_dictionary(MI3Simulation
+                          HEADERS include/MI3Simulation/Detector.h)
