@@ -74,14 +74,29 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   if (activeModules[0] != "all") {
     if (isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3" && activeModules[i] != "RCH" && activeModules[i] != "MI3" && activeModules[i] != "ECL") {
+        if (activeModules[i] != "A3IP" &&
+            activeModules[i] != "IT3" &&
+            activeModules[i] != "TRK" &&
+            activeModules[i] != "FT3" &&
+            activeModules[i] != "FCT" &&
+            activeModules[i] != "TF3" &&
+            activeModules[i] != "RCH" &&
+            activeModules[i] != "MI3" &&
+            activeModules[i] != "ECL") {
           LOGP(fatal, "List of active modules contains {}, which is not a module from the upgrades.", activeModules[i]);
         }
       }
     }
     if (!isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3" && activeModules[i] == "RCH" && activeModules[i] == "MI3" && activeModules[i] == "ECL") {
+        if (activeModules[i] == "A3IP" ||
+            activeModules[i] == "TRK" ||
+            activeModules[i] == "FT3" ||
+            activeModules[i] == "FCT" ||
+            activeModules[i] == "TF3" ||
+            activeModules[i] == "RCH" ||
+            activeModules[i] == "MI3" ||
+            activeModules[i] == "ECL") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
