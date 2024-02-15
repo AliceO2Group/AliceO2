@@ -393,16 +393,18 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
     } while (0);
   }
   if (r.mNHits == 8 && r.mNMissed == 0 && rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL && rowHits && tracker.Param().par.continuousTracking) {
-    GPUglobalref() const cahit2* hits = tracker.HitData(row);
     const GPUglobalref() MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row1 = tracker.Row(r.mFirstRow);
     const GPUglobalref() MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row2 = tracker.Row(r.mLastRow);
-    const cahit2 hh1 = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits, rowHits[r.mFirstRow]);
-    const cahit2 hh2 = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits, rowHits[r.mLastRow]);
+    GPUglobalref() const cahit2* hits1 = tracker.HitData(row1);
+    GPUglobalref() const cahit2* hits2 = tracker.HitData(row2);
+    const cahit2 hh1 = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits1, rowHits[r.mFirstRow]);
+    const cahit2 hh2 = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits2, rowHits[r.mLastRow]);
     const float z1 = row1.Grid().ZMin() + hh1.y * row1.HstepZ();
     const float z2 = row2.Grid().ZMin() + hh2.y * row2.HstepZ();
     float oldOffset = tParam.ZOffset();
     tParam.ShiftZ(z1, z2, tracker.Param().tpcGeometry.Row2X(r.mFirstRow), tracker.Param().tpcGeometry.Row2X(r.mLastRow), tracker.Param().constBz, tracker.Param().rec.tpc.defaultZOffsetOverR);
     r.mLastZ -= tParam.ZOffset() - oldOffset;
+    CADEBUG(printf("Shifted z from %f to %f\n", oldOffset, tParam.ZOffset()));
   }
 }
 
