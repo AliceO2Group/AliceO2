@@ -177,15 +177,25 @@ class TPCFLPIDCDevice : public o2::framework::Task
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
     const CRU cruTmp(cru);
-    std::pair<std::vector<float>, std::vector<unsigned int>> idcOne;
     const int integrationIntervalOffset = 0;
     const auto region = cruTmp.region();
     const unsigned int indexOffset = (cruTmp.sector() % SECTORSPERSIDE) * Mapper::getPadsInSector() + Mapper::GLOBALPADOFFSET[region]; // TODO get correct offset for TPCFLPIDCDeviceGroup case
     const auto nIDCsPerIntegrationInterval = Mapper::PADSPERREGION[region];
     const auto integrationIntervals = idc.size() / nIDCsPerIntegrationInterval;
+    std::vector<std::vector<float>> idcOneTmp(integrationIntervals);
+    for (auto& vec : idcOneTmp) {
+      vec.reserve(nIDCsPerIntegrationInterval);
+    }
+    IDCFactorization::calcIDCOne(idc, nIDCsPerIntegrationInterval, integrationIntervalOffset, indexOffset, cruTmp, idcOneTmp, &mIDCZero, mPadFlagsMap);
+
+    // calculate 1D-IDCs
+    std::pair<std::vector<float>, std::vector<unsigned int>> idcOne;
     idcOne.first.resize(integrationIntervals);
     idcOne.second.resize(integrationIntervals);
-    IDCFactorization::calcIDCOne(idc, nIDCsPerIntegrationInterval, integrationIntervalOffset, indexOffset, cruTmp, idcOne.first, idcOne.second, &mIDCZero, mPadFlagsMap);
+    for (int i = 0; i < integrationIntervals; ++i) {
+      idcOne.first[i] = std::accumulate(idcOneTmp[i].begin(), idcOneTmp[i].end(), 0);
+      idcOne.second[i] = idcOneTmp[i].size();
+    }
 
     // normalize to pad size
     std::transform(idcOne.first.begin(), idcOne.first.end(), idcOne.first.begin(), [normVal = Mapper::INVPADAREA[region]](auto& val) { return val * normVal; });
