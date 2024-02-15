@@ -117,7 +117,6 @@ void Alice3Pipe::ConstructGeometry()
                                                       std::array<float, 3>{1.2f, 50.f, 100.e-4},
                                                       std::array<float, 3>{2.5f, 50.f, 100.e-4}};
 
-    subtractorsFormula = "";                                       // First volume to be subctracted (at least one has to be provided)
     for (auto iLayer{0}; iLayer < layersQuotas.size(); ++iLayer) { // Create TRK layers shapes
       auto& layerData = layersQuotas[iLayer];
       trkLayerShapes.emplace_back(new TGeoTube(Form("TRKLAYER_%dsh", iLayer), layerData[0], layerData[0] + layerData[2], layerData[1] / 2.));
