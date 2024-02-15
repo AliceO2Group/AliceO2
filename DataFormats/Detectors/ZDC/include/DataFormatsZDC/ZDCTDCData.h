@@ -142,7 +142,7 @@ struct ZDCTDCData {
 
   void print() const;
 
-  ClassDefNV(ZDCTDCData, 1);
+  ClassDefNV(ZDCTDCData, 2);
 };
 } // namespace zdc
 } // namespace o2

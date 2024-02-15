@@ -765,7 +765,7 @@ void RecEventFlat::printEvent() const
     int ich = o2::zdc::TDCSignal[itdc];
     int nhit = NtdcV(itdc);
     if (NtdcA(itdc) != nhit) {
-      fprintf(stderr, "Mismatch in TDC %d data Val=%d Amp=%d\n", itdc, NtdcV(itdc), NtdcA(ich));
+      fprintf(stderr, "Mismatch in TDC %d data length Val=%d Amp=%d values\n", itdc, NtdcV(itdc), NtdcA(ich));
       continue;
     }
     for (int32_t ipos = 0; ipos < nhit; ipos++) {
