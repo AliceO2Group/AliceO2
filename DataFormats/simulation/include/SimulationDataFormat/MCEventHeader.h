@@ -86,6 +86,12 @@ weights.
   static constexpr const char* processCode = "processCode";
   static constexpr const char* weight = "weight";
   /** @} */
+  /** @{
+@name Pythia8-specific fields */
+  static constexpr const char* processID = "signal_process_id";
+  static constexpr const char* eventScale = "event_scale";
+  static constexpr const char* mpi = "mpi";
+  /** @} */
 };
 
 /*****************************************************************/
