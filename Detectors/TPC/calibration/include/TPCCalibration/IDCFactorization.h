@@ -107,7 +107,7 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   template <typename DataVec>
-  static void calcIDCOne(const DataVec& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap = nullptr, const bool usePadStatusMap = false);
+  static void calcIDCOne(const DataVec& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<std::vector<float>>& idcOneTmp, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap = nullptr, const bool usePadStatusMap = false);
 
   /// \return returns the stored grouped and integrated IDC
   /// \param sector sector
