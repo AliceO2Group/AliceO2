@@ -38,13 +38,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 using namespace o2::framework;
 
-enum struct Input { Clusters,
-                    Tracks
+enum struct InputType { Clusters,
+                        Tracks
 };
 
-const std::unordered_map<std::string, Input> InputMap{
-  {"clusters", Input::Clusters},
-  {"tracks", Input::Tracks}};
+const std::unordered_map<std::string, InputType> InputMap{
+  {"clusters", InputType::Clusters},
+  {"tracks", InputType::Tracks}};
 
 /// MC info is processed by default, disabled by using command line option `--disable-mc`
 ///
@@ -56,24 +56,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto inputType = cfgc.options().get<std::string>("input-type");
   bool doMC = not cfgc.options().get<bool>("disable-mc");
 
-  std::vector<Input> inputTypes;
+  std::vector<InputType> inputTypes;
   try {
-    inputTypes = o2::RangeTokenizer::tokenize<Input>(inputType, [](std::string const& token) { return InputMap.at(token); });
+    inputTypes = o2::RangeTokenizer::tokenize<InputType>(inputType, [](std::string const& token) { return InputMap.at(token); });
   } catch (std::out_of_range&) {
     throw std::invalid_argument(std::string("invalid input type: ") + inputType);
   }
-  auto isEnabled = [&inputTypes](Input type) {
+  auto isEnabled = [&inputTypes](InputType type) {
     return std::find(inputTypes.begin(), inputTypes.end(), type) != inputTypes.end();
   };
 
-  if (isEnabled(Input::Clusters)) {
+  if (isEnabled(InputType::Clusters)) {
     specs.emplace_back(o2::tpc::getClusterReaderSpec(doMC));
     if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
       specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
     }
   }
 
-  if (isEnabled(Input::Tracks)) {
+  if (isEnabled(InputType::Tracks)) {
 
     specs.push_back(o2::tpc::getTPCTrackReaderSpec(doMC));
   }
