@@ -33,7 +33,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::ECL).getName(), 0);
   }
-  static const char* composeSymNameSensor(); // One single sensor for the moment
+  static const char* composeSymNameSensor(); // A single sensor for the moment
 
  protected:
   static std::string sVolumeName;
