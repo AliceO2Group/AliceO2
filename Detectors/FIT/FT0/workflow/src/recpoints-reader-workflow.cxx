@@ -16,12 +16,19 @@
 
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -32,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
   std::string keyvaluehelp("Semicolon separated key=value strings");
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -43,5 +51,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
   o2::conf::ConfigurableParam::updateFromString(ctx.options().get<std::string>("configKeyValues"));
   DataProcessorSpec producer = o2::ft0::getRecPointReaderSpec(ctx.options().get<bool>("disable-mc"));
   specs.push_back(producer);
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(ctx, specs);
   return specs;
 }
