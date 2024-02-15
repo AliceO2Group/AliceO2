@@ -74,14 +74,14 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   if (activeModules[0] != "all") {
     if (isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3" && activeModules[i] != "RCH" && activeModules[i] != "MI3") {
+        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3" && activeModules[i] != "RCH" && activeModules[i] != "MI3" && activeModules[i] != "ECL") {
           LOGP(fatal, "List of active modules contains {}, which is not a module from the upgrades.", activeModules[i]);
         }
       }
     }
     if (!isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3" && activeModules[i] == "RCH" && activeModules[i] == "MI3") {
+        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3" && activeModules[i] == "RCH" && activeModules[i] == "MI3" && activeModules[i] == "ECL") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
@@ -93,7 +93,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
 #ifdef ENABLE_UPGRADES
     if (isUpgrade) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
-        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3 || d == DetID::RCH) {
+        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3 || d == DetID::RCH || d == DetID::ECL) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
@@ -112,7 +112,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       activeModules.emplace_back("SHIL");
       for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3 && d != DetID::RCH && d != DetID::MI3) {
+        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3 && d != DetID::RCH && d != DetID::ECL && d != DetID::MI3) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
