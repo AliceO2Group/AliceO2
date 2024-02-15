@@ -70,3 +70,17 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
     }
   }
 }
+
+template <>
+GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::startHits>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  GPUCommonAlgorithm::sortDeviceDynamic(tracker.TrackletStartHits(), tracker.TrackletStartHits() + *tracker.NStartHits(), [](const GPUTPCHitId& a, const GPUTPCHitId& b) {
+    if (a.RowIndex() != b.RowIndex()) {
+      return (a.RowIndex() < b.RowIndex());
+    }
+    return (a.HitIndex() < b.HitIndex());
+  });
+}
