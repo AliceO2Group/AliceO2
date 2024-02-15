@@ -36,7 +36,6 @@ using o2::itsmft::Hit;
 
 using namespace o2::its;
 using namespace o2::base;
-using namespace o2::utils;
 
 HitAnalysis::HitAnalysis()
   : FairTask(),

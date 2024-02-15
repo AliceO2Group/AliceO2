@@ -17,11 +17,8 @@
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
-#include "DataFormatsITS3/CompCluster.h"
 
-namespace o2
-{
-namespace its3
+namespace o2::its3
 {
 
 class BuildTopologyDictionary;
@@ -30,11 +27,8 @@ class LookUp;
 class TopologyDictionary
 {
  public:
-  /// Default constructor
   TopologyDictionary();
-  /// Constructor
   TopologyDictionary(const std::string& fileName);
-  TopologyDictionary& operator=(const its3::TopologyDictionary& dict) = default;
 
   /// constexpr for the definition of the groups of rare topologies.
   /// The attritbution of the group ID is stringly dependent on the following parameters: it must be a power of 2.
@@ -120,21 +114,15 @@ class TopologyDictionary
   }
 
   /// Fills a hostogram with the distribution of the IDs
-  static void getTopologyDistribution(const its3::TopologyDictionary& dict, TH1F*& histo, const char* histName);
+  TH1F* getTopologyDistribution(const std::string_view hname = "h_topo_dist") const;
   /// Returns the number of elements in the dicionary;
   int getSize() const { return (int)mVectorOfIDs.size(); }
   /// Returns the local position of a compact cluster
 
-  // array version of getClusterCoordinates
-  template <typename T = float>
-  std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl, int nChipsITS3 = 6) const;
   /// Returns the local position of a compact cluster
-  template <typename T = float>
-  static std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true, int nChipsITS3 = 6);
+  math_utils::Point3D<float> getClusterCoordinates(const itsmft::CompClusterExt& cl) const;
   /// Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, int nChipsITS3 = 6) const;
-  /// Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true, int nChipsITS3 = 6);
+  static math_utils::Point3D<float> getClusterCoordinates(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
 
   static TopologyDictionary* loadFrom(const std::string& fileName = "", const std::string& objName = "ccdb_object");
 
@@ -142,15 +130,14 @@ class TopologyDictionary
   friend its3::LookUp;
 
  private:
-  static constexpr int STopoSize = 8 * 255 + 1;
-  std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
-  std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
-  int mSmallTopologiesLUT[STopoSize];                ///< Look-Up Table for the topologies with 1-byte linearised matrix
-  std::vector<itsmft::GroupStruct> mVectorOfIDs;     ///< Vector of topologies and groups
+  static constexpr int STopoSize{8 * 255 + 1};
+  std::unordered_map<unsigned long, int> mCommonMap{}; ///< Map of pair <hash, position in mVectorOfIDs>
+  std::unordered_map<int, int> mGroupMap{};            ///< Map of pair <groudID, position in mVectorOfIDs>
+  int mSmallTopologiesLUT[STopoSize]{};                ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  std::vector<itsmft::GroupStruct> mVectorOfIDs{};     ///< Vector of topologies and groups
 
-  ClassDefNV(TopologyDictionary, 2);
+  ClassDefNV(TopologyDictionary, 3);
 };
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3
 
 #endif

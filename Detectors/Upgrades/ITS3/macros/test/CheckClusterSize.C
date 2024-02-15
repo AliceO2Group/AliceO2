@@ -35,7 +35,7 @@
 #include <vector>
 
 #define ENABLE_UPGRADES
-#include "DataFormatsITS3/CompCluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
@@ -58,7 +58,7 @@ struct ParticleInfo {
   bool isPrimary{false};
 };
 
-using o2::its3::CompClusterExt;
+using o2::itsmft::CompClusterExt;
 using ROFRec = o2::itsmft::ROFRecord;
 
 void checkFile(const std::unique_ptr<TFile>& file);
@@ -250,10 +250,10 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
       auto pattId = cluster.getPatternID();
       auto id = cluster.getSensorID();
       int clusterSize{-1};
-      if (pattId == o2::its3::CompCluster::InvalidPatternID ||
-          dict.isGroup(pattId)) {
+      if (pattId == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattId)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         clusterSize = patt.getNPixels();
+        continue;
       } else {
         clusterSize = dict.getNpixels(pattId);
       }
@@ -363,9 +363,10 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
   h->GetYaxis()->SetTitle("cluster size");
   h->GetXaxis()->SetTitle("Layer");
   h->GetXaxis()->SetNdivisions(-10);
-  for (int i = 1; i <= nLayers; i++)
+  for (int i = 1; i <= nLayers; i++) {
     h->GetXaxis()->SetBinLabel(i, name[i - 1]);
-  h->SetMaximum(20);
+  }
+  h->SetMaximum(30);
   h->SetMinimum(0);
   h->SetStats(false);
   h->Draw();
@@ -373,9 +374,13 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
   grP->SetMarkerStyle(4);
   grP->SetMarkerSize(2);
   grP->SetTitle("Primary");
+  grP->SetMarkerColor(kRed);
+  grP->SetLineColor(kRed);
   auto grS = new TGraphErrors(nLayers, xS, yS, nullptr, vyS);
   grS->SetMarkerStyle(3);
   grS->SetMarkerSize(2);
+  grS->SetMarkerColor(kBlue);
+  grS->SetLineColor(kBlue);
   grS->SetTitle("Secondary");
   auto mg = new TMultiGraph("mg", "");
   mg->Add(grP);
@@ -386,7 +391,7 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
   leg->AddEntry(grS);
   leg->Draw();
   c1->Write();
-  c1->SaveAs("its3ClusterSize.pdf");
+  c1->SaveAs("it3ClusterSize.pdf");
   for (const auto& hh : {hPrimary, hSecondary, hPionPrimary, hPionSecondary, hProtonPrimary, hProtonSecondary, hKaonPrimary, hKaonSecondary, hOtherPrimary, hOtherSecondary}) {
     for (const auto& h : hh) {
       h.Write();

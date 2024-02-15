@@ -25,15 +25,15 @@
 #include <cstring>
 #include <memory>
 #include <gsl/span>
+
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "DataFormatsITS3/CompCluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITS3Reconstruction/LookUp.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonConstants/LHCConstants.h"
-#include "Rtypes.h"
 
 #ifdef _PERFORM_TIMING_
 #include <TStopwatch.h>
@@ -55,7 +55,7 @@ class MCTruthContainer;
 namespace its3
 {
 
-using CompClusCont = std::vector<its3::CompClusterExt>;
+using CompClusCont = std::vector<itsmft::CompClusterExt>;
 using PatternCont = std::vector<unsigned char>;
 using ROFRecCont = std::vector<itsmft::ROFRecord>;
 
@@ -66,8 +66,8 @@ class Clusterer
   using PixelReader = o2::itsmft::PixelReader;
   using PixelData = o2::itsmft::PixelData;
   using ChipPixelData = o2::itsmft::ChipPixelData;
-  using CompCluster = o2::its3::CompCluster;
-  using CompClusterExt = o2::its3::CompClusterExt;
+  using CompCluster = o2::itsmft::CompCluster;
+  using CompClusterExt = o2::itsmft::CompClusterExt;
   using Label = o2::MCCompLabel;
   using MCTruth = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using ConstMCTruth = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
@@ -84,8 +84,8 @@ class Clusterer
     uint16_t colMax = 0;
     BBox(uint16_t c) : chipID(c) {}
     bool isInside(uint16_t row, uint16_t col) const { return row >= rowMin && row <= rowMax && col >= colMin && col <= colMax; }
-    auto rowSpan() const { return rowMax - rowMin + 1; }
-    auto colSpan() const { return colMax - colMin + 1; }
+    [[nodiscard]] auto rowSpan() const { return rowMax - rowMin + 1; }
+    [[nodiscard]] auto colSpan() const { return colMax - colMin + 1; }
     bool isAcceptableSize() const { return colMax - colMin < o2::itsmft::ClusterPattern::MaxColSpan && rowMax - rowMin < o2::itsmft::ClusterPattern::MaxRowSpan; }
     void clear()
     {
@@ -122,7 +122,6 @@ class Clusterer
 
   struct ClustererThread {
     int id = -1;
-    int nLayersITS3 = 3;         // number of ITS3 layers
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
@@ -148,7 +147,7 @@ class Clusterer
     std::vector<ThreadStat> stats; // statistics for each thread results, used at merging
     ///
     ///< reset column buffer, for the performance reasons we use memset
-    void resetColumn(int* buff) { std::memset(buff, -1, sizeof(int) * (size - 2)); }
+    void resetColumn(int* buff) const { std::memset(buff, -1, sizeof(int) * (size - 2)); }
 
     ///< swap current and previous column buffers
     void swapColumnBuffers() { std::swap(prev, curr); }
@@ -185,24 +184,22 @@ class Clusterer
 
     ~ClustererThread()
     {
-      if (column1) {
-        delete[] column1;
-      }
-      if (column2) {
-        delete[] column2;
-      }
+      delete[] column1;
+      delete[] column2;
     }
-    ClustererThread(Clusterer* par = nullptr, int _id = -1) : parent(par), id(_id), curr(column2 + 1), prev(column1 + 1)
-    {
-      // std::fill(std::begin(column1), std::end(column1), -1);
-      // std::fill(std::begin(column2), std::end(column2), -1);
-    }
+
+    ClustererThread(Clusterer* par = nullptr, int _id = -1) : parent(par), id(_id), curr(column2 + 1), prev(column1 + 1) {}
+    ClustererThread(const ClustererThread&) = delete;
+    ClustererThread(ClustererThread&&) = delete;
+    ClustererThread& operator=(const ClustererThread&) = delete;
+    ClustererThread& operator=(ClustererThread&&) = delete;
   };
   //=========================================================
 
   Clusterer();
+  Clusterer(Clusterer&&) = delete;
+  Clusterer& operator=(Clusterer&&) = delete;
   ~Clusterer() = default;
-
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
@@ -230,32 +227,31 @@ class Clusterer
   void print() const;
   void clear();
 
+  ///< load the dictionary of cluster topologies
+  void setDictionary(const its3::TopologyDictionary* dict)
+  {
+    LOGP(info, "Setting TopologyDictionary with size={}", dict->getSize());
+    mPattIdConverter.setDictionary(dict);
+    // dict->print();
+  }
+
+  TStopwatch& getTimer() { return mTimer; }           // cannot be const
+  TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
+
   void setNChips(int n)
   {
     mChips.resize(n);
     mChipsOld.resize(n);
   }
 
-  void setNumLayersITS3(int n) { mNlayersITS3 = n; }
-
-  ///< load the dictionary of cluster topologies
-  void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
-  void setDictionary(const its3::TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
-
-  TStopwatch& getTimer() { return mTimer; }           // cannot be const
-  TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
-
  private:
   void flushClusters(CompClusCont* compClus, MCTruth* labels);
-
-  // geometry options
-  int mNlayersITS3 = 3; ///< number of ITS3 layers
 
   // clusterization options
   bool mContinuousReadout = true; ///< flag continuous readout
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
-  int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
+  int mMaxBCSeparationToMask = static_cast<int>(6000. / o2::constants::lhc::LHCBunchSpacingNS + 10);
   int mMaxRowColDiffToMask = 0; ///< provide their difference in col/row is <= than this
   int mNHugeClus = 0;           ///< number of encountered huge clusters
 
@@ -269,9 +265,11 @@ class Clusterer
   std::vector<ChipPixelData*> mFiredChipsPtr;             // pointers on the fired chips data in the decoder cache
 
   its3::LookUp mPattIdConverter; //! Convert the cluster topology to the corresponding entry in the dictionary.
-
+                                 //
+#ifdef _PERFORM_TIMING_
   TStopwatch mTimer;
   TStopwatch mTimerMerge;
+#endif
 };
 
 template <typename VCLUS, typename VPAT>
@@ -295,6 +293,7 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
   }
   uint16_t pattID = (isHuge || pattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : pattIdConverter.findGroupID(rowSpanW, colSpanW, patt.data());
   uint16_t row = bbox.rowMin, col = bbox.colMin;
+  LOGP(debug, "PattID: findGroupID({},{},{})={}", row, col, patt[0], pattID);
   if (pattID == CompCluster::InvalidPatternID || pattIdConverter.isGroup(pattID)) {
     if (pattID != CompCluster::InvalidPatternID) {
       // For groupped topologies, the reference pixel is the COG pixel

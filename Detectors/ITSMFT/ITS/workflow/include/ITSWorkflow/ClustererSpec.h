@@ -50,7 +50,6 @@ class ClustererDPL : public Task
   bool mUseMC = true;
   bool mUseClusterDictionary = true;
   int mNThreads = 1;
-  std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::itsmft::Clusterer> mClusterer = nullptr;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };

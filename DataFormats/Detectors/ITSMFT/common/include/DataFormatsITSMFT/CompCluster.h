@@ -38,7 +38,7 @@ class CompCluster
   static constexpr UInt_t FlagBit = 0x1 << (NBitsRow + NBitsCol + NBitsPattID);
   //
   ///< compactified data: bits [0:8] - row, [9-18] - col, [19-30] - pattern ID, bit 31 - special flag
-  UInt_t mData;
+  UInt_t mData{};
 
   void sanityCheck();
 
@@ -92,7 +92,7 @@ class CompCluster
 class CompClusterExt : public CompCluster
 {
  private:
-  UShort_t mChipID;  ///< chip id
+  UShort_t mChipID{}; ///< chip id
 
  public:
   CompClusterExt(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0, UShort_t chipID = 0) : CompCluster(row, col, patt), mChipID(chipID)

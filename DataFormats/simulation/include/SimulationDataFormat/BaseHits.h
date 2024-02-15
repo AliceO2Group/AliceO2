@@ -64,6 +64,8 @@ class BasicXYZVHit : public BaseHit
   T GetX() const { return mPos.X(); }
   T GetY() const { return mPos.Y(); }
   T GetZ() const { return mPos.Z(); }
+  T GetRho() const { return mPos.Rho(); }
+  T GetR() const { return mPos.R(); }
   math_utils::Point3D<T> GetPos() const { return mPos; }
   // getting hit value
   V GetHitValue() const { return mHitValue; }

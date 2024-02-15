@@ -9,50 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FairDetector.h"      // for FairDetector
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
-#include "FairRootManager.h"   // for FairRootManager
-#include "FairRun.h"           // for FairRun
-#include "FairRuntimeDb.h"     // for FairRuntimeDb
-#include "FairVolume.h"        // for FairVolume
-#include "FairRootManager.h"
-
-#include "TGeoManager.h"     // for TGeoManager, gGeoManager
-#include "TGeoTube.h"        // for TGeoTube
-#include "TGeoPcon.h"        // for TGeoPcon
-#include "TGeoVolume.h"      // for TGeoVolume, TGeoVolumeAssembly
-#include "TString.h"         // for TString, operator+
-#include "TVirtualMC.h"      // for gMC, TVirtualMC
-#include "TVirtualMCStack.h" // for TVirtualMCStack
-
+#include "TGeoTube.h"          // for TGeoTube
 #include "ITSBase/DescriptorInnerBarrel.h"
-
-#include <cstdio> // for NULL, snprintf
 
 using namespace o2::its;
 
-/// \cond CLASSIMP
 ClassImp(DescriptorInnerBarrel);
-/// \endcond
 
 //________________________________________________________________
-DescriptorInnerBarrel::DescriptorInnerBarrel() : TObject()
-{
-  //
-  // Default constructor
-  //
-}
-
-//________________________________________________________________
-DescriptorInnerBarrel::DescriptorInnerBarrel(int nlayers) : TObject(), mNumLayers(nlayers)
-{
-  //
-  // Standard constructor
-  //
-}
-
-//________________________________________________________________
-void DescriptorInnerBarrel::getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan)
+void DescriptorInnerBarrel::getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan) const
 {
   minradius = mWrapperMinRadius;
   maxradius = mWrapperMaxRadius;
@@ -60,8 +26,17 @@ void DescriptorInnerBarrel::getConfigurationWrapperVolume(double& minradius, dou
 }
 
 //________________________________________________________________
-TGeoTube* DescriptorInnerBarrel::defineWrapperVolume()
+void DescriptorInnerBarrel::setConfigurationWrapperVolume(double minradius, double maxradius, double zspan)
+{
+  mWrapperMinRadius = minradius;
+  mWrapperMaxRadius = maxradius;
+  mWrapperZSpan = zspan;
+}
+
+//________________________________________________________________
+TGeoTube* DescriptorInnerBarrel::defineWrapperVolume() const
 {
   TGeoTube* wrap = new TGeoTube(mWrapperMinRadius, mWrapperMaxRadius, mWrapperZSpan / 2.);
+  LOGP(info, "Creating IB Wrappervolume with Rmin={}, Rmax={}, ZSpan={}", mWrapperMinRadius, mWrapperMaxRadius, mWrapperZSpan);
   return wrap;
 }

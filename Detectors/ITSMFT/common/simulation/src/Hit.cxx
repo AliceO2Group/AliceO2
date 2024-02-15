@@ -15,7 +15,6 @@
 #include "ITSMFTSimulation/Hit.h"
 
 #include <iostream>
-#include <iostream>
 
 ClassImp(o2::itsmft::Hit);
 

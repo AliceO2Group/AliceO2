@@ -22,7 +22,6 @@
 #include "ITSMFTSimulation/PreDigit.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
 #include <map>
-#include <vector>
 
 namespace o2
 {
@@ -39,11 +38,9 @@ class ChipDigitsContainer
   /// Default constructor
   ChipDigitsContainer(UShort_t idx = 0) : mChipIndex(idx){};
 
-  /// Destructor
-  ~ChipDigitsContainer() = default;
-
   std::map<ULong64_t, o2::itsmft::PreDigit>& getPreDigits() { return mDigits; }
   bool isEmpty() const { return mDigits.empty(); }
+  size_t getNDigits() const { return mDigits.size(); }
   void setNoiseMap(const o2::itsmft::NoiseMap* mp) { mNoiseMap = mp; }
   void setDeadChanMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
   void setChipIndex(UShort_t ind) { mChipIndex = ind; }

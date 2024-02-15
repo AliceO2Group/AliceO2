@@ -12,21 +12,18 @@
 /// \file Digitizer.cxx
 /// \brief Implementation of the ITS3 digitizer
 
-#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Simulation/Digitizer.h"
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "CommonConstants/MathConstants.h"
+#include "ITS3Base/SpecsV2.h"
 
 #include <TRandom.h>
-#include <climits>
 #include <vector>
 #include <numeric>
 #include <fairlogger/Logger.h> // for LOG
 
-using o2::itsmft::Digit;
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
 using SuperSegmentation = o2::its3::SegmentationSuperAlpide;
@@ -34,26 +31,19 @@ using o2::itsmft::AlpideRespSimMat;
 using o2::itsmft::PreDigit;
 
 using namespace o2::its3;
-// using namespace o2::base;
 
 void Digitizer::init()
 {
-  mLayerID.clear();
-  mSuperSegmentations.clear();
-  for (int iLayer{0}; iLayer < mGeometry->getNumberOfLayers() - 4; ++iLayer) {
-    for (int iChip{0}; iChip < mGeometry->getNumberOfChipsPerLayer(iLayer); ++iChip) {
-      mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
-      mLayerID.push_back(iLayer);
-    }
-  }
-
+  mGeometry->Print();
   const int numOfChips = mGeometry->getNumberOfChips();
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
   }
-  if (!mParams.getAlpSimResponse()) {
+
+  if (mParams.getAlpSimResponse() == nullptr) {
     std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
+    LOGP(info, "Loading AlpideSimRespnse from file: {}", responseFile);
     auto file = TFile::Open(responseFile.data());
     mAlpSimResp = (o2::itsmft::AlpideSimResponse*)file->Get("response0"); // We use by default the alpide response for Vbb=0V
     mParams.setAlpSimResponse(mAlpSimResp);
@@ -149,8 +139,8 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     auto& extra = *(mExtraBuff.front().get());
     for (int iChip{0}; iChip < mChips.size(); ++iChip) {
       auto& chip = mChips[iChip];
-      if (iChip < mSuperSegmentations.size()) { // Check if this is a chip of ITS3
-        chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mSuperSegmentations[iChip].mNRows, mSuperSegmentations[iChip].mNCols);
+      if (constants::detID::isDetITS3(iChip)) { // Check if this is a chip of ITS3
+        chip.addNoise(mROFrameMin, mROFrameMin, &mParams, SuperSegmentation::mNRows, SuperSegmentation::mNCols);
       } else {
         chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
       }
@@ -184,9 +174,9 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     if (isContinuous()) {
       rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC());
     } else {
-      rcROF.getBCData() = mEventTime; // RSTODO do we need to add trigger delay?
+      rcROF.getBCData() = mEventTime; // RS TODO do we need to add trigger delay?
     }
-    if (mROFRecords) {
+    if (mROFRecords != nullptr) {
       mROFRecords->push_back(rcROF);
     }
     extra.clear(); // clear container for extra digits of the mROFrameMin ROFrame
@@ -230,20 +220,32 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // here we start stepping in the depth of the sensor to generate charge diffision
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
-  short detID{hit.GetDetectorID()};
+  int detID{hit.GetDetectorID()};
+  int layer = mGeometry->getLayer(detID);
   const auto& matrix = mGeometry->getMatrixL2G(detID);
-  bool innerBarrel{detID < mSuperSegmentations.size()};
+  bool innerBarrel{layer < 3};
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
-  xyzLocS = matrix ^ (hit.GetPosStart());
+  xyzLocS = matrix ^ (hit.GetPosStart()); // Global hit coordinates to local detector coordinates
   xyzLocE = matrix ^ (hit.GetPos());
+  LOGP(debug, "Hit on Layer {} at R={} for DetID={} IB={}", layer, hit.GetRho(), detID, innerBarrel);
   if (innerBarrel) {
+    LOGP(debug, "`-> Hit Global Start:\n\t\t({}/{}/{}) R={}", hit.GetPosStart().X(), hit.GetPosStart().Y(), hit.GetPosStart().Z(), xyzLocS.Rho());
+    LOGP(debug, "`-> Hit Local  Start:\n\t\t({}/{}/{})", xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z(), xyzLocS.Rho());
+    LOGP(debug, "`-> Hit Global End:\n\t\t({}/{}/{}) R={}", hit.GetPos().X(), hit.GetPos().Y(), hit.GetPos().Z(), xyzLocE.Rho());
     // transform the point on the curved surface to a flat one
     float xFlatE{0.f}, yFlatE{0.f}, xFlatS{0.f}, yFlatS{0.f};
-    mSuperSegmentations[detID].curvedToFlat(xyzLocS.X(), xyzLocS.Y(), xFlatS, yFlatS);
-    mSuperSegmentations[detID].curvedToFlat(xyzLocE.X(), xyzLocE.Y(), xFlatE, yFlatE);
+    SuperSegmentations[layer].curvedToFlat(xyzLocS.X(), xyzLocS.Y(), xFlatS, yFlatS);
+    SuperSegmentations[layer].curvedToFlat(xyzLocE.X(), xyzLocE.Y(), xFlatE, yFlatE);
+    LOGP(debug, "`---> Transforming Curved2Flat Start:\n\t\t\t\t({}/{}) -> ({}/{})`", xyzLocS.X(), xyzLocS.Y(), xFlatS, yFlatS);
+    LOGP(debug, "`---> Transforming Curved2Flat End  :\n\t\t\t\t({}/{}) -> ({}/{})`", xyzLocE.X(), xyzLocE.Y(), xFlatE, yFlatE);
     // update the local coordinates with the flattened ones
     xyzLocS.SetXYZ(xFlatS, yFlatS, xyzLocS.Z());
     xyzLocE.SetXYZ(xFlatE, yFlatE, xyzLocE.Z());
+    LOGP(debug, "`-> Hit Local Start:\n\t\t\t\t({}/{}/{})", xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z());
+    LOGP(debug, "`-> Hit Local End  :\n\t\t\t\t({}/{}/{})", xyzLocE.X(), xyzLocE.Y(), xyzLocE.Z());
+  } else {
+    LOGP(debug, "`-> Hit Global Start:\n\t\t\t\t({}/{}/{}) R={}", hit.GetPosStart().X(), hit.GetPosStart().Y(), hit.GetPosStart().Z(), xyzLocS.Rho());
+    LOGP(debug, "`-> Hit Local Start:\n\t\t\t\t({}/{}/{})", xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z());
   }
 
   math_utils::Vector3D<float> step(xyzLocE);
@@ -253,39 +255,51 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   math_utils::Vector3D<float> stepH(step * 0.5);
   xyzLocS += stepH; // Adjust start position to the middle of the first step
   xyzLocE -= stepH; // Adjust end position to the middle of the last step
-
+  LOGP(debug, "`---> step ({}/{}/{}), nStepsInv={}, stepH ({}/{}/{})", step.X(), step.Y(), step.Z(), nStepsInv, stepH.X(), stepH.Y(), stepH.Z());
+  LOGP(debug, "`------> Reposition Hit Start:\n\t\t\t\t({}/{}/{})", xyzLocS.X(), xyzLocS.Y(), xyzLocS.Z());
+  LOGP(debug, "`------> Reposition Hit End  :\n\t\t\t\t({}/{}/{})", xyzLocE.X(), xyzLocE.Y(), xyzLocE.Z());
   int rowS = -1, colS = -1, rowE = -1, colE = -1, nSkip = 0;
   if (innerBarrel) {
     // get entrance pixel row and col
-    while (!mSuperSegmentations[detID].localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
+    while (!SuperSegmentations[layer].localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
+      LOGP(debug, "~~~~~~~~~~~ Update entrance pixel on step {}: ({}/{})", nSkip, rowS, colS);
       if (++nSkip >= nSteps) {
+        LOGP(debug, "xxxxxxxx start did not enter sensitive matrix!");
         return; // did not enter to sensitive matrix
       }
       xyzLocS += step;
     }
     // get exit pixel row and col
-    while (!mSuperSegmentations[detID].localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
+    while (!SuperSegmentations[layer].localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
+      LOGP(debug, "~~~~~~~~~~~ Update exit pixel on step {}: ({}/{})", nSkip, rowE, colE);
       if (++nSkip >= nSteps) {
+        LOGP(debug, "xxxxxxxx end did not enter sensitive matrix!");
         return; // did not enter to sensitive matrix
       }
       xyzLocE -= step;
     }
-    // LOGP(info, "x: {}, z: {}, col: {}, row: {}, detID: {}", xyzLocS.X(), xyzLocS.Z(), colS, rowS, detID);
   } else {
     // get entrance pixel row and col
     while (!Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
+      LOGP(debug, "~~~~~~~~~~~ Update entrance pixel on step {}: ({}/{})", nSkip, rowS, colS);
       if (++nSkip >= nSteps) {
+        LOGP(debug, "xxxxxxxx start did not enter sensitive matrix!");
         return; // did not enter to sensitive matrix
       }
       xyzLocS += step;
     }
     // get exit pixel row and col
     while (!Segmentation::localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
+      LOGP(debug, "~~~~~~~~~~~ Update exit pixel on step {}: ({}/{})", nSkip, rowE, colE);
       if (++nSkip >= nSteps) {
+        LOGP(debug, "xxxxxxxx end did not enter sensitive matrix!");
         return; // did not enter to sensitive matrix
       }
       xyzLocE -= step;
     }
+  }
+  if (!innerBarrel) {
+    LOGP(debug, "    `---> x: {}, z: {}, col: {}, row: {}, detID: {}", xyzLocS.X(), xyzLocS.Z(), colS, rowS, detID);
   }
   // estimate the limiting min/max row and col where the non-0 response is possible
   if (rowS > rowE) {
@@ -300,8 +314,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     rowS = 0;
   }
 
-  int maxNrows{innerBarrel ? mSuperSegmentations[detID].mNRows : Segmentation::NRows};
-  int maxNcols{innerBarrel ? mSuperSegmentations[detID].mNCols : Segmentation::NCols};
+  int maxNrows{innerBarrel ? SuperSegmentation::mNRows : Segmentation::NRows};
+  int maxNcols{innerBarrel ? SuperSegmentation::mNCols : Segmentation::NCols};
   if (rowE >= maxNrows) {
     rowE = maxNrows - 1;
   }
@@ -319,62 +333,75 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   float nElectrons = hit.GetEnergyLoss() * mParams.getEnergyToNElectrons(); // total number of deposited electrons
   nElectrons *= nStepsInv;                                                  // N electrons injected per step
-  if (nSkip) {
+  if (nSkip != 0) {
     nSteps -= nSkip;
   }
   //
   int rowPrev = -1, colPrev = -1, row, col;
   float cRowPix = 0.f, cColPix = 0.f; // local coordinated of the current pixel center
 
-  const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
-
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
   // local coordinates has Y = +SensorLayerThickness/2
-  float thickness = innerBarrel ? mSuperSegmentations[detID].mSensorLayerThicknessEff : Segmentation::SensorLayerThickness;
-  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - thickness / 2.);
-
+  float thickness = innerBarrel ? SuperSegmentation::mSensorLayerThickness : Segmentation::SensorLayerThickness;
+  xyzLocS.SetY(xyzLocS.Y() + mAlpSimResp->getDepthMax() - thickness / 2.);
+  LOGP(debug, "`--> nSteps={}, updating Y={}", nSteps, xyzLocS.Y());
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
     // Get the pixel ID
+    bool valid = false;
     if (innerBarrel) {
-      mSuperSegmentations[detID].localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
+      valid = SuperSegmentations[layer].localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
     } else {
-      Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
+      valid = Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
     }
+    LOGP(debug, "`-----> iStep {}: ({},{}) -> ({},{}) is valid {} (prev=({}/{}))", iStep, xyzLocS.X(), xyzLocS.Z(), row, col, valid, rowPrev, colPrev);
     if (row != rowPrev || col != colPrev) { // update pixel and coordinates of its center
       if (innerBarrel) {
-        if (!mSuperSegmentations[detID].detectorToLocal(row, col, cRowPix, cColPix)) {
+        if (!SuperSegmentations[layer].detectorToLocal(row, col, cRowPix, cColPix)) {
+          LOGP(debug, "`wwwww> detector2Local failed: row={},col={}, cRowPix={}, cColPix={}    prev=(row={},col={})", row, col, cRowPix, cColPix, rowPrev, colPrev);
           continue;
         }
       } else if (!Segmentation::detectorToLocal(row, col, cRowPix, cColPix)) {
+        LOGP(debug, "`wwwww> detector2Local failed: row={},col={}, cRowPix={}, cColPix={}    prev=(row={},col={})", row, col, cRowPix, cColPix, rowPrev, colPrev);
         continue; // should not happen
       }
       rowPrev = row;
       colPrev = col;
     }
-    bool flipCol, flipRow;
+    bool flipCol = false, flipRow = false;
     // note that response needs coordinates along column row (locX) (locZ) then depth (locY)
-    float rowMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].mPitchRow : Segmentation::PitchRow)};
-    float colMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].mPitchCol : Segmentation::PitchCol)};
-    auto rspmat = resp->getResponse(xyzLocS.X() - cRowPix, xyzLocS.Z() - cColPix, xyzLocS.Y(), flipRow, flipCol, rowMax, colMax);
+    double rowMax{0.5f * (innerBarrel ? SuperSegmentation::mPitchRow : Segmentation::PitchRow)};
+    double colMax{0.5f * (innerBarrel ? SuperSegmentation::mPitchCol : Segmentation::PitchCol)};
+    auto rspmat = mAlpSimResp->getResponse(xyzLocS.X() - cRowPix, xyzLocS.Z() - cColPix, xyzLocS.Y(), flipRow, flipCol, rowMax, colMax);
+    LOGP(debug, "{:x^50}", "Getting Response Matrix!");
+    LOGP(debug, "xyzLoc.X={} - cRowPix={} --> {}", xyzLocS.X(), cRowPix, xyzLocS.X() - cRowPix);
+    LOGP(debug, "xyzLoc.Z={} - cColPix={} --> {}", xyzLocS.Z(), cColPix, xyzLocS.Z() - cColPix);
+    LOGP(debug, "FlipRow={}, FlipCol={}, RowMax={}, ColMax={}", flipRow, flipCol, rowMax, colMax);
+    LOGP(debug, "{:x^50}", "END");
 
     xyzLocS += step;
-    if (!rspmat) {
+    if (rspmat == nullptr) {
+      LOGP(debug, "`xxxxxxxxxx> empty response");
       continue;
     }
 
     for (int irow = AlpideRespSimMat::NPix; irow--;) {
       int rowDest = row + irow - AlpideRespSimMat::NPix / 2 - rowS; // destination row in the respMatrix
+      LOGP(debug, "`~~~~~~~> rowDest={}", rowDest);
       if (rowDest < 0 || rowDest >= rowSpan) {
+        LOGP(debug, "`~X~X~X~X~> skipped");
         continue;
       }
       for (int icol = AlpideRespSimMat::NPix; icol--;) {
         int colDest = col + icol - AlpideRespSimMat::NPix / 2 - colS; // destination column in the respMatrix
+        LOGP(debug, "`~~~~~~~> colDest={}", colDest);
         if (colDest < 0 || colDest >= colSpan) {
+          LOGP(debug, "`~Y~Y~Y~Y~> skipped");
           continue;
         }
         respMatrix[rowDest][colDest] += rspmat->getValue(irow, icol, flipRow, flipCol);
+        LOGP(debug, "`-x-x-> Updating respMatrix[{},{}]={}", rowDest, colDest, respMatrix[rowDest][colDest]);
       }
     }
   }
@@ -383,23 +410,35 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
   auto& chip = mChips[detID];
   auto roFrameAbs = mNewROFrame + roFrameRel;
+  LOGP(debug, "Printing respMatrix for Chip:");
+  for (int irow{rowSpan}; irow--;) {
+    for (int icol{colSpan}; icol--;) {
+      LOGP(debug, "[{},{}]={}", irow, icol, respMatrix[irow][icol]);
+    }
+  }
+  LOGP(debug, "`-> ChipIdx={}: IsDisabled={}", chip.getChipIndex(), chip.isDisabled());
+  LOG(debug) << "`----> Adding Label: " << lbl;
+  LOGP(debug, "`--> rowSpan={}, colSpan={}", rowSpan, colSpan);
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;
     for (int icol = colSpan; icol--;) {
       float nEleResp = respMatrix[irow][icol];
       if (nEleResp <= 1.e-36) {
+        LOGP(debug, "xxxxxx> irow={}, icol={}: skipped nEleResp={}<1e-36", irow, icol, nEleResp);
         continue;
       }
       int nEle = gRandom->Poisson(nElectrons * nEleResp); // total charge in given pixel
       // ignore charge which have no chance to fire the pixel
       if (nEle < mParams.getMinChargeToAccount()) {
+        LOGP(debug, "xxxxxx> irow={}, icol={}: skipped nEle={}<{}", irow, icol, nEle, mParams.getMinChargeToAccount());
         continue;
       }
       uint16_t colIS = icol + colS;
-      //
+      LOGP(debug, "`-------> Reg. Digits: rowIS={}, colIS={} accounting {}e", rowIS, colIS, nEle);
       registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
     }
   }
+  LOGP(debug, "`----> Now number of digits: {}", chip.getNDigits());
 }
 
 void Digitizer::registerDigits(o2::itsmft::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
@@ -427,7 +466,7 @@ void Digitizer::registerDigits(o2::itsmft::ChipDigitsContainer& chip, uint32_t r
     }
     auto key = chip.getOrderingKey(roFr, row, col);
     PreDigit* pd = chip.findDigit(key);
-    if (!pd) {
+    if (pd == nullptr) {
       chip.addDigit(key, roFr, row, col, nEleROF, lbl);
     } else { // there is already a digit at this slot, account as PreDigitExtra contribution
       pd->charge += nEleROF;

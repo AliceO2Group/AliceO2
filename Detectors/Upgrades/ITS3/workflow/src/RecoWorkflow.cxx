@@ -15,13 +15,9 @@
 #include "ITS3Workflow/TrackerSpec.h"
 #include "ITS3Workflow/TrackWriterSpec.h"
 #include "ITS3Workflow/DigitReaderSpec.h"
+#include "Framework/Logger.h"
 
-namespace o2
-{
-namespace its3
-{
-
-namespace reco_workflow
+namespace o2::its3::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
@@ -41,15 +37,16 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
     specs.emplace_back(o2::its3::getClusterWriterSpec(useMC));
   }
 
-  specs.emplace_back(o2::its3::getTrackerSpec(useMC, useTrig, trmode, dtype));
+  if (trmode != "off") {
+    LOGP(info, "Active tracking: '{}'", trmode);
+    specs.emplace_back(o2::its3::getTrackerSpec(useMC, useTrig, trmode, dtype));
 
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::its3::getTrackWriterSpec(useMC));
+    if (!disableRootOutput) {
+      specs.emplace_back(o2::its3::getTrackWriterSpec(useMC));
+    }
   }
 
   return specs;
 }
 
-} // namespace reco_workflow
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3::reco_workflow

@@ -19,11 +19,12 @@
 #include "Rtypes.h"                        // for Bool_t, Double_t, Int_t, Double32_t, etc
 #include "TVector3.h"                      // for TVector3
 #include <iosfwd>
-#include "CommonUtils/ShmAllocator.h"
 
-namespace o2
-{
-namespace itsmft
+#ifdef USESHM
+#include "CommonUtils/ShmAllocator.h"
+#endif
+
+namespace o2::itsmft
 {
 
 class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
@@ -111,9 +112,9 @@ class Hit : public o2::BasicXYZEHit<Float_t, Float_t>
  private:
   math_utils::Vector3D<Float_t> mMomentum; ///< momentum at entrance
   math_utils::Point3D<Float_t> mPosStart;  ///< position at entrance (base mPos give position on exit)
-  Float_t mE;                              ///< total energy at entrance
-  UChar_t mTrackStatusEnd;                 ///< MC status flag at exit
-  UChar_t mTrackStatusStart;               ///< MC status at starting point
+  Float_t mE{};                            ///< total energy at entrance
+  UChar_t mTrackStatusEnd{};               ///< MC status flag at exit
+  UChar_t mTrackStatusStart{};             ///< MC status at starting point
 
   ClassDefNV(Hit, 3);
 };
@@ -129,8 +130,7 @@ Hit::Hit(int trackID, unsigned short detID, const TVector3& startPos, const TVec
 {
 }
 
-} // namespace itsmft
-} // namespace o2
+} // namespace o2::itsmft
 
 #ifdef USESHM
 namespace std
@@ -140,7 +140,6 @@ class allocator<o2::itsmft::Hit> : public o2::utils::ShmAllocator<o2::itsmft::Hi
 {
 };
 } // namespace std
-
 #endif
 
 #endif
