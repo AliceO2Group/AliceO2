@@ -343,23 +343,14 @@ void o2::tpc::IDCFactorization::calcIDCOne()
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
-#ifdef WITH_OPENMP
-    const int ithread = omp_get_thread_num();
-#else
-    const int ithread = 0;
-#endif
-
     const unsigned int nIDCsSide = mNIDCsPerSector * SECTORSPERSIDE;
-    std::vector<std::vector<std::vector<std::vector<float>>>> idcOneSafe(mSides.size()); // side -> thread -> intervals -> IDCs
+    std::vector<std::vector<std::vector<float>>> idcOneSafe(mSides.size()); // side -> intervals -> IDCs
 
     // reserve memory
-    for (auto& vecSide : idcOneSafe) {
-      vecSide.resize(sNThreads);
-      for (auto& interavalvec : vecSide) {
-        interavalvec.resize(mIntegrationIntervalsPerTF[timeframe]);
-        for (auto& idcsPerInteraval : interavalvec) {
-          idcsPerInteraval.reserve(nIDCsSide);
-        }
+    for (auto& interavalvec : idcOneSafe) {
+      interavalvec.resize(mIntegrationIntervalsPerTF[timeframe]);
+      for (auto& idcsPerInteraval : interavalvec) {
+        idcsPerInteraval.reserve(nIDCsSide);
       }
     }
 
@@ -372,7 +363,7 @@ void o2::tpc::IDCFactorization::calcIDCOne()
       const unsigned int indexSide = mSideIndex[side];
       const auto factorIndexGlob = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
       unsigned int integrationIntervalOffset = 0;
-      calcIDCOne(mIDCs[cru][timeframe], mNIDCsPerCRU[region], integrationIntervalOffset, factorIndexGlob, cru, idcOneSafe[indexSide][ithread], &mIDCZero[indexSide], mInputGrouped ? nullptr : mPadFlagsMap.get(), mUsePadStatusMap);
+      calcIDCOne(mIDCs[cru][timeframe], mNIDCsPerCRU[region], integrationIntervalOffset, factorIndexGlob, cru, idcOneSafe[indexSide], &mIDCZero[indexSide], mInputGrouped ? nullptr : mPadFlagsMap.get(), mUsePadStatusMap);
     }
 
     // calculate global offset for interval
@@ -383,20 +374,12 @@ void o2::tpc::IDCFactorization::calcIDCOne()
 
     for (int side = 0; side < mSides.size(); ++side) {
       const unsigned int indexSide = mSideIndex[side];
-      const auto& idcOneThreads = idcOneSafe[indexSide];
       for (int interval = 0; interval < mIntegrationIntervalsPerTF[timeframe]; ++interval) {
-        // create vector with all IDC values for one integration interval
-        std::vector<float> valuesTmp;
-        valuesTmp.reserve(nIDCsSide);
-        for (int ithread = 0; ithread < sNThreads; ++ithread) {
-          const auto& idcsCRU = idcOneThreads[ithread][interval];
-          valuesTmp.insert(valuesTmp.end(), idcsCRU.begin(), idcsCRU.end());
-        }
 
         // calculate robust average for each slice
         const int intervalGlobal = interval + offsInterval;
-        if (!valuesTmp.empty()) {
-          RobustAverage average(std::move(valuesTmp));
+        if (!idcOneSafe[indexSide].empty()) {
+          RobustAverage average(std::move(idcOneSafe[indexSide][interval]));
           const float mean = average.getMean();
           const float median = average.getMedian();
           const float rms = average.getStdDev();
