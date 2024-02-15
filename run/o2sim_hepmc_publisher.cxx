@@ -85,7 +85,7 @@ struct O2simHepmcPublisher {
         mcHeader.putInfo(MCInfoKeys::mpi, nMPI->value());
       }
       auto sid = event.attribute<HepMC3::IntAttribute>(MCInfoKeys::processCode);
-      auto scode = event.attribute<HepMC3::IntAttribute>(MCInfoKeys::processID); //default pythia8 hepmc3 interface uses signal_process_id
+      auto scode = event.attribute<HepMC3::IntAttribute>(MCInfoKeys::processID); // default pythia8 hepmc3 interface uses signal_process_id
       if (sid != nullptr) {
         mcHeader.putInfo(MCInfoKeys::processCode, sid->value());
       } else if (scode != nullptr) {
