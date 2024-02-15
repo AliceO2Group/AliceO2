@@ -457,9 +457,11 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
   fi
 fi
 
-# if root output is requested, record info of processed TFs DataHeader for replay of root files
-ROOT_OUTPUT_ASKED=`declare -p | cut -d' ' -f3 | cut -d'=' -f1 | grep ENABLE_ROOT_OUTPUT_`
-[[ -z "$DISABLE_ROOT_OUTPUT" ]] || [[ ! -z $ROOT_OUTPUT_ASKED ]] && add_W o2-tfidinfo-writer-workflow
+if [[ -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS} ]] && [[ -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS} ]]; then
+  # if root output is requested, record info of processed TFs DataHeader for replay of root files
+  ROOT_OUTPUT_ASKED=`declare -p | cut -d' ' -f3 | cut -d'=' -f1 | grep ENABLE_ROOT_OUTPUT_`
+  [[ -z "$DISABLE_ROOT_OUTPUT" ]] || [[ ! -z $ROOT_OUTPUT_ASKED ]] && add_W o2-tfidinfo-writer-workflow
+fi
 
 # if TPC correction with IDC from CCDB was requested
 has_detector TPC && [[ ${NEED_TPC_SCALERS_WF:-} == 1 ]] && add_W o2-tpc-scaler-workflow " ${TPC_SCALERS_CONF:-} "
