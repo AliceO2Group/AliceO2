@@ -11,18 +11,38 @@
 
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include <iostream>
+#include "fmt/format.h"
 
 using namespace o2::itsmft;
 
+std::string ROFRecord::asString() const
+{
+  return fmt::format("ROF: {} | {} entries starting from {}", mROFrame, getNEntries(), getFirstEntry());
+}
+
 void ROFRecord::print() const
 {
-  std::cout << "ROF: " << mROFrame << " | " << getNEntries() << " entries starting from "
-            << getFirstEntry() << std::endl;
-  mBCData.print();
+  std::cout << this << "\n\t" << mBCData << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& stream, ROFRecord const& rec)
+{
+  stream << rec.asString();
+  return stream;
+}
+
+std::string MC2ROFRecord::asString() const
+{
+  return fmt::format("MCEventID: {} ROFs: {}-{} Entry in ROFRecords: {}", eventRecordID, minROF, maxROF, rofRecordID);
 }
 
 void MC2ROFRecord::print() const
 {
-  std::cout << "MCEventID: " << eventRecordID << " ROFs: " << minROF << '-' << maxROF
-            << " Entry in ROFRecords: " << rofRecordID << std::endl;
+  std::cout << this << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& stream, MC2ROFRecord const& rec)
+{
+  stream << rec.asString();
+  return stream;
 }
