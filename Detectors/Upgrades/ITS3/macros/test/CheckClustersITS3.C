@@ -13,7 +13,6 @@
 /// \brief Simple macro to check ITSU clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#define ENABLE_UPGRADES
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH2F.h>
@@ -23,6 +22,7 @@
 #include <TROOT.h>
 #include <TStyle.h>
 
+#define ENABLE_UPGRADES
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
@@ -65,7 +65,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:hgx:hgz:tx:tz:cgx:cgy:cgz:clx:cly:clz:dx:dy:dz:ex:ez:patid:rof:npx:id");
 
   // Geometry
-  o2::base::GeometryManager::loadGeometry(inputGeom, false, false, true);
+  /* o2::base::GeometryManager::loadGeometry(inputGeom, false, false, true); */
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
