@@ -982,6 +982,7 @@ TEST_CASE("TestSelfIndexRecursion")
   auto pst = o2::aod::PointsSelfIndex{t3};
   pst.bindInternalIndicesTo(&pst);
 
+  // FIXME: only 4 levels of recursive self-index dereference are tested
   for (auto& p : pst) {
     auto ops = p.pointSeq_as<o2::aod::PointsSelfIndex>();
     for (auto& pp : ops) {
@@ -1035,6 +1036,7 @@ TEST_CASE("TestSelfIndexRecursion")
   FullPoints fp({t1, t2});
   fp.bindInternalIndicesTo(&fp);
 
+  // FIXME: only 4 levels of recursive self-index dereference are tested
   for (auto& p : fp) {
     auto bp = std::is_same_v<std::decay_t<decltype(p)>, FullPoints::iterator>;
     REQUIRE(bp);

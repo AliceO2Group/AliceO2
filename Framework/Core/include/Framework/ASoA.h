@@ -1391,30 +1391,16 @@ class Table
     }
 
     template <typename P, typename... O>
-    RowViewBase& operator=(RowViewBase<IP, P, O...> const& other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
+    RowViewBase& operator=(RowViewBase<IP, P, O...> other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
-      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<IP, C...> const&>(other);
-      return *this;
-    }
-
-    template <typename P, typename... O>
-    RowViewBase& operator=(RowViewBase<IP, P, T...>&& other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
-    {
-      static_cast<RowViewCore<IP, C...>&>(*this) = std::forward<RowViewCore<IP, C...>>(other);
+      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<IP, C...>>(other);
       return *this;
     }
 
     template <typename P>
-    RowViewBase& operator=(RowViewBase<IP, P, T...> const& other)
+    RowViewBase& operator=(RowViewBase<IP, P, T...> other)
     {
-      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<IP, C...> const&>(other);
-      return *this;
-    }
-
-    template <typename P>
-    RowViewBase& operator=(RowViewBase<IP, P, T...>&& other)
-    {
-      static_cast<RowViewCore<IP, C...>&>(*this) = std::forward<RowViewCore<IP, C...>>(other);
+      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<IP, C...>>(other);
       return *this;
     }
 
@@ -1455,7 +1441,7 @@ class Table
     }
 
     template <typename P, typename... O>
-    void matchTo(RowViewBase<IP, P, O...> const& other) requires std::is_same_v<typename P::parent_t, typename Parent::table_t>
+    void matchTo(RowViewBase<IP, P, O...> const& other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
       this->mRowIndex = other.mRowIndex;
     }
