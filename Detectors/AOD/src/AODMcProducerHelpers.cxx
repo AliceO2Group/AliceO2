@@ -97,9 +97,9 @@ bool updateHepMCXSection(const XSectionCursor& cursor,
          getEventInfo(header, Key::attemptedEvents, 0),
          getEventInfo(header, Key::xSection, 0.f),
          getEventInfo(header, Key::xSectionError, 0.f),
-         getEventInfo(header, "ptHard", 1.f),
-         getEventInfo(header, "MPI", -1),
-         getEventInfo(header, "processId", -1));
+         getEventInfo(header, Key::eventScale, 1.f),
+         getEventInfo(header, Key::mpi, -1),
+         getEventInfo(header, Key::processCode, -1));
   return true;
 }
 //--------------------------------------------------------------------
