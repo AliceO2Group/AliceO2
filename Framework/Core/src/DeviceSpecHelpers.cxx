@@ -1497,6 +1497,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("network-interface", bpo::value<std::string>());
         realOdesc.add_options()("early-forward-policy", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
+        realOdesc.add_options()("signposts", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
         return;
