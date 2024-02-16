@@ -114,6 +114,21 @@ o2_log_handle_t* o2_walk_logs(bool (*callback)(char const* name, void* log, void
 #define O2_LOG_ENABLED(log) false
 #endif
 
+#if !defined(O2_LOG_MACRO_RAW) && __has_include("Framework/Logger.h")
+#include "Framework/Logger.h"
+#define O2_LOG_MACRO_RAW(level, ...) LOGF(level, __VA_ARGS__)
+#elif !defined(O2_LOG_MACRO_RAW)
+// If we do not have the fairlogger, we simply print out the signposts to the console.
+// This is useful for things like the tests, which this way do not need to depend on the FairLogger.
+#define O2_LOG_MACRO_RAW(level, format, ...) \
+  do {                                       \
+    printf(#level ":" #format, __VA_ARGS__); \
+    printf("\n");                            \
+  } while (0)
+#else
+#define O2_LOG_MACRO_RAW(...)
+#endif // O2_LOG_MACRO_RAW
+
 #if !defined(O2_LOG_MACRO) && __has_include("Framework/Logger.h")
 #include "Framework/Logger.h"
 #define O2_LOG_MACRO(...) LOGF(info, __VA_ARGS__)
@@ -480,6 +495,38 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
 })
+
+// Similar to the above, however it will print a normal info message if the signpost is not enabled.
+#define O2_SIGNPOST_EVENT_EMIT_INFO(log, id, name, format, ...) __extension__({                                     \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  } else {                                                                                                          \
+    O2_LOG_MACRO_RAW(info, format, ##__VA_ARGS__);                                                                  \
+  }                                                                                                                 \
+})
+
+// Similar to the above, however it will always print a normal error message regardless of the signpost being enabled or not.
+#define O2_SIGNPOST_EVENT_EMIT_ERROR(log, id, name, format, ...) __extension__({                                    \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+  O2_LOG_MACRO_RAW(error, format, ##__VA_ARGS__);                                                                   \
+})
+
+// Similar to the above, however it will also print a normal warning message regardless of the signpost being enabled or not.
+#define O2_SIGNPOST_EVENT_EMIT_WARN(log, id, name, format, ...) __extension__({                                     \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+  O2_RAW_LOG_RAW(warn, ##__VA_ARGS__);                                                                              \
+})
+
 #define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \
   if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                              \
     O2_SIGNPOST_START_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
