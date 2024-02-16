@@ -2708,7 +2708,7 @@ struct Join : TableWrap<Ts...>::table_t {
   using const_iterator = iterator;
   using unfiltered_iterator = iterator;
   using unfiltered_const_iterator = const_iterator;
-  using filtered_iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowView<Filtered<Join<Ts...>>, Os...>{}; }(originals{}));
+  using filtered_iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowViewFiltered<Filtered<Join<Ts...>>, Os...>{}; }(originals{}));
   using filtered_const_iterator = filtered_iterator;
 
   iterator begin()
