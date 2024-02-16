@@ -101,8 +101,8 @@ void CheckDigitsDensity(int nEvents = 10000, std::string digitFileName = "it3dig
       auto col = digit.getColumn();
       auto row = digit.getRow();
       // goto curved coordinates
-      double x{0.f}, y{0.f}, z{0.f};
-      double xFlat{0.f}, yFlat{0.f};
+      float x{0.f}, y{0.f}, z{0.f};
+      float xFlat{0.f}, yFlat{0.f};
       its3::SuperSegmentations[layer].detectorToLocal(row, col, xFlat, z);
       its3::SuperSegmentations[layer].flatToCurved(xFlat, 0., x, y);
       const o2::math_utils::Point3D<double> locD(x, y, z);

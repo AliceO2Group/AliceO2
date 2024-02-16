@@ -9,11 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CheckClusters.C
-/// \brief Simple macro to check ITSU clusters
+/// \file CompareClustersAndDigits.C
+/// \brief Simple macro to compare ITS3 clusters and digits
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#define ENABLE_UPGRADES
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TGraph.h>
@@ -26,6 +25,7 @@
 #include <TStyle.h>
 #include <TTree.h>
 
+#define ENABLE_UPGRADES
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -43,6 +43,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
+
+#include <filesystem>
 #endif
 
 struct Data {
@@ -336,9 +338,10 @@ void CompareClustersAndDigits(std::string clusfile = "o2clus_it3.root",
     }
     auto& dat = data[iChip];
     gFile->cd();
-    auto path = gman->getMatrixPath(iChip);
-    std::string cpath{path.Data() + 39, path.Data() + path.Length()};
-    std::filesystem::path p{cpath};
+    /* auto path = gman->getMatrixPath(iChip); */
+    TString path; // TODO wrong use above
+    const std::string cpath{path.Data() + 39, path.Data() + path.Length()};
+    const std::filesystem::path p{cpath};
     if (oFile->mkdir(p.parent_path().c_str(), "", true) == nullptr) {
       LOGP(error, "Cannot create directories with path: %s", p.parent_path().c_str());
       continue;

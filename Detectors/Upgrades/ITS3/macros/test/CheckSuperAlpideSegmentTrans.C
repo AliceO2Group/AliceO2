@@ -14,17 +14,17 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include <TArc.h>
-#include <TCanvas.h>
-#include <TFile.h>
-#include <TGAxis.h>
-#include <TGraph.h>
-#include <TH2F.h>
-#include <TNtuple.h>
-#include <TROOT.h>
-#include <TString.h>
-#include <TStyle.h>
-#include <TTree.h>
+#include "TArc.h"
+#include "TCanvas.h"
+#include "TFile.h"
+#include "TGaxis.h"
+#include "TGraph.h"
+#include "TH2F.h"
+#include "TNtuple.h"
+#include "TROOT.h"
+#include "TString.h"
+#include "TStyle.h"
+#include "TTree.h"
 
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITS3Base/SpecsV2.h"
@@ -140,13 +140,10 @@ void CheckSuperAlpideSegmentTrans()
       g_arc_inner->AddPoint(x_inner, y_inner);
       g_arc_outer->AddPoint(x_outer, y_outer);
       // Test Segmentation
-      SuperSegmentations[iLayer].curvedToFlat(x_inner, y_inner, x_inner_flat,
-                                              y_inner_flat);
-      SuperSegmentations[iLayer].flatToCurved(x_inner_flat, y_inner_flat,
-                                              x_inner_curved, y_inner_curved);
-      SuperSegmentations[iLayer].curvedToFlat(x_outer, y_outer, x_outer_flat, Axis y_outer_flat);
-      SuperSegmentations[iLayer].flatToCurved(x_outer_flat, y_outer_flat,
-                                              x_outer_curved, y_outer_curved);
+      SuperSegmentations[iLayer].curvedToFlat(x_inner, y_inner, x_inner_flat, y_inner_flat);
+      SuperSegmentations[iLayer].flatToCurved(x_inner_flat, y_inner_flat, x_inner_curved, y_inner_curved);
+      SuperSegmentations[iLayer].curvedToFlat(x_outer, y_outer, x_outer_flat, y_outer_flat);
+      SuperSegmentations[iLayer].flatToCurved(x_outer_flat, y_outer_flat, x_outer_curved, y_outer_curved);
       g_arc_inner_flat->AddPoint(x_inner_flat, y_inner_flat);
       g_arc_outer_flat->AddPoint(x_outer_flat, y_outer_flat);
       h_f2c_res->Fill(x_inner - x_inner_curved, y_inner - y_inner_curved);

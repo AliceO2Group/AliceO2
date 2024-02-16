@@ -105,7 +105,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
   LOGP(debug, "Build min and max MC events used by each ROF");
   for (int imc = MC2ROFRecordArrrayRef.size(); imc--;) {
     const auto& mc2rof = MC2ROFRecordArrrayRef[imc];
-    LOGP(debug, "MCRecord: {}", mc2rof.asString());
+    /* LOGP(debug, "MCRecord: {}", mc2rof.asString()); */
 
     if (mc2rof.rofRecordID < 0) {
       continue; // this MC event did not contribute to any ROF
