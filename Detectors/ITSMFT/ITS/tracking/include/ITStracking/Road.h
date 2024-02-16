@@ -45,15 +45,9 @@ class Road final
 
   GPUhd() void resetRoad()
   {
-#ifndef ENABLE_ITS3_4L
     for (int i = 0; i < maxRoadSize; i++) {
       mCellIds[i] = constants::its::UnusedIndex;
     }
-#else
-    for (int i = 0; i < maxRoadSize + 1; i++) {
-      mCellIds[i] = constants::its::UnusedIndex;
-    }
-#endif
     mRoadSize = 0;
   }
 
@@ -67,11 +61,7 @@ class Road final
   }
 
  private:
-#ifndef ENABLE_ITS3_4L
   int mCellIds[maxRoadSize];
-#else
-  int mCellIds[maxRoadSize + 1];
-#endif
   // int mLabel;
   unsigned char mRoadSize;
   bool mIsFakeRoad;
