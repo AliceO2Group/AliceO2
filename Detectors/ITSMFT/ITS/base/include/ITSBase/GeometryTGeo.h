@@ -412,7 +412,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sSensorName;        ///< Sensor name
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
-#ifdef ENABLE_UPGRADES
   static const std::string sLayerNameITS3;      ///< Layer name for ITS3
   static const std::string sHalfBarrelNameITS3; ///< HalfBarrel name for ITS3
   static const std::string sStaveNameITS3;      ///< Stave name for ITS3
@@ -420,7 +419,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const std::string sModuleNameITS3;     ///< Module name for ITS3
   static const std::string sChipNameITS3;       ///< Chip name for ITS3
   static const std::string sSensorNameITS3;     ///< Sensor name for ITS3
-#endif
 
  private:
 #ifndef GPUCA_STANDALONE

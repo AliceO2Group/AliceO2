@@ -67,7 +67,6 @@ std::string GeometryTGeo::sChipName = "ITSUChip";             ///< Chip name
 std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
-#ifdef ENABLE_UPGRADES
 const std::string GeometryTGeo::sLayerNameITS3 = "ITS3Layer";           ///< Layer name for ITS3
 const std::string GeometryTGeo::sHalfBarrelNameITS3 = "ITS3CarbonForm"; ///< HalfBarrel name for ITS3
 const std::string GeometryTGeo::sStaveNameITS3 = "ITS3Chip";            ///< Stave name for ITS3
@@ -75,7 +74,6 @@ const std::string GeometryTGeo::sHalfStaveNameITS3 = "ITS3Segment";     ///< Hal
 const std::string GeometryTGeo::sModuleNameITS3 = "ITS3RSU";            ///< Module name for ITS3
 const std::string GeometryTGeo::sChipNameITS3 = "ITS3Tile";             ///< Chip name for ITS3
 const std::string GeometryTGeo::sSensorNameITS3 = "ITS3PixelArray";     ///< Sensor name for ITS3
-#endif
 
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans, bool isITS3) : o2::itsmft::GeometryTGeo((!isITS3) ? DetID::ITS : DetID::IT3)
