@@ -19,6 +19,8 @@
 
 #include "Rtypes.h"
 
+#include <array>
+
 namespace o2::its3::constants
 {
 constexpr float cm{1e+2}; // This is the default unit of TGeo so we use this as scale
