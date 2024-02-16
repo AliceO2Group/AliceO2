@@ -16,7 +16,6 @@
 
 #include "Rtypes.h"
 #include "TGeoManager.h"
-#include "TGeoMaterial.h"
 #include "TGeoMatrix.h"
 #include "TGeoTube.h"
 #include "TGeoVolume.h"
@@ -164,12 +163,12 @@ void CheckSuperAlpideSegment(bool isTestDetectorToLocal = false,
               TGeoHMatrix* matrix = gGeoManager->GetCurrentMatrix();
               for (UInt_t row = 0; row < mNRows; row++) {
                 for (UInt_t col = 0; col < mNCols; col++) {
-                  double xLocal = 0;
-                  double zLocal = 0;
-                  double xCurved = 0;
-                  double yCurved = 0;
-                  double xLocal_translate = 0;
-                  double yLocal_translate = 0;
+                  float xLocal = 0;
+                  float zLocal = 0;
+                  float xCurved = 0;
+                  float yCurved = 0;
+                  float xLocal_translate = 0;
+                  float yLocal_translate = 0;
 
                   SuperSegmentations[iLayer].detectorToLocal(row, col, xLocal, zLocal);
                   SuperSegmentations[iLayer].flatToCurved(xLocal, 0., xCurved, yCurved);

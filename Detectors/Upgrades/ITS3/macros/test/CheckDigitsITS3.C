@@ -47,7 +47,6 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
 
   using namespace o2::base;
   namespace its3 = o2::its3;
-  namespace its3c = its3::constants;
   using o2::itsmft::Digit;
   using o2::itsmft::Hit;
 
@@ -158,8 +157,8 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
     for (unsigned int iDigit = rofIndex; iDigit < rofIndex + rofNEntries; iDigit++) {
       int ix = (*digArr)[iDigit].getRow(), iz = (*digArr)[iDigit].getColumn();
       auto chipID = (*digArr)[iDigit].getChipIndex();
-      auto layer = its3c::detID::getDetID2Layer(chipID);
-      bool isIB{its3c::detID::isDetITS3(chipID)};
+      auto layer = its3::constants::detID::getDetID2Layer(chipID);
+      bool isIB{its3::constants::detID::isDetITS3(chipID)};
       float x{0.f}, y{0.f}, z{0.f};
       (isIB) ? ++nDigitReadIB : ++nDigitReadOB;
 

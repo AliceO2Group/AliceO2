@@ -13,7 +13,6 @@
 /// \brief  analyze ITS3 digit density
 /// \author felix.schlepper@cern.ch
 
-#include <algorithm>
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TCanvas.h>
 #include <TFile.h>
@@ -32,6 +31,7 @@
 #include <numeric>
 #include <tuple>
 #include <vector>
+#include <algorithm>
 
 #define ENABLE_UPGRADES
 #include "ITS3Base/SpecsV2.h"
@@ -56,8 +56,6 @@ constexpr double qedRate = qedXSection / hadXSection * interaction_rate; // Hz
 constexpr double qedFactor = qedRate * integration_time;                 // a.u.
 using o2::itsmft::Digit;
 namespace its3 = o2::its3;
-namespace it3c = its3::constants;
-namespace it3d = it3c::detID;
 using SSAlpide = its3::SegmentationSuperAlpide;
 
 void checkFile(const std::unique_ptr<TFile>& file);
@@ -82,8 +80,8 @@ void CheckDigitsDensity(int nEvents = 10000, std::string digitFileName = "it3dig
   digitTree->SetBranchAddress("IT3Digit", &digitArrayPtr);
   std::array<TH2F*, 3> hists;
   for (int i{3}; i--;) {
-    double rmin = it3c::radii[i] - it3c::thickness;
-    double rmax = it3c::radii[i] + it3c::thickness;
+    double rmin = its3::constants::radii[i] - its3::constants::thickness;
+    double rmax = its3::constants::radii[i] + its3::constants::thickness;
     hists[i] = new TH2F(Form("h_digits_dens_L%d", i), Form("Digit Density L%d in %d Events; Z_{Glo} [cm]; R_{Glo} [cm]", i, nEvents), 100, -15, 15, 100, rmin, rmax);
   }
 
@@ -95,8 +93,8 @@ void CheckDigitsDensity(int nEvents = 10000, std::string digitFileName = "it3dig
     // Digit
     for (const auto& digit : digitArray) {
       auto id = digit.getChipIndex();
-      auto layer = it3d::getDetID2Layer(id);
-      bool isIB = it3d::isDetITS3(id);
+      auto layer = its3::constants::detID::getDetID2Layer(id);
+      bool isIB = its3::constants::detID::isDetITS3(id);
       if (!isIB) { // outside of Inner Barrel, e.g. Outer Barrel
         continue;
       }

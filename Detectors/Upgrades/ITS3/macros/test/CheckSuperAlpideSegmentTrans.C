@@ -88,15 +88,15 @@ void CheckSuperAlpideSegmentTrans()
   gStyle->SetOptStat(1111111);
 
   for (int iLayer{0}; iLayer < 3; ++iLayer) {
-    double r_inner = constants::radii[iLayer] - constants::thickness / 2.;
-    double r_outer = constants::radii[iLayer] + constants::thickness / 2.;
-    double phiReadout_inner =
+    float r_inner = constants::radii[iLayer] - constants::thickness / 2.;
+    float r_outer = constants::radii[iLayer] + constants::thickness / 2.;
+    float phiReadout_inner =
       constants::tile::readout::width / r_inner * Rad2Deg;
-    double phiReadout_outer =
+    float phiReadout_outer =
       constants::tile::readout::width / r_outer * Rad2Deg;
-    double pixelarray_inner =
+    float pixelarray_inner =
       constants::pixelarray::width / r_inner * Rad2Deg + phiReadout_inner;
-    double pixelarray_outer =
+    float pixelarray_outer =
       constants::pixelarray::width / r_outer * Rad2Deg + phiReadout_outer;
     auto arc_inner =
       new TArc(0, 0, r_inner, phiReadout_inner, pixelarray_inner);
@@ -113,8 +113,8 @@ void CheckSuperAlpideSegmentTrans()
     auto* h_f2c_res =
       new TH2F(Form("h_f2c_res_%d", iLayer), "XY Residuals;x [cm]; y [cm]",
                101, -1e-3, 1e-3, 101, -2e-3, 2e-3);
-    // double stepSize = pixelarray_inner - phiReadout_inner;
-    double stepSize = 1e-3;
+    // float stepSize = pixelarray_inner - phiReadout_inner;
+    float stepSize = 1e-3;
     auto* g_arc_inner = new TGraph();
     g_arc_inner->SetMarkerStyle(5);
     g_arc_inner->SetMarkerColor(kBlue + 1);
@@ -127,16 +127,16 @@ void CheckSuperAlpideSegmentTrans()
     auto* g_arc_outer_flat = new TGraph();
     g_arc_outer_flat->SetMarkerStyle(5);
     g_arc_outer_flat->SetMarkerColor(kRed + 1);
-    double xmin_inner = {0}, xmax_inner = {0};
-    double xmin_outer = {0}, xmax_outer = {0};
-    for (double phi{phiReadout_inner}; phi <= pixelarray_inner;
+    float xmin_inner = {0}, xmax_inner = {0};
+    float xmin_outer = {0}, xmax_outer = {0};
+    for (float phi{phiReadout_inner}; phi <= pixelarray_inner;
          phi += stepSize) {
-      double x_inner = r_inner * std::cos(phi * Deg2Rad),
-             y_inner = r_inner * std::sin(phi * Deg2Rad), x_inner_flat,
-             y_inner_flat, x_inner_curved, y_inner_curved;
-      double x_outer = r_outer * std::cos(phi * Deg2Rad),
-             y_outer = r_outer * std::sin(phi * Deg2Rad), x_outer_flat,
-             y_outer_flat, x_outer_curved, y_outer_curved;
+      float x_inner = r_inner * std::cos(phi * Deg2Rad),
+            y_inner = r_inner * std::sin(phi * Deg2Rad), x_inner_flat,
+            y_inner_flat, x_inner_curved, y_inner_curved;
+      float x_outer = r_outer * std::cos(phi * Deg2Rad),
+            y_outer = r_outer * std::sin(phi * Deg2Rad), x_outer_flat,
+            y_outer_flat, x_outer_curved, y_outer_curved;
       g_arc_inner->AddPoint(x_inner, y_inner);
       g_arc_outer->AddPoint(x_outer, y_outer);
       // Test Segmentation
@@ -168,19 +168,19 @@ void CheckSuperAlpideSegmentTrans()
         xmax_outer = x_outer_flat;
       }
     }
-    double width_inner = xmax_inner - xmin_inner,
-           width_outer = xmax_outer - xmin_outer;
+    float width_inner = xmax_inner - xmin_inner,
+          width_outer = xmax_outer - xmin_outer;
     Info("C2F", "Inner: Xmin=%f Xmax=%f ---> %f", xmin_inner, xmax_inner,
          width_inner);
     Info("C2F", "Outer: Xmin=%f Xmax=%f ---> %f", xmin_outer, xmax_outer,
          width_outer);
-    if (double dev =
+    if (float dev =
           abs(width_inner - constants::pixelarray::width) / width_inner;
         dev > 0.001) {
       Error("C2F", "Inner: Not equal length projection! Real=%f (Dev=%f%%",
             constants::pixelarray::width, dev);
     }
-    if (double dev =
+    if (float dev =
           abs(width_outer - constants::pixelarray::width) / width_outer;
         dev > 0.001) {
       Error("C2F", "Outer: Not equal length projection! Real=%f (Dev=%f%%",

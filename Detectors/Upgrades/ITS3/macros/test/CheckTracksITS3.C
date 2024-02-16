@@ -12,27 +12,8 @@
 /// \file CheckTracksITS3.C
 /// \brief Simple macro to check ITS3 tracks
 
-#include <iostream>
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TROOT.h>
-
-#include "DataFormatsITS/TrackITS.h"
-#include "DetectorsBase/Propagator.h"
-#include "Field/MagneticField.h"
-#include "ITSBase/GeometryTGeo.h"
-#include "TGeoGlobalMagField.h"
-#endif
-#include <array>
-#include <cmath>
-#include <iostream>
-#include <vector>
-
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/TrackReference.h"
 #include <TCanvas.h>
 #include "TEfficiency.h"
 #include <TClonesArray.h>
@@ -42,8 +23,28 @@
 #include <TLegend.h>
 #include <TPad.h>
 #include <TTree.h>
+#include "TGeoGlobalMagField.h"
+
+#include "DataFormatsITS/TrackITS.h"
+#include "DetectorsBase/Propagator.h"
+#include "Field/MagneticField.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/TrackReference.h"
+
+#include <array>
+#include <cmath>
+#include <iostream>
+#include <vector>
+#endif
 
 using namespace std;
+using namespace o2::itsmft;
+using namespace o2::its;
 
 struct ParticleInfo {
   int event{};
@@ -77,9 +78,6 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its3.root",
                      bool batch = true)
 {
   gROOT->SetBatch(batch);
-
-  using namespace o2::itsmft;
-  using namespace o2::its;
 
   // Magnetic field and Propagator
   o2::base::Propagator::initFieldFromGRP(magfile);

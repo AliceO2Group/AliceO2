@@ -83,8 +83,6 @@ void CompareClustersAndDigits(std::string clusfile = "o2clus_it3.root",
   gStyle->SetOptStat(0);
 
   using namespace o2::base;
-  namespace its3 = o2::its3;
-  namespace its3c = its3::constants;
   using o2::itsmft::Hit;
   using SuperSegmentation = o2::its3::SegmentationSuperAlpide;
   using Segmentation = o2::itsmft::SegmentationAlpide;
