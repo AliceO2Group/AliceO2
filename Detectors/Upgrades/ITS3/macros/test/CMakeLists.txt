@@ -18,9 +18,9 @@ o2_add_test_root_macro(CheckDigitsITS3.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
-                       o2_add_test_root_macro(CheckClustersITS3.C
+o2_add_test_root_macro(CheckClustersITS3.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
                                              O2::ITS3Base
                                              O2::ITSMFTBase
@@ -30,7 +30,7 @@ o2_add_test_root_macro(CheckDigitsITS3.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CheckTracksITS3.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -42,7 +42,7 @@ o2_add_test_root_macro(CheckTracksITS3.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CreateDictionariesITS3.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -54,7 +54,7 @@ o2_add_test_root_macro(CreateDictionariesITS3.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
                        # o2_add_test_root_macro(CheckSquasherITS3.C
 #                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -78,7 +78,7 @@ o2_add_test_root_macro(buildMatBudLUT.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CheckHits.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -90,7 +90,7 @@ o2_add_test_root_macro(CheckHits.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CheckDigitsDensity.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -102,7 +102,7 @@ o2_add_test_root_macro(CheckDigitsDensity.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CheckClusterSize.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -114,7 +114,7 @@ o2_add_test_root_macro(CheckClusterSize.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CompareClusterSize.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -126,7 +126,7 @@ o2_add_test_root_macro(CompareClusterSize.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CheckSuperAlpideSegment.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -138,7 +138,7 @@ o2_add_test_root_macro(CheckSuperAlpideSegment.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CheckSuperAlpideSegmentTrans.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -150,7 +150,7 @@ o2_add_test_root_macro(CheckSuperAlpideSegmentTrans.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
 
 o2_add_test_root_macro(CompareClustersAndDigits.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
@@ -162,4 +162,4 @@ o2_add_test_root_macro(CompareClustersAndDigits.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+                       LABELS its3)
