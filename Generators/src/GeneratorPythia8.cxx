@@ -626,6 +626,10 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   eventHeader->putInfo<float>(Key::xSection, info.sigmaGen() * 1e9);
   eventHeader->putInfo<float>(Key::xSectionError, info.sigmaErr() * 1e9);
 
+  // Set event scale and nMPI
+  eventHeader->putInfo<float>(Key::eventScale, info.QRen());
+  eventHeader->putInfo<int>(Key::mpi, info.nMPI());
+
   // Set weights (overrides cross-section for each weight)
   size_t iw = 0;
   auto xsecErr = info.weightContainerPtr->getTotalXsecErr();
