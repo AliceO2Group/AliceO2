@@ -31,28 +31,15 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
-namespace o2
-{
-
-namespace dataformats
-{
-template <typename T>
-class MCTruthContainer;
-}
-
-namespace its3
+namespace o2::its3
 {
 class Digitizer : public TObject
 {
   using ExtraDig = std::vector<itsmft::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
 
  public:
-  Digitizer() = default;
-  ~Digitizer() override = default;
-  Digitizer(const Digitizer&) = delete;
-  Digitizer& operator=(const Digitizer&) = delete;
-
   void setDigits(std::vector<o2::itsmft::Digit>* dig) { mDigits = dig; }
   void setMCLabels(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mclb) { mMCLabels = mclb; }
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
@@ -106,14 +93,12 @@ class Digitizer : public TObject
     return mExtraBuff[ind].get();
   }
 
-  std::vector<SegmentationSuperAlpide> mSuperSegmentations;
-  std::vector<int> mLayerID;
   static constexpr float sec2ns = 1e9;
 
   o2::itsmft::DigiParams mParams;          ///< digitization parameters
   o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
-  double mCollisionTimeWrtROF;
+  double mCollisionTimeWrtROF{};
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
@@ -132,9 +117,8 @@ class Digitizer : public TObject
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
 
-  ClassDefOverride(Digitizer, 2);
+  ClassDef(Digitizer, 4);
 };
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3
 
 #endif /* ALICEO2_ITS3_DIGITIZER_H */

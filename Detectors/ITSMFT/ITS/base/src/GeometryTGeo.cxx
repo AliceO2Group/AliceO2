@@ -23,7 +23,9 @@
 #include "MathUtils/Cartesian.h"
 
 #ifdef ENABLE_UPGRADES
+#include "ITS3Base/SpecsV2.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
+using SuperSegmentation = o2::its3::SegmentationSuperAlpide;
 #endif
 
 #include <TGeoBBox.h>         // for TGeoBBox
@@ -50,10 +52,6 @@ using namespace o2::detectors;
 
 using Segmentation = o2::itsmft::SegmentationAlpide;
 
-#ifdef ENABLE_UPGRADES
-using SegmentationITS3 = o2::its3::SegmentationSuperAlpide;
-#endif
-
 ClassImp(o2::its::GeometryTGeo);
 
 std::unique_ptr<o2::its::GeometryTGeo> GeometryTGeo::sInstance;
@@ -69,16 +67,18 @@ std::string GeometryTGeo::sChipName = "ITSUChip";             ///< Chip name
 std::string GeometryTGeo::sSensorName = "ITSUSensor";         ///< Sensor name
 std::string GeometryTGeo::sWrapperVolumeName = "ITSUWrapVol"; ///< Wrapper volume name
 
-std::string GeometryTGeo::sLayerNameITS3 = "ITS3Layer";           ///< Layer name for ITS3
-std::string GeometryTGeo::sHalfBarrelNameITS3 = "ITS3HalfBarrel"; ///< HalfBarrel name for ITS3
-std::string GeometryTGeo::sStaveNameITS3 = "ITS3Stave";           ///< Stave name for ITS3
-std::string GeometryTGeo::sHalfStaveNameITS3 = "ITS3HalfStave";   ///< HalfStave name for ITS3
-std::string GeometryTGeo::sModuleNameITS3 = "ITS3Module";         ///< Module name for ITS3
-std::string GeometryTGeo::sChipNameITS3 = "ITS3Chip";             ///< Chip name for ITS3
-std::string GeometryTGeo::sSensorNameITS3 = "ITS3Sensor";         ///< Sensor name for ITS3
+#ifdef ENABLE_UPGRADES
+const std::string GeometryTGeo::sLayerNameITS3 = "ITS3Layer";           ///< Layer name for ITS3
+const std::string GeometryTGeo::sHalfBarrelNameITS3 = "ITS3CarbonForm"; ///< HalfBarrel name for ITS3
+const std::string GeometryTGeo::sStaveNameITS3 = "ITS3Chip";            ///< Stave name for ITS3
+const std::string GeometryTGeo::sHalfStaveNameITS3 = "ITS3Segment";     ///< HalfStave name for ITS3
+const std::string GeometryTGeo::sModuleNameITS3 = "ITS3RSU";            ///< Module name for ITS3
+const std::string GeometryTGeo::sChipNameITS3 = "ITS3Tile";             ///< Chip name for ITS3
+const std::string GeometryTGeo::sSensorNameITS3 = "ITS3PixelArray";     ///< Sensor name for ITS3
+#endif
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::ITS)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans, bool isITS3) : o2::itsmft::GeometryTGeo((!isITS3) ? DetID::ITS : DetID::IT3)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
@@ -413,18 +413,12 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 }
 
 //__________________________________________________________________________
-float GeometryTGeo::getAlphaFromGlobalITS3(int isn, o2::math_utils::Point3D<float> gloXYZ)
+float GeometryTGeo::getAlphaFromGlobalITS3(const o2::math_utils::Point3D<float>& gloXYZ)
 {
-  // calculate the tracking alpha of the ITS3 cluster in global coordinates
-  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
-  auto matG2L = matL2G->Inverse();
-  auto translation = matG2L.GetTranslation(); // we only need the translation
-  o2::math_utils::Point3D<float> gloXYZtra{gloXYZ.x() + (float)translation[0], gloXYZ.y() + (float)translation[1], gloXYZ.z() + (float)translation[2]};
-
-  float alp = ATan2(gloXYZtra.y(), gloXYZtra.x());
-  o2::math_utils::bringTo02Pi(alp);
-
-  return alp;
+  // since ITS3 is cylindrical alpha = phi in global
+  auto alpha = std::atan2(gloXYZ.Y(), gloXYZ.X());
+  o2::math_utils::bringTo02Pi(alpha);
+  return alpha;
 }
 
 //__________________________________________________________________________
@@ -841,16 +835,15 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
   double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
   int iLayer = getLayer(isn);
 
+#ifdef ENABLE_UPGRADES
   if (mIsLayerITS3[iLayer]) {
     // in this case we need the line tangent to the circumference
     double radius = 0.;
-#ifdef ENABLE_UPGRADES
-    SegmentationITS3 seg(iLayer);
-    radius = seg.mRadii[iLayer];
-#endif
+    radius = o2::its3::constants::radii[iLayer];
     locA[1] = radius;
     locB[1] = radius;
   }
+#endif
 
   matL2G->LocalToMaster(locA, gloA);
   matL2G->LocalToMaster(locB, gloB);

@@ -18,16 +18,13 @@
 #include "ITSMFTReconstruction/BuildTopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
-#include "ITS3Base/SuperAlpideParams.h"
-namespace o2
-{
-namespace its3
+
+namespace o2::its3
 {
 
 class BuildTopologyDictionary
 {
  public:
-  BuildTopologyDictionary();
   static constexpr float IgnoreVal = 999.;
   void accountTopology(const itsmft::ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
   void setNCommon(unsigned int nCommon); // set number of common topologies
@@ -39,23 +36,22 @@ class BuildTopologyDictionary
   void printDictionaryBinary(const std::string& fname);
   void saveDictionaryRoot(const std::string& fname);
 
-  int getTotClusters() const { return mTotClusters; }
-  int getNotInGroups() const { return mNCommonTopologies; }
+  unsigned int getTotClusters() const { return mTotClusters; }
+  unsigned int getNotInGroups() const { return mNCommonTopologies; }
   TopologyDictionary getDictionary() const { return mDictionary; }
 
  private:
   TopologyDictionary mDictionary;                                          ///< Dictionary of topologies
   std::map<unsigned long, itsmft::TopoStat> mTopologyMap;                  //! Temporary map of type <hash, TopStat>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; //! <freq,hash>, needed to define threshold
-  int mTotClusters;
-  int mNCommonTopologies;
-  double mFrequencyThreshold;
+  unsigned int mTotClusters{0};
+  unsigned int mNCommonTopologies{0};
+  double mFrequencyThreshold{0.};
 
   std::unordered_map<long unsigned, itsmft::TopologyInfo> mMapInfo;
 
-  ClassDefNV(BuildTopologyDictionary, 2);
+  ClassDefNV(BuildTopologyDictionary, 3);
 };
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3
 
 #endif

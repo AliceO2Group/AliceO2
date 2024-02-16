@@ -12,23 +12,22 @@
 #include <ITS3Reconstruction/IOUtils.h>
 #include <ITStracking/IOUtils.h>
 #include <ITStracking/TimeFrame.h>
-#include <DataFormatsITS3/CompCluster.h>
+#include <DataFormatsITSMFT/CompCluster.h>
 #include <DataFormatsITSMFT/ROFRecord.h>
 #include <ITS3Reconstruction/TopologyDictionary.h>
 #include <ITSBase/GeometryTGeo.h>
 #include <ITSMFTBase/SegmentationAlpide.h>
 #include <ITS3Base/SegmentationSuperAlpide.h>
 #include <Framework/Logger.h>
+#include "ITS3Base/SpecsV2.h"
 
-namespace o2
+namespace o2::its3::ioutils
 {
-namespace its3
-{
-namespace ioutils
-{
+using SSAlpide = o2::its3::SegmentationSuperAlpide;
+
 int loadROFrameDataITS3(its::TimeFrame* tf,
                         gsl::span<o2::itsmft::ROFRecord> rofs,
-                        gsl::span<const its3::CompClusterExt> clusters,
+                        gsl::span<const itsmft::CompClusterExt> clusters,
                         gsl::span<const unsigned char>::iterator& pattIt,
                         const its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
@@ -36,34 +35,27 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
   its::GeometryTGeo* geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  std::vector<o2::its3::SegmentationSuperAlpide> segITS3;
-  for (int iLayer{0}; iLayer < geom->getNumberOfLayers() - 4; ++iLayer) {
-    for (int iChip{0}; iChip < geom->getNumberOfChipsPerLayer(iLayer); ++iChip) {
-      segITS3.push_back(SegmentationSuperAlpide(iLayer));
-    }
-  }
-  int nChipsITS3 = segITS3.size();
-
   tf->mNrof = 0;
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
       auto sensorID = c.getSensorID();
-      int layer = layer = geom->getLayer(sensorID);
+      auto isITS3 = its3::constants::detID::isDetITS3(sensorID);
+      auto layer = geom->getLayer(sensorID);
 
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = o2::its::ioutils::DefClusError2Row, sigmaZ2 = o2::its::ioutils::DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
-      float pitchRow = ((sensorID < nChipsITS3) ? segITS3[sensorID].mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow);
-      float pitchCol = ((sensorID < nChipsITS3) ? segITS3[sensorID].mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol);
-      if (pattID != its3::CompCluster::InvalidPatternID) {
+      float pitchRow = isITS3 ? SSAlpide::mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow;
+      float pitchCol = isITS3 ? SSAlpide::mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol;
+      if (pattID != itsmft::CompCluster::InvalidPatternID) {
         sigmaY2 = dict->getErr2X(pattID) * pitchRow * pitchRow;
         sigmaZ2 = dict->getErr2Z(pattID) * pitchCol * pitchCol;
         if (!dict->isGroup(pattID)) {
-          locXYZ = dict->getClusterCoordinates(c, nChipsITS3);
+          locXYZ = dict->getClusterCoordinates(c);
         } else {
           o2::itsmft::ClusterPattern patt(pattIt);
-          locXYZ = dict->getClusterCoordinates(c, patt, nChipsITS3);
+          locXYZ = dict->getClusterCoordinates(c, patt);
           sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
           sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
         }
@@ -71,7 +63,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         o2::itsmft::ClusterPattern patt(pattIt);
         sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
         sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
-        locXYZ = dict->getClusterCoordinates(c, patt, false, nChipsITS3);
+        locXYZ = dict->getClusterCoordinates(c, patt, false);
       }
 
       // Transformation to the local --> global
@@ -80,8 +72,8 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
       // for cylindrical layers we have a different alpha for each cluster, for regular silicon detectors instead a single alpha for the whole sensor
       float alpha = 0.;
       o2::math_utils::Point3D<float> trkXYZ;
-      if (layer < geom->getNumberOfLayers() - 4) {
-        alpha = geom->getAlphaFromGlobalITS3(sensorID, gloXYZ);
+      if (isITS3) {
+        alpha = geom->getAlphaFromGlobalITS3(gloXYZ);
         // Inverse transformation to the local --> tracking
         trkXYZ = geom->getT2LMatrixITS3(sensorID, alpha) ^ locXYZ;
       } else {
@@ -108,11 +100,9 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
     v.resize(tf->getUnsortedClusters()[1].size());
   }
 
-  if (mcLabels) {
+  if (mcLabels != nullptr) {
     tf->mClusterLabels = mcLabels;
   }
   return tf->mNrof;
 }
-} // namespace ioutils
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3::ioutils

@@ -13,15 +13,15 @@
 
 #include <vector>
 
-#include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ITS3Workflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
+#include "ITS3Base/SpecsV2.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
-#include "DataFormatsITS3/CompCluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -29,50 +29,26 @@
 #include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace its3
+namespace o2::its3
 {
 
 void ClustererDPL::init(InitContext& ic)
 {
-  auto& paramGeom = DescriptorInnerBarrelITS3Param::Instance();
   mClusterer = std::make_unique<o2::its3::Clusterer>();
-  int nChipsOB = o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB);
-  int nChipsIB = 6;
-  int nLayersITS3 = 3;
-  if (paramGeom.getITS3LayerConfigString() == "FourLayers") {
-    nChipsIB += 4;
-    nLayersITS3 = 4;
-  }
-  mClusterer->setNChips(nChipsOB + nChipsIB);
-  mClusterer->setNumLayersITS3(nLayersITS3);
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
+  mNThreads = std::max(1, ic.options().get<int>("nthreads"));
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  mState = 1;
-
-  auto filenameGRP = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
-
-  if (grp) {
-    mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("IT3"));
-  } else {
-    LOG(error) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
-    mState = 0;
-    return;
-  }
-
+  mClusterer->setNChips(its3::constants::detID::nChips + itsmft::ChipMappingITS::getNChips(itsmft::ChipMappingITS::MB) + itsmft::ChipMappingITS::getNChips(itsmft::ChipMappingITS::OB));
   mClusterer->print();
+  mState = 1;
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
-  // updateTimeDependentParams(pc);
+  updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -84,9 +60,8 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
 
-  LOG(info) << "ITS3Clusterer pulled " << digits.size() << " digits, in "
-            << rofs.size() << " RO frames";
-  LOG(info) << "ITS3Clusterer pulled " << labels.getNElements() << " labels ";
+  LOGP(info, "ITS3Clusterer pulled {} digits in {} ROFs", digits.size(), rofs.size());
+  LOGP(info, "ITS3Clusterer pulled {} labels", labels.getNElements());
 
   o2::itsmft::DigitPixelReader reader;
   reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
@@ -100,7 +75,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   reader.init();
   auto orig = o2::header::gDataOriginIT3;
-  std::vector<o2::its3::CompClusterExt> clusCompVec;
+  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
 
@@ -108,13 +83,13 @@ void ClustererDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     clusterLabels = std::make_unique<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
   }
-  mClusterer->process(mNThreads, reader, &clusCompVec, mPatterns ? &clusPattVec : nullptr, &clusROFVec, clusterLabels.get());
+  mClusterer->process(mNThreads, reader, &clusCompVec, &clusPattVec, &clusROFVec, clusterLabels.get());
   pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0}, clusCompVec);
   pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0}, clusROFVec);
   pc.outputs().snapshot(Output{orig, "PATTERNS", 0}, clusPattVec);
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0}, *clusterLabels.get()); // at the moment requires snapshot
+    pc.outputs().snapshot(Output{orig, "CLUSTERSMCTR", 0}, *clusterLabels); // at the moment requires snapshot
     std::vector<o2::itsmft::MC2ROFRecord> clusterMC2ROframes(mc2rofs.size());
     for (int i = mc2rofs.size(); i--;) {
       clusterMC2ROframes[i] = mc2rofs[i]; // Simply, replicate it from digits ?
@@ -188,6 +163,11 @@ void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
+void ClustererDPL::endOfStream(o2::framework::EndOfStreamContext& /*ec*/)
+{
+  mClusterer->print();
+}
+
 DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
@@ -222,15 +202,8 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC)},
     Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
+      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
+      {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 
-///_______________________________________
-void ClustererDPL::endOfStream(o2::framework::EndOfStreamContext& ec)
-{
-  mClusterer->print();
-}
-
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3

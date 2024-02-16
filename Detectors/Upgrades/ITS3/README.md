@@ -98,8 +98,72 @@ HBFUtils.runNumber=311935;ITSCATrackerParam.trackletsPerClusterLimit=20;ITSCATra
 As above, it is important to provide the correct run number using `-—configKeyValues`, to retrieve the correct files from the CCDB. The other internal parameters for the vertexer and the tracker are provided `-—configKeyValues` via are specific to the cased here considered (Pb-Pb) and are inherited from ITS2.
 
 If the `FourLayers` geometry was used in the simulation, it should be set also for the reconstruction to set properly the tracker to work with the additional layer. If something else of the geometry was set differently (`mRadii`, `mLength`, `mGapY`, `mGapPhi`, `mGapXDirection4thLayer`, or `mDetectorThickness`), it is necessary to remap the file with the geometry to replace the one on the CCDB, which would be different. This can be done by copying the `o2sim_geometry-aligned.root` file created during the simulation to a directory called `GLO/Config/GeometryAligned`, with the name `snapshot.root` in a local path of choice. Then, the following argument has to be added to the reco workflow: `--condition-remap "file://local_path=GLO/Config/GeometryAligned"`.
+```
 
-> **_NOTE:_**  in order to make the reconstruction for the `FourLayers` geometry work, the following line has to be added to the CMake options in the [o2.sh](https://github.com/alisw/alidist/blob/master/o2.sh) recipe in alidist:
-```bash
-${ENABLE_ITS3_4L:+-DENABLE_ITS3_4L=ON}
+
+# NEW
+
+## Simulation
+
+``` bash
+export IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE=1
+export ALICEO2_CCDB_LOCALCACHE=../ccdb
+mkdir -p ../ccdb/GLO/Config/GeometryAligned
+mkdir -p ../ccdb/IT3/Calib/ClusterDictionary
+```
+
+### pp
+Simulate PIPE and ITS3
+
+``` bash
+o2-sim -g pythia8pp -j10 -m PIPE IT3 --field ccdb --vertexMode kCCDB --noemptyevents --run 302000 -n10000
+cp o2sim_geometry-aligned.root ${ALICEO2_CCDB_LOCALCACHE}/GLO/Config/GeometryAligned/snapshot.root
+```
+
+## Digitization
+``` bash
+o2-sim-digitizer-workflow -b --interactionRate 50000 --run --configKeyValues="HBFUtils.runNumber=302000;"
+root -x -l ~/git/alice/O2/Detectors/Upgrades/ITS3/macros/test/CheckDigitsITS3.C++
+```
+
+## Clusterization w/o tracking
+
+First we need to use the clusterizer but ignoring the default TopologyDictionary, we built our own.
+
+``` bash
+o2-its3-reco-workflow -b --tracking-mode off \
+    --configKeyValues "HBFUtils.runNumber=302000;" \
+    --condition-remap="file://${ALICEO2_CCDB_LOCALCACHE}=IT3/Calib/ClusterDictionary" \
+    --ignore-cluster-dictionary --run |\
+    tee cluster0.log
+```
+
+### Creating the Topology Dictionary
+``` bash
+root -x -l ~/git/alice/O2/Detectors/Upgrades/ITS3/macros/test/CreateDictionariesITS3.C++
+cp IT3dictionary.root ${ALICEO2_CCDB_LOCALCACHE}/IT3/Calib/ClusterDictionary/snapshot.root
+```
+
+### Rerun Clusterization with new TopologyDictionary
+``` bash
+o2-its3-reco-workflow -b --tracking-mode off \
+    --configKeyValues "HBFUtils.runNumber=302000;" \
+    --condition-remap="file://${ALICEO2_CCDB_LOCALCACHE}=IT3/Calib/ClusterDictionary" \
+    --run |\
+    tee cluster1.log
+```
+
+### Check Clusters
+``` bash
+root -x -l '~/git/alice/O2/Detectors/Upgrades/ITS3/macros/test/CheckClustersITS3.C++("o2clus_it3.root", "o2sim_HitsIT3.root", "o2sim_geometry-aligned.root", "IT3dictionary.root")'
+root -x -l '~/git/alice/O2/Detectors/Upgrades/ITS3/macros/test/CompareClustersAndDigits.C++("o2clus_it3.root", "it3digits.root","IT3dictionary.root", "o2sim_HitsIT3.root", "o2sim_geometry-aligned.root")'
+root -x -l '~/git/alice/O2/Detectors/Upgrades/ITS3/macros/test/CheckClusterSize.C++("o2clus_it3.root", "o2sim_Kine.root", "IT3dictionary.root", false)'
+```
+
+## Clusterization with tracking
+This repeats the clusterization steps and enables travcking.
+
+``` bash
+o2-its3-reco-workflow -b --tracking-mode sync --condition-remap="file://${ALICEO2_CCDB_LOCALCACHE}=IT3/Calib/ClusterDictionary,GLO/Config/GeometryAligned"
+root -x -l '~/git/alice/O2/Detectors/Upgrades/ITS3/macros/test/CheckTracksITS3.C++("o2trac_its3.root", "o2clus_it3.root", "o2sim_Kine.root", "o2sim_grp.root", "o2sim_geometry-aligned.root", false)'
 ```
