@@ -76,7 +76,12 @@ const std::string GeometryTGeo::sChipNameITS3 = "ITS3Tile";             ///< Chi
 const std::string GeometryTGeo::sSensorNameITS3 = "ITS3PixelArray";     ///< Sensor name for ITS3
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans, bool isITS3) : o2::itsmft::GeometryTGeo((!isITS3) ? DetID::ITS : DetID::IT3)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans, bool isITS3) :
+#ifdef ENABLE_UPGRADES
+                                                                     o2::itsmft::GeometryTGeo((!isITS3) ? DetID::ITS : DetID::IT3)
+#else
+                                                                     o2::itsmft::GeometryTGeo(DetID::ITS)
+#endif
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
