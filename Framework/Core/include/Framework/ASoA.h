@@ -1432,14 +1432,12 @@ class Table
 
     template <typename P>
     RowViewBase(RowViewBase<IP, P, T...> const& other)
-      // : RowViewCore<IP, C...>(static_cast<RowViewCore<IP, C...> const&>(other))
     {
       *this = other;
     }
 
     template <typename P>
     RowViewBase(RowViewBase<IP, P, T...>&& other) noexcept
-      // : RowViewCore<IP, C...>(std::forward<RowViewCore<IP, C...>>(other))
     {
       *this = other;
     }
@@ -1452,6 +1450,12 @@ class Table
 
     template <typename P>
     void matchTo(RowViewBase<IP, P, T...> const& other)
+    {
+      this->mRowIndex = other.mRowIndex;
+    }
+
+    template <typename P, typename... O>
+    void matchTo(RowViewBase<IP, P, O...> const& other) requires std::is_same_v<typename P::parent_t, typename Parent::table_t>
     {
       this->mRowIndex = other.mRowIndex;
     }
