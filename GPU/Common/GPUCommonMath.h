@@ -391,6 +391,9 @@ GPUdi() T GPUCommonMath::MaxWithRef(T x, T y, T z, T w, S refX, S refY, S refZ, 
 
 GPUdi() float GPUCommonMath::FastInvSqrt(float _x)
 {
+#ifdef GPUCA_NO_FAST_MATH
+  return 1.f / Sqrt(_x);
+#else
   // the function calculates fast inverse sqrt
   union {
     float f;
@@ -400,6 +403,7 @@ GPUdi() float GPUCommonMath::FastInvSqrt(float _x)
   x.i = 0x5f3759df - (x.i >> 1);
   x.f = x.f * (1.5f - xhalf * x.f * x.f);
   return x.f;
+#endif
 }
 
 template <>
