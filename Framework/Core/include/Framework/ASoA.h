@@ -2701,26 +2701,14 @@ struct Join : TableWrap<Ts...>::table_t {
   using base::bindExternalIndices;
   using base::bindInternalIndicesTo;
 
-  template <typename P, typename... Os>
-  constexpr static auto make_it(framework::pack<Os...>)
-  {
-    return typename table_t::template RowView<P, Os...>{};
-  }
-
-  template <typename P, typename... Os>
-  constexpr static auto make_fit(framework::pack<Os...>)
-  {
-    return typename table_t::template RowViewFiltered<P, Os...>{};
-  }
-
   using self_t = Join<Ts...>;
   using table_t = base;
   using persistent_columns_t = typename table_t::persistent_columns_t;
-  using iterator = decltype(make_it<Join<Ts...>>(originals{}));
+  using iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowView<Join<Ts...>, Os...>{};}(originals{}));
   using const_iterator = iterator;
   using unfiltered_iterator = iterator;
   using unfiltered_const_iterator = const_iterator;
-  using filtered_iterator = decltype(make_fit<Filtered<Join<Ts...>>>(originals{}));
+  using filtered_iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowView<Filtered<Join<Ts...>>, Os...>{};}(originals{}));
   using filtered_const_iterator = filtered_iterator;
 
   iterator begin()
@@ -2838,12 +2826,7 @@ class FilteredBase : public T
   using persistent_columns_t = typename T::persistent_columns_t;
   using external_index_columns_t = typename T::external_index_columns_t;
 
-  template <typename P, typename... Os>
-  constexpr static auto make_it(framework::pack<Os...>)
-  {
-    return typename table_t::template RowViewFiltered<P, Os...>{};
-  }
-  using iterator = decltype(make_it<FilteredBase<T>>(originals{}));
+  using iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowViewFiltered<FilteredBase<T>, Os...>{}; }(originals{}));
   using const_iterator = iterator;
 
   FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
@@ -3081,7 +3064,7 @@ class Filtered : public FilteredBase<T>
   using table_t = typename FilteredBase<T>::table_t;
   using originals = originals_pack_t<T>;
 
-  using iterator = decltype(FilteredBase<T>::template make_it<Filtered<T>>(originals{}));
+  using iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowViewFiltered<Filtered<T>, Os...>{};}(originals{}));
   using const_iterator = iterator;
 
   iterator begin()
@@ -3218,7 +3201,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
   using originals = originals_pack_t<T>;
 
-  using iterator = decltype(FilteredBase<T>::template make_it<Filtered<Filtered<T>>>(originals{}));
+  using iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowViewFiltered<Filtered<Filtered<T>>, Os...>{}; }(originals{}));
   using const_iterator = iterator;
 
   iterator begin()
