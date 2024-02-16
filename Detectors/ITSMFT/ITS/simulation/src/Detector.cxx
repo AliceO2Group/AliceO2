@@ -126,7 +126,7 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers, int buildLevel)
   }
 }
 
-Detector::Detector(Bool_t active, TString name, TString its3Version)
+Detector::Detector(Bool_t active, TString name)
   : o2::base::DetImpl<Detector>(name, active),
     mTrackData(),
     /*
