@@ -18,9 +18,10 @@ o2_add_library(ITStrackingCUDA
                SOURCES ClusterLinesGPU.cu
                        Context.cu
                        Stream.cu
-                       TrackerTraitsGPU.cu
+                       TrackerTraitsGPU.cxx
                        TimeFrameGPU.cu
                        TracerGPU.cu
+                       TrackingKernels.cu
                        VertexerTraitsGPU.cu
                        Utils.cu
                PUBLIC_INCLUDE_DIRECTORIES ../

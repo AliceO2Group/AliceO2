@@ -145,7 +145,7 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
       break;
     }
 
-    total += evaluateTask(&Tracker::computeCellsHybrid, "Hybrid Cell finding", logger, iteration);
+    total += evaluateTask(&Tracker::computeCellsHybrid, Form("Hybrid Cell finding iteration %d", iteration), logger, iteration);
     logger(fmt::format("\t- Number of Cells: {}", mTraits->getTFNumberOfCells()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during cell finding, check the detector status and/or the selections.");
@@ -156,11 +156,10 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
       error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections. Current limit is {}", cellsPerCluster, mTrkParams[iteration].CellsPerClusterLimit));
       break;
     }
-    total += evaluateTask(&Tracker::findCellsNeighboursHybrid, "Hybrid Neighbour finding", logger, iteration);
+    total += evaluateTask(&Tracker::findCellsNeighboursHybrid, Form("Hybrid Neighbour finding iteration %d", iteration), logger, iteration);
     logger(fmt::format("\t- Number of Neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
-    total += evaluateTask(&Tracker::findRoadsHybrid, "Hybrid Track finding", logger, iteration);
+    total += evaluateTask(&Tracker::findRoads, Form("Hybrid Track finding iteration %d", iteration), logger, iteration);
     logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
-    // total += evaluateTask(&Tracker::findTracksHybrid, "Hybrid Track fitting", logger, iteration);
   }
 }
 
@@ -443,6 +442,7 @@ void Tracker::getGlobalConfiguration()
     params.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
     params.nROFsPerIterations = nROFsPerIterations;
     params.PerPrimaryVertexProcessing = tc.perPrimaryVertexProcessing;
+    params.SaveTimeBenchmarks = tc.saveTimeBenchmarks;
     for (int iD{0}; iD < 3; ++iD) {
       params.Diamond[iD] = tc.diamondPos[iD];
     }

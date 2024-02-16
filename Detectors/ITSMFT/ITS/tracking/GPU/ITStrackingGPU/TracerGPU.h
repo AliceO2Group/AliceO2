@@ -11,6 +11,9 @@
 ///
 #include "ITStracking/Definitions.h"
 
+#ifndef TRACKINGITSGPU_INCLUDE_TRACER_H
+#define TRACKINGITSGPU_INCLUDE_TRACER_H
+
 #if defined(__CUDACC__) && defined(__USE_GPU_TRACER__)
 namespace o2
 {
@@ -31,3 +34,5 @@ class Tracer
 #else
 #define RANGE(name, cid)
 #endif
+
+#endif // TRACKINGITSGPU_INCLUDE_TRACER_H

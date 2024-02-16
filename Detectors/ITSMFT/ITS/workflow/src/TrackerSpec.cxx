@@ -127,8 +127,15 @@ void TrackerDPL::init(InitContext& ic)
   mTracker->setParameters(trackParams);
 }
 
+void TrackerDPL::stop()
+{
+  LOGF(info, "CPU Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
 void TrackerDPL::run(ProcessingContext& pc)
 {
+  auto cput = mTimer.CpuTime();
+  auto realt = mTimer.RealTime();
   mTimer.Start(false);
   updateTimeDependentParams(pc);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
@@ -320,6 +327,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   }
   mTimer.Stop();
+  LOG(info) << "CPU Reconstruction time for this TF " << mTimer.CpuTime() - cput << " s (cpu), " << mTimer.RealTime() - realt << " s (wall)";
 }
 
 ///_______________________________________
