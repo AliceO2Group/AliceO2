@@ -380,7 +380,7 @@ void o2::tpc::IDCFactorization::calcIDCOne()
         const int intervalGlobal = interval + offsInterval;
         if (!idcOneSafe[indexSide].empty()) {
           RobustAverage average(std::move(idcOneSafe[indexSide][interval]));
-          const float mean = average.getMean();
+          const float mean = average.getTrunctedMean(0.05, 0.95);
           const float median = average.getMedian();
           const float rms = average.getStdDev();
           if (mean != 0) {
