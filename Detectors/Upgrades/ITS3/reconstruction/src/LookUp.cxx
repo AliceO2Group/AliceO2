@@ -15,19 +15,13 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "ITS3Reconstruction/LookUp.h"
-#include "DataFormatsITS3/CompCluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ClusterTopology.h"
 
 ClassImp(o2::its3::LookUp);
 
-using std::array;
-
-namespace o2
+namespace o2::its3
 {
-namespace its3
-{
-
-LookUp::LookUp() : mDictionary{}, mTopologiesOverThreshold{0} {}
 
 LookUp::LookUp(std::string fileName)
 {
@@ -42,7 +36,7 @@ void LookUp::loadDictionary(std::string fileName)
 
 void LookUp::setDictionary(const its3::TopologyDictionary* dict)
 {
-  if (dict) {
+  if (dict != nullptr) {
     mDictionary = *dict;
   }
   mTopologiesOverThreshold = mDictionary.mCommonMap.size();
@@ -85,10 +79,9 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[itsmft::Clu
   if (!mDictionary.mGroupMap.empty()) { // rare valid topology group
     int index = groupFinder(nRow, nCol);
     auto res = mDictionary.mGroupMap.find(index);
-    return res == mDictionary.mGroupMap.end() ? its3::CompCluster::InvalidPatternID : res->second;
+    return res == mDictionary.mGroupMap.end() ? itsmft::CompCluster::InvalidPatternID : res->second;
   }
-  return its3::CompCluster::InvalidPatternID;
+  return itsmft::CompCluster::InvalidPatternID;
 }
 
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3

@@ -73,7 +73,7 @@
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
 /Detectors/TRD                     @f3sch @bazinski @martenole
 /Detectors/Upgrades                @mconcas
-/Detectors/Upgrades/ITS3           @fgrosa @arossi81 @mconcas
+/Detectors/Upgrades/ITS3           @fgrosa @arossi81 @mconcas @f3sch
 /Detectors/ZDC                     @coppedis
 /Detectors/CTF                     @shahor02
 /Detectors/Raw                     @shahor02

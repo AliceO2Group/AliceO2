@@ -1,0 +1,487 @@
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <sstream>
+#include <vector>
+
+#include "TEnv.h"
+#include "TFile.h"
+#include "TTree.h"
+#include "TGeoManager.h"
+#include "TGeoMatrix.h"
+#include "TGeoGlobalMagField.h"
+#include "TGeoVolume.h"
+
+#include "TGLViewer.h"
+
+#include <ROOT/REveElement.hxx>
+#include <ROOT/REveGeoPolyShape.hxx>
+#include <ROOT/REveGeoShape.hxx>
+#include <ROOT/REveManager.hxx>
+#include <ROOT/REveTrackPropagator.hxx>
+#include <ROOT/REvePointSet.hxx>
+#include <ROOT/REveCompound.hxx>
+#include <ROOT/REveScene.hxx>
+#include <ROOT/REveProjections.hxx>
+#include <ROOT/REveProjectionManager.hxx>
+#include <ROOT/REveTrans.hxx>
+#include <ROOT/REveTrack.hxx>
+#include <ROOT/REveViewer.hxx>
+
+#include "DataFormatsITS/TrackITS.h"
+#include "ITSMFTSimulation/Hit.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "DetectorsBase/Propagator.h"
+#include "Field/MagneticField.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCEventHeader.h"
+
+#endif
+
+R__LOAD_LIBRARY(libGeom);
+R__LOAD_LIBRARY(libROOTEve);
+
+namespace REX = ROOT::Experimental;
+
+REX::REveManager* gREveManger{nullptr};
+
+TGeoNode* getNodeFromPath(const std::string& path)
+{
+  TGeoNode* node = gGeoManager->GetTopNode();
+  std::istringstream f(path);
+  std::string s;
+  while (getline(f, s, '/')) {
+    node = node->GetVolume()->FindNode(s.c_str());
+    if (node == nullptr) {
+      Error("getNodeFromPath", "No path %s in %s", s.c_str(), path.c_str());
+      break;
+    }
+  }
+
+  return node;
+}
+
+void makeEveGeoShape(TGeoNode* n, REX::REveTrans& trans, REX::REveElement* holder)
+{
+  auto gss = n->GetVolume()->GetShape();
+  auto b1s = new REX::REveGeoShape(n->GetName());
+  b1s->InitMainTrans();
+  b1s->RefMainTrans().SetFrom(trans.Array());
+  b1s->SetShape(gss);
+  b1s->SetMainColor(n->GetColour());
+  b1s->SetMainTransparency(0);
+  b1s->SetNSegments(80);
+  b1s->SetPickable(false);
+  holder->AddElement(b1s);
+}
+
+void addChildNodes(TGeoNode* n, REX::REveTrans& trans, REX::REveElement* holder, const std::vector<std::string>& filters)
+{
+  for (int i{0}; i < n->GetNdaughters(); ++i) {
+    auto c = n->GetDaughter(i);
+    std::string name = c->GetName();
+    bool filtered{true};
+    for (const auto& filter : filters) {
+      if (name.find(filter) == name.npos) {
+        filtered = false;
+        break;
+      }
+    }
+    if (filtered) {
+      continue;
+    }
+    REX::REveTrans ctrans;
+    ctrans.SetFrom(trans.Array());
+    {
+      TGeoMatrix* gm = c->GetMatrix();
+      const Double_t* rm = gm->GetRotationMatrix();
+      const Double_t* tv = gm->GetTranslation();
+      REX::REveTrans t;
+      t(1, 1) = rm[0];
+      t(1, 2) = rm[1];
+      t(1, 3) = rm[2];
+      t(2, 1) = rm[3];
+      t(2, 2) = rm[4];
+      t(2, 3) = rm[5];
+      t(3, 1) = rm[6];
+      t(3, 2) = rm[7];
+      t(3, 3) = rm[8];
+      t(1, 4) = tv[0];
+      t(2, 4) = tv[1];
+      t(3, 4) = tv[2];
+      ctrans *= t;
+    }
+    if (!c->GetVolume()->InheritsFrom(TGeoVolumeAssembly::Class())) {
+      c->ls();
+      makeEveGeoShape(c, ctrans, holder);
+    }
+    addChildNodes(c, ctrans, holder, filters);
+  }
+}
+
+class EventManager : public REX::REveElement
+{
+ private:
+  bool fAutoplay{false};
+  int fPlayDelay{10};
+  int fCount{0};
+
+  std::chrono::time_point<std::chrono::system_clock> fPrevTime;
+  std::chrono::duration<double> fDeltaTime{std::chrono::milliseconds(500)};
+
+  std::thread* fTimerThread{nullptr};
+  std::mutex fMutex;
+  std::condition_variable fCV;
+
+  // Propagator
+  ROOT::Experimental::REveTrackPropagator* mProp{nullptr};
+  float mBz{};
+
+  // Projections
+  ROOT::Experimental::REveProjectionManager* fRPhiMng{nullptr};
+  ROOT::Experimental::REveViewer* fRPhiViewer{nullptr};
+  ROOT::Experimental::REveScene* fRPhiGeomScene{nullptr};
+  ROOT::Experimental::REveScene* fRPhiEventScene{nullptr};
+  ROOT::Experimental::REveProjectionManager* fRhoZMng{nullptr};
+  ROOT::Experimental::REveViewer* fRhoZViewer{nullptr};
+  ROOT::Experimental::REveScene* fRhoZGeomScene{nullptr};
+  ROOT::Experimental::REveScene* fRhoZEventScene{nullptr};
+  void createProjectionBase()
+  {
+    fRPhiGeomScene = gREveManger->SpawnNewScene("RPhi Geometry", "RPhi");
+    fRPhiEventScene = gREveManger->SpawnNewScene("RPhi Event Data", "RPhi");
+    fRPhiMng = new ROOT::Experimental::REveProjectionManager(ROOT::Experimental::REveProjection::kPT_RPhi);
+    fRPhiViewer = gREveManger->SpawnNewViewer("RPhi View", "");
+    fRPhiViewer->AddScene(fRPhiGeomScene);
+    fRPhiViewer->AddScene(fRPhiEventScene);
+    fRPhiViewer->SetCameraType(ROOT::Experimental::REveViewer::kCameraOrthoXOY);
+  {
+        auto p = fRPhiMng->GetProjection();
+        p->AddPreScaleEntry(0, 0, 4);
+        p->AddPreScaleEntry(0, 5, 1);
+        p->SetUsePreScale(true);
+      }
+
+    fRhoZGeomScene = gREveManger->SpawnNewScene("RhoZ Geometry", "RhoZ");
+    fRhoZEventScene = gREveManger->SpawnNewScene("RhoZ Event Data", "RhoZ");
+    fRhoZMng = new ROOT::Experimental::REveProjectionManager(ROOT::Experimental::REveProjection::kPT_RhoZ);
+    fRhoZViewer = gREveManger->SpawnNewViewer("RhoZ View", "");
+    fRhoZViewer->AddScene(fRhoZGeomScene);
+    fRhoZViewer->AddScene(fRhoZEventScene);
+    fRhoZViewer->SetCameraType(ROOT::Experimental::REveViewer::kCameraOrthoXOY);
+
+    // Project the geometry now
+    for (auto& ie : gREveManger->GetGlobalScene()->RefChildren()) {
+      fRPhiMng->SetCurrentDepth(0);
+      fRPhiMng->ImportElements(ie, fRPhiGeomScene);
+      fRhoZMng->SetCurrentDepth(0);
+      fRhoZMng->ImportElements(ie, fRhoZGeomScene);
+    }
+  }
+
+  void projectEvent()
+  {
+    int depth{20};
+    for (const auto& ie : gREveManger->GetEventScene()->RefChildren()) {
+      // fRPhiMng->SetCurrentDepth(depth);
+      fRPhiMng->ImportElements(ie, fRPhiEventScene);
+      // fRhoZMng->SetCurrentDepth(depth);
+      fRhoZMng->ImportElements(ie, fRhoZEventScene);
+      depth -= 10;
+    }
+  }
+
+  void addHits()
+  {
+    auto eve = gREveManger->GetEventScene();
+    auto holder = new ROOT::Experimental::REveCompound("Hits");
+
+    const auto& hits = fEventData[fCurEvent].fHits;
+    auto ps = new ROOT::Experimental::REvePointSet("Hits", "Hits title", hits.size());
+    ps->SetAlwaysSecSelect(true);
+
+    for (int iPoint{0}; iPoint < hits.size(); ++iPoint) {
+      const auto& hit = hits.at(iPoint);
+      ps->SetPoint(iPoint, hit.GetX(), hit.GetY(), hit.GetZ());
+    }
+
+    ps->SetPickable(false);
+    ps->SetMarkerColor(kRed);
+    ps->SetMarkerSize(8);
+    ps->SetMarkerStyle(1);
+    holder->AddElement(ps);
+    eve->AddElement(holder);
+  }
+
+  void addRecoTracks()
+  {
+    auto eve = gREveManger->GetEventScene();
+    auto holder = new ROOT::Experimental::REveCompound("RecoTracks");
+
+    // For some reason we need to re-instantiate the propagator on every call
+    mProp = new ROOT::Experimental::REveTrackPropagator();
+    mProp->SetMagFieldObj(new ROOT::Experimental::REveMagFieldConst(0., 0., 1 / (mBz * 1000))); // needs inverted tesla
+    mProp->SetMaxStep(200);
+    mProp->SetEditPathMarks(false);
+    mProp->SetMaxR(50);
+    mProp->SetMaxZ(150);
+    mProp->SetMaxOrbs(6);
+    mProp->SetStepper(ROOT::Experimental::REveTrackPropagator::EStepper_e::kHelix);
+
+    const auto& tracks = fEventData[fCurEvent].fTracks;
+    const auto& labels = fEventData[fCurEvent].fTracksLabel;
+    for (int i{0}; i < tracks.size(); ++i) {
+      const auto& lbl = labels[i];
+      auto track = tracks[i];
+      if (!lbl.isValid() || lbl.getEventID() != fCurEvent) {
+        continue;
+      }
+      const auto& mc = fEventData[fCurEvent].fMCTracks.at(lbl.getTrackID());
+      TParticle p;
+      p.SetPdgCode(mc.GetPdgCode());
+      track.propagate(track.getAlpha(), 0, mBz);
+      p.SetProductionVertex(track.getX(), track.getY(), track.getZ(), 1);
+      std::array<float, 3> pxyz{};
+      track.getPxPyPzGlo(pxyz);
+      p.SetMomentum(pxyz[0], pxyz[1], pxyz[2], 1);
+      auto eveTrack = new ROOT::Experimental::REveTrack(&p, i, mProp);
+      eveTrack->MakeTrack();
+      eveTrack->SetMainColor(kBlue);
+      eveTrack->SetSmooth(true);
+      eveTrack->SetPickable(false);
+      holder->AddElement(eveTrack);
+    }
+
+    eve->AddElement(holder);
+  }
+
+  void createEventScene()
+  {
+    addHits();
+    addRecoTracks();
+  }
+
+  void initData()
+  {
+    // Kine
+    {
+      Info("initData", "Reading Kine data");
+      auto kineFile = TFile::Open("o2sim_Kine.root");
+      auto mcTree = kineFile->Get<TTree>("o2sim");
+      std::vector<o2::MCTrack>* mcArr = nullptr;
+      mcTree->SetBranchAddress("MCTrack", &mcArr);
+      o2::dataformats::MCEventHeader* mcEvent = nullptr;
+      mcTree->SetBranchAddress("MCEventHeader.", &mcEvent);
+      for (int i{0}; mcTree->LoadTree(i) >= 0; ++i) {
+        mcTree->GetEvent(i);
+        auto& eve = fEventData.emplace_back();
+        eve.fMCTracks = *mcArr;
+        eve.fEvent = *mcEvent;
+      }
+    }
+
+    // Hits
+    {
+      Info("initData", "Reading Hits data");
+      auto hitFile = TFile::Open("o2sim_HitsIT3.root", "READ");
+      auto hitTree = hitFile->Get<TTree>("o2sim");
+      auto nevH = hitTree->GetEntries(); // hits are stored as one event per entry
+      std::vector<o2::itsmft::Hit>* hitArray = nullptr;
+      hitTree->SetBranchAddress("IT3Hit", &hitArray);
+      for (int iEvent{0}; iEvent < nevH; ++iEvent) {
+        hitTree->GetEntry(iEvent);
+        fEventData[iEvent].fHits = *hitArray;
+      }
+    }
+
+    // Reco Tracks
+    {
+      Info("initData", "Reading Reco data");
+      auto tracFile = TFile::Open("o2trac_its3.root");
+      auto recTree = tracFile->Get<TTree>("o2sim");
+      std::vector<o2::its::TrackITS>* recArr = nullptr;
+      recTree->SetBranchAddress("IT3Track", &recArr);
+      std::vector<o2::MCCompLabel>* trkLabArr = nullptr;
+      recTree->SetBranchAddress("IT3TrackMCTruth", &trkLabArr);
+      for (int i{0}; recTree->LoadTree(i) >= 0; ++i) {
+        recTree->GetEntry(i);
+        for (int iTrk{0}; iTrk < recArr->size(); ++iTrk) {
+          const auto& lbl = trkLabArr->at(iTrk);
+          if (!lbl.isValid()) {
+            continue;
+          }
+          fEventData[lbl.getEventID()].fTracks.push_back(recArr->at(iTrk));
+          fEventData[lbl.getEventID()].fTracksLabel.push_back(lbl);
+        }
+      }
+    }
+
+    // Mag field
+    {
+      Info("initData", "Reading GRP data");
+      o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+      auto field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+      double orig[3] = {0., 0., 0.};
+      mBz = field->getBz(orig);
+    }
+  }
+
+  struct EventData {
+    std::vector<o2::its::TrackITS> fTracks{};
+    std::vector<o2::MCCompLabel> fTracksLabel{};
+    std::vector<o2::MCTrack> fMCTracks{};
+    std::vector<o2::itsmft::Hit> fHits{};
+    o2::dataformats::MCEventHeader fEvent{};
+  };
+  std::vector<EventData> fEventData{};
+  int fCurEvent{0};
+
+ public:
+  EventManager()
+  {
+    SetName("EventManager");
+    // Register itself to world
+    gREveManger->GetWorld()->AddElement(this);
+    // Register Commands
+    gREveManger->GetWorld()->AddCommand("QuitRoot", "sap-icon://log", this, "QuitRoot()");
+    gREveManger->GetWorld()->AddCommand("PrevEvent", "sap-icon://back", this, "PrevEvent()");
+    gREveManger->GetWorld()->AddCommand("NextEvent", "sap-icon://next", this, "NextEvent()");
+    gREveManger->GetWorld()->AddCommand("Autoplay", "sap-icon://refresh", this, "Autoplay()");
+    // Create all necessary global projections
+    createProjectionBase();
+    // read event data
+    initData();
+    // First call to create scene
+    createEventScene();
+    // projectEvent();
+    // setup global viewer
+    gREveManger->GetViewers()->SwitchColorSet();
+    for (auto& c : gREveManger->GetViewers()->RefChildren()) {
+        auto cc = dynamic_cast<ROOT::Experimental::REveViewer*>(c);
+    }
+  }
+
+  ~EventManager() override = default;
+  void PrevEvent()
+  {
+    if (--fCurEvent < 0) {
+      ++fCurEvent;
+      Warning("NextEvent", "Min Events Reached; staying");
+      return;
+    }
+    LoadEvent();
+  }
+
+  void NextEvent()
+  {
+    if (++fCurEvent >= fEventData.size()) {
+      --fCurEvent;
+      Warning("NextEvent", "Max Events Reached; staying");
+      return;
+    }
+    LoadEvent();
+  }
+
+  void LoadEvent()
+  {
+    // Clear current event
+    auto scene = gREveManger->GetEventScene();
+    scene->DestroyElements();
+    // do next event
+    createEventScene();
+    // projectEvent();
+  }
+
+  void autoplay_scheduler()
+  {
+    while (true) {
+      bool autoplay = false;
+      {
+        std::unique_lock<std::mutex> lock{fMutex};
+        if (!fAutoplay) {
+          // printf("exit thread pre wait\n");
+          return;
+        }
+        if (fCV.wait_for(lock, fDeltaTime) != std::cv_status::timeout) {
+          printf("autoplay not timed out \n");
+          if (!fAutoplay) {
+            printf("exit thread post wait\n");
+            return;
+          } else {
+            continue;
+          }
+        }
+        autoplay = fAutoplay;
+      }
+      if (autoplay) {
+        REX::REveManager::ChangeGuard ch;
+        NextEvent();
+      } else {
+        return;
+      }
+    }
+  }
+
+  void Autoplay()
+  {
+    static std::mutex autoplay_mutex;
+    std::unique_lock<std::mutex> aplock{autoplay_mutex};
+    {
+      std::unique_lock<std::mutex> lock{fMutex};
+      fAutoplay = !fAutoplay;
+      if (fAutoplay) {
+        if (fTimerThread != nullptr) {
+          fTimerThread->join();
+          delete fTimerThread;
+          fTimerThread = nullptr;
+        }
+        NextEvent();
+        fTimerThread = new std::thread{[this] { autoplay_scheduler(); }};
+      } else {
+        fCV.notify_all();
+      }
+    }
+  }
+
+  virtual void QuitRoot()
+  {
+    Info("EventManager", "Quiting ROOT\n");
+    REX::REveManager::QuitRoot();
+  }
+};
+
+void geom()
+{
+  // disable browser cache - all scripts and html files will be loaded every
+  // time, useful for development
+  gEnv->SetValue("WebGui.HttpMaxAge", 0);
+  gEnv->SetValue("WebEve.GLViewer", "Three");
+  gREveManger = REX::REveManager::Create();
+
+  // Read in all relevant geometries
+  gREveManger->GetGeometry("o2sim_geometry.root");
+  {
+    const std::vector<std::string> filters{"ITS3PixelArray"};
+    auto holder = new REX::REveElement("ITS3_IB");
+    auto n = getNodeFromPath("barrel_1/ITSV_2/ITSUWrapVol0_1");
+    REX::REveTrans trans;
+    addChildNodes(n, trans, holder, filters);
+    gREveManger->GetGlobalScene()->AddElement(holder);
+  }
+  //{
+  //  const std::vector<std::string> filters{"ITSUSensor"};
+  //  auto holder = new REX::REveElement("ITS3_OB");
+  //  REX::REveTrans trans1, trans2;
+  //  auto n = getNodeFromPath("barrel_1/ITSV_2/ITSUWrapVol1_1");
+  //  addChildNodes(n, trans1, holder, filters);
+  //  // n = getNodeFromPath("barrel_1/ITSV_2/ITSUWrapVol2_1");
+  //  // addChildNodes(n, trans2, holder, filters);
+  //  gREveManger->GetGlobalScene()->AddElement(holder);
+  //}
+
+  // Create the Event Manager
+  new EventManager();
+
+  // Show scene
+  gREveManger->Show();
+}

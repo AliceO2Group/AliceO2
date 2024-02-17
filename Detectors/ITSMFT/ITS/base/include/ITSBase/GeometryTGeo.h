@@ -51,14 +51,14 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // it is cheaper to use T2GRot
   using DetMatrixCache::getMatrixT2G;
 
-  static GeometryTGeo* Instance()
+  static GeometryTGeo* Instance(bool isITS3 = false)
   {
     // get (create if needed) a unique instance of the object
 #ifdef GPUCA_STANDALONE
     return nullptr; // TODO: DR: Obviously wrong, but to make it compile for now
 #else
     if (!sInstance) {
-      sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
+      sInstance = std::make_unique<GeometryTGeo>(true, 0, isITS3);
     }
     return sInstance.get();
 #endif
@@ -77,6 +77,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
            o2::math_utils::TransformType::T2G,
            o2::math_utils::TransformType::L2G)*/
   );
+  GeometryTGeo(bool build = kFALSE, int loadTrans = 0, bool isITS3 = false);
 
   /// Default destructor
   ~GeometryTGeo() override;
@@ -280,6 +281,22 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getITS3ModulePattern() { return sModuleNameITS3.c_str(); }
   static const char* getITS3ChipPattern() { return sChipNameITS3.c_str(); }
   static const char* getITS3SensorPattern() { return sSensorNameITS3.c_str(); }
+
+  static const char* getITS3LayerPatternRaw() { return sLayerNameITS3.c_str(); };
+  static const char* getITS3LayerPattern(int layer) { return Form("%s%d", getITS3LayerPatternRaw(), layer); };
+  static const char* getITS3CarbonFormPatternRaw() { return sHalfBarrelNameITS3.c_str(); };
+  static const char* getITS3CarbonFormPattern(int layer) { return Form("%s%d", getITS3CarbonFormPatternRaw(), layer); };
+  static const char* getITS3ChipPatternRaw() { return sStaveNameITS3.c_str(); };
+  static const char* getITS3ChipPattern(int layer) { return Form("%s%d", getITS3ChipPatternRaw(), layer); };
+  static const char* getITS3SegmentPatternRaw() { return sHalfStaveNameITS3.c_str(); };
+  static const char* getITS3SegmentPattern(int layer) { return Form("%s%d", getITS3SegmentPatternRaw(), layer); };
+  static const char* getITS3RSUPatternRaw() { return sModuleNameITS3.c_str(); };
+  static const char* getITS3RSUPattern(int layer) { return Form("%s%d", getITS3RSUPatternRaw(), layer); };
+  static const char* getITS3TilePatternRaw() { return sChipNameITS3.c_str(); };
+  static const char* getITS3TilePattern(int layer) { return Form("%s%d", getITS3TilePatternRaw(), layer); };
+  static const char* getITS3PixelArrayPatternRaw() { return sSensorNameITS3.c_str(); };
+  static const char* getITS3PixelArrayPattern(int layer) { return Form("%s%d", getITS3PixelArrayPatternRaw(), layer); };
+
   /// sym name of the layer
   static const char* composeSymNameITS(bool isITS3 = false);
   /// sym name of the layer
@@ -301,7 +318,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* composeSymNameChip(int lr, int hba, int sta, int ssta, int mod, int chip, bool isITS3 = false);
 
   // get tracking frame alpha for ITS3 clusters in global coordinates
-  float getAlphaFromGlobalITS3(int isn, o2::math_utils::Point3D<float> gloXYZ);
+  static float getAlphaFromGlobalITS3(const o2::math_utils::Point3D<float>& gloXYZ);
 
   // create matrix for transformation from tracking frame to local one for ITS3
   const Mat3D getT2LMatrixITS3(int isn, float alpha);
@@ -395,20 +412,20 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sSensorName;        ///< Sensor name
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
-  static std::string sLayerNameITS3;      ///< Layer name for ITS3
-  static std::string sHalfBarrelNameITS3; ///< HalfBarrel name for ITS3
-  static std::string sStaveNameITS3;      ///< Stave name for ITS3
-  static std::string sHalfStaveNameITS3;  ///< HalfStave name for ITS3
-  static std::string sModuleNameITS3;     ///< Module name for ITS3
-  static std::string sChipNameITS3;       ///< Chip name for ITS3
-  static std::string sSensorNameITS3;     ///< Sensor name for ITS3
+  static const std::string sLayerNameITS3;      ///< Layer name for ITS3
+  static const std::string sHalfBarrelNameITS3; ///< HalfBarrel name for ITS3
+  static const std::string sStaveNameITS3;      ///< Stave name for ITS3
+  static const std::string sHalfStaveNameITS3;  ///< HalfStave name for ITS3
+  static const std::string sModuleNameITS3;     ///< Module name for ITS3
+  static const std::string sChipNameITS3;       ///< Chip name for ITS3
+  static const std::string sSensorNameITS3;     ///< Sensor name for ITS3
 
  private:
 #ifndef GPUCA_STANDALONE
   static std::unique_ptr<o2::its::GeometryTGeo> sInstance; ///< singletone instance
 #endif
 
-  ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
+  ClassDefOverride(GeometryTGeo, 2); // ITS geometry based on TGeo
 };
 } // namespace its
 } // namespace o2

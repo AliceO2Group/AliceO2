@@ -11,14 +11,16 @@
 
 /// \file Clusterer.cxx
 /// \brief Implementation of the ITS cluster finder
-#include <algorithm>
+
+#include "ITS3Reconstruction/Clusterer.h"
+
 #include <TTree.h>
 #include "Framework/Logger.h"
-#include "ITSMFTBase/GeometryTGeo.h"
-#include "ITS3Reconstruction/Clusterer.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"
+
+#include <algorithm>
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -27,7 +29,6 @@ using namespace o2::itsmft;
 
 namespace o2::its3
 {
-//__________________________________________________
 void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClus,
                         PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl)
 {
@@ -80,7 +81,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       mThreads.resize(nThreads);
       for (int i = oldSz; i < nThreads; i++) {
         mThreads[i] = std::make_unique<ClustererThread>(this, i);
-        mThreads[i]->nLayersITS3 = mNlayersITS3;
       }
     }
 #ifdef WITH_OPENMP
@@ -174,12 +174,13 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
     if (parent->mMaxBCSeparationToMask > 0) { // mask pixels fired from the previous ROF
       const auto& chipInPrevROF = parent->mChipsOld[chipID];
       if (std::abs(rofPtr.getBCData().differenceInBC(chipInPrevROF.getInteractionRecord())) < parent->mMaxBCSeparationToMask) {
-        parent->mMaxRowColDiffToMask ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
+        parent->mMaxRowColDiffToMask != 0 ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
       }
     }
     auto nclus0 = compClusPtr->size();
     auto validPixID = curChipData->getFirstUnmasked();
     auto npix = curChipData->getData().size();
+    LOGP(debug, "ClustererThread: Chip={}  npix={} validPixID={} -> valid={} -> singleHit={}", chipID, npix, validPixID, validPixID < npix, validPixID + 1 == npix);
     if (validPixID < npix) { // chip data may have all of its pixels masked!
       auto valp = validPixID++;
       if (validPixID == npix) { // special case of a single pixel fired on the chip
@@ -243,7 +244,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         const auto pix = pixData[pixEntry.second]; // PixelData
         pixArrBuff.push_back(pix);                 // needed for cluster topology
         bbox.adjust(pix.getRowDirect(), pix.getCol());
-        if (labelsClusPtr) {
+        if (labelsClusPtr != nullptr) {
           if (parent->mSquashingDepth) { // the MCtruth for this pixel is stored in chip data: due to squashing we lose contiguity
             fetchMCLabels(curChipData->getOrderedPixId(pixEntry.second), labelsDigPtr, nlab);
           } else { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
@@ -311,7 +312,9 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
   // add to compact clusters, which must be always filled
   unsigned char patt[ClusterPattern::MaxPatternBytes]{0x1 << (7 - (0 % 8))}; // unrolled 1 hit version of full loop in finishChip
   uint16_t pattID = (parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(1, 1, patt);
+  LOGP(debug, "PattID: findGroupID(1,1,{})={}", patt[0], pattID);
   if ((pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) && patternsPtr) {
+    LOGP(debug, "ClustererThread: Invalid or Group?");
     patternsPtr->emplace_back(1); // rowspan
     patternsPtr->emplace_back(1); // colspan
     patternsPtr->insert(patternsPtr->end(), std::begin(patt), std::begin(patt) + 1);
@@ -320,7 +323,7 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
 }
 
 //__________________________________________________
-Clusterer::Clusterer() : mPattIdConverter()
+Clusterer::Clusterer()
 {
 #ifdef _PERFORM_TIMING_
   mTimer.Stop();
@@ -336,19 +339,12 @@ void Clusterer::ClustererThread::initChip(const ChipPixelData* curChipData, uint
   // init chip with the 1st unmasked pixel (entry "from" in the mChipData)
   size = itsmft::SegmentationAlpide::NRows + 2;
   int chipId = curChipData->getChipID();
-  if (chipId < 6) {
-    SegmentationSuperAlpide seg(chipId / 2);
-    size = seg.mNRows + 2;
-  } else if (chipId < 10 && nLayersITS3 == 4) {
-    SegmentationSuperAlpide seg(3);
-    size = seg.mNRows + 2;
+  if (its3::constants::detID::isDetITS3(chipId)) {
+    size = its3::SegmentationSuperAlpide::mNRows + 2;
   }
-  if (column1) {
-    delete[] column1;
-  }
-  if (column2) {
-    delete[] column2;
-  }
+
+  delete[] column1;
+  delete[] column2;
   column1 = new int[size];
   column2 = new int[size];
   column1[0] = column1[size - 1] = -1;
@@ -464,10 +460,9 @@ void Clusterer::clear()
 //__________________________________________________
 void Clusterer::print() const
 {
-  // print settings
+  LOGP(info, "Clusterizer has {} chips registered", mChips.size());
   LOGP(info, "Clusterizer squashes overflow pixels separated by {} BC and <= {} in row/col seeking down to {} neighbour ROFs", mMaxBCSeparationToSquash, mMaxRowColDiffToMask, mSquashingDepth);
-  LOG(info) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
-            << mMaxRowColDiffToMask << " in row/col";
+  LOGP(info, "Clusterizer masks overflow pixels separated by < {} BC and <= {} in row/col", mMaxBCSeparationToMask, mMaxRowColDiffToMask);
 
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally

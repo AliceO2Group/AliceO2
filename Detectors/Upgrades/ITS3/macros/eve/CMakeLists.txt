@@ -8,10 +8,3 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-
-o2_add_library(DataFormatsITS3
-               SOURCES src/CompCluster.cxx)
-
-o2_target_root_dictionary(DataFormatsITS3
-                          HEADERS include/DataFormatsITS3/CompCluster.h
-                          LINKDEF src/ITS3DataFormatsLinkDef.h)
