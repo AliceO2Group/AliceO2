@@ -123,7 +123,7 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
           for (int i = 0; i < Tracks()[j].NHits(); i++) {
             out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
           }
-          if (!mRec->GetProcessingSettings().comparableDebutOutput) {
+          if (!mRec->GetProcessingSettings().deterministicGPUReconstruction) {
             out << "(Track: " << j << ")";
           }
           out << std::endl;
@@ -143,7 +143,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   out << "\nTracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
   std::vector<int> Ids(nTracklets);
   std::iota(Ids.begin(), Ids.end(), 0);
-  if (mRec->GetProcessingSettings().comparableDebutOutput) {
+  if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
     std::sort(Ids.begin(), Ids.end(), [this](const int& a, const int& b) {
       if (this->Tracklets()[a].FirstRow() == this->Tracklets()[b].FirstRow()) {
         return this->Tracklets()[a].Param().Y() > this->Tracklets()[b].Param().Y();
