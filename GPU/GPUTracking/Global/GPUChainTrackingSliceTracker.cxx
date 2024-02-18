@@ -192,7 +192,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         continue;
       }
     }
-    if (GetProcessingSettings().comparableDebutOutput) {
+    if (GetProcessingSettings().deterministicGPUReconstruction) {
       runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::hitData>(GetGridBlk(GPUCA_ROW_COUNT, useStream), {iSlice});
     }
     if (!doGPU && trk.CheckEmptySlice() && GetProcessingSettings().debugLevel == 0) {
@@ -247,7 +247,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       runKernel<GPUTPCStartHitsSorter>(GetGridAuto(useStream), {iSlice});
     }
 #endif
-    if (GetProcessingSettings().comparableDebutOutput) {
+    if (GetProcessingSettings().deterministicGPUReconstruction) {
       runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::startHits>(GetGrid(1, 1, useStream), {iSlice});
     }
     DoDebugAndDump(RecoStep::TPCSliceTracking, 32, trk, &GPUTPCTracker::DumpStartHits, *mDebugFile);
@@ -261,7 +261,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (!(doGPU || GetProcessingSettings().debugLevel >= 1) || GetProcessingSettings().trackletConstructorInPipeline) {
       runKernel<GPUTPCTrackletConstructor>(GetGridAuto(useStream), {iSlice});
       DoDebugAndDump(RecoStep::TPCSliceTracking, 128, trk, &GPUTPCTracker::DumpTrackletHits, *mDebugFile);
-      if (GetProcessingSettings().debugMask & 256 && GetProcessingSettings().comparableDebutOutput < 2) {
+      if (GetProcessingSettings().debugMask & 256 && GetProcessingSettings().deterministicGPUReconstruction < 2) {
         trk.DumpHitWeights(*mDebugFile);
       }
     }
@@ -269,7 +269,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (!(doGPU || GetProcessingSettings().debugLevel >= 1) || GetProcessingSettings().trackletSelectorInPipeline) {
       runKernel<GPUTPCTrackletSelector>(GetGridAuto(useStream), {iSlice});
       runKernel<GPUTPCGlobalTrackingCopyNumbers>({1, -ThreadCount(), useStream}, {iSlice}, {}, 1);
-      if (GetProcessingSettings().comparableDebutOutput) {
+      if (GetProcessingSettings().deterministicGPUReconstruction) {
         runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::sliceTracks>(GetGrid(1, 1, useStream), {iSlice});
       }
       TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, trk.MemoryResCommon(), useStream, &mEvents->slice[iSlice]);
@@ -328,7 +328,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         runKernel<GPUTPCTrackletSelector>(GetGridAuto(useStream), {iSlice, runSlices});
         runKernel<GPUTPCGlobalTrackingCopyNumbers>({1, -ThreadCount(), useStream}, {iSlice}, {}, runSlices);
         for (unsigned int k = iSlice; k < iSlice + runSlices; k++) {
-          if (GetProcessingSettings().comparableDebutOutput) {
+          if (GetProcessingSettings().deterministicGPUReconstruction) {
             runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::sliceTracks>(GetGrid(1, 1, useStream), {k});
           }
           TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, processors()->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents->slice[k]);
@@ -373,7 +373,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         if (GetProcessingSettings().keepAllMemory) {
           TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &processors()->tpcTrackers[iSlice], -1, true);
           if (!GetProcessingSettings().trackletConstructorInPipeline) {
-            if (GetProcessingSettings().debugMask & 256 && GetProcessingSettings().comparableDebutOutput < 2) {
+            if (GetProcessingSettings().debugMask & 256 && GetProcessingSettings().deterministicGPUReconstruction < 2) {
               processors()->tpcTrackers[iSlice].DumpHitWeights(*mDebugFile);
             }
           }
@@ -466,7 +466,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
   }
 
-  if (GetProcessingSettings().debugMask & 1024 && !GetProcessingSettings().comparableDebutOutput) {
+  if (GetProcessingSettings().debugMask & 1024 && !GetProcessingSettings().deterministicGPUReconstruction) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       processors()->tpcTrackers[i].DumpOutput(*mDebugFile);
     }
