@@ -810,7 +810,7 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, unsigned long tag)
     GPUFatal("Trying to pop memory state from empty stack");
   }
   if (tag != 0 && std::get<3>(mNonPersistentMemoryStack.back()) != tag) {
-    GPUFatal("Tag mismatch when poping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<3>(mNonPersistentMemoryStack.back())).c_str());
+    GPUFatal("Tag mismatch when popping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<3>(mNonPersistentMemoryStack.back())).c_str());
   }
   if ((mProcessingSettings.debugLevel >= 3 || mProcessingSettings.allocDebugLevel) && (IsGPU() || mProcessingSettings.forceHostMemoryPoolSize)) {
     if (IsGPU()) {

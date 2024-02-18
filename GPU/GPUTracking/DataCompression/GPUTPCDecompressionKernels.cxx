@@ -102,8 +102,7 @@ GPUdii() void GPUTPCDecompressionKernels::decompressTrack(CompressedClusters& cm
       time = cmprClusters.timeA[trackIndex];
       pad = cmprClusters.padA[trackIndex];
     }
-    bool stored;
-    const auto cluster = decompressTrackStore(cmprClusters, clusterOffset, slice, row, pad, time, decompressor, stored);
+    const auto cluster = decompressTrackStore(cmprClusters, clusterOffset, slice, row, pad, time, decompressor);
     float y = param.tpcGeometry.LinearPad2Y(slice, row, cluster.getPad());
     float z = param.tpcGeometry.LinearTime2Z(slice, cluster.getTime());
     if (clusterIndex == 0) {
@@ -118,14 +117,16 @@ GPUdii() void GPUTPCDecompressionKernels::decompressTrack(CompressedClusters& cm
   clusterOffset += cmprClusters.nTrackClusters[trackIndex] - clusterIndex;
 }
 
-GPUdii() ClusterNative GPUTPCDecompressionKernels::decompressTrackStore(const o2::tpc::CompressedClusters& cmprClusters, const unsigned int clusterOffset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, GPUTPCDecompression& decompressor, bool& stored)
+GPUdii() ClusterNative GPUTPCDecompressionKernels::decompressTrackStore(const o2::tpc::CompressedClusters& cmprClusters, const unsigned int clusterOffset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, GPUTPCDecompression& decompressor)
 {
   unsigned int tmpBufferIndex = computeLinearTmpBufferIndex(slice, row, decompressor.mMaxNativeClustersPerBuffer);
   unsigned int currentClusterIndex = CAMath::AtomicAdd(decompressor.mNativeClustersIndex + (slice * GPUCA_ROW_COUNT + row), 1u);
   const ClusterNative c(time, cmprClusters.flagsA[clusterOffset], pad, cmprClusters.sigmaTimeA[clusterOffset], cmprClusters.sigmaPadA[clusterOffset], cmprClusters.qMaxA[clusterOffset], cmprClusters.qTotA[clusterOffset]);
-  stored = currentClusterIndex < decompressor.mMaxNativeClustersPerBuffer;
-  if (stored) {
+  if (currentClusterIndex < decompressor.mMaxNativeClustersPerBuffer) {
     decompressor.mTmpNativeClusters[tmpBufferIndex + currentClusterIndex] = c;
+  } else {
+    decompressor.raiseError(GPUErrors::ERROR_DECOMPRESSION_ATTACHED_CLUSTER_OVERFLOW, slice * 1000 + row, currentClusterIndex, decompressor.mMaxNativeClustersPerBuffer);
+    CAMath::AtomicExch(decompressor.mNativeClustersIndex + (slice * GPUCA_ROW_COUNT + row), decompressor.mMaxNativeClustersPerBuffer);
   }
   return c;
 }
