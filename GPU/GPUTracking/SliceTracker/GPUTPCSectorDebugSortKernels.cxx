@@ -84,3 +84,19 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
     return (a.HitIndex() < b.HitIndex());
   });
 }
+
+template <>
+GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels::sliceTracks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() tracker)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  auto sorter = [](const GPUTPCTrack& trk1, const GPUTPCTrack& trk2) {
+    if (trk1.NHits() == trk2.NHits()) {
+      return trk1.Param().Y() > trk2.Param().Y();
+    }
+    return trk1.NHits() > trk2.NHits();
+  };
+  GPUCommonAlgorithm::sortDeviceDynamic(tracker.Tracks(), tracker.Tracks() + tracker.CommonMemory()->nLocalTracks, sorter);
+  GPUCommonAlgorithm::sortDeviceDynamic(tracker.Tracks() + tracker.CommonMemory()->nLocalTracks, tracker.Tracks() + *tracker.NTracks(), sorter);
+}

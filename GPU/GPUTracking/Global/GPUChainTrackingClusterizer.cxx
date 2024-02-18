@@ -1031,7 +1031,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (doGPU && synchronizeCalibUpdate) {
     SynchronizeStream(0);
   }
-  if (buildNativeHost && GetProcessingSettings().debugLevel >= 4) {
+  if (buildNativeHost && (GetProcessingSettings().comparableDebutOutput || GetProcessingSettings().debugLevel >= 4)) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         std::sort(&mInputsHost->mPclusterNativeOutput[tmpNative->clusterOffset[i][j]], &mInputsHost->mPclusterNativeOutput[tmpNative->clusterOffset[i][j] + tmpNative->nClusters[i][j]]);
