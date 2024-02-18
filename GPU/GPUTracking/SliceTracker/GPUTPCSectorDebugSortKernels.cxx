@@ -41,7 +41,7 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
     for (unsigned int j = 0; j < n; j++) {
       tmp1[j] = j;
     }
-    GPUCommonAlgorithm::sortDeviceDynamic(tmp1, tmp1 + n, [&hitData, &clusterId](const calink& a, const calink& b) {
+    GPUCommonAlgorithm::sort(tmp1, tmp1 + n, [&hitData, &clusterId](const calink& a, const calink& b) {
       if (hitData[a].x != hitData[b].x) {
         return hitData[a].x < hitData[b].x;
       }
