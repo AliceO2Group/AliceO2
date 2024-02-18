@@ -94,6 +94,5 @@ void GPUTPCDecompression::RegisterMemoryAllocation()
 
 void GPUTPCDecompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  // mMaxNativeClustersPerBuffer = 81760;
-  mMaxNativeClustersPerBuffer = 12000;
+  mMaxNativeClustersPerBuffer = mRec->GetProcessingSettings().tpcMaxAttachedClustersPerSectorRow;
 }
