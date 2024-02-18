@@ -269,6 +269,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     if (!(doGPU || GetProcessingSettings().debugLevel >= 1) || GetProcessingSettings().trackletSelectorInPipeline) {
       runKernel<GPUTPCTrackletSelector>(GetGridAuto(useStream), {iSlice});
       runKernel<GPUTPCGlobalTrackingCopyNumbers>({1, -ThreadCount(), useStream}, {iSlice}, {}, 1);
+      if (GetProcessingSettings().comparableDebutOutput) {
+        runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::sliceTracks>(GetGrid(1, 1, useStream), {iSlice});
+      }
       TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, trk.MemoryResCommon(), useStream, &mEvents->slice[iSlice]);
       streamMap[iSlice] = useStream;
       if (GetProcessingSettings().debugLevel >= 3) {
@@ -325,6 +328,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         runKernel<GPUTPCTrackletSelector>(GetGridAuto(useStream), {iSlice, runSlices});
         runKernel<GPUTPCGlobalTrackingCopyNumbers>({1, -ThreadCount(), useStream}, {iSlice}, {}, runSlices);
         for (unsigned int k = iSlice; k < iSlice + runSlices; k++) {
+          if (GetProcessingSettings().comparableDebutOutput) {
+            runKernel<GPUTPCSectorDebugSortKernels, GPUTPCSectorDebugSortKernels::sliceTracks>(GetGrid(1, 1, useStream), {k});
+          }
           TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, processors()->tpcTrackers[k].MemoryResCommon(), useStream, &mEvents->slice[k]);
           streamMap[k] = useStream;
         }

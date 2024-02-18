@@ -82,21 +82,6 @@ void GPUChainTracking::RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char
 
 int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
 {
-  if (GetProcessingSettings().comparableDebutOutput && param().rec.tpc.mergerReadFromTrackerDirectly) {
-    for (unsigned int i = 0; i < NSLICES; i++) {
-      GPUTPCTracker& trk = processors()->tpcTrackers[i];
-      TransferMemoryResourcesToHost(RecoStep::NoRecoStep, &trk);
-      auto sorter = [](GPUTPCTrack& trk1, GPUTPCTrack& trk2) {
-        if (trk1.NHits() == trk2.NHits()) {
-          return trk1.Param().Y() > trk2.Param().Y();
-        }
-        return trk1.NHits() > trk2.NHits();
-      };
-      std::sort(trk.Tracks(), trk.Tracks() + trk.CommonMemory()->nLocalTracks, sorter);
-      std::sort(trk.Tracks() + trk.CommonMemory()->nLocalTracks, trk.Tracks() + *trk.NTracks(), sorter);
-      TransferMemoryResourcesToGPU(RecoStep::NoRecoStep, &trk, 0);
-    }
-  }
   mRec->PushNonPersistentMemory(qStr2Tag("TPCMERGE"));
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   bool doGPUall = doGPU && GetProcessingSettings().fullMergerOnGPU;

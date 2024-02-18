@@ -101,7 +101,7 @@ void GPUTPCTracker::DumpHitWeights(std::ostream& out)
 
 void GPUTPCTracker::DumpStartHits(std::ostream& out)
 {
-  // sort start hits and dump to file
+  // dump start hits to file
   out << "\nStart Hits: (Slice" << mISlice << ") (" << *NStartHits() << ")" << std::endl;
   for (unsigned int i = 0; i < *NStartHits(); i++) {
     out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
