@@ -51,7 +51,7 @@ fi
 export EXTINPUT=1
 export SYNCMODE=1
 export SHMTHROW=0
-export IS_SIMULATED_DATA=1
+export RUNTYPE=SYNTHETIC
 export DATADIST_NEW_DPL_CHAN=1
 
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
