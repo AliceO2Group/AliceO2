@@ -18,12 +18,17 @@
 #include <fairlogger/Logger.h>
 #include <bitset>
 
+#include <boost/algorithm/string/case_conv.hpp>
+
 using namespace o2::ctp;
 
 ClassImp(Digitizer);
 // Trigger detector config needed here.
 std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit> detinputs)
 {
+  if (!mCTPConfiguration) {
+    setCTPConfiguration(getDefaultCTPConfiguration());
+  }
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> det2ctpinp = mCTPConfiguration->getDet2InputMap();
   // To be taken from config database ?
   std::map<std::string, uint64_t> detInputName2Mask =
@@ -136,13 +141,14 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
 {
   classmask = 0;
   for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
-    if (tcl.cluster->name == "emc") {
+    auto clustername = boost::algorithm::to_lower_copy(tcl.cluster->name); // make case-insensitive for string comparison
+    if (clustername == "emc") {
       // check if Min Bias EMC class
       bool tvxMBemc = tcl.name.find("C0TVX-B-NOPF-EMC") != std::string::npos; // 2023
       tvxMBemc |= tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
       tvxMBemc |= tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
       tvxMBemc |= tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
-      if (tcl.cluster->name == "emc") {
+      if (clustername == "emc") {
         tvxMBemc |= tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
       }
       if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
@@ -170,7 +176,14 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
   LOG(info) << "input mask:" << ctpinpmask;
   LOG(info) << "class mask:" << classmask;
 }
-void Digitizer::init()
+
+void Digitizer::setCTPConfiguration(o2::ctp::CTPConfiguration* config)
+{
+  mCTPConfiguration = config;
+  LOG(info) << *mCTPConfiguration;
+}
+
+o2::ctp::CTPConfiguration* Digitizer::getDefaultCTPConfiguration()
 {
   // CTP Configuration
   if (mCCDBServer.empty()) {
@@ -182,7 +195,12 @@ void Digitizer::init()
   mgr.setURL(mCCDBServer);
   map<string, string> metadata = {};
   long timestamp = 1546300800000;
-  mCTPConfiguration = mgr.getSpecific<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig, timestamp, metadata);
-  mCTPConfiguration->printStream(std::cout);
+
+  auto config = mgr.getSpecific<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig, timestamp, metadata);
   LOG(info) << " @@@ CTP Digitizer:: CCDB connected " << std::endl;
+  return config;
+}
+
+void Digitizer::init()
+{
 }
