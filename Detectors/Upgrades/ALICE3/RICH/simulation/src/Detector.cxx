@@ -169,6 +169,13 @@ void Detector::createGeometry()
                          (float)mThetaBi[iRing],
                          GeometryTGeo::getRICHVolPattern()};
   }
+
+  if (richPars.enableFWDRich) {
+    mFWDRich.createFWDRich(vRICH);
+  }
+  if (richPars.enableBWDRich) {
+    mBWDRich.createBWDRich(vRICH);
+  }
 }
 
 void Detector::InitializeO2Detector()
@@ -311,8 +318,8 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 
 void Detector::prepareLayout()
 { // Mere translation of Nicola's code
-  LOGP(info, "Setting up ODD layout for bRICH");
   auto& richPars = RICHBaseParam::Instance();
+  LOGP(info, "Setting up {} layout for bRICH", richPars.oddGeom ? "odd" : "even");
 
   bool isOdd = richPars.oddGeom;
   mThetaBi.resize(richPars.nRings);
@@ -390,6 +397,16 @@ void Detector::prepareLayout()
   for (size_t iRing{0}; iRing < richPars.nRings; ++iRing) {
     mR0Radiator[iRing] = mR0Tilt[iRing] - (mTRplusG[iRing] - richPars.radiatorThickness / 2) * TMath::Cos(mThetaBi[iRing]);
     mR0PhotoDet[iRing] = mR0Tilt[iRing] - (richPars.detectorThickness / 2) * TMath::Cos(mThetaBi[iRing]);
+  }
+
+  // FWD and BWD RICH
+  if (richPars.enableFWDRich) {
+    LOGP(info, "Setting up FWD RICH layout");
+    mFWDRich = FWDRich();
+  }
+  if (richPars.enableBWDRich) {
+    LOGP(info, "Setting up BWD RICH layout");
+    mBWDRich = BWDRich();
   }
 }
 } // namespace rich

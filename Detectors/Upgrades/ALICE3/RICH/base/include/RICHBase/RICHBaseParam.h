@@ -29,7 +29,26 @@ struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
   int nRings = 23;
   int nTiles = 36;
   bool oddGeom = true;
-  std::string configFile = "";
+
+  // FWD and BWD RICH
+  bool enableFWDRich = true;
+  bool enableBWDRich = true;
+
+  // Aerogel:
+  float zAerogelMin = 375.f;
+  float zAerogelMax = 377.f;
+  float rAerogelMin = 13.7413f;
+  float rAerogelMax = 103.947f;
+  // Argon:
+  float zArgonMin = 377.f;
+  float zArgonMax = 407.f;
+  float rArgonMin = 13.7413f;
+  float rArgonMax = 103.947f;
+  // Detector:
+  float zDetectorMin = 407.f;
+  float zDetectorMax = 407.2f;
+  float rDetectorMin = 13.7413f;
+  float rDetectorMax = 103.947f;
 
   O2ParamDef(RICHBaseParam, "RICHBase");
 };
