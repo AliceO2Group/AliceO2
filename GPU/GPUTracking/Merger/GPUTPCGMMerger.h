@@ -156,7 +156,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void UnpackSaveNumber(int id);
   GPUd() void UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
   GPUd() void MergeCE(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool nOutput);
+  GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool output);
   GPUd() void MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
   template <int I>
@@ -186,6 +186,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
+  void DumpTrackLinks(std::ostream& out, bool output);
   void DumpMergedWithinSlices(std::ostream& out);
   void DumpMergedBetweenSlices(std::ostream& out);
   void DumpCollected(std::ostream& out);
