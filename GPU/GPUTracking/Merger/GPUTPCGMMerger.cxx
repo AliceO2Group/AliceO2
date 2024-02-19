@@ -280,7 +280,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mTrackCCRoots, mNTotalSliceTracks);
   void* memMax = mem;
   mem = memBase;
-  computePointerWithAlignment(mem, mTrackIDs, mNMaxTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
+  computePointerWithAlignment(mem, mTrackIDs, GPUCA_NSLICES * mNMaxSingleSliceTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
   if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
     computePointerWithAlignment(mem, mTmpSortMemory, mNTotalSliceTracks);
   }
