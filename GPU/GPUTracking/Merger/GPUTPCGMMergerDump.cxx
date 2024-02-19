@@ -68,8 +68,18 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
   out << std::setprecision(ss);
 }
 
+void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output)
+{
+  out << "\nTPC Merger Links\n";
+  const int n = output ? mMemory->nOutputTracks : SliceTrackInfoLocalTotal();
+  for (int i = 0; i < n; i++) {
+    out << "  " << i << ": " << mTrackLinks[i] << "\n";
+  }
+}
+
 void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
 {
+  DumpTrackLinks(out, false);
   out << "\nTPC Merger Merge Within Slices\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     for (int j = mSliceTrackInfoIndex[iSlice]; j < mSliceTrackInfoIndex[iSlice + 1]; j++) {
@@ -83,6 +93,7 @@ void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
 
 void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out)
 {
+  DumpTrackLinks(out, false);
   out << "\nTPC Merger Merge Within Slices\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     for (int j = mSliceTrackInfoIndex[iSlice]; j < mSliceTrackInfoIndex[iSlice + 1]; j++) {
@@ -121,6 +132,7 @@ void GPUTPCGMMerger::DumpCollected(std::ostream& out)
 
 void GPUTPCGMMerger::DumpMergeCE(std::ostream& out)
 {
+  DumpTrackLinks(out, true);
   out << "\nTPC Merger Merge CE\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[trackOrder[i]];
