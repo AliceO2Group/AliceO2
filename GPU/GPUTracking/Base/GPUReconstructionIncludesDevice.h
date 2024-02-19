@@ -47,6 +47,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCreateOccupancyMap.cxx"
 
 #include "GPUTPCSectorDebugSortKernels.cxx"
+#include "GPUTPCGlobalDebugSortKernels.cxx"
 
 // Files for TPC Merger
 #include "GPUTPCGMMerger.cxx"

@@ -53,6 +53,7 @@ set(SRCS
     Merger/GPUTPCGMSliceTrack.cxx
     Merger/GPUTPCGMTrackParam.cxx
     Merger/GPUTPCGMPropagator.cxx
+    Merger/GPUTPCGlobalDebugSortKernels.cxx
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialField.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
