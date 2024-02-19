@@ -21,21 +21,65 @@ namespace o2::mi3
 {
 class MIDLayer
 {
-  friend class Stave;
   class Stave
   {
     class Module
     {
+      class Sensor
+      {
+       public:
+        Sensor() = default;
+        Sensor(std::string sensorName,
+               int layer,
+               int stave,
+               int module,
+               int number,
+               float moduleOffset = -59.8f,
+               float sensorWidth = 2.5f,
+               float sensorLength = 49.9f,
+               float sensorThickness = 0.5f,
+               float sensorSpacing = 0.2f);
+        void createSensor(TGeoVolume* motherVolume);
+
+       private:
+        std::string mName;
+        float mModuleOffset;
+        float mWidth;
+        float mLength;
+        float mThickness;
+        float mSpacing;
+        int mLayer;
+        int mStave;
+        int mModule;
+        int mNumber;
+      };
+
      public:
+      Module() = default;
       Module(std::string moduleName,
-             int nBars,
-             float barSpacing,
-             float barWidth,
-             float barLength,
-             float barThickness);
+             int layer,
+             int stave,
+             int number,
+             int nBars = 23,
+             float zOffset = -500.f,
+             float barLength = 49.9f,
+             float barSpacing = 0.2f,
+             float barWidth = 2.5f,
+             float barThickness = 0.5f);
+      void createModule(TGeoVolume* motherVolume);
 
      private:
       std::string mName;
+      float mBarSpacing;
+      float mBarWidth;
+      float mBarLength;
+      float mBarThickness;
+      float mZOffset;
+      int mNBars;
+      int mLayer;
+      int mStave;
+      int mNumber;
+      std::vector<Sensor> mSensors;
     };
 
    public:
@@ -44,9 +88,11 @@ class MIDLayer
           float radDistance,
           float rotAngle,
           int layer,
+          int number,
           float staveLength = 500.f,
           float staveWidth = 50.f,
-          float staveThickness = 0.5f);
+          float staveThickness = 0.5f,
+          int nModulesZ = 10);
     void createStave(TGeoVolume* motherVolume);
 
    private:
@@ -57,8 +103,9 @@ class MIDLayer
     float mWidth;
     float mThickness;
     std::vector<Module> mModules;
-    TGeoVolume* mStaveVolume;
     int mLayer;
+    int mNumber;
+    int mNModulesZ;
   };
 
  public:
