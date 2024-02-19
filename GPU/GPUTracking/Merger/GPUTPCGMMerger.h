@@ -218,10 +218,7 @@ class GPUTPCGMMerger : public GPUProcessor
   long int GetTrackLabel(const S& trk);
 #endif
 
-  GPUdi() int SliceTrackInfoFirst(int iSlice)
-  {
-    return mSliceTrackInfoIndex[iSlice];
-  }
+  GPUdi() int SliceTrackInfoFirst(int iSlice) { return mSliceTrackInfoIndex[iSlice]; }
   GPUdi() int SliceTrackInfoLast(int iSlice) { return mSliceTrackInfoIndex[iSlice + 1]; }
   GPUdi() int SliceTrackInfoGlobalFirst(int iSlice) { return mSliceTrackInfoIndex[NSLICES + iSlice]; }
   GPUdi() int SliceTrackInfoGlobalLast(int iSlice) { return mSliceTrackInfoIndex[NSLICES + iSlice + 1]; }
