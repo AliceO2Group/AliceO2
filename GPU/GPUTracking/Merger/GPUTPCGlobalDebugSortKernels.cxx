@@ -32,12 +32,12 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
 }
 
 template <>
-GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::sectorTracks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char global)
+GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::sectorTracks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char globalTracks)
 {
   if (iThread) {
     return;
   }
-  int iStart = global ? GPUCA_NSLICES : 0;
+  int iStart = globalTracks ? GPUCA_NSLICES : 0;
   int iEnd = iStart + GPUCA_NSLICES;
   for (int i = iStart + iBlock; i < iEnd; i += nBlocks) {
     const int offset = merger.SliceTrackInfoFirst(i);
@@ -67,16 +67,17 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
 #ifndef GPUCA_GPUCODE_DEVICE
           throw std::runtime_error("Internal error, track id missing");
 #endif
+          return -1;
         };
         int firstIdx = j;
         auto firstItem = merger.SliceTrackInfos()[offset + firstIdx];
-        int firstTrackIDIndex = global ? 0 : getTrackIDIndex(i, offset + firstIdx);
+        int firstTrackIDIndex = globalTracks ? 0 : getTrackIDIndex(i, offset + firstIdx);
         int currIdx = firstIdx;
         int sourceIdx = tmp[currIdx];
         do {
           tmp[currIdx] = -1;
           merger.SliceTrackInfos()[offset + currIdx] = merger.SliceTrackInfos()[offset + sourceIdx];
-          if (!global) {
+          if (!globalTracks) {
             merger.TrackIDs()[i * merger.NMaxSingleSliceTracks() + getTrackIDIndex(i, offset + sourceIdx)] = offset + currIdx;
           }
           currIdx = sourceIdx;
@@ -84,10 +85,64 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
         } while (sourceIdx != firstIdx);
         tmp[currIdx] = -1;
         merger.SliceTrackInfos()[offset + currIdx] = firstItem;
-        if (!global) {
+        if (!globalTracks) {
           merger.TrackIDs()[i * merger.NMaxSingleSliceTracks() + firstTrackIDIndex] = offset + currIdx;
         }
       }
+    }
+  }
+}
+
+template <>
+GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::globalTracks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char globalTracks)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  int* GPUrestrict() tmp = merger.TmpSortMemory();
+  const int n = merger.NOutputTracks();
+  for (int j = 0; j < n; j++) {
+    tmp[j] = j;
+  }
+  GPUCommonAlgorithm::sort(tmp, tmp + n, [&merger](const int& aa, const int& bb) {
+    const GPUTPCGMMergedTrack& a = merger.OutputTracks()[aa];
+    const GPUTPCGMMergedTrack& b = merger.OutputTracks()[bb];
+    return (a.GetAlpha() != b.GetAlpha()) ? (a.GetAlpha() < b.GetAlpha()) : (a.GetParam().GetX() != b.GetParam().GetX()) ? (a.GetParam().GetX() < b.GetParam().GetX()) : (a.GetParam().GetY() != b.GetParam().GetY()) ? (a.GetParam().GetY() < b.GetParam().GetY()) : (a.GetParam().GetZ() < b.GetParam().GetZ());
+  });
+  auto updateRef = [&merger](int from, int to) {
+    for (int i = 0; i < 2; i++) {
+      for (int j = 0; j < GPUCA_NSLICES; j++) {
+        bool found = false;
+        const int id = j + i * GPUCA_NSLICES;
+        for (unsigned int k = 0; k < merger.TmpCounter()[id]; k++) {
+          if (merger.BorderTracks(id)[k].TrackID() == from) {
+            merger.BorderTracks(id)[k].SetTrackID(to);
+            found = true;
+            break;
+          }
+        }
+        if (found) {
+          break;
+        }
+      }
+    }
+  };
+  for (int j = 0; j < n; j++) {
+    if (tmp[j] >= 0 && tmp[j] != j) {
+      int firstIdx = j;
+      auto firstItem = merger.OutputTracks()[firstIdx];
+      int currIdx = firstIdx;
+      int sourceIdx = tmp[currIdx];
+      do {
+        tmp[currIdx] = -1;
+        merger.OutputTracks()[currIdx] = merger.OutputTracks()[sourceIdx];
+        updateRef(sourceIdx, currIdx);
+        currIdx = sourceIdx;
+        sourceIdx = tmp[currIdx];
+      } while (sourceIdx != firstIdx);
+      tmp[currIdx] = -1;
+      merger.OutputTracks()[currIdx] = firstItem;
+      updateRef(firstIdx, currIdx);
     }
   }
 }
