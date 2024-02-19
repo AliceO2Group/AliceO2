@@ -33,7 +33,7 @@ MIDLayer::MIDLayer(int layerNumber,
                                   mNStaves(nstaves)
 {
   mStaves.reserve(nstaves);
-  LOGP(info, "Constructing MIDLayer: {} with inner radius: {}, length: {} cm and {} staves", mName, mRadius, mLength, mNStaves);
+  LOGP(debug, "Constructing MIDLayer: {} with inner radius: {}, length: {} cm and {} staves", mName, mRadius, mLength, mNStaves);
   for (int iStave = 0; iStave < mNStaves; ++iStave) {
     mStaves.emplace_back(GeometryTGeo::composeSymNameStave(layerNumber, iStave),
                          mRadius,
@@ -65,14 +65,14 @@ MIDLayer::Stave::Stave(std::string staveName,
                                         mNModulesZ(nModulesZ)
 {
   // Staves are ideal shapes made of air including the modules, for now.
-  LOGP(info, "\t\tConstructing MIDStave: {} layer: {} at angle {}", mName, mLayer, mRotAngle * TMath::RadToDeg());
+  LOGP(debug, "\t\tConstructing MIDStave: {} layer: {} at angle {}", mName, mLayer, mRotAngle * TMath::RadToDeg());
   mModules.reserve(nModulesZ);
   for (int iModule = 0; iModule < mNModulesZ; ++iModule) {
     mModules.emplace_back(GeometryTGeo::composeSymNameModule(mLayer, mNumber, iModule),
                           mLayer,
                           mNumber,
                           iModule,
-                          !mLayer ? 23 : 23,
+                          !mLayer ? 23 : 20,
                           -staveLength,
                           !mLayer ? 49.9f : 61.75f);
   }
@@ -99,13 +99,15 @@ MIDLayer::Stave::Module::Module(std::string moduleName,
                                                       mBarThickness(barThickness)
 {
   mSensors.reserve(nBars);
-  LOGP(info, "\t\t\tConstructing MIDModule: {}", mName);
+  LOGP(debug, "\t\t\tConstructing MIDModule: {}", mName);
   for (int iBar = 0; iBar < mNBars; ++iBar) {
     mSensors.emplace_back(GeometryTGeo::composeSymNameSensor(mLayer, mStave, mNumber, iBar),
                           mLayer,
                           mStave,
                           mNumber,
-                          iBar);
+                          iBar,
+                          !mLayer ? -59.8f : -52.f,  // offset
+                          !mLayer ? 49.9f : 61.75f); // sensor length
   }
 }
 
@@ -115,8 +117,8 @@ MIDLayer::Stave::Module::Sensor::Sensor(std::string sensorName,
                                         int module,
                                         int number,
                                         float moduleOffset,
-                                        float sensorWidth,
                                         float sensorLength,
+                                        float sensorWidth,
                                         float sensorThickness,
                                         float sensorSpacing) : mName(sensorName),
                                                                mLayer(layer),
@@ -129,16 +131,17 @@ MIDLayer::Stave::Module::Sensor::Sensor(std::string sensorName,
                                                                mThickness(sensorThickness),
                                                                mSpacing(sensorSpacing)
 {
-  LOGP(info, "\t\t\t\tConstructing MIDSensor: {}", mName);
+  LOGP(debug, "\t\t\t\tConstructing MIDSensor: {}", mName);
 }
 
 void MIDLayer::createLayer(TGeoVolume* motherVolume)
 {
-  LOGP(info, "Creating MIDLayer: {}", mName);
+  LOGP(debug, "Creating MIDLayer: {}", mName);
   TGeoTube* layer = new TGeoTube(mName.c_str(), mRadius, mRadius + 10, mLength);
   auto* airMed = gGeoManager->GetMedium("MI3_AIR");
   TGeoVolume* layerVolume = new TGeoVolume(mName.c_str(), layer, airMed);
-  layerVolume->SetVisibility(false);
+  layerVolume->SetVisibility(true);
+  layerVolume->SetTransparency(0);
   motherVolume->AddNode(layerVolume, 0);
   for (auto& stave : mStaves) {
     stave.createStave(layerVolume);
@@ -147,11 +150,12 @@ void MIDLayer::createLayer(TGeoVolume* motherVolume)
 
 void MIDLayer::Stave::createStave(TGeoVolume* motherVolume)
 {
-  LOGP(info, "\tCreating MIDStave: {} layer: {}", mName, mLayer);
+  LOGP(debug, "\tCreating MIDStave: {} layer: {}", mName, mLayer);
   TGeoBBox* stave = new TGeoBBox(mName.c_str(), mWidth, mThickness, mLength);
   auto* airMed = gGeoManager->GetMedium("MI3_AIR");
   TGeoVolume* staveVolume = new TGeoVolume(mName.c_str(), stave, airMed);
-  staveVolume->SetVisibility(false);
+  staveVolume->SetVisibility(true);
+  staveVolume->SetTransparency(0);
   // Create the modules
   for (auto& module : mModules) {
     module.createModule(staveVolume);
@@ -167,39 +171,52 @@ void MIDLayer::Stave::createStave(TGeoVolume* motherVolume)
 void MIDLayer::Stave::Module::createModule(TGeoVolume* motherVolume)
 {
   // Module is an air box with floating bars inside for the moment
-  auto xWidth = ((mBarWidth * 2 + mBarSpacing) * mNBars) / 2;
-  LOGP(info, "\t\t\tCreating MIDModule: {} with ", mName);
-  TGeoBBox* module = new TGeoBBox(mName.c_str(), xWidth, mBarThickness, mBarLength);
+  auto sumWidth = ((mBarWidth * 2 + mBarSpacing) * mNBars) / 2;
+  LOGP(debug, "\t\t\tCreating MIDModule: {} with ", mName);
+  TGeoBBox* module = nullptr;
+  if (!mLayer) {
+    module = new TGeoBBox(mName.c_str(), sumWidth, mBarThickness, mBarLength);
+  } else {
+    module = new TGeoBBox(mName.c_str(), mBarLength, mBarThickness, sumWidth);
+  }
   auto* airMed = gGeoManager->GetMedium("MI3_AIR");
   TGeoVolume* moduleVolume = new TGeoVolume(mName.c_str(), module, airMed);
-  moduleVolume->SetVisibility(false);
+  moduleVolume->SetVisibility(true);
+  moduleVolume->SetTransparency(0);
   // Create the bars
   for (auto& sensor : mSensors) {
     sensor.createSensor(moduleVolume);
   }
   TGeoCombiTrans* modTrans = nullptr;
   if (!mLayer) {
-    // TGeoTranslation* modTrans = new TGeoTranslation(0, 0, mModuleOffset + 2 * mNumber * mBarLength + mBarLength);
     modTrans = new TGeoCombiTrans(0, 0, mZOffset + mNumber * 2 * mBarLength + mBarLength, nullptr);
-    motherVolume->AddNode(moduleVolume, 0, modTrans);
   } else {
-    // TGeoRotation* rot = new TGeoRotation("rot", 0, 0, 0);
+    modTrans = new TGeoCombiTrans(0, 0, mZOffset + mNumber * 2 * sumWidth + sumWidth, nullptr);
   }
-  // TGeoTranslation* modTrans = new TGeoTranslation(0, 0, mModuleOffset + 2 * mNumber * mBarLength + mBarLength);
+  motherVolume->AddNode(moduleVolume, 0, modTrans);
 }
 
 void MIDLayer::Stave::Module::Sensor::createSensor(TGeoVolume* motherVolume)
 {
-  LOGP(info, "\t\t\t\tCreating MIDSensor: {}", mName);
-  if (!mLayer) { // Layer 0
-    TGeoBBox* sensor = new TGeoBBox(mName.c_str(), mWidth, mThickness, mLength);
-    auto* polyMed = gGeoManager->GetMedium("MI3_POLYSTYRENE");
-    TGeoVolume* sensorVolume = new TGeoVolume(mName.c_str(), sensor, polyMed);
-    sensorVolume->SetVisibility(true);
-    sensorVolume->SetLineColor(kBlue);
-    auto totWidth = mWidth + mSpacing / 2;
-    TGeoTranslation* sensorTrans = new TGeoTranslation(mModuleOffset + 2 * totWidth * mNumber + totWidth, 0, 0);
-    motherVolume->AddNode(sensorVolume, 0, sensorTrans);
+  LOGP(debug, "\t\t\t\tCreating MIDSensor: {}", mName);
+  TGeoBBox* sensor = nullptr;
+  if (!mLayer) {
+    sensor = new TGeoBBox(mName.c_str(), mWidth, mThickness, mLength);
+  } else {
+    sensor = new TGeoBBox(mName.c_str(), mLength, mThickness, mWidth);
   }
+  auto* polyMed = gGeoManager->GetMedium("MI3_POLYSTYRENE");
+  TGeoVolume* sensorVolume = new TGeoVolume(mName.c_str(), sensor, polyMed);
+  sensorVolume->SetVisibility(true);
+  auto totWidth = mWidth + mSpacing / 2;
+  TGeoTranslation* sensorTrans = nullptr;
+  if (!mLayer) {
+    sensorTrans = new TGeoTranslation(mModuleOffset + 2 * totWidth * mNumber + totWidth, 0, 0);
+    sensorVolume->SetLineColor(kBlue);
+  } else {
+    sensorTrans = new TGeoTranslation(0, 0, mModuleOffset + 2 * totWidth * mNumber + totWidth);
+    sensorVolume->SetLineColor(kPink);
+  }
+  motherVolume->AddNode(sensorVolume, 0, sensorTrans);
 }
 } // namespace o2::mi3

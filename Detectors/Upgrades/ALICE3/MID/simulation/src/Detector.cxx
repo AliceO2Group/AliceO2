@@ -127,7 +127,7 @@ void Detector::createGeometry()
   // Build the MID
   mLayers.resize(2);
   mLayers[0] = MIDLayer(0, GeometryTGeo::composeSymNameLayer(0), 301.f, 500.f);
-  mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 525.f);
+  mLayers[1] = MIDLayer(1, GeometryTGeo::composeSymNameLayer(1), 311.f, 520.f); // arbitrarily reduced to get multiple of 5.2f
 
   for (auto& layer : mLayers) {
     layer.createLayer(vMID);

@@ -35,8 +35,8 @@ class MIDLayer
                int module,
                int number,
                float moduleOffset = -59.8f,
-               float sensorWidth = 2.5f,
                float sensorLength = 49.9f,
+               float sensorWidth = 2.5f,
                float sensorThickness = 0.5f,
                float sensorSpacing = 0.2f);
         void createSensor(TGeoVolume* motherVolume);
