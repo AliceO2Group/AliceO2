@@ -45,6 +45,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::RICHSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ECalSimulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::MI3Simulation>
                                 O2::Generators)
 
 add_library(internal::allsim ALIAS allsim)

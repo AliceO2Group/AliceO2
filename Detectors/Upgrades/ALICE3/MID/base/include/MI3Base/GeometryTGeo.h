@@ -14,9 +14,7 @@
 
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>
 
-namespace o2
-{
-namespace mi3
+namespace o2::mi3
 {
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
@@ -27,21 +25,35 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static GeometryTGeo* Instance();
 
   static const char* getMIDVolPattern() { return sVolumeName.c_str(); }
+  static const char* getMIDLayerPattern() { return sLayerName.c_str(); }
+  static const char* getMIDStavePattern() { return sStaveName.c_str(); }
+  static const char* getMIDModulePattern() { return sModuleName.c_str(); }
   static const char* getMIDSensorPattern() { return sSensorName.c_str(); }
 
-  static const char* composeSymNameMID()
+  static const char* composeSymNameMID(int d)
   {
-    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::MI3).getName(), 0);
+    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::MI3).getName(), d);
   }
-  static const char* composeSymNameSensor(); // A single sensor for the moment
+  static const char* composeSymNameLayer(const int layer);
+  static const char* composeSymNameStave(const int layer,
+                                         const int stave);
+  static const char* composeSymNameModule(const int layer,
+                                          const int stave,
+                                          const int module);
+  static const char* composeSymNameSensor(const int layer,
+                                          const int stave,
+                                          const int module,
+                                          const int sensor);
 
  protected:
+  static std::string sLayerName;
   static std::string sVolumeName;
+  static std::string sStaveName;
+  static std::string sModuleName;
   static std::string sSensorName;
 
  private:
   static std::unique_ptr<o2::mi3::GeometryTGeo> sInstance;
 };
-} // namespace mi3
-} // namespace o2
+} // namespace o2::mi3
 #endif

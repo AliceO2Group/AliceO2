@@ -19,13 +19,12 @@
 #include "ITSMFTSimulation/Hit.h"
 
 #include "MI3Base/GeometryTGeo.h"
+#include "MI3Simulation/MIDLayer.h"
 
 #include <TLorentzVector.h>
 #include <TString.h>
 
-namespace o2
-{
-namespace mi3
+namespace o2::mi3
 {
 
 class Detector : public o2::base::DetImpl<Detector>
@@ -78,17 +77,14 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
 
   // void defineSensitiveVolumes();
-  float mInnerRadius;
-  float mOuterRadius;
-  // float mLength;
 
  protected:
   template <typename Det>
   friend class o2::base::DetImpl;
+  std::vector<MIDLayer> mLayers;
   ClassDefOverride(Detector, 1);
 };
-} // namespace mi3
-} // namespace o2
+} // namespace o2::mi3
 
 #ifdef USESHM
 namespace o2

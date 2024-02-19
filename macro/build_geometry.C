@@ -56,6 +56,7 @@
 #include <IOTOFSimulation/Detector.h>
 #include <RICHSimulation/Detector.h>
 #include <ECalSimulation/Detector.h>
+#include <MI3Simulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
 #include <Alice3DetectorsPassive/Absorber.h>
 #include <Alice3DetectorsPassive/Magnet.h>
@@ -247,6 +248,7 @@ void build_geometry(FairRunSim* run = nullptr)
     // ALICE 3 tofs
     addReadoutDetector(new o2::iotof::Detector(isReadout("TF3")));
   }
+
   if (isActivated("RCH")) {
     // ALICE 3 RICH
     addReadoutDetector(new o2::rich::Detector(isReadout("RCH")));
@@ -255,6 +257,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("ECL")) {
     // ALICE 3 ECAL
     addReadoutDetector(new o2::ecal::Detector(isReadout("ECL")));
+  }
+
+  if (isActivated("MI3")) {
+    // ALICE 3 MID
+    addReadoutDetector(new o2::mi3::Detector(isReadout("MI3")));
   }
 #endif
 
