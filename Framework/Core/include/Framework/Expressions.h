@@ -50,13 +50,20 @@ using FilterPtr = std::shared_ptr<gandiva::Filter>;
 
 using atype = arrow::Type;
 struct ExpressionInfo {
+  ExpressionInfo(int ai, size_t hash, std::set<uint32_t>&& hs, gandiva::SchemaPtr sc)
+    : argumentIndex(ai),
+      processHash(hash),
+      hashes(hs),
+      schema(sc)
+  {
+  }
   int argumentIndex;
   size_t processHash;
-  std::set<size_t> hashes;
+  std::set<uint32_t> hashes;
   gandiva::SchemaPtr schema;
-  gandiva::NodePtr tree;
-  gandiva::FilterPtr filter;
-  gandiva::Selection selection;
+  gandiva::NodePtr tree = nullptr;
+  gandiva::FilterPtr filter = nullptr;
+  gandiva::Selection selection = nullptr;
   bool resetSelection = false;
 };
 
@@ -122,9 +129,9 @@ struct LiteralNode {
 struct BindingNode {
   BindingNode(BindingNode const&) = default;
   BindingNode(BindingNode&&) = delete;
-  BindingNode(std::string const& name_, std::size_t hash_, atype::type type_) : name{name_}, hash{hash_}, type{type_} {}
-  std::string name;
-  std::size_t hash;
+  constexpr BindingNode(const char* name_, uint32_t hash_, atype::type type_) : name{name_}, hash{hash_}, type{type_} {}
+  const char* name;
+  uint32_t hash;
   atype::type type;
 };
 

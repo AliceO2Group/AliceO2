@@ -19,6 +19,7 @@
 #include <pthread.h>
 #include "GPUReconstructionHelpers.h"
 #include "GPUChain.h"
+#include <vector>
 
 namespace GPUCA_NAMESPACE
 {
@@ -34,6 +35,9 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   ~GPUReconstructionDeviceBase() override;
 
   const GPUParam* DeviceParam() const { return &mDeviceConstantMem->param; }
+  struct deviceConstantMemRegistration {
+    deviceConstantMemRegistration(void* (*)());
+  };
 
  protected:
   GPUReconstructionDeviceBase(const GPUSettingsDeviceBackend& cfg, size_t sizeCheck);
@@ -77,6 +81,10 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
     void *DebugStart, *DebugStop; // Debug timer events
   };
   DebugEvents* mDebugEvents = nullptr;
+
+  std::vector<void*> mDeviceConstantMemList;
+  static std::vector<void* (*)()> mDeviceConstantMemRegistrators;
+  void runConstantRegistrators();
 };
 
 inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents)

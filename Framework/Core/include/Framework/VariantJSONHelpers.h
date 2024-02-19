@@ -154,21 +154,25 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       states.push(State::IN_ERROR);
       return true;
     } else {
-      if (states.top() == State::IN_ARRAY) {
+      if (states.top() == State::IN_ARRAY || states.top() == State::IN_ROW) {
         debug << "added to array" << std::endl;
         if constexpr (isLabeledArray<V>()) {
           if (currentKey == labels_rows_str) {
             labels_rows.push_back(str);
             return true;
-          } else if (currentKey == labels_cols_str) {
+          }
+          if (currentKey == labels_cols_str) {
             labels_cols.push_back(str);
             return true;
+          }
+        }
+        if (currentKey == "values") {
+          if constexpr (std::is_same_v<std::string, variant_array_element_type_t<V>>) {
+            accumulatedData.push_back(str);
           } else {
             states.push(State::IN_ERROR);
-            return true;
           }
-        } else {
-          accumulatedData.push_back(str);
+          return true;
         }
         return true;
       }
@@ -201,7 +205,7 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       return false;
     }
     if (states.top() == State::IN_DATA) {
-      //no previous keys
+      // no previous keys
       states.push(State::IN_KEY);
       currentKey = str;
       return true;
@@ -281,14 +285,14 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       return false;
     }
     if (states.top() == State::IN_ARRAY) {
-      //finish up array
+      // finish up array
       states.pop();
       if constexpr (isArray2D<V>() || isLabeledArray<V>()) {
         rows = elementCount;
       }
       return true;
     } else if (states.top() == State::IN_ROW) {
-      //finish up row
+      // finish up row
       states.pop();
       if constexpr (isArray2D<V>() || isLabeledArray<V>()) {
         cols = elementCount;
@@ -350,6 +354,8 @@ void writeVariant(std::ostream& o, Variant const& v)
             w.Int(array2d(i, j));
           } else if constexpr (std::is_same_v<float, T> || std::is_same_v<double, T>) {
             w.Double(array2d(i, j));
+          } else if constexpr (std::is_same_v<std::string, T>) {
+            w.String(array2d(i, j).c_str());
           }
         }
         w.EndArray();
@@ -447,6 +453,6 @@ struct VariantJSONHelpers {
     }
   }
 };
-}
+} // namespace o2::framework
 
 #endif // FRAMEWORK_VARIANTJSONHELPERS_H

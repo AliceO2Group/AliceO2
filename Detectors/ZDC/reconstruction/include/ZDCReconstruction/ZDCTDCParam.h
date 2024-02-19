@@ -25,14 +25,17 @@ namespace o2
 namespace zdc
 {
 struct ZDCTDCParam {
-  float tdc_shift[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Correction of TDC position (ns)
-  float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; // Correction factor of TDC amplitude
+  float tdc_shift[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};  // Correction of TDC position (ns)
+  float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};  // Correction factor of TDC amplitude
+  float tdc_offset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Offset of TDC amplitude calibration
   void setShift(uint32_t ich, float val);
   float getShift(uint32_t ich) const;
   void setFactor(uint32_t ich, float val);
   float getFactor(uint32_t ich) const;
+  void setOffset(uint32_t ich, float val);
+  float getOffset(uint32_t ich) const;
   void print() const;
-  ClassDefNV(ZDCTDCParam, 2);
+  ClassDefNV(ZDCTDCParam, 3);
 };
 } // namespace zdc
 } // namespace o2

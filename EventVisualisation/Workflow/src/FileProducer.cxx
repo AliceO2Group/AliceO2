@@ -47,7 +47,7 @@ std::string FileProducer::newFileName() const
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
 
   auto pid = getpid();
-  auto result = fmt::format(this->mName,
+  auto result = fmt::format(fmt::runtime(this->mName),
                             fmt::arg("hostname", hostname),
                             fmt::arg("pid", pid),
                             fmt::arg("timestamp", millisec_since_epoch),

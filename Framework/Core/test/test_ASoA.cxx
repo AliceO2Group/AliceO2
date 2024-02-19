@@ -33,12 +33,12 @@ DECLARE_SOA_DYNAMIC_COLUMN(Sum, sum, [](int x, int y) { return x + y; });
 DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int, test::x + test::y);
 } // namespace test
 
-DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
-DECLARE_SOA_TABLE(Points3Ds, "TST", "PTS3D", o2::soa::Index<>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points, "TEST", "POINTS", test::X, test::Y);
+DECLARE_SOA_TABLE(Points3Ds, "TEST", "PTS3D", o2::soa::Index<>, test::X, test::Y, test::Z);
 
-DECLARE_SOA_TABLE(Points3DsMk1, "TST", "PTS3D_1", o2::soa::Index<>, o2::soa::Marker<1>, test::X, test::Y, test::Z);
-DECLARE_SOA_TABLE(Points3DsMk2, "TST", "PTS3D_2", o2::soa::Index<>, o2::soa::Marker<2>, test::X, test::Y, test::Z);
-DECLARE_SOA_TABLE(Points3DsMk3, "TST", "PTS3D_3", o2::soa::Index<>, o2::soa::Marker<3>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk1, "TEST", "PTS3D_1", o2::soa::Index<>, o2::soa::Marker<1>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk2, "TEST", "PTS3D_2", o2::soa::Index<>, o2::soa::Marker<2>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk3, "TEST", "PTS3D_3", o2::soa::Index<>, o2::soa::Marker<3>, test::X, test::Y, test::Z);
 
 namespace test
 {
@@ -46,7 +46,7 @@ DECLARE_SOA_COLUMN_FULL(SomeBool, someBool, bool, "someBool");
 DECLARE_SOA_COLUMN_FULL(Color, color, int32_t, "color");
 } // namespace test
 
-DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color, test::SomeBool);
+DECLARE_SOA_TABLE(Infos, "TEST", "INFOS", test::Color, test::SomeBool);
 
 namespace test
 {
@@ -57,8 +57,8 @@ DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "_B");
 DECLARE_SOA_COLUMN_FULL(Thickness, thickness, int, "thickness");
 } // namespace test
 
-DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
-DECLARE_SOA_TABLE(SegmentsExtras, "TST", "SEGMENTSEX", test::Thickness);
+DECLARE_SOA_TABLE(Segments, "TEST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
+DECLARE_SOA_TABLE(SegmentsExtras, "TEST", "SEGMENTSEX", test::Thickness);
 
 namespace test
 {
@@ -66,7 +66,7 @@ DECLARE_SOA_COLUMN(L1, l1, std::vector<float>);
 DECLARE_SOA_COLUMN(L2, l2, std::vector<int>);
 } // namespace test
 
-DECLARE_SOA_TABLE(Lists, "TST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
+DECLARE_SOA_TABLE(Lists, "TEST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
 } // namespace o2::aod
 
 TEST_CASE("TestMarkers")
@@ -147,10 +147,10 @@ TEST_CASE("TestTableIteration")
 
   b = tests2.begin();
   REQUIRE(b != e);
-  REQUIRE((b + 1) == (b + 1));
-  REQUIRE((b + 7) != b);
-  REQUIRE((b + 7) != e);
-  REQUIRE((b + 8) == e);
+  REQUIRE(((b + 1) == (b + 1)));
+  REQUIRE(((b + 7) != b));
+  REQUIRE(((b + 7) != e));
+  REQUIRE(((b + 8) == e));
 
   for (auto& t : tests2) {
     REQUIRE(t.x() == value / 4);
@@ -712,16 +712,16 @@ TEST_CASE("TestEmptyTables")
 
 namespace o2::aod
 {
-DECLARE_SOA_TABLE(Origints, "TST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
+DECLARE_SOA_TABLE(Origints, "TEST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
 namespace test
 {
 DECLARE_SOA_INDEX_COLUMN(Origint, origint);
 DECLARE_SOA_INDEX_COLUMN_FULL(AltOrigint, altOrigint, int, Origints, "_alt");
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Origint, origints);
 } // namespace test
-DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OrigintId);
-DECLARE_SOA_TABLE(OtherReferences, "TST", "OREFS", o2::soa::Index<>, test::AltOrigintId);
-DECLARE_SOA_TABLE(ManyReferences, "TST", "MREFS", o2::soa::Index<>, test::OrigintIds);
+DECLARE_SOA_TABLE(References, "TEST", "REFS", o2::soa::Index<>, test::OrigintId);
+DECLARE_SOA_TABLE(OtherReferences, "TEST", "OREFS", o2::soa::Index<>, test::AltOrigintId);
+DECLARE_SOA_TABLE(ManyReferences, "TEST", "MREFS", o2::soa::Index<>, test::OrigintIds);
 } // namespace o2::aod
 TEST_CASE("TestIndexToFiltered")
 {
@@ -760,11 +760,11 @@ TEST_CASE("TestIndexToFiltered")
   r.bindExternalIndices(&f);
   auto it = r.begin();
   it.moveByIndex(23);
-  REQUIRE(it.origint().globalIndex() == 3);
+  REQUIRE(it.origint_as<Flt>().globalIndex() == 3);
   it++;
-  REQUIRE(it.origint().globalIndex() == 4);
+  REQUIRE(it.origint_as<Flt>().globalIndex() == 4);
   it++;
-  REQUIRE(it.origint().globalIndex() == 5);
+  REQUIRE(it.origint_as<Flt>().globalIndex() == 5);
 
   m.bindExternalIndices(&f);
   for (auto const& row : m) {
@@ -786,9 +786,9 @@ DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(PointSeq, pointSeq);
 DECLARE_SOA_SELF_ARRAY_INDEX_COLUMN(PointSet, pointSet);
 } // namespace test
 
-DECLARE_SOA_TABLE(PointsRef, "TST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
-DECLARE_SOA_TABLE(PointsRefF, "TST", "PTSREFF", test::SinglePointId, test::Points3DIdSlice, test::Points3DIds);
-DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
+DECLARE_SOA_TABLE(PointsRef, "TEST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsRefF, "TEST", "PTSREFF", test::SinglePointId, test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsSelfIndex, "TEST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId,
                   test::PointSeqIdSlice, test::PointSetIds);
 } // namespace o2::aod
 
@@ -869,22 +869,23 @@ TEST_CASE("TestAdvancedIndices")
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
   int slice[2] = {-1, -1};
   std::vector<int> pset;
-  std::array<int, 3> withSlices = {3, 13, 19};
+  std::array<int, 4> withSlices = {3, 6, 13, 19};
+  std::array<std::pair<int, int>, 4> bounds = {std::pair{1, 5}, std::pair{3, 3}, std::pair{11, 11}, std::pair{10, 18}};
   std::array<int, 4> withSets = {0, 1, 13, 14};
-  int sizes[] = {3, 1, 5, 4};
-  int c1 = 0;
-  int c2 = 0;
+  unsigned int sizes[] = {3, 1, 5, 4};
+  unsigned int c1 = 0;
+  unsigned int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
     pset.clear();
     slice[0] = -1;
     slice[1] = -1;
     if (c1 < withSlices.size() && i == withSlices[c1]) {
-      slice[0] = i - 2;
-      slice[1] = i - 1;
+      slice[0] = bounds[c1].first;
+      slice[1] = bounds[c1].second;
       ++c1;
     }
     if (c2 < withSets.size() && i == withSets[c2]) {
-      for (auto z = 0; z < sizes[c2]; ++z) {
+      for (auto z = 0U; z < sizes[c2]; ++z) {
         pset.push_back(i + 1 + z);
       }
       ++c2;
@@ -904,17 +905,26 @@ TEST_CASE("TestAdvancedIndices")
     REQUIRE(op.globalIndex() == references[i]);
 
     auto ops = p.pointSeq_as<o2::aod::PointsSelfIndex>();
+    auto bbbs = std::is_same_v<decltype(ops), o2::aod::PointsSelfIndex>;
+    REQUIRE(bbbs);
+
     if (i == withSlices[c1]) {
       auto it = ops.begin();
-      REQUIRE(ops.size() == 2);
-      REQUIRE(it.globalIndex() == i - 2);
-      ++it;
-      REQUIRE(it.globalIndex() == i - 1);
+      REQUIRE(ops.size() == bounds[c1].second - bounds[c1].first + 1);
+      REQUIRE(it.globalIndex() == bounds[c1].first);
+      for (auto j = 1; j < ops.size(); ++j) {
+        ++it;
+      }
+      REQUIRE(it.globalIndex() == bounds[c1].second);
       ++c1;
     } else {
       REQUIRE(ops.size() == 0);
     }
+
     auto opss = p.pointSet_as<o2::aod::PointsSelfIndex>();
+    auto bbba = std::is_same_v<decltype(opss), std::vector<o2::aod::PointsSelfIndex::iterator>>;
+    REQUIRE(bbba);
+
     auto opss_ids = p.pointSetIds();
     if (c2 < withSets.size() && i == withSets[c2]) {
       REQUIRE(opss.size() == sizes[c2]);
@@ -930,6 +940,131 @@ TEST_CASE("TestAdvancedIndices")
       REQUIRE(opss.size() == 0);
     }
     ++i;
+  }
+}
+
+namespace o2::aod
+{
+DECLARE_SOA_TABLE(PointsSelfRef, "TEST", "PTSSR", test::OtherPointId, test::PointSeqIdSlice, test::PointSetIds);
+}
+
+TEST_CASE("TestSelfIndexRecursion")
+{
+  TableBuilder b3;
+  auto pswriter = b3.cursor<o2::aod::PointsSelfIndex>();
+  int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
+  int slice[2] = {-1, -1};
+  std::vector<int> pset;
+  std::array<int, 4> withSlices = {3, 6, 13, 19};
+  std::array<std::pair<int, int>, 4> bounds = {std::pair{1, 5}, std::pair{3, 3}, std::pair{11, 11}, std::pair{10, 18}};
+  std::array<int, 4> withSets = {0, 1, 13, 14};
+  unsigned int sizes[] = {3, 1, 5, 4};
+  unsigned int c1 = 0;
+  unsigned int c2 = 0;
+  for (auto i = 0; i < 20; ++i) {
+    pset.clear();
+    slice[0] = -1;
+    slice[1] = -1;
+    if (c1 < withSlices.size() && i == withSlices[c1]) {
+      slice[0] = bounds[c1].first;
+      slice[1] = bounds[c1].second;
+      ++c1;
+    }
+    if (c2 < withSets.size() && i == withSets[c2]) {
+      for (auto z = 0U; z < sizes[c2]; ++z) {
+        pset.push_back(i + 1 + z);
+      }
+      ++c2;
+    }
+    pswriter(0, -1 * i, 0.5 * i, 2 * i, references[i], slice, pset);
+  }
+  auto t3 = b3.finalize();
+  auto pst = o2::aod::PointsSelfIndex{t3};
+  pst.bindInternalIndicesTo(&pst);
+
+  for (auto& p : pst) {
+    auto ops = p.pointSeq_as<o2::aod::PointsSelfIndex>();
+    for (auto& pp : ops) {
+      auto bpp = std::is_same_v<std::decay_t<decltype(pp)>, o2::aod::PointsSelfIndex::iterator>;
+      REQUIRE(bpp);
+      auto opps = pp.pointSeq_as<o2::aod::PointsSelfIndex>();
+      for (auto& ppp : opps) {
+        auto bppp = std::is_same_v<std::decay_t<decltype(ppp)>, o2::aod::PointsSelfIndex::iterator>;
+        REQUIRE(bppp);
+        auto oppps = ppp.pointSeq_as<o2::aod::PointsSelfIndex>();
+        for (auto& pppp : oppps) {
+          auto bpppp = std::is_same_v<std::decay_t<decltype(pppp)>, o2::aod::PointsSelfIndex::iterator>;
+          REQUIRE(bpppp);
+          auto opppps = pppp.pointSeq_as<o2::aod::PointsSelfIndex>();
+        }
+      }
+    }
+  }
+
+  using FullPoints = o2::soa::Join<o2::aod::Points3Ds, o2::aod::PointsSelfRef>;
+  TableBuilder b;
+  auto corewriter = b.cursor<o2::aod::Points3Ds>();
+  for (auto i = 0; i < 20; ++i) {
+    corewriter(0, -1 * i, 0.5 * i, 2 * i);
+  }
+  auto t1 = b.finalize();
+
+  c1 = 0;
+  c2 = 0;
+  TableBuilder be;
+  auto extwriter = be.cursor<o2::aod::PointsSelfRef>();
+  for (auto i = 0; i < 20; ++i) {
+    pset.clear();
+    slice[0] = -1;
+    slice[1] = -1;
+    if (c1 < withSlices.size() && i == withSlices[c1]) {
+      slice[0] = bounds[c1].first;
+      slice[1] = bounds[c1].second;
+      ++c1;
+    }
+    if (c2 < withSets.size() && i == withSets[c2]) {
+      for (auto z = 0U; z < sizes[c2]; ++z) {
+        pset.push_back(i + 1 + z);
+      }
+      ++c2;
+    }
+    extwriter(0, references[i], slice, pset);
+  }
+  auto t2 = be.finalize();
+
+  FullPoints fp({t1, t2});
+  fp.bindInternalIndicesTo(&fp);
+
+  for (auto& p : fp) {
+    auto bp = std::is_same_v<std::decay_t<decltype(p)>, FullPoints::iterator>;
+    REQUIRE(bp);
+    auto ops = p.pointSeq_as<FullPoints>();
+    for (auto& pp : ops) {
+      auto bpp = std::is_same_v<std::decay_t<decltype(pp)>, FullPoints::iterator>;
+      REQUIRE(bpp);
+      auto opps = pp.pointSeq_as<FullPoints>();
+      for (auto& ppp : opps) {
+        auto bppp = std::is_same_v<std::decay_t<decltype(ppp)>, FullPoints::iterator>;
+        REQUIRE(bppp);
+        auto oppps = ppp.pointSeq_as<FullPoints>();
+        for (auto& pppp : oppps) {
+          auto bpppp = std::is_same_v<std::decay_t<decltype(pppp)>, FullPoints::iterator>;
+          REQUIRE(bpppp);
+          auto opppps = pppp.pointSeq_as<FullPoints>();
+        }
+      }
+    }
+  }
+
+  auto const& fpa = fp;
+
+  for (auto& it1 : fpa) {
+    [[maybe_unused]] auto it2 = fpa.rawIteratorAt(0);
+    [[maybe_unused]] auto it3 = fpa.iteratorAt(0);
+    auto bit1 = std::is_same_v<std::decay_t<decltype(it1)>, std::decay_t<decltype(it2)>>;
+    CHECK(bit1);
+    auto bit2 = std::is_same_v<std::decay_t<decltype(it1)>, std::decay_t<decltype(it3)>>;
+    CHECK(bit2);
   }
 }
 
@@ -951,7 +1086,7 @@ TEST_CASE("TestListColumns")
   }
   auto lt = b.finalize();
   o2::aod::Lists tbl{lt};
-  int s = 1;
+  auto s = 1U;
   for (auto& row : tbl) {
     auto f = row.l1();
     auto i = row.l2();
@@ -964,7 +1099,7 @@ TEST_CASE("TestListColumns")
 
     for (auto j = 0u; j < f.size(); ++j) {
       REQUIRE(f[j] == 0.1231233f * (float)j + 0.1982798f);
-      REQUIRE(i[j] == j + 10);
+      REQUIRE(i[j] == (int)j + 10);
     }
     ++s;
   }
@@ -1096,7 +1231,7 @@ DECLARE_SOA_COLUMN(SmallIntArray, smallIntArray, int8_t[32]);
 DECLARE_SOA_BITMAP_COLUMN(BoolArray, boolArray, 32);
 } // namespace test
 
-DECLARE_SOA_TABLE(BILists, "TST", "BILISTS", o2::soa::Index<>, test::SmallIntArray, test::BoolArray);
+DECLARE_SOA_TABLE(BILists, "TEST", "BILISTS", o2::soa::Index<>, test::SmallIntArray, test::BoolArray);
 } // namespace o2::aod
 
 TEST_CASE("TestArrayColumns")

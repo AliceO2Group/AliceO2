@@ -85,12 +85,6 @@
 #elif defined(__CUDACC__) || defined(__HIPCC__)
   #define GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 #endif
-#if (defined(__HIPCC__) && defined(GPUCA_HIP_CONSTANT_AS_ARGUMENT))
-  #define GPUCA_CONSTANT_AS_ARGUMENT
-  #ifdef GPUCA_NO_CONSTANT_MEMORY
-    #error Invalid settings
-  #endif
-#endif
 #if !defined(GPUCA_HAVE_O2HEADERS) && (defined(GPUCA_O2_LIB) || (!defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_STANDALONE)))
   #define GPUCA_HAVE_O2HEADERS
 #endif

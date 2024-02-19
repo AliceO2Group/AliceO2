@@ -17,13 +17,17 @@ o2_add_test_root_macro(
   readMFTDCSConfigEntries.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB O2::MFTCondition)
 
-
 o2_add_test_root_macro(
   makeMFTCCDBEntryForDCS.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+o2_add_test_root_macro(
+  readAlpideCCDB.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
 
 install(
   FILES makeMFTCCDBEntryForDCS.C
         readMFTDCSentries.C
         readMFTDCSConfigEntries.C
+        readAlpideCCDB.C
   DESTINATION share/macro/)

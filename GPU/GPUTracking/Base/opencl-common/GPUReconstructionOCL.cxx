@@ -110,7 +110,7 @@ int GPUReconstructionOCL::InitDevice_Runtime()
       found = true;
     } else {
       for (unsigned int i_platform = 0; i_platform < num_platforms; i_platform++) {
-        char platform_profile[64] = {}, platform_version[64] = {}, platform_name[64] = {}, platform_vendor[64] = {};
+        char platform_profile[256] = {}, platform_version[256] = {}, platform_name[256] = {}, platform_vendor[256] = {};
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_PROFILE, sizeof(platform_profile), platform_profile, nullptr);
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
         clGetPlatformInfo(mInternals->platforms[i_platform], CL_PLATFORM_NAME, sizeof(platform_name), platform_name, nullptr);
@@ -118,9 +118,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
         if (mProcessingSettings.debugLevel >= 2) {
           GPUInfo("Available Platform %d: (%s %s) %s %s", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
         }
-        if (CheckPlatform(i_platform)) {
+        if (!found && CheckPlatform(i_platform)) {
           found = true;
           mInternals->platform = mInternals->platforms[i_platform];
+          if (mProcessingSettings.debugLevel >= 2) {
+            GPUInfo("    Using this platform");
+          }
         }
       }
     }

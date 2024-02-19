@@ -24,20 +24,31 @@ namespace dataformats
 
 struct PrimaryVertexExt : public PrimaryVertex {
   using PrimaryVertex::PrimaryVertex;
-  std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrc{}; // N contributors for each source type
+  std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrc{};   // N contributors for each source type
+  std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrcA{};  // N associated and passing cuts for each source type
+  std::array<uint16_t, o2::dataformats::GlobalTrackID::Source::NSources> nSrcAU{}; // N ambgous associated and passing cuts for each source type
   int VtxID = -1;                                                                // original vtx ID
-  float FT0Amp = -1;                                                             // amplitude of closest FT0 trigger
-  float FT0A = -1;                                                               // amplitude of the A side
+  float FT0A = -1;                                                               // amplitude of closest FT0 A side
+  float FT0C = -1;                                                               // amplitude of closest FT0 C side
   float FT0Time = -1.;                                                           // time of closest FT0 trigger
-
+  float rmsT = 0;
+  float rmsZ = 0;
+  float rmsTW = 0;
+  float rmsZW = 0;
+  float rmsT0 = 0;  // w/o ITS
+  float rmsTW0 = 0; // w/o ITS
+  float tMAD = 0;
+  float zMAD = 0;
   int getNSrc(int i) const { return nSrc[i]; }
+  int getNSrcA(int i) const { return nSrcA[i]; }
+  int getNSrcAU(int i) const { return nSrcAU[i]; }
 
 #ifndef GPUCA_ALIGPUCODE
   void print() const;
   std::string asString() const;
 #endif
 
-  ClassDefNV(PrimaryVertexExt, 2);
+  ClassDefNV(PrimaryVertexExt, 5);
 };
 
 #ifndef GPUCA_ALIGPUCODE

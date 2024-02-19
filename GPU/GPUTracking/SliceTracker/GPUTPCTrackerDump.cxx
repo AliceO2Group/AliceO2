@@ -99,25 +99,10 @@ void GPUTPCTracker::DumpHitWeights(std::ostream& out)
   }
 }
 
-int GPUTPCTracker::StarthitSortComparison(const void* a, const void* b)
-{
-  // qsort helper function to sort start hits
-  const GPUTPCHitId* aa = reinterpret_cast<const GPUTPCHitId*>(a);
-  const GPUTPCHitId* bb = reinterpret_cast<const GPUTPCHitId*>(b);
-
-  if (aa->RowIndex() != bb->RowIndex()) {
-    return (aa->RowIndex() - bb->RowIndex());
-  }
-  return (aa->HitIndex() - bb->HitIndex());
-}
-
 void GPUTPCTracker::DumpStartHits(std::ostream& out)
 {
   // sort start hits and dump to file
   out << "\nStart Hits: (Slice" << mISlice << ") (" << *NStartHits() << ")" << std::endl;
-  if (mRec->GetProcessingSettings().comparableDebutOutput) {
-    qsort(TrackletStartHits(), *NStartHits(), sizeof(GPUTPCHitId), StarthitSortComparison);
-  }
   for (unsigned int i = 0; i < *NStartHits(); i++) {
     out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
   }

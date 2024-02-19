@@ -38,6 +38,9 @@ struct StreamContext {
   void preStartStreamCallbacks(ServiceRegistryRef);
 
   void preProcessingCallbacks(ProcessingContext& pcx);
+  /// Invoke callbacks to be executed after the outputs have been created
+  /// by the processing, but before the post processing callbacks.
+  void finaliseOutputsCallbacks(ProcessingContext&);
   void postProcessingCallbacks(ProcessingContext& pcx);
 
   /// Invoke callbacks to be executed before every EOS user callback invokation
@@ -47,6 +50,7 @@ struct StreamContext {
 
   /// Callbacks for services to be executed before every process method invokation
   std::vector<ServiceProcessingHandle> preProcessingHandles;
+  std::vector<ServiceProcessingHandle> finaliseOutputsHandles;
   /// Callbacks for services to be executed after every process method invokation
   std::vector<ServiceProcessingHandle> postProcessingHandles;
 
@@ -59,6 +63,14 @@ struct StreamContext {
   // Notice that in such a case all the services will be created upfront, so
   // the callback will be called for all of them.
   std::vector<ServiceStartStreamHandle> preStartStreamHandles;
+
+  // Information on wether or not all the required routes have been created.
+  // This is used to check if the LifetimeTimeframe routes were all created
+  // for a given iteration.
+  // This is in the stream context to allow tracking data creation on a per thread
+  // basis.
+  std::vector<bool> routeDPLCreated;
+  std::vector<bool> routeCreated;
 };
 
 } // namespace o2::framework

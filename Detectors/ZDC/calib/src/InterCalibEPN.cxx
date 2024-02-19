@@ -94,18 +94,58 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       // Skip!
       continue;
     }
-    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA) {
-      cumulate(HidZNA, ev.EZDC(IdZNAC), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
+    // Select hadronic collisions by requiring a signal in ZEM calorimeters
+    if (ev.TDCVal[TDCZEM1].size() == 0 || ev.TDCVal[TDCZEM2].size() == 0) {
+      continue;
     }
-    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA) {
-      cumulate(HidZPA, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
+    if (mInterCalibConfig->cross_check == false) {
+      if ((ev.ezdcDecoded & MaskZNA) == MaskZNA) {
+        cumulate(HidZNA, ev.EZDC(IdZNAC), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
+      }
+      if ((ev.ezdcDecoded & MaskZPA) == MaskZPA) {
+        float x, rms;
+        ev.centroidZPA(x, rms);
+        cumulate(HidZPA, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
+        if (x < -(mInterCalibConfig->xcut_ZPA)) {
+          cumulate(HidZPAX, ev.EZDC(IdZPAC), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
+        }
+      }
+      if ((ev.ezdcDecoded & MaskZNC) == MaskZNC) {
+        cumulate(HidZNC, ev.EZDC(IdZNCC), ev.EZDC(IdZNC1), ev.EZDC(IdZNC2), ev.EZDC(IdZNC3), ev.EZDC(IdZNC4), 1.);
+      }
+      if ((ev.ezdcDecoded & MaskZPC) == MaskZPC) {
+        float x, rms;
+        ev.centroidZPC(x, rms);
+        cumulate(HidZPC, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
+        if (x > (mInterCalibConfig->xcut_ZPC)) {
+          cumulate(HidZPCX, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
+        }
+      }
+    } else {
+      if ((ev.ezdcDecoded & MaskAllZNA) == MaskAllZNA) {
+        cumulate(HidZNA, ev.EZDC(IdZNASum), ev.EZDC(IdZNA1), ev.EZDC(IdZNA2), ev.EZDC(IdZNA3), ev.EZDC(IdZNA4), 1.);
+      }
+      if ((ev.ezdcDecoded & MaskAllZPA) == MaskAllZPA) {
+        float x, rms;
+        ev.centroidZPA(x, rms);
+        cumulate(HidZPA, ev.EZDC(IdZPASum), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
+        if (x < -(mInterCalibConfig->xcut_ZPA)) {
+          cumulate(HidZPAX, ev.EZDC(IdZPASum), ev.EZDC(IdZPA1), ev.EZDC(IdZPA2), ev.EZDC(IdZPA3), ev.EZDC(IdZPA4), 1.);
+        }
+      }
+      if ((ev.ezdcDecoded & MaskAllZNC) == MaskAllZNC) {
+        cumulate(HidZNC, ev.EZDC(IdZNCSum), ev.EZDC(IdZNC1), ev.EZDC(IdZNC2), ev.EZDC(IdZNC3), ev.EZDC(IdZNC4), 1.);
+      }
+      if ((ev.ezdcDecoded & MaskAllZPC) == MaskAllZPC) {
+        float x, rms;
+        ev.centroidZPC(x, rms);
+        cumulate(HidZPC, ev.EZDC(IdZPCSum), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
+        if (x > (mInterCalibConfig->xcut_ZPC)) {
+          cumulate(HidZPCX, ev.EZDC(IdZPCSum), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
+        }
+      }
     }
-    if ((ev.ezdcDecoded & MaskZNC) == MaskZNC) {
-      cumulate(HidZNC, ev.EZDC(IdZNCC), ev.EZDC(IdZNC1), ev.EZDC(IdZNC2), ev.EZDC(IdZNC3), ev.EZDC(IdZNC4), 1.);
-    }
-    if ((ev.ezdcDecoded & MaskZPC) == MaskZPC) {
-      cumulate(HidZPC, ev.EZDC(IdZPCC), ev.EZDC(IdZPC1), ev.EZDC(IdZPC2), ev.EZDC(IdZPC3), ev.EZDC(IdZPC4), 1.);
-    }
+
     if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
     }
@@ -165,6 +205,10 @@ int InterCalibEPN::process(const char* hname, int ic)
     ih = HidZNI;
   } else if (hn.EqualTo("hZPI")) {
     ih = HidZPI;
+  } else if (hn.EqualTo("hZPAX")) {
+    ih = HidZPAX;
+  } else if (hn.EqualTo("hZPCX")) {
+    ih = HidZPCX;
   } else {
     LOGF(error, "Not recognized histogram name: %s\n", hname);
     return -1;
@@ -224,6 +268,9 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
 {
   // printf("%s: ih=%d tc=%g t1=%g t2=%g t3=%g t4=%g w=%g\n",__func__,ih, tc, t1, t2, t3, t4, w); fflush(stdout);
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
+    return;
+  }
+  if ((ih == 7 || ih == 8) && (t1 < mInterCalibConfig->tower_cut_ZP || t2 < mInterCalibConfig->tower_cut_ZP || t3 < mInterCalibConfig->tower_cut_ZP || t4 < mInterCalibConfig->tower_cut_ZP)) {
     return;
   }
   double val[NPAR] = {0, 0, 0, 0, 0, 1};

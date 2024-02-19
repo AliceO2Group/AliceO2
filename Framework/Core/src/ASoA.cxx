@@ -17,6 +17,15 @@
 
 namespace o2::soa
 {
+void accessingInvalidIndexFor(const char* getter)
+{
+  throw o2::framework::runtime_error_f("Accessing invalid index for %s", getter);
+}
+void dereferenceWithWrongType()
+{
+  throw o2::framework::runtime_error_f("Trying to dereference index with a wrong type in _as<>. Note that if you have several compatible index targets in your process() signature, the last one will be the one actually bound to the getter.");
+}
+
 SelectionVector selectionToVector(gandiva::Selection const& sel)
 {
   SelectionVector rows;
@@ -112,6 +121,16 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
 void notBoundTable(const char* tableName)
 {
   throw o2::framework::runtime_error_f("Index pointing to %s is not bound! Did you subscribe to the table?", tableName);
+}
+
+void notFoundColumn(const char* label, const char* key)
+{
+  throw o2::framework::runtime_error_f(R"(Preslice not valid: table "%s" (or join based on it) does not have column "%s")", label, key);
+}
+
+void missingOptionalPreslice(const char* label, const char* key)
+{
+  throw o2::framework::runtime_error_f(R"(Optional Preslice with missing binding used: table "%s" (or join based on it) does not have column "%s")", label, key);
 }
 
 } // namespace o2::soa

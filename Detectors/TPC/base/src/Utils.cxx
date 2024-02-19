@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <cmath>
+#include <memory>
 #include <regex>
 #include <string>
 #include <string_view>
@@ -27,6 +28,7 @@
 #include "TChain.h"
 #include "TGrid.h"
 
+#include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/Utils.h"
@@ -107,16 +109,26 @@ void utils::addFECInfo()
     return;
   }
   const int channel = mapper.getPadNumberInROC(PadROCPos(roc, row, pad));
+  const int padOffset = (roc > 35) * Mapper::getPadsInIROC();
 
   const auto& fecInfo = mapper.getFECInfo(PadROCPos(roc, row, pad));
+  const int cruNumber = mapper.getCRU(ROC(roc).getSector(), channel + padOffset);
+  const CRU cru(cruNumber);
+  const PartitionInfo& partInfo = mapper.getMapPartitionInfo()[cru.partition()];
+  const int nFECs = partInfo.getNumberOfFECs();
+  const int fecOffset = (nFECs + 1) / 2;
+  const int fecInPartition = fecInfo.getIndex() - partInfo.getSectorFECOffset();
+  const int dataWrapperID = fecInPartition >= fecOffset;
+  const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
 
   const std::string title = fmt::format(
     "#splitline{{#lower[.1]{{#scale[.5]{{"
     "{}{:02d} ({:02d}) row: {:02d}, pad: {:03d}, globalpad: {:05d} (in roc)"
     "}}}}}}{{#scale[.5]{{FEC: "
-    "{:02d}, Chip: {:02d}, Chn: {:02d}, Value: {:.3f}"
+    "{:02d}, Chip: {:02d}, Chn: {:02d}, CRU: {:d}, Link: {:02d} ({}{:02d}), Value: {:.3f}"
     "}}}}",
-    (roc / 18 % 2 == 0) ? "A" : "C", roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
+    (roc / 18 % 2 == 0) ? "A" : "C", roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(),
+    fecInfo.getSampaChannel(), cruNumber % CRU::CRUperSector, globalLinkID, dataWrapperID ? "B" : "A", globalLinkID % 12, binValue);
 
   h->SetTitle(title.data());
 }
@@ -245,7 +257,7 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
 }
 
 //______________________________________________________________________________
-TChain* utils::buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle)
+TChain* utils::buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle, bool checkSubDir)
 {
   const TString files = gSystem->GetFromPipe(command.data());
   std::unique_ptr<TObjArray> arrFiles(files.Tokenize("\n"));
@@ -256,10 +268,30 @@ TChain* utils::buildChain(std::string_view command, std::string_view treeName, s
 
   auto c = new TChain(treeName.data(), treeTitle.data());
   for (const auto o : *arrFiles) {
-    LOGP(info, "Adding file '{}'", o->GetName());
-    c->AddFile(o->GetName());
-    if (std::string_view(o->GetName()).find("alien") == 0) {
-      TGrid::Connect("alien");
+    if (o2::utils::Str::beginsWith(o->GetName(), "alien://") && !gGrid && !TGrid::Connect("alien://")) {
+      LOGP(fatal, "could not open alien connection to read {}", o->GetName());
+    }
+
+    if (checkSubDir) {
+      std::unique_ptr<TFile> f(TFile::Open(o->GetName()));
+      if (!f->IsOpen() || f->IsZombie()) {
+        continue;
+      }
+      for (auto ok : *f->GetListOfKeys()) {
+        auto k = static_cast<TKey*>(ok);
+        if (std::string_view(k->GetClassName()) != "TDirectoryFile") {
+          continue;
+        }
+        auto df = f->Get<TDirectoryFile>(k->GetName());
+        if (df->GetListOfKeys() && df->GetListOfKeys()->FindObject(treeName.data())) {
+          const auto fullTreePath = fmt::format("{}/{}", df->GetName(), treeName);
+          c->AddFile(o->GetName(), TTree::kMaxEntries, fullTreePath.data());
+          LOGP(info, "Adding file '{}', with tree {}", o->GetName(), fullTreePath);
+        }
+      }
+    } else {
+      LOGP(info, "Adding file '{}'", o->GetName());
+      c->AddFile(o->GetName());
     }
   }
 

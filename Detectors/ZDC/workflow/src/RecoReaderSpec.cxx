@@ -64,10 +64,10 @@ void RecoReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "ZDCRecoReader pushed " << RecBC.size() << " b.c. " << Energy.size() << " Energies " << TDCData.size() << " TDCs " << Info.size() << " Infos";
-  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, RecBC);
-  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, Energy);
-  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, TDCData);
-  pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, Info);
+  pc.outputs().snapshot(Output{"ZDC", "BCREC", 0}, RecBC);
+  pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0}, Energy);
+  pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0}, TDCData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0}, Info);
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

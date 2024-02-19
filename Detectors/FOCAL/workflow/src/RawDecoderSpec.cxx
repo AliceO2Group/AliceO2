@@ -274,10 +274,10 @@ void RawDecoderSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 
 void RawDecoderSpec::sendOutput(framework::ProcessingContext& ctx)
 {
-  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "PADLAYERS", mOutputSubspec, framework::Lifetime::Timeframe}, mOutputPadLayers);
-  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "PIXELHITS", mOutputSubspec, framework::Lifetime::Timeframe}, mOutputPixelHits);
-  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "PIXELCHIPS", mOutputSubspec, framework::Lifetime::Timeframe}, mOutputPixelChips);
-  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "TRIGGERS", mOutputSubspec, framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "PADLAYERS", mOutputSubspec}, mOutputPadLayers);
+  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "PIXELHITS", mOutputSubspec}, mOutputPixelHits);
+  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "PIXELCHIPS", mOutputSubspec}, mOutputPixelChips);
+  ctx.outputs().snapshot(framework::Output{o2::header::gDataOriginFOC, "TRIGGERS", mOutputSubspec}, mOutputTriggerRecords);
 }
 
 void RawDecoderSpec::resetContainers()
@@ -675,7 +675,7 @@ o2::framework::DataProcessorSpec o2::focal::reco_workflow::getRawDecoderSpec(boo
   outputs.emplace_back(originFOC, "PIXELCHIPS", outputSubspec, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back(originFOC, "TRIGGERS", outputSubspec, o2::framework::Lifetime::Timeframe);
 
-  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originFOC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originFOC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Timeframe}};
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }

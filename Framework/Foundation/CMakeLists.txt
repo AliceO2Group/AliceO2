@@ -41,6 +41,9 @@ add_executable(o2-test-framework-Signpost
 add_executable(o2-test-framework-ThreadSanitizer
                test/test_ThreadSanitizer.cxx)
 
+add_executable(o2-log
+               src/o2Log.cxx)
+
 target_link_libraries(o2-test-framework-Signpost PRIVATE O2::FrameworkFoundation)
 target_link_libraries(o2-test-framework-ThreadSanitizer
                       PRIVATE O2::FrameworkFoundation Threads::Threads)
@@ -56,6 +59,9 @@ set_property(TARGET o2-test-framework-foundation PROPERTY RUNTIME_OUTPUT_DIRECTO
 set_property(TARGET o2-test-framework-Signpost PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 set_property(TARGET o2-test-framework-SignpostLogger PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 set_property(TARGET o2-test-framework-ThreadSanitizer PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+get_filename_component(bindir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../bin ABSOLUTE)
+set_property(TARGET o2-log PROPERTY RUNTIME_OUTPUT_DIRECTORY ${bindir})
+install(TARGETS o2-log RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_test(NAME framework:foundation COMMAND o2-test-framework-foundation)
 

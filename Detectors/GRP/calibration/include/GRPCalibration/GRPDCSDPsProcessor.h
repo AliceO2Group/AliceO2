@@ -64,10 +64,12 @@ struct MagFieldHelper {
   bool negDip = 0;
   bool updated = false;
   bool verbose = false;
+  static constexpr float ZeroCurrent = 70.f;    // current below this threshold considered to be produce 0 field
+  static constexpr float DeltaThreshold = 0.2f; // update field on delta's exceeding this value
 
   void updateCurL3(float v)
   {
-    if (!(isSet & 0x1) || std::abs(v - curL3) > 0.1) {
+    if (!(isSet & 0x1) || (std::abs(v - curL3) > DeltaThreshold && (std::abs(v) > ZeroCurrent || std::abs(curL3) > ZeroCurrent))) {
       if (verbose) {
         LOG(info) << "L3 current will be updated from " << curL3 << " to " << v;
       }
@@ -78,7 +80,7 @@ struct MagFieldHelper {
   }
   void updateCurDip(float v)
   {
-    if (!(isSet & 0x2) || std::abs(v - curDip) > 0.1) {
+    if (!(isSet & 0x2) || (std::abs(v - curDip) > DeltaThreshold && (std::abs(v) > ZeroCurrent || std::abs(curDip) > ZeroCurrent))) {
       if (verbose) {
         LOG(info) << "Dipole current will be updated from " << curDip << " to " << v;
       }
@@ -174,7 +176,7 @@ struct GRPLHCInfo {
   static constexpr std::string_view bptxPhaseShiftAliases[NBPTXPhaseShiftAliases] = {"BPTX_Phase_Shift_B1", "BPTX_Phase_Shift_B2"};
   static constexpr std::string_view lumiAliases[NLumiAliases] = {"ALI_Lumi_Total_Inst"};
   static constexpr std::string_view lhcStringAliases[NLHCStringAliases] = {"ALI_Lumi_Source_Name", "BEAM_MODE", "MACHINE_MODE"};
-  static constexpr int nAliasesLHC = NCollimatorAliases + NBeamAliases + NBkgAliases + NBPTXAliases + NBPTXPhaseAliases + NBPTXPhaseRMSAliases + NBPTXPhaseShiftAliases + NLumiAliases + NLHCStringAliases;
+  static constexpr int nAliasesLHC = (int)NCollimatorAliases + (int)NBeamAliases + (int)NBkgAliases + (int)NBPTXAliases + (int)NBPTXPhaseAliases + (int)NBPTXPhaseRMSAliases + (int)NBPTXPhaseShiftAliases + (int)NLumiAliases + (int)NLHCStringAliases;
 
   std::array<std::vector<std::pair<uint64_t, double>>, 2> mIntensityBeam;
   std::array<std::vector<std::pair<uint64_t, double>>, 3> mBackground;

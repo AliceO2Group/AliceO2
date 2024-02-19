@@ -58,14 +58,12 @@ struct RDHFormatter {
 template <>
 struct RDHFormatter<header::RAWDataHeaderV7> {
   using type = header::RAWDataHeaderV7;
-  static const char* sFormatString;
   static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
 };
 
 template <>
 struct RDHFormatter<header::RAWDataHeaderV6> {
   using type = header::RAWDataHeaderV6;
-  static const char* sFormatString;
   static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
 };
 

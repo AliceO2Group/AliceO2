@@ -33,10 +33,11 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   uint8_t triggerCondition = 0x0; // Trigger condition: 0x1 single, 0x3 double and 0x7 triple
 
   // Signal processing
-  int low_pass_filter = -1;    // Low pass filtering
-  int full_interpolation = -1; // Full interpolation of waveform
-  int corr_signal = -1;        // TDC signal correction
-  int corr_background = -1;    // TDC pile-up correction
+  int low_pass_filter = -1;               // Low pass filtering
+  int full_interpolation = -1;            // Full interpolation of waveform
+  int full_interpolation_min_length = -1; // Minimum length to perform full interpolation
+  int corr_signal = -1;                   // TDC signal correction
+  int corr_background = -1;               // TDC pile-up correction
 
   int debug_output = -1; // Debug output
 
@@ -46,6 +47,8 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   float tdc_shift[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};  // Correction of TDC position (0-25 ns, units of ~10 ps)
   float tdc_calib[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};  // Correction of TDC amplitude
   float tdc_search[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
+
+  float tdc_offset[NTDCChannels] = {-FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty}; // Compensation of TDC amplitude offset
 
   // Enable extended search at beginning of first bunch
   bool setExtendedSearch = false;
@@ -68,9 +71,10 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   float ped_thr_hi[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
   float ped_thr_lo[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
 
-  // Energy calibration
   float energy_calib[NChannels] = {0}; // Energy calibration coefficients
-  float tower_calib[NChannels] = {0};  // Tower calibration coefficients
+  // Compensation of ADC offset
+  float adc_offset[NChannels] = {-FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty, -FInfty};
+  float tower_calib[NChannels] = {0}; // Tower calibration coefficients
 
   void print();
 

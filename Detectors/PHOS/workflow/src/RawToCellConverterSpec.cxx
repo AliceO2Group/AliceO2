@@ -108,14 +108,14 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
       mOutputCells.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", mflpId, o2::framework::Lifetime::Timeframe}, mOutputCells);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", mflpId}, mOutputCells);
       mOutputTriggerRecords.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId}, mOutputTriggerRecords);
       mOutputHWErrors.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0}, mOutputHWErrors);
       if (mFillChi2) {
         mOutputFitChi.clear();
-        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0}, mOutputFitChi);
       }
       return; // empty TF, nothing to process
     }
@@ -290,18 +290,18 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   mLastSize = 1.1 * mOutputCells.size();
 
   LOG(debug) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", mflpId, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", mflpId}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId}, mOutputTriggerRecords);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0}, mOutputHWErrors);
   if (mFillChi2) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0}, mOutputFitChi);
   }
 }
 
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(unsigned int flpId)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
   // receive at least 1 guaranteed input (which will allow to acknowledge the TF)
   inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));

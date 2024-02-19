@@ -135,10 +135,12 @@ struct UniversalType {
 template <typename T>
 consteval auto brace_constructible_size(auto... Members)
 {
-  if constexpr (requires { T{Members...}; } == false)
+  if constexpr (requires { T{Members...}; } == false) {
+    static_assert(sizeof...(Members) != 0, "You need to make sure that you have implicit constructors or that you call the explicit constructor correctly.");
     return sizeof...(Members) - 1;
-  else
+  } else {
     return brace_constructible_size<T>(Members..., UniversalType{});
+  }
 }
 #else
 template <typename T>
@@ -281,7 +283,7 @@ auto homogeneous_apply_refs(L l, T&& object)
 {
   using type = std::decay_t<T>;
   constexpr int nesting = B ? 1 : 0;
-  constexpr unsigned long numElements = brace_constructible_size<T>() - nesting;
+  constexpr unsigned long numElements = brace_constructible_size<type>() - nesting;
   // clang-format off
   if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 9)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY (9, 8)
@@ -382,7 +384,7 @@ auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (3)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (1)
-  else { return false; }
+  else { return std::array<bool,0>(); }
   // clang-format on
 }
 

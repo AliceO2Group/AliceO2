@@ -74,6 +74,12 @@ constexpr auto isArray2D()
 }
 
 template <VariantType V>
+constexpr auto isLabeledArrayString()
+{
+  return V == VariantType::LabeledArrayString;
+}
+
+template <VariantType V>
 constexpr auto isLabeledArray()
 {
   return (V == VariantType::LabeledArrayInt ||
@@ -290,9 +296,9 @@ class Variant
   using storage_t = std::aligned_union<8, int, int8_t, int16_t, int64_t,
                                        uint8_t, uint16_t, uint32_t, uint64_t,
                                        const char*, float, double, bool,
-                                       int*, float*, double*, bool*,
-                                       Array2D<int>, Array2D<float>, Array2D<double>,
-                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>>::type;
+                                       int*, float*, double*, bool*, std::string*,
+                                       Array2D<int>, Array2D<float>, Array2D<double>, Array2D<std::string>,
+                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>, LabeledArray<std::string>>::type;
 
  public:
   Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}

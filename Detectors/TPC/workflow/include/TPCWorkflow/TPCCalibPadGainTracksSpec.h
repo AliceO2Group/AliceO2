@@ -44,13 +44,15 @@ namespace tpc
 class TPCCalibPadGainTracksDevice : public o2::framework::Task
 {
  public:
-  TPCCalibPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB) : mPublishAfter(publishAfterTFs), mDebug(debug), mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mDisablePolynomialsCCDB(disablePolynomialsCCDB), mCCDBRequest(req)
+  TPCCalibPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB) : mPublishAfter(publishAfterTFs), mDebug(debug), mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mDisablePolynomialsCCDB(disablePolynomialsCCDB), mCCDBRequest(req)
   {
     if (!polynomialsFile.empty()) {
       LOGP(info, "Loading polynomials from file {}", polynomialsFile);
       mPadGainTracks.loadPolTopologyCorrectionFromFile(polynomialsFile.data());
       mDisablePolynomialsCCDB = true;
     }
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
   }
 
   void init(o2::framework::InitContext& ic) final
@@ -85,8 +87,8 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     mPadGainTracks.setdEdxMax(maxdEdx);
     mPadGainTracks.doNotNomalize(donotnormalize);
 
-    const auto propagateTrack = ic.options().get<bool>("propagateTrack");
-    mPadGainTracks.setPropagateTrack(propagateTrack);
+    const auto propagateTrack = ic.options().get<bool>("do-not-propagateTrack");
+    mPadGainTracks.setPropagateTrack(!propagateTrack);
 
     const auto dedxRegionType = ic.options().get<int>("dedxRegionType");
     mPadGainTracks.setdEdxRegion(static_cast<CalibPadGainTracks::DEdxRegion>(dedxRegionType));
@@ -186,10 +188,10 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     mTPCCorrMapsLoader.extractCCDBInputs(pc);
     bool updateMaps = false;
     if (mTPCCorrMapsLoader.isUpdated()) {
-      mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
       mTPCCorrMapsLoader.acknowledgeUpdate();
       updateMaps = true;
     }
+    mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
     if (mTPCVDriftHelper.isUpdated()) {
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
            mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -240,12 +242,15 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB, bool requestCTPLumi)
+DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trackTPC", gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe);
+  if (sclOpts.lumiType == 1) {
+    inputs.emplace_back("CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe);
+  }
 
   if (!polynomialsFile.empty()) {
     disablePolynomialsCCDB = true;
@@ -271,24 +276,24 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
     {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
     {"do-not-normalize", VariantType::Bool, false, {"Do not normalize the cluster charge to the dE/dx"}},
-    {"mindEdx", VariantType::Float, 0.f, {"Minimum accepted dE/dx value"}},
-    {"maxdEdx", VariantType::Float, -1.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
+    {"mindEdx", VariantType::Float, 10.f, {"Minimum accepted dE/dx value"}},
+    {"maxdEdx", VariantType::Float, 500.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
     {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
     {"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
     {"dedxRegionType", VariantType::Int, 2, {"using the dE/dx per chamber (0), stack (1) or per sector (2)"}},
     {"dedxType", VariantType::Int, 0, {"recalculating the dE/dx (0), using it from tracking (1)"}},
     {"chargeType", VariantType::Int, 0, {"Using qMax (0) or qTot (1) for the dE/dx and the pad-by-pad histograms"}},
-    {"propagateTrack", VariantType::Bool, false, {"Propagating the track instead of performing a refit for obtaining track parameters."}},
+    {"do-not-propagateTrack", VariantType::Bool, false, {"Performing a refit for obtaining track parameters instead of propagating."}},
     {"useEveryNthTF", VariantType::Int, 10, {"Using only a fraction of the data: 1: Use every TF, 10: Use only every tenth TF."}},
     {"maxTracksPerTF", VariantType::Int, 10000, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
   };
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, requestCTPLumi);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, sclOpts);
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                                 false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                false,                          // askMatLUT
+                                                                true,                           // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
 
@@ -299,7 +304,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     "calib-tpc-gainmap-tracks",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(ccdbRequest, publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
+    AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(ccdbRequest, sclOpts, publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
     opts}; // end DataProcessorSpec
 }
 

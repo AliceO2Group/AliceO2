@@ -54,7 +54,7 @@ std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, b
 
 std::string CCDBManagerInstance::getSummaryString() const
 {
-  std::string res = fmt::format("{} queries", mQueries);
+  std::string res = fmt::format("{} queries, {} bytes", mQueries, fmt::group_digits(mFetchedSize));
   if (mCachingEnabled) {
     res += fmt::format(" for {} objects", mCache.size());
   }
@@ -72,9 +72,20 @@ std::string CCDBManagerInstance::getSummaryString() const
   return res;
 }
 
-void CCDBManagerInstance::endOfStream()
+void CCDBManagerInstance::report(bool longrep)
 {
   LOG(info) << "CCDBManager summary: " << getSummaryString();
+  if (longrep && mCachingEnabled) {
+    LOGP(info, "CCDB cache miss/hit/failures");
+    for (const auto& obj : mCache) {
+      LOGP(info, "  {}: {}/{}/{} ({}-{} bytes)", obj.first, obj.second.fetches, obj.second.queries - obj.second.fetches - obj.second.failures, obj.second.failures, obj.second.minSize, obj.second.maxSize);
+    }
+  }
+}
+
+void CCDBManagerInstance::endOfStream()
+{
+  report(true);
 }
 
 } // namespace ccdb

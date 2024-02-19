@@ -52,7 +52,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<gsl::span<CTPDigit>>("digits");
   static LumiInfo lumiPrev;
   const int maxDumRep = 5;
-  int dumRep = 0;
+  static int dumRep = 0;
   LumiInfo lumi{};
   if (!mNoLumi) {
     if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(LumiInfo)) {
@@ -64,7 +64,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       lumi = lumiPrev;
     }
   }
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0, Lifetime::Timeframe});
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0});
   auto iosize = mCTFCoder.encode(buffer, digits, lumi);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();

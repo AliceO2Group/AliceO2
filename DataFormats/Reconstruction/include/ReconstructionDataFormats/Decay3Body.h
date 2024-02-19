@@ -41,8 +41,8 @@ class Decay3Body : public o2::track::TrackParCov /// TO BE DONE: extend to gener
   float getDCA() const { return mDCA; }
   void setDCA(float d) { mDCA = d; }
 
-  float calcMass2() const { return calcMass2(mProngs[0].getPID(), mProngs[1].getPID(), mProngs[2].getPID()); }
-  float calcMass2(PID pid0, PID pid1, PID pid2) const { return calcMass2(pid0.getMass2(), pid1.getMass2(), pid2.getMass2()); }
+  float calcMass2() const { return calcMass2PID(mProngs[0].getPID(), mProngs[1].getPID(), mProngs[2].getPID()); }
+  float calcMass2PID(int pid0, int pid1, int pid2) const { return calcMass2(PID::getMass2(pid0), PID::getMass2(pid1), PID::getMass2(pid2)); }
   float calcMass2(float mass0, float mass1, float mass2) const;
 
   float calcR2() const { return getX() * getX() + getY() * getY(); }

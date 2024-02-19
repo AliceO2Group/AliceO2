@@ -271,7 +271,9 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot, Da
       }
       state += ";";
     }
-    states.updateState({.id = short((int)ProcessingStateId::CONTEXT_VARIABLES_BASE + slot.index), (int)state.size(), state.data()});
+    states.updateState({.id = short((int)ProcessingStateId::CONTEXT_VARIABLES_BASE + slot.index),
+                        .size = (int)state.size(),
+                        .data = state.data()});
   },
                   &states, slot);
 }
@@ -295,11 +297,13 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       continue;
     }
     mPruneOps.push_back(PruneOp{si});
+    bool didDrop = false;
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
+          didDrop = true;
           LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
           LOGP(debug,
@@ -307,6 +311,19 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
                "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
                DataSpecUtils::describe(input), si, timestamp.value, newOldest.timeslice.value,
                mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+        }
+      }
+    }
+    // We did drop some data. Let's print what was missing.
+    if (didDrop) {
+      for (size_t mi = 0; mi < mInputs.size(); ++mi) {
+        auto& input = mInputs[mi];
+        if (input.lifetime == Lifetime::Timer) {
+          continue;
+        }
+        auto& element = mCache[si * mInputs.size() + mi];
+        if (element.size() == 0) {
+          LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         }
       }
     }
@@ -516,7 +533,7 @@ DataRelayer::RelayChoice
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
     stats.updateStats({static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), DataProcessingStats::Op::Add, (int)1});
-    return RelayChoice{RelayChoice::Type::WillRelay, timeslice};
+    return RelayChoice{.type = RelayChoice::Type::WillRelay, .timeslice = timeslice};
   }
 
   /// If not, we find which timeslice we really were looking at
@@ -543,7 +560,7 @@ DataRelayer::RelayChoice
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
+    return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
@@ -553,7 +570,7 @@ DataRelayer::RelayChoice
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
+    return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
   }
 
   TimesliceIndex::ActionTaken action;
@@ -563,17 +580,17 @@ DataRelayer::RelayChoice
 
   switch (action) {
     case TimesliceIndex::ActionTaken::Wait:
-      return RelayChoice{.type = RelayChoice::Type::Backpressured, timeslice};
+      return RelayChoice{.type = RelayChoice::Type::Backpressured, .timeslice = timeslice};
     case TimesliceIndex::ActionTaken::DropObsolete:
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
       if ((obsoleteCount++ % (1 * mult)) == 0) {
-        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount.load());
         if (obsoleteCount > mult * 10) {
           mult = mult * 10;
         }
       }
-      return RelayChoice{.type = RelayChoice::Type::Dropped, timeslice};
+      return RelayChoice{.type = RelayChoice::Type::Dropped, .timeslice = timeslice};
     case TimesliceIndex::ActionTaken::DropInvalid:
       LOG(warning) << "Incoming data is invalid, not relaying.";
       stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
@@ -581,7 +598,7 @@ DataRelayer::RelayChoice
       for (size_t pi = 0; pi < nMessages; ++pi) {
         messages[pi].reset(nullptr);
       }
-      return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
+      return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
     case TimesliceIndex::ActionTaken::ReplaceUnused:
     case TimesliceIndex::ActionTaken::ReplaceObsolete:
       // At this point the variables match the new input but the
@@ -661,6 +678,9 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       notDirty++;
       continue;
     }
+    if (!mCompletionPolicy.callbackFull) {
+      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
+    }
     auto partial = getPartialRecord(li);
     // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
@@ -678,14 +698,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       return partial[idx].size();
     };
     InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
-    CompletionPolicy::CompletionOp action;
-    if (mCompletionPolicy.callback) {
-      action = mCompletionPolicy.callback(span);
-    } else if (mCompletionPolicy.callbackFull) {
-      action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
-    } else {
-      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
-    }
+    CompletionPolicy::CompletionOp action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
+
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {

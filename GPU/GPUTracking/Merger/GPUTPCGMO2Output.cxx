@@ -40,12 +40,18 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
   const GPUTPCGMMergedTrack* tracks = merger.OutputTracks();
   const unsigned int nTracks = merger.NOutputTracks();
   const GPUTPCGMMergedTrackHit* trackClusters = merger.Clusters();
+  const GPUdEdxInfo* tracksdEdx = merger.OutputTracksdEdx();
+
   constexpr unsigned char flagsReject = getFlagsReject();
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
+  bool cutOnTrackdEdx = merger.Param().par.dodEdx && merger.Param().rec.tpc.minTrackdEdxMax2Tot > 0.;
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
   for (unsigned int i = get_global_id(0); i < nTracks; i += get_global_size(0)) {
+    if (!tracks[i].OK()) {
+      continue;
+    }
     unsigned int nCl = 0;
     for (unsigned int j = 0; j < tracks[i].NClusters(); j++) {
       if ((trackClusters[tracks[i].FirstClusterRef() + j].state & flagsReject) || (merger.ClusterAttachment()[trackClusters[tracks[i].FirstClusterRef() + j].num] & flagsRequired) != flagsRequired) {
@@ -63,6 +69,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
       continue;
     }
     if (merger.Param().rec.tpc.minNClustersFinalTrack != -1 && nCl < (unsigned int)merger.Param().rec.tpc.minNClustersFinalTrack) {
+      continue;
+    }
+    if (cutOnTrackdEdx && (tracksdEdx[i].dEdxMaxTPC < merger.Param().rec.tpc.minTrackdEdxMax || tracksdEdx[i].dEdxMaxTPC < tracksdEdx[i].dEdxTotTPC * merger.Param().rec.tpc.minTrackdEdxMax2Tot) && !(tracksdEdx[i].dEdxMaxTPC == 0 && CAMath::Abs(tracks[i].GetParam().GetDzDs()) > 0.03f)) {
       continue;
     }
     unsigned int myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
@@ -84,7 +93,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::sort>(int nBlocks, int 
 #endif
 }
 
-#if defined(GPUCA_SPECIALIZE_THRUST_SORTS) && !defined(GPUCA_GPUCODE_GENRTC) // Specialize GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::sort>
+#if defined(GPUCA_SPECIALIZE_THRUST_SORTS) && !defined(GPUCA_GPUCODE_COMPILEKERNELS) // Specialize GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::sort>
 struct GPUTPCGMO2OutputSort_comp {
   GPUd() bool operator()(const GPUTPCGMMerger::tmpSort& a, const GPUTPCGMMerger::tmpSort& b)
   {
@@ -117,13 +126,19 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
+  float const SNPThresh = 0.999990f;
 
   for (int iTmp = get_global_id(0); iTmp < nTracks; iTmp += get_global_size(0)) {
     TrackTPC oTrack;
     const int i = trackSort[iTmp].x;
-
+    auto snpIn = tracks[i].GetParam().GetSinPhi();
+    if (snpIn > SNPThresh) {
+      snpIn = SNPThresh;
+    } else if (snpIn < -SNPThresh) {
+      snpIn = -SNPThresh;
+    }
     oTrack.set(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
-               {tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), tracks[i].GetParam().GetSinPhi(), tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt()},
+               {tracks[i].GetParam().GetY(), tracks[i].GetParam().GetZ(), snpIn, tracks[i].GetParam().GetDzDs(), tracks[i].GetParam().GetQPt()},
                {tracks[i].GetParam().GetCov(0),
                 tracks[i].GetParam().GetCov(1), tracks[i].GetParam().GetCov(2),
                 tracks[i].GetParam().GetCov(3), tracks[i].GetParam().GetCov(4), tracks[i].GetParam().GetCov(5),
@@ -136,18 +151,28 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
       oTrack.setdEdx(tracksdEdx[i]);
     }
 
+    auto snpOut = outerPar.P[2];
+    if (snpOut > SNPThresh) {
+      snpOut = SNPThresh;
+    } else if (snpOut < -SNPThresh) {
+      snpOut = -SNPThresh;
+    }
     oTrack.setOuterParam(o2::track::TrackParCov(
       outerPar.X, outerPar.alpha,
-      {outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4]},
+      {outerPar.P[0], outerPar.P[1], snpOut, outerPar.P[3], outerPar.P[4]},
       {outerPar.C[0], outerPar.C[1], outerPar.C[2], outerPar.C[3], outerPar.C[4], outerPar.C[5],
        outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
 
     if (merger.Param().par.dodEdx && merger.Param().rec.tpc.enablePID) {
       PIDResponse pidResponse{};
-      const auto pid = pidResponse.getMostProbablePID(oTrack, merger.Param().rec.tpc.PID_EKrangeMin, merger.Param().rec.tpc.PID_EKrangeMax, merger.Param().rec.tpc.PID_EPrangeMin, merger.Param().rec.tpc.PID_EPrangeMax);
-      oTrack.setPID(pid);
-      oTrack.getParamOut().setPID(pid);
+      auto pid = pidResponse.getMostProbablePID(oTrack, merger.Param().rec.tpc.PID_EKrangeMin, merger.Param().rec.tpc.PID_EKrangeMax, merger.Param().rec.tpc.PID_EPrangeMin, merger.Param().rec.tpc.PID_EPrangeMax, merger.Param().rec.tpc.PID_EDrangeMin, merger.Param().rec.tpc.PID_EDrangeMax, merger.Param().rec.tpc.PID_ETrangeMin, merger.Param().rec.tpc.PID_ETrangeMax, merger.Param().rec.tpc.PID_useNsigma, merger.Param().rec.tpc.PID_sigma);
+      auto pidRemap = merger.Param().rec.tpc.PID_remap[pid];
+      if (pidRemap >= 0) {
+        pid = pidRemap;
+      }
+      oTrack.setPID(pid, true);
+      oTrack.getParamOut().setPID(pid, true);
     }
 
     unsigned int nOutCl = tmpData[i].x;

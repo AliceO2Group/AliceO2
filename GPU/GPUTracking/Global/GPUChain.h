@@ -178,18 +178,8 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
-#ifdef __clang__ // BUG: clang seems broken and does not accept default parameters before parameter pack
-  template <class S, int I = 0, int J = -1>
-  inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone)
-  {
-    return mRec->runKernel<S, I, J>(x, y);
-  }
-  template <class S, int I = 0, int J = -1, typename... Args>
-  inline int runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, Args&&... args)
-#else
   template <class S, int I = 0, int J = -1, typename... Args>
   inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, Args&&... args)
-#endif
   {
     return mRec->runKernel<S, I, J, Args...>(x, y, z, std::forward<Args>(args)...);
   }
@@ -209,10 +199,14 @@ class GPUChain
   {
     return mRec->getTimer<T, J>(name, num);
   }
+  // Get GRID with NBLOCKS minimal such that nThreads * NBLOCS >= totalItems
   krnlExec GetGrid(unsigned int totalItems, unsigned int nThreads, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  // Get GRID with NBLOCKS minimal such that ideal number of threads * NBLOCKS >= totalItems
   krnlExec GetGrid(unsigned int totalItems, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  // Get GRID with specified number of blocks, each block with ideal number of threads
   krnlExec GetGridBlk(unsigned int nBlocks, int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   krnlExec GetGridBlkStep(unsigned int nBlocks, int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
+  // Get GRID with ideal number of threads / blocks for GPU
   krnlExec GetGridAuto(int stream, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
   krnlExec GetGridAutoStep(int stream, GPUCA_RECO_STEP st = GPUCA_RECO_STEP::NoRecoStep);
 
@@ -252,7 +246,7 @@ class GPUChain
 template <class T>
 inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
 {
-  mRec->RunHelperThreads((int (GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
+  mRec->RunHelperThreads((int(GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
 }
 
 template <bool Always, class T, class S, typename... Args>

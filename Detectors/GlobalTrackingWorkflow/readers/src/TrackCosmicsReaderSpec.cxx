@@ -41,9 +41,9 @@ void TrackCosmicsReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mTracks.size() << " Cosmic Tracks at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mTracks);
+  pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0}, mTracks);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0}, mLabels);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {

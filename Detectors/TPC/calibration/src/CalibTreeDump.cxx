@@ -223,7 +223,7 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
     std::string name = calDet.getName();
 
     if (name == "PadCalibrationObject" || name.size() == 0) {
-      name = fmt::format("calDet_{%02d}", iter);
+      name = fmt::format(fmt::runtime("calDet_{%02d}"), iter);
     }
 
     std::string meanName = fmt::format("{}_mean", name);

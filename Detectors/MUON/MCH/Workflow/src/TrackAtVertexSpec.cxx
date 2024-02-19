@@ -139,7 +139,7 @@ class TrackAtVertexTask
     }
 
     // create the output message
-    auto msgOut = pc.outputs().make<char>(Output{"MCH", "TRACKSATVERTEX", 0, Lifetime::Timeframe},
+    auto msgOut = pc.outputs().make<char>(Output{"MCH", "TRACKSATVERTEX", 0},
                                           mTracksAtVtx.size() * sizeof(int) + nTracksTot * sizeof(TrackAtVtxStruct));
 
     // write the tracks

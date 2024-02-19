@@ -33,11 +33,15 @@ class STUDecoderError final : public std::exception
   /// \enum ErrorCode_t
   /// \brief Error codes of STU decoding
   enum class ErrorCode_t {
-    PAGE_ERROR,       ///< Page decoding failed (missing header)
-    WORD_UNEXPECTED,  ///< Word unexpected
-    INDEX_UNEXPECTED, ///< Patch index unexpected
-    ADC_OVERFLOW,     ///< ADC overflow
-    UNKNOWN           ///< Unknown error code (needed for conversion to int)
+    PAGE_ERROR,                    ///< Page decoding failed (missing header)
+    WORD_UNEXPECTED,               ///< Word unexpected
+    INDEX_UNEXPECTED,              ///< Patch index unexpected
+    ADC_OVERFLOW,                  ///< ADC overflow
+    FEEID_UNEXPECTED,              ///< FeeID index unexpected
+    OLD_PAYLOAD_VERSION,           ///< unsupported old payload  version
+    FULL_PAYLOAD_SIZE_UNEXPECTED,  ///< full payload size unexpected
+    SHORT_PAYLOAD_SIZE_UNEXPECTED, ///< short payload size unexpected
+    UNKNOWN                        ///< Unknown error code (needed for conversion to int)
   };
 
   /// \brief Get integer representation of error code

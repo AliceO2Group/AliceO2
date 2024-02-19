@@ -46,7 +46,9 @@ void TrackReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   using TrackTunePar = o2::globaltracking::TrackTuneParams;
   const auto& trackTune = TrackTunePar::Instance();
-  if (trackTune.sourceLevelTPC &&
+  // Normally we should not apply tuning here as with sourceLevelTPC==true it is already applied in the tracking.
+  // Note that there is no way to apply lumi scaling here!!!
+  if ((trackTune.sourceLevelTPC && trackTune.applyWhenReading) &&
       (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
        trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
     for (auto& trc : mTracksOut) {
@@ -68,10 +70,10 @@ void TrackReader::run(ProcessingContext& pc)
     }
   }
 
-  pc.outputs().snapshot(Output{"TPC", "TRACKS", 0, Lifetime::Timeframe}, mTracksOut);
-  pc.outputs().snapshot(Output{"TPC", "CLUSREFS", 0, Lifetime::Timeframe}, mCluRefVecOut);
+  pc.outputs().snapshot(Output{"TPC", "TRACKS", 0}, mTracksOut);
+  pc.outputs().snapshot(Output{"TPC", "CLUSREFS", 0}, mCluRefVecOut);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe}, mMCTruthOut);
+    pc.outputs().snapshot(Output{"TPC", "TRACKSMCLBL", 0}, mMCTruthOut);
   }
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

@@ -53,8 +53,8 @@ DataProcessorSpec getDCSConsumerSpec(DetID det)
   procName += det.getName();
   return DataProcessorSpec{
     procName,
-    Inputs{{"confFile", ConcreteDataTypeMatcher{det.getDataOrigin(), "DCS_CONFIG_FILE"}, Lifetime::Timeframe},
-           {"confFileName", ConcreteDataTypeMatcher{det.getDataOrigin(), "DCS_CONFIG_NAME"}, Lifetime::Timeframe}},
+    Inputs{{"confFile", ConcreteDataTypeMatcher{det.getDataOrigin(), "DCS_CONFIG_FILE"}, Lifetime::Sporadic},
+           {"confFileName", ConcreteDataTypeMatcher{det.getDataOrigin(), "DCS_CONFIG_NAME"}, Lifetime::Sporadic}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::dcs::DCSConfigConsumer>()},
     Options{}};

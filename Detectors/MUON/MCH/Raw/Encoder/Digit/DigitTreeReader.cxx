@@ -20,7 +20,7 @@ void AssertBranch(ROOT::Internal::TTreeReaderValueBase& value)
 {
   if (value.GetSetupStatus() < 0) {
     throw std::invalid_argument(fmt::format("Error {} setting up tree reader for branch {}",
-                                            value.GetSetupStatus(), value.GetBranchName()));
+                                            (int)value.GetSetupStatus(), value.GetBranchName()));
   }
 }
 

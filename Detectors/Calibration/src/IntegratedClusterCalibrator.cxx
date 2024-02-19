@@ -165,6 +165,7 @@ void IntegratedClusterCalibrator<DataT>::finalizeSlot(o2::calibration::TimeSlot<
   LOGP(info, "Finalizing slot {} <= TF <= {}", startTF, endTF);
 
   auto& integratedClusters = *slot.getContainer();
+  integratedClusters.setStartTime(slot.getStartTimeMS());
   if (mDebug) {
     integratedClusters.dumpToFile(fmt::format("IntegratedClusters_TF_{}_{}_TS_{}_{}.root", startTF, endTF, slot.getStartTimeMS(), slot.getEndTimeMS()).data());
   }
@@ -200,4 +201,5 @@ template class IntegratedClusters<o2::fit::IFDDC>;
 template class IntegratedClusterCalibrator<o2::fit::IFDDC>;
 
 } // end namespace calibration
+
 } // end namespace o2

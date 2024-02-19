@@ -62,8 +62,9 @@ struct GPURecoWorkflowSpec_PipelineInternals {
 
   fair::mq::Device* fmqDevice = nullptr;
 
-  fair::mq::State fmqState = fair::mq::State::Undefined;
-  volatile bool endOfStreamReceived = false;
+  volatile fair::mq::State fmqState = fair::mq::State::Undefined, fmqPreviousState = fair::mq::State::Undefined;
+  volatile bool endOfStreamAsyncReceived = false;
+  volatile bool endOfStreamDplReceived = false;
   volatile bool runStarted = false;
   volatile bool shouldTerminate = false;
   std::mutex stateMutex;
@@ -90,8 +91,8 @@ struct GPURecoWorkflowSpec_PipelineInternals {
 
   unsigned long mNTFReceived = 0;
 
-  bool mayInject = true;
-  unsigned long mayInjectTFId = 0;
+  volatile bool mayInject = true;
+  volatile unsigned long mayInjectTFId = 0;
   std::mutex mayInjectMutex;
   std::condition_variable mayInjectCondition;
 };

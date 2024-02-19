@@ -60,8 +60,8 @@ class DecodedDataAggregatorDeviceDPL
 
     for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < 3; ++subSpec) {
       EventType evtType = static_cast<EventType>(subSpec);
-      pc.outputs().snapshot(of::Output{o2::header::gDataOriginMID, "DATA", subSpec, of::Lifetime::Timeframe}, mAggregator.getData(evtType));
-      pc.outputs().snapshot(of::Output{o2::header::gDataOriginMID, "DATAROF", subSpec, of::Lifetime::Timeframe}, mAggregator.getROFRecords(evtType));
+      pc.outputs().snapshot(of::Output{o2::header::gDataOriginMID, "DATA", subSpec}, mAggregator.getData(evtType));
+      pc.outputs().snapshot(of::Output{o2::header::gDataOriginMID, "DATAROF", subSpec}, mAggregator.getROFRecords(evtType));
     }
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;

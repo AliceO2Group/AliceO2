@@ -29,7 +29,6 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "Framework/Logger.h"
 #include "TPCBase/ParameterGas.h"
-#include "DetectorsBase/Propagator.h"
 
 // root includes
 #include "TFile.h"
@@ -82,7 +81,7 @@ void CalibdEdx::fill(const TrackTPC& track)
     constexpr std::array<float, 4> xks{108.475f, 151.7f, 188.8f, 227.65f};
 
     // propagate track
-    const bool okProp = o2::base::Propagator::Instance()->PropagateToXBxByBz(cpTrack, xks[roc], 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrNONE);
+    const bool okProp = o2::base::Propagator::Instance()->PropagateToXBxByBz(cpTrack, xks[roc], 0.9f, 2., mMatType);
     if (!okProp) {
       continue;
     }
@@ -216,7 +215,8 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         corr.setChi2(id, charge, fitter.GetChisquare());
         corr.setEntries(id, charge, entries);
       }
-      LOGP(debug, "Sector: {}, gemType: {}, charge: {}, Fit pass: {} with {} % outliers in {} entries. Fitter Points: {}, mean fit: {}", id.sector, int(id.type), charge, fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints(), params[0]);
+      LOGP(debug, "Sector: {}, gemType: {}, charge: {}, Fit pass: {} with {} % outliers in {} entries. Fitter Points: {}, mean fit: {}",
+           id.sector, int(id.type), int(charge), fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints(), params[0]);
     }
   }
 }

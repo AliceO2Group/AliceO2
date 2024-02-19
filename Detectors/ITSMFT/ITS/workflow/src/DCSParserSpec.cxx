@@ -650,8 +650,8 @@ DataProcessorSpec getITSDCSParserSpec()
 {
   o2::header::DataOrigin detOrig = o2::header::gDataOriginITS;
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("inString", detOrig, "DCS_CONFIG_FILE", 0, Lifetime::Timeframe);
-  inputs.emplace_back("nameString", detOrig, "DCS_CONFIG_NAME", 0, Lifetime::Timeframe);
+  inputs.emplace_back("inString", detOrig, "DCS_CONFIG_FILE", 0, Lifetime::Sporadic);
+  inputs.emplace_back("nameString", detOrig, "DCS_CONFIG_NAME", 0, Lifetime::Sporadic);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG"}, Lifetime::Sporadic);

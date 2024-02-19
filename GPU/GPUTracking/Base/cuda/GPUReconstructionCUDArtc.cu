@@ -12,6 +12,8 @@
 /// \file GPUReconstructionCUDArtc.cu
 /// \author David Rohr
 
+#define GPUCA_GPUCODE_GENRTC
+#define GPUCA_GPUCODE_COMPILEKERNELS
 #include "GPUReconstructionCUDADef.h"
 #include "GPUReconstructionIncludesDevice.h"
 

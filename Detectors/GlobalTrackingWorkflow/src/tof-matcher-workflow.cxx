@@ -32,6 +32,8 @@
 #include "Steer/MCKinematicsReader.h"
 #include "TSystem.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -54,6 +56,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
@@ -63,10 +66,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"output-type", o2::framework::VariantType::String, "matching-info", {"matching-info, calib-info"}},
     {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
     {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
+    {"refit-tpc-tof", o2::framework::VariantType::Bool, false, {"Refit unconstrained TPC tracks matched to TOF (if false - just move)"}},
     {"write-matchable", o2::framework::VariantType::Bool, false, {"write all matchable pairs in a file (o2matchable_tof.root)"}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -93,10 +97,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto diagnostic = configcontext.options().get<bool>("enable-dia");
   auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
   auto writeMatchable = configcontext.options().get<bool>("write-matchable");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   bool writematching = 0;
   bool writecalib = 0;
+  bool refitTPCTOF = configcontext.options().get<bool>("refit-tpc-tof");
   auto outputType = configcontext.options().get<std::string>("output-type");
+  auto nLanes = configcontext.options().get<int>("tof-lanes");
   if (outputType.rfind("matching-info") < outputType.size()) {
     writematching = 1;
   }
@@ -123,6 +129,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "TOF matching in strict mode = " << strict;
   LOG(debug) << "TOF extra time tolerance for TRD tracks = " << extratolerancetrd;
   LOG(debug) << "Store all matchables = " << writeMatchable;
+  LOG(debug) << "TOF Nlanes for matcher = " << nLanes;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
@@ -138,7 +145,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (useFIT) {
     clustermask |= GID::getSourceMask(GID::FT0);
   }
-  if (requireCTPLumi) {
+  if (src[GID::TPC] && refitTPCTOF) { // load clusters
+    clustermask |= GID::getSourceMask(GID::TPC);
+  }
+  if (sclOpt.requestCTPLumi) {
     src = src | GID::getSourcesMask("CTP");
   }
   if (useMC) {
@@ -158,8 +168,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.push_back(s);
     }
   }
-
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, refitTPCTOF, strict, extratolerancetrd, writeMatchable, sclOpt, nLanes)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;

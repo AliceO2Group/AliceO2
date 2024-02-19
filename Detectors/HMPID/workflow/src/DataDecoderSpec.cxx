@@ -87,8 +87,8 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   //  decodeReadout(pc);
   // decodeRawFile(pc);
 
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mIntReco);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0}, mDeco->mDigits);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0}, mDeco->mIntReco);
 
   LOG(debug) << "Writing   Digitis=" << mDeco->mDigits.size() << "/" << mTotalDigits << " Frame=" << mTotalFrames << " IntRec " << mDeco->mIntReco;
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
@@ -280,7 +280,7 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
 o2::framework::DataProcessorSpec getDecodingSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }

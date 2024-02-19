@@ -208,7 +208,7 @@ class GPUTPCTracker : public GPUProcessor
  * only one. So a unique number (row index is good) is added in the least significant part of
  * the weight
  */
-  GPUdi() static int CalculateHitWeight(int NHits, float chi2, int)
+  GPUdi() static int CalculateHitWeight(int NHits, float chi2)
   {
     const float chi2_suppress = 6.f;
     float weight = (((float)NHits * (chi2_suppress - chi2 / 500.f)) * (1e9f / chi2_suppress / 160.f));
@@ -230,7 +230,8 @@ class GPUTPCTracker : public GPUProcessor
   GPUhd() GPUglobalref() GPUAtomic(unsigned int) * NStartHits() const { return &mCommonMem->nStartHits; }
 
   GPUhd() GPUglobalref() const GPUTPCHitId& TrackletStartHit(int i) const { return mTrackletStartHits[i]; }
-  GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
+  GPUhd() GPUglobalref() const GPUTPCHitId* TrackletStartHits() const { return mTrackletStartHits; }
+  GPUhd() GPUglobalref() GPUTPCHitId* TrackletStartHits() { return mTrackletStartHits; }
   GPUhd() GPUglobalref() GPUTPCHitId* TrackletTmpStartHits() const { return mTrackletTmpStartHits; }
   MEM_CLASS_PRE2()
   GPUhd() GPUglobalref() const MEM_LG2(GPUTPCTracklet) & Tracklet(int i) const { return mTracklets[i]; }

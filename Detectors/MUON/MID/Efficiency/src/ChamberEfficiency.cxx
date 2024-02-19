@@ -29,7 +29,7 @@ void ChamberEfficiency::setFromCounters(const std::vector<ChEffCounter>& counter
 {
   mCounters.clear();
   for (auto& count : counters) {
-    mCounters[detparams::getUniqueFEEId(count.deId, count.columnId, count.lineId)] = count;
+    mCounters[detparams::makeUniqueFEEId(count.deId, count.columnId, count.lineId)] = count;
   }
 }
 
@@ -57,7 +57,7 @@ EffCountType ChamberEfficiency::convert(EffType type) const
 
 double ChamberEfficiency::getEfficiency(int deId, int columnId, int lineId, EffType type) const
 {
-  auto idx = detparams::getUniqueFEEId(deId, columnId, lineId);
+  auto idx = detparams::makeUniqueFEEId(deId, columnId, lineId);
   auto entryTot = mCounters.find(idx);
   if (entryTot == mCounters.end()) {
     std::cerr << "Warning: no efficiency found for deId: " << deId << "  column: " << columnId << "  line: " << lineId << "  type: " << static_cast<int>(type) << "\n";
@@ -69,7 +69,7 @@ double ChamberEfficiency::getEfficiency(int deId, int columnId, int lineId, EffT
 //______________________________________________________________________________
 void ChamberEfficiency::addEntry(bool isEfficientBP, bool isEfficientNBP, int deId, int columnId, int lineId)
 {
-  auto& entry = mCounters[detparams::getUniqueFEEId(deId, columnId, lineId)];
+  auto& entry = mCounters[detparams::makeUniqueFEEId(deId, columnId, lineId)];
   entry.deId = deId;
   entry.columnId = columnId;
   entry.lineId = lineId;

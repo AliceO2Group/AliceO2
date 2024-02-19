@@ -24,6 +24,8 @@
 #include "TRDWorkflow/TRDGlobalTrackingQCSpec.h"
 #include "TRDWorkflow/TRDPulseHeightSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -53,13 +55,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-qc", VariantType::Bool, false, {"enable tracking QC"}},
     {"enable-pid", VariantType::Bool, false, {"Enable PID"}},
     {"enable-ph", VariantType::Bool, false, {"Enable creation of PH plots"}},
+    {"trd-digits-spec", VariantType::Int, 0, {"Input digits subspec, ignored if disable-root-input is false"}},
     {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"filter-trigrec", VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", VariantType::Bool, false, {"High purity preliminary matching"}},
     {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -79,10 +82,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto pid = configcontext.options().get<bool>("enable-pid");
   auto strict = configcontext.options().get<bool>("strict-matching");
   auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   auto vdexb = configcontext.options().get<bool>("enable-vdexb-calib");
   auto gain = configcontext.options().get<bool>("enable-gain-calib");
   auto pulseHeight = configcontext.options().get<bool>("enable-ph");
+  auto digitsSpec = configcontext.options().get<int>("trd-digits-spec");
+  auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
   bool rootInput = !configcontext.options().get<bool>("disable-root-input");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
@@ -92,7 +96,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-ft0-pileup-tagging")) {
     srcTRD |= GTrackID::getSourcesMask("FT0");
   }
-  if (requireCTPLumi) {
+  if (sclOpt.requestCTPLumi) {
     srcTRD = srcTRD | GTrackID::getSourcesMask("CTP");
   }
   // Parse PID policy string
@@ -109,7 +113,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // processing devices
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy));
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy, sclOpt));
   if (vdexb || gain) {
     specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD, vdexb, gain));
   }
@@ -120,7 +127,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (rootInput) {
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
     }
-    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD, rootInput));
+    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD, rootInput ? 1 : digitsSpec));
   }
 
   // output devices

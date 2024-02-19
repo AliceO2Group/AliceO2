@@ -71,7 +71,7 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0}, info);
   // Send summary to QC
   LOG(info) << "Sending histos to QC ";
-  ec.outputs().snapshot(o2::framework::Output{"PHS", "L1PHASEHISTO", 0, o2::framework::Lifetime::Sporadic}, mCalibrator->getQcHistos());
+  ec.outputs().snapshot(o2::framework::Output{"PHS", "L1PHASEHISTO", 0}, mCalibrator->getQcHistos());
 }
 
 o2::framework::DataProcessorSpec o2::phos::getPHOSL1phaseCalibDeviceSpec()

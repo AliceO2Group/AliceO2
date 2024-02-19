@@ -195,9 +195,10 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpFinal(std::ostream& out);
 
   template <int mergeType>
-  void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode);
-  void MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode);
+  void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac);
+  void MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac);
   const GPUTPCGMBorderTrack& MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId);
+  void DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track);
 #endif
 
  private:
@@ -274,7 +275,7 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int* mTrackSort;
   tmpSort* mTrackSortO2;
   GPUAtomic(unsigned int) * mSharedCount; // Must be unsigned int unfortunately for atomic support
-  GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
+  GPUTPCGMBorderTrack* mBorderMemory;     // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRangeMemory;    // memory for border tracks
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRange[NSLICES]; // memory for border tracks

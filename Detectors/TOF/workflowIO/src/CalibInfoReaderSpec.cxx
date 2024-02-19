@@ -59,7 +59,9 @@ void CalibInfoReader::run(ProcessingContext& pc)
       TFile* fin = TFile::Open(filename);
       mTree = (TTree*)fin->Get("calibTOF");
       mCurrentEntry = 0;
-      mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+      if (mTree->GetBranch("TOFCalibInfo")) {
+        mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+      }
       mTree->SetBranchAddress("TOFDiaInfo", &mPdia);
 
       LOG(debug) << "Open " << filename;
@@ -90,9 +92,9 @@ void CalibInfoReader::run(ProcessingContext& pc)
       LOG(debug) << "Current entry " << mCurrentEntry;
       LOG(debug) << "Send " << mVect.size() << " calib infos";
 
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0}, mVect);
 
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddDia, 0, Lifetime::Timeframe}, mDia);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddDia, 0}, mDia);
       usleep(100);
     }
     mGlobalEntry++;

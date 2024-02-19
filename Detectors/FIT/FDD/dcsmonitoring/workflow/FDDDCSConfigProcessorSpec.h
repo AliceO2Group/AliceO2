@@ -40,8 +40,8 @@ DataProcessorSpec getFDDDCSConfigProcessorSpec()
 
   return DataProcessorSpec{
     "fdd-dcs-config-processor",
-    Inputs{{"inputConfig", o2::header::gDataOriginFDD, "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", o2::header::gDataOriginFDD, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", o2::header::gDataOriginFDD, "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", o2::header::gDataOriginFDD, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::fit::FITDCSConfigProcessor>("FDD", ddDChM)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},

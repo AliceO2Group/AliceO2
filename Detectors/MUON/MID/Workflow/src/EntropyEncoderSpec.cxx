@@ -83,7 +83,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   // build references for looping over the data in BC increasing direction
   tfData.buildReferences(mCTFCoder.getIRFramesSelector());
 
-  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe});
+  auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{header::gDataOriginMID, "CTFDATA", 0});
   auto iosize = mCTFCoder.encode(buffer, tfData);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   iosize.rawIn = insize;

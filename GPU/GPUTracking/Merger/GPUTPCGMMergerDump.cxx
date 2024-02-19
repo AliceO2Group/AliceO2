@@ -33,6 +33,7 @@
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUReconstruction.h"
 #include "GPUDebugStreamer.h"
+#include "GPUTrackingRefit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace gputpcgmmergertypes;
@@ -183,7 +184,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
 }
 
 template <int mergeType>
-inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode)
+inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac)
 {
 #ifdef DEBUG_STREAMER
   std::vector<int> hits1(152), hits2(152);
@@ -209,19 +210,17 @@ inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrac
 
   std::string debugname = std::string("debug_") + name;
   std::string treename = std::string("tree_") + name;
-  o2::utils::DebugStreamer::instance()->getStreamer(debugname.c_str(), "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName(treename.c_str()).data() << "slice1=" << slice1 << "slice2=" << slice2 << "b1=" << b1 << "b2=" << b2 << "clusters1=" << hits1 << "clusters2=" << hits2 << "sliceTrack1=" << sliceTrack1 << "sliceTrack2=" << sliceTrack2 << "mergeMode=" << mergeMode << "\n";
+  o2::utils::DebugStreamer::instance()->getStreamer(debugname.c_str(), "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName(treename.c_str()).data() << "slice1=" << slice1 << "slice2=" << slice2 << "b1=" << b1 << "b2=" << b2 << "clusters1=" << hits1 << "clusters2=" << hits2 << "sliceTrack1=" << sliceTrack1 << "sliceTrack2=" << sliceTrack2 << "mergeMode=" << mergeMode << "weight=" << weight << "fraction=" << frac << "\n";
 #endif
 }
 
-void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode)
+void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac)
 {
 #ifdef DEBUG_STREAMER
-  if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamMergeBorderTracks, b1.TrackID())) {
-    if (mergeMode == 0) {
-      MergedTrackStreamerInternal<0>(b1, b2, name, slice1, slice2, mergeMode);
-    } else if (mergeMode >= 1 && mergeMode <= 0) {
-      // MergedTrackStreamerInternal<1>(b1, b2, name, slice1, slice2, mergeMode); Not yet working
-    }
+  if (mergeMode == 0) {
+    MergedTrackStreamerInternal<0>(b1, b2, name, slice1, slice2, mergeMode, weight, frac);
+  } else if (mergeMode >= 1 && mergeMode <= 0) {
+    // MergedTrackStreamerInternal<1>(b1, b2, name, slice1, slice2, mergeMode, weight, frac); Not yet working
   }
 #endif
 }
@@ -234,4 +233,34 @@ const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(co
     }
   }
   throw std::runtime_error("didn't find border track");
+}
+
+void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
+{
+  GPUTPCGMMergedTrack trk = track;
+  GPUTrackingRefit refit;
+  ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHitStates = ClusterStateExt();
+  ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHits = Clusters();
+  refit.SetPtrsFromGPUConstantMem(GetConstantMem());
+  int retval = refit.RefitTrackAsGPU(trk, false, true);
+  if (retval > 0) {
+    GPUTPCGMPropagator prop;
+    prop.SetMaterialTPC();
+    prop.SetPolynomialField(&Param().polynomialField);
+    prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+    prop.SetPropagateBzOnly(false);
+    prop.SetMatLUT(Param().rec.useMatLUT ? GetConstantMem()->calibObjects.matLUT : nullptr);
+    prop.SetTrack(&trk.Param(), trk.GetAlpha());
+    int err = prop.PropagateToXAlpha(track.GetParam().GetX(), track.GetAlpha(), false);
+    if (err == 0) {
+      printf("REFIT RESULT %d, SnpDiff %f\n", retval, trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi());
+      if (retval > 20 && fabsf(trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi()) > 0.01) {
+        printf("LARGE DIFF\n");
+      }
+    } else {
+      printf("PROPAGATE ERROR\n");
+    }
+  } else {
+    printf("REFIT ERROR\n");
+  }
 }

@@ -41,6 +41,7 @@
 #include "Framework/RateLimiter.h"
 #include "Framework/Plugins.h"
 #include "Framework/DeviceSpec.h"
+#include "WorkflowHelpers.h"
 #include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
@@ -259,9 +260,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
   };
 
   char const* name = "internal-dpl-aod-global-analysis-file-sink";
+  // Lifetime is sporadic because we do not ask each analysis task to send its
+  // results every timeframe.
   DataProcessorSpec spec{
     .name = name,
-    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
+    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}), Lifetime::Sporadic)},
     .algorithm = {writerFunction},
   };
 
@@ -368,7 +371,7 @@ DataProcessorSpec
         }
 
         // skip non-AOD refs
-        if (!DataSpecUtils::partialMatch(*ref.spec, header::DataOrigin("AOD"))) {
+        if (!DataSpecUtils::partialMatch(*ref.spec, writableAODOrigins)) {
           continue;
         }
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
@@ -596,9 +599,8 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .options = !rateLimitingChannelConfig.empty() ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
                                                                                   rateLimitingChannelConfig,
                                                                                   {"Out-of-band channel config"}}}
-                                                  : std::vector<ConfigParamSpec>()
-
-  };
+                                                  : std::vector<ConfigParamSpec>(),
+    .labels = {{"resilient"}}};
 }
 
 AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)

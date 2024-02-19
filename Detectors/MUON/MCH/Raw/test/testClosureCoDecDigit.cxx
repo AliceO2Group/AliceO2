@@ -28,7 +28,7 @@
 
 using namespace o2::mch::raw;
 
-const char* sampaClusterFormat = "{}-CH{}-{}";
+constexpr const char* sampaClusterFormat = "{}-CH{}-{}";
 const bool useDummyElecMap = true;
 
 struct DePadId {

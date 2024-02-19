@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FV0DigParam.h
+/// \file  FV0DigParam.h
 /// \brief Configurable digitization parameters
 
 #ifndef ALICEO2_FV0_DIG_PARAM
@@ -22,9 +22,11 @@ namespace o2::fv0
 {
 // parameters of FV0 digitization / transport simulation
 struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
-  float photoCathodeEfficiency = 0.23;                  // quantum efficiency = nOfPhotoE_emitted_by_photocathode / nIncidentPhotons
-  float lightYield = 0.01;                              // light collection efficiency to be tuned using collision data [1%]
-  float adcChannelsPerMip = 16;                         // Default: 16 for pp and 8 for PbPb
+  float hitTimeOffset = 0.0; ///< Hit time offset [ns]
+
+  float photoCathodeEfficiency = 0.23;                                     // quantum efficiency = nOfPhotoE_emitted_by_photocathode / nIncidentPhotons
+  float lightYield = 0.01;                                                 // light collection efficiency to be tuned using collision data [1%]
+  float adcChannelsPerMip = 16;                                            // Default: 16 for pp and 8 for PbPb
   float getChannelsPerMilivolt() const { return adcChannelsPerMip / 7.5; } // Non-trivial conversion depending on the pulseshape: amplitude to charge
   float chargeThrForMeanTime = 5;                                          // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
 
@@ -55,19 +57,18 @@ struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   bool isIntegrateFull = false;                                                  // Full charge integration widow in 25 ns
   float cfdCheckWindow = 2.5;                                                    // time window for the cfd in ns to trigger the charge integration
   int avgNumberPhElectronPerMip = 201;                                           // avg number of photo-electrons per MIP
-  float globalTimeOfFlight = 315.0 / o2::constants::physics::LightSpeedCm2NS;    // TODO [check the correct value for distance of FV0 to IP]
   float mCfdDeadTime = 15.6;                                                     // [ns]
   float mCFD_trsh = 3.;                                                          // [mV]
   float getCFDTrshInAdc() const { return mCFD_trsh * getChannelsPerMilivolt(); } // [ADC channels]
   /// Parameters for trigger simulation
-  bool useMaxChInAdc = true;                           // default = true
-  int adcChargeCenThr = 3 * 498;                       // threshold value of ADC charge for Central trigger
-  int adcChargeSCenThr = 1 * 498;                      // threshold value of ADC charge for Semi-central trigger
-  int maxCountInAdc = 4095;                            // to take care adc ADC overflow
-  short mTime_trg_gate = 153;                          // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
-  uint8_t defaultChainQtc = 0x48;                      // only 2 flags are set by default in simulation: kIsCFDinADCgate and kIsEventInTVDC
-  static constexpr float mAmpThresholdForReco = 24;    // only channels with amplitude higher will participate in calibration and collision time
-  static constexpr short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
+  bool useMaxChInAdc = true;          // default = true
+  int adcChargeCenThr = 3 * 498;      // threshold value of ADC charge for Central trigger
+  int adcChargeSCenThr = 1 * 498;     // threshold value of ADC charge for Semi-central trigger
+  int maxCountInAdc = 4095;           // to take care adc ADC overflow
+  short mTime_trg_gate = 153;         // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  uint8_t defaultChainQtc = 0x48;     // only 2 flags are set by default in simulation: kIsCFDinADCgate and kIsEventInTVDC
+  float mAmpThresholdForReco = 24;    // only channels with amplitude higher will participate in calibration and collision time
+  short mTimeThresholdForReco = 1000; // only channels with time below will participate in calibration and collision time
 
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };

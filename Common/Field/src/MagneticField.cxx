@@ -539,7 +539,7 @@ void MagneticField::rescaleField(float l3Cur, float diCur, bool uniform, int con
   float sclL3 = l3Cur, sclDip = diCur;
   MagFieldParam::BMap_t map = getFieldMapScale(sclL3, sclDip, uniform);
   if (map != mMapType) {
-    LOGP(fatal, "Provided L3current={} DipCurrent={} uniform={} leads to map type {}, incompatible with loaded {}", l3Cur, diCur, uniform, map, mMapType);
+    LOGP(fatal, "Provided L3current={} DipCurrent={} uniform={} leads to map type {}, incompatible with loaded {}", l3Cur, diCur, uniform, (int)map, (int)mMapType);
   }
   setFactorSolenoid(sclL3);
   setFactorDipole(sclDip);

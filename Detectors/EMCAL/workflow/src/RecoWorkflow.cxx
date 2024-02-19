@@ -53,8 +53,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         std::string const& cfgOutput,
                                         bool disableRootInput,
                                         bool disableRootOutput,
-                                        bool disableDecodingErrors,
-                                        bool useccdb)
+                                        bool disableDecodingErrors)
 {
 
   const std::unordered_map<std::string, InputType> InputMap{
@@ -171,7 +170,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   if (isEnabled(OutputType::Cells)) {
     // add converter for cells
     if (inputType == InputType::Digits) {
-      specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC, useccdb, subspecificationIn, subspecificationOut));
+      specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC, subspecificationIn, subspecificationOut));
     } else if (inputType == InputType::Raw) {
       // raw data will come from upstream
       specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF, disableDecodingErrors, subspecificationOut));

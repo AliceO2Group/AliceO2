@@ -13,6 +13,7 @@
 #define ALICEO2_TPC_CALDET_H_
 
 #include <memory>
+#include <numeric>
 #include <vector>
 #include <string>
 #include <cassert>
@@ -114,11 +115,27 @@ class CalDet
     U sum = 0;
     for (const auto& data : mData) {
       const auto& vals = data.getData();
-      sum += std::accumulate(vals.begin(), vals.end(), 0.f);
+      sum += std::accumulate(vals.begin(), vals.end(), U{0});
       nVal += static_cast<U>(vals.size());
     }
 
     return (nVal > 0) ? sum / nVal : U{0};
+  }
+
+  template <typename U = T>
+  U getSum() const
+  {
+    if (mData.size() == 0) {
+      return U{};
+    }
+
+    U sum{};
+    for (const auto& data : mData) {
+      const auto& vals = data.getData();
+      sum += data.template getSum<U>();
+    }
+
+    return sum;
   }
 
  private:
@@ -138,15 +155,35 @@ inline const T CalDet<T>::getValue(const int sector, const int globalPadInSector
 {
   // This shold be a temporary speedup, a proper restructuring of Mapper and CalDet/CalArray is needed.
   // The default granularity for the moment should be ROC, for the assumptions below this should be assured
-  assert(mPadSubset == PadSubset::ROC);
-  int roc = sector;
+  const Mapper& mapper = Mapper::instance();
+  auto padPos = mapper.padPos(globalPadInSector); // global row in sector
+  const auto globalRow = padPos.getRow();
+
+  int rocNumber = sector;
   int padInROC = globalPadInSector;
   const int padsInIROC = Mapper::getPadsInIROC();
   if (globalPadInSector >= padsInIROC) {
-    roc += Mapper::getNumberOfIROCs();
+    rocNumber += Mapper::getNumberOfIROCs();
     padInROC -= padsInIROC;
   }
-  return mData[roc].getValue(padInROC);
+
+  switch (mPadSubset) {
+    case PadSubset::ROC: {
+      return mData[rocNumber].getValue(padInROC);
+      break;
+    }
+    case PadSubset::Partition: {
+      return T{};
+      break;
+    }
+    case PadSubset::Region: {
+      const ROC roc(rocNumber);
+      const auto mappedPad = padPos.getPad();
+      return mData[Mapper::REGION[globalRow] + roc.getSector() * Mapper::NREGIONS].getValue(Mapper::OFFSETCRUGLOBAL[globalRow] + mappedPad);
+      break;
+    }
+  }
+  return T{};
 }
 
 //______________________________________________________________________________
@@ -446,7 +483,7 @@ void CalDet<T>::initData()
     if (!hasData) {
       mData.push_back(CalType(mPadSubset, i));
     }
-    mData[i].setName(fmt::format(frmt, mName, i));
+    mData[i].setName(fmt::format(fmt::runtime(frmt), mName, i));
   }
 }
 

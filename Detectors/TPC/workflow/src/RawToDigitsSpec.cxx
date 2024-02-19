@@ -226,10 +226,10 @@ class TPCDigitDumpDevice : public o2::framework::Task
       o2::tpc::TPCSectorHeader header{isector};
       header.activeSectors = mActiveSectors;
       // digit for now are transported per sector, not per lane
-      output.snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe, header},
+      output.snapshot(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(isector), header},
                       mDigitDump.getDigits(isector));
       if (mSendCEdigits) {
-        output.snapshot(Output{"TPC", "CEDIGITS", static_cast<SubSpecificationType>(isector), Lifetime::Timeframe, header},
+        output.snapshot(Output{"TPC", "CEDIGITS", static_cast<SubSpecificationType>(isector), header},
                         ceDigits[isector]);
       }
     }
@@ -261,7 +261,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, b
   if (inputSpec != "") {
     inputs = select(inputSpec.data());
   } else {
-    inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
+    inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
     if (!ignoreDistStf) {
       inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
     }

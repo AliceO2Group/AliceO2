@@ -469,14 +469,14 @@ bool TrackParCovFwd::getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const
   // Cov(pz,x)... :   cv[15] cv[16] cv[17] cv[18] cv[19] cv[20]
   //---------------------------------------------------------------------
   auto pt = getPt();
-  auto pt2 = pt * pt;
-  auto sign = getCharge();
-  auto spt = pt * getSnp();
-  auto cpt = std::sqrt((1. - getSnp()) * (1. + getSnp())) * pt * sign;
-  auto tpt2 = getTgl() * pt2 * sign;
-  auto scpt2 = spt * cpt * sign;
-  auto s2pt2 = spt * spt * sign;
-  auto c2pt2 = cpt * cpt * sign;
+  auto cp = std::sqrt((1. - getSnp()) * (1. + getSnp()));
+  auto sp = getSnp();
+  auto tgl = getTgl();
+
+  auto px = pt * std::sqrt((1. - getSnp()) * (1. + getSnp()));
+  auto py = pt * getSnp();
+  auto pz = pt * getTgl();
+  auto q = getCharge();
 
   cv[0] = mCovariances(0, 0);
   cv[1] = mCovariances(1, 0);
@@ -484,21 +484,21 @@ bool TrackParCovFwd::getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const
   cv[3] = 0;
   cv[4] = 0;
   cv[5] = 0;
-  cv[6] = -mCovariances(0, 2) * spt - mCovariances(0, 4) * cpt * pt;
-  cv[7] = -mCovariances(1, 2) * spt - mCovariances(1, 4) * cpt * pt;
+  cv[6] = -mCovariances(0, 2) * py - mCovariances(0, 4) * px * pt * q;
+  cv[7] = -mCovariances(1, 2) * py - mCovariances(1, 4) * px * pt * q;
   cv[8] = 0;
-  cv[9] = 2 * mCovariances(2, 4) * spt * cpt * pt + mCovariances(2, 2) * spt * spt + mCovariances(4, 4) * c2pt2 * pt2;
-  cv[10] = mCovariances(0, 2) * cpt * sign - mCovariances(0, 4) * spt * pt * sign;
-  cv[11] = mCovariances(1, 2) * cpt * sign - mCovariances(1, 4) * spt * pt * sign;
+  cv[9] = 2 * mCovariances(2, 4) * px * py * q * pt + mCovariances(2, 2) * py * py + mCovariances(4, 4) * px * px * pt * pt;
+  cv[10] = mCovariances(0, 2) * px - mCovariances(0, 4) * py * pt * q;
+  cv[11] = mCovariances(1, 2) * px - mCovariances(1, 4) * py * pt * q;
   cv[12] = 0;
-  cv[13] = mCovariances(2, 4) * (s2pt2 - c2pt2) - mCovariances(2, 2) * scpt2 + mCovariances(4, 4) * scpt2 * pt2;
-  cv[14] = -2 * mCovariances(2, 4) * spt * cpt * pt + mCovariances(2, 2) * cpt * cpt + mCovariances(4, 4) * s2pt2 * pt2;
-  cv[15] = mCovariances(0, 3) * pt - mCovariances(0, 4) * tpt2;
-  cv[16] = mCovariances(1, 3) * pt - mCovariances(1, 4) * tpt2;
+  cv[13] = mCovariances(2, 4) * (py * py - px * px) * q * pt - mCovariances(2, 2) * px * py + mCovariances(4, 4) * px * py * pt * pt;
+  cv[14] = -2 * mCovariances(2, 4) * px * py * q * pt + mCovariances(2, 2) * px * px + mCovariances(4, 4) * py * py * pt * pt;
+  cv[15] = mCovariances(0, 3) * pt - mCovariances(0, 4) * pt * pz * q;
+  cv[16] = mCovariances(1, 3) * pt - mCovariances(1, 4) * pt * pz * q;
   cv[17] = 0;
-  cv[18] = -mCovariances(2, 3) * spt * pt - mCovariances(3, 4) * cpt * pt2 + mCovariances(2, 4) * spt * tpt2 + mCovariances(4, 4) * cpt * tpt2 * pt;
-  cv[19] = mCovariances(2, 3) * cpt * pt * sign - mCovariances(3, 4) * spt * pt2 * sign - mCovariances(2, 4) * spt * tpt2 * sign + mCovariances(2, 4) * spt * tpt2 * pt2 * sign;
-  cv[20] = -2 * mCovariances(3, 4) * tpt2 * pt + mCovariances(3, 3) * pt2 + mCovariances(4, 4) * tpt2 * tpt2;
+  cv[18] = -mCovariances(2, 3) * py * pt - mCovariances(3, 4) * px * q * pt * pt + mCovariances(2, 4) * py * pz * q * pt + mCovariances(4, 4) * px * pz * pt * pt;
+  cv[19] = mCovariances(2, 3) * px * pt - mCovariances(3, 4) * q * pt * pt * py - mCovariances(2, 4) * px * pz * q * pt + mCovariances(4, 4) * py * pz * pt * pt;
+  cv[20] = -2 * mCovariances(3, 4) * pz * q * pt * pt + mCovariances(3, 3) * pt * pt + mCovariances(4, 4) * pz * pz * pt * pt;
 
   return true;
 }

@@ -31,6 +31,7 @@
 #include <vector>
 #include <chrono>
 #include <cstring>
+#include <deque>
 #include <utility> // std::declval
 #include <TNamed.h>
 
@@ -44,7 +45,7 @@ using namespace o2::framework;
 // this function is only used to do the static checks for API return types
 void doTypeChecks()
 {
-  const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
+  const Output output{"TST", "DUMMY", 0};
   // we require references to objects owned by allocator context
   static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<int>(output))>::value);
   static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<std::string>(output, "test"))>::value);
@@ -76,26 +77,31 @@ DataProcessorSpec getSourceSpec()
     o2::test::TriviallyCopyable a(42, 23, 0xdead);
     o2::test::Polymorphic b(0xbeef);
     std::vector<o2::test::Polymorphic> c{{0xaffe}, {0xd00f}};
+    std::vector<o2::test::Base*> ptrVec{new o2::test::Polymorphic{0xaffe}, new o2::test::Polymorphic{0xd00f}};
+    std::deque<int> testDequePayload{10, 20, 30};
+
     // class TriviallyCopyable is both messageable and has a dictionary, the default
     // picked by the framework is no serialization
     test::MetaHeader meta1{42};
     test::MetaHeader meta2{23};
-    pc.outputs().snapshot(Output{"TST", "MESSAGEABLE", 0, Lifetime::Timeframe, {meta1, meta2}}, a);
-    pc.outputs().snapshot(Output{"TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe},
+    pc.outputs().snapshot(Output{"TST", "MESSAGEABLE", 0, {meta1, meta2}}, a);
+    pc.outputs().snapshot(Output{"TST", "MSGBLEROOTSRLZ", 0},
                           o2::framework::ROOTSerialized<decltype(a)>(a));
     // class Polymorphic is not messageable, so the serialization type is deduced
     // from the fact that the type has a dictionary and can be ROOT-serialized.
-    pc.outputs().snapshot(Output{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe}, b);
+    pc.outputs().snapshot(Output{"TST", "ROOTNONTOBJECT", 0}, b);
     // vector of ROOT serializable class
-    pc.outputs().snapshot(Output{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe}, c);
+    pc.outputs().snapshot(Output{"TST", "ROOTVECTOR", 0}, c);
+    // deque of simple types
+    pc.outputs().snapshot(Output{"TST", "DEQUE", 0}, testDequePayload);
     // likewise, passed anonymously with char type and class name
     o2::framework::ROOTSerialized<char, const char> d(*((char*)&c), "vector<o2::test::Polymorphic>");
-    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe}, d);
+    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC", 0}, d);
     // vector of ROOT serializable class wrapped with TClass info as hint
     auto* cl = TClass::GetClass(typeid(decltype(c)));
     ASSERT_ERROR(cl != nullptr);
     o2::framework::ROOTSerialized<char, TClass> e(*((char*)&c), cl);
-    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe}, e);
+    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDVEC2", 0}, e);
     // test the 'make' methods
     pc.outputs().make<o2::test::TriviallyCopyable>(OutputRef{"makesingle", 0}) = a;
     auto& multi = pc.outputs().make<o2::test::TriviallyCopyable>(OutputRef{"makespan", 0}, 3);
@@ -106,7 +112,7 @@ DataProcessorSpec getSourceSpec()
     // test the adopt method
     auto freefct = [](void* data, void* hint) {}; // simply ignore the cleanup for the test
     static std::string teststring = "adoptchunk";
-    pc.outputs().adoptChunk(Output{"TST", "ADOPTCHUNK", 0, Lifetime::Timeframe}, teststring.data(), teststring.length(), freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"TST", "ADOPTCHUNK", 0}, teststring.data(), teststring.length(), freefct, nullptr);
     // test resizable data chunk, initial size 0 and grow
     auto& growchunk = pc.outputs().newChunk(OutputRef{"growchunk", 0}, 0);
     growchunk.resize(sizeof(o2::test::TriviallyCopyable));
@@ -147,6 +153,9 @@ DataProcessorSpec getSourceSpec()
     // make a vector of POD and set some data
     pc.outputs().make<std::vector<int>>(OutputRef{"podvector"}) = {10, 21, 42};
 
+    // vector of pointers to ROOT serializable objects
+    pc.outputs().snapshot(Output{"TST", "ROOTSERLZDPTRVEC", 0}, ptrVec);
+
     // now we are done and signal this downstream
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -154,6 +163,9 @@ DataProcessorSpec getSourceSpec()
     ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 0}) == true);
     ASSERT_ERROR(pc.outputs().isAllowed({"TST", "MESSAGEABLE", 1}) == false);
     ASSERT_ERROR(pc.outputs().isAllowed({"TST", "NOWAY", 0}) == false);
+    for (auto ptr : ptrVec) {
+      delete ptr;
+    }
   };
 
   return DataProcessorSpec{"source", // name of the processor
@@ -174,10 +186,12 @@ DataProcessorSpec getSourceSpec()
                             OutputSpec{"TST", "MSGBLEROOTSRLZ", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTNONTOBJECT", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{"TST", "DEQUE", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "ROOTSERLZDVEC2", 0, Lifetime::Timeframe},
                             OutputSpec{"TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
-                            OutputSpec{{"podvector"}, "TST", "PODVECTOR", 0, Lifetime::Timeframe}},
+                            OutputSpec{{"podvector"}, "TST", "PODVECTOR", 0, Lifetime::Timeframe},
+                            OutputSpec{{"inputPtrVec"}, "TST", "ROOTSERLZDPTRVEC", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }
 
@@ -301,7 +315,7 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
     ASSERT_ERROR((object12[1] == o2::test::TriviallyCopyable{10, 20, 0xacdc}));
     // forward the read-only span on a different route
-    pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}, object12);
+    pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0}, object12);
 
     LOG(info) << "extracting TNamed object from input13";
     auto object13 = pc.inputs().get<TNamed*>("input13");
@@ -317,6 +331,12 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(object15[0] == o2::test::Polymorphic{0xacdc});
     ASSERT_ERROR(object15[1] == o2::test::Polymorphic{0xbeef});
 
+    LOG(info) << "extracting deque to vector from input16";
+    auto object16 = pc.inputs().get<std::vector<int>>("input16");
+    LOG(info) << "object16.size() = " << object16.size() << std::endl;
+    ASSERT_ERROR(object16.size() == 3);
+    ASSERT_ERROR(object16[0] == 10 && object16[1] == 20 && object16[2] == 30);
+
     LOG(info) << "extracting PMR vector";
     auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
     ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
@@ -326,11 +346,22 @@ DataProcessorSpec getSinkSpec()
 
     LOG(info) << "extracting POD vector";
     // TODO: use the ReturnType helper once implemented
-    //InputRecord::ReturnType<std::vector<int>> podvector;
     decltype(std::declval<InputRecord>().get<std::vector<int>>(DataRef{nullptr, nullptr, nullptr})) podvector;
     podvector = pc.inputs().get<std::vector<int>>("inputPODvector");
     ASSERT_ERROR(podvector.size() == 3);
     ASSERT_ERROR(podvector[0] == 10 && podvector[1] == 21 && podvector[2] == 42);
+
+    LOG(info) << "extracting vector of o2::test::Base* from inputPtrVec";
+    auto ptrVec = pc.inputs().get<std::vector<o2::test::Base*>>("inputPtrVec");
+    ASSERT_ERROR(ptrVec.size() == 2);
+    auto ptrVec0 = dynamic_cast<o2::test::Polymorphic*>(ptrVec[0]);
+    auto ptrVec1 = dynamic_cast<o2::test::Polymorphic*>(ptrVec[1]);
+    ASSERT_ERROR(ptrVec0 != nullptr);
+    ASSERT_ERROR(ptrVec1 != nullptr);
+    ASSERT_ERROR(*ptrVec0 == o2::test::Polymorphic(0xaffe));
+    ASSERT_ERROR(*ptrVec1 == o2::test::Polymorphic(0xd00f));
+    delete ptrVec[0];
+    delete ptrVec[1];
 
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   };
@@ -351,9 +382,11 @@ DataProcessorSpec getSinkSpec()
                             InputSpec{"input13", "TST", "MAKETOBJECT", 0, Lifetime::Timeframe},
                             InputSpec{"input14", "TST", "ROOTSERLZBLOBJ", 0, Lifetime::Timeframe},
                             InputSpec{"input15", "TST", "ROOTSERLZBLVECT", 0, Lifetime::Timeframe},
+                            InputSpec{"input16", "TST", "DEQUE", 0, Lifetime::Timeframe},
                             InputSpec{"inputPMR", "TST", "PMRTESTVECTOR", 0, Lifetime::Timeframe},
                             InputSpec{"inputPODvector", "TST", "PODVECTOR", 0, Lifetime::Timeframe},
-                            InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe}},
+                            InputSpec{"inputMP", ConcreteDataTypeMatcher{"TST", "MULTIPARTS"}, Lifetime::Timeframe},
+                            InputSpec{"inputPtrVec", "TST", "ROOTSERLZDPTRVEC", 0, Lifetime::Timeframe}},
                            Outputs{OutputSpec{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}},
                            AlgorithmSpec(processingFct)};
 }

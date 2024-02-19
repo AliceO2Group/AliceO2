@@ -325,7 +325,6 @@ static std::atomic_flag timerFlag = ATOMIC_FLAG_INIT; // TODO: Should be a class
 GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step)
 {
   while (timerFlag.test_and_set()) {
-    ;
   }
   if (mTimers.size() <= id) {
     mTimers.resize(id + 1);

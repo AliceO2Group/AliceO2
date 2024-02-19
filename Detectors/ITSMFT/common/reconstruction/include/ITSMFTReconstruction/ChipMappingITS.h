@@ -37,11 +37,10 @@ class ChipMappingITS
   struct Overlaps {
     enum OverlappingRow : signed char { NONE = -1,
                                         LowRow = 0,
-                                        HighRow = 1 };
-    uint16_t lowRow = 0xffff;  // chip overlapping from high row side
-    uint16_t highRow = 0xffff; // chip overlapping from low row side
-    OverlappingRow lowRowOverlap = NONE;
-    OverlappingRow highRowOverlap = NONE;
+                                        HighRow = 1,
+                                        NSides = 2 };
+    int16_t rowSide[2] = {NONE, NONE}; // chip overlapping from low/high row side
+    OverlappingRow rowSideOverlap[2] = {NONE, NONE};
   };
 
   ///< these public methods must be defined in the mapping class for raw data encoding/decoding

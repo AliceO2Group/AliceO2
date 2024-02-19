@@ -49,8 +49,8 @@ void RecPointReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
 
   LOG(debug) << "FV0 RecPointReader pushes " << mRecPoints->size() << " recpoints with " << mChannelData->size() << " channels at entry " << ent;
-  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
-  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, *mChannelData);
+  pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0}, *mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0}, *mChannelData);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

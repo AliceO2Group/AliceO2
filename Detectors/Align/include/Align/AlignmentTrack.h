@@ -24,6 +24,7 @@
 #define ALIGNMENTTRACK_H
 
 #include "Align/AlignmentPoint.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <TObjArray.h>
 #include <TArrayI.h>
@@ -40,6 +41,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   using trackParam_t = o2::track::TrackParametrizationWithError<double>;
   using PropagatorD = o2::base::PropagatorD;
   using MatCorrType = PropagatorD::MatCorrType;
+  using GTrackID = o2::dataformats::GlobalTrackID;
   using trackParam_t::setParam;
   static constexpr double MaxDefStep = 3.0;
   static constexpr double MaxDefSnp = 0.95;
@@ -59,6 +61,8 @@ class AlignmentTrack : public trackParam_t, public TObject
   };
   AlignmentTrack() = default;
   ~AlignmentTrack() override = default;
+  void setCurrentTrackID(GTrackID id) { mCurrenTrackID = id; }
+  GTrackID getCurrentTrackID() const { return mCurrenTrackID; }
   void defineDOFs();
   int getNPoints() const { return mPoints.size(); }
   int getInnerPointID() const { return mInnerPointID; }
@@ -166,6 +170,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   double mChi2CosmUp = 0;                   // chi2 for cosmic upper leg
   double mChi2CosmDn = 0;                   // chi2 for cosmic down leg
   double mChi2Ini = 0;                      // chi2 with current residuals
+  GTrackID mCurrenTrackID = {};             // currently processed track ID
   std::vector<AlignmentPoint*> mPoints{};   // alignment points pointers sorted in X
   std::vector<AlignmentPoint> mDetPoints{}; // alignment points added by detectors
   std::vector<double> mResid[2];            // residuals array

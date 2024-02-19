@@ -41,3 +41,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   wf.emplace_back(o2::aodmcproducer::getAODMcProducerWorkflowSpec());
   return std::move(wf);
 }
+//
+// EOF
+//

@@ -17,6 +17,7 @@
 #include "Mergers/FullHistoryMerger.h"
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/MergerBuilder.h"
+#include "Mergers/MergeInterface.h"
 
 #include "Headers/DataHeader.h"
 #include "Framework/InputRecordWalker.h"
@@ -50,6 +51,9 @@ void FullHistoryMerger::init(framework::InitContext& ictx)
   mCyclesSinceReset = 0;
   mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
+
+  // clear the state before starting the run, especially important for START->STOP->START sequence
+  ictx.services().get<CallbackService>().set<CallbackService::Id::Start>([this]() { clear(); });
 
   // set detector field in infologger
   try {
@@ -146,7 +150,6 @@ void FullHistoryMerger::mergeCache()
 
   // We expect that all the objects use the same kind of interface
   if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
-
     auto target = std::get<TObjectPtr>(mMergedObject);
     for (auto& [name, entry] : mCache) {
       (void)name;
@@ -163,22 +166,22 @@ void FullHistoryMerger::mergeCache()
       target->merge(other.get());
       mObjectsMerged++;
     }
+
+  } else if (std::holds_alternative<VectorOfTObjectPtrs>(mMergedObject)) {
+    auto target = std::get<VectorOfTObjectPtrs>(mMergedObject);
+    for (auto& [_, entry] : mCache) {
+      auto other = std::get<VectorOfTObjectPtrs>(entry);
+      algorithm::merge(target, other);
+      mObjectsMerged += target.size();
+    }
   }
 }
 
 void FullHistoryMerger::publish(framework::DataAllocator& allocator)
 {
-  // todo see if std::visit is faster here
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
     LOG(info) << "No objects received since start or reset, nothing to publish";
-  } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<MergeInterfacePtr>(mMergedObject));
-    LOG(info) << "Published the merged object containing " << mCache.size() + 1 << " incomplete objects. "
-              << mUpdatesReceived << " updates were received during the last cycle.";
-  } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<TObjectPtr>(mMergedObject));
+  } else if (object_store_helpers::snapshot(allocator, mSubSpec, mMergedObject)) {
     LOG(info) << "Published the merged object containing " << mCache.size() + 1 << " incomplete objects. "
               << mUpdatesReceived << " updates were received during the last cycle.";
   } else {

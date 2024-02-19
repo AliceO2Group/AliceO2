@@ -223,7 +223,7 @@ class KrRawFilterDevice : public o2::framework::Task
   {
     o2::tpc::TPCSectorHeader header{sector};
     header.activeSectors = (0x1 << sector);
-    output.snapshot(Output{gDataOriginTPC, "FILTERDIG", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe, header}, digits);
+    output.snapshot(Output{gDataOriginTPC, "FILTERDIG", static_cast<SubSpecificationType>(sector), header}, digits);
   }
 };
 

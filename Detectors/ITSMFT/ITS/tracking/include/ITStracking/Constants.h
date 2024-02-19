@@ -36,6 +36,7 @@ namespace constants
 constexpr float MB = 1024.f * 1024.f;
 constexpr float GB = 1024.f * 1024.f * 1024.f;
 constexpr bool DoTimeBenchmarks = true;
+constexpr bool SaveTimeBenchmarks = false;
 
 namespace math
 {

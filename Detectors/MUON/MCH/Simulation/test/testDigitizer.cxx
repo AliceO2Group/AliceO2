@@ -31,6 +31,7 @@
 #include "TGeoManager.h"
 #include "boost/format.hpp"
 #include <boost/test/data/test_case.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <algorithm>
 #include <unordered_map>
 

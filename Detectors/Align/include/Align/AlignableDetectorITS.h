@@ -21,6 +21,7 @@
 #include "Align/utils.h"
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 
 namespace o2
 {
@@ -39,6 +40,11 @@ class AlignableDetectorITS : public AlignableDetector
  public:
   //
   using ClusterD = o2::BaseCluster<double>;
+  using OVL = o2::itsmft::ChipMappingITS::Overlaps;
+  enum EdgeFlags : int8_t { NONE = -1,
+                            LowRow = OVL::LowRow,
+                            HighRow = OVL::HighRow,
+                            Biased = 2 };
   AlignableDetectorITS() = default; // RS FIXME do we need default c-tor?
   AlignableDetectorITS(Controller* ctr);
   ~AlignableDetectorITS() override = default;
@@ -71,6 +77,9 @@ class AlignableDetectorITS : public AlignableDetector
  protected:
   //
   std::vector<ClusterD> mITSClustersArray;
+  std::vector<int> mOverlapCandidateID; // pool of indices for potentially overlapping clusters
+  std::vector<int> mOverlapClusRef;     // 1st entry in mOverlapCandidateID for the overlapping cluster indices of each cluster
+  std::vector<o2::itsmft::ChipMappingITS::Overlaps> mOverlaps;
   const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
   //
   ClassDefOverride(AlignableDetectorITS, 1);

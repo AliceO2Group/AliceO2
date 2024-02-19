@@ -114,7 +114,6 @@ void Dispatcher::run(ProcessingContext& ctx)
               routeAsConcreteDataType.origin,
               routeAsConcreteDataType.description,
               partInputHeader->subSpecification,
-              part.spec->lifetime,
               std::move(headerStack)};
             send(ctx.outputs(), part, output);
           }
@@ -126,10 +125,9 @@ void Dispatcher::run(ProcessingContext& ctx)
   if (ctx.inputs().isValid("timer-stats")) {
     reportStats(ctx.services().get<Monitoring>());
   }
-  auto& proxy = ctx.services().get<FairMQDeviceProxy>();
   auto& relayer = ctx.services().get<DataRelayer>();
   auto timeslice = relayer.getOldestPossibleOutput().timeslice.value;
-  DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, timeslice);
+  DataProcessingHelpers::broadcastOldestPossibleTimeslice(ctx.services(), timeslice);
 }
 
 void Dispatcher::reportStats(Monitoring& monitoring) const

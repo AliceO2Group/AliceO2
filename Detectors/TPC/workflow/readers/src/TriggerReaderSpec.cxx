@@ -36,7 +36,7 @@ void TriggerReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   mTree->GetEntry(ent);
 
-  pc.outputs().snapshot(Output{"TPC", "TRIGGERWORDS", 0, Lifetime::Timeframe}, *mTrig);
+  pc.outputs().snapshot(Output{"TPC", "TRIGGERWORDS", 0}, *mTrig);
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

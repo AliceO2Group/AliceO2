@@ -273,7 +273,7 @@ void RawDump::endOfStream(EndOfStreamContext& ec)
     auto fnm = fmt::format("{}{}{}raw.cfg", mOutDir, mOutDir.back() == '/' ? "" : "/", DetID::getName(id));
     auto fh = std::fopen(fnm.c_str(), "w");
     if (!fh) {
-      LOGP(fatal, "Failed to create configuration file {}");
+      LOGP(fatal, "Failed to create configuration file {}", fnm);
     }
     auto ws = std::fwrite(mConfigEntries[id].data(), 1, mConfigEntries[id].size(), fh);
     if (ws != mConfigEntries[id].size()) {
@@ -655,7 +655,7 @@ std::string RawDump::getBaseFileNameTRD(const header::RDHAny* rdh)
   int link = supermodule * 4 + side * 2 + ep, cru = link / 2;
   if (link >= NLinks) {
     auto flpname = fmt::format("flp-unknown_cru{}_ep{}_feeid0x{:05x}", cru, int(RDHUtils::getEndPointID(rdh)), RDHUtils::getFEEID(rdh));
-    LOGP(error, "Got wrong link {}, setting TRF file name to unrecognized flp {}", flpname);
+    LOGP(error, "Got wrong link {}, setting TRF file name to unrecognized flp {}", link, flpname);
     return flpname;
   }
   return fmt::format("alio2-cr1-flp{}_cru{}_{}", trdHWMap[cru].flpid, trdHWMap[cru].cruHWID, ep);
@@ -674,7 +674,7 @@ DataProcessorSpec getRawDumpSpec(DetID::mask_t detMask, bool TOFUncompressed)
   o2h::DataOrigin orig;
   for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
     if (detMask[id] && (orig = DetID::getDataOrigin(id)) != o2h::gDataOriginInvalid) {
-      inputs.emplace_back(DetID::getName(id), ConcreteDataTypeMatcher{orig, (id != DetID::TOF || TOFUncompressed) ? RawDump::DESCRaw : RawDump::DESCCRaw}, Lifetime::Optional);
+      inputs.emplace_back(DetID::getName(id), ConcreteDataTypeMatcher{orig, (id != DetID::TOF || TOFUncompressed) ? RawDump::DESCRaw : RawDump::DESCCRaw}, Lifetime::Timeframe);
     }
   }
   return DataProcessorSpec{

@@ -182,7 +182,7 @@ class AlignableVolume : public DOFSet
   bool createLocDeltaMatrix(TGeoHMatrix& deltaM) const; // return true if the matrix is not unity
   void createPreGloDeltaMatrix(TGeoHMatrix& deltaM) const;
   void createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const;
-  void createAlignmenMatrix(TGeoHMatrix& alg) const;
+  void createAlignmenMatrix(TGeoHMatrix& alg, const TGeoHMatrix* envelopeDelta = nullptr) const;
   void createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr, const TGeoHMatrix* envelopeDelta = nullptr) const;
   //
   void setSkip(bool v = true) { SetBit(kSkipBit, v); }

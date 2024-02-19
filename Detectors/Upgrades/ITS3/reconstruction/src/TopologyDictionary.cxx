@@ -12,23 +12,15 @@
 /// \file TopologyDictionary.cxx
 
 #include "ITS3Reconstruction/TopologyDictionary.h"
-#include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "CommonUtils/StringUtils.h"
 #include <TFile.h>
 #include <iostream>
 
-using std::cout;
-using std::endl;
-using std::unordered_map;
-using std::vector;
-
 ClassImp(o2::its3::TopologyDictionary);
-namespace o2
-{
 
-namespace its3
+namespace o2::its3
 {
 
 TopologyDictionary::TopologyDictionary()
@@ -45,10 +37,10 @@ std::ostream& operator<<(std::ostream& os, const its3::TopologyDictionary& dict)
 {
   int ID = 0;
   for (auto& p : dict.mVectorOfIDs) {
-    os << "ID: " << ID++ << " Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixles: " << p.mNpixels << " Frequency: " << p.mFrequency << " isGroup : " << std::boolalpha << p.mIsGroup << std::endl
-       << p.mPattern << std::endl
-       << "*********************************************************" << std::endl
-       << std::endl;
+    os << "ID: " << ID++ << " Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixles: " << p.mNpixels << " Frequency: " << p.mFrequency << " isGroup : " << std::boolalpha << p.mIsGroup << '\n'
+       << p.mPattern << '\n'
+       << "*********************************************************" << '\n'
+       << '\n';
   }
   return os;
 }
@@ -75,6 +67,7 @@ void TopologyDictionary::writeBinaryFile(const std::string& outputfile)
 
 int TopologyDictionary::readFromFile(const std::string& fname)
 {
+  LOGP(info, "Reading TopologyDictionary from File '{}'", fname);
   if (o2::utils::Str::endsWith(fname, ".root")) {
     std::unique_ptr<TopologyDictionary> d{loadFrom(fname)};
     *this = *d;
@@ -127,64 +120,40 @@ int TopologyDictionary::readBinaryFile(const std::string& fname)
   return 0;
 }
 
-void TopologyDictionary::getTopologyDistribution(const its3::TopologyDictionary& dict, TH1F*& histo, const char* histName)
+TH1F* TopologyDictionary::getTopologyDistribution(const std::string_view hname) const
 {
-  int dictSize = (int)dict.getSize();
-  if (histo) {
-    delete histo;
-  }
-  histo = new TH1F(histName, ";Topology ID;Frequency", dictSize, -0.5, dictSize - 0.5);
+  int dictSize = getSize();
+  auto* histo = new TH1F(hname.data(), ";Topology ID;Frequency", dictSize, -0.5, dictSize - 0.5);
   histo->SetFillColor(kRed);
   histo->SetFillStyle(3005);
   histo->SetDrawOption("histo");
   for (int i = 0; i < dictSize; i++) {
-    histo->Fill(i, dict.getFrequency(i));
+    histo->Fill(i, getFrequency(i));
   }
+  return histo;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl, int nChipsITS3) const
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const itsmft::CompClusterExt& cl) const
 {
-  LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3)};
   math_utils::Point3D<float> locCl;
-  if (cl.getSensorID() >= nChipsITS3) {
+  if (!its3::constants::detID::isDetITS3(cl.getSensorID())) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
     locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
     locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchCol);
   } else {
-    segmentations[cl.getSensorID()].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchRow);
-    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchCol);
+    auto layer = its3::constants::detID::getDetID2Layer(cl.getSensorID());
+    its3::SuperSegmentations[layer].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
+    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * its3::SegmentationSuperAlpide::mPitchRow);
+    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * its3::SegmentationSuperAlpide::mPitchCol);
     float xCurved{0.f}, yCurved{0.f};
-    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
+    its3::SuperSegmentations[layer].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
     locCl.SetXYZ(xCurved, yCurved, locCl.Z());
   }
   return locCl;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup, int nChipsITS3)
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
 {
-  LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3)};
-
   auto refRow = cl.getRow();
   auto refCol = cl.getCol();
   float xCOG = 0, zCOG = 0;
@@ -194,77 +163,13 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3:
     refCol -= round(zCOG);
   }
   math_utils::Point3D<float> locCl;
-  if (cl.getSensorID() >= nChipsITS3) {
+  if (!its3::constants::detID::isDetITS3(cl.getSensorID())) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
-    segmentations[cl.getSensorID()].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
+    auto layer = its3::constants::detID::getDetID2Layer(cl.getSensorID());
+    its3::SuperSegmentations[layer].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
     float xCurved{0.f}, yCurved{0.f};
-    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
-    locCl.SetXYZ(xCurved, yCurved, locCl.Z());
-  }
-  return locCl;
-}
-
-template <typename T>
-std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl, int nChipsITS3) const
-{
-  LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3)};
-  std::array<T, 3> locCl;
-  if (cl.getSensorID() >= nChipsITS3) {
-    o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
-    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchCol);
-  } else {
-    segmentations[cl.getSensorID()].detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-    locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchRow);
-    locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * segmentations[cl.getSensorID()].mPitchCol);
-    float xCurved{0.f}, yCurved{0.f};
-    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
-    locCl.SetXYZ(xCurved, yCurved, locCl.Z());
-  }
-  return locCl;
-}
-
-template <typename T>
-std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup, int nChipsITS3)
-{
-  LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(0),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(1),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(2),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3),
-                                                   SegmentationSuperAlpide(3)};
-
-  auto refRow = cl.getRow();
-  auto refCol = cl.getCol();
-  float xCOG = 0, zCOG = 0;
-  patt.getCOG(xCOG, zCOG);
-  if (isGroup) {
-    refRow -= round(xCOG);
-    refCol -= round(zCOG);
-  }
-  std::array<T, 3> locCl;
-  if (cl.getSensorID() >= nChipsITS3) {
-    o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
-  } else {
-    segmentations[cl.getSensorID()].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
-    float xCurved{0.f}, yCurved{0.f};
-    segmentations[cl.getSensorID()].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
+    its3::SuperSegmentations[layer].flatToCurved(locCl.X(), locCl.Y(), xCurved, yCurved);
     locCl.SetXYZ(xCurved, yCurved, locCl.Z());
   }
   return locCl;
@@ -272,16 +177,17 @@ std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClus
 
 TopologyDictionary* TopologyDictionary::loadFrom(const std::string& fname, const std::string& objName)
 {
+  LOGP(info, "Loading TopologyDictionary from {} with name {}", fname, objName);
   // load object from file
-  TFile fl(fname.c_str());
-  if (fl.IsZombie()) {
+  TFile fl(fname.c_str(), "READ");
+  if (fl.IsZombie() || !fl.IsOpen()) {
     throw std::runtime_error(fmt::format("Failed to open {} file", fname));
   }
-  auto dict = reinterpret_cast<its3::TopologyDictionary*>(fl.GetObjectChecked(objName.c_str(), its3::TopologyDictionary::Class()));
-  if (!dict) {
+  auto dict = fl.Get<its3::TopologyDictionary>(objName.c_str());
+  if (dict == nullptr) {
     throw std::runtime_error(fmt::format("Failed to load {} from {}", objName, fname));
   }
   return dict;
 }
-} // namespace its3
-} // namespace o2
+
+} // namespace o2::its3

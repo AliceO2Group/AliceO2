@@ -200,6 +200,10 @@ class O2SimDevice final : public fair::mq::Device
   bool Kernel(int workerID, fair::mq::Channel& requestchannel, fair::mq::Channel& dataoutchannel, fair::mq::Channel* statuschannel = nullptr)
   {
     static int counter = 0;
+    bool reproducibleSim = true;
+    if (getenv("O2_DISABLE_REPRODUCIBLE_SIM")) {
+      reproducibleSim = false;
+    }
 
     fair::mq::MessagePtr request(requestchannel.NewSimpleMessage(PrimaryChunkRequest{workerID, -1, counter++})); // <-- don't need content; channel means -> give primaries
     fair::mq::Parts reply;
@@ -256,9 +260,11 @@ class O2SimDevice final : public fair::mq::Device
             LOG(info) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
                       << "for event " << info.eventID << "/" << info.maxEvents << " "
                       << "part " << info.part << "/" << info.nparts;
-            LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
-            gRandom->SetSeed(chunk->mSubEventInfo.seed);
-            o2::base::VMCSeederService::instance().setSeed();
+            if (reproducibleSim) {
+              LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
+              gRandom->SetSeed(chunk->mSubEventInfo.seed);
+              o2::base::VMCSeederService::instance().setSeed();
+            }
 
             // Process one event
             auto& conf = o2::conf::SimConfig::Instance();

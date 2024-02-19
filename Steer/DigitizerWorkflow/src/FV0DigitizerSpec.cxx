@@ -102,14 +102,14 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOG(info) << "FV0: Sending " << mDigitsBC.size() << " digitsBC and " << mDigitsCh.size() << " digitsCh.";
 
     // send out to next stage
-    pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
-    pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe}, mDigitsTrig);
+    pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0}, mDigitsBC);
+    pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0}, mDigitsTrig);
     if (pc.outputs().isAllowed({"FV0", "DIGITLBL", 0})) {
-      pc.outputs().snapshot(Output{"FV0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{"FV0", "DIGITLBL", 0}, mLabels);
     }
     LOG(info) << "FV0: Sending ROMode= " << mROMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{"FV0", "ROMode", 0, Lifetime::Timeframe}, mROMode);
+    pc.outputs().snapshot(Output{"FV0", "ROMode", 0}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

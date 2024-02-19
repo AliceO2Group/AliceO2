@@ -118,8 +118,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
   // initialize track model
   mX = x;
   mAlpha = alpha;
-  mCosAlpha = CAMath::Cos(alpha);
-  mSinAlpha = CAMath::Sin(alpha);
+  CAMath::SinCos(alpha, mSinAlpha, mCosAlpha);
   mP[0] = y;
   mP[1] = z;
   mP[2] = 0.f;
@@ -154,7 +153,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
     mP[2] = -MaxSinPhi;
   }
   // propagate track parameters to specified x
-  if (CAMath::Abs(alpha - mAlpha) > 1.e-4) {
+  if (CAMath::Abs(alpha - mAlpha) > 1.e-4f) {
     if (rotateToAlpha(alpha) != 0) {
       return -2;
     }
@@ -399,8 +398,8 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
   // return value is error code (0==no error)
   //
 
-  float newCosAlpha = CAMath::Cos(newAlpha);
-  float newSinAlpha = CAMath::Sin(newAlpha);
+  float newCosAlpha = 0, newSinAlpha = 0;
+  CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
   float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
   float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // sin(newAlpha - mAlpha);

@@ -92,7 +92,8 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
     merger.outputs[0] = OutputSpec{{mergerIntegralOutputBinding()},
                                    mergerDataOrigin(),
                                    mergerDataDescription(mName),
-                                   subSpec}; // it servers as a unique merger output ID
+                                   subSpec, // it servers as a unique merger output ID
+                                   Lifetime::Sporadic};
   } else {
     // last layer
     merger.outputs[0].binding = {mergerIntegralOutputBinding()};
@@ -116,10 +117,9 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   merger.inputs.push_back({"timer-publish", "TMR", mergerDataDescription(mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer, timerSpecs(timers)});
   merger.labels.push_back(mergerLabel());
-  if (mConfig.expendable) {
-    framework::DataProcessorLabel expendableLabel = {"expendable"};
-    merger.labels.emplace_back(expendableLabel);
-  }
+  merger.labels.insert(merger.labels.end(), mConfig.labels.begin(), mConfig.labels.end());
+  std::sort(merger.labels.begin(), merger.labels.end());
+  merger.labels.erase(std::unique(merger.labels.begin(), merger.labels.end()), merger.labels.end());
   merger.maxInputTimeslices = mTimePipeline;
 
   return std::move(merger);

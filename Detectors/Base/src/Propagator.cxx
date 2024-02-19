@@ -180,28 +180,36 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackParCov_t& track, va
     auto xyz0 = track.getXYZGlo();
     getFieldXYZ(xyz0, &b[0]);
 
+    auto correct = [&track, &xyz0, tofInfo, matCorr, signCorr, this]() {
+      bool res = true;
+      if (matCorr != MatCorrType::USEMatCorrNONE) {
+        auto xyz1 = track.getXYZGlo();
+        auto mb = this->getMatBudget(matCorr, xyz0, xyz1);
+        if (!track.correctForMaterial(mb.meanX2X0, mb.getXRho(signCorr))) {
+          res = false;
+        }
+        if (tofInfo) {
+          tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
+          tofInfo->addX2X0(mb.meanX2X0);
+          tofInfo->addXRho(mb.getXRho(signCorr));
+        }
+      } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+        auto xyz1 = track.getXYZGlo();
+        math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+        tofInfo->addStep(stepV.R(), track.getP2Inv());
+      }
+      return res;
+    };
+
     if (!track.propagateTo(x, b)) {
       return false;
     }
     if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {
+      correct();
       return false;
     }
-    if (matCorr != MatCorrType::USEMatCorrNONE) {
-      auto xyz1 = track.getXYZGlo();
-      auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      if (!track.correctForMaterial(mb.meanX2X0, mb.getXRho(signCorr))) {
-        return false;
-      }
-
-      if (tofInfo) {
-        tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
-        tofInfo->addX2X0(mb.meanX2X0);
-        tofInfo->addXRho(mb.getXRho(signCorr));
-      }
-    } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
-      auto xyz1 = track.getXYZGlo();
-      math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
-      tofInfo->addStep(stepV.R(), track.getP2Inv());
+    if (!correct()) {
+      return false;
     }
     dx = xToGo - track.getX();
   }
@@ -241,27 +249,36 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackPar_t& track, value
     auto xyz0 = track.getXYZGlo();
     getFieldXYZ(xyz0, &b[0]);
 
+    auto correct = [&track, &xyz0, tofInfo, matCorr, signCorr, this]() {
+      bool res = true;
+      if (matCorr != MatCorrType::USEMatCorrNONE) {
+        auto xyz1 = track.getXYZGlo();
+        auto mb = this->getMatBudget(matCorr, xyz0, xyz1);
+        if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
+          res = false;
+        }
+        if (tofInfo) {
+          tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
+          tofInfo->addX2X0(mb.meanX2X0);
+          tofInfo->addXRho(mb.getXRho(signCorr));
+        }
+      } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+        auto xyz1 = track.getXYZGlo();
+        math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+        tofInfo->addStep(stepV.R(), track.getP2Inv());
+      }
+      return res;
+    };
+
     if (!track.propagateParamTo(x, b)) {
       return false;
     }
     if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {
+      correct();
       return false;
     }
-    if (matCorr != MatCorrType::USEMatCorrNONE) {
-      auto xyz1 = track.getXYZGlo();
-      auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
-        return false;
-      }
-      if (tofInfo) {
-        tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
-        tofInfo->addX2X0(mb.meanX2X0);
-        tofInfo->addXRho(mb.getXRho(signCorr));
-      }
-    } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
-      auto xyz1 = track.getXYZGlo();
-      math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
-      tofInfo->addStep(stepV.R(), track.getP2Inv());
+    if (!correct()) {
+      return false;
     }
     dx = xToGo - track.getX();
   }
@@ -298,30 +315,35 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackParCov_t& track, value_ty
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-
+    auto correct = [&track, &xyz0, tofInfo, matCorr, signCorr, this]() {
+      bool res = true;
+      if (matCorr != MatCorrType::USEMatCorrNONE) {
+        auto xyz1 = track.getXYZGlo();
+        auto mb = this->getMatBudget(matCorr, xyz0, xyz1);
+        if (!track.correctForMaterial(mb.meanX2X0, mb.getXRho(signCorr))) {
+          res = false;
+        }
+        if (tofInfo) {
+          tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
+          tofInfo->addX2X0(mb.meanX2X0);
+          tofInfo->addXRho(mb.getXRho(signCorr));
+        }
+      } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+        auto xyz1 = track.getXYZGlo();
+        math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+        tofInfo->addStep(stepV.R(), track.getP2Inv());
+      }
+      return res;
+    };
     if (!track.propagateTo(x, bZ)) {
       return false;
     }
     if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {
+      correct();
       return false;
     }
-    if (matCorr != MatCorrType::USEMatCorrNONE) {
-      auto xyz1 = track.getXYZGlo();
-      auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      //
-      if (!track.correctForMaterial(mb.meanX2X0, mb.getXRho(signCorr))) {
-        return false;
-      }
-
-      if (tofInfo) {
-        tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
-        tofInfo->addX2X0(mb.meanX2X0);
-        tofInfo->addXRho(mb.getXRho(signCorr));
-      }
-    } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
-      auto xyz1 = track.getXYZGlo();
-      math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
-      tofInfo->addStep(stepV.R(), track.getP2Inv());
+    if (!correct()) {
+      return false;
     }
     dx = xToGo - track.getX();
   }
@@ -359,29 +381,36 @@ GPUd() bool PropagatorImpl<value_T>::propagateToX(TrackPar_t& track, value_type 
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
 
+    auto correct = [&track, &xyz0, tofInfo, matCorr, signCorr, this]() {
+      bool res = true;
+      if (matCorr != MatCorrType::USEMatCorrNONE) {
+        auto xyz1 = track.getXYZGlo();
+        auto mb = this->getMatBudget(matCorr, xyz0, xyz1);
+        if (!track.correctForELoss(mb.getXRho(signCorr))) {
+          res = false;
+        }
+        if (tofInfo) {
+          tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
+          tofInfo->addX2X0(mb.meanX2X0);
+          tofInfo->addXRho(mb.getXRho(signCorr));
+        }
+      } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
+        auto xyz1 = track.getXYZGlo();
+        math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
+        tofInfo->addStep(stepV.R(), track.getP2Inv());
+      }
+      return res;
+    };
+
     if (!track.propagateParamTo(x, bZ)) {
       return false;
     }
     if (maxSnp > 0 && math_utils::detail::abs<value_type>(track.getSnp()) >= maxSnp) {
+      correct();
       return false;
     }
-    if (matCorr != MatCorrType::USEMatCorrNONE) {
-      auto xyz1 = track.getXYZGlo();
-      auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      //
-      if (!track.correctForELoss(mb.getXRho(signCorr))) {
-        return false;
-      }
-
-      if (tofInfo) {
-        tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
-        tofInfo->addX2X0(mb.meanX2X0);
-        tofInfo->addXRho(mb.getXRho(signCorr));
-      }
-    } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
-      auto xyz1 = track.getXYZGlo();
-      math_utils::Vector3D<value_type> stepV(xyz1.X() - xyz0.X(), xyz1.Y() - xyz0.Y(), xyz1.Z() - xyz0.Z());
-      tofInfo->addStep(stepV.R(), track.getP2Inv());
+    if (!correct()) {
+      return false;
     }
     dx = xToGo - track.getX();
   }
@@ -614,6 +643,27 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
     (*dca)[1] = track.getZ() - zv;
   }
   return true;
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUd() float PropagatorImpl<value_T>::estimateLTIncrement(const o2::track::TrackParametrization<value_type>& trc,
+                                                          const o2::math_utils::Point3D<value_type>& posStart,
+                                                          const o2::math_utils::Point3D<value_type>& posEnd) const
+{
+  // estimate helical step increment between 2 point
+  float dX = posEnd.X() - posStart.X(), dY = posEnd.Y() - posStart.Y(), dZ = posEnd.Z() - posStart.Z(), d2XY = dX * dX + dY * dY;
+  if (getNominalBz() != 0) { // circular arc = 2*R*asin(dXY/2R)
+    float b[3];
+    o2::math_utils::Point3D<float> posAv(0.5 * (posEnd.X() + posStart.X()), 0.5 * (posEnd.Y() + posStart.Y()), 0.5 * (posEnd.Z() + posStart.Z()));
+    getFieldXYZ(posAv, b);
+    float curvH = math_utils::detail::abs<value_type>(0.5f * trc.getCurvature(b[2])), asArg = curvH * math_utils::detail::sqrt<value_type>(d2XY);
+    if (curvH > 0.f) {
+      d2XY = asArg < 1.f ? math_utils::detail::asin<value_type>(asArg) / curvH : o2::constants::math::PIHalf / curvH;
+      d2XY *= d2XY;
+    }
+  }
+  return math_utils::detail::sqrt<value_type>(d2XY + dZ * dZ);
 }
 
 //____________________________________________________________

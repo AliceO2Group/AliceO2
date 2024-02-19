@@ -45,6 +45,8 @@ class InterCalib
   static constexpr int HidZEM = 4;
   static constexpr int HidZNI = 5;
   static constexpr int HidZPI = 6;
+  static constexpr int HidZPAX = 7;
+  static constexpr int HidZPCX = 8;
   static constexpr int NH = InterCalibData::NH;
   static constexpr int NPAR = InterCalibData::NPAR;
   void clear(int ih = -1);
@@ -82,10 +84,12 @@ class InterCalib
   int getVerbosity() const { return mVerbosity; }
 
   // Histograms for intercalibration of side C vs A are duplicate -> No title
-  static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "", "", "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1", "", ""};
-  static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "", "", "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1", "", ""};
-  static constexpr const char* mCUncN[NH] = {"cZNA", "cZPA", "cZNC", "cZPC", "cZEM", "cZNI", "cZPI"};
-  static constexpr const char* mCUncT[NH] = {"ZNA;TC;SUM", "ZPA;TC;SUM", "ZNC;TC;SUM", "ZPC;TC;SUM", "ZEM;ZEM1;ZEM2", "ZN;ZNAC;ZNCC", "ZP;ZPAC;ZPCC"};
+  static constexpr const char* mHUncN[2 * NH] = {"hZNAS", "hZPAS", "hZNCS", "hZPCS", "hZEM2", "", "", "hZPASX", "hZPCSX",
+                                                 "hZNAC", "hZPAC", "hZNCC", "hZPCC", "hZEM1", "", "", "hZPACX", "hZPCCX"};
+  static constexpr const char* mHUncT[2 * NH] = {"ZNA sum", "ZPA sum", "ZNC sum", "ZPC sum", "ZEM2", "", "", "ZPA sum", "ZPC sum",
+                                                 "ZNA TC", "ZPA TC", "ZNC TC", "ZPC TC", "ZEM1", "", "", "ZPA TC", "ZPC TC"};
+  static constexpr const char* mCUncN[NH] = {"cZNA", "cZPA", "cZNC", "cZPC", "cZEM", "cZNI", "cZPI", "cZPAX", "cZPCX"};
+  static constexpr const char* mCUncT[NH] = {"ZNA;TC;SUM", "ZPA;TC;SUM", "ZNC;TC;SUM", "ZPC;TC;SUM", "ZEM;ZEM1;ZEM2", "ZN;ZNAC;ZNCC", "ZP;ZPAC;ZPCC", "ZPA (x cut);TC;SUM", "ZPC (x cut);TC;SUM"};
 
  private:
   std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mHUnc{};

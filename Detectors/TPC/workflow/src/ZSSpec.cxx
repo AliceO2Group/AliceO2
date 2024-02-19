@@ -133,8 +133,8 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       }
       o2::tpc::TPCSectorHeader sh{0};
       gsl::span<ZeroSuppressedContainer8kb> outp(&page[0], offset);
-      pc.outputs().snapshot(Output{gDataOriginTPC, "TPCZS", 0, Lifetime::Timeframe, sh}, outp);
-      pc.outputs().snapshot(Output{gDataOriginTPC, "ZSSIZES", 0, Lifetime::Timeframe, sh}, sizes);
+      pc.outputs().snapshot(Output{gDataOriginTPC, "TPCZS", 0, sh}, outp);
+      pc.outputs().snapshot(Output{gDataOriginTPC, "ZSSIZES", 0, sh}, sizes);
 
       if (outRaw) {
         // ===| set up raw writer |===================================================
@@ -301,7 +301,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
       for (int i = 0; i < NSectors; i++) {
         LOG(info) << "digits in sector " << i << " : " << outDigits[i].size();
         o2::tpc::TPCSectorHeader sh{i};
-        pc.outputs().snapshot(Output{gDataOriginTPC, "DIGITS", (unsigned int)i, Lifetime::Timeframe, sh}, outDigits[i]);
+        pc.outputs().snapshot(Output{gDataOriginTPC, "DIGITS", (unsigned int)i, sh}, outDigits[i]);
       }
     };
     return processingFct;

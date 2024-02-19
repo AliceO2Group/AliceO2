@@ -386,7 +386,11 @@ class EncodedBlocks
       assert(dictMax <= metadata.max);
 
       if ((dictMin < sourceMin) || (dictMax > sourceMax)) {
-        throw std::runtime_error(fmt::format("value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}]", sourceMin, sourceMax, dictMin, dictMax));
+        if (ansVersion == ANSVersionCompat && mHeader.majorVersion == 1 && mHeader.minorVersion == 0 && mHeader.dictTimeStamp < 1653192000000) {
+          LOGP(warn, "value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}], tolerate in compat mode for old dictionaries", sourceMin, sourceMax, dictMin, dictMax);
+        } else {
+          throw std::runtime_error(fmt::format("value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}]", sourceMin, sourceMax, dictMin, dictMax));
+        }
       }
     }();
 
@@ -398,7 +402,8 @@ class EncodedBlocks
       if (getANSHeader() == ANSVersionUnspecified) {
         rans::DenseHistogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
         size_t renormingBits = rans::utils::sanitizeRenormingBitRange(metadata.probabilityBits);
-        LOG_IF(debug, renormingBits != metadata.probabilityBits) << fmt::format("While reading metadata from external dictionary, rANSV1 is rounding renorming precision from {} to {}");
+        LOG_IF(debug, renormingBits != metadata.probabilityBits)
+          << fmt::format("While reading metadata from external dictionary, rANSV1 is rounding renorming precision from {} to {}", metadata.probabilityBits, renormingBits);
         return rans::renorm(std::move(histogram), renormingBits, rans::RenormingPolicy::ForceIncompressible);
       } else {
         // dictionary is elias-delta coded inside the block

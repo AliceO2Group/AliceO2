@@ -84,7 +84,7 @@ void readFITDCSdata(std::string detectorName = "FT0",
                     const std::string& rootOutput = "",
                     const bool print = false,
                     const std::string& textOutput = "",
-                    const bool verbose = true)
+                    const bool verbose = false)
 {
   // Parse and check detector name
   boost::to_upper(detectorName);
@@ -181,7 +181,7 @@ void readFITDCSdata(std::string detectorName = "FT0",
     }
 
     // The CCDB object should always contain values for all datapoints. This is just to check that.
-    if ((detectorName == "FT0" && ccdbMap->size() != 477) || (detectorName == "FV0" && ccdbMap->size() != 147) || (detectorName == "FDD" && ccdbMap->size() != 76)) {
+    if (verbose && ((detectorName == "FT0" && ccdbMap->size() != 501) || (detectorName == "FV0" && ccdbMap->size() != 147) || (detectorName == "FDD" && ccdbMap->size() != 76))) {
       LOGP(error,
            "Wrong number of DCS datapoints fetched for {}, got {}. There is a bug, please send output of this script, with input parameters, to andreas.molander@cern.ch.",
            detectorName, ccdbMap->size());
@@ -230,16 +230,19 @@ void readFITDCSdata(std::string detectorName = "FT0",
     LOG(info) << "Printing data point values:";
     for (auto& it : dataSeries) {
       LOGP(info, "{}", it.first);
-      LOGP(info, "{} value(s):", it.second.values.size());
-      if (verbose) {
-        for (auto& value : it.second.values) {
-          LOGP(info, "TIME = {} ({}), VALUE = {}", value.first, epochToReadable(value.first), value.second);
+      int nValues = it.second.values.size();
+      LOGP(info, "{} value(s):", nValues);
+      if (nValues) {
+        if (verbose) {
+          for (auto& value : it.second.values) {
+            LOGP(info, "TIME = {} ({}), VALUE = {}", value.first, epochToReadable(value.first), value.second);
+          }
+        } else {
+          LOGP(info, "First value:");
+          LOGP(info, "TIME = {} ({}), VALUE = {}", it.second.values.front().first, epochToReadable(it.second.values.front().first), it.second.values.front().second);
+          LOGP(info, "Last value:");
+          LOGP(info, "TIME = {} ({}), VALUE = {}", it.second.values.back().first, epochToReadable(it.second.values.back().first), it.second.values.back().second);
         }
-      } else {
-        LOGP(info, "First value:");
-        LOGP(info, "TIME = {} ({}), VALUE = {}", it.second.values.front().first, epochToReadable(it.second.values.front().first), it.second.values.front().second);
-        LOGP(info, "Last value:");
-        LOGP(info, "TIME = {} ({}), VALUE = {}", it.second.values.back().first, epochToReadable(it.second.values.back().first), it.second.values.back().second);
       }
       LOG(info);
     }

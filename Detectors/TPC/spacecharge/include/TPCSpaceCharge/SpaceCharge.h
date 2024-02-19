@@ -40,6 +40,11 @@ namespace parameters
 class GRPMagField;
 }
 
+namespace utils
+{
+class TreeStreamRedirector;
+}
+
 namespace tpc
 {
 
@@ -374,6 +379,9 @@ class SpaceCharge
 
   const auto& getPotential(const Side side) const& { return mPotential[side]; }
 
+  /// setting the potential directly for given vertex
+  void setPotential(int iz, int ir, int iphi, Side side, float val);
+
   /// get the space charge density for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
@@ -572,7 +580,9 @@ class SpaceCharge
 
   /// Distort electron position using distortion lookup tables
   /// \param point 3D coordinates of the electron
-  void distortElectron(GlobalPosition3D& point) const;
+  /// \param scSCale other sc object which is used for scaling of the distortions
+  /// \param scale scaling value
+  void distortElectron(GlobalPosition3D& point, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0) const;
 
   /// set the distortions directly from a look up table
   /// \param distdZ distortions in z direction
@@ -1170,11 +1180,29 @@ class SpaceCharge
   /// substract global corrections from other sc object (global corrections -= other.global corrections)
   /// can be used to calculate the derivative: (this - other)/normalization
   /// for normalization see scaleCorrections()
-  void substractGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side);
+  void subtractGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side);
+
+  /// substract global distortions from other sc object (global distortions -= other.global distortions)
+  /// can be used to calculate the derivative: (this - other)/normalization
+  void subtractGlobalDistortions(const SpaceCharge<DataT>& otherSC, const Side side);
 
   /// scale corrections by factor
   /// \param scaleFac global corrections are multiplied by this factor
   void scaleCorrections(const float scaleFac, const Side side);
+
+  /// setting meta data for this object
+  void setMetaData(const SCMetaData& meta) { mMeta = meta; }
+  const auto& getMetaData() const { return mMeta; }
+  void printMetaData() const { mMeta.print(); }
+  float getMeanLumi() const { return mMeta.meanLumi; }
+  void setMeanLumi(float lumi) { mMeta.meanLumi = lumi; }
+  void initAfterReadingFromFile();
+
+  /// get DCA in RPhi for high pt track
+  /// \param tgl tgl of the track
+  /// \param nPoints number of points used to calculate the DCAr
+  /// \param pcstream if provided debug output is being created
+  float getDCAr(float tgl, const int nPoints, const float phi, o2::utils::TreeStreamRedirector* pcstream = nullptr) const;
 
  private:
   ParamSpaceCharge mParamGrid{};                                                                          ///< parameters of the grid on which the calculations are performed
@@ -1229,6 +1257,7 @@ class SpaceCharge
   AnalyticalDistCorr<DataT> mAnaDistCorr;                                                                                                                                                                                                                                                     ///< analytical distortions and corrections
   bool mUseAnaDistCorr{false};                                                                                                                                                                                                                                                                ///< flag if analytical distortions will be used in the distortElectron() and getCorrections() function
   BField mBField{};                                                                                                                                                                                                                                                                           ///<! B-Field                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ///<! B field
+  SCMetaData mMeta{};                                                                                                                                                                                                                                                                         ///< meta data
 
   /// check if the addition of two values are close to zero.
   /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
@@ -1330,7 +1359,7 @@ class SpaceCharge
   /// set potentialsdue to ROD misalignment
   void initRodAlignmentVoltages(const MisalignmentType misalignmentType, const FCType fcType, const int sector, const Side side, const float deltaPot);
 
-  ClassDefNV(SpaceCharge, 5);
+  ClassDefNV(SpaceCharge, 6);
 };
 
 } // namespace tpc

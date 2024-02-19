@@ -107,4 +107,10 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
                     queue.tasks.end());
 }
 
+auto AsyncQueueHelpers::reset(AsyncQueue& queue) -> void
+{
+  queue.tasks.clear();
+  queue.iteration = 0;
+}
+
 } // namespace o2::framework

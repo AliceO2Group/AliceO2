@@ -156,6 +156,9 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       if (attribute.name == "lifetime" && attribute.defaultValue.get<std::string>() == "condition") {
         lifetime = Lifetime::Condition;
       }
+      if (attribute.name == "lifetime" && attribute.defaultValue.get<std::string>() == "sporadic") {
+        lifetime = Lifetime::Sporadic;
+      }
     }
     return InputSpec{binding, std::move(*lastMatcher.release()), lifetime, attributes};
   };

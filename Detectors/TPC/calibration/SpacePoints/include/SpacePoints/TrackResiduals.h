@@ -299,12 +299,12 @@ class TrackResiduals
   /// \param ip Bin index in Y/X
   /// \param iz Bin index in Z/X
   /// \return global bin number
-  unsigned short getGlbVoxBin(int ix, int ip, int iz) const;
+  size_t getGlbVoxBin(int ix, int ip, int iz) const;
 
   /// Calculates the global bin number
   /// \param bvox Array with the voxels bin indices in X, Y/X and Z/X
   /// \return global bin number
-  unsigned short getGlbVoxBin(const std::array<unsigned char, VoxDim>& bvox) const;
+  size_t getGlbVoxBin(const std::array<unsigned char, VoxDim>& bvox) const;
 
   /// Calculates the coordinates of the center for a given voxel.
   /// These are not global TPC coordinates, but the coordinates for the given global binning system.
@@ -440,6 +440,9 @@ class TrackResiduals
   /// clear member to be able to process new sector or new input files
   void clear();
 
+  /// output tree
+  TTree* getOutputTree() { return mTreeOut.get(); }
+
  private:
   std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
 
@@ -495,7 +498,7 @@ class TrackResiduals
   float mEffVdriftCorr{0.f}; ///< global correction factor for vDrift based on d(delta(z))/dz fit
   float mEffT0Corr{0.f};     ///< global correction for T0 shift from offset of d(delta(z))/dz fit
   // (intermediate) results
-  std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
+  std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///<! flags which X bins to ignore
   std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE * SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
   std::array<std::vector<VoxRes>, SECTORSPERSIDE * SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
   VoxRes mVoxelResultsOut{};                                                                ///< the results from mVoxelResults are copied in here to be able to stream them
@@ -505,13 +508,13 @@ class TrackResiduals
 };
 
 //_____________________________________________________
-inline unsigned short TrackResiduals::getGlbVoxBin(const std::array<unsigned char, VoxDim>& bvox) const
+inline size_t TrackResiduals::getGlbVoxBin(const std::array<unsigned char, VoxDim>& bvox) const
 {
   return bvox[VoxX] + (bvox[VoxF] + bvox[VoxZ] * mNY2XBins) * mNXBins;
 }
 
 //_____________________________________________________
-inline unsigned short TrackResiduals::getGlbVoxBin(int ix, int ip, int iz) const
+inline size_t TrackResiduals::getGlbVoxBin(int ix, int ip, int iz) const
 {
   return ix + (ip + iz * mNY2XBins) * mNXBins;
 }

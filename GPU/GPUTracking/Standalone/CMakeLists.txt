@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 # Some general CMake settings
-cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 project(GPUTrackingStandalone)
 include(FeatureSummary)
 set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
@@ -44,7 +44,7 @@ endif()
 # Set Build and Compiler settings
 set(ALIGPU_BUILD_TYPE "Standalone")
 add_definitions(-DGPUCA_STANDALONE)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -61,7 +61,7 @@ else()
   if (NOT CMAKE_CXX_COMPILER STREQUAL "clang++")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftracer -fprefetch-loop-arrays")
   endif()
-  set(CMAKE_RELEASE_TYPE RELEASE)
+  set(CMAKE_BUILD_TYPE RELEASE)
   add_definitions(-DNDEBUG)
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -Wall -Wextra -Wshadow -Wno-unused-function -Wno-unused-parameter -Wno-unused-local-typedefs -Wno-unknown-pragmas -Wno-write-strings")
@@ -122,14 +122,6 @@ endif()
 if(CONFIG_O2_EXTENSIONS)
   add_definitions(-DGPUCA_HAVE_O2HEADERS)
   find_package(Microsoft.GSL REQUIRED HINTS "$ENV{MS_GSL_ROOT}/share/cmake")
-  if(CONFIG_O2_ITS_TRAITS)
-    if(NOT CONFIG_ROOT)
-      message(FATAL_ERROR "Can not build ITS traits without ROOT")
-    endif()
-    find_package(Boost REQUIRED)
-  else()
-    add_definitions(-DGPUCA_NO_ITS_TRAITS)
-  endif()
 endif()
 
 if(CONFIG_FMT)
@@ -187,10 +179,9 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Detectors/ITSMFT/common/base/include
                     ${O2_DIR}/Detectors/ITSMFT/ITS/base/include
                     ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/include
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/src
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/hip/include
-                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU/cuda
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/GPU/hip
                     ${O2_DIR}/Detectors/Raw/include
                     ${O2_DIR}/Detectors/TOF/base/include
                     ${O2_DIR}/Detectors/TPC/base/include

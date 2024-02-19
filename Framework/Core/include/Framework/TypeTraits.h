@@ -143,7 +143,7 @@ struct has_root_dictionary_mapped_type<T, std::conditional_t<false, typename T::
 // the specialization (void in this case)
 template <typename T>
 class has_root_dictionary<T, typename std::enable_if<is_container<T>::value>::type>
-  : public has_root_dictionary<typename T::value_type>
+  : public has_root_dictionary<std::remove_pointer_t<typename T::value_type>>
 {
 };
 

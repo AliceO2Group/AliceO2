@@ -56,9 +56,13 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
   bool useMC = cc.options().get<bool>("enable-mc");
+  auto name = fmt::format("mch-digit-writer-{}-{}",
+                          cc.options().get<std::string>("input-digits-data-description"),
+                          cc.options().get<std::string>("input-digitrofs-data-description"));
+
   return WorkflowSpec{o2::mch::getDigitWriterSpec(
     useMC,
-    "mch-digit-writer",
+    name,
     cc.options().get<std::string>("mch-digit-outfile"),
     cc.options().get<std::string>("input-digits-data-description"),
     cc.options().get<std::string>("input-digitrofs-data-description"))};

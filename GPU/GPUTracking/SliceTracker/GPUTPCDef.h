@@ -19,6 +19,8 @@
 #include "GPUDef.h"
 
 #define CALINK_INVAL ((calink) -1)
+#define CALINK_DEAD_CHANNEL ((calink) -2)
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -34,10 +36,6 @@ struct cahit2 { cahit x, y; };
 }
 } // GPUCA_NAMESPACE::GPU
 
-#ifdef GPUCA_TPC_USE_STAT_ERROR
-  #define GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
-#endif
-
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME // Needs full clusterdata
   #define GPUCA_FULL_CLUSTERDATA
 #endif
@@ -45,9 +43,6 @@ struct cahit2 { cahit x, y; };
 #if defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE) // No support for Full Field Propagator or Statistical errors
   #ifdef GPUCA_GM_USE_FULL_FIELD
     #undef GPUCA_GM_USE_FULL_FIELD
-  #endif
-  #ifdef GPUCA_TPC_USE_STAT_ERROR
-    #undef GPUCA_TPC_USE_STAT_ERROR
   #endif
 #endif
 

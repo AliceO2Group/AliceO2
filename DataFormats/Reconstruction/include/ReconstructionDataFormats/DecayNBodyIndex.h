@@ -36,13 +36,20 @@ class DecayNBodyIndex
   void setProngID(int i, GIndex gid) { mProngIDs[i] = gid; }
   int getVertexID() const { return mVertexID; }
   void setVertexID(int id) { mVertexID = id; }
+  uint8_t getBits() const { return mBits; }
+  bool testBit(int i) const { return (mBits & (0x1 << i)) != 0; }
+  void setBit(int i) { mBits |= (0x1 << i); }
+  void resetBit(int i) { mBits &= ~(0x1 << i); }
+
   const std::array<GIndex, N>& getProngs() const { return mProngIDs; }
   static constexpr int getNProngs() { return N; }
 
  protected:
   int mVertexID = -1;                // id of parent vertex
   std::array<GIndex, N> mProngIDs{}; // global IDs of prongs
-  ClassDefNV(DecayNBodyIndex, 1);
+  uint8_t mBits = 0;                 // user defined bits
+
+  ClassDefNV(DecayNBodyIndex, 2);
 };
 
 class V0Index : public DecayNBodyIndex<2>
@@ -50,6 +57,10 @@ class V0Index : public DecayNBodyIndex<2>
  public:
   using DecayNBodyIndex<2>::DecayNBodyIndex;
   V0Index(int v, GIndex p, GIndex n) : DecayNBodyIndex<2>(v, {p, n}) {}
+  bool isStandaloneV0() const { return testBit(0); }
+  bool isPhotonOnly() const { return testBit(1); }
+  void setStandaloneV0() { setBit(0); }
+  void setPhotonOnly() { setBit(1); }
   ClassDefNV(V0Index, 1);
 };
 

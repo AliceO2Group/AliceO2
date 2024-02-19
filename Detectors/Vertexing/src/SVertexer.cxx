@@ -16,11 +16,14 @@
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "CorrectionMapsHelper.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
+#include "CommonConstants/GeomConstants.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -38,6 +41,7 @@ using TrackTPC = o2::tpc::TrackTPC;
 //__________________________________________________________________
 void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::framework::ProcessingContext& pc)
 {
+  mRecoCont = &recoData;
   mNV0s = mNCascades = mN3Bodies = 0;
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
   mPVertices = recoData.getPrimaryVertices();
@@ -53,7 +57,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
 #endif
   for (int itp = 0; itp < ntrP; itp++) {
     auto& seedP = mTracksPool[POS][itp];
-    int firstN = mVtxFirstTrack[NEG][seedP.vBracket.getMin()];
+    const int firstN = mVtxFirstTrack[NEG][seedP.vBracket.getMin()];
     if (firstN < 0) {
       LOG(debug) << "No partner is found for pos.track " << itp << " out of " << ntrP;
       continue;
@@ -76,6 +80,12 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
     }
   }
 
+  produceOutput(pc);
+}
+
+//__________________________________________________________________
+void SVertexer::produceOutput(o2::framework::ProcessingContext& pc)
+{
   // sort V0s and Cascades in vertex id
   struct vid {
     int thrID;
@@ -105,17 +115,17 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
   std::sort(v0SortID.begin(), v0SortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
   std::sort(cascSortID.begin(), cascSortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
   std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
-  // sorted V0s
 
-  auto& v0sIdx = pc.outputs().make<std::vector<V0Index>>(o2f::Output{"GLO", "V0S_IDX", 0, o2f::Lifetime::Timeframe});
-  auto& cascsIdx = pc.outputs().make<std::vector<CascadeIndex>>(o2f::Output{"GLO", "CASCS_IDX", 0, o2f::Lifetime::Timeframe});
-  auto& body3Idx = pc.outputs().make<std::vector<Decay3BodyIndex>>(o2f::Output{"GLO", "DECAYS3BODY_IDX", 0, o2f::Lifetime::Timeframe});
-  auto& fullv0s = pc.outputs().make<std::vector<V0>>(o2f::Output{"GLO", "V0S", 0, o2f::Lifetime::Timeframe});
-  auto& fullcascs = pc.outputs().make<std::vector<Cascade>>(o2f::Output{"GLO", "CASCS", 0, o2f::Lifetime::Timeframe});
-  auto& full3body = pc.outputs().make<std::vector<Decay3Body>>(o2f::Output{"GLO", "DECAYS3BODY", 0, o2f::Lifetime::Timeframe});
-  auto& v0Refs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_V0REFS", 0, o2f::Lifetime::Timeframe});
-  auto& cascRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_CASCREFS", 0, o2f::Lifetime::Timeframe});
-  auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_3BODYREFS", 0, o2f::Lifetime::Timeframe});
+  // dpl output
+  auto& v0sIdx = pc.outputs().make<std::vector<V0Index>>(o2f::Output{"GLO", "V0S_IDX", 0});
+  auto& cascsIdx = pc.outputs().make<std::vector<CascadeIndex>>(o2f::Output{"GLO", "CASCS_IDX", 0});
+  auto& body3Idx = pc.outputs().make<std::vector<Decay3BodyIndex>>(o2f::Output{"GLO", "DECAYS3BODY_IDX", 0});
+  auto& fullv0s = pc.outputs().make<std::vector<V0>>(o2f::Output{"GLO", "V0S", 0});
+  auto& fullcascs = pc.outputs().make<std::vector<Cascade>>(o2f::Output{"GLO", "CASCS", 0});
+  auto& full3body = pc.outputs().make<std::vector<Decay3Body>>(o2f::Output{"GLO", "DECAYS3BODY", 0});
+  auto& v0Refs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_V0REFS", 0});
+  auto& cascRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_CASCREFS", 0});
+  auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_3BODYREFS", 0});
 
   // sorted V0s
   v0sIdx.reserve(mNV0s);
@@ -204,8 +214,8 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
       }
     }
 
-    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
-    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
+    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0});
+    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0});
     o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
     strTracksOut.resize(mNStrangeTracks);
     strClustOut.resize(mNStrangeTracks);
@@ -229,11 +239,11 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
     }
 
     if (mStrTracker->getMCTruthOn()) {
-      auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
+      auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0});
       strTrMCLableOut.swap(mcLabsOut);
     }
   }
-  //
+
   for (int ith = 0; ith < mNThreads; ith++) { // clean unneeded s.vertices
     mV0sTmp[ith].clear();
     mCascadesTmp[ith].clear();
@@ -283,8 +293,8 @@ void SVertexer::updateTimeDependentParams()
   mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
   mV0Hyps[HypV0::Hyperhydrog4].set(PID::Hyperhydrog4, PID::Alpha, PID::Pion, mSVParams->pidCutsHhydrog4, bz);
   mV0Hyps[HypV0::AntiHyperhydrog4].set(PID::Hyperhydrog4, PID::Pion, PID::Alpha, mSVParams->pidCutsHhydrog4, bz);
-  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
-  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
+  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz, mSVParams->maximalCascadeWidth);
+  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz, mSVParams->maximalCascadeWidth);
 
   m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
   m3bodyHyps[Hyp3body::AntiH3L3body].set(PID::HyperTriton, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
@@ -298,6 +308,8 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitter3body) {
     ft.setBz(bz);
   }
+
+  mPIDresponse.setBetheBlochParams(mSVParams->mBBpars);
 }
 
 //______________________________________________
@@ -313,8 +325,6 @@ void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 void SVertexer::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
 {
   mTPCCorrMapsHelper = maph;
-  // to be used with refitter as
-  // mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 }
 
 //__________________________________________________________________
@@ -330,17 +340,18 @@ void SVertexer::setupThreads()
   mCascadesIdxTmp.resize(mNThreads);
   m3bodyIdxTmp.resize(mNThreads);
   mFitterV0.resize(mNThreads);
-  auto bz = o2::base::Propagator::Instance()->getNominalBz();
+  mBz = o2::base::Propagator::Instance()->getNominalBz();
   int fitCounter = 0;
   for (auto& fitter : mFitterV0) {
     fitter.setFitterID(fitCounter++);
-    fitter.setBz(bz);
+    fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
     fitter.setMaxR(mSVParams->maxRIni);
     fitter.setMinParamChange(mSVParams->minParamChange);
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
+    fitter.setMaxDXYIni(mSVParams->maxDXYIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
     fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
     fitter.setUsePropagator(mSVParams->usePropagator);
@@ -353,13 +364,14 @@ void SVertexer::setupThreads()
   fitCounter = 1000;
   for (auto& fitter : mFitterCasc) {
     fitter.setFitterID(fitCounter++);
-    fitter.setBz(bz);
+    fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
     fitter.setMaxR(mSVParams->maxRIniCasc);
     fitter.setMinParamChange(mSVParams->minParamChange);
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
+    fitter.setMaxDXYIni(mSVParams->maxDXYIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
     fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
     fitter.setUsePropagator(mSVParams->usePropagator);
@@ -373,13 +385,14 @@ void SVertexer::setupThreads()
   fitCounter = 2000;
   for (auto& fitter : mFitter3body) {
     fitter.setFitterID(fitCounter++);
-    fitter.setBz(bz);
+    fitter.setBz(mBz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
     fitter.setMaxR(mSVParams->maxRIni3body);
     fitter.setMinParamChange(mSVParams->minParamChange);
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
+    fitter.setMaxDXYIni(mSVParams->maxDXYIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
     fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
     fitter.setUsePropagator(mSVParams->usePropagator);
@@ -391,7 +404,7 @@ void SVertexer::setupThreads()
 }
 
 //__________________________________________________________________
-bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
+bool SVertexer::acceptTrack(const GIndex gid, const o2::track::TrackParCov& trc) const
 {
   if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
     return false;
@@ -428,6 +441,15 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
+  bool isITSloaded = recoData.isTrackSourceLoaded(GIndex::ITS);
+  bool isITSTPCloaded = recoData.isTrackSourceLoaded(GIndex::ITSTPC);
+  if (isTPCloaded && !mSVParams->mExcludeTPCtracks) {
+    mTPCTracksArray = recoData.getTPCTracks();
+    mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
+    mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
+    mTPCRefitterShMap = recoData.clusterShMapTPC;
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+  }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
@@ -451,7 +473,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         }
         // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
         // but we need to create a clone of TPC track constrained to this particular vertex time.
-        if (processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) {
+        if (processTPCTrack(mTPCTracksArray[tvid], tvid, iv)) {
           continue;
         }
       }
@@ -469,33 +491,67 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       }
       const auto& trc = recoData.getTrackParam(tvid);
 
+      bool hasTPC = false;
       bool heavyIonisingParticle = false;
+      bool compatibleWithProton = mSVParams->mFractiondEdxforCascBaryons > 0.999f; // if 1 or above, accept all regardless of TPC
       auto tpcGID = recoData.getTPCContributorGID(tvid);
       if (tpcGID.isIndexSet() && isTPCloaded) {
+        hasTPC = true;
         auto& tpcTrack = recoData.getTPCTrack(tpcGID);
         float dEdxTPC = tpcTrack.getdEdx().dEdxTotTPC;
         if (dEdxTPC > mSVParams->minTPCdEdx && trc.getP() > mSVParams->minMomTPCdEdx) // accept high dEdx tracks (He3, He4)
         {
           heavyIonisingParticle = true;
         }
+        auto protonId = o2::track::PID::Proton;
+        float dEdxExpected = mPIDresponse.getExpectedSignal(tpcTrack, protonId);
+        float fracDevProton = std::abs((dEdxTPC - dEdxExpected) / dEdxExpected);
+        if (fracDevProton < mSVParams->mFractiondEdxforCascBaryons) {
+          compatibleWithProton = true;
+        }
       }
 
+      // get Nclusters in the ITS if available
+      int8_t nITSclu = -1;
+      bool shortOBITSOnlyTrack = false;
+      auto itsGID = recoData.getITSContributorGID(tvid);
+      if (itsGID.getSource() == GIndex::ITS) {
+        if (isITSloaded) {
+          auto& itsTrack = recoData.getITSTrack(itsGID);
+          nITSclu = itsTrack.getNumberOfClusters();
+          if (itsTrack.hasHitOnLayer(6) && itsTrack.hasHitOnLayer(5) && itsTrack.hasHitOnLayer(4) && itsTrack.hasHitOnLayer(3)) {
+            shortOBITSOnlyTrack = true;
+          }
+        }
+      } else if (itsGID.getSource() == GIndex::ITSAB) {
+        if (isITSTPCloaded) {
+          auto& itsABTracklet = recoData.getITSABRef(itsGID);
+          nITSclu = itsABTracklet.getNClusters();
+        }
+      }
       if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
         if (tvid.isAmbiguous()) {
           rejmap[tvid] = true;
         }
         continue;
       }
+
+      if (!hasTPC && nITSclu < mSVParams->mITSSAminNclu && (!shortOBITSOnlyTrack || mSVParams->mRejectITSonlyOBtrack)) {
+        continue; // reject short ITS-only
+      }
+
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
-      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
+      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r, hasTPC, nITSclu, compatibleWithProton});
+      if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
+        correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
+      }
       if (tvid.isAmbiguous()) { // track attached to >1 vertex, remember that it was already processed
         tmap[tvid] = {mTracksPool[posneg].size() - 1, posneg};
       }
     }
   }
   // register 1st track of each charge for each vertex
-
   for (int pn = 0; pn < 2; pn++) {
     auto& vtxFirstT = mVtxFirstTrack[pn];
     const auto& tracksPool = mTracksPool[pn];
@@ -516,8 +572,54 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, int iN, int ithread)
 {
   auto& fitterV0 = mFitterV0[ithread];
+  // Fast rough cuts on pairs before feeding to DCAFitter, tracks are not in the same Frame or at same X
+  bool isTPConly = (seedP.gid.getSource() == GIndex::TPC || seedN.gid.getSource() == GIndex::TPC);
+  if (mSVParams->mTPCTrackPhotonTune && isTPConly) {
+    // Check if Tgl is close enough
+    if (std::abs(seedP.getTgl() - seedN.getTgl()) > mSVParams->maxV0TglAbsDiff) {
+      LOG(debug) << "RejTgl";
+      return false;
+    }
+    // Check in transverse plane
+    float sna, csa;
+    o2::math_utils::CircleXYf_t trkPosCircle;
+    seedP.getCircleParams(mBz, trkPosCircle, sna, csa);
+    o2::math_utils::CircleXYf_t trkEleCircle;
+    seedN.getCircleParams(mBz, trkEleCircle, sna, csa);
+    // Does the radius of both tracks compare to their absolute circle center distance
+    float c2c = std::hypot(trkPosCircle.xC - trkEleCircle.xC,
+                           trkPosCircle.yC - trkEleCircle.yC);
+    float r2r = trkPosCircle.rC + trkEleCircle.rC;
+    float dcr = c2c - r2r;
+    if (std::abs(dcr) > mSVParams->mTPCTrackD2R) {
+      LOG(debug) << "RejD2R " << c2c << " " << r2r << " " << dcr;
+      return false;
+    }
+    // Will the conversion point look somewhat reasonable
+    float r1_r = trkPosCircle.rC / r2r;
+    float r2_r = trkEleCircle.rC / r2r;
+    float dR = std::hypot(r2_r * trkPosCircle.xC + r1_r * trkEleCircle.xC, r2_r * trkPosCircle.yC + r1_r * trkEleCircle.yC);
+    if (dR > mSVParams->mTPCTrackDR) {
+      LOG(debug) << "RejDR" << dR;
+      return false;
+    }
+
+    // Setup looser cuts for the DCAFitter
+    fitterV0.setMaxDZIni(mSVParams->mTPCTrackMaxDZIni);
+    fitterV0.setMaxDXYIni(mSVParams->mTPCTrackMaxDXYIni);
+    fitterV0.setMaxChi2(mSVParams->mTPCTrackMaxChi2);
+  }
+
+  // feed DCAFitter
   int nCand = fitterV0.process(seedP, seedN);
+  if (mSVParams->mTPCTrackPhotonTune && isTPConly) {
+    // Reset immediately to the defaults
+    fitterV0.setMaxDZIni(mSVParams->maxDZIni);
+    fitterV0.setMaxDXYIni(mSVParams->maxDXYIni);
+    fitterV0.setMaxChi2(mSVParams->maxChi2);
+  }
   if (nCand == 0) { // discard this pair
+    LOG(debug) << "RejDCAFitter";
     return false;
   }
   const auto& v0XYZ = fitterV0.getPCACandidate();
@@ -535,11 +637,12 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   const int cand = 0;
   if (!fitterV0.isPropagateTracksToVertexDone(cand) && !fitterV0.propagateTracksToVertex(cand)) {
+    LOG(debug) << "RejProp failed";
     return false;
   }
-  auto& trPProp = fitterV0.getTrack(0, cand);
-  auto& trNProp = fitterV0.getTrack(1, cand);
-  std::array<float, 3> pP, pN;
+  const auto& trPProp = fitterV0.getTrack(0, cand);
+  const auto& trNProp = fitterV0.getTrack(1, cand);
+  std::array<float, 3> pP{}, pN{};
   trPProp.getPxPyPzGlo(pP);
   trNProp.getPxPyPzGlo(pN);
   // estimate DCA of neutral V0 track to beamline: straight line with parametric equation
@@ -560,11 +663,58 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // apply mass selections
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
 
-  bool goodHyp = false;
+  bool goodHyp = false, photonOnly = mSVParams->mTPCTrackPhotonTune && isTPConly;
   std::array<bool, NHypV0> hypCheckStatus{};
-  for (int ipid = 0; ipid < NHypV0; ipid++) {
+  int nPID = photonOnly ? (Photon + 1) : NHypV0;
+  for (int ipid = 0; (ipid < nPID) && mSVParams->checkV0Hypothesis; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
       goodHyp = hypCheckStatus[ipid] = true;
+    }
+  }
+  // check tight lambda mass only
+  bool goodLamForCascade = false, goodALamForCascade = false;
+  bool usesTPCOnly = (seedP.hasTPC && !seedP.hasITS()) || (seedN.hasTPC && !seedN.hasITS());
+  bool usesShortITSOnly = (!seedP.hasTPC && seedP.nITSclu < mSVParams->mITSSAminNcluCascades) || (!seedN.hasTPC && seedN.nITSclu < mSVParams->mITSSAminNcluCascades);
+  if (ptV0 > mSVParams->minPtV0FromCascade && (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly) && !usesShortITSOnly) {
+    if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedP.hasTPC) && seedP.compatibleProton) {
+      goodLamForCascade = true;
+    }
+    if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0) && (!mSVParams->mRequireTPCforCascBaryons || seedN.hasTPC) && seedN.compatibleProton) {
+      goodALamForCascade = true;
+    }
+  }
+
+  // apply loose Armenteros-Podolanski cut to photons and K0
+  // the AP space and mass space correlated very well, and should in theory already be detected above but every bit helps
+  if (mSVParams->checkV0Hypothesis && mSVParams->checkV0AP &&
+      (hypCheckStatus[HypV0::Photon] || hypCheckStatus[HypV0::K0] || goodLamForCascade || goodALamForCascade)) {
+    float pV0Abs = std::sqrt(p2V0);
+    float pPos = std::sqrt(p2Pos);
+    float p1 = (pV0[0] * pP[0] + pV0[1] * pP[1] + pV0[2] * pP[2]) /
+               (pV0Abs * pPos);
+    float p2 = (pV0[0] * pN[0] + pV0[1] * pN[1] + pV0[2] * pN[2]) /
+               (pV0Abs * seedN.getP());
+    float pL1 = p1 * seedP.getP();
+    float pL2 = p2 * seedN.getP();
+    float alpha = (pL1 - pL2) / (pL1 + pL2);
+    float pT1 = pPos * std::sqrt(1 - p1);
+    if (hypCheckStatus[HypV0::Photon] && pT1 > mSVParams->pidCutsPhotonAP_qT) {
+      hypCheckStatus[HypV0::Photon] = false;
+    }
+    if (hypCheckStatus[HypV0::K0] && pT1 < mSVParams->pidCutsK0AP_qT) {
+      hypCheckStatus[HypV0::K0] = false;
+    }
+    if ((goodLamForCascade || goodALamForCascade) && std::abs(alpha) > mSVParams->pidCutsLambdaAP_a && pT1 > mSVParams->pidCutsLambdaAP_qT) {
+      goodLamForCascade = false;
+      goodALamForCascade = false;
+    }
+    // Check if any good hypothesis remains
+    goodHyp = false;
+    for (int ipid = 0; ipid < nPID; ipid++) {
+      if (hypCheckStatus[ipid]) {
+        goodHyp = true;
+        break;
+      }
     }
   }
 
@@ -579,9 +729,16 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
-  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
+  bool checkFor3BodyDecays = mEnable3BodyDecays &&
+                             (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) &&
+                             (pt2V0 > 0.5) &&
+                             (!mSVParams->mSkipTPCOnly3Body || !isTPConly);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
+  bool checkForCascade = mEnableCascades &&
+                         (!mSVParams->mSkipTPCOnlyCascade || !usesTPCOnly) &&
+                         r2v0 < mMaxR2ToMeanVertexCascV0 &&
+                         (!mSVParams->checkV0Hypothesis || (goodLamForCascade || goodALamForCascade) &&
+                                                             (!isTPConly || !hypCheckStatus[HypV0::Photon]));
   bool rejectIfNotCascade = false;
 
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
@@ -619,7 +776,14 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     } else if (checkFor3BodyDecays) {
       rejectAfter3BodyCheck = true;
     } else {
-      return false;
+      if (mSVParams->mTPCTrackPhotonTune && isTPConly) {
+        // Check for looser cut for tpc-only photons only
+        if (dca2 > mSVParams->mTPCTrackMaxDCAXY2ToMeanVertex) {
+          return false;
+        }
+      } else {
+        return false;
+      }
     }
   }
 
@@ -673,10 +837,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check cascades
   int nCascIni = mCascadesIdxTmp[ithread].size(), nV0Used = 0; // number of times this particular v0 (with assigned PV) was used (not counting using its clones with other PV)
   if (checkForCascade) {
-    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
+    if (goodLamForCascade || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     }
-    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
+    if (goodALamForCascade || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
   }
@@ -691,6 +855,13 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 
   if (nV0Used || !rejectIfNotCascade) { // need to add this v0
     mV0sIdxTmp[ithread].push_back(v0Idxnew);
+    if (!rejectIfNotCascade) {
+      mV0sIdxTmp[ithread].back().setStandaloneV0();
+    }
+    if (photonOnly) {
+      mV0sIdxTmp[ithread].back().setPhotonOnly();
+    }
+
     if (mSVParams->createFullV0s) {
       mV0sTmp[ithread].push_back(v0new);
     }
@@ -708,7 +879,6 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 //__________________________________________________________________
 int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
 {
-
   // check last added V0 for belonging to cascade
   auto& fitterCasc = mFitterCasc[ithread];
   auto& tracks = mTracksPool[posneg];
@@ -727,6 +897,13 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
+    if (mSVParams->mSkipTPCOnlyCascade && (bach.gid.getSource() == GIndex::TPC)) {
+      continue; // reject TPC-only bachelors
+    }
+    if (!bach.hasTPC && bach.nITSclu < mSVParams->mITSSAminNcluCascades) {
+      continue; // reject short ITS-only
+    }
+
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
@@ -745,7 +922,7 @@ int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std:
     if (nCandC == 0) { // discard this pair
       continue;
     }
-    int candC = 0;
+    const int candC = 0;
     const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
 
     // make sure the cascade radius is smaller than that of the mean vertex
@@ -891,6 +1068,9 @@ int SVertexer::check3bodyDecays(const V0Index& v0Idx, const V0& v0, float rv0, s
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
+    if (mSVParams->mSkipTPCOnly3Body && (bach.gid.getSource() == GIndex::TPC)) {
+      continue; // reject TPC-only bachelors
+    }
     if (bach.vBracket > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
@@ -1117,28 +1297,93 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   const auto& vtx = mPVertices[vtxid];
   auto twe = vtx.getTimeStamp();
   int posneg = trTPC.getSign() < 0 ? 1 : 0;
-  auto& trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
+
+  bool compatibleWithProton = false;
+  if (!(mSVParams->mSkipTPCOnlyCascade)) {
+    // Cascade retrieve dEdx proton frac
+    const auto protonId = o2::track::PID::Proton;
+    float dEdxTPC = trTPC.getdEdx().dEdxTotTPC;
+    float dEdxExpected = mPIDresponse.getExpectedSignal(trTPC, protonId);
+    float fracDevProton = std::abs((dEdxTPC - dEdxExpected) / dEdxExpected);
+    if (fracDevProton < mSVParams->mFractiondEdxforCascBaryons) {
+      compatibleWithProton = true;
+    }
+  }
+
+  auto& trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0., true, -1, compatibleWithProton});
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard
+    return true;
   }
-  trLoc.minR = std::sqrt(trLoc.getX() * trLoc.getX() + trLoc.getY() * trLoc.getY());
+
+  if (mSVParams->mTPCTrackPhotonTune) {
+    // require minimum of tpc clusters
+    bool dCls = trTPC.getNClusters() < mSVParams->mTPCTrackMinNClusters;
+    // check track z cuts
+    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() - vtx.getZ()) > mSVParams->mTPCTrack2Beam;
+    // check track transveres cuts
+    float sna{0}, csa{0};
+    o2::math_utils::CircleXYf_t trkCircle;
+    trLoc.getCircleParams(mBz, trkCircle, sna, csa);
+    float cR = std::hypot(trkCircle.xC, trkCircle.yC);
+    float drd2 = std::sqrt(cR * cR - trkCircle.rC * trkCircle.rC);
+    bool dRD2 = drd2 > mSVParams->mTPCTrackXY2Radius;
+
+    if (dCls || dDPV || dRD2) {
+      mTracksPool[posneg].pop_back();
+      return true;
+    }
+  }
+
   return true;
 }
 
 //______________________________________________
-float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const
+float SVertexer::correctTPCTrack(SVertexer::TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const
 {
   // Correct the track copy trc of the TPC track for the assumed interaction time
   // return extra uncertainty in Z due to the interaction time uncertainty
   // TODO: at the moment, apply simple shift, but with Z-dependent calibration we may
   // need to do corrections on TPC cluster level and refit
-  // This is a clone of MatchTPCITS::correctTPCTrack
-  float dDrift = (tmus * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
-  float driftErr = tmusErr * mMUS2TPCBin * mTPCBin2Z;
+  // This is almosto clone of the MatchTPCITS::correctTPCTrack
+
+  float tTB, tTBErr;
+  if (tmusErr < 0) { // use track data
+    tTB = tTPC.getTime0();
+    tTBErr = 0.5 * (tTPC.getDeltaTBwd() + tTPC.getDeltaTFwd());
+  } else {
+    tTB = tmus * mMUS2TPCBin;
+    tTBErr = tmusErr * mMUS2TPCBin;
+  }
+  float dDrift = (tTB - tTPC.getTime0()) * mTPCBin2Z;
+  float driftErr = tTBErr * mTPCBin2Z;
+  if (driftErr < 0.) { // early return will be discarded anyway
+    return driftErr;
+  }
   // eventually should be refitted, at the moment we simply shift...
   trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
-
+  uint8_t sector, row;
+  auto cl = &tTPC.getCluster(mTPCTrackClusIdx, tTPC.getNClusters() - 1, *mTPCClusterIdxStruct, sector, row);
+  float x = 0, y = 0, z = 0;
+  mTPCCorrMapsHelper->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tTB);
+  if (x < o2::constants::geom::XTPCInnerRef) {
+    x = o2::constants::geom::XTPCInnerRef;
+  }
+  trc.minR = std::sqrt(x * x + y * y);
+  LOGP(debug, "set MinR = {} for row {}, x:{}, y:{}, z:{}", trc.minR, row, x, y, z);
   return driftErr;
+}
+
+//______________________________________________
+std::array<size_t, 3> SVertexer::getNFitterCalls() const
+{
+  std::array<size_t, 3> calls{};
+  for (int i = 0; i < mNThreads; i++) {
+    calls[0] += mFitterV0[i].getCallID();
+    calls[1] += mFitterCasc[i].getCallID();
+    calls[2] += mFitter3body[i].getCallID();
+  }
+  return calls;
 }

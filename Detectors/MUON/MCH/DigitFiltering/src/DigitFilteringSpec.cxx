@@ -88,7 +88,7 @@ class DigitFilteringTask
 
       if (!isOK(error)) {
         if (error.nofOutOfBounds > 0) {
-          LOGP(error, asString(error));
+          LOGP(error, "{}", asString(error));
           LOGP(error, "in a TF with {} rofs and {} digits", iRofs.size(), iDigits.size());
           abort = true;
         }

@@ -85,6 +85,10 @@ class ITSDCSAdaposParser : public Task
   std::string mCcdbFetchUrl = "http://ccdb-test.cern.ch:8080";
   o2::ccdb::BasicCCDBManager& mMgr = o2::ccdb::BasicCCDBManager::instance();
   long int startTime;
+
+  // to avoid several pushes to CCDB
+  long int pushTime = 0;
+  long int lastPushTime = 0;
 };
 
 // Create a processor spec

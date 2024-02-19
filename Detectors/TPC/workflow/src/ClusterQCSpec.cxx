@@ -126,7 +126,7 @@ void ClusterQCDevice::endInterval()
   LOGP(info, "End interval for run: {}, TFs: {} - {}, creation: {} - {}, processed TFs: {}",
        mRunNumber, mFirstTF, mLastTF, mFirstCreation, mLastCreation, mClusterQC.getProcessedTFs());
 
-  const auto outputFileName = fmt::format(mOutputFileName, fmt::arg("run", mRunNumber),
+  const auto outputFileName = fmt::format(fmt::runtime(mOutputFileName), fmt::arg("run", mRunNumber),
                                           fmt::arg("firstTF", mFirstTF), fmt::arg("lastTF", mLastTF),
                                           fmt::arg("firstCreation", mFirstCreation), fmt::arg("lastCreation", mLastCreation));
   std::unique_ptr<TFile> f(TFile::Open(outputFileName.data(), "recreate"));

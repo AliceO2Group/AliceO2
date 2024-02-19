@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
     shift 2
     ;;
   --ld_library_path)
-    LD_LIBRARY_PATH="$2"
+    libpath="$2"
     shift 2
     ;;
   --dictionary_file)
@@ -82,7 +82,7 @@ esac
 
 LOGFILE=${DICTIONARY_FILE}.log
 
-@CMAKE_COMMAND@ -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} @ROOT_rootcling_CMD@ \
+@CMAKE_COMMAND@ -E env "LD_LIBRARY_PATH=$libpath" @ROOT_rootcling_CMD@ \
   -f $DICTIONARY_FILE \
   -inlineInputHeader \
   -noGlobalUsingStd \

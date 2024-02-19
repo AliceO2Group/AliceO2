@@ -101,16 +101,16 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   mWorker.process(bcrec, energy, tdc, info);
 
   // Send intermediate calibration data and histograms
-  o2::framework::Output output("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
+  o2::framework::Output output("ZDC", "INTERCALIBDATA", 0);
   pc.outputs().snapshot(output, mWorker.mData);
   for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
     if (mWorker.mH[ih] != nullptr) {
-      o2::framework::Output output("ZDC", "INTER_1DH", ih, Lifetime::Timeframe);
+      o2::framework::Output output("ZDC", "INTER_1DH", ih);
       pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
     }
   }
   for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    o2::framework::Output output("ZDC", "INTER_2DH", ih, Lifetime::Timeframe);
+    o2::framework::Output output("ZDC", "INTER_2DH", ih);
     pc.outputs().snapshot(output, mWorker.mC[ih]->getBase());
   }
 }

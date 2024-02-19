@@ -700,9 +700,9 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
+bool isTableCompatible(std::set<uint32_t> const& hashes, Operations const& specs)
 {
-  std::set<size_t> opHashes;
+  std::set<uint32_t> opHashes;
   for (auto const& spec : specs) {
     if (spec.left.datum.index() == 3) {
       opHashes.insert(spec.left.hash);

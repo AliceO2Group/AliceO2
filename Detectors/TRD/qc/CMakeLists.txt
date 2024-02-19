@@ -9,9 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+add_subdirectory(macros)
+
 o2_add_library(TRDQC
                SOURCES src/Tracking.cxx
                        src/StatusHelper.cxx
+                       src/CoordinateTransformer.cxx
+                       src/RawDataManager.cxx
+                       src/RawDisplay.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsGlobalTracking
@@ -21,4 +26,7 @@ o2_add_library(TRDQC
 
  o2_target_root_dictionary(TRDQC
                            HEADERS include/TRDQC/Tracking.h
-                                   include/TRDQC/StatusHelper.h)
+                                   include/TRDQC/StatusHelper.h
+                                   include/TRDQC/CoordinateTransformer.h
+                                   include/TRDQC/RawDataManager.h
+                                   include/TRDQC/RawDisplay.h)

@@ -116,8 +116,8 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
   mDigitsReceived += digits.size();
   mClustersReceived += clusters.size();
 
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, clusters);
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS1", 0, o2::framework::Lifetime::Timeframe}, clusterTriggers);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0}, clusters);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS1", 0}, clusterTriggers);
 
   mExTimer.elapseMes("Clusterization of Digits received = " + std::to_string(mDigitsReceived));
   mExTimer.elapseMes("Clusterization of Clusters received = " + std::to_string(mClustersReceived));

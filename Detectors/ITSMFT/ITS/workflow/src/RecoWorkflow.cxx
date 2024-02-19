@@ -34,8 +34,16 @@ namespace its
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, const bool overrideBeamPosition,
-                                    o2::gpu::GPUDataTypes::DeviceType dtype, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig)
+framework::WorkflowSpec getWorkflow(bool useMC,
+                                    bool useCAtracker,
+                                    const std::string& trmode,
+                                    const bool overrideBeamPosition,
+                                    bool upstreamDigits,
+                                    bool upstreamClusters,
+                                    bool disableRootOutput,
+                                    int useTrig,
+                                    bool useGPUWF,
+                                    o2::gpu::GPUDataTypes::DeviceType dtype)
 {
   framework::WorkflowSpec specs;
   if (!(upstreamDigits || upstreamClusters)) {
@@ -49,11 +57,12 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   }
   if (!trmode.empty()) {
     if (useCAtracker) {
-      if (dtype == 4) {
+      if (useGPUWF) {
         o2::gpu::GPURecoWorkflowSpec::Config cfg;
         cfg.runITSTracking = true;
         cfg.itsTriggerType = useTrig;
         cfg.itsOverrBeamEst = overrideBeamPosition;
+        cfg.itsTrackingMode = trmode == "sync" ? 0 : (trmode == "async" ? 1 : 2);
 
         Inputs ggInputs;
         auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);

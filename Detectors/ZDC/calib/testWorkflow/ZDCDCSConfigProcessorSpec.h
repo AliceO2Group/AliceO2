@@ -98,8 +98,8 @@ DataProcessorSpec getZDCDCSConfigProcessorSpec()
 
   return DataProcessorSpec{
     "zdc-dcs-config-processor",
-    Inputs{{"inputConfig", o2::header::gDataOriginZDC, "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", o2::header::gDataOriginZDC, "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", o2::header::gDataOriginZDC, "DCS_CONFIG_FILE", Lifetime::Sporadic},
+           {"inputConfigFileName", o2::header::gDataOriginZDC, "DCS_CONFIG_NAME", Lifetime::Sporadic}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::zdc::ZDCDCSConfigProcessor>()},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};

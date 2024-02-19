@@ -126,7 +126,7 @@ struct AnalysisDataProcessorBuilder {
     DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 
-  static void doAppendEnumeration(const char* name, int64_t begin, int64_t end, int64_t step, std::vector<InputSpec>& inputs)
+  static void doAppendEnumeration(const char*, int64_t, int64_t, int64_t, std::vector<InputSpec>& inputs)
   {
     std::vector<ConfigParamSpec> inputMetadata;
     // FIXME: for the moment we do not support begin, end and step.
@@ -148,11 +148,11 @@ struct AnalysisDataProcessorBuilder {
     if constexpr (is_enumeration_v<dT> == false) {
       if constexpr (soa::is_soa_filtered_v<dT>) {
         auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
-        eInfos.push_back({ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
+        eInfos.emplace_back(ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields));
       } else if constexpr (soa::is_soa_iterator_v<dT>) {
         auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
         if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-          eInfos.push_back({ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
+          eInfos.emplace_back(ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
         }
       }
       doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), name, value, inputs);
@@ -189,7 +189,7 @@ struct AnalysisDataProcessorBuilder {
   static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku)
   {
     int ai = 0;
-    auto hash = typeHash<R (C::*)(Args...)>();
+    auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
     if constexpr (soa::is_soa_iterator_v<std::decay_t<framework::pack_element_t<0, framework::pack<Args...>>>>) {
       appendGroupingCandidates(bk, bku, framework::pack<Args...>{});
     }
@@ -205,7 +205,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
-    auto hash = typeHash<R (C::*)(Grouping, Args...)>();
+    auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
     return extractSomethingFromRecord<Grouping, 0>(record, infos, hash);
   }
 
@@ -291,7 +291,7 @@ struct AnalysisDataProcessorBuilder {
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
     constexpr auto p = pack<Args...>{};
-    auto hash = typeHash<R (C::*)(Grouping, Args...)>();
+    auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
     return std::make_tuple(extractSomethingFromRecord<Args, has_type_at_v<Args>(p) + 1>(record, infos, hash)...);
   }
 
@@ -384,7 +384,7 @@ struct AnalysisDataProcessorBuilder {
         return true;
       },
                              task);
-
+      overwriteInternalIndices(associatedTables, associatedTables);
       if constexpr (soa::is_soa_iterator_v<std::decay_t<G>>) {
         auto slicer = GroupSlicer(groupingTable, associatedTables, slices);
         for (auto& slice : slicer) {
@@ -406,7 +406,6 @@ struct AnalysisDataProcessorBuilder {
           invokeProcessWithArgsGeneric(task, processingFunction, slice.groupingElement(), associatedSlices);
         }
       } else {
-        overwriteInternalIndices(associatedTables, associatedTables);
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);

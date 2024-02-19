@@ -38,7 +38,7 @@ namespace o2::tpc
 class CalibdEdxDevice : public Task
 {
  public:
-  CalibdEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  CalibdEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::base::Propagator::MatCorrType matType) : mCCDBRequest(req), mMatType(matType) {}
 
   void init(framework::InitContext& ic) final
   {
@@ -64,6 +64,7 @@ class CalibdEdxDevice : public Task
     mCalib->set1DFitThreshold(minEntries1D);
     mCalib->set2DFitThreshold(minEntries2D);
     mCalib->setElectronCut(fitThreshold, fitPasses, fitThresholdLowFactor);
+    mCalib->setMaterialType(mMatType);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -115,14 +116,16 @@ class CalibdEdxDevice : public Task
   }
 
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  const o2::base::Propagator::MatCorrType mMatType{};
   int mDumpToFile{};
   uint64_t mRunNumber{0};      ///< processed run number
   uint64_t mTimeStampStart{0}; ///< time stamp for first TF for CCDB output
   std::unique_ptr<CalibdEdx> mCalib;
 };
 
-DataProcessorSpec getCalibdEdxSpec()
+DataProcessorSpec getCalibdEdxSpec(const o2::base::Propagator::MatCorrType matType)
 {
+  const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
@@ -131,7 +134,7 @@ DataProcessorSpec getCalibdEdxSpec()
                                                                 false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                false,                          // askMatLUT
+                                                                enableAskMatLUT,                // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs,
                                                                 true,
@@ -141,7 +144,7 @@ DataProcessorSpec getCalibdEdxSpec()
     "tpc-calib-dEdx",
     inputs,
     outputs,
-    adaptFromTask<CalibdEdxDevice>(ccdbRequest),
+    adaptFromTask<CalibdEdxDevice>(ccdbRequest, matType),
     Options{
       {"min-entries-sector", VariantType::Int, 1000, {"min entries per GEM stack to enable sector by sector correction. Below this value we only perform one fit per ROC type (IROC, OROC1, ...; no side nor sector information)."}},
       {"min-entries-1d", VariantType::Int, 10000, {"minimum entries per stack to fit 1D correction"}},

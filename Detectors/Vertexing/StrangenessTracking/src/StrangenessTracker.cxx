@@ -115,13 +115,24 @@ void StrangenessTracker::prepareITStracks() // sort tracks by eta and phi and se
 
 void StrangenessTracker::processV0(int iv0, const V0& v0, const V0Index& v0Idx, int iThread)
 {
+  if (mStrParams->mSkipTPC && ((v0Idx.getProngID(kV0DauNeg).getSource() == GIndex::TPC) || (v0Idx.getProngID(kV0DauPos).getSource() == GIndex::TPC))) {
+    return;
+  }
   ClusAttachments structClus;
   auto& daughterTracks = mDaughterTracks[iThread];
   daughterTracks.resize(2); // resize to 2 prongs: first positive second negative
   auto posTrack = v0.getProng(kV0DauPos);
   auto negTrack = v0.getProng(kV0DauNeg);
   auto alphaV0 = calcV0alpha(v0);
-  alphaV0 > 0 ? posTrack.setAbsCharge(2) : negTrack.setAbsCharge(2);
+  if (alphaV0 > 0) {
+    if (posTrack.getPID() != PID::Alpha) {
+      posTrack.setPID(PID::Helium3, true);
+    }
+  } else {
+    if (negTrack.getPID() != PID::Alpha) {
+      negTrack.setPID(PID::Helium3, true);
+    }
+  }
   V0 correctedV0; // recompute V0 for Hypertriton
   if (!recreateV0(posTrack, negTrack, correctedV0, iThread)) {
     return;
@@ -208,10 +219,10 @@ void StrangenessTracker::processCascade(int iCasc, const Cascade& casc, const Ca
         }
         decayVtxTrackClone.getPxPyPzGlo(strangeTrack.mDecayMom);
         std::array<float, 3> momV0, mombach;
-        mFitter3Body[iThread].getTrack(0).getPxPyPzGlo(momV0);                             // V0 momentum at decay vertex
-        mFitter3Body[iThread].getTrack(1).getPxPyPzGlo(mombach);                           // bachelor momentum at decay vertex
-        mStrangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
-        mStrangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
+        mFitter3Body[iThread].getTrack(0).getPxPyPzGlo(momV0);                            // V0 momentum at decay vertex
+        mFitter3Body[iThread].getTrack(1).getPxPyPzGlo(mombach);                          // bachelor momentum at decay vertex
+        strangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
+        strangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
 
         LOG(debug) << "ITS Track matched with a Cascade decay topology ....";
         LOG(debug) << "Number of ITS track clusters attached: " << itsTrack.getNumberOfClusters();

@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <TRKSimulation/TRKLayer.h>
-#include <TRKBase/GeometryTGeo.h>
+#include "TRKSimulation/TRKLayer.h"
+#include "TRKBase/GeometryTGeo.h"
 
-#include <Framework/Logger.h>
+#include "Framework/Logger.h"
 
 #include <TGeoTube.h>
 #include <TGeoVolume.h>
@@ -47,12 +47,15 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
+  sensVol->SetLineColor(kBlue - 7);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+  chipVol->SetLineColor(kBlue - 7);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+  layerVol->SetLineColor(kBlue - 7);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);

@@ -5,12 +5,14 @@
 # Simulation Examples
 
 <!-- doxy
+* \subpage refrunSimExamplesPythia8
 * \subpage refrunSimExamplesHF_Embedding_Pythia8
 * \subpage refrunSimExamplesSignal_ImpactB
 * \subpage refrunSimExamplesTrigger_ImpactB_Pythia8
 * \subpage refrunSimExamplesAdaptive_Pythia8
 * \subpage refrunSimExamplesAliRoot_Hijing
 * \subpage refrunSimExamplesAliRoot_AMPT
+* \subpage refrunSimExamplesHepMC
 * \subpage refrunSimExamplesHepMC_STARlight
 * \subpage refrunSimExamplesJet_Embedding_Pythia8
 * \subpage refrunSimExamplesStepMonitoringSimple1
@@ -20,4 +22,5 @@
 * \subpage refrunSimExamplesSelective_Transport_pi0
 * \subpage refrunSimExamplesCustom_EventInfo
 * \subpage refrunSimExamplesMCTrackToDPL
+* \subpage refrunSimExamplesTParticle
 /doxy -->

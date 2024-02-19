@@ -48,6 +48,8 @@
 #include <csignal>
 #include <fairmq/Device.h>
 
+#include <regex>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 
@@ -90,6 +92,9 @@ void signal_callback(uv_signal_t* handle, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
   auto* state = (DeviceState*)handle->data;
+  if (!state) {
+    return;
+  }
   state->loopReason |= DeviceState::SIGNAL_ARRIVED;
   state->loopReason |= DeviceState::DATA_INCOMING;
 }
@@ -488,6 +493,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
                                               const std::vector<SendingPolicy>& sendingPolicies,
+                                              const std::vector<ForwardingPolicy>& forwardingPolicies,
                                               std::string const& channelPrefix,
                                               ComputingOffer const& defaultOffer,
                                               OverrideServiceSpecs const& overrideServices)
@@ -534,6 +540,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
       .name = processor.name,
       .id = processor.maxInputTimeslices == 1 ? processor.name : processor.name + "_t" + std::to_string(edge.producerTimeIndex),
       .channelPrefix = channelPrefix,
+      .inputChannels = {},
       .options = processor.options,
       .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
       .algorithm = processor.algorithm,
@@ -650,7 +657,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
   // whether this is a real OutputRoute or if it's a forward from
   // a previous consumer device.
   // FIXME: where do I find the InputSpec for the forward?
-  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges, &sendingPolicies, &configContext](
+  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges, &sendingPolicies, &forwardingPolicies, &configContext](
                                                   size_t ei, size_t di, size_t ci) {
     assert(ei < logicalEdges.size());
     assert(di < devices.size());
@@ -664,29 +671,40 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
     assert(edge.outputGlobalIndex < outputsMatchers.size());
     // Iterate over all the policies and apply the first one that matches.
     SendingPolicy const* policyPtr = nullptr;
+    ForwardingPolicy const* forwardPolicyPtr = nullptr;
     for (auto& policy : sendingPolicies) {
       if (policy.matcher(producer, consumer, configContext)) {
         policyPtr = &policy;
         break;
       }
     }
+    assert(forwardingPolicies.empty() == false);
+    for (auto& policy : forwardingPolicies) {
+      if (policy.matcher(producer, consumer, configContext)) {
+        forwardPolicyPtr = &policy;
+        break;
+      }
+    }
     assert(policyPtr != nullptr);
+    assert(forwardPolicyPtr != nullptr);
 
     if (edge.isForward == false) {
       OutputRoute route{
-        edge.timeIndex,
-        consumer.maxInputTimeslices,
-        outputsMatchers[edge.outputGlobalIndex],
-        channel.name,
-        policyPtr,
+        .timeslice = edge.timeIndex,
+        .maxTimeslices = consumer.maxInputTimeslices,
+        .matcher = outputsMatchers[edge.outputGlobalIndex],
+        .channel = channel.name,
+        .policy = policyPtr,
       };
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route{
-        edge.timeIndex,
-        consumer.maxInputTimeslices,
-        workflow[edge.consumer].inputs[edge.consumerInputIndex],
-        channel.name};
+        .timeslice = edge.timeIndex,
+        .maxTimeslices = consumer.maxInputTimeslices,
+        .matcher = workflow[edge.consumer].inputs[edge.consumerInputIndex],
+        .channel = channel.name,
+        .policy = forwardPolicyPtr,
+      };
       device.forwards.emplace_back(route);
     }
   };
@@ -1045,6 +1063,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<ResourcePolicy> const& resourcePolicies,
                                                        std::vector<CallbacksPolicy> const& callbacksPolicies,
                                                        std::vector<SendingPolicy> const& sendingPolicies,
+                                                       std::vector<ForwardingPolicy> const& forwardingPolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
@@ -1105,7 +1124,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.memory /= deviceCount + 1;
 
   processOutEdgeActions(configContext, devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, sendingPolicies, channelPrefix, defaultOffer, overrideServices);
+                        outActions, workflow, outputs, channelPolicies, sendingPolicies, forwardingPolicies, channelPrefix, defaultOffer, overrideServices);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
@@ -1114,10 +1133,13 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                        inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer, overrideServices);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
-  for (auto& device : devices) {
+  std::map<std::string, DataProcessorPoliciesInfo> policies;
+  for (DeviceSpec& device : devices) {
     bool hasPolicy = false;
+    policies[device.name].completionPolicyName = "unknown";
     for (auto& policy : completionPolicies) {
       if (policy.matcher(device) == true) {
+        policies[policy.name].completionPolicyName = policy.name;
         device.completionPolicy = policy;
         hasPolicy = true;
         break;
@@ -1150,6 +1172,15 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
       throw runtime_error_f("Unable to find a resource policy for %s", device.id.c_str());
     }
   }
+  // Iterate of the workflow and create a consistent vector of DataProcessorPoliciesInfo
+  std::vector<DataProcessorPoliciesInfo> policiesVector;
+  for (size_t wi = 0; wi < workflow.size(); ++wi) {
+    auto& processor = workflow[wi];
+    auto& info = policies[processor.name];
+    policiesVector.push_back(info);
+  }
+
+  WorkflowHelpers::validateEdges(workflow, policiesVector, logicalEdges, outputs);
 
   for (auto& device : devices) {
     device.resourceMonitoringInterval = resourcesMonitoringInterval;
@@ -1466,6 +1497,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("network-interface", bpo::value<std::string>());
         realOdesc.add_options()("early-forward-policy", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
+        realOdesc.add_options()("signposts", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
         return;
@@ -1619,6 +1651,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - rate is an option of FairMQ device for ConditionalRun
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
+  char const* defaultSignposts = getenv("DPL_SIGNPOSTS") ? getenv("DPL_SIGNPOSTS") : "";
   forwardedDeviceOptions.add_options()                                                                                                                               //
     ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                                                                      //
     ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                                                                    //
@@ -1656,6 +1689,8 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
+    ("signposts", bpo::value<std::string>(),                                                                                                                         //
+     "comma separated list of signposts to enable (any of `completion`, `data_processor_context`, `stream_context`, `device`, `monitoring_service`)")                //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;

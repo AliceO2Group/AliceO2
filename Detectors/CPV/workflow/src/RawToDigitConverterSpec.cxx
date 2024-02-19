@@ -136,11 +136,11 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
       mOutputDigits.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0}, mOutputDigits);
       mOutputTriggerRecords.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0}, mOutputTriggerRecords);
       mOutputHWErrors.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0}, mOutputHWErrors);
       return; // empty TF, nothing to process
     }
   }
@@ -272,11 +272,11 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     if (skipTF) {
       // Send no digits
       mOutputDigits.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0}, mOutputDigits);
       mOutputTriggerRecords.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0}, mOutputTriggerRecords);
       // Send errors
-      ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0}, mOutputHWErrors);
       return;
     }
   }
@@ -305,15 +305,15 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   digitBuffer.clear();
 
   LOG(info) << "[CPVRawToDigitConverter - run] Sending " << mOutputDigits.size() << " digits in " << mOutputTriggerRecords.size() << "trigger records.";
-  ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
-  ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
-  ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+  ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0}, mOutputDigits);
+  ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0}, mOutputTriggerRecords);
+  ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0}, mOutputHWErrors);
 }
 //_____________________________________________________________________________
 o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterSpec(bool askDISTSTF, bool isPedestal, bool useBadChannelMap, bool useGainCalibration)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
   // receive at least 1 guaranteed input (which will allow to acknowledge the TF)
   if (askDISTSTF) {
     inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);

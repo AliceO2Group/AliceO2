@@ -30,9 +30,9 @@ DataProcessorSpec getTOFIntegrateClusterWriterSpec()
   return MakeRootTreeWriterSpec("tof-currents-writer",
                                 "o2currents_tof.root",
                                 "itofc",
-                                BranchDefinition<std::vector<float>>{InputSpec{"itofcn", o2::header::gDataOriginTOF, "ITOFCN", 0}, "ITOFCN", 1},
-                                BranchDefinition<std::vector<float>>{InputSpec{"itofcq", o2::header::gDataOriginTOF, "ITOFCQ", 0}, "ITOFCQ", 1},
-                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itoftfid", o2::header::gDataOriginTOF, "ITOFTFID", 0}, "tfID", 1})();
+                                BranchDefinition<std::vector<float>>{InputSpec{"itofcn", o2::header::gDataOriginTOF, "ITOFCN", 0, Lifetime::Timeframe}, "ITOFCN", 1},
+                                BranchDefinition<std::vector<float>>{InputSpec{"itofcq", o2::header::gDataOriginTOF, "ITOFCQ", 0, Lifetime::Timeframe}, "ITOFCQ", 1},
+                                BranchDefinition<o2::dataformats::TFIDInfo>{InputSpec{"itoftfid", o2::header::gDataOriginTOF, "ITOFTFID", 0, Lifetime::Timeframe}, "tfID", 1})();
 }
 
 } // namespace tof

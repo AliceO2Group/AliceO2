@@ -76,6 +76,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::consumeWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -124,6 +125,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::consumeWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -184,6 +186,7 @@ TEST_CASE("DataRelayer")
 
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::consumeWhenAll();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -263,6 +266,7 @@ TEST_CASE("DataRelayer")
 
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::consumeWhenAll();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -346,6 +350,7 @@ TEST_CASE("DataRelayer")
     auto policy = CompletionPolicyHelpers::consumeWhenAll();
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
     DataRelayer relayer(policy, inputs, index, {registry});
     // Only two messages to fill the cache.
     relayer.setPipelineLength(2);
@@ -420,6 +425,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::processWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -490,6 +496,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::processWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -547,6 +554,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::processWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -605,6 +613,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::processWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -670,6 +679,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::consumeWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});
@@ -722,6 +732,7 @@ TEST_CASE("DataRelayer")
     std::vector<ForwardRoute> forwards;
     std::vector<InputChannelInfo> infos{1};
     TimesliceIndex index{1, infos};
+    ref.registerService(ServiceRegistryHelpers::handleForService<TimesliceIndex>(&index));
 
     auto policy = CompletionPolicyHelpers::consumeWhenAny();
     DataRelayer relayer(policy, inputs, index, {registry});

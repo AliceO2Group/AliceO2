@@ -185,9 +185,9 @@ o2::framework::DataProcessorSpec getTPCIntegrateClusterSpec(const bool disableWr
                                                                 inputs);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTPCC(), 0, Lifetime::Sporadic);
+  outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTPCC(), 0, Lifetime::Timeframe);
   if (!disableWriter) {
-    outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTPCTFId(), 0, Lifetime::Sporadic);
+    outputs.emplace_back(o2::header::gDataOriginTPC, getDataDescriptionTPCTFId(), 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

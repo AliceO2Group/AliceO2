@@ -195,14 +195,14 @@ class TPCFLPIDCDevice : public o2::framework::Task
 
     fill1DIDCs(cru);
     LOGP(debug, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
-    output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec, Lifetime::Timeframe}, mOneDIDCs.first);
-    output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec, Lifetime::Timeframe}, mOneDIDCs.second);
+    output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec}, mOneDIDCs.first);
+    output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec}, mOneDIDCs.second);
   }
 
   void sendOutput(DataAllocator& output, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
-    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(CRU(cru).side()), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]));
+    output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(CRU(cru).side()), subSpec}, std::move(mIDCs[cru]));
   }
 
   void fill1DIDCs(const uint32_t cru)
@@ -233,7 +233,7 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     inputSpecs.emplace_back(InputSpec{"idcs", gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), subSpec, Lifetime::Timeframe});
 
     const Side side = CRU(cru).side();
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side), subSpec});
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescriptionIDCGroup(side), subSpec}, Lifetime::Sporadic);
     if (enableSynchProc) {
       outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPN(), subSpec});
       outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPNWeights(), subSpec});

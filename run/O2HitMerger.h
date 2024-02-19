@@ -73,6 +73,8 @@
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
+#include <IOTOFSimulation/Detector.h>
+#include <RICHSimulation/Detector.h>
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
@@ -143,6 +145,10 @@ class O2HitMerger : public fair::mq::Device
       mOutFile = new TFile(outfilename.c_str(), "RECREATE");
       mOutTree = new TTree("o2sim", "o2sim");
       mOutTree->SetDirectory(mOutFile);
+
+      mMCHeaderOnlyOutFile = new TFile(o2::base::NameConf::getMCHeadersFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str()).c_str(), "RECREATE");
+      mMCHeaderTree = new TTree("o2sim", "o2sim");
+      mMCHeaderTree->SetDirectory(mMCHeaderOnlyOutFile);
     }
     // detectors init only once
     if (mDetectorInstances.size() == 0) {
@@ -222,6 +228,10 @@ class O2HitMerger : public fair::mq::Device
       mOutFile = new TFile(outfilename.c_str(), "RECREATE");
       mOutTree = new TTree("o2sim", "o2sim");
       mOutTree->SetDirectory(mOutFile);
+
+      mMCHeaderOnlyOutFile = new TFile(o2::base::NameConf::getMCHeadersFileName(reconfig.outputPrefix).c_str(), "RECREATE");
+      mMCHeaderTree = new TTree("o2sim", "o2sim");
+      mMCHeaderTree->SetDirectory(mMCHeaderOnlyOutFile);
     }
     // reinit detectorInstance files (also make sure they are closed before continuing)
     initHitFiles(reconfig.outputPrefix);
@@ -759,10 +769,19 @@ class O2HitMerger : public fair::mq::Device
         remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", flusheventID, *mOutTree, trackoffsets, nprimaries, subevOrdered, mTrackRefBuffer);
 
         // write MC event headers
-        auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
-        headerbr->SetAddress(&eventheader);
-        headerbr->Fill();
-        headerbr->ResetAddress();
+        {
+          auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
+          headerbr->SetAddress(&eventheader);
+          headerbr->Fill();
+          headerbr->ResetAddress();
+        }
+
+        {
+          auto headerbr = o2::base::getOrMakeBranch(*mMCHeaderTree, "MCEventHeader.", &eventheader);
+          headerbr->SetAddress(&eventheader);
+          headerbr->Fill();
+          headerbr->ResetAddress();
+        }
       }
 
       // c) do the merge procedure for all hits ... delegate this to detector specific functions
@@ -785,6 +804,11 @@ class O2HitMerger : public fair::mq::Device
         mOutTree->SetEntries(mOutTree->GetEntries() + 1);
         LOG(info) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
       }
+      if (mMCHeaderTree) {
+        mMCHeaderTree->SetEntries(mMCHeaderTree->GetEntries() + 1);
+        LOG(info) << "mc header outtree has file " << mMCHeaderTree->GetDirectory()->GetFile()->GetName();
+      }
+
       cleanEvent(flusheventID);
       LOG(info) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
       if (!checkIfNextFlushable()) {
@@ -800,6 +824,9 @@ class O2HitMerger : public fair::mq::Device
           mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
         }
       }
+      if (mMCHeaderOnlyOutFile) {
+        mMCHeaderOnlyOutFile->Write("", TObject::kOverwrite);
+      }
     }
     return true;
   }
@@ -810,6 +837,8 @@ class O2HitMerger : public fair::mq::Device
   // structures for the final flush
   TFile* mOutFile; //! outfile for kinematics
   TTree* mOutTree; //! tree (kinematics) associated to mOutFile
+  TFile* mMCHeaderOnlyOutFile; //! outfile for header only information
+  TTree* mMCHeaderTree;        //! tree to hold MCHeader branch in mMCHeaderOnlyOutFile;
 
   template <class K, class V>
   using Hashtable = tbb::concurrent_unordered_map<K, V>;
@@ -977,6 +1006,14 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::FCT) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::fct::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::TF3) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::iotof::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::RCH) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::rich::Detector>(true));
       counter++;
     }
 #endif

@@ -1521,9 +1521,9 @@ void RecoContainer::getTrackTimeITSTPCTRD(GTrackID gid, float& t, float& tErr) c
       tErr = 5.e-3;
       const auto& trc = getITSTPCTRDTracks<o2::trd::TrackTRD>()[gid];
       if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
-        t += trc.getPileUpTimeShiftMUS();
         tErr += trc.getPileUpTimeErrorMUS();
       }
+      return;
     }
   }
 }
@@ -1539,9 +1539,9 @@ void RecoContainer::getTrackTimeTPCTRD(GTrackID gid, float& t, float& tErr) cons
       tErr = 5.e-3;
       const auto& trc = getTPCTRDTracks<o2::trd::TrackTRD>()[gid];
       if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
-        t += trc.getPileUpTimeShiftMUS();
         tErr += trc.getPileUpTimeErrorMUS();
       }
+      return;
     }
   }
 }
@@ -1570,6 +1570,7 @@ void RecoContainer::getTrackTimeITS(GTrackID gid, float& t, float& tErr) const
     if (gid.getIndex() < rof.getFirstEntry() + rof.getNEntries()) {
       t = rof.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
       tErr = 0.5;
+      return;
     }
   }
 }

@@ -180,13 +180,13 @@ void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
 void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPolContainer& container)
 {
   if (2 * FFits != container.mCalibPols.size()) {
-    LOGP(warning, fmt::format("wrong number of polynomials stored! this {} container {}", 2 * FFits, container.mCalibPols.size()));
+    LOGP(warning, "wrong number of polynomials stored! this {} container {}", 2 * FFits, container.mCalibPols.size());
     return;
   }
 
   const auto nFacCont = container.mScalingFactorsqMax.size() + container.mScalingFactorsqTot.size();
   if (2 * FFits != nFacCont) {
-    LOGP(warning, fmt::format("wrong number of scaling factors stored! this {} container {}", 2 * FFits, nFacCont));
+    LOGP(warning, "wrong number of scaling factors stored! this {} container {}", 2 * FFits, nFacCont);
     return;
   }
 
@@ -214,7 +214,7 @@ void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* n
     setFromContainer(*polTmp);
     delete polTmp;
   } else {
-    LOGP(info, fmt::format("couldnt load object {} from input file", name));
+    LOGP(info, "couldnt load object {} from input file", name);
   }
 }
 

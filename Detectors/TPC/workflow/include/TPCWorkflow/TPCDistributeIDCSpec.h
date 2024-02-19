@@ -93,8 +93,13 @@ class TPCDistributeIDCSpec : public o2::framework::Task
       LOGP(info, "Updating ORBITRESET");
       std::fill(mSendCCDBOutputOrbitReset.begin(), mSendCCDBOutputOrbitReset.end(), true);
     } else if (matcher == ConcreteDataMatcher("GLO", "GRPECS", 0)) {
-      LOGP(info, "Updating GRPECS");
-      std::fill(mSendCCDBOutputGRPECS.begin(), mSendCCDBOutputGRPECS.end(), true);
+      // check if received object is valid
+      if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRun() != 0) {
+        LOGP(info, "Updating GRPECS");
+        std::fill(mSendCCDBOutputGRPECS.begin(), mSendCCDBOutputGRPECS.end(), true);
+      } else {
+        LOGP(info, "Detected default GRPECS object");
+      }
     }
   }
 

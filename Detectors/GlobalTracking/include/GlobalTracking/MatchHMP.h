@@ -86,10 +86,20 @@ class MatchHMP
   void print() const;
   void printCandidatesHMP() const;
 
-  enum DebugFlagTypes : UInt_t {
-    MatchTreeAll = 0x1 << 1, //  ///< produce matching candidates tree for all candidates
-  };
+  ///< set extra time tolerance
+  void setExtraTimeToleranceTRD(float val) { mExtraTimeToleranceTRD = val; }
+  ///< get extra tolerance
+  float getExtraTimeToleranceTRD() const { return mExtraTimeToleranceTRD; }
 
+  ///< set extra time tolerance
+  void setExtraTimeToleranceTOF(float val) { mExtraTimeToleranceTOF = val; }
+  ///< get extra tolerance
+  float getExtraTimeToleranceTOF() const { return mExtraTimeToleranceTOF; }
+
+  /*  enum DebugFlagTypes : UInt_t {
+      MatchTreeAll = 0x1 << 1, //  ///< produce matching candidates tree for all candidates
+    };
+  */
   enum trackType : int8_t { UNCONS = 0,
                             CONSTR,
                             SIZE,
@@ -143,13 +153,13 @@ class MatchHMP
   float mMaxInvPt = 999.; ///< derived from nominal Bz
 
   // to be done later
-  float mTPCTBinMUS = 0.;               ///< TPC time bin duration in microseconds
-  float mTPCTBinMUSInv = 0.;            ///< inverse TPC time bin duration in microseconds
-  float mTPCBin2Z = 0.;                 ///< conversion coeff from TPC time-bin to Z
-  float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
-  float mExtraTimeToleranceTRD = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
-  float mExtraTimeToleranceTOF = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
-  float mSigmaTimeCut = 1.;             ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  float mTPCTBinMUS = 0.;            ///< TPC time bin duration in microseconds
+  float mTPCTBinMUSInv = 0.;         ///< inverse TPC time bin duration in microseconds
+  float mTPCBin2Z = 0.;              ///< conversion coeff from TPC time-bin to Z
+                                     // float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
+  float mExtraTimeToleranceTRD = 0.; ///< extra tolerance in ns for track-TOF time bracket matching
+  float mExtraTimeToleranceTOF = 0.; ///< extra tolerance in ns for track-TOF time bracket matching
+  float mSigmaTimeCut = 3.;          ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   static constexpr Double_t BC_TIME = o2::constants::lhc::LHCBunchSpacingNS; // bunch crossing in ns
   static constexpr Double_t BC_TIME_INV = 1. / BC_TIME;                      // inv bunch crossing in ns
@@ -173,13 +183,10 @@ class MatchHMP
 
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  std::vector<o2::dataformats::TrackTPCITS> mITSTPCTracksArrayInp; ///< input tracks
   gsl::span<const Cluster> mHMPClustersArray;                      ///< input HMPID clusters
   gsl::span<const Trigger> mHMPTriggersArray;                      ///< input HMPID triggers
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mHMPClusLabels; ///< input HMP clusters MC labels (pointer to read from tree)
-
-  int mNotPropagatedToHMP[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< number of tracks failing in propagation
 
   ///< working copy of the input tracks
   std::vector<matchTrack> mTracksWork[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< track params prepared for matching + time value

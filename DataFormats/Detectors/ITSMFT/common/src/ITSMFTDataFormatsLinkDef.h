@@ -17,6 +17,7 @@
 
 #pragma link C++ class o2::itsmft::Digit + ;
 #pragma link C++ class o2::itsmft::NoiseMap + ;
+#pragma link C++ class o2::itsmft::TimeDeadMap + ;
 #pragma link C++ class std::vector < o2::itsmft::Digit> + ;
 
 #pragma link C++ class o2::itsmft::GBTCalibData + ;
@@ -48,6 +49,8 @@
 #pragma link C++ class o2::itsmft::CompressedClusters + ;
 #pragma link C++ class o2::itsmft::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::itsmft::CTFHeader, 10, uint32_t> + ;
+
+#pragma link C++ class std::map < unsigned long, std::vector < uint16_t>> + ;
 
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Digit> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Cluster> tfdata) const;

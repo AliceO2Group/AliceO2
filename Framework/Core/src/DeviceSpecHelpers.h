@@ -53,6 +53,7 @@ struct DeviceSpecHelpers {
     std::vector<ResourcePolicy> const& resourcePolicies,
     std::vector<CallbacksPolicy> const& callbacksPolicies,
     std::vector<SendingPolicy> const& sendingPolicy,
+    std::vector<ForwardingPolicy> const& forwardingPolicies,
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
@@ -80,9 +81,10 @@ struct DeviceSpecHelpers {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     std::vector<ResourcePolicy> resourcePolicies = ResourcePolicy::createDefaultPolicies();
     std::vector<SendingPolicy> sendingPolicies = SendingPolicy::createDefaultPolicies();
+    std::vector<ForwardingPolicy> forwardingPolicies = ForwardingPolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
                                    dispatchPolicies, resourcePolicies, callbacksPolicies,
-                                   sendingPolicies, devices,
+                                   sendingPolicies, forwardingPolicies, devices,
                                    resourceManager, uniqueWorkflowId, configContext, optimizeTopology,
                                    resourcesMonitoringInterval, channelPrefix, overrideServices);
   }
@@ -150,6 +152,7 @@ struct DeviceSpecHelpers {
     const std::vector<OutputSpec>& outputs,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::vector<SendingPolicy> const& sendingPolicies,
+    std::vector<ForwardingPolicy> const& forwardingPolicies,
     std::string const& channelPrefix,
     ComputingOffer const& defaultOffer,
     OverrideServiceSpecs const& overrideServices = {});

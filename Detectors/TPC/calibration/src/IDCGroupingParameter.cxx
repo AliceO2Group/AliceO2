@@ -12,6 +12,8 @@
 #include "TPCCalibration/IDCGroupingParameter.h"
 #include "Framework/Logger.h"
 #include "Algorithm/RangeTokenizer.h"
+#include <boost/property_tree/ptree.hpp>
+#include <cassert>
 #include <stdexcept>
 
 using namespace o2::tpc;

@@ -77,7 +77,9 @@ class DigitTime
   /// \param prevTime Previous time bin to calculate CM and ToT
   template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr, const CalPad* itParams[2] = nullptr);
+                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
+                           PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr,
+                           const CalPad* itParams[2] = nullptr, const CalDet<bool>* deadMap = nullptr);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
@@ -127,7 +129,8 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
-                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[3])
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream, const CalPad* padParams[3],
+                                           const CalDet<bool>* deadMap)
 {
   const auto& mapper = Mapper::instance();
   const auto& eleParam = ParameterElectronics::Instance();
@@ -164,7 +167,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
         prevDigit = (*prevTime)[iPad];
       }
       const CRU cru = mapper.getCRU(sector, iPad);
-      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, getCommonMode(cru), prevDigit, debugStream);
+      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, getCommonMode(cru), prevDigit, debugStream, deadMap);
     }
   }
 }

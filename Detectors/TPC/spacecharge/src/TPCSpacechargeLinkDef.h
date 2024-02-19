@@ -47,4 +47,5 @@
 #pragma link C++ class o2::tpc::AnalyticalDistCorr < double> + ;
 #pragma link C++ class o2::tpc::AnalyticalDistCorr < float> + ;
 #pragma link C++ struct o2::tpc::ParamSpaceCharge + ;
+#pragma link C++ struct o2::tpc::SCMetaData + ;
 #endif

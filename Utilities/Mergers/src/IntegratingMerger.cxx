@@ -43,6 +43,9 @@ void IntegratingMerger::init(framework::InitContext& ictx)
   mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 
+  // clear the state before starting the run, especially important for START->STOP->START sequence
+  ictx.services().get<CallbackService>().set<CallbackService::Id::Start>([this]() { clear(); });
+
   // set detector field in infologger
   try {
     auto& ilContext = ictx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
@@ -106,6 +109,11 @@ void IntegratingMerger::merge(ObjectStore& target, ObjectStore&& other)
     // We expect that if the first object inherited MergeInterface, then all should.
     auto otherAsMergeInterface = std::get<MergeInterfacePtr>(other);
     std::get<MergeInterfacePtr>(target)->merge(otherAsMergeInterface.get());
+  } else if (std::holds_alternative<VectorOfTObjectPtrs>(target)) {
+    // We expect that if the first object was Vector of TObjects, then all should.
+    auto targetAsVector = std::get<VectorOfTObjectPtrs>(target);
+    const auto otherAsVector = std::get<VectorOfTObjectPtrs>(other);
+    algorithm::merge(targetAsVector, otherAsVector);
   } else {
     LOG(error) << "The target variant has an unrecognized value";
   }
@@ -130,14 +138,7 @@ void IntegratingMerger::publishIntegral(framework::DataAllocator& allocator)
 {
   if (std::holds_alternative<std::monostate>(mMergedObjectIntegral)) {
     LOG(info) << "No objects received since start or reset, nothing to publish";
-  } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObjectIntegral)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<MergeInterfacePtr>(mMergedObjectIntegral));
-    LOG(info) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
-              << " including " << mDeltasMerged << " in the last cycle.";
-  } else if (std::holds_alternative<TObjectPtr>(mMergedObjectIntegral)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
-                       *std::get<TObjectPtr>(mMergedObjectIntegral));
+  } else if (object_store_helpers::snapshot(allocator, mSubSpec, mMergedObjectIntegral)) {
     LOG(info) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
               << " including " << mDeltasMerged << " in the last cycle.";
   } else {
@@ -161,6 +162,10 @@ void IntegratingMerger::publishMovingWindow(framework::DataAllocator& allocator)
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
                        *std::get<TObjectPtr>(mMergedObjectLastCycle));
     LOG(info) << "Published a moving window with " << mDeltasMerged << " deltas.";
+  } else if (std::holds_alternative<VectorOfTObjectPtrs>(mMergedObjectLastCycle)) {
+    const auto& mergedVector = std::get<VectorOfTObjectPtrs>(mMergedObjectLastCycle);
+    const auto vectorToSnapshot = object_store_helpers::toRawObserverPointers(mergedVector);
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec}, vectorToSnapshot);
   } else {
     LOG(error) << "mMergedObjectIntegral' variant has an unrecognized value.";
   }

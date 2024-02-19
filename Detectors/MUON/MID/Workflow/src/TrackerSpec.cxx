@@ -80,20 +80,20 @@ class TrackerDeviceDPL
     if (mIsMC) {
       std::unique_ptr<const o2::dataformats::MCTruthContainer<MCClusterLabel>> labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<MCClusterLabel>*>("mid_clusterlabels");
       mTrackLabeler.process(mTracker->getClusters(), tracks, *labels);
-      pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
+      pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0}, mTrackLabeler.getTracksLabels());
       LOG(debug) << "Sent " << mTrackLabeler.getTracksLabels().size() << " indexed tracks.";
-      pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
+      pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0}, mTrackLabeler.getTrackClustersLabels());
       LOG(debug) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
     }
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, tracks);
+    pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0}, tracks);
     LOG(debug) << "Sent " << tracks.size() << " tracks.";
-    pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0}, mTracker->getClusters());
     LOG(debug) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKROFS", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKROFS", 0}, mTracker->getTrackROFRecords());
     LOG(debug) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
-    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROFS", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROFS", 0}, mTracker->getClusterROFRecords());
     LOG(debug) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;

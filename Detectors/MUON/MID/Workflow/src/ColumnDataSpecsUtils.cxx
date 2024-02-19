@@ -127,7 +127,7 @@ std::vector<framework::Output> buildOutputs(std::vector<framework::OutputSpec> o
   std::vector<framework::Output> outputs;
   for (auto& outSpec : outputSpecs) {
     auto matcher = framework::DataSpecUtils::asConcreteDataMatcher(outSpec);
-    outputs.emplace_back(framework::Output{matcher.origin, matcher.description, matcher.subSpec, framework::Lifetime::Timeframe});
+    outputs.emplace_back(framework::Output{matcher.origin, matcher.description, matcher.subSpec});
   }
   return outputs;
 }

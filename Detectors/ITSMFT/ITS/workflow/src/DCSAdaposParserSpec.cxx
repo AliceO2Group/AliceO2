@@ -111,7 +111,12 @@ void ITSDCSAdaposParser::process(const gsl::span<const DPCOM> dps)
   }
   if (mapel->second.payload_pt1 + 8 != mCcdbAlpideParam->roFrameLengthInBC) {
     mStrobeToUpload = mapel->second.payload_pt1;
-    doStrobeUpload = true;
+    pushTime = o2::ccdb::getCurrentTimestamp();
+    if (pushTime - lastPushTime > 30000) { // push to CCDB only if at least 30s passed from the last push
+      doStrobeUpload = true;
+    } else {
+      doStrobeUpload = false;
+    }
   } else {
     doStrobeUpload = false;
   }
@@ -195,6 +200,9 @@ void ITSDCSAdaposParser::pushToCCDB(ProcessingContext& pc)
       &image->at(0), image->size(), info.getFileName(), info.getObjectType(), info.getPath(),
       info.getMetaData(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
+
+  // uptade lastPushTime
+  lastPushTime = o2::ccdb::getCurrentTimestamp();
 
   return;
 }

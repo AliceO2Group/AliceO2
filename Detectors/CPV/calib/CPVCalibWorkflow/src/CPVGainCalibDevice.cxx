@@ -143,7 +143,7 @@ void CPVGainCalibDevice::sendOutput(DataAllocator& output)
     fout.Close();
   }
   // Anyway send change to QC
-  output.snapshot(o2::framework::Output{"CPV", "GAINDIFF", 0, o2::framework::Lifetime::Timeframe}, mGainRatio);
+  output.snapshot(o2::framework::Output{"CPV", "GAINDIFF", 0}, mGainRatio);
 }
 
 void CPVGainCalibDevice::calculateGains()

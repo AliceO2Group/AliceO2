@@ -90,7 +90,7 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
   TObjArray objar;
   mMFTAssessment->getHistos(objar);
 
-  output.snapshot(Output{"MFT", "MFTASSESSMENT", 0, Lifetime::Sporadic}, objar);
+  output.snapshot(Output{"MFT", "MFTASSESSMENT", 0}, objar);
 
   TFile* f = new TFile(Form("MFTAssessment.root"), "RECREATE");
   objar.Write();

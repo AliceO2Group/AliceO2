@@ -53,6 +53,9 @@ struct DataProcessorContext {
   void preStartCallbacks(ServiceRegistryRef);
   /// Invoke callbacks to be executed before every process method invokation
   void preProcessingCallbacks(ProcessingContext&);
+  /// Invoke callbacks to be executed after the outputs have been created
+  /// by the processing, but before the post processing callbacks.
+  void finaliseOutputsCallbacks(ProcessingContext&);
   /// Invoke callbacks to be executed after every process method invokation
   void postProcessingCallbacks(ProcessingContext&);
   /// Invoke callbacks to be executed before every dangling check
@@ -89,6 +92,9 @@ struct DataProcessorContext {
   /// Callback for services to be executed before every processing.
   /// The callback MUST BE REENTRANT and threadsafe.
   mutable std::vector<ServiceProcessingHandle> preProcessingHandlers;
+  /// Callback for services to be executed after every processing.
+  /// The callback MUST BE REENTRANT and threadsafe.
+  mutable std::vector<ServiceProcessingHandle> finaliseOutputsHandles;
   /// Callback for services to be executed after every processing.
   /// The callback MUST BE REENTRANT and threadsafe.
   mutable std::vector<ServiceProcessingHandle> postProcessingHandlers;

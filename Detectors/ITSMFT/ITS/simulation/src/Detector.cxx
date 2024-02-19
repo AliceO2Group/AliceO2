@@ -146,9 +146,6 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
   } else if (name == "IT3") {
 #ifdef ENABLE_UPGRADES
     mDescriptorIB.reset(new DescriptorInnerBarrelITS3());
-    if (its3Version != "") {
-      ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->setVersion(its3Version.Data());
-    }
 #endif
   } else {
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";

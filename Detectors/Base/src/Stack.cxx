@@ -83,7 +83,6 @@ Stack::Stack(Int_t size)
   }
 
   auto& param = o2::sim::StackParam::Instance();
-  LOG(info) << param;
   TransportFcn transportPrimary;
   if (param.transportPrimary.compare("none") == 0) {
     transportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) {

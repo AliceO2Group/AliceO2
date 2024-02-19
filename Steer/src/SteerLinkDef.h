@@ -20,6 +20,6 @@
 #pragma link C++ class o2::steer::O2MCApplicationEvalMat + ;
 #pragma link C++ class o2::steer::O2MCApplication + ;
 #pragma link C++ class o2::steer::MCKinematicsReader + ;
-#pragma link C++ class o2::steer::MaterialBudgetMap +
+#pragma link C++ class o2::steer::MaterialBudgetMap + ;
 
 #endif

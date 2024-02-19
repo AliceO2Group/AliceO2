@@ -18,6 +18,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/Logger.h"
+#include "Framework/Signpost.h"
 
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
@@ -26,6 +27,8 @@
 #include <iostream>
 #include <algorithm>
 #include <memory>
+
+O2_DECLARE_DYNAMIC_LOG(workflow_importer);
 
 namespace o2::framework
 {
@@ -811,7 +814,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 
   bool Uint(unsigned i)
   {
-    debug << "Uint(" << i << ")" << std::endl;
+    O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "Uint(%d)", i);
     if (in(State::IN_INPUT_SUBSPEC)) {
       subspec = i;
       inputMatcherNodes.push_back(SubSpecificationTypeValueMatcher{i});
@@ -845,28 +848,31 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 
   bool Int(int i)
   {
-    debug << "Int(" << i << ")" << std::endl;
+    O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "Int(%d)", i);
     return true;
   }
   bool Uint64(uint64_t u)
   {
-    debug << "Uint64(" << u << ")" << std::endl;
+    O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "Uint64(%" PRIu64 ")", u);
     return true;
   }
   bool Double(double d)
   {
-    debug << "Double(" << d << ")" << std::endl;
+    O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "Double(%f)", d);
     return true;
   }
 
   void enter(char const* what)
   {
-    debug << "ENTER: " << what << std::endl;
+    O2_SIGNPOST_EVENT_EMIT(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "ENTER: %s", what);
   }
+
   void push(State state)
   {
-    debug << "PUSH: " << state << std::endl;
+    debug.str("");
+    debug << state;
     states.push_back(state);
+    O2_SIGNPOST_START(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()}, "import", "PUSH: %s", debug.str().c_str());
   }
 
   State pop()
@@ -877,11 +883,12 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     }
     auto result = states.back();
     states.pop_back();
-    debug << "POP: " << result;
+    debug.str("");
+    debug << result;
     if (!states.empty()) {
       debug << " now in " << states.back();
     }
-    debug << std::endl;
+    O2_SIGNPOST_END(workflow_importer, _o2_signpost_id_t{(int64_t)states.size()+1}, "import", "POP: %s", debug.str().c_str());
     return result;
   }
   bool in(State o)

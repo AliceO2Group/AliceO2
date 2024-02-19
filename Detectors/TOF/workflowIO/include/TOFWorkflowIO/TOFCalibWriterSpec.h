@@ -25,7 +25,7 @@ namespace tof
 
 /// create a processor spec
 /// write TOF calbi info in a root file
-o2::framework::DataProcessorSpec getTOFCalibWriterSpec(const char* outdef = "o2calib_tof.root", bool toftpc = false, bool addDia = false);
+o2::framework::DataProcessorSpec getTOFCalibWriterSpec(const char* outdef = "o2calib_tof.root", bool toftpc = false, bool addDia = false, bool onlyDia = false);
 
 } // namespace tof
 } // namespace o2

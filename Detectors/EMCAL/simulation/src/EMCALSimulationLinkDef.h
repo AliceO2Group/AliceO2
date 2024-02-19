@@ -20,12 +20,26 @@
 #pragma link C++ class o2::emcal::Digitizer + ;
 #pragma link C++ class o2::emcal::SDigitizer + ;
 #pragma link C++ class o2::emcal::DigitsWriteoutBuffer + ;
+#pragma link C++ class o2::emcal::DigitsWriteoutBufferTRU + ;
 #pragma link C++ class o2::emcal::DigitsVectorStream + ;
+#pragma link C++ class o2::emcal::LZEROElectronics + ;
+#pragma link C++ class o2::emcal::TRUElectronics + ;
+#pragma link C++ class o2::emcal::FastOrStruct + ;
+#pragma link C++ class o2::emcal::EMCALTriggerInputs + ;
+#pragma link C++ class o2::emcal::EMCALTriggerInputsPatch + ;
+#pragma link C++ class o2::emcal::DigitizerTRU + ;
+// #pragma link C++ class o2::emcal::DigitizerTRU + ;
+#pragma link C++ class o2::emcal::DigitTimebinBase < o2::emcal::Digit> + ;
+#pragma link C++ class o2::emcal::DigitTimebinBase < o2::emcal::LabeledDigit> + ;
 #pragma link C++ class o2::emcal::SimParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::emcal::SimParam> + ;
 #pragma link C++ class o2::emcal::LabeledDigit + ;
 #pragma link C++ class o2::emcal::RawWriter + ;
 
 #pragma link C++ class std::list < o2::emcal::LabeledDigit> + ;
+#pragma link C++ class std::vector < o2::emcal::LabeledDigit> + ;
+#pragma link C++ class std::vector < o2::emcal::FastOrStruct> + ;
+#pragma link C++ class std::vector < o2::emcal::EMCALTriggerInputs> + ;
+#pragma link C++ class std::vector < o2::emcal::EMCALTriggerInputsPatch> + ;
 
 #endif

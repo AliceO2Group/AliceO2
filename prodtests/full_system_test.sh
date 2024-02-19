@@ -198,7 +198,7 @@ if [[ $ENABLE_GPU_TEST != "0" ]]; then
 fi
 STAGES+=" ASYNC"
 
-if [[ ! $RANS_OPT =~ (--ctf-dict +)(none) ]] ; then
+if [[ ${RANS_OPT:-} =~ (--ans-version +)(compat) ]] ; then
   # Give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
   # In order to use CCDB dictionaries, pass CTFDICTFILE=ccdb CREATECTFDICT=0
   [[ ! -z "$CREATECTFDICT" ]] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
@@ -263,6 +263,22 @@ for STAGE in $STAGES; do
   export TFDELAY
   export GLOBALDPLOPT
   export GPUMEMSIZE
+
+  # do not prescale ITS reconstruction in PbPb unless explicitly requested
+  if [[ -z ${FST_PRESCALE_ITS:-} ]] ; then
+    : ${CUT_RANDOM_FRACTION_ITS:=-1}
+    : ${CUT_MULT_MIN_ITS:=-1}
+    : ${CUT_MULT_MAX_ITS:=-1}
+    : ${CUT_MULT_VTX_ITS:=-1}
+    : ${CUT_TRACKLETSPERCLUSTER_MAX_ITS:=100}
+    : ${CUT_CELLSPERCLUSTER_MAX_ITS:=100}
+    export CUT_TRACKLETSPERCLUSTER_MAX_ITS
+    export CUT_CELLSPERCLUSTER_MAX_ITS
+    export CUT_RANDOM_FRACTION_ITS
+    export CUT_MULT_MIN_ITS
+    export CUT_MULT_MAX_ITS
+    export CUT_MULT_VTX_ITS
+  fi
 
   taskwrapper ${logfile} "$O2_ROOT/prodtests/full-system-test/dpl-workflow.sh"
 

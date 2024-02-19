@@ -24,7 +24,11 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "TPCBase/CalDet.h"
+#include "TPCBase/FEEConfig.h"
+#include "TPCBase/CDBTypes.h"
+#include "TPCBase/DeadChannelMapCreator.h"
 #include "DataFormatsTPC/LtrCalibData.h"
+#include "DataFormatsTPC/Defs.h"
 #include "CommonUtils/NameConf.h"
 
 namespace o2::tpc
@@ -35,116 +39,10 @@ class ParameterElectronics;
 class ParameterGas;
 class ParameterGEM;
 
-/// Calibration and parameter types for CCDB
-enum class CDBType {
-  CalPedestal,         ///< Pedestal calibration
-  CalNoise,            ///< Noise calibration
-  CalPedestalNoise,    ///< Pedestal and Noise calibration
-  CalPulser,           ///< Pulser calibration
-  CalCE,               ///< Laser CE calibration
-  CalPadGainFull,      ///< Full pad gain calibration
-  CalPadGainResidual,  ///< ResidualpPad gain calibration (e.g. from tracks)
-  CalLaserTracks,      ///< Laser track calibration data
-  CalVDriftTgl,        ///< ITS-TPC difTgl vdrift calibration
-  CalTimeGain,         ///< Gain variation over time
-  CalGas,              ///< DCS gas measurements
-  CalTemperature,      ///< DCS temperature measurements
-  CalHV,               ///< DCS HV measurements
-  CalTopologyGain,     ///< Q cluster topology correction
-                       ///
-  ConfigFEEPad,        ///< FEE pad-by-pad configuration map
-  ConfigFEE,           ///< FEE configuration map for each tag
-  ConfigRunInfo,       ///< FEE run information (run -> tag)
-                       ///
-  ParDetector,         ///< Parameter for Detector
-  ParElectronics,      ///< Parameter for Electronics
-  ParGas,              ///< Parameter for Gas
-  ParGEM,              ///< Parameter for GEM
-                       ///
-  CalIDC0A,            ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  CalIDC0C,            ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  CalIDC1A,            ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  CalIDC1C,            ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  CalIDCDeltaA,        ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  CalIDCDeltaC,        ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  CalIDCFourierA,      ///< Fourier coefficients of CalIDC1
-  CalIDCFourierC,      ///< Fourier coefficients of CalIDC1
-  CalIDCPadStatusMapA, ///< Status map of the pads (dead etc. obatined from CalIDC0)
-  CalIDCPadStatusMapC, ///< Status map of the pads (dead etc. obatined from CalIDC0)
-  CalIDCGroupingParA,  ///< Parameters which were used for the averaging of the CalIDCDelta
-  CalIDCGroupingParC,  ///< Parameters which were used for the averaging of the CalIDCDelta
-                       ///
-  CalSAC0,             ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  CalSACFourier,       ///< Fourier coefficients of CalSAC1
-                       ///
-  CalITPC0,            ///< 2D average TPC clusters for longer time interval
-  CalITPC1,            ///< 1D integrated TPC clusters
-                       ///
-  CalCorrMap,          ///< Cluster correction map (high IR rate distortions)
-  CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
-                       ///
-  CalCorrDerivMap,     ///< Cluster correction map (derivative map)
-};
-
 /// Upload intervention type
 enum class CDBIntervention {
   Manual,    ///< Upload from manual intervention
   Automatic, ///< Automatic upload
-};
-
-/// Storage name in CCDB for each calibration and parameter type
-const std::unordered_map<CDBType, const std::string> CDBTypeMap{
-  {CDBType::CalPedestal, "TPC/Calib/Pedestal"},
-  {CDBType::CalNoise, "TPC/Calib/Noise"},
-  {CDBType::CalPedestalNoise, "TPC/Calib/PedestalNoise"},
-  {CDBType::CalPulser, "TPC/Calib/Pulser"},
-  {CDBType::CalCE, "TPC/Calib/CE"},
-  {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
-  {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
-  {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
-  {CDBType::CalTimeGain, "TPC/Calib/TimeGain"},
-  {CDBType::CalGas, "TPC/Calib/Gas"},
-  {CDBType::CalTemperature, "TPC/Calib/Temperature"},
-  {CDBType::CalHV, "TPC/Calib/HV"},
-  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGainPiecewise"},
-  {CDBType::CalVDriftTgl, "TPC/Calib/VDriftTgl"},
-  //
-  {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
-  {CDBType::ConfigFEE, "TPC/Config/FEE"},
-  {CDBType::ConfigRunInfo, "TPC/Config/RunInfo"},
-  //
-  {CDBType::ParDetector, "TPC/Parameter/Detector"},
-  {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
-  {CDBType::ParGas, "TPC/Parameter/Gas"},
-  {CDBType::ParGEM, "TPC/Parameter/GEM"},
-  // IDCs
-  {CDBType::CalIDC0A, "TPC/Calib/IDC_0_A"},
-  {CDBType::CalIDC0C, "TPC/Calib/IDC_0_C"},
-  {CDBType::CalIDC1A, "TPC/Calib/IDC_1_A"},
-  {CDBType::CalIDC1C, "TPC/Calib/IDC_1_C"},
-  {CDBType::CalIDCDeltaA, "TPC/Calib/IDC_DELTA_A"},
-  {CDBType::CalIDCDeltaC, "TPC/Calib/IDC_DELTA_C"},
-  {CDBType::CalIDCFourierA, "TPC/Calib/IDC_FOURIER_A"},
-  {CDBType::CalIDCFourierC, "TPC/Calib/IDC_FOURIER_C"},
-  {CDBType::CalIDCPadStatusMapA, "TPC/Calib/IDC_PadStatusMap_A"},
-  {CDBType::CalIDCPadStatusMapC, "TPC/Calib/IDC_PadStatusMap_C"},
-  {CDBType::CalIDCGroupingParA, "TPC/Calib/IDC_GROUPINGPAR_A"},
-  {CDBType::CalIDCGroupingParC, "TPC/Calib/IDC_GROUPINGPAR_C"},
-  // SACs
-  {CDBType::CalSAC0, "TPC/Calib/SAC_0"},
-  {CDBType::CalSAC1, "TPC/Calib/SAC_1"},
-  {CDBType::CalSACDelta, "TPC/Calib/SAC_DELTA"},
-  {CDBType::CalSACFourier, "TPC/Calib/SAC_FOURIER"},
-  // ITPCCs
-  {CDBType::CalITPC0, "TPC/Calib/ITPCC_0"},
-  {CDBType::CalITPC1, "TPC/Calib/ITPCC_1"},
-  // correction maps
-  {CDBType::CalCorrMap, "TPC/Calib/CorrectionMapV2"},
-  {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRefV2"},
-  // derivative map correction
-  {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
 };
 
 /// Poor enum reflection ...
@@ -168,6 +66,7 @@ class CDBInterface
 {
  public:
   using CalPadMapType = std::unordered_map<std::string, CalPad>;
+  using CalPadFlagType = CalDet<PadFlags>;
 
   CDBInterface(const CDBInterface&) = delete;
 
@@ -223,6 +122,17 @@ class CDBInterface
   /// \return common mode per pad values
   const CalPad& getCMkValues();
 
+  /// Pad status flags from IDCs
+  const CalPadFlagType& getPadFlags();
+
+  /// Return FEEConfig
+  const FEEConfig& getFEEConfig();
+
+  /// Dead channel map creator
+  DeadChannelMapCreator& getDeadChannelMapCreator() { return mDeadChannelMapCreator; }
+
+  /// Dead channel map
+  const CalDet<bool>& getDeadChannelMap();
   /// Return the Detector parameters
   ///
   /// The function checks if the object is already loaded and returns it
@@ -315,6 +225,7 @@ class CDBInterface
   {
     auto& cdb = o2::ccdb::BasicCCDBManager::instance();
     cdb.setURL(url.data());
+    mDeadChannelMapCreator.init(url);
   }
 
   /// set the Zero suppression threshold in sigma of noise in case
@@ -334,25 +245,29 @@ class CDBInterface
   }
 
  private:
-  CDBInterface() = default;
+  CDBInterface();
 
   // ===| Pad calibrations |====================================================
-  std::unique_ptr<CalPad> mPedestals;       ///< Pedestal object
-  std::unique_ptr<CalPad> mPedestalsCRU;    ///< Pedestal object with 10+2bit precision as used in CRU
-  std::unique_ptr<CalPad> mNoise;           ///< Noise object
-  std::unique_ptr<CalPad> mZeroSuppression; ///< Zero suppression object
-  std::unique_ptr<CalPad> mGainMap;         ///< Gain map object
-  std::unique_ptr<CalPad> mITFraction;      ///< Ion Tail fraction
-  std::unique_ptr<CalPad> mITExpLambda;     ///< Ion Tail exp(-lambda)
-  std::unique_ptr<CalPad> mCMkValues;       ///< Ion Tail exp(-lambda)
+  std::unique_ptr<CalPad> mPedestals;        ///< Pedestal object
+  std::unique_ptr<CalPad> mPedestalsCRU;     ///< Pedestal object with 10+2bit precision as used in CRU
+  std::unique_ptr<CalPad> mNoise;            ///< Noise object
+  std::unique_ptr<CalPad> mZeroSuppression;  ///< Zero suppression object
+  std::unique_ptr<CalPad> mGainMap;          ///< Gain map object
+  std::unique_ptr<CalPad> mITFraction;       ///< Ion Tail fraction
+  std::unique_ptr<CalPad> mITExpLambda;      ///< Ion Tail exp(-lambda)
+  std::unique_ptr<CalPad> mCMkValues;        ///< Ion Tail exp(-lambda)
+  std::unique_ptr<CalPadFlagType> mPadFlags; ///< Pad flags from IDCs
+
+  std::unique_ptr<FEEConfig> mFEEConfig; ///< FEE Config
 
   // ===| switches and parameters |=============================================
   bool mUseDefaults = false;   ///< use defaults instead of CCDB
   float mDefaultZSsigma = 3.f; ///< sigma to use in case the default zero suppression is created
 
-  std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
-  std::string mGainMapFileName;       ///< optional file name for the gain map
-  std::string mFEEParamFileName;      ///< optional file name for the FEE parameters (ion tail, common mode, threshold, pedestals)
+  std::string mPedestalNoiseFileName;           ///< optional file name for pedestal and noise data
+  std::string mGainMapFileName;                 ///< optional file name for the gain map
+  std::string mFEEParamFileName;                ///< optional file name for the FEE parameters (ion tail, common mode, threshold, pedestals)
+  DeadChannelMapCreator mDeadChannelMapCreator; ///< creation of dead channel map
 
   // ===========================================================================
   // ===| functions |===========================================================
@@ -367,6 +282,9 @@ class CDBInterface
   void createDefaultGainMap();         ///< creation of default gain map if requested
   void createDefaultIonTailParams();   ///< creation of default ion tail parameters
   void createDefaultCMParams();        ///< creation of default common mode parameters
+  void createDefaultPadFlags();        ///< creation of default pad flags
+
+  void createFEEConfig(); ///< create a best guess FEEConfig;
 };
 
 /// Get an object from the CCDB.
@@ -455,6 +373,8 @@ class CDBStorage
   }
 
   const auto& getMetaData() const { return mMetaData; }
+
+  std::string getMetaDataString() const;
 
   void setSimulate(bool sim = true) { mSimulate = sim; }
 

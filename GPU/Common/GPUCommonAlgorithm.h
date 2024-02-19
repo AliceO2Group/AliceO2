@@ -221,7 +221,7 @@ typedef GPUCommonAlgorithm CAAlgo;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#if (((defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__))) && !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
+#if (((defined(__CUDACC__) && !defined(__clang__)) || defined(__HIPCC__))) && !defined(GPUCA_GPUCODE_COMPILEKERNELS) && !defined(GPUCA_GPUCODE_HOSTONLY)
 
 #include "GPUCommonAlgorithmThrust.h"
 
@@ -348,7 +348,7 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
 #elif (defined(__CUDACC__) || defined(__HIPCC__))
 // CUDA and HIP work the same way using cub, need just different header
 
-#if !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
+#if !defined(GPUCA_GPUCODE_COMPILEKERNELS) && !defined(GPUCA_GPUCODE_HOSTONLY)
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
 #elif defined(__HIPCC__)

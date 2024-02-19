@@ -55,6 +55,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #endif
 
+#include "GPUReconstructionIncludesITS.h"
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -248,7 +250,16 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.debugLevel < 1) {
     mProcessingSettings.deviceTimers = false;
   }
-  if (mProcessingSettings.debugLevel >= 6 && mProcessingSettings.comparableDebutOutput) {
+  if (mProcessingSettings.comparableDebutOutput == -1) {
+    mProcessingSettings.comparableDebutOutput = mProcessingSettings.debugLevel >= 6;
+  }
+  if (mProcessingSettings.comparableDebutOutput) {
+#ifndef GPUCA_NO_FAST_MATH
+    GPUError("Warning, comparableDebutOutput needs GPUCA_NO_FAST_MATH, otherwise results will never be deterministic!");
+#endif
+    mProcessingSettings.overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
+  }
+  if (mProcessingSettings.comparableDebutOutput && mProcessingSettings.debugLevel >= 6) {
     mProcessingSettings.nTPCClustererLanes = 1;
     if (mProcessingSettings.trackletConstructorInPipeline < 0) {
       mProcessingSettings.trackletConstructorInPipeline = 1;
@@ -676,7 +687,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
     if (pool > poolend) {
-      GPUError("Insufficient unmanaged memory: missing %lu", (size_t)((char*)pool - (char*)poolend));
+      GPUError("Insufficient unmanaged memory: missing %lu bytes", (size_t)((char*)pool - (char*)poolend));
       throw std::bad_alloc();
     }
     UpdateMaxMemoryUsed();
@@ -1215,7 +1226,7 @@ bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
   } else if (type == DeviceType::OCL2) {
     return sLibOCL2->LoadLibrary() == 0;
   } else {
-    GPUError("Error: Invalid device type %u", type);
+    GPUError("Error: Invalid device type %u", (unsigned)type);
     return false;
   }
 }

@@ -66,7 +66,7 @@ class TrackFinderTask
 {
  public:
   //_________________________________________________________________________________________________
-  TrackFinderTask<T>(bool computeTime, bool digits, std::shared_ptr<base::GRPGeomRequest> req)
+  TrackFinderTask(bool computeTime, bool digits, std::shared_ptr<base::GRPGeomRequest> req)
     : mComputeTime(computeTime), mDigits(digits), mCCDBRequest(req) {}
 
   //_________________________________________________________________________________________________
@@ -105,7 +105,7 @@ class TrackFinderTask
       mTrackFinder.printTimers();
       LOG(info) << "tracking duration = " << mElapsedTime.count() << " s";
       mErrorMap.forEach([](Error error) {
-        LOGP(warning, error.asString());
+        LOGP(warning, "{}", error.asString());
       });
     };
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);

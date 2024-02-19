@@ -174,9 +174,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       callbacks.set<CallbackService::Id::Start>(producerChannelInit);
     }
     // the compute callback of the producer
-    auto producerCallback = [nRolls, channelName, proxyMode, counter = std::make_shared<size_t>()](DataAllocator& outputs, ControlService& control, RawDeviceService& rds) {
+    auto producerCallback = [nRolls, channelName, proxyMode, counter = std::make_shared<size_t>()](DataAllocator& outputs, ControlService& control, RawDeviceService& rds, MessageContext& messageContext) {
       int data = *counter;
-      //outputs.make<int>(OutputRef{"data", 0}) = data;
+      // outputs.make<int>(OutputRef{"data", 0}) = data;
 
       fair::mq::Device& device = *(rds.device());
       auto transport = device.GetChannel(*channelName, 0).Transport();
@@ -233,6 +233,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       }
       // using utility from ExternalFairMQDeviceProxy
       o2::framework::sendOnChannel(device, messages, *channelName, (size_t)-1);
+      messageContext.fakeDispatch();
 
       if (++(*counter) >= nRolls) {
         // send the end of stream signal, this is transferred by the proxies
@@ -256,6 +257,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
           // add empty payload message
           out.AddPart(std::move(device.NewMessageFor(*channelName, 0, 0)));
           o2::framework::sendOnChannel(device, out, *channelName, (size_t)-1);
+          messageContext.fakeDispatch();
         }
       }
     };
@@ -327,14 +329,14 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   Inputs checkerInputs;
   if (proxyMode != ProxyMode::All) {
     checkerInputs.emplace_back(InputSpec{"datain", ConcreteDataTypeMatcher{"TST", "DATA"}, Lifetime::Timeframe});
-    //for (unsigned int i = 0; i < pState->nChannels; i++) {
-    //  checkerInputs.emplace_back(InputSpec{{"datain"}, "TST", "DATA", i, Lifetime::Timeframe});
-    //}
+    // for (unsigned int i = 0; i < pState->nChannels; i++) {
+    //   checkerInputs.emplace_back(InputSpec{{"datain"}, "TST", "DATA", i, Lifetime::Timeframe});
+    // }
   } else {
     checkerInputs.emplace_back(InputSpec{"datain", ConcreteDataTypeMatcher{"PRX", "DATA"}, Lifetime::Timeframe});
-    //for (unsigned int i = 0; i < pState->nChannels; i++) {
-    //  checkerInputs.emplace_back(InputSpec{{"datain"}, "PRX", "DATA", i, Lifetime::Timeframe});
-    //}
+    // for (unsigned int i = 0; i < pState->nChannels; i++) {
+    //   checkerInputs.emplace_back(InputSpec{{"datain"}, "PRX", "DATA", i, Lifetime::Timeframe});
+    // }
   }
   if (proxyMode != ProxyMode::OnlyOutput) {
     // the checker is not added if the input proxy is skipped
@@ -349,21 +351,22 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // reads the messages from the output proxy via the out-of-band channel
 
   // converter callback for the external FairMQ device proxy ProcessorSpec generator
-  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+  InjectorFunction converter = [](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) -> bool {
+    auto* device = services.get<RawDeviceService>().device();
     ASSERT_ERROR(inputs.Size() >= 2);
     if (inputs.Size() < 2) {
-      return;
+      return false;
     }
     int msgidx = 0;
     auto dh = o2::header::get<o2::header::DataHeader*>(inputs.At(msgidx)->GetData());
     if (!dh) {
       LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
-      return;
+      return false;
     }
     auto dph = o2::header::get<DataProcessingHeader*>(inputs.At(msgidx)->GetData());
     if (!dph) {
       LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
-      return;
+      return false;
     }
     // Note: we want to run both the output and input proxy in the same workflow and thus we need
     // different data identifiers and change the data origin in the forwarding
@@ -376,7 +379,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     ASSERT_ERROR(!isData || !channelName.empty());
     LOG(debug) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
-      return;
+      return false;
     }
     fair::mq::Parts output;
     for (; msgidx < inputs.Size(); ++msgidx) {
@@ -389,7 +392,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
              dh->splitPayloadParts,
              dh->splitPayloadIndex);
         // make a copy of the header message, get the data header and change origin
-        auto outHeaderMessage = device.NewMessageFor(channelName, 0, inputs.At(msgidx)->GetSize());
+        auto outHeaderMessage = device->NewMessageFor(channelName, 0, inputs.At(msgidx)->GetSize());
         memcpy(outHeaderMessage->GetData(), inputs.At(msgidx)->GetData(), inputs.At(msgidx)->GetSize());
         // this we obviously need to fix in the get API, const'ness of the returned header pointer
         // should depend on const'ness of the buffer
@@ -400,8 +403,10 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         output.AddPart(std::move(inputs.At(msgidx)));
       }
     }
-    o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
-    return;
+    auto& messageContext = services.get<MessageContext>();
+    o2::framework::sendOnChannel(*device, output, channelName, (size_t)-1);
+    messageContext.fakeDispatch();
+    return output.Size() != 0;
   };
 
   // we use the same spec to build the configuration string, ideally we would have some helpers

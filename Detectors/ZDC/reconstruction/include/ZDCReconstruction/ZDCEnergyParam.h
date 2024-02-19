@@ -26,10 +26,13 @@ namespace zdc
 {
 struct ZDCEnergyParam {
   float energy_calib[NChannels] = {0}; // Energy calibration coefficients
+  float adc_offset[NChannels] = {0};   // Compensation of ADC offset
   void setEnergyCalib(uint32_t ich, float val);
   float getEnergyCalib(uint32_t ich) const;
+  void setOffset(uint32_t ich, float val);
+  float getOffset(uint32_t ich) const;
   void print() const;
-  ClassDefNV(ZDCEnergyParam, 1);
+  ClassDefNV(ZDCEnergyParam, 2);
 };
 } // namespace zdc
 } // namespace o2

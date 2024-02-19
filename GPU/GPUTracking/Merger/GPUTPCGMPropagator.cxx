@@ -323,7 +323,7 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
 
 GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
 {
-  if (CAMath::Abs(posAlpha - mAlpha) > 1.e-4) {
+  if (CAMath::Abs(posAlpha - mAlpha) > 1.e-4f) {
     if (RotateToAlpha(posAlpha) != 0) {
       return -2;
     }
@@ -599,19 +599,23 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
 
 GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState, bool sideC) const
 {
+  GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), iRow, clusterState, sideC);
+}
+
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC)
+{
 #ifndef GPUCA_TPC_GEOMETRY_O2
   if (mSeedingErrors) {
-    param.GetClusterErrorsSeeding2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
+    param.GetClusterErrorsSeeding2(iRow, posZ, snp, tgl, err2Y, err2Z);
   } else
 #endif
   {
-    param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
+    param.GetClusterErrors2(iRow, posZ, snp, tgl, err2Y, err2Z);
   }
   param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  float statErr2 = param.GetSystematicClusterErrorIFC2(mT->GetX(), posZ, sideC);
+  float statErr2 = param.GetSystematicClusterErrorIFC2(x, posZ, sideC);
   err2Y += statErr2;
   err2Z += statErr2;
-  mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
 }
 
 GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, bool sideC) const
@@ -925,7 +929,7 @@ GPUd() void GPUTPCGMPropagator::CalculateMaterialCorrection()
 
   // Approximate energy loss fluctuation (M.Ivanov)
 
-  const float knst = 0.07f; // To be tuned.
+  const float knst = 0.0007f; // To be tuned.
   mMaterial.sigmadE2 = knst * mMaterial.EP2 * qpt;
   mMaterial.sigmadE2 = mMaterial.sigmadE2 * mMaterial.sigmadE2;
 

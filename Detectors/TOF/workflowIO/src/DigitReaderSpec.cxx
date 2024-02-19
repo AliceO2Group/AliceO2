@@ -21,6 +21,7 @@
 #include "TOFWorkflowIO/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -79,20 +80,26 @@ void DigitReader::run(ProcessingContext& pc)
     mFiller.setReadoutWindowData(mRow, mPatterns);
     mFiller.fillDiagnosticFrequency();
     mDiagnostic = mFiller.getDiagnosticFrequency();
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
+    mDiagnostic.setTimeStamp(creationTime / 1000);
+    // add TFIDInfo
+    o2::dataformats::TFIDInfo tfinfo;
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+    mDiagnostic.setTFIDInfo(tfinfo);
 
     // add digits loaded in the output snapshot
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, mPatterns);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, mDiagnostic);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0}, mDigits);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0}, mRow);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0}, mPatterns);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0}, mDiagnostic);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0}, mLabels);
     }
 
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
     LOG(debug) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0}, roMode);
   } else {
     LOG(error) << "Cannot read the TOF digits !";
     return;

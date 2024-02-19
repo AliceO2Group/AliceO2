@@ -135,7 +135,7 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
   }
   // Anyway send change to QC
   LOG(info) << "[PHOSPedestalCalibDevice - run] Sending QC ";
-  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedDiff);
+  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0}, mPedDiff);
 }
 
 void PHOSPedestalCalibDevice::calculatePedestals()

@@ -64,26 +64,21 @@ struct CompletionPolicy {
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
-  using Callback = std::function<CompletionOp(InputSpan const&)>;
   using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&, ServiceRegistryRef&)>;
   using CallbackConfigureRelayer = std::function<void(DataRelayer&)>;
 
   /// Constructor
   CompletionPolicy()
-    : name{}, matcher{}, callback{} {}
+    : name{}, matcher{}, callbackFull{} {}
   /// Constructor for emplace_back
-  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback, bool _balanceChannels = true)
-    : name(std::move(_name)), matcher(std::move(_matcher)), callback(std::move(_callback)), callbackFull{nullptr}, balanceChannels{_balanceChannels} {}
   CompletionPolicy(std::string _name, Matcher _matcher, CallbackFull _callback, bool _balanceChannels = true)
-    : name(std::move(_name)), matcher(std::move(_matcher)), callback(nullptr), callbackFull{std::move(_callback)}, balanceChannels{_balanceChannels} {}
+    : name(std::move(_name)), matcher(std::move(_matcher)), callbackFull{std::move(_callback)}, balanceChannels{_balanceChannels} {}
 
   /// Name of the policy itself.
   std::string name = "";
   /// Callback to be used to understand if the policy should apply
   /// to the given device.
   Matcher matcher = nullptr;
-  /// Actual policy which decides what to do with a partial InputRecord.
-  Callback callback = nullptr;
   /// Actual policy which decides what to do with a partial InputRecord, extended version
   CallbackFull callbackFull = nullptr;
   /// A callback which allows you to configure the behavior of the data relayer associated

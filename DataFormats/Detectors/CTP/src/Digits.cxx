@@ -30,13 +30,13 @@ void CTPDigit::printStream(std::ostream& stream) const
 
 void CTPDigit::setInputMask(gbtword80_t mask)
 {
-  for (int i = 0; i < CTP_NINPUTS; i++) {
+  for (uint32_t i = 0; i < CTP_NINPUTS; i++) {
     CTPInputMask[i] = mask[i];
   }
 }
 void CTPDigit::setClassMask(gbtword80_t mask)
 {
-  for (int i = 0; i < CTP_NCLASSES; i++) {
+  for (uint32_t i = 0; i < CTP_NCLASSES; i++) {
     CTPClassMask[i] = mask[i];
   }
 }

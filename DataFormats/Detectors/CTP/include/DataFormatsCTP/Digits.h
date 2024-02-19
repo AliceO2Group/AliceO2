@@ -51,14 +51,13 @@ struct CTPDigit {
   o2::InteractionRecord intRecord;
   std::bitset<CTP_NINPUTS> CTPInputMask;
   std::bitset<CTP_NCLASSES> CTPClassMask;
-  CTPDigit() = default;
   void printStream(std::ostream& stream) const;
   void setInputMask(gbtword80_t mask);
   void setClassMask(gbtword80_t mask);
   bool isInputEmpty() const { return CTPInputMask.count() == 0; }
-  const bool isClassEmpty() const { return CTPClassMask.count() == 0; }
-  const bool isEmpty() const { return isInputEmpty() && isClassEmpty(); }
-  const bool operator==(const CTPDigit& d) const
+  bool isClassEmpty() const { return CTPClassMask.count() == 0; }
+  bool isEmpty() const { return isInputEmpty() && isClassEmpty(); }
+  bool operator==(const CTPDigit& d) const
   {
     return intRecord == d.intRecord && CTPInputMask == d.CTPInputMask && CTPClassMask == d.CTPClassMask;
   }
@@ -72,7 +71,6 @@ struct CTPInputDigit {
   o2::InteractionRecord intRecord;
   std::bitset<CTP_MAXTRIGINPPERDET> inputsMask;
   o2::detectors::DetID::ID detector;
-  CTPInputDigit() = default;
   ClassDefNV(CTPInputDigit, 1)
 };
 } // namespace ctp

@@ -238,7 +238,7 @@ bool MagFieldFast::Field(const math_utils::Point3D<double> xyz, double bxyz[3]) 
 bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, int& quadrant) const
 {
   // get segment of point location
-  const float zGridSpaceInv = 1.f / (kSolZMax * 2 / kNSolZRanges);
+  const float zGridSpaceInv = 1.f / (kSolZMax * 2 / (float)kNSolZRanges);
   zSeg = -1;
   if (z < kSolZMax) {
     if (z > -kSolZMax) {

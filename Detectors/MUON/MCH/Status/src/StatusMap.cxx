@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHStatus/StatusMap.h"
+#include "Framework/Logger.h"
 
 #include <fmt/format.h>
 
@@ -31,8 +32,13 @@ void StatusMap::add(gsl::span<const DsChannelId> badchannels, uint32_t mask)
 {
   assertValidMask(mask);
   for (auto id : badchannels) {
-    ChannelCode cc(id.getSolarId(), id.getElinkId(), id.getChannel());
-    mStatus[cc] |= mask;
+    try {
+      ChannelCode cc(id.getSolarId(), id.getElinkId(), id.getChannel());
+      mStatus[cc] |= mask;
+    } catch (const std::exception& e) {
+      // Catch exceptions thrown by the ChannelCode constructor
+      LOGP(warning, "Error processing channel - SolarId: {} ElinkId: {} Channel: {}. Error: {}. This channel is skipped.", id.getSolarId(), id.getElinkId(), id.getChannel(), e.what());
+    }
   }
 }
 

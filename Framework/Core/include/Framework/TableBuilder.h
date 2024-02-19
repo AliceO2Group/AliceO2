@@ -641,44 +641,24 @@ auto constexpr to_tuple(T&& object) noexcept
   }
 }
 
-template <size_t I, typename... ARGS>
-constexpr auto makeHolderType(framework::pack<ARGS...>&&)
+template <typename... ARGS>
+constexpr auto makeHolderTypes()
 {
-  return typename HolderTrait<I, framework::pack_element_t<I, framework::pack<ARGS...>>>::Holder{arrow::default_memory_pool()};
-}
-
-template <size_t I, typename... ARGS>
-auto makeHolder(arrow::MemoryPool* pool, size_t nRows, framework::pack<ARGS...>&&)
-{
-  return typename HolderTrait<I, framework::pack_element_t<I, framework::pack<ARGS...>>>::Holder(pool, nRows);
-}
-
-template <size_t... Is, typename... ARGS>
-constexpr auto makeHolderTypesImpl(std::index_sequence<Is...>, framework::pack<ARGS...>&& pack)
-{
-  return std::tuple(makeHolderType<Is>(std::forward<framework::pack<ARGS...>>(pack))...);
-}
-
-template <size_t... Is, typename... ARGS>
-auto makeHoldersImpl(arrow::MemoryPool* pool, size_t nRows, std::index_sequence<Is...>, framework::pack<ARGS...>&& pack)
-{
-  return new std::tuple(makeHolder<Is>(pool, nRows, std::forward<framework::pack<ARGS...>>(pack))...);
+  return []<std::size_t... Is>(std::index_sequence<Is...>) {
+    return std::tuple(typename HolderTrait<Is, ARGS>::Holder(arrow::default_memory_pool())...);
+  }(std::make_index_sequence<sizeof...(ARGS)>{});
 }
 
 template <typename... ARGS>
-constexpr auto makeHolderTypes(framework::pack<ARGS...>&& pack)
+auto makeHolders(arrow::MemoryPool* pool, size_t nRows)
 {
-  return makeHolderTypesImpl(std::make_index_sequence<sizeof...(ARGS)>{}, std::forward<framework::pack<ARGS...>>(pack));
+  return [pool, nRows]<std::size_t... Is>(std::index_sequence<Is...>) {
+    return new std::tuple(typename HolderTrait<Is, ARGS>::Holder(pool, nRows)...);
+  }(std::make_index_sequence<sizeof...(ARGS)>{});
 }
 
 template <typename... ARGS>
-auto makeHolders(arrow::MemoryPool* pool, size_t nRows, framework::pack<ARGS...>&& pack)
-{
-  return makeHoldersImpl(pool, nRows, std::make_index_sequence<sizeof...(ARGS)>{}, std::forward<framework::pack<ARGS...>>(pack));
-}
-
-template <typename... ARGS>
-using IndexedHoldersTuple = decltype(makeHolderTypes(framework::pack<ARGS...>{}));
+using IndexedHoldersTuple = decltype(makeHolderTypes<ARGS...>());
 
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
@@ -691,7 +671,7 @@ class TableBuilder
   using HoldersTuple = typename std::tuple<typename HolderTrait<0, ARGS>::Holder...>;
 
   template <typename... ARGS>
-  using HoldersTupleIndexed = decltype(makeHolderTypes(framework::pack<ARGS...>{}));
+  using HoldersTupleIndexed = decltype(makeHolderTypes<ARGS...>());
 
   /// Get the builders, assumning they were created with a given pack
   ///  of basic types
@@ -708,7 +688,7 @@ class TableBuilder
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
-    mHolders = makeHolders(mMemoryPool, nRows, framework::pack<ARGS...>{});
+    mHolders = makeHolders<ARGS...>(mMemoryPool, nRows);
     mFinalizer = [](std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
       return TableBuilderHelpers::finalize(arrays, *(HoldersTupleIndexed<ARGS...>*)holders);
     };
@@ -815,13 +795,17 @@ class TableBuilder
   template <typename T>
   auto cursor()
   {
-    return cursorHelper(typename T::table_t::persistent_columns_t{});
+    return [this]<typename... Cs>(pack<Cs...>) {
+      return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
+    }(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename T, typename E>
   auto cursor()
   {
-    return cursorHelper2<E>(typename T::table_t::persistent_columns_t{});
+    return [this]<typename... Cs>(pack<Cs...>) {
+      return this->template persist<E>({Cs::columnLabel()...});
+    }(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
@@ -881,21 +865,6 @@ class TableBuilder
   std::shared_ptr<arrow::Table> finalize();
 
  private:
-  /// Helper which actually creates the insertion cursor. Notice that the
-  /// template argument T is a o2::soa::Table which contains only the
-  /// persistent columns.
-  template <typename... Cs>
-  auto cursorHelper(framework::pack<Cs...>)
-  {
-    return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
-  }
-
-  template <typename E, typename... Cs>
-  auto cursorHelper2(framework::pack<Cs...>)
-  {
-    return this->template persist<E>({Cs::columnLabel()...});
-  }
-
   bool (*mFinalizer)(std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
   void (*mDestructor)(void* holders);
   void* mHolders;

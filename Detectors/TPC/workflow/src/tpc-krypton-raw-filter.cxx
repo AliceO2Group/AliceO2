@@ -41,19 +41,6 @@ using namespace o2::tpc;
 std::vector<InputSpec> gPolicyData;
 unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-krypton-raw-filter.*", CompletionPolicy::CompletionOp::Consume));
-  // policies.push_back(CompletionPolicyHelpers::defineByName("file-writer", CompletionPolicy::CompletionOp::Consume));
-
-  // we customize the pipeline processors to consume data as it comes
-  //
-  // the custom completion policy for the tracker
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("file-writer", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
-}
-
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {

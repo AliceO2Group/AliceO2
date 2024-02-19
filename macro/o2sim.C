@@ -39,6 +39,7 @@
 #include <sstream>
 #endif
 #include "migrateSimFiles.C"
+#include <boost/property_tree/ptree.hpp>
 
 void check_notransport()
 {

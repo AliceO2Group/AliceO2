@@ -117,6 +117,26 @@ class MFTDCSConfigProcessor : public o2::framework::Task
 
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG_FILE", 1}, *imageDeadMap.get()); // vector<char>
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG_FILE", 1}, infoDeadMap);         // root-serialized
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Preparing the object for Alpide Configuration
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const auto& payloadAlpideInfo = mReader.getAlpideInfo();
+    auto clNameAlpideInfo = o2::utils::MemFileHelper::getClassName(payloadAlpideInfo);
+    auto flNameAlpideInfo = o2::ccdb::CcdbApi::generateFileName(clNameAlpideInfo);
+    std::map<std::string, std::string> mdAlpideInfo;
+    mdAlpideInfo.emplace("created_by", "dpl");
+
+    o2::ccdb::CcdbObjectInfo infoAlpideInfo("MFT/Config/AlpideParam", clNameAlpideInfo, flNameAlpideInfo, mdAlpideInfo, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+
+    auto imageAlpideInfo = o2::ccdb::CcdbApi::createObjectImage(&payloadAlpideInfo, &infoAlpideInfo);
+
+    LOG(info) << "Sending object " << infoAlpideInfo.getPath() << "/" << infoAlpideInfo.getFileName() << " of size " << imageAlpideInfo->size()
+              << " bytes, valid for " << infoAlpideInfo.getStartValidityTimestamp() << " : " << infoAlpideInfo.getEndValidityTimestamp();
+
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG_FILE", 3}, *imageAlpideInfo.get()); // vector<char>
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG_FILE", 3}, infoAlpideInfo);         // root-serialized
   }
   //________________________________________________________________
 

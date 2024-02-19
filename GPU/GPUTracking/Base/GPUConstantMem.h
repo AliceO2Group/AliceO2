@@ -125,32 +125,18 @@ union GPUConstantMemCopyable {
 
 #if defined(GPUCA_GPUCODE) && defined(GPUCA_NOCOMPAT)
 static constexpr size_t gGPUConstantMemBufferSize = (sizeof(GPUConstantMem) + sizeof(uint4) - 1);
-#ifndef GPUCA_GPUCODE_HOSTONLY
-#if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
-GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer; // HIP constant memory symbol address cannot be obtained when in namespace
+#if defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM) && !defined(GPUCA_GPUCODE_HOSTONLY)
+GPUconstant() GPUCA_NAMESPACE::gpu::GPUConstantMemCopyable gGPUConstantMemBuffer;
+#endif // GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#endif // GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
-#ifdef GPUCA_CONSTANT_AS_ARGUMENT
-static GPUConstantMemCopyable gGPUConstantMemBufferHost;
-#endif // GPUCA_CONSTANT_AS_ARGUMENT
-#endif // !GPUCA_GPUCODE_HOSTONLY
-#endif
 
 // Must be placed here, to avoid circular header dependency
-GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const
-{
-#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM) && !defined(GPUCA_GPUCODE_HOSTONLY)
-  return GPUCA_CONSMEM.param;
-#else
-  return mConstantMem->param;
-#endif
-}
-
 GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetConstantMem() const
 {
 #if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM) && !defined(GPUCA_GPUCODE_HOSTONLY)
@@ -158,6 +144,11 @@ GPUdi() GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * GPUProcessor::GetC
 #else
   return mConstantMem;
 #endif
+}
+
+GPUdi() GPUconstantref() const MEM_CONSTANT(GPUParam) & GPUProcessor::Param() const
+{
+  return GetConstantMem()->param;
 }
 
 GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, unsigned int param2, unsigned int param3) const

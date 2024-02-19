@@ -196,12 +196,11 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
             flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
             continue;
           }
-          float t0 = t0Trig, t0Err = 5.e-3; // 5ns nominal error
-          if (trc.hasPileUpInfo()) {        // distance to farthest collision within the pileup integration time
-            t0 += trc.getPileUpTimeShiftMUS();
+          float t0Err = 5.e-3;       // 5ns nominal error
+          if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
             t0Err += trc.getPileUpTimeErrorMUS();
           }
-          if (creator(trc, {i, currentSource}, t0, t0Err)) { // assign 1ns error to BC
+          if (creator(trc, {i, currentSource}, t0Trig, t0Err)) { // assign 1ns error to BC
             flagUsed(trc.getRefGlobalTrackId());            // flag seeding ITS-TPC track
           }
         }
@@ -249,12 +248,11 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
             flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
             continue;
           }
-          float t0 = t0Trig, t0Err = 5.e-3; // 5ns nominal error
-          if (trc.hasPileUpInfo()) {        // distance to farthest collision within the pileup integration time
-            t0 += trc.getPileUpTimeShiftMUS();
+          float t0Err = 5.e-3;       // 5ns nominal error
+          if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
             t0Err += trc.getPileUpTimeErrorMUS();
           }
-          if (creator(trc, {i, currentSource}, t0, t0Err)) { // assign 1ns error to BC
+          if (creator(trc, {i, currentSource}, t0Trig, t0Err)) { // assign 1ns error to BC
             flagUsed(trc.getRefGlobalTrackId());            // flag seeding TPC track
           }
         }
@@ -287,7 +285,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
     if (srcSel[currentSource]) {
       if (matchesTPCTOF.size() && !tracksTPCTOF.size()) {
         throw std::runtime_error(fmt::format("TPC-TOF matched tracks ({}) require TPCTOF matches ({}) and TPCTOF tracks ({})",
-                                             matchesTPCTOF.size(), tracksTPCTOF.size()));
+                                             -1, matchesTPCTOF.size(), tracksTPCTOF.size()));
       }
       for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
         const auto& match = matchesTPCTOF[i];
@@ -323,7 +321,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
     if (srcSel[currentSource]) {
       if (matchesMCHMID.size() && !tracksMCH.size()) {
         throw std::runtime_error(fmt::format("MCH-MID matched tracks ({}) require MCHMID matches ({}) and MCH tracks ({})",
-                                             matchesMCHMID.size(), tracksMCH.size()));
+                                             -1, matchesMCHMID.size(), tracksMCH.size()));
       }
       for (unsigned i = 0; i < matchesMCHMID.size(); i++) {
         const auto& match = matchesMCHMID[i];

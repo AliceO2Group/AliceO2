@@ -73,6 +73,27 @@ struct ITSAvgClusSizeParamConfig : public o2::conf::ConfigurableParamHelper<ITSA
   O2ParamDef(ITSAvgClusSizeParamConfig, "ITSAvgClusSizeParam");
 };
 
+struct PIDStudyParamConfig : public o2::conf::ConfigurableParamHelper<PIDStudyParamConfig> {
+  std::string outFileName = "its_PIDStudy.root";
+  // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
+  // to-do: grab from CCDB when available
+  float mBBpars[5] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};
+  float mBBres = 0.07; // default: 7% resolution
+  O2ParamDef(PIDStudyParamConfig, "PIDStudyParam");
+};
+
+struct AnomalyStudyParamConfig : public o2::conf::ConfigurableParamHelper<AnomalyStudyParamConfig> {
+  std::string outFileName = "its_AnomalyStudy.root";
+  size_t nLayersToProcess = 3;
+  size_t nTimeFramesOffset = 500;
+  size_t nRofTimeFrames = 192;
+  float nPhiBinsMultiplier = 1.f;
+  float pValueCut = 0.05;
+  bool doROFAnalysis = false;
+
+  O2ParamDef(AnomalyStudyParamConfig, "AnomalyStudyParam");
+};
+
 struct ITSImpactParameterParamConfig : public o2::conf::ConfigurableParamHelper<ITSImpactParameterParamConfig> {
   std::string outFileName = "its_ImpParameter.root";
   int minNumberOfContributors = 0;

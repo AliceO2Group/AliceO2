@@ -71,6 +71,9 @@ class CallbackService
     NewTimeslice,
     /// Invoked before the processing callback
     PreProcessing,
+    /// Invoked after the processing callback and before the post processing
+    /// callback to allow for injecting data in the output stream.
+    FinaliseOutputs,
     /// Invoked after the processing callback,
     PostProcessing,
     /// Invoked whenever an object from CCDB is deserialised via ROOT.
@@ -94,6 +97,7 @@ class CallbackService
   using RegionInfoCallback = std::function<void(fair::mq::RegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
   using PreProcessingCallback = std::function<void(ServiceRegistryRef, int)>;
+  using FinaliseOutputsCallback = std::function<void(ServiceRegistryRef, int)>;
   using PostProcessingCallback = std::function<void(ServiceRegistryRef, int)>;
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
   using DomainInfoUpdatedCallback = std::function<void(ServiceRegistryRef, size_t timeslice, ChannelIndex index)>;
@@ -111,6 +115,7 @@ class CallbackService
                                      RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,         //
                                      RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,             //
                                      RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,           //
+                                     RegistryPair<Id, Id::FinaliseOutputs, FinaliseOutputsCallback>,       //
                                      RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,         //
                                      RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,     //
                                      RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback>,   //

@@ -101,8 +101,12 @@ void DigiReco::init()
     }
     mFullInterpolation = ropt.full_interpolation > 0 ? true : false;
   }
+  if (ropt.full_interpolation_min_length >= 2) {
+    // Minimum is 2 consecutive bunch crossings
+    mFullInterpolationMinLength = ropt.full_interpolation_min_length;
+  }
   if (mVerbosity > DbgZero) {
-    LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled");
+    LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled") << " min length is " << mFullInterpolationMinLength;
   }
 
   if (ropt.triggerCondition == 0) {
@@ -229,7 +233,7 @@ void DigiReco::init()
     if (fval < 0) {
       // Check if calibration object is present
       if (!mTDCParam) {
-        LOG(fatal) << "TDC " << itdc << " missing configuration object and no manual override";
+        LOG(fatal) << "TDC amplitude calibration " << itdc << " missing configuration object and no manual override";
       } else {
         fval = mTDCParam->getFactor(itdc);
       }
@@ -238,8 +242,22 @@ void DigiReco::init()
       LOG(fatal) << "Correction factor for TDC amplitude " << itdc << " " << fval << " is out of range";
     }
     tdc_calib[itdc] = fval;
+    fval = ropt.tdc_offset[itdc];
+    // If the reconstruction parameters were not manually set
+    if (fval == -FInfty) {
+      // Check if calibration object is present
+      if (!mTDCParam) {
+        LOG(fatal) << "TDC offset correction " << itdc << " missing configuration object and no manual override";
+      } else {
+        fval = mTDCParam->getOffset(itdc);
+      }
+    }
+    if (fval <= -ADCRange || fval >= ADCRange) {
+      LOG(fatal) << "TDC offset correction " << itdc << " " << fval << " is out of range";
+    }
+    tdc_offset[itdc] = fval;
     if (mVerbosity > DbgZero) {
-      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " factor= " << tdc_calib[itdc];
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " factor= " << tdc_calib[itdc] << " offset= " << tdc_offset[itdc];
     }
   }
 
@@ -280,6 +298,7 @@ void DigiReco::init()
   }
 
   // Tower calibration (intercalibration of towers)
+  // Array ChTowerCalib defines which channels use this calibration: ZN and ZP towers + ZEM2
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.tower_calib[ChTowerCalib[il]] > 0) {
       LOG(info) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
@@ -304,6 +323,21 @@ void DigiReco::init()
       if (mVerbosity > DbgZero) {
         LOG(info) << "Tower Energy Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
       }
+    }
+  }
+
+  // ADC offset
+  for (int ic = 0; ic < NChannels; ic++) {
+    if (ropt.adc_offset[ic] > -FInfty) {
+      LOG(info) << "ADC offset from command line " << ChannelNames[ic] << " = " << ropt.adc_offset[ic];
+    } else if (mEnergyParam && mEnergyParam->adc_offset[ic] > -FInfty) {
+      ropt.adc_offset[ic] = mEnergyParam->adc_offset[ic];
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "ADC offset from CCDB " << ChannelNames[ic] << " = " << ropt.adc_offset[ic];
+      }
+    } else {
+      ropt.adc_offset[ic] = 0;
+      LOG(warning) << "Default ADC offset " << ChannelNames[ic] << " = " << ropt.energy_calib[ic];
     }
   }
 
@@ -828,8 +862,8 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
           istop = ibun;
         } else { // No data from channel
           // A gap is detected
-          if (istart >= 0 && (istop - istart) > 0) {
-            // Need data for at least two consecutive bunch crossings
+          if (istart >= 0 && (istop - istart + 1) >= mFullInterpolationMinLength) {
+            // Need data for at least mFullInterpolationMinLength (two) consecutive bunch crossings
             int rval = fullInterpolation(isig, istart, istop);
             if (rval) {
               return rval;
@@ -839,8 +873,8 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
           istop = -1;
         }
       }
-      // Check if there are consecutive bunch crossings at the end of group
-      if (istart >= 0 && (istop - istart) > 0) {
+      // Check if there are mFullInterpolationMinLength consecutive bunch crossings at the end of group
+      if (istart >= 0 && (istop - istart + 1) >= mFullInterpolationMinLength) {
         int rval = fullInterpolation(isig, istart, istop);
         if (rval) {
           return rval;
@@ -1027,7 +1061,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
               // TODO: manage signal positioned across boundary
               sum += (myPed - float(mChData[ref[0]].data[is]));
             }
-            rec.ezdc[ich] = sum * mRopt->energy_calib[ich];
+            rec.ezdc[ich] = (sum - mRopt->adc_offset[ich]) * mRopt->energy_calib[ich];
           } else {
             LOGF(warn, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
           }
@@ -1798,7 +1832,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   TDCVal = TDCVal - tdc_shift[itdc];
   if (!rec.tdcPedMissing[isig]) {
     // Cannot correct amplitude if pedestal is missing
-    TDCAmp = TDCAmp * tdc_calib[itdc];
+    TDCAmp = (TDCAmp - tdc_offset[itdc]) * tdc_calib[itdc];
   }
 
   // Encode amplitude and assign
@@ -1829,7 +1863,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   LOG(info) << __func__ << " itdc=" << itdc << " " << ChannelNames[isig] << " @ ibun=" << ibun << " " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
             << " tdc=" << tdc << " -> " << TDCValCorr << " shift=" << tdc_shift[itdc] << " -> TDCVal=" << TDCVal << "=" << TDCVal * o2::zdc::FTDCVal
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]) << " = " << mOffset[isig]
-            << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " -> TDCAmp=" << TDCAmp << "=" << myamp
+            << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " offset=" << tdc_offset[itdc] << " -> TDCAmp=" << TDCAmp << "=" << myamp
             << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
   mAssignedTDC[itdc]++;
 #endif

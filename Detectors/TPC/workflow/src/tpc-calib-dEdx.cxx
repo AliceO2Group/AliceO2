@@ -19,6 +19,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"material-type", VariantType::Int, 2, {"Type for the material budget during track propagation: 0=None, 1=Geo, 2=LUT"}},
   };
 
   std::swap(workflowOptions, options);
@@ -33,7 +34,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpccalibration_configuration.ini");
+  auto materialType = static_cast<o2::base::Propagator::MatCorrType>(config.options().get<int>("material-type"));
 
   using namespace o2::tpc;
-  return WorkflowSpec{getCalibdEdxSpec()};
+  return WorkflowSpec{getCalibdEdxSpec(materialType)};
 }

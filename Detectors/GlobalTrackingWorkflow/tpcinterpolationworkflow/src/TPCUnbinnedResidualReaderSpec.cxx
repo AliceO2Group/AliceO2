@@ -56,11 +56,11 @@ void TPCUnbinnedResidualReader::run(ProcessingContext& pc)
   assert(currEntry < mTreeIn->GetEntries()); // this should not happen
   mTreeIn->GetEntry(currEntry);
   LOG(info) << "Pushing " << mUnbinnedResid.size() << " unbinned residuals at entry " << currEntry;
-  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mUnbinnedResid);
-  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0, Lifetime::Timeframe}, mTrackDataCompact);
+  pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0}, mUnbinnedResid);
+  pc.outputs().snapshot(Output{"GLO", "TRKREFS", 0}, mTrackDataCompact);
   if (mTrackInput) {
     LOG(info) << "Pushing " << mTrackData.size() << " reference tracks for these residuals";
-    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mTrackData);
+    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0}, mTrackData);
   }
 
   if (mTreeIn->GetReadEntry() + 1 >= mTreeIn->GetEntries()) {

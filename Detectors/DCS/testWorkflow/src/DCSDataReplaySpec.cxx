@@ -88,7 +88,7 @@ void DCSDataReplayer::run(o2::framework::ProcessingContext& pc)
 
   LOG(info)
     << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs";
-  pc.outputs().snapshot(Output{"DCS", mDataDescription, 0, Lifetime::Timeframe}, dpcoms);
+  pc.outputs().snapshot(Output{"DCS", mDataDescription, 0}, dpcoms);
   mTFs++;
 }
 } // namespace

@@ -23,7 +23,7 @@ namespace constants
 namespace math
 {
 constexpr float Almost0 = 1.17549e-38;
-constexpr float Almost1 = 1.f - Almost0;
+constexpr float Almost1 = 1.f - 1.0e-6;
 constexpr float VeryBig = 1.f / Almost0;
 
 constexpr float PI = 3.14159274101257324e+00f;

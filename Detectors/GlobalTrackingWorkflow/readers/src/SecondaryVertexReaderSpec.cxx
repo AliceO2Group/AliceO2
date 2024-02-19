@@ -93,15 +93,15 @@ void SecondaryVertexReader::run(ProcessingContext& pc)
   mTree->GetEntry(ent);
   LOG(info) << "Pushing " << mV0s.size() << " V0s and " << mCascs.size() << " cascades at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "V0S_IDX", 0, Lifetime::Timeframe}, mV0sIdx);
-  pc.outputs().snapshot(Output{"GLO", "V0S", 0, Lifetime::Timeframe}, mV0s);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
-  pc.outputs().snapshot(Output{"GLO", "CASCS_IDX", 0, Lifetime::Timeframe}, mCascsIdx);
-  pc.outputs().snapshot(Output{"GLO", "CASCS", 0, Lifetime::Timeframe}, mCascs);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe}, mPV2CascRef);
-  pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY_IDX", 0, Lifetime::Timeframe}, m3BodysIdx);
-  pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY", 0, Lifetime::Timeframe}, m3Bodys);
-  pc.outputs().snapshot(Output{"GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe}, mPV23BodyRef);
+  pc.outputs().snapshot(Output{"GLO", "V0S_IDX", 0}, mV0sIdx);
+  pc.outputs().snapshot(Output{"GLO", "V0S", 0}, mV0s);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0}, mPV2V0Ref);
+  pc.outputs().snapshot(Output{"GLO", "CASCS_IDX", 0}, mCascsIdx);
+  pc.outputs().snapshot(Output{"GLO", "CASCS", 0}, mCascs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_CASCREFS", 0}, mPV2CascRef);
+  pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY_IDX", 0}, m3BodysIdx);
+  pc.outputs().snapshot(Output{"GLO", "DECAYS3BODY", 0}, m3Bodys);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_3BODYREFS", 0}, mPV23BodyRef);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();

@@ -14,11 +14,13 @@
 #include <vector>
 
 #include "GlobalTracking/MatchTPCITS.h"
+#include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -60,8 +62,13 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC) {}
+  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts,
+                    bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+  }
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -100,19 +107,18 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
-  mMatching.run(recoData);
+  static pmr::vector<o2::MCCompLabel> dummyMCLab, dummyMCLabAB;
+  static pmr::vector<o2::dataformats::Triplet<float, float, float>> dummyCalib;
 
-  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
-  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe}, mMatching.getABTrackletRefs());
-  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe}, mMatching.getABTrackletClusterIDs());
-  if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
-    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mMatching.getABTrackletLabels());
-  }
+  auto& matchedTracks = pc.outputs().make<std::vector<o2::dataformats::TrackTPCITS>>(Output{"GLO", "TPCITS", 0});
+  auto& ABTrackletRefs = pc.outputs().make<std::vector<o2::itsmft::TrkClusRef>>(Output{"GLO", "TPCITSAB_REFS", 0});
+  auto& ABTrackletClusterIDs = pc.outputs().make<std::vector<int>>(Output{"GLO", "TPCITSAB_CLID", 0});
+  auto& matchLabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"GLO", "TPCITS_MC", 0}) : dummyMCLab;
+  auto& ABTrackletLabels = mUseMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"GLO", "TPCITSAB_MC", 0}) : dummyMCLabAB;
+  auto& calib = mCalibMode ? pc.outputs().make<std::vector<o2::dataformats::Triplet<float, float, float>>>(Output{"GLO", "TPCITS_VDTGL", 0}) : dummyCalib;
 
-  if (mCalibMode) {
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}, mMatching.getTglITSTPC());
-  }
+  mMatching.run(recoData, matchedTracks, ABTrackletRefs, ABTrackletClusterIDs, matchLabels, ABTrackletLabels, calib);
+
   mTimer.Stop();
 }
 
@@ -132,6 +138,10 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("GLO", "ITSTPCPARAM", 0)) {
+    LOG(info) << "ITS-TPC Matching params updated from ccdb";
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -155,6 +165,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
+    pc.inputs().get<o2::globaltracking::MatchTPCITSParams*>("MatchParam");
 
     //  Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -179,10 +190,11 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   // we may have other params which need to be queried regularly
   bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
-    mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateMaps = true;
   }
+  mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
+
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -197,13 +209,14 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   if ((src & GTrackID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any()) { // preliminary stage of extended workflow ?
     dataRequest->setMatchingInputStrict();
   }
+  dataRequest->inputs.emplace_back("MatchParam", "GLO", "ITSTPCPARAM", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/ITSTPCParam"));
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestTPCClusters(false);
@@ -240,13 +253,13 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}};
 
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
 
   return DataProcessorSpec{
     "itstpc-track-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, ggRequest, useFT0, calib, skipTPCOnly, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, ggRequest, sclOpts, useFT0, calib, skipTPCOnly, useMC)},
     opts};
 }
 

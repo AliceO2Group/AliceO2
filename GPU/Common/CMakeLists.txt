@@ -38,7 +38,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                              GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
-  
+
   # cuda test, only compile if CUDA
   if(CUDA_ENABLED)
     o2_add_test(GPUsortCUDA NAME test_GPUsortCUDA
@@ -46,8 +46,24 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                 PUBLIC_LINK_LIBRARIES O2::${MODULE}
                 COMPONENT_NAME GPU
                 LABELS gpu)
+    o2_add_test(SMatrixImpCUDA NAME test_SMatrixImpCUDA
+                SOURCES test/testSMatrixImp.cu
+                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+                                      O2::MathUtils
+                                      ROOT::Core
+                COMPONENT_NAME GPU
+                LABELS gpu)
   endif()
-
+  if (HIP_ENABLED)
+    o2_add_test(SMatrixImpHIP NAME test_SMatrixImpHIP
+                SOURCES test/testSMatrixImp.cu
+                HIPIFIED test
+                PUBLIC_LINK_LIBRARIES O2::${MODULE}
+                                      O2::MathUtils
+                                      ROOT::Core
+                COMPONENT_NAME GPU
+                LABELS gpu)
+  endif()
   install(FILES ${HDRS_INSTALL} DESTINATION include/GPU)
 endif()
 

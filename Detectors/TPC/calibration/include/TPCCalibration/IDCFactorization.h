@@ -24,6 +24,7 @@
 #include "TPCCalibration/IDCContainer.h"
 #include "TPCCalibration/IDCGroupHelperSector.h"
 #include "DataFormatsTPC/Defs.h"
+#include <boost/property_tree/ptree.hpp>
 
 namespace o2::tpc
 {
@@ -450,6 +451,10 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// normalize IDC0
   void normIDCZero(const int type);
+
+  /// check if received have all the same size -received IDCs which have different size than expected are cleared-
+  /// \return returns true if all IDCs have same size
+  bool checkReceivedIDCs();
 
   ClassDefNV(IDCFactorization, 2)
 };

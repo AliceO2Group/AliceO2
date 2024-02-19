@@ -28,10 +28,6 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #include "utils/qGetLdBinarySymbols.h"
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_src);
-#ifdef OPENCL2_ENABLED_AMD
-QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_amd);
-binary_GPUReconstructionOCL2Code_amd_end - _binary_GPUReconstructionOCL2Code_amd_start;
-#endif
 #ifdef OPENCL2_ENABLED_SPIRV
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionOCL2Code_spirv);
 #endif
@@ -58,29 +54,24 @@ S& GPUReconstructionOCL2Backend::getKernelObject()
 
 int GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
-  char platform_version[64] = {}, platform_vendor[64] = {};
-  clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
-  clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
+  char platform_version[256] = {};
+  GPUFailedMsg(clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr));
   float ver = 0;
   sscanf(platform_version, "OpenCL %f", &ver);
 
-  cl_int return_status[1] = {CL_SUCCESS};
   cl_int ocl_error;
-#ifdef OPENCL2_ENABLED_AMD
-  if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0) {
-    size_t program_sizes[1] = {_binary_GPUReconstructionOCL2Code_amd_len};
-    char* program_binaries[1] = {_binary_GPUReconstructionOCL2Code_amd_start};
-    mInternals->program = clCreateProgramWithBinary(mInternals->context, 1, &mInternals->device, program_sizes, (const unsigned char**)program_binaries, return_status, &ocl_error);
-  } else
-#endif
+
+  const char* ocl_flags = GPUCA_M_STR(OCL_FLAGS);
 
 #ifdef OPENCL2_ENABLED_SPIRV // clang-format off
   if (ver >= 2.2) {
+    GPUInfo("Reading OpenCL program from SPIR-V IL (Platform version %f)", ver);
     mInternals->program = clCreateProgramWithIL(mInternals->context, _binary_GPUReconstructionOCL2Code_spirv_start, _binary_GPUReconstructionOCL2Code_spirv_len, &ocl_error);
+    ocl_flags = "";
   } else
 #endif // clang-format on
-
   {
+    GPUInfo("Compiling OpenCL program from sources (Platform version %f, %s)", ver);
     size_t program_sizes[1] = {_binary_GPUReconstructionOCL2Code_src_len};
     char* programs_sources[1] = {_binary_GPUReconstructionOCL2Code_src_start};
     mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint)1, (const char**)&programs_sources, program_sizes, &ocl_error);
@@ -90,12 +81,8 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     GPUError("Error creating OpenCL program from binary");
     return 1;
   }
-  if (GPUFailedMsgI(return_status[0])) {
-    GPUError("Error creating OpenCL program from binary (device status)");
-    return 1;
-  }
 
-  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, GPUCA_M_STR(OCL_FLAGS), nullptr, nullptr))) {
+  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, ocl_flags, nullptr, nullptr))) {
     cl_build_status status;
     if (GPUFailedMsgI(clGetProgramBuildInfo(mInternals->program, mInternals->device, CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr)) == 0 && status == CL_BUILD_ERROR) {
       size_t log_size;

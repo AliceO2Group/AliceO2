@@ -365,7 +365,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (bcfreqFound != bcFreq.end()) {
         const auto& activelinks = bcfreqFound->second;
         if (activelinks != bitSetActiveLinks) {
-          LOG(error) << "Not all EMC active links contributed in global BCid=" << interaction.toLong() << ": mask=" << (activelinks ^ bitSetActiveLinks);
+          static int nErrors = 0;
+          if (nErrors++ < 3) {
+            LOG(error) << "Not all EMC active links contributed in global BCid=" << interaction.toLong() << ": mask=" << (activelinks ^ bitSetActiveLinks) << (nErrors == 3 ? " (not reporting further errors to avoid spamming)" : "");
+          }
           if (mCreateRawDataErrors) {
             for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
               if (!bitSetActiveLinks.test(ilink)) {
@@ -719,11 +722,11 @@ void RawToCellConverterSpec::handleMinorPageError(const RawReaderMemory::MinorEr
 void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification}, cells);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification}, triggers);
   if (mCreateRawDataErrors) {
     LOG(debug) << "Sending " << decodingErrors.size() << " decoding errors";
-    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification}, decodingErrors);
   }
 }
 
@@ -747,7 +750,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
     outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
   }
 
-  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Timeframe}};
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }

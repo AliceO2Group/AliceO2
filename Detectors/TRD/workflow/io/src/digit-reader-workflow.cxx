@@ -18,12 +18,19 @@ using namespace o2::framework;
 
 // ------------------------------------------------------------------
 
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"disable-mc", o2::framework::VariantType::Bool, true, {"disable MC propagation"}},
+    {"disable-mc", VariantType::Bool, true, {"disable MC propagation"}},
+    {"disable-trigrec", VariantType::Bool, false, {"disable trigger record reading when these come from tracklet reader"}},
+    {"digit-subspec", VariantType::Int, 1, {"allow overwriting default output data subspec"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -39,7 +46,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto sendTriggerRecords = !configcontext.options().get<bool>("disable-trigrec");
+  auto dataSubspec = configcontext.options().get<int>("digit-subspec");
   WorkflowSpec specs;
-  specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
+  specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC, sendTriggerRecords, dataSubspec));
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }
