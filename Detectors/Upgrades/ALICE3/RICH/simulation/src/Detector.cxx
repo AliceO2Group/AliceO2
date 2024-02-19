@@ -145,20 +145,12 @@ void Detector::createGeometry()
   vRICH->SetTitle(vstrng);
   auto& richPars = RICHBaseParam::Instance();
 
-  // TGeoTube* richVessel = new TGeoTube(richPars.rMin, richPars.rMax, richPars.zRichLength / 2.0);
-  // TGeoMedium* medArgon = gGeoManager->GetMedium("RCH_ARGON$");
-  // TGeoVolume* vRichVessel = new TGeoVolume(vstrng, richVessel, medArgon);
-  // vRichVessel->SetLineColor(kGray);
-  // vRichVessel->SetVisibility(kTRUE);
-  // vRichVessel->SetTransparency(75);
-  // vALIC->AddNode(vRichVessel, 1, new TGeoTranslation(0, 30., 0));
+  prepareLayout();
 
-  if (!(richPars.nRings % 2)) {
-    prepareEvenLayout();
-  } else {
-    prepareOddLayout();
-  }
   for (int iRing{0}; iRing < richPars.nRings; ++iRing) {
+    if (!richPars.oddGeom && iRing == (richPars.nRings / 2)) {
+      continue;
+    }
     mRings[iRing] = Ring{iRing,
                          richPars.nTiles,
                          richPars.rMin,
@@ -317,15 +309,12 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
   return &(mHits->back());
 }
 
-void Detector::prepareEvenLayout()
-{
-}
-
-void Detector::prepareOddLayout()
+void Detector::prepareLayout()
 { // Mere translation of Nicola's code
   LOGP(info, "Setting up ODD layout for bRICH");
   auto& richPars = RICHBaseParam::Instance();
 
+  bool isOdd = richPars.oddGeom;
   mThetaBi.resize(richPars.nRings);
   mR0Tilt.resize(richPars.nRings);
   mZ0Tilt.resize(richPars.nRings);
@@ -346,9 +335,9 @@ void Detector::prepareOddLayout()
   mThetaBi[richPars.nRings / 2] = TMath::ATan(mVal);
   mR0Tilt[richPars.nRings / 2] = richPars.rMax;
   mZ0Tilt[richPars.nRings / 2] = mR0Tilt[richPars.nRings / 2] * TMath::Tan(mThetaBi[richPars.nRings / 2]);
-  mLAerogelZ[richPars.nRings / 2] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
+  mLAerogelZ[richPars.nRings / 2] = isOdd ? TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize) : 0.f;
   mTRplusG[richPars.nRings / 2] = richPars.rMax - richPars.rMin;
-  double t = TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal)));
+  double t = isOdd ? TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal))) : 0.f;
   mMinRadialMirror[richPars.nRings / 2] = richPars.rMax;
   mMaxRadialRadiator[richPars.nRings / 2] = richPars.rMin;
 

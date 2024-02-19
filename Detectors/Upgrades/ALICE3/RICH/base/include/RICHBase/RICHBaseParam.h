@@ -26,8 +26,9 @@ struct RICHBaseParam : public o2::conf::ConfigurableParamHelper<RICHBaseParam> {
   float radiatorThickness = 2.0; // cm
   float detectorThickness = 0.2; // cm
   float zRichLength = 700.0;     // cm
-  int nRings = 21;
+  int nRings = 23;
   int nTiles = 36;
+  bool oddGeom = true;
   std::string configFile = "";
 
   O2ParamDef(RICHBaseParam, "RICHBase");

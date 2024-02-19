@@ -68,8 +68,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void createMaterials();
   void createGeometry();
-  void prepareEvenLayout();
-  void prepareOddLayout();
+  void prepareLayout();
   void createRings(TGeoVolume*);
 
  private:
