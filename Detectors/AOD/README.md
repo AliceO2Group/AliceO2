@@ -10,7 +10,7 @@ files.   There are two such producers:
 - [`o2-aod-mc-producer-workflow`](src/AODMcProducerWorkflowSpec.cxx)
   that produces `AO2D.root` from simulation data only. The output will
   only contain the simulation particles and collision headers.
-  
+
 ## Do a full simulation to AO2D chain
 
 You need [`O2DPG`](https://github.com/AliceO2Group/O2DPG/) installed.
@@ -23,7 +23,7 @@ Then, a script a la
     # excluding ZDC
     NWORKERS=${NWORKERS:-6}
     SIMENGINE=${SIMENGINE:-TGeant4}
-    
+
     ${O2DPG_ROOT}/MC/bin/o2dpg_sim_workflow.py \
                  -eCM 14000 \
                  -col pp \
@@ -35,8 +35,8 @@ Then, a script a la
                  -j ${NWORKERS} \
                  -run 303000 \
                  -seed 624 \
-                 -interactionRate 50000 
-    
+                 -interactionRate 50000
+
     ${O2DPG_ROOT}/MC/bin/o2_dpg_workflow_runner.py -f workflow.json -tt aod
 
 will set-up a chain and run it.  The above will make 2 time-frames,
