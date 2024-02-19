@@ -23,7 +23,7 @@
 #include <bitset>
 #include <map>
 #include <set>
-#include <iostream>
+#include <iosfwd>
 namespace o2
 {
 namespace ctp
@@ -175,7 +175,7 @@ class CTPConfiguration
   std::vector<std::string> getDetectorList() const;
   o2::detectors::DetID::mask_t getDetectorMask() const;
   uint64_t getClassMaskForInputMask(uint64_t inputMask) const;
-  void printConfigString() { std::cout << mConfigString << std::endl; };
+  void printConfigString();
   std::string getConfigString() { return mConfigString; };
   CTPDescriptor* getDescriptor(int index) { return &mDescriptors[index]; };
   int assignDescriptors();
@@ -197,6 +197,9 @@ class CTPConfiguration
   int processConfigurationLineRun3v2(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex);
   ClassDefNV(CTPConfiguration, 6);
 };
+
+std::ostream& operator<<(std::ostream& in, const CTPConfiguration& conf);
+
 } // namespace ctp
 } // namespace o2
 #endif //_CTP_CONFIGURATION_H_
