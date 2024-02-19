@@ -133,6 +133,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() MergeLooperParam* LooperCandidates() { return mLooperCandidates; }
   GPUhdi() GPUAtomic(unsigned int) * SharedCount() { return mSharedCount; }
   GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
+  GPUhdi() GPUTPCGMBorderTrack* BorderTracks(int i) { return mBorder[i]; }
   GPUhdi() o2::tpc::TrackTPC* OutputTracksTPCO2() { return mOutputTracksTPCO2; }
   GPUhdi() unsigned int* OutputClusRefsTPCO2() { return mOutputClusRefsTPCO2; }
   GPUhdi() o2::MCCompLabel* OutputTracksTPCO2MC() { return mOutputTracksTPCO2MC; }

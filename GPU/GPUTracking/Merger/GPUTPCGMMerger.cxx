@@ -264,6 +264,9 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   if (mRec->GetParam().rec.nonConsecutiveIDs) {
     computePointerWithAlignment(mem, mGlobalClusterIDs, mNMaxOutputTrackClusters);
   }
+  if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
+    computePointerWithAlignment(mem, mTmpSortMemory, std::max(mNTotalSliceTracks, mNMaxTracks));
+  }
 
   void* memBase = mem;
   computePointerWithAlignment(mem, mBorderMemory, 2 * mNTotalSliceTracks); // MergeBorders & Resolve
@@ -281,9 +284,6 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   void* memMax = mem;
   mem = memBase;
   computePointerWithAlignment(mem, mTrackIDs, GPUCA_NSLICES * mNMaxSingleSliceTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
-  if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
-    computePointerWithAlignment(mem, mTmpSortMemory, mNTotalSliceTracks);
-  }
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
   computePointerWithAlignment(mem, mTrackSort, mNMaxTracks); // PrepareClustersForFit0 - SortTracksQPt - PrepareClustersForFit1 - PrepareClustersForFit1 / Finalize0 - Finalize2

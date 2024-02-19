@@ -38,9 +38,6 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace gputpcgmmergertypes;
 
-static std::vector<int> trackOrder, trackOrderReverse;
-static int getTrackOrderReverse(int i) { return i == -1 ? -1 : trackOrderReverse[i]; }
-
 void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
 {
   std::streamsize ss = out.precision();
@@ -101,21 +98,11 @@ void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out)
 
 void GPUTPCGMMerger::DumpCollected(std::ostream& out)
 {
-  trackOrder.resize(mMemory->nOutputTracks);
-  trackOrderReverse.resize(mMemory->nOutputTracks);
-  std::iota(trackOrder.begin(), trackOrder.end(), 0);
-  std::sort(trackOrder.begin(), trackOrder.end(), [this](const int& aa, const int& bb) {
-    const GPUTPCGMMergedTrack& a = mOutputTracks[aa];
-    const GPUTPCGMMergedTrack& b = mOutputTracks[bb];
-    return (a.GetAlpha() != b.GetAlpha()) ? (a.GetAlpha() < b.GetAlpha()) : (a.GetParam().GetX() != b.GetParam().GetX()) ? (a.GetParam().GetX() < b.GetParam().GetX()) : (a.GetParam().GetY() != b.GetParam().GetY()) ? (a.GetParam().GetY() < b.GetParam().GetY()) : (a.GetParam().GetZ() < b.GetParam().GetZ());
-  });
-
   std::streamsize ss = out.precision();
   out << std::setprecision(2);
   out << "\nTPC Merger Collected Tracks\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-    const auto& trk = mOutputTracks[trackOrder[i]];
-    trackOrderReverse[trackOrder[i]] = i;
+    const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
     out << "  Track " << i << ": Loop " << trk.Looper() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << "\n";
   }
@@ -127,7 +114,7 @@ void GPUTPCGMMerger::DumpMergeCE(std::ostream& out)
   DumpTrackLinks(out, true);
   out << "\nTPC Merger Merge CE\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-    const auto& trk = mOutputTracks[trackOrder[i]];
+    const auto& trk = mOutputTracks[i];
     if (trk.CCE()) {
       out << "  Track " << i << ": CCE\n";
     }
@@ -139,18 +126,18 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
   out << "\nTPC Merger Refit Prepare\n";
   out << "  Sort\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-    out << "    " << i << ": " << mTrackOrderAttach[trackOrder[i]] << "\n";
+    out << "    " << i << ": " << mTrackOrderAttach[i] << "\n";
   }
   out << "  Clusters\n";
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
-    const auto& trk = mOutputTracks[trackOrder[j]];
+    const auto& trk = mOutputTracks[j];
     for (unsigned int i = trk.FirstClusterRef(); i < trk.FirstClusterRef() + trk.NClusters(); i++) {
       out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
     }
   }
   unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
-    out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
+    out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }
 }
 
@@ -160,12 +147,12 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
   out << std::setprecision(2);
   out << "\nTPC Merger Refit\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
-    const auto& trk = mOutputTracks[trackOrder[i]];
+    const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
 #ifdef GPUCA_HAVE_O2HEADERS
-        << " dEdx " << mOutputTracksdEdx[trackOrder[i]].dEdxTotTPC << "/" << mOutputTracksdEdx[trackOrder[i]].dEdxMaxTPC
+        << " dEdx " << mOutputTracksdEdx[i].dEdxTotTPC << "/" << mOutputTracksdEdx[i].dEdxMaxTPC
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }
@@ -176,14 +163,14 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
 {
   out << "\nTPC Merger Finalized\n";
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
-    const auto& trk = mOutputTracks[trackOrder[j]];
+    const auto& trk = mOutputTracks[j];
     for (unsigned int i = trk.FirstClusterRef(); i < trk.FirstClusterRef() + trk.NClusters(); i++) {
       out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
     }
   }
   unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
-    out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
+    out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }
 }
 

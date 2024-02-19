@@ -28,13 +28,14 @@ class GPUTPCGlobalDebugSortKernels : public GPUKernelTemplate
  public:
   enum K { defaultKernel = 0,
            clearIds = 0,
-           sectorTracks = 1 };
+           sectorTracks = 1,
+           globalTracks = 2 };
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCMerging; }
   typedef GPUTPCGMMerger processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors) { return &processors.tpcMerger; }
 
   template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& tracker, char global);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& tracker, char globalTracks);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
