@@ -127,8 +127,8 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
 
   for (unsigned int i = 0; i < NSLICES; i++) {
-    runKernel<GPUTPCGMMergerUnpackResetIds>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, i);
     runKernel<GPUTPCGMMergerUnpackSaveNumber>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, i);
+    runKernel<GPUTPCGMMergerUnpackResetIds>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, i);
     runKernel<GPUTPCGMMergerSliceRefit>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, i);
   }
   for (unsigned int i = 0; i < NSLICES; i++) {
