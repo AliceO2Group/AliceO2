@@ -137,11 +137,7 @@ MIDLayer::Stave::Module::Sensor::Sensor(std::string sensorName,
 void MIDLayer::createLayer(TGeoVolume* motherVolume)
 {
   LOGP(debug, "Creating MIDLayer: {}", mName);
-  TGeoTube* layer = new TGeoTube(mName.c_str(), mRadius, mRadius + 10, mLength);
-  auto* airMed = gGeoManager->GetMedium("MI3_AIR");
-  TGeoVolume* layerVolume = new TGeoVolume(mName.c_str(), layer, airMed);
-  layerVolume->SetVisibility(true);
-  layerVolume->SetTransparency(0);
+  TGeoVolumeAssembly* layerVolume = new TGeoVolumeAssembly(mName.c_str());
   motherVolume->AddNode(layerVolume, 0);
   for (auto& stave : mStaves) {
     stave.createStave(layerVolume);
@@ -151,11 +147,7 @@ void MIDLayer::createLayer(TGeoVolume* motherVolume)
 void MIDLayer::Stave::createStave(TGeoVolume* motherVolume)
 {
   LOGP(debug, "\tCreating MIDStave: {} layer: {}", mName, mLayer);
-  TGeoBBox* stave = new TGeoBBox(mName.c_str(), mWidth, mThickness, mLength);
-  auto* airMed = gGeoManager->GetMedium("MI3_AIR");
-  TGeoVolume* staveVolume = new TGeoVolume(mName.c_str(), stave, airMed);
-  staveVolume->SetVisibility(true);
-  staveVolume->SetTransparency(0);
+  TGeoVolumeAssembly* staveVolume = new TGeoVolumeAssembly(mName.c_str());
   // Create the modules
   for (auto& module : mModules) {
     module.createModule(staveVolume);
@@ -173,16 +165,8 @@ void MIDLayer::Stave::Module::createModule(TGeoVolume* motherVolume)
   // Module is an air box with floating bars inside for the moment
   auto sumWidth = ((mBarWidth * 2 + mBarSpacing) * mNBars) / 2;
   LOGP(debug, "\t\t\tCreating MIDModule: {} with ", mName);
-  TGeoBBox* module = nullptr;
-  if (!mLayer) {
-    module = new TGeoBBox(mName.c_str(), sumWidth, mBarThickness, mBarLength);
-  } else {
-    module = new TGeoBBox(mName.c_str(), mBarLength, mBarThickness, sumWidth);
-  }
-  auto* airMed = gGeoManager->GetMedium("MI3_AIR");
-  TGeoVolume* moduleVolume = new TGeoVolume(mName.c_str(), module, airMed);
-  moduleVolume->SetVisibility(true);
-  moduleVolume->SetTransparency(0);
+  TGeoVolumeAssembly* moduleVolume = new TGeoVolumeAssembly(mName.c_str() /*, module, airMed*/);
+
   // Create the bars
   for (auto& sensor : mSensors) {
     sensor.createSensor(moduleVolume);
@@ -213,9 +197,11 @@ void MIDLayer::Stave::Module::Sensor::createSensor(TGeoVolume* motherVolume)
   if (!mLayer) {
     sensorTrans = new TGeoTranslation(mModuleOffset + 2 * totWidth * mNumber + totWidth, 0, 0);
     sensorVolume->SetLineColor(kBlue);
+    sensorVolume->SetTransparency(50);
   } else {
     sensorTrans = new TGeoTranslation(0, 0, mModuleOffset + 2 * totWidth * mNumber + totWidth);
     sensorVolume->SetLineColor(kPink);
+    sensorVolume->SetTransparency(50);
   }
   motherVolume->AddNode(sensorVolume, 0, sensorTrans);
 }
