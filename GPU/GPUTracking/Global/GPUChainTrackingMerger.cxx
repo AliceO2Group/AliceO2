@@ -23,6 +23,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType)
 {
+  if (GetProcessingSettings().deterministicGPUReconstruction) {
+    unsigned int n = withinSlice == 1 ? NSLICES : (2 * NSLICES);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::borderTracks>({n, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 0);
+  }
   unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
   bool doGPUall = GetRecoStepsGPU() & RecoStep::TPCMerging && GetProcessingSettings().fullMergerOnGPU;
   if (GetProcessingSettings().alternateBorderSort && (!mRec->IsGPU() || doGPUall)) {
