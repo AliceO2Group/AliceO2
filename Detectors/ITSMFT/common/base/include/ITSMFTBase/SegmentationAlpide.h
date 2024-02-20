@@ -25,7 +25,7 @@ namespace itsmft
 
 /// Segmentation and response for pixels in ITSMFT upgrade
 /// Questions to solve: are guardrings needed and do they belong to the sensor or to the chip in
-/// TGeo. At the moment assume that the local coord syst. is located at bottom left corner
+/// TGeo. At the moment assume that the local coord syst. is located in the middle
 /// of the ACTIVE matrix. If the guardring to be accounted in the local coords, in
 /// the Z and X conversions one needs to first subtract the  mGuardLeft and mGuardBottom
 /// from the local Z,X coordinates
@@ -160,8 +160,8 @@ inline void SegmentationAlpide::localToDetectorUnchecked(float xRow, float zCol,
 inline bool SegmentationAlpide::localToDetector(float xRow, float zCol, int& iRow, int& iCol)
 {
   // convert to row/col
-  xRow = 0.5 * (ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - xRow; // coordinate wrt left edge of Active matrix
-  zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt bottom edge of Active matrix
+  xRow = 0.5 * (ActiveMatrixSizeRows - PassiveEdgeTop + PassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
+  zCol += 0.5 * ActiveMatrixSizeCols;                                               // coordinate wrt left edge of Active matrix
   if (xRow < 0 || xRow >= ActiveMatrixSizeRows || zCol < 0 || zCol >= ActiveMatrixSizeCols) {
     iRow = iCol = -1;
     return false;
