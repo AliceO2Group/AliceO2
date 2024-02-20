@@ -23,6 +23,8 @@
 #include "EMCALSimulation/SDigitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <DetectorsBase/BaseDPLDigitizer.h>
+#include "EMCALSimulation/DigitizerTRU.h"
+
 
 class TChain;
 
@@ -84,6 +86,10 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   std::vector<Hit> mHits;                     ///< Vector with input hits
   std::vector<TChain*> mSimChains;
   o2::ctp::CTPConfiguration* mCTPConfig; ///< CTP configuration
+
+  DigitizerTRU mDigitizerTRU;                  ///< Digitizer object TRU
+  o2::emcal::SDigitizer mSumDigitizerTRU;      ///< Summed digitizer TRU
+
 };
 
 /// \brief Create new digitizer spec
