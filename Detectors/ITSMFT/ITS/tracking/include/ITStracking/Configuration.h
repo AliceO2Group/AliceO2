@@ -80,6 +80,7 @@ struct TrackingParameters {
   float CellDeltaTanLambdaSigma = 0.007f;
   float CellsPerClusterLimit = 2.f;
   /// Fitter parameters
+  bool useBxByBz = false;
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;
   float MaxChi2ClusterAttachment = 60.f;
@@ -87,6 +88,7 @@ struct TrackingParameters {
   bool UseTrackFollower = false;
   bool FindShortTracks = false;
   bool PerPrimaryVertexProcessing = false;
+  /// save benchmarks
   bool SaveTimeBenchmarks = false;
 };
 

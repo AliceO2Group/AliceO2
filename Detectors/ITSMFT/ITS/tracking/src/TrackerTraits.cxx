@@ -607,14 +607,14 @@ void TrackerTraits::findRoads(const int iteration)
         temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::its::UnusedIndex);
       }
 
-      bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+      bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].useBxByBz, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
       if (!fitSuccess) {
         continue;
       }
       temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
       temporaryTrack.resetCovariance();
       temporaryTrack.setChi2(0);
-      fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f);
+      fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].useBxByBz, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f);
       if (!fitSuccess) {
         continue;
       }
@@ -691,7 +691,7 @@ void TrackerTraits::extendTracks(const int iteration)
         /// We have to refit the track
         track.resetCovariance();
         track.setChi2(0);
-        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].useBxByBz, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
         if (!fitSuccess) {
           track = backup;
           continue;
@@ -699,7 +699,7 @@ void TrackerTraits::extendTracks(const int iteration)
         track.getParamOut() = track;
         track.resetCovariance();
         track.setChi2(0);
-        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
+        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].useBxByBz, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
         if (!fitSuccess) {
           track = backup;
           continue;
@@ -789,14 +789,14 @@ void TrackerTraits::findShortPrimaries()
 
     bestTrack.resetCovariance();
     bestTrack.setChi2(0.f);
-    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].useBxByBz, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
     if (!fitSuccess) {
       continue;
     }
     bestTrack.getParamOut() = bestTrack;
     bestTrack.resetCovariance();
     bestTrack.setChi2(0.f);
-    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
+    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].useBxByBz, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
     if (!fitSuccess) {
       continue;
     }
@@ -807,7 +807,7 @@ void TrackerTraits::findShortPrimaries()
   }
 }
 
-bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl)
+bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, bool useBxByBz, float chi2clcut, float chi2ndfcut, float maxQoverPt, int nCl)
 {
   auto propInstance = o2::base::Propagator::Instance();
 
@@ -821,9 +821,9 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
       return false;
     }
 
-    if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
+    if (!propInstance->propagateTo(track, trackingHit.xTrackingFrame, !useBxByBz, o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
       return false;
-    }
+    };
 
     if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
       float radl = 9.36f; // Radiation length of Si [cm]

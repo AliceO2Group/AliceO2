@@ -443,6 +443,7 @@ void Tracker::getGlobalConfiguration()
     params.nROFsPerIterations = nROFsPerIterations;
     params.PerPrimaryVertexProcessing = tc.perPrimaryVertexProcessing;
     params.SaveTimeBenchmarks = tc.saveTimeBenchmarks;
+    params.useBxByBz = tc.useBxByBz;
     for (int iD{0}; iD < 3; ++iD) {
       params.Diamond[iD] = tc.diamondPos[iD];
     }
