@@ -17,6 +17,7 @@ o2_add_library(ITSPostprocessing
                        src/AnomalyStudy.cxx
                        src/TrackCheck.cxx
                        src/TrackExtension.cxx
+                       src/Efficiency.cxx
                        src/Helpers.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
