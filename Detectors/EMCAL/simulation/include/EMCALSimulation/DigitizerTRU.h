@@ -101,6 +101,9 @@ class DigitizerTRU
   /// Getter for debug mode
   bool isDebugMode() { return mEnableDebugStreaming; }
 
+  /// Getter for triggers 
+  const std::vector<EMCALTriggerInputs>&  getTriggerInputs() { return LZERO.getTriggerInputs(); }
+
   /// Getter for patches
   std::vector<TRUElectronics> getPatchesVector() { return patchesFromAllTRUs; }
 

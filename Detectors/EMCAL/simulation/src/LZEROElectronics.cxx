@@ -172,13 +172,21 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     // It accounts for the difference in times between L0a, L0b, and then there will be a L1 and L1b delay
     // There is 1BC uncertainty on the trigger readout due to steps in the interaction between CTP and detector simulations
     bool foundPeak = false;
+    int  counterWhichTRU = 0;
+    int triggeredTRU = -1;
+    std::vector<int> triggeredPatches;
     for (auto& patches : patchesFromAllTRUs) {
       updatePatchesADC(patches);
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
       auto firedPatches = getFiredPatches(patches);
+      if (foundPeakCurrentTRU == true && foundPeak == false) {
+        triggeredTRU = counterWhichTRU;
+        triggeredPatches = firedPatches;
+      }
       if (foundPeakCurrentTRU) {
         foundPeak = true;
       }
+      counterWhichTRU += 1;
     }
 
     if (foundPeak == true) {
@@ -187,6 +195,8 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
       TriggerInputsForL1.mInterRecord = record;
+      TriggerInputsForL1.mTriggeredTRU = triggeredTRU;
+      TriggerInputsForL1.mTriggeredPatches = triggeredPatches;
       int whichTRU = 0;
       for (auto& patches : patchesFromAllTRUs) {
         int whichFastOr = 0;

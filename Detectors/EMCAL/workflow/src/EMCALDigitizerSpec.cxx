@@ -53,9 +53,12 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
   // init digitizer
 
   mSumDigitizer.setGeometry(geom);
+  mSumDigitizerTRU.setGeometry(geom);
+  mDigitizerTRU.setGeometry(geom);
 
   if (ctx.options().get<bool>("debug-stream")) {
     mDigitizer.setDebugStreaming(true);
+    mDigitizerTRU.setDebugStreaming(true);
   }
   // mDigitizer.init();
 
@@ -80,6 +83,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   o2::emcal::SimParam::Instance().printKeyValues(true, true);
 
   mDigitizer.flush();
+  mDigitizerTRU.flush();
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -103,6 +107,81 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   TStopwatch timer;
   timer.Start();
+
+
+
+
+
+
+  auto& eventParts = context->getEventParts();
+
+
+  // ------------------------------
+  // TRIGGER Simulation
+  // ------------------------------
+  // 1. Run SDigitizer separate loop -> map of vector of SDigits
+  // 2. Run Trigger simulation chain (Digitizer -> Digits writeout buffer -> L0 Simulation)
+  // 3. Run Loop SDigits -> Digits, set live only if the trigger is accepted.
+  //
+  // loop over all composite collisions given from context
+  // (aka loop over all the interaction records)
+  int collisionN = 0;
+  for (int collID = 0; collID < timesview.size(); ++collID) {
+
+    LOG(info) << "DIG TRU in SPEC: before mDigitizerTRU.setEventTime  collN = " << collisionN;
+    collisionN++;
+
+    mDigitizerTRU.setEventTime(timesview[collID]);
+
+    // for each collision, loop over the constituents event and source IDs
+    // (background signal merging is basically taking place here)
+    for (auto& part : eventParts[collID]) {
+
+      mSumDigitizerTRU.setCurrEvID(part.entryID);
+      mSumDigitizerTRU.setCurrSrcID(part.sourceID);
+
+      // get the hits for this event and this source
+      mHits.clear();
+      context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
+
+      LOG(info) << "DIG TRU For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+
+      // std::vector<o2::emcal::LabeledDigit> summedLabeledDigits = mSumDigitizerTRU.process(mHits);
+      // std::vector<o2::emcal::Digit> summedDigits;
+      // for (auto labeledsummeddigit : summedLabeledDigits) {
+      //   summedDigits.push_back(labeledsummeddigit.getDigit());
+      // }
+
+      std::vector<o2::emcal::LabeledDigit> summedLabeledDigits;
+      std::vector<o2::emcal::Digit> summedDigits;
+      if (mRunSDitizer) {
+        summedLabeledDigits = mSumDigitizerTRU.process(mHits);
+        for (auto labeledsummeddigit : summedLabeledDigits) {
+          summedDigits.push_back(labeledsummeddigit.getDigit());
+        }
+      } else {
+        for (auto& hit : mHits) {
+          summedDigits.emplace_back(hit.GetDetectorID(), hit.GetEnergyLoss(), hit.GetTime());
+        }
+      }
+
+
+
+
+
+      // call actual digitization procedure
+      mDigitizerTRU.process(summedDigits);
+    }
+  }
+  mDigitizerTRU.finish();
+  // Result of the trigger simulation
+  // -> Set of BCs with triggering patches
+  auto emcalTriggers = mDigitizerTRU.getTriggerInputs();
+
+
+
+
+
 
   // Load FIT triggers if not running in self-triggered mode
   std::vector<o2::InteractionRecord> mbtriggers;
@@ -178,18 +257,77 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   LOG(info) << " CALLING EMCAL DIGITIZATION ";
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> labelAccum;
 
-  auto& eventParts = context->getEventParts();
+  // auto& eventParts = context->getEventParts();
+  std::vector<std::tuple<o2::InteractionRecord, std::bitset<3>>> acceptedTriggers;
 
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
-    bool trigger = true; // Default: Self-triggered mode - all collisions treated as trigger
-    if (mRequireCTPInput) {
-      // check if we have a trigger input from CTP
-      trigger = (std::find(mbtriggers.begin(), mbtriggers.end(), timesview[collID]) != mbtriggers.end());
-    }
 
-    mDigitizer.setEventTime(timesview[collID], trigger);
+    std::bitset<3> trigger{0x1}; // Default: Self-triggered mode - all collisions treated as trigger
+    if (mRequireCTPInput) {
+      // ====================================================
+      // check if we have a trigger input from CTP
+      // Simulated L0 and downsampling
+      // 2 cases -> Check from CTP config
+      // 1) EMCAL trigger active -> MB downsampled
+      //    - Accept the event in 2 conditions
+      //      + MB downsampling (first condition) -> Set trigger bit kTVXinEMC
+      //      + EMCAL L0 trigger -> Set bit EMCAL L0
+      //      Always test both, set trigger 0x1 -> EMBA, 0x2 -> 0EMC, 0x4 -> 0DCMX, 0 -> No trigger
+      // 2) EMCAL triggers not active
+      // .  - Old logics kept, no downscaling, pure busy
+      // ----------------------------------------------------
+      // PRNG for downscaling check
+      TRandom3 mRandomGenerator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+      auto mbtrigger = std::find(mbtriggers.begin(), mbtriggers.end(), timesview[collID]);
+      if( mbtrigger != mbtriggers.end() ) {
+
+        // ============================
+        // retrieve downscaling from
+        // configuration of CTP classes
+        int downscaling = 0;
+        for (const auto& trg : mCTPConfig->getCTPClasses()) {
+          if (trg.cluster->maskCluster[o2::detectors::DetID::EMC]) {
+            // Class triggering EMCAL cluster
+            downscaling = trg.downScale;
+          }
+        }
+        if (mRandomGenerator.Uniform(0., 1) < downscaling) {
+          // accept as minimum bias
+          trigger.set(0, true);
+        } else {
+          // check for LO triggers in 12 BCs
+          for (auto emcalTrigger : emcalTriggers) {
+            auto bcTimingOfEmcalTrigger = emcalTrigger.mInterRecord.bc;
+            auto bcTimingOfMBTrigger = (*mbtrigger).bc;
+            if (abs(bcTimingOfEmcalTrigger - bcTimingOfMBTrigger) < 12) {
+              if (emcalTrigger.mTriggeredTRU < 32) {
+                trigger.set(1, true);
+              } else {
+                trigger.set(2, true);
+              }
+            } 
+          }  
+        }  
+      } else {
+        // No trigger active
+        // Set busy
+        trigger.set(0, false);
+      }      
+    }
+    // Bitset
+    // Trigger sim: Select event
+    if (!trigger.any()) {
+      continue;
+    }
+    // Trigger sim: Prepare CTP input digit
+    acceptedTriggers.push_back(std::make_tuple(timesview[collID], trigger));
+
+
+
+
+    mDigitizer.setEventTime(timesview[collID], trigger.any());
 
     if (!mDigitizer.isLive()) {
       continue;
