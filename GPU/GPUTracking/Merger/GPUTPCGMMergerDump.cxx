@@ -56,23 +56,25 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
   out << std::setprecision(ss);
 }
 
-void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output)
+void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output, const char* type)
 {
-  out << "\nTPC Merger Links\n";
+  out << "\nTPC Merger Links " << type << "\n";
   const int n = output ? mMemory->nOutputTracks : SliceTrackInfoLocalTotal();
   for (int i = 0; i < n; i++) {
-    out << "  " << i << ": " << mTrackLinks[i] << "\n";
+    if (mTrackLinks[i] != -1) {
+      out << "  " << i << ": " << mTrackLinks[i] << "\n";
+    }
   }
 }
 
 void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
 {
-  DumpTrackLinks(out, false);
+  DumpTrackLinks(out, false, "within Slices");
   out << "\nTPC Merger Merge Within Slices\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     for (int j = mSliceTrackInfoIndex[iSlice]; j < mSliceTrackInfoIndex[iSlice + 1]; j++) {
       const auto& trk = mSliceTrackInfos[j];
-      if (trk.NextSegmentNeighbour()) {
+      if (trk.NextSegmentNeighbour() >= 0 || trk.PrevSegmentNeighbour() >= 0) {
         out << "  Track " << j << ": Neighbour " << trk.PrevSegmentNeighbour() << " / " << trk.NextSegmentNeighbour() << "\n";
       }
     }
@@ -81,12 +83,12 @@ void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
 
 void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out)
 {
-  DumpTrackLinks(out, false);
-  out << "\nTPC Merger Merge Within Slices\n";
+  DumpTrackLinks(out, false, "between Slices");
+  out << "\nTPC Merger Merge Between Slices\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     for (int j = mSliceTrackInfoIndex[iSlice]; j < mSliceTrackInfoIndex[iSlice + 1]; j++) {
       const auto& trk = mSliceTrackInfos[j];
-      if (trk.NextNeighbour() || trk.PrevNeighbour()) {
+      if (trk.NextNeighbour() >= 0 || trk.PrevNeighbour() >= 0) {
         out << "  Track " << j << ": Neighbour " << trk.PrevNeighbour() << " / " << trk.NextNeighbour() << "\n";
       }
       if (trk.PrevNeighbour() == -1 && trk.PrevSegmentNeighbour() == -1) {
@@ -111,7 +113,7 @@ void GPUTPCGMMerger::DumpCollected(std::ostream& out)
 
 void GPUTPCGMMerger::DumpMergeCE(std::ostream& out)
 {
-  DumpTrackLinks(out, true);
+  DumpTrackLinks(out, true, " for CE merging");
   out << "\nTPC Merger Merge CE\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[i];
@@ -165,12 +167,16 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
     const auto& trk = mOutputTracks[j];
     for (unsigned int i = trk.FirstClusterRef(); i < trk.FirstClusterRef() + trk.NClusters(); i++) {
-      out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
+      if (mClusters[i].state != 0) {
+        out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
+      }
     }
   }
   unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
-    out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
+    if ((mClusterAttachment[i] & attachFlagMask) != 0) {
+      out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
+    }
   }
 }
 

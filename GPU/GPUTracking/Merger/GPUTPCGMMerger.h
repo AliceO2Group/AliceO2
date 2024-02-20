@@ -191,7 +191,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
-  void DumpTrackLinks(std::ostream& out, bool output);
+  void DumpTrackLinks(std::ostream& out, bool output, const char* type);
   void DumpMergedWithinSlices(std::ostream& out);
   void DumpMergedBetweenSlices(std::ostream& out);
   void DumpCollected(std::ostream& out);
