@@ -78,12 +78,12 @@ const char* GeometryTGeo::composeSymNameSensor(int d, int rg)
 
 const char* GeometryTGeo::composeSymNameSensorFWD(int d)
 {
-  return Form("%s/%s%d", composeSymNameRICH(d), getRICHSensorFWDPattern());
+  return Form("%s/%s", composeSymNameRICH(d), getRICHSensorFWDPattern());
 }
 
 const char* GeometryTGeo::composeSymNameSensorBWD(int d)
 {
-  return Form("%s/%s%d", composeSymNameRICH(d), getRICHSensorBWDPattern());
+  return Form("%s/%s", composeSymNameRICH(d), getRICHSensorBWDPattern());
 }
 
 } // namespace rich
