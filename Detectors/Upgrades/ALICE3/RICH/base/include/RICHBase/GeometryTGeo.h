@@ -40,6 +40,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* composeSymNameRing(int d, int ring);
   static const char* composeSymNameChip(int d, int ring);
   static const char* composeSymNameSensor(int d, int ring);
+  static const char* composeSymNameSensorFWD(int d);
+  static const char* composeSymNameSensorBWD(int d);
 
  protected:
   static std::string sVolumeName;

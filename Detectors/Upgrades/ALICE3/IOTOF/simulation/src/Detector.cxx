@@ -65,10 +65,10 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof)
     mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 0.f, 680.f, 0.f, 0.02f, true); // oTOF
   }
   if (ftof) {
-    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 150.f, 0.f, 405.f, 0.02f, false); // fTOF
+    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 100.f, 0.f, 370.f, 0.02f, false); // fTOF
   }
   if (btof) {
-    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 150.f, 0.f, -405.f, 0.02f, false); // bTOF
+    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 100.f, 0.f, -370.f, 0.02f, false); // bTOF
   }
 }
 

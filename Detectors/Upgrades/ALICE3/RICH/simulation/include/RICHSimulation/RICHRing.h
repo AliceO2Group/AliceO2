@@ -72,52 +72,32 @@ class FWDRich
  public:
   FWDRich() = default;
   FWDRich(std::string name,
+          float rMin,
+          float rMax,
           float zAerogelMin,
-          float aerogelDZ,
-          float aerogelRmin,
-          float aerogelRmax,
+          float dZAerogel,
           float zArgonMin,
-          float argonDZ,
-          float argonRmin,
-          float argonRmax,
+          float dZArgon,
           float zSiliconMin,
-          float siliconDZ,
-          float siliconRmin,
-          float siliconRmax)
-    : mName{name},
-      mZAerogelMin{zAerogelMin},
-      mAerogelDZ{aerogelDZ},
-      mAerogelRmin{aerogelRmin},
-      mAerogelRmax{aerogelRmax},
-      mZArgonMin{zArgonMin},
-      mArgonDZ{argonDZ},
-      mArgonRmin{argonRmin},
-      mArgonRmax{argonRmax},
-      mZSiliconMin{zSiliconMin},
-      mSiliconDZ{siliconDZ},
-      mSiliconRmin{siliconRmin},
-      mSiliconRmax{siliconRmax}
-  {
-  }
+          float dZSilicon);
   void createFWDRich(TGeoVolume* motherVolume);
 
  protected:
   std::string mName;
+  float mRmin;
+  float mRmax;
+
   // Aerogel:
   float mZAerogelMin;
-  float mAerogelDZ;
-  float mAerogelRmin;
-  float mAerogelRmax;
+  float mDZAerogel;
+
   // Argon:
   float mZArgonMin;
-  float mArgonDZ;
-  float mArgonRmin;
-  float mArgonRmax;
+  float mDZArgon;
+
   // Silicon:
   float mZSiliconMin;
-  float mSiliconDZ;
-  float mSiliconRmin;
-  float mSiliconRmax;
+  float mDZSilicon;
 };
 
 class BWDRich
@@ -125,52 +105,32 @@ class BWDRich
  public:
   BWDRich() = default;
   BWDRich(std::string name,
+          float rMin,
+          float rMax,
           float zAerogelMin,
-          float aerogelDZ,
-          float aerogelRmin,
-          float aerogelRmax,
+          float dZAerogel,
           float zArgonMin,
-          float argonDZ,
-          float argonRmin,
-          float argonRmax,
+          float dZArgon,
           float zSiliconMin,
-          float siliconDZ,
-          float siliconRmin,
-          float siliconRmax)
-    : mName{name},
-      mZAerogelMin{zAerogelMin},
-      mAerogelDZ{aerogelDZ},
-      mAerogelRmin{aerogelRmin},
-      mAerogelRmax{aerogelRmax},
-      mZArgonMin{zArgonMin},
-      mArgonDZ{argonDZ},
-      mArgonRmin{argonRmin},
-      mArgonRmax{argonRmax},
-      mZSiliconMin{zSiliconMin},
-      mSiliconDZ{siliconDZ},
-      mSiliconRmin{siliconRmin},
-      mSiliconRmax{siliconRmax}
-  {
-  }
+          float dZSilicon);
   void createBWDRich(TGeoVolume* motherVolume);
 
  protected:
   std::string mName;
+  float mRmin;
+  float mRmax;
+
   // Aerogel:
   float mZAerogelMin;
-  float mAerogelDZ;
-  float mAerogelRmin;
-  float mAerogelRmax;
+  float mDZAerogel;
+
   // Argon:
   float mZArgonMin;
-  float mArgonDZ;
-  float mArgonRmin;
-  float mArgonRmax;
+  float mDZArgon;
+
   // Silicon:
   float mZSiliconMin;
-  float mSiliconDZ;
-  float mSiliconRmin;
-  float mSiliconRmax;
+  float mDZSilicon;
 };
 
 } // namespace rich

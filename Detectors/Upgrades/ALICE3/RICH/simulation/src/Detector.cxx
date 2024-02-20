@@ -402,11 +402,27 @@ void Detector::prepareLayout()
   // FWD and BWD RICH
   if (richPars.enableFWDRich) {
     LOGP(info, "Setting up FWD RICH layout");
-    mFWDRich = FWDRich();
+    mFWDRich = FWDRich(GeometryTGeo::getRICHSensorFWDPattern(),
+                       richPars.rFWDMin,
+                       richPars.rFWDMax,
+                       richPars.zAerogelMin,
+                       richPars.zAerogelMax - richPars.zArgonMin,
+                       richPars.zArgonMin,
+                       richPars.zArgonMax - richPars.zArgonMin,
+                       richPars.zSiliconMin,
+                       richPars.zSiliconMax - richPars.zSiliconMin);
   }
   if (richPars.enableBWDRich) {
     LOGP(info, "Setting up BWD RICH layout");
-    mBWDRich = BWDRich();
+    mBWDRich = BWDRich(GeometryTGeo::getRICHSensorBWDPattern(),
+                       richPars.rFWDMin,
+                       richPars.rFWDMax,
+                       richPars.zAerogelMin,
+                       richPars.zAerogelMax - richPars.zAerogelMin,
+                       richPars.zArgonMin,
+                       richPars.zArgonMax - richPars.zArgonMin,
+                       richPars.zSiliconMin,
+                       richPars.zSiliconMax - richPars.zSiliconMin);
   }
 }
 } // namespace rich
