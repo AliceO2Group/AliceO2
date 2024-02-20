@@ -156,7 +156,6 @@ void Alice3Absorber::ConstructGeometry()
   TGeoVolume* abso = new TGeoVolume("Absorber", absorings, kMedIron);
 
   abso->SetVisibility(1);
-  abso->SetTransparency(50);
   abso->SetLineColor(kGray);
 
   //
