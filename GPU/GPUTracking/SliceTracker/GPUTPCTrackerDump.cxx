@@ -161,7 +161,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
     const int j = Ids[jj];
     const auto& tracklet = Tracklets()[j];
     out << "Tracklet " << std::setw(4) << jj << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1)
-        << " - " << (tracklet.NHits() ? tracklet.LastRow() : -1) << ") ";
+        << " - " << (tracklet.NHits() ? tracklet.LastRow() : -1) << ", Weight " << Tracklets()[j].HitWeight() << ") ";
     if (tracklet.NHits() == 0) {
       ;
     } else if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUCA_ROW_COUNT || tracklet.LastRow() >= GPUCA_ROW_COUNT)) {
@@ -175,16 +175,13 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
       int nHits = 0;
       for (int i = tracklet.FirstRow(); i <= tracklet.LastRow(); i++) {
         calink ih = mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())];
-        if (ih != CALINK_INVAL) {
+        if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
           nHits++;
         }
         out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
       if (nHits != tracklet.NHits()) {
-        std::cout << std::endl
-                  << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
-        out << std::endl
-            << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
+        std::cout << std::endl << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
       }
     }
     out << std::endl;
