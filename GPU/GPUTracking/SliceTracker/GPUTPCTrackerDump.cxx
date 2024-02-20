@@ -145,10 +145,16 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   std::iota(Ids.begin(), Ids.end(), 0);
   if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
     std::sort(Ids.begin(), Ids.end(), [this](const int& a, const int& b) {
-      if (this->Tracklets()[a].FirstRow() == this->Tracklets()[b].FirstRow()) {
+      if (this->Tracklets()[a].FirstRow() != this->Tracklets()[b].FirstRow()) {
+        return this->Tracklets()[a].FirstRow() > this->Tracklets()[b].FirstRow();
+      }
+      if (this->Tracklets()[a].LastRow() != this->Tracklets()[b].LastRow()) {
+        return this->Tracklets()[a].LastRow() > this->Tracklets()[b].LastRow();
+      }
+      if (this->Tracklets()[a].Param().Y() != this->Tracklets()[b].Param().Y()) {
         return this->Tracklets()[a].Param().Y() > this->Tracklets()[b].Param().Y();
       }
-      return this->Tracklets()[a].FirstRow() > this->Tracklets()[b].FirstRow();
+      return this->Tracklets()[a].Param().Z() > this->Tracklets()[b].Param().Z();
     });
   }
   for (int jj = 0; jj < nTracklets; jj++) {
