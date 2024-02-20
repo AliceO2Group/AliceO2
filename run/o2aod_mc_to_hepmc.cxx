@@ -45,7 +45,7 @@
  * Processed do not process events piece-meal, but rather in whole.
  *
  */
-struct Task {
+struct AodToHepmc {
   /** Alias the converter type */
   using Converter = o2::eventgen::AODToHepMC;
 
@@ -129,14 +129,14 @@ struct Task {
    *
    * Instead of using the provided preprocessor macro, we instantise
    * the template directly here.  This is so that we can specify the
-   * command line argument (@c --hepmc-aux) rather than to rely on an
-   * auto-generated name (would be @ --processAux).
+   * command line argument (@c --hepmc-no-aux) rather than to rely on an
+   * auto-generated name (would be @c --processPlain).
    */
-  decltype(o2::framework::ProcessConfigurable{&Task::processPlain,
+  decltype(o2::framework::ProcessConfigurable{&AodToHepmc::processPlain,
                                               "hepmc-no-aux", false,
                                               "Do not process auxiliary "
                                               "information"})
-    doPlain = o2::framework::ProcessConfigurable{&Task::processPlain,
+    doPlain = o2::framework::ProcessConfigurable{&AodToHepmc::processPlain,
                                                  "hepmc-no-aux", false,
                                                  "Do not process auxiliary "
                                                  "information"};
@@ -149,7 +149,6 @@ struct Task {
 
 //--------------------------------------------------------------------
 using WorkflowSpec = o2::framework::WorkflowSpec;
-using TaskName = o2::framework::TaskName;
 using DataProcessorSpec = o2::framework::DataProcessorSpec;
 using ConfigContext = o2::framework::ConfigContext;
 
@@ -159,8 +158,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
   using o2::framework::adaptAnalysisTask;
 
   // Task: Two entry: header, tracks, and header, tracks, auxiliary
-  return WorkflowSpec{
-    adaptAnalysisTask<Task>(cfg, TaskName{"o2-aod-mc-to-hepmc"})};
+  return WorkflowSpec{adaptAnalysisTask<AodToHepmc>(cfg)};
 }
 //
 // EOF
