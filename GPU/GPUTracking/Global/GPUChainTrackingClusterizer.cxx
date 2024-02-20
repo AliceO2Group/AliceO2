@@ -625,7 +625,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
 
   bool buildNativeGPU = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
-  bool buildNativeHost = mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
+  bool buildNativeHost = (mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters) || GetProcessingSettings().deterministicGPUReconstruction; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
 
   mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->nTPCHits * tpcHitLowOccupancyScalingFactor;
   if (buildNativeGPU) {
@@ -943,7 +943,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       if (GetProcessingSettings().delayedOutput) {
         mOutputQueue.emplace_back(outputQueueEntry{(void*)((char*)&mInputsHost->mPclusterNativeOutput[nClsFirst] - (char*)&mInputsHost->mPclusterNativeOutput[0]), &mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), RecoStep::TPCClusterFinding});
       } else {
-        GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
+        GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (const void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[0]), mRec->NStreams() - 1, false);
       }
     }
 
@@ -1036,6 +1036,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         std::sort(&mInputsHost->mPclusterNativeOutput[tmpNative->clusterOffset[i][j]], &mInputsHost->mPclusterNativeOutput[tmpNative->clusterOffset[i][j] + tmpNative->nClusters[i][j]]);
       }
+    }
+    if (buildNativeGPU) {
+      GPUMemCpy(RecoStep::TPCClusterFinding, (void*)mInputsShadow->mPclusterNativeBuffer, (const void*)mInputsHost->mPclusterNativeOutput, nClsTotal * sizeof(mInputsHost->mPclusterNativeOutput[0]), -1, true);
     }
   }
   mRec->MemoryScalers()->nTPCHits = nClsTotal;
