@@ -24,7 +24,7 @@
 #include <HepMC3/GenCrossSection.h>
 #include <HepMC3/WriterAscii.h>
 #include <fstream>
-#define AODTOHEPMC_WITH_HEAVYION
+#include <list>
 
 namespace o2
 {
@@ -286,7 +286,7 @@ struct AODToHepMC {
   /** Alias of MC collisions table row */
   using Header = o2::aod::McCollision;
   /** Alias MC particles (tracks) table */
-  using Tracks = o2::aod::StoredMcParticles_001;
+  using Tracks = o2::aod::McParticles;
   /** Alias MC particles (tracks) table row */
   using Track = typename Tracks::iterator;
   /** Alias auxiliary MC table of cross-sections */
@@ -324,11 +324,15 @@ struct AODToHepMC {
    * object */
   using PdfInfoPtr = HepMC3::GenPdfInfoPtr;
   /** Type used to map tracks to HepMC particles */
-  using ParticleMap = std::map<long, ParticlePtr>;
+  using ParticleMap = std::unordered_map<long, ParticlePtr>;
   /** A container of pointers to particles */
   using ParticleVector = std::vector<ParticlePtr>;
+  /** A container of pointers to particles */
+  using ParticleList = std::list<ParticlePtr>;
   /** A container of pointers to vertexes */
   using VertexVector = std::vector<VertexPtr>;
+  /** A container of pointers to vertexes */
+  using VertexList = std::list<VertexPtr>;
   /** Alias of HepMC writer class */
   using WriterAscii = HepMC3::WriterAscii;
   /** The of pointer to HepMC writer class */
@@ -354,11 +358,11 @@ struct AODToHepMC {
   /** Maps tracks to particles */
   ParticleMap mParticles; //! Cache of particles
   /** List of vertexes made */
-  VertexVector mVertices; //! Cache of vertices
+  VertexList mVertices; //! Cache of vertices
   /** List of beam particles */
   ParticleVector mBeams; //! Cache of beam particles
   /** Particles without a mother */
-  ParticleVector mOrphans; //! Cache of particles w/o mothers
+  ParticleList mOrphans; //! Cache of particles w/o mothers
   /** @} */
   /**
    * @{
@@ -413,12 +417,8 @@ struct AODToHepMC {
    */
   virtual void process(Header const& collision,
                        XSections const& xsections,
-                       PdfInfos const& pdfs
-#ifdef AODTOHEPMC_WITH_HEAVYION
-                       ,
-                       HeavyIons const& heavyions
-#endif
-  );
+                       PdfInfos const& pdfs,
+                       HeavyIons const& heavyions);
   /**
    * Call after process an.  Thisf finalises the event and optionally
    * outputs to dump.
@@ -452,8 +452,7 @@ struct AODToHepMC {
    * Set the various fields in the header of the HepMC3::GenEvent
    * object
    *
-   * @param header Header object
-   */
+   * @param header Header object   */
   virtual void makeHeader(Header const& header);
   /**
    * Make cross-section information.  If no entry in the table,
