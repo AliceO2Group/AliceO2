@@ -202,7 +202,7 @@ AddOption(trdNCandidates, int, 3, "", 0, "Number of branching track candidates f
 AddOption(trdTrackModelO2, bool, false, "", 0, "Use O2 track model instead of GPU track model for TRD tracking")
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
-AddOption(debugMask, int, -1, "", 0, "Mask for debug output dumps to file")
+AddOption(debugMask, int, 262143, "", 0, "Mask for debug output dumps to file")
 AddOption(checkKernelFailures, bool, false, "", 0, "Synchronize after each kernel call and identify failing kernels")
 AddOption(deterministicGPUReconstruction, int, -1, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts), -1 = automatic if debugLevel >= 6")
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
