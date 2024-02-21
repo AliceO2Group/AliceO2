@@ -421,11 +421,6 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
   itTrackParam = track.begin();
   for (; itTrackParam != track.end(); ++itTrackParam) {
 
-    // get track parameters
-    if (!&*itTrackParam) {
-      continue;
-    }
-
     // get cluster
     const Cluster* cluster = itTrackParam->getClusterPtr();
     if (!cluster) {
@@ -1479,11 +1474,6 @@ LocalTrackParam Aligner::RefitStraightTrack(Track& track, double z0) const
 
   // loop over clusters
   for (auto itTrackParam(track.begin()); itTrackParam != track.end(); ++itTrackParam) {
-
-    // get track parameters
-    if (!&*itTrackParam) {
-      continue;
-    }
 
     // get cluster
     const Cluster* cluster = itTrackParam->getClusterPtr();
