@@ -383,8 +383,8 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       } while (false);
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
       if (!found && tracker.GetConstantMem()->calibObjects.dEdxCalibContainer) {
-        unsigned int pad = tracker.Param().tpcGeometry.LinearY2Pad(tracker.ISlice(), iRow, yUncorrected) + 0.5f;
-        if (tracker.GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(tracker.ISlice(), iRow, pad)) {
+        int pad = tracker.Param().tpcGeometry.LinearY2Pad(tracker.ISlice(), iRow, yUncorrected) + 0.5f;
+        if ((unsigned int)pad < tracker.Param().tpcGeometry.NPads(iRow) && tracker.GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(tracker.ISlice(), iRow, pad)) {
           r.mNMissed--;
           rowHit = CALINK_DEAD_CHANNEL;
         }
