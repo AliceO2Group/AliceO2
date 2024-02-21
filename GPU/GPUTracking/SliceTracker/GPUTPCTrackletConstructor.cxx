@@ -24,8 +24,10 @@
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 #include "GPUTPCGlobalTracking.h"
 #include "CorrectionMapsHelper.h"
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "CalibdEdxContainer.h"
-#endif
+#endif // GPUCA_HAVE_O2HEADERS
+#endif // OPENCL1
 #include "GPUParam.inc"
 #include "GPUCommonMath.h"
 
@@ -383,7 +385,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
         }
       } while (false);
       (void)found;
-#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#if defined(GPUCA_HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__))
       if (!found && tracker.GetConstantMem()->calibObjects.dEdxCalibContainer) {
         unsigned int pad = CAMath::Float2UIntRn(tracker.Param().tpcGeometry.LinearY2Pad(tracker.ISlice(), iRow, yUncorrected));
         if (pad < tracker.Param().tpcGeometry.NPads(iRow) && tracker.GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(tracker.ISlice(), iRow, pad)) {
