@@ -66,7 +66,7 @@ o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step0"            LB      simple)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step1"            LB      simple)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step2"            LB      simple)
 
-if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT" OR CONFIG_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
 o2_gpu_add_kernel("GPUTPCGMO2Output, prepare"                    LB      simple)
 o2_gpu_add_kernel("GPUTPCGMO2Output, sort"                       NO      simple)
 o2_gpu_add_kernel("GPUTPCGMO2Output, output"                     LB      simple)

@@ -257,10 +257,12 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 #ifndef GPUCA_NO_FAST_MATH
     GPUError("Warning, deterministicGPUReconstruction needs GPUCA_NO_FAST_MATH, otherwise results will never be deterministic!");
 #endif
+#ifdef GPUCA_HAVE_O2HEADERS
     mProcessingSettings.overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
     if (mProcessingSettings.createO2Output > 1) {
       mProcessingSettings.createO2Output = 1;
     }
+#endif
   }
   if (mProcessingSettings.deterministicGPUReconstruction && mProcessingSettings.debugLevel >= 6) {
     mProcessingSettings.nTPCClustererLanes = 1;

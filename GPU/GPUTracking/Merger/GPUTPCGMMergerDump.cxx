@@ -33,7 +33,9 @@
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUReconstruction.h"
 #include "GPUDebugStreamer.h"
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTrackingRefit.h"
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace gputpcgmmergertypes;
@@ -234,6 +236,7 @@ const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(co
 
 void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
 {
+#ifdef GPUCA_HAVE_O2HEADERS
   GPUTPCGMMergedTrack trk = track;
   GPUTrackingRefit refit;
   ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHitStates = ClusterStateExt();
@@ -260,4 +263,5 @@ void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
   } else {
     printf("REFIT ERROR\n");
   }
+#endif
 }
