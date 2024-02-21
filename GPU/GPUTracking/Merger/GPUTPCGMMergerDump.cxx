@@ -251,7 +251,7 @@ void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
     int err = prop.PropagateToXAlpha(track.GetParam().GetX(), track.GetAlpha(), false);
     if (err == 0) {
       printf("REFIT RESULT %d, SnpDiff %f\n", retval, trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi());
-      if (retval > 20 && fabsf(trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi()) > 0.01) {
+      if (retval > 20 && fabsf(trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi()) > 0.01f) {
         printf("LARGE DIFF\n");
       }
     } else {

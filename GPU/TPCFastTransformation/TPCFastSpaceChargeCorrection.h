@@ -50,22 +50,22 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   };
 
   struct RowActiveArea {
-    float maxDriftLengthCheb[5]{0.};
-    float vMax{0.};
-    float cuMin{0.};
-    float cuMax{0.};
-    float cvMax{0.};
+    float maxDriftLengthCheb[5]{0.f};
+    float vMax{0.f};
+    float cuMin{0.f};
+    float cuMax{0.f};
+    float cvMax{0.f};
 #ifndef GPUCA_ALIROOT_LIB
     ClassDefNV(RowActiveArea, 1);
 #endif
   };
 
   struct SliceRowInfo {
-    float gridV0{0.};           ///< V coordinate of the V-grid start
-    float gridCorrU0{0.};       ///< U coordinate of the U-grid start for corrected U
-    float gridCorrV0{0.};       ///< V coordinate of the V-grid start for corrected V
-    float scaleCorrUtoGrid{0.}; ///< scale corrected U to U-grid coordinate
-    float scaleCorrVtoGrid{0.}; ///< scale corrected V to V-grid coordinate
+    float gridV0{0.f};           ///< V coordinate of the V-grid start
+    float gridCorrU0{0.f};       ///< U coordinate of the U-grid start for corrected U
+    float gridCorrV0{0.f};       ///< V coordinate of the V-grid start for corrected V
+    float scaleCorrUtoGrid{0.f}; ///< scale corrected U to U-grid coordinate
+    float scaleCorrVtoGrid{0.f}; ///< scale corrected V to V-grid coordinate
     RowActiveArea activeArea;
 #ifndef GPUCA_ALIROOT_LIB
     ClassDefNV(SliceRowInfo, 1);
@@ -73,7 +73,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   };
 
   struct SliceInfo {
-    float vMax{0.}; ///< Max value of V coordinate
+    float vMax{0.f}; ///< Max value of V coordinate
 #ifndef GPUCA_ALIROOT_LIB
     ClassDefNV(SliceInfo, 1);
 #endif
@@ -274,7 +274,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   size_t mSliceDataSizeBytes[3]; ///< size of the data for one slice in the flat buffer
 
-  float fInterpolationSafetyMargin{0.1}; // 10% area around the TPC row. Outside of this area the interpolation returns the boundary values.
+  float fInterpolationSafetyMargin{0.1f}; // 10% area around the TPC row. Outside of this area the interpolation returns the boundary values.
 
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(TPCFastSpaceChargeCorrection, 3);
@@ -366,19 +366,19 @@ GPUdi() void TPCFastSpaceChargeCorrection::schrinkCorrectedUV(int slice, int row
 GPUdi() void TPCFastSpaceChargeCorrection::convUVtoGrid(int slice, int row, float u, float v, float& gu, float& gv) const
 {
   // TODO optimise !!!
-  gu = 0.;
-  gv = 0.;
+  gu = 0.f;
+  gv = 0.f;
 
   schrinkUV(slice, row, u, v);
 
   const SliceRowInfo& info = getSliceRowInfo(slice, row);
   const SplineType& spline = getSpline(slice, row);
 
-  float su0 = 0., sv0 = 0.;
+  float su0 = 0.f, sv0 = 0.f;
   mGeo.convUVtoScaledUV(slice, row, u, info.gridV0, su0, sv0);
   mGeo.convUVtoScaledUV(slice, row, u, v, gu, gv);
 
-  gv = (gv - sv0) / (1. - sv0);
+  gv = (gv - sv0) / (1.f - sv0);
   gu *= spline.getGridX1().getUmax();
   gv *= spline.getGridX2().getUmax();
 }
@@ -387,12 +387,12 @@ GPUdi() void TPCFastSpaceChargeCorrection::convGridToUV(int slice, int row, floa
 {
   // TODO optimise
   /// convert u,v to internal grid coordinates
-  float su0 = 0., sv0 = 0.;
+  float su0 = 0.f, sv0 = 0.f;
   const SliceRowInfo& info = getSliceRowInfo(slice, row);
   const SplineType& spline = getSpline(slice, row);
-  mGeo.convUVtoScaledUV(slice, row, 0., info.gridV0, su0, sv0);
+  mGeo.convUVtoScaledUV(slice, row, 0.f, info.gridV0, su0, sv0);
   float su = gridU / spline.getGridX1().getUmax();
-  float sv = sv0 + gridV / spline.getGridX2().getUmax() * (1. - sv0);
+  float sv = sv0 + gridV / spline.getGridX2().getUmax() * (1.f - sv0);
   mGeo.convScaledUVtoUV(slice, row, su, sv, u, v);
 }
 
@@ -468,7 +468,7 @@ GPUdi() float TPCFastSpaceChargeCorrection::getMaxDriftLength(int slice, int row
   const float* c = area.maxDriftLengthCheb;
   float x = -1.f + 2.f * pad / mGeo.getRowInfo(row).maxPad;
   float y = c[0] + c[1] * x;
-  float f0 = 1.;
+  float f0 = 1.f;
   float f1 = x;
   x *= 2.f;
   for (int i = 2; i < 5; i++) {

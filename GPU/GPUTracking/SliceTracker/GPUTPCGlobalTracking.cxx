@@ -34,11 +34,11 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
 
   GPUTPCTrackParam tParam;
   tParam.InitParam();
-  tParam.SetCov(0, 0.05);
-  tParam.SetCov(2, 0.05);
-  tParam.SetCov(5, 0.001);
-  tParam.SetCov(9, 0.001);
-  tParam.SetCov(14, 0.05);
+  tParam.SetCov(0, 0.05f);
+  tParam.SetCov(2, 0.05f);
+  tParam.SetCov(5, 0.001f);
+  tParam.SetCov(9, 0.001f);
+  tParam.SetCov(14, 0.05f);
   tParam.SetParam(sliceSource.Tracks()[iTrack].Param());
 
   // GPUInfo("Parameters X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());

@@ -21,7 +21,7 @@ using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
 GPUd() bool ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::ClusterNative& cn, const GPUParam& param) const
 {
-  cn.qTot = mQtot + 0.5; // Round to integer
+  cn.qTot = mQtot + 0.5f; // Round to integer
   if (cn.qTot <= param.rec.tpc.cfQTotCutoff) {
     return false;
   }
