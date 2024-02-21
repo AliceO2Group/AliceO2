@@ -1281,7 +1281,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeC, isValidTimeC, //! Checks if time from C
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(IsValidTime, isValidTime, //! Checks if times from A and C side were calculated simultaneously
                            [](float timeA, float timeC) -> bool {
-                             return timeA < 30.f && timeC < 30.f;
+                             return (timeA < 30.f) && (timeC < 30.f); // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(SumAmpA, sumAmpA, //! Calculates sum of positive amplitudes from side A
                            [](gsl::span<const float> vecAmpA) -> float {
