@@ -1074,7 +1074,7 @@ TEST_CASE("TestSelfIndexRecursion")
   using FilteredPoints = o2::soa::Filtered<FullPoints>;
   FilteredPoints ffp({t1, t2}, {1, 2, 3}, 0);
   ffp.bindInternalIndicesTo(&ffp);
-  
+
   // Filter should not interfere with self-index and the binding should stay the same
   for (auto& p : ffp) {
     using T1 = std::decay_t<decltype(p)>;
