@@ -307,7 +307,7 @@ GPUd() int GPUTPCCompressionTrackModel::Mirror()
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrtf(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = sqrtf(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   if (mTrk.sinphi < 0.f) {
@@ -577,7 +577,7 @@ GPUd() int GPUTPCCompressionTrackModel::propagateToXBzLightNoUpdate(PhysicalTrac
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrt(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = sqrt(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   dLp = pti * dS; // path in XYZ / p == path in XY / pt

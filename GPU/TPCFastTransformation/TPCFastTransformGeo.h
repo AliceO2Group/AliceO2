@@ -327,14 +327,14 @@ GPUdi() float TPCFastTransformGeo::convPadToU(int row, float pad) const
 {
   /// convert Pad coordinate -> U
   const RowInfo& rowInfo = getRowInfo(row);
-  return (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  return (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
 }
 
 GPUdi() float TPCFastTransformGeo::convUtoPad(int row, float u) const
 {
   /// convert U -> Pad coordinate
   const RowInfo& rowInfo = getRowInfo(row);
-  return u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
+  return u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
 }
 
 } // namespace gpu

@@ -1020,7 +1020,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrtf(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = sqrtf(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   if (mT0.SinPhi() < 0.f) {

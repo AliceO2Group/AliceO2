@@ -40,7 +40,7 @@ void GPUTPCSliceData::InitializeRows(const MEM_CONSTANT(GPUParam) & p)
   }
   for (int i = 0; i < GPUCA_ROW_COUNT; ++i) {
     mRows[i].mX = p.tpcGeometry.Row2X(i);
-    mRows[i].mMaxY = CAMath::Tan(p.par.dAlpha / 2.) * mRows[i].mX;
+    mRows[i].mMaxY = CAMath::Tan(p.par.dAlpha / 2.f) * mRows[i].mX;
   }
 }
 
@@ -355,7 +355,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     GPUbarrier();
 
     constexpr float maxVal = (((long int)1 << (sizeof(cahit) < 3 ? sizeof(cahit) * 8 : 24)) - 1); // Stay within float precision in any case!
-    constexpr float packingConstant = 1.f / (maxVal - 2.);
+    constexpr float packingConstant = 1.f / (maxVal - 2.f);
     const float y0 = row.mGrid.YMin();
     const float z0 = row.mGrid.ZMin();
     const float stepY = (row.mGrid.YMax() - y0) * packingConstant;

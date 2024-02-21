@@ -54,7 +54,7 @@ class GPUSettings
 // Settings describing the global run parameters
 struct GPUSettingsGRP {
   // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!
-  float solenoidBz = -5.00668;  // solenoid field strength
+  float solenoidBz = -5.00668f; // solenoid field strength
   int constBz = 0;              // for test-MC events with constant Bz
   int homemadeEvents = 0;       // Toy-MC events
   int continuousMaxTimeBin = 0; // 0 for triggered events, -1 for default of 23ms

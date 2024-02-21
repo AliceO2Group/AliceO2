@@ -45,9 +45,9 @@ class GPUTRDTrackerDebug
   int GetSector(float alpha)
   {
     if (alpha < 0) {
-      alpha += 2. * M_PI;
+      alpha += 2.f * M_PI;
     }
-    return (int)(alpha * 18 / (2. * M_PI));
+    return (int)(alpha * 18 / (2.f * M_PI));
   }
 
   void ExpandVectors()

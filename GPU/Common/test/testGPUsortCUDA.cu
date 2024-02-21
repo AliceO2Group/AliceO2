@@ -44,7 +44,7 @@ struct TestEnvironment {
 
     // create an array of unordered floats with negative and positive values
     for (size_t i = 0; i < size; i++) {
-      data[i] = size / 2.0 - i;
+      data[i] = size / 2.0f - i;
     }
     // create copy
     std::memcpy(sorted.data(), data, size * sizeof(float));

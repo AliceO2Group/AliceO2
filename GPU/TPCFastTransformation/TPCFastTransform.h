@@ -358,7 +358,7 @@ GPUdi() void TPCFastTransform::convPadTimeToUV(int slice, int row, float pad, fl
   const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
 
   float x = rowInfo.x;
-  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
 
   float y = sideC ? -u : u; // pads are mirrorred on C-side
   float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
@@ -379,7 +379,7 @@ GPUdi() void TPCFastTransform::convTimeToVinTimeFrame(int slice, float time, flo
 GPUdi() void TPCFastTransform::convPadTimeToUVinTimeFrame(int slice, int row, float pad, float time, float& u, float& v, float maxTimeBin) const
 {
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
   convTimeToVinTimeFrame(slice, time, v, maxTimeBin);
 }
 
@@ -408,7 +408,7 @@ GPUdi() void TPCFastTransform::convUVtoPadTime(int slice, int row, float u, floa
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
   const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
 
-  pad = u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
+  pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
 
   float x = rowInfo.x;
   float y = sideC ? -u : u; // pads are mirrorred on C-side
@@ -430,7 +430,7 @@ GPUdi() void TPCFastTransform::convUVtoPadTimeInTimeFrame(int slice, int row, fl
     v -= getGeometry().getTPCzLengthC();
   }
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
-  pad = u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
+  pad = u / rowInfo.padWidth + 0.5f * rowInfo.maxPad;
   time = mT0 + maxTimeBin + (v - mLdriftCorr) / mVdrift;
 }
 
@@ -674,7 +674,7 @@ GPUdi() void TPCFastTransform::TransformIdeal(int slice, int row, float pad, flo
   const TPCFastTransformGeo::RowInfo& rowInfo = getGeometry().getRowInfo(row);
 
   x = rowInfo.x;
-  float u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  float u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
   float v = (time - mT0 - vertexTime) * mVdrift; // drift length cm
 
   getGeometry().convUVtoLocal(slice, u, v, y, z);
@@ -749,7 +749,7 @@ GPUdi() float TPCFastTransform::getMaxDriftTime(int slice, int row, float pad) c
   const TPCFastTransformGeo::SliceInfo& sliceInfo = getGeometry().getSliceInfo(slice);
 
   float x = rowInfo.x;
-  float u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  float u = (pad - 0.5f * rowInfo.maxPad) * rowInfo.padWidth;
 
   float y = sideC ? -u : u; // pads are mirrorred on C-side
   float yLab = y * sliceInfo.cosAlpha + x * sliceInfo.sinAlpha;
