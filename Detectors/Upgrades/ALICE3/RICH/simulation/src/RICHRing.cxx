@@ -154,5 +154,125 @@ Ring::Ring(int rPosId,
   }
 }
 
+FWDRich::FWDRich(std::string name,
+                 float rMin,
+                 float rMax,
+                 float zAerogelMin,
+                 float dZAerogel,
+                 float zArgonMin,
+                 float dZArgon,
+                 float zSiliconMin,
+                 float dZSilicon) : mName{name},
+                                    mRmin{rMin},
+                                    mRmax{rMax},
+                                    mZAerogelMin{zAerogelMin},
+                                    mDZAerogel{dZAerogel},
+                                    mZArgonMin{zArgonMin},
+                                    mDZArgon{dZArgon},
+                                    mZSiliconMin{zSiliconMin},
+                                    mDZSilicon{dZSilicon}
+{
+}
+
+BWDRich::BWDRich(std::string name,
+                 float rMin,
+                 float rMax,
+                 float zAerogelMin,
+                 float dZAerogel,
+                 float zArgonMin,
+                 float dZArgon,
+                 float zSiliconMin,
+                 float dZSilicon) : mName{name},
+                                    mRmin{rMin},
+                                    mRmax{rMax},
+                                    mZAerogelMin{zAerogelMin},
+                                    mDZAerogel{dZAerogel},
+                                    mZArgonMin{zArgonMin},
+                                    mDZArgon{dZArgon},
+                                    mZSiliconMin{zSiliconMin},
+                                    mDZSilicon{dZSilicon}
+{
+}
+
+void FWDRich::createFWDRich(TGeoVolume* motherVolume)
+{
+  TGeoMedium* medAerogel = gGeoManager->GetMedium("RCH_AEROGEL$");
+  if (!medAerogel) {
+    LOGP(fatal, "RICH: Aerogel medium not found");
+  }
+  TGeoMedium* medSi = gGeoManager->GetMedium("RCH_SILICON$");
+  if (!medSi) {
+    LOGP(fatal, "RICH: Silicon medium not found");
+  }
+  TGeoMedium* medAr = gGeoManager->GetMedium("RCH_ARGON$");
+  if (!medAr) {
+    LOGP(fatal, "RICH: Argon medium not found");
+  }
+
+  // Create the aerogel volume
+  TGeoTube* aerogel = new TGeoTube(mRmin, mRmax, mDZAerogel / 2);
+  TGeoVolume* aerogelVol = new TGeoVolume(mName.c_str(), aerogel, medAerogel);
+  aerogelVol->SetLineColor(kBlue - 9);
+
+  TGeoTranslation* transAerogel = new TGeoTranslation(0, 0, mZAerogelMin + mDZAerogel / 2);
+  motherVolume->AddNode(aerogelVol, 1, transAerogel);
+
+  // Create the argon volume
+  TGeoTube* argon = new TGeoTube(mRmin, mRmax, mDZArgon / 2);
+  TGeoVolume* argonVol = new TGeoVolume(mName.c_str(), argon, medAr);
+  argonVol->SetLineColor(kGray);
+
+  TGeoTranslation* transArgon = new TGeoTranslation(0, 0, mZArgonMin + mDZArgon / 2);
+  motherVolume->AddNode(argonVol, 1, transArgon);
+
+  // Create the silicon volume
+  TGeoTube* silicon = new TGeoTube(mRmin, mRmax, mDZSilicon / 2);
+  TGeoVolume* siliconVol = new TGeoVolume(mName.c_str(), silicon, medSi);
+  siliconVol->SetLineColor(kOrange);
+
+  TGeoTranslation* transSilicon = new TGeoTranslation(0, 0, mZSiliconMin + mDZSilicon / 2);
+  motherVolume->AddNode(siliconVol, 1, transSilicon);
+}
+
+void BWDRich::createBWDRich(TGeoVolume* motherVolume)
+{
+  TGeoMedium* medAerogel = gGeoManager->GetMedium("RCH_AEROGEL$");
+  if (!medAerogel) {
+    LOGP(fatal, "RICH: Aerogel medium not found");
+  }
+  TGeoMedium* medSi = gGeoManager->GetMedium("RCH_SILICON$");
+  if (!medSi) {
+    LOGP(fatal, "RICH: Silicon medium not found");
+  }
+  TGeoMedium* medAr = gGeoManager->GetMedium("RCH_ARGON$");
+  if (!medAr) {
+    LOGP(fatal, "RICH: Argon medium not found");
+  }
+
+  // Create the aerogel volume
+  TGeoTube* aerogel = new TGeoTube(mRmin, mRmax, mDZAerogel / 2);
+  TGeoVolume* aerogelVol = new TGeoVolume(mName.c_str(), aerogel, medAerogel);
+  aerogelVol->SetLineColor(kBlue - 9);
+
+  TGeoTranslation* transAerogel = new TGeoTranslation(0, 0, -mZAerogelMin - mDZAerogel / 2);
+  motherVolume->AddNode(aerogelVol, 1, transAerogel);
+
+  // Create the argon volume
+  TGeoTube* argon = new TGeoTube(mRmin, mRmax, mDZArgon / 2);
+  TGeoVolume* argonVol = new TGeoVolume(mName.c_str(), argon, medAr);
+  argonVol->SetLineColor(kGray);
+
+  TGeoTranslation* transArgon = new TGeoTranslation(0, 0, -mZArgonMin - mDZArgon / 2);
+  motherVolume->AddNode(argonVol, 1, transArgon);
+
+  // Create the silicon volume
+  TGeoTube* silicon = new TGeoTube(mRmin, mRmax, mDZSilicon / 2);
+  TGeoVolume* siliconVol = new TGeoVolume(mName.c_str(), silicon, medSi);
+  siliconVol->SetLineColor(kOrange);
+
+  TGeoTranslation* transSilicon = new TGeoTranslation(0, 0, -mZSiliconMin - mDZSilicon / 2);
+  motherVolume->AddNode(siliconVol, 1, transSilicon);
+}
+
 } // namespace rich
 } // namespace o2
