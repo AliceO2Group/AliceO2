@@ -1267,7 +1267,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                          //! Z position c
                            [](float timeA, float timeC) -> float {
                              return o2::constants::physics::LightSpeedCm2NS * (timeC - timeA) / 2;
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(CollTime, collTime, //! Collision time, one need also check validation(code below) for timeA and timeC
+DECLARE_SOA_DYNAMIC_COLUMN(CollTime, collTime, //! Collision time, one need also check validation (code below) for timeA and timeC
                            [](float timeA, float timeC) -> float {
                              return (timeA + timeC) / 2;
                            });
