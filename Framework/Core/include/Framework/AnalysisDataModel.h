@@ -1276,8 +1276,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeA, isValidTimeA, //! Checks if time from A
                              return timeA < 30.f; // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeC, isValidTimeC, //! Checks if time from C side was calculated
-                           [](float timeA) -> bool {
-                             return timeA < 30.f;
+                           [](float timeC) -> bool {
+                             return timeC < 30.f; // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(IsValidTime, isValidTime, //! Checks if times from A and C side were calculated simultaneously
                            [](float timeA, float timeC) -> bool {
