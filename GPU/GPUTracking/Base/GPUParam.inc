@@ -63,30 +63,35 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
 MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const
 {
-  const float kEpsZBoundary = 1.e-6f; // to disentangle A,C and A+C-common regions
-  const float kMaxExpArg = 9.f;       // limit r-dumped error to this exp. argument
-  const float kMaxExpArgZ = CAMath::Sqrt(2.f * kMaxExpArg);
+  float sysErr = 0.f;
+  const float kMaxExpArg = 9.f; // limit r-dumped error to this exp. argument
 
-  double sysErr = 0;
-  if (rec.tpc.sysClusErrorInner0 > 0.f) {
-    double dr = CAMath::Abs(x - 85.f);
-    float argExp = dr / rec.tpc.sysClusErrorInner1; // is the Z-range limited ?
-    if (argExp < kMaxExpArg) {
-      if (rec.tpc.sysClusErrorZRegion < -kEpsZBoundary && !sideC) {
-        return 0;    // don't apply to A-side clusters if the Z-boundary is for C-region
-      } else if (rec.tpc.sysClusErrorZRegion > kEpsZBoundary && sideC) {
-        return 0; // don't apply to C-side clusters if the Z-boundary is for A-region
-      }
-      const float dz = CAMath::Abs((rec.tpc.sysClusErrorZRegion - z) * rec.tpc.sysClusErrorZRegionSigInv);
-      if (dz < kMaxExpArgZ) { // is it small enough to call exp?
-        argExp += 0.5f * dz * dz;
-        if (argExp<kMaxExpArg) {
-          sysErr = rec.tpc.sysClusErrorInner0 * CAMath::Exp(-argExp);
-        }
-      }
+  const float rIFC=83.5;
+  if (x-rIFC < rec.tpc.sysClusErrorMinDist) {
+    return rec.tpc.sysClusErrorMaskError;
+  }
+
+  if (sideC && rec.tpc.sysClusErrorNormIFCCE)
+  {
+    float dr = CAMath::Abs(x - 85.f);
+    float argExpIFCCE = dr * rec.tpc.sysClusErrorSlopeIFCCE;
+    float dz = CAMath::Abs((rec.tpc.sysClusErrorIFCCEZRegion - z) * rec.tpc.sysClusErrorslopeIFCCEZ);
+    argExpIFCCE += 0.5f * dz * dz;
+    if (argExpIFCCE < kMaxExpArg) {
+       float tmp = rec.tpc.sysClusErrorNormIFCCE * CAMath::Exp(-argExpIFCCE);
+       sysErr += tmp * tmp;
     }
   }
-  return sysErr * sysErr;
+
+  if (rec.tpc.sysClusErrorNormIFC) {
+    float argExpIFC = (x - rIFC) * rec.tpc.sysClusErrorSlopeIFC; // TODO: Use r
+    if (argExpIFC<kMaxExpArg) {
+      float tmp = rec.tpc.sysClusErrorNormIFC * CAMath::Exp(-argExpIFC);
+      sysErr += tmp * tmp;
+    }
+  }
+
+  return sysErr;
 }
 
 #else // GPUCA_TPC_GEOMETRY_O2
