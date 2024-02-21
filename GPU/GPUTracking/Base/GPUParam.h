@@ -97,7 +97,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   }
   GPUd() float GetClusterErrorSeeding(int yz, int type, float z, float angle2) const;
   GPUd() void GetClusterErrorsSeeding2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
-  GPUd() float GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const;
+  GPUd() float GetSystematicClusterErrorIFC2(float x, float y, float z, bool sideC) const;
 
   GPUd() float GetClusterError2(int yz, int type, float z, float angle2) const;
   GPUd() void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
