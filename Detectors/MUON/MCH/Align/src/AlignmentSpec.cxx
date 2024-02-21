@@ -22,6 +22,7 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
+#include <filesystem>
 
 #include <TCanvas.h>
 #include <TChain.h>
@@ -193,7 +194,7 @@ class AlignmentTask
       LOG(info) << "Loading magnetic field and reference geometry from input files";
 
       auto grpFile = ic.options().get<string>("grp-file");
-      if (filesystem::exists(grpFile)) {
+      if (std::filesystem::exists(grpFile)) {
         const auto grp = parameters::GRPObject::loadFrom(grpFile);
         base::Propagator::initFieldFromGRP(grp);
         TrackExtrap::setField();
@@ -205,7 +206,7 @@ class AlignmentTask
       }
 
       auto geoIdealFile = ic.options().get<string>("geo-file-ideal");
-      if (filesystem::exists(geoIdealFile)) {
+      if (std::filesystem::exists(geoIdealFile)) {
         base::GeometryManager::loadGeometry(geoIdealFile.c_str());
         transformation = geo::transformationFromTGeoManager(*gGeoManager);
         for (int i = 0; i < 156; i++) {
@@ -217,7 +218,7 @@ class AlignmentTask
       }
 
       auto geoRefFile = ic.options().get<string>("geo-file-ref");
-      if (filesystem::exists(geoRefFile)) {
+      if (std::filesystem::exists(geoRefFile)) {
         base::GeometryManager::loadGeometry(geoRefFile.c_str());
         transformation = geo::transformationFromTGeoManager(*gGeoManager);
         for (int i = 0; i < 156; i++) {
