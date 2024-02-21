@@ -88,7 +88,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, flo
   if (CAMath::Abs(k) > 1.e-2f) {
     float dZ = CAMath::Abs(GetDzDs() * CAMath::TwoPi() / k);
     if (dZ > .1f) {
-      zp += CAMath::Nint((z - zp) / dZ) * dZ;
+      zp += CAMath::Round((z - zp) / dZ) * dZ;
     }
   }
 }

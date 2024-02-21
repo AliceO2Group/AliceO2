@@ -114,7 +114,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
     prop.SetMatLUT((param.rec.useMatLUT && iWay == nWays - 1) ? merger->GetConstantMem()->calibObjects.matLUT : nullptr);
     prop.SetTrack(this, iWay ? prop.GetAlpha() : Alpha);
     ConstrainSinPhi(prop.GetFitInProjections() ? 0.95f : GPUCA_MAX_SIN_PHI_LOW);
-    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", iTrk, iWay, (int)(prop.GetAlpha() / kSectAngle + 0.5f) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
+    CADEBUG(printf("Fitting track %d way %d (sector %d, alpha %f)\n", iTrk, iWay, CAMath::Float2IntRn(prop.GetAlpha() / kSectAngle) + (mP[1] < 0 ? 18 : 0), prop.GetAlpha()));
 
     N = 0;
     lastUpdateX = -1;
@@ -357,7 +357,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
             qtot = cl.qTot;
             qmax = cl.qMax;
             pad = cl.getPad();
-            relTime = cl.getTime() - int(cl.getTime() + 0.5f);
+            relTime = cl.getTime() - CAMath::Round(cl.getTime());
           }
           dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, pad, relTime);
         }
@@ -408,7 +408,7 @@ GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, cons
     GPUTPCGMTrackParam save = *this;
     float saveAlpha = Alpha;
     for (int attempt = 0; attempt < 3; attempt++) {
-      float dAngle = floor(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
+      float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f) * kSectAngle;
       Alpha += dAngle;
       if (prop.PropagateToXAlpha(param.rec.tpc.trackReferenceX, Alpha, 0)) {
         break;
@@ -422,7 +422,7 @@ GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, cons
     Alpha = saveAlpha;
   }
   if (CAMath::Abs(mP[0]) > mX * CAMath::Tan(kSectAngle / 2.f)) {
-    float dAngle = floor(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
+    float dAngle = CAMath::Round(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f) * kSectAngle;
     Rotate(dAngle);
     ConstrainSinPhi();
     Alpha += dAngle;
@@ -827,7 +827,7 @@ GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPU
   }
   float b = prop.GetBz(prop.GetAlpha(), mX, mP[0], mP[1]);
 
-  int count = CAMath::Abs((toX - X) / 0.5f) + 0.5f;
+  int count = CAMath::Float2IntRn(CAMath::Abs((toX - X) * 2.f));
   if (count == 0) {
     return;
   }
