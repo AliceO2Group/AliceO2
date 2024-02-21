@@ -129,11 +129,17 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
   mTimer[SWTot].Stop();
 
   if (mParams->verbosity > 0) {
-    for (int i = 0; i < NStopWatches; i++) {
-      LOGF(info, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
-    }
+    reportTiming();
   }
   mTFCount++;
+}
+
+//______________________________________________
+void MatchTPCITS::reportTiming()
+{
+  for (int i = 0; i < NStopWatches; i++) {
+    LOGF(info, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
+  }
 }
 
 //______________________________________________
@@ -1343,28 +1349,149 @@ void MatchTPCITS::refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matche
   ///< refit winning tracks
   mTimer[SWRefit].Start(false);
   matchedTracks.reserve(mNMatches + mABWinnersIDs.size());
+  matchedTracks.resize(mNMatches);
   if (mMCTruthON) {
     matchLabels.reserve(mNMatches + mABWinnersIDs.size());
+    matchLabels.resize(mNMatches);
   }
   if (mVDriftCalibOn) {
     calib.reserve(mNCalibPrelim * 1.2 + 1);
   }
-
-  LOG(debug) << "Refitting winner matches";
-  mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
-  int iITS;
+  std::vector<int> tpcToFit;
+  tpcToFit.reserve(mNMatches);
   for (int iTPC = 0; iTPC < (int)mTPCWork.size(); iTPC++) {
     const auto& tTPC = mTPCWork[iTPC];
-    if (isDisabledTPC(tTPC) || !tTPC.gid.testBit(0) || !refitTrackTPCITS(iTPC, iITS, matchedTracks, matchLabels, calib)) {
-      continue;
+    if (!isDisabledTPC(tTPC) && tTPC.gid.testBit(0)) {
+      tpcToFit.push_back(iTPC);
     }
-    mWinnerChi2Refit[iITS] = matchedTracks.back().getChi2Refit();
+  }
+  LOG(debug) << "Refitting winner matches";
+  mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
+  int nToFit = (int)tpcToFit.size();
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
+  for (int ifit = 0; ifit < nToFit; ifit++) {
+    int iTPC = tpcToFit[ifit], iITS;
+    const auto& tTPC = mTPCWork[iTPC];
+    if (refitTrackTPCITS(ifit, iTPC, iITS, matchedTracks, matchLabels, calib)) {
+      mWinnerChi2Refit[iITS] = matchedTracks.back().getChi2Refit();
+    }
+  }
+
+  // suppress tracks failed on refit and fill calib/debug data (if needed)
+  int last = nToFit;
+  mNMatches = 0;
+  for (int ifit = 0; ifit < nToFit; ifit++) {
+    int itpc = tpcToFit[ifit];
+    if (!matchedTracks[ifit].isValid()) { // move the last good track from the back to the slot to delete
+      while (--last > ifit && !matchedTracks[last].isValid()) {
+      } // find the highest valid track
+      if (last > ifit) {
+        matchedTracks[ifit] = matchedTracks[last];
+        matchedTracks[last].invalidate();
+        itpc = tpcToFit[last];
+        if (mMCTruthON) {
+          matchLabels[ifit] = matchLabels[last];
+        }
+      } else {
+        break;
+      }
+    }
+    if (mDBGOut || mVDriftCalibOn) {
+      fillCalibDebug(ifit, itpc, matchedTracks[ifit], calib);
+    }
+    mNMatches++;
+  }
+  // adjust sizes
+  matchedTracks.resize(mNMatches);
+  if (mMCTruthON) {
+    matchLabels.resize(mNMatches);
   }
   mTimer[SWRefit].Stop();
 }
 
 //______________________________________________
-bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
+void MatchTPCITS::fillCalibDebug(int ifit, int iTPC, const o2::dataformats::TrackTPCITS& match, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
+{
+  const auto& tTPC = mTPCWork[iTPC];
+  int iITS = mMatchRecordsTPC[tTPC.matchID].partnerID;
+  const auto& tITS = mITSWork[iITS];
+  float minDiffFT0 = -999., timeC = 0.f;
+  std::vector<float> dtimes;
+  bool fillVDCalib = mVDriftCalibOn && (!mFieldON || std::abs(match.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt);
+  if (fillVDCalib || mDBGOut) {
+    timeC = match.getTimeMUS().getTimeStamp(); // find closest FIT record
+    float minDiffA = mParams->maxVDritTimeOffset;
+    if (mInteractions.size()) {
+      int timeC0 = timeC - minDiffA;
+      if (timeC0 < 0) {
+        timeC0 = 0;
+      }
+      auto entStart = timeC0 < int(mInteractionMUSLUT.size()) ? mInteractionMUSLUT[timeC0] : (mInteractionMUSLUT.size() ? mInteractionMUSLUT.back() : 0);
+      for (int ent = entStart; ent < (int)mInteractions.size(); ent++) {
+        float diff = mInteractions[ent].tBracket.mean() - timeC;
+        if (diff > minDiffA) {
+          break; // all following will be the same
+        }
+        if (diff < -minDiffA) {
+          continue;
+        }
+        dtimes.push_back(diff);
+        minDiffFT0 = diff;
+        minDiffA = std::abs(minDiffFT0);
+      }
+    }
+  }
+  if (fillVDCalib) {
+    calib.emplace_back(tITS.getTgl(), tTPC.getTgl(), minDiffFT0);
+  }
+#ifdef _ALLOW_DEBUG_TREES_
+  if (mDBGOut) {
+    o2::track::TrackPar itsRefPIDCorr(tITS);   // version ad hoc corrected for TPC PID being different from the pion, as it is done in the matching
+    o2::track::TrackParCov itsRefAltPID(tITS); // version with full propagation to account for TPC PID being different from the pion
+    itsRefPIDCorr.setX(0);
+    if (tTPC.getPID() > tITS.getPID() && tITS.dL > 0.f && tTPC.getP2() / tTPC.getPID().getMass2() < mParams->minBetaGammaForPIDDiff) {
+      itsRefAltPID = mITSTracksArray[tITS.sourceID].getParamOut(); // clone original ITS track at highest update point
+      itsRefPIDCorr.setPID(tTPC.getPID(), true);
+      itsRefPIDCorr = itsRefAltPID;
+      // fast correction
+      if (!itsRefPIDCorr.correctForELoss(tITS.xrho)) {
+        itsRefPIDCorr.setX(-10);
+      } else {
+        float q2ptPID = itsRefPIDCorr.getQ2Pt();
+        float dCurv = (q2ptPID - tITS.getQ2Pt()) * mBz * o2::constants::math::B2C, dLEff = tITS.dL * mParams->ITSStepEffFraction, dCurvL = dCurv * dLEff;
+        itsRefPIDCorr = tITS;
+        itsRefPIDCorr.setPID(tTPC.getPID(), true);
+        itsRefPIDCorr.setQ2Pt(q2ptPID);
+        auto snp = tITS.getSnp() + dCurvL;
+        if (std::abs(snp) >= 1.) {
+          snp = std::copysign(0.99, snp);
+        }
+        itsRefPIDCorr.setSnp(snp);
+        itsRefPIDCorr.setY(tITS.getY() + dCurvL * dLEff * 0.5);
+      }
+      // full propagation
+      if (!itsRefAltPID.rotate(tTPC.getAlpha()) || !o2::base::Propagator::Instance()->PropagateToXBxByBz(itsRefAltPID, mParams->XMatchingRef, MaxSnp, 2., mUseMatCorrFlag)) {
+        itsRefAltPID.setX(-10);
+      }
+    }
+    (*mDBGOut) << "refit"
+               << "tpcOrig=" << mTPCTracksArray[tTPC.sourceID] << "itsOrig=" << mITSTracksArray[tITS.sourceID] << "itsRef=" << tITS << "tpcRef=" << tTPC << "matchRefit=" << match
+               << "timeCorr=" << timeC << "dTimeFT0=" << minDiffFT0 << "dTimes=" << dtimes
+               << "itsRefAltPID=" << itsRefAltPID << "itsRefPIDCorr=" << itsRefPIDCorr;
+    if (mMCTruthON) {
+      (*mDBGOut) << "refit"
+                 << "itsLbl=" << mITSLblWork[iITS] << "tpcLbl=" << mTPCLblWork[iTPC];
+    }
+    (*mDBGOut) << "refit"
+               << "tf=" << mTFCount << "\n";
+  }
+#endif
+}
+
+//______________________________________________
+bool MatchTPCITS::refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
 {
   ///< refit in inward direction the pair of TPC and ITS tracks
 
@@ -1374,7 +1501,9 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   iITS = tpcMatchRec.partnerID;
   const auto& tITS = mITSWork[iITS];
   const auto& itsTrOrig = mITSTracksArray[tITS.sourceID];
-  auto& trfit = matchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
+  auto& trfit = matchedTracks[slot];
+  ((o2::track::TrackParCov&)trfit) = (const o2::track::TrackParCov&)tTPC;
+  trfit.getParamOut() = (const o2::track::TrackParCov&)tITS; // create a copy of TPC track at xRef
   trfit.getParamOut().setUserField(0);                  // reset eventual clones flag
   trfit.setPID(tTPC.getPID(), true);
   trfit.getParamOut().setPID(tTPC.getPID(), true);
@@ -1394,15 +1523,15 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   o2::math_utils::Bracketf_t::Relation relITS;
   if (mParams->ITSTimeOutliersPolicy != MatchTPCITSParams::TimeOutliersPolicy::Tolerate && (relITS = tITS.tBracket.isOutside(timeC))) { /// track time is outside of the nominal ITS time
     if (mParams->ITSTimeOutliersPolicy == MatchTPCITSParams::TimeOutliersPolicy::Adjust) {
-      timeC = relITS == o2::math_utils::Bracketf_t::Below ? tITS.tBracket.getMin() : tITS.tBracket.getMax(); /// assing ITS boundary
+      timeC = relITS == o2::math_utils::Bracketf_t::Below ? tITS.tBracket.getMin() : tITS.tBracket.getMax(); /// assign ITS boundary
     } else {                                                                                                 // == MatchTPCITSParams::TimeOutliersPolicy::Reject
-      matchedTracks.pop_back();                                                                              // destroy failed track
+      trfit.invalidate();
       return false;
     }
   }
   if (timeC < 0) { // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
-      matchedTracks.pop_back(); // destroy failed track
+      trfit.invalidate(); // destroy failed track
       return false;
     }
     timeC = 0.;
@@ -1443,7 +1572,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   if (nclRefit != ncl) {
     LOGP(debug, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
     LOGP(debug, "{:s}", trfit.asString());
-    matchedTracks.pop_back(); // destroy failed track
+    trfit.invalidate(); // destroy failed track
     return false;
   }
 
@@ -1461,9 +1590,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   tofL.setXRho(-tofL.getXRho());
 
   // outward refit
-#ifdef _ALLOW_DEBUG_TREES_
-  o2::track::TrackParCov itsRefAltPID;
-#endif
   auto& tracOut = trfit.getParamOut(); // this is a clone of ITS outward track already at the matching reference X
   if (tTPC.getPID() > tITS.getPID() && tTPC.getP2() / tTPC.getPID().getMass2() < mParams->minBetaGammaForPIDDiff) {
     // in case the TPC track hypothesis is not pion, we redo the outward propagation to ref.x with TPC PID
@@ -1471,21 +1597,16 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
     tracOut.setPID(tTPC.getPID(), true);
     if (!tracOut.rotate(tTPC.getAlpha()) || !o2::base::Propagator::Instance()->PropagateToXBxByBz(tracOut, mParams->XMatchingRef, MaxSnp, 2., mUseMatCorrFlag)) {
       LOGP(debug, "Failed to rotate ITSouter with imposed PID to TPC alpha {} or propagate to X={}: {:s}", tTPC.getAlpha(), mParams->XMatchingRef, tracOut.asString());
-      matchedTracks.pop_back(); // destroy failed track
+      trfit.invalidate(); // destroy failed track
       return false;
     }
-#ifdef _ALLOW_DEBUG_TREES_
-    if (mDBGOut) {
-      itsRefAltPID = tracOut;
-    }
-#endif
   }
   {
     float xtogo = 0;
     if (!tracOut.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
         !propagator->PropagateToXBxByBz(tracOut, xtogo, MaxSnp, 10., mUseMatCorrFlag, &tofL)) {
       LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
-      matchedTracks.pop_back(); // destroy failed track
+      trfit.invalidate(); // destroy failed track
       return false;
     }
     if (mVDriftCalibOn) {
@@ -1498,13 +1619,13 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
       LOGP(alarm, "Impossible imposed timebin {} for TPC track time0:{}, dBwd:{} dFwd:{} TB | ZShift:{}, TShift:{}", tImposed, mTPCTracksArray[tTPC.sourceID].getTime0(),
            mTPCTracksArray[tTPC.sourceID].getDeltaTBwd(), mTPCTracksArray[tTPC.sourceID].getDeltaTFwd(), trfit.getZ() - tTPC.getZ(), deltaT);
       LOGP(info, "Trc: {}", mTPCTracksArray[tTPC.sourceID].asString());
-      matchedTracks.pop_back(); // destroy failed track
+      trfit.invalidate(); // destroy failed track
       return false;
     }
     int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), tImposed, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(debug) << "Refit failed";
-      matchedTracks.pop_back(); // destroy failed track
+      trfit.invalidate(); // destroy failed track
       return false;
     }
     auto posEnd = tracOut.getXYZGlo();
@@ -1528,76 +1649,9 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   trfit.setRefITS({unsigned(tITS.sourceID), o2::dataformats::GlobalTrackID::ITS});
 
   if (mMCTruthON) { // store MC info: we assign TPC track label and declare the match fake if the ITS and TPC labels are different (their fake flag is ignored)
-    auto& lbl = matchLabels.emplace_back(mTPCLblWork[iTPC]);
-    lbl.setFakeFlag(mITSLblWork[iITS] != mTPCLblWork[iTPC]);
+    matchLabels[slot] = mTPCLblWork[iTPC];
+    matchLabels[slot].setFakeFlag(mITSLblWork[iITS] != mTPCLblWork[iTPC]);
   }
-
-  // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
-  float minDiffFT0 = -999.;
-  std::vector<float> dtimes;
-  bool fillVDCalib = mVDriftCalibOn && (!mFieldON || std::abs(trfit.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt);
-  if (fillVDCalib || mDBGOut) {
-    // find closest FIT record
-    float minDiffA = mParams->maxVDritTimeOffset;
-    if (mInteractions.size()) {
-      int timeC0 = timeC - minDiffA;
-      if (timeC0 < 0) {
-        timeC0 = 0;
-      }
-      auto entStart = timeC0 < int(mInteractionMUSLUT.size()) ? mInteractionMUSLUT[timeC0] : (mInteractionMUSLUT.size() ? mInteractionMUSLUT.back() : 0);
-      for (int ent = entStart; ent < (int)mInteractions.size(); ent++) {
-        float diff = mInteractions[ent].tBracket.mean() - timeC;
-        if (diff > minDiffA) {
-          break; // all following will be the same
-        }
-        if (diff < -minDiffA) {
-          continue;
-        }
-        dtimes.push_back(diff);
-        minDiffFT0 = diff;
-        minDiffA = std::abs(minDiffFT0);
-      }
-    }
-  }
-  if (fillVDCalib) {
-    calib.emplace_back(tITS.getTgl(), tTPC.getTgl(), minDiffFT0);
-  }
-#ifdef _ALLOW_DEBUG_TREES_
-  if (mDBGOut) {
-    o2::track::TrackPar itsRefPIDCorr(tITS);
-    itsRefPIDCorr.setX(0);
-    if (tTPC.getPID() > tITS.getPID() && tITS.dL > 0.f && tTPC.getP2() / tTPC.getPID().getMass2() < mParams->minBetaGammaForPIDDiff) {
-      itsRefPIDCorr = mITSTracksArray[tITS.sourceID].getParamOut(); // clone original ITS track at highest update point
-      itsRefPIDCorr.setPID(tTPC.getPID(), true);
-      if (!itsRefPIDCorr.correctForELoss(tITS.xrho)) {
-        itsRefPIDCorr.setX(-10);
-      } else {
-        float q2ptPID = itsRefPIDCorr.getQ2Pt();
-        float dCurv = (q2ptPID - tITS.getQ2Pt()) * mBz * o2::constants::math::B2C, dLEff = tITS.dL * mParams->ITSStepEffFraction, dCurvL = dCurv * dLEff;
-        itsRefPIDCorr = tITS;
-        itsRefPIDCorr.setPID(tTPC.getPID(), true);
-        itsRefPIDCorr.setQ2Pt(q2ptPID);
-        auto snp = tITS.getSnp() + dCurvL;
-        if (std::abs(snp) >= 1.) {
-          snp = std::copysign(0.99, snp);
-        }
-        itsRefPIDCorr.setSnp(snp);
-        itsRefPIDCorr.setY(tITS.getY() + dCurvL * dLEff * 0.5);
-      }
-    }
-    (*mDBGOut) << "refit"
-               << "tpcOrig=" << mTPCTracksArray[tTPC.sourceID] << "itsOrig=" << itsTrOrig << "itsRef=" << tITS << "tpcRef=" << tTPC << "matchRefit=" << trfit << "timeCorr=" << timeC << "dTimeFT0=" << minDiffFT0 << "dTimes=" << dtimes
-               << "itsRefAltPID=" << itsRefAltPID << "itsRefPIDCorr=" << itsRefPIDCorr;
-    if (mMCTruthON) {
-      (*mDBGOut) << "refit"
-                 << "itsLbl=" << mITSLblWork[iITS] << "tpcLbl=" << mTPCLblWork[iTPC];
-    }
-    (*mDBGOut) << "refit"
-               << "tf=" << mTFCount << "\n";
-  }
-#endif
-
-  //  trfit.print(); // DBG
 
   return true;
 }
@@ -1925,6 +1979,9 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
   if (matchedTracks.capacity() < mABWinnersIDs.size() + matchedTracks.size()) {
     LOGP(warn, "need to expand matched tracks container from {} to {}", matchedTracks.capacity(), mABWinnersIDs.size() + matchedTracks.size());
     matchedTracks.reserve(mABWinnersIDs.size() + matchedTracks.size());
+    if (mMCTruthON) {
+      matchLabels.reserve(mABWinnersIDs.size() + matchedTracks.size());
+    }
   }
 
   std::map<o2::MCCompLabel, int> labelOccurence;

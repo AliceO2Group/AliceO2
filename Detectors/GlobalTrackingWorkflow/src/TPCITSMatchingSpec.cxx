@@ -127,6 +127,7 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
   mMatching.end();
   LOGF(info, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mMatching.reportTiming();
 }
 
 void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
