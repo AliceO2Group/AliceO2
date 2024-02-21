@@ -61,13 +61,14 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float y, float z, bool sideC) const
 {
   float sysErr = 0.f;
   const float kMaxExpArg = 9.f; // limit r-dumped error to this exp. argument
 
   const float rIFC=83.5;
-  if (x-rIFC < rec.tpc.sysClusErrorMinDist) {
+  const float r = CAMath::Sqrt(x * x + y * y);
+  if (r-rIFC < rec.tpc.sysClusErrorMinDist) {
     return rec.tpc.sysClusErrorMaskError;
   }
 
@@ -84,7 +85,7 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, 
   }
 
   if (rec.tpc.sysClusErrorNormIFC) {
-    float argExpIFC = (x - rIFC) * rec.tpc.sysClusErrorSlopeIFC; // TODO: Use r
+    float argExpIFC = (r - rIFC) * rec.tpc.sysClusErrorSlopeIFC;
     if (argExpIFC<kMaxExpArg) {
       float tmp = rec.tpc.sysClusErrorNormIFC * CAMath::Exp(-argExpIFC);
       sysErr += tmp * tmp;
@@ -139,7 +140,7 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float y, float z, bool sideC) const
 {
   return 0;
 }
