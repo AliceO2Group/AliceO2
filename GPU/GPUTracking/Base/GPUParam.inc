@@ -17,6 +17,9 @@
 
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#include "GPUTPCClusterOccupancyMap.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -44,13 +47,13 @@ GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float 
 #ifdef GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float avgCharge, float& ErrY2, float& ErrZ2) const
 {
-  GetClusterErrors2(iRow, z, sinPhi, DzDs, ErrY2, ErrZ2);
+  GetClusterErrors2(sector, iRow, z, sinPhi, DzDs, time, avgCharge, ErrY2, ErrZ2);
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2) const
+GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2, float time, float avgCharge) const
 {
   MakeType(const float*) c = ParamErrors[yz][type];
   float v = c[0] + c[1] * angle2 + c[2] * z + c[3] * 0;
@@ -107,7 +110,7 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float z
 }
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float avgCharge, float& ErrY2, float& ErrZ2) const
 {
   int rowType = tpcGeometry.GetROC(iRow);
   z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
@@ -126,7 +129,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2) const
+GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2, float time, float avgCharge) const
 {
   MakeType(const float*) c = ParamS0Par[yz][type];
   float v = c[0] + c[1] * z + c[2] * angle2 + c[3] * z * z + c[4] * angle2 * angle2 + c[5] * z * angle2;
@@ -148,7 +151,7 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float y, 
 #endif // !GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float avgCharge, float& ErrY2, float& ErrZ2) const
 {
   // Calibrated cluster error from OCDB for Y and Z
   int rowType = tpcGeometry.GetROC(iRow);
@@ -160,9 +163,11 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(int iRow, float z, float sinPhi
   float sec2 = 1.f / (1.f - s2);
   float angleY2 = s2 * sec2;          // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
-
-  ErrY2 = GetClusterError2(0, rowType, z, angleY2);
-  ErrZ2 = GetClusterError2(1, rowType, z, angleZ2);
+  
+  float mult = time >= 0.f ? GetScaledMult(sector, iRow, time) : 0.f;
+  
+  ErrY2 = GetClusterError2(0, rowType, z, angleY2, mult, avgCharge);
+  ErrZ2 = GetClusterError2(1, rowType, z, angleZ2, mult, avgCharge);
 }
 
 MEM_CLASS_PRE()
@@ -184,6 +189,20 @@ GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2ByState(short clusterState, fl
     ErrZ2 += rec.tpc.extraClusterErrorSplitTimeSharedSingleZ2;
     ErrZ2 *= rec.tpc.extraClusterErrorFactorSplitTimeSharedSingleZ2;
   }
+}
+
+MEM_CLASS_PRE()
+GPUdi() float MEM_LG(GPUParam)::GetScaledMult(int iSlice, int iRow, float t) const
+{
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+  if (!occupancyMap) {
+    return 0.f;
+  }
+  const unsigned int bin = CAMath::Max(0.f, t / rec.tpc.occupancyMapTimeBins);
+  return occupancyMap[bin].bin[iSlice][iRow] * rec.tpc.clusterErrorOccupancyScaler;
+#else
+  return 0.f;
+#endif
 }
 
 } // namespace gpu
