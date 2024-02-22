@@ -3199,7 +3199,6 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   using base_t = T;
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
   using originals = originals_pack_t<T>;
-
   using iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowViewFiltered<Filtered<Filtered<T>>, Os...>{}; }(originals{}));
   using const_iterator = iterator;
 
