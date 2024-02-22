@@ -175,11 +175,7 @@ elseif(GPUCA_CUDA_COMPILE_MODE STREQUAL "perkernel")
   # Disable all non-deterministic floating point to make TPC track model encoding / decoding precise
   set_source_files_properties(${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCCompressionKernels_step0attached.cu
                               ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCCompressionKernels_step1unattached.cu
-                              TARGET_DIRECTORY ${targetName}
-                              PROPERTIES
-                              COMPILE_FLAGS "${GPUCA_CUDA_NO_FAST_MATH_FLAGS}"
-                              COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
-  set_source_files_properties(${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step0attached.cu
+                              ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step0attached.cu
                               ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step1unattached.cu
                               TARGET_DIRECTORY ${targetName}
                               PROPERTIES

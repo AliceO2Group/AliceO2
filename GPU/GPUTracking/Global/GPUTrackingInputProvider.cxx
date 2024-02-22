@@ -98,7 +98,7 @@ void GPUTrackingInputProvider::RegisterMemoryAllocation()
 void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mHoldTPCZS = io.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding);
-  mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && (mRec->IsGPU() || mNewGPURecoTPCDecoding);
+  mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && (mRec->IsGPU() || io.tpcCompressedClusters);
   mHoldTPCOccupancyMap = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && mRec->GetParam().rec.tpc.occupancyMapTimeBins;
   mHoldTPCClusterNativeOutput = io.tpcZS || io.tpcPackedDigits || io.tpcCompressedClusters;
 }
