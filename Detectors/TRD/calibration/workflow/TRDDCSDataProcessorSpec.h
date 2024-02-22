@@ -209,11 +209,9 @@ class TRDDCSDataProcessor : public o2::framework::Task
     if (mProcessor->shouldUpdateFedCFGtag()) {
       sendDPsoutputFedCFGtag(pc.outputs());
     }
-
-    if (mProcessor->shouldUpdateRun()) {
-      sendDPsoutputRun(pc.outputs());
-    }
+    
     sw.Stop();
+
     if (mReportTiming) {
       LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
     }
@@ -225,7 +223,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     sendDPsoutputVoltages(ec.outputs());
     sendDPsoutputCurrents(ec.outputs());
     sendDPsoutputEnv(ec.outputs());
-    sendDPsoutputRun(ec.outputs());
     // LB: new DPs for Fed
     sendDPsoutputFedChamberStatus(ec.outputs());
     sendDPsoutputFedCFGtag(ec.outputs());
@@ -325,26 +322,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
   }
 
-  //________________________________________________________________
-  void sendDPsoutputRun(DataAllocator& output)
-  {
-    // extract CCDB infos and calibration object for DPs
-    if (mProcessor->updateRunDPsCCDB()) {
-      const auto& payload = mProcessor->getTRDRunDPsInfo();
-      auto& info = mProcessor->getccdbRunDPsInfo();
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSRunDPs", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSRunDPs", 0}, info);
-      mProcessor->clearRunDPsInfo();
-    } else {
-      auto& info = mProcessor->getccdbRunDPsInfo();
-      // LOG(info) << "Not sending object " << info.getPath() << "/" << info.getFileName() << " since no DPs were processed for it";
-      LOG(info) << "Not sending object " << info.getPath() << "/" << info.getFileName() << " as upload of Run DPs was deactivated";
-    }
-  }
-
   // LB: new DP for FedChamberStatus
   //________________________________________________________________
   void sendDPsoutputFedChamberStatus(DataAllocator& output)
@@ -395,7 +372,7 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
 {
 
   std::vector<OutputSpec> outputs;
-
+   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_ChamberStat"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSGasDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSGasDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSUDPs"});
