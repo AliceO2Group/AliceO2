@@ -1380,7 +1380,6 @@ class Table
     using bindings_pack_t = decltype(extractBindings(external_index_columns_t{}));
     using parent_t = Parent;
     using originals = originals_pack_t<T...>;
-
     using policy_t = IP;
 
     RowViewBase() = default;
