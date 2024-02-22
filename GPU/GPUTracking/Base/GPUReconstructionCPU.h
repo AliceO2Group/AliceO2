@@ -155,6 +155,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   void SetNestedLoopOmpFactor(unsigned int f) { mNestedLoopOmpFactor = f; }
   unsigned int SetAndGetNestedLoopOmpFactor(bool condition, unsigned int max);
 
+  void UpdateParamOccupancyMap(const GPUTPCClusterOccupancyMapBin* mapHost, const GPUTPCClusterOccupancyMapBin* mapGPU, int stream = -1);
+
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {
     GPUConstantMem* mProcessorsProc = nullptr;
@@ -190,7 +192,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
   virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
   virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
   virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
   int InitDevice() override;
