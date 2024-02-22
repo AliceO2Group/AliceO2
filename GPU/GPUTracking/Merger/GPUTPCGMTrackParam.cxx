@@ -315,7 +315,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           tup.Fill((float)clusters[ihit].row, xx, yy, zz, clAlpha, mX, ImP0, ImP1, mP[2], mP[3], mP[4], ImC0, ImC2, mC[14]);
         }
 #endif
-        retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, clusters[ihit].slice, -1.f, 0.f GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use correct time, avgCharge
+        float time = merger->Param().par.earlyTpcTransform ? -1.f : merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num].getTime();
+        retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, clusters[ihit].slice, time, 0.f GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use correct time, avgCharge
         GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
           o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data() << "iTrk=" << iTrk << "ihit=" << ihit << "yy=" << yy << "zz=" << zz << "cluster=" << clusters[ihit] << "track=" << this << "rejectChi2=" << rejectChi2 << "interpolationhit=" << interpolation.hit[ihit] << "refit=" << refit << "retVal=" << retVal << "\n";
         })
@@ -558,25 +559,25 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   int bin, ny, nz;
 
   float err2Y, err2Z;
-  Merger->Param().GetClusterErrors2(slice, iRow, Z, mP[2], mP[3], -1.f, 0.f, err2Y, err2Z); // TODO: Use correct time/avgCharge
+  Merger->Param().GetClusterErrors2(slice, iRow, Z, mP[2], mP[3], -1.f, 0.f, err2Y, err2Z);                                             // TODO: Use correct time/avgCharge
   const float sy2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Y + CAMath::Abs(mC[0]))); // Cov can be bogus when following circle
   const float sz2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Z + CAMath::Abs(mC[2]))); // In that case we should provide the track error externally
   const float tubeY = CAMath::Sqrt(sy2);
   const float tubeZ = CAMath::Sqrt(sz2);
   const float sy21 = 1.f / sy2;
   const float sz21 = 1.f / sz2;
-  float nY, nZ;
+  float uncorrectedY, uncorrectedZ;
   if (Merger->Param().par.earlyTpcTransform) {
-    nY = Y;
-    nZ = Z;
+    uncorrectedY = Y;
+    uncorrectedZ = Z;
   } else {
-    Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, nY, nZ);
+    Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, uncorrectedY, uncorrectedZ);
   }
 
-  if (CAMath::Abs(nY) > row.getTPCMaxY()) {
+  if (CAMath::Abs(uncorrectedY) > row.getTPCMaxY()) {
     return;
   }
-  row.Grid().GetBinArea(nY, nZ + zOffset, tubeY, tubeZ, bin, ny, nz);
+  row.Grid().GetBinArea(uncorrectedY, uncorrectedZ + zOffset, tubeY, tubeZ, bin, ny, nz);
 
   const int nBinsY = row.Grid().Ny();
   const int idOffset = tracker.Data().ClusterIdOffset();
@@ -601,8 +602,8 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
       const cahit2 hh = CA_TEXTURE_FETCH(cahit2, gAliTexRefu2, hits, ih);
       const float y = y0 + hh.x * stepY;
       const float z = z0 + hh.y * stepZ;
-      const float dy = y - nY;
-      const float dz = z - nZ;
+      const float dy = y - uncorrectedY;
+      const float dz = z - uncorrectedZ;
       if (dy * dy * sy21 + dz * dz * sz21 <= CAMath::Sqrt(2.f)) {
         // CADEBUG(printf("Found Y %f Z %f\n", y, z));
         CAMath::AtomicMax(weight, myWeight);
