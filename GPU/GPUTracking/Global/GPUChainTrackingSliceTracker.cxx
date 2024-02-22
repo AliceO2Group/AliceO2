@@ -149,14 +149,16 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     AllocateRegisteredMemory(mInputsHost->mResourceOccupancyMap, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcOccupancyMap)]);
     ReleaseEvent(mEvents->init);
     auto* ptr = doGPU ? mInputsShadow->mTPCClusterOccupancyMap : mInputsHost->mTPCClusterOccupancyMap;
-    runKernel<GPUMemClean16>(GetGridAutoStep(mRec->NStreams() - 1, RecoStep::TPCSliceTracking), krnlRunRangeNone, {}, ptr, GPUTPCClusterOccupancyMapBin::getTotalSize(param()));
-    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fill>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, mRec->NStreams() - 1), krnlRunRangeNone, krnlEventNone, ptr);
-    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fold>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, mRec->NStreams() - 1), krnlRunRangeNone, {&mEvents->init}, ptr);
+    int streamOccMap = mRec->NStreams() - 1;
+    runKernel<GPUMemClean16>(GetGridAutoStep(streamOccMap, RecoStep::TPCSliceTracking), krnlRunRangeNone, {}, ptr, GPUTPCClusterOccupancyMapBin::getTotalSize(param()));
+    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fill>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, streamOccMap), krnlRunRangeNone, krnlEventNone, ptr);
+    runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fold>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, streamOccMap), krnlRunRangeNone, {&mEvents->init}, ptr);
     if (doGPU) {
       TransferMemoryResourceLinkToHost(RecoStep::TPCSliceTracking, mInputsHost->mResourceOccupancyMap);
     } else {
       TransferMemoryResourceLinkToGPU(RecoStep::TPCSliceTracking, mInputsHost->mResourceOccupancyMap);
     }
+    mRec->UpdateParamOccupancyMap(mInputsHost->mTPCClusterOccupancyMap, mInputsShadow->mTPCClusterOccupancyMap, streamOccMap);
   }
 
   int streamMap[NSLICES];

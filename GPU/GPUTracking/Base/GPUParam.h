@@ -69,7 +69,7 @@ struct GPUParam_t {
   float ParamErrors[2][4][4]; // cluster error parameterization used during seeding and fit
 #else
   float ParamErrorsSeeding0[2][3][4]; // cluster error parameterization used during seeding
-  float ParamS0Par[2][3][6]; // cluster error parameterization used during track fit
+  float ParamS0Par[2][3][6];          // cluster error parameterization used during track fit
 #endif
 };
 } // namespace internal
@@ -98,13 +98,13 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
     return 0.174533f + par.dAlpha * iSlice;
   }
   GPUd() float GetClusterErrorSeeding(int yz, int type, float z, float angle2) const;
-  GPUd() void GetClusterErrorsSeeding2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgCharge,  float& ErrY2, float& ErrZ2) const;
+  GPUd() void GetClusterErrorsSeeding2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgCharge, float& ErrY2, float& ErrZ2) const;
   GPUd() float GetSystematicClusterErrorIFC2(float x, float y, float z, bool sideC) const;
 
-  GPUd() float GetClusterError2(int yz, int type, float z, float angle2, float time, float avgCharge) const;
+  GPUd() float GetClusterError2(int yz, int type, float z, float angle2, float scaledMult, float scaledAvgCharge) const;
   GPUd() void GetClusterErrors2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgCharge, float& ErrY2, float& ErrZ2) const;
   GPUd() void UpdateClusterError2ByState(short clusterState, float& ErrY2, float& ErrZ2) const;
-  GPUd() float GetScaledMult(int iSlice, int iRow, float t) const;
+  GPUd() float GetScaledMult(int iSlice, int iRow, float time) const;
 
   GPUd() void Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
   GPUd() void Global2Slice(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
