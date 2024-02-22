@@ -14,6 +14,7 @@
 #include "Framework/ASoA.h"
 #include <cmath>
 #include <bitset>
+#include <numeric>
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -1263,15 +1264,42 @@ DECLARE_SOA_COLUMN(TimeA, timeA, float);                        //! Average A-si
 DECLARE_SOA_COLUMN(TimeC, timeC, float);                        //! Average C-side time
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);          //!
 DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                          //! Z position calculated from timeA and timeC in cm
-                           [](float t0A, float t0C) -> float {
-                             return o2::constants::physics::LightSpeedCm2NS * (t0C - t0A) / 2;
+                           [](float timeA, float timeC) -> float {
+                             return o2::constants::physics::LightSpeedCm2NS * (timeC - timeA) / 2;
                            });
+DECLARE_SOA_DYNAMIC_COLUMN(CollTime, collTime, //! Collision time, one need also check validation (code below) for timeA and timeC
+                           [](float timeA, float timeC) -> float {
+                             return (timeA + timeC) / 2;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeA, isValidTimeA, //! Checks if time from A side was calculated, and if is not dummy
+                           [](float timeA) -> bool {
+                             return timeA < 30.f; // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeC, isValidTimeC, //! Checks if time from C side was calculated
+                           [](float timeC) -> bool {
+                             return timeC < 30.f; // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(IsValidTime, isValidTime, //! Checks if times from A and C side were calculated simultaneously
+                           [](float timeA, float timeC) -> bool {
+                             return (timeA < 30.f) && (timeC < 30.f); // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(SumAmpA, sumAmpA, //! Calculates sum of positive amplitudes from side A
+                           [](gsl::span<const float> vecAmpA) -> float {
+                             return std::accumulate(vecAmpA.begin(), vecAmpA.end(), 0.f, [](auto&& sum, auto&& curr) { return sum + (curr > 0 ? curr : 0); });
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(SumAmpC, sumAmpC, //! Calculates sum of positive amplitudes from side C
+                           [](gsl::span<const float> vecAmpC) -> float {
+                             return std::accumulate(vecAmpC.begin(), vecAmpC.end(), 0.f, [](auto&& sum, auto&& curr) { return sum + (curr > 0 ? curr : 0); });
+                           });
+
 } // namespace ft0
 
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", //!
                   o2::soa::Index<>, ft0::BCId,
                   ft0::AmplitudeA, ft0::ChannelA, ft0::AmplitudeC, ft0::ChannelC, ft0::TimeA, ft0::TimeC,
-                  ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>);
+                  ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>, ft0::CollTime<ft0::TimeA, ft0::TimeC>,
+                  ft0::IsValidTimeA<ft0::TimeA>, ft0::IsValidTimeC<ft0::TimeC>, ft0::IsValidTime<ft0::TimeA, ft0::TimeC>,
+                  ft0::SumAmpA<ft0::AmplitudeA>, ft0::SumAmpC<ft0::AmplitudeC>);
 using FT0 = FT0s::iterator;
 
 namespace fdd
