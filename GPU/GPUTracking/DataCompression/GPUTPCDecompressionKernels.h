@@ -54,6 +54,20 @@ class GPUTPCDecompressionKernels : public GPUKernelTemplate
   {
     return slice * (GPUCA_ROW_COUNT * maxClustersPerBuffer) + row * maxClustersPerBuffer;
   }
+
+  template <typename T>
+  GPUdi() static void decompressorMemcpyBasic(T* dst, const T* src, unsigned int size);
+};
+
+class GPUTPCDecompressionUtilKernels : public GPUKernelTemplate
+{
+ public:
+  enum K : int {
+    sortPerSectorRow = 0
+  };
+
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

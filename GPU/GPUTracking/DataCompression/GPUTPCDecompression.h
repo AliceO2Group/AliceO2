@@ -41,6 +41,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUTPCDecompression : public GPUProcessor
 {
   friend class GPUTPCDecompressionKernels;
+  friend class GPUTPCDecompressionUtilKernels;
   friend class GPUChainTracking;
 
  public:

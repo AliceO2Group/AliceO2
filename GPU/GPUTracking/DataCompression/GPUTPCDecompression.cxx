@@ -86,7 +86,7 @@ void* GPUTPCDecompression::SetPointersTmpNativeBuffersInput(void* mem)
 void GPUTPCDecompression::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
-  mMemoryResInputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputGPU, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_CUSTOM, "TPCDecompressionInput");
+  mMemoryResInputGPU = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersInputGPU, GPUMemoryResource::MEMORY_INPUT_FLAG | GPUMemoryResource::MEMORY_GPU | GPUMemoryResource::MEMORY_EXTERNAL, "TPCDecompressionInput");
   mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersGPU, GPUMemoryResource::MEMORY_SCRATCH, "TPCDecompressionTmpBuffersGPU");
   mResourceTmpIndexes = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersOutput, GPUMemoryResource::MEMORY_OUTPUT, "TPCDecompressionTmpBuffersOutput");
   mResourceTmpClustersOffsets = mRec->RegisterMemoryAllocation(this, &GPUTPCDecompression::SetPointersTmpNativeBuffersInput, GPUMemoryResource::MEMORY_INPUT, "TPCDecompressionTmpBuffersInput");
