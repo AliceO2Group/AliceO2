@@ -155,7 +155,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     mTimerVoltages = mTimerGas;
     mTimerCurrents = mTimerGas;
     mTimerEnv = mTimerGas;
-    // LB: new DPs for Fed
     mTimerFedChamberStatus = mTimerGas;
     mTimerFedCFGtag = mTimerGas;
 
@@ -201,7 +200,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
       mTimerEnv = timeNow;
     }
 
-    // LB: processing logic for FedChamberStatus and FedCFGtag
     if (mProcessor->shouldUpdateFedChamberStatus()) {
       sendDPsoutputFedChamberStatus(pc.outputs());
     }
@@ -209,7 +207,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
     if (mProcessor->shouldUpdateFedCFGtag()) {
       sendDPsoutputFedCFGtag(pc.outputs());
     }
-    
+
     sw.Stop();
 
     if (mReportTiming) {
@@ -223,7 +221,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     sendDPsoutputVoltages(ec.outputs());
     sendDPsoutputCurrents(ec.outputs());
     sendDPsoutputEnv(ec.outputs());
-    // LB: new DPs for Fed
     sendDPsoutputFedChamberStatus(ec.outputs());
     sendDPsoutputFedCFGtag(ec.outputs());
   }
@@ -235,7 +232,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
   std::chrono::high_resolution_clock::time_point mTimerVoltages;
   std::chrono::high_resolution_clock::time_point mTimerCurrents;
   std::chrono::high_resolution_clock::time_point mTimerEnv;
-  // LB: new DPs for Fed
   std::chrono::high_resolution_clock::time_point mTimerFedChamberStatus;
   std::chrono::high_resolution_clock::time_point mTimerFedCFGtag;
 
@@ -244,7 +240,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
   int64_t mCurrentsDPsUpdateInterval;
   int64_t mMinUpdateIntervalU;
   int64_t mEnvDPsUpdateInterval;
-  // LB: new DPs for Fed
   int64_t mFedChamberStatusDPsUpdateInterval;
   int64_t mFedCFGtagDPsUpdateInterval;
 
@@ -322,7 +317,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
   }
 
-  // LB: new DP for FedChamberStatus
   //________________________________________________________________
   void sendDPsoutputFedChamberStatus(DataAllocator& output)
   {
@@ -342,7 +336,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
   }
 
-  // LB: new DP for FedCFGtag
   //________________________________________________________________
   void sendDPsoutputFedCFGtag(DataAllocator& output)
   {
@@ -372,7 +365,6 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
 {
 
   std::vector<OutputSpec> outputs;
-   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_ChamberStat"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSGasDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSGasDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSUDPs"});
@@ -383,7 +375,6 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSRunDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSEnvDPs"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSEnvDPs"});
-  // LB: new DPs for Fed
   // Must use reduced names due to initializer string cannot exceed descriptor size in Data Format
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_ChamberStat"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_ChamberStat"});

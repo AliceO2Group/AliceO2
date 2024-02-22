@@ -63,7 +63,6 @@ class DCSProcessor
   bool updateVoltagesDPsCCDB();
   bool updateCurrentsDPsCCDB();
   bool updateEnvDPsCCDB();
-  // LB: new DPs for Fed
   bool updateFedChamberStatusDPsCCDB();
   bool updateFedCFGtagDPsCCDB();
 
@@ -91,7 +90,7 @@ class DCSProcessor
   CcdbObjectInfo& getccdbEnvDPsInfo() { return mCcdbEnvDPsInfo; }
   CcdbObjectInfo& getccdbFedChamberStatusDPsInfo() { return mCcdbFedChamberStatusDPsInfo; }
   CcdbObjectInfo& getccdbFedCFGtagDPsInfo() { return mCcdbFedCFGtagDPsInfo; }
-  
+
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDGasDPsInfo() const { return mTRDDCSGas; }
   const std::unordered_map<DPID, float>& getTRDVoltagesDPsInfo() const { return mTRDDCSVoltages; }
   const std::unordered_map<DPID, TRDDCSMinMaxMeanInfo>& getTRDCurrentsDPsInfo() const { return mTRDDCSCurrents; }
@@ -112,7 +111,6 @@ class DCSProcessor
   void clearCurrentsDPsInfo();
   void clearEnvDPsInfo();
   void clearRunDPsInfo();
-  // LB: new DPs for Fed
   void clearFedChamberStatusDPsInfo();
   void clearFedCFGtagDPsInfo();
 
@@ -125,7 +123,6 @@ class DCSProcessor
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSCurrents; ///< anode and drift currents
   std::unordered_map<DPID, float> mTRDDCSVoltages;                ///< anode and drift voltages
   std::unordered_map<DPID, TRDDCSMinMaxMeanInfo> mTRDDCSEnv;      ///< environment parameters (temperatures, pressures, humidity)
-  // LB: new DPs for Fed
   std::array<int, constants::MAXCHAMBER> mTRDDCSFedChamberStatus; ///< fed chamber status
   std::array<string, constants::MAXCHAMBER> mTRDDCSFedCFGtag;     ///< fed config tag
 
@@ -136,7 +133,6 @@ class DCSProcessor
   CcdbObjectInfo mCcdbVoltagesDPsInfo;
   CcdbObjectInfo mCcdbCurrentsDPsInfo;
   CcdbObjectInfo mCcdbEnvDPsInfo;
-  // LB: new DPs for Fed
   CcdbObjectInfo mCcdbFedChamberStatusDPsInfo;
   CcdbObjectInfo mCcdbFedCFGtagDPsInfo;
 
@@ -144,7 +140,6 @@ class DCSProcessor
   TFType mVoltagesStartTS; ///< the time stamp of the first TF which was processesd for the current voltages CCDB object
   TFType mCurrentsStartTS; ///< the time stamp of the first TF which was processesd for the current voltages CCDB object
   TFType mEnvStartTS;
-  // LB: new DPs for Fed
   TFType mFedChamberStatusStartTS;
   TFType mFedCFGtagStartTS;
   TFType mCurrentTS{0}; ///< the time stamp of the TF currently being processed
@@ -152,7 +147,6 @@ class DCSProcessor
   bool mVoltagesStartTSSet{false};
   bool mCurrentsStartTSSet{false};
   bool mEnvStartTSSet{false};
-  // LB: new DPs for Fed
   bool mFedChamberStatusStartTSSet{false};
   bool mFedCFGtagStartTSSet{false};
   std::bitset<constants::MAXCHAMBER> mVoltageSet{};
@@ -165,8 +159,6 @@ class DCSProcessor
   int mCurrentRunNumber{-1};
   int mFedChamberStatusAlarmCounter{0};
   int mFedCFGtagAlarmCounter{0};
-  // LB: for testing runNo object, turned off for now
-  // int mFinishedRunNumber;
 
   // settings
   int mVerbosity{0};

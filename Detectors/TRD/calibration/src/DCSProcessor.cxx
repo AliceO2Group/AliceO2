@@ -197,8 +197,10 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
     }
 
     if (type == DPVAL_INT) {
+
+      // check if DP is run number, only used for Chamber Status/CFGtag metadata
       if (std::strstr(dpid.get_alias(), "trd_fed_runNo") != nullptr) { // DP is trd_fed_runNo
-        // LB: Check if new value is a valid run number (0 = cleared variable)
+        // LB: Check if new value is a valid run number (0 = cleared variable, -1 = start variable)
         if (o2::dcs::getValue<int32_t>(dpcom) > 0) {
           // If value has changed from previous one, new run has begun and update
           if (o2::dcs::getValue<int32_t>(dpcom) != mCurrentRunNumber) {
@@ -219,13 +221,14 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
           LOG(info) << "Current Run Number: " << mCurrentRunNumber;
         }
 
-      } else if (std::strstr(dpid.get_alias(), "trd_chamberStatus") != nullptr) { // DP is trd_chamberStatus
+        // check if DP is Chamber Status
+      } else if (std::strstr(dpid.get_alias(), "trd_chamberStatus") != nullptr) {
         if (!mFedChamberStatusStartTSSet) {
           mFedChamberStatusStartTS = mCurrentTS;
           mFedChamberStatusStartTSSet = true;
         }
 
-        // LB: for ChamberStatus, grab the chamber number from alias
+        // LB: grab the chamber number from alias
         int chamberId = getChamberIdFromAlias(dpid.get_alias());
         auto& dpInfoFedChamberStatus = mTRDDCSFedChamberStatus[chamberId];
         if (etime != mLastDPTimeStamps[dpid]) {
@@ -250,7 +253,9 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
     }
 
     if (type == DPVAL_STRING) {
-      if (std::strstr(dpid.get_alias(), "trd_CFGtag") != nullptr) { // DP is trd_CFGtag
+
+      // check if DP is chamber configuration tag
+      if (std::strstr(dpid.get_alias(), "trd_CFGtag") != nullptr) {
         if (!mFedCFGtagStartTSSet) {
           mFedCFGtagStartTS = mCurrentTS;
           mFedCFGtagStartTSSet = true;
