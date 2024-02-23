@@ -150,6 +150,9 @@ class TRDDCSDataProcessor : public o2::framework::Task
       LOG(info) << "Invalid voltage variation trigger of DPs to update Anode/DriftUMon to " << utrigger << ", using default value of 1 V";
     }
 
+    mUploadAtEoS = ic.options().get<bool>("enable-uploadAtEoS");
+    LOG(info) << "Setting upload of CCDB objects at end of stream to " << mUploadAtEoS;
+
     mProcessor->init(vect);
     mTimerGas = std::chrono::high_resolution_clock::now();
     mTimerVoltages = mTimerGas;
@@ -217,15 +220,20 @@ class TRDDCSDataProcessor : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    sendDPsoutputGas(ec.outputs());
-    sendDPsoutputVoltages(ec.outputs());
-    sendDPsoutputCurrents(ec.outputs());
-    sendDPsoutputEnv(ec.outputs());
-    sendDPsoutputFedChamberStatus(ec.outputs());
-    sendDPsoutputFedCFGtag(ec.outputs());
+    // LB: no objects should be uploaded at end of stream, unless stated otherwise
+    if (mUploadAtEoS) {
+      LOG(info) << "End of stream upload of CCDB objects";
+      sendDPsoutputGas(ec.outputs());
+      sendDPsoutputVoltages(ec.outputs());
+      sendDPsoutputCurrents(ec.outputs());
+      sendDPsoutputEnv(ec.outputs());
+    } else {
+      LOG(info) << "No CCDB object upload done at the end of stream";
+    }
   }
 
  private:
+  bool mUploadAtEoS = false;
   bool mReportTiming = false;
   std::unique_ptr<DCSProcessor> mProcessor;
   std::chrono::high_resolution_clock::time_point mTimerGas;
@@ -397,7 +405,8 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"DPs-voltage-variation-trigger", VariantType::Int64, 1ll, {"Voltage variation trigger for upload of CCDB object"}},
             {"DPs-update-interval-gas", VariantType::Int64, 900ll, {"Interval (in s) after which to update the DPs CCDB entry for gas parameters"}},
             {"DPs-max-counter-alarm-fed", VariantType::Int, 1, {"Maximum number of alarms after FedChamberStatus and FedCFGtag changes, following changes are logged as warnings"}},
-            {"DPs-min-counter-update-fed", VariantType::Int, 522, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}}}};
+            {"DPs-min-counter-update-fed", VariantType::Int, 522, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}},
+            {"enable-uploadAtEoS", VariantType::Bool, false, {"Upload CCDB objects at end of stream"}}}};
 }
 
 } // namespace framework
