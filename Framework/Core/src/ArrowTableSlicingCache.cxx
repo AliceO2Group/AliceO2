@@ -21,7 +21,7 @@ namespace o2::framework
 
 void updatePairList(std::vector<StringPair>& list, std::string const& binding, std::string const& key)
 {
-  if (std::find_if(list.begin(), list.end(), [&binding, &key](auto const& entry){ return (entry.first == binding) && (entry.second == key); }) == list.end()) {
+  if (std::find_if(list.begin(), list.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == list.end()) {
     list.emplace_back(binding, key);
   }
 }
