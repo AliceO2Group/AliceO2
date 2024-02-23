@@ -105,6 +105,8 @@ struct AnalysisDataProcessorBuilder {
     return inputMetadata;
   }
 
+
+
   template <typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires (std::is_lvalue_reference_v<Args> && ...)
   {
@@ -115,14 +117,10 @@ struct AnalysisDataProcessorBuilder {
         ([&]() mutable {
           if constexpr (soa::relatedByIndex<std::decay_t<GG>, std::decay_t<As>>()) {
             auto binding = soa::getLabelFromTypeForKey<std::decay_t<As>>(key);
-            if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<As>>) {
-              if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
-                bk.emplace_back(binding, key);
-              }
+            if constexpr (o2::soa::is_smallgroups_v<std::decay_t<As>>) {
+              framework::updatePairList(bku, binding, key);
             } else {
-              if (std::find_if(bku.begin(), bku.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bku.end()) {
-                bku.emplace_back(binding, key);
-              }
+              framework::updatePairList(bk, binding, key);
             }
           }
         }(), ...);

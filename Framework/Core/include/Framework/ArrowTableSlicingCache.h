@@ -14,7 +14,6 @@
 
 #include "Framework/ServiceHandle.h"
 #include <arrow/array.h>
-#include <string_view>
 #include <gsl/span>
 
 namespace o2::framework
@@ -36,6 +35,8 @@ struct SliceInfoUnsortedPtr {
 };
 
 using StringPair = std::pair<std::string, std::string>;
+
+void updatePairList(std::vector<StringPair>& list, std::string const& binding, std::string const& key);
 
 struct ArrowTableSlicingCacheDef {
   constexpr static ServiceKind service_kind = ServiceKind::Global;
