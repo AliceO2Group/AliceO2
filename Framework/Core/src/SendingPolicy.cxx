@@ -50,16 +50,16 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
               auto &proxy = registry.get<FairMQDeviceProxy>();
               OutputChannelInfo const& info = proxy.getOutputChannelInfo(channelIndex);
               OutputChannelState& state = proxy.getOutputChannelState(channelIndex);
-              // Default timeout is 10ms.
+              // Default timeout is 50ms.
               // We count the number of consecutively dropped messages.
               // If we have more than 10, we switch to a completely
               // non-blocking approach.
-              int64_t timeout = 10;
+              int64_t timeout = 50;
               if (state.droppedMessages == 10 + 1) {
                 LOG(warning) << "Failed to send 10 messages with 10ms timeout in a row, switching to completely non-blocking mode.";
               }
               if (state.droppedMessages == 0) {
-                timeout = 10;
+                timeout = 50;
               }
               if (state.droppedMessages > 10) {
                 timeout = 0;
