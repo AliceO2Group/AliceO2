@@ -102,10 +102,8 @@ struct AnalysisDataProcessorBuilder {
     return inputMetadata;
   }
 
-
-
   template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires (std::is_lvalue_reference_v<Args> && ...)
+  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires(std::is_lvalue_reference_v<Args>&&...)
   {
     // update grouping cache
     if constexpr (soa::is_soa_iterator_v<std::decay_t<framework::pack_element_t<0, framework::pack<Args...>>>>) {
@@ -120,7 +118,8 @@ struct AnalysisDataProcessorBuilder {
               framework::updatePairList(bk, binding, key);
             }
           }
-        }(), ...);
+        }(),
+         ...);
       }(framework::pack<Args...>{});
     }
 
@@ -157,11 +156,13 @@ struct AnalysisDataProcessorBuilder {
               inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
             }
             DataSpecUtils::updateInputList(inputs, InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata});
-          }(), ...);
+          }(),
+           ...);
         }(soa::make_originals_from_type<dT>());
       }
       return true;
-    }() && ...);
+    }() &&
+     ...);
   }
 
   template <typename T>
@@ -234,14 +235,14 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos) requires (!std::is_same_v<Grouping, void> || sizeof...(Args) > 0)
+  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos) requires(!std::is_same_v<Grouping, void> || sizeof...(Args) > 0)
   {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
     return extract<std::decay_t<Grouping>, 0>(record, infos, hash);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos) requires (!std::is_same_v<Grouping, void> || sizeof...(Args) > 0)
+  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos) requires(!std::is_same_v<Grouping, void> || sizeof...(Args) > 0)
   {
     constexpr auto p = pack<Args...>{};
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
