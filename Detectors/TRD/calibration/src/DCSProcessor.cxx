@@ -495,9 +495,9 @@ bool DCSProcessor::updateFedChamberStatusDPsCCDB()
   std::map<std::string, std::string> md;
   md["responsible"] = "Leonardo Barreto";
   md["runNumber"] = std::to_string(mCurrentRunNumber);
-  // LB: set start timestamp 30 seconds before DPs are received
+  // LB: set start timestamp 30000 miliseconds before DPs are received
   o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedChamberStatus, mCcdbFedChamberStatusDPsInfo,
-                                                "TRD/Calib/DCSDPsFedChamberStatus", md, mFedChamberStatusStartTS - 30,
+                                                "TRD/Calib/DCSDPsFedChamberStatus", md, mFedChamberStatusStartTS - 30000,
                                                 mFedChamberStatusStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
@@ -528,9 +528,9 @@ bool DCSProcessor::updateFedCFGtagDPsCCDB()
   std::map<std::string, std::string> md;
   md["responsible"] = "Leonardo Barreto";
   md["runNumber"] = std::to_string(mCurrentRunNumber);
-  // LB: set start timestamp 30 seconds before DPs are received
+  // LB: set start timestamp 30000 seconds before DPs are received
   o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSFedCFGtag, mCcdbFedCFGtagDPsInfo,
-                                                "TRD/Calib/DCSDPsFedCFGtag", md, mFedCFGtagStartTS - 30,
+                                                "TRD/Calib/DCSDPsFedCFGtag", md, mFedCFGtagStartTS - 30000,
                                                 mFedCFGtagStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
