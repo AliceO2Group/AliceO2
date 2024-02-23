@@ -1158,11 +1158,14 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
               }
             }
           }
-          if (mcTruth.isFake() || (isSetTOF && isTOFFake)) {
-            labelHolder.labelMask |= (0x1 << 15);
+          if (isSetTOF && isTOFFake) {
+            labelHolder.labelMask |= (0x1 << 11);
           }
           if (mcTruth.isNoise()) {
             labelHolder.labelMask |= (0x1 << 14);
+          }
+          if (mcTruth.isFake()) {
+            labelHolder.labelMask |= (0x1 << 15);
           }
           mcTrackLabelCursor(labelHolder.labelID,
                              labelHolder.labelMask);
