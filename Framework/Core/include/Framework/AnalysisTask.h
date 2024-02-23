@@ -42,9 +42,6 @@ namespace o2::framework
 ///
 /// adaptAnalysisTask<YourDerivedTask>(constructor args, ...);
 ///
-// FIXME: for the moment this needs to stay outside AnalysisTask
-//        because we cannot inherit from it due to a C++17 bug
-//        in GCC 7.3. We need to move to 7.4+
 struct AnalysisTask {
 };
 
@@ -167,13 +164,6 @@ struct AnalysisDataProcessorBuilder {
     }() && ...);
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos) requires (!std::is_same_v<Grouping, void> || sizeof...(Args) > 0)
-  {
-    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
-    return extract<std::decay_t<Grouping>, 0>(record, infos, hash);
-  }
-
   template <typename T>
   static auto extractTableFromRecord(InputRecord& record) requires soa::is_type_with_metadata_v<aod::MetadataTrait<T>>
   {
@@ -241,6 +231,13 @@ struct AnalysisDataProcessorBuilder {
     } else {
       return extractFromRecord<T>(record, soa::make_originals_from_type<T>());
     }
+  }
+
+  template <typename R, typename C, typename Grouping, typename... Args>
+  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos) requires (!std::is_same_v<Grouping, void> || sizeof...(Args) > 0)
+  {
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    return extract<std::decay_t<Grouping>, 0>(record, infos, hash);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
