@@ -110,90 +110,71 @@ struct AnalysisDataProcessorBuilder {
     return inputMetadata;
   }
 
-  template <typename Arg>
-  static void doAppendInputWithMetadata(const char* name, bool value, std::vector<InputSpec>& inputs)
-  {
-    using metadata = typename aod::MetadataTrait<std::decay_t<Arg>>::metadata;
-    static_assert(std::is_same_v<metadata, void> == false,
-                  "Could not find metadata. Did you register your type?");
-    std::vector<ConfigParamSpec> inputMetadata;
-    inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-    if constexpr (soa::is_soa_index_table_v<std::decay_t<Arg>> || soa::is_soa_extension_table_v<std::decay_t<Arg>>) {
-      auto inputSources = getInputMetadata<std::decay_t<Arg>>();
-      inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
-    }
-    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata};
-    DataSpecUtils::updateInputList(inputs, std::move(newInput));
-  }
-
-  static void doAppendEnumeration(const char*, int64_t, int64_t, int64_t, std::vector<InputSpec>& inputs)
-  {
-    std::vector<ConfigParamSpec> inputMetadata;
-    // FIXME: for the moment we do not support begin, end and step.
-    auto newInput = InputSpec{"enumeration", "DPL", "ENUM", 0, Lifetime::Enumeration, inputMetadata};
-    DataSpecUtils::updateInputList(inputs, std::move(newInput));
-  }
-
   template <typename... Args>
   static void doAppendInputWithMetadata(framework::pack<Args...>, const char* name, bool value, std::vector<InputSpec>& inputs)
   {
     (doAppendInputWithMetadata<Args>(name, value, inputs), ...);
   }
 
-  template <typename T>
-  static void appendSomethingWithMetadata(int ai, const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, size_t hash)
-  {
-    static_assert(std::is_lvalue_reference_v<T>, "Argument to process needs to be a reference (&).");
-    using dT = std::decay_t<T>;
-    if constexpr (is_enumeration_v<dT> == false) {
-      if constexpr (soa::is_soa_filtered_v<dT>) {
-        auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
-        eInfos.emplace_back(ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields));
-      } else if constexpr (soa::is_soa_iterator_v<dT>) {
-        auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
-        if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-          eInfos.emplace_back(ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
-        }
-      }
-      doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), name, value, inputs);
-    } else {
-      doAppendEnumeration(name, dT::begin, dT::end, dT::step, inputs);
-    }
-  }
-
-  template <typename G, typename Arg>
-  static void appendGroupingCandidate(std::vector<StringPair>& bk, std::vector<StringPair>& bku, std::string& key)
-  {
-    if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<Arg>>()) {
-      auto binding = soa::getLabelFromTypeForKey<std::decay_t<Arg>>(key);
-      if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<Arg>>) {
-        if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
-          bk.emplace_back(binding, key);
-        }
-      } else {
-        if (std::find_if(bku.begin(), bku.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bku.end()) {
-          bku.emplace_back(binding, key);
-        }
-      }
-    }
-  }
-
-  template <typename G, typename... Args>
-  static void appendGroupingCandidates(std::vector<StringPair>& bk, std::vector<StringPair>& bku, framework::pack<G, Args...>)
-  {
-    auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
-    (appendGroupingCandidate<G, Args>(bk, bku, key), ...);
-  }
-
   template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku)
+  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires (std::is_lvalue_reference_v<Args> && ...)
   {
-    int ai = 0;
-    auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
     if constexpr (soa::is_soa_iterator_v<std::decay_t<framework::pack_element_t<0, framework::pack<Args...>>>>) {
-      appendGroupingCandidates(bk, bku, framework::pack<Args...>{});
+      [&bk, &bku]<typename GG, typename... As>(framework::pack<GG, As...>) mutable {
+        auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<GG>>());
+        ([&]() mutable {
+          if constexpr (soa::relatedByIndex<std::decay_t<GG>, std::decay_t<As>>()) {
+            auto binding = soa::getLabelFromTypeForKey<std::decay_t<As>>(key);
+            if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<As>>) {
+              if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
+                bk.emplace_back(binding, key);
+              }
+            } else {
+              if (std::find_if(bku.begin(), bku.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bku.end()) {
+                bku.emplace_back(binding, key);
+              }
+            }
+          }
+        }(), ...);
+      }(framework::pack<Args...>{});
     }
-    (appendSomethingWithMetadata<Args>(ai++, name, value, inputs, eInfos, hash), ...);
+    int ai = 0;
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
+    ([&name, &value, &eInfos, &inputs, &hash, &ai]() mutable {
+      ++ai;
+      using dT = std::decay_t<Args>;
+      if constexpr (is_enumeration_v<dT>) {
+        std::vector<ConfigParamSpec> inputMetadata;
+        // FIXME: for the moment we do not support begin, end and step.
+        DataSpecUtils::updateInputList(inputs, InputSpec{"enumeration", "DPL", "ENUM", 0, Lifetime::Enumeration, inputMetadata});
+      } else {
+        if constexpr (soa::is_soa_filtered_v<dT>) {
+          auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
+          eInfos.emplace_back(ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields));
+        } else if constexpr (soa::is_soa_iterator_v<dT>) {
+          auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
+          if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
+            eInfos.emplace_back(ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
+          }
+        }
+
+        [&name, &value, &inputs]<typename... Os>(framework::pack<Os...>) mutable {
+          ([&name, &value, &inputs]() mutable {
+            using metadata = typename aod::MetadataTrait<std::decay_t<Os>>::metadata;
+            static_assert(std::is_same_v<metadata, void> == false,
+                          "Could not find metadata. Did you register your type?");
+            std::vector<ConfigParamSpec> inputMetadata;
+            inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
+            if constexpr (soa::is_soa_index_table_v<std::decay_t<Os>> || soa::is_soa_extension_table_v<std::decay_t<Os>>) {
+              auto inputSources = getInputMetadata<std::decay_t<Os>>();
+              inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+            }
+            DataSpecUtils::updateInputList(inputs, InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata});
+          }(), ...);
+        }(soa::make_originals_from_type<dT>());
+      }
+      return true;
+    }() && ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -205,7 +186,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
-    auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
     return extractSomethingFromRecord<Grouping, 0>(record, infos, hash);
   }
 
@@ -291,7 +272,7 @@ struct AnalysisDataProcessorBuilder {
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
     constexpr auto p = pack<Args...>{};
-    auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
+    constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Grouping, Args...)>();
     return std::make_tuple(extractSomethingFromRecord<Args, has_type_at_v<Args>(p) + 1>(record, infos, hash)...);
   }
 
