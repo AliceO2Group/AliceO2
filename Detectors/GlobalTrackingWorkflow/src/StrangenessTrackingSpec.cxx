@@ -93,6 +93,9 @@ void StrangenessTrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    if (pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+    }
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
   }
@@ -114,6 +117,11 @@ void StrangenessTrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     mTracker.setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
+    return;
+  }
 }
 
 void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
@@ -122,7 +130,7 @@ void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC)
+DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useGeom)
 {
   // ITS
   auto dataRequest = std::make_shared<DataRequest>();
@@ -131,15 +139,17 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
   dataRequest->requestPrimaryVertertices(useMC);
   dataRequest->requestSecondaryVertices(useMC);
 
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
+                                                              true,                                                                         // GRPECS=true
+                                                              false,                                                                        // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              true,                                                                         // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
-
+  if (!useGeom) {
+    ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("ITS/Config/Geometry")}, dataRequest->inputs);
+  }
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "CLUSUPDATES", 0, Lifetime::Timeframe);

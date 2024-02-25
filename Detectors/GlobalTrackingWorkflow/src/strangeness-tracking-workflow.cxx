@@ -44,6 +44,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC"}},
+    {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -60,13 +61,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto useRootInput = !configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto useGeom = configcontext.options().get<bool>("use-full-geometry");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
   GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource, useMC));
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackerSpec(itsSource, useMC, useGeom));
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed

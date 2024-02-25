@@ -159,6 +159,11 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     LOG(info) << "SVertexer Params updated from ccdb";
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
+    return;
+  }
 }
 
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -179,6 +184,9 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
       // setting and or overwriting the configurable params
       SVertexerParams::Instance().printKeyValues(true, true);
+    }
+    if (pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
     }
     if (mEnableStrangenessTracking) {
       o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
@@ -216,7 +224,8 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
 }
 
-DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool enableCCDBParams, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool enableCCDBParams,
+                                            bool useMC, bool useGeom, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
@@ -242,14 +251,17 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
   dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                                         // orbitResetTime
-                                                              true,                                                                                          // GRPECS=true
-                                                              false,                                                                                         // GRPLHCIF
-                                                              true,                                                                                          // GRPMagField
-                                                              true,                                                                                          // askMatLUT
-                                                              enableStrangenesTracking ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                                                    // orbitResetTime
+                                                              true,                                                                                                     // GRPECS=true
+                                                              false,                                                                                                    // GRPLHCIF
+                                                              true,                                                                                                     // GRPMagField
+                                                              true,                                                                                                     // askMatLUT
+                                                              useGeom && enableStrangenesTracking ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
+  if (!useGeom && enableStrangenesTracking) {
+    ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("ITS/Config/Geometry")}, dataRequest->inputs);
+  }
   if (src[GTrackID::TPC]) {
     o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
     o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, sclOpts);
