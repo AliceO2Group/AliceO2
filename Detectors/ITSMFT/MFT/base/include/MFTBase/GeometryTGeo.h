@@ -64,11 +64,13 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
                                            o2::math_utils::TransformType::L2G)*/
   );
 
-  /// Default destructor
+  /// Default destructor, don't use
   ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
+
+  void destroy() { sInstance.reset(); }
 
   // implement filling of the matrix cache
   using o2::itsmft::GeometryTGeo::fillMatrixCache;

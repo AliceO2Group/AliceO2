@@ -555,20 +555,6 @@ void GeometryTGeo::fillMatrixCache(int mask)
     }
   }
 
-  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
-    LOG(warning) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices";
-    // matrices for Tracking to Global frame transformation
-    LOGP(info, "Loading {} T2G matrices from TGeo", getName());
-    auto& cacheT2G = getCacheT2G();
-    cacheT2G.setSize(mSize);
-
-    for (int i = 0; i < mSize; i++) {
-      TGeoHMatrix& mat = createT2LMatrix(i);
-      mat.MultiplyLeft(extractMatrixSensor(i));
-      cacheT2G.setMatrix(Mat3D(mat), i);
-    }
-  }
-
   if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot)) && !getCacheT2GRot().isFilled()) {
     // 2D rotation matrices for Tracking frame to Global rotations
     LOGP(info, "Loading {} T2G rotation 2D matrices", getName());
@@ -576,6 +562,25 @@ void GeometryTGeo::fillMatrixCache(int mask)
     cacheT2Gr.setSize(mSize);
     for (int i = 0; i < mSize; i++) {
       cacheT2Gr.setMatrix(Rot2D(getSensorRefAlpha(i)), i);
+    }
+  }
+
+  if ((mask & o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2G)) && !getCacheT2G().isFilled()) {
+    LOG(debug) << "It is faster to use 2D rotation for T2G instead of full Transform3D matrices";
+    // matrices for Tracking to Global frame transformation
+    LOGP(info, "Creating {} T2G matrices from TGeo", getName());
+    auto& cacheT2G = getCacheT2G();
+    cacheT2G.setSize(mSize);
+
+    for (int i = 0; i < mSize; i++) {
+      /*
+  TGeoHMatrix& mat = createT2LMatrix(i);
+  mat.MultiplyLeft(extractMatrixSensor(i));
+      */
+      Rot2D r(getSensorRefAlpha(i));
+      Mat3D mat{};
+      mat.SetComponents(r.getCos(), -r.getSin(), 0., 0., r.getSin(), r.getCos(), 0., 0., 0., 0., 1., 0.);
+      cacheT2G.setMatrix(mat, i);
     }
   }
 }

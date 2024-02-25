@@ -77,6 +77,16 @@ GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::Geometry
 }
 
 //__________________________________________________________________________
+void GeometryTGeo::adopt(GeometryTGeo* raw)
+{
+  // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
+  if (sInstance) {
+    LOG(fatal) << "No adoption: o2::mft::GeometryTGeo instance exists";
+  }
+  sInstance = std::unique_ptr<o2::mft::GeometryTGeo>(raw);
+}
+
+//__________________________________________________________________________
 void GeometryTGeo::Build(Int_t loadTrans)
 {
   if (isBuilt()) {

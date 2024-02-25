@@ -47,6 +47,8 @@ o2_add_executable(workflow
                                         O2::CommonUtils
                                         O2::CCDB
                                         O2::DetectorsRaw
+                                        O2::ITSBase
+                                        O2::MFTBase
                                         Boost::program_options)
 
 o2_add_executable(grp-dcs-dps-sim-workflow
