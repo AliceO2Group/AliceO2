@@ -62,7 +62,7 @@ class CookedTrackerDPL : public Task
 
 /// create a processor spec
 /// run ITS CookedMatrix tracker
-framework::DataProcessorSpec getCookedTrackerSpec(bool useMC, int useTrig, const std::string& trMode);
+framework::DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trMode);
 
 } // namespace its
 } // namespace o2

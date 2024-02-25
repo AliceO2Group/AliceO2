@@ -85,7 +85,7 @@ class TrackerDPL : public framework::Task
 
 /// create a processor spec
 /// run ITS CA tracker
-framework::DataProcessorSpec getTrackerSpec(bool useMC, int useTrig, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType);
 
 } // namespace its
 } // namespace o2

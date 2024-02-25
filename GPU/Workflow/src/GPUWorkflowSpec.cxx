@@ -373,6 +373,11 @@ void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
     mGRPGeomUpdated = true;
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
+    return;
+  }
 }
 
 template <class D, class E, class F, class G, class H, class I, class J, class K>
@@ -557,6 +562,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mPipeline->mutexDecodeInput);
 
   GRPGeomHelper::instance().checkUpdates(pc);
+  if (pc.inputs().getPos("itsTGeo") >= 0) {
+    pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+  }
   if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
     LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
   }

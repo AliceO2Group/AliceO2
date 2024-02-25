@@ -38,6 +38,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPECSObject.h"
@@ -156,6 +157,11 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     par.printKeyValues();
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
+    return;
+  }
 }
 
 void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -186,7 +192,14 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mMatching.setCosmics(true);
     }
+    if (pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+    }
     mMatching.init();
+    // check consistency of material correction options
+    if (mMatching.getUseMatCorrFlag() == o2::base::Propagator::MatCorrType::USEMatCorrTGeo && !o2::base::GeometryManager::isGeometryLoaded()) {
+      LOGP(fatal, "USEMatCorrTGeo cannot work w/o  full geometry request in the GRPGeomHelper");
+    }
   }
   // we may have other params which need to be queried regularly
   bool updateMaps = false;
@@ -210,7 +223,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useGeom, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -239,14 +252,17 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   }
   // Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
 
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              true,                              // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                                                         // orbitResetTime
+                                                              true,                                                                         // GRPECS=true
+                                                              true,                                                                         // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              true,                                                                         // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
+  if (!useGeom) {                                                    // load ITS GeomTGeo since the full geometry is not loaded
+    ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/Geometry")}, dataRequest->inputs);
+  }
 
   Options opts{
     {"nthreads", VariantType::Int, 1, {"Number of afterburner threads"}},
