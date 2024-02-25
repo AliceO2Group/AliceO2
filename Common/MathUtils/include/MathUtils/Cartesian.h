@@ -93,6 +93,9 @@ class Rotation2D
     sn = mSin;
   }
 
+  value_t getCos() const { return mCos; }
+  value_t getSin() const { return mSin; }
+
   template <typename T>
   Point3D<T> operator()(const Point3D<T>& v) const
   { // local->master

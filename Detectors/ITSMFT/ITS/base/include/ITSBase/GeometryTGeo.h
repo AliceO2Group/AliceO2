@@ -67,7 +67,6 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   static void adopt(GeometryTGeo* raw);
-
   // constructor
   // ATTENTION: this class is supposed to behave as a singleton, but to make it root-persistent
   // we must define public default constructor.
@@ -75,8 +74,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // Use GeometryTGeo::Instance() instead
   GeometryTGeo(bool build = kFALSE, int loadTrans = 0, bool isITS3 = false);
 
-  /// Default destructor
+  /// Default destructor, don't use
   ~GeometryTGeo() override;
+  void destroy() { sInstance.reset(); }
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
