@@ -70,8 +70,7 @@ class PID
 
   // To set the elementary track cuts
   void setPIDCuts(int minnCls = 60, float absTgl = 1., float mindEdxTot = 10.0,
-                  float maxdEdxTot = 70., float minpTPC = 0.05, float maxpTPC = 20., float minpTPCMIPs = 0.45,
-                  float maxpTPCMIPs = 0.55, int CreateCanvasI = 1)
+                  float maxdEdxTot = 70., float minpTPC = 0.05, float maxpTPC = 20., float minpTPCMIPs = 0.45, float maxpTPCMIPs = 0.55)
   {
     mCutMinnCls = minnCls;
     mCutAbsTgl = absTgl;
@@ -81,7 +80,10 @@ class PID
     mCutMaxpTPC = maxpTPC;
     mCutMinpTPCMIPs = minpTPCMIPs;
     mCutMaxpTPCMIPs = maxpTPCMIPs;
-    CreateCanvas = CreateCanvasI;
+  }
+  void setCreateCanvas(int createCanvas = 1)
+  {
+    mCreateCanvas = createCanvas;
   }
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() { return mMapHist; }
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>>& getMapOfCanvas() { return mMapCanvas; }
@@ -97,7 +99,7 @@ class PID
   float mCutMaxpTPC = 20.f;      // pTPC max value
   float mCutMinpTPCMIPs = 0.45f; // pTPC min value for MIPs
   float mCutMaxpTPCMIPs = 0.55f; // pTPC max value for MIPs
-  bool CreateCanvas = true;      // Decide whether to create the TCanvas Object as it cannot be merged
+  bool mCreateCanvas = true;     // Decide whether to create the TCanvas Object as it cannot be merged
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHist;
   // Map for Canvases to be published
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>> mMapCanvas;
