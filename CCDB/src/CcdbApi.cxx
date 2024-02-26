@@ -47,6 +47,9 @@
 #include <cstdio>
 #include <string>
 #include <unordered_set>
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
 
 namespace o2::ccdb
 {
@@ -1284,53 +1287,140 @@ size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
 }
 } // namespace
 
-std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
+bool stdmap_to_jsonfile(std::map<std::string, std::string> const& meta, std::string const& filename)
 {
-  CURL* curl = curl_easy_init();
-  CURLcode res = CURL_LAST;
-  string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
-  std::map<std::string, std::string> headers;
 
-  if (curl != nullptr) {
-    struct curl_slist* list = nullptr;
-    list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
-
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
-
-    /* get us the resource without a body! */
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
-    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
-
-    curlSetSSLOptions(curl);
-
-    // Perform the request, res will get the return code
-
-    long httpCode = 404;
-    CURLcode getCodeRes = CURL_LAST;
-    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
-      curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
-      res = CURL_perform(curl);
-      if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
-        // We take out the unsupported protocol error because we are only querying
-        // header info which is returned in any case. Unsupported protocol error
-        // occurs sometimes because of redirection to alien for blobs.
-        LOG(error) << "CURL_perform() failed: " << curl_easy_strerror(res);
-      }
-
-      getCodeRes = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-    }
-
-    if (httpCode == 404) {
-      headers.clear();
-    }
-
-    curl_easy_cleanup(curl);
+  // create directory structure if necessary
+  auto p = std::filesystem::path(filename).parent_path();
+  if (!std::filesystem::exists(p)) {
+    std::filesystem::create_directories(p);
   }
 
-  return headers;
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  writer.StartObject();
+  for (const auto& pair : meta) {
+    writer.Key(pair.first.c_str());
+    writer.String(pair.second.c_str());
+  }
+  writer.EndObject();
+
+  // Write JSON to file
+  std::ofstream file(filename);
+  if (file.is_open()) {
+    file << buffer.GetString();
+    file.close();
+  } else {
+    return false;
+  }
+  return true;
+}
+
+bool jsonfile_to_stdmap(std::map<std::string, std::string>& meta, std::string const& filename)
+{
+  // Read JSON from file
+  std::ifstream file(filename);
+  if (!file.is_open()) {
+    std::cerr << "Failed to open file for reading." << std::endl;
+    return false;
+  }
+
+  std::string jsonStr((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+  // Parse JSON
+  rapidjson::Document document;
+  document.Parse(jsonStr.c_str());
+
+  if (document.HasParseError()) {
+    std::cerr << "Error parsing JSON" << std::endl;
+    return false;
+  }
+
+  // Convert JSON to std::map
+  for (auto itr = document.MemberBegin(); itr != document.MemberEnd(); ++itr) {
+    meta[itr->name.GetString()] = itr->value.GetString();
+  }
+  return true;
+}
+
+std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const
+{
+  // lambda that actually does the call to the CCDB server
+  auto do_remote_header_call = [this, &path, &metadata, timestamp]() -> std::map<std::string, std::string> {
+    CURL* curl = curl_easy_init();
+    CURLcode res = CURL_LAST;
+    string fullUrl = getFullUrlForRetrieval(curl, path, metadata, timestamp);
+    std::map<std::string, std::string> headers;
+
+    if (curl != nullptr) {
+      struct curl_slist* list = nullptr;
+      list = curl_slist_append(list, ("If-None-Match: " + std::to_string(timestamp)).c_str());
+
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
+
+      /* get us the resource without a body! */
+      curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+      curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
+      curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+      curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+
+      curlSetSSLOptions(curl);
+
+      // Perform the request, res will get the return code
+      long httpCode = 404;
+      CURLcode getCodeRes = CURL_LAST;
+      for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
+        curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
+        res = CURL_perform(curl);
+        if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
+          // We take out the unsupported protocol error because we are only querying
+          // header info which is returned in any case. Unsupported protocol error
+          // occurs sometimes because of redirection to alien for blobs.
+          LOG(error) << "CURL_perform() failed: " << curl_easy_strerror(res);
+        }
+        getCodeRes = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+      }
+      if (httpCode == 404) {
+        headers.clear();
+      }
+      curl_easy_cleanup(curl);
+    }
+    return headers;
+  };
+
+  if (!mSnapshotCachePath.empty()) {
+    // protect this sensitive section by a multi-process named semaphore
+    auto semaphore_barrier = std::make_unique<CCDBSemaphore>(mSnapshotCachePath, path);
+
+    std::string logfile = mSnapshotCachePath + "/log";
+    std::fstream out(logfile, ios_base::out | ios_base::app);
+    if (out.is_open()) {
+      out << "CCDB-header-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << "\n";
+    }
+    auto snapshotfile = getSnapshotFile(mSnapshotCachePath, path + "/" + std::to_string(timestamp), "header.json");
+    if (!std::filesystem::exists(snapshotfile)) {
+      out << "CCDB-header-access[" << getpid() << "] ... " << mUniqueAgentID << " storing to snapshot " << snapshotfile << "\n";
+
+      // if file not already here and valid --> snapshot it
+      auto meta = do_remote_header_call();
+
+      // cache the result
+      if (!stdmap_to_jsonfile(meta, snapshotfile)) {
+        LOG(warn) << "Failed to cache the header information to disc";
+      }
+      return meta;
+    } else {
+      out << "CCDB-header-access[" << getpid() << "]  ... " << mUniqueAgentID << "serving from local snapshot " << snapshotfile << "\n";
+      std::map<std::string, std::string> meta;
+      if (!jsonfile_to_stdmap(meta, snapshotfile)) {
+        LOG(warn) << "Failed to read cached information from disc";
+        return do_remote_header_call();
+      }
+      return meta;
+    }
+  }
+  return do_remote_header_call();
 }
 
 bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers, const std::string& agentID)
