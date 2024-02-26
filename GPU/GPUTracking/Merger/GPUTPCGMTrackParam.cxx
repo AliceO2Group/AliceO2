@@ -316,9 +316,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         }
 #endif
         float time = merger->Param().par.earlyTpcTransform ? -1.f : merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num].getTime();
-        retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, clusters[ihit].slice, time, 0.f GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use correct time, avgCharge
+        retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, clusters[ihit].slice, time, 0.f GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use avgCharge
         GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
-          o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data() << "iTrk=" << iTrk << "ihit=" << ihit << "yy=" << yy << "zz=" << zz << "cluster=" << clusters[ihit] << "clusterNative" << merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num] << "track=" << this << "rejectChi2=" << rejectChi2 << "interpolationhit=" << interpolation.hit[ihit] << "refit=" << refit << "retVal=" << retVal << "\n";
+          o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data() << "iTrk=" << iTrk << "ihit=" << ihit << "xx=" << xx << "yy=" << yy << "zz=" << zz << "cluster=" << clusters[ihit] << "clusterNative=" << merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num] << "track=" << this << "rejectChi2=" << rejectChi2 << "interpolationhit=" << interpolation.hit[ihit] << "refit=" << refit << "retVal=" << retVal << "occupancyBins=" << merger->StreamerOccupancyBin(clusters[ihit].slice, clusters[ihit].row, time) << "trackUncorrectedYZ=" << merger->StreamerUncorrectedZY(clusters[ihit].slice, clusters[ihit].row, *this, prop) << "\n";
         })
       }
       // clang-format off
