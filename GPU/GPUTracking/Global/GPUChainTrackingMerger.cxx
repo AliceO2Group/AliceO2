@@ -164,7 +164,8 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   runKernel<GPUTPCGMMergerLinkGlobalTracks>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   runKernel<GPUTPCGMMergerCollect>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::globalTracks>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 1);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::globalTracks1>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 1);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::globalTracks2>({1, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 1);
   }
   DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpCollected, *mDebugFile);
 
