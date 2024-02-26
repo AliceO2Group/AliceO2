@@ -45,6 +45,7 @@ using SuperSegmentation = o2::its3::SegmentationSuperAlpide;
 #include <cctype>  // for isdigit
 #include <cstdio>  // for snprintf, NULL, printf
 #include <cstring> // for strstr, strlen
+#include <algorithm>
 
 using namespace TMath;
 using namespace o2::its;
@@ -76,12 +77,7 @@ const std::string GeometryTGeo::sChipNameITS3 = "ITS3Tile";             ///< Chi
 const std::string GeometryTGeo::sSensorNameITS3 = "ITS3PixelArray";     ///< Sensor name for ITS3
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans, bool isITS3) :
-#ifdef ENABLE_UPGRADES
-                                                                     o2::itsmft::GeometryTGeo((!isITS3) ? DetID::ITS : DetID::IT3)
-#else
-                                                                     o2::itsmft::GeometryTGeo(DetID::ITS)
-#endif
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::ITS)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
@@ -419,7 +415,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   // account for the difference between physical sensitive layer (where charge collection is simulated) and effective sensor thicknesses
   double delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
 #ifdef ENABLE_UPGRADES
-  if (its3::constants::detID::isDetITS3(index)) {
+  if (mIsLayerITS3[getLayer(index)]) {
     delta = its3::SegmentationSuperAlpide::mSensorLayerThickness - its3::SegmentationSuperAlpide::mSensorLayerThicknessEff;
   }
 #endif
@@ -447,8 +443,8 @@ const o2::math_utils::Transform3D GeometryTGeo::getT2LMatrixITS3(int isn, float 
   static TGeoHMatrix t2l;
   t2l.Clear();
   t2l.RotateZ(alpha * RadToDeg()); // rotate in direction of normal to the tangent to the cylinder
-  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
-  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  const TGeoHMatrix& matL2G = getMatrixL2G(isn);
+  const auto& matL2Gi = matL2G.Inverse();
   t2l.MultiplyLeft(&matL2Gi);
   return Mat3D(t2l);
 }
@@ -514,9 +510,16 @@ void GeometryTGeo::Build(int loadTrans)
     LOGP(debug, "    Layer {}: {:*^30}", i, "END");
   }
   LOGP(debug, "In total there {} chips registered", numberOfChips);
+
+#ifdef ENABLE_UPGRADES
+  if (std::any_of(mIsLayerITS3.cbegin(), mIsLayerITS3.cend(), [](auto b) { return b; })) {
+    LOGP(info, "Found active IT3 layers -> Renaming Detector ITS to IT3");
+    mDetID = DetID::IT3;
+  }
+#endif
+
   setSize(numberOfChips);
   fillTrackingFramesCache();
-  //
   fillMatrixCache(loadTrans);
 }
 
@@ -853,19 +856,21 @@ int GeometryTGeo::extractLayerChipType(int lay) const
 //__________________________________________________________________________
 void GeometryTGeo::Print(Option_t*) const
 {
-  printf("NLayers:%d NChips:%d\n", mNumberOfLayers, getNumberOfChips());
   if (!isBuilt()) {
+    LOGF(info, "Geometry not built not yet!");
     return;
   }
 
+  LOGF(info, "Summary of GeometryTGeo: %s", getName());
+  LOGF(info, "NLayers:%d NChips:%d\n", mNumberOfLayers, getNumberOfChips());
   for (int i = 0; i < mNumberOfLayers; i++) {
-    printf(
-      "Lr%2d\tNStav:%2d\tNChips:%2d "
-      "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChip#:%5d:%-5d\tWrapVol:%d\n",
-      i, mNumberOfStaves[i], mNumberOfChipsPerModule[i], mNumberOfChipRowsPerModule[i],
-      mNumberOfChipRowsPerModule[i] ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i] : 0,
-      mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], getFirstChipIndex(i), getLastChipIndex(i),
-      mLayerToWrapper[i]);
+    LOGF(info,
+         "Lr%2d\tNStav:%2d\tNChips:%2d "
+         "(%dx%-2d)\tNMod:%d\tNSubSt:%d\tNSt:%3d\tChip#:%5d:%-5d\tWrapVol:%d",
+         i, mNumberOfStaves[i], mNumberOfChipsPerModule[i], mNumberOfChipRowsPerModule[i],
+         mNumberOfChipRowsPerModule[i] ? mNumberOfChipsPerModule[i] / mNumberOfChipRowsPerModule[i] : 0,
+         mNumberOfModules[i], mNumberOfHalfStaves[i], mNumberOfStaves[i], getFirstChipIndex(i), getLastChipIndex(i),
+         mLayerToWrapper[i]);
   }
 }
 

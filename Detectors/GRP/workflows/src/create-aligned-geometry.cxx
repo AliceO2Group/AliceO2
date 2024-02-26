@@ -101,7 +101,11 @@ class AlignerTask : public Task
     LOGP(info, "Stored aligned geometry to local file {}", fnm);
 
     // create GeometryTGeo for detectors which support it
-    {
+    if (mDetsMask[DetID::ITS]
+#ifdef ENABLE_UPGRADES
+        || mDetsMask[DetID::IT3]
+#endif
+    ) {
       auto itsTGeo = o2::its::GeometryTGeo::Instance();
       itsTGeo->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2GRot));
       TFile outF("its_GeometryTGeo.root", "recreate");
@@ -110,7 +114,7 @@ class AlignerTask : public Task
       outF.Close();
       itsTGeo->destroy();
     }
-    {
+    if (mDetsMask[DetID::MFT]) {
       auto mftTGeo = o2::mft::GeometryTGeo::Instance();
       mftTGeo->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2G));
       TFile outF("mft_GeometryTGeo.root", "recreate");
