@@ -505,8 +505,10 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
       }
     }
   }
-  LOG(info) << "Pythia event was pruned from " << event.size()
-            << " to " << pruned.size() << " particles";
+  if (GeneratorPythia8Param::Instance().verbose) {
+    LOG(info) << "Pythia event was pruned from " << event.size()
+              << " to " << pruned.size() << " particles";
+  }
   // Assign our pruned event to the event passed in
   event = pruned;
 }

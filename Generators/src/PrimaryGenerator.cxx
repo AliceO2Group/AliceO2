@@ -315,7 +315,9 @@ void PrimaryGenerator::fixInteractionVertex()
   }
   auto sampledvertex = mMeanVertex->sample();
 
-  LOG(info) << "Sampled interacting vertex " << sampledvertex;
+  if (PrimaryGeneratorParam::Instance().verbose) {
+    LOG(info) << "Sampled interacting vertex " << sampledvertex;
+  }
   SetBeam(sampledvertex.X(), sampledvertex.Y(), 0., 0.);
   SetTarget(sampledvertex.Z(), 0.);
 }
