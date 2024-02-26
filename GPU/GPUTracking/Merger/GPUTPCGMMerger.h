@@ -133,11 +133,16 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() MergeLooperParam* LooperCandidates() { return mLooperCandidates; }
   GPUhdi() GPUAtomic(unsigned int) * SharedCount() { return mSharedCount; }
   GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
+  GPUhdi() GPUTPCGMBorderTrack* BorderTracks(int i) { return mBorder[i]; }
   GPUhdi() o2::tpc::TrackTPC* OutputTracksTPCO2() { return mOutputTracksTPCO2; }
   GPUhdi() unsigned int* OutputClusRefsTPCO2() { return mOutputClusRefsTPCO2; }
   GPUhdi() o2::MCCompLabel* OutputTracksTPCO2MC() { return mOutputTracksTPCO2MC; }
   GPUhdi() unsigned int NOutputTracksTPCO2() const { return mMemory->nO2Tracks; }
   GPUhdi() unsigned int NOutputClusRefsTPCO2() const { return mMemory->nO2ClusRefs; }
+  GPUhdi() GPUTPCGMSliceTrack* SliceTrackInfos() { return mSliceTrackInfos; }
+  GPUhdi() int NMaxSingleSliceTracks() const { return mNMaxSingleSliceTracks; }
+  GPUhdi() int* TrackIDs() { return mTrackIDs; }
+  GPUhdi() int* TmpSortMemory() { return mTmpSortMemory; }
 
   GPUd() unsigned short MemoryResMemory() { return mMemoryResMemory; }
   GPUd() unsigned short MemoryResOutput() const { return mMemoryResOutput; }
@@ -156,7 +161,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void UnpackSaveNumber(int id);
   GPUd() void UnpackResetIds(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice);
   GPUd() void MergeCE(int nBlocks, int nThreads, int iBlock, int iThread);
-  GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool nOutput);
+  GPUd() void ClearTrackLinks(int nBlocks, int nThreads, int iBlock, int iThread, bool output);
   GPUd() void MergeWithinSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void MergeSlicesPrepare(int nBlocks, int nThreads, int iBlock, int iThread, int border0, int border1, char useOrigTrackParam);
   template <int I>
@@ -186,6 +191,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
+  void DumpTrackLinks(std::ostream& out, bool output, const char* type);
   void DumpMergedWithinSlices(std::ostream& out);
   void DumpMergedBetweenSlices(std::ostream& out);
   void DumpCollected(std::ostream& out);
@@ -200,6 +206,13 @@ class GPUTPCGMMerger : public GPUProcessor
   const GPUTPCGMBorderTrack& MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId);
   void DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track);
 #endif
+
+  GPUdi() int SliceTrackInfoFirst(int iSlice) { return mSliceTrackInfoIndex[iSlice]; }
+  GPUdi() int SliceTrackInfoLast(int iSlice) { return mSliceTrackInfoIndex[iSlice + 1]; }
+  GPUdi() int SliceTrackInfoGlobalFirst(int iSlice) { return mSliceTrackInfoIndex[NSLICES + iSlice]; }
+  GPUdi() int SliceTrackInfoGlobalLast(int iSlice) { return mSliceTrackInfoIndex[NSLICES + iSlice + 1]; }
+  GPUdi() int SliceTrackInfoLocalTotal() { return mSliceTrackInfoIndex[NSLICES]; }
+  GPUdi() int SliceTrackInfoTotal() { return mSliceTrackInfoIndex[2 * NSLICES]; }
 
  private:
   GPUd() void MakeBorderTracks(int nBlocks, int nThreads, int iBlock, int iThread, int iBorder, GPUTPCGMBorderTrack** B, GPUAtomic(unsigned int) * nB, bool useOrigTrackParam = false);
@@ -216,16 +229,6 @@ class GPUTPCGMMerger : public GPUProcessor
   template <class S>
   long int GetTrackLabel(const S& trk);
 #endif
-
-  GPUdi() int SliceTrackInfoFirst(int iSlice)
-  {
-    return mSliceTrackInfoIndex[iSlice];
-  }
-  GPUdi() int SliceTrackInfoLast(int iSlice) { return mSliceTrackInfoIndex[iSlice + 1]; }
-  GPUdi() int SliceTrackInfoGlobalFirst(int iSlice) { return mSliceTrackInfoIndex[NSLICES + iSlice]; }
-  GPUdi() int SliceTrackInfoGlobalLast(int iSlice) { return mSliceTrackInfoIndex[NSLICES + iSlice + 1]; }
-  GPUdi() int SliceTrackInfoLocalTotal() { return mSliceTrackInfoIndex[NSLICES]; }
-  GPUdi() int SliceTrackInfoTotal() { return mSliceTrackInfoIndex[2 * NSLICES]; }
 
   GPUdi() void setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end);
   GPUdi() void hookEdge(int u, int v);
@@ -272,6 +275,7 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned char* mClusterStateExt;
   uint2* mClusRefTmp;
   int* mTrackIDs;
+  int* mTmpSortMemory;
   unsigned int* mTrackSort;
   tmpSort* mTrackSortO2;
   GPUAtomic(unsigned int) * mSharedCount; // Must be unsigned int unfortunately for atomic support

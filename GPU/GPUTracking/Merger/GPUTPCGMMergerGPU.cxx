@@ -97,9 +97,9 @@ GPUdii() void GPUTPCGMMergerResolve::Thread<4>(int nBlocks, int nThreads, int iB
 }
 
 template <>
-GPUdii() void GPUTPCGMMergerClearLinks::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char nOutput)
+GPUdii() void GPUTPCGMMergerClearLinks::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char output)
 {
-  merger.ClearTrackLinks(nBlocks, nThreads, iBlock, iThread, nOutput);
+  merger.ClearTrackLinks(nBlocks, nThreads, iBlock, iThread, output);
 }
 
 template <>

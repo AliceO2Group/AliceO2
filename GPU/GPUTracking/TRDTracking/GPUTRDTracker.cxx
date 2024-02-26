@@ -132,7 +132,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
   float Bz = Param().bzkG;
   float resRPhiIdeal2 = Param().rec.trd.trkltResRPhiIdeal * Param().rec.trd.trkltResRPhiIdeal;
   GPUInfo("Initializing with B-field: %f kG", Bz);
-  if (CAMath::Abs(CAMath::Abs(Bz) - 2) < 0.1) {
+  if (CAMath::Abs(CAMath::Abs(Bz) - 2) < 0.1f) {
     // magnetic field +-0.2 T
     if (Bz > 0) {
       GPUInfo("Loading error parameterization for Bz = +2 kG");
@@ -145,7 +145,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
       mDyA2 = 1.225e-3f, mDyB = 9.8e-3f, mDyC2 = 3.88e-2f;
       mAngleToDyA = 0.1f, mAngleToDyB = 1.89f, mAngleToDyC = 0.4f;
     }
-  } else if (CAMath::Abs(CAMath::Abs(Bz) - 5) < 0.1) {
+  } else if (CAMath::Abs(CAMath::Abs(Bz) - 5) < 0.1f) {
     // magnetic field +-0.5 T
     if (Bz > 0) {
       GPUInfo("Loading error parameterization for Bz = +5 kG");

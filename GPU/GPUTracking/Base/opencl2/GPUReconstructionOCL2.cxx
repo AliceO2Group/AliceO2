@@ -64,7 +64,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
   const char* ocl_flags = GPUCA_M_STR(OCL_FLAGS);
 
 #ifdef OPENCL2_ENABLED_SPIRV // clang-format off
-  if (ver >= 2.2) {
+  if (ver >= 2.2f) {
     GPUInfo("Reading OpenCL program from SPIR-V IL (Platform version %f)", ver);
     mInternals->program = clCreateProgramWithIL(mInternals->context, _binary_GPUReconstructionOCL2Code_spirv_start, _binary_GPUReconstructionOCL2Code_spirv_len, &ocl_error);
     ocl_flags = "";

@@ -597,31 +597,31 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
   return 0;
 }
 
-GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState, bool sideC) const
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState, char sector, float time, float avgCharge) const
 {
-  GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), iRow, clusterState, sideC);
+  GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), mT->GetY(), iRow, clusterState, sector, time, avgCharge, mSeedingErrors);
 }
 
-GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC)
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, float y, int iRow, short clusterState, char sector, float time, float avgCharge, bool seedingErrors)
 {
 #ifndef GPUCA_TPC_GEOMETRY_O2
-  if (mSeedingErrors) {
-    param.GetClusterErrorsSeeding2(iRow, posZ, snp, tgl, err2Y, err2Z);
+  if (seedingErrors) {
+    param.GetClusterErrorsSeeding2(sector, iRow, posZ, snp, tgl, time, avgCharge, err2Y, err2Z);
   } else
 #endif
   {
-    param.GetClusterErrors2(iRow, posZ, snp, tgl, err2Y, err2Z);
+    param.GetClusterErrors2(sector, iRow, posZ, snp, tgl, time, avgCharge, err2Y, err2Z);
   }
   param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  float statErr2 = param.GetSystematicClusterErrorIFC2(x, posZ, sideC);
+  float statErr2 = param.GetSystematicClusterErrorIFC2(x, y, posZ, sector >= (GPUCA_NSLICES / 2));
   err2Y += statErr2;
   err2Z += statErr2;
 }
 
-GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, bool sideC) const
+GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char sector, float time, float avgCharge) const
 {
   float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sideC);
+  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgCharge);
   return PredictChi2(posY, posZ, err2Y, err2Z);
 }
 
@@ -652,10 +652,10 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, bool sideC GPUCA_DEBUG_STREAMER_CHECK(, int iTrk))
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, char sector, float time, float avgCharge GPUCA_DEBUG_STREAMER_CHECK(, int iTrk))
 {
   float err2Y, err2Z;
-  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sideC);
+  GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgCharge);
 
   if (rejectChi2 >= 2) {
     if (rejectChi2 == 3 && inter->errorY < (GPUCA_MERGER_INTERPOLATION_ERROR_TYPE)0) {
@@ -663,7 +663,7 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
     } else {
       int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
       GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster, iTrk)) {
-        o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data() << "mAlpha=" << mAlpha << "iRow=" << iRow << "posY=" << posY << "posZ=" << posZ << "clusterState=" << clusterState << "rejectChi2=" << rejectChi2 << "interpolationhit=" << *inter << "refit=" << refit << "retVal=" << retVal << "err2Y=" << err2Y << "err2Z=" << err2Z << "track=" << mT << "\n";
+        o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data() << "mAlpha=" << mAlpha << "iRow=" << iRow << "posY=" << posY << "posZ=" << posZ << "clusterState=" << clusterState << "rejectChi2=" << rejectChi2 << "interpolationhit=" << *inter << "refit=" << refit << "retVal=" << retVal << "err2Y=" << err2Y << "err2Z=" << err2Z << "track=" << mT << "scaledMultiplicity" << (time >= 0.f ? param.GetScaledMult(sector, iRow, time) / param.tpcGeometry.Row2X(iRow) : 0.f) << "avgCharge" << avgCharge << "\n";
       })
       if (retVal) {
         return retVal;
@@ -1020,7 +1020,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrtf(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = sqrtf(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   if (mT0.SinPhi() < 0.f) {

@@ -125,7 +125,7 @@ void Detector::createGeometry()
   TGeoTube* ecalShape = new TGeoTube("ECLsh", mInnerRadius, mOuterRadius, mLength);
   TGeoVolume* ecalVol = new TGeoVolume("ECL", ecalShape, medPb);
   ecalVol->SetLineColor(kCyan + 1);
-  ecalVol->SetTransparency(50);
+  ecalVol->SetTransparency(0);
   vECal->AddNode(ecalVol, 1, nullptr);
 }
 

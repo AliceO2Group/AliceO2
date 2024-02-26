@@ -69,7 +69,7 @@ class GPUDebugTiming
         mRec->GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
         float v;
         mRec->GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
-        mXYZ.t = v * 1.e-3;
+        mXYZ.t = v * 1.e-3f;
       } else {
         mRec->GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
         mXYZ.t = mTimer.GetCurrentElapsedTime();
@@ -127,7 +127,7 @@ void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, cons
     GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDebugEvents->DebugStop));
     float v;
     GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDebugEvents->DebugStart, (hipEvent_t)mDebugEvents->DebugStop));
-    _xyz.t = v * 1.e-3;
+    _xyz.t = v * 1.e-3f;
   } else {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
   }

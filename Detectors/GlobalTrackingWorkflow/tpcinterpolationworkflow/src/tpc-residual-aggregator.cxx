@@ -22,7 +22,7 @@ using GID = o2::dataformats::GlobalTrackID;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"output-type", VariantType::String, "binnedResid", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
+    {"output-type", VariantType::String, "unbinnedResid,trackParams", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
     {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
     {"enable-ctp", VariantType::Bool, false, {"Subscribe to lumi info from CTP"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},

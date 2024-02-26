@@ -101,7 +101,7 @@ void GPUTPCTracker::DumpHitWeights(std::ostream& out)
 
 void GPUTPCTracker::DumpStartHits(std::ostream& out)
 {
-  // sort start hits and dump to file
+  // dump start hits to file
   out << "\nStart Hits: (Slice" << mISlice << ") (" << *NStartHits() << ")" << std::endl;
   for (unsigned int i = 0; i < *NStartHits(); i++) {
     out << TrackletStartHit(i).RowIndex() << "-" << TrackletStartHit(i).HitIndex() << std::endl;
@@ -123,7 +123,7 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
           for (int i = 0; i < Tracks()[j].NHits(); i++) {
             out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
           }
-          if (!mRec->GetProcessingSettings().comparableDebutOutput) {
+          if (!mRec->GetProcessingSettings().deterministicGPUReconstruction) {
             out << "(Track: " << j << ")";
           }
           out << std::endl;
@@ -143,19 +143,25 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   out << "\nTracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
   std::vector<int> Ids(nTracklets);
   std::iota(Ids.begin(), Ids.end(), 0);
-  if (mRec->GetProcessingSettings().comparableDebutOutput) {
+  if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
     std::sort(Ids.begin(), Ids.end(), [this](const int& a, const int& b) {
-      if (this->Tracklets()[a].FirstRow() == this->Tracklets()[b].FirstRow()) {
+      if (this->Tracklets()[a].FirstRow() != this->Tracklets()[b].FirstRow()) {
+        return this->Tracklets()[a].FirstRow() > this->Tracklets()[b].FirstRow();
+      }
+      if (this->Tracklets()[a].LastRow() != this->Tracklets()[b].LastRow()) {
+        return this->Tracklets()[a].LastRow() > this->Tracklets()[b].LastRow();
+      }
+      if (this->Tracklets()[a].Param().Y() != this->Tracklets()[b].Param().Y()) {
         return this->Tracklets()[a].Param().Y() > this->Tracklets()[b].Param().Y();
       }
-      return this->Tracklets()[a].FirstRow() > this->Tracklets()[b].FirstRow();
+      return this->Tracklets()[a].Param().Z() > this->Tracklets()[b].Param().Z();
     });
   }
   for (int jj = 0; jj < nTracklets; jj++) {
     const int j = Ids[jj];
     const auto& tracklet = Tracklets()[j];
     out << "Tracklet " << std::setw(4) << jj << " (Hits: " << std::setw(3) << Tracklets()[j].NHits() << ", Rows: " << (Tracklets()[j].NHits() ? Tracklets()[j].FirstRow() : -1)
-        << " - " << (tracklet.NHits() ? tracklet.LastRow() : -1) << ") ";
+        << " - " << (tracklet.NHits() ? tracklet.LastRow() : -1) << ", Weight " << Tracklets()[j].HitWeight() << ") ";
     if (tracklet.NHits() == 0) {
       ;
     } else if (tracklet.LastRow() > tracklet.FirstRow() && (tracklet.FirstRow() >= GPUCA_ROW_COUNT || tracklet.LastRow() >= GPUCA_ROW_COUNT)) {
@@ -169,16 +175,13 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
       int nHits = 0;
       for (int i = tracklet.FirstRow(); i <= tracklet.LastRow(); i++) {
         calink ih = mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())];
-        if (ih != CALINK_INVAL) {
+        if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
           nHits++;
         }
         out << i << "-" << mTrackletRowHits[tracklet.FirstHit() + (i - tracklet.FirstRow())] << ", ";
       }
       if (nHits != tracklet.NHits()) {
-        std::cout << std::endl
-                  << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
-        out << std::endl
-            << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
+        std::cout << std::endl << "Wrong NHits!: Expected " << tracklet.NHits() << ", found " << nHits;
       }
     }
     out << std::endl;

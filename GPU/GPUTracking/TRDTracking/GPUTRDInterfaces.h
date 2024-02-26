@@ -81,7 +81,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 
   const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
-  void resetCovariance(float s) { ResetCovariance(10.); }
+  void resetCovariance(float s) { ResetCovariance(10.f); }
   void updateCovZ2(float) {}
   bool CheckNumericalQuality() const { return true; }
 
@@ -105,7 +105,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
   propagatorInterface(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
   propagatorInterface& operator=(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
 
-  bool propagateToX(float x, float maxSnp, float maxStep) { return PropagateTrackToBxByBz(mParam, x, 0.13957, maxStep, false, maxSnp); }
+  bool propagateToX(float x, float maxSnp, float maxStep) { return PropagateTrackToBxByBz(mParam, x, 0.13957f, maxStep, false, maxSnp); }
   int getPropagatedYZ(float x, float& projY, float& projZ)
   {
     Double_t yz[2] = {0.};

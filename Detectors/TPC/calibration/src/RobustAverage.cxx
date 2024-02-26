@@ -204,14 +204,33 @@ float o2::tpc::RobustAverage::getTrunctedMean(float low, float high)
     LOGP(warning, "low {} should be higher than high {}", low, high);
     return 0;
   }
-
-  sort();
   const int startInd = static_cast<int>(low * mValues.size());
   const int endInd = static_cast<int>(high * mValues.size());
-  if (endInd <= startInd) {
+  if ((endInd <= startInd) || (startInd < 0) || (endInd >= mValues.size())) {
     return 0;
   }
-  return getMean(mValues.begin() + startInd, mValues.begin() + endInd);
+
+  if (!mUseWeights) {
+    // fast truncated mean without sorting
+    std::nth_element(mValues.begin(), mValues.begin() + startInd, mValues.end());
+    const float valMin = mValues[startInd];
+
+    std::nth_element(mValues.begin(), mValues.begin() + endInd, mValues.end());
+    const float valMax = mValues[endInd];
+
+    double sum = 0;
+    for (auto val : mValues) {
+      if (val >= valMin && val < valMax) {
+        sum += val;
+      }
+    }
+    const int count = endInd - startInd;
+    const float mean = sum / count;
+    return mean;
+  } else {
+    sort();
+    return getMean(mValues.begin() + startInd, mValues.begin() + endInd);
+  }
 }
 
 float o2::tpc::RobustAverage::getQuantile(float quantile, int type)

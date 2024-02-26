@@ -65,7 +65,7 @@ GPUhdi() T abs(T x)
 template <class T>
 GPUdi() int nint(T x)
 {
-  return o2::gpu::GPUCommonMath::Nint(x);
+  return o2::gpu::GPUCommonMath::Float2IntRn(x);
 };
 
 template <class T>

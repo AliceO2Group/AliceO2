@@ -19,6 +19,7 @@
 #include <regex>
 #include "CommonUtils/StringUtils.h"
 #include <fairlogger/Logger.h>
+#include <iostream>
 
 using namespace o2::ctp;
 //
@@ -996,6 +997,10 @@ int CTPConfiguration::checkConfigConsistency() const
   std::cout << "CTP Config consistency checked. WARNINGS:" << iw << " ERRORS:" << ret << std::endl;
   return ret;
 }
+void CTPConfiguration::printConfigString()
+{
+  std::cout << mConfigString << std::endl;
+};
 //
 int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename)
 {
@@ -1117,4 +1122,10 @@ int CTPInputsConfiguration::getInputIndexFromName(std::string& name)
   }
   LOG(warn) << "Input with name:" << name << " not in default input config";
   return 0xff;
+}
+
+std::ostream& o2::ctp::operator<<(std::ostream& in, const o2::ctp::CTPConfiguration& conf)
+{
+  conf.printStream(in);
+  return in;
 }

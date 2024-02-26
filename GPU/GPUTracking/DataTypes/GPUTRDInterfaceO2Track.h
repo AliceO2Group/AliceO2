@@ -81,9 +81,9 @@ class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
   GPUdi() unsigned char getPileUpDistanceBwd() const { return getUserField() >> 8; }
   GPUdi() unsigned char getPileUpDistanceFwd() const { return getUserField() & 255; }
   GPUdi() unsigned short getPileUpSpan() const { return ((unsigned short)getPileUpDistanceBwd()) + getPileUpDistanceFwd(); }
-  GPUdi() float getPileUpMean() const { return hasPileUpInfoBothSides() ? 0.5 * (getPileUpDistanceFwd() + getPileUpDistanceBwd()) : getPileUpDistanceFwd() + getPileUpDistanceBwd(); }
+  GPUdi() float getPileUpMean() const { return hasPileUpInfoBothSides() ? 0.5f * (getPileUpDistanceFwd() + getPileUpDistanceBwd()) : getPileUpDistanceFwd() + getPileUpDistanceBwd(); }
   GPUdi() float getPileUpTimeShiftMUS() const { return getPileUpMean() * o2::constants::lhc::LHCBunchSpacingMUS; }
-  GPUdi() float getPileUpTimeErrorMUS() const { return getPileUpSpan() * o2::constants::lhc::LHCBunchSpacingMUS / 3.4641016; }
+  GPUdi() float getPileUpTimeErrorMUS() const { return getPileUpSpan() * o2::constants::lhc::LHCBunchSpacingMUS / 3.4641016f; }
 
   typedef o2::track::TrackParCov baseClass;
 

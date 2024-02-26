@@ -54,8 +54,8 @@ struct GroupStruct {
   float mErrZ;             ///< Error associated to the hit point in the z direction.
   float mErr2X;            ///< Squared Error associated to the hit point in the x direction.
   float mErr2Z;            ///< Squared Error associated to the hit point in the z direction.
-  float mXCOG;             ///< x position of te COG wrt the boottom left corner of the bounding box
-  float mZCOG;             ///< z position of te COG wrt the boottom left corner of the bounding box
+  float mXCOG;             ///< x position of the COG wrt the bottom left corner of the bounding box
+  float mZCOG;             ///< z position of the COG wrt the bottom left corner of the bounding box
   int mNpixels;            ///< Number of fired pixels
   ClusterPattern mPattern; ///< Bitmask of pixels. For groups the biggest bounding box for the group is taken, with all
                            /// the bits set to 1.

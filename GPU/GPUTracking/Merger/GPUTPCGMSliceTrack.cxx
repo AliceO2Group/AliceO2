@@ -127,15 +127,17 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
   float kdx205 = 2.f + kdx * kdx * 0.5f;
 
   {
-    merger->Param().GetClusterErrors2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, mParam.mC0, mParam.mC2);
+    merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, mParam.mC0, mParam.mC2); // TODO: provide correct time and row
+#ifndef GPUCA_TPC_GEOMETRY_O2
     float C0a, C2a;
-    merger->Param().GetClusterErrorsSeeding2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, C0a, C2a);
+    merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, C0a, C2a);
     if (C0a > mParam.mC0) {
       mParam.mC0 = C0a;
     }
     if (C2a > mParam.mC2) {
       mParam.mC2 = C2a;
     }
+#endif
 
     mParam.mC3 = 0;
     mParam.mC5 = 1;
@@ -155,9 +157,9 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
       float ey1 = kdx + ey;
       if (CAMath::Abs(ey1) > maxSinPhi) {
         if (ey1 > maxSinPhi && ey1 < maxSinPhi + sinPhiMargin) {
-          ey1 = maxSinPhi - 0.01;
+          ey1 = maxSinPhi - 0.01f;
         } else if (ey1 > -maxSinPhi - sinPhiMargin) {
-          ey1 = -maxSinPhi + 0.01;
+          ey1 = -maxSinPhi + 0.01f;
         } else {
           return 0;
         }
@@ -185,15 +187,17 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
       float dz = dS * mParam.mDzDs;
       float ex1i = 1.f / ex1;
       {
-        merger->Param().GetClusterErrors2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, err2Y, err2Z);
+        merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, err2Y, err2Z); // TODO: Provide correct time / row
+#ifndef GPUCA_TPC_GEOMETRY_O2
         float C0a, C2a;
-        merger->Param().GetClusterErrorsSeeding2(0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, C0a, C2a);
+        merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, C0a, C2a);
         if (C0a > err2Y) {
           err2Y = C0a;
         }
         if (C2a > err2Z) {
           err2Z = C2a;
         }
+#endif
       }
 
       float hh = kdx205 * dxcci * ex1i;
@@ -350,7 +354,7 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, fl
   float h4c44 = h4 * c44;
   float n7 = c31 + dS * c33;
 
-  if (CAMath::Abs(mParam.mQPt) > 6.66) // Special treatment for low Pt
+  if (CAMath::Abs(mParam.mQPt) > 6.66f) // Special treatment for low Pt
   {
     b.SetCov(0, CAMath::Max(mParam.mC0, mParam.mC0 + h2 * h2c22 + h4 * h4c44 + 2.f * (h2 * c20ph4c42 + h4 * c40))); // Do not decrease Y cov for matching!
     float C2tmp = dS * 2.f * c31;
@@ -401,11 +405,11 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float 
     cosPhi = cP * cosAlpha + sP * sinAlpha;
     sinPhi = -cP * sinAlpha + sP * cosAlpha;
 
-    if (CAMath::Abs(sinPhi) > GPUCA_MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2) {
+    if (CAMath::Abs(sinPhi) > GPUCA_MAX_SIN_PHI || CAMath::Abs(cP) < 1.e-2f) {
       return 0;
     }
 
-    secPhi = 1. / cosPhi;
+    secPhi = 1.f / cosPhi;
     float j0 = cP * secPhi;
     float j2 = cosPhi / cP;
     x = mParam.mX * cosAlpha + mParam.mY * sinAlpha;
