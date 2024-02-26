@@ -181,7 +181,7 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
     out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | o2-dpl-run --driver-mode embedded", workflowSuffix);
     out << R"(</exe>)"
         << "<requirements>\n"
-        << "  <requirement name=\"odc_expendable_task\" />\n"
+        << "  <name>odc_expendable_task</name>\n"
         << "</requirements>\n"
         << "\n";
     out << "</decltask>";
