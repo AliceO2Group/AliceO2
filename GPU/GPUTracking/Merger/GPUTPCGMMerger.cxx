@@ -265,7 +265,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
     computePointerWithAlignment(mem, mGlobalClusterIDs, mNMaxOutputTrackClusters);
   }
   if (mRec->GetProcessingSettings().deterministicGPUReconstruction) {
-    computePointerWithAlignment(mem, mTmpSortMemory, std::max(mNTotalSliceTracks, mNMaxTracks));
+    computePointerWithAlignment(mem, mTmpSortMemory, std::max(mNTotalSliceTracks, mNMaxTracks * 2));
   }
 
   void* memBase = mem;

@@ -94,7 +94,7 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
 }
 
 template <>
-GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::globalTracks>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char parameter)
+GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::globalTracks1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char parameter)
 {
   if (iThread || iBlock) {
     return;
@@ -104,45 +104,48 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
   for (int j = 0; j < n; j++) {
     tmp[j] = j;
   }
-  GPUCommonAlgorithm::sort(tmp, tmp + n, [&merger](const int& aa, const int& bb) {
+  GPUCommonAlgorithm::sortDeviceDynamic(tmp, tmp + n, [&merger](const int& aa, const int& bb) {
     const GPUTPCGMMergedTrack& a = merger.OutputTracks()[aa];
     const GPUTPCGMMergedTrack& b = merger.OutputTracks()[bb];
     return (a.GetAlpha() != b.GetAlpha()) ? (a.GetAlpha() < b.GetAlpha()) : (a.GetParam().GetX() != b.GetParam().GetX()) ? (a.GetParam().GetX() < b.GetParam().GetX()) : (a.GetParam().GetY() != b.GetParam().GetY()) ? (a.GetParam().GetY() < b.GetParam().GetY()) : (a.GetParam().GetZ() < b.GetParam().GetZ());
   });
-  auto updateRef = [&merger](int from, int to) {
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < GPUCA_NSLICES; j++) {
-        bool found = false;
-        const int id = j + i * GPUCA_NSLICES;
-        for (unsigned int k = 0; k < merger.TmpCounter()[id]; k++) {
-          if (merger.BorderTracks(id)[k].TrackID() == from) {
-            merger.BorderTracks(id)[k].SetTrackID(to);
-            found = true;
-            break;
-          }
-        }
-        if (found) {
-          break;
-        }
+}
+
+template <>
+GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels::globalTracks2>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger, char parameter)
+{
+  if (iBlock) {
+    return;
+  }
+  const int n = merger.NOutputTracks();
+  int* GPUrestrict() tmp = merger.TmpSortMemory();
+  int* GPUrestrict() tmp2 = tmp + n;
+  if (iThread == 0) {
+    for (int j = 0; j < n; j++) {
+      if (tmp[j] == j) {
+        tmp2[j] = j;
+      } else if (tmp[j] >= 0) {
+        int firstIdx = j;
+        auto firstItem = merger.OutputTracks()[firstIdx];
+        int currIdx = firstIdx;
+        int sourceIdx = tmp[currIdx];
+        tmp2[sourceIdx] = currIdx;
+        do {
+          tmp[currIdx] = -1;
+          merger.OutputTracks()[currIdx] = merger.OutputTracks()[sourceIdx];
+          currIdx = sourceIdx;
+          sourceIdx = tmp[currIdx];
+          tmp2[sourceIdx] = currIdx;
+        } while (sourceIdx != firstIdx);
+        tmp[currIdx] = -1;
+        merger.OutputTracks()[currIdx] = firstItem;
       }
     }
-  };
-  for (int j = 0; j < n; j++) {
-    if (tmp[j] >= 0 && tmp[j] != j) {
-      int firstIdx = j;
-      auto firstItem = merger.OutputTracks()[firstIdx];
-      int currIdx = firstIdx;
-      int sourceIdx = tmp[currIdx];
-      do {
-        tmp[currIdx] = -1;
-        merger.OutputTracks()[currIdx] = merger.OutputTracks()[sourceIdx];
-        updateRef(sourceIdx, currIdx);
-        currIdx = sourceIdx;
-        sourceIdx = tmp[currIdx];
-      } while (sourceIdx != firstIdx);
-      tmp[currIdx] = -1;
-      merger.OutputTracks()[currIdx] = firstItem;
-      updateRef(firstIdx, currIdx);
+  }
+  GPUbarrier();
+  for (int i = 0; i < 2 * GPUCA_NSLICES; i++) {
+    for (unsigned int k = iThread; k < merger.TmpCounter()[i]; k += nThreads) {
+      merger.BorderTracks(i)[k].SetTrackID(tmp2[merger.BorderTracks(i)[k].TrackID()]);
     }
   }
 }
@@ -155,7 +158,7 @@ GPUdii() void GPUTPCGlobalDebugSortKernels::Thread<GPUTPCGlobalDebugSortKernels:
   }
   auto* borderTracks = merger.BorderTracks(iBlock);
   const unsigned int n = merger.TmpCounter()[iBlock];
-  GPUCommonAlgorithm::sort(borderTracks, borderTracks + n, [](const GPUTPCGMBorderTrack& a, const GPUTPCGMBorderTrack& b) {
+  GPUCommonAlgorithm::sortDeviceDynamic(borderTracks, borderTracks + n, [](const GPUTPCGMBorderTrack& a, const GPUTPCGMBorderTrack& b) {
     return (a.TrackID() < b.TrackID());
   });
 }
