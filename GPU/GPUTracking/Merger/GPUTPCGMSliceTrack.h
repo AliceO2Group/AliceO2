@@ -63,6 +63,7 @@ class GPUTPCGMSliceTrack
   GPUd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
   GPUd() int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
   GPUd() void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
+  GPUd() int* GlobalTrackIds() { return mGlobalTrackIds; }
 
   GPUd() float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
   GPUd() float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }

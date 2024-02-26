@@ -643,7 +643,9 @@ GPUd() void GPUTPCGMMerger::LinkGlobalTracks(int nBlocks, int nThreads, int iBlo
   for (int itr = SliceTrackInfoGlobalFirst(0) + iBlock * nThreads + iThread; itr < SliceTrackInfoGlobalLast(NSLICES - 1); itr += nThreads * nBlocks) {
     GPUTPCGMSliceTrack& globalTrack = mSliceTrackInfos[itr];
     GPUTPCGMSliceTrack& localTrack = mSliceTrackInfos[globalTrack.LocalTrackId()];
-    localTrack.SetGlobalTrackId(localTrack.GlobalTrackId(0) != -1, itr); // Todo: broken in parallel
+    if (localTrack.GlobalTrackId(0) != -1 || !CAMath::AtomicCAS(&localTrack.GlobalTrackIds()[0], -1, itr)) {
+      localTrack.SetGlobalTrackId(1, itr);
+    }
   }
 }
 
