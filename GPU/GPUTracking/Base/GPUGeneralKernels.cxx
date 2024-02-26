@@ -27,3 +27,12 @@ GPUdii() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, in
     ptra[i] = i0;
   }
 }
+
+template <>
+GPUdii() void GPUitoa::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() processors, GPUglobalref() int* ptr, unsigned long size)
+{
+  const unsigned long stride = get_global_size(0);
+  for (unsigned long i = get_global_id(0); i < size; i += stride) {
+    ptr[i] = i;
+  }
+}

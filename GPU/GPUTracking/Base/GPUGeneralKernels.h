@@ -110,6 +110,16 @@ class GPUMemClean16 : public GPUKernelTemplate
   template <int iKernel = defaultKernel>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& processors, GPUglobalref() void* ptr, unsigned long size);
 };
+
+// Fill with incrementing sequnce of integers
+class GPUitoa : public GPUKernelTemplate
+{
+ public:
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::NoRecoStep; }
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& processors, GPUglobalref() int* ptr, unsigned long size);
+};
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
