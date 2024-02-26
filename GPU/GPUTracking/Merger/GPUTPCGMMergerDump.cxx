@@ -33,8 +33,10 @@
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUReconstruction.h"
 #include "GPUDebugStreamer.h"
+#include "GPUTPCClusterOccupancyMap.h"
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTrackingRefit.h"
+#include "CorrectionMapsHelper.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -264,4 +266,25 @@ void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
     printf("REFIT ERROR\n");
   }
 #endif
+}
+
+std::vector<unsigned short> GPUTPCGMMerger::StreamerOccupancyBin(int iSlice, int iRow, float time)
+{
+  std::vector<unsigned short> retVal(5);
+#ifdef DEBUG_STREAMER
+  const int bin = CAMath::Max(0.f, time / Param().rec.tpc.occupancyMapTimeBins);
+  for (int i = 0; i < 5; i++) {
+    retVal[i] = (bin - 2 + i >= 0 && bin - 2 + i < GPUTPCClusterOccupancyMapBin::getNBins(Param())) ? Param().occupancyMap[bin - 2 + i].bin[iSlice][iRow] : 0;
+  }
+#endif
+  return retVal;
+}
+
+std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int iSlice, int iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop)
+{
+  std::vector<float> retVal(2);
+#ifdef DEBUG_STREAMER
+  GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(iSlice, iRow, track.GetY(), track.GetZ(), retVal[0], retVal[1]);
+#endif
+  return retVal;
 }
