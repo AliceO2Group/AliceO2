@@ -635,7 +635,7 @@ TEST_CASE("TestDDSExpendable")
        <assets><name>dpl_json</name></assets>
        <exe reachable="true">cat ${DDS_LOCATION}/dpl_json.asset | foo --id D_dds%TaskIndex%_%CollectionIndex% --shm-monitor false --log-color false --batch --color false --channel-config "name=from_B_to_D,type=pull,method=connect,address=ipc://@localhostworkflow-id_22002,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_C_to_D,type=pull,method=connect,address=ipc://@localhostworkflow-id_22003,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --bad-alloc-attempt-interval 50 --bad-alloc-max-attempts 1 --early-forward-policy never --io-threads 1 --jobs 4 --severity info --shm-allocation rbtree_best_fit --shm-mlock-segment false --shm-mlock-segment-on-creation false --shm-no-cleanup false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal simple --timeframes-rate-limit 0 --a-param 1 --b-param "" --c-param "foo;bar" --session dpl_workflow-id --plugin odc</exe>
        <requirements>
-           <requirement name="odc_expendable_task" />
+           <name>odc_expendable_task</name>
        </requirements>
    </decltask>
    <declcollection name="DPL">
