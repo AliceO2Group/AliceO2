@@ -142,7 +142,7 @@ class Tracklet64
 
   // pad column number inside pad row as int can be off by +-1 pad (same function name as for TRD digit)
   // FIXME: understand why the offset seems to be 8 pads and not nChannels / 2 = 10.5
-  GPUd() int getPadCol() const { return GPUCA_NAMESPACE::gpu::CAMath::Nint(getPadColFloat() - 2); }
+  GPUd() int getPadCol() const { return GPUCA_NAMESPACE::gpu::CAMath::Float2IntRn(getPadColFloat() - 2); }
 
   // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
   GPUd() float getUncalibratedY() const

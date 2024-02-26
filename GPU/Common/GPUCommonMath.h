@@ -73,7 +73,10 @@ class GPUCommonMath
   GPUhdni() static float Copysign(float x, float y);
   GPUd() static float TwoPi() { return 6.2831853f; }
   GPUd() static float Pi() { return 3.1415927f; }
-  GPUd() static int Nint(float x);
+  GPUd() static float Round(float x);
+  GPUd() static float Floor(float x);
+  GPUd() static unsigned int Float2UIntRn(float x);
+  GPUd() static int Float2IntRn(float x);
   GPUd() static float Modf(float x, float y);
   GPUd() static bool Finite(float x);
   GPUd() static unsigned int Clz(unsigned int val);
@@ -203,25 +206,13 @@ GPUdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 #endif // GPUCA_GPUCODE
 }
 
-GPUdi() int GPUCommonMath::Nint(float x)
-{
-  int i;
-  if (x >= 0) {
-    i = int(x + 0.5f);
-    if (x + 0.5f == float(i) && i & 1) {
-      i--;
-    }
-  } else {
-    i = int(x - 0.5f);
-    if (x - 0.5f == float(i) && i & 1) {
-      i++;
-    }
-  }
-  return i;
-}
-
 GPUdi() float GPUCommonMath::Modf(float x, float y) { return CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
+GPUdi() unsigned int GPUCommonMath::Float2UIntRn(float x) { return (unsigned int)(int)(x + 0.5f); }
+GPUdi() float GPUCommonMath::Floor(float x) { return CHOICE(floorf(x), floorf(x), floor(x)); }
+
 #ifdef GPUCA_NO_FAST_MATH
+GPUdi() float GPUCommonMath::Round(float x) { return CHOICE(roundf(x), roundf(x), round(x)); }
+GPUdi() int GPUCommonMath::Float2IntRn(float x) { return (int)Round(x); }
 GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), isfinite(x), true); }
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), (float)sqrt((double)x), sqrt(x)); }
 GPUdi() float GPUCommonMath::ATan(float x) { return CHOICE((float)atan((double)x), (float)atan((double)x), atan(x)); }
@@ -235,6 +226,8 @@ GPUdi() float GPUCommonMath::ACos(float x) { return CHOICE((float)acos((double)x
 GPUdi() float GPUCommonMath::Log(float x) { return CHOICE((float)log((double)x), (float)log((double)x), log(x)); }
 GPUdi() float GPUCommonMath::Exp(float x) { return CHOICE((float)exp((double)x), (float)exp((double)x), exp(x)); }
 #else
+GPUdi() float GPUCommonMath::Round(float x) { return CHOICE(roundf(x), rintf(x), rint(x)); }
+GPUdi() int GPUCommonMath::Float2IntRn(float x) { return CHOICE((int)Round(x), __float2int_rn(x), (int)Round(x)); }
 GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), true, true); }
 GPUhdi() float GPUCommonMath::Sqrt(float x) { return CHOICE(sqrtf(x), sqrtf(x), sqrt(x)); }
 GPUdi() float GPUCommonMath::ATan(float x) { return CHOICE(atanf(x), atanf(x), atan(x)); }

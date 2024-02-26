@@ -85,11 +85,11 @@ void GPUTPCGMTracksToTPCSeeds::CreateSeedsFromHLTTracks(TObjArray* seeds, AliTPC
     seed->SetChi2(track.GetParam().GetChi2());
 
     float alpha = seed->GetAlpha();
-    if (alpha >= 2 * M_PI) {
-      alpha -= 2. * M_PI;
+    if (alpha >= 2.f * M_PI) {
+      alpha -= 2.f * M_PI;
     }
     if (alpha < 0) {
-      alpha += 2. * M_PI;
+      alpha += 2.f * M_PI;
     }
     seed->SetRelativeSector(track.GetAlpha() / (M_PI / 9.f));
 

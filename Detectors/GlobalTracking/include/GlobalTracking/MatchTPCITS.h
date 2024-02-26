@@ -342,7 +342,8 @@ class MatchTPCITS
            pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
            pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
   void refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
-  bool refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
+  bool refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
+  void fillCalibDebug(int ifit, int iTPC, const o2::dataformats::TrackTPCITS& match, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
   void reportSizes(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks,
                    pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs,
                    pmr::vector<int>& ABTrackletClusterIDs,
@@ -363,6 +364,7 @@ class MatchTPCITS
   ///< perform all initializations
   void init();
   void end();
+  void reportTiming();
 
   ///< clear results of previous event reco
   void clear();

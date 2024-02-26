@@ -98,10 +98,10 @@ class GPUTPCGMPropagator
 
   GPUd() int PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
-  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, bool sideC GPUCA_DEBUG_STREAMER_CHECK(, int iTrk = 0));
+  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, char sideC, float time, float avgCharge GPUCA_DEBUG_STREAMER_CHECK(, int iTrk = 0));
   GPUd() int Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
   GPUd() int InterpolateReject(const GPUParam& param, float posY, float posZ, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z);
-  GPUd() float PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool sideC) const;
+  GPUd() float PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char sideC, float time, float avgCharge) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
   GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
   {
@@ -127,8 +127,8 @@ class GPUTPCGMPropagator
   /// Bx,By,Bz in local coordinates rotated to Alpha
   GPUd() void GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const;
 
-  GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState, bool sideC) const;
-  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC);
+  GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState, char sector, float time, float avgCharge) const;
+  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float x, float y, int iRow, short clusterState, char sector, float time, float avgCharge, bool seedingErrors);
 
   GPUd() float GetAlpha() const { return mAlpha; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }

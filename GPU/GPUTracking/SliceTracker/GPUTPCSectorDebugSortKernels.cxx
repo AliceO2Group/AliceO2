@@ -92,10 +92,13 @@ GPUdii() void GPUTPCSectorDebugSortKernels::Thread<GPUTPCSectorDebugSortKernels:
     return;
   }
   auto sorter = [](const GPUTPCTrack& trk1, const GPUTPCTrack& trk2) {
-    if (trk1.NHits() == trk2.NHits()) {
+    if (trk1.NHits() != trk2.NHits()) {
+      return trk1.NHits() > trk2.NHits();
+    }
+    if (trk1.Param().Y() != trk2.Param().Y()) {
       return trk1.Param().Y() > trk2.Param().Y();
     }
-    return trk1.NHits() > trk2.NHits();
+    return trk1.Param().Z() > trk2.Param().Z();
   };
   GPUCommonAlgorithm::sortDeviceDynamic(tracker.Tracks(), tracker.Tracks() + tracker.CommonMemory()->nLocalTracks, sorter);
   GPUCommonAlgorithm::sortDeviceDynamic(tracker.Tracks() + tracker.CommonMemory()->nLocalTracks, tracker.Tracks() + *tracker.NTracks(), sorter);

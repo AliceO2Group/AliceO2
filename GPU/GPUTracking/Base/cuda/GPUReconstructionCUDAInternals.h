@@ -69,7 +69,7 @@ class GPUDebugTiming
         mRec->GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDeviceTimers[1]));
         float v;
         mRec->GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDeviceTimers[0], (cudaEvent_t)mDeviceTimers[1]));
-        mXYZ.t = v * 1.e-3;
+        mXYZ.t = v * 1.e-3f;
       } else {
         mRec->GPUFailedMsg(cudaStreamSynchronize(mStreams[mXYZ.x.stream]));
         mXYZ.t = mTimer.GetCurrentElapsedTime();

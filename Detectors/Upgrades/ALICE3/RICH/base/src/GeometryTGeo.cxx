@@ -22,6 +22,8 @@ std::string GeometryTGeo::sVolumeName = "RICHV";
 std::string GeometryTGeo::sRingName = "RICHRing";
 std::string GeometryTGeo::sChipName = "RICHChip";
 std::string GeometryTGeo::sSensorName = "RICHSensor";
+std::string GeometryTGeo::sSensorFWDName = "FWDRICHSensor"; // only one big sensor for now
+std::string GeometryTGeo::sSensorBWDName = "BWDRICHSensor"; // only one big sensor for now
 
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache()
 {
@@ -72,6 +74,16 @@ const char* GeometryTGeo::composeSymNameChip(int d, int rg)
 const char* GeometryTGeo::composeSymNameSensor(int d, int rg)
 {
   return Form("%s/%s%d", composeSymNameChip(d, rg), getRICHSensorPattern(), rg);
+}
+
+const char* GeometryTGeo::composeSymNameSensorFWD(int d)
+{
+  return Form("%s/%s", composeSymNameRICH(d), getRICHSensorFWDPattern());
+}
+
+const char* GeometryTGeo::composeSymNameSensorBWD(int d)
+{
+  return Form("%s/%s", composeSymNameRICH(d), getRICHSensorBWDPattern());
 }
 
 } // namespace rich

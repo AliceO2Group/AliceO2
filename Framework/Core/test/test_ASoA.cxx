@@ -154,7 +154,7 @@ TEST_CASE("TestTableIteration")
 
   for (auto& t : tests2) {
     REQUIRE(t.x() == value / 4);
-    REQUIRE(t.y() == value);
+    REQUIRE((size_t)t.y() == value);
     REQUIRE(value < 8);
     value++;
   }
@@ -275,7 +275,7 @@ TEST_CASE("TestJoinedTables")
   REQUIRE(Test::contains<TestY>());
   REQUIRE(!Test::contains<TestZ>());
 
-  Test tests{0, tableX, tableY};
+  Test tests{{tableX, tableY}, 0};
 
   REQUIRE(tests.contains<TestX>());
   REQUIRE(tests.contains<TestY>());
@@ -298,7 +298,7 @@ TEST_CASE("TestJoinedTables")
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
   using TestMoreThanTwo = Join<TestX, TestY, TestZ>;
-  TestMoreThanTwo tests4{0, tableX, tableY, tableZ};
+  TestMoreThanTwo tests4{{tableX, tableY, tableZ}, 0};
   for (auto& test : tests4) {
     REQUIRE(15 == test.x() + test.y() + test.z());
   }
@@ -464,7 +464,7 @@ TEST_CASE("TestConcatTables")
   selectionJoin->SetIndex(1, 2);
   selectionJoin->SetIndex(2, 4);
   selectionJoin->SetNumSlots(3);
-  JoinedTest testJoin{0, tableA, tableC};
+  JoinedTest testJoin{{tableA, tableC}, 0};
   FilteredJoinTest filteredJoin{{testJoin.asArrowTable()}, selectionJoin};
 
   i = 0;
@@ -704,7 +704,7 @@ TEST_CASE("TestEmptyTables")
   o2::aod::Infos i{iempty};
 
   using PI = Join<o2::aod::Points, o2::aod::Infos>;
-  PI pi{0, pempty, iempty};
+  PI pi{{pempty, iempty}, 0};
   REQUIRE(pi.size() == 0);
   auto spawned = Extend<o2::aod::Points, o2::aod::test::ESum>(p);
   REQUIRE(spawned.size() == 0);
@@ -982,6 +982,7 @@ TEST_CASE("TestSelfIndexRecursion")
   auto pst = o2::aod::PointsSelfIndex{t3};
   pst.bindInternalIndicesTo(&pst);
 
+  // FIXME: only 4 levels of recursive self-index dereference are tested
   for (auto& p : pst) {
     auto ops = p.pointSeq_as<o2::aod::PointsSelfIndex>();
     for (auto& pp : ops) {
@@ -1035,6 +1036,8 @@ TEST_CASE("TestSelfIndexRecursion")
   FullPoints fp({t1, t2});
   fp.bindInternalIndicesTo(&fp);
 
+  // FIXME: only 4 levels of recursive self-index dereference are tested
+  // self-index binding should stay the same for recursive dereferences
   for (auto& p : fp) {
     auto bp = std::is_same_v<std::decay_t<decltype(p)>, FullPoints::iterator>;
     REQUIRE(bp);
@@ -1058,13 +1061,62 @@ TEST_CASE("TestSelfIndexRecursion")
 
   auto const& fpa = fp;
 
+  // iterators acquired through different means should have consistent types
   for (auto& it1 : fpa) {
     [[maybe_unused]] auto it2 = fpa.rawIteratorAt(0);
     [[maybe_unused]] auto it3 = fpa.iteratorAt(0);
     auto bit1 = std::is_same_v<std::decay_t<decltype(it1)>, std::decay_t<decltype(it2)>>;
-    CHECK(bit1);
+    REQUIRE(bit1);
     auto bit2 = std::is_same_v<std::decay_t<decltype(it1)>, std::decay_t<decltype(it3)>>;
-    CHECK(bit2);
+    REQUIRE(bit2);
+  }
+
+  using FilteredPoints = o2::soa::Filtered<FullPoints>;
+  FilteredPoints ffp({t1, t2}, {1, 2, 3}, 0);
+  ffp.bindInternalIndicesTo(&ffp);
+
+  // Filter should not interfere with self-index and the binding should stay the same
+  for (auto& p : ffp) {
+    using T1 = std::decay_t<decltype(p)>;
+    auto bp = std::is_same_v<T1, FilteredPoints::iterator>;
+    REQUIRE(bp);
+    auto ops = p.pointSeq_as<typename T1::parent_t>();
+    for (auto& pp : ops) {
+      auto bpp = std::is_same_v<std::decay_t<decltype(pp)>, FullPoints::iterator>;
+      REQUIRE(bpp);
+      auto opps = pp.pointSeq_as<FilteredPoints>();
+      for (auto& ppp : opps) {
+        auto bppp = std::is_same_v<std::decay_t<decltype(ppp)>, FullPoints::iterator>;
+        REQUIRE(bppp);
+        auto oppps = ppp.pointSeq_as<FilteredPoints>();
+        for (auto& pppp : oppps) {
+          auto bpppp = std::is_same_v<std::decay_t<decltype(pppp)>, FullPoints::iterator>;
+          REQUIRE(bpppp);
+          auto opppps = pppp.pointSeq_as<FilteredPoints>();
+        }
+      }
+    }
+  }
+
+  auto const& ffpa = ffp;
+
+  // rawIteratorAt() should create an unfiltered iterator, unline begin() and iteratorAt()
+  for (auto& it1 : ffpa) {
+    [[maybe_unused]] auto it2 = ffpa.rawIteratorAt(0);
+    [[maybe_unused]] auto it3 = ffpa.iteratorAt(0);
+    using T1 = std::decay_t<decltype(it1)>;
+    using T2 = std::decay_t<decltype(it2)>;
+    using T3 = std::decay_t<decltype(it3)>;
+    auto bit1 = !std::is_same_v<T1, T2>;
+    REQUIRE(bit1);
+    auto bit2 = !std::is_same_v<T1, T3>;
+    REQUIRE(bit2);
+    auto bit3 = std::is_same_v<typename T1::policy_t, typename T3::policy_t>;
+    REQUIRE(bit3);
+    auto bit4 = std::is_same_v<typename T1::policy_t, o2::soa::FilteredIndexPolicy>;
+    REQUIRE(bit4);
+    auto bit5 = std::is_same_v<typename T2::policy_t, o2::soa::DefaultIndexPolicy>;
+    REQUIRE(bit5);
   }
 }
 
@@ -1206,7 +1258,7 @@ TEST_CASE("TestIndexUnboundExceptions")
 
   for (auto& row : prt) {
     try {
-      auto sp = row.singlePoint();
+      [[maybe_unused]] auto sp = row.singlePoint();
     } catch (RuntimeErrorRef ref) {
       REQUIRE(std::string{error_from_ref(ref).what} == "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
     }
@@ -1255,7 +1307,7 @@ TEST_CASE("TestArrayColumns")
   o2::aod::BILists li{t};
   for (auto const& row : li) {
     auto iir = row.smallIntArray();
-    auto bbrr = row.boolArray_raw();
+    [[maybe_unused]] auto bbrr = row.boolArray_raw();
     REQUIRE(std::is_same_v<std::decay_t<decltype(iir)>, int8_t const*>);
     for (auto i = 0; i < 32; ++i) {
       REQUIRE(iir[i] == i);
