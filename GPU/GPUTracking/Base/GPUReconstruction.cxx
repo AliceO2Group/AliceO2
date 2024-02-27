@@ -259,6 +259,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 #endif
 #ifdef GPUCA_HAVE_O2HEADERS
     mProcessingSettings.overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
+    param().rec.tpc.nWaysOuter = true;
     if (mProcessingSettings.createO2Output > 1) {
       mProcessingSettings.createO2Output = 1;
     }
