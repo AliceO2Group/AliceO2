@@ -338,11 +338,10 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   mSentMessages += tfNParts;
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
-
   if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
     if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
       mLoopsDone++;
-      tfID = 0;
+      mReader->setNextTFToRead(tfID = 0);
       LOG(info) << "Shall start new loop " << mLoopsDone << " from the beginning of data";
     } else {
       if (!mRawChannelName.empty()) { // send endOfStream message to raw channel
