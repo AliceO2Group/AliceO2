@@ -374,16 +374,6 @@ class AlignmentTask
   }
 
   //_________________________________________________________________________________________________
-  void processWithMCHTrack(vector<mch::Track>& mchTracks)
-  {
-
-    for (auto& mchTrack : mchTracks) {
-
-      o2::fwdalign::MillePedeRecord* mchRecord = mAlign.ProcessTrack(mchTrack, transformation, doAlign, weightRecord);
-    }
-  }
-
-  //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -704,7 +694,7 @@ class AlignmentTask
     TGraph* graphAlignY = new TGraph(156, deNumber, alignY);
     TGraph* graphAlignZ = new TGraph(156, deNumber, alignZ);
     TGraph* graphAlignPhi = new TGraph(156, deNumber, alignPhi);
-    //TGraph* graphAlignYZ = new TGraph(156, alignY, alignZ);
+    // TGraph* graphAlignYZ = new TGraph(156, alignY, alignZ);
 
     TGraph* graphPullX = new TGraph(156, deNumber, pullX);
     TGraph* graphPullY = new TGraph(156, deNumber, pullY);
@@ -728,8 +718,8 @@ class AlignmentTask
     graphAlignPhi->SetMarkerStyle(24);
     graphPullPhi->SetMarkerStyle(25);
 
-    //graphAlignYZ->SetMarkerStyle(24);
-    //graphAlignYZ->Draw("P goff");
+    // graphAlignYZ->SetMarkerStyle(24);
+    // graphAlignYZ->Draw("P goff");
 
     // Saving plots
     string PlotFiles_name = Form("%s%s", outFileName.c_str(), "_results.root");
@@ -741,7 +731,7 @@ class AlignmentTask
     PlotFiles->WriteObjectAny(graphAlignX, "TGraph", "graphAlignX");
     PlotFiles->WriteObjectAny(graphAlignY, "TGraph", "graphAlignY");
     PlotFiles->WriteObjectAny(graphAlignZ, "TGraph", "graphAlignZ");
-    //PlotFiles->WriteObjectAny(graphAlignYZ, "TGraph", "graphAlignYZ");
+    // PlotFiles->WriteObjectAny(graphAlignYZ, "TGraph", "graphAlignYZ");
 
     TCanvas* cvn1 = new TCanvas("cvn1", "cvn1", 1200, 1600);
     // cvn1->Draw();
