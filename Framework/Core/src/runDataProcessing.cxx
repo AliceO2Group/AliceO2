@@ -1583,7 +1583,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto altered_workflow = workflow;
 
           auto confNameFromParam = [](std::string const& paramName) {
-            std::regex name_regex(R"(^control:([\w-]+)\/(\w+))");
+            std::regex name_regex(R"(^control:([\w-]+)\/([\w-_]+))");
             auto match = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 0);
             if (match == std::sregex_token_iterator()) {
               throw runtime_error_f("Malformed process control spec: %s", paramName.c_str());
