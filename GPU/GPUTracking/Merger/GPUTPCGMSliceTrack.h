@@ -135,7 +135,7 @@ class GPUTPCGMSliceTrack
   int mNClusters;                // N clusters
   int mNeighbour[2];             //
   int mSegmentNeighbour[2];      //
-  int mLocalTrackId;             // Corrected local track id in terms of GMSliceTracks array
+  int mLocalTrackId;             // Corrected local track id in terms of GMSliceTracks array for global tracks, UNDEFINED for local tracks!
   int mGlobalTrackIds[2];        // IDs of associated global tracks
   unsigned char mSlice;          // slice of this track segment
   unsigned char mLeg;            // Leg of this track segment

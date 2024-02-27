@@ -113,23 +113,23 @@ void GPUTPCTracker::DumpTrackHits(std::ostream& out)
 {
   // dump tracks to file
   out << "\nTracks: (Slice" << mISlice << ") (" << *NTracks() << ")" << std::endl;
-  for (int k = 0; k < GPUCA_ROW_COUNT; k++) {
-    for (int l = 0; l < Row(k).NHits(); l++) {
-      for (unsigned int j = 0; j < *NTracks(); j++) {
-        if (Tracks()[j].NHits() == 0) {
-          continue;
-        }
-        if (TrackHits()[Tracks()[j].FirstHitID()].RowIndex() == k && TrackHits()[Tracks()[j].FirstHitID()].HitIndex() == l) {
-          for (int i = 0; i < Tracks()[j].NHits(); i++) {
-            out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
-          }
-          if (!mRec->GetProcessingSettings().deterministicGPUReconstruction) {
-            out << "(Track: " << j << ")";
-          }
-          out << std::endl;
-        }
-      }
+  for (unsigned int j = 0; j < *NTracks(); j++) {
+    if (Tracks()[j].NHits() == 0) {
+      continue;
     }
+    const GPUTPCBaseTrackParam& p = Tracks()[j].Param();
+    out << "  " << j << " x " << p.GetX() << " offset " << p.GetZOffset() << " y " << p.GetY() << " z " << p.GetZ() << " snp " << p.GetSinPhi() << " tgl " << p.GetDzDs() << " qpt " << p.GetQPt() << " - ";
+    for (int k = 0; k < 15; k++) {
+      out << p.GetCov(k) << " ";
+    }
+    out << "- ";
+    for (int i = 0; i < Tracks()[j].NHits(); i++) {
+      out << TrackHits()[Tracks()[j].FirstHitID() + i].RowIndex() << "-" << TrackHits()[Tracks()[j].FirstHitID() + i].HitIndex() << ", ";
+    }
+    if (!mRec->GetProcessingSettings().deterministicGPUReconstruction) {
+      out << "(Track: " << j << ")";
+    }
+    out << std::endl;
   }
 }
 
