@@ -76,7 +76,12 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   /// Default destructor, don't use
   ~GeometryTGeo() override;
-  void destroy() { sInstance.reset(); }
+  void destroy()
+  {
+#ifndef GPUCA_STANDALONE
+    sInstance.reset(); // TODO: DR: See above
+#endif
+  }
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
