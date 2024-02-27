@@ -307,7 +307,7 @@ GPUd() int GPUTPCCompressionTrackModel::Mirror()
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrtf(pt2)/b*2.f*CAMath::ASin( sa );
+    // dS = CAMath(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   if (mTrk.sinphi < 0.f) {
@@ -362,9 +362,9 @@ GPUd() void GPUTPCCompressionTrackModel::updatePhysicalTrackValues(PhysicalTrack
     px = CAMath::Copysign(1.e-4f, px);
   }
 
-  trk.pt = sqrt(px * px + trk.py * trk.py);
+  trk.pt = CAMath::Sqrt(px * px + trk.py * trk.py);
   float pti = 1.f / trk.pt;
-  trk.p = sqrt(px * px + trk.py * trk.py + trk.pz * trk.pz);
+  trk.p = CAMath::Sqrt(px * px + trk.py * trk.py + trk.pz * trk.pz);
   trk.sinphi = trk.py * pti;
   trk.cosphi = px * pti;
   trk.secphi = trk.pt / px;
@@ -401,8 +401,8 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
   float newCosAlpha = 0, newSinAlpha = 0;
   CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
-  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
-  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // sin(newAlpha - mAlpha);
+  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // CAMath::Cos(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // CAMath::Sin(newAlpha - mAlpha);
 
   PhysicalTrackModel t0 = mTrk;
 
@@ -577,7 +577,7 @@ GPUd() int GPUTPCCompressionTrackModel::propagateToXBzLightNoUpdate(PhysicalTrac
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrt(pt2)/b*2.f*CAMath::ASin( sa );
+    // dS = CAMath::Sqrt(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   dLp = pti * dS; // path in XYZ / p == path in XY / pt
@@ -863,8 +863,8 @@ GPUd() float GPUTPCCompressionTrackModel::approximateBetheBloch(float beta2)
   // (the approximation is reasonable only for solid materials)
   //------------------------------------------------------------------
 
-  const float log0 = log(5940.f);
-  const float log1 = log(3.5f * 5940.f);
+  const float log0 = CAMath::Log(5940.f);
+  const float log1 = CAMath::Log(3.5f * 5940.f);
 
   bool bad = (beta2 >= .999f) || (beta2 < 1.e-8f);
 
@@ -873,7 +873,7 @@ GPUd() float GPUTPCCompressionTrackModel::approximateBetheBloch(float beta2)
   }
 
   float a = beta2 / (1.f - beta2);
-  float b = 0.5f * log(a);
+  float b = 0.5f * CAMath::Log(a);
   float d = 0.153e-3f / beta2;
   float c = b - beta2;
 

@@ -69,7 +69,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, floa
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrt(pt2)/b*2.f*CAMath::ASin( sa );
+    // dS = CAMath::Sqrt(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   dLp = pti * dS; // path in XYZ / p == path in XY / pt

@@ -33,7 +33,7 @@ GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMMerger* merger, const GPUTPCTr
   mParam.mDzDs = t.GetDzDs();
   mParam.mSinPhi = t.GetSinPhi();
   mParam.mQPt = t.GetQPt();
-  mParam.mCosPhi = sqrt(1.f - mParam.mSinPhi * mParam.mSinPhi);
+  mParam.mCosPhi = CAMath::Sqrt(1.f - mParam.mSinPhi * mParam.mSinPhi);
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSlice = slice;
@@ -54,7 +54,7 @@ GPUd() void GPUTPCGMSliceTrack::Set(const GPUTPCGMTrackParam& trk, const GPUTPCT
   mParam.mDzDs = trk.GetDzDs();
   mParam.mSinPhi = trk.GetSinPhi();
   mParam.mQPt = trk.GetQPt();
-  mParam.mCosPhi = sqrt(1.f - mParam.mSinPhi * mParam.mSinPhi);
+  mParam.mCosPhi = CAMath::Sqrt(1.f - mParam.mSinPhi * mParam.mSinPhi);
   mParam.mSecPhi = 1.f / mParam.mCosPhi;
   mAlpha = alpha;
   mSlice = slice;
@@ -79,7 +79,7 @@ GPUd() void GPUTPCGMSliceTrack::SetParam2(const GPUTPCGMTrackParam& trk)
   mParam2.mDzDs = trk.GetDzDs();
   mParam2.mSinPhi = trk.GetSinPhi();
   mParam2.mQPt = trk.GetQPt();
-  mParam2.mCosPhi = sqrt(1.f - mParam2.mSinPhi * mParam2.mSinPhi);
+  mParam2.mCosPhi = CAMath::Sqrt(1.f - mParam2.mSinPhi * mParam2.mSinPhi);
   mParam2.mSecPhi = 1.f / mParam2.mCosPhi;
   mParam2.mC0 = trk.GetCov(0);
   mParam2.mC2 = trk.GetCov(2);
@@ -166,14 +166,14 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
       }
 
       float ss = ey + ey1;
-      float ex1 = sqrt(1.f - ey1 * ey1);
+      float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
 
       float cc = ex + ex1;
       float dxcci = dx / cc;
 
       float dy = dxcci * ss;
       float norm2 = 1.f + ey * ey1 + ex * ex1;
-      float dl = dxcci * sqrt(norm2 + norm2);
+      float dl = dxcci * CAMath::Sqrt(norm2 + norm2);
 
       float dS;
       {
@@ -298,7 +298,7 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, fl
     return 0;
   }
 
-  float ex1 = sqrt(1.f - ey1 * ey1);
+  float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
   float dxBz = dx * Bz;
 
   float ss = ey + ey1;
@@ -310,7 +310,7 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToX(GPUTPCGMMerger* merger, float x, fl
 
   float dS;
   {
-    float dl = dxcci * sqrt(norm2 + norm2);
+    float dl = dxcci * CAMath::Sqrt(norm2 + norm2);
     float dSin = 0.5f * k * dl;
     float a = dSin * dSin;
     const float k2 = 1.f / 6.f;
@@ -443,7 +443,7 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float 
     return 0;
   }
 
-  float ex1 = sqrt(1.f - ey1 * ey1);
+  float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
 
   float dxBz = dx * Bz;
 
@@ -456,7 +456,7 @@ GPUd() bool GPUTPCGMSliceTrack::TransportToXAlpha(GPUTPCGMMerger* merger, float 
 
   float dS;
   {
-    float dl = dxcci * sqrt(norm2 + norm2);
+    float dl = dxcci * CAMath::Sqrt(norm2 + norm2);
     float dSin = 0.5f * k * dl;
     float a = dSin * dSin;
     const float k2 = 1.f / 6.f;

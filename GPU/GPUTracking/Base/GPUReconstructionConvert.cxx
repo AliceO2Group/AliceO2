@@ -109,8 +109,8 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
       ClusterNative& c = nativeBuffer[native.clusterOffset[i][row] + native.nClusters[i][row]++];
       c.setTimeFlags(org.GetTime(), org.GetFlags());
       c.setPad(org.GetPad());
-      c.setSigmaTime(std::sqrt(org.GetSigmaTime2()));
-      c.setSigmaPad(std::sqrt(org.GetSigmaPad2()));
+      c.setSigmaTime(CAMath::Sqrt(org.GetSigmaTime2()));
+      c.setSigmaPad(CAMath::Sqrt(org.GetSigmaPad2()));
       c.qMax = org.GetQMax();
       c.qTot = org.GetCharge();
     }
