@@ -23,15 +23,15 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType)
 {
+  GPUTPCGMMerger& Merger = processors()->tpcMerger;
+  bool doGPUall = GetRecoStepsGPU() & RecoStep::TPCMerging && GetProcessingSettings().fullMergerOnGPU;
+  GPUTPCGMMerger& MergerShadow = doGPUall ? processorsShadow()->tpcMerger : Merger;
   if (GetProcessingSettings().deterministicGPUReconstruction) {
-    unsigned int n = withinSlice == 1 ? NSLICES : (2 * NSLICES);
-    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::borderTracks>({n, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 0);
+    unsigned int nBorderTracks = withinSlice == 1 ? NSLICES : (2 * NSLICES);
+    runKernel<GPUTPCGlobalDebugSortKernels, GPUTPCGlobalDebugSortKernels::borderTracks>({nBorderTracks, -WarpSize(), 0, deviceType}, krnlRunRangeNone, krnlEventNone, 0);
   }
   unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
-  bool doGPUall = GetRecoStepsGPU() & RecoStep::TPCMerging && GetProcessingSettings().fullMergerOnGPU;
   if (GetProcessingSettings().alternateBorderSort && (!mRec->IsGPU() || doGPUall)) {
-    GPUTPCGMMerger& Merger = processors()->tpcMerger;
-    GPUTPCGMMerger& MergerShadow = doGPUall ? processorsShadow()->tpcMerger : Merger;
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->init);
     RecordMarker(&mEvents->single, 0);
     for (unsigned int i = 0; i < n; i++) {
@@ -72,6 +72,7 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, 
       runKernel<GPUTPCGMMergerMergeBorders, 2>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone, i, withinSlice, mergeMode);
     }
   }
+  DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpMergeRanges, *mDebugFile, withinSlice, mergeMode);
   mRec->ReturnVolatileDeviceMemory();
 }
 

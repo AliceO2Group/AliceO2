@@ -60,6 +60,27 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
   out << std::setprecision(ss);
 }
 
+void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mergeMode)
+{
+  unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
+  for (unsigned int i = 0; i < n; i++) {
+    out << "\nBorder Range: i " << i << " withinSlice " << withinSlice << " mergeMode " << mergeMode << "\n";
+    int n1, n2;
+    GPUTPCGMBorderTrack *b1, *b2;
+    int jSlice;
+    MergeBorderTracksSetup(n1, n2, b1, b2, jSlice, i, withinSlice, mergeMode);
+    const int nTrk = mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
+    gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = BorderRange(i);
+    gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = BorderRange(jSlice) + nTrk;
+    for (int k = 0; k < n1; k++) {
+      out << k << ": " << range1[k].fId << " " << range1[k].fMin << " " << range1[k].fMax << "\n";
+    }
+    for (int k = 0; k < n2; k++) {
+      out << k << ": " << range2[k].fId << " " << range2[k].fMin << " " << range2[k].fMax << "\n";
+    }
+  }
+}
+
 void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output, const char* type)
 {
   out << "\nTPC Merger Links " << type << "\n";
