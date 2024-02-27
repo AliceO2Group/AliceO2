@@ -1511,7 +1511,14 @@ struct GPUTPCGMMerger_CompareClusterIdsLooper {
     if (a1.row != b1.row) {
       return ((a1.row > b1.row) ^ ((a.leg - leg) & 1) ^ outwards);
     }
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    if (a1.id != b1.id) {
+      return (a1.id > b1.id);
+    }
+    return aa > bb;
+#else
     return a1.id > b1.id;
+#endif
   }
 };
 
@@ -1525,7 +1532,14 @@ struct GPUTPCGMMerger_CompareClusterIds {
     if (a.row != b.row) {
       return (a.row > b.row);
     }
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    if (a.id != b.id) {
+      return (a.id > b.id);
+    }
+    return aa > bb;
+#else
     return (a.id > b.id);
+#endif
   }
 };
 
@@ -1594,7 +1608,22 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
 
     // unpack and sort clusters
     if (nParts > 1 && leg == 0) {
-      GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSliceTrack* a, const GPUTPCGMSliceTrack* b) { return (a->X() > b->X()); });
+      GPUCommonAlgorithm::sort(trackParts, trackParts + nParts, [](const GPUTPCGMSliceTrack* a, const GPUTPCGMSliceTrack* b) {
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+        if (a->X() != b->X()) {
+          return (a->X() > b->X());
+        }
+        if (a->Y() != b->Y()) {
+          return (a->Y() > b->Y());
+        }
+        if (a->Z() != b->Z()) {
+          return (a->Z() > b->Z());
+        }
+        return a->QPt() > b->QPt();
+#else
+        return (a->X() > b->X());
+#endif
+      });
     }
 
     if (Param().rec.tpc.dropLoopers && leg > 0) {
