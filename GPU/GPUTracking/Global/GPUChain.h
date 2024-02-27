@@ -283,7 +283,9 @@ bool GPUChain::DoDebugAndDump(GPUChain::RecoStep step, int mask, bool transfer, 
       TransferMemoryResourcesToHost(step, &processor, -1, true);
     }
     if (GetProcessingSettings().debugLevel >= 6 && (mask == 0 || (GetProcessingSettings().debugMask & mask))) {
-      (processor.*func)(args...);
+      if (func) {
+        (processor.*func)(args...);
+      }
       return true;
     }
   }
