@@ -790,9 +790,17 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int nBlocks, int nThreads, int 
 
   if (iThread == 0) {
     if (iBlock == 0) {
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+      GPUCommonAlgorithm::sortDeviceDynamic(range1, range1 + N1, [](const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b) { return (a.fMin != b.fMin) ? (a.fMin < b.fMin) : (a.fId < b.fId); });
+#else
       GPUCommonAlgorithm::sortDeviceDynamic(range1, range1 + N1, [](const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b) { return a.fMin < b.fMin; });
+#endif
     } else if (iBlock == 1) {
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+      GPUCommonAlgorithm::sortDeviceDynamic(range2, range2 + N2, [](const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b) { return (a.fMax != b.fMax) ? (a.fMax < b.fMax) : (a.fId < b.fId); });
+#else
       GPUCommonAlgorithm::sortDeviceDynamic(range2, range2 + N2, [](const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b) { return a.fMax < b.fMax; });
+#endif
     }
   }
 #else
@@ -804,13 +812,21 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<1>(int nBlocks, int nThreads, int 
 struct MergeBorderTracks_compMax {
   GPUd() bool operator()(const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b)
   {
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    return (a.fMax != b.fMax) ? (a.fMax < b.fMax) : (a.fId < b.fId);
+#else
     return a.fMax < b.fMax;
+#endif
   }
 };
 struct MergeBorderTracks_compMin {
   GPUd() bool operator()(const GPUTPCGMBorderRange& a, const GPUTPCGMBorderRange& b)
   {
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    return (a.fMin != b.fMin) ? (a.fMin < b.fMin) : (a.fId < b.fId);
+#else
     return a.fMin < b.fMin;
+#endif
   }
 };
 
@@ -1899,7 +1915,20 @@ struct GPUTPCGMMergerSortTracks_comp {
     if (a.Legs() != b.Legs()) {
       return a.Legs() > b.Legs();
     }
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    if (a.NClusters() != b.NClusters()) {
+      return a.NClusters() > b.NClusters();
+    }
+    if (CAMath::Abs(a.GetParam().GetQPt()) != CAMath::Abs(b.GetParam().GetQPt())) {
+      return CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt());
+    }
+    if (a.GetParam().GetY() != b.GetParam().GetY()) {
+      return a.GetParam().GetY() > b.GetParam().GetY();
+    }
+    return aa > bb;
+#else
     return a.NClusters() > b.NClusters();
+#endif
   }
 };
 
@@ -1919,7 +1948,17 @@ struct GPUTPCGMMergerSortTracksQPt_comp {
   {
     const GPUTPCGMMergedTrack& GPUrestrict() a = mCmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = mCmp[bb];
-    return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    if (CAMath::Abs(a.GetParam().GetQPt()) != CAMath::Abs(b.GetParam().GetQPt())) {
+      return CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt());
+    }
+    if (a.GetParam().GetY() != b.GetParam().GetY()) {
+      return a.GetParam().GetY() > b.GetParam().GetY();
+    }
+    return a.GetParam().GetZ() > b.GetParam().GetZ();
+#else
+    return CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt());
+#endif
   }
 };
 
@@ -1939,7 +1978,7 @@ GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, in
   if (iThread || iBlock) {
     return;
   }
-  // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
+  // TODO: Fix this: Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
   auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
@@ -1949,7 +1988,20 @@ GPUd() void GPUTPCGMMerger::SortTracks(int nBlocks, int nThreads, int iBlock, in
     if (a.Legs() != b.Legs()) {
       return a.Legs() > b.Legs();
     }
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    if (a.NClusters() != b.NClusters()) {
+      return a.NClusters() > b.NClusters();
+    }
+    if (CAMath::Abs(a.GetParam().GetQPt()) != CAMath::Abs(b.GetParam().GetQPt())) {
+      return CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt());
+    }
+    if (a.GetParam().GetY() != b.GetParam().GetY()) {
+      return a.GetParam().GetY() > b.GetParam().GetY();
+    }
+    return aa > bb;
+#else
     return a.NClusters() > b.NClusters();
+#endif
   };
 
   GPUCommonAlgorithm::sortDeviceDynamic(mTrackOrderProcess, mTrackOrderProcess + mMemory->nOutputTracks, comp);
@@ -1962,11 +2014,21 @@ GPUd() void GPUTPCGMMerger::SortTracksQPt(int nBlocks, int nThreads, int iBlock,
   if (iThread || iBlock) {
     return;
   }
-  // Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
+  // TODO: Fix this: Have to duplicate sort comparison: Thrust cannot use the Lambda but OpenCL cannot use the object
   auto comp = [cmp = mOutputTracks](const int aa, const int bb) {
     const GPUTPCGMMergedTrack& GPUrestrict() a = cmp[aa];
     const GPUTPCGMMergedTrack& GPUrestrict() b = cmp[bb];
-    return (CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt()));
+#ifdef GPUCA_NO_FAST_MATH // TODO: Use a better define as swith
+    if (CAMath::Abs(a.GetParam().GetQPt()) != CAMath::Abs(b.GetParam().GetQPt())) {
+      return CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt());
+    }
+    if (a.GetParam().GetY() != b.GetParam().GetY()) {
+      return a.GetParam().GetY() > b.GetParam().GetY();
+    }
+    return a.GetParam().GetZ() > b.GetParam().GetZ();
+#else
+    return CAMath::Abs(a.GetParam().GetQPt()) > CAMath::Abs(b.GetParam().GetQPt());
+#endif
   };
 
   GPUCommonAlgorithm::sortDeviceDynamic(mTrackSort, mTrackSort + mMemory->nOutputTracks, comp);
