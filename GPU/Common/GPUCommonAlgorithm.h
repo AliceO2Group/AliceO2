@@ -245,11 +245,7 @@ GPUdi() void GPUCommonAlgorithm::sortDeviceDynamic(T* begin, T* end)
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sortDeviceDynamic(T* begin, T* end, const S& comp)
 {
-#ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end, comp);
-#else
-  GPUCommonAlgorithm::sortInBlock(begin, end, comp);
-#endif
 }
 
 } // namespace gpu
