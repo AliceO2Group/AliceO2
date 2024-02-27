@@ -62,9 +62,8 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
 
 void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mergeMode)
 {
-  unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
-  for (unsigned int i = 0; i < n; i++) {
-    out << "\nBorder Range: i " << i << " withinSlice " << withinSlice << " mergeMode " << mergeMode << "\n";
+  int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
+  for (int i = 0; i < n; i++) {
     int n1, n2;
     GPUTPCGMBorderTrack *b1, *b2;
     int jSlice;
@@ -72,11 +71,23 @@ void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mer
     const int nTrk = mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
     gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = BorderRange(i);
     gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = BorderRange(jSlice) + nTrk;
+    out << "\nBorder Tracks : i " << i << " withinSlice " << withinSlice << " mergeMode " << mergeMode << "\n";
     for (int k = 0; k < n1; k++) {
-      out << k << ": " << range1[k].fId << " " << range1[k].fMin << " " << range1[k].fMax << "\n";
+      out << "  " << k << ": t " << b1[k].TrackID() << " ncl " << b1[k].NClusters() << " row " << (mergeMode > 0 ? b1[k].Row() : -1) << " par " << b1[k].Par()[0] << " " << b1[k].Par()[1] << " " << b1[k].Par()[2] << " " << b1[k].Par()[3] << " " << b1[k].Par()[4]
+          << " offset " << b1[k].ZOffsetLinear() << " cov " << b1[k].Cov()[0] << " " << b1[k].Cov()[1] << " " << b1[k].Cov()[2] << " " << b1[k].Cov()[3] << " " << b1[k].Cov()[4] << " covd " << b1[k].CovD()[0] << " " << b1[k].CovD()[1] << "\n";
+    }
+    if (i != jSlice) {
+      for (int k = 0; k < n2; k++) {
+        out << "  " << k << ": t " << b2[k].TrackID() << " ncl " << b2[k].NClusters() << " row " << (mergeMode > 0 ? b2[k].Row() : -1) << " par " << b2[k].Par()[0] << " " << b2[k].Par()[1] << " " << b2[k].Par()[2] << " " << b2[k].Par()[3] << " " << b2[k].Par()[4]
+            << " offset " << b2[k].ZOffsetLinear() << " cov " << b2[k].Cov()[0] << " " << b2[k].Cov()[1] << " " << b2[k].Cov()[2] << " " << b2[k].Cov()[3] << " " << b2[k].Cov()[4] << " covd " << b2[k].CovD()[0] << " " << b2[k].CovD()[1] << "\n";
+      }
+    }
+    out << "\nBorder Range : i " << i << " withinSlice " << withinSlice << " mergeMode " << mergeMode << "\n";
+    for (int k = 0; k < n1; k++) {
+      out << "  " << k << ": " << range1[k].fId << " " << range1[k].fMin << " " << range1[k].fMax << "\n";
     }
     for (int k = 0; k < n2; k++) {
-      out << k << ": " << range2[k].fId << " " << range2[k].fMin << " " << range2[k].fMax << "\n";
+      out << "  " << k << ": " << range2[k].fId << " " << range2[k].fMin << " " << range2[k].fMax << "\n";
     }
   }
 }
