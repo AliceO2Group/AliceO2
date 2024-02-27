@@ -312,7 +312,7 @@ class AlignmentTask
         int id_track = iMCHTrack;
         int nb_clusters = mchTrack.getNClusters();
 
-        // Track selection, saving only tracks having exactly 10 clusters
+        // Track selection, considering only tracks having at least 10 clusters
         if (nb_clusters <= 9) {
           continue;
         }
