@@ -116,7 +116,7 @@ class GPUTPCGMTrackParam
   GPUd() float GetChi2() const { return mChi2; }
   GPUd() int GetNDF() const { return mNDF; }
 
-  GPUd() float GetCosPhi() const { return sqrt(float(1.f) - GetSinPhi() * GetSinPhi()); }
+  GPUd() float GetCosPhi() const { return CAMath::Sqrt(float(1.f) - GetSinPhi() * GetSinPhi()); }
 
   GPUd() float GetErr2Y() const { return mC[0]; }
   GPUd() float GetErr2Z() const { return mC[2]; }
@@ -290,7 +290,7 @@ GPUdi() float GPUTPCGMTrackParam::GetMirroredY(float Bz) const
   if (cosPhi2 < 0.f) {
     cosPhi2 = 0.f;
   }
-  return GetY() - 2.f * sqrt(cosPhi2) / qptBz;
+  return GetY() - 2.f * CAMath::Sqrt(cosPhi2) / qptBz;
 }
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

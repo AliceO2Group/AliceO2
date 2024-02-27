@@ -122,8 +122,8 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   float newCosAlpha, newSinAlpha;
   CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
-  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
-  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // sin(newAlpha - mAlpha);
+  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // CAMath::Cos(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // CAMath::Sin(newAlpha - mAlpha);
 
   GPUTPCGMPhysicalTrackModel t0 = mT0;
 
@@ -873,8 +873,8 @@ GPUd() float GPUTPCGMPropagator::ApproximateBetheBloch(float beta2)
   // (the approximation is reasonable only for solid materials)
   //------------------------------------------------------------------
 
-  const float log0 = log(5940.f);
-  const float log1 = log(3.5f * 5940.f);
+  const float log0 = CAMath::Log(5940.f);
+  const float log1 = CAMath::Log(3.5f * 5940.f);
 
   bool bad = (beta2 >= .999f) || (beta2 < 1.e-8f);
 
@@ -883,7 +883,7 @@ GPUd() float GPUTPCGMPropagator::ApproximateBetheBloch(float beta2)
   }
 
   float a = beta2 / (1.f - beta2);
-  float b = 0.5f * log(a);
+  float b = 0.5f * CAMath::Log(a);
   float d = 0.153e-3f / beta2;
   float c = b - beta2;
 
@@ -1020,7 +1020,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrtf(pt2)/b*2.f*CAMath::ASin( sa );
+    // dS = CAMath::Sqrt(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   if (mT0.SinPhi() < 0.f) {

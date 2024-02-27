@@ -23,9 +23,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 //
 // kCLight = 0.000299792458f;
 // Kappa = -Bz*kCLight*QPt;
-// R  = 1/fabsf(Kappa);
-// Xc = X - sin(Phi)/Kappa;
-// Yc = Y + cos(Phi)/Kappa;
+// R  = 1/CAMath::Abs(Kappa);
+// Xc = X - CAMath::Sin(Phi)/Kappa;
+// Yc = Y + CAMath::Cos(Phi)/Kappa;
 //
 
 MEM_CLASS_PRE()
@@ -80,7 +80,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, flo
   float dy = y - y0;
   float ax = dx * k + ey;
   float ay = dy * k - ex;
-  float a = sqrt(ax * ax + ay * ay);
+  float a = CAMath::Sqrt(ax * ax + ay * ay);
   xp = x0 + (dx - ey * ((dx * dx + dy * dy) * k - 2 * (-dx * ey + dy * ex)) / (a + 1)) / a;
   yp = y0 + (dy + ex * ((dx * dx + dy * dy) * k - 2 * (-dx * ey + dy * ex)) / (a + 1)) / a;
   float s = GetS(x, y, Bz);
@@ -133,7 +133,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisa
     return 0;
   }
 
-  float tg = ss / cc; // tanf((phi1+phi)/2)
+  float tg = ss / cc; // CAMath::Tan((phi1+phi)/2)
 
   float dy = dx * tg;
   float dl = dx * CAMath::Sqrt(1 + tg * tg);
@@ -433,9 +433,9 @@ GPUd() float MEM_LG(GPUTPCTrackParam)::ApproximateBetheBloch(float beta2)
   }
 
   if (beta2 / (1 - beta2) > 3.5f * 3.5f) {
-    return 0.153e-3f / beta2 * (log(3.5f * 5940) + 0.5f * log(beta2 / (1 - beta2)) - beta2);
+    return 0.153e-3f / beta2 * (CAMath::Log(3.5f * 5940) + 0.5f * CAMath::Log(beta2 / (1 - beta2)) - beta2);
   }
-  return 0.153e-3f / beta2 * (log(5940 * beta2 / (1 - beta2)) - beta2);
+  return 0.153e-3f / beta2 * (CAMath::Log(5940 * beta2 / (1 - beta2)) - beta2);
 }
 
 MEM_CLASS_PRE()

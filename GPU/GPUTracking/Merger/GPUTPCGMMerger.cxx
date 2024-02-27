@@ -2071,7 +2071,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersInit(int nBlocks, int nThreads, int iBlo
         CAMath::SinCos(Param().Alpha(mClusters[trk.FirstClusterRef() + k].slice), sa2, ca2);
         float cx = ca2 * xx - sa2 * yy;
         float cy = ca2 * yy + sa2 * xx;
-        float dist = sqrtf((cx - gmx) * (cx - gmx) + (cy - gmy) * (cy - gmy));
+        float dist = CAMath::Sqrt((cx - gmx) * (cx - gmx) + (cy - gmy) * (cy - gmy));
         printf("Hit %3d/%3d slice %d xy %f %f R %f\n", k, trk.NClusters(), (int)mClusters[trk.FirstClusterRef() + k].slice, cx, cy, dist);
       }*/
     }
