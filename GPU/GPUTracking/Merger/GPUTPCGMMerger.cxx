@@ -966,7 +966,11 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
 
     mTrackLinks[b1.TrackID()] = iBest2;
     if (mergeMode > 0) {
+#if defined(GPUCA_NO_FAST_MATH) // TODO: Use a better define as swith
+      CAMath::AtomicMax(&mTrackLinks[iBest2], b1.TrackID());
+#else
       mTrackLinks[iBest2] = b1.TrackID();
+#endif
     }
   }
   // GPUInfo("STAT: slices %d, %d: all %d merged %d", iSlice1, iSlice2, statAll, statMerged);
