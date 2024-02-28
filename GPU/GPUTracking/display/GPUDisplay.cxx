@@ -707,9 +707,6 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
   size_t startCount = mVertexBufferStart[iSlice].size();
   for (unsigned int i = 0; i < *tracker.NTracklets(); i++) {
     const GPUTPCTracklet& tracklet = tracker.Tracklet(i);
-    if (tracklet.NHits() == 0) {
-      continue;
-    }
     size_t startCountInner = mVertexBuffer[iSlice].size();
     float4 oldpos;
     for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
