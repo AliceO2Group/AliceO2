@@ -28,6 +28,7 @@
 #include "GPUTPCSliceOutput.h"
 #include "GPUTPCGMMergedTrack.h"
 #include "GPUParam.h"
+#include "GPUParam.inc"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
@@ -42,7 +43,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace gputpcgmmergertypes;
 
-void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
+void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
   out << std::setprecision(2);
@@ -60,7 +61,7 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
   out << std::setprecision(ss);
 }
 
-void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mergeMode)
+void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mergeMode) const
 {
   int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
   for (int i = 0; i < n; i++) {
@@ -69,8 +70,8 @@ void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mer
     int jSlice;
     MergeBorderTracksSetup(n1, n2, b1, b2, jSlice, i, withinSlice, mergeMode);
     const int nTrk = mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
-    gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = BorderRange(i);
-    gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = BorderRange(jSlice) + nTrk;
+    const gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = BorderRange(i);
+    const gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = BorderRange(jSlice) + nTrk;
     out << "\nBorder Tracks : i " << i << " withinSlice " << withinSlice << " mergeMode " << mergeMode << "\n";
     for (int k = 0; k < n1; k++) {
       out << "  " << k << ": t " << b1[k].TrackID() << " ncl " << b1[k].NClusters() << " row " << (mergeMode > 0 ? b1[k].Row() : -1) << " par " << b1[k].Par()[0] << " " << b1[k].Par()[1] << " " << b1[k].Par()[2] << " " << b1[k].Par()[3] << " " << b1[k].Par()[4]
@@ -92,7 +93,7 @@ void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mer
   }
 }
 
-void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output, const char* type)
+void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output, const char* type) const
 {
   out << "\nTPC Merger Links " << type << "\n";
   const int n = output ? mMemory->nOutputTracks : SliceTrackInfoLocalTotal();
@@ -103,7 +104,7 @@ void GPUTPCGMMerger::DumpTrackLinks(std::ostream& out, bool output, const char* 
   }
 }
 
-void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
+void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out) const
 {
   DumpTrackLinks(out, false, "within Slices");
   out << "\nTPC Merger Merge Within Slices\n";
@@ -117,7 +118,7 @@ void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
   }
 }
 
-void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out)
+void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out) const
 {
   DumpTrackLinks(out, false, "between Slices");
   out << "\nTPC Merger Merge Between Slices\n";
@@ -134,7 +135,7 @@ void GPUTPCGMMerger::DumpMergedBetweenSlices(std::ostream& out)
   }
 }
 
-void GPUTPCGMMerger::DumpCollected(std::ostream& out)
+void GPUTPCGMMerger::DumpCollected(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
   out << std::setprecision(2);
@@ -147,7 +148,7 @@ void GPUTPCGMMerger::DumpCollected(std::ostream& out)
   out << std::setprecision(ss);
 }
 
-void GPUTPCGMMerger::DumpMergeCE(std::ostream& out)
+void GPUTPCGMMerger::DumpMergeCE(std::ostream& out) const
 {
   DumpTrackLinks(out, true, " for CE merging");
   out << "\nTPC Merger Merge CE\n";
@@ -159,7 +160,7 @@ void GPUTPCGMMerger::DumpMergeCE(std::ostream& out)
   }
 }
 
-void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
+void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
 {
   out << "\nTPC Merger Refit Prepare\n";
   out << "  Sort\n";
@@ -179,7 +180,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
   }
 }
 
-void GPUTPCGMMerger::DumpRefit(std::ostream& out)
+void GPUTPCGMMerger::DumpRefit(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
   out << std::setprecision(2);
@@ -197,7 +198,7 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
   out << std::setprecision(ss);
 }
 
-void GPUTPCGMMerger::DumpFinal(std::ostream& out)
+void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
 {
   out << "\nTPC Merger Finalized\n";
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
@@ -217,7 +218,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
 }
 
 template <int mergeType>
-inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac)
+inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac) const
 {
 #ifdef DEBUG_STREAMER
   std::vector<int> hits1(152), hits2(152);
@@ -247,7 +248,7 @@ inline void GPUTPCGMMerger::MergedTrackStreamerInternal(const GPUTPCGMBorderTrac
 #endif
 }
 
-void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac)
+void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac) const
 {
 #ifdef DEBUG_STREAMER
   if (mergeMode == 0) {
@@ -258,7 +259,7 @@ void GPUTPCGMMerger::MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GP
 #endif
 }
 
-const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId)
+const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId) const
 {
   for (int i = 0; i < N; i++) {
     if (tracks[i].TrackID() == trackId) {
@@ -268,7 +269,7 @@ const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(co
   throw std::runtime_error("didn't find border track");
 }
 
-void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
+void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track) const
 {
 #ifdef GPUCA_HAVE_O2HEADERS
   GPUTPCGMMergedTrack trk = track;
@@ -300,7 +301,7 @@ void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
 #endif
 }
 
-std::vector<unsigned short> GPUTPCGMMerger::StreamerOccupancyBin(int iSlice, int iRow, float time)
+std::vector<unsigned short> GPUTPCGMMerger::StreamerOccupancyBin(int iSlice, int iRow, float time) const
 {
   std::vector<unsigned short> retVal(5);
 #ifdef DEBUG_STREAMER
@@ -312,11 +313,59 @@ std::vector<unsigned short> GPUTPCGMMerger::StreamerOccupancyBin(int iSlice, int
   return retVal;
 }
 
-std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int iSlice, int iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop)
+std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int iSlice, int iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop) const
 {
   std::vector<float> retVal(2);
 #ifdef DEBUG_STREAMER
   GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(iSlice, iRow, track.GetY(), track.GetZ(), retVal[0], retVal[1]);
 #endif
   return retVal;
+}
+
+void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal) const
+{
+#ifdef DEBUG_STREAMER
+  float time = clusterNative.getTime();
+  auto occupancyBins = StreamerOccupancyBin(cluster.slice, cluster.row, time);
+  auto uncorrectedYZ = StreamerUncorrectedZY(cluster.slice, cluster.row, track, prop);
+  o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data()
+                                                                                    << "iTrk=" << iTrk
+                                                                                    << "ihit=" << ihit
+                                                                                    << "xx=" << xx
+                                                                                    << "yy=" << yy
+                                                                                    << "zz=" << zz
+                                                                                    << "cluster=" << cluster
+                                                                                    << "clusterNative=" << clusterNative
+                                                                                    << "track=" << track
+                                                                                    << "rejectChi2=" << rejectChi2
+                                                                                    << "interpolationhit=" << interpolation
+                                                                                    << "refit=" << refit
+                                                                                    << "retVal=" << retVal
+                                                                                    << "occupancyBins=" << occupancyBins
+                                                                                    << "trackUncorrectedYZ=" << uncorrectedYZ
+                                                                                    << "\n";
+#endif
+}
+
+void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, char sector, const GPUParam& param, float time, float avgCharge)
+{
+#ifdef DEBUG_STREAMER
+  float scaledMult = (time >= 0.f ? param.GetScaledMult(sector, iRow, time) / param.tpcGeometry.Row2X(iRow) : 0.f);
+  o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data()
+                                                                                         << "mAlpha=" << mAlpha
+                                                                                         << "iRow=" << iRow
+                                                                                         << "posY=" << posY
+                                                                                         << "posZ=" << posZ
+                                                                                         << "clusterState=" << clusterState
+                                                                                         << "rejectChi2=" << rejectChi2
+                                                                                         << "interpolationhit=" << inter
+                                                                                         << "refit=" << refit
+                                                                                         << "retVal=" << retVal
+                                                                                         << "err2Y=" << err2Y
+                                                                                         << "err2Z=" << err2Z
+                                                                                         << "track=" << track
+                                                                                         << "scaledMultiplicity=" << scaledMult
+                                                                                         << "avgCharge=" << avgCharge
+                                                                                         << "\n";
+#endif
 }
