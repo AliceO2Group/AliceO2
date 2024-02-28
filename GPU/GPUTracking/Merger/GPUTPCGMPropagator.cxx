@@ -20,6 +20,7 @@
 #include "GPUParam.inc"
 #include "GPUTPCGMMergerTypes.h"
 #include "GPUDebugStreamer.h"
+#include "GPUTPCGMMerger.h"
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
 #include "AliTracker.h"
@@ -663,8 +664,8 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
     } else {
       int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
       GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster, iTrk)) {
-        o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data() << "mAlpha=" << mAlpha << "iRow=" << iRow << "posY=" << posY << "posZ=" << posZ << "clusterState=" << clusterState << "rejectChi2=" << rejectChi2 << "interpolationhit=" << *inter << "refit=" << refit << "retVal=" << retVal << "err2Y=" << err2Y << "err2Z=" << err2Z << "track=" << mT << "scaledMultiplicity=" << (time >= 0.f ? param.GetScaledMult(sector, iRow, time) / param.tpcGeometry.Row2X(iRow) : 0.f) << "avgCharge=" << avgCharge << "\n";
-      })
+        GPUTPCGMMerger::DebugStreamerReject(mAlpha, iRow, posY, posZ, clusterState, rejectChi2, *inter, refit, retVal, err2Y, err2Z, *mT, sector, param, time, avgCharge);
+      });
       if (retVal) {
         return retVal;
       }
