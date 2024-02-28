@@ -273,9 +273,6 @@ class AlignmentTask
     if (mCCDBRequest && base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
 
       if (matcher == framework::ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
-        LOG(info) << "Loading magnetic field from CCDB";
-        auto grp = base::GRPGeomHelper::instance().getGRPMagField();
-        base::Propagator::initFieldFromGRP(grp);
         TrackExtrap::setField();
         mAlign.SetBFieldOn(TrackExtrap::isFieldON());
         TrackExtrap::useExtrapV2();
