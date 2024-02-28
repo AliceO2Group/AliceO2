@@ -81,6 +81,10 @@ class PID
     mCutMinpTPCMIPs = minpTPCMIPs;
     mCutMaxpTPCMIPs = maxpTPCMIPs;
   }
+  void setCreateCanvas(int createCanvas = 1)
+  {
+    mCreateCanvas = createCanvas;
+  }
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() { return mMapHist; }
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>>& getMapOfCanvas() { return mMapCanvas; }
   const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() const { return mMapHist; }
@@ -95,7 +99,7 @@ class PID
   float mCutMaxpTPC = 20.f;      // pTPC max value
   float mCutMinpTPCMIPs = 0.45f; // pTPC min value for MIPs
   float mCutMaxpTPCMIPs = 0.55f; // pTPC max value for MIPs
-
+  bool mCreateCanvas = true;     // Decide whether to create the TCanvas Object as it cannot be merged
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHist;
   // Map for Canvases to be published
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>> mMapCanvas;
