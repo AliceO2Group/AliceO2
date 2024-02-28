@@ -159,12 +159,14 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       auto [whichTRU, whichFastOrTRU] = mTriggerMap.getTRUFromAbsFastORIndex(fastor);
       LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU] = " << whichTRU << ", " << whichFastOrTRU;
       LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, summedDigit.getAmplitudeADC() = " << summedDigit.getAmplitudeADC();
+      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, patchesFromAllTRUs.size() = " << patchesFromAllTRUs.size();
 
 
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
+            LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU, whichFastOr] = " << whichTRU << ", " << whichFastOrTRU << ", " << whichFastOr;
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
       LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, patchTRU.mPatchIDSeedFastOrIDs.size() = " << patchTRU.mPatchIDSeedFastOrIDs.size();
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU, whichFastOr] = " << whichTRU << ", " << whichFastOrTRU << ", " << whichFastOr;
+      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, patchTRU.mPatchIDSeedFastOrIDs.size() = " << patchTRU.mPatchIDSeedFastOrIDs.size();
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
       LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, before updateADC";
       fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
