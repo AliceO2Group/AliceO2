@@ -38,7 +38,7 @@ static std::string concat(Args&&... arguments)
   return std::move(ss.str());
 }
 
-void* readObject(const TClass* type, o2::framework::FairTMessage& ftm)
+void* readObject(const TClass* type, o2::framework::FairInputTBuffer& ftm)
 {
   using namespace std::string_view_literals;
   auto* object = ftm.ReadObjectAny(type);
@@ -60,7 +60,7 @@ MergeInterface* castToMergeInterface(bool inheritsFromTObject, void* object, TCl
   return objectAsMergeInterface;
 }
 
-std::optional<ObjectStore> extractVector(o2::framework::FairTMessage& ftm, const TClass* storedClass)
+std::optional<ObjectStore> extractVector(o2::framework::FairInputTBuffer& ftm, const TClass* storedClass)
 {
   if (!storedClass->InheritsFrom(TClass::GetClass(typeid(VectorOfRawTObjects)))) {
     return std::nullopt;
@@ -88,11 +88,14 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
     throw std::runtime_error(concat(errorPrefix, "It is not ROOT-serialized"sv));
   }
 
-  o2::framework::FairTMessage ftm(const_cast<char*>(ref.payload), o2::framework::DataRefUtils::getPayloadSize(ref));
-  auto* storedClass = ftm.GetClass();
+  o2::framework::FairInputTBuffer ftm(const_cast<char*>(ref.payload), o2::framework::DataRefUtils::getPayloadSize(ref));
+  ftm.InitMap();
+  auto* storedClass = ftm.ReadClass();
   if (storedClass == nullptr) {
     throw std::runtime_error(concat(errorPrefix, "Unknown stored class"sv));
   }
+  ftm.SetBufferOffset(0);
+  ftm.ResetMap();
 
   if (const auto extractedVector = extractVector(ftm, storedClass)) {
     return extractedVector.value();

@@ -71,12 +71,15 @@ struct DataRefUtils {
           throw runtime_error("Attempt to extract a TMessage from non-ROOT serialised message");
         }
 
-        typename RSS::FairTMessage ftm(const_cast<char*>(ref.payload), payloadSize);
-        auto* storedClass = ftm.GetClass();
+        typename RSS::FairInputTBuffer ftm(const_cast<char*>(ref.payload), payloadSize);
         auto* requestedClass = RSS::TClass::GetClass(typeid(T));
+        ftm.InitMap();
+        auto* storedClass = ftm.ReadClass();
         // should always have the class description if has_root_dictionary is true
         assert(requestedClass != nullptr);
 
+        ftm.SetBufferOffset(0);
+        ftm.ResetMap();
         auto* object = ftm.ReadObjectAny(storedClass);
         if (object == nullptr) {
           throw runtime_error_f("Failed to read object with name %s from message using ROOT serialization.",
@@ -146,7 +149,11 @@ struct DataRefUtils {
           throw runtime_error("ROOT serialization not supported, dictionary not found for data type");
         }
 
-        typename RSS::FairTMessage ftm(const_cast<char*>(ref.payload), payloadSize);
+        typename RSS::FairInputTBuffer ftm(const_cast<char*>(ref.payload), payloadSize);
+        ftm.InitMap();
+        auto* classInfo = ftm.ReadClass();
+        ftm.SetBufferOffset(0);
+        ftm.ResetMap();
         result.reset(static_cast<wrapped*>(ftm.ReadObjectAny(cl)));
         if (result.get() == nullptr) {
           throw runtime_error_f("Unable to extract class %s", cl == nullptr ? "<name not available>" : cl->GetName());

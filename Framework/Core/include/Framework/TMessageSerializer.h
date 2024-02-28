@@ -16,9 +16,8 @@
 #include "Framework/RuntimeError.h"
 
 #include <TList.h>
-#include <TMessage.h>
+#include <TBufferFile.h>
 #include <TObjArray.h>
-#include <TStreamerInfo.h>
 #include <gsl/util>
 #include <gsl/span>
 #include <gsl/narrow>
@@ -28,67 +27,76 @@
 
 namespace o2::framework
 {
-class FairTMessage;
+class FairOutputTBuffer;
+class FairInputTBuffer;
 
 // utilities to produce a span over a byte buffer held by various message types
 // this is to avoid littering code with casts and conversions (span has a signed index type(!))
-gsl::span<std::byte> as_span(const FairTMessage& msg);
+gsl::span<std::byte> as_span(const FairInputTBuffer& msg);
+gsl::span<std::byte> as_span(const FairOutputTBuffer& msg);
 gsl::span<std::byte> as_span(const fair::mq::Message& msg);
 
-class FairTMessage : public TMessage
+// A TBufferFile which we can use to serialise data to a FairMQ message.
+class FairOutputTBuffer : public TBufferFile
 {
  public:
-  using TMessage::TMessage;
-  FairTMessage() : TMessage(kMESS_OBJECT) {}
-  FairTMessage(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
-  FairTMessage(gsl::span<std::byte> buf) : TMessage(buf.data(), buf.size()) { ResetBit(kIsOwner); }
+  // This is to serialise data to FairMQ. We embed the pointer to the message
+  // in the data itself, so that we can use it to reallocate the message if needed.
+  // The FairMQ message retains ownership of the data.
+  // When deserialising the root object, keep in mind one needs to skip the 8 bytes
+  // for the pointer.
+  FairOutputTBuffer(fair::mq::Message& msg)
+    : TBufferFile(TBuffer::kWrite, msg.GetSize() - sizeof(char*), embedInItself(msg), false, fairMQrealloc)
+  {
+  }
+  // Helper function to keep track of the FairMQ message that holds the data
+  // in the data itself. We can use this to make sure the message can be reallocated
+  // even if we simply have a pointer to the data. Hopefully ROOT will not play dirty
+  // with us.
+  void* embedInItself(fair::mq::Message& msg);
   // helper function to clean up the object holding the data after it is transported.
-  static void free(void* /*data*/, void* hint);
+  static char* fairMQrealloc(char* oldData, size_t newSize, size_t oldSize);
+};
+
+class FairInputTBuffer : public TBufferFile
+{
+ public:
+  // This is to serialise data to FairMQ. The provided message is expeted to have 8 bytes
+  // of overhead, where the source embedded the pointer for the reallocation.
+  // Notice this will break if the sender and receiver are not using the same
+  // size for a pointer.
+  FairInputTBuffer(char* data, size_t size)
+    : TBufferFile(TBuffer::kRead, size - sizeof(char*), data + sizeof(char*), false, nullptr)
+  {
+  }
 };
 
 struct TMessageSerializer {
-  using StreamerList = std::vector<TVirtualStreamerInfo*>;
-  using CompressionLevel = int;
-
-  static void Serialize(fair::mq::Message& msg, const TObject* input,
-                        CompressionLevel compressionLevel = -1);
+  static void Serialize(fair::mq::Message& msg, const TObject* input);
 
   template <typename T>
-  static void Serialize(fair::mq::Message& msg, const T* input, const TClass* cl, //
-                        CompressionLevel compressionLevel = -1);
+  static void Serialize(fair::mq::Message& msg, const T* input, const TClass* cl);
 
   template <typename T = TObject>
   static void Deserialize(const fair::mq::Message& msg, std::unique_ptr<T>& output);
 
-  static void serialize(FairTMessage& msg, const TObject* input,
-                        CompressionLevel compressionLevel = -1);
+  static void serialize(o2::framework::FairOutputTBuffer& msg, const TObject* input);
 
   template <typename T>
-  static void serialize(FairTMessage& msg, const T* input, //
-                        const TClass* cl,
-                        CompressionLevel compressionLevel = -1);
+  static void serialize(o2::framework::FairOutputTBuffer& msg, const T* input, const TClass* cl);
 
   template <typename T = TObject>
-  static std::unique_ptr<T> deserialize(gsl::span<std::byte> buffer);
-  template <typename T = TObject>
-  static inline std::unique_ptr<T> deserialize(std::byte* buffer, size_t size);
+  static inline std::unique_ptr<T> deserialize(FairInputTBuffer& buffer);
 };
 
-inline void TMessageSerializer::serialize(FairTMessage& tm, const TObject* input,
-                                          CompressionLevel compressionLevel)
+inline void TMessageSerializer::serialize(FairOutputTBuffer& tm, const TObject* input)
 {
-  return serialize(tm, input, nullptr, compressionLevel);
+  return serialize(tm, input, nullptr);
 }
 
 template <typename T>
-inline void TMessageSerializer::serialize(FairTMessage& tm, const T* input, //
-                                          const TClass* cl, CompressionLevel compressionLevel)
+inline void TMessageSerializer::serialize(FairOutputTBuffer& tm, const T* input, const TClass* cl)
 {
-  if (compressionLevel >= 0) {
-    // if negative, skip to use ROOT default
-    tm.SetCompressionLevel(compressionLevel);
-  }
-
   // TODO: check what WriateObject and WriteObjectAny are doing
   if (cl == nullptr) {
     tm.WriteObject(input);
@@ -98,7 +106,7 @@ inline void TMessageSerializer::serialize(FairTMessage& tm, const T* input, //
 }
 
 template <typename T>
-inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<std::byte> buffer)
+inline std::unique_ptr<T> TMessageSerializer::deserialize(FairInputTBuffer& buffer)
 {
   TClass* tgtClass = TClass::GetClass(typeid(T));
   if (tgtClass == nullptr) {
@@ -107,53 +115,32 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<std::byte> b
   // FIXME: we need to add consistency check for buffer data to be serialized
   // at the moment, TMessage might simply crash if an invalid or inconsistent
   // buffer is provided
-  FairTMessage tm(buffer);
-  TClass* serializedClass = tm.GetClass();
+  buffer.InitMap();
+  TClass* serializedClass = buffer.ReadClass();
+  buffer.SetBufferOffset(0);
+  buffer.ResetMap();
   if (serializedClass == nullptr) {
     throw runtime_error_f("can not read class info from buffer");
   }
   if (tgtClass != serializedClass && serializedClass->GetBaseClass(tgtClass) == nullptr) {
     throw runtime_error_f("can not convert serialized class %s into target class %s",
-                          tm.GetClass()->GetName(),
+                          serializedClass->GetName(),
                           tgtClass->GetName());
   }
-  return std::unique_ptr<T>(reinterpret_cast<T*>(tm.ReadObjectAny(serializedClass)));
+  return std::unique_ptr<T>(reinterpret_cast<T*>(buffer.ReadObjectAny(serializedClass)));
+}
+
+inline void TMessageSerializer::Serialize(fair::mq::Message& msg, const TObject* input)
+{
+  FairOutputTBuffer output(msg);
+  serialize(output, input, input->Class());
 }
 
 template <typename T>
-inline std::unique_ptr<T> TMessageSerializer::deserialize(std::byte* buffer, size_t size)
+inline void TMessageSerializer::Serialize(fair::mq::Message& msg, const T* input, const TClass* cl)
 {
-  return deserialize<T>(gsl::span<std::byte>(buffer, gsl::narrow<gsl::span<std::byte>::size_type>(size)));
-}
-
-inline void FairTMessage::free(void* /*data*/, void* hint)
-{
-  std::default_delete<FairTMessage> deleter;
-  deleter(static_cast<FairTMessage*>(hint));
-}
-
-inline void TMessageSerializer::Serialize(fair::mq::Message& msg, const TObject* input,
-                                          TMessageSerializer::CompressionLevel compressionLevel)
-{
-  std::unique_ptr<FairTMessage> tm = std::make_unique<FairTMessage>(kMESS_OBJECT);
-
-  serialize(*tm, input, input->Class(), compressionLevel);
-
-  msg.Rebuild(tm->Buffer(), tm->BufferSize(), FairTMessage::free, tm.get());
-  tm.release();
-}
-
-template <typename T>
-inline void TMessageSerializer::Serialize(fair::mq::Message& msg, const T* input, //
-                                          const TClass* cl,                       //
-                                          TMessageSerializer::CompressionLevel compressionLevel)
-{
-  std::unique_ptr<FairTMessage> tm = std::make_unique<FairTMessage>(kMESS_OBJECT);
-
-  serialize(*tm, input, cl, compressionLevel);
-
-  msg.Rebuild(tm->Buffer(), tm->BufferSize(), FairTMessage::free, tm.get());
-  tm.release();
+  FairOutputTBuffer output(msg);
+  serialize(output, input, cl);
 }
 
 template <typename T>
@@ -161,7 +148,8 @@ inline void TMessageSerializer::Deserialize(const fair::mq::Message& msg, std::u
 {
   // we know the message will not be modified by this,
   // so const_cast should be OK here(IMHO).
-  output = deserialize(as_span(msg));
+  FairInputTBuffer input(static_cast<char*>(msg.GetData()), static_cast<int>(msg.GetSize()));
+  output = deserialize(input);
 }
 
 // gsl::narrow is used to do a runtime narrowing check, this might be a bit paranoid,
@@ -171,7 +159,7 @@ inline gsl::span<std::byte> as_span(const fair::mq::Message& msg)
   return gsl::span<std::byte>{static_cast<std::byte*>(msg.GetData()), gsl::narrow<gsl::span<std::byte>::size_type>(msg.GetSize())};
 }
 
-inline gsl::span<std::byte> as_span(const FairTMessage& msg)
+inline gsl::span<std::byte> as_span(const FairInputTBuffer& msg)
 {
   return gsl::span<std::byte>{reinterpret_cast<std::byte*>(msg.Buffer()),
                               gsl::narrow<gsl::span<std::byte>::size_type>(msg.BufferSize())};

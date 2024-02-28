@@ -141,9 +141,12 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
         return;
       }
 
-      FairTMessage tm(const_cast<char*>(ref.payload), static_cast<int>(datah->payloadSize));
       InputObject obj;
-      obj.kind = tm.GetClass();
+      FairInputTBuffer tm(const_cast<char*>(ref.payload), static_cast<int>(datah->payloadSize));
+      tm.InitMap();
+      obj.kind = tm.ReadClass();
+      tm.SetBufferOffset(0);
+      tm.ResetMap();
       if (obj.kind == nullptr) {
         LOG(error) << "Cannot read class info from buffer.";
         return;

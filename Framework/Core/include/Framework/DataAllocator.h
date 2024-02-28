@@ -359,6 +359,7 @@ class DataAllocator
     } else if constexpr (has_root_dictionary<T>::value == true || is_specialization_v<T, ROOTSerialized> == true) {
       // Serialize a snapshot of an object with root dictionary
       payloadMessage = proxy.createOutputMessage(routeIndex);
+      payloadMessage->Rebuild(4096, {64});
       if constexpr (is_specialization_v<T, ROOTSerialized> == true) {
         // Explicitely ROOT serialize a snapshot of object.
         // An object wrapped into type `ROOTSerialized` is explicitely marked to be ROOT serialized
