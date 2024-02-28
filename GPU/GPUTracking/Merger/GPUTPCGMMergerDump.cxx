@@ -199,6 +199,9 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out) const
   out << "\nTPC Merger Refit\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[i];
+    if (trk.NClusters() == 0) {
+      continue;
+    }
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " offset " << p.GetTZOffset() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
@@ -215,6 +218,9 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
   out << "\nTPC Merger Finalized\n";
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
     const auto& trk = mOutputTracks[j];
+    if (trk.NClusters() == 0) {
+      continue;
+    }
     out << "  Track " << j << ": ";
     for (unsigned int i = trk.FirstClusterRef(); i < trk.FirstClusterRef() + trk.NClusters(); i++) {
       if (mClusters[i].state != 0) {

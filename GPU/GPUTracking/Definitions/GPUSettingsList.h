@@ -134,7 +134,7 @@ AddOptionRTC(dropLoopers, unsigned char, 0, "", 0, "Drop looping tracks starting
 AddOptionRTC(mergerCovSource, unsigned char, 2, "", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following, 2 = refit (default)")
 AddOptionRTC(mergerInterpolateErrors, unsigned char, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
 AddOptionRTC(mergeCE, unsigned char, 1, "", 0, "Merge tracks accross the central electrode")
-AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails")
+AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails (=2 means retry in same kernel, =1 for separate kernel")
 AddOptionRTC(looperInterpolationInExtraPass, char, -1, "", 0, "Perform looper interpolation in an extra pass")
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
