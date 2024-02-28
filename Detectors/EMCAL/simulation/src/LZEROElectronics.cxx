@@ -158,7 +158,8 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
 
       auto [whichTRU, whichFastOrTRU] = mTriggerMap.getTRUFromAbsFastORIndex(fastor);
       LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU] = " << whichTRU << ", " << whichFastOrTRU;
-
+      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, summedDigit.getAmplitudeADC() = " << summedDigit.getAmplitudeADC();
+      
 
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
