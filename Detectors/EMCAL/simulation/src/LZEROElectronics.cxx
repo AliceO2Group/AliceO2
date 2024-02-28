@@ -107,18 +107,24 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
   int sizemDigitMap = -999;
   TriggerMappingV2 mTriggerMap(mGeometry);
 
+
+  LOG(info) << "DIG TRU fill in LZEROElectronics: before for loops";
+
+
   for (auto& digitsTimeBin : digitlist) {
     // Inside the DigitTimebinTRU
     // Fill the LZEROElectronics with the new ADC value
     // At the end of the loop run the peak finder
     // Ship to LONEElectronics in case a peak is found
     // Entire logic limited to timebin by timebin -> effectively implementing time scan
+    LOG(info) << "DIG TRU fill in LZEROElectronics: first for loop, digitlist.size() = " << digitlist.size();
 
     counterDigitTimeBin++;
 
     for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
       // Digit loop
       // The peak finding algorithm is run after getting out of the loop!
+      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, *digitsTimeBin.mDigitMap.size() = " << (*digitsTimeBin.mDigitMap).size();
 
       if (digitsList.size() == 0) {
         continue;
