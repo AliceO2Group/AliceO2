@@ -451,7 +451,7 @@ int SetupReconstruction()
       procSet.tpcInputWithClusterRejection = 1;
     }
     recSet.tpc.disableRefitAttachment = 0xFF;
-    recSet.tpc.loopInterpolationInExtraPass = 0;
+    recSet.tpc.looperInterpolationInExtraPass = 0;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
     recSet.useMatLUT = true;
     recAsync->SetSettings(&grp, &recSet, &procSet, &steps);
