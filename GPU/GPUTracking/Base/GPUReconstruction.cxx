@@ -302,7 +302,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.debugLevel > 3 || !mProcessingSettings.fullMergerOnGPU || mProcessingSettings.deterministicGPUReconstruction) {
     mProcessingSettings.delayedOutput = false;
   }
-  if (!mProcessingSettings.fullMergerOnGPU && GetRecoStepsGPU() & RecoStep::TPCMerging) {
+  if (!mProcessingSettings.fullMergerOnGPU && (GetRecoStepsGPU() & RecoStep::TPCMerging)) {
     param().rec.tpc.looperInterpolationInExtraPass = 0;
     if (param().rec.tpc.retryRefit == 1) {
       param().rec.tpc.retryRefit = 2;
