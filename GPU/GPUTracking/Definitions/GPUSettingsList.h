@@ -135,7 +135,7 @@ AddOptionRTC(mergerCovSource, unsigned char, 2, "", 0, "Method to obtain covaria
 AddOptionRTC(mergerInterpolateErrors, unsigned char, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
 AddOptionRTC(mergeCE, unsigned char, 1, "", 0, "Merge tracks accross the central electrode")
 AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails")
-AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interpolation in an extra pass")
+AddOptionRTC(looperInterpolationInExtraPass, char, -1, "", 0, "Perform looper interpolation in an extra pass")
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 AddOptionRTC(enablePID, char, 1, "", 0, "Enable PID response")

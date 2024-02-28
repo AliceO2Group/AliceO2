@@ -225,7 +225,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (param().rec.tpc.retryRefit == 1) {
     runKernel<GPUTPCGMMergerTrackFit>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone, -1);
   }
-  if (param().rec.tpc.loopInterpolationInExtraPass) {
+  if (param().rec.tpc.looperInterpolationInExtraPass) {
     runKernel<GPUTPCGMMergerFollowLoopers>(GetGridAuto(0), krnlRunRangeNone, krnlEventNone);
   }
   if (doGPU && !doGPUall) {
