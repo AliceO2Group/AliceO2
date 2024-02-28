@@ -179,6 +179,7 @@ TEST_CASE("test_RootTreeWriter")
 
   auto createSerializedMessage = [&transport, &store](DataHeader&& dh, auto& data) {
     fair::mq::MessagePtr payload = transport->CreateMessage();
+    payload->Rebuild(4096, {64});
     auto* cl = TClass::GetClass(typeid(decltype(data)));
     TMessageSerializer().Serialize(*payload, &data, cl);
     dh.payloadSize = payload->GetSize();

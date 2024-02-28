@@ -72,6 +72,9 @@ class RootSerializedObject : public MessageContext::ContextObject
   fair::mq::Parts finalize() final
   {
     assert(mParts.Size() == 1);
+    if (mPayloadMsg->GetSize() < sizeof(char*)) {
+      mPayloadMsg->Rebuild(4096, {64});
+    }
     TMessageSerializer::Serialize(*mPayloadMsg, mObject.get(), nullptr);
     mParts.AddPart(std::move(mPayloadMsg));
     return ContextObject::finalize();
