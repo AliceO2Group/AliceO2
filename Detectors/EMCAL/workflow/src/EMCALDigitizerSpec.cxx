@@ -390,6 +390,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 void DigitizerSpec::configure()
 {
   mDigitizer.init();
+  mDigitizerTRU.init();
 }
 
 void DigitizerSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
