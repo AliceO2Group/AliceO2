@@ -247,6 +247,10 @@ file(GENERATE
      OUTPUT include_gpu_onthefly/GPUReconstructionKernels.h
      INPUT Base/GPUReconstructionKernels.template.h
 )
+file(GENERATE
+     OUTPUT include_gpu_onthefly/GPUReconstructionKernelIncludes.h
+     INPUT Base/GPUReconstructionKernelIncludes.template.h
+)
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "O2")
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
 endif()

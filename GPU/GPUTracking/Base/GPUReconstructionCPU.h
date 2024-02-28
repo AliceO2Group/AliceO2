@@ -23,34 +23,13 @@
 #include <vector>
 
 #include "GPUGeneralKernels.h"
-#include "GPUTPCCreateSliceData.h"
-#include "GPUTPCNeighboursFinder.h"
-#include "GPUTPCNeighboursCleaner.h"
-#include "GPUTPCStartHitsFinder.h"
-#include "GPUTPCStartHitsSorter.h"
-#include "GPUTPCTrackletConstructor.h"
-#include "GPUTPCTrackletSelector.h"
-#include "GPUTPCGlobalTracking.h"
-#include "GPUTRDTrackerKernels.h"
-#include "GPUTPCCreateOccupancyMap.h"
-#include "GPUTPCSectorDebugSortKernels.h"
-#include "GPUTPCGlobalDebugSortKernels.h"
-#ifdef GPUCA_NOCOMPAT
-#include "GPUTPCGMMergerGPU.h"
-#endif
-#ifdef GPUCA_HAVE_O2HEADERS
-#include "GPUITSFitterKernels.h"
-#include "GPUTPCConvertKernel.h"
-#include "GPUTPCCompressionKernels.h"
-#include "GPUTPCClusterFinderKernels.h"
-#include "GPUTrackingRefitKernel.h"
-#include "GPUTPCGMO2Output.h"
-#endif
+#include "GPUReconstructionKernelIncludes.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+
 class GPUReconstructionCPUBackend : public GPUReconstruction
 {
  public:
