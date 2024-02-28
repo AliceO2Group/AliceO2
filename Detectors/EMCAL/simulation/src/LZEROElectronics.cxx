@@ -130,6 +130,7 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
         continue;
       }
       digitsList.sort();
+      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, digitsList.size() = " << digitsList.size();
 
       int digIndex = 0;
       Digit summedDigit;
@@ -156,6 +157,8 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       }
 
       auto [whichTRU, whichFastOrTRU] = mTriggerMap.getTRUFromAbsFastORIndex(fastor);
+      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU] = " << whichTRU << ", " << whichFastOrTRU;
+
 
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
