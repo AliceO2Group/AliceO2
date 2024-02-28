@@ -170,14 +170,26 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
   out << "  Clusters\n";
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
     const auto& trk = mOutputTracks[j];
+    out << "  Track " << j << ": ";
     for (unsigned int i = trk.FirstClusterRef(); i < trk.FirstClusterRef() + trk.NClusters(); i++) {
-      out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
+      out << j << "/" << (i - trk.FirstClusterRef()) << ": " << mClusters[i].num << "/" << (int)mClusters[i].state << ", ";
     }
+    out << "\n";
   }
   unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int j = 0;
   for (unsigned int i = 0; i < maxId; i++) {
-    out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
+    if ((mClusterAttachment[i] & attachFlagMask) != 0) {
+      if (++j % 10 == 0) {
+        out << "    Cluster attachment ";
+      }
+      out << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
+      if (j % 10 == 0) {
+        out << "\n";
+      }
+    }
   }
+  out << "\n";
 }
 
 void GPUTPCGMMerger::DumpRefit(std::ostream& out) const
@@ -191,7 +203,7 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out) const
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " offset " << p.GetTZOffset() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
 #ifdef GPUCA_HAVE_O2HEADERS
-        << " dEdx " << mOutputTracksdEdx[i].dEdxTotTPC << "/" << mOutputTracksdEdx[i].dEdxMaxTPC
+        << " dEdx " << (trk.OK() ? mOutputTracksdEdx[i].dEdxTotTPC : -1.f) << "/" << (trk.OK() ? mOutputTracksdEdx[i].dEdxMaxTPC : -1.f)
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }
@@ -203,18 +215,28 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
   out << "\nTPC Merger Finalized\n";
   for (unsigned int j = 0; j < mMemory->nOutputTracks; j++) {
     const auto& trk = mOutputTracks[j];
+    out << "  Track " << j << ": ";
     for (unsigned int i = trk.FirstClusterRef(); i < trk.FirstClusterRef() + trk.NClusters(); i++) {
       if (mClusters[i].state != 0) {
-        out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
+        out << j << "/" << (i - trk.FirstClusterRef()) << ": " << mClusters[i].num << "/" << (int)mClusters[i].state << ", ";
+      }
+    }
+    out << "\n";
+  }
+  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int j = 0;
+  for (unsigned int i = 0; i < maxId; i++) {
+    if ((mClusterAttachment[i] & attachFlagMask) != 0) {
+      if (++j % 10 == 0) {
+        out << "    Cluster attachment ";
+      }
+      out << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << " - ";
+      if (j % 10 == 0) {
+        out << "\n";
       }
     }
   }
-  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
-  for (unsigned int i = 0; i < maxId; i++) {
-    if ((mClusterAttachment[i] & attachFlagMask) != 0) {
-      out << "    Cluster attachment " << i << ": " << (mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
-    }
-  }
+  out << "\n";
 }
 
 template <int mergeType>
