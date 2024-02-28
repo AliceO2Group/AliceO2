@@ -36,12 +36,6 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
   GPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
   for (int itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.mNThreadsTotal) {
-    while (tracker.Tracklets()[itr].NHits() == 0) {
-      itr += s.mNThreadsTotal;
-      if (itr >= s.mNTracklets) {
-        return;
-      }
-    }
     GPUbarrierWarp();
 
     GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) & GPUrestrict() tracklet = tracker.Tracklets()[itr];
