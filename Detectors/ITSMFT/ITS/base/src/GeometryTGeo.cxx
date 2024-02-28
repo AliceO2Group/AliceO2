@@ -857,7 +857,7 @@ int GeometryTGeo::extractLayerChipType(int lay) const
 void GeometryTGeo::Print(Option_t*) const
 {
   if (!isBuilt()) {
-    LOGF(info, "Geometry not built not yet!");
+    LOGF(info, "Geometry not built yet!");
     return;
   }
 
