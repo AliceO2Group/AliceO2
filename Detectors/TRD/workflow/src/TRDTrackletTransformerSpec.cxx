@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <gsl/span>
+#include <cstring>
 
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
 
@@ -33,6 +34,10 @@ void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   if (ic.options().get<bool>("apply-xor")) {
     mTransformer.setApplyXOR();
+  }
+  if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+    // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
+    mTransformer.setApplyShift(false);
   }
 }
 

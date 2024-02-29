@@ -108,7 +108,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     // \sqrt{ (dx/dx)^2 + (dy/dx)^2 + (dz/dx)^2}
     auto tphi = trk.getSnp() / std::sqrt((1.f - trk.getSnp()) * (1.f + trk.getSnp()));
     auto trackletLength = std::sqrt(1.f + tphi * tphi + trk.getTgl() * trk.getTgl());
-    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(), tracklet.getPadRow()) * trackletLength;
+    auto cor = mLocalGain.getValue(tracklet.getHCID() / 2, tracklet.getPadCol(mApplyShift), tracklet.getPadRow()) * trackletLength;
     float q0{tracklet.getQ0() / cor}, q1{tracklet.getQ1() / cor}, q2{tracklet.getQ2() / cor};
 
     // z-row merging
@@ -117,9 +117,9 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
         if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
           continue;
         }
-        if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
+        if (std::abs(tracklet.getPadCol(mApplyShift) - trklt.getPadCol(mApplyShift)) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
           // Add charge information
-          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * trackletLength;
+          auto cor = mLocalGain.getValue(trklt.getHCID() / 2, trklt.getPadCol(mApplyShift), trklt.getPadRow()) * trackletLength;
           q0 += trklt.getQ0() / cor;
           q1 += trklt.getQ1() / cor;
           q2 += trklt.getQ2() / cor;

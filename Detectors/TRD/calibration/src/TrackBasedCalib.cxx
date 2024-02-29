@@ -159,10 +159,10 @@ int TrackBasedCalib::filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD)
 
       float localGainCorr = 1.;
       if (mLocalGain) {
-        localGainCorr = mLocalGain->getValue(trkltDet, tracklet.getPadCol(), tracklet.getPadRow());
+        localGainCorr = mLocalGain->getValue(trkltDet, tracklet.getPadCol(mApplyShift), tracklet.getPadRow());
       }
       if (TMath::Abs(localGainCorr) < 0.0001f) {
-        LOGP(warn, "Invalid localGainCorr {} for det {}, pad col {}, pad row {}", localGainCorr, trkltDet, tracklet.getPadCol(), tracklet.getPadRow());
+        LOGP(warn, "Invalid localGainCorr {} for det {}, pad col {}, pad row {}", localGainCorr, trkltDet, tracklet.getPadCol(mApplyShift), tracklet.getPadRow());
         continue;
       }
 

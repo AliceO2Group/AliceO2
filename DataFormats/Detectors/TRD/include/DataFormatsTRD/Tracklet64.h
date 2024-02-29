@@ -139,13 +139,15 @@ class Tracklet64
 
   // pad column number inside pad row as float
   // FIXME: understand why the offset seems to be 8 pads and not nChannels / 2 = 10.5
-  GPUd() float getPadColFloat() const { return getPositionFloat() + getMCMCol() * constants::NCOLMCM + 8; }
+  // Due to wrong pad shift included in alignment we need to optionally shift the tracklets by one pad
+  // in case we are not using the ideal alignment
+  GPUd() float getPadColFloat(bool applyShift) const { return getPositionFloat() + getMCMCol() * constants::NCOLMCM + 8.f + (applyShift ? 1.f : 0.f); }
 
   // pad column number inside pad row as int can be off by +-1 pad (same function name as for TRD digit)
-  GPUd() int getPadCol() const { return GPUCA_NAMESPACE::gpu::CAMath::Float2IntRn(getPadColFloat()); }
+  GPUd() int getPadCol(bool applyShift = false) const { return GPUCA_NAMESPACE::gpu::CAMath::Float2IntRn(getPadColFloat(applyShift)); }
 
   // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
-  GPUd() float getUncalibratedY() const { return (getPadColFloat() - (constants::NCOLUMN / 2.f)) * getPadWidth(); }
+  GPUd() float getUncalibratedY(bool applyShift = false) const { return (getPadColFloat(applyShift) - (constants::NCOLUMN / 2.f)) * getPadWidth(); }
 
   // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
   GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const { return getSlopeFloat() * getPadWidth() * nTbDrift; }

@@ -51,6 +51,8 @@ class PulseHeight
   /// Reset the output
   void reset();
 
+  void setApplyShift(bool f) { mApplyShift = f; }
+
   /// Main processing function
   void process();
 
@@ -82,6 +84,7 @@ class PulseHeight
   // settings
   const TRDCalibParams& mParams{TRDCalibParams::Instance()}; ///< reference to calibration parameters
   bool mWriteOutput{false};                                  ///< will be set to true in case createOutputFile() is called
+  bool mApplyShift{true};
 
   ClassDefNV(PulseHeight, 1);
 };
