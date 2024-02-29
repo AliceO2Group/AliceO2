@@ -60,9 +60,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     if (mFinished) {
       return;
     }
+    mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
     mID == o2::detectors::DetID::ITS ? updateTimeDependentParams<o2::detectors::DetID::ITS>(pc) : updateTimeDependentParams<o2::detectors::DetID::MFT>(pc);
     std::string detStr = mID.getName();
-    mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(mID, mSimChains);
