@@ -155,6 +155,28 @@ ChipMappingITS::ChipMappingITS()
       chipCount += NChipsPerStaveSB[sInfo.ruType];
     }
   }
+
+  // MB lookup
+  for (int ichw = 0; ichw <= MaxHWCableID[MB]; ichw++) { // loop over HW cables
+    for (int ihw = 0; ihw < 15; ihw++) {                 // init with invalid IDs
+      HWCableHWChip2ChipOnRU_MB[ichw][ihw] = 0xff;
+    }
+  }
+  for (int ichip = 0; ichip < NChipsPerStaveSB[MB]; ichip++) {
+    const auto& chInfo = mChipsInfo[NChipsPerStaveSB[IB] + ichip];
+    HWCableHWChip2ChipOnRU_MB[chInfo.cableHW][chInfo.chipOnModuleHW] = uint8_t(ichip);
+  }
+
+  // OB lookup
+  for (int ichw = 0; ichw <= MaxHWCableID[OB]; ichw++) { // loop over HW cables
+    for (int ihw = 0; ihw < 15; ihw++) {                 // init with invalid IDs
+      HWCableHWChip2ChipOnRU_OB[ichw][ihw] = 0xff;
+    }
+  }
+  for (int ichip = 0; ichip < NChipsPerStaveSB[OB]; ichip++) {
+    const auto& chInfo = mChipsInfo[NChipsPerStaveSB[IB] + NChipsPerStaveSB[MB] + ichip];
+    HWCableHWChip2ChipOnRU_OB[chInfo.cableHW][chInfo.chipOnModuleHW] = uint8_t(ichip);
+  }
   assert(ctrStv == getNRUs());
 }
 

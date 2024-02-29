@@ -128,7 +128,6 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
     }
     cableData[icab].clear();
   }
-
   return ntot;
 }
 

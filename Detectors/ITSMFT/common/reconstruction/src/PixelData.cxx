@@ -30,6 +30,7 @@ void PixelData::sanityCheck() const
 void ChipPixelData::print() const
 {
   // print chip data
+  static_assert(ChipStat::DecErrors::NErrorsDefined > sizeof(mErrors), "too many DecErrors defined");
   std::bitset<4> flg(mROFlags);
   printf("Chip %d in Orbit %6d BC:%4d (ROFrame %d) ROFlags: 4b'%4s | %4lu hits\n", mChipID,
          mInteractionRecord.orbit, mInteractionRecord.bc, mROFrame, flg.to_string().c_str(), mPixels.size());
@@ -51,6 +52,10 @@ std::string ChipPixelData::getErrorDetails(int pos) const
       rbuf += fmt::format(fmt::runtime(i ? " {:02x}" : "{:02x}"), (int)getRawErrBuff()[i]);
     }
     rbuf += '>';
+    return rbuf;
+  }
+  if (pos == int(ChipStat::WrongAlpideChipID)) {
+    std::string rbuf = fmt::format(" {} for this link", mErrorInfo & 0xffff);
     return rbuf;
   }
   return {};
