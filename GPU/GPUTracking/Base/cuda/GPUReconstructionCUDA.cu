@@ -275,7 +275,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
     }
-    if (GPUFailedMsgI(cudaDeviceSetLimit(cudaLimitMallocHeapSize, GPUCA_GPU_HEAP_SIZE))) {
+    if (GPUFailedMsgI(cudaDeviceSetLimit(cudaLimitMallocHeapSize, mProcessingSettings.deterministicGPUReconstruction ? std::max<size_t>(1024 * 1024 * 1024, GPUCA_GPU_HEAP_SIZE) : GPUCA_GPU_HEAP_SIZE))) {
       GPUError("Error setting CUDA stack size");
       GPUFailedMsgI(cudaDeviceReset());
       return (1);
