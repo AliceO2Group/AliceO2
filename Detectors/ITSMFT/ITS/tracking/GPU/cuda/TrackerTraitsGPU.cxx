@@ -326,6 +326,44 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findCellsNeighboursHybrid(const int iteration)
 {
   TrackerTraits::findCellsNeighbours(iteration);
+  // for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
+  //   const int nextLayerCellsNum{static_cast<int>(mTimeFrameGPU->getCells()[iLayer + 1].size())};
+  //   mTimeFrameGPU->getCellsNeighboursLUT()[iLayer].clear();
+  //   mTimeFrameGPU->getCellsNeighboursLUT()[iLayer].resize(nextLayerCellsNum, 0);
+  //   if (mTimeFrameGPU->getCells()[iLayer + 1].empty() ||
+  //       mTimeFrameGPU->getCellsLookupTable()[iLayer].empty()) {
+  //     mTimeFrameGPU->getCellsNeighbours()[iLayer].clear();
+  //     continue;
+  //   }
+
+  //   int layerCellsNum{static_cast<int>(mTimeFrameGPU->getCells()[iLayer].size())};
+  //   std::vector<std::pair<int, int>> cellsNeighbours;
+  //   cellsNeighbours.reserve(nextLayerCellsNum);
+  //   mTimeFrameGPU->createCellNeighboursDevice(iLayer, cellsNeighbours);
+
+  //   // // [...]
+  //   // cellNeighboursHandler<true>(mTimeFrameGPU->getDeviceNeighbours(iLayer));
+  //   // //         // Compute Cell Neighbours LUT
+  //   // //         checkGPUError(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),                       // d_temp_storage
+  //   // //                                                     mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize, // temp_storage_bytes
+  //   // //                                                     mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),    // d_in
+  //   // //                                                     mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeigboursLookupTables(iLayer),    // d_out
+  //   // //                                                     mTimeFrameGPU->getHostNCells(chunkId)[iLayer + 1],                              // num_items
+  //   // //                                                     mTimeFrameGPU->getStream(chunkId).get()));
+
+  //   // cellsNeighboursHandler<false>(mTimeFrameGPU->getDeviceNeighbours(iLayer));
+  //   // // [...]
+
+  //   std::sort(cellsNeighbours.begin(), cellsNeighbours.end(), [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+  //     return a.second < b.second;
+  //   });
+  //   mTimeFrameGPU->getCellsNeighbours()[iLayer].clear();
+  //   mTimeFrameGPU->getCellsNeighbours()[iLayer].reserve(cellsNeighbours.size());
+  //   for (auto& cellNeighboursIndex : cellsNeighbours) {
+  //     mTimeFrameGPU->getCellsNeighbours()[iLayer].push_back(cellNeighboursIndex.first);
+  //   }
+  //   std::inclusive_scan(mTimeFrameGPU->getCellsNeighboursLUT()[iLayer].begin(), mTimeFrameGPU->getCellsNeighboursLUT()[iLayer].end(), mTimeFrameGPU->getCellsNeighboursLUT()[iLayer].begin());
+  // }
 };
 
 template <int nLayers>
@@ -366,7 +404,8 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       startLevel,                                       // const int startLevel,
       mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
       mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
-      mTimeFrameGPU->getDevicePropagator());            // const o2::base::Propagator* propagator
+      mTimeFrameGPU->getDevicePropagator(),             // const o2::base::Propagator* propagator
+      mCorrType);                                       // o2::base::PropagatorImpl<float>::MatCorrType
 
     mTimeFrameGPU->downloadTrackITSExtDevice(trackSeeds);
 

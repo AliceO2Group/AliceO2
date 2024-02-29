@@ -46,9 +46,9 @@ GPUg() void fitTrackSeedsKernel(
   const int startLevel,
   float maxChi2ClusterAttachment,
   float maxChi2NDF,
-  const o2::base::Propagator* propagator);
+  const o2::base::Propagator* propagator,
+  const o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorF::MatCorrType::USEMatCorrLUT);
 #endif
-
 } // namespace gpu
 
 void trackSeedHandler(CellSeed* trackSeeds,
@@ -59,7 +59,8 @@ void trackSeedHandler(CellSeed* trackSeeds,
                       const int startLevel,
                       float maxChi2ClusterAttachment,
                       float maxChi2NDF,
-                      const o2::base::Propagator* propagator);
+                      const o2::base::Propagator* propagator,
+                      const o2::base::PropagatorF::MatCorrType matCorrType);
 } // namespace its
 } // namespace o2
 #endif // ITSTRACKINGGPU_TRACKINGKERNELS_H_
