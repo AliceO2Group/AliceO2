@@ -102,7 +102,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
 
   // 5mm below cathode plane to reduce error propogation from tracklet fit and driftV
   float x = mGeo->cdrHght() - 0.5;
-  float y = tracklet.getUncalibratedY();
+  float y = tracklet.getUncalibratedY(mApplyShift);
   float z = calculateZ(padrow, padPlane);
 
   float dy = calculateDy(detector, slope, padPlane);

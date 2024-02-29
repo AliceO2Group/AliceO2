@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "TRDCalibration/PulseHeight.h"
 #include "DataFormatsTRD/PHData.h"
+#include <cstring>
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -41,6 +42,10 @@ class PuseHeightDevice : public o2::framework::Task
     mPulseHeight = std::make_unique<PulseHeight>();
     if (ic.options().get<bool>("enable-root-output")) {
       mPulseHeight->createOutputFile();
+    }
+    if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+      // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
+      mPulseHeight->setApplyShift(false);
     }
   }
 
