@@ -114,6 +114,9 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
 {
   using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
+  mITSTimeFrame->setDevicePropagator(mGPUReco->GetDeviceO2Propagator());
+  LOGP(info, "GPUChainITS is giving me device propagator: {}", (void*)mGPUReco->GetDeviceO2Propagator());
+
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;

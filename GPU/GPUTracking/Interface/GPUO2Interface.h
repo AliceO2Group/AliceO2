@@ -32,6 +32,12 @@
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
 
+namespace o2::base
+{
+template <typename value_T>
+class PropagatorImpl;
+using Propagator = PropagatorImpl<float>;
+} // namespace o2::base
 namespace o2::tpc
 {
 struct ClusterNativeAccess;
@@ -77,6 +83,7 @@ class GPUO2Interface
   void DumpSettings();
 
   void GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame);
+  const o2::base::Propagator* GetDeviceO2Propagator(int iThread = 0) const;
 
   // Updates all calibration objects that are != nullptr in newCalib
   int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread = 0);

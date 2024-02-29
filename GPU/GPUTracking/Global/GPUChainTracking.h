@@ -182,6 +182,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
   const o2::base::Propagator* GetO2Propagator() const { return processors()->calibObjects.o2Propagator; }
+  const o2::base::Propagator* GetDeviceO2Propagator();
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
