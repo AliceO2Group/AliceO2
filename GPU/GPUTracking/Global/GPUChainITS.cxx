@@ -90,8 +90,7 @@ o2::its::TimeFrame* GPUChainITS::GetITSTimeframe()
     mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);
     mFrameworkAllocator->setReconstructionFramework(rec());
     mITSTimeFrame->setExternalAllocator(mFrameworkAllocator.get());
-    LOGP(info, "GPUChainITS is giving me ps: {} prop: {} allocator: {}", (void*)processorsShadow(), (void*)processorsShadow()->calibObjects.o2Propagator, (void*)mFrameworkAllocator.get());
-    mITSTimeFrame->setDevicePropagator(processorsShadow()->calibObjects.o2Propagator);
+    LOGP(info, "GPUChainITS is giving me allocator: {}", (void*)mFrameworkAllocator.get());
   }
 #endif
   return mITSTimeFrame.get();

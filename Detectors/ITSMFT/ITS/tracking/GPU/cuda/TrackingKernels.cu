@@ -36,6 +36,8 @@
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 
+#include "ReconstructionDataFormats/Track.h"
+
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
 // #include "GPUReconstructionCUDADef.h"
@@ -68,9 +70,12 @@
 // #include "MatLayerCyl.cxx"
 
 // O2 track model
+#ifdef __HIPCC__
 #include "TrackParametrization.cxx"
 #include "TrackParametrizationWithError.cxx"
+#endif
 // #include "Propagator.cxx"
+using namespace o2::track;
 
 namespace o2
 {

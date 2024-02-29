@@ -1010,3 +1010,8 @@ void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, co
   }
   mUpdateNewCalibObjects = true;
 }
+
+const o2::base::Propagator* GPUChainTracking::GetDeviceO2Propagator()
+{
+  return (mRec->IsGPU() ? processorsShadow() : processors())->calibObjects.o2Propagator;
+}

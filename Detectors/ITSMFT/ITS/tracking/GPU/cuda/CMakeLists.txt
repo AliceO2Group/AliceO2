@@ -50,6 +50,7 @@ o2_add_library(ITStrackingCUDA
                                      O2::SimulationDataFormat
                                      O2::ReconstructionDataFormats
                                      CUDA::nvToolsExt # TODO: change to CUDA::nvtx3 when CMake bump >= 3.25
+               PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider
                TARGETVARNAME targetName)
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

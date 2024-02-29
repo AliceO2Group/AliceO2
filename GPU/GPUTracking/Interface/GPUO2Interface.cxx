@@ -271,3 +271,8 @@ void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::it
   vertexerTraits = mChainITS->GetITSVertexerTraits();
   timeFrame = mChainITS->GetITSTimeframe();
 }
+
+const o2::base::Propagator* GPUO2Interface::GetDeviceO2Propagator(int iThread) const
+{
+  return mCtx[iThread].mChain->GetDeviceO2Propagator();
+}
