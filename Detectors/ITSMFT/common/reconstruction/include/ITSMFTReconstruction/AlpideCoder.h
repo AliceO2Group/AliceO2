@@ -181,7 +181,17 @@ class AlpideCoder
       uint8_t dataCM = dataC & (~MaskChipID);
       //
       if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
-        chipData.setChipID(cidGetter(dataC & MaskChipID));        // here we set the global chip ID
+        uint16_t chipIDGlo = cidGetter(dataC & MaskChipID);
+        if (chipIDGlo == 0xffff) {
+          chipData.setChipID(chipIDGlo);
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setErrorInfo(dataC & MaskChipID);
+          chipData.setError(ChipStat::WrongAlpideChipID);
+#endif
+          chipData.getData().clear();
+          return unexpectedEOF("CHIP_EMPTY:WrongChipID"); // abandon cable data
+        }
+        chipData.setChipID(chipIDGlo); // here we set the global chip ID
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipEmpty);
@@ -194,7 +204,17 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
+        uint16_t chipIDGlo = cidGetter(dataC & MaskChipID);
+        if (chipIDGlo == 0xffff) {
+          chipData.setChipID(chipIDGlo);
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setErrorInfo(dataC & MaskChipID);
+          chipData.setError(ChipStat::WrongAlpideChipID);
+#endif
+          chipData.getData().clear();
+          return unexpectedEOF("CHIP_EMPTY:WrongChipID"); // abandon cable data
+        }
+        chipData.setChipID(chipIDGlo); // here we set the global chip ID
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipHeader);
