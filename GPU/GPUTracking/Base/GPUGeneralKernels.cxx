@@ -13,6 +13,7 @@
 /// \author David Rohr
 
 #include "GPUGeneralKernels.h"
+#include "GPUConstantMem.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>

@@ -19,7 +19,6 @@
 #include "GPUCommonAlgorithm.h"
 #include "Array2D.h"
 #include "CfConsts.h"
-#include "GPUTPCClusterFinderKernels.h"
 
 namespace GPUCA_NAMESPACE::gpu
 {

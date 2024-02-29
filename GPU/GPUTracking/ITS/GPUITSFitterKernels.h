@@ -27,7 +27,7 @@ class GPUTPCGMPropagator;
 class GPUITSFitter;
 class GPUITSTrack;
 
-class GPUITSFitterKernel : public GPUKernelTemplate
+class GPUITSFitterKernels : public GPUKernelTemplate
 {
  public:
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::ITSTracking; }

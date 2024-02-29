@@ -15,12 +15,15 @@
 #define GPUCA_GPUCODE_COMPILEKERNELS
 #include "GPUReconstructionCUDAIncludes.h"
 #include "GPUReconstructionCUDADef.h"
-#include "GPUReconstructionIncludesDevice.h"
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward);
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward);
 #include "GPUReconstructionKernelMacros.h"
+
+// clang-format off
+@O2_GPU_KERNEL_TEMPLATE_FILES@
+// clang-format on
 
 extern "C" {
 // clang-format off

@@ -86,7 +86,7 @@ class GPUDebugTiming
   bool mDo;
 };
 
-#include "GPUReconstructionIncludesDevice.h"
+#include "GPUReconstructionIncludesDeviceAll.h"
 
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))

@@ -216,7 +216,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/CfUtils.h
                      TPCClusterFinder/ChargePos.h
                      Definitions/clusterFinderDefs.h
-                     TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h
                      TPCClusterFinder/GPUTPCCFChainContext.h)
 endif()
@@ -250,6 +249,10 @@ file(GENERATE
 file(GENERATE
      OUTPUT include_gpu_onthefly/GPUReconstructionKernelIncludes.h
      INPUT Base/GPUReconstructionKernelIncludes.template.h
+)
+file(GENERATE
+     OUTPUT include_gpu_onthefly/GPUReconstructionIncludesDeviceAll.h
+     INPUT Base/GPUReconstructionIncludesDeviceAll.template.h
 )
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "O2")
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
