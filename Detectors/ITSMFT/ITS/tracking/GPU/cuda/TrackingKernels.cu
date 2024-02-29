@@ -41,6 +41,7 @@
 
 // O2 track model
 #include "ReconstructionDataFormats/Track.h"
+#include "DetectorsBase/Propagator.h"
 using namespace o2::track;
 
 namespace o2
@@ -77,14 +78,19 @@ GPUd() bool fitTrack(TrackITSExt& track,
         return false;
       }
     } else {
-      // FIXME
-      // if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
-      //                         prop->getNominalBz(),
-      //                         o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-      //                         o2::base::PropagatorImpl<float>::MAX_STEP,
-      //                         matCorrType)) {
-      //   return false;
-      // }
+#ifdef __HIPCC__
+      if (!track.propagateTo(trackingHit.xTrackingFrame, Bz)) {
+        return false;
+      }
+#else
+      if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
+                              prop->getNominalBz(),
+                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                              o2::base::PropagatorImpl<float>::MAX_STEP,
+                              matCorrType)) {
+        return false;
+      }
+#endif
     }
     track.setChi2(track.getChi2() + track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
     if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
@@ -121,7 +127,8 @@ GPUg() void fitTrackSeedsKernel(
   const int startLevel,
   float maxChi2ClusterAttachment,
   float maxChi2NDF,
-  const o2::base::Propagator* propagator)
+  const o2::base::Propagator* propagator,
+  const o2::base::PropagatorF::MatCorrType matCorrType)
 {
   for (int iCurrentTrackSeedIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackSeedIndex < nSeeds; iCurrentTrackSeedIndex += blockDim.x * gridDim.x) {
     auto& seed = trackSeeds[iCurrentTrackSeedIndex];
@@ -135,18 +142,18 @@ GPUg() void fitTrackSeedsKernel(
     for (int iL{0}; iL < 7; ++iL) {
       temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::its::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(temporaryTrack,                                                // TrackITSExt& track,
-                               0,                                                             // int lastLayer,
-                               nLayers,                                                       // int firstLayer,
-                               1,                                                             // int firstCluster,
-                               maxChi2ClusterAttachment,                                      // float maxChi2ClusterAttachment,
-                               maxChi2NDF,                                                    // float maxChi2NDF,
-                               o2::constants::math::VeryBig,                                  // float maxQoverPt,
-                               0,                                                             // nCl,
-                               Bz,                                                            // float Bz,
-                               foundTrackingFrameInfo,                                        // TrackingFrameInfo** trackingFrameInfo,
-                               propagator,                                                    // const o2::base::Propagator* propagator,
-                               o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE); // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
+    bool fitSuccess = fitTrack(temporaryTrack,               // TrackITSExt& track,
+                               0,                            // int lastLayer,
+                               nLayers,                      // int firstLayer,
+                               1,                            // int firstCluster,
+                               maxChi2ClusterAttachment,     // float maxChi2ClusterAttachment,
+                               maxChi2NDF,                   // float maxChi2NDF,
+                               o2::constants::math::VeryBig, // float maxQoverPt,
+                               0,                            // nCl,
+                               Bz,                           // float Bz,
+                               foundTrackingFrameInfo,       // TrackingFrameInfo** trackingFrameInfo,
+                               propagator,                   // const o2::base::Propagator* propagator,
+                               matCorrType);                 // o2::base::PropagatorF::MatCorrType matCorrType
     if (!fitSuccess) {
       continue;
     }
@@ -154,22 +161,74 @@ GPUg() void fitTrackSeedsKernel(
     temporaryTrack.resetCovariance();
     temporaryTrack.setChi2(0);
 
-    fitSuccess = fitTrack(temporaryTrack,                                                // TrackITSExt& track,
-                          nLayers - 1,                                                   // int lastLayer,
-                          -1,                                                            // int firstLayer,
-                          -1,                                                            // int firstCluster,
-                          maxChi2ClusterAttachment,                                      // float maxChi2ClusterAttachment,
-                          maxChi2NDF,                                                    // float maxChi2NDF,
-                          50.f,                                                          // float maxQoverPt,
-                          0,                                                             // nCl,
-                          Bz,                                                            // float Bz,
-                          foundTrackingFrameInfo,                                        // TrackingFrameInfo** trackingFrameInfo,
-                          propagator,                                                    // const o2::base::Propagator* propagator,
-                          o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE); // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
+    fitSuccess = fitTrack(temporaryTrack,           // TrackITSExt& track,
+                          nLayers - 1,              // int lastLayer,
+                          -1,                       // int firstLayer,
+                          -1,                       // int firstCluster,
+                          maxChi2ClusterAttachment, // float maxChi2ClusterAttachment,
+                          maxChi2NDF,               // float maxChi2NDF,
+                          50.f,                     // float maxQoverPt,
+                          0,                        // nCl,
+                          Bz,                       // float Bz,
+                          foundTrackingFrameInfo,   // TrackingFrameInfo** trackingFrameInfo,
+                          propagator,               // const o2::base::Propagator* propagator,
+                          matCorrType);             // o2::base::PropagatorF::MatCorrType matCorrType
     if (!fitSuccess) {
       continue;
     }
     tracks[iCurrentTrackSeedIndex] = temporaryTrack;
+  }
+}
+
+template <bool initRun, int nLayers = 7> // Version for new tracker to supersede the old one
+GPUg() void computeLayerCellNeighboursKernel(
+  CellSeed* cellsCurrentLayer,
+  CellSeed* cellsNextLayer,
+  int* neighboursLUT,
+  const int* cellsNextLayerLUT,
+  gpuPair<int, int>* cellNeighbours,
+  const float maxChi2ClusterAttachment,
+  const float bz,
+  const int layerIndex,
+  const int* nCells,
+  const int maxCellNeighbours = 1e2)
+{
+  for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
+    const auto& currentCellSeed{cellsCurrentLayer[iCurrentCellIndex]};
+    const int nextLayerTrackletIndex{currentCellSeed.getSecondTrackletIndex()};
+    const int nextLayerFirstCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex]};
+    const int nextLayerLastCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex + 1]};
+    int foundNeighbours{0};
+    for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
+      CellSeed nextCellSeed{cellsNextLayer[iNextCell]};                     // Copy
+      if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
+        break;
+      }
+      if (!nextCellSeed.rotate(currentCellSeed.getAlpha()) ||
+          !nextCellSeed.propagateTo(currentCellSeed.getX(), bz)) {
+        continue;
+      }
+      float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed);
+      if (chi2 > maxChi2ClusterAttachment) /// TODO: switch to the chi2 wrt cluster to avoid correlation
+      {
+        continue;
+      }
+      if constexpr (initRun) {
+        atomicAdd(neighboursLUT + iNextCell, 1);
+      } else {
+        if (foundNeighbours >= maxCellNeighbours) {
+          printf("its-gpu-neighbours-finder: data loss on layer: %d: number of neightbours exceeded the threshold!\n");
+          continue;
+        }
+        cellNeighbours[neighboursLUT[iNextCell] + foundNeighbours++] = {iCurrentCellIndex, iNextCell};
+
+        // FIXME: this is prone to race conditions: check on level is not atomic
+        const int currentCellLevel{currentCellSeed.getLevel()};
+        if (currentCellLevel >= nextCellSeed.getLevel()) {
+          atomicExch(cellsNextLayer[iNextCell].getLevelPtr(), currentCellLevel + 1); // Update level on corresponding cell
+        }
+      }
+    }
   }
 }
 
@@ -572,45 +631,6 @@ GPUg() void computeLayerCellsKernel(
   }
 }
 
-template <bool initRun, int nLayers = 7>
-GPUg() void computeLayerCellNeighboursKernel(CellSeed* cellsCurrentLayer,
-                                             CellSeed* cellsNextLayer,
-                                             const int layerIndex,
-                                             const int* cellsNextLayerLUT,
-                                             int* neighboursLUT,
-                                             int* cellNeighbours,
-                                             const int* nCells,
-                                             const int maxCellNeighbours = 1e2)
-{
-  for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
-    const CellSeed& currentCell = cellsCurrentLayer[iCurrentCellIndex];
-    const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
-    const int nextLayerFirstCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex]};
-    const int nextLayerLastCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex + 1]};
-    int foundNeighbours{0};
-    for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
-      CellSeed& nextCell = cellsNextLayer[iNextCell];
-      if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
-        break;
-      }
-      if constexpr (initRun) {
-        atomicAdd(neighboursLUT + iNextCell, 1);
-      } else {
-        if (foundNeighbours >= maxCellNeighbours) {
-          printf("its-gpu-neighbours-finder: on layer: %d: found more neighbours (%d) than maximum allowed per cell, skipping writing. This is lossy!\n", layerIndex, neighboursLUT[iNextCell]);
-          continue;
-        }
-        cellNeighbours[neighboursLUT[iNextCell] + foundNeighbours++] = iCurrentCellIndex;
-
-        const int currentCellLevel{currentCell.getLevel()};
-        if (currentCellLevel >= nextCell.getLevel()) {
-          atomicExch(nextCell.getLevelPtr(), currentCellLevel + 1);
-        }
-      }
-    }
-  }
-}
-
 template <bool dryRun, int nLayers = 7>
 GPUg() void computeLayerRoadsKernel(
   const int level,
@@ -661,6 +681,31 @@ GPUg() void computeLayerRoadsKernel(
 }
 } // namespace gpu
 
+template <bool isInit>
+void cellNeighboursHandler(CellSeed* cellsCurrentLayer,
+                           CellSeed* cellsNextLayer,
+                           int* neighboursLUT,
+                           const int* cellsNextLayerLUT,
+                           gpuPair<int, int>* cellNeighbours,
+                           const float maxChi2ClusterAttachment,
+                           const float bz,
+                           const int layerIndex,
+                           const int* nCells,
+                           const int maxCellNeighbours = 1e2)
+{
+  gpu::computeLayerCellNeighboursKernel<isInit><<<20, 512>>>(
+    cellsCurrentLayer,        // CellSeed* cellsCurrentLayer,
+    cellsNextLayer,           // CellSeed* cellsNextLayer,
+    neighboursLUT,            // int* neighboursLUT,
+    cellsNextLayerLUT,        // const int* cellsNextLayerLUT,
+    cellNeighbours,           // gpuPair<int, int>* cellNeighbours,
+    maxChi2ClusterAttachment, // const float maxChi2ClusterAttachment,
+    bz,                       // const float bz,
+    layerIndex,               // const int layerIndex,
+    nCells,                   // const int* nCells,
+    maxCellNeighbours);       // const int maxCellNeighbours = 1e2
+}
+
 void trackSeedHandler(CellSeed* trackSeeds,
                       TrackingFrameInfo** foundTrackingFrameInfo,
                       o2::its::TrackITSExt* tracks,
@@ -669,9 +714,10 @@ void trackSeedHandler(CellSeed* trackSeeds,
                       const int startLevel,
                       float maxChi2ClusterAttachment,
                       float maxChi2NDF,
-                      const o2::base::Propagator* propagator)
+                      const o2::base::Propagator* propagator,
+                      const o2::base::PropagatorF::MatCorrType matCorrType)
 {
-  gpu::fitTrackSeedsKernel<<<20, 512>>>(
+  gpu::fitTrackSeedsKernel<<<1, 1>>>(
     trackSeeds,               // CellSeed* trackSeeds,
     foundTrackingFrameInfo,   // TrackingFrameInfo** foundTrackingFrameInfo,
     tracks,                   // o2::its::TrackITSExt* tracks,
@@ -680,7 +726,8 @@ void trackSeedHandler(CellSeed* trackSeeds,
     startLevel,               // const int startLevel,
     maxChi2ClusterAttachment, // float maxChi2ClusterAttachment,
     maxChi2NDF,               // float maxChi2NDF,
-    propagator);              // const o2::base::Propagator* propagator
+    propagator,               // const o2::base::Propagator* propagator
+    matCorrType);             // o2::base::PropagatorF::MatCorrType matCorrType
 }
 } // namespace its
 } // namespace o2

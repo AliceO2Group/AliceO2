@@ -270,6 +270,7 @@ class TimeFrame
   std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<Road<5>> mRoads;
   std::vector<std::vector<TrackITSExt>> mTracks;
+  std::vector<std::vector<int>> mCellsNeighbours;
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
  protected:
@@ -295,7 +296,6 @@ class TimeFrame
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
   std::vector<std::vector<int>> mCellsLookupTable;
-  std::vector<std::vector<int>> mCellsNeighbours;
   std::vector<std::vector<int>> mCellsNeighboursLUT;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates

@@ -564,6 +564,17 @@ void TimeFrameGPU<nLayers>::loadTrackSeedsDevice(std::vector<CellSeed>& seeds)
 }
 
 template <int nLayers>
+void TimeFrameGPU<nLayers>::createCellNeighboursDevice(const unsigned int& layer, std::vector<std::pair<int, int>>& neighbours)
+{
+  mCellsNeighbours[layer].clear();
+  mCellsNeighbours[layer].resize(neighbours.size());
+  LOGP(info, "gpu-allocation: reserving {} neighbours, for {} MB.", neighbours.size(), neighbours.size() * sizeof(gpuPair<int, int>) / MB);
+  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDevice[layer]), neighbours.size() * sizeof(gpuPair<int, int>), &(mGpuStreams[0]), getExtAllocator());
+  checkGPUError(cudaMemsetAsync(mNeighboursDevice[layer], 0, neighbours.size() * sizeof(gpuPair<int, int>), mGpuStreams[0].get()));
+  checkGPUError(cudaHostRegister(neighbours.data(), neighbours.size() * sizeof(std::pair<int, int>), cudaHostRegisterPortable));
+}
+
+template <int nLayers>
 void TimeFrameGPU<nLayers>::createTrackITSExtDevice(const unsigned int& nSeeds)
 {
   mTrackITSExt.clear();
