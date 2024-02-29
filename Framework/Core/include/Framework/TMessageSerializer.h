@@ -115,6 +115,7 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(FairInputTBuffer& buff
   // FIXME: we need to add consistency check for buffer data to be serialized
   // at the moment, TMessage might simply crash if an invalid or inconsistent
   // buffer is provided
+  buffer.SetBufferOffset(0);
   buffer.InitMap();
   TClass* serializedClass = buffer.ReadClass();
   buffer.SetBufferOffset(0);
