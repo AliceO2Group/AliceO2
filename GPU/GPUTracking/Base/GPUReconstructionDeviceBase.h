@@ -36,7 +36,10 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
 
   const GPUParam* DeviceParam() const { return &mDeviceConstantMem->param; }
   struct deviceConstantMemRegistration {
-    deviceConstantMemRegistration(void* (*)());
+    deviceConstantMemRegistration(void* (*reg)())
+    {
+      GPUReconstructionDeviceBase::getDeviceConstantMemRegistratorsVector().emplace_back(reg);
+    }
   };
 
  protected:
@@ -83,7 +86,11 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   DebugEvents* mDebugEvents = nullptr;
 
   std::vector<void*> mDeviceConstantMemList;
-  static std::vector<void* (*)()> mDeviceConstantMemRegistrators;
+  static std::vector<void* (*)()>& getDeviceConstantMemRegistratorsVector()
+  {
+    static std::vector<void* (*)()> deviceConstantMemRegistrators{};
+    return deviceConstantMemRegistrators;
+  }
   void runConstantRegistrators();
 };
 
