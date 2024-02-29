@@ -15,6 +15,8 @@
 #include "ClusterAccumulator.h"
 #include "GPUTPCGeometry.h"
 #include "CfUtils.h"
+#include "GPUParam.h"
+#include "DataFormatsTPC/ClusterNative.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;

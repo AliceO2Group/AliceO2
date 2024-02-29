@@ -80,8 +80,27 @@
 #define GPUCA_OPENCL1
 #endif
 
-#include "GPUReconstructionIncludesDevice.h"
 #include "GPUConstantMem.h"
+#ifdef __OPENCLCPP__
+#include "GPUReconstructionIncludesDeviceAll.h"
+#else // Workaround, since OpenCL1 cannot digest all files
+#include "GPUTPCTrackParam.cxx"
+#include "GPUTPCTrack.cxx"
+#include "GPUTPCGrid.cxx"
+#include "GPUTPCRow.cxx"
+#include "GPUTPCTracker.cxx"
+
+#include "GPUGeneralKernels.cxx"
+#include "GPUErrors.cxx"
+
+#include "GPUTPCTrackletSelector.cxx"
+#include "GPUTPCNeighboursFinder.cxx"
+#include "GPUTPCNeighboursCleaner.cxx"
+#include "GPUTPCStartHitsFinder.cxx"
+#include "GPUTPCStartHitsSorter.cxx"
+#include "GPUTPCTrackletConstructor.cxx"
+#include "GPUTPCGlobalTracking.cxx"
+#endif
 
 // if (gpu_mem != pTracker.GPUParametersConst()->gpumem) return; //TODO!
 
