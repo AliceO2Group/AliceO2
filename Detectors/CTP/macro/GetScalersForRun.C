@@ -132,10 +132,10 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   } else {
     std::cout << "ZNC class not available, rate from input:" << std::endl;
   }
-  auto zncinprate = ctpscalers->getRateGivenT((timeStamp+100) * 1.e-3, 25, 7);
-  std::cout << "ZNC inp rate:" << zncinprate.first/28. << " " << zncinprate.second/28. << std::endl;
+  auto zncinprate = ctpscalers->getRateGivenT((timeStamp + 100) * 1.e-3, 25, 7);
+  std::cout << "ZNC inp rate:" << zncinprate.first / 28. << " " << zncinprate.second / 28. << std::endl;
 
-  //o2::ctpRateFetcher ctprate;
-  //auto fetcherRate = ctprate.fetch(&ccdbMgr, timeStamp, runNumber, "ZNC");
-  //std::cout << "Result from the fetcher (ZNC): " << fetcherRate << std::endl;
+  // o2::ctpRateFetcher ctprate;
+  // auto fetcherRate = ctprate.fetch(&ccdbMgr, timeStamp, runNumber, "ZNC");
+  // std::cout << "Result from the fetcher (ZNC): " << fetcherRate << std::endl;
 }

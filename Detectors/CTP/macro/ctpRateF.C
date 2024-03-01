@@ -17,8 +17,7 @@
 #include "DataFormatsCTP/Scalers.h"
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CCDB/BasicCCDBManager.h"
-struct ctpRateFetcher
-{
+struct ctpRateFetcher {
   ctpRateFetcher() = default;
   double fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
   void getCTPconfig(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber);
@@ -143,6 +142,6 @@ void ctpRateF(int runNumber = 0)
   uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
   std::cout << "Timestamp:" << timeStamp << std::endl;
   ctpRateFetcher ctprate;
-  auto rate = ctprate.fetch(&ccdbMgr, timeStamp+100, runNumber, "ZNChadronic");
+  auto rate = ctprate.fetch(&ccdbMgr, timeStamp + 100, runNumber, "ZNChadronic");
   std::cout << "Rate:" << rate << std::endl;
 }
