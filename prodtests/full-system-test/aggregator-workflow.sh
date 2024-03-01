@@ -74,6 +74,8 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
   echo "CALIB_ZDC_TDC = $CALIB_ZDC_TDC" 1>&2
   echo "CALIB_FT0_TIMEOFFSET = $CALIB_FT0_TIMEOFFSET" 1>&2
+  echo "CALIB_ITS_DEADMAP_TIME = $CALIB_ITS_DEADMAP_TIME" 1>&2
+  echo "CALIB_MFT_DEADMAP_TIME = $CALIB_MFT_DEADMAP_TIME" 1>&2
 fi
 
 # beamtype dependent settings
@@ -189,13 +191,20 @@ fi
 
 # calibrations for AGGREGATOR_TASKS == BARREL_TF
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
-  # PrimVertex
+  # PrimaryVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     : ${TFPERSLOTS_MEANVTX:=55000}
     : ${DELAYINTFS_MEANVTX:=10}
     add_W o2-calibration-mean-vertex-calibration-workflow "" "MeanVertexCalib.tfPerSlot=$TFPERSLOTS_MEANVTX;MeanVertexCalib.maxTFdelay=$DELAYINTFS_MEANVTX"
   fi
-
+  # ITS
+  if [[ $CALIB_ITS_DEADMAP_TIME == 1 ]]; then
+     add_W o2-itsmft-deadmap-builder-workflow "${CALIB_ITS_DEADMAP_TIME_OPT:-}"
+  fi
+  # MFT
+  if [[ $CALIB_MFT_DEADMAP_TIME == 1 ]]; then
+     add_W o2-itsmft-deadmap-builder-workflow  "--runmft ${CALIB_MFT_DEADMAP_TIME_OPT:---skip-static-map}"
+  fi
   # TOF
   if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
     if [[ $CALIB_TOF_LHCPHASE == 1 ]]; then
