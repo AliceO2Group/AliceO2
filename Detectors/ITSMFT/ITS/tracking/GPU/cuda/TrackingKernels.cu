@@ -30,52 +30,22 @@
 #include "ITStracking/MathUtils.h"
 #include "DataFormatsITS/TrackITS.h"
 
-#define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
-#define GPUCA_O2_INTERFACE    // To suppress errors related to the weird dependency between itsgputracking and GPUTracking
-
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 
-#include "ReconstructionDataFormats/Track.h"
-
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
-// #include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
-// clang-format off
-// #ifndef GPUCA_NO_CONSTANT_MEMORY
-//   #ifdef GPUCA_CONSTANT_AS_ARGUMENT
-//     #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
-//     #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
-//     #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
-//   #else
-//     #define GPUCA_CONSMEM_PTR
-//     #define GPUCA_CONSMEM_CALL
-//     #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-//   #endif
-// #else
-//   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-//   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-//   #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
-// #endif
-// #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
-// clang-format on
 #endif
-// #include "GPUConstantMem.h"
-
-// Files for propagation with material
-// #include "Ray.cxx"
-// #include "MatLayerCylSet.cxx"
-// #include "MatLayerCyl.cxx"
 
 // O2 track model
+#include "ReconstructionDataFormats/Track.h"
+using namespace o2::track;
 #ifdef __HIPCC__
 #include "TrackParametrization.cxx"
 #include "TrackParametrizationWithError.cxx"
 #endif
-// #include "Propagator.cxx"
-using namespace o2::track;
 
 namespace o2
 {
