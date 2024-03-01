@@ -1464,10 +1464,14 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* bu
 
 #ifdef GPUCA_O2_LIB
 template <class T>
-static inline auto GetDecoder_internal(const GPUParam& param, int version)
+static inline auto GetDecoder_internal(const GPUParam* param, int version)
 {
   std::shared_ptr<T> enc = std::make_shared<T>();
-  enc->param = &param;
+  if (param == nullptr) {
+    static GPUParam dummyParam;
+    param = &dummyParam;
+  }
+  enc->param = param;
   enc->zsVersion = version;
   enc->init();
   return [enc](std::vector<o2::tpc::Digit>& outBuffer, const void* page, unsigned int firstTfOrbit, unsigned int triggerBC = 0) {
@@ -1485,33 +1489,16 @@ static inline auto GetDecoder_internal(const GPUParam& param, int version)
   };
 }
 
-std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)> GPUReconstructionConvert::GetDecoder(int version, const GPUParam& param)
+std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)> GPUReconstructionConvert::GetDecoder(int version, const GPUParam* param)
 {
-  if (version >= ZSVersion::ZSVersionRowBased10BitADC && version <= ZSVersion::ZSVersionRowBased12BitADC) {
+  if (version >= o2::tpc::ZSVersion::ZSVersionRowBased10BitADC && version <= o2::tpc::ZSVersion::ZSVersionRowBased12BitADC) {
     return GetDecoder_internal<zsEncoderRow>(param, version);
-  } else if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
+  } else if (version == o2::tpc::ZSVersion::ZSVersionLinkBasedWithMeta) {
     return GetDecoder_internal<zsEncoderImprovedLinkBased>(param, version);
-  } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
+  } else if (version >= o2::tpc::ZSVersion::ZSVersionDenseLinkBased && version <= o2::tpc::ZSVersion::ZSVersionDenseLinkBasedV2) {
     return GetDecoder_internal<zsEncoderDenseLinkBased>(param, version);
   } else {
     throw std::runtime_error("Invalid ZS version "s + std::to_string(version) + ", cannot create decoder"s);
   }
-}
-
-void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam& param, unsigned int triggerBC)
-{
-  const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
-  if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
-    return;
-  }
-  TPCZSHDR* const hdr = (TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? ((const char*)page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : ((const char*)page + sizeof(o2::header::RAWDataHeader)));
-
-  if (mDecoders.size() < hdr->version + 1) {
-    mDecoders.resize(hdr->version + 1);
-  }
-  if (mDecoders[hdr->version] == nullptr) {
-    mDecoders[hdr->version] = GPUReconstructionConvert::GetDecoder(hdr->version, param);
-  }
-  mDecoders[hdr->version](outputBuffer, page, tfFirstOrbit, triggerBC);
 }
 #endif

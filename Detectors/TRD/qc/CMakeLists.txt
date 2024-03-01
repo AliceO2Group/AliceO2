@@ -21,8 +21,7 @@ o2_add_library(TRDQC
                                      O2::DataFormatsTRD
                                      O2::DataFormatsGlobalTracking
                                      O2::DetectorsBase
-                                     O2::MathUtils
-                                     O2::GPUTracking)
+                                     O2::MathUtils)
 
  o2_target_root_dictionary(TRDQC
                            HEADERS include/TRDQC/Tracking.h

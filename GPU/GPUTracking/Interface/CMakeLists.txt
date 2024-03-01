@@ -11,7 +11,7 @@
 
 set(MODULE GPUO2Interface)
 
-set(SRCS GPUO2Interface.cxx GPUO2InterfaceRefit.cxx GPUO2InterfaceQA.cxx GPUO2InterfaceConfiguration.cxx)
+set(SRCS GPUO2Interface.cxx GPUO2InterfaceUtils.cxx GPUO2InterfaceRefit.cxx GPUO2InterfaceQA.cxx GPUO2InterfaceConfiguration.cxx)
 
 if(OPENGL_FOUND
    AND GLFW_FOUND

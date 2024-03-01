@@ -17,9 +17,7 @@
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
-#include "GPUO2Interface.h"
-#include "GPUParam.h"
-#include "GPUReconstructionConvert.h"
+#include "GPUO2InterfaceUtils.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
@@ -290,9 +288,8 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<o2::tpc::
 
     if ((decoderType == 1) && (linkID == rdh_utils::ILBZSLinkID || linkID == rdh_utils::DLBZSLinkID) && (detField == raw_data_types::Type::ZS)) {
       std::vector<Digit> digits;
-      static o2::gpu::GPUParam gpuParam;
-      static o2::gpu::GPUReconstructionZSDecoder gpuDecoder;
-      gpuDecoder.DecodePage(digits, (const void*)it.raw(), firstOrbit, gpuParam, static_cast<unsigned int>((triggerBC > 0) ? triggerBC : 0));
+      static o2::gpu::GPUO2InterfaceUtils::GPUReconstructionZSDecoder gpuDecoder;
+      gpuDecoder.DecodePage(digits, (const void*)it.raw(), firstOrbit, nullptr, static_cast<unsigned int>((triggerBC > 0) ? triggerBC : 0));
       for (const auto& digit : digits) {
         reader->getManager()->getLinkZSCallback()(digit.getCRU(), digit.getRow(), digit.getPad(), digit.getTimeStamp(), digit.getChargeFloat());
       }
