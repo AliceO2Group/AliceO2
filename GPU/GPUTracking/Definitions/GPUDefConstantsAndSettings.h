@@ -27,7 +27,7 @@
 #endif
 
 #if (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_O2_LIB)) || (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_STANDALONE)) || (defined(GPUCA_O2_LIB) && defined(GPUCA_STANDALONE))
-  #error Invalid Compile Definitions, need to build for either AliRoot or O2 or Standalone
+  #error Invalid Compile Definitions, need to build for either AliRoot or O2 or Standalone!
 #endif
 
 #define GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(QPTB5) (CAMath::Abs(QPTB5) > 10 ? 10 : (CAMath::Abs(QPTB5) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
@@ -48,6 +48,9 @@
 
 #define TPC_MAX_TIME_BIN_TRIGGERED 600
 
+#if defined(GPUCA_NSLICES) || defined(GPUCA_ROW_COUNT)
+  #error GPUCA_NSLICES or GPUCA_ROW_COUNT already defined, do not include GPUTPCGeometry.h before!
+#endif
 #if defined(GPUCA_HAVE_O2HEADERS) && defined(GPUCA_TPC_GEOMETRY_O2) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
   //Use definitions from the O2 headers if available for nicer code and type safety
   #include "DataFormatsTPC/Constants.h"

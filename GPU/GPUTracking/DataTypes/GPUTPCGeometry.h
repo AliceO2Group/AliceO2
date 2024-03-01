@@ -17,6 +17,15 @@
 
 #include "GPUCommonDef.h"
 
+#if !defined(GPUCA_NSLICES) && !defined(GPUCA_ROW_COUNT) && defined(GPUCA_HAVE_O2HEADERS)
+#include "DataFormatsTPC/Constants.h"
+#define GPUCA_NSLICES o2::tpc::constants::MAXSECTOR
+#define GPUCA_ROW_COUNT o2::tpc::constants::MAXGLOBALPADROW
+#ifndef GPUCA_TPC_GEOMETRY_O2
+#define GPUCA_TPC_GEOMETRY_O2
+#endif
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu

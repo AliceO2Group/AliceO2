@@ -17,7 +17,6 @@ o2_add_library(TRDPID
                                       O2::DataFormatsGlobalTracking
                                       O2::DetectorsBase
                                       O2::MathUtils
-                                      O2::GPUTracking
                                       O2::Framework
                                       O2::ReconstructionDataFormats
                                       fmt::fmt

@@ -40,9 +40,9 @@ o2_add_library(DetectorsBase
                                      O2::SimulationDataFormat
                                      O2::SimConfig
                                      O2::CCDB
+                                     O2::GPUDataTypeHeaders
                                      MC::VMC
                                      TBB::tbb
-               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger # Must not link to avoid cyclic dependency
                              )
 
 o2_target_root_dictionary(DetectorsBase

@@ -47,6 +47,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
+#include "GPUO2InterfaceUtils.h"
 #include "CalibdEdxContainer.h"
 #include "GPUNewCalibValues.h"
 #include "TPCPadGainCalib.h"
@@ -206,7 +207,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   if (std::filesystem::exists(mConfParam->gainCalibFile)) {
     LOG(info) << "Loading tpc gain correction from file " << mConfParam->gainCalibFile;
     const auto* gainMap = o2::tpc::utils::readCalPads(mConfParam->gainCalibFile, "GainMap")[0];
-    mCalibObjects.mTPCPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
+    mCalibObjects.mTPCPadGainCalib = GPUO2InterfaceUtils::getPadGainCalib(*gainMap);
 
     LOGP(info, "Disabling loading the TPC gain correction map from the CCDB as it was already loaded from input file");
     mUpdateGainMapCCDB = false;
@@ -214,7 +215,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
     if (not mConfParam->gainCalibFile.empty()) {
       LOG(warn) << "Couldn't find tpc gain correction file " << mConfParam->gainCalibFile << ". Not applying any gain correction.";
     }
-    mCalibObjects.mTPCPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
+    mCalibObjects.mTPCPadGainCalib = GPUO2InterfaceUtils::getPadGainCalibDefault();
     mCalibObjects.mTPCPadGainCalib->getGainCorrection(30, 5, 5);
   }
   mConfig->configCalib.tpcPadGain = mCalibObjects.mTPCPadGainCalib.get();
@@ -246,7 +247,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     }
 
     if (mUpdateGainMapCCDB && mSpecConfig.caClusterer) {
-      mTPCPadGainCalibBufferNew = GPUO2Interface::getPadGainCalib(*gainMap);
+      mTPCPadGainCalibBufferNew = GPUO2InterfaceUtils::getPadGainCalib(*gainMap);
     }
 
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINRESIDUAL", 0)) {

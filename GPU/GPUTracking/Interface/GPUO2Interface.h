@@ -88,11 +88,6 @@ class GPUO2Interface
   // Updates all calibration objects that are != nullptr in newCalib
   int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread = 0);
 
-  static std::unique_ptr<TPCPadGainCalib> getPadGainCalibDefault();
-  static std::unique_ptr<TPCPadGainCalib> getPadGainCalib(const o2::tpc::CalDet<float>& in);
-
-  static std::unique_ptr<o2::tpc::CalibdEdxContainer> getCalibdEdxContainerDefault();
-
   int registerMemoryForGPU(const void* ptr, size_t size);
   int unregisterMemoryForGPU(const void* ptr);
   void setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v);

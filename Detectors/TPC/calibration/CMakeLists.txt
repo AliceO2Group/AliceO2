@@ -60,7 +60,7 @@ o2_add_library(TPCCalibration
                                      Microsoft.GSL::GSL
                                      O2::DetectorsCalibration
                                      O2::GPUO2Interface
-                                     O2::GPUTracking
+                                     O2::GPUDataTypes
                                      O2::TPCFastTransformation
                                      O2::DataFormatsCTP
                                      O2::CCDB
