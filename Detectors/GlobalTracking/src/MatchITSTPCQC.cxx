@@ -518,6 +518,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         if (i == matchType::TPC) {
           trkDen = mTPCTracks[trk.getRefTPC()];
         } else {
+          if (trk.getRefITS().getSource() != GID::ITS) {
+            continue;
+          }
           trkDen = mITSTracks[trk.getRefITS()];
           if (std::abs(trkDen.getEta()) > 0.9) {
             // ITS track outside |eta | < 0.9, we don't fill pt, nor phi , nor phi vs pt histos
