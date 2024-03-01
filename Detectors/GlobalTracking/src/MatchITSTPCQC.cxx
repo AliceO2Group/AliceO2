@@ -461,6 +461,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     for (int itrk = 0; itrk < static_cast<int>(mITSTPCTracks.size()); ++itrk) {
       auto const& trk = mITSTPCTracks[itrk];
       auto idxTrkTpc = trk.getRefTPC().getIndex();
+      if (trk.getRefITS().getSource() != GID::ITS) {
+        continue;
+      }
       if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
         if (!lbl.isValid()) {
@@ -518,9 +521,6 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
         if (i == matchType::TPC) {
           trkDen = mTPCTracks[trk.getRefTPC()];
         } else {
-          if (trk.getRefITS().getSource() != GID::ITS) {
-            continue;
-          }
           trkDen = mITSTracks[trk.getRefITS()];
           if (std::abs(trkDen.getEta()) > 0.9) {
             // ITS track outside |eta | < 0.9, we don't fill pt, nor phi , nor phi vs pt histos
