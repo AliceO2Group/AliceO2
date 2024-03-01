@@ -96,6 +96,7 @@ class CTPRunScalers
   std::vector<uint32_t> getClassIndexes() const;
   int getScalerIndexForClass(uint32_t cls) const;
   std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };
+  std::vector<CTPScalerRecordRaw>& getScalerRecordRaw() {return mScalerRecordRaw; };
   int readScalers(const std::string& rawscalers);
   int convertRawToO2();
   int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1, errorCounters& eCnts) const;

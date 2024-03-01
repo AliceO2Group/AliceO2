@@ -503,17 +503,17 @@ int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTP
   uint32_t NINPS = 48;
   if (rec0.scalersInps.size() < NINPS) {
     if (iPrint < 1) {
-      LOG(error) << "Scalers not available. Size:" << rec0.scalersInps.size();
+      LOG(warning) << "Input scalers not available. Size:" << rec0.scalersInps.size();
       iPrint++;
-      return 1;
     }
+    return 1;
   }
   if (rec1.scalersInps.size() < NINPS) {
     if (iPrint < 1) {
-      LOG(error) << "Scalers not available. Size:" << rec0.scalersInps.size();
+      LOG(warning) << "Input scalers not available. Size:" << rec0.scalersInps.size();
       iPrint++;
-      return 2;
     }
+    return 2;
   }
   for (uint32_t i = 0; i < NINPS; i++) {
     if (rec0.scalersInps[i] > rec1.scalersInps[i]) {
