@@ -9,10 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-#ifndef __HIPCC__
-#include "GPUReconstructionCUDADef.h" // This file should come first, if included
-#endif
-
 #include <thrust/fill.h>
 #include <thrust/execution_policy.h>
 
@@ -25,9 +21,6 @@
 #include <unistd.h>
 #include <thread>
 
-#define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
-#define GPUCA_O2_INTERFACE    // To suppress errors related to the weird dependency between itsgputracking and GPUTracking
-
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonLogger.h"
@@ -36,18 +29,6 @@
 #define THRUST_NAMESPACE thrust::cuda
 #else
 #define THRUST_NAMESPACE thrust::hip
-// clang-format off
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-  #define GPUCA_CONSMEM_PTR
-  #define GPUCA_CONSMEM_CALL
-  #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-#else
-  #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-  #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-  #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
-#endif
-#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
-// clang-format on
 #endif
 
 namespace o2
