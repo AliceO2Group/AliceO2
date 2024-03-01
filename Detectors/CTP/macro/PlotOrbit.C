@@ -32,8 +32,8 @@ void PlotOrbit(int runNumber)
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   // Timestamp
   auto soreor = ccdbMgr.getRunDuration(runNumber);
-  //uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
-  uint64_t timeStamp = soreor.first + 60*1000;
+  // uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
+  uint64_t timeStamp = soreor.first + 60 * 1000;
   std::cout << "Timestamp:" << timeStamp << std::endl;
   //
   // Scalers
@@ -47,7 +47,7 @@ void PlotOrbit(int runNumber)
     return;
   }
   scl->convertRawToO2();
-  //return ;
+  // return ;
   std::vector<CTPScalerRecordRaw> recs = scl->getScalerRecordRaw();
   std::cout << "raw rec size:" << recs.size() << std::endl;
   //
