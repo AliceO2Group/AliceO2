@@ -272,8 +272,8 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters, int pmode)
     }
   } else {
     useClusters = false;                                                                                         // not needed for normalization
-    inputs.emplace_back("mapspart", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPART"}, Lifetime::Timeframe);        // for normalization of multiple inputs only
-    inputs.emplace_back("mapspartInfo", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPARTINF"}, Lifetime::Timeframe); // for normalization of multiple inputs only
+    inputs.emplace_back("mapspart", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPART"}, Lifetime::Sporadic);         // for normalization of multiple inputs only
+    inputs.emplace_back("mapspartInfo", ConcreteDataTypeMatcher{"ITS", "NOISEMAPPARTINF"}, Lifetime::Sporadic);  // for normalization of multiple inputs only
   }
   if (md == NoiseCalibratorSpec::ProcessingMode::Full || md == NoiseCalibratorSpec::ProcessingMode::Normalize) {
     inputs.emplace_back("confdbmap", "ITS", "CONFDBMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/Confdbmap"));
