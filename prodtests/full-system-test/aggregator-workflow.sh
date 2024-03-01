@@ -191,7 +191,7 @@ fi
 
 # calibrations for AGGREGATOR_TASKS == BARREL_TF
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
-  # PrimVertex
+  # PrimaryVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     : ${TFPERSLOTS_MEANVTX:=55000}
     : ${DELAYINTFS_MEANVTX:=10}
