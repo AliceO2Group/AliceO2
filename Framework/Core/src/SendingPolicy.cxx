@@ -54,17 +54,17 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
               // We count the number of consecutively dropped messages.
               // If we have more than 10, we switch to a completely
               // non-blocking approach.
-              int64_t timeout = 50;
+              int64_t timeout = 100;
               if (state.droppedMessages == 10 + 1) {
                 LOG(warning) << "Failed to send 10 messages with 10ms timeout in a row, switching to completely non-blocking mode.";
               }
               if (state.droppedMessages == 0) {
-                timeout = 50;
+                timeout = 100;
               }
               if (state.droppedMessages > 10) {
                 timeout = 0;
               }
-              int64_t result = info.channel.Send(parts, timeout);
+              int64_t result = info.channel.Send(parts, timeout * (state.droppedMessages + 1));
               if (result >= 0) {
                 state.droppedMessages = 0;
               } else if (state.droppedMessages < std::numeric_limits<decltype(state.droppedMessages)>::max()) {
