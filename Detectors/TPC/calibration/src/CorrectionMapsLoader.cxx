@@ -126,7 +126,7 @@ void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
 {
   // these are options which should be added at the level of device using TPC corrections
   // At the moment - nothing, all options are moved to configurable param CorrMapParam
-  addOption(options, ConfigParamSpec{"do-not-recalculate-inverse-correction", o2::framework::VariantType::Bool, false, {"Do NOT recalculate the inverse correction in case lumi mode 1 or 2 is used"}});
+  addOption(options, ConfigParamSpec{"recalculate-inverse-correction", o2::framework::VariantType::Bool, false, {"recalculate the inverse correction in case lumi mode 1 or 2 is used"}});
   addOption(options, ConfigParamSpec{"nthreads-inverse-correction", o2::framework::VariantType::Int, 4, {"Number of threads used for calculating the inverse correction (-1=all threads)"}});
 }
 
@@ -251,7 +251,7 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   }
 
   if ((getLumiScaleMode() == 1) || (getLumiScaleMode() == 2)) {
-    mScaleInverse = ic.options().get<bool>("do-not-recalculate-inverse-correction");
+    mScaleInverse = !(ic.options().get<bool>("recalculate-inverse-correction"));
   } else {
     mScaleInverse = true;
   }
