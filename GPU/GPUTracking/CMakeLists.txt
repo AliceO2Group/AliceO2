@@ -67,9 +67,6 @@ set(SRCS_O2_DATATYPE_HEADERS
     DataTypes/GPUTPCGMPolynomialField.cxx
     DataTypes/GPUTRDTrackO2.cxx)
 
-set(SRCS_O2_DATATYPES
-    ${SRCS_DATATYPES}
-    Interface/GPUO2InterfaceConfigurableParam.cxx)
 set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSliceTrack.h Merger/GPUTPCGMBorderTrack.h)
 set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h DataTypes/GPUTPCGMMergedTrackHit.h)
 set(HDRS_CIND_O2_CONFIGURABLEPARAM Interface/GPUO2InterfaceConfigurableParam.h)
@@ -200,8 +197,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         Refit/GPUTrackingRefitKernel.cxx
         Merger/GPUTPCGMO2Output.cxx)
 
-    set(SRCS_O2_DATATYPES
-        ${SRCS_O2_DATATYPES}
+    set(SRCS_DATATYPES
+        ${SRCS_DATATYPES}
         DataTypes/TPCPadGainCalib.cxx
         DataTypes/TPCPadBitMap.cxx
         DataTypes/TPCZSLinkMapping.cxx
@@ -223,6 +220,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/PackedCharge.h
                      TPCClusterFinder/GPUTPCCFChainContext.h)
 endif()
+
+set(SRCS_O2_DATATYPES
+    ${SRCS_DATATYPES}
+    Interface/GPUO2InterfaceConfigurableParam.cxx)
 
 # Sources only for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
