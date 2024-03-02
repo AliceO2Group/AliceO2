@@ -484,7 +484,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
             dv = dvRef * scale + dv;
           }
         }
-        if (ref2) {
+        if (ref2 && (scale2 != 0)) {
           float dxRef, duRef, dvRef;
           ref2->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
           dx = dxRef * scale2 + dx;
@@ -795,7 +795,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
     if (ref2 && (scale2 != 0)) {
       float xr;
       ref2->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
-      x = (xr - getGeometry().getRowInfo(row).x) * scale + x; // xr=mGeo.getRowInfo(row).x + dx;
+      x = (xr - getGeometry().getRowInfo(row).x) * scale2 + x; // xr=mGeo.getRowInfo(row).x + dx;
     }
   } else {
     x = mCorrection.getGeometry().getRowInfo(row).x; // corrections are disabled
@@ -833,11 +833,11 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
         un = (unr - u) * scale + un; // unr = u - duv[0];
         vn = (vnr - v) * scale + vn;
       }
-      if (ref2 && (scale != 0)) {
+      if (ref2 && (scale2 != 0)) {
         float unr = 0, vnr = 0;
         ref2->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
-        un = (unr - u) * scale + un; // unr = u - duv[0];
-        vn = (vnr - v) * scale + vn;
+        un = (unr - u) * scale2 + un; // unr = u - duv[0];
+        vn = (vnr - v) * scale2 + vn;
       }
     }
   } else {
