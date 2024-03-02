@@ -65,7 +65,6 @@ class GPUTPCDecompression : public GPUProcessor
   unsigned int* mNativeClustersIndex;
   unsigned int* mUnattachedClustersOffsets;
   o2::tpc::ClusterNative* mTmpNativeClusters;
-  o2::tpc::ClusterNativeAccess* mClusterNativeAccess;
   o2::tpc::ClusterNative* mNativeClustersBuffer;
 
   template <class T>
