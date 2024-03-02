@@ -281,7 +281,7 @@ int GPUChainTracking::RunTPCDecompression()
   runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step0attached>(GetGridAuto(inputStream), krnlRunRangeNone, krnlEventNone);
 
   mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = cmprClsHost.nAttachedClusters + cmprClsHost.nUnattachedClusters;
-  AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput);
+  AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
   AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   DecompressorShadow.mNativeClustersBuffer = mInputsShadow->mPclusterNativeBuffer;
   Decompressor.mNativeClustersBuffer = mInputsHost->mPclusterNativeOutput;
