@@ -17,6 +17,8 @@
 #include "DataFormatsCTP/Scalers.h"
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "Common/CCDB/ctpRateFetcher.h"
+
 struct ctpRateFetcher {
   ctpRateFetcher() = default;
   double fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
