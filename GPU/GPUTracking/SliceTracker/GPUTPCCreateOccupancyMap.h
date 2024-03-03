@@ -30,8 +30,8 @@ class GPUTPCCreateOccupancyMap : public GPUKernelTemplate
            fill = 0,
            fold = 1 };
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCSliceTracking; }
-  template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, GPUTPCClusterOccupancyMapBin* map);
+  template <int iKernel = defaultKernel, typename... Args>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors, Args... args);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
