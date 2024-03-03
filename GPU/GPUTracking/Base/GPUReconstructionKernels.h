@@ -27,7 +27,7 @@ GPUCA_KRNL((   GPUMemClean16                                ), (simple, REG, (GP
 GPUCA_KRNL((   GPUTPCGlobalTrackingCopyNumbers              ), (single), (, int n), (, n))
 #if !defined(GPUCA_OPENCL1) && (!defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE))
 GPUCA_KRNL((   GPUTPCCreateOccupancyMap, fill               ), (simple), (, GPUPtr1(GPUTPCClusterOccupancyMapBin*, map)), (, GPUPtr2(GPUTPCClusterOccupancyMapBin*, map))
-GPUCA_KRNL((   GPUTPCCreateOccupancyMap, fold               ), (simple), (, GPUPtr1(GPUTPCClusterOccupancyMapBin*, map)), (, GPUPtr2(GPUTPCClusterOccupancyMapBin*, map))
+GPUCA_KRNL((   GPUTPCCreateOccupancyMap, fold               ), (simple), (, GPUPtr1(GPUTPCClusterOccupancyMapBin*, map), GPUPtr1(unsigned int*, output)), (, GPUPtr2(GPUTPCClusterOccupancyMapBin*, map), GPUPtr2(unsigned int*, output))
 GPUCA_KRNL_LB((GPUTPCCreateSliceData                        ), (single), (), ())
 GPUCA_KRNL_LB((GPUTPCGlobalTracking                         ), (single), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerTrackFit                       ), (simple), (, int mode), (, mode))

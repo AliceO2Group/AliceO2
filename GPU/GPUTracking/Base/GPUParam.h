@@ -38,7 +38,6 @@ namespace gpu
 struct GPUSettingsRec;
 struct GPUSettingsGTP;
 struct GPURecoStepConfiguration;
-struct GPUTPCClusterOccupancyMapBin;
 
 struct GPUParamSlice {
   float Alpha;              // slice angle
@@ -60,7 +59,7 @@ struct GPUParam_t {
 
   GPUTPCGeometry tpcGeometry;                       // TPC Geometry
   GPUTPCGMPolynomialField polynomialField;          // Polynomial approx. of magnetic field for TPC GM
-  const GPUTPCClusterOccupancyMapBin* occupancyMap; // Ptr to TPC occupancy map
+  const unsigned int* occupancyMap;                 // Ptr to TPC occupancy map
 
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
@@ -104,7 +103,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   GPUd() float GetClusterError2(int yz, int type, float z, float angle2, float scaledMult, float scaledAvgCharge) const;
   GPUd() void GetClusterErrors2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgCharge, float& ErrY2, float& ErrZ2) const;
   GPUd() void UpdateClusterError2ByState(short clusterState, float& ErrY2, float& ErrZ2) const;
-  GPUd() float GetScaledMult(int iSlice, int iRow, float time) const;
+  GPUd() float GetScaledMult(float time) const;
 
   GPUd() void Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
   GPUd() void Global2Slice(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
