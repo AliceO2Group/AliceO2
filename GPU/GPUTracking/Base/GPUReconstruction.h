@@ -62,6 +62,7 @@ class GPUReconstruction
   std::shared_ptr<LibraryLoader> mMyLib = nullptr;
   std::vector<GPUMemoryResource> mMemoryResources;
   std::vector<std::unique_ptr<char[]>> mUnmanagedChunks;
+  std::vector<std::unique_ptr<char[]>> mVolatileChunks;
   std::vector<std::unique_ptr<GPUChain>> mChains;
 
  public:
@@ -205,10 +206,12 @@ class GPUReconstruction
   void AllocateRegisteredForeignMemory(short res, GPUReconstruction* rec, GPUOutputControl* control = nullptr);
   void* AllocateUnmanagedMemory(size_t size, int type);
   void* AllocateVolatileDeviceMemory(size_t size);
+  void* AllocateVolatileMemory(size_t size, bool device);
   void FreeRegisteredMemory(GPUProcessor* proc, bool freeCustom = false, bool freePermanent = false);
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ReturnVolatileDeviceMemory();
+  void ReturnVolatileMemory();
   void PushNonPersistentMemory(unsigned long tag);
   void PopNonPersistentMemory(RecoStep step, unsigned long tag);
   void BlockStackedMemory(GPUReconstruction* rec);
