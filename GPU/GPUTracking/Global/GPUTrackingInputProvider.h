@@ -87,7 +87,7 @@ class GPUTrackingInputProvider : public GPUProcessor
   o2::tpc::ClusterNative* mPclusterNativeBuffer = nullptr;
   o2::tpc::ClusterNative* mPclusterNativeOutput = nullptr;
 
-  GPUTPCClusterOccupancyMapBin* mTPCClusterOccupancyMap = nullptr;
+  unsigned int* mTPCClusterOccupancyMap = nullptr;
 
   unsigned int* mErrorCodes = nullptr;
 
