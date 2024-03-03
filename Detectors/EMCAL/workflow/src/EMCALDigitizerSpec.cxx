@@ -258,13 +258,13 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> labelAccum;
 
   // auto& eventParts = context->getEventParts();
-  std::vector<std::tuple<o2::InteractionRecord, std::bitset<3>>> acceptedTriggers;
+  std::vector<std::tuple<o2::InteractionRecord, std::bitset<5>>> acceptedTriggers;
 
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
 
-    std::bitset<3> trigger{0x1}; // Default: Self-triggered mode - all collisions treated as trigger
+    std::bitset<5> trigger{0x1}; // Default: Self-triggered mode - all collisions treated as trigger
     if (mRequireCTPInput) {
       // ====================================================
       // check if we have a trigger input from CTP
@@ -382,14 +382,22 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(Output{"EMC", "ROMode", 0}, roMode);
   // Create CTP digits
   std::vector<o2::ctp::CTPInputDigit> triggerinputs;
-  for (auto& trg : mDigitizer.getTriggerRecords()) {
-    // covert TriggerRecord into CTP trigger digit
+  // for (auto& trg : mDigitizer.getTriggerRecords()) {
+  //   // covert TriggerRecord into CTP trigger digit
+  //   o2::ctp::CTPInputDigit nextdigit;
+  //   nextdigit.intRecord = trg.getBCData();
+  //   nextdigit.detector = o2::detectors::DetID::EMC;
+  //   // Set min. bias accept trigger (input 0) as fake trigger
+  //   // Other inputs will be added once available
+  //   nextdigit.inputsMask.set(0);
+  //   triggerinputs.push_back(nextdigit);
+  // }
+  for (auto& trg : acceptedTriggers) {
+    // convert TriggerRecord into CTP trigger digit
     o2::ctp::CTPInputDigit nextdigit;
-    nextdigit.intRecord = trg.getBCData();
+    nextdigit.intRecord = std::get<0>(trg);
     nextdigit.detector = o2::detectors::DetID::EMC;
-    // Set min. bias accept trigger (input 0) as fake trigger
-    // Other inputs will be added once available
-    nextdigit.inputsMask.set(0);
+    nextdigit.inputsMask = std::get<1>(trg);
     triggerinputs.push_back(nextdigit);
   }
   ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);

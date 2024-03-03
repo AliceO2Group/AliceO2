@@ -108,7 +108,6 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
   TriggerMappingV2 mTriggerMap(mGeometry);
 
 
-  LOG(info) << "DIG TRU fill in LZEROElectronics: before for loops";
 
 
   for (auto& digitsTimeBin : digitlist) {
@@ -117,20 +116,15 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     // At the end of the loop run the peak finder
     // Ship to LONEElectronics in case a peak is found
     // Entire logic limited to timebin by timebin -> effectively implementing time scan
-    LOG(info) << "DIG TRU fill in LZEROElectronics: first for loop, digitlist.size() = " << digitlist.size();
-
     counterDigitTimeBin++;
 
     for (auto& [fastor, digitsList] : *digitsTimeBin.mDigitMap) {
       // Digit loop
       // The peak finding algorithm is run after getting out of the loop!
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, *digitsTimeBin.mDigitMap.size() = " << (*digitsTimeBin.mDigitMap).size();
-
       if (digitsList.size() == 0) {
         continue;
       }
       digitsList.sort();
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, digitsList.size() = " << digitsList.size();
 
       int digIndex = 0;
       Digit summedDigit;
@@ -157,18 +151,11 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       }
 
       auto [whichTRU, whichFastOrTRU] = mTriggerMap.getTRUFromAbsFastORIndex(fastor);
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU] = " << whichTRU << ", " << whichFastOrTRU;
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, summedDigit.getAmplitudeADC() = " << summedDigit.getAmplitudeADC();
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, patchesFromAllTRUs.size() = " << patchesFromAllTRUs.size();
 
 
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
-            LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, [whichTRU, whichFastOrTRU, whichFastOr] = " << whichTRU << ", " << whichFastOrTRU << ", " << whichFastOr;
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, patchTRU.mPatchIDSeedFastOrIDs.size() = " << patchTRU.mPatchIDSeedFastOrIDs.size();
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, patchTRU.mPatchIDSeedFastOrIDs.size() = " << patchTRU.mPatchIDSeedFastOrIDs.size();
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
-      LOG(info) << "DIG TRU fill in LZEROElectronics: inside first for for loop, before updateADC";
       fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
 
       digIndex++;
@@ -191,13 +178,9 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     int triggeredTRU = -1;
     std::vector<int> triggeredPatches;
     for (auto& patches : patchesFromAllTRUs) {
-      LOG(info) << "DIG TRU fill in LZEROElectronics: updatePatchesADC";
       updatePatchesADC(patches);
-      LOG(info) << "DIG TRU fill in LZEROElectronics: peakFinderOnAllPatches";
       bool foundPeakCurrentTRU = peakFinderOnAllPatches(patches);
-      LOG(info) << "DIG TRU fill in LZEROElectronics: peakFinderOnAllPatches";
       auto firedPatches = getFiredPatches(patches);
-      LOG(info) << "DIG TRU fill in LZEROElectronics: before triggeredTRU";
       if (foundPeakCurrentTRU == true && foundPeak == false) {
         triggeredTRU = counterWhichTRU;
         triggeredPatches = firedPatches;
@@ -211,7 +194,6 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
 
     if (foundPeak == true) {
       LOG(debug) << "DIG TRU fill in LZEROElectronics: foundPeak = " << foundPeak;
-      LOG(info) << "DIG TRU fill in LZEROElectronics: foundPeak = " << foundPeak;
     }
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
