@@ -729,6 +729,15 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   return retVal;
 }
 
+void* GPUReconstruction::AllocateVolatileMemory(size_t size, bool device)
+{
+  if (device) {
+    return AllocateVolatileDeviceMemory(size);
+  }
+  mVolatileChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
+  return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mVolatileChunks.back().get());
+}
+
 void GPUReconstruction::ResetRegisteredMemoryPointers(GPUProcessor* proc)
 {
   for (unsigned int i = 0; i < mMemoryResources.size(); i++) {
@@ -794,6 +803,12 @@ void GPUReconstruction::ReturnVolatileDeviceMemory()
   if (mProcessingSettings.allocDebugLevel >= 2) {
     std::cout << "Freed (volatile GPU) - available: " << ((char*)mDeviceMemoryPoolEnd - (char*)mDeviceMemoryPool) << "\n";
   }
+}
+
+void GPUReconstruction::ReturnVolatileMemory()
+{
+  ReturnVolatileDeviceMemory();
+  mVolatileChunks.clear();
 }
 
 void GPUReconstruction::PushNonPersistentMemory(unsigned long tag)
