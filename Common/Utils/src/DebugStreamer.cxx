@@ -166,7 +166,7 @@ void o2::utils::DebugStreamer::mergeTrees(const char* inpFile, const char* outFi
   TFile fOut(outFile, "RECREATE");
   for (auto& list : lists) {
     auto tree = TTree::MergeTrees(&list.second, option);
-    fOut.WriteObject(tree, tree->GetName());
+    fOut.WriteObject(tree, list.first.data());
   }
 }
 
