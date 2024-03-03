@@ -136,7 +136,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   void SetNestedLoopOmpFactor(unsigned int f) { mNestedLoopOmpFactor = f; }
   unsigned int SetAndGetNestedLoopOmpFactor(bool condition, unsigned int max);
 
-  void UpdateParamOccupancyMap(const GPUTPCClusterOccupancyMapBin* mapHost, const GPUTPCClusterOccupancyMapBin* mapGPU, int stream = -1);
+  void UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, int stream = -1);
 
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {

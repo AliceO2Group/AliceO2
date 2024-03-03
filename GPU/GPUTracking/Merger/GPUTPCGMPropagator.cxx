@@ -664,7 +664,7 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
     } else {
       int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
       GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster, iTrk)) {
-        GPUTPCGMMerger::DebugStreamerReject(mAlpha, iRow, posY, posZ, clusterState, rejectChi2, *inter, refit, retVal, err2Y, err2Z, *mT, sector, param, time, avgCharge);
+        GPUTPCGMMerger::DebugStreamerReject(mAlpha, iRow, posY, posZ, clusterState, rejectChi2, *inter, refit, retVal, err2Y, err2Z, *mT, param, time, avgCharge);
       });
       if (retVal) {
         return retVal;

@@ -163,7 +163,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int iRow, float z,
   float angleY2 = s2 * sec2;          // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
 
-  float mult = time >= 0.f ? GetScaledMult(sector, iRow, time) / tpcGeometry.Row2X(iRow) : 0.f;
+  float mult = time >= 0.f ? GetScaledMult(time) / tpcGeometry.Row2X(iRow) : 0.f;
 
   ErrY2 = GetClusterError2(0, rowType, z, angleY2, mult, avgCharge);
   ErrZ2 = GetClusterError2(1, rowType, z, angleZ2, mult, avgCharge);
@@ -191,14 +191,14 @@ GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2ByState(short clusterState, fl
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetScaledMult(int iSlice, int iRow, float time) const
+GPUdi() float MEM_LG(GPUParam)::GetScaledMult(float time) const
 {
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
   if (!occupancyMap) {
     return 0.f;
   }
   const unsigned int bin = CAMath::Max(0.f, time / rec.tpc.occupancyMapTimeBins);
-  return occupancyMap[bin].bin[iSlice][iRow] * rec.tpc.clusterErrorOccupancyScaler;
+  return occupancyMap[bin] * rec.tpc.clusterErrorOccupancyScaler;
 #else
   return 0.f;
 #endif

@@ -375,7 +375,7 @@ unsigned int GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, 
   return mNestedLoopOmpFactor;
 }
 
-void GPUReconstructionCPU::UpdateParamOccupancyMap(const GPUTPCClusterOccupancyMapBin* mapHost, const GPUTPCClusterOccupancyMapBin* mapGPU, int stream)
+void GPUReconstructionCPU::UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, int stream)
 {
   param().occupancyMap = mapHost;
   if (IsGPU()) {
