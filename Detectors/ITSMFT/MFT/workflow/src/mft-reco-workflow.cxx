@@ -42,6 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks (depends on --run-assessment)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"nThreads", VariantType::Int, 1, {"Number of threads"}},
+    {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight MFT part"}},
     {"run-tracks2records", o2::framework::VariantType::Bool, false, {"run MFT alignment tracks to records workflow"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -65,9 +66,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto runTracking = !configcontext.options().get<bool>("disable-tracking");
   auto nThreads = configcontext.options().get<int>("nThreads");
   auto runTracks2Records = configcontext.options().get<bool>("run-tracks2records");
+  auto useGeom = configcontext.options().get<bool>("use-full-geometry");
 
   auto wf = o2::mft::reco_workflow::getWorkflow(
     useMC,
+    useGeom,
     extDigits,
     extClusters,
     disableRootOutput,

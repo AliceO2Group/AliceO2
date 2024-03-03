@@ -16,6 +16,7 @@
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/Logger.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
+#include "MFTBase/GeometryTGeo.h"
 #include "DetectorsBase/Propagator.h"
 #include "Field/MagneticField.h"
 #include "TGeoGlobalMagField.h"
@@ -104,7 +105,9 @@ void MFTAssessmentSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
-
+    if (pc.inputs().getPos("mftTGeo") >= 0) {
+      pc.inputs().get<o2::mft::GeometryTGeo*>("mftTGeo");
+    }
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     auto Bz = field->getBz(centerMFT);
@@ -124,11 +127,17 @@ void MFTAssessmentSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMFTAssessment->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("MFT", "GEOMTGEO", 0)) {
+    LOG(info) << "MFT GeomtetryTGeo loaded from ccdb";
+    o2::mft::GeometryTGeo::adopt((o2::mft::GeometryTGeo*)obj);
+    return;
   }
 }
 
 //_____________________________________________________________
-DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finalizeAnalysis)
+DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool useGeom, bool processGen, bool finalizeAnalysis)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -140,14 +149,17 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
   inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              false,                             // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
+                                                              true,                                                                         // GRPECS=true
+                                                              false,                                                                        // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              false,                                                                        // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               inputs,
                                                               true);
+  if (!useGeom) {
+    ggRequest->addInput({"mftTGeo", "MFT", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("MFT/Config/Geometry")}, inputs);
+  }
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("trklabels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
