@@ -142,6 +142,7 @@ AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data direct
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 AddOptionRTC(enablePID, char, 1, "", 0, "Enable PID response")
 AddOptionRTC(PID_useNsigma, char, 1, "", 0, "Use nSigma instead of absolute distance in PID response")
+AddOptionRTC(adddEdxSubThresholdClusters, char, 1, "", 0, "Add sub threshold clusters in TPC dEdx computation")
 AddOptionArray(PID_remap, char, 9, (0, 1, 2, 3, 4, 5, 6, 7, 8), "", 0, "Remap Ipid to PID_reamp[Ipid] (no remap if<0)") // BUG: CUDA cannot yet hand AddOptionArrayRTC
 AddHelp("help", 'h')
 EndConfig()
