@@ -56,7 +56,7 @@ MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2, float scaledMult, float scaledAvgCharge, float scaledCharge) const
 {
   MakeType(const float*) c = ParamErrors[yz][type];
-  float v = c[0] + c[1] * angle2 + c[2] * z + c[3] * scaledMult;
+  float v = c[0] + c[1] * angle2 * scaledAvgCharge + c[2] * z * scaledCharge + c[3] * scaledMult * scaledAvgCharge;
   v = CAMath::Abs(v);
   v *= yz ? rec.tpc.clusterError2CorrectionZ : rec.tpc.clusterError2CorrectionY;
   v += yz ? rec.tpc.clusterError2AdditionalZ : rec.tpc.clusterError2AdditionalY;
@@ -164,8 +164,8 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int iRow, float z,
   const float angleZ2 = DzDs * DzDs * sec2; // dz/dx
 
   const float mult = time >= 0.f ? GetScaledMult(time) / tpcGeometry.Row2X(iRow) : 0.f;
-  const float scaledAvgCharge = avgCharge * rec.tpc.clusterErrorChargeScaler;
-  const float scaledCharge = charge * rec.tpc.clusterErrorChargeScaler;
+  const float scaledAvgCharge = avgCharge * rec.tpc.clusterErrorChargeScaler > 0.f ? avgCharge * rec.tpc.clusterErrorChargeScaler : 1.f;
+  const float scaledCharge = charge * rec.tpc.clusterErrorChargeScaler > 0.f ? charge * rec.tpc.clusterErrorChargeScaler : 1.f;
 
   ErrY2 = GetClusterError2(0, rowType, z, angleY2, mult, scaledAvgCharge, scaledCharge);
   ErrZ2 = GetClusterError2(1, rowType, z, angleZ2, mult, scaledAvgCharge, scaledCharge);
