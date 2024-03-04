@@ -8,6 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+#ifndef O2_FRAMEWORK_DEFAULTHELPERS_H_
+#define O2_FRAMEWORK_DEFAULTHELPERS_H_
+
 namespace o2::framework
 {
 enum struct DeploymentMode;
@@ -18,3 +22,5 @@ struct DefaultsHelpers {
   static unsigned int pipelineLength();
 };
 } // namespace o2::framework
+
+#endif
