@@ -23,7 +23,7 @@ void errorCounters::printStream(std::ostream& stream) const
 {
   // stream << "Counter warnings diff 1 lmBlmA:" << lmBlmAd1 << " lmAl0B:" << lmAl0Bd1 << " l0Bl0A:" << l0Bl0Ad1 << " l0Al1B: " << l0Al1Bd1 << " l1Bl1A:" << l1Bl1Ad1;
   // stream << std::endl;
-  if (lmB + l0B << +l1B + lmA + l0A + l1A + lmBlmA + lmAl0B + l0Bl0A + l0Al1B + l1Bl1A) {
+  if (lmB + l0B + l1B + lmA + l0A + l1A + lmBlmA + lmAl0B + l0Bl0A + l0Al1B + l1Bl1A) {
     stream << "Counter errorrs: lmB:" << lmB << " l0B:" << l0B << " l1B:" << l1B << " lmA:" << lmA << " l0A:" << l0A << " l1A:" << l1A;
     stream << " lmBlmA:" << lmBlmA << " lmAl0B:" << lmAl0B << " l0Bl0A:" << l0Bl0A << " l0Al1B: " << l0Al1B << " l1Bl1A:" << l1Bl1A;
     stream << std::endl;
