@@ -63,13 +63,10 @@ set(SRCS
     Base/GPUParam.cxx)
 
 set(SRCS_DATATYPES DataTypes/GPUDataTypes.cxx)
-set(SRCS_O2_DATATYPE_HEADERS
-    DataTypes/GPUTPCGMPolynomialField.cxx
-    DataTypes/GPUTRDTrackO2.cxx)
+set(SRCS_DATATYPE_HEADERS DataTypes/GPUTPCGMPolynomialField.cxx)
 
 set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSliceTrack.h Merger/GPUTPCGMBorderTrack.h)
-set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h DataTypes/GPUTPCGMMergedTrackHit.h)
-set(HDRS_CIND_O2_CONFIGURABLEPARAM Interface/GPUO2InterfaceConfigurableParam.h)
+set(HDRS_CINT_DATATYPES DataTypes/GPUTPCGMMergedTrackHit.h)
 set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
@@ -208,6 +205,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataTypes/CalibdEdxTrackTopologyPol.cxx
         DataTypes/CalibdEdxTrackTopologySpline.cxx)
 
+    set(SRCS_DATATYPE_HEADERS
+        ${SRCS_DATATYPE_HEADERS}
+        DataTypes/GPUTRDTrackO2.cxx)
+
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
@@ -223,9 +224,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/GPUTPCCFChainContext.h)
 endif()
 
-set(SRCS_O2_DATATYPES
-    ${SRCS_DATATYPES}
-    Interface/GPUO2InterfaceConfigurableParam.cxx)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  set(SRCS_DATATYPES
+      ${SRCS_DATATYPES}
+      Interface/GPUO2InterfaceConfigurableParam.cxx)
+endif()
 
 # Sources only for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -279,9 +282,11 @@ else()
 endif()
 
 # Update HDR variables with files derrived from SRC variables
-string(REPLACE ".cxx" ".h" HDRS_CINT_ALIROOT "${SRCS}")
+string(REPLACE ".cxx" ".h" HDRS_SRCS "${SRCS}")
 string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
+string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_DATATYPES}")
+set(HDRS_CINT_DATATYPES ${HDRS_CINT_DATATYPES} ${HDRS_TMP})
 unset(HDRS_TMP)
 
 # Main CMake part for O2
@@ -295,17 +300,17 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::ReconstructionDataFormats
                                        O2::TPCFastTransformation
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
-                 SOURCES ${SRCS_O2_DATATYPE_HEADERS})
+                 SOURCES ${SRCS_DATATYPE_HEADERS})
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
 
   o2_add_library(GPUDataTypes
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUDataTypeHeaders O2::GPUUtils
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
-                 SOURCES ${SRCS_O2_DATATYPES})
+                 SOURCES ${SRCS_DATATYPES})
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
   o2_target_root_dictionary(GPUDataTypes
-                            HEADERS ${HDRS_CINT_O2_DATATYPES} ${HDRS_CIND_O2_CONFIGURABLEPARAM} ${HDRS_CINT_O2_ADDITIONAL}
+                            HEADERS ${HDRS_CINT_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL}
                             LINKDEF GPUTrackingLinkDef_O2_DataTypes.h)
 
   o2_add_library(${MODULE}
@@ -355,7 +360,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                             HEADERS ${HDRS_CINT_O2} ${HDRS_CINT_O2_ADDITIONAL}
                             LINKDEF GPUTrackingLinkDef_O2.h)
 
-  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_CINT_O2_DATATYPES} ${HDRS_INSTALL}
+  install(FILES ${HDRS_SRCS} ${HDRS_CINT_O2} ${HDRS_CINT_DATATYPES} ${HDRS_INSTALL}
           DESTINATION include/GPU)
   install(DIRECTORY utils
           DESTINATION include/GPU
@@ -373,7 +378,7 @@ endif()
 
 # Main CMake part for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  set(HDRS_CINT_ALIROOT ${HDRS_CINT_ALIROOT}
+  set(HDRS_SRCS ${HDRS_SRCS}
                         DataTypes/GPUO2DataTypes.h)
   add_definitions(-DGPUCA_ALIROOT_LIB)
   include_directories(qa)
@@ -417,7 +422,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
   generate_dictionary_flat("Ali${MODULE}" "GPUTrackingLinkDef_AliRoot.h"
-                           "${HDRS_CINT_ALIROOT}" "${incdirs}")
+                           "${HDRS_SRCS}" "${incdirs}")
 
   # Generate the ROOT map Dependecies
   set(LIBDEPS
@@ -458,7 +463,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   # Installation
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
-  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_INSTALL} DESTINATION include)
+  install(FILES ${HDRS_SRCS} ${HDRS_INSTALL} DESTINATION include)
   install(DIRECTORY utils
           DESTINATION include
           FILES_MATCHING PATTERN *.h)
@@ -475,7 +480,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   install(TARGETS ${MODULE})
 
   if(CONFIG_ROOT)
-    ROOT_GENERATE_DICTIONARY(G__${MODULE} ${HDRS_CINT_O2} ${HDRS_CINT_O2_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL} GPUTrackingLinkDef_Standalone.h)
+    ROOT_GENERATE_DICTIONARY(G__${MODULE} ${HDRS_CINT_O2} ${HDRS_CINT_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL} GPUTrackingLinkDef_Standalone.h)
     target_sources(${MODULE} PRIVATE G__${MODULE})
     INSTALL(FILES
       ${CMAKE_CURRENT_BINARY_DIR}/lib${MODULE}_rdict.pcm
