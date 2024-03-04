@@ -311,9 +311,9 @@ int TrackerTraitsGPU<nLayers>::getTFNumberOfCells() const
 ////////////////////////////////////////////////////////////////////////////////
 // Hybrid tracking
 template <int nLayers>
-void TrackerTraitsGPU<nLayers>::computeTrackletsHybrid(const int iteration, int, int)
+void TrackerTraitsGPU<nLayers>::computeTrackletsHybrid(const int iteration, int iROFslice, int iVertex)
 {
-  TrackerTraits::computeLayerTracklets(iteration, iteration, iteration);
+  TrackerTraits::computeLayerTracklets(iteration, iROFslice, iVertex);
 }
 
 template <int nLayers>
