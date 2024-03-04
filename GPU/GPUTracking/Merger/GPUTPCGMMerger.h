@@ -215,7 +215,7 @@ class GPUTPCGMMerger : public GPUProcessor
   std::vector<float> StreamerUncorrectedZY(int iSlice, int iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop) const;
 
   void DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal) const;
-  static void DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgCharge);
+  static void DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgCharge, float charge);
 #endif
 
   GPUdi() int SliceTrackInfoFirst(int iSlice) const { return mSliceTrackInfoIndex[iSlice]; }

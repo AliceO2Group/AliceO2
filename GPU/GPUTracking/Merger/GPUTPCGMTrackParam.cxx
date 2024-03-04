@@ -91,6 +91,9 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
 
   for (int iWay = 0; iWay < nWays; iWay++) {
     int nMissed = 0, nMissed2 = 0;
+    float avgCharge = 0.f;
+    int nAvgCharge = 0;
+
     if (iWay && storeOuter != 255 && param.rec.tpc.nWaysOuter && outerParam) {
       storeOuter = 0;
       if (iWay == nWays - 1) {
@@ -316,7 +319,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         }
 #endif
         float time = merger->Param().par.earlyTpcTransform ? -1.f : merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num].getTime();
-        retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, clusters[ihit].slice, time, 0.f GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use avgCharge
+        float tmpCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? CAMath::Sqrt(merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num].qMax) : 0.f;
+        retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, clusters[ihit].slice, time, (avgCharge += tmpCharge) / ++nAvgCharge, tmpCharge GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use avgCharge
         GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
           merger->DebugStreamerUpdate(iTrk, ihit, xx, yy, zz, clusters[ihit], merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num], *this, prop, interpolation.hit[ihit], rejectChi2, refit, retVal);
         });
@@ -436,7 +440,7 @@ GPUd() void GPUTPCGMTrackParam::MirrorTo(GPUTPCGMPropagator& GPUrestrict() prop,
     prop.Mirror(inFlyDirection);
   }
   float err2Y, err2Z;
-  prop.GetErr2(err2Y, err2Z, param, toZ, row, clusterState, sector, -1.f, 0.f); // Use correct time / avgCharge
+  prop.GetErr2(err2Y, err2Z, param, toZ, row, clusterState, sector, -1.f, 0.f, 0.f); // Use correct time / avgCharge
   prop.Model().Y() = mP[0] = toY;
   prop.Model().Z() = mP[1] = toZ;
   if (mC[0] < err2Y) {
@@ -461,7 +465,7 @@ GPUd() int GPUTPCGMTrackParam::MergeDoubleRowClusters(int& ihit, int wayDirectio
 {
   if (ihit + wayDirection >= 0 && ihit + wayDirection < maxN && clusters[ihit].row == clusters[ihit + wayDirection].row && clusters[ihit].slice == clusters[ihit + wayDirection].slice && clusters[ihit].leg == clusters[ihit + wayDirection].leg) {
     float maxDistY, maxDistZ;
-    prop.GetErr2(maxDistY, maxDistZ, merger->Param(), zz, clusters[ihit].row, 0, clusters[ihit].slice, -1.f, 0.f); // TODO: Use correct time, avgCharge
+    prop.GetErr2(maxDistY, maxDistZ, merger->Param(), zz, clusters[ihit].row, 0, clusters[ihit].slice, -1.f, 0.f, 0.f); // TODO: Use correct time, avgCharge
     maxDistY = (maxDistY + mC[0]) * 20.f;
     maxDistZ = (maxDistZ + mC[2]) * 20.f;
     int noReject = 0; // Cannot reject if simple estimation of y/z fails (extremely unlike case)
@@ -559,7 +563,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
   int bin, ny, nz;
 
   float err2Y, err2Z;
-  Merger->Param().GetClusterErrors2(slice, iRow, Z, mP[2], mP[3], -1.f, 0.f, err2Y, err2Z);                                             // TODO: Use correct time/avgCharge
+  Merger->Param().GetClusterErrors2(slice, iRow, Z, mP[2], mP[3], -1.f, 0.f, 0.f, err2Y, err2Z);                                        // TODO: Use correct time/avgCharge
   const float sy2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Y + CAMath::Abs(mC[0]))); // Cov can be bogus when following circle
   const float sz2 = CAMath::Min(Merger->Param().rec.tpc.tubeMaxSize2, Merger->Param().rec.tpc.tubeChi2 * (err2Z + CAMath::Abs(mC[2]))); // In that case we should provide the track error externally
   const float tubeY = CAMath::Sqrt(sy2);

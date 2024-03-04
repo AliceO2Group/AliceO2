@@ -510,7 +510,7 @@ GPUd() int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const
         return way == 0;
       }
       trk.ConstrainSinPhi();
-      if (prop.Update(y, z, row, Param(), flags & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, 0, nullptr, false, slice, -1.f, 0.f)) { // TODO: Use correct time / avgCharge
+      if (prop.Update(y, z, row, Param(), flags & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, 0, nullptr, false, slice, -1.f, 0.f, 0.f)) { // TODO: Use correct time / avgCharge
         return way == 0;
       }
       trk.ConstrainSinPhi();
