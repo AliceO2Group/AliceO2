@@ -129,7 +129,7 @@ GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPU
     tfFactor = dz / GPUTPCGeometry::TPCLength();
     dz = GPUTPCGeometry::TPCLength();
   }
-  const float norm = CAMath::FastInvSqrt(row->mNHits / tfFactor);
+  const float norm = CAMath::InvSqrt(row->mNHits / tfFactor);
   float sy = CAMath::Min(CAMath::Max((yMax - yMin) * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
   float sz = CAMath::Min(CAMath::Max(dz * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
   int maxy, maxz;
