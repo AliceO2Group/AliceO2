@@ -214,7 +214,7 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
 
     gpu::gpustd::array<float, 2> p = {y, z};
     gpu::gpustd::array<float, 3> c = {0, 0, 0};
-    mController->getTPCParam()->GetClusterErrors2(sector, currentRow, z, trkParam.getSnp(), trkParam.getTgl(), -1.f, 0.f, c[0], c[2]); // TODO: Note this disables occupancy / charge components of the error estimation
+    mController->getTPCParam()->GetClusterErrors2(sector, currentRow, z, trkParam.getSnp(), trkParam.getTgl(), -1.f, 0.f, 0.f, c[0], c[2]); // TODO: Note this disables occupancy / charge components of the error estimation
     if (sysE[0] > 0.f) {
       c[0] += sysE[0] * sysE[0];
     }
