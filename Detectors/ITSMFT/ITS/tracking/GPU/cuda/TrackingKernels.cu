@@ -717,7 +717,7 @@ void trackSeedHandler(CellSeed* trackSeeds,
                       const o2::base::Propagator* propagator,
                       const o2::base::PropagatorF::MatCorrType matCorrType)
 {
-  gpu::fitTrackSeedsKernel<<<1, 1>>>(
+  gpu::fitTrackSeedsKernel<<<20, 256>>>(
     trackSeeds,               // CellSeed* trackSeeds,
     foundTrackingFrameInfo,   // TrackingFrameInfo** foundTrackingFrameInfo,
     tracks,                   // o2::its::TrackITSExt* tracks,
