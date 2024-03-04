@@ -60,7 +60,7 @@ class CCDBManagerInstance
     bool isValid(long ts) { return ts < endvalidity && ts >= startvalidity; }
     bool isCacheValid(long ts)
     {
-      LOGP(debug, "isCacheValid : {} : {} : {} -> {}", cacheValidFrom, ts, cacheValidUntil, ts < cacheValidUntil && ts >= cacheValidFrom);
+      LOGP(debug, "isCacheValid : {} : {} : {} --> {}", cacheValidFrom, ts, cacheValidUntil, ts < cacheValidUntil && ts >= cacheValidFrom);
       return ts < cacheValidUntil && ts >= cacheValidFrom;
     }
     void clear()
