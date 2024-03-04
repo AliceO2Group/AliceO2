@@ -317,7 +317,7 @@ void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy,
 #endif
 }
 
-void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgCharge)
+void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgCharge, float charge)
 {
 #ifdef DEBUG_STREAMER
   float scaledMult = (time >= 0.f ? param.GetScaledMult(time) / param.tpcGeometry.Row2X(iRow) : 0.f);
@@ -336,6 +336,7 @@ void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, flo
                                                                                          << "track=" << track
                                                                                          << "scaledMultiplicity=" << scaledMult
                                                                                          << "avgCharge=" << avgCharge
+                                                                                         << "charge=" << charge
                                                                                          << "\n";
 #endif
 }
