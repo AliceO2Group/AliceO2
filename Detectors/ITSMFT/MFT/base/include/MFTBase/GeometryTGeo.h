@@ -50,8 +50,11 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return sInstance.get();
   }
 
-  // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
-  static void adopt(GeometryTGeo* raw);
+  static bool instanceExist() { return sInstance.get() != nullptr; }
+
+  // Adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
+  // When adopting an object owned by the CCDB cache we should not delete it
+  static void adopt(GeometryTGeo* raw, bool canDelete = false);
 
   // constructor
   // ATTENTION: this class is supposed to behave as a singleton, but to make it

@@ -40,7 +40,12 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   /// build detector layout data, must be overriden by detector
   virtual void Build(int loadTrans) = 0;
 
+  bool isOwner() const { return mOwner; }
+  void setOwner(bool v) { mOwner = v; }
+
  protected:
+  bool mOwner = true; //! is it owned by the singleton?
+
   ClassDefOverride(GeometryTGeo, 1); // ITSMFR geometry based on TGeo
 };
 } // namespace itsmft
