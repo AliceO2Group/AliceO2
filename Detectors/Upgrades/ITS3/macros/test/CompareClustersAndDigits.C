@@ -98,8 +98,8 @@ void CompareClustersAndDigits(std::string clusfile = "o2clus_it3.root",
   std::vector<MC2HITS_map> mc2hitVec;
 
   // Geometry
-  /* o2::base::GeometryManager::loadGeometry(inputGeom, false, false, true); */
-  auto gman = o2::its::GeometryTGeo::Instance(true);
+  o2::base::GeometryManager::loadGeometry(inputGeom);
+  auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
   const int nChips = gman->getNumberOfChips();

@@ -84,7 +84,7 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its3.root",
   float bz = o2::base::Propagator::Instance()->getNominalBz();
 
   // Geometry
-  /* o2::base::GeometryManager::loadGeometry(inputGeom, false, false, true); */
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
 
   // MC tracks

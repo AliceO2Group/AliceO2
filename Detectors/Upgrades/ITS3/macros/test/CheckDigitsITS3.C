@@ -57,7 +57,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
-  auto* gman = o2::its::GeometryTGeo::Instance(true);
+  auto* gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G));
 
   // Hits

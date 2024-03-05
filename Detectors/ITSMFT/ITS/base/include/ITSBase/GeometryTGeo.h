@@ -52,14 +52,14 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // it is cheaper to use T2GRot
   using DetMatrixCache::getMatrixT2G;
 
-  static GeometryTGeo* Instance(bool isITS3 = false)
+  static GeometryTGeo* Instance()
   {
     // get (create if needed) a unique instance of the object
 #ifdef GPUCA_STANDALONE
     return nullptr; // TODO: DR: Obviously wrong, but to make it compile for now
 #else
     if (!sInstance) {
-      sInstance = std::make_unique<GeometryTGeo>(true, 0, isITS3);
+      sInstance = std::make_unique<GeometryTGeo>(true, 0);
     }
     return sInstance.get();
 #endif
@@ -72,7 +72,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // we must define public default constructor.
   // NEVER use it, it will throw exception if the class instance was already created
   // Use GeometryTGeo::Instance() instead
-  GeometryTGeo(bool build = kFALSE, int loadTrans = 0, bool isITS3 = false);
+  GeometryTGeo(bool build = kFALSE, int loadTrans = 0);
 
   /// Default destructor, don't use
   ~GeometryTGeo() override;

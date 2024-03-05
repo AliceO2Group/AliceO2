@@ -29,6 +29,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
                                     bool disableRootOutput,
+                                    bool useGeom,
                                     int useTrig);
 }
 
