@@ -351,7 +351,7 @@ std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int iSlice, int iRow, c
   return retVal;
 }
 
-void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal) const
+void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgCharge, float charge) const
 {
 #ifdef DEBUG_STREAMER
   float time = clusterNative.getTime();
@@ -372,6 +372,8 @@ void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy,
                                                                                     << "retVal=" << retVal
                                                                                     << "occupancyBins=" << occupancyBins
                                                                                     << "trackUncorrectedYZ=" << uncorrectedYZ
+                                                                                    << "avgCharge=" << avgCharge
+                                                                                    << "charge=" << charge
                                                                                     << "\n";
 #endif
 }
