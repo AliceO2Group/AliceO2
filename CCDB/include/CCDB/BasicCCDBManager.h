@@ -183,7 +183,7 @@ class CCDBManagerInstance
   /// A convenience function for MC to fetch
   /// valid start and end timestamps given an ALICE run number.
   /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
-  std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true) const;
+  std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true);
 
   /// A convenience function for MC to fetch
   /// valid start and end timestamps given an ALICE run number.
