@@ -54,6 +54,16 @@ class GPUTPCGMPropagator
     ITS = 1, ///< ITS
     TRD = 2  ///< outer TPC -> outer TRD
   };
+  enum UpdateRetVal {
+    updateErrorFitFailed = -1,
+    updateErrorClusterRejected = 2,
+    updateErrorEdgeCluster = 3
+  };
+  enum RejectChi2Mode {
+    rejectDirect = 1,
+    rejectInterFill = 2,
+    rejectInterReject = 3
+  };
 
   GPUdDefault() GPUTPCGMPropagator() CON_DEFAULT;
 
