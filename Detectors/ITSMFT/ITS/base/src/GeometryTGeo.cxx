@@ -56,7 +56,13 @@ using Segmentation = o2::itsmft::SegmentationAlpide;
 ClassImp(o2::its::GeometryTGeo);
 
 std::unique_ptr<o2::its::GeometryTGeo> GeometryTGeo::sInstance;
-o2::its::GeometryTGeo::~GeometryTGeo() = default;
+o2::its::GeometryTGeo::~GeometryTGeo()
+{
+  if (!mOwner) {
+    mOwner = true;
+    sInstance.release();
+  }
+}
 
 std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
@@ -93,13 +99,14 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo
 }
 
 //__________________________________________________________________________
-void GeometryTGeo::adopt(GeometryTGeo* raw)
+void GeometryTGeo::adopt(GeometryTGeo* raw, bool canDelete)
 {
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   if (sInstance) {
     LOG(fatal) << "No adoption: o2::its::GeometryTGeo instance exists";
   }
   sInstance = std::unique_ptr<o2::its::GeometryTGeo>(raw);
+  sInstance->mOwner = canDelete;
 }
 
 //__________________________________________________________________________
