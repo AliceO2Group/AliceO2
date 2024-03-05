@@ -301,8 +301,12 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
 #endif //! GPUCA_TEXTURE_FETCH_CONSTRUCTOR
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
         tracker.GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(tracker.ISlice(), iRow, yUncorrected, zUncorrected, yUncorrected, zUncorrected);
-
 #endif
+
+        if (tracker.Param().rec.tpc.rejectEdgeClustersInSeeding && tracker.Param().rejectEdgeClusterByY(yUncorrected, iRow)) {
+          rowHit = CALINK_INVAL;
+          break;
+        }
         calink best = CALINK_INVAL;
 
         float err2Y, err2Z;
