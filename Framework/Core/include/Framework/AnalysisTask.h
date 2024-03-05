@@ -349,9 +349,9 @@ struct AnalysisDataProcessorBuilder {
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, processingFunction, infos);
       // pre-bind self indices
       std::apply(
-        [&](auto&... t) {
+        [&task](auto&... t) mutable {
           (homogeneous_apply_refs(
-             [&](auto& p) {
+             [&t](auto& p) {
                PartitionManager<std::decay_t<decltype(p)>>::bindInternalIndices(p, &t);
                return true;
              },
@@ -360,9 +360,9 @@ struct AnalysisDataProcessorBuilder {
         },
         associatedTables);
 
-      auto binder = [&](auto&& x) {
+      auto binder = [&task, &groupingTable, &associatedTables](auto& x) mutable {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
-        homogeneous_apply_refs([&x](auto& t) {
+        homogeneous_apply_refs([&x](auto& t) mutable {
           PartitionManager<std::decay_t<decltype(t)>>::setPartition(t, x);
           PartitionManager<std::decay_t<decltype(t)>>::bindExternalIndices(t, &x);
           return true;
@@ -373,7 +373,7 @@ struct AnalysisDataProcessorBuilder {
 
       // always pre-bind full tables to support index hierarchy
       std::apply(
-        [&](auto&&... x) {
+        [&binder](auto&... x) mutable {
           (binder(x), ...);
         },
         associatedTables);
@@ -391,7 +391,7 @@ struct AnalysisDataProcessorBuilder {
           auto associatedSlices = slice.associatedTables();
           overwriteInternalIndices(associatedSlices, associatedTables);
           std::apply(
-            [&](auto&&... x) {
+            [&binder](auto&... x) mutable {
               (binder(x), ...);
             },
             associatedSlices);
