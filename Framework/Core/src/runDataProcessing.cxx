@@ -422,11 +422,20 @@ void log_callback(uv_poll_t* handle, int status, int events)
   if (status < 0) {
     info.active = false;
   }
+  // We are in writeable mode. This means that something connected and
+  // therefore we can read from the child. Switch to readable mode.
+  if (events & UV_WRITABLE) {
+    uv_poll_start(handle, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, log_callback);
+    return;
+  }
   if (events & UV_READABLE) {
     getChildData(logContext->fd, info);
   }
   if (events & UV_DISCONNECT) {
     info.active = false;
+    // This makes sure we do not get any more events until it reconnects (which
+    // does not happen in the current implementation).
+    uv_poll_start(handle, UV_WRITABLE, log_callback);
   }
 }
 
@@ -606,7 +615,10 @@ void handleChildrenStdio(uv_loop_t* loop,
       auto handle = handles.back();
       handle->data = context;
       uv_poll_init(loop, handle, fd);
-      uv_poll_start(handle, UV_READABLE, log_callback);
+      // We need to start with the poller in writeable mode so that we
+      // do not unnecessarily block get notified when the child is not yet
+      // connected.
+      uv_poll_start(handle, UV_WRITABLE, log_callback);
     };
 
     addPoller(i, childstdout[0]);
