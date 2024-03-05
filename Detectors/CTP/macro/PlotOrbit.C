@@ -32,8 +32,10 @@ void PlotOrbit(int runNumber)
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   // Timestamp
   auto soreor = ccdbMgr.getRunDuration(runNumber);
-  uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
+  // uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
+  uint64_t timeStamp = soreor.first + 60 * 1000;
   std::cout << "Timestamp:" << timeStamp << std::endl;
+  //
   // Scalers
   std::string srun = std::to_string(runNumber);
   std::map<string, string> metadata;
@@ -45,7 +47,9 @@ void PlotOrbit(int runNumber)
     return;
   }
   scl->convertRawToO2();
-  std::vector<CTPScalerRecordO2> recs = scl->getScalerRecordO2();
+  // return ;
+  std::vector<CTPScalerRecordRaw> recs = scl->getScalerRecordRaw();
+  std::cout << "raw rec size:" << recs.size() << std::endl;
   //
   //
   // Anal
@@ -55,10 +59,12 @@ void PlotOrbit(int runNumber)
   int64_t timeL = recs[recs.size() - 1].epochTime;
   double_t Trun = timeL - time0;
   // double_t orbit0 = recs[0].intRecord.orbit;
-  int64_t orbit0 = scl->getOrbitLimit().first;
-  int64_t orbitL = scl->getOrbitLimit().second;
+  int64_t orbit0 = scl->getOrbitLimitFromRaw().first;
+  int64_t orbitL = scl->getOrbitLimitFromRaw().second;
   int n = recs.size() - 1;
   std::cout << " Run duration:" << Trun << " Scalers size:" << n + 1 << std::endl;
+  std::cout << "Orbit0:" << orbit0 << " orbitL:" << orbitL << std::endl;
+  return;
   Double_t x[n], orbit[n];
   // Double_t tcetsctoznc[n], tcetoznc[n], vchtoznc[n];
   for (int i = 0; i < n; i++) {

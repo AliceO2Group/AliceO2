@@ -10,9 +10,11 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <TMath.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <DataFormatsCTP/Configuration.h>
-#include "ctpRateFetcher.h"
+#include <DataFormatsParameters/GRPLHCIFData.h>
+#include "Common/CCDB/ctpRateFetcher.h"
 #endif
 using namespace o2::ctp;
 
@@ -23,11 +25,8 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   }
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
-  // o2::ccdb::CcdbApi api;
-  // api.init("http://alice-ccdb.cern.ch"); // alice-ccdb.cern.ch
-  // api.init("http://ccdb-test.cern.ch:8080");
+
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  // ccdbMgr.setURL("http://ccdb-test.cern.ch:8080");
   auto soreor = ccdbMgr.getRunDuration(runNumber);
   uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
   std::cout << "Timestamp:" << timeStamp << std::endl;
@@ -43,7 +42,6 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   std::string srun = std::to_string(runNumber);
   metadata.clear(); // can be empty
   metadata["runNumber"] = srun;
-  ccdbMgr.setURL("http://ccdb-test.cern.ch:8080");
   auto ctpscalers = ccdbMgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timeStamp, metadata);
   if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timeStamp;
@@ -129,10 +127,15 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   if (iznc != 255) {
     std::cout << "ZNC class:";
     // uint64_t integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
-    auto zncrate = ctpscalers->getRateGivenT(0, iznc, 6);
+    auto zncrate = ctpscalers->getRateGivenT(timeStamp * 1.e-3, iznc, 6);
     std::cout << "ZNC class rate:" << zncrate.first / 28. << std::endl;
   } else {
-    std::cout << "ZNC class not available" << std::endl;
+    std::cout << "ZNC class not available, rate from input:" << std::endl;
   }
+  auto zncinprate = ctpscalers->getRateGivenT((timeStamp + 100) * 1.e-3, 25, 7);
+  std::cout << "ZNC inp rate:" << zncinprate.first / 28. << " " << zncinprate.second / 28. << std::endl;
+
   // ctpRateFetcher ctprate;
+  // auto fetcherRate = ctprate.fetch(&ccdbMgr, timeStamp, runNumber, "ZNChadronic");
+  // std::cout << "Result from the fetcher (ZNC): " << fetcherRate << std::endl;
 }

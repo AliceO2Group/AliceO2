@@ -21,11 +21,13 @@
 using namespace o2::ctp;
 void errorCounters::printStream(std::ostream& stream) const
 {
-  stream << "Counter warnings diff 1 lmBlmA:" << lmBlmAd1 << " lmAl0B:" << lmAl0Bd1 << " l0Bl0A:" << l0Bl0Ad1 << " l0Al1B: " << l0Al1Bd1 << " l1Bl1A:" << l1Bl1Ad1;
-  stream << std::endl;
-  stream << "Counter errorrs: lmB:" << lmB << " l0B:" << l0B << " l1B:" << l1B << " lmA:" << lmA << " l0A:" << l0A << " l1A:" << l1A;
-  stream << " lmBlmA:" << lmBlmA << " lmAl0B:" << lmAl0B << " l0Bl0A:" << l0Bl0A << " l0Al1B: " << l0Al1B << " l1Bl1A:" << l1Bl1A;
-  stream << std::endl;
+  // stream << "Counter warnings diff 1 lmBlmA:" << lmBlmAd1 << " lmAl0B:" << lmAl0Bd1 << " l0Bl0A:" << l0Bl0Ad1 << " l0Al1B: " << l0Al1Bd1 << " l1Bl1A:" << l1Bl1Ad1;
+  // stream << std::endl;
+  if (lmB + l0B + l1B + lmA + l0A + l1A + lmBlmA + lmAl0B + l0Bl0A + l0Al1B + l1Bl1A) {
+    stream << "Counter errorrs: lmB:" << lmB << " l0B:" << l0B << " l1B:" << l1B << " lmA:" << lmA << " l0A:" << l0A << " l1A:" << l1A;
+    stream << " lmBlmA:" << lmBlmA << " lmAl0B:" << lmAl0B << " l0Bl0A:" << l0Bl0A << " l0Al1B: " << l0Al1B << " l1Bl1A:" << l1Bl1A;
+    stream << std::endl;
+  }
 }
 void CTPScalerRaw::printStream(std::ostream& stream) const
 {
@@ -498,20 +500,19 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
 int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const
 {
   static int iPrint = 0;
-  if (mRunNumber < 545367) {
-    if (iPrint < 1) {
-      LOG(info) << "CTP Input scalers not available for run:" << mRunNumber;
-      iPrint++;
-    }
-    return 0;
-  }
   uint32_t NINPS = 48;
   if (rec0.scalersInps.size() < NINPS) {
-    LOG(error) << "updateOverflowsInps.size < 48:" << rec0.scalersInps.size();
+    if (iPrint < 1) {
+      LOG(warning) << "Input scalers not available. Size:" << rec0.scalersInps.size();
+      iPrint++;
+    }
     return 1;
   }
   if (rec1.scalersInps.size() < NINPS) {
-    LOG(error) << "updateOverflowsInps.size < 48:" << rec1.scalersInps.size();
+    if (iPrint < 1) {
+      LOG(warning) << "Input scalers not available. Size:" << rec0.scalersInps.size();
+      iPrint++;
+    }
     return 2;
   }
   for (uint32_t i = 0; i < NINPS; i++) {
