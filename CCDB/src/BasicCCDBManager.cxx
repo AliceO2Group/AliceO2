@@ -47,9 +47,26 @@ std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(o2::ccdb::CcdbAp
   return std::make_pair(sor, eor);
 }
 
-std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, bool fatal) const
+std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, bool fatal)
 {
-  return CCDBManagerInstance::getRunDuration(mCCDBAccessor, runnumber, fatal);
+  mQueries++;
+  if (!isCachingEnabled()) {
+    return CCDBManagerInstance::getRunDuration(mCCDBAccessor, runnumber, fatal);
+  }
+  auto& cached = mCache["RCT-Run-Info HeaderOnly"];
+  std::pair<int64_t, int64_t> rd;
+  cached.queries++;
+  if (cached.startvalidity != runnumber) { // need to fetch
+    rd = CCDBManagerInstance::getRunDuration(mCCDBAccessor, runnumber, fatal);
+    cached.objPtr = std::make_shared<std::pair<int64_t, int64_t>>(rd);
+    cached.startvalidity = runnumber;
+    cached.endvalidity = runnumber + 1;
+    cached.minSize = cached.maxSize = 0;
+    cached.fetches++;
+  } else {
+    rd = *reinterpret_cast<std::pair<int64_t, int64_t>*>(cached.objPtr.get());
+  }
+  return rd;
 }
 
 std::string CCDBManagerInstance::getSummaryString() const
