@@ -164,6 +164,14 @@ struct ContextElementTraits<ProcessingContext> {
   }
 };
 
+template <>
+struct ContextElementTraits<InitContext> {
+  static InitContext& get(InitContext& ctx)
+  {
+    return ctx;
+  }
+};
+
 template <StringLiteral L, typename T>
 struct ContextElementTraits<Input<L, T> const> {
   static Input<L, T> get(ProcessingContext& ctx)
