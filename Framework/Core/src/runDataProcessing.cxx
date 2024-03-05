@@ -838,7 +838,7 @@ void processChildrenOutput(DriverInfo& driverInfo,
   std::match_results<std::string_view::const_iterator> match;
   ParsedMetricMatch metricMatch;
   ParsedConfigMatch configMatch;
-  const std::string delimiter("\n");
+  constexpr auto delimiter = "\n";
 
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
     DeviceInfo& info = infos[di];
@@ -851,7 +851,7 @@ void processChildrenOutput(DriverInfo& driverInfo,
     }
 
     O2_SIGNPOST_ID_FROM_POINTER(sid, driver, &info);
-    O2_SIGNPOST_START(driver, sid, "bytes_processed", "bytes processed by %{xcode:pid}d", info.pid);
+    O2_SIGNPOST_START(driver, sid, "bytes_processed", "Staring processing of logs from pid %{public}s (%{xcode:pid}d)", spec.name.data(), info.pid);
 
     std::string_view s = info.unprinted;
     size_t pos = 0;
@@ -894,12 +894,12 @@ void processChildrenOutput(DriverInfo& driverInfo,
           info.firstSevereError = token;
         }
       }
-      s.remove_prefix(pos + delimiter.length());
+      s.remove_prefix(pos + strlen(delimiter));
     }
     size_t oldSize = info.unprinted.size();
     info.unprinted = std::string(s);
     int64_t bytesProcessed = oldSize - info.unprinted.size();
-    O2_SIGNPOST_END(driver, sid, "bytes_processed", "bytes processed by %{xcode:network-size-in-bytes}" PRIi64, bytesProcessed);
+    O2_SIGNPOST_END(driver, sid, "bytes_processed", "Done processing %{xcode:network-size-in-bytes}" PRIi64 " bytes by %{public}s", bytesProcessed, spec.name.data());
   }
 }
 
