@@ -665,9 +665,9 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     return O2_BUILTIN_UNLIKELY(mSelectionRow == sentinel.index);
   }
 
-         /// Move iterator to one after the end. Since this is a view
-         /// we move the mSelectionRow to one past the view size and
-         /// the mRowIndex to one past the last entry in the selection
+  /// Move iterator to one after the end. Since this is a view
+  /// we move the mSelectionRow to one past the view size and
+  /// the mRowIndex to one past the last entry in the selection
   void moveToEnd()
   {
     this->mSelectionRow = this->mMaxSelection;
@@ -2862,7 +2862,7 @@ class FilteredBase : public T
   using external_index_columns_t = typename T::external_index_columns_t;
 
   using iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowViewFiltered<FilteredBase<T>, Os...>{}; }(originals{}));
-  using unfiltered_iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowView<FilteredBase<T>, Os...>{}; }(originals{}));
+  using unfiltered_iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowView<FilteredBase<T>, Os...>{}; }(originals{}));
   using const_iterator = iterator;
 
   FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
@@ -3126,7 +3126,7 @@ class Filtered : public FilteredBase<T>
   using originals = originals_pack_t<T>;
 
   using iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowViewFiltered<Filtered<T>, Os...>{}; }(originals{}));
-  using unfiltered_iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowView<Filtered<T>, Os...>{}; }(originals{}));
+  using unfiltered_iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowView<Filtered<T>, Os...>{}; }(originals{}));
   using const_iterator = iterator;
 
   iterator begin()
@@ -3283,7 +3283,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   using table_t = typename FilteredBase<typename T::table_t>::table_t;
   using originals = originals_pack_t<T>;
   using iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowViewFiltered<Filtered<Filtered<T>>, Os...>{}; }(originals{}));
-  using unfiltered_iterator = decltype([]<typename... Os>(framework::pack<Os...>){ return typename table_t::template RowView<Filtered<Filtered<T>>, Os...>{}; }(originals{}));
+  using unfiltered_iterator = decltype([]<typename... Os>(framework::pack<Os...>) { return typename table_t::template RowView<Filtered<Filtered<T>>, Os...>{}; }(originals{}));
   using const_iterator = iterator;
 
   iterator begin()

@@ -479,17 +479,17 @@ namespace parts
 DECLARE_SOA_INDEX_COLUMN(Event, event);
 DECLARE_SOA_COLUMN(Property, property, int);
 DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(Relatives, relatives);
-}
+} // namespace parts
 DECLARE_SOA_TABLE(Parts, "AOD", "PRTS", soa::Index<>, parts::EventId, parts::Property, parts::RelativesIdSlice);
 
 namespace things
 {
 DECLARE_SOA_INDEX_COLUMN(Event, event);
 DECLARE_SOA_INDEX_COLUMN(Part, part);
-}
+} // namespace things
 DECLARE_SOA_TABLE(Things, "AOD", "THNGS", soa::Index<>, things::EventId, things::PartId);
 
-}
+} // namespace o2::aod
 
 template <typename... As>
 static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
@@ -520,7 +520,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
     if (filler[0] > filler[1]) {
       std::swap(filler[0], filler[1]);
     }
-    partsWriter(0,  std::floor(i/10.), i, filler);
+    partsWriter(0, std::floor(i / 10.), i, filler);
   }
   auto partsTable = builderP.finalize();
 
@@ -560,19 +560,19 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
     for (auto& thing : ts) {
       if (thing.has_part()) {
         auto part = thing.part_as<FilteredParts>();
-        REQUIRE(std::is_same_v<std::decay_t<decltype(part)>::parent_t,FilteredParts>);
+        REQUIRE(std::is_same_v<std::decay_t<decltype(part)>::parent_t, FilteredParts>);
         auto rs = part.relatives_as<std::decay_t<decltype(part)::parent_t>>();
         REQUIRE(std::is_same_v<std::decay_t<decltype(rs)>, FilteredParts>);
         for (auto& r : rs) {
-          REQUIRE(std::is_same_v<std::decay_t<decltype(r)>::parent_t,FilteredParts>);
+          REQUIRE(std::is_same_v<std::decay_t<decltype(r)>::parent_t, FilteredParts>);
           auto rss = r.relatives_as<std::decay_t<decltype(r)>::parent_t>();
           REQUIRE(std::is_same_v<std::decay_t<decltype(rss)>, FilteredParts>);
           for (auto& rr : rss) {
-            REQUIRE(std::is_same_v<std::decay_t<decltype(rr)>::parent_t,FilteredParts>);
+            REQUIRE(std::is_same_v<std::decay_t<decltype(rr)>::parent_t, FilteredParts>);
             auto rsss = rr.relatives_as<std::decay_t<decltype(rr)>::parent_t>();
             REQUIRE(std::is_same_v<std::decay_t<decltype(rsss)>, FilteredParts>);
             for (auto& rrr : rsss) {
-              REQUIRE(std::is_same_v<std::decay_t<decltype(rrr)>::parent_t,FilteredParts>);
+              REQUIRE(std::is_same_v<std::decay_t<decltype(rrr)>::parent_t, FilteredParts>);
               auto rssss = rrr.relatives_as<std::decay_t<decltype(rrr)>::parent_t>();
               REQUIRE(std::is_same_v<std::decay_t<decltype(rssss)>, FilteredParts>);
             }
@@ -581,7 +581,6 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
       }
     }
   }
-
 }
 
 TEST_CASE("EmptySliceables")
