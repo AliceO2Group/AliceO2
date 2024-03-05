@@ -35,16 +35,34 @@ void CCDBManagerInstance::reportFatal(std::string_view err)
 std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(o2::ccdb::CcdbApi const& api, int runnumber, bool fatal)
 {
   auto response = api.retrieveHeaders("RCT/Info/RunInformation", std::map<std::string, std::string>(), runnumber);
-  if (response.size() == 0 || response.find("SOR") == response.end() || response.find("EOR") == response.end()) {
-    if (fatal) {
-      LOG(fatal) << "Empty or missing response from query to RCT/Info/RunInformation for run " << runnumber;
-    } else {
-      return std::make_pair(-1L, -1L);
+  if (response.size() != 0) {
+    std::string report{};
+    auto strt = response.find("SOX");
+    long valStrt = (strt == response.end()) ? -1L : boost::lexical_cast<int64_t>(strt->second);
+    if (valStrt < 1) {
+      report += fmt::format(" Missing/invalid SOX -> use SOR");
+      strt = response.find("SOR");
+      valStrt = (strt == response.end()) ? -1L : boost::lexical_cast<int64_t>(strt->second);
+    }
+    auto stop = response.find("EOX");
+    long valStop = (stop == response.end()) ? -1L : boost::lexical_cast<int64_t>(stop->second);
+    if (valStop < 1) {
+      report += fmt::format(" | Missing/invalid EOX -> use EOR");
+      stop = response.find("EOR");
+      valStop = (stop == response.end()) ? -1L : boost::lexical_cast<int64_t>(stop->second);
+    }
+    if (!report.empty()) {
+      LOGP(warn, "{}", report);
+    }
+    if (valStrt > 0 && valStop >= valStrt) {
+      return std::make_pair(valStrt, valStop);
     }
   }
-  auto sor = boost::lexical_cast<int64_t>(response["SOR"]);
-  auto eor = boost::lexical_cast<int64_t>(response["EOR"]);
-  return std::make_pair(sor, eor);
+  // failure
+  if (fatal) {
+    LOG(fatal) << "Empty, missing or invalid response from query to RCT/Info/RunInformation for run " << runnumber;
+  }
+  return std::make_pair(-1L, -1L);
 }
 
 std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(int runnumber, bool fatal)
