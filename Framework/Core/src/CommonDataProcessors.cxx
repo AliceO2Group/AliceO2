@@ -568,29 +568,49 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
+void retryMetricCallback(uv_async_t* async)
+{
+  static size_t lastTimeslice = -1;
+  auto* services = (ServiceRegistryRef*)async->data;
+  auto& timesliceIndex = services->get<TimesliceIndex>();
+  auto* device = services->get<RawDeviceService>().device();
+  auto channel = device->GetChannels().find("metric-feedback");
+  auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+  if (channel == device->GetChannels().end()) {
+    return;
+  }
+  fair::mq::MessagePtr payload(device->NewMessage());
+  payload->Rebuild(&oldestPossingTimeslice, sizeof(int64_t), nullptr, nullptr);
+  auto* consumed = (size_t*)malloc(sizeof(size_t));
+  *consumed = oldestPossingTimeslice;
+
+  int64_t result = channel->second[0].Send(payload, 100);
+  // If the sending worked, we do not retry.
+  if (result != 0) {
+    // If the sending did not work, we keep trying until it actually works.
+    // This will schedule other tasks in the queue, so the processing of the
+    // data will still happen.
+    uv_async_send(async);
+  } else {
+    lastTimeslice = *consumed;
+  }
+}
+
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, std::string rateLimitingChannelConfig)
 {
   return DataProcessorSpec{
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
-    .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
+    .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks, DeviceState& deviceState, InitContext& ic) {
+      static uv_async_t async;
+      // The callback will only have access to the
+      async.data = new ServiceRegistryRef{ic.services()};
+      uv_async_init(deviceState.loop, &async, retryMetricCallback);
       auto domainInfoUpdated = [](ServiceRegistryRef services, size_t timeslice, ChannelIndex channelIndex) {
         LOGP(debug, "Domain info updated with timeslice {}", timeslice);
-        static size_t lastTimeslice = -1;
+        retryMetricCallback(&async);
         auto& timesliceIndex = services.get<TimesliceIndex>();
-        auto device = services.get<RawDeviceService>().device();
-        auto channel = device->GetChannels().find("metric-feedback");
         auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
-        if (channel != device->GetChannels().end()) {
-          fair::mq::MessagePtr payload(device->NewMessage());
-          size_t* consumed = (size_t*)malloc(sizeof(size_t));
-          *consumed = oldestPossingTimeslice;
-          if (*consumed != lastTimeslice) {
-            payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
-            channel->second[0].Send(payload);
-            lastTimeslice = *consumed;
-          }
-        }
         auto& stats = services.get<DataProcessingStats>();
         stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
       };
