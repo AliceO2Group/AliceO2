@@ -125,6 +125,7 @@ class GPUTPCTracker : public GPUProcessor
     // Param().GetClusterErrors2(mISlice, iRow, Param().GetContinuousTracking() != 0. ? 125.f : z, sinPhi, DzDs, time, avgCharge, ErrY2, ErrZ2);
     Param().GetClusterErrorsSeeding2(mISlice, iRow, Param().par.continuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, time, avgCharge, charge, ErrY2, ErrZ2);
   }
+  GPUd() static bool rejectEdgeClusterByY(float uncorrectedY, int iRow) { return false; }
 
   void SetupCommonMemory();
   bool SliceDataOnGPU();
