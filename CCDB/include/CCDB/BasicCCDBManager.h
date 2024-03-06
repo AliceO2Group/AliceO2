@@ -147,8 +147,7 @@ class CCDBManagerInstance
     if (!isCachingEnabled()) {
       return false;
     }
-    return mCache[path].isCacheValid(timestamp); // use stricter check
-    //    return mCache[path].isValid(timestamp);
+    return (mCheckObjValidityEnabled && mCache[path].isValid(timestamp)) || mCache[path].isCacheValid(timestamp); // use stricter check
   }
 
   /// check if checks of object validity before CCDB query is enabled
@@ -264,6 +263,7 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
         cached.objPtr.reset(ptr);
       }
       cached.uuid = mHeaders["ETag"];
+
       try {
         if (mHeaders.find("Valid-From") != mHeaders.end()) {
           cached.startvalidity = std::stol(mHeaders["Valid-From"]);
