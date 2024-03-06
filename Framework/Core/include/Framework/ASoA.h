@@ -2954,10 +2954,10 @@ class FilteredBase : public T
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    auto s = this->asArrowTable()->Slice(start, end - start + 1);
-    SelectionVector newSelection{static_cast<int64_t>(end - start + 1)};
-    std::iota(newSelection.begin(), newSelection.end(), 0);
-    return self_t{{s}, newSelection, start};
+    SelectionVector newSelection;
+    newSelection.resize(static_cast<int64_t>(end - start + 1));
+    std::iota(newSelection.begin(), newSelection.end(), start);
+    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
   }
 
   auto emptySlice() const
@@ -3227,12 +3227,14 @@ class Filtered : public FilteredBase<T>
     return it;
   }
 
+  using FilteredBase<T>::getSelectedRows;
+
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    auto s = this->asArrowTable()->Slice(start, end - start + 1);
-    SelectionVector newSelection{static_cast<int64_t>(end - start + 1)};
-    std::iota(newSelection.begin(), newSelection.end(), 0);
-    return self_t{{s}, newSelection, start};
+    SelectionVector newSelection;
+    newSelection.resize(static_cast<int64_t>(end - start + 1));
+    std::iota(newSelection.begin(), newSelection.end(), start);
+    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
   }
 
   auto emptySlice() const
@@ -3401,10 +3403,10 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 
   auto rawSlice(uint64_t start, uint64_t end) const
   {
-    auto s = this->asArrowTable()->Slice(start, end - start + 1);
-    SelectionVector newSelection{static_cast<int64_t>(end - start + 1)};
-    std::iota(newSelection.begin(), newSelection.end(), 0);
-    return self_t{{s}, newSelection, start};
+    SelectionVector newSelection;
+    newSelection.resize(static_cast<int64_t>(end - start + 1));
+    std::iota(newSelection.begin(), newSelection.end(), start);
+    return self_t{{this->asArrowTable()}, std::move(newSelection), 0};
   }
 
   auto emptySlice() const

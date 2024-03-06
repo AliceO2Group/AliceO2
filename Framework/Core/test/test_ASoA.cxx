@@ -1039,20 +1039,16 @@ TEST_CASE("TestSelfIndexRecursion")
   // FIXME: only 4 levels of recursive self-index dereference are tested
   // self-index binding should stay the same for recursive dereferences
   for (auto& p : fp) {
-    auto bp = std::is_same_v<std::decay_t<decltype(p)>, FullPoints::iterator>;
-    REQUIRE(bp);
+    REQUIRE(std::is_same_v<std::decay_t<decltype(p)>, FullPoints::iterator>);
     auto ops = p.pointSeq_as<FullPoints>();
     for (auto& pp : ops) {
-      auto bpp = std::is_same_v<std::decay_t<decltype(pp)>, FullPoints::iterator>;
-      REQUIRE(bpp);
+      REQUIRE(std::is_same_v<std::decay_t<decltype(pp)>, FullPoints::iterator>);
       auto opps = pp.pointSeq_as<FullPoints>();
       for (auto& ppp : opps) {
-        auto bppp = std::is_same_v<std::decay_t<decltype(ppp)>, FullPoints::iterator>;
-        REQUIRE(bppp);
+        REQUIRE(std::is_same_v<std::decay_t<decltype(ppp)>, FullPoints::iterator>);
         auto oppps = ppp.pointSeq_as<FullPoints>();
         for (auto& pppp : oppps) {
-          auto bpppp = std::is_same_v<std::decay_t<decltype(pppp)>, FullPoints::iterator>;
-          REQUIRE(bpppp);
+          REQUIRE(std::is_same_v<std::decay_t<decltype(pppp)>, FullPoints::iterator>);
           auto opppps = pppp.pointSeq_as<FullPoints>();
         }
       }
@@ -1077,21 +1073,16 @@ TEST_CASE("TestSelfIndexRecursion")
 
   // Filter should not interfere with self-index and the binding should stay the same
   for (auto& p : ffp) {
-    using T1 = std::decay_t<decltype(p)>;
-    auto bp = std::is_same_v<T1, FilteredPoints::iterator>;
-    REQUIRE(bp);
-    auto ops = p.pointSeq_as<typename T1::parent_t>();
+    REQUIRE(std::is_same_v<std::decay_t<decltype(p)>, FilteredPoints::iterator>);
+    auto ops = p.pointSeq_as<typename std::decay_t<decltype(p)>::parent_t>();
     for (auto& pp : ops) {
-      auto bpp = std::is_same_v<std::decay_t<decltype(pp)>, FullPoints::iterator>;
-      REQUIRE(bpp);
+      REQUIRE(std::is_same_v<std::decay_t<decltype(pp)>::parent_t, FilteredPoints>);
       auto opps = pp.pointSeq_as<FilteredPoints>();
       for (auto& ppp : opps) {
-        auto bppp = std::is_same_v<std::decay_t<decltype(ppp)>, FullPoints::iterator>;
-        REQUIRE(bppp);
+        REQUIRE(std::is_same_v<std::decay_t<decltype(ppp)>, FilteredPoints::iterator>);
         auto oppps = ppp.pointSeq_as<FilteredPoints>();
         for (auto& pppp : oppps) {
-          auto bpppp = std::is_same_v<std::decay_t<decltype(pppp)>, FullPoints::iterator>;
-          REQUIRE(bpppp);
+          REQUIRE(std::is_same_v<std::decay_t<decltype(pppp)>, FilteredPoints::iterator>);
           auto opppps = pppp.pointSeq_as<FilteredPoints>();
         }
       }
@@ -1100,7 +1091,7 @@ TEST_CASE("TestSelfIndexRecursion")
 
   auto const& ffpa = ffp;
 
-  // rawIteratorAt() should create an unfiltered iterator, unline begin() and iteratorAt()
+  // rawIteratorAt() should create an unfiltered iterator, unlike begin() and iteratorAt()
   for (auto& it1 : ffpa) {
     [[maybe_unused]] auto it2 = ffpa.rawIteratorAt(0);
     [[maybe_unused]] auto it3 = ffpa.iteratorAt(0);
