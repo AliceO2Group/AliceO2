@@ -24,7 +24,6 @@
 #include <sstream>
 #include <boost/property_tree/ptree.hpp>
 #include <functional>
-#include <cassert>
 
 using namespace o2::framework;
 
@@ -45,7 +44,7 @@ void loopOverMembers(TClass* cl, void* obj,
     auto* dm = (TDataMember*)memberlist->At(i);
 
     auto isValidComplex = [dm]() {
-      auto typehash = compile_time_hash(dm->GetTypeName());
+      auto typehash = runtime_hash(dm->GetTypeName());
       return isString(*dm) || dm->IsEnum() || dm->IsSTLContainer() ||
              (typehash == compile_time_hash("o2::framework::Array2D<int>")) ||
              (typehash == compile_time_hash("o2::framework::Array2D<float>")) ||
@@ -93,7 +92,7 @@ void ptreeToMember(boost::property_tree::ptree const& value,
                    TDataMember* dm,
                    void* ptr)
 {
-  auto typehash = compile_time_hash(dm->GetTypeName());
+  auto typehash = runtime_hash(dm->GetTypeName());
   if (dm->IsSTLContainer()) {
     switch (typehash) {
       case compile_time_hash("vector<int>"):
@@ -198,7 +197,7 @@ void ptreeToMember(boost::property_tree::ptree const& value,
 // Convert a DataMember to a ConfigParamSpec
 ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void* ptr)
 {
-  auto typehash = compile_time_hash(dm->GetTypeName());
+  auto typehash = runtime_hash(dm->GetTypeName());
   if (dm->IsSTLContainer()) {
     switch (typehash) {
       case compile_time_hash("vector<int>"):

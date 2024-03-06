@@ -580,7 +580,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   }
   const char* name = name_str.c_str();
 
-  auto hash = compile_time_hash(name);
+  auto hash = runtime_hash(name);
 
   std::vector<OutputSpec> outputs;
   std::vector<InputSpec> inputs;

@@ -422,7 +422,7 @@ struct OutputObj {
   OutputSpec const spec()
   {
     header::DataDescription desc{};
-    auto lhash = compile_time_hash(label.c_str());
+    auto lhash = runtime_hash(label.c_str());
     std::memset(desc.str, '_', 16);
     std::stringstream s;
     s << std::hex << lhash;

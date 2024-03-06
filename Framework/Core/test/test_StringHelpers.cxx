@@ -16,9 +16,9 @@ TEST_CASE("StringHelpersHash")
 {
   std::string s{"test-string"};
   char const* const cs = "test-string";
-  REQUIRE(compile_time_hash(s.c_str()) == compile_time_hash("test-string"));
-  REQUIRE(compile_time_hash(cs) == compile_time_hash("test-string"));
-  REQUIRE(compile_time_hash(s.c_str()) == compile_time_hash(cs));
+  REQUIRE(runtime_hash(s.c_str()) == compile_time_hash("test-string"));
+  REQUIRE(runtime_hash(cs) == compile_time_hash("test-string"));
+  REQUIRE(runtime_hash(s.c_str()) == runtime_hash(cs));
 }
 
 template <typename T>

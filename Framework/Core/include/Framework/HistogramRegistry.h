@@ -175,6 +175,7 @@ class HistogramRegistry
   void registerName(const std::string& name);
 
   std::string mName{};
+  uint32_t nameHash;
   OutputObjHandlingPolicy mPolicy{};
   bool mCreateRegistryDir{};
   bool mSortHistos{};
