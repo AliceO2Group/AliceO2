@@ -52,6 +52,7 @@ struct DriverServerContext {
   /// The handle to the server component of the
   /// driver.
   uv_tcp_t serverHandle;
+  uv_async_t* asyncLogProcessing = nullptr;
 };
 } // namespace o2::framework
 
