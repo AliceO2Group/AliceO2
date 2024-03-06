@@ -324,7 +324,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
 #endif
         float time = merger->Param().par.earlyTpcTransform ? -1.f : merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].getTime();
         float tmpCharge = merger->GetConstantMem()->ioPtrs.clustersNative ? CAMath::InvSqrt(merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num].qMax) : 0.f;
-        if (merger->Param().rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && merger->Param().rejectEdgeClusterByY(uncorrectedY, cluster.row)) {
+        if (merger->Param().rec.tpc.rejectEdgeClustersInTrackFit && uncorrectedY > -1e6f && merger->Param().rejectEdgeClusterByY(uncorrectedY, cluster.row)) { // uncorrectedY > -1e6f implies allowModification
           retVal = GPUTPCGMPropagator::updateErrorEdgeCluster;
         } else {
           retVal = prop.Update(yy, zz, cluster.row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit, cluster.slice, time, (avgCharge += tmpCharge) / ++nAvgCharge, tmpCharge GPUCA_DEBUG_STREAMER_CHECK(, iTrk)); // TODO: Use avgCharge

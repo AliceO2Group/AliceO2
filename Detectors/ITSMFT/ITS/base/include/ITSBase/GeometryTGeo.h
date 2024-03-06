@@ -65,7 +65,14 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 #endif
   }
 
-  static bool instanceExist() { return sInstance.get() != nullptr; }
+  static bool instanceExist()
+  {
+#ifdef GPUCA_STANDALONE
+    return false;
+#else
+    return sInstance.get() != nullptr;
+#endif
+  }
 
   // Adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
   // When adopting an object owned by the CCDB cache we should not delete it
