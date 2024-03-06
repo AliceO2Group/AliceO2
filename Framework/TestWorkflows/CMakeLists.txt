@@ -33,6 +33,10 @@ o2_add_dpl_workflow(diamond-workflow
                   SOURCES src/o2DiamondWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(two-timers
+                  SOURCES src/o2TwoTimers.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 o2_add_dpl_workflow(dummy-calibration-workflow
                   SOURCES src/o2DummyCalibrationWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
