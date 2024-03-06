@@ -175,7 +175,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
         LOG(error) << "No object " << obj.name << " in map for task " << taskname;
         return;
       }
-      auto nameHash = compile_time_hash(obj.name.c_str());
+      auto nameHash = runtime_hash(obj.name.c_str());
       InputObjectRoute key{obj.name, nameHash, taskname, hash, policy, sourceType};
       auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
       // If it's the first one, we just add it to the list.

@@ -2377,7 +2377,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
         if (context.isSink && action.op == CompletionPolicy::CompletionOp::Consume) {
           O2_SIGNPOST_EVENT_EMIT(device, pcid, "device", "Sending dpl-summary");
           auto& allocator = ref.get<DataAllocator>();
-          allocator.make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
+          allocator.make<int>(OutputRef{"dpl-summary", runtime_hash(spec.name.c_str())}, 1);
         }
 
         // Extra callback which allows a service to add extra outputs.
