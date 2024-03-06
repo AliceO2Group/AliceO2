@@ -207,7 +207,7 @@ class GPUTPCGMMerger : public GPUProcessor
   void MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode, float weight, float frac) const;
   const GPUTPCGMBorderTrack& MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId) const;
   void DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track) const;
-  std::vector<unsigned short> StreamerOccupancyBin(int iSlice, int iRow, float time) const;
+  std::vector<unsigned int> StreamerOccupancyBin(int iSlice, int iRow, float time) const;
   std::vector<float> StreamerUncorrectedZY(int iSlice, int iRow, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop) const;
 
   void DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgCharge, float charge) const;
