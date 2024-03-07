@@ -705,6 +705,12 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
         .channel = channel.name,
         .policy = forwardPolicyPtr,
       };
+      // In case we have a timer, the data it creates should be
+      // forwarded as a timeframe to the next device, so that
+      // we have synchronization.
+      if (route.matcher.lifetime == Lifetime::Timer) {
+        route.matcher.lifetime = Lifetime::Timeframe;
+      }
       device.forwards.emplace_back(route);
     }
   };
@@ -923,6 +929,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   auto appendInputRouteToDestDeviceChannel = [&devices, &logicalEdges, &workflow](size_t ei, size_t di, size_t ci) {
     auto const& edge = logicalEdges[ei];
     auto const& consumer = workflow[edge.consumer];
+    auto const& producer = workflow[edge.producer];
     auto& consumerDevice = devices[di];
 
     auto const& inputSpec = consumer.inputs[edge.consumerInputIndex];
@@ -947,6 +954,19 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       if (existingRoute.inputSpecIndex == edge.consumerInputIndex) {
         return;
       }
+    }
+
+    // In case we add a new route to the device, we remap any
+    // Lifetime::Timer to Lifetime::Timeframe, so that we can
+    // synchronize the devices without creating a new timer.
+    if (edge.isForward && route.matcher.lifetime == Lifetime::Timer) {
+      LOGP(warn,
+           "Warning: Forwarding timer {} from {} to a {} as both requested it."
+           " If this is undesired, please make sure to use two different data matchers for their InputSpec.",
+           DataSpecUtils::describe(route.matcher).c_str(),
+           producer.name.c_str(),
+           consumer.name.c_str());
+      route.matcher.lifetime = Lifetime::Timeframe;
     }
 
     consumerDevice.inputs.push_back(route);
