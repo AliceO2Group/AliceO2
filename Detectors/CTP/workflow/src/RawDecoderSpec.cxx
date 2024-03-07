@@ -118,7 +118,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   }
   if (mDoDigits) {
     LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits. IR rejected:" << mDecoder.getIRRejected() << " TCR rejected:" << mDecoder.getTCRRejected();
-    if( (mMaxOutputSize > 0) && (mOutputDigits.size() > mMaxOutputSize)) {
+    if ((mMaxOutputSize > 0) && (mOutputDigits.size() > mMaxOutputSize)) {
       LOG(error) << "CTP raw output size: " << mOutputDigits.size();
       mOutputDigits.clear();
     }
@@ -194,6 +194,6 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
       {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
       {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
-      {"max-output-size", o2::framework::VariantType::Int,0,{"Do not send output if bigger than max size, 0 - do not check"}},
+      {"max-output-size", o2::framework::VariantType::Int, 0, {"Do not send output if bigger than max size, 0 - do not check"}},
       {"ctpinputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: true - raw decoder - has to be compatible with CTF decoder: allowed options: 10,01,00"}}}};
 }
