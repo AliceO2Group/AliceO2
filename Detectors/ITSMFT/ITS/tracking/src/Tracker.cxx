@@ -128,7 +128,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
 
 void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
 {
-  double total{0};
+  double total{0.};
   mTraits->UpdateTrackingParameters(mTrkParams);
   int maxNvertices{-1};
   if (mTrkParams[0].PerPrimaryVertexProcessing) {
@@ -138,13 +138,12 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
   }
 
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
-
-    logger(fmt::format("ITS Hybrid Tracking iteration {} summary:", iteration));
+    int nROFsIterations = mTrkParams[iteration].nROFsPerIterations > 0 ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
+    logger(fmt::format("=========== ITS Hybrid Tracking iteration {} summary ===========", iteration, nROFsIterations, maxNvertices));
     double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
     int nTracklets{0}, nCells{0}, nNeighbours{0}, nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
 
     total += evaluateTask(&Tracker::initialiseTimeFrameHybrid, "Hybrid Timeframe initialisation", logger, iteration);
-    int nROFsIterations = mTrkParams[iteration].nROFsPerIterations > 0 ? mTimeFrame->getNrof() / mTrkParams[iteration].nROFsPerIterations + bool(mTimeFrame->getNrof() % mTrkParams[iteration].nROFsPerIterations) : 1;
     int iVertex{std::min(maxNvertices, 0)};
 
     do {
@@ -178,7 +177,8 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
         timeNeighbours += evaluateTask(
           &Tracker::findCellsNeighboursHybrid, "Neighbour finding", [](std::string) {}, iteration);
         nNeighbours += mTimeFrame->getNumberOfNeighbours();
-        timeRoads += evaluateTask( &Tracker::findRoads, "Road finding", [](std::string) {}, iteration);
+        timeRoads += evaluateTask(
+          &Tracker::findRoads, "Road finding", [](std::string) {}, iteration);
       }
       iVertex++;
     } while (iVertex < maxNvertices);
@@ -204,40 +204,6 @@ void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, 
   }
   rectifyClusterIndices();
   mNumberOfRuns++;
-
-  // double total{0.};
-  // mTraits->UpdateTrackingParameters(mTrkParams);
-  // for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
-  // LOGP(info, "Iteration {}", iteration);
-  // total += evaluateTask(&Tracker::initialiseTimeFrameHybrid, "Hybrid Timeframe initialisation", logger, iteration);
-  // total += evaluateTask(&Tracker::computeTrackletsHybrid, "Hybrid Tracklet finding", logger, iteration, iteration, iteration); // TODO: iteration argument put just for the sake of the interface, to be updated with the proper ROF slicing
-  // logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
-  // if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-  //   error("Too much memory used during trackleting, check the detector status and/or the selections.");
-  //   break;
-  // }
-  // float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
-  // if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
-  //   error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections. Current limit is {}", trackletsPerCluster, mTrkParams[iteration].TrackletsPerClusterLimit));
-  //   break;
-  // }
-
-  // total += evaluateTask(&Tracker::computeCellsHybrid, Form("Hybrid Cell finding iteration %d", iteration), logger, iteration);
-  // logger(fmt::format("\t- Number of Cells: {}", mTraits->getTFNumberOfCells()));
-  // if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-  //   error("Too much memory used during cell finding, check the detector status and/or the selections.");
-  //   break;
-  // }
-  // float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
-  // if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
-  //   error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections. Current limit is {}", cellsPerCluster, mTrkParams[iteration].CellsPerClusterLimit));
-  //   break;
-  // }
-  // total += evaluateTask(&Tracker::findCellsNeighboursHybrid, Form("Hybrid Neighbour finding iteration %d", iteration), logger, iteration);
-  // logger(fmt::format("\t- Number of Neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
-  // total += evaluateTask(&Tracker::findRoads, Form("Hybrid Track finding iteration %d", iteration), logger, iteration);
-  // logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
-  // }
 }
 
 void Tracker::initialiseTimeFrame(int& iteration)

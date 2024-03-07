@@ -14,12 +14,13 @@
 #define ITSTRACKINGGPU_TRACKINGKERNELS_H_
 
 #include "DetectorsBase/Propagator.h"
-#include "GPUCommonLogger.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
 namespace its
 {
+class CellSeed;
 namespace gpu
 {
 #ifdef GPUCA_GPUCODE // GPUg() global kernels must only when compiled by GPU compiler

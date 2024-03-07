@@ -201,7 +201,7 @@ class TimeFrameGPU : public TimeFrame
   void loadRoadsDevice();
   void loadTrackSeedsDevice(std::vector<CellSeed>&);
   void createCellNeighboursDevice(const unsigned int& layer, std::vector<std::pair<int, int>>& neighbours);
-  void createTrackITSExtDevice(const unsigned int&);
+  void createTrackITSExtDevice(std::vector<CellSeed>&);
   void downloadTrackITSExtDevice(std::vector<CellSeed>&);
   void initDeviceChunks(const int, const int);
   template <Task task>
