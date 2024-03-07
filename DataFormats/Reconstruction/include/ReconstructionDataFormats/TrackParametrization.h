@@ -641,7 +641,7 @@ GPUdi() auto TrackParametrization<value_T>::getXYZGlo() const -> math_utils::Poi
 #else // mockup on GPU without ROOT
   float sina, cosa;
   gpu::CAMath::SinCos(getAlpha(), sina, cosa);
-  return math_utils::Point3D<value_t>(cosa * getX() + sina * getY(), cosa * getY() - sina * getX(), getZ());
+  return math_utils::Point3D<value_t>(cosa * getX() - sina * getY(), cosa * getY() + sina * getX(), getZ());
 #endif
 }
 
@@ -671,7 +671,7 @@ GPUdi() auto TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, b
 #else // mockup on GPU without ROOT
     float sina, cosa;
     gpu::CAMath::SinCos(getAlpha(), sina, cosa);
-    return math_utils::Point3D<value_t>(cosa * xk + sina * y, cosa * y - sina * xk, z);
+    return math_utils::Point3D<value_t>(cosa * xk - sina * y, cosa * y + sina * xk, z);
 #endif
   } else {
     return math_utils::Point3D<value_t>();
