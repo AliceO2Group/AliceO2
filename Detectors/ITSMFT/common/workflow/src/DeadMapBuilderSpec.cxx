@@ -296,7 +296,7 @@ void ITSMFTDeadMapBuilder::stop()
     if (mDoLocalOutput) {
       LOG(info) << "stop() not sending object as output. ccdb will not be populated.";
     } else {
-      LOG(error) << "stop() not sending object as output. ccdb will not be populated.";
+      LOG(warning) << "stop() not sending object as output. ccdb will not be populated.";
     }
     isEnded = true;
   }
