@@ -999,7 +999,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
   constexpr value_t kMSConst2 = 0.0136f * 0.0136f;
-  constexpr value_t kMinP = 0.01f;        // kill below this momentum
+  constexpr value_t kMinP = 0.01f; // kill below this momentum
 
   value_t csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
   value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
@@ -1188,10 +1188,22 @@ template <typename value_T>
 std::string TrackParametrizationWithError<value_T>::asString() const
 {
   return TrackParametrization<value_t>::asString() +
-         fmt::format(" Cov: [{:+.3e}] [{:+.3e} {:+.3e}] [{:+.3e} {:+.3e} {:+.3e}] [{:+.3e} {:+.3e} {:+.3e} {:+.3e}] [{:+.3e} {:+.3e} {:+.3e} {:+.3e} {:+.3e}]",
+         fmt::format(" \nCovMat: [{:+.3e}]\n        [{:+.3e} {:+.3e}]\n        [{:+.3e} {:+.3e} {:+.3e}]\n        [{:+.3e} {:+.3e} {:+.3e} {:+.3e}]\n        [{:+.3e} {:+.3e} {:+.3e} {:+.3e} {:+.3e}]",
                      mC[kSigY2], mC[kSigZY], mC[kSigZ2], mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], mC[kSigTglY],
                      mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
                      mC[kSigQ2Pt2]);
+}
+
+template <typename value_T>
+std::string TrackParametrizationWithError<value_T>::asStringHexadecimal()
+{
+  return TrackParametrization<value_t>::asStringHexadecimal() +
+         fmt::format(" \n<> CovMat: [{:x}]\n<>         [{:x} {:x}]\n<>         [{:x} {:x} {:x}]\n<>         [{:x} {:x} {:x} {:x}]\n<>         [{:x} {:x} {:x} {:x} {:x}]",
+                     reinterpret_cast<const unsigned int&>(mC[kSigY2]), reinterpret_cast<const unsigned int&>(mC[kSigZY]), reinterpret_cast<const unsigned int&>(mC[kSigZ2]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigSnpY]), reinterpret_cast<const unsigned int&>(mC[kSigSnpZ]), reinterpret_cast<const unsigned int&>(mC[kSigSnp2]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigTglY]), reinterpret_cast<const unsigned int&>(mC[kSigTglZ]), reinterpret_cast<const unsigned int&>(mC[kSigTglSnp]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigTgl2]), reinterpret_cast<const unsigned int&>(mC[kSigQ2PtY]), reinterpret_cast<const unsigned int&>(mC[kSigQ2PtZ]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigQ2PtSnp]), reinterpret_cast<const unsigned int&>(mC[kSigQ2PtTgl]), reinterpret_cast<const unsigned int&>(mC[kSigQ2Pt2]));
 }
 #endif
 
@@ -1205,14 +1217,38 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
 #else
   TrackParametrization<value_T>::printParam();
   printf(
-    "\n%7s %+.3e\n"
-    "%7s %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e",
+    "\n%7s [%+.3e]\n"
+    "%7s [%+.3e %+.3e]\n"
+    "%7s [%+.3e %+.3e %+.3e]\n"
+    "%7s [%+.3e %+.3e %+.3e %+.3e]\n"
+    "%7s [%+.3e %+.3e %+.3e %+.3e %+.3e]\n",
     "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
     mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
     mC[kSigQ2Pt2]);
+#endif
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
+{
+  // print parameters
+#ifndef GPUCA_ALIGPUCODE
+  printf("%s\n", asStringHexadecimal().c_str());
+#else
+  TrackParametrization<value_T>::printParamHexadecimal();
+  printf(
+    "\n<> %7s [%x]\n"
+    "<> %7s [%x %x]\n"
+    "<> %7s [%x %x %x]\n"
+    "<> %7s [%x %x %x %x]\n"
+    "<> %7s [%x %x %x %x %x]\n",
+    "<> CovMat:",
+    __float_as_uint(mC[kSigY2]), "",
+    __float_as_uint(mC[kSigZY]), __float_as_uint(mC[kSigZ2]), "",
+    __float_as_uint(mC[kSigSnpY]), __float_as_uint(mC[kSigSnpZ]), __float_as_uint(mC[kSigSnp2]), "",
+    __float_as_uint(mC[kSigTglY]), __float_as_uint(mC[kSigTglZ]), __float_as_uint(mC[kSigTglSnp]), __float_as_uint(mC[kSigTgl2]), "",
+    __float_as_uint(mC[kSigQ2PtY]), __float_as_uint(mC[kSigQ2PtZ]), __float_as_uint(mC[kSigQ2PtSnp]), __float_as_uint(mC[kSigQ2PtTgl]), __float_as_uint(mC[kSigQ2Pt2]));
 #endif
 }
 

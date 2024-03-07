@@ -386,13 +386,18 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
         updatedCellId.clear();
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
-      trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
+      for (auto& seed : updatedCellSeed) {
+        if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
+          continue;
+        }
+        trackSeeds.push_back(seed);
+      }
     }
     if (!trackSeeds.size()) {
       LOGP(info, "No track seeds found, skipping track finding");
       continue;
     }
-    mTimeFrameGPU->createTrackITSExtDevice(trackSeeds.size());
+    mTimeFrameGPU->createTrackITSExtDevice(trackSeeds);
     mTimeFrameGPU->loadTrackSeedsDevice(trackSeeds);
 
     trackSeedHandler(
@@ -415,6 +420,9 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
     });
 
     for (auto& track : tracks) {
+      if (!track.getChi2()) {
+        continue; // this is to skip the unset tracks that are put at the beginning of the vector by the sorting. To see if this can be optimised.
+      }
       int nShared = 0;
       bool isFirstShared{false};
       for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {

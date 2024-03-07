@@ -18,7 +18,7 @@
 #include "GPUCommonLogger.h"
 #include <TFile.h>
 #include "CommonUtils/TreeStreamRedirector.h"
-//#define _DBG_LOC_ // for local debugging only
+// #define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
 #undef NDEBUG
@@ -256,7 +256,7 @@ void MatLayerCylSet::print(bool data) const
          float(getFlatBufferSize()) / 1024 / 1024);
 }
 
-#endif //!GPUCA_ALIGPUCODE
+#endif //! GPUCA_ALIGPUCODE
 
 #ifndef GPUCA_GPUCODE
 //________________________________________________________________________________
@@ -391,8 +391,8 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
   } // loop over layers
 
   if (rval.length != 0.f) {
-    rval.meanRho /= rval.length;                                       // average
-    rval.meanX2X0 *= ray.getDist();                                    // normalize
+    rval.meanRho /= rval.length;    // average
+    rval.meanX2X0 *= ray.getDist(); // normalize
   }
   rval.length = ray.getDist();
 

@@ -27,9 +27,6 @@ namespace its
 {
 namespace gpu
 {
-
-namespace
-{
 template <typename T, size_t Size>
 struct ArrayTraits final {
   typedef T InternalArray[Size];
@@ -44,7 +41,6 @@ struct ArrayTraits final {
     return const_cast<T*>(internalArray);
   }
 };
-} // namespace
 
 template <typename T, size_t Size>
 struct Array final {

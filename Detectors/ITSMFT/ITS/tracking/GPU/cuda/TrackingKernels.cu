@@ -44,6 +44,19 @@
 #include "DetectorsBase/Propagator.h"
 using namespace o2::track;
 
+#define gpuCheckError(x)                \
+  {                                     \
+    gpuAssert((x), __FILE__, __LINE__); \
+  }
+inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
+{
+  if (code != cudaSuccess) {
+    LOGF(error, "GPUassert: %s %s %d", cudaGetErrorString(code), file, line);
+    if (abort)
+      throw std::runtime_error("GPU assert failed.");
+  }
+}
+
 namespace o2
 {
 namespace its
@@ -73,38 +86,39 @@ GPUd() bool fitTrack(TrackITSExt& track,
     if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
       return false;
     }
-    if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      if (!track.propagateTo(trackingHit.xTrackingFrame, Bz)) {
-        return false;
-      }
-    } else {
 #ifdef __HIPCC__
-      if (!track.propagateTo(trackingHit.xTrackingFrame, Bz)) {
-        return false;
-      }
+    if (!track.propagateTo(trackingHit.xTrackingFrame, Bz)) {
+      return false;
+    }
 #else
-      if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
-                              prop->getNominalBz(),
-                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                              o2::base::PropagatorImpl<float>::MAX_STEP,
-                              matCorrType)) {
+    if (!prop->propagateToX(track,
+                            trackingHit.xTrackingFrame,
+                            Bz,
+                            o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                            o2::base::PropagatorImpl<float>::MAX_STEP,
+                            matCorrType)) {
+      return false;
+    }
+#endif
+#ifndef __HIPCC__
+    if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+#endif
+      track.setChi2(track.getChi2() + track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+      if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
         return false;
       }
+      const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
+      constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
+      constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
+      if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
+        return false;
+      }
+#ifndef __HIPCC__
+    }
 #endif
-    }
-    track.setChi2(track.getChi2() + track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
-    if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
-      return false;
-    }
 
-    const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
-    constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
-    constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
-    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
-      return false;
-    }
+    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
 
-    auto predChi2{track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
     }
@@ -132,16 +146,16 @@ GPUg() void fitTrackSeedsKernel(
 {
   for (int iCurrentTrackSeedIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentTrackSeedIndex < nSeeds; iCurrentTrackSeedIndex += blockDim.x * gridDim.x) {
     auto& seed = trackSeeds[iCurrentTrackSeedIndex];
-    if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > maxChi2NDF * ((startLevel + 2) * 2 - (nLayers - 2))) {
-      continue;
-    }
+
     TrackITSExt temporaryTrack{seed};
+
     temporaryTrack.resetCovariance();
     temporaryTrack.setChi2(0);
     int* clusters = seed.getClusters();
     for (int iL{0}; iL < 7; ++iL) {
       temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::its::UnusedIndex);
     }
+
     bool fitSuccess = fitTrack(temporaryTrack,               // TrackITSExt& track,
                                0,                            // int lastLayer,
                                nLayers,                      // int firstLayer,
@@ -728,6 +742,9 @@ void trackSeedHandler(CellSeed* trackSeeds,
     maxChi2NDF,               // float maxChi2NDF,
     propagator,               // const o2::base::Propagator* propagator
     matCorrType);             // o2::base::PropagatorF::MatCorrType matCorrType
+
+  gpuCheckError(cudaPeekAtLastError());
+  gpuCheckError(cudaDeviceSynchronize());
 }
 } // namespace its
 } // namespace o2

@@ -239,8 +239,10 @@ class TrackParametrization
   GPUhd() void setUserField(uint16_t v);
 
   GPUd() void printParam() const;
+  GPUd() void printParamHexadecimal();
 #ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
+  std::string asStringHexadecimal();
 #endif
 
   GPUd() void updateParam(value_t delta, int i);
