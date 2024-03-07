@@ -639,6 +639,24 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
   const GPUSettingsProcessing* p = nullptr;
   std::lock_guard lk(mMutexUpdateCalib);
   if (mUpdateNewCalibObjects) {
+    if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
+      grp = std::make_unique<GPUSettingsGRP>(mRec->GetGRPSettings());
+      if (mNewCalibValues->newSolenoidField) {
+        grp->solenoidBz = mNewCalibValues->solenoidField;
+      }
+      if (mNewCalibValues->newContinuousMaxTimeBin) {
+        grp->continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
+      }
+    }
+  }
+  if (GetProcessingSettings().tpcDownscaledEdx != 0) {
+    p = &GetProcessingSettings();
+  }
+  if (grp || p) {
+    mRec->UpdateSettings(grp.get(), p);
+    retVal = 1;
+  }
+  if (mUpdateNewCalibObjects) {
     void* const* pSrc = (void* const*)mNewCalibObjects.get();
     void** pDst = (void**)&processors()->calibObjects;
     for (unsigned int i = 0; i < sizeof(processors()->calibObjects) / sizeof(void*); i++) {
@@ -657,22 +675,6 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
       }
       UpdateGPUCalibObjects(stream, ptrsChanged ? nullptr : mNewCalibObjects.get());
     }
-    if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
-      grp = std::make_unique<GPUSettingsGRP>(mRec->GetGRPSettings());
-      if (mNewCalibValues->newSolenoidField) {
-        grp->solenoidBz = mNewCalibValues->solenoidField;
-      }
-      if (mNewCalibValues->newContinuousMaxTimeBin) {
-        grp->continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
-      }
-    }
-  }
-  if (GetProcessingSettings().tpcDownscaledEdx != 0) {
-    p = &GetProcessingSettings();
-  }
-  if (grp || p) {
-    mRec->UpdateSettings(grp.get(), p);
-    retVal = 1;
   }
 
   if ((mUpdateNewCalibObjects || (mRec->slavesExist() && updateSlave)) && mRec->IsGPU()) {
