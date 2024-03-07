@@ -272,11 +272,12 @@ void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track) con
 
 std::vector<unsigned int> GPUTPCGMMerger::StreamerOccupancyBin(int iSlice, int iRow, float time) const
 {
-  std::vector<unsigned int> retVal(1 + 2 * Param().rec.tpc.occupancyMapTimeBinsAverage);
+  static int size = getenv("O2_DEBUG_STREAMER_OCCUPANCY_NBINS") ? atoi(getenv("O2_DEBUG_STREAMER_OCCUPANCY_NBINS")) : Param().rec.tpc.occupancyMapTimeBinsAverage;
+  std::vector<unsigned int> retVal(1 + 2 * size);
 #ifdef DEBUG_STREAMER
   const int bin = CAMath::Max(0.f, time / Param().rec.tpc.occupancyMapTimeBins);
-  for (int i = 0; i < 1 + 2 * Param().rec.tpc.occupancyMapTimeBinsAverage; i++) {
-    const int mybin = bin + i - Param().rec.tpc.occupancyMapTimeBinsAverage;
+  for (int i = 0; i < 1 + 2 * size; i++) {
+    const int mybin = bin + i - size;
     retVal[i] = (mybin >= 0 && mybin < (int)GPUTPCClusterOccupancyMapBin::getNBins(Param())) ? Param().occupancyMap[mybin] : 0;
   }
 #endif
