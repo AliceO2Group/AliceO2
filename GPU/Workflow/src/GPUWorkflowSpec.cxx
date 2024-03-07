@@ -354,6 +354,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 void GPURecoWorkflowSpec::stop()
 {
   LOGF(info, "GPU Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer->CpuTime(), mTimer->RealTime(), mTimer->Counter() - 1);
+  handlePipelineStop();
 }
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
