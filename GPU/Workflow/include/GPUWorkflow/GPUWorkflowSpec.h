@@ -138,8 +138,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
-  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void stop() final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   o2::framework::Inputs inputs();
   o2::framework::Outputs outputs();
   o2::framework::Options options();
@@ -184,6 +184,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void RunWorkerThread(int id);
   void ExitPipeline();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
+  void handlePipelineStop();
   void initPipeline(o2::framework::InitContext& ic);
   void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context, bool inputFinal);
   void finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
