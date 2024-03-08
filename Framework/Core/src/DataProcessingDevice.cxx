@@ -92,7 +92,10 @@ struct formatter<o2::framework::CompletionPolicy::CompletionOp> : ostream_format
 };
 } // namespace fmt
 
+// A log to use for general device logging
 O2_DECLARE_DYNAMIC_LOG(device);
+// Special log to keep track of the lifetime of the parts
+O2_DECLARE_DYNAMIC_LOG(parts);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -1804,9 +1807,14 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         LOGP(error, "DataHeader payloadSize mismatch");
         continue;
       }
-      TracyPlot("payload size", (int64_t)dh->payloadSize);
       auto dph = o2::header::get<DataProcessingHeader*>(headerData);
-      TracyAlloc(parts.At(pi + 1)->GetData(), parts.At(pi + 1)->GetSize());
+      // We only deal with the tracking of parts if the log is enabled.
+      // This is because in principle we should track the size of each of
+      // the parts and sum it up. Not for now.
+      if (O2_LOG_ENABLED(parts) == true) {
+        O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerData);
+        O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
+      }
       if (!dph) {
         insertInputInfo(pi, 2, InputType::Invalid);
         LOGP(error, "Header stack does not contain DataProcessingHeader");
@@ -2180,10 +2188,12 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   // Function to cleanup record. For the moment we
   // simply use it to keep track of input messages
   // which are not needed, to display them in the GUI.
-#ifdef TRACY_ENABLE
   auto cleanupRecord = [](InputRecord& record) {
-    for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
-      DataRef input = record.getByPos(ii);
+    if (O2_LOG_ENABLED(parts) == false) {
+      return;
+    }
+    for (size_t pi = 0, pe = record.size(); pi < pe; ++pi) {
+      DataRef input = record.getByPos(pi);
       if (input.header == nullptr) {
         continue;
       }
@@ -2196,10 +2206,21 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       if (!dh) {
         continue;
       }
-      TracyFree(input.payload);
+      // We use the address of the first header of a split payload
+      // to identify the interval.
+      O2_SIGNPOST_ID_FROM_POINTER(pid, parts, dh);
+      O2_SIGNPOST_END(parts, pid, "parts", "Cleaning up parts associated to %p", dh);
+
+      // No split parts, we simply skip the payload
+      if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
+        // this is indicating a sequence of payloads following the header
+        // FIXME: we will probably also set the DataHeader version
+        pi += dh->splitPayloadParts - 1;
+      } else {
+        size_t pi = pi + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
+      }
     }
   };
-#endif
 
   auto switchState = [ref](StreamingState newState) {
     auto& control = ref.get<ControlService>();
@@ -2432,6 +2453,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
+      cleanupRecord(record);
       context.postDispatchingCallbacks(processContext);
       ref.get<CallbackService>().call<CallbackService::Id::DataConsumed>(o2::framework::ServiceRegistryRef{ref});
     }
@@ -2441,11 +2463,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     context.postForwardingCallbacks(processContext);
-    if (action.op == CompletionPolicy::CompletionOp::Consume) {
-#ifdef TRACY_ENABLE
-      cleanupRecord(record);
-#endif
-    } else if (action.op == CompletionPolicy::CompletionOp::Process) {
+    if (action.op == CompletionPolicy::CompletionOp::Process) {
       cleanTimers(action.slot, record);
     }
   }
