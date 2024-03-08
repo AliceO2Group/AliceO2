@@ -15,30 +15,6 @@
 #define DPL_HAS_TRACING
 #include <tracy/Tracy.hpp>
 #else
-#define ZoneScoped \
-  while (false) {  \
-  }
-#define FrameMark \
-  while (false) { \
-  }
-#define TracyPlot(...) \
-  while (false) {      \
-  }
-#define ZoneScopedN(...) \
-  while (false) {        \
-  }
-#define ZoneScopedNS(...) \
-  while (false) {         \
-  }
-#define TracyAlloc(...) \
-  while (false) {       \
-  }
-#define TracyFree(...) \
-  while (false) {      \
-  }
-#define TracyAppInfo(...) \
-  while (false) {         \
-  }
 #define O2_LOCKABLE_NAMED(T, V, N) T V
 #define O2_LOCKABLE(T) T
 #endif
