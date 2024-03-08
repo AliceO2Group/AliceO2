@@ -41,6 +41,21 @@ void PHOSL1phaseCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto cellTR = pc.inputs().get<gsl::span<TriggerRecord>>("cellTR");
   LOG(detail) << "Processing TF with " << cells.size() << " cells and " << cellTR.size() << " TrigRecords";
   mCalibrator->process(tfcounter, cells, cellTR);
+
+  ++mNprocessed;
+  // If sufficient statistics was collected, try to calculate L1phases
+  // If statistics reached N*thresholds try to re-calculate L1phases
+  // if they changed wrt previous, replace ccdb object, otherwise do nothing
+  if (mNprocessed % minStatisticsForCalib == 0) {
+    minStatisticsForCalib *= 2;
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+    mCalibrator->endOfStream();
+    if (mPrevCalibration != mCalibrator->getCalibration()) {
+      mPrevCalibration = mCalibrator->getCalibration();
+      // send this version of calibration to replace old one
+      sendCCDB(pc.outputs());
+    }
+  }
 }
 
 void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -48,12 +63,24 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   mCalibrator->endOfStream();
 
+  // try to re-calculate L1phases. If they was not calculated yet, or
+  // they changed wrt previous, replace ccdb object, otherwise do nothing
+
   if (mRunStartTime == 0 || mCalibrator->getCalibration() == 0) { // run not started || calibration was not produced
     return;                                                       // do not create CCDB object
   }
+  // already uploaded, no need to repeat
+  if (mPrevCalibration == mCalibrator->getCalibration()) {
+    return;
+  }
+  mPrevCalibration = mCalibrator->getCalibration();
+  sendCCDB(ec.outputs());
+}
+void PHOSL1phaseCalibDevice::sendCCDB(DataAllocator& outputs)
+{
 
-  std::vector<int> l1phase{mCalibrator->getCalibration()};
-  LOG(info) << "End of stream reached, sending output to CCDB";
+  std::vector<int> l1phase{mPrevCalibration};
+  LOG(info) << "Sending L1phase to CCDB";
   // prepare all info to be sent to CCDB
   auto flName = o2::ccdb::CcdbApi::generateFileName("L1phase");
   std::map<std::string, std::string> md;
@@ -67,11 +94,11 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
             << " bytes, valid for " << info.getStartValidityTimestamp()
             << " : " << info.getEndValidityTimestamp();
 
-  ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_L1phase", 0}, *image.get());
-  ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0}, info);
+  outputs.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_L1phase", 0}, *image.get());
+  outputs.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0}, info);
   // Send summary to QC
   LOG(info) << "Sending histos to QC ";
-  ec.outputs().snapshot(o2::framework::Output{"PHS", "L1PHASEHISTO", 0}, mCalibrator->getQcHistos());
+  outputs.snapshot(o2::framework::Output{"PHS", "L1PHASEHISTO", 0}, mCalibrator->getQcHistos());
 }
 
 o2::framework::DataProcessorSpec o2::phos::getPHOSL1phaseCalibDeviceSpec()
