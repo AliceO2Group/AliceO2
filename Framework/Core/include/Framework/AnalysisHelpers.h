@@ -14,7 +14,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/Traits.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoA.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/OutputRef.h"
 #include "Framework/InputSpec.h"

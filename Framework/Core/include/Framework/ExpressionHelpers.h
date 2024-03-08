@@ -12,7 +12,6 @@
 #define O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_
 #include "Framework/Expressions.h"
 
-#include <vector>
 #include <iosfwd>
 #include <fmt/format.h>
 

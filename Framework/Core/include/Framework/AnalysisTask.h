@@ -23,7 +23,6 @@
 #include "Framework/GroupSlicer.h"
 #include "Framework/StructToTuple.h"
 #include "Framework/Traits.h"
-#include "Framework/RuntimeError.h"
 #include "Framework/TypeIdHelpers.h"
 #include "Framework/ArrowTableSlicingCache.h"
 
@@ -102,15 +101,14 @@ struct AnalysisDataProcessorBuilder {
     return inputMetadata;
   }
 
-  template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires(std::is_lvalue_reference_v<Args>&&...)
+  template <typename G, typename... Args>
+  static void addGroupingCandidates(std::vector<StringPair>& bk, std::vector<StringPair>& bku)
   {
-    // update grouping cache
-    if constexpr (soa::is_soa_iterator_v<std::decay_t<framework::pack_element_t<0, framework::pack<Args...>>>>) {
-      [&bk, &bku]<typename GG, typename... As>(framework::pack<GG, As...>) mutable {
-        auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<GG>>());
-        ([&]() mutable {
-          if constexpr (soa::relatedByIndex<std::decay_t<GG>, std::decay_t<As>>()) {
+    if constexpr (soa::is_soa_iterator_v<std::decay_t<G>>) {
+      [&bk, &bku]<typename... As>(framework::pack<As...>) mutable {
+        auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
+        ([&bk, &bku, &key]() mutable {
+          if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<As>>()) {
             auto binding = soa::getLabelFromTypeForKey<std::decay_t<As>>(key);
             if constexpr (o2::soa::is_smallgroups_v<std::decay_t<As>>) {
               framework::updatePairList(bku, binding, key);
@@ -122,6 +120,26 @@ struct AnalysisDataProcessorBuilder {
          ...);
       }(framework::pack<Args...>{});
     }
+  }
+
+  template <typename O>
+  static void addOriginal(const char* name, bool value, std::vector<InputSpec>& inputs) requires soa::is_type_with_metadata_v<aod::MetadataTrait<std::decay_t<O>>>
+  {
+      using metadata = typename aod::MetadataTrait<std::decay_t<O>>::metadata;
+      std::vector<ConfigParamSpec> inputMetadata;
+      inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
+      if constexpr (soa::is_soa_index_table_v<std::decay_t<O>> || soa::is_soa_extension_table_v<std::decay_t<O>>) {
+        auto inputSources = getInputMetadata<std::decay_t<O>>();
+        inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+      }
+      DataSpecUtils::updateInputList(inputs, InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata});
+  }
+
+  template <typename R, typename C, typename... Args>
+  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires(std::is_lvalue_reference_v<Args>&&...)
+  {
+    // update grouping cache
+    addGroupingCandidates<Args...>(bk, bku);
 
     // populate input list and expression infos
     int ai = 0;
@@ -134,6 +152,7 @@ struct AnalysisDataProcessorBuilder {
         // FIXME: for the moment we do not support begin, end and step.
         DataSpecUtils::updateInputList(inputs, InputSpec{"enumeration", "DPL", "ENUM", 0, Lifetime::Enumeration, inputMetadata});
       } else {
+        // populate expression infos
         if constexpr (soa::is_soa_filtered_v<dT>) {
           auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
           eInfos.emplace_back(ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields));
@@ -143,21 +162,9 @@ struct AnalysisDataProcessorBuilder {
             eInfos.emplace_back(ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
           }
         }
-
+        // add inputs from the originals
         [&name, &value, &inputs]<typename... Os>(framework::pack<Os...>) mutable {
-          ([&name, &value, &inputs]() mutable {
-            using metadata = typename aod::MetadataTrait<std::decay_t<Os>>::metadata;
-            static_assert(std::is_same_v<metadata, void> == false,
-                          "Could not find metadata. Did you register your type?");
-            std::vector<ConfigParamSpec> inputMetadata;
-            inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-            if constexpr (soa::is_soa_index_table_v<std::decay_t<Os>> || soa::is_soa_extension_table_v<std::decay_t<Os>>) {
-              auto inputSources = getInputMetadata<std::decay_t<Os>>();
-              inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
-            }
-            DataSpecUtils::updateInputList(inputs, InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata});
-          }(),
-           ...);
+          (addOriginal<Os>(name, value, inputs),...);
         }(soa::make_originals_from_type<dT>());
       }
       return true;
@@ -198,7 +205,7 @@ struct AnalysisDataProcessorBuilder {
     expressions::updateFilterInfo(info, table);
     if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<T>>) {
       if (info.selection == nullptr) {
-        throw runtime_error_f("Null selection for %d (arg %d), missing Filter declaration?", info.processHash, info.argumentIndex);
+        soa::missingFilterDeclaration(info.processHash, info.argumentIndex);
       }
     }
     if constexpr (soa::is_soa_iterator_v<T>) {
