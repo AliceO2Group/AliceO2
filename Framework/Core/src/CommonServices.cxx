@@ -741,7 +741,6 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
     stats.updateStats({static_cast<unsigned short>(static_cast<int>(ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE) + (runningWorkflow.shmSegmentId % 512)), DataProcessingStats::Op::SetIfPositive, freeMemory});
   }
 
-  ZoneScopedN("send metrics");
   auto device = registry.get<RawDeviceService>().device();
 
   int64_t totalBytesIn = 0;

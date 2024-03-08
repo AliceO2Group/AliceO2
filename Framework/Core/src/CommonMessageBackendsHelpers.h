@@ -38,7 +38,6 @@ struct CommonMessageBackendsHelpers {
   static ServiceProcessingCallback sendCallback()
   {
     return [](ProcessingContext& ctx, void* service) {
-      ZoneScopedN("send message callback");
       T* context = reinterpret_cast<T*>(service);
       DataProcessor::doSend(ctx.services().get<DataSender>(), *context, ctx.services());
     };
