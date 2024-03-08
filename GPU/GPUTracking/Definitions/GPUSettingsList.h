@@ -272,6 +272,7 @@ AddOption(outputSanityCheck, bool, false, "", 0, "Run some simple sanity checks 
 AddOption(tpcSingleSector, int, -1, "", 0, "Restrict TPC processing to a single sector")
 AddOption(tpcDownscaledEdx, unsigned char, 0, "", 0, "If != 0, downscale dEdx processing (if enabled) to x %")
 AddOption(tpcMaxAttachedClustersPerSectorRow, unsigned int, 51000, "", 0, "Maximum number of TPC attached clusters which can be decoded per SectorRow")
+AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddSubConfig(GPUSettingsProcessingParam, param)
