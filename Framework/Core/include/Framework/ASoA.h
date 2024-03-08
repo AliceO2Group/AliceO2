@@ -1696,16 +1696,10 @@ class Table
     mBegin.bindExternalIndicesRaw(std::forward<std::vector<o2::soa::Binding>>(ptrs));
   }
 
-  template <typename T, typename... Cs>
-  void doCopyIndexBindings(framework::pack<Cs...>, T& dest) const
-  {
-    dest.bindExternalIndicesRaw(mBegin.getIndexBindings());
-  }
-
   template <typename T>
   void copyIndexBindings(T& dest) const
   {
-    doCopyIndexBindings(external_index_columns_t{}, dest);
+    dest.bindExternalIndicesRaw(mBegin.getIndexBindings());
   }
 
   auto select(framework::expressions::Filter const& f) const
@@ -2996,16 +2990,10 @@ class FilteredBase : public T
     mFilteredBegin.bindInternalIndices(ptr);
   }
 
-  template <typename T1, typename... Cs>
-  void doCopyIndexBindings(framework::pack<Cs...>, T1& dest) const
-  {
-    dest.bindExternalIndicesRaw(mFilteredBegin.getIndexBindings());
-  }
-
   template <typename T1>
   void copyIndexBindings(T1& dest) const
   {
-    doCopyIndexBindings(external_index_columns_t{}, dest);
+    dest.bindExternalIndicesRaw(mFilteredBegin.getIndexBindings());
   }
 
   template <typename T1>
