@@ -1,3 +1,9 @@
+# 2024-03-08: Clean up helper functions for packs handling
+
+- `select_pack` now first sets to void non-matching elements, and then prunes voids.
+- `has_type_at` is now non-recursive
+- `doCopyIndexBindings` no longer needed.
+
 # 2024-02-16: Improved Signposts.
 
 In particular:
