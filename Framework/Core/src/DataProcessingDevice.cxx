@@ -318,7 +318,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
       O2_SIGNPOST_END(device, sid, "socket_state", "Socket disconnected in context %{public}s", context->name);
     } break;
     case UV_PRIORITIZED: {
-      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "Data pending on socket for context %{public}s", context->name);
+      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "Socket prioritized for context %{public}s", context->name);
     } break;
   }
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
@@ -326,6 +326,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
 
 void on_out_of_band_polled(uv_poll_t* poller, int status, int events)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(sid, device, poller);
   auto* context = (PollerContext*)poller->data;
   context->state->loopReason |= DeviceState::OOB_ACTIVITY;
   if (status < 0) {
@@ -334,32 +335,27 @@ void on_out_of_band_polled(uv_poll_t* poller, int status, int events)
   }
   switch (events) {
     case UV_READABLE: {
-      ZoneScopedN("socket readable event");
+      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "Data pending on socket for channel %{public}s", context->name);
       context->state->loopReason |= DeviceState::DATA_INCOMING;
       assert(context->channelInfo);
-      LOGP(debug, "oob socket {} polled UV_READABLE.",
-           context->name,
-           context->channelInfo->hasPendingEvents);
       context->channelInfo->readPolled = true;
     } break;
     case UV_WRITABLE: {
-      ZoneScopedN("socket writeable");
+      O2_SIGNPOST_END(device, sid, "socket_state", "OOB socket connected for channel %{public}s", context->name);
       if (context->read) {
-        LOG(debug) << "socket polled UV_CONNECT" << context->name;
+        O2_SIGNPOST_START(device, sid, "socket_state", "OOB socket connected for read in context %{public}s", context->name);
         uv_poll_start(poller, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, &on_out_of_band_polled);
       } else {
-        LOG(debug) << "socket polled UV_WRITABLE" << context->name;
+        O2_SIGNPOST_START(device, sid, "socket_state", "OOB socket connected for write for channel %{public}s", context->name);
         context->state->loopReason |= DeviceState::DATA_OUTGOING;
       }
     } break;
     case UV_DISCONNECT: {
-      ZoneScopedN("socket disconnect");
-      LOG(debug) << "socket polled UV_DISCONNECT";
+      O2_SIGNPOST_END(device, sid, "socket_state", "OOB socket disconnected in context %{public}s", context->name);
       uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
     } break;
     case UV_PRIORITIZED: {
-      ZoneScopedN("socket prioritized");
-      LOG(debug) << "socket polled UV_PRIORITIZED";
+      O2_SIGNPOST_EVENT_EMIT(device, sid, "socket_state", "OOB socket prioritized for context %{public}s", context->name);
     } break;
   }
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
