@@ -50,6 +50,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mTFLength = ic.options().get<int>("tf-length");
   mDoLocalOutput = ic.options().get<bool>("local-output");
   mObjectName = ic.options().get<std::string>("outfile");
+  mCCDBUrl = ic.options().get<std::string>("ccdb-url");
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
   mSkipStaticMap = ic.options().get<bool>("skip-static-map");
 
@@ -131,9 +132,6 @@ void ITSMFTDeadMapBuilder::finalizeOutput()
 // Main running function
 void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 {
-  if (mRunStopRequested) { // give up when run stop request arrived
-    return;
-  }
 
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
   std::chrono::time_point<std::chrono::high_resolution_clock> end;
@@ -144,7 +142,11 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 
   mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
-  if ((unsigned long)(mFirstOrbitTF / mTFLength) % mTFSampling != 0) {
+  if (mFirstOrbitRun == 0x0) {
+    mFirstOrbitRun = mFirstOrbitTF;
+  }
+
+  if ((((long)mFirstOrbitTF - mFirstOrbitRun) / mTFLength) % mTFSampling != 0) {
     return;
   }
 
@@ -235,8 +237,10 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
+void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string ccdburl = "")
 {
+
+  // if ccdburl is specified, the object is sent to ccdb from this workflow
 
   long tend = o2::ccdb::getCurrentTimestamp();
 
@@ -253,16 +257,33 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
 
   info.setAdjustableEOV();
 
-  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size() << "bytes, valid for "
-            << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+  if (ccdburl.empty()) {
 
-  if (mRunMFT) {
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 1}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 1}, info);
-  } else {
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+              << "to ccdb-populator, of size " << image->size() << "bytes, valid for "
+              << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+
+    if (mRunMFT) {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 1}, *image.get());
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 1}, info);
+    } else {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 0}, *image.get());
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
+    }
+  }
+
+  else { // send from this workflow
+
+    LOG(info) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getFileName()
+              << " of size " << image->size() << "bytes, valid for "
+              << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+
+    o2::ccdb::CcdbApi mApi;
+    mApi.init(ccdburl);
+    mApi.storeAsBinaryFile(
+      &image->at(0), image->size(), info.getFileName(), info.getObjectType(),
+      info.getPath(), info.getMetaData(),
+      info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
 
   return;
@@ -273,11 +294,11 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(DataAllocator& output)
 // tells that there will be no more input data
 void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 {
-  if (!isEnded && !mRunStopRequested) {
-    LOG(info) << "endOfStream report:" << mSelfName;
+  if (!isEnded) {
+    LOG(info) << "endOfStream report: " << mSelfName;
     finalizeOutput();
     if (mMapObject.getEvolvingMapSize() > 0) {
-      PrepareOutputCcdb(ec.outputs());
+      PrepareOutputCcdb(&ec);
     } else {
       LOG(warning) << "Time-dependent dead map is empty and will not be forwarded as output";
     }
@@ -291,12 +312,14 @@ void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
 void ITSMFTDeadMapBuilder::stop()
 {
   if (!isEnded) {
-    LOG(info) << "stop() report:" << mSelfName;
+    LOG(info) << "stop() report: " << mSelfName;
     finalizeOutput();
-    if (mDoLocalOutput) {
-      LOG(info) << "stop() not sending object as output. ccdb will not be populated.";
+    if (!mCCDBUrl.empty()) {
+      std::string detname = mRunMFT ? "MFT" : "ITS";
+      LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << "deadmap builder workflow.";
+      PrepareOutputCcdb(nullptr, mCCDBUrl);
     } else {
-      LOG(warning) << "stop() not sending object as output. ccdb will not be populated.";
+      LOG(warning) << "endOfStream not processed. Nothing forwarded as output.";
     }
     isEnded = true;
   }
@@ -342,6 +365,7 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     Options{{"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
             {"skip-static-map", VariantType::Bool, false, {"Do not fill static part of the map."}},
+            {"ccdb-url", VariantType::String, "", {"CCDB url. Ignored if endOfStream is processed."}},
             {"outfile", VariantType::String, objectname_default, {"ROOT object file name."}},
             {"local-output", VariantType::Bool, false, {"Save ROOT tree file locally."}},
             {"output-dir", VariantType::String, "./", {"ROOT tree local output directory."}}}};

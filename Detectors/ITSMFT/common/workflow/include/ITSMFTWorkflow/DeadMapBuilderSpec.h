@@ -92,6 +92,7 @@ class ITSMFTDeadMapBuilder : public Task
 
   long mTimeStart = -1; // TODO: better to use RCT info?
 
+  std::string mCCDBUrl = "";
   std::string mObjectName;
   std::string mLocalOutputDir;
 
@@ -102,6 +103,7 @@ class ITSMFTDeadMapBuilder : public Task
   std::vector<uint16_t> mDeadMapTF{};
 
   unsigned long mFirstOrbitTF = 0x0;
+  unsigned long mFirstOrbitRun = 0x0;
 
   std::string mDataSource = "chipsstatus";
 
@@ -110,7 +112,7 @@ class ITSMFTDeadMapBuilder : public Task
   o2::itsmft::TimeDeadMap mMapObject;
 
   void finalizeOutput();
-  void PrepareOutputCcdb(DataAllocator& output);
+  void PrepareOutputCcdb(EndOfStreamContext* ec, std::string ccdburl);
 
   // Utils
 
@@ -121,9 +123,6 @@ class ITSMFTDeadMapBuilder : public Task
 
   // Flag to avoid that endOfStream and stop are both done
   bool isEnded = false;
-
-  // Run stop requested flag for EoS operations
-  bool mRunStopRequested = false;
 };
 
 // Create a processor spec

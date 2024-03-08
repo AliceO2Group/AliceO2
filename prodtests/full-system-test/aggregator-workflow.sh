@@ -199,11 +199,11 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # ITS
   if [[ $CALIB_ITS_DEADMAP_TIME == 1 ]]; then
-     add_W o2-itsmft-deadmap-builder-workflow "${CALIB_ITS_DEADMAP_TIME_OPT:-}"
+     add_W o2-itsmft-deadmap-builder-workflow "--ccdb-url $CCDB_POPULATOR_UPLOAD_PATH ${CALIB_ITS_DEADMAP_TIME_OPT:-}"
   fi
   # MFT
   if [[ $CALIB_MFT_DEADMAP_TIME == 1 ]]; then
-     add_W o2-itsmft-deadmap-builder-workflow  "--runmft ${CALIB_MFT_DEADMAP_TIME_OPT:---skip-static-map}"
+     add_W o2-itsmft-deadmap-builder-workflow  "--runmft --ccdb-url $CCDB_POPULATOR_UPLOAD_PATH ${CALIB_MFT_DEADMAP_TIME_OPT:---skip-static-map}"
   fi
   # TOF
   if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
