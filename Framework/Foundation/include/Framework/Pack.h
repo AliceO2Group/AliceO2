@@ -197,21 +197,17 @@ struct has_type_conditional<Condition, T, pack<Us...>> : std::disjunction<Condit
 template <template <typename, typename> typename Condition, typename T, typename... Us>
 inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T, Us...>::value;
 
-template <typename T>
-constexpr size_t has_type_at(pack<> const&)
+template <typename T, typename... Ts>
+consteval std::size_t has_type_at(pack<Ts...> const&)
 {
-  return static_cast<size_t>(-1);
-}
-
-template <typename T, typename T1, typename... Ts>
-constexpr size_t has_type_at(pack<T1, Ts...> const&)
-{
-  if constexpr (std::is_same_v<T, T1>) {
-    return 0;
-  } else if constexpr (has_type_v<T, pack<Ts...>>) {
-    return 1 + has_type_at<T>(pack<Ts...>{});
+  constexpr std::size_t count = []<std::size_t... Is>(std::index_sequence<Is...>) {
+    return ((std::is_same_v<T, Ts> ? Is + 1 : 0) + ...);
+  }(std::make_index_sequence<sizeof...(Ts)>());
+  if constexpr (count == 0) {
+    return sizeof...(Ts) + 1;
+  } else {
+    return count - 1;
   }
-  return sizeof...(Ts) + 2;
 }
 
 template <template <typename, typename> typename Condition, typename T>
