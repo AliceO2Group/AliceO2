@@ -117,7 +117,7 @@ void PHOSL1phaseSlot::addMeanRms(std::array<std::array<float, 4>, 14>& sumMean,
     sumNorm[d] += mNorm[d];
   }
 }
-void PHOSL1phaseSlot::addQcHistos(std::array<unsigned int, 1400> (&sum)[4])
+void PHOSL1phaseSlot::addQcHistos(std::array<unsigned int, 1400> (&sum)[5])
 {
   for (int bc = 4; bc--;) {
     for (int it = 1400; it--;) {
@@ -181,7 +181,6 @@ void PHOSL1phaseCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
   PHOSL1phaseSlot* ct = slot.getContainer();
-  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
   ct->addMeanRms(mMean, mRMS, mNorm);
   ct->addQcHistos(mQcHisto);
   ct->clear();
@@ -224,29 +223,29 @@ void PHOSL1phaseCalibrator::endOfStream()
     }
     float minMean = 0, minRMS = 0, subminRMS = 0;
     for (int b = 0; b < 4; b++) {
-      mMean[d][b] /= mNorm[d];
-      mRMS[d][b] /= mNorm[d];
-      mRMS[d][b] -= mMean[d][b] * mMean[d][b];
-      mMean[d][b] = abs(mMean[d][b]);
+      float av = mMean[d][b] / mNorm[d];
+      float avRMS = mRMS[d][b] / mNorm[d] - av * av;
+      av = abs(av);
+
       if (b == 0) {
-        minRMS = mRMS[d][b];
-        minMean = mMean[d][b];
+        minRMS = avRMS;
+        minMean = av;
       } else {
-        if (minRMS > mRMS[d][b]) {
+        if (minRMS > avRMS) {
           subminRMS = minRMS;
-          minRMS = mRMS[d][b];
+          minRMS = avRMS;
           iMinRMS = b;
         } else {
           if (subminRMS == 0) {
-            subminRMS = mRMS[d][b];
+            subminRMS = avRMS;
           } else {
-            if (mRMS[d][b] < subminRMS) {
-              subminRMS = mRMS[d][b];
+            if (avRMS < subminRMS) {
+              subminRMS = avRMS;
             }
           }
         }
-        if (minMean > mMean[d][b]) {
-          minMean = mMean[d][b];
+        if (minMean > av) {
+          minMean = av;
           iMinMean = b;
         }
       }
@@ -262,10 +261,9 @@ void PHOSL1phaseCalibrator::endOfStream()
     }
     if (bestB != 0) { // copy the histogram content to final histo
       for (int it = 100; it--;) {
-        mQcHisto[0][d * 100 + it] = mQcHisto[bestB][d * 100 + it];
+        mQcHisto[4][d * 100 + it] = mQcHisto[bestB][d * 100 + it];
       }
     }
     mL1phase |= (bestB << (2 * d));
   }
-  LOG(info) << "Calculated L1phase=" << mL1phase;
 }
