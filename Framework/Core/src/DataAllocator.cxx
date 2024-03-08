@@ -35,6 +35,7 @@
 #include <utility>
 
 O2_DECLARE_DYNAMIC_LOG(stream_context);
+O2_DECLARE_DYNAMIC_LOG(parts);
 
 namespace o2::framework
 {
@@ -129,6 +130,8 @@ void DataAllocator::addPartToContext(RouteIndex routeIndex, fair::mq::MessagePtr
                                      o2::header::SerializationMethod serializationMethod)
 {
   auto headerMessage = headerMessageFromOutput(spec, routeIndex, serializationMethod, 0);
+  O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerMessage->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %p", headerMessage->GetData());
 
   // FIXME: this is kind of ugly, we know that we can change the content of the
   // header message because we have just created it, but the API declares it const
@@ -150,6 +153,8 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+  O2_SIGNPOST_ID_FROM_POINTER(pid, parts, header->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %p", header->GetData());
   mRegistry.get<StringContext>().addString(std::move(header), std::move(payload), routeIndex);
   assert(payload.get() == nullptr);
 }
@@ -206,6 +211,8 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<TableBuilder>& tb)
   auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
+  O2_SIGNPOST_ID_FROM_POINTER(pid, parts, header->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "adopt %p", header->GetData());
   auto& context = mRegistry.get<ArrowContext>();
 
   auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {
