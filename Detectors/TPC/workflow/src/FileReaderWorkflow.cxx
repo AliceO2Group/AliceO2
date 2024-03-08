@@ -14,12 +14,19 @@
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCReaderWorkflow/TriggerReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 #include "Algorithm/RangeTokenizer.h"
 
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -29,8 +36,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "clusters", {"clusters, tracks"}},
-    {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}}};
-
+    {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
+    {"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -77,6 +85,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
     specs.push_back(o2::tpc::getTPCTrackReaderSpec(doMC));
   }
-
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
   return std::move(specs);
 }
