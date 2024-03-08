@@ -31,7 +31,6 @@
 #include "Framework/StructToTuple.h"
 
 #include <vector>
-#include <cstring>
 
 namespace o2::framework
 {
@@ -211,6 +210,7 @@ int mainNoCatch(int argc, char** argv)
 }
 
 int callMain(int argc, char** argv, int (*)(int, char**));
+char* getIdString(int argc, char** argv);
 
 int main(int argc, char** argv)
 {
@@ -219,13 +219,7 @@ int main(int argc, char** argv)
 
   int result = callMain(argc, argv, mainNoCatch);
 
-  char* idstring = nullptr;
-  for (int argi = 0; argi < argc; argi++) {
-    if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
-      idstring = argv[argi + 1];
-      break;
-    }
-  }
+  char* idstring = getIdString(argc, argv);
   o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
   UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
   onWorkflowTerminationHook(idstring);
