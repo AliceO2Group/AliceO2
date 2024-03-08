@@ -8,10 +8,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifdef DPL_ENABLE_TRACING
-#define TRACY_ENABLE
-#include <tracy/TracyClient.cpp>
-#endif
 #include "Framework/AsyncQueue.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/ChannelMatching.h"

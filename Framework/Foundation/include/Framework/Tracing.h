@@ -11,9 +11,10 @@
 #ifndef O2_FRAMEWORK_TRACING_H_
 #define O2_FRAMEWORK_TRACING_H_
 
-#if DPL_ENABLE_TRACING && __has_include(<tracy/Tracy.hpp>)
-#define DPL_HAS_TRACING
-#include <tracy/Tracy.hpp>
+#if DPL_ENABLE_TRACING
+// FIXME: not implemented yet in terms of Signposts
+#define O2_LOCKABLE_NAMED(T, V, N) T V
+#define O2_LOCKABLE(T) T
 #else
 #define O2_LOCKABLE_NAMED(T, V, N) T V
 #define O2_LOCKABLE(T) T
