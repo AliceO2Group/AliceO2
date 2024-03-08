@@ -51,7 +51,7 @@ DataSender::DataSender(ServiceRegistryRef registry)
     mSpec{registry.get<DeviceSpec const>()},
     mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)}
 {
-  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  std::scoped_lock<O2_LOCKABLE(std::recursive_mutex)> lock(mMutex);
 
   auto numInputTypes = mDistinctRoutesIndex.size();
   auto& routes = mSpec.outputs;
