@@ -1,3 +1,12 @@
+# 2024-02-22: Drop Tracy support
+
+Tracy support never took off, so I am dropping it. This was mostly because people do not know about it and having a per process profile GUI was way unpractical. Moreover, needing an extra compile time flag meant one most likely did not have the support compiled in when needed.
+
+I have therefore decided to replace it with signposts, which hopefully will see better adoption thanks
+to the integration with Instruments on mac and the easy way they can be enabled dynamically.
+
+We could then reintroduce Tracy support as a hook on top of signposts, if really needed.
+
 # 2024-02-16: Improved Signposts.
 
 In particular:
