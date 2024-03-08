@@ -100,7 +100,7 @@ class Array
 
  public:
   /// contructor
-  Array(void)
+  Array()
   {
     for (int i = 0; i < Aligner::fNGlobal; ++i) {
       values[i] = 0;
@@ -131,8 +131,8 @@ Aligner::Aligner()
     fStartFac(65536),
     fResCutInitial(1000),
     fResCut(100),
-    fMillepede(0L), // to be modified
-    fCluster(0L),
+    fMillepede(nullptr), // to be modified
+    fCluster(nullptr),
     fNStdDev(3),
     fDetElemNumber(0),
     fGlobalParameterStatus(std::vector<int>(fNGlobal)),
@@ -150,11 +150,11 @@ Aligner::Aligner()
     // fGeoCombiTransInverse(),
     fDoEvaluation(false),
     mRead(false),
-    fTrackParamOrig(0),
-    fTrackParamNew(0),
-    fTrkClRes(0),
-    fTFile(0),
-    fTTree(0)
+    fTrackParamOrig(nullptr),
+    fTrackParamNew(nullptr),
+    fTrkClRes(nullptr),
+    fTFile(nullptr),
+    fTTree(nullptr)
 {
   /// constructor
   fSigma[0] = 1.5e-1;
@@ -272,8 +272,9 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
       fGlobalParameterStatus[iPar] = fGlobalParameterStatus[iDeBase * fgNParCh + iParBase];
       LOG(info) << "Parameter " << iPar << " grouped to detector " << iDeBase << " (" << GetParameterMaskString(1 << iParBase).Data() << ")";
 
-    } else
+    } else {
       LOG(fatal) << "Unrecognized parameter status for index " << iPar << ": " << fGlobalParameterStatus[iPar];
+    }
   }
 
   LOG(info) << "Free Parameters: " << nGlobal << " out of " << fNGlobal;
@@ -348,7 +349,7 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
 }
 
 //_____________________________________________________
-void Aligner::terminate(void)
+void Aligner::terminate()
 {
   mRecordWriter->terminate();
   fInitialized = kFALSE;
@@ -606,14 +607,18 @@ void Aligner::FixChamber(int iCh, unsigned int mask)
 
     LOG(info) << "Fixing " << GetParameterMaskString(mask).Data() << " for detector element " << i;
 
-    if (mask & ParX)
+    if (mask & ParX) {
       FixParameter(i, 0);
-    if (mask & ParY)
+    }
+    if (mask & ParY) {
       FixParameter(i, 1);
-    if (mask & ParTZ)
+    }
+    if (mask & ParTZ) {
       FixParameter(i, 2);
-    if (mask & ParZ)
+    }
+    if (mask & ParZ) {
       FixParameter(i, 3);
+    }
   }
 }
 
@@ -622,14 +627,18 @@ void Aligner::FixDetElem(int iDetElemId, unsigned int mask)
 {
   /// fix parameters matching mask, for a given detector element, counting from 0
   const int iDet(GetDetElemNumber(iDetElemId));
-  if (mask & ParX)
+  if (mask & ParX) {
     FixParameter(iDet, 0);
-  if (mask & ParY)
+  }
+  if (mask & ParY) {
     FixParameter(iDet, 1);
-  if (mask & ParTZ)
+  }
+  if (mask & ParTZ) {
     FixParameter(iDet, 2);
-  if (mask & ParZ)
+  }
+  if (mask & ParZ) {
     FixParameter(iDet, 3);
+  }
 }
 
 //_____________________________________________________________________
@@ -1422,7 +1431,7 @@ void Aligner::SetAlignmentResolution(const TClonesArray* misAlignArray, int rChI
   mDECorrMatrix[0][0] = deResX * deResX;
   mDECorrMatrix[1][1] = deResY * deResY;
 
-  o2::detectors::AlignParam* alignMat = 0x0;
+  o2::detectors::AlignParam* alignMat = nullptr;
 
   for (int chId = 0; chId <= 9; ++chId) {
 
