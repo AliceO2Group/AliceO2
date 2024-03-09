@@ -17,9 +17,9 @@
 #include "TMath.h"
 
 #include "Framework/Logger.h"
-#include "MFTAlignment/MatrixSq.h"
+#include "ForwardAlign/MatrixSq.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(MatrixSq);
 

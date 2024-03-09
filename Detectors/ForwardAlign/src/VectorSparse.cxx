@@ -13,9 +13,9 @@
 
 #include <TString.h>
 
-#include "MFTAlignment/VectorSparse.h"
+#include "ForwardAlign/VectorSparse.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(VectorSparse);
 

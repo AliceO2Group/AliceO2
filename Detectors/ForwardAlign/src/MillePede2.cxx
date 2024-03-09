@@ -11,7 +11,7 @@
 
 /// @file MillePede2.cxx
 
-#include "MFTAlignment/MillePede2.h"
+#include "ForwardAlign/MillePede2.h"
 #include "Framework/Logger.h"
 #include <TStopwatch.h>
 #include <TFile.h>
@@ -27,14 +27,14 @@
 #include <fcntl.h>
 #include <fstream>
 
-//#define _DUMP_EQ_BEFORE_
-//#define _DUMP_EQ_AFTER_
+// #define _DUMP_EQ_BEFORE_
+// #define _DUMP_EQ_AFTER_
 
-//#define _DUMPEQ_BEFORE_
-//#define _DUMPEQ_AFTER_
+// #define _DUMPEQ_BEFORE_
+// #define _DUMPEQ_AFTER_
 
 using std::ifstream;
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(MillePede2);
 

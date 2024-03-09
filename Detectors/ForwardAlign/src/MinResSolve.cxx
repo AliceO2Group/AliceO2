@@ -16,12 +16,12 @@
 #include <TStopwatch.h>
 
 #include "Framework/Logger.h"
-#include "MFTAlignment/MinResSolve.h"
-#include "MFTAlignment/MatrixSq.h"
-#include "MFTAlignment/MatrixSparse.h"
-#include "MFTAlignment/SymBDMatrix.h"
+#include "ForwardAlign/MinResSolve.h"
+#include "ForwardAlign/MatrixSq.h"
+#include "ForwardAlign/MatrixSparse.h"
+#include "ForwardAlign/SymBDMatrix.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(MinResSolve);
 

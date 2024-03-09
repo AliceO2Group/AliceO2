@@ -19,7 +19,7 @@
 
 #include "Framework/Logger.h"
 #include "MFTAlignment/Aligner.h"
-#include "MFTAlignment/MillePede2.h"
+#include "ForwardAlign/MillePede2.h"
 
 using namespace o2::mft;
 

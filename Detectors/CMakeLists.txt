@@ -47,6 +47,8 @@ add_subdirectory(Calibration)
 add_subdirectory(DCS)
 
 add_subdirectory(Align)
+add_subdirectory(ForwardAlign)
+
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)

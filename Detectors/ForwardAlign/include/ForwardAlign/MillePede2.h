@@ -16,20 +16,20 @@
 /// Based on the original milliped2 by Volker Blobel
 /// http://www.desy.de/~blobel/mptalks.html
 
-#ifndef ALICEO2_MFT_MILLEPEDE2_H
-#define ALICEO2_MFT_MILLEPEDE2_H
+#ifndef ALICEO2_FWDALIGN_MILLEPEDE2_H
+#define ALICEO2_FWDALIGN_MILLEPEDE2_H
 
 #include <vector>
 #include <TString.h>
 #include <TTree.h>
-#include "MFTAlignment/MinResSolve.h"
-#include "MFTAlignment/MillePedeRecord.h"
-#include "MFTAlignment/SymMatrix.h"
-#include "MFTAlignment/RectMatrix.h"
-#include "MFTAlignment/MatrixSparse.h"
-#include "MFTAlignment/MatrixSq.h"
-#include "MFTAlignment/MilleRecordWriter.h"
-#include "MFTAlignment/MilleRecordReader.h"
+#include "ForwardAlign/MinResSolve.h"
+#include "ForwardAlign/MillePedeRecord.h"
+#include "ForwardAlign/SymMatrix.h"
+#include "ForwardAlign/RectMatrix.h"
+#include "ForwardAlign/MatrixSparse.h"
+#include "ForwardAlign/MatrixSq.h"
+#include "ForwardAlign/MilleRecordWriter.h"
+#include "ForwardAlign/MilleRecordReader.h"
 
 class TFile;
 class TStopwatch;
@@ -38,7 +38,7 @@ class TArrayF;
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 class MillePede2
@@ -256,17 +256,17 @@ class MillePede2
   /// \brief write tree and close file where are stored chi2 from LocalFit()
   void EndChi2Storage();
 
-  o2::mft::MillePedeRecord* GetRecord() const { return fRecord; }
+  o2::fwdalign::MillePedeRecord* GetRecord() const { return fRecord; }
   long GetSelFirst() const { return fSelFirst; }
   long GetSelLast() const { return fSelLast; }
   void SetSelFirst(long v) { fSelFirst = v; }
   void SetSelLast(long v) { fSelLast = v; }
 
-  void SetRecord(o2::mft::MillePedeRecord* aRecord) { fRecord = aRecord; }
-  void SetRecordWriter(o2::mft::MilleRecordWriter* myP) { fRecordWriter = myP; }
-  void SetConstraintsRecWriter(o2::mft::MilleRecordWriter* myP) { fConstraintsRecWriter = myP; }
-  void SetRecordReader(o2::mft::MilleRecordReader* myP) { fRecordReader = myP; }
-  void SetConstraintsRecReader(o2::mft::MilleRecordReader* myP) { fConstraintsRecReader = myP; }
+  void SetRecord(o2::fwdalign::MillePedeRecord* aRecord) { fRecord = aRecord; }
+  void SetRecordWriter(o2::fwdalign::MilleRecordWriter* myP) { fRecordWriter = myP; }
+  void SetConstraintsRecWriter(o2::fwdalign::MilleRecordWriter* myP) { fConstraintsRecWriter = myP; }
+  void SetRecordReader(o2::fwdalign::MilleRecordReader* myP) { fRecordReader = myP; }
+  void SetConstraintsRecReader(o2::fwdalign::MilleRecordReader* myP) { fConstraintsRecReader = myP; }
 
   /// \brief return the limit in chi^2/nd for n sigmas stdev authorized
   ///
@@ -340,11 +340,11 @@ class MillePede2
   std::vector<int> fCGlo2Glo; ///< [fNGloPar] compressed ID to global ID buffer
 
   // Matrices
-  o2::mft::SymMatrix* fMatCLoc;     ///< Matrix C local
-  o2::mft::MatrixSq* fMatCGlo;      ///< Matrix C global
-  o2::mft::RectMatrix* fMatCGloLoc; ///< Rectangular matrix C g*l
-  std::vector<int> fFillIndex;      ///< [fNGloPar] auxilary index array for fast matrix fill
-  std::vector<double> fFillValue;   ///< [fNGloPar] auxilary value array for fast matrix fill
+  o2::fwdalign::SymMatrix* fMatCLoc;     ///< Matrix C local
+  o2::fwdalign::MatrixSq* fMatCGlo;      ///< Matrix C global
+  o2::fwdalign::RectMatrix* fMatCGloLoc; ///< Rectangular matrix C g*l
+  std::vector<int> fFillIndex;           ///< [fNGloPar] auxilary index array for fast matrix fill
+  std::vector<double> fFillValue;        ///< [fNGloPar] auxilary value array for fast matrix fill
 
   TFile* fRecChi2File;
   TString fRecChi2FName;
@@ -354,7 +354,7 @@ class MillePede2
   bool fIsChi2BelowLimit;
   int fRecNDoF;
 
-  o2::mft::MillePedeRecord* fRecord; ///< Buffer of measurements records
+  o2::fwdalign::MillePedeRecord* fRecord; ///< Buffer of measurements records
 
   long fCurrRecDataID;        ///< ID of the current data record
   long fCurrRecConstrID;      ///< ID of the current constraint record
@@ -380,15 +380,15 @@ class MillePede2
   static int fgNKrylovV;        ///< size of Krylov vectors buffer in FGMRES
 
   // processed data record bufferization
-  o2::mft::MilleRecordWriter* fRecordWriter;         ///< data record writer
-  o2::mft::MilleRecordWriter* fConstraintsRecWriter; ///< constraints record writer
-  o2::mft::MilleRecordReader* fRecordReader;         ///< data record reader
-  o2::mft::MilleRecordReader* fConstraintsRecReader; ///< constraints record reader
+  o2::fwdalign::MilleRecordWriter* fRecordWriter;         ///< data record writer
+  o2::fwdalign::MilleRecordWriter* fConstraintsRecWriter; ///< constraints record writer
+  o2::fwdalign::MilleRecordReader* fRecordReader;         ///< data record reader
+  o2::fwdalign::MilleRecordReader* fConstraintsRecReader; ///< constraints record reader
 
   ClassDef(MillePede2, 0);
 };
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

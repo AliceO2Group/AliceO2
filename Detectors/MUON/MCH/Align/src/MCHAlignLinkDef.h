@@ -14,13 +14,6 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
-
-#pragma link C++ class o2::mft::AlignConfig + ;
-#pragma link C++ class o2::mft::Aligner + ;
-#pragma link C++ class o2::mft::AlignPointControl + ;
-#pragma link C++ class o2::mft::AlignPointHelper + ;
-#pragma link C++ class o2::mft::AlignSensorHelper + ;
-#pragma link C++ class o2::mft::RecordsToAlignParams + ;
-#pragma link C++ class o2::mft::TracksToRecords + ;
+#pragma link C++ class o2::mch::Aligner + ;
 
 #endif
