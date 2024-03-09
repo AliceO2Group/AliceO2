@@ -581,8 +581,7 @@ void retryMetricCallback(uv_async_t* async)
   }
   fair::mq::MessagePtr payload(device->NewMessage());
   payload->Rebuild(&oldestPossingTimeslice, sizeof(int64_t), nullptr, nullptr);
-  auto* consumed = (size_t*)malloc(sizeof(size_t));
-  *consumed = oldestPossingTimeslice;
+  auto consumed = oldestPossingTimeslice;
 
   int64_t result = channel->second[0].Send(payload, 100);
   // If the sending worked, we do not retry.
@@ -592,7 +591,7 @@ void retryMetricCallback(uv_async_t* async)
     // data will still happen.
     uv_async_send(async);
   } else {
-    lastTimeslice = *consumed;
+    lastTimeslice = consumed;
   }
 }
 
