@@ -47,10 +47,15 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   LOG(info) << "ITSMFTDeadMapBuilder init... " << mSelfName;
 
   mTFSampling = ic.options().get<int>("tf-sampling");
+  mSamplingMode = ic.options().get<std::string>("sampling-mode");
   mTFLength = ic.options().get<int>("tf-length");
   mDoLocalOutput = ic.options().get<bool>("local-output");
   mObjectName = ic.options().get<std::string>("outfile");
   mCCDBUrl = ic.options().get<std::string>("ccdb-url");
+  if (mCCDBUrl == "none") {
+    mCCDBUrl = "";
+  }
+
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
   mSkipStaticMap = ic.options().get<bool>("skip-static-map");
 
@@ -146,7 +151,12 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     mFirstOrbitRun = mFirstOrbitTF;
   }
 
-  if ((((long)mFirstOrbitTF - mFirstOrbitRun) / mTFLength) % mTFSampling != 0) {
+  long sampled_orbit = mFirstOrbitTF;
+  if (mSamplingMode == "first-orbit-run") {
+    sampled_orbit = sampled_orbit - mFirstOrbitRun;
+  }
+
+  if ((sampled_orbit / mTFLength) % mTFSampling != 0) {
     return;
   }
 
@@ -284,6 +294,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
       &image->at(0), image->size(), info.getFileName(), info.getObjectType(),
       info.getPath(), info.getMetaData(),
       info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
+    o2::ccdb::adjustOverriddenEOV(mApi, info);
   }
 
   return;
@@ -363,6 +374,7 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     outputs,
     AlgorithmSpec{adaptFromTask<ITSMFTDeadMapBuilder>(datasource, doMFT)},
     Options{{"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF orbit."}},
+            {"sampling-mode", VariantType::String, "first-orbit-run", {"Use absolute orbit value or offset from first processed orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
             {"skip-static-map", VariantType::Bool, false, {"Do not fill static part of the map."}},
             {"ccdb-url", VariantType::String, "", {"CCDB url. Ignored if endOfStream is processed."}},
