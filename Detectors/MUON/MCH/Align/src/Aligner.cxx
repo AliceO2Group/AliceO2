@@ -29,6 +29,7 @@
 #include "ForwardAlign/MillePedeRecord.h"
 #include "Framework/Logger.h"
 #include "MCHAlign/Aligner.h"
+#include "MathUtils/Cartesian.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHGeometryTransformer/Transformations.h"
@@ -149,6 +150,7 @@ Aligner::Aligner()
     fTransformCreator(),
     // fGeoCombiTransInverse(),
     fDoEvaluation(false),
+    fDisableRecordWriter(false),
     mRead(false),
     fTrackParamOrig(nullptr),
     fTrackParamNew(nullptr),
@@ -283,7 +285,11 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
   fMillepede->InitMille(fNGlobal, fNLocal, fNStdDev, fResCut, fResCutInitial, fGlobalParameterStatus);
 
   if (!mRead) {
-    mRecordWriter->init();
+    if (!fDisableRecordWriter) {
+      mRecordWriter->init();
+    } else {
+      fMillepede->DisableRecordWriter();
+    }
   }
 
   fInitialized = true;
@@ -351,28 +357,28 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
 //_____________________________________________________
 void Aligner::terminate()
 {
-  mRecordWriter->terminate();
   fInitialized = kFALSE;
+  mRecordWriter->terminate();
   LOG(info) << "Closing Evaluation TFile";
-  if (fTFile && fTTree) {
-    fTFile->cd();
-    fTTree->Write();
-    fTFile->Close();
+  if (fDoEvaluation) {
+    if (fTFile && fTTree) {
+      fTFile->cd();
+      fTTree->Write();
+      fTFile->Close();
+    }
   }
 }
 
 //_____________________________________________________
-o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, bool doAlignment, double weight)
+o2::fwdalign::MillePedeRecord Aligner::ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, bool doAlignment, double weight)
 {
 
   /// process track for alignment minimization
-
   // reset track records
   fTrackRecord.Reset();
   if (fMillepede->GetRecord()) {
     fMillepede->GetRecord()->Reset();
   }
-
   // loop over clusters to get starting values
   bool first(true);
 
@@ -436,8 +442,7 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
 
     // 'inverse' (GlobalToLocal) rotation matrix
     // const double* r(fGeoCombiTransInverse.GetRotationMatrix());
-
-    auto trans = transformation(cluster->getDEId());
+    o2::math_utils::Transform3D trans = transformation(cluster->getDEId());
     // LOG(info) << Form("cluster ID: %i", cluster->getDEId());
     TMatrixD transMat(3, 4);
     trans.GetTransformMatrix(transMat);
@@ -455,7 +460,6 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
     r[9] = transMat(0, 3);
     r[10] = transMat(1, 3);
     r[11] = transMat(2, 3);
-
     // calculate measurements
     if (fBFieldOn) {
 
@@ -535,11 +539,15 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
 
   // save record data
   if (doAlignment) {
-    mRecordWriter->fillRecordTree();
+    if (!fDisableRecordWriter) {
+      mRecordWriter->fillRecordTree();
+    } else {
+      fMillepede->ResetRecord();
+    }
   }
 
   // return record
-  return &fTrackRecord;
+  return fTrackRecord;
 }
 
 //______________________________________________________________________________
@@ -560,7 +568,9 @@ void Aligner::ProcessTrack(o2::fwdalign::MillePedeRecord* trackRecord)
   *fMillepede->GetRecord() = *trackRecord;
 
   // save record
-  mRecordWriter->fillRecordTree();
+  if (!fDisableRecordWriter) {
+    mRecordWriter->fillRecordTree();
+  }
   // write to local file
   // mRecordWriter->terminate();
 

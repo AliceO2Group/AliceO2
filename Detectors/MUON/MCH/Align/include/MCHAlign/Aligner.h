@@ -110,10 +110,10 @@ class Aligner : public TObject
   ~Aligner() = default;
 
   // initialize
-  void init(TString DataRecFName = "recDataFile.root", TString ConsRecFName = "recConsFile.root");
+  void init(TString DataRecFName = "millerecords.root", TString ConsRecFName = "milleconstraints.root");
 
   // terminate
-  void terminate(void);
+  void terminate();
 
   // array dimendions
   enum {
@@ -184,7 +184,7 @@ class Aligner : public TObject
     AllSides = SideTop | SideBottom | SideLeft | SideRight
   };
 
-  o2::fwdalign::MillePedeRecord* ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, Bool_t doAlignment, Double_t weight = 1);
+  o2::fwdalign::MillePedeRecord ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, Bool_t doAlignment, Double_t weight = 1);
 
   void ProcessTrack(o2::fwdalign::MillePedeRecord*);
 
@@ -314,6 +314,11 @@ class Aligner : public TObject
   void SetReadOnly()
   {
     mRead = true;
+  }
+
+  void DisableRecordWriter()
+  {
+    fDisableRecordWriter = true;
   }
 
  private:
@@ -451,6 +456,9 @@ class Aligner : public TObject
 
   /// preform evaluation
   bool fDoEvaluation;
+
+  /// disable record saving
+  bool fDisableRecordWriter;
 
   /// original local track params
   LocalTrackParam* fTrackParamOrig;
