@@ -270,7 +270,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
   if (ccdburl.empty()) {
 
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
-              << "to ccdb-populator, of size " << image->size() << "bytes, valid for "
+              << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
               << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     if (mRunMFT) {
