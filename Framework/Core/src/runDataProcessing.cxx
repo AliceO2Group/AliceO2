@@ -182,6 +182,16 @@ void doBoostException(boost::exception& e, const char*);
 void doDPLException(o2::framework::RuntimeErrorRef& ref, char const*);
 void doUnknownException(std::string const& s, char const*);
 
+char* getIdString(int argc, char** argv)
+{
+  for (int argi = 0; argi < argc; argi++) {
+    if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
+      return argv[argi + 1];
+    }
+  }
+  return nullptr;
+}
+
 int callMain(int argc, char** argv, int (*mainNoCatch)(int, char**))
 {
   static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");

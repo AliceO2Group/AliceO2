@@ -12,9 +12,9 @@
 /// @file RectMatrix.cxx
 
 #include <TString.h>
-#include "MFTAlignment/RectMatrix.h"
+#include "ForwardAlign/RectMatrix.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(RectMatrix);
 

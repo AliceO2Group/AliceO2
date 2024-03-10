@@ -8,16 +8,25 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_TRACING_H_
-#define O2_FRAMEWORK_TRACING_H_
 
-#if DPL_ENABLE_TRACING
-// FIXME: not implemented yet in terms of Signposts
-#define O2_LOCKABLE_NAMED(T, V, N) T V
-#define O2_LOCKABLE(T) T
-#else
-#define O2_LOCKABLE_NAMED(T, V, N) T V
-#define O2_LOCKABLE(T) T
-#endif
+/// \file AlignmentSpec.h
+/// \brief Definition of alignment process for muon spectrometer
+///
+/// \author Chi ZHANG, CEA-Saclay
 
-#endif // O2_FRAMEWORK_TRACING_H_
+#ifndef O2_MCH_ALIGNMENTSPEC_H_
+#define O2_MCH_ALIGNMENTSPEC_H_
+
+#include "Framework/DataProcessorSpec.h"
+
+namespace o2
+{
+namespace mch
+{
+
+o2::framework::DataProcessorSpec getAlignmentSpec(bool disableCCDB = false);
+
+} // end namespace mch
+} // end namespace o2
+
+#endif // O2_MCH_ALIGNMENTSPEC_H_

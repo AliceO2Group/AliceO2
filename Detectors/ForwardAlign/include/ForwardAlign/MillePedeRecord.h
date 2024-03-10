@@ -16,14 +16,14 @@
 /// The records for all processed tracks are stored in the temporary tree in orgder to be
 /// reused for multiple iterations of MillePede
 
-#ifndef ALICEO2_MFT_MILLEPEDERECORD_H
-#define ALICEO2_MFT_MILLEPEDERECORD_H
+#ifndef ALICEO2_FWDALIGN_MILLEPEDERECORD_H
+#define ALICEO2_FWDALIGN_MILLEPEDERECORD_H
 
 #include <TObject.h>
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 /// \brief Store residuals and local/global deriavtives from a single track processing
 ///
@@ -152,7 +152,7 @@ inline Bool_t MillePedeRecord::IsGroupPresent(Int_t id) const
   return kFALSE;
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

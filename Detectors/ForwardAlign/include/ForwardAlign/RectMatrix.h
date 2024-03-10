@@ -13,15 +13,15 @@
 /// \brief Class for rectangular matrix used for millepede2 operation
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_RECTMATRIX_H
-#define ALICEO2_MFT_RECTMATRIX_H
+#ifndef ALICEO2_FWDALIGN_RECTMATRIX_H
+#define ALICEO2_FWDALIGN_RECTMATRIX_H
 
 #include "TObject.h"
 class TString;
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 /// \brief Class for rectangular matrix used for millepede2 operation
@@ -82,7 +82,7 @@ inline Double_t& RectMatrix::operator()(Int_t row, Int_t col)
   return (Double_t&)fRows[row][col];
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

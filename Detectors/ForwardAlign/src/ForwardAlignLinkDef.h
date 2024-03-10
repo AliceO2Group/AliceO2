@@ -15,12 +15,16 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::mft::AlignConfig + ;
-#pragma link C++ class o2::mft::Aligner + ;
-#pragma link C++ class o2::mft::AlignPointControl + ;
-#pragma link C++ class o2::mft::AlignPointHelper + ;
-#pragma link C++ class o2::mft::AlignSensorHelper + ;
-#pragma link C++ class o2::mft::RecordsToAlignParams + ;
-#pragma link C++ class o2::mft::TracksToRecords + ;
+#pragma link C++ class o2::fwdalign::MatrixSparse + ;
+#pragma link C++ class o2::fwdalign::MatrixSq + ;
+#pragma link C++ class o2::fwdalign::MillePede2 + ;
+#pragma link C++ class o2::fwdalign::MillePedeRecord + ;
+#pragma link C++ class o2::fwdalign::MilleRecordReader + ;
+#pragma link C++ class o2::fwdalign::MilleRecordWriter + ;
+#pragma link C++ class o2::fwdalign::MinResSolve + ;
+#pragma link C++ class o2::fwdalign::RectMatrix + ;
+#pragma link C++ class o2::fwdalign::SymBDMatrix + ;
+#pragma link C++ class o2::fwdalign::SymMatrix + ;
+#pragma link C++ class o2::fwdalign::VectorSparse + ;
 
 #endif

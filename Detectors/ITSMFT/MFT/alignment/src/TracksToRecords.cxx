@@ -18,7 +18,7 @@
 #include "Framework/Logger.h"
 #include <Framework/InputRecord.h>
 #include "MFTBase/Geometry.h"
-#include "MFTAlignment/MillePedeRecord.h"
+#include "ForwardAlign/MillePedeRecord.h"
 
 #include "MFTAlignment/TracksToRecords.h"
 
@@ -45,13 +45,13 @@ TracksToRecords::TracksToRecords()
     mAlignPoint(new AlignPointHelper()),
     mWithControl(false),
     mNEntriesAutoSave(10000),
-    mRecordWriter(new MilleRecordWriter()),
+    mRecordWriter(new o2::fwdalign::MilleRecordWriter()),
     mWithConstraintsRecWriter(false),
     mConstraintsRecWriter(nullptr),
-    mMillepede(new MillePede2())
+    mMillepede(new o2::fwdalign::MillePede2())
 {
   if (mWithConstraintsRecWriter) {
-    mConstraintsRecWriter = new MilleRecordWriter();
+    mConstraintsRecWriter = new o2::fwdalign::MilleRecordWriter();
   }
   // initialise the content of each array
   resetGlocalDerivative();

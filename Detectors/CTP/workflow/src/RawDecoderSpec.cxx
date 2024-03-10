@@ -40,7 +40,8 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
   int inp2 = mDecoder.setLumiInp(2, lumiinp2);
   mOutputLumiInfo.inp1 = inp1;
   mOutputLumiInfo.inp2 = inp2;
-  LOG(info) << "CTP reco init done. Inputs decoding here:" << decodeinps << " DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors;
+  mMaxOutputSize = ctx.options().get<int>("max-output-size");
+  LOG(info) << "CTP reco init done. Inputs decoding here:" << decodeinps << " DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors << " Max output size:" << mMaxOutputSize;
   // mOutputLumiInfo.printInputs();
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
@@ -117,6 +118,10 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   }
   if (mDoDigits) {
     LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits. IR rejected:" << mDecoder.getIRRejected() << " TCR rejected:" << mDecoder.getTCRRejected();
+    if ((mMaxOutputSize > 0) && (mOutputDigits.size() > mMaxOutputSize)) {
+      LOG(error) << "CTP raw output size: " << mOutputDigits.size();
+      mOutputDigits.clear();
+    }
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0}, mOutputDigits);
   }
   if (mDoLumi) {
@@ -189,5 +194,6 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
       {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
       {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
+      {"max-output-size", o2::framework::VariantType::Int, 0, {"Do not send output if bigger than max size, 0 - do not check"}},
       {"ctpinputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: true - raw decoder - has to be compatible with CTF decoder: allowed options: 10,01,00"}}}};
 }

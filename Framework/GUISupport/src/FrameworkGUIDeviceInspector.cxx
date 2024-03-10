@@ -261,9 +261,6 @@ void displayDeviceInspector(DeviceSpec const& spec,
     ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
   }
   ImGui::Text("Device state: %s", info.deviceState.data());
-#ifdef DPL_ENABLE_TRACING
-  ImGui::Text("Tracy Port: %d", info.tracyPort);
-#endif
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button(ICON_FA_BUG "Attach debugger")) {
@@ -324,16 +321,6 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 #endif
 
-#if DPL_ENABLE_TRACING
-  ImGui::SameLine();
-  if (ImGui::Button("Tracy")) {
-    std::string tracyPort = std::to_string(info.tracyPort);
-    auto cmd = fmt::format("tracy-profiler -p {} -a 127.0.0.1 &", info.tracyPort);
-    LOG(debug) << cmd;
-    int retVal = system(cmd.c_str());
-    (void)retVal;
-  }
-#endif
   if (control.controller) {
     if (ImGui::Button("Offer SHM")) {
       control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));

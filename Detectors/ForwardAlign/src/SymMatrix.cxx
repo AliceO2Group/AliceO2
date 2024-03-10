@@ -15,10 +15,10 @@
 
 #include <TClass.h>
 #include <TMath.h>
-#include "MFTAlignment/SymMatrix.h"
+#include "ForwardAlign/SymMatrix.h"
 #include "Framework/Logger.h"
 
-using namespace o2::mft;
+using namespace o2::fwdalign;
 
 ClassImp(SymMatrix);
 

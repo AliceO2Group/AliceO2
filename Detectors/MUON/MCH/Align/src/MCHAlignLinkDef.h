@@ -8,16 +8,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_TRACING_H_
-#define O2_FRAMEWORK_TRACING_H_
 
-#if DPL_ENABLE_TRACING
-// FIXME: not implemented yet in terms of Signposts
-#define O2_LOCKABLE_NAMED(T, V, N) T V
-#define O2_LOCKABLE(T) T
-#else
-#define O2_LOCKABLE_NAMED(T, V, N) T V
-#define O2_LOCKABLE(T) T
+#ifdef __CLING__
+
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
+#pragma link C++ class o2::mch::Aligner + ;
+
 #endif
-
-#endif // O2_FRAMEWORK_TRACING_H_

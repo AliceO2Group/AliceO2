@@ -194,7 +194,7 @@ class DataRelayer
   std::vector<PruneOp> mPruneOps;
   size_t mMaxLanes;
 
-  TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
+  O2_LOCKABLE_NAMED(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 
 } // namespace o2::framework

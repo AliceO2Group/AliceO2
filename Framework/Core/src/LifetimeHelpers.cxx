@@ -25,6 +25,7 @@
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/Formatters.h"
 #include "Framework/DeviceState.h"
+#include "Framework/Signpost.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -43,6 +44,8 @@
 
 using namespace o2::header;
 using namespace fair;
+
+O2_DECLARE_DYNAMIC_LOG(parts);
 
 namespace o2::framework
 {
@@ -411,7 +414,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     assert(!ref.payload);
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
-    LOGP(debug, "Enumerating record");
     DataHeader dh;
     dh.dataOrigin = matcher.origin;
     dh.dataDescription = matcher.description;
@@ -432,6 +434,8 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
+    O2_SIGNPOST_ID_FROM_POINTER(hid, parts, header->GetData());
+    O2_SIGNPOST_START(parts, hid, "parts", "Enumerating part %p with timestamp %zu", header->GetData(), timestamp);
     ref.header = std::move(header);
 
     auto payload = transport->CreateMessage(sizeof(counter_t));
@@ -486,6 +490,8 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
+    O2_SIGNPOST_ID_FROM_POINTER(hid, parts, header->GetData());
+    O2_SIGNPOST_START(parts, hid, "parts", "Enumerating part %p with timestamp %zu", header->GetData(), timestamp);
     auto payload = transport->CreateMessage(0);
     ref.payload = std::move(payload);
   };

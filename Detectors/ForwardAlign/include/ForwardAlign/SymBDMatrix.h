@@ -13,16 +13,16 @@
 /// \brief Symmetric Band Diagonal matrix (from AliROOT) with half band width W (+1 for diagonal)
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_SYMBDMATRIX_H
-#define ALICEO2_MFT_SYMBDMATRIX_H
+#ifndef ALICEO2_FWDALIGN_SYMBDMATRIX_H
+#define ALICEO2_FWDALIGN_SYMBDMATRIX_H
 
 #include <TObject.h>
 #include <TVectorD.h>
-#include "MFTAlignment/MatrixSq.h"
+#include "ForwardAlign/MatrixSq.h"
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 /// \class SymBDMatrix
@@ -170,7 +170,7 @@ inline void SymBDMatrix::MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) 
   MultiplyByVec(vecIn.GetMatrixArray(), vecOut.GetMatrixArray());
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif

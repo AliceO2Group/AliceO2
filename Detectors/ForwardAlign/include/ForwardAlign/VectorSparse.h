@@ -13,15 +13,15 @@
 /// \brief Sparse vector class (from AliROOT), used as row of the MatrixSparse class
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_MFT_VECTORSPARSE_H
-#define ALICEO2_MFT_VECTORSPARSE_H
+#ifndef ALICEO2_FWDALIGN_VECTORSPARSE_H
+#define ALICEO2_FWDALIGN_VECTORSPARSE_H
 
 #include <TObject.h>
 #include <TMath.h>
 
 namespace o2
 {
-namespace mft
+namespace fwdalign
 {
 
 /// \class VectorSparse
@@ -97,7 +97,7 @@ inline Double_t& VectorSparse::operator()(Int_t ind)
   return FindIndexAdd(ind);
 }
 
-} // namespace mft
+} // namespace fwdalign
 } // namespace o2
 
 #endif
