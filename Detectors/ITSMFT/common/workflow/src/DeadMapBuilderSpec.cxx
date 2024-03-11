@@ -267,7 +267,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   info.setAdjustableEOV();
 
-  if (ccdburl.empty()) {
+  if (ec != nullptr) {
 
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
@@ -282,7 +282,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
     }
   }
 
-  else { // send from this workflow
+  else if (!ccdburl.empty()) { // send from this workflow
 
     LOG(info) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getFileName()
               << " of size " << image->size() << "bytes, valid for "
@@ -295,6 +295,11 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
       info.getPath(), info.getMetaData(),
       info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
     o2::ccdb::adjustOverriddenEOV(mApi, info);
+  }
+
+  else {
+
+    LOG(warning) << "PrepareOutputCcdb called with empty arguments. Doing nothing.";
   }
 
   return;
