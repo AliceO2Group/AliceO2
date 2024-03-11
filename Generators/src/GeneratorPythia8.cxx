@@ -21,7 +21,11 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/ParticleStatus.h"
+#if PYTHIA_VERSION_INTEGER >= 8310
+#include "Pythia8/HIInfo.h"
+#else
 #include "Pythia8/HIUserHooks.h"
+#endif
 #include "Pythia8Plugins/PowhegHooks.h"
 #include "TSystem.h"
 #include "ZDCBase/FragmentParam.h"
