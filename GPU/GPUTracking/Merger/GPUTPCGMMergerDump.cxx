@@ -46,7 +46,7 @@ using namespace gputpcgmmergertypes;
 static std::vector<int> trackOrder, trackOrderReverse;
 static int getTrackOrderReverse(int i) { return i == -1 ? -1 : trackOrderReverse[i]; }
 
-void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
+void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out) const
 {
   std::streamsize ss = out.precision();
   out << std::setprecision(2);
@@ -73,7 +73,7 @@ void GPUTPCGMMerger::DumpSliceTracks(std::ostream& out)
   out << std::setprecision(ss);
 }
 
-void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out)
+void GPUTPCGMMerger::DumpMergedWithinSlices(std::ostream& out) const
 {
   out << "\nTPC Merger Merge Within Slices\n";
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
