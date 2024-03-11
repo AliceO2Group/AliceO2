@@ -374,6 +374,7 @@ GPUdi() float GPUCommonMath::InvSqrt(float _x)
   x.i = 0x5f3759df - (x.i >> 1);
   x.f = x.f * (1.5f - xhalf * x.f * x.f);
   return x.f;
+#endif
 }
 
 template <>
