@@ -32,7 +32,7 @@ class FT0TimeOffsetSlotContainer final
   FT0TimeOffsetSlotContainer(std::size_t minEntries); // constructor is needed due to current version of FITCalibration library, should be removed
   FT0TimeOffsetSlotContainer(FT0TimeOffsetSlotContainer const&) = default;
   FT0TimeOffsetSlotContainer(FT0TimeOffsetSlotContainer&&) = default;
-  FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer const&) = default;
+  FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer&) = default;
   FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer&&) = default;
   bool hasEnoughEntries() const;
   void fill(const gsl::span<const float>& data);
@@ -42,6 +42,8 @@ class FT0TimeOffsetSlotContainer final
   TimeSpectraInfoObject generateCalibrationObject(long tsStartMS, long tsEndMS, const std::string& pathToHists) const;
   typedef float FlatHistoValue_t;
   typedef o2::dataformats::FlatHisto2D<FlatHistoValue_t> FlatHisto2D_t;
+  auto getHistogram() const { return mHistogram; }
+  auto isFirstTF() const { return mIsFirstTF; }
 
  private:
   // Slot number
