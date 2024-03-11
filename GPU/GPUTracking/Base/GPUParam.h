@@ -57,9 +57,9 @@ struct GPUParam_t {
   float constBz;
   float qptB5Scaler;
 
-  GPUTPCGeometry tpcGeometry;                       // TPC Geometry
-  GPUTPCGMPolynomialField polynomialField;          // Polynomial approx. of magnetic field for TPC GM
-  const unsigned int* occupancyMap;                 // Ptr to TPC occupancy map
+  GPUTPCGeometry tpcGeometry;              // TPC Geometry
+  GPUTPCGMPolynomialField polynomialField; // Polynomial approx. of magnetic field for TPC GM
+  const unsigned int* occupancyMap;        // Ptr to TPC occupancy map
 
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
