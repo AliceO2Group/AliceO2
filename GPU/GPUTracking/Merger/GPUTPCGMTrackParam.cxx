@@ -375,7 +375,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           qtot /= clusterCount;
           pad /= clusterCount;
           relTime /= clusterCount;
-          relTime = relTime - CAMath::Round(relTime);
+          relTime = relTime - (int)(relTime + 0.5);
           dEdx.fillCluster(qtot, qmax, cluster.row, cluster.slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, pad, relTime);
         }
       } else if (retVal >= GPUTPCGMPropagator::updateErrorClusterRejected) { // cluster far away form the track
@@ -653,7 +653,8 @@ GPUd() bool GPUTPCGMTrackParam::AttachClustersPropagate(const GPUTPCGMMerger* GP
     if (dodEdx && iRow + step == toRow) {
       float yUncorrected, zUncorrected;
       Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(slice, iRow, mP[0], mP[1], yUncorrected, zUncorrected);
-      unsigned int pad = CAMath::Float2UIntRn(Merger->Param().tpcGeometry.LinearY2Pad(slice, iRow, yUncorrected));
+      float footmp = Merger->Param().tpcGeometry.LinearY2Pad(slice, iRow, yUncorrected);
+      unsigned int pad = (int)(footmp + 0.5);
       if (pad >= Merger->Param().tpcGeometry.NPads(iRow) || (Merger->GetConstantMem()->calibObjects.dEdxCalibContainer && Merger->GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(slice, iRow, pad))) {
         dodEdx = false;
       }
