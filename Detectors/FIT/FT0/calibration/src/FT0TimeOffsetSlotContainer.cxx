@@ -96,6 +96,14 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
 void FT0TimeOffsetSlotContainer::merge(FT0TimeOffsetSlotContainer* prev)
 {
   LOG(info) << "MERGING";
+  if (mIsFirstTF && prev->isFirstTF()) {
+    // nothing to be done
+    return;
+  } else if (mIsFirstTF && !prev->isFirstTF()) {
+    // need to make mHistogram operational first
+    mHistogram.init(prev->getHistogram().getNBinsX(), prev->getHistogram().getXMin(), prev->getHistogram().getXMax(), prev->getHistogram().getNBinsY(), prev->getHistogram().getYMin(), prev->getHistogram().getYMax());
+    mIsFirstTF = false;
+  }
   *this = *prev;
   if (mCurrentSlot == 0) {
     // This part should at the stage `hasEnoughData()` but it is const method
