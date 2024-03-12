@@ -56,7 +56,7 @@ MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2, float scaledMult, float scaledAvgCharge, float scaledCharge) const
 {
   MakeType(const float*) c = ParamErrors[yz][type];
-  float v = c[0] + c[1] * angle2 * scaledAvgCharge + c[2] * z * scaledCharge + c[3] * scaledMult * scaledAvgCharge;
+  float v = c[0] + c[1] * angle2 * scaledAvgCharge + c[2] * z * scaledCharge + c[3] * (scaledMult * scaledMult) * (scaledAvgCharge * scaledAvgCharge);
   v = CAMath::Abs(v);
   v *= yz ? rec.tpc.clusterError2CorrectionZ : rec.tpc.clusterError2CorrectionY;
   v += yz ? rec.tpc.clusterError2AdditionalZ : rec.tpc.clusterError2AdditionalY;
