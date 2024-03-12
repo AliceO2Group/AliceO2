@@ -52,10 +52,12 @@ if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | g
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
 if [[ -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $DIGITINPUT != 1 ]]; then
-  TIMEFRAME_RATE_LIMIT=$((12 * 230 / ($RECO_NUM_NODES_WORKFLOW < 230 ? $RECO_NUM_NODES_WORKFLOW : 230) * ($NUMAGPUIDS != 0 ? 1 : 2) * 128 / $NHBPERTF))
+  RECO_NUM_NODES_WORKFLOW_CMP=$(($RECO_NUM_NODES_WORKFLOW > 15 ? ($RECO_NUM_NODES_WORKFLOW < 230 ? $RECO_NUM_NODES_WORKFLOW : 230) : 15))
+  TIMEFRAME_RATE_LIMIT=$((12 * 230 / ${RECO_NUM_NODES_WORKFLOW_CMP} * ($NUMAGPUIDS != 0 ? 1 : 2) * 128 / $NHBPERTF))
   [[ $BEAMTYPE != "PbPb" && ${HIGH_RATE_PP:-0} == 0 ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 3))
   ! has_detector TPC && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 4))
   [[ ! -z ${EPN_GLOBAL_SCALING:-} ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * $EPN_GLOBAL_SCALING))
+  [[ ${TIMEFRAME_RATE_LIMIT} -ge 512 ]] && TIMEFRAME_RATE_LIMIT=512
 fi
 [[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid ${O2JOBID:-$NUMAID}"
 if [[ $EPNSYNCMODE == 1 ]]; then
