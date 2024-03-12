@@ -33,13 +33,17 @@ function(o2_add_hipified_executable baseTargetName)
       set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
       get_filename_component(CUDA_SOURCE ${file} NAME)
       string(REPLACE ".cu" ".hip" HIP_SOURCE ${CUDA_SOURCE})
-      set(OUTPUT_HIP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${A_DEST_SRC_REL_PATH}/${HIP_SOURCE}")
+      set(OUTPUT_HIP_FILE "${CMAKE_CURRENT_BINARY_DIR}/${A_DEST_SRC_REL_PATH}/${HIP_SOURCE}")
       list(APPEND HIP_SOURCES ${OUTPUT_HIP_FILE})
 
       add_custom_command(
         OUTPUT ${OUTPUT_HIP_FILE}
         COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${ABS_CUDA_SORUCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${OUTPUT_HIP_FILE}
         DEPENDS ${file}
+      )
+
+      set_source_files_properties(${OUTPUT_HIP_FILE} PROPERTIES
+        INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}"
       )
     else()
       list(APPEND HIP_SOURCES ${file})
