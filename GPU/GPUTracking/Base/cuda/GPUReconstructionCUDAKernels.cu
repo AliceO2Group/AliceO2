@@ -39,7 +39,7 @@ template <class T, int I, typename... Args>
 void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
   GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz, this);
-#if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE != 1
+#if !defined(GPUCA_KERNEL_COMPILE_MODE) || GPUCA_KERNEL_COMPILE_MODE != 1
   if (!mProcessingSettings.rtc.enable) {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
   } else
