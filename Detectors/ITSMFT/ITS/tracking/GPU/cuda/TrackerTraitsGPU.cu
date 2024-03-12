@@ -1193,11 +1193,11 @@ void TrackerTraitsGPU<nLayers>::findRoadsHybrid(const int iteration)
       for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
         lastCellSeed.swap(updatedCellSeed);
         lastCellId.swap(updatedCellId);
-        updatedCellSeed.clear();
-        updatedCellId.clear();
+        // updatedCellSeed.clear();
+        // updatedCellId.clear();
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
-      trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
+      // trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
     }
     if (!trackSeeds.size()) {
       LOGP(info, "No track seeds found, skipping track finding");
