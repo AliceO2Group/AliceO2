@@ -352,12 +352,13 @@ std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int iSlice, int iRow, c
   return retVal;
 }
 
-void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgCharge, float charge) const
+void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgInvCharge) const
 {
 #ifdef DEBUG_STREAMER
   float time = clusterNative.getTime();
   auto occupancyBins = StreamerOccupancyBin(cluster.slice, cluster.row, time);
   auto uncorrectedYZ = StreamerUncorrectedZY(cluster.slice, cluster.row, track, prop);
+  float invCharge = 1.f / clusterNative.qMax;
   o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data()
                                                                                     << "iTrk=" << iTrk
                                                                                     << "ihit=" << ihit
@@ -373,13 +374,13 @@ void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy,
                                                                                     << "retVal=" << retVal
                                                                                     << "occupancyBins=" << occupancyBins
                                                                                     << "trackUncorrectedYZ=" << uncorrectedYZ
-                                                                                    << "avgCharge=" << avgCharge
-                                                                                    << "charge=" << charge
+                                                                                    << "avgInvCharge=" << avgInvCharge
+                                                                                    << "invCharge=" << invCharge
                                                                                     << "\n";
 #endif
 }
 
-void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgCharge, float charge)
+void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgInvCharge, float invCharge)
 {
 #ifdef DEBUG_STREAMER
   float scaledMult = (time >= 0.f ? param.GetScaledMult(time) / param.tpcGeometry.Row2X(iRow) : 0.f);
@@ -397,8 +398,8 @@ void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, flo
                                                                                          << "err2Z=" << err2Z
                                                                                          << "track=" << track
                                                                                          << "scaledMultiplicity=" << scaledMult
-                                                                                         << "avgCharge=" << avgCharge
-                                                                                         << "charge=" << charge
+                                                                                         << "avgInvCharge=" << avgInvCharge
+                                                                                         << "invCharge=" << invCharge
                                                                                          << "\n";
 #endif
 }
