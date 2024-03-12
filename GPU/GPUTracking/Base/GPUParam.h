@@ -96,12 +96,12 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
     }
     return 0.174533f + par.dAlpha * iSlice;
   }
-  GPUd() float GetClusterErrorSeeding(int yz, int type, float z, float angle2) const;
-  GPUd() void GetClusterErrorsSeeding2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgCharge, float charge, float& ErrY2, float& ErrZ2) const;
+  GPUd() float GetClusterErrorSeeding(int yz, int type, float zDiff, float angle2) const;
+  GPUd() void GetClusterErrorsSeeding2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const;
   GPUd() float GetSystematicClusterErrorIFC2(float x, float y, float z, bool sideC) const;
 
-  GPUd() float GetClusterError2(int yz, int type, float z, float angle2, float scaledMult, float scaledAvgCharge, float scaledCharge) const;
-  GPUd() void GetClusterErrors2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgCharge, float charge, float& ErrY2, float& ErrZ2) const;
+  GPUd() float GetClusterError2(int yz, int type, float zDiff, float angle2, float scaledMult, float scaledAvgInvCharge, float scaledInvCharge) const;
+  GPUd() void GetClusterErrors2(char sector, int row, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const;
   GPUd() void UpdateClusterError2ByState(short clusterState, float& ErrY2, float& ErrZ2) const;
   GPUd() float GetScaledMult(float time) const;
 
