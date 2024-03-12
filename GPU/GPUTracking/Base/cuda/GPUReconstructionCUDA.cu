@@ -458,10 +458,9 @@ size_t GPUReconstructionCUDA::TransferMemoryInternal(GPUMemoryResource* res, int
 
 size_t GPUReconstructionCUDA::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
 {
-  std::unique_ptr<GPUParamRTC> tmpParam;
   for (unsigned int i = 0; i < 1 + mDeviceConstantMemList.size(); i++) {
     void* basePtr = i ? mDeviceConstantMemList[i - 1] : mDeviceConstantMem;
-    if (basePtr == nullptr || i && basePtr == (void*)mDeviceConstantMem) {
+    if (basePtr == nullptr || (i && basePtr == (void*)mDeviceConstantMem)) {
       continue;
     }
     if (stream == -1) {

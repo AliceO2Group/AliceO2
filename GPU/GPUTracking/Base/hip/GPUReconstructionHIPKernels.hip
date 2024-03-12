@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -9,21 +10,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionCUDAKernels.cu
+/// \file GPUReconstructionHIPKernels.cu
 /// \author David Rohr
 
-#include "GPUReconstructionCUDADef.h"
-#include "GPUReconstructionCUDAIncludes.h"
+#include "GPUReconstructionHIPDef.h"
+#include "GPUReconstructionHIPIncludes.h"
 
-#include "GPUReconstructionCUDA.h"
-#include "GPUReconstructionCUDAInternals.h"
-#include "CUDAThrustHelpers.h"
+#include "GPUReconstructionHIP.h"
+#include "GPUReconstructionHIPInternals.h"
+#include "HIPThrustHelpers.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
 #ifdef GPUCA_USE_TEXTURES
-texture<cahit2, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu2;
-texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
+texture<cahit2, hipTextureType1D, hipReadModeElementType> gAliTexRefu2;
+texture<calink, hipTextureType1D, hipReadModeElementType> gAliTexRefu;
 #endif
 
 #include "GPUReconstructionIncludesDeviceAll.h"
@@ -33,16 +34,16 @@ __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantM
 #endif
 
 template <>
-void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+void GPUReconstructionHIPBackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
 {
   GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
-  GPUFailedMsg(cudaMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
+  GPUFailedMsg(hipMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
 }
 
 template <class T, int I, typename... Args>
-void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
+void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
-#ifndef __HIPCC__ // CUDA version
+#ifndef __HIPCC__ // HIP version
   GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz, this);
 #if !defined(GPUCA_KERNEL_COMPILE_MODE) || GPUCA_KERNEL_COMPILE_MODE != 1
   if (!mProcessingSettings.rtc.enable) {
@@ -59,12 +60,12 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
     pArgs[0] = &mDeviceConstantMem;
 #endif
     pArgs[arg_offset] = &y.start;
-    GPUReconstructionCUDAInternals::getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
+    GPUReconstructionHIPInternals::getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
     if (y.num <= 1) {
-      GPUFailedMsg(cuLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
+      GPUFailedMsg(hipModuleLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     } else {
       pArgs[arg_offset + 1] = &y.num;
-      GPUFailedMsg(cuLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
+      GPUFailedMsg(hipModuleLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     }
   }
   if (mProcessingSettings.checkKernelFailures) {
@@ -86,19 +87,19 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args)
+int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
 {
   auto& x = _xyz.x;
   auto& z = _xyz.z;
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
-      GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
+      GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[x.stream], ((hipEvent_t*)z.evList)[k], 0));
     }
   }
   runKernelBackendInternal<T, I>(_xyz, args...);
-  GPUFailedMsg(cudaGetLastError());
+  GPUFailedMsg(hipGetLastError());
   if (z.ev) {
-    GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->Streams[x.stream]));
+    GPUFailedMsg(hipEventRecord(*(hipEvent_t*)z.ev, mInternals->Streams[x.stream]));
   }
   return 0;
 }
@@ -106,7 +107,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_KRNL_PROP(x_class, x_attributes)                          \
-  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
+  template int GPUReconstructionHIPBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
 #else
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 2
 #define GPUCA_KRNL_DEFONLY
@@ -117,8 +118,8 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)             \
   GPUCA_KRNL_PROP(x_class, x_attributes)                                      \
   GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward) \
-  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
-#ifndef __HIPCC__ // CUDA version
+  template int GPUReconstructionHIPBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
+#ifndef __HIPCC__ // HIP version
 #define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
   GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
 #define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward) \
@@ -149,7 +150,7 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 #ifndef GPUCA_NO_CONSTANT_MEMORY
 static GPUReconstructionDeviceBase::deviceConstantMemRegistration registerConstSymbol([]() {
   void* retVal = nullptr;
-  GPUReconstructionCUDA::GPUFailedMsgI(cudaGetSymbolAddress(&retVal, gGPUConstantMemBuffer));
+  GPUReconstructionHIP::GPUFailedMsgI(hipGetSymbolAddress(&retVal, HIP_SYMBOL(gGPUConstantMemBuffer)));
   return retVal;
 });
 #endif

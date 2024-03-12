@@ -19,7 +19,7 @@ endif()
 
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionHIP.hip)
+set(SRCS GPUReconstructionHIP.hip GPUReconstructionHIPKernels.hip)
 set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h GPUReconstructionHIPIncludes.h HIPThrustHelpers.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
