@@ -33,7 +33,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 {
  public:
   ~GPUReconstructionHIPBackend() override;
-  int GPUFailedMsgAI(const long long int error, const char* file, int line);
+  static int GPUFailedMsgAI(const long long int error, const char* file, int line);
   void GPUFailedMsgA(const long long int error, const char* file, int line);
 
  protected:
@@ -65,7 +65,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void PrintKernelOccupancies() override;
 
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  int runKernelBackend(krnlSetup& _xyz, Args... args);
   template <class T, int I = 0, typename... Args>
   void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
   template <class T, int I = 0>

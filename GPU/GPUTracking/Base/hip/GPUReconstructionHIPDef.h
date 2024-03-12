@@ -12,10 +12,10 @@
 /// \file GPUReconstructionCUDDef.h
 /// \author David Rohr
 
-#ifndef O2_GPU_GPURECONSTRUCTIONCUDADEF_H
-#define O2_GPU_GPURECONSTRUCTIONCUDADEF_H
+#ifndef O2_GPU_GPURECONSTRUCTIONHIPDEF_H
+#define O2_GPU_GPURECONSTRUCTIONHIPDEF_H
 
-#ifndef __HIPCC__ // CUDA
+#ifndef __HIPCC__ // HIP
 #define GPUCA_UNROLL(optCu, optHi) GPUCA_M_UNROLL_##optCu
 #define GPUdic(optCu, optHi) GPUCA_GPUdic_select_##optCu()
 #else
@@ -34,6 +34,6 @@
 #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
 #define GPUCA_CONSMEM ((GPUConstantMem&)(*gGPUConstantMemBuffer))
 #endif
-#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionCUDABackend
+#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
 
 #endif
