@@ -752,14 +752,21 @@ void GeneratorPythia8::getNcoll(const Pythia8::Info& info, int& nColl)
 #else
   auto hiinfo = info.hiInfo;
 #endif
+  nColl = 0;
+  if (!hiinfo) {
+    LOG(warn) << "No heavy-ion information from Pythia";
+    return;
+  }
 
   // This is how the Pythia authors define Ncoll
   nColl = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
            hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
            hiinfo->nCollND() - hiinfo->nCollDD());
-  nColl = 0;
 
-  if (!hiinfo) {
+  if (not hiinfo->subCollisionsPtr()) {
+#if PYTHIA_VERSION_INTEGER < 8310
+    LOG(fatal) << "No sub-collision pointer from Pythia";
+#endif
     return;
   }
 
@@ -785,15 +792,21 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nPart)
 
   /** compute number of participants as the sum of all participants nucleons **/
 
-  // This is how the Pythia authors calculate Npart
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = info.hiinfo;
 #else
   auto hiinfo = info.hiInfo;
 #endif
-  if (hiinfo) {
-    nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
-             hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  nPart = 0;
+  if (not hiinfo) {
+    return;
+  }
+
+  // This is how the Pythia authors calculate Npart
+  nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+           hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  if (not hiinfo->subCollisionsPtr()) {
+    return;
   }
 
   int nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg;
@@ -816,6 +829,15 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nProtonProj, int
 
   nProtonProj = nNeutronProj = nProtonTarg = nNeutronTarg = 0;
   if (!hiinfo) {
+    return;
+  }
+
+  nProtonProj = hiinfo->nAbsProj() + hiinfo->nDiffProj();
+  nProtonTarg = hiinfo->nAbsTarg() + hiinfo->nDiffTarg();
+  if (not hiinfo->subCollisionsPtr()) {
+#if PYTHIA_VERSION_INTEGER < 8310
+    LOG(fatal) << "No sub-collision pointer from Pythia";
+#endif
     return;
   }
 
