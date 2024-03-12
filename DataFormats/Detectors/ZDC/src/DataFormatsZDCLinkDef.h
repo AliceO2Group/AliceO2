@@ -51,4 +51,6 @@
 #pragma link C++ struct o2::zdc::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::zdc::CTFHeader, 12, uint32_t> + ;
 
+#pragma read sourceClass = "ZDCTDCData" targetClass = "ZDCTDCData" source = "int16_t amp" version = "[-1]" target = "amp" targetType = "float" code = "{ amp=onfile.amp / 8.; }"
+
 #endif

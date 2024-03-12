@@ -187,7 +187,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   {
     if (ich < NTDCChannels) {
       if (ipos < TDCAmp[ich].size()) {
-        return FTDCAmp * TDCAmp[ich][ipos];
+        return TDCAmp[ich][ipos];
       }
     }
     return -std::numeric_limits<float>::infinity();
