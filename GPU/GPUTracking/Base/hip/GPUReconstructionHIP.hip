@@ -48,44 +48,6 @@ __global__ void dummyInitKernel(void*) {}
 
 #include "GPUReconstructionIncludesITS.h"
 
-class GPUDebugTiming
-{
- public:
-  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
-  {
-    if (mDo) {
-      if (mDeviceTimers) {
-        mRec->GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
-      } else {
-        mTimer.ResetStart();
-      }
-    }
-  }
-  ~GPUDebugTiming()
-  {
-    if (mDo) {
-      if (mDeviceTimers) {
-        mRec->GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
-        mRec->GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
-        float v;
-        mRec->GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
-        mXYZ.t = v * 1.e-3f;
-      } else {
-        mRec->GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
-        mXYZ.t = mTimer.GetCurrentElapsedTime();
-      }
-    }
-  }
-
- private:
-  GPUReconstruction::deviceEvent* mDeviceTimers;
-  hipStream_t* mStreams;
-  GPUReconstruction::krnlSetup& mXYZ;
-  GPUReconstructionHIPBackend* mRec;
-  HighResTimer mTimer;
-  bool mDo;
-};
-
 #include "GPUReconstructionIncludesDeviceAll.h"
 
 #undef GPUCA_KRNL_REG

@@ -15,6 +15,10 @@
 #ifndef GPU_HIPTHRUSTHELPERS_H
 #define GPU_HIPTHRUSTHELPERS_H
 
+#include "GPULogging.h"
+#include <vector>
+#include <memory>
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -37,4 +41,27 @@ class ThrustVolatileAsyncAllocator
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
+#ifndef __HIPCC__
+// Override synchronize call at end of thrust algorithm running on stream, just don't run hipStreamSynchronize
+namespace thrust
+{
+namespace hip_cub
+{
+
+typedef thrust::hip_cub::execution_policy<typeof(thrust::hip::par(*(GPUCA_NAMESPACE::gpu::ThrustVolatileAsyncAllocator*)nullptr).on(*(hipStream_t*)nullptr))> thrustStreamPolicy;
+template <>
+__host__ __device__ inline hipError_t synchronize<thrustStreamPolicy>(thrustStreamPolicy& policy)
+{
+#ifndef GPUCA_GPUCODE_DEVICE
+  // Do not synchronize!
+  return hipSuccess;
+#else
+  return synchronize_stream(derived_cast(policy));
 #endif
+}
+
+} // namespace hip_cub
+} // namespace thrust
+#endif // __HIPCC__
+
+#endif // GPU_HIPTHRUSTHELPERS_H
