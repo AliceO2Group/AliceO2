@@ -101,18 +101,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   static constexpr krnlRunRange krnlRunRangeNone{0, -1};
   static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
-#ifdef __clang__ // BUG: clang does not accept default parameters before parameter pack
-  template <class S, int I = 0, int J = -1>
-  inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone)
-  {
-    return runKernel<S, I, J>(x, y, krnlEventNone);
-  }
-  template <class S, int I = 0, int J = -1, typename... Args>
-  int runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
-#else
   template <class S, int I = 0, int J = -1, typename... Args>
   int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args);
-#endif
   template <class S, int I = 0>
   const krnlProperties getKernelProperties()
   {
