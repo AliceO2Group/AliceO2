@@ -36,9 +36,6 @@ struct GPUReconstructionCUDAInternals {
   std::vector<std::string> kernelNames;                     // names of kernels
   cudaStream_t Streams[GPUCA_MAX_STREAMS];                  // Pointer to array of CUDA Streams
 
-  template <bool multi, class T, int I = 0>
-  static int getRTCkernelNum(int k = -1);
-
   static void getArgPtrs(const void** pArgs) {}
   template <typename T, typename... Args>
   static void getArgPtrs(const void** pArgs, const T& arg, const Args&... args)

@@ -62,10 +62,10 @@ inline void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xy
     pArgs[arg_offset] = &y.start;
     GPUReconstructionHIPInternals::getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
     if (y.num <= 1) {
-      GPUFailedMsg(hipModuleLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
+      GPUFailedMsg(hipModuleLaunchKernel(*mInternals->kernelFunctions[getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     } else {
       pArgs[arg_offset + 1] = &y.num;
-      GPUFailedMsg(hipModuleLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
+      GPUFailedMsg(hipModuleLaunchKernel(*mInternals->kernelFunctions[getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     }
   }
 #else // HIP version
@@ -144,6 +144,22 @@ int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
 #endif // __HIPCC__
 #endif
 
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
+
+template <bool multi, class T, int I>
+int GPUReconstructionHIPBackend::getRTCkernelNum(int k)
+{
+  static int num = k;
+  if (num < 0) {
+    throw std::runtime_error("Invalid kernel");
+  }
+  return num;
+}
+
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                          \
+  template int GPUReconstructionHIPBackend::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k); \
+  template int GPUReconstructionHIPBackend::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
 

@@ -16,6 +16,7 @@
 #define GPURECONSTRUCTIONHIP_H
 
 #include "GPUReconstructionDeviceBase.h"
+#include <string>
 
 #ifdef _WIN32
 extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_HIP(const GPUCA_NAMESPACE::gpu::GPUSettingsDeviceBackend& cfg);
@@ -49,6 +50,9 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   krnlProperties getKernelPropertiesBackend();
   template <class T, int I>
   class backendInternal;
+
+  template <bool multi, class T, int I = 0>
+  static int getRTCkernelNum(int k = -1);
 
   GPUReconstructionHIPInternals* mInternals;
 };
@@ -92,7 +96,7 @@ class GPUReconstructionHIP : public GPUReconstructionKernels<GPUReconstructionHI
 #endif
 
  private:
-  int genRTC();
+  int genRTC(std::string& filename, unsigned int& nCompile);
   int loadKernelModules(bool perKernel, bool perSingleMulti = true);
 };
 

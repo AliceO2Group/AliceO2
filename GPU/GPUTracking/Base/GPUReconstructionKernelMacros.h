@@ -31,7 +31,7 @@
 #define GPUCA_M_KRNL_NAME_A(...) GPUCA_M_CAT(GPUCA_M_KRNL_NAME_B, GPUCA_M_SINGLEOPT(__VA_ARGS__))(__VA_ARGS__)
 #define GPUCA_M_KRNL_NAME(...) GPUCA_M_KRNL_NAME_A(GPUCA_M_STRIP(__VA_ARGS__))
 
-#ifdef GPUCA_GPUCODE
+#if defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_HOSTONLY)
 #ifndef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(...)
 #endif
@@ -142,9 +142,9 @@
 
 // Generate GPU kernel and host wrapper
 #define GPUCA_KRNL_WRAP(x_func, x_class, x_attributes, x_arguments, x_forward) GPUCA_M_CAT(x_func, GPUCA_M_STRIP_FIRST(x_attributes))(x_class, x_attributes, x_arguments, x_forward)
-#endif
+#endif // GPUCA_GPUCODE
 
 #define GPUCA_KRNL_LB(a, b, c, d) GPUCA_KRNL(a, (GPUCA_M_STRIP(b), REG, (GPUCA_M_CAT(GPUCA_LB_, GPUCA_M_KRNL_NAME(a)))), c, d)
 
-#endif
+#endif // O2_GPU_GPURECONSTRUCTIONKERNELMACROS_H
 // clang-format on
