@@ -498,7 +498,7 @@ struct Partition {
   {
     if (tree == nullptr) {
       expressions::Operations ops = createOperations(filter);
-      if (isTableCompatible(T::hashes(), ops)) {
+      if (isTableCompatible(T::table_t::hashes(), ops)) {
         tree = createExpressionTree(ops, table.asArrowTable()->schema());
       } else {
         throw std::runtime_error("Partition filter does not match declared table type");
