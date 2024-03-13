@@ -46,7 +46,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   template <class T, int I = 0, typename... Args>
   void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
   template <class T, int I = 0>
-  const krnlProperties getKernelPropertiesBackend();
+  krnlProperties getKernelPropertiesBackend();
   template <class T, int I>
   class backendInternal;
 

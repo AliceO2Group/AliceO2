@@ -184,7 +184,7 @@ class GPUChain
     return mRec->runKernel<S, I, J, Args...>(x, y, z, std::forward<Args>(args)...);
   }
   template <class S, int I = 0>
-  const GPUReconstruction::krnlProperties getKernelProperties()
+  GPUReconstruction::krnlProperties getKernelProperties()
   {
     return mRec->getKernelProperties<S, I>();
   }
