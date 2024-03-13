@@ -353,6 +353,10 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.overrideClusterizerFragmentLen == -1) {
     mProcessingSettings.overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mProcessingSettings.ompThreads / mProcessingSettings.nTPCClustererLanes >= 3)) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
   }
+  if (mProcessingSettings.nTPCClustererLanes > GPUCA_NSLICES) {
+    GPUError("Invalid value for nTPCClustererLanes: %d", mProcessingSettings.nTPCClustererLanes);
+    mProcessingSettings.nTPCClustererLanes = GPUCA_NSLICES;
+  }
 #endif
 
   if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
