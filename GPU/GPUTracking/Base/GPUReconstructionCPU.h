@@ -53,7 +53,6 @@ class GPUReconstructionKernels : public T
   using krnlSetup = GPUReconstruction::krnlSetup;
   template <class X, int Y = 0>
   using classArgument = GPUReconstruction::classArgument<X, Y>;
-  virtual ~GPUReconstructionKernels() = default; // NOLINT: BUG: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
   GPUReconstructionKernels(const GPUSettingsDeviceBackend& cfg) : T(cfg) {}
 
  protected:
@@ -79,7 +78,6 @@ class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstr
   using krnlSetup = GPUReconstruction::krnlSetup;
   template <class X, int Y = 0>
   using classArgument = GPUReconstruction::classArgument<X, Y>;
-  virtual ~GPUReconstructionKernels() = default; // NOLINT: Do not declare override in template class! AMD hcc will not create the destructor otherwise.
   GPUReconstructionKernels(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionCPUBackend(cfg) {}
 
  protected:
