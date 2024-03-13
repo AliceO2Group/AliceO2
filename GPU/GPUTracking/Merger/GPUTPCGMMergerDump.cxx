@@ -69,7 +69,7 @@ void GPUTPCGMMerger::DumpMergeRanges(std::ostream& out, int withinSlice, int mer
     GPUTPCGMBorderTrack *b1, *b2;
     int jSlice;
     MergeBorderTracksSetup(n1, n2, b1, b2, jSlice, i, withinSlice, mergeMode);
-    const int nTrk = mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
+    const int nTrk = Param().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[jSlice].NTracks() : mkSlices[jSlice]->NTracks();
     const gputpcgmmergertypes::GPUTPCGMBorderRange* range1 = BorderRange(i);
     const gputpcgmmergertypes::GPUTPCGMBorderRange* range2 = BorderRange(jSlice) + nTrk;
     out << "\nBorder Tracks : i " << i << " withinSlice " << withinSlice << " mergeMode " << mergeMode << "\n";
@@ -176,7 +176,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out) const
     }
     out << "\n";
   }
-  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int maxId = Param().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   unsigned int j = 0;
   for (unsigned int i = 0; i < maxId; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
@@ -229,7 +229,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out) const
     }
     out << "\n";
   }
-  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int maxId = Param().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   unsigned int j = 0;
   for (unsigned int i = 0; i < maxId; i++) {
     if ((mClusterAttachment[i] & attachFlagMask) != 0) {
@@ -352,13 +352,16 @@ std::vector<float> GPUTPCGMMerger::StreamerUncorrectedZY(int iSlice, int iRow, c
   return retVal;
 }
 
-void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgInvCharge) const
+void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy, float zz, const GPUTPCGMMergedTrackHit& cluster, const o2::tpc::ClusterNative& clusterNative, const GPUTPCGMTrackParam& track, const GPUTPCGMPropagator& prop, const gputpcgmmergertypes::InterpolationErrorHit& interpolation, char rejectChi2, bool refit, int retVal, float avgInvCharge, float posY, float posZ, short clusterState, int retValReject, float err2Y, float err2Z) const
 {
 #ifdef DEBUG_STREAMER
   float time = clusterNative.getTime();
   auto occupancyBins = StreamerOccupancyBin(cluster.slice, cluster.row, time);
   auto uncorrectedYZ = StreamerUncorrectedZY(cluster.slice, cluster.row, track, prop);
   float invCharge = 1.f / clusterNative.qMax;
+  int iRow = cluster.row;
+  float scaledMult = (time >= 0.f ? Param().GetScaledMult(time) / Param().tpcGeometry.Row2X(iRow) : 0.f);
+  const float clAlpha = Param().Alpha(cluster.slice);
   o2::utils::DebugStreamer::instance()->getStreamer("debug_update_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_update_track").data()
                                                                                     << "iTrk=" << iTrk
                                                                                     << "ihit=" << ihit
@@ -376,30 +379,15 @@ void GPUTPCGMMerger::DebugStreamerUpdate(int iTrk, int ihit, float xx, float yy,
                                                                                     << "trackUncorrectedYZ=" << uncorrectedYZ
                                                                                     << "avgInvCharge=" << avgInvCharge
                                                                                     << "invCharge=" << invCharge
+                                                                                    << "scaledMultiplicity=" << scaledMult
+                                                                                    << "alpha=" << clAlpha
+                                                                                    << "iRow=" << iRow
+                                                                                    << "posY=" << posY
+                                                                                    << "posZ=" << posZ
+                                                                                    << "clusterState=" << clusterState
+                                                                                    << "retValReject=" << retValReject
+                                                                                    << "err2Y=" << err2Y
+                                                                                    << "err2Z=" << err2Z
                                                                                     << "\n";
-#endif
-}
-
-void GPUTPCGMMerger::DebugStreamerReject(float mAlpha, int iRow, float posY, float posZ, short clusterState, char rejectChi2, const gputpcgmmergertypes::InterpolationErrorHit& inter, bool refit, int retVal, float err2Y, float err2Z, const GPUTPCGMTrackParam& track, const GPUParam& param, float time, float avgInvCharge, float invCharge)
-{
-#ifdef DEBUG_STREAMER
-  float scaledMult = (time >= 0.f ? param.GetScaledMult(time) / param.tpcGeometry.Row2X(iRow) : 0.f);
-  o2::utils::DebugStreamer::instance()->getStreamer("debug_InterpolateReject", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InterpolateReject").data()
-                                                                                         << "mAlpha=" << mAlpha
-                                                                                         << "iRow=" << iRow
-                                                                                         << "posY=" << posY
-                                                                                         << "posZ=" << posZ
-                                                                                         << "clusterState=" << clusterState
-                                                                                         << "rejectChi2=" << rejectChi2
-                                                                                         << "interpolationhit=" << inter
-                                                                                         << "refit=" << refit
-                                                                                         << "retVal=" << retVal
-                                                                                         << "err2Y=" << err2Y
-                                                                                         << "err2Z=" << err2Z
-                                                                                         << "track=" << track
-                                                                                         << "scaledMultiplicity=" << scaledMult
-                                                                                         << "avgInvCharge=" << avgInvCharge
-                                                                                         << "invCharge=" << invCharge
-                                                                                         << "\n";
 #endif
 }
