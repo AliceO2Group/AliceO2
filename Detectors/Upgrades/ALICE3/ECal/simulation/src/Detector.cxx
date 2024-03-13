@@ -124,14 +124,14 @@ void Detector::createGeometry()
   TGeoMedium* medPb = matmgr.getTGeoMedium("ECL_LEAD");
   TGeoTube* ecalShape = new TGeoTube("ECLsh", mInnerRadius, mOuterRadius, mLength);
   TGeoVolume* ecalVol = new TGeoVolume("ECL", ecalShape, medPb);
-  ecalVol->SetLineColor(kCyan + 1);
+  ecalVol->SetLineColor(kAzure - 9);
   ecalVol->SetTransparency(0);
   vECal->AddNode(ecalVol, 1, nullptr);
 
   // Buil the ecal endcap
   TGeoTube* ecalEndcapShape = new TGeoTube("ECLECsh", 15.f, 160.f, 0.5 * (mOuterRadius - mInnerRadius));
   TGeoVolume* ecalEndcapVol = new TGeoVolume("ECLEC", ecalEndcapShape, medPb);
-  ecalEndcapVol->SetLineColor(kCyan + 1);
+  ecalEndcapVol->SetLineColor(kAzure - 9);
   ecalEndcapVol->SetTransparency(0);
   vECal->AddNode(ecalEndcapVol, 1, new TGeoTranslation(0, 0, -450.f));
 }

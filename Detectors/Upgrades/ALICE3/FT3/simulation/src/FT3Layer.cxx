@@ -74,11 +74,11 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
 
     TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
-    sensVol->SetLineColor(kBlue - 7);
+    sensVol->SetLineColor(kYellow);
     TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
-    chipVol->SetLineColor(kBlue - 7);
+    chipVol->SetLineColor(kYellow);
     TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-    layerVol->SetLineColor(kBlue - 7);
+    layerVol->SetLineColor(kYellow);
 
     LOG(info) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
     chipVol->AddNode(sensVol, 1, nullptr);

@@ -406,7 +406,7 @@ void Detector::prepareLayout()
                        richPars.rFWDMin,
                        richPars.rFWDMax,
                        richPars.zAerogelMin,
-                       richPars.zAerogelMax - richPars.zArgonMin,
+                       richPars.zAerogelMax - richPars.zAerogelMin,
                        richPars.zArgonMin,
                        richPars.zArgonMax - richPars.zArgonMin,
                        richPars.zSiliconMin,
