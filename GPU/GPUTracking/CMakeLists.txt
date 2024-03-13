@@ -113,6 +113,7 @@ set(HDRS_INSTALL
     Base/GPUReconstructionIncludes.h
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionKernelMacros.h
+    Base/GPUReconstructionKernels.h
     DataCompression/GPUTPCClusterRejection.h
     DataCompression/GPUTPCCompressionKernels.inc
     DataCompression/TPCClusterDecompressor.inc
@@ -257,7 +258,7 @@ endif()
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
 file(GENERATE
-     OUTPUT include_gpu_onthefly/GPUReconstructionKernels.h
+     OUTPUT include_gpu_onthefly/GPUReconstructionKernelList.h
      INPUT Base/GPUReconstructionKernels.template.h
 )
 file(GENERATE
@@ -271,7 +272,7 @@ file(GENERATE
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "O2")
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly)
 endif()
-set(HDRS_INSTALL ${HDRS_INSTALL} ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly/GPUReconstructionKernels.h)
+set(HDRS_INSTALL ${HDRS_INSTALL} ${CMAKE_CURRENT_BINARY_DIR}/include_gpu_onthefly/GPUReconstructionKernelList.h)
 include(kernels.cmake)
 
 # Optional sources depending on optional dependencies

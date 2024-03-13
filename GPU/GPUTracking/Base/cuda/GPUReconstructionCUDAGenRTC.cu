@@ -50,7 +50,7 @@ int GPUReconstructionCUDA::genRTC()
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward)));
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward)));
-#include "GPUReconstructionKernels.h"
+#include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
@@ -249,5 +249,5 @@ int GPUReconstructionCUDAInternals::getRTCkernelNum(int k)
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                             \
   template int GPUReconstructionCUDAInternals::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k); \
   template int GPUReconstructionCUDAInternals::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
-#include "GPUReconstructionKernels.h"
+#include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
