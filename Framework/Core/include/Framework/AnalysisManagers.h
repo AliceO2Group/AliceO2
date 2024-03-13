@@ -94,7 +94,7 @@ struct PartitionManager<Partition<T>> {
   static void doSetPartition(Partition<T>& partition, T2& table)
   {
     if constexpr (std::is_same_v<T, T2>) {
-      partition.setTable(table);
+      partition.bindTable(table);
     }
   }
 

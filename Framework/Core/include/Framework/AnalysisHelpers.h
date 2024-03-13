@@ -494,29 +494,24 @@ struct Partition {
     setTable(table);
   }
 
-  void intializeCaches(std::shared_ptr<arrow::Schema> const& schema)
+  void intializeCaches(T const& table)
   {
     if (tree == nullptr) {
       expressions::Operations ops = createOperations(filter);
-      if (isSchemaCompatible(schema, ops)) {
-        tree = createExpressionTree(ops, schema);
+      if (isTableCompatible(T::hashes(), ops)) {
+        tree = createExpressionTree(ops, table.asArrowTable()->schema());
       } else {
         throw std::runtime_error("Partition filter does not match declared table type");
       }
     }
     if (gfilter == nullptr) {
-      gfilter = framework::expressions::createFilter(schema, framework::expressions::makeCondition(tree));
+      gfilter = framework::expressions::createFilter(table.asArrowTable()->schema(), framework::expressions::makeCondition(tree));
     }
   }
 
-  void inline bindTable(T const& table)
+  void bindTable(T const& table)
   {
-    setTable(table);
-  }
-
-  void setTable(T const& table)
-  {
-    intializeCaches(table.asArrowTable()->schema());
+    intializeCaches(table);
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;
