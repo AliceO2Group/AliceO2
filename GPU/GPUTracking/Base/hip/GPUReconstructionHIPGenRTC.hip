@@ -13,7 +13,9 @@
 /// \author David Rohr
 
 #define GPUCA_GPUCODE_HOSTONLY
+#ifdef WITH_OPENMP
 #include <omp.h>
+#endif
 #include <hip/hip_runtime.h>
 #include <hip/hip_fp16.h>
 #include "GPUReconstructionHIPDef.h"
@@ -147,7 +149,9 @@ int GPUReconstructionHIP::genRTC()
     }
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
+#ifdef WITH_OPENMP
 #pragma omp parallel for
+#endif
     for (unsigned int i = 0; i < nCompile; i++) {
       if (mProcessingSettings.debugLevel >= 3) {
         printf("Compiling %s\n", (filename + "_" + std::to_string(i) + ".cu").c_str());
