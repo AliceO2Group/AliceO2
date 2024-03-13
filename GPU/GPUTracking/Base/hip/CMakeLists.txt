@@ -19,8 +19,61 @@ endif()
 
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionHIP.hip GPUReconstructionHIPKernels.hip)
-set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h GPUReconstructionHIPIncludes.h HIPThrustHelpers.h)
+set(SRCS GPUReconstructionHIP.hip GPUReconstructionHIPGenRTC.hip GPUReconstructionHIPKernels.hip)
+set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h GPUReconstructionHIPDef.h GPUReconstructionHIPIncludes.h HIPThrustHelpers.h)
+
+# -------------------------------- Prepare RTC -------------------------------------------------------
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+  enable_language(ASM)
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    set(defineIncludeSrc "O2::${MODULE}")
+  else()
+    set(defineIncludeSrc "${MODULE}")
+  endif()
+  set(HIPRTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},COMPILE_DEFINITIONS>,$<SEMICOLON>-D>")
+  set(HIPRTC_INCLUDES "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:${defineIncludeSrc},INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>"
+                    -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
+                    -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
+  )
+  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+    set(HIPRTC_INCLUDES ${HIPRTC_INCLUDES} "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:O2::ITStrackingHIP,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>")
+  endif()
+
+  set(HIPRTC_FLAGS "${CMAKE_HIP_FLAGS} ${CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++${CMAKE_HIP_STANDARD}")
+  separate_arguments(HIPRTC_FLAGS)
+
+  # convenience variables
+  if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+    get_filename_component(GPUDIR ${CMAKE_SOURCE_DIR}/../ ABSOLUTE)
+  else()
+    set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
+  endif()
+
+  set(HIPRTC_SRC ${GPUDIR}/Base/hip/GPUReconstructionHIPrtc.hip)
+  set(HIPRTC_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionHIPrtc)
+
+  # cmake-format: off
+  add_custom_command(
+      OUTPUT ${HIPRTC_BIN}.src
+      COMMAND cat ${GPUDIR}/Base/hip/GPUReconstructionHIPIncludes.h > ${HIPRTC_BIN}.src
+      COMMAND ${CMAKE_CXX_COMPILER} ${HIPRTC_DEFINES} ${HIPRTC_INCLUDES} -std=c++${CMAKE_HIP_STANDARD} -D__HIPCC__ -D__HIP_DEVICE_COMPILE__ -x c++ -E ${HIPRTC_SRC} >> ${HIPRTC_BIN}.src
+      MAIN_DEPENDENCY ${HIPRTC_SRC}
+      IMPLICIT_DEPENDS CXX ${HIPRTC_SRC}
+      COMMAND_EXPAND_LISTS
+  )
+  create_binary_resource(${HIPRTC_BIN}.src ${HIPRTC_BIN}.src.o)
+
+  add_custom_command(
+      OUTPUT ${HIPRTC_BIN}.command
+      COMMAND echo -n "${CMAKE_HIP_COMPILER} ${HIPRTC_FLAGS} ${HIPRTC_DEFINES}" > ${HIPRTC_BIN}.command
+      COMMAND_EXPAND_LISTS
+      VERBATIM
+  )
+  create_binary_resource(${HIPRTC_BIN}.command ${HIPRTC_BIN}.command.o)
+
+  set(SRCS ${SRCS} ${HIPRTC_BIN}.src.o ${HIPRTC_BIN}.command.o)
+endif()
+# -------------------------------- End RTC -------------------------------------------------------
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
@@ -80,9 +133,16 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=HIP)
   add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking hip::host hip::device hip::hipcub roc::rocthrust)
+  target_link_libraries(${MODULE} PUBLIC GPUTracking hip::host hip::device hip::hipcub roc::rocthrust)
   set(targetName "${MODULE}")
   install(TARGETS GPUTrackingHIP)
+endif()
+
+if(OpenMP_CXX_FOUND)
+  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+  set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fopenmp")
 endif()
 
 set_target_hip_arch(${targetName})
