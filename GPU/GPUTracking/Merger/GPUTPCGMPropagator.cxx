@@ -653,19 +653,18 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, char sector, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, int iTrk))
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, char sector, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, DebugStreamerVals* debugVals))
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgInvCharge, invCharge);
+  GPUCA_DEBUG_STREAMER_CHECK(debugVals->err2Y = err2Y; debugVals->err2Z = err2Z;);
 
   if (rejectChi2 >= rejectInterFill) {
     if (rejectChi2 == rejectInterReject && inter->errorY < (GPUCA_MERGER_INTERPOLATION_ERROR_TYPE)0) {
       rejectChi2 = rejectDirect;
     } else {
       int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
-      GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamRejectCluster, iTrk)) {
-        GPUTPCGMMerger::DebugStreamerReject(mAlpha, iRow, posY, posZ, clusterState, rejectChi2, *inter, refit, retVal, err2Y, err2Z, *mT, param, time, avgInvCharge, invCharge);
-      });
+      GPUCA_DEBUG_STREAMER_CHECK(debugVals->retVal = retVal;);
       if (retVal) {
         return retVal;
       }
