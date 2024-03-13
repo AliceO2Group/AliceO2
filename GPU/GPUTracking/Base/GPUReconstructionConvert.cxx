@@ -1376,12 +1376,12 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     if (version >= ZSVersion::ZSVersionRowBased10BitADC && version <= ZSVersion::ZSVersionRowBased12BitADC) {
       zsEncoderRun<zsEncoderRow> enc{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}};
       runZS(enc);
-    } else if (version >= ZSVersion::ZSVersionLinkBasedWithMeta || version <= ZSVersion::ZSVersionDenseLinkBased) {
+    } else if (version >= ZSVersion::ZSVersionLinkBasedWithMeta && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
 #ifdef GPUCA_O2_LIB
       if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
         zsEncoderRun<zsEncoderImprovedLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
-      } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersionDenseLinkBasedV2) {
+      } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
         zsEncoderRun<zsEncoderDenseLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
       }
