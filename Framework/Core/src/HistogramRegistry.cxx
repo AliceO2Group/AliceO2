@@ -17,6 +17,10 @@
 namespace o2::framework
 {
 
+template void HistogramRegistry::fill(const HistName& histName, double);
+template void HistogramRegistry::fill(const HistName& histName, float);
+template void HistogramRegistry::fill(const HistName& histName, int);
+
 constexpr HistogramRegistry::HistName::HistName(char const* const name)
   : str(name),
     hash(runtime_hash(name)),
