@@ -1536,7 +1536,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     if (mCfgL.animationMode != 6) {
       if (mCfgL.animationMode & 1) // Rotation from euler angles
       {
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {1, 0, 0}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {0, 1, 0}) * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {0, 0, 1});
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {{1, 0, 0}}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {{0, 1, 0}}) * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {{0, 0, 1}});
       } else { // Rotation from quaternion
         const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
         if (mag < 0.0001f) {
@@ -1569,12 +1569,12 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       }
     }
     if (mCfgL.animationMode == 6) {
-      nextViewMatrix = HMM_LookAt({vals[0], vals[1], vals[2]}, {0, 0, 0}, {0, 1, 0});
+      nextViewMatrix = HMM_LookAt({{vals[0], vals[1], vals[2]}}, {{0, 0, 0}}, {{0, 1, 0}});
     } else {
-      nextViewMatrix = nextViewMatrix * HMM_Translate({-vals[0], -vals[1], -vals[2]});
+      nextViewMatrix = nextViewMatrix * HMM_Translate({{-vals[0], -vals[1], -vals[2]}});
     }
   } else if (mResetScene) {
-    nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, mParam->par.continuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
+    nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, mParam->par.continuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8}});
     mViewMatrix = MY_HMM_IDENTITY;
     mModelMatrix = MY_HMM_IDENTITY;
 
@@ -1629,7 +1629,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
           mAngleRollOrigin = yUp ? 0.f : -mAngle[2];
         }
         mAngleRollOrigin += rotRoll;
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(mAngleRollOrigin, {0, 0, 1});
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(mAngleRollOrigin, {{0, 0, 1}});
         float tmpX = moveX, tmpY = moveY;
         moveX = tmpX * cosf(mAngle[2]) - tmpY * sinf(mAngle[2]);
         moveY = tmpX * sinf(mAngle[2]) + tmpY * cosf(mAngle[2]);
@@ -1660,37 +1660,37 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       if (yUp) {
         nextViewMatrix = MY_HMM_IDENTITY;
       }
-      nextViewMatrix = nextViewMatrix * HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
+      nextViewMatrix = nextViewMatrix * HMM_LookAt({{mXYZ[0], mXYZ[1], mXYZ[2]}}, {{0, 0, 0}}, {{0, 1, 0}});
     } else {
-      nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY * mYFactor, moveZ});
+      nextViewMatrix = nextViewMatrix * HMM_Translate({{moveX, moveY * mYFactor, moveZ}});
       if (!rotateModel) {
         if (rotYaw != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {{0, 1, 0}});
         }
         if (rotPitch != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch * mYFactor, {1, 0, 0});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch * mYFactor, {{1, 0, 0}});
         }
         if (!yUp && rotRoll != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {0, 0, 1});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {{0, 0, 1}});
         }
       }
       nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
       if (yUp) {
         calcXYZ(&nextViewMatrix.Elements[0][0]);
-        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / CAMath::Pi(), {0, 0, 1}) * nextViewMatrix;
+        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / CAMath::Pi(), {{0, 0, 1}}) * nextViewMatrix;
       }
       if (rotateModel) {
         if (rotYaw != 0.f) {
-          mModelMatrix = HMM_Rotate(rotYaw, {nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}) * mModelMatrix;
+          mModelMatrix = HMM_Rotate(rotYaw, {{nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}}) * mModelMatrix;
         }
         if (rotPitch != 0.f) {
-          mModelMatrix = HMM_Rotate(rotPitch, {nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}) * mModelMatrix;
+          mModelMatrix = HMM_Rotate(rotPitch, {{nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}}) * mModelMatrix;
         }
         if (rotRoll != 0.f) {
           if (rotateModelTPC) {
-            mModelMatrix = HMM_Rotate(-rotRoll, {0, 0, 1}) * mModelMatrix;
+            mModelMatrix = HMM_Rotate(-rotRoll, {{0, 0, 1}}) * mModelMatrix;
           } else {
-            mModelMatrix = HMM_Rotate(-rotRoll, {nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}) * mModelMatrix;
+            mModelMatrix = HMM_Rotate(-rotRoll, {{nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}}) * mModelMatrix;
           }
         }
       }

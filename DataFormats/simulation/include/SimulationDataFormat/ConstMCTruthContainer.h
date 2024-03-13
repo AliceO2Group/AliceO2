@@ -139,7 +139,7 @@ class ConstMCTruthContainerView
   {
     (void)0;
   }
-  ConstMCTruthContainerView(const ConstMCTruthContainerView&) = default;
+  // ConstMCTruthContainerView(const ConstMCTruthContainerView&) = default;
 
   // const data access
   // get individual const "view" container for a given data index

@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 namespace o2::its
 {
-class GPUFrameworkExternalAllocator : public o2::its::ExternalAllocator
+class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
 {
  public:
   void* allocate(size_t size) override
