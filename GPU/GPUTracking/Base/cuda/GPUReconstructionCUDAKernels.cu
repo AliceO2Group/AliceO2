@@ -67,11 +67,6 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
       GPUFailedMsg(cuLaunchKernel(*mInternals->kernelFunctions[mInternals->getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     }
   }
-  if (mProcessingSettings.checkKernelFailures) {
-    if (GPUDebug(GetKernelName<T, I>(), _xyz.x.stream, true)) {
-      throw std::runtime_error("Kernel Failure");
-    }
-  }
 #else // HIP version
   if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
@@ -83,6 +78,11 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
   }
 #endif
+  if (mProcessingSettings.checkKernelFailures) {
+    if (GPUDebug(GetKernelName<T, I>(), _xyz.x.stream, true)) {
+      throw std::runtime_error("Kernel Failure");
+    }
+  }
 }
 
 template <class T, int I, typename... Args>
