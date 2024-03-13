@@ -87,7 +87,7 @@ inline void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xy
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, const Args... args)
+int GPUReconstructionHIPBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
 {
   auto& x = _xyz.x;
   auto& z = _xyz.z;

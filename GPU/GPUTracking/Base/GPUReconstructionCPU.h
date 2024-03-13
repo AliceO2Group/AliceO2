@@ -39,31 +39,13 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
  protected:
   GPUReconstructionCPUBackend(const GPUSettingsDeviceBackend& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  int runKernelBackend(krnlSetup& _xyz, Args... args);
   template <class T, int I>
   krnlProperties getKernelPropertiesBackend();
   unsigned int mNestedLoopOmpFactor = 1;
   static int getOMPThreadNum();
   static int getOMPMaxThreads();
 };
-
-#ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
-// Hide the function bodies for all files but GPUReconstructionCPU.cxx, otherwise we get symbol clashes when the compiler inlines
-template <>
-class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
-{
- public:
-  using krnlSetup = GPUReconstruction::krnlSetup;
-  GPUReconstructionKernels(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionCPUBackend(cfg) {}
-
- protected:
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                                       \
-  virtual int runKernelImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)); \
-  virtual krnlProperties getKernelPropertiesImpl(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>);
-#include "GPUReconstructionKernelList.h"
-#undef GPUCA_KRNL
-};
-#endif
 
 class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCPUBackend>
 {

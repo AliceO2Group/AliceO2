@@ -12,7 +12,6 @@
 /// \file GPUReconstructionCPU.cxx
 /// \author David Rohr
 
-#define GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
 #include "GPUReconstructionCPU.h"
 #include "GPUReconstructionIncludes.h"
 #include "GPUChain.h"
@@ -61,7 +60,7 @@ GPUReconstructionCPU::~GPUReconstructionCPU()
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
+int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;
@@ -103,7 +102,7 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
 }
 
 template <>
-int GPUReconstructionCPUBackend::runKernelBackend<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+int GPUReconstructionCPUBackend::runKernelBackend<GPUMemClean16, 0>(krnlSetup& _xyz, void* ptr, unsigned long size)
 {
   memset(ptr, 0, size);
   return 0;
@@ -114,6 +113,12 @@ GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelProperti
 {
   return krnlProperties{1, 1};
 }
+
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                                                          \
+  template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments)); \
+  template GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
 
 size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
 size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents) { return 0; }
