@@ -99,6 +99,33 @@ constexpr auto interleave_pack(pack<Args1...>, pack<Args2...>)
 template <typename P1, typename P2>
 using interleaved_pack_t = decltype(interleave_pack(P1{}, P2{}));
 
+/// Marks as void the types that do not satisfy the condition
+template <template <typename...> typename Condition, typename... Ts>
+using with_condition_pack = pack<std::conditional_t<Condition<Ts>::value, Ts, void>...>;
+
+template <typename... Ts>
+constexpr auto count_non_void_pack(pack<Ts...> const&)
+{
+  return ((std::is_void_v<Ts> ? 0 : 1) + ...);
+}
+
+template <typename Result>
+constexpr auto prune_voids_pack(Result result, pack<>)
+{
+  return result;
+}
+
+template <typename... Rs, typename T, typename... Ts>
+constexpr auto prune_voids_pack(pack<Rs...> result, pack<T, Ts...>)
+{
+  constexpr auto rest = pack<Ts...>{};
+  if constexpr (std::is_void_v<T> == false) {
+    return prune_voids_pack(pack<Rs..., T>{}, rest);
+  } else {
+    return prune_voids_pack(pack<Rs...>{}, rest);
+  }
+}
+
 /// Selects from the pack types that satisfy the Condition
 /// Multicondition takes the type to check as first template parameter
 /// and any helper types as the following parameters
@@ -119,7 +146,7 @@ constexpr auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
 }
 
 template <template <typename...> typename Condition, typename... Types>
-using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}, pack<>{}))>;
+using selected_pack = std::decay_t<decltype(prune_voids_pack(pack<>{}, with_condition_pack<Condition, Types...>{}))>;
 template <template <typename...> typename Condition, typename CondPack, typename Pack>
 using selected_pack_multicondition = std::decay_t<decltype(select_pack<Condition>(pack<>{}, Pack{}, CondPack{}))>;
 
@@ -170,21 +197,17 @@ struct has_type_conditional<Condition, T, pack<Us...>> : std::disjunction<Condit
 template <template <typename, typename> typename Condition, typename T, typename... Us>
 inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T, Us...>::value;
 
-template <typename T>
-constexpr size_t has_type_at(pack<> const&)
+template <typename T, typename... Ts>
+consteval std::size_t has_type_at(pack<Ts...> const&)
 {
-  return static_cast<size_t>(-1);
-}
-
-template <typename T, typename T1, typename... Ts>
-constexpr size_t has_type_at(pack<T1, Ts...> const&)
-{
-  if constexpr (std::is_same_v<T, T1>) {
-    return 0;
-  } else if constexpr (has_type_v<T, pack<Ts...>>) {
-    return 1 + has_type_at<T>(pack<Ts...>{});
+  constexpr std::size_t count = []<std::size_t... Is>(std::index_sequence<Is...>) {
+    return ((std::is_same_v<T, Ts> ? Is + 1 : 0) + ...);
+  }(std::make_index_sequence<sizeof...(Ts)>());
+  if constexpr (count == 0) {
+    return sizeof...(Ts) + 1;
+  } else {
+    return count - 1;
   }
-  return sizeof...(Ts) + 2;
 }
 
 template <template <typename, typename> typename Condition, typename T>
