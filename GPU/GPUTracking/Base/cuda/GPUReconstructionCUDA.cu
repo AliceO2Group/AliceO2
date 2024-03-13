@@ -325,9 +325,18 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 
 #ifndef GPUCA_ALIROOT_LIB
     if (mProcessingSettings.rtc.enable) {
-      if (genRTC()) {
+      std::string filename = "";
+      unsigned int nCompile = 0;
+      if (genRTC(filename, nCompile)) {
         throw std::runtime_error("Runtime compilation failed");
       }
+      for (unsigned int i = 0; i < nCompile; i++) {
+        mInternals->kernelModules.emplace_back(std::make_unique<CUmodule>());
+        GPUFailedMsg(cuModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
+        remove((filename + "_" + std::to_string(i) + ".cu").c_str());
+        remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
+      }
+      loadKernelModules(mProcessingSettings.rtc.compilePerKernel);
     }
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
     else {
@@ -586,13 +595,13 @@ int GPUReconstructionCUDA::loadKernelModules(bool perKernel, bool perSingleMulti
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                  \
   GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward) \
   j += !perSingleMulti;
-#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                             \
-  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size()); \
-  mInternals->kernelFunctions.emplace_back(new CUfunction);                                               \
-  mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))));      \
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                        \
+  getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size());        \
+  mInternals->kernelFunctions.emplace_back(new CUfunction);                                          \
+  mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))); \
   GPUFailedMsg(cuModuleGetFunction(mInternals->kernelFunctions.back().get(), *mInternals->kernelModules[perKernel ? (j += perSingleMulti) : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                  \
-  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size());      \
+  getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size());                  \
   mInternals->kernelFunctions.emplace_back(new CUfunction);                                                   \
   mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))); \
   GPUFailedMsg(cuModuleGetFunction(mInternals->kernelFunctions.back().get(), *mInternals->kernelModules[perKernel ? (j += perSingleMulti) : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));

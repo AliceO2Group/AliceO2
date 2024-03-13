@@ -9,18 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionHIPGenRTC.cu
+/// \file GPUReconstructionCUDAGenRTC.cu
 /// \author David Rohr
 
 #define GPUCA_GPUCODE_HOSTONLY
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
-#include <hip/hip_runtime.h>
-#include <hip/hip_fp16.h>
-#include "GPUReconstructionHIPDef.h"
-#include "GPUReconstructionHIP.h"
-#include "GPUReconstructionHIPInternals.h"
+#include "GPUReconstructionCUDA.h"
 #include "GPUParamRTC.h"
 #include "GPUDefMacros.h"
 #include <unistd.h>
@@ -32,15 +28,17 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_ALIROOT_LIB
 #include "utils/qGetLdBinarySymbols.h"
-QGET_LD_BINARY_SYMBOLS(GPUReconstructionHIPrtc_src);
-QGET_LD_BINARY_SYMBOLS(GPUReconstructionHIPrtc_command);
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_src);
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_command);
 #endif
 
-int GPUReconstructionHIP::genRTC()
+int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
 {
 #ifndef GPUCA_ALIROOT_LIB
   std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtc.optConstexpr);
-  std::string filename = "/tmp/o2cagpu_rtc_";
+  if (filename == "") {
+    filename = "/tmp/o2cagpu_rtc_";
+  }
   filename += std::to_string(getpid());
   filename += "_";
   filename += std::to_string(rand());
@@ -63,20 +61,20 @@ int GPUReconstructionHIP::genRTC()
 #ifdef GPUCA_HAVE_O2HEADERS
   char shasource[21], shaparam[21], shacmd[21], shakernels[21];
   if (mProcessingSettings.rtc.cacheOutput) {
-    o2::framework::internal::SHA1(shasource, _binary_GPUReconstructionHIPrtc_src_start, _binary_GPUReconstructionHIPrtc_src_len);
+    o2::framework::internal::SHA1(shasource, _binary_GPUReconstructionCUDArtc_src_start, _binary_GPUReconstructionCUDArtc_src_len);
     o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
-    o2::framework::internal::SHA1(shacmd, _binary_GPUReconstructionHIPrtc_command_start, _binary_GPUReconstructionHIPrtc_command_len);
+    o2::framework::internal::SHA1(shacmd, _binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
     o2::framework::internal::SHA1(shakernels, kernelsall.c_str(), kernelsall.size());
   }
 #endif
 
-  unsigned int nCompile = mProcessingSettings.rtc.compilePerKernel ? kernels.size() : 1;
+  nCompile = mProcessingSettings.rtc.compilePerKernel ? kernels.size() : 1;
   bool cacheLoaded = false;
   if (mProcessingSettings.rtc.cacheOutput) {
 #ifndef GPUCA_HAVE_O2HEADERS
     throw std::runtime_error("Cannot use RTC cache without O2 headers");
 #else
-    FILE* fp = fopen("rtc.hip.cache", "rb");
+    FILE* fp = fopen("rtc.cuda.cache", "rb");
     char sharead[20];
     if (fp) {
       size_t len;
@@ -145,7 +143,7 @@ int GPUReconstructionHIP::genRTC()
   }
   if (!cacheLoaded) {
     if (mProcessingSettings.debugLevel >= 0) {
-      GPUInfo("Starting HIP RTC Compilation");
+      GPUInfo("Starting CUDA RTC Compilation");
     }
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
@@ -166,12 +164,12 @@ int GPUReconstructionHIP::genRTC()
       kernel += "}";
 
       if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size() ||
-          fwrite(_binary_GPUReconstructionHIPrtc_src_start, 1, _binary_GPUReconstructionHIPrtc_src_len, fp) != _binary_GPUReconstructionHIPrtc_src_len ||
+          fwrite(_binary_GPUReconstructionCUDArtc_src_start, 1, _binary_GPUReconstructionCUDArtc_src_len, fp) != _binary_GPUReconstructionCUDArtc_src_len ||
           fwrite(kernel.c_str(), 1, kernel.size(), fp) != kernel.size()) {
         throw std::runtime_error("Error writing file");
       }
       fclose(fp);
-      std::string command = std::string(_binary_GPUReconstructionHIPrtc_command_start, _binary_GPUReconstructionHIPrtc_command_len);
+      std::string command = std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
       command += " -cubin -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".cubin";
       if (mProcessingSettings.debugLevel >= 3) {
         printf("Running command %s\n", command.c_str());
@@ -180,7 +178,7 @@ int GPUReconstructionHIP::genRTC()
         if (mProcessingSettings.debugLevel >= 3) {
           printf("Source code file: %s", filename.c_str());
         }
-        throw std::runtime_error("Error during HIP compilation");
+        throw std::runtime_error("Error during CUDA compilation");
       }
     }
     if (mProcessingSettings.debugLevel >= 0) {
@@ -188,7 +186,7 @@ int GPUReconstructionHIP::genRTC()
     }
 #ifdef GPUCA_HAVE_O2HEADERS
     if (mProcessingSettings.rtc.cacheOutput) {
-      FILE* fp = fopen("rtc.hip.cache", "w+b");
+      FILE* fp = fopen("rtc.cuda.cache", "w+b");
       if (fp == nullptr) {
         throw std::runtime_error("Cannot open cache file for writing");
       }
@@ -206,14 +204,14 @@ int GPUReconstructionHIP::genRTC()
       for (unsigned int i = 0; i < nCompile; i++) {
         FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".cubin").c_str(), "rb");
         if (fp2 == nullptr) {
-          throw std::runtime_error("Cannot open hip module file");
+          throw std::runtime_error("Cannot open cuda module file");
         }
         fseek(fp2, 0, SEEK_END);
         size_t size = ftell(fp2);
         buffer.resize(size);
         fseek(fp2, 0, SEEK_SET);
         if (fread(buffer.data(), 1, size, fp2) != size) {
-          throw std::runtime_error("Error reading hip module file");
+          throw std::runtime_error("Error reading cuda module file");
         }
         fclose(fp2);
 
@@ -227,31 +225,6 @@ int GPUReconstructionHIP::genRTC()
 #endif
   }
 
-  for (unsigned int i = 0; i < nCompile; i++) {
-    mInternals->kernelModules.emplace_back(std::make_unique<hipModule_t>());
-    GPUFailedMsg(hipModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
-    remove((filename + "_" + std::to_string(i) + ".cu").c_str());
-    remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
-  }
-
-  loadKernelModules(mProcessingSettings.rtc.compilePerKernel);
-
 #endif
   return 0;
 }
-
-template <bool multi, class T, int I>
-int GPUReconstructionHIPInternals::getRTCkernelNum(int k)
-{
-  static int num = k;
-  if (num < 0) {
-    throw std::runtime_error("Invalid kernel");
-  }
-  return num;
-}
-
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                            \
-  template int GPUReconstructionHIPInternals::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k); \
-  template int GPUReconstructionHIPInternals::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
-#include "GPUReconstructionKernelList.h"
-#undef GPUCA_KRNL
