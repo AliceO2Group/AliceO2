@@ -39,6 +39,27 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
  protected:
   GPUReconstructionHIPBackend(const GPUSettingsDeviceBackend& cfg);
 
+  void PrintKernelOccupancies() override;
+
+  template <class T, int I = 0, typename... Args>
+  int runKernelBackend(krnlSetup& _xyz, Args... args);
+  template <class T, int I = 0, typename... Args>
+  void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
+  template <class T, int I = 0>
+  krnlProperties getKernelPropertiesBackend();
+  template <class T, int I>
+  class backendInternal;
+
+  GPUReconstructionHIPInternals* mInternals;
+};
+
+class GPUReconstructionHIP : public GPUReconstructionKernels<GPUReconstructionHIPBackend>
+{
+ public:
+  ~GPUReconstructionHIP() override;
+  GPUReconstructionHIP(const GPUSettingsDeviceBackend& cfg);
+
+ protected:
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
   void UpdateAutomaticProcessingSettings() override;
@@ -52,7 +73,6 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
   int registerMemoryForGPU_internal(const void* ptr, size_t size) override;
   int unregisterMemoryForGPU_internal(const void* ptr) override;
-  void* getGPUPointer(void* ptr) override;
 
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
   size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
@@ -62,22 +82,20 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 
-  void PrintKernelOccupancies() override;
-
-  template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, Args... args);
-  template <class T, int I = 0, typename... Args>
-  void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
-  template <class T, int I = 0>
-  krnlProperties getKernelPropertiesBackend();
-  template <class T, int I>
-  class backendInternal;
+#ifndef __HIPCC__ // HIP
+  bool CanQueryMaxMemory() override { return true; }
+  int PrepareTextures() override;
+  void startGPUProfiling() override;
+  void endGPUProfiling() override;
+#else // HIP
+  void* getGPUPointer(void* ptr) override;
+#endif
 
  private:
-  GPUReconstructionHIPInternals* mInternals;
+  int genRTC();
+  int loadKernelModules(bool perKernel, bool perSingleMulti = true);
 };
 
-using GPUReconstructionHIP = GPUReconstructionKernels<GPUReconstructionHIPBackend>;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

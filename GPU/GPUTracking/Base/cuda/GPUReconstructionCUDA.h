@@ -65,19 +65,14 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   void UpdateAutomaticProcessingSettings() override;
 
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
-  bool CanQueryMaxMemory() override { return true; }
   void SynchronizeGPU() override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
   void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
-
-  int PrepareTextures() override;
   int registerMemoryForGPU_internal(const void* ptr, size_t size) override;
   int unregisterMemoryForGPU_internal(const void* ptr) override;
-  void startGPUProfiling() override;
-  void endGPUProfiling() override;
 
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
   size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
@@ -86,6 +81,15 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   void RecordMarker(deviceEvent ev, int stream) override;
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
+
+#ifndef __HIPCC__ // CUDA
+  bool CanQueryMaxMemory() override { return true; }
+  int PrepareTextures() override;
+  void startGPUProfiling() override;
+  void endGPUProfiling() override;
+#else // HIP
+  void* getGPUPointer(void* ptr) override;
+#endif
 
  private:
   int genRTC();
