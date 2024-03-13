@@ -75,7 +75,7 @@ int GPUReconstructionOCL1Backend::GetOCLPrograms()
   if (AddKernel<GPUCA_M_KRNL_TEMPLATE(x_class)>(true)) {                     \
     return 1;                                                                \
   }
-#include "GPUReconstructionKernels.h"
+#include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
 #undef GPUCA_OPENCL1
 #undef GPUCA_KRNL_LOAD_single

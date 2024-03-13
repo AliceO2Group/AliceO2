@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionKernels.h
+/// \file GPUReconstructionKernelList.h
 /// \author David Rohr
 
 // No header protection, this may be used multiple times
