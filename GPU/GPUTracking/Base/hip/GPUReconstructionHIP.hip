@@ -490,3 +490,13 @@ void GPUReconstructionHIPBackend::PrintKernelOccupancies()
 {
 
 }
+
+int GPUReconstructionHIP::loadKernelModules(bool perKernel, bool perSingleMulti)
+{
+  return 0;
+}
+
+namespace GPUCA_NAMESPACE::gpu
+{
+template class GPUReconstructionKernels<GPUReconstructionHIPBackend>;
+}
