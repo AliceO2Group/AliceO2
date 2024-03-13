@@ -196,11 +196,11 @@ void MIDLayer::Stave::Module::Sensor::createSensor(TGeoVolume* motherVolume)
   TGeoTranslation* sensorTrans = nullptr;
   if (!mLayer) {
     sensorTrans = new TGeoTranslation(mModuleOffset + 2 * totWidth * mNumber + totWidth, 0, 0);
-    sensorVolume->SetLineColor(kBlue);
+    sensorVolume->SetLineColor(kAzure + 4);
     sensorVolume->SetTransparency(50);
   } else {
     sensorTrans = new TGeoTranslation(0, 0, mModuleOffset + 2 * totWidth * mNumber + totWidth);
-    sensorVolume->SetLineColor(kPink);
+    sensorVolume->SetLineColor(kAzure + 4);
     sensorVolume->SetTransparency(50);
   }
   motherVolume->AddNode(sensorVolume, 0, sensorTrans);
