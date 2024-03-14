@@ -62,6 +62,13 @@ o2_add_library(TPCWorkflowGUI
                                      O2::TPCMonitor
            )
 
+o2_add_library(TPCWorkflowStudies
+               SOURCES src/TPCRefitter.cxx
+               TARGETVARNAME targetName
+               PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
+                                     O2::GlobalTrackingWorkflow
+           )
+
 o2_add_executable(chunkeddigit-merger
         COMPONENT_NAME tpc
         TARGETVARNAME mergertargetName
@@ -281,5 +288,9 @@ o2_add_executable(calibration-workflow
                                         O2::DetectorsCalibrationWorkflow
                                         O2::DataFormatsCalibration
                                         O2::CCDB)
+o2_add_executable(refitter
+                  SOURCES src/tpc-refitter-workflow.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflowStudies)
 
 add_subdirectory(readers)
