@@ -40,6 +40,7 @@ function(o2_add_hipified_executable baseTargetName)
         OUTPUT ${OUTPUT_HIP_FILE}
         COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${ABS_CUDA_SORUCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${OUTPUT_HIP_FILE}
         DEPENDS ${file}
+        COMMENT "Hippifying ${HIP_SOURCE}"
       )
 
       set_source_files_properties(${OUTPUT_HIP_FILE} PROPERTIES
