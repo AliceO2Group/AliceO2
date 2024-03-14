@@ -119,7 +119,8 @@ void on_transition_requested_expired(uv_timer_t* handle)
 {
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
-  LOGP(info, "Timer expired. Forcing transition to READY");
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
+  O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "callback", "Grace period for calibration expired. Exiting.");
   state->transitionHandling = TransitionHandlingState::Expired;
 }
 
@@ -1455,16 +1456,18 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   // real data input channels, they have to signal EndOfStream themselves.
   auto& state = ref.get<DeviceState>();
   auto& spec = ref.get<DeviceSpec const>();
-  context.allDone = std::any_of(state.inputChannelInfos.begin(), state.inputChannelInfos.end(), [](const auto& info) {
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, state.inputChannelInfos.data());
+  O2_SIGNPOST_START(device, cid, "do_prepare", "Reported channel states.");
+  context.allDone = std::any_of(state.inputChannelInfos.begin(), state.inputChannelInfos.end(), [cid](const auto& info) {
     if (info.channel) {
-      LOGP(debug, "Input channel {}{} has {} parts left and is in state {}.", info.channel->GetName(), (info.id.value == ChannelIndex::INVALID ? " (non DPL)" : ""), info.parts.fParts.size(), (int)info.state);
+      O2_SIGNPOST_EVENT_EMIT(device, cid, "do_prepare", "Input channel %{public}s%{public}s has %zu parts left and is in state %d.",
+                             info.channel->GetName().c_str(), (info.id.value == ChannelIndex::INVALID ? " (non DPL)" : ""), info.parts.fParts.size(), (int)info.state);
     } else {
-      LOGP(debug, "External channel {} is in state {}.", info.id.value, (int)info.state);
+      O2_SIGNPOST_EVENT_EMIT(device, cid, "do_prepare", "External channel %d is in state %d.", info.id.value, (int)info.state);
     }
     return (info.parts.fParts.empty() == true && info.state != InputChannelState::Pull);
   });
-
-  // Whether or not all the channels are completed
+  O2_SIGNPOST_END(device, cid, "do_prepare", "End report.");
   O2_SIGNPOST_EVENT_EMIT(device, dpid, "do_prepare", "Processing %zu input channels.", spec.inputChannels.size());
   /// Sort channels by oldest possible timeframe and
   /// process them in such order.
@@ -1510,12 +1513,13 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
     }
     pollOrder.erase(newEnd, pollOrder.end());
   }
-  LOGP(debug, "processing {} channels", pollOrder.size());
+  O2_SIGNPOST_END(device, dpid, "do_prepare", "%zu channels pass the channel inbalance balance check.", pollOrder.size());
 
   for (auto sci : pollOrder) {
     auto& info = state.inputChannelInfos[sci];
     auto& channelSpec = spec.inputChannels[sci];
-    LOGP(debug, "Processing channel {}", channelSpec.name);
+    O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
+    O2_SIGNPOST_START(device, cid, "channels", "Processing channel %s", channelSpec.name.c_str());
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
       context.allDone = false;
@@ -1526,14 +1530,19 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
       if (info.parts.Size()) {
         DataProcessingDevice::handleData(ref, info);
       }
-      LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, (int)info.state, info.parts.Size());
+      O2_SIGNPOST_END(device, cid, "channels", "Flushing channel %s which is in state %d and has %zu parts still pending.",
+                      channelSpec.name.c_str(), (int)info.state, info.parts.Size());
       continue;
     }
     if (info.channel == nullptr) {
+      O2_SIGNPOST_END(device, cid, "channels", "Channel %s which is in state %d is nullptr and has %zu parts still pending.",
+                      channelSpec.name.c_str(), (int)info.state, info.parts.Size());
       continue;
     }
     // Only poll DPL channels for now.
     if (info.channelType != ChannelAccountingType::DPL) {
+      O2_SIGNPOST_END(device, cid, "channels", "Channel %s which is in state %d is not a DPL channel and has %zu parts still pending.",
+                      channelSpec.name.c_str(), (int)info.state, info.parts.Size());
       continue;
     }
     auto& socket = info.channel->GetSocket();
@@ -1545,7 +1554,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
       socket.Events(&info.hasPendingEvents);
       // If we do not read, we can continue.
       if ((info.hasPendingEvents & 1) == 0 && (info.parts.Size() == 0)) {
-        LOGP(debug, "No pending events and no remaining parts to process for channel {}", channelSpec.name);
+        O2_SIGNPOST_END(device, cid, "channels", "No pending events and no remaining parts to process for channel %{public}s", channelSpec.name.c_str());
         continue;
       }
     }
@@ -1562,13 +1571,13 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
     // to process.
     bool newMessages = false;
     while (true) {
-      LOGP(debug, "Receiving loop called for channel {} ({}) with oldest possible timeslice {}",
-           info.channel->GetName(), info.id.value, info.oldestForChannel.value);
+      O2_SIGNPOST_EVENT_EMIT(device, cid, "channels", "Receiving loop called for channel %{public}s (%d) with oldest possible timeslice %zu",
+                             channelSpec.name.c_str(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
         fair::mq::Parts parts;
         info.channel->Receive(parts, 0);
         if (parts.Size()) {
-          LOGP(debug, "Receiving some parts {}", parts.Size());
+          O2_SIGNPOST_EVENT_EMIT(device, cid, "channels", "Received %zu parts from channel %{public}s (%d).", parts.Size(), channelSpec.name.c_str(), info.id.value);
         }
         for (auto&& part : parts) {
           info.parts.fParts.emplace_back(std::move(part));
@@ -1593,6 +1602,8 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
       info.readPolled = false;
       *context.wasActive |= newMessages;
     }
+    O2_SIGNPOST_END(device, cid, "channels", "Done processing channel %{public}s (%d).",
+                    channelSpec.name.c_str(), info.id.value);
   }
 }
 
@@ -1727,6 +1738,10 @@ struct WaitBackpressurePolicy {
 void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& info)
 {
   auto& context = ref.get<DataProcessorContext>();
+  // This is the same id as the upper level function, so we get the events
+  // associated with the same interval. We will simply use "handle_data" as
+  // the category.
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
 
   enum struct InputType : int {
     Invalid = 0,
@@ -1750,6 +1765,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
   auto getInputTypes = [&info, &context]() -> std::optional<std::vector<InputInfo>> {
+    O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
     auto ref = ServiceRegistryRef{*context.registry};
     auto& stats = ref.get<DataProcessingStats>();
     auto& parts = info.parts;
@@ -1771,7 +1787,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       auto* headerData = parts.At(pi)->GetData();
       auto sih = o2::header::get<SourceInfoHeader*>(headerData);
       if (sih) {
-        LOGP(debug, "Got SourceInfoHeader with state {}", (int)sih->state);
+        O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got SourceInfoHeader with state %d", (int)sih->state);
         info.state = sih->state;
         insertInputInfo(pi, 2, InputType::SourceInfo);
         *context.wasActive = true;
@@ -1786,12 +1802,12 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       auto dh = o2::header::get<DataHeader*>(headerData);
       if (!dh) {
         insertInputInfo(pi, 0, InputType::Invalid);
-        LOGP(error, "Header is not a DataHeader?");
+        O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header is not a DataHeader?");
         continue;
       }
       if (dh->payloadSize > parts.At(pi + 1)->GetSize()) {
         insertInputInfo(pi, 0, InputType::Invalid);
-        LOGP(error, "DataHeader payloadSize mismatch");
+        O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "DataHeader payloadSize mismatch");
         continue;
       }
       auto dph = o2::header::get<DataProcessingHeader*>(headerData);
@@ -1804,7 +1820,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       }
       if (!dph) {
         insertInputInfo(pi, 2, InputType::Invalid);
-        LOGP(error, "Header stack does not contain DataProcessingHeader");
+        O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header stack does not contain DataProcessingHeader");
         continue;
       }
       if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
@@ -1819,7 +1835,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         // pair.
         size_t finalSplitPayloadIndex = pi + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
         if (finalSplitPayloadIndex > parts.Size()) {
-          LOGP(error, "DataHeader::splitPayloadParts invalid");
+          O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "DataHeader::splitPayloadParts invalid");
           insertInputInfo(pi, 0, InputType::Invalid);
           continue;
         }
@@ -1830,7 +1846,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       }
     }
     if (results.size() + nTotalPayloads != parts.Size()) {
-      LOG(error) << "inconsistent number of inputs extracted";
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "inconsistent number of inputs extracted. %zu vs parts (%zu)", results.size() + nTotalPayloads, parts.Size());
       return std::nullopt;
     }
     return results;
@@ -2448,6 +2464,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     if (action.op == CompletionPolicy::CompletionOp::Process) {
       cleanTimers(action.slot, record);
     }
+    O2_SIGNPOST_END(device, aid, "device", "Done processing action on slot %lu for action %{public}s", action.slot.index, fmt::format("{}", action.op).c_str());
   }
   O2_SIGNPOST_END(device, sid, "device", "Start processing ready actions");
 
