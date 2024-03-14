@@ -28,8 +28,18 @@ struct ComputingQuotaStats;
 struct DeviceContext {
   ComputingQuotaStats* quotaStats = nullptr;
   uv_timer_t* gracePeriodTimer = nullptr;
+  uv_timer_t* dataProcessingGracePeriodTimer = nullptr;
   uv_signal_t* sigusr1Handle = nullptr;
   int expectedRegionCallbacks = 0;
+  // The timeout for the data processing to stop on this device.
+  // After this is reached, incoming data not marked to be kept will
+  // be dropped and the data processing will be stopped. However the 
+  // calibrations will still be done and objects resulting from calibrations
+  // will be marked to be kept.
+  int dataProcessingTimeout = 0;
+  // The timeout for the whole processing to stop on this device.
+  // This includes the grace period for processing and the time 
+  // for the calibrations to be done.
   int exitTransitionTimeout = 0;
 };
 

@@ -372,8 +372,9 @@ struct BaseHeader {
   union {
     uint32_t flags;
     struct {
-      uint32_t flagsNextHeader : 1, // do we have a next header after this one?
-        flagsUnused : 31;           // currently unused
+      uint32_t flagsNextHeader : 1,        // do we have a next header after this one?
+               flagsReserved : 15,         // reserved for future use
+               flagsDerivedHeader : 16;    // reserved for usage by the derived header
     };
   };
 

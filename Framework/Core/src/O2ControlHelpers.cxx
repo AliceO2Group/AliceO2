@@ -261,6 +261,8 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << indScheme << "- \"-b\"\n";
   dumpOut << indLevel << indScheme << "- \"--exit-transition-timeout\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ exit_transition_timeout }}'\"\n";
+  dumpOut << indLevel << indScheme << "- \"--data-processing-timeout\"\n";
+  dumpOut << indLevel << indScheme << "- \"'{{ data_processing_timeout }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--monitoring-backend\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ monitoring_dpl_url }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--session\"\n";

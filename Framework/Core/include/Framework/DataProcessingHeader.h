@@ -42,6 +42,9 @@ namespace o2::framework
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataProcessingHeader : public header::BaseHeader {
   static constexpr uint64_t DUMMY_CREATION_TIME_OFFSET = 0x8000000000000000;
+  // The following flags are used to indicate the behavior of the data processing
+  static constexpr int32_t KEEP_AT_EOS_FLAG = 1;
+
   /// We return some number of milliseconds, offsetting int by 0x8000000000000000
   /// to make sure we can understand when the dummy constructor of DataProcessingHeader was
   /// used without overriding it with an actual real time from epoch.
