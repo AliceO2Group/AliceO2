@@ -39,8 +39,8 @@ namespace emcal
 /// \param mLastTimesumAllFastOrs Vector of tuples with TRU ID, FastOrID with STU indexing, and their last Timesums
 struct EMCALTriggerInputs {
   o2::InteractionRecord mInterRecord;                               ///< Last known interaction record
-  int mTriggeredTRU;                                                 ///< Trigger TRU
-  std::vector<int> mTriggeredPatches;                                ///< Trigger patches, in local STU indexing
+  int mTriggeredTRU;                                                ///< Trigger TRU
+  std::vector<int> mTriggeredPatches;                               ///< Trigger patches, in local STU indexing
   std::vector<std::tuple<int, int, double>> mLastTimesumAllFastOrs; ///< TRU ID, FastOrID with STU indexing, and its last Timesum
 };
 
