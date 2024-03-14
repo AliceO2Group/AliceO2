@@ -517,6 +517,8 @@ if(OpenMP_CXX_FOUND)
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+target_compile_options(${targetName} PRIVATE -Wno-instantiation-after-specialization)
+
 # Add CMake recipes for GPU Tracking librararies
 if(CUDA_ENABLED OR OPENCL1_ENABLED OR OPENCL2_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
