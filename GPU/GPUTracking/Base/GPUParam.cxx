@@ -42,6 +42,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   new (&tpcGeometry) GPUTPCGeometry;
   new (&rec) GPUSettingsRec;
   occupancyMap = nullptr;
+  occupancyTotal = 0;
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
   const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};
