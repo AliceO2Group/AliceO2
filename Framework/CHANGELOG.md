@@ -1,4 +1,9 @@
-# 2024-03-14: Move DataProcessingDevice to use Signposts
+# 2024-03-14: Introduce calibration mode
+
+This introduces a new --data-processing-timeout `<timeout>` option which can be used to specify
+that data processing should finish after `<timeout>` seconds. After it, only the messages which are produced on EndOfStream will be send.
+
+# 2024-02-23: Move DataProcessingDevice to use Signposts
 
 All the messages from DataProcessingDevice have been migrated to use Signpost.
 This will hopefully simplify debugging.
