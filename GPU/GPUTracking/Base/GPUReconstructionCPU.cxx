@@ -380,11 +380,17 @@ unsigned int GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, 
   return mNestedLoopOmpFactor;
 }
 
-void GPUReconstructionCPU::UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, int stream)
+void GPUReconstructionCPU::UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, unsigned int occupancyTotal, int stream)
 {
   param().occupancyMap = mapHost;
+  param().occupancyTotal = occupancyTotal;
   if (IsGPU()) {
+    if (!((size_t)&param().occupancyTotal - (size_t)&param().occupancyMap == sizeof(param().occupancyMap) && sizeof(param().occupancyMap) == sizeof(size_t) && sizeof(param().occupancyTotal) < sizeof(size_t))) {
+      throw std::runtime_error("occupancy data not consecutive in GPUParam");
+    }
     const auto threadContext = GetThreadContext();
-    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &mapGPU, sizeof(mapGPU), stream);
+    size_t tmp[2] = {(size_t)mapGPU, 0};
+    memcpy(&tmp[1], &occupancyTotal, sizeof(occupancyTotal));
+    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(param().occupancyMap) + sizeof(param().occupancyTotal), stream);
   }
 }

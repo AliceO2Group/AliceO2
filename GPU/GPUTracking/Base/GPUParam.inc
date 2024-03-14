@@ -97,6 +97,18 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float y, 
   return sysErr;
 }
 
+MEM_CLASS_PRE()
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float x, float y, char sector) const
+{
+  if (rec.tpc.sysClusErrorC12Norm == 0.f) {
+    return 0.f;
+  }
+  const float dEdge = CAMath::Pi() / 18.f;
+  const float dy = (sector == (GPUCA_NSLICES / 2 + 1) ? 0.5 : -0.5) * (y / x) / dEdge + dEdge;
+  const float errC12 = rec.tpc.sysClusErrorC12Norm * occupancyTotal * dy * CAMath::Exp(-(x - 83.f) * rec.tpc.sysClusErrorC12Slope);
+  return errC12 * errC12;
+}
+
 #else // GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
@@ -142,7 +154,13 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float zDiff, 
 }
 
 MEM_CLASS_PRE()
-GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float y, float z, bool sideC) const
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float trackX, float trackY, float z, bool sideC) const
+{
+  return 0;
+}
+
+MEM_CLASS_PRE()
+GPUd() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float trackX, float trackY, char sector) const
 {
   return 0;
 }

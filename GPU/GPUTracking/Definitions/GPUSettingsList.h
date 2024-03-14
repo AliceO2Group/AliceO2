@@ -56,6 +56,8 @@ AddOptionRTC(sysClusErrorNormIFC, float, 0.f, "", 0, "Systematic cluster error p
 AddOptionRTC(sysClusErrorSlopeIFC, float, 0.f, "", 0, "Systematic cluster error parameterization IFC slope")
 AddOptionRTC(sysClusErrorMinDist, float, 2.f, "", 0, "Systematic cluster error parameterization IFC Minimum Distance")
 AddOptionRTC(sysClusErrorMaskError, float, 5.f, "", 0, "Systematic cluster error parameterization IFC Large Error for masking")
+AddOptionRTC(sysClusErrorC12Norm, float, 0.f, "", 0, "Systematic cluster for Sector C1/2 normalization")
+AddOptionRTC(sysClusErrorC12Slope, float, 0.f, "", 0, "Systematic cluster for Sector C1/2 slope")
 AddOptionRTC(minNClustersTrackSeed, int, -1, "", 0, "required min number of clusters on the track after track following (before merging)")
 AddOptionRTC(minNClustersFinalTrack, int, -1, "", 0, "required min number of clusters on the final track")
 AddOptionRTC(searchWindowDZDR, float, 2.5f, "", 0, "Use DZDR window for seeding instead of neighboursSearchArea")

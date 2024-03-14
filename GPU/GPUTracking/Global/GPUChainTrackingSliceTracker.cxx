@@ -145,12 +145,12 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     return (2);
   }
 
+  int streamOccMap = mRec->NStreams() - 1;
   if (param().rec.tpc.occupancyMapTimeBins) {
     AllocateRegisteredMemory(mInputsHost->mResourceOccupancyMap, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcOccupancyMap)]);
     ReleaseEvent(mEvents->init);
     auto* ptr = doGPU ? mInputsShadow->mTPCClusterOccupancyMap : mInputsHost->mTPCClusterOccupancyMap;
     auto* ptrTmp = (GPUTPCClusterOccupancyMapBin*)mRec->AllocateVolatileMemory(GPUTPCClusterOccupancyMapBin::getTotalSize(param()), doGPU);
-    int streamOccMap = mRec->NStreams() - 1;
     runKernel<GPUMemClean16>(GetGridAutoStep(streamOccMap, RecoStep::TPCSliceTracking), krnlRunRangeNone, {}, ptrTmp, GPUTPCClusterOccupancyMapBin::getTotalSize(param()));
     runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fill>(GetGridBlk(GPUCA_NSLICES * GPUCA_ROW_COUNT, streamOccMap), krnlRunRangeNone, krnlEventNone, ptrTmp);
     runKernel<GPUTPCCreateOccupancyMap, GPUTPCCreateOccupancyMap::fold>(GetGridBlk(GPUTPCClusterOccupancyMapBin::getNBins(param()), streamOccMap), krnlRunRangeNone, krnlEventNone, ptrTmp, ptr);
@@ -160,8 +160,9 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     } else {
       TransferMemoryResourceLinkToGPU(RecoStep::TPCSliceTracking, mInputsHost->mResourceOccupancyMap, streamOccMap, &mEvents->init);
     }
-    mRec->UpdateParamOccupancyMap(mInputsHost->mTPCClusterOccupancyMap, mInputsShadow->mTPCClusterOccupancyMap, streamOccMap);
   }
+  unsigned int occupancyTotal = CAMath::Float2UIntRn(mRec->MemoryScalers()->nTPCHits / (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasNHBFPerTF ? mIOPtrs.settingsTF->nHBFPerTF : 128));
+  mRec->UpdateParamOccupancyMap(param().rec.tpc.occupancyMapTimeBins ? mInputsHost->mTPCClusterOccupancyMap : nullptr, param().rec.tpc.occupancyMapTimeBins ? mInputsShadow->mTPCClusterOccupancyMap : nullptr, occupancyTotal, streamOccMap);
 
   int streamMap[NSLICES];
 
