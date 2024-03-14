@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -9,18 +10,33 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUReconstructionHIP.hip.cxx
+/// \file GPUReconstructionHIP.cu
 /// \author David Rohr
 
 #define GPUCA_GPUCODE_HOSTONLY
+#include "GPUReconstructionHIPDef.h"
 #include "GPUReconstructionHIPIncludes.h"
 
-#include "GPUDef.h"
+#include <hip/hip_runtime_api.h>
 
 #include "GPUReconstructionHIP.h"
 #include "GPUReconstructionHIPInternals.h"
 #include "HIPThrustHelpers.h"
 #include "GPUReconstructionIncludes.h"
+#include "GPUParamRTC.h"
+
+#if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
+#include "utils/qGetLdBinarySymbols.h"
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) QGET_LD_BINARY_SYMBOLS(GPUCA_M_CAT3(hip_kernel_module_fatbin_krnl_, GPUCA_M_KRNL_NAME(x_class), _fatbin))
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
+#endif
+
+static constexpr size_t REQUIRE_MIN_MEMORY = 1024L * 1024 * 1024;
+static constexpr size_t REQUIRE_MEMORY_RESERVED = 512L * 1024 * 1024;
+static constexpr size_t REQUIRE_FREE_MEMORY_RESERVED_PER_SM = 40L * 1024 * 1024;
+static constexpr size_t RESERVE_EXTRA_MEM_THRESHOLD = 10L * 1024 * 1024 * 1024;
+static constexpr size_t RESERVE_EXTRA_MEM_OFFSET = 1L * 512 * 1024 * 1024;
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -38,6 +54,9 @@ GPUReconstructionHIPBackend::GPUReconstructionHIPBackend(const GPUSettingsDevice
 GPUReconstructionHIPBackend::~GPUReconstructionHIPBackend()
 {
   if (mMaster == nullptr) {
+    for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
+      GPUFailedMsg(hipModuleUnload(*mInternals->kernelModules[i]));
+    }
     delete mInternals;
   }
 }
@@ -71,7 +90,7 @@ GPUReconstructionHIP::GPUReconstructionHIP(const GPUSettingsDeviceBackend& cfg) 
 
 GPUReconstructionHIP::~GPUReconstructionHIP()
 {
-  Exit(); // Make sure we destroy everything (in particular the ITS tracker) before we exit
+  Exit(); // Make sure we destroy everything (in particular the ITS tracker) before we exit HIP
 }
 
 GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionHIP(cfg); }
@@ -96,8 +115,12 @@ void GPUReconstructionHIP::UpdateAutomaticProcessingSettings()
 
 int GPUReconstructionHIP::InitDevice_Runtime()
 {
+#ifndef __HIPCC__ // HIP
+  constexpr int reqVerMaj = 2;
+  constexpr int reqVerMin = 0;
+#endif
   if (mMaster == nullptr) {
-    hipDeviceProp_t hipDeviceProp;
+    hipDeviceProp_t deviceProp;
     int count, bestDevice = -1;
     double bestDeviceSpeed = -1, deviceSpeed;
     if (GPUFailedMsgI(hipGetDeviceCount(&count))) {
@@ -115,7 +138,11 @@ int GPUReconstructionHIP::InitDevice_Runtime()
         GPUInfo("Examining device %d", i);
       }
       size_t free, total;
+#ifndef __HIPCC__ // HIP
+      if (GPUFailedMsgI(hipInitDevice(i, 0, 0))) {
+#else // HIP
       if (GPUFailedMsgI(hipSetDevice(i))) {
+#endif
         if (mProcessingSettings.debugLevel >= 4) {
           GPUWarning("Couldn't create context for device %d. Skipping it.", i);
         }
@@ -136,7 +163,7 @@ int GPUReconstructionHIP::InitDevice_Runtime()
       if (mProcessingSettings.debugLevel >= 4) {
         GPUInfo("Obtained current memory usage for device %d", i);
       }
-      if (GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp, i))) {
+      if (GPUFailedMsgI(hipGetDeviceProperties(&deviceProp, i))) {
         continue;
       }
       if (mProcessingSettings.debugLevel >= 4) {
@@ -144,15 +171,26 @@ int GPUReconstructionHIP::InitDevice_Runtime()
       }
       int deviceOK = true;
       const char* deviceFailure = "";
+#ifndef __HIPCC__
+      if (deviceProp.major < reqVerMaj || (deviceProp.major == reqVerMaj && deviceProp.minor < reqVerMin)) {
+        deviceOK = false;
+        deviceFailure = "Too low device revision";
+      }
+#endif
+      if (free < std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY)) {
+        deviceOK = false;
+        deviceFailure = "Insufficient GPU memory";
+      }
 
-      deviceSpeed = (double)hipDeviceProp.multiProcessorCount * (double)hipDeviceProp.clockRate * (double)hipDeviceProp.warpSize * (double)hipDeviceProp.major * (double)hipDeviceProp.major;
+      deviceSpeed = (double)deviceProp.multiProcessorCount * (double)deviceProp.clockRate * (double)deviceProp.warpSize * (double)free * (double)deviceProp.major * (double)deviceProp.major;
       if (mProcessingSettings.debugLevel >= 2) {
-        GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem %lld)%s %s", deviceOK ? " " : "[", i, hipDeviceProp.name, hipDeviceProp.major, hipDeviceProp.minor, (long long int)hipDeviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
+        GPUImportant("Device %s%2d: %s (Rev: %d.%d - Mem Avail %lu / %lu)%s %s", deviceOK ? " " : "[", i, deviceProp.name, deviceProp.major, deviceProp.minor, free, (size_t)deviceProp.totalGlobalMem, deviceOK ? " " : " ]", deviceOK ? "" : deviceFailure);
       }
       if (!deviceOK) {
         continue;
       }
       devicesOK[i] = true;
+      devMemory[i] = std::min<size_t>(free, std::max<long int>(0, total - REQUIRE_MEMORY_RESERVED));
       if (deviceSpeed > bestDeviceSpeed) {
         bestDevice = i;
         bestDeviceSpeed = deviceSpeed;
@@ -162,16 +200,20 @@ int GPUReconstructionHIP::InitDevice_Runtime()
         }
       }
     }
+
     bool noDevice = false;
     if (bestDevice == -1) {
       GPUWarning("No %sHIP Device available, aborting HIP Initialisation (Required mem: %lld)", count ? "appropriate " : "", (long long int)mDeviceMemorySize);
+#ifndef __HIPCC__
+      GPUImportant("Requiring Revision %d.%d, Mem: %lu", reqVerMaj, reqVerMin, std::max<size_t>(mDeviceMemorySize, REQUIRE_MIN_MEMORY));
+#endif
       noDevice = true;
     } else if (mProcessingSettings.deviceNum > -1) {
       if (mProcessingSettings.deviceNum >= (signed)count) {
-        GPUWarning("Requested device ID %d does not exist", mProcessingSettings.deviceNum);
+        GPUError("Requested device ID %d does not exist", mProcessingSettings.deviceNum);
         noDevice = true;
       } else if (!devicesOK[mProcessingSettings.deviceNum]) {
-        GPUWarning("Unsupported device requested (%d)", mProcessingSettings.deviceNum);
+        GPUError("Unsupported device requested (%d)", mProcessingSettings.deviceNum);
         noDevice = true;
       } else {
         bestDevice = mProcessingSettings.deviceNum;
@@ -185,65 +227,99 @@ int GPUReconstructionHIP::InitDevice_Runtime()
     }
     mDeviceId = bestDevice;
 
-    GPUFailedMsgI(hipGetDeviceProperties(&hipDeviceProp, mDeviceId));
+    GPUFailedMsgI(hipGetDeviceProperties(&deviceProp, mDeviceId));
 
     if (mProcessingSettings.debugLevel >= 2) {
-      GPUInfo("Using HIP Device %s with Properties:", hipDeviceProp.name);
-      GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)hipDeviceProp.totalGlobalMem);
-      GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)hipDeviceProp.sharedMemPerBlock);
-      GPUInfo("\tregsPerBlock = %d", hipDeviceProp.regsPerBlock);
-      GPUInfo("\twarpSize = %d", hipDeviceProp.warpSize);
-      GPUInfo("\tmaxThreadsPerBlock = %d", hipDeviceProp.maxThreadsPerBlock);
-      GPUInfo("\tmaxThreadsDim = %d %d %d", hipDeviceProp.maxThreadsDim[0], hipDeviceProp.maxThreadsDim[1], hipDeviceProp.maxThreadsDim[2]);
-      GPUInfo("\tmaxGridSize = %d %d %d", hipDeviceProp.maxGridSize[0], hipDeviceProp.maxGridSize[1], hipDeviceProp.maxGridSize[2]);
-      GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)hipDeviceProp.totalConstMem);
-      GPUInfo("\tmajor = %d", hipDeviceProp.major);
-      GPUInfo("\tminor = %d", hipDeviceProp.minor);
-      GPUInfo("\tclockRate = %d", hipDeviceProp.clockRate);
-      GPUInfo("\tmemoryClockRate = %d", hipDeviceProp.memoryClockRate);
-      GPUInfo("\tmultiProcessorCount = %d", hipDeviceProp.multiProcessorCount);
+      GPUInfo("Using HIP Device %s with Properties:", deviceProp.name);
+      GPUInfo("\ttotalGlobalMem = %lld", (unsigned long long int)deviceProp.totalGlobalMem);
+      GPUInfo("\tsharedMemPerBlock = %lld", (unsigned long long int)deviceProp.sharedMemPerBlock);
+      GPUInfo("\tregsPerBlock = %d", deviceProp.regsPerBlock);
+      GPUInfo("\twarpSize = %d", deviceProp.warpSize);
+      GPUInfo("\tmemPitch = %lld", (unsigned long long int)deviceProp.memPitch);
+      GPUInfo("\tmaxThreadsPerBlock = %d", deviceProp.maxThreadsPerBlock);
+      GPUInfo("\tmaxThreadsDim = %d %d %d", deviceProp.maxThreadsDim[0], deviceProp.maxThreadsDim[1], deviceProp.maxThreadsDim[2]);
+      GPUInfo("\tmaxGridSize = %d %d %d", deviceProp.maxGridSize[0], deviceProp.maxGridSize[1], deviceProp.maxGridSize[2]);
+      GPUInfo("\ttotalConstMem = %lld", (unsigned long long int)deviceProp.totalConstMem);
+      GPUInfo("\tmajor = %d", deviceProp.major);
+      GPUInfo("\tminor = %d", deviceProp.minor);
+      GPUInfo("\tclockRate = %d", deviceProp.clockRate);
+      GPUInfo("\tmemoryClockRate = %d", deviceProp.memoryClockRate);
+      GPUInfo("\tmultiProcessorCount = %d", deviceProp.multiProcessorCount);
+      GPUInfo("\ttextureAlignment = %lld", (unsigned long long int)deviceProp.textureAlignment);
       GPUInfo(" ");
     }
-    if (hipDeviceProp.warpSize != GPUCA_WARP_SIZE) {
+    if (deviceProp.warpSize != GPUCA_WARP_SIZE) {
       throw std::runtime_error("Invalid warp size on GPU");
     }
-    mBlockCount = hipDeviceProp.multiProcessorCount;
-    mMaxThreads = std::max<int>(mMaxThreads, hipDeviceProp.maxThreadsPerBlock * mBlockCount);
+    mBlockCount = deviceProp.multiProcessorCount;
+    mMaxThreads = std::max<int>(mMaxThreads, deviceProp.maxThreadsPerBlock * mBlockCount);
+#ifndef __HIPCC__ // HIP
+    mWarpSize = 32;
+#else // HIP
     mWarpSize = 64;
-    mDeviceName = hipDeviceProp.name;
+#endif
+    mDeviceName = deviceProp.name;
     mDeviceName += " (HIP GPU)";
 
-    if (hipDeviceProp.major < 3) {
+    if (deviceProp.major < 3) {
       GPUError("Unsupported HIP Device");
       return (1);
     }
+
+#ifdef GPUCA_USE_TEXTURES
+    if (GPUCA_SLICE_DATA_MEMORY * NSLICES > (size_t)deviceProp.maxTexture1DLinear) {
+      GPUError("Invalid maximum texture size of device: %lld < %lld\n", (long long int)deviceProp.maxTexture1DLinear, (long long int)(GPUCA_SLICE_DATA_MEMORY * NSLICES));
+      return (1);
+    }
+#endif
 #ifndef GPUCA_NO_CONSTANT_MEMORY
-    if (gGPUConstantMemBufferSize > hipDeviceProp.totalConstMem) {
-      GPUError("Insufficient constant memory available on GPU %d < %d!", (int)hipDeviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
+    if (gGPUConstantMemBufferSize > deviceProp.totalConstMem) {
+      GPUError("Insufficient constant memory available on GPU %d < %d!", (int)deviceProp.totalConstMem, (int)gGPUConstantMemBufferSize);
       return (1);
     }
 #endif
 
+#ifndef __HIPCC__ // HIP
+    if (contextCreated == 0 && GPUFailedMsgI(hipInitDevice(mDeviceId, 0, 0))) {
+#else // HIP
     if (contextCreated == 0 && GPUFailedMsgI(hipSetDevice(mDeviceId))) {
+#endif
       GPUError("Could not set HIP Device!");
       return (1);
     }
+
+#ifndef __HIPCC__ // HIP
+    if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE))) {
+      GPUError("Error setting HIP stack size");
+      GPUFailedMsgI(hipDeviceReset());
+      return (1);
+    }
+    if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitMallocHeapSize, mProcessingSettings.deterministicGPUReconstruction ? std::max<size_t>(1024 * 1024 * 1024, GPUCA_GPU_HEAP_SIZE) : GPUCA_GPU_HEAP_SIZE))) {
+      GPUError("Error setting HIP stack size");
+      GPUFailedMsgI(hipDeviceReset());
+      return (1);
+    }
+#else // HIP
     if (GPUFailedMsgI(hipSetDeviceFlags(hipDeviceScheduleBlockingSync))) {
       GPUError("Could not set HIP Device!");
       return (1);
     }
+#endif
 
-    /*if (GPUFailedMsgI(hipDeviceSetLimit(hipLimitStackSize, GPUCA_GPU_STACK_SIZE)))
-    {
-      GPUError("Error setting HIP stack size");
-      GPUFailedMsgI(hipDeviceReset());
-      return(1);
-    }*/
+    if (mDeviceMemorySize == 1 || mDeviceMemorySize == 2) {
+      mDeviceMemorySize = std::max<long int>(0, devMemory[mDeviceId] - REQUIRE_FREE_MEMORY_RESERVED_PER_SM * deviceProp.multiProcessorCount); // Take all GPU memory but some reserve
+      if (mDeviceMemorySize >= RESERVE_EXTRA_MEM_THRESHOLD) {
+        mDeviceMemorySize -= RESERVE_EXTRA_MEM_OFFSET;
+      }
+    }
+    if (mDeviceMemorySize == 2) {
+      mDeviceMemorySize = mDeviceMemorySize * 2 / 3; // Leave 1/3 of GPU memory for event display
+    }
 
-    if (mDeviceMemorySize > hipDeviceProp.totalGlobalMem || GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
+    if (mDeviceMemorySize > deviceProp.totalGlobalMem || GPUFailedMsgI(hipMalloc(&mDeviceMemoryBase, mDeviceMemorySize))) {
       size_t free, total;
       GPUFailedMsg(hipMemGetInfo(&free, &total));
-      GPUError("HIP Memory Allocation Error (trying %lld bytes, %lld available on GPU, %lld free)", (long long int)mDeviceMemorySize, (long long int)hipDeviceProp.totalGlobalMem, (long long int)free);
+      GPUError("HIP Memory Allocation Error (trying %lld bytes, %lld available on GPU, %lld free)", (long long int)mDeviceMemorySize, (long long int)deviceProp.totalGlobalMem, (long long int)free);
       GPUFailedMsgI(hipDeviceReset());
       return (1);
     }
@@ -254,7 +330,7 @@ int GPUReconstructionHIP::InitDevice_Runtime()
     }
     if (mProcessingSettings.debugLevel >= 1) {
       GPUInfo("Memory ptrs: GPU (%lld bytes): %p - Host (%lld bytes): %p", (long long int)mDeviceMemorySize, mDeviceMemoryBase, (long long int)mHostMemorySize, mHostMemoryBase);
-      memset(mHostMemoryBase, 0, mHostMemorySize);
+      memset(mHostMemoryBase, 0xDD, mHostMemorySize);
       if (GPUFailedMsgI(hipMemset(mDeviceMemoryBase, 0xDD, mDeviceMemorySize))) {
         GPUError("Error during HIP memset");
         GPUFailedMsgI(hipDeviceReset());
@@ -263,28 +339,60 @@ int GPUReconstructionHIP::InitDevice_Runtime()
     }
 
     for (int i = 0; i < mNStreams; i++) {
-      if (GPUFailedMsgI(hipStreamCreate(&mInternals->Streams[i]))) {
+      if (GPUFailedMsgI(hipStreamCreateWithFlags(&mInternals->Streams[i], hipStreamNonBlocking))) {
         GPUError("Error creating HIP Stream");
         GPUFailedMsgI(hipDeviceReset());
         return (1);
       }
     }
 
-    void* devPtrConstantMem;
+#ifndef __HIPCC__ // HIP
+    dummyInitKernel<<<mBlockCount, 256>>>(mDeviceMemoryBase);
+#else // HIP
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(dummyInitKernel), dim3(mBlockCount), dim3(256), 0, 0, mDeviceMemoryBase);
+#endif
+
+#ifndef GPUCA_ALIROOT_LIB
+    if (mProcessingSettings.rtc.enable) {
+      std::string filename = "";
+      unsigned int nCompile = 0;
+      if (genRTC(filename, nCompile)) {
+        throw std::runtime_error("Runtime compilation failed");
+      }
+      for (unsigned int i = 0; i < nCompile; i++) {
+        mInternals->kernelModules.emplace_back(std::make_unique<hipModule_t>());
+        GPUFailedMsg(hipModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
+        remove((filename + "_" + std::to_string(i) + ".cu").c_str());
+        remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
+      }
+      loadKernelModules(mProcessingSettings.rtc.compilePerKernel);
+    }
+#if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
+    else {
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)          \
+  mInternals->kernelModules.emplace_back(std::make_unique<hipModule_t>()); \
+  GPUFailedMsg(hipModuleLoadData(mInternals->kernelModules.back().get(), GPUCA_M_CAT3(_binary_hip_kernel_module_fatbin_krnl_, GPUCA_M_KRNL_NAME(x_class), _fatbin_start)));
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
+      loadKernelModules(true, false);
+    }
+#endif
+#endif
+    void* devPtrConstantMem = nullptr;
 #ifndef GPUCA_NO_CONSTANT_MEMORY
     runConstantRegistrators();
     devPtrConstantMem = mDeviceConstantMemList[0];
-#else
-    if (GPUFailedMsgI(hipMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize))) {
-      GPUError("HIP Memory Allocation Error");
-      GPUFailedMsgI(hipDeviceReset());
-      return (1);
+    for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
+      hipDeviceptr_t tmp;
+      GPUFailedMsg(hipModuleGetGlobal(&tmp, nullptr, *mInternals->kernelModules[i], "gGPUConstantMemBuffer"));
+      mDeviceConstantMemList.emplace_back((void*)tmp);
     }
+#else
+    GPUFailedMsg(hipMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(dummyInitKernel), dim3(mBlockCount), dim3(256), 0, 0, mDeviceMemoryBase);
-    GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, hipDeviceProp.name, hipDeviceProp.clockRate, hipDeviceProp.multiProcessorCount, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
+    GPUInfo("HIP Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, deviceProp.name, deviceProp.clockRate, deviceProp.multiProcessorCount, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionHIP* master = dynamic_cast<GPUReconstructionHIP*>(mMaster);
     mDeviceId = master->mDeviceId;
@@ -293,14 +401,22 @@ int GPUReconstructionHIP::InitDevice_Runtime()
     mMaxThreads = master->mMaxThreads;
     mDeviceName = master->mDeviceName;
     mDeviceConstantMem = master->mDeviceConstantMem;
+    mDeviceConstantMemList.resize(master->mDeviceConstantMemList.size());
+    std::copy(master->mDeviceConstantMemList.begin(), master->mDeviceConstantMemList.end(), mDeviceConstantMemList.begin());
     mInternals = master->mInternals;
-    GPUFailedMsgI(hipSetDevice(mDeviceId));
+    GPUFailedMsg(hipSetDevice(mDeviceId));
+
     GPUInfo("HIP Initialized from master");
   }
+
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     hipEvent_t* events = (hipEvent_t*)mEvents[i].data();
     for (unsigned int j = 0; j < mEvents[i].size(); j++) {
+#ifndef __HIPCC__ // HIP
+      if (GPUFailedMsgI(hipEventCreate(&events[j]))) {
+#else
       if (GPUFailedMsgI(hipEventCreateWithFlags(&events[j], hipEventBlockingSync))) {
+#endif
         GPUError("Error creating event");
         GPUFailedMsgI(hipDeviceReset());
         return 1;
@@ -314,7 +430,7 @@ int GPUReconstructionHIP::InitDevice_Runtime()
 int GPUReconstructionHIP::ExitDevice_Runtime()
 {
   // Uninitialize HIP
-  GPUFailedMsgI(hipSetDevice(mDeviceId));
+  GPUFailedMsg(hipSetDevice(mDeviceId));
   SynchronizeGPU();
   unregisterRemainingRegisteredMemory();
 
@@ -327,7 +443,6 @@ int GPUReconstructionHIP::ExitDevice_Runtime()
 
   if (mMaster == nullptr) {
     GPUFailedMsgI(hipFree(mDeviceMemoryBase));
-
 #ifdef GPUCA_NO_CONSTANT_MEMORY
     GPUFailedMsgI(hipFree(mDeviceConstantMem));
 #endif
@@ -340,13 +455,8 @@ int GPUReconstructionHIP::ExitDevice_Runtime()
     GPUFailedMsgI(hipDeviceReset());
     GPUInfo("HIP Uninitialized");
   }
-  mHostMemoryBase = nullptr;
   mDeviceMemoryBase = nullptr;
-
-  /*if (GPUFailedMsgI(hipDeviceReset())) { // No longer doing this, another thread might use the GPU
-    GPUError("Could not uninitialize GPU");
-    return (1);
-  }*/
+  mHostMemoryBase = nullptr;
 
   return (0);
 }
@@ -366,7 +476,9 @@ size_t GPUReconstructionHIP::GPUMemCpy(void* dst, const void* src, size_t size, 
     for (int k = 0; k < nEvents; k++) {
       GPUFailedMsg(hipStreamWaitEvent(mInternals->Streams[stream], ((hipEvent_t*)evList)[k], 0));
     }
-    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice : hipMemcpyDeviceToHost, mInternals->Streams[stream]));
+    GPUFailedMsg(hipMemcpyAsync(dst, src, size, toGPU == -2 ? hipMemcpyDeviceToDevice : toGPU ? hipMemcpyHostToDevice
+                                                                                              : hipMemcpyDeviceToHost,
+                                mInternals->Streams[stream]));
   }
   if (ev) {
     GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream == -1 ? 0 : stream]));
@@ -408,7 +520,6 @@ size_t GPUReconstructionHIP::WriteToConstantMemory(size_t offset, const void* sr
 }
 
 void GPUReconstructionHIP::ReleaseEvent(deviceEvent ev) {}
-
 void GPUReconstructionHIP::RecordMarker(deviceEvent ev, int stream) { GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream])); }
 
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionHIP::GetThreadContext()
@@ -418,7 +529,6 @@ std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionHIP::GetTh
 }
 
 void GPUReconstructionHIP::SynchronizeGPU() { GPUFailedMsg(hipDeviceSynchronize()); }
-
 void GPUReconstructionHIP::SynchronizeStream(int stream) { GPUFailedMsg(hipStreamSynchronize(mInternals->Streams[stream])); }
 
 void GPUReconstructionHIP::SynchronizeEvents(deviceEvent* evList, int nEvents)
@@ -450,16 +560,16 @@ bool GPUReconstructionHIP::IsEventDone(deviceEvent* evList, int nEvents)
 int GPUReconstructionHIP::GPUDebug(const char* state, int stream, bool force)
 {
   // Wait for HIP-Kernel to finish and check for HIP errors afterwards, in case of debugmode
-  hipError_t hipErr;
-  hipErr = hipGetLastError();
-  if (hipErr != hipSuccess) {
-    GPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(hipErr), state, stream);
+  hipError_t cuErr;
+  cuErr = hipGetLastError();
+  if (cuErr != hipSuccess) {
+    GPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(cuErr), state, stream);
     return (1);
   }
   if (!force && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
-  if (GPUFailedMsgI(hipDeviceSynchronize())) {
+  if (GPUFailedMsgI(stream == -1 ? hipDeviceSynchronize() : hipStreamSynchronize(mInternals->Streams[stream]))) {
     GPUError("HIP Error while synchronizing (%s) (Stream %d)", state, stream);
     return (1);
   }
@@ -479,22 +589,78 @@ int GPUReconstructionHIP::unregisterMemoryForGPU_internal(const void* ptr)
   return GPUFailedMsgI(hipHostUnregister((void*)ptr));
 }
 
+void GPUReconstructionHIPBackend::PrintKernelOccupancies()
+{
+  int maxBlocks = 0, threads = 0, suggestedBlocks = 0, nRegs = 0, sMem = 0;
+  GPUFailedMsg(hipSetDevice(mDeviceId));
+  for (unsigned int i = 0; i < mInternals->kernelFunctions.size(); i++) {
+    GPUFailedMsg(hipModuleOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, *mInternals->kernelFunctions[i], 0, 0));
+    GPUFailedMsg(hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(&maxBlocks, *mInternals->kernelFunctions[i], threads, 0));
+    GPUFailedMsg(hipFuncGetAttribute(&nRegs, HIP_FUNC_ATTRIBUTE_NUM_REGS, *mInternals->kernelFunctions[i]));
+    GPUFailedMsg(hipFuncGetAttribute(&sMem, HIP_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, *mInternals->kernelFunctions[i]));
+    GPUInfo("Kernel: %50s Block size: %4d, Maximum active blocks: %3d, Suggested blocks: %3d, Regs: %3d, smem: %3d", mInternals->kernelNames[i].c_str(), threads, maxBlocks, suggestedBlocks, nRegs, sMem);
+  }
+}
+
+int GPUReconstructionHIP::loadKernelModules(bool perKernel, bool perSingleMulti)
+{
+  int j = 0;
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                  \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward) \
+  j += !perSingleMulti;
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                        \
+  getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size());        \
+  mInternals->kernelFunctions.emplace_back(new hipFunction_t);                                       \
+  mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))); \
+  GPUFailedMsg(hipModuleGetFunction(mInternals->kernelFunctions.back().get(), *mInternals->kernelModules[perKernel ? (j += perSingleMulti) : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                                  \
+  getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->kernelFunctions.size());                  \
+  mInternals->kernelFunctions.emplace_back(new hipFunction_t);                                                \
+  mInternals->kernelNames.emplace_back(GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))); \
+  GPUFailedMsg(hipModuleGetFunction(mInternals->kernelFunctions.back().get(), *mInternals->kernelModules[perKernel ? (j += perSingleMulti) : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+
+  for (unsigned int i = 0; i < mInternals->kernelNames.size(); i++) {
+    if (mProcessingSettings.debugLevel >= 3) {
+      GPUInfo("Loaded module for kernel %s", mInternals->kernelNames[i].c_str());
+    }
+  }
+  return 0;
+}
+
+#ifndef __HIPCC__ // HIP
+int GPUReconstructionHIP::PrepareTextures()
+{
+#ifdef GPUCA_USE_TEXTURES
+  hipChannelFormatDesc channelDescu2 = hipCreateChannelDesc<cahit2>();
+  size_t offset;
+  GPUFailedMsg(hipBindTexture(&offset, &gAliTexRefu2, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu2, NSLICES * GPUCA_SLICE_DATA_MEMORY));
+  hipChannelFormatDesc channelDescu = hipCreateChannelDesc<calink>();
+  GPUFailedMsg(hipBindTexture(&offset, &gAliTexRefu, mProcessorsShadow->tpcTrackers[0].Data().Memory(), &channelDescu, NSLICES * GPUCA_SLICE_DATA_MEMORY));
+#endif
+  return (0);
+}
+
+void GPUReconstructionHIP::startGPUProfiling()
+{
+  GPUFailedMsg(hipProfilerStart());
+}
+
+void GPUReconstructionHIP::endGPUProfiling()
+{
+  GPUFailedMsg(hipProfilerStop());
+}
+#else  // HIP
 void* GPUReconstructionHIP::getGPUPointer(void* ptr)
 {
   void* retVal = nullptr;
   GPUFailedMsg(hipHostGetDevicePointer(&retVal, ptr, 0));
   return retVal;
 }
-
-void GPUReconstructionHIPBackend::PrintKernelOccupancies()
-{
-
-}
-
-int GPUReconstructionHIP::loadKernelModules(bool perKernel, bool perSingleMulti)
-{
-  return 0;
-}
+#endif // __HIPCC__
 
 namespace GPUCA_NAMESPACE::gpu
 {
