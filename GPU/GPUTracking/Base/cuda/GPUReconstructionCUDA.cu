@@ -53,9 +53,6 @@ GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsDevi
 GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
 {
   if (mMaster == nullptr) {
-    for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
-      GPUFailedMsg(cuModuleUnload(*mInternals->kernelModules[i]));
-    }
     delete mInternals;
   }
 }
@@ -451,6 +448,10 @@ int GPUReconstructionCUDA::ExitDevice_Runtime()
     }
 
     GPUFailedMsgI(cudaFreeHost(mHostMemoryBase));
+    for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
+      GPUFailedMsg(cuModuleUnload(*mInternals->kernelModules[i]));
+    }
+
     GPUFailedMsgI(cudaDeviceReset());
     GPUInfo("CUDA Uninitialized");
   }
