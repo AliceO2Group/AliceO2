@@ -61,8 +61,8 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
     mDigitizerTRU.setDebugStreaming(true);
   }
   // mDigitizer.init();
-  if (ctx.options().get<bool>("no-dig-tru")) {
-    mRunDigitizerTRU = false;
+  if (ctx.options().get<bool>("enable-dig-tru")) {
+    mRunDigitizerTRU = true;
   }
 
   mFinished = false;
@@ -415,6 +415,23 @@ void DigitizerSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, vo
   if (matcher == o2::framework::ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
     std::cout << "Loading CTP configuration" << std::endl;
     mCTPConfig = reinterpret_cast<o2::ctp::CTPConfiguration*>(obj);
+    for (const auto& trg : mCTPConfig->getCTPClasses()) {
+      if (trg.cluster->maskCluster[o2::detectors::DetID::EMC]) {
+        // Class triggering EMCAL cluster
+        LOG(debug) << "ENABLING Trigger simulation, found trigger class for EMCAL cluster: " << trg.name << " with input mask " << std::bitset<64>(trg.descriptor->getInputsMask());
+        for (const auto& [det, ctpinputs] : mCTPConfig->getDet2InputMap()) {
+          if (!(det == o2::detectors::DetID::EMC)) {
+            continue;
+          }
+          // if the detector ID is EMC AND the input mask is not empty, run the trigger simulation
+          for (const auto& input : ctpinputs) {
+            if (input.inputMask != 0) {
+              mRunDigitizerTRU = true;
+            }
+          }
+        }
+      }
+    }
   }
 }
 
