@@ -11,6 +11,44 @@
 
 set(MODULE GPUTrackingHIP)
 
+# set(GPUCA_HIP_HIPIFY_FROM_CUDA 0) # Use local HIP source files
+
+if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
+  set(GPUCA_HIP_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/hipify)
+  file(MAKE_DIRECTORY ${GPUCA_HIP_SOURCE_DIR})
+  set(GPUCA_HIP_FILE_LIST GPUReconstructionCUDA.cu GPUReconstructionCUDAExternalProvider.cu GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstructionCUDAkernel.template.cu CUDAThrustHelpers.h GPUReconstructionCUDADef.h GPUReconstructionCUDAGenRTC.cxx GPUReconstructionCUDAKernels.cu GPUReconstructionCUDArtc.cu)
+  set(GPUCA_HIP_LOCAL_FILE_LIST GPUReconstructionHIPIncludes.h)
+  set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
+  set(HIP_SOURCES "")
+  foreach(file ${GPUCA_HIP_FILE_LIST})
+    get_filename_component(ABS_CUDA_SORUCE ../cuda/${file} ABSOLUTE)
+    get_filename_component(CUDA_SOURCE ${file} NAME)
+    string(REPLACE ".cu" ".hip" HIP_SOURCE1 ${CUDA_SOURCE})
+    string(REPLACE "CUDA" "HIP" HIP_SOURCE ${HIP_SOURCE1})
+    add_custom_command(
+      OUTPUT ${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}
+      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${ABS_CUDA_SORUCE} | sed -e 's/CUDA/HIP/g' -e 's/cuda/hip/g' > ${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}
+      DEPENDS ${ABS_CUDA_SORUCE}
+      COMMENT "Hippifying ${HIP_SOURCE}"
+    )
+    list(APPEND HIP_SOURCES "${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
+    message(STATUS "FOO ${file} ${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
+  endforeach()
+  foreach(file ${GPUCA_HIP_LOCAL_FILE_LIST})
+    get_filename_component(ABS_SORUCE ${file} ABSOLUTE)
+    get_filename_component(HIP_SOURCE ${file} NAME)
+    add_custom_command(
+      OUTPUT ${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}
+      COMMAND cp ${ABS_SORUCE} ${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}
+      DEPENDS ${ABS_SORUCE}
+      COMMENT "Copying ${HIP_SOURCE}"
+    )
+    list(APPEND HIP_SOURCES "${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
+  endforeach()
+else()
+  get_filename_component(GPUCA_HIP_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
+endif()
+
 # Setting flags as a global option for all HIP targets.
 set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fno-gpu-rdc")
 if(DEFINED HIP_AMDGPUTARGET)
@@ -19,9 +57,9 @@ endif()
 
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionHIP.hip GPUReconstructionHIPKernels.hip)
-set(SRCS_CXX GPUReconstructionHIPGenRTC.cxx)
-set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h GPUReconstructionHIPDef.h GPUReconstructionHIPIncludes.h HIPThrustHelpers.h)
+set(SRCS ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIP.hip ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPKernels.hip)
+set(SRCS_CXX ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPGenRTC.cxx)
+set(HDRS ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIP.h ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPInternals.h ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPDef.h ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPIncludes.h ${GPUCA_HIP_SOURCE_DIR}/HIPThrustHelpers.h)
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
@@ -50,7 +88,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     set(GPUDIR ${CMAKE_SOURCE_DIR}/GPU/GPUTracking)
   endif()
 
-  set(HIPRTC_SRC ${GPUDIR}/Base/hip/GPUReconstructionHIPrtc.hip)
+  set(HIPRTC_SRC ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPrtc.hip)
   set(HIPRTC_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionHIPrtc)
 
   # cmake-format: off
@@ -61,6 +99,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       MAIN_DEPENDENCY ${HIPRTC_SRC}
       IMPLICIT_DEPENDS CXX ${HIPRTC_SRC}
       COMMAND_EXPAND_LISTS
+      COMMENT "Preparing HIP RTC source file ${HIPRTC_BIN}.src"
   )
   create_binary_resource(${HIPRTC_BIN}.src ${HIPRTC_BIN}.src.o)
 
@@ -69,6 +108,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       COMMAND echo -n "${CMAKE_HIP_COMPILER} ${HIPRTC_FLAGS} ${HIPRTC_DEFINES}" > ${HIPRTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
+      COMMENT "Preparing HIP RTC command file ${HIPRTC_BIN}.command"
   )
   create_binary_resource(${HIPRTC_BIN}.command ${HIPRTC_BIN}.command.o)
 
@@ -146,6 +186,12 @@ add_library(${MODULE}_CXX OBJECT ${SRCS_CXX})
 target_compile_definitions(${MODULE}_CXX PRIVATE $<TARGET_PROPERTY:${TMP_BASELIB},COMPILE_DEFINITIONS>)
 target_include_directories(${MODULE}_CXX PRIVATE $<TARGET_PROPERTY:${TMP_BASELIB},INCLUDE_DIRECTORIES>)
 target_link_libraries(${targetName} PRIVATE ${MODULE}_CXX)
+
+if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
+  add_custom_target(${MODULE}_HIPIFIED DEPENDS ${HIP_SOURCES})
+  add_dependencies(${targetName} ${MODULE}_HIPIFIED)
+  add_dependencies(${MODULE}_CXX ${MODULE}_HIPIFIED)
+endif()
 
 if(OpenMP_CXX_FOUND)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp

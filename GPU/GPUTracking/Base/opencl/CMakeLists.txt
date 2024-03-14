@@ -65,7 +65,8 @@ add_custom_command(
           -x clc++
   MAIN_DEPENDENCY ${CL_SRC}
   IMPLICIT_DEPENDS CXX ${CL_SRC}
-  COMMAND_EXPAND_LISTS)
+  COMMAND_EXPAND_LISTS
+  COMMENT "Compiling OpenCL1 CL source file ${CL_SRC}")
 
 create_binary_resource(${CL_BIN} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.o)
 
