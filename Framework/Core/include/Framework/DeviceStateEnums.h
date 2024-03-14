@@ -30,6 +30,8 @@ enum struct TransitionHandlingState {
   NoTransition,
   /// A transition was notified to be requested
   Requested,
+  /// Only calibrations can be done
+  DataProcessingExpired,
   /// A transition needs to be fullfilled ASAP
   Expired
 };
