@@ -149,9 +149,8 @@ target_link_libraries(${targetName} PRIVATE ${MODULE}_CXX)
 
 if(OpenMP_CXX_FOUND)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
-  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
-  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
-  set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fopenmp")
+  target_compile_definitions(${MODULE}_CXX PRIVATE WITH_OPENMP)
+  target_link_libraries(${MODULE}_CXX PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 set_target_hip_arch(${targetName})
