@@ -25,7 +25,6 @@
 #include <DetectorsBase/BaseDPLDigitizer.h>
 #include "EMCALSimulation/DigitizerTRU.h"
 
-
 class TChain;
 
 namespace o2
@@ -87,9 +86,9 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   std::vector<TChain*> mSimChains;
   o2::ctp::CTPConfiguration* mCTPConfig; ///< CTP configuration
 
-  DigitizerTRU mDigitizerTRU;                  ///< Digitizer object TRU
-  o2::emcal::SDigitizer mSumDigitizerTRU;      ///< Summed digitizer TRU
-
+  DigitizerTRU mDigitizerTRU;             ///< Digitizer object TRU
+  o2::emcal::SDigitizer mSumDigitizerTRU; ///< Summed digitizer TRU
+  bool mRunDigitizerTRU = true;           ///< Run Digitizer TRU?
 };
 
 /// \brief Create new digitizer spec

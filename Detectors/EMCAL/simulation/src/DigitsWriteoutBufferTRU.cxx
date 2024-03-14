@@ -95,10 +95,8 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
       }
     }
     reserve(15);
-    
-    
-    LOG(info) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: HIGH IR";
 
+    LOG(info) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: HIGH IR";
   }
 }
 //________________________________________________________

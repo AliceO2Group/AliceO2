@@ -107,9 +107,6 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
   int sizemDigitMap = -999;
   TriggerMappingV2 mTriggerMap(mGeometry);
 
-
-
-
   for (auto& digitsTimeBin : digitlist) {
     // Inside the DigitTimebinTRU
     // Fill the LZEROElectronics with the new ADC value
@@ -152,7 +149,6 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
 
       auto [whichTRU, whichFastOrTRU] = mTriggerMap.getTRUFromAbsFastORIndex(fastor);
 
-
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
@@ -174,7 +170,7 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     // It accounts for the difference in times between L0a, L0b, and then there will be a L1 and L1b delay
     // There is 1BC uncertainty on the trigger readout due to steps in the interaction between CTP and detector simulations
     bool foundPeak = false;
-    int  counterWhichTRU = 0;
+    int counterWhichTRU = 0;
     int triggeredTRU = -1;
     std::vector<int> triggeredPatches;
     for (auto& patches : patchesFromAllTRUs) {
@@ -190,7 +186,6 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       }
       counterWhichTRU += 1;
     }
-
 
     if (foundPeak == true) {
       LOG(debug) << "DIG TRU fill in LZEROElectronics: foundPeak = " << foundPeak;
