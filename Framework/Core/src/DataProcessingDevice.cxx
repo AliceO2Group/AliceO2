@@ -1584,9 +1584,13 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 {
   auto& context = ref.get<DataProcessorContext>();
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, device, &context);
   auto switchState = [ref](StreamingState newState) {
     auto& state = ref.get<DeviceState>();
-    LOG(detail) << "New state " << (int)newState << " old state " << (int)state.streaming;
+    auto& context = ref.get<DataProcessorContext>();
+    O2_SIGNPOST_ID_FROM_POINTER(dpid, device, &context);
+    O2_SIGNPOST_END(device, dpid, "state", "End of processing state %d", (int)state.streaming);
+    O2_SIGNPOST_START(device, dpid, "state", "Starting processing state %d", (int)newState);
     state.streaming = newState;
     ref.get<ControlService>().notifyStreamingState(state.streaming);
   };
@@ -1625,7 +1629,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
   }
 
   if (state.streaming == StreamingState::EndOfStreaming) {
-    LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
+    O2_SIGNPOST_EVENT_EMIT(device, dpid, "state", "We are in EndOfStreaming. Flushing queues.");
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
@@ -1646,7 +1650,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     context.postEOSCallbacks(eosContext);
 
     for (auto& channel : spec.outputChannels) {
-      LOGP(detail, "Sending end of stream to {}", channel.name);
+      O2_SIGNPOST_EVENT_EMIT(device, dpid, "state", "Sending end of stream to %{public}s.", channel.name.c_str());
       DataProcessingHelpers::sendEndOfStream(ref, channel);
     }
     // This is needed because the transport is deleted before the device.
@@ -1658,7 +1662,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
       *context.wasActive = true;
     }
     // On end of stream we shut down all output pollers.
-    LOGP(detail, "Shutting down output pollers");
+    O2_SIGNPOST_EVENT_EMIT(device, dpid, "state", "Shutting down output pollers.");
     for (auto& poller : state.activeOutputPollers) {
       uv_poll_stop(poller);
     }
@@ -1667,7 +1671,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
   if (state.streaming == StreamingState::Idle) {
     // On end of stream we shut down all output pollers.
-    LOGP(detail, "We are in Idle. Shutting down output pollers.");
+    O2_SIGNPOST_EVENT_EMIT(device, dpid, "state", "Shutting down output pollers.");
     for (auto& poller : state.activeOutputPollers) {
       uv_poll_stop(poller);
     }
