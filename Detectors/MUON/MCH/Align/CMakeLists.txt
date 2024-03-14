@@ -31,8 +31,7 @@ o2_add_library(MCHAlign
 
 o2_target_root_dictionary(MCHAlign
   HEADERS
-    include/MCHAlign/Aligner.h
-    include/MCHAlign/AlignmentSpec.h)
+    include/MCHAlign/Aligner.h)
 
 o2_add_executable(
         alignment-workflow

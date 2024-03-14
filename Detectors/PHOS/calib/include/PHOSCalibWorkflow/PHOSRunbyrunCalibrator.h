@@ -15,8 +15,6 @@
 /// @file   PHOSRunbyrunCalibDevice.h
 /// @brief  Device to calculate PHOS energy run by run corrections
 
-#include "Framework/Task.h"
-#include "Framework/ProcessingContext.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
@@ -28,9 +26,11 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace phos
+namespace o2::framework {
+  struct ProcessingContext;
+}
+
+namespace o2::phos
 {
 
 class PHOSRunbyrunSlot
@@ -105,7 +105,6 @@ class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration
   ClassDefOverride(PHOSRunbyrunCalibrator, 1);
 };
 
-} // namespace phos
 } // namespace o2
 
 #endif
