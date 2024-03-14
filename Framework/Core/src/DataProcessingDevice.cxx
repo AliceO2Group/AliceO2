@@ -218,8 +218,13 @@ void run_callback(uv_work_t* handle)
 {
   auto* task = (TaskStreamInfo*)handle->data;
   auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
+  // We create a new signpost interval for this specific data processor. Same id, same data processor.
+  auto& dataProcessorContext = ref.get<DataProcessorContext>();
+  O2_SIGNPOST_ID_FROM_POINTER(sid, device, &dataProcessorContext);
+  O2_SIGNPOST_START(device, sid, "run_callback", "Starting run callback on stream %d", task->id.index);
   DataProcessingDevice::doPrepare(ref);
   DataProcessingDevice::doRun(ref);
+  O2_SIGNPOST_END(device, sid, "run_callback", "Done processing data for stream %d", task->id.index);
 }
 
 // Once the processing in a thread is done, this is executed on the main thread.
@@ -1207,6 +1212,8 @@ void DataProcessingDevice::Run()
   auto& state = ref.get<DeviceState>();
   state.loopReason = DeviceState::LoopReason::FIRST_LOOP;
   bool firstLoop = true;
+  O2_SIGNPOST_ID_FROM_POINTER(lid, device, state.loop);
+  O2_SIGNPOST_START(device, lid, "device_state", "First iteration of the device loop");
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
       (void)this->ChangeState(state.nextFairMQState.back());
@@ -1236,6 +1243,7 @@ void DataProcessingDevice::Run()
         state.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
       }
       if (NewStatePending()) {
+        O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "New state pending. Waiting for it to be handled.");
         shouldNotWait = true;
         state.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
       }
@@ -1261,25 +1269,26 @@ void DataProcessingDevice::Run()
           uv_update_time(state.loop);
           uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before quitting.", (int)deviceContext.exitTransitionTimeout);
           } else {
-            LOGP(info, "New state requested. Waiting for {} seconds before switching to READY state.", timeout);
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. Waiting for %d seconds before switching to READY state.", (int)deviceContext.exitTransitionTimeout);
           }
         } else {
           state.transitionHandling = TransitionHandlingState::Expired;
-          if (timeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            LOGP(info, "New state requested. No timeout set, quitting immediately as per --completion-policy");
-          } else if (timeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
-            LOGP(info, "New state requested. No timeout set, switching to READY state immediately");
+          if (deviceContext.exitTransitionTimeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, quitting immediately as per --completion-policy");
+          } else if (deviceContext.exitTransitionTimeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state requested. No timeout set, switching to READY state immediately");
           } else if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
-            LOGP(info, "New state pending and we are already idle, quitting immediately as per --completion-policy");
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "run_loop", "New state pending and we are already idle, quitting immediately as per --completion-policy");
           } else {
-            LOGP(info, "New state pending and we are already idle, switching to READY immediately.");
+            O2_SIGNPOST_EVENT_EMIT_INFO(device, lid, "runb_loop", "New state pending and we are already idle, switching to READY immediately.");
           }
         }
       }
       // If we are Idle, we can then consider the transition to be expired.
       if (state.transitionHandling == TransitionHandlingState::Requested && state.streaming == StreamingState::Idle) {
+        O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "State transition requested and we are now in Idle. We can consider it to be completed.");
         state.transitionHandling = TransitionHandlingState::Expired;
       }
       if (state.severityStack.empty() == false) {
@@ -1299,8 +1308,8 @@ void DataProcessingDevice::Run()
       // - we can trigger further events from the queue
       // - we can guarantee this is the last thing we do in the loop (
       //   assuming no one else is adding to the queue before this point).
-      auto onDrop = [&registry = mServiceRegistry](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
-        LOGP(debug, "Dropping message from slot {}. Forwarding as needed.", slot.index);
+      auto onDrop = [&registry = mServiceRegistry, lid](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+        O2_SIGNPOST_START(device, lid, "run_loop", "Dropping message from slot %" PRIu64 ". Forwarding as needed.", (uint64_t)slot.index);
         ServiceRegistryRef ref{registry};
         ref.get<AsyncQueue>();
         ref.get<DecongestionService>();
@@ -1319,7 +1328,9 @@ void DataProcessingDevice::Run()
         auto& dpContext = ref.get<DataProcessorContext>();
         dpContext.preLoopCallbacks(ref);
       }
+      O2_SIGNPOST_END(device, lid, "run_loop", "Run loop completed. %{}s", shouldNotWait ? "Will immediately schedule a new one" : "Waiting for next event.");
       uv_run(state.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      O2_SIGNPOST_START(device, lid, "run_loop", "Run loop started. Loop reason %d.", state.loopReason);
       if ((state.loopReason & state.tracingFlags) != 0) {
         state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
@@ -1327,16 +1338,15 @@ void DataProcessingDevice::Run()
         fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
         state.severityStack.pop_back();
       }
-      LOGP(debug, "Loop reason mask {:b} & {:b} = {:b}",
-           state.loopReason, state.tracingFlags,
-           state.loopReason & state.tracingFlags);
+      O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "Loop reason mask %x & %x = %x", state.loopReason, state.tracingFlags, state.loopReason & state.tracingFlags);
 
       if ((state.loopReason & DeviceState::LoopReason::OOB_ACTIVITY) != 0) {
-        LOGP(debug, "We were awakened by a OOB event. Rescanning everything.");
+        O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "Out of band activity detected. Rescanning everything.");
         relayer.rescan();
       }
 
       if (!state.pendingOffers.empty()) {
+        O2_SIGNPOST_EVENT_EMIT(device, lid, "run_loop", "Pending %" PRIu64 " offers. updating the ComputingQuotaEvaluator.", (uint64_t)state.pendingOffers.size());
         ref.get<ComputingQuotaEvaluator>().updateOffers(state.pendingOffers, uv_now(state.loop));
       }
     }
@@ -1411,6 +1421,8 @@ void DataProcessingDevice::Run()
       mWasActive = false;
     }
   }
+
+  O2_SIGNPOST_END(device, lid, "run_loop", "Run loop completed. Transition handling state %d.", state.transitionHandling);
   auto& spec = ref.get<DeviceSpec const>();
   /// Cleanup messages which are still pending on exit.
   for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
@@ -1425,6 +1437,8 @@ void DataProcessingDevice::Run()
 void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 {
   auto& context = ref.get<DataProcessorContext>();
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, device, &context);
+  O2_SIGNPOST_START(device, dpid, "do_prepare", "Starting DataProcessorContext::doPrepare.");
 
   *context.wasActive = false;
   {
@@ -1451,7 +1465,7 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   });
 
   // Whether or not all the channels are completed
-  LOGP(debug, "Processing {} input channels.", spec.inputChannels.size());
+  O2_SIGNPOST_EVENT_EMIT(device, dpid, "do_prepare", "Processing %zu input channels.", spec.inputChannels.size());
   /// Sort channels by oldest possible timeframe and
   /// process them in such order.
   static std::vector<int> pollOrder;
@@ -1463,13 +1477,14 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 
   // Nothing to poll...
   if (pollOrder.empty()) {
+    O2_SIGNPOST_END(device, dpid, "do_prepare", "Nothing to poll. Waiting for next iteration.");
     return;
   }
   auto currentOldest = state.inputChannelInfos[pollOrder.front()].oldestForChannel;
   auto currentNewest = state.inputChannelInfos[pollOrder.back()].oldestForChannel;
   auto delta = currentNewest.value - currentOldest.value;
-  LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
-       delta);
+  O2_SIGNPOST_EVENT_EMIT(device, dpid, "do_prepare", "Oldest possible timeframe range %" PRIu64 " => %" PRIu64 " delta %" PRIu64,
+                         (int64_t)currentOldest.value, (int64_t)currentNewest.value, (int64_t)delta);
   auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
