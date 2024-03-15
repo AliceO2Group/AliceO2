@@ -114,7 +114,7 @@ GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelProperti
   return krnlProperties{1, 1};
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                                                          \
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, ...)                                                                                \
   template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments)); \
   template GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
 #include "GPUReconstructionKernelList.h"

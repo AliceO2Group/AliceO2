@@ -245,7 +245,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   return 0;
 }
 
-#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                               \
+#define GPUCA_KRNL(x_class, ...)                                                              \
   template <>                                                                                 \
   constexpr const char* GPUReconstructionCPU::GetKernelName<GPUCA_M_KRNL_TEMPLATE(x_class)>() \
   {                                                                                           \

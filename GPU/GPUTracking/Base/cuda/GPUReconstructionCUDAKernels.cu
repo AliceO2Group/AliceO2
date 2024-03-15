@@ -104,8 +104,8 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 }
 
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) \
-  GPUCA_KRNL_PROP(x_class, x_attributes)                          \
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, ...) \
+  GPUCA_KRNL_PROP(x_class, x_attributes)                    \
   template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
 #else
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 2
@@ -119,22 +119,22 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
   GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward) \
   template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
 #ifndef __HIPCC__ // CUDA version
-#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward) \
+#define GPUCA_KRNL_CALL_single(x_class, ...) \
   GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);
-#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward) \
+#define GPUCA_KRNL_CALL_multi(x_class, ...) \
   GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, y.num, args...);
 #else // HIP version
 #undef GPUCA_KRNL_CUSTOM
 #define GPUCA_KRNL_CUSTOM(args) GPUCA_M_STRIP(args)
 #undef GPUCA_KRNL_BACKEND_XARGS
 #define GPUCA_KRNL_BACKEND_XARGS hipEvent_t *debugStartEvent, hipEvent_t *debugStopEvent,
-#define GPUCA_KRNL_CALL_single(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                                   \
+#define GPUCA_KRNL_CALL_single(x_class, ...)                                                                                                                                                                                                    \
   if (debugStartEvent == nullptr) {                                                                                                                                                                                                             \
     hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);                                          \
   } else {                                                                                                                                                                                                                                      \
     hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], *debugStartEvent, *debugStopEvent, 0, GPUCA_CONSMEM_CALL y.start, args...); \
   }
-#define GPUCA_KRNL_CALL_multi(x_class, x_attributes, x_arguments, x_forward)                                                                                                                                                                                    \
+#define GPUCA_KRNL_CALL_multi(x_class, ...)                                                                                                                                                                                                                     \
   if (debugStartEvent == nullptr) {                                                                                                                                                                                                                             \
     hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);                                          \
   } else {                                                                                                                                                                                                                                                      \
@@ -156,7 +156,7 @@ int GPUReconstructionCUDABackend::getRTCkernelNum(int k)
   return num;
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                           \
+#define GPUCA_KRNL(x_class, ...)                                                                            \
   template int GPUReconstructionCUDABackend::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k); \
   template int GPUReconstructionCUDABackend::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
 #include "GPUReconstructionKernelList.h"
