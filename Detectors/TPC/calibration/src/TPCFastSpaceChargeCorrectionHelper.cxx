@@ -118,6 +118,8 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
   // calculate correction map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
   // for the future: switch TOF correction off for a while
 
+  TStopwatch watch;
+
   if (!mIsInitialized) {
     initGeometry();
   }
@@ -175,6 +177,10 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
     }
 
   } // slice
+
+  watch.Stop();
+
+  LOGP(info, "Space charge correction tooks: {}s", watch.RealTime());
 
   initInverse(correction, 0);
 }
@@ -380,19 +386,13 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 {
   // create o2::gpu::TPCFastSpaceChargeCorrection  from o2::tpc::TrackResiduals::VoxRes voxel tree
 
-  LOG(info) << "fast space charge correction helper: create correction using " << mNthreads << " threads";
+  LOG(info) << "fast space charge correction helper: create correction from track residuals using " << mNthreads << " threads";
+
+  TStopwatch watch1, watch2;
 
   std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> correctionPtr(new o2::gpu::TPCFastSpaceChargeCorrection);
 
   o2::gpu::TPCFastSpaceChargeCorrection& correction = *correctionPtr;
-
-  // o2::tpc::TrackResiduals::VoxRes* v = nullptr;
-  // voxResTree->SetBranchAddress("voxRes", &v);
-
-  o2::tpc::TrackResiduals::VoxRes* v = nullptr;
-  TBranch* branch = voxResTree->GetBranch("voxRes");
-  branch->SetAddress(&v);
-  branch->SetAutoDelete(kTRUE);
 
   auto* helper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
   const o2::gpu::TPCFastTransformGeo& geo = helper->getGeometry();
@@ -417,9 +417,11 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   // std::cout << "n knots Y: " << nKnotsY << std::endl;
   // std::cout << "n knots Z: " << nKnotsZ << std::endl;
 
+  const int nRows = geo.getNumberOfRows();
+  const int nROCs = geo.getNumberOfSlices();
+
   { // create the correction object
 
-    const int nRows = geo.getNumberOfRows();
     const int nCorrectionScenarios = 1;
 
     correction.startConstruction(geo, nCorrectionScenarios);
@@ -451,131 +453,298 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
   LOG(info) << "fast space charge correction helper: fill data points from track residuals";
 
-  for (int iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
+  // o2::tpc::TrackResiduals::VoxRes* v = nullptr;
+  // voxResTree->SetBranchAddress("voxRes", &v);
 
-    voxResTree->GetEntry(iVox);
-    auto xBin =
-      v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
-    auto y2xBin =
-      v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
-    auto z2xBin =
-      v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
+  o2::tpc::TrackResiduals::VoxRes* v = nullptr;
+  TBranch* branch = voxResTree->GetBranch("voxRes");
+  branch->SetAddress(&v);
+  branch->SetAutoDelete(kTRUE);
 
-    int iRoc = (int)v->bsec;
-    int iRow = (int)xBin;
+  // find the first and the last voxel for each ROC
+  // we assume the data is sorted by ROC, othwerwise it will be read nROCs times
 
-    // x,y,z of the voxel in local TPC coordinates
+  std::vector<int> vROCdataFirst(nROCs, -1);
+  std::vector<int> vROCdataLast(nROCs, -2);
 
-    double x = trackResiduals.getX(xBin); // radius of the pad row
-    double y2x = trackResiduals.getY2X(
-      xBin, y2xBin); // y/x coordinate of the bin ~-0.15 ... 0.15
-    double z2x =
-      trackResiduals.getZ2X(z2xBin); // z/x coordinate of the bin 0.1 .. 0.9
-    double y = x * y2x;
-    double z = x * z2x;
-
-    if (iRoc >= geo.getNumberOfSlicesA()) {
-      z = -z;
-      // y = -y;
-    }
-
-    {
-      float sx, sy, sz;
-      trackResiduals.getVoxelCoordinates(iRoc, xBin, y2xBin, z2xBin, sx, sy, sz);
-      sy *= x;
-      sz *= x;
-      if (fabs(sx - x) + fabs(sy - y) + fabs(sz - z) > 1.e-4) {
-        std::cout << "wrong coordinates: " << x << " " << y << " " << z << " / " << sx << " " << sy << " " << sz << std::endl;
+  {
+    int iRocLast = -1;
+    bool isSorted = true;
+    for (int iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
+      voxResTree->GetEntry(iVox);
+      int iRoc = (int)v->bsec;
+      // ensure the data is in the expacted order
+      if (iRoc < iRocLast) {
+        isSorted = false;
       }
-    }
-
-    // skip empty voxels
-    float voxEntries = v->stat[o2::tpc::TrackResiduals::VoxV];
-    if (voxEntries < 1.) { // no statistics
-      continue;
-    }
-
-    // double statX = v->stat[o2::tpc::TrackResiduals::VoxX]; // weight
-    // double statY = v->stat[o2::tpc::TrackResiduals::VoxF]; // weight
-    // double statZ = v->stat[o2::tpc::TrackResiduals::VoxZ]; // weight
-
-    // double dx = 1. / trackResiduals.getDXI(xBin);
-    double dy = x / trackResiduals.getDY2XI(xBin, y2xBin);
-    double dz = x * trackResiduals.getDZ2X(z2xBin);
-
-    double correctionX = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
-    double correctionY = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
-    double correctionZ = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
-    if (invertSigns) {
-      correctionX *= -1.;
-      correctionY *= -1.;
-      correctionZ *= -1.;
-    }
-    // add one point per voxel
-
-    // map.addCorrectionPoint(iRoc, iRow, y, z, correctionX, correctionY,
-    //                     correctionZ);
-
-    // add several points per voxel,
-    // extend values of the edge voxels to the edges of the TPC row
-    //
-
-    double yFirst = y - dy / 2.;
-    double yLast = y + dy / 2.;
-
-    if (y2xBin == 0) { // extend value of the first Y bin to the row edge
-      float u, v;
-      if (iRoc < geo.getNumberOfSlicesA()) {
-        geo.convScaledUVtoUV(iRoc, iRow, 0., 0., u, v);
-      } else {
-        geo.convScaledUVtoUV(iRoc, iRow, 1., 0., u, v);
+      iRocLast = iRoc;
+      if (iRoc < 0 || iRoc >= nROCs) {
+        LOG(fatal) << "ROC number " << iRoc << " is out of range";
       }
-      float py, pz;
-      geo.convUVtoLocal(iRoc, u, v, py, pz);
-      yFirst = py;
-    }
-
-    if (y2xBin == trackResiduals.getNY2XBins() - 1) { // extend value of the last Y bin to the row edge
-      float u, v;
-      if (iRoc < geo.getNumberOfSlicesA()) {
-        geo.convScaledUVtoUV(iRoc, iRow, 1., 0., u, v);
-      } else {
-        geo.convScaledUVtoUV(iRoc, iRow, 0., 0., u, v);
+      if (vROCdataFirst[iRoc] < 0) {
+        vROCdataFirst[iRoc] = iVox;
       }
-      float py, pz;
-      geo.convUVtoLocal(iRoc, u, v, py, pz);
-      yLast = py;
+      vROCdataLast[iRoc] = iVox;
     }
-
-    double z0 = 0.;
-    if (iRoc < geo.getNumberOfSlicesA()) {
-      z0 = geo.getTPCzLengthA();
-    } else {
-      z0 = -geo.getTPCzLengthC();
-    }
-
-    double yStep = (yLast - yFirst) / 2;
-
-    for (double py = yFirst; py <= yLast + yStep / 2.; py += yStep) {
-
-      for (double pz = z - dz / 2.; pz <= z + dz / 2. + 1.e-4; pz += dz / 2.) {
-        map.addCorrectionPoint(iRoc, iRow, py, pz, correctionX, correctionY,
-                               correctionZ);
-      }
-
-      if (z2xBin == trackResiduals.getNZ2XBins() - 1) {
-        // extend value of the first Z bin to the readout, linear decrease of all values to 0.
-        int nZsteps = 3;
-        for (int is = 0; is < nZsteps; is++) {
-          double pz = z + (z0 - z) * (is + 1.) / nZsteps;
-          double s = (nZsteps - 1. - is) / nZsteps;
-          map.addCorrectionPoint(iRoc, iRow, py, pz, s * correctionX,
-                                 s * correctionY, s * correctionZ);
-        }
-      }
+    if (!isSorted) {
+      LOG(warning) << "Data is not sorted by ROC as expected";
     }
   }
+
+  // read the data ROC by ROC
+
+  // data in the tree is not sorted by row
+  // first find which data belong to which row
+
+  struct VoxelData {
+    int mNentries{0};    // number of entries
+    float mCx, mCy, mCz; // corrections to the local coordinates
+  };
+
+  std::vector<VoxelData> vRocData[nRows];
+  for (int ir = 0; ir < nRows; ir++) {
+    vRocData[ir].resize(nY2Xbins * nZ2Xbins);
+  }
+
+  struct Voxel {
+    float mY, mZ;            // not-distorted local coordinates
+    float mDy, mDz;          // bin size
+    int mSmoothingStep{100}; // is the voxel data original or smoothed at this step
+  };
+
+  std::vector<Voxel> vRowVoxels(nY2Xbins * nZ2Xbins);
+
+  for (int iRoc = 0; iRoc < nROCs; iRoc++) {
+
+    for (int ir = 0; ir < nRows; ir++) {
+      for (int iv = 0; iv < nY2Xbins * nZ2Xbins; iv++) {
+        vRocData[ir][iv].mNentries = 0;
+      }
+    }
+
+    for (int iVox = vROCdataFirst[iRoc]; iVox <= vROCdataLast[iRoc]; iVox++) {
+      voxResTree->GetEntry(iVox);
+      if ((int)v->bsec != iRoc) {
+        LOG(fatal) << "ROC number " << v->bsec << " is not equal to " << iRoc;
+        continue;
+      }
+      int iRow = (int)v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
+      if (iRow < 0 || iRow >= nRows) {
+        LOG(fatal) << "Row number " << iRow << " is out of range";
+      }
+      int iy = v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
+      int iz = v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
+      auto& vox = vRocData[iRow][iy * nZ2Xbins + iz];
+      vox.mNentries = (int)v->stat[o2::tpc::TrackResiduals::VoxV];
+      vox.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
+      vox.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
+      vox.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
+    }
+
+    // now process the data row-by-row
+
+    for (int iRow = 0; iRow < nRows; iRow++) {
+
+      // LOG(info) << "Processing ROC " << iRoc << " row " << iRow;
+
+      // complete the voxel data
+      {
+        int xBin = iRow;
+        double x = trackResiduals.getX(xBin); // radius of the pad row
+        bool isDataFound = false;
+        for (int iy = 0; iy < nY2Xbins; iy++) {
+          for (int iz = 0; iz < nZ2Xbins; iz++) {
+            auto& data = vRocData[iRow][iy * nZ2Xbins + iz];
+            auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
+            // y/x coordinate of the bin ~-0.15 ... 0.15
+            double y2x = trackResiduals.getY2X(xBin, iy);
+            // z/x coordinate of the bin 0.1 .. 0.9
+            double z2x = trackResiduals.getZ2X(iz);
+            vox.mY = x * y2x;
+            vox.mZ = x * z2x;
+            vox.mDy = x / trackResiduals.getDY2XI(xBin, iy);
+            vox.mDz = x * trackResiduals.getDZ2X(iz);
+            if (iRoc >= geo.getNumberOfSlicesA()) {
+              vox.mZ = -vox.mZ;
+            }
+            if (data.mNentries < 1) { // no data
+              data.mCx = 0.;
+              data.mCy = 0.;
+              data.mCz = 0.;
+              vox.mSmoothingStep = 100;
+            } else { // voxel contains data
+              if (invertSigns) {
+                data.mCx *= -1.;
+                data.mCy *= -1.;
+                data.mCz *= -1.;
+              }
+              vox.mSmoothingStep = 0; // original data
+              isDataFound = true;
+            }
+          }
+        }
+
+        if (!isDataFound) { // fill everything with 0
+          for (int iy = 0; iy < nY2Xbins; iy++) {
+            for (int iz = 0; iz < nZ2Xbins; iz++) {
+              vRowVoxels[iy * nZ2Xbins + iz].mSmoothingStep = 0;
+            }
+          }
+        }
+      } // complete the voxel data
+
+      // repare the voxel data: fill empty voxels
+
+      int nRepairs = 0;
+
+      for (int ismooth = 1; ismooth <= 2; ismooth++) {
+        for (int iy = 0; iy < nY2Xbins; iy++) {
+          for (int iz = 0; iz < nZ2Xbins; iz++) {
+            auto& data = vRocData[iRow][iy * nZ2Xbins + iz];
+            auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
+            if (vox.mSmoothingStep <= ismooth) { // already filled
+              continue;
+            }
+            nRepairs++;
+            data.mCx = 0.;
+            data.mCy = 0.;
+            data.mCz = 0.;
+            double w = 0.;
+            bool filled = false;
+            auto update = [&](int iy1, int iz1) {
+              auto& data1 = vRocData[iRow][iy1 * nZ2Xbins + iz1];
+              auto& vox1 = vRowVoxels[iy1 * nZ2Xbins + iz1];
+              if (vox1.mSmoothingStep >= ismooth) {
+                return false;
+              }
+              double w1 = 1. / (abs(iy - iy1) + abs(iz - iz1) + 1);
+              data.mCx += w1 * data1.mCx;
+              data.mCy += w1 * data1.mCy;
+              data.mCz += w1 * data1.mCz;
+              w += w1;
+              filled = true;
+              return true;
+            };
+
+            for (int iy1 = iy - 1; iy1 >= 0 && !update(iy1, iz); iy1--) {
+            }
+            for (int iy1 = iy + 1; iy1 < nY2Xbins && !update(iy1, iz); iy1++) {
+            }
+            for (int iz1 = iz - 1; iz1 >= 0 && !update(iy, iz1); iz1--) {
+            }
+            for (int iz1 = iz + 1; iz1 < nZ2Xbins && !update(iy, iz1); iz1++) {
+            }
+
+            if (filled) {
+              data.mCx /= w;
+              data.mCy /= w;
+              data.mCz /= w;
+              vox.mSmoothingStep = ismooth;
+            }
+          } // iz
+        }   // iy
+      }     // ismooth
+
+      if (nRepairs > 0) {
+        LOG(info) << "ROC " << iRoc << " row " << iRow << ": " << nRepairs << " voxel repairs for " << nY2Xbins * nZ2Xbins << " voxels";
+      }
+
+      // feed the row data to the helper
+
+      double yMin = 0., yMax = 0.;
+
+      {
+        float u, v;
+        if (iRoc < geo.getNumberOfSlicesA()) {
+          geo.convScaledUVtoUV(iRoc, iRow, 0., 0., u, v);
+        } else {
+          geo.convScaledUVtoUV(iRoc, iRow, 1., 0., u, v);
+        }
+        float py, pz;
+        geo.convUVtoLocal(iRoc, u, v, py, pz);
+        yMin = py;
+      }
+      {
+        float u, v;
+        if (iRoc < geo.getNumberOfSlicesA()) {
+          geo.convScaledUVtoUV(iRoc, iRow, 1., 0., u, v);
+        } else {
+          geo.convScaledUVtoUV(iRoc, iRow, 0., 0., u, v);
+        }
+        float py, pz;
+        geo.convUVtoLocal(iRoc, u, v, py, pz);
+        yMax = py;
+      }
+
+      double zEdge = 0.;
+      if (iRoc < geo.getNumberOfSlicesA()) {
+        zEdge = geo.getTPCzLengthA();
+      } else {
+        zEdge = -geo.getTPCzLengthC();
+      }
+
+      for (int iy = 0; iy < nY2Xbins; iy++) {
+        for (int iz = 0; iz < nZ2Xbins; iz++) {
+          auto& data = vRocData[iRow][iy * nZ2Xbins + iz];
+          auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
+          if (vox.mSmoothingStep > 2) {
+            LOG(fatal) << "empty voxel is not repared";
+          }
+
+          double y = vox.mY;
+          double z = vox.mZ;
+          double dy = vox.mDy;
+          double dz = vox.mDz;
+          double correctionX = data.mCx;
+          double correctionY = data.mCy;
+          double correctionZ = data.mCz;
+
+          double yFirst = y - dy / 2.;
+          double yLast = y + dy / 2.;
+
+          if (iy == 0) { // extend value of the first Y bin to the row edge
+            yFirst = yMin;
+          }
+
+          if (iy == nY2Xbins - 1) { // extend value of the last Y bin to the row edge
+            yLast = yMax;
+          }
+
+          double yStep = (yLast - yFirst) / 2;
+
+          for (double py = yFirst; py <= yLast + yStep / 2.; py += yStep) {
+
+            for (double pz = z - dz / 2.; pz <= z + dz / 2. + 1.e-4; pz += dz / 2.) {
+              map.addCorrectionPoint(iRoc, iRow, py, pz, correctionX, correctionY,
+                                     correctionZ);
+            }
+
+            if (iz == nZ2Xbins - 1) {
+              // extend value of the first Z bin to the readout, linear decrease of all values to 0.
+              int nZsteps = 3;
+              for (int is = 0; is < nZsteps; is++) {
+                double pz = z + (zEdge - z) * (is + 1.) / nZsteps;
+                double s = (nZsteps - 1. - is) / nZsteps;
+                map.addCorrectionPoint(iRoc, iRow, py, pz, s * correctionX,
+                                       s * correctionY, s * correctionZ);
+              }
+            }
+          }
+        } // iz
+      }   // iy
+
+    } // iRow
+
+  } // iRoc
+
+  LOGP(info, "Reading & reparing of the track residuals tooks: {}s", watch1.RealTime());
+
+  LOG(info) << "fast space charge correction helper: create space charge from the map of data points..";
+
   helper->fillSpaceChargeCorrectionFromMap(correction);
+
+  LOGP(info, "Creation from track residuals tooks in total: {}s", watch2.RealTime());
+
   return std::move(correctionPtr);
 }
 
@@ -814,7 +983,7 @@ void TPCFastSpaceChargeCorrectionHelper::initInverse(std::vector<o2::gpu::TPCFas
 
   } // slice
   float duration = watch.RealTime();
-  LOGP(info, "Inverse took: {}s", duration);
+  LOGP(info, "Inverse tooks: {}s", duration);
 }
 
 } // namespace tpc
