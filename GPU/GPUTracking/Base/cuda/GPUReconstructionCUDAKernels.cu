@@ -114,9 +114,9 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)             \
-  GPUCA_KRNL_PROP(x_class, x_attributes)                                      \
-  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward) \
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, ...)                     \
+  GPUCA_KRNL_PROP(x_class, x_attributes)                                        \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, __VA_ARGS__) \
   template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
 #ifndef __HIPCC__ // CUDA version
 #define GPUCA_KRNL_CALL_single(x_class, ...) \

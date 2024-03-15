@@ -32,7 +32,7 @@ using namespace GPUCA_NAMESPACE::gpu;
     return (1);            \
   }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_PROP(x_class, x_attributes)
+#define GPUCA_KRNL(x_class, x_attributes, ...) GPUCA_KRNL_PROP(x_class, x_attributes)
 #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionOCL
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
