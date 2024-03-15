@@ -569,8 +569,14 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
       return false;
     }
   }
-
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+  // propagate to TPC inner boundary
+  float xtogo = 0;
+  if (!outerParam.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, propagator->getNominalBz(), o2::track::DirOutward) ||
+      !propagator->PropagateToXBxByBz(outerParam, xtogo, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
+    LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed, Xtr=" << outerParam.getX() << " snp=" << outerParam.getSnp();
+    return false;
+  }
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
@@ -589,7 +595,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     return false;
   }
   auto posStart = trk.getXYZGlo();
-  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
+  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit inwards failed";
     return false;
@@ -654,7 +660,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   outerParam = trk;
   float chi2Out = 0, timeZErr = 0.;
   bool pileUpOn = trk.hasPileUpInfo();                                                                                                                                                           // distance to farthest collision within the pileup integration time is set
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false);                      // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
@@ -675,7 +681,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
     return false;
   }
   auto posStart = trk.getXYZGlo();
-  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
+  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit inwards failed";
     return false;
@@ -781,6 +787,19 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, 
   }
   if (!inwards) { // to make sure that the inward fit will start from the trkParam
     ((o2::track::TrackParCov&)trk) = *trkParam;
+  } else { // propagate to the TPC outer reference
+    if (!propagator->PropagateToXBxByBz(*trkParam, o2::constants::geom::XTPCOuterRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, tofL)) {
+      LOG(debug) << "Propagation to TPC outer reference X after TRD inward refit failed";
+      return false;
+    }
+    // make sure we are in the correct sector
+    int sector = o2::math_utils::angle2Sector(trkParam->getPhiPos());
+    if (sector != o2::math_utils::angle2Sector(trkParam->getAlpha()) &&
+        !trkParam->rotate(o2::math_utils::sector2Angle(sector)) &&
+        !propagator->PropagateToXBxByBz(*trkParam, o2::constants::geom::XTPCOuterRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, tofL)) {
+      LOG(debug) << "Propagation/rotation to TPC outer reference X after TRD inward refit failed " << trkParam->asString();
+      return false;
+    }
   }
   return true;
 }
