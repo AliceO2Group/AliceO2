@@ -95,6 +95,11 @@ class EMCALCalibExtractor
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 39.0}}};
 
+    std::fill(std::begin(mBadCellFracSM), std::end(mBadCellFracSM), 0); // reset all fractions to 0
+    for (unsigned int i = 0; i < mBadCellFracFEC.size(); ++i) {
+      std::fill(std::begin(mBadCellFracFEC[i]), std::end(mBadCellFracFEC[i]), 0);
+    }
+
     auto histScaled = hist;
     if (mBCMScaleFactors) {
       LOG(info) << "Rescaling BCM histo";
@@ -138,6 +143,8 @@ class EMCALCalibExtractor
       if (calibrationInformation.energyPerHitMap[0][cellID] == 0) {
         LOG(debug) << "Cell " << cellID << " is dead.";
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
+        mBadCellFracSM[mGeometry->GetSuperModuleNumber(cellID)] += 1;
+        mBadCellFracFEC[mGeometry->GetSuperModuleNumber(cellID)][getFECNumberInSM(cellID)] += 1;
       } else {
         bool failed = false;
         for (auto& [sliceIndex, slice] : slices) {
@@ -188,12 +195,25 @@ class EMCALCalibExtractor
         if (failed) {
           LOG(debug) << "Cell " << cellID << " is bad.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+          mBadCellFracSM[mGeometry->GetSuperModuleNumber(cellID)] += 1;
+          mBadCellFracFEC[mGeometry->GetSuperModuleNumber(cellID)][getFECNumberInSM(cellID)] += 1;
         } else {
           LOG(debug) << "Cell " << cellID << " is good.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
         }
       }
     }
+
+    // Check if the fraction of bad+dead cells in a SM is above a certain threshold
+    // If yes, mask the whole SM
+    if (EMCALCalibParams::Instance().fracMaskSMFully_bc < 1) {
+      checkMaskSM(mOutputBCM);
+    }
+    // Same as above for FECs
+    if (EMCALCalibParams::Instance().fracMaskFECFully_bc < 1) {
+      checkMaskFEC(mOutputBCM);
+    }
+
     double time2 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     double diffTransfer = time2 - time1;
     LOG(info) << "Total time" << diffTransfer << " ns";
@@ -396,12 +416,27 @@ class EMCALCalibExtractor
   }
 
  private:
-  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr; ///< Scale factors for nentries scaling in bad channel calibration
-  int mSigma = 5;                                       ///< number of sigma used in the calibration to define outliers
-  int mNThreads = 1;                                    ///< number of threads used for calibration
+  //____________________________________________
+  /// \brief Check if a SM exceeds a certain fraction of dead+bad channels. If yes, mask the entire SM
+  /// \param bcm -- current bad channel map
+  void checkMaskSM(o2::emcal::BadChannelMap& bcm);
 
-  o2::emcal::Geometry* mGeometry = nullptr;
-  static constexpr int mNcells = 17664;
+  /// \brief Check if a FEC exceeds a certain fraction of dead+bad channels. If yes, mask the entire FEC
+  /// \param bcm -- current bad channel map
+  void checkMaskFEC(o2::emcal::BadChannelMap& bcm);
+
+  /// \brief Get the FEC ID in a SM (IDs are just for internal handling in this task itself)
+  /// \param absCellID -- cell ID
+  unsigned int getFECNumberInSM(int absCellID) const;
+
+  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr;  ///< Scale factors for nentries scaling in bad channel calibration
+  int mSigma = 5;                                        ///< number of sigma used in the calibration to define outliers
+  int mNThreads = 1;                                     ///< number of threads used for calibration
+  std::array<float, 20> mBadCellFracSM;                  ///< Fraction of bad+dead channels per SM
+  std::array<std::array<float, 36>, 20> mBadCellFracFEC; ///< Fraction of bad+dead channels per FEC
+
+  o2::emcal::Geometry* mGeometry = nullptr; ///< pointer to the emcal geometry class
+  static constexpr int mNcells = 17664;     ///< Number of total cells of EMCal + DCal
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };
