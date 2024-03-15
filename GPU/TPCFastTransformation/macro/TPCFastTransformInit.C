@@ -21,19 +21,24 @@
 /// root -l TPCFastTransformInit.C'("debugVoxRes.root")'
 ///
 
+#include "Algorithm/RangeTokenizer.h"
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
+#include <filesystem>
+#include <string>
 #include "TFile.h"
 #include "TSystem.h"
 #include "TTree.h"
 #include "TNtuple.h"
 #include "Riostream.h"
 
+#include "Algorithm/RangeTokenizer.h"
+#include "Framework/Logger.h"
 #include "GPU/TPCFastTransform.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
-
 #endif
 
 using namespace o2::tpc;
@@ -54,6 +59,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     corr->Draw("cx:y:z","iRoc==0&&iRow==10","")
     grid->Draw("cx:y:z","iRoc==0&&iRow==10","same")
     vox->Draw("vx:y:z","iRoc==0&&iRow==10","same")
+    points->Draw("px:y:z","iRoc==0&&iRow==10","same")
   */
 
   if (gSystem->AccessPathName(fileName)) {
@@ -75,14 +81,41 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     return;
   }
 
-  o2::tpc::TrackResiduals trackResiduals;
-  trackResiduals.init(); // also initializes the default binning which was used
+  auto userInfo = voxResTree->GetUserInfo();
 
+  if (!userInfo->FindObject("y2xBinning") || !userInfo->FindObject("z2xBinning")) {
+    std::cout << "'y2xBinning' or 'z2xBinning' not found in UserInfo, but required to get the correct binning" << std::endl;
+    return;
+  }
+
+  userInfo->Print();
+
+  // required for the binning that was used
+  o2::tpc::TrackResiduals trackResiduals;
+  auto y2xBins = o2::RangeTokenizer::tokenize<float>(userInfo->FindObject("y2xBinning")->GetTitle());
+  auto z2xBins = o2::RangeTokenizer::tokenize<float>(userInfo->FindObject("z2xBinning")->GetTitle());
+  trackResiduals.setY2XBinning(y2xBins);
+  trackResiduals.setZ2XBinning(z2xBins);
+  trackResiduals.init();
+
+  std::cout << "y2xBins: " << y2xBins.size() << " z2xBins: " << z2xBins.size() << std::endl;
+
+  for (auto y2x : y2xBins) {
+    std::cout << "y2x: " << y2x << std::endl;
+  }
+
+  std::cout << std::endl;
+
+  for (auto z2x : z2xBins) {
+    std::cout << "z2x: " << z2x << std::endl;
+  }
   std::cout << "create fast transformation ... " << std::endl;
 
   auto* helper = o2::tpc::TPCFastTransformHelperO2::instance();
 
   o2::tpc::TPCFastSpaceChargeCorrectionHelper* corrHelper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
+
+  corrHelper->setNthreadsToMaximum();
 
   auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, useSmoothed, invertSigns);
 
@@ -162,6 +195,9 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   branch->SetAddress(&v);
   branch->SetAutoDelete(kTRUE);
 
+  int iRocLast = -1;
+  int iRowLast = -1;
+
   for (int iVox = 0; iVox < voxResTree->GetEntriesFast(); iVox++) {
 
     voxResTree->GetEntry(iVox);
@@ -179,6 +215,9 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
     int iRoc = (int)v->bsec;
     int iRow = (int)xBin;
+
+    iRocLast = iRoc;
+    iRowLast = iRow;
 
     double x = trackResiduals.getX(xBin); // radius of the pad row
 
