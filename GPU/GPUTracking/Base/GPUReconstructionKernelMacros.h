@@ -60,7 +60,7 @@
 #ifdef GPUCA_KRNL_DEFONLY
 #define GPUCA_KRNLGPU_SINGLE(...) GPUCA_KRNLGPU_SINGLE_DEF(__VA_ARGS__);
 #else
-#define GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_SINGLE_DEF(x_class, x_attributes, x_arguments, x_forward) \
+#define GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward, ...) GPUCA_KRNLGPU_SINGLE_DEF(x_class, x_attributes, x_arguments, x_forward, __VA_ARGS__) \
   { \
     GPUshared() typename GPUCA_M_STRIP_FIRST(x_class)::MEM_LOCAL(GPUSharedMemory) smem; \
     GPUCA_M_STRIP_FIRST(x_class)::template Thread<GPUCA_M_KRNL_NUM(x_class)>(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, GPUCA_M_STRIP_FIRST(x_class)::Processor(GPUCA_CONSMEM)[iSlice_internal] GPUCA_M_STRIP(x_forward)); \
@@ -73,7 +73,7 @@
 #ifdef GPUCA_KRNL_DEFONLY
 #define GPUCA_KRNLGPU_MULTI(...) GPUCA_KRNLGPU_MULTI_DEF(__VA_ARGS__);
 #else
-#define GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNLGPU_MULTI_DEF(x_class, x_attributes, x_arguments, x_forward) \
+#define GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward, ...) GPUCA_KRNLGPU_MULTI_DEF(x_class, x_attributes, x_arguments, x_forward, __VA_ARGS__) \
   { \
     const int iSlice_internal = nSliceCount * (get_group_id(0) + (get_num_groups(0) % nSliceCount != 0 && nSliceCount * (get_group_id(0) + 1) % get_num_groups(0) != 0)) / get_num_groups(0); \
     const int nSliceBlockOffset = get_num_groups(0) * iSlice_internal / nSliceCount; \
@@ -141,10 +141,10 @@
   }
 
 // Generate GPU kernel and host wrapper
-#define GPUCA_KRNL_WRAP(x_func, x_class, x_attributes, x_arguments, x_forward) GPUCA_M_CAT(x_func, GPUCA_M_STRIP_FIRST(x_attributes))(x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_WRAP(x_func, x_class, x_attributes, ...) GPUCA_M_CAT(x_func, GPUCA_M_STRIP_FIRST(x_attributes))(x_class, x_attributes, __VA_ARGS__)
 #endif // GPUCA_GPUCODE
 
-#define GPUCA_KRNL_LB(a, b, c, d) GPUCA_KRNL(a, (GPUCA_M_STRIP(b), REG, (GPUCA_M_CAT(GPUCA_LB_, GPUCA_M_KRNL_NAME(a)))), c, d)
+#define GPUCA_KRNL_LB(x_class, x_attributes, ...) GPUCA_KRNL(x_class, (GPUCA_M_STRIP(x_attributes), REG, (GPUCA_M_CAT(GPUCA_LB_, GPUCA_M_KRNL_NAME(x_class)))), __VA_ARGS__)
 
 #endif // O2_GPU_GPURECONSTRUCTIONKERNELMACROS_H
 // clang-format on

@@ -28,7 +28,7 @@ class GPUReconstructionKernels : public T
   GPUReconstructionKernels(const GPUSettingsDeviceBackend& cfg) : T(cfg) {}
 
  protected:
-#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward)                                                                           \
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, ...)                                                                      \
   virtual int runKernelImpl(GPUReconstruction::classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)) \
   {                                                                                                                                       \
     return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(_xyz GPUCA_M_STRIP(x_forward));                                   \
