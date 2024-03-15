@@ -1,3 +1,8 @@
+# 2024-03-14: Move DataProcessingDevice to use Signposts
+
+All the messages from DataProcessingDevice have been migrated to use Signpost.
+This will hopefully simplify debugging.
+
 # 2024-02-22: Drop Tracy support
 
 Tracy support never took off, so I am dropping it. This was mostly because people do not know about it and having a per process profile GUI was way unpractical. Moreover, needing an extra compile time flag meant one most likely did not have the support compiled in when needed.
