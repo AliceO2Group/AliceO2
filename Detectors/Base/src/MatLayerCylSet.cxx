@@ -108,7 +108,7 @@ void MatLayerCylSet::finalizeStructures()
 
   for (int i = 1; i < nlr; i++) {
     const auto& lr = getLayer(i);
-    if (std::sqrt(lr.getRMin2()) > std::sqrt(get()->mR2Intervals[nRIntervals] + Ray::Tiny)) {
+    if (o2::math_utils::sqrt(lr.getRMin2()) > o2::math_utils::sqrt(get()->mR2Intervals[nRIntervals] + Ray::Tiny)) {
       // register gap
       get()->mInterval2LrID[nRIntervals] = -1;
       get()->mR2Intervals[++nRIntervals] = lr.getRMin2();

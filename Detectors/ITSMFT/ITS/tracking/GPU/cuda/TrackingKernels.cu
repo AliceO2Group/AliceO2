@@ -335,7 +335,7 @@ GPUg() void computeLayerTrackletsKernelSingleRof(
       const float zAtRmin{tanLambda * (minR - currentCluster.radius) + currentCluster.zCoordinate};
       const float zAtRmax{tanLambda * (maxR - currentCluster.radius) + currentCluster.zCoordinate};
       const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; /// protecting from overflows adding the detector resolution
-      const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * mSAngle))};
+      const float sigmaZ{o2::gpu::CAMath::Sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * mSAngle))};
 
       const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, *utils, zAtRmin, zAtRmax, sigmaZ * trkPars->NSigmaCut, phiCut)};
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
@@ -458,7 +458,7 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
         const float zAtRmin{tanLambda * (minR - currentCluster.radius) + currentCluster.zCoordinate};
         const float zAtRmax{tanLambda * (maxR - currentCluster.radius) + currentCluster.zCoordinate};
         const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; /// protecting from overflows adding the detector resolution
-        const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * mSAngle))};
+        const float sigmaZ{o2::gpu::CAMath::Sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * mSAngle))};
 
         const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, *utils, zAtRmin, zAtRmax, sigmaZ * trkPars->NSigmaCut, phiCut)};
 
