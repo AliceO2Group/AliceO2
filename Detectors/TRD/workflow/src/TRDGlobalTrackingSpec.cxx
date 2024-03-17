@@ -41,6 +41,7 @@
 // GPU header
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUO2InterfaceConfiguration.h"
 #include "GPUSettings.h"
 #include "GPUDataTypes.h"
 #include "GPUTRDDef.h"
@@ -97,9 +98,15 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     cfgRecoStep.inputs.clear();
     cfgRecoStep.outputs.clear();
     mRec = GPUReconstruction::CreateInstance("CPU", true);
-    mRec->SetSettings(o2::base::Propagator::Instance()->getNominalBz(), &cfgRecoStep);
-    mRec->GetNonConstParam().rec.trd.useExternalO2DefaultPropagator = true;
+
+    GPUO2InterfaceConfiguration config;
+    config.ReadConfigurableParam(config);
+    config.configGRP.solenoidBz = o2::base::Propagator::Instance()->getNominalBz();
+    config.configProcessing.o2PropagatorUseGPUField = false;
+    mRec->SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, &cfgRecoStep);
+
     mChainTracking = mRec->AddChain<GPUChainTracking>();
+    mChainTracking->SetO2Propagator(o2::base::Propagator::Instance());
 
     mTracker = new GPUTRDTracker();
     mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization

@@ -264,7 +264,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Cannot run TPC ZS Decoder without mapping object. (tpczslinkmapping.dump missing?)");
     return false;
   }
-  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && ((processors()->calibObjects.o2Propagator == nullptr && !ProcessingSettings().internalO2PropagatorGPUField) || processors()->calibObjects.matLUT == nullptr)) {
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && ((processors()->calibObjects.o2Propagator == nullptr && !ProcessingSettings().o2PropagatorUseGPUField) || processors()->calibObjects.matLUT == nullptr)) {
     GPUError("Cannot run refit with o2 track model without o2 propagator");
     return false;
   }
@@ -335,8 +335,8 @@ bool GPUChainTracking::ValidateSettings()
       GPUError("TRD tracking can only run on GPU TPC tracks if the createO2Output setting does not suppress them");
       return false;
     }
-    if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && (param().rec.trd.useExternalO2DefaultPropagator || !GetProcessingSettings().internalO2PropagatorGPUField)) {
-      GPUError("Cannot use TRD tracking on GPU with external default o2::Propagator or without GPU polynomial field map");
+    if ((GetRecoStepsGPU() & RecoStep::TRDTracking) && !GetProcessingSettings().o2PropagatorUseGPUField) {
+      GPUError("Cannot use TRD tracking on GPU without GPU polynomial field map");
       return false;
     }
   }
@@ -559,7 +559,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   }
   if (mChainTracking->processors()->calibObjects.o2Propagator) {
     computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
-  } else if (mChainTracking->GetProcessingSettings().internalO2PropagatorGPUField) {
+  } else if (mChainTracking->GetProcessingSettings().o2PropagatorUseGPUField) {
     computePointerWithAlignment(mem, dummyPtr, sizeof(*mCalibObjects.o2Propagator));
   }
 #endif

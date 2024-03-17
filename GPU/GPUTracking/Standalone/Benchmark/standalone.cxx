@@ -472,7 +472,7 @@ int SetupReconstruction()
   if (chainTrackingPipeline) {
     chainTrackingPipeline->SetO2Propagator(prop);
   }
-  procSet.internalO2PropagatorGPUField = true;
+  procSet.o2PropagatorUseGPUField = true;
 #endif
 
   if (rec->Init()) {
