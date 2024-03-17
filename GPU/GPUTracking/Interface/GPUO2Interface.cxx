@@ -260,3 +260,8 @@ const o2::base::Propagator* GPUO2Interface::GetDeviceO2Propagator(int iThread) c
 {
   return mCtx[iThread].mChain->GetDeviceO2Propagator();
 }
+
+void GPUO2Interface::UseGPUPolynomialFieldInPropagator(o2::base::Propagator* prop) const
+{
+  prop->setGPUField(&mCtx[0].mRec->GetParam().polynomialField);
+}
