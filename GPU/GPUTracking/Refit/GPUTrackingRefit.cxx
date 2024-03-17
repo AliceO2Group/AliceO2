@@ -429,9 +429,4 @@ void GPUTrackingRefit::SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CO
   mPmatLUT = v->calibObjects.matLUT;
   mPparam = p ? p : &v->param;
 }
-
-void GPUTrackingRefit::SetPropagatorDefault()
-{
-  mPpropagator = mPparam->GetDefaultO2Propagator(false);
-}
 #endif

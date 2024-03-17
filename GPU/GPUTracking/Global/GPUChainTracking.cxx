@@ -343,14 +343,6 @@ bool GPUChainTracking::ValidateSettings()
   return true;
 }
 
-int GPUChainTracking::EarlyConfigure()
-{
-  if (GetProcessingSettings().useInternalO2Propagator) {
-    SetDefaultInternalO2Propagator(GetProcessingSettings().internalO2PropagatorGPUField);
-  }
-  return 0;
-}
-
 int GPUChainTracking::Init()
 {
   const auto& threadContext = GetThreadContext();
@@ -986,15 +978,6 @@ void GPUChainTracking::ClearErrorCodes(bool cpuOnly)
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), 0);
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
   }
-}
-
-void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
-{
-#ifdef GPUCA_HAVE_O2HEADERS
-  o2::base::Propagator* prop = param().GetDefaultO2Propagator(useGPUField);
-  prop->setMatLUT(processors()->calibObjects.matLUT);
-  SetO2Propagator(prop);
-#endif
 }
 
 void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals)

@@ -77,7 +77,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RegisterPermanentMemoryAndProcessors() override;
   void RegisterGPUProcessors() override;
   int Init() override;
-  int EarlyConfigure() override;
   int PrepareEvent() override;
   int Finalize() override;
   int RunChain() override;
@@ -192,7 +191,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
   void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
   void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals);
-  void SetDefaultInternalO2Propagator(bool useGPUField);
   void LoadClusterErrors();
   void SetSubOutputControl(int i, GPUOutputControl* v) { mSubOutputControls[i] = v; }
   void SetFinalInputCallback(std::function<void()> v) { mWaitForFinalInputs = v; }
