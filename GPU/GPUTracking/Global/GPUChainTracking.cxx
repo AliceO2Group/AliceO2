@@ -648,6 +648,9 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
     retVal = 1;
   }
   if (mUpdateNewCalibObjects) {
+    if (mNewCalibObjects->o2Propagator && ((mNewCalibObjects->o2Propagator->getGPUField() != nullptr) ^ GetProcessingSettings().o2PropagatorUseGPUField)) {
+      GPUFatal("GPU magnetic field for propagator requested, but received an O2 propagator without GPU field");
+    }
     void* const* pSrc = (void* const*)mNewCalibObjects.get();
     void** pDst = (void**)&processors()->calibObjects;
     for (unsigned int i = 0; i < sizeof(processors()->calibObjects) / sizeof(void*); i++) {
@@ -1004,4 +1007,12 @@ void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, co
 const o2::base::Propagator* GPUChainTracking::GetDeviceO2Propagator()
 {
   return (mRec->IsGPU() ? processorsShadow() : processors())->calibObjects.o2Propagator;
+}
+
+void GPUChainTracking::SetO2Propagator(const o2::base::Propagator* prop)
+{
+  processors()->calibObjects.o2Propagator = prop;
+  if ((prop->getGPUField() != nullptr) ^ GetProcessingSettings().o2PropagatorUseGPUField) {
+    GPUFatal("GPU magnetic field for propagator requested, but received an O2 propagator without GPU field");
+  }
 }

@@ -1014,6 +1014,9 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
 
     if (!mPropagatorInstanceCreated) {
       newCalibObjects.o2Propagator = mConfig->configCalib.o2Propagator = Propagator::Instance();
+      if (mConfig->configProcessing.o2PropagatorUseGPUField) {
+        mGPUReco->UseGPUPolynomialFieldInPropagator(Propagator::Instance());
+      }
       mPropagatorInstanceCreated = true;
     }
 
