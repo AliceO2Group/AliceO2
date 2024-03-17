@@ -281,23 +281,3 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
 }
 
 static_assert(sizeof(GPUCA_NAMESPACE::gpu::GPUParam) == sizeof(GPUCA_NAMESPACE::gpu::GPUParamRTC), "RTC param size mismatch");
-
-o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
-{
-  o2::base::Propagator* prop = nullptr;
-#ifdef GPUCA_HAVE_O2HEADERS
-#ifdef GPUCA_STANDALONE
-  if (useGPUField == false) {
-    throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
-  }
-#endif
-  prop = o2::base::Propagator::Instance(useGPUField);
-  if (useGPUField) {
-    prop->setGPUField(&polynomialField);
-    prop->setBz(polynomialField.GetNominalBz());
-  }
-#else
-  throw std::runtime_error("o2 propagator unsupported");
-#endif
-  return prop;
-}

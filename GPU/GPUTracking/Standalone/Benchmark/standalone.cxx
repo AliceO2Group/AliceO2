@@ -424,11 +424,6 @@ int SetupReconstruction()
     }
   }
 
-#ifdef GPUCA_HAVE_O2HEADERS
-  procSet.useInternalO2Propagator = true;
-  procSet.internalO2PropagatorGPUField = true;
-#endif
-
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);

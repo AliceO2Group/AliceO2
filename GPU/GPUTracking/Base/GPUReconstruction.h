@@ -242,7 +242,6 @@ class GPUReconstruction
   void SetSettings(const GPUSettingsGRP* grp, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
   void SetResetTimers(bool reset) { mProcessingSettings.resetTimers = reset; } // May update also after Init()
   void SetDebugLevelTmp(int level) { mProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
-  GPUParam& GetNonConstParam() { return mHostConstantMem->param; }             // Kind of hack, but needed for manual updates after SetSettings(), if the default configKeyValues parsing for SetSettings() is used.
   void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);

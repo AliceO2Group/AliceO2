@@ -83,7 +83,6 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   void SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
   void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
   void LoadClusterErrors(bool Print = 0);
-  o2::base::Propagator* GetDefaultO2Propagator(bool useGPUField = false) const;
   void UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam);
 #endif
 
