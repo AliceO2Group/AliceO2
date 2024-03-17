@@ -459,6 +459,22 @@ int SetupReconstruction()
     }
   }
 
+#ifdef GPUCA_HAVE_O2HEADERS
+  o2::base::Propagator* prop = nullptr;
+  prop = o2::base::Propagator::Instance(true);
+  prop->setGPUField(&rec->GetParam().polynomialField);
+  prop->setBz(rec->GetParam().bzkG);
+  prop->setMatLUT(chainTracking->GetMatLUT());
+  chainTracking->SetO2Propagator(prop);
+  if (chainTrackingAsync) {
+    chainTrackingAsync->SetO2Propagator(prop);
+  }
+  if (chainTrackingPipeline) {
+    chainTrackingPipeline->SetO2Propagator(prop);
+  }
+  procSet.internalO2PropagatorGPUField = true;
+#endif
+
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;
