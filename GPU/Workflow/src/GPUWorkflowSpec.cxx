@@ -271,7 +271,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
     }
 
-    mConfig->configProcessing.internalO2PropagatorGPUField = true;
+    mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
     if (mConfParam->printSettings) {
       mConfig->PrintParam();
