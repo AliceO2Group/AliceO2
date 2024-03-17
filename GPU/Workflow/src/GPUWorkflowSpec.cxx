@@ -1002,6 +1002,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
     if (mAutoSolenoidBz) {
       newCalibValues.newSolenoidField = true;
       newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+      Propagator::Instance()->setBz(newCalibValues.solenoidField);
       LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
     }
     if (mAutoContinuousMaxTimeBin) {
@@ -1013,9 +1014,6 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
 
     if (!mPropagatorInstanceCreated) {
       newCalibObjects.o2Propagator = mConfig->configCalib.o2Propagator = Propagator::Instance();
-      if (mAutoSolenoidBz) {
-        Propagator::Instance()->setBz(newCalibValues.solenoidField);
-      }
       mPropagatorInstanceCreated = true;
     }
 
