@@ -462,7 +462,6 @@ void GPUChainTracking::UpdateGPUCalibObjects(int stream, const GPUCalibObjectsCo
   if (processors()->calibObjects.o2Propagator && (ptrMask == nullptr || ptrMask->o2Propagator)) {
     memcpy((void*)mFlatObjectsShadow.mCalibObjects.o2Propagator, (const void*)processors()->calibObjects.o2Propagator, sizeof(*processors()->calibObjects.o2Propagator));
     mFlatObjectsShadow.mCalibObjects.o2Propagator->setGPUField(&processorsDevice()->param.polynomialField);
-    mFlatObjectsShadow.mCalibObjects.o2Propagator->setBz(param().bzkG);
     mFlatObjectsShadow.mCalibObjects.o2Propagator->setMatLUT(mFlatObjectsShadow.mCalibObjects.matLUT);
   }
 #endif
