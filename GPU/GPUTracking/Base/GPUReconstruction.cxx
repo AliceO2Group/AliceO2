@@ -1136,7 +1136,7 @@ void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfigura
 {
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam_internal();
+  config.ReadConfigurableParam(config);
   config.configGRP.solenoidBz = solenoidBz;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
