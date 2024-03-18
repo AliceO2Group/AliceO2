@@ -32,7 +32,6 @@ if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
       COMMENT "Hippifying ${HIP_SOURCE}"
     )
     list(APPEND HIP_SOURCES "${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
-    message(STATUS "FOO ${file} ${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
   endforeach()
   foreach(file ${GPUCA_HIP_LOCAL_FILE_LIST})
     get_filename_component(ABS_SORUCE ${file} ABSOLUTE)
