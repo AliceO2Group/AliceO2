@@ -232,7 +232,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       uint64_t cachePopulatedAt = url2uuid->second.cachePopulatedAt;
       // If timestamp is before the time the element was cached or after the claimed validity, we need to check validity, again
       // when online.
-      bool cacheExpired = (validUntil <= timestamp) && (timestamp <= cachePopulatedAt);
+      bool cacheExpired = (validUntil <= timestamp) || (timestamp <= cachePopulatedAt);
       checkValidity = (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) && (isOnline || cacheExpired);
     } else {
       checkValidity = true; // never skip check if the cache is empty
