@@ -39,10 +39,10 @@ GPUReconstructionOCL2Backend::GPUReconstructionOCL2Backend(const GPUSettingsDevi
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionOCL2Backend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
+int GPUReconstructionOCL2Backend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
 {
-  cl_kernel k = _xyz.y.num > 1 ? getKernelObject<cl_kernel, T, I, true>() : getKernelObject<cl_kernel, T, I, false>();
-  return runKernelBackendCommon(_xyz, k, args...);
+  cl_kernel k = args.s.y.num > 1 ? getKernelObject<cl_kernel, T, I, true>() : getKernelObject<cl_kernel, T, I, false>();
+  return std::apply([this, &args, &k](auto&... vals) { return runKernelBackendInternal(args.s, k, vals...); }, args.v);
 }
 
 template <class S, class T, int I, bool MULTI>

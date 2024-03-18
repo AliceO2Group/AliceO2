@@ -32,7 +32,7 @@ int GPUChainTracking::PrepareProfile()
 #ifdef GPUCA_TRACKLET_CONSTRUCTOR_DO_PROFILE
   char* tmpMem = (char*)mRec->AllocateUnmanagedMemory(PROFILE_MAX_SIZE, GPUMemoryResource::MEMORY_GPU);
   processorsShadow()->tpcTrackers[0].mStageAtSync = tmpMem;
-  runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), -1}, nullptr, krnlRunRangeNone, krnlEventNone, tmpMem, PROFILE_MAX_SIZE);
+  runKernel<GPUMemClean16>({{BlockCount(), ThreadCount(), -1}}, tmpMem, PROFILE_MAX_SIZE);
 #endif
   return 0;
 }
@@ -189,7 +189,7 @@ void GPUChainTracking::PrepareDebugOutput()
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->debugOutput - (char*)processors(), &processorsShadow()->debugOutput, sizeof(processors()->debugOutput), -1);
     memset(processors()->debugOutput.memory(), 0, processors()->debugOutput.memorySize() * sizeof(processors()->debugOutput.memory()[0]));
   }
-  runKernel<GPUMemClean16>({BlockCount(), ThreadCount(), 0, RecoStep::TPCSliceTracking}, krnlRunRangeNone, {}, (mRec->IsGPU() ? processorsShadow() : processors())->debugOutput.memory(), processorsShadow()->debugOutput.memorySize() * sizeof(processors()->debugOutput.memory()[0]));
+  runKernel<GPUMemClean16>({{BlockCount(), ThreadCount(), 0, RecoStep::TPCSliceTracking}}, (mRec->IsGPU() ? processorsShadow() : processors())->debugOutput.memory(), processorsShadow()->debugOutput.memorySize() * sizeof(processors()->debugOutput.memory()[0]));
 #endif
 }
 
