@@ -29,6 +29,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "GPUO2InterfaceUtils.h"
 
 #include <random>
 
@@ -152,9 +153,9 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     } else if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     } else if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     } else if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
-      const auto field = (5.00668f / 30000.f) * o2::base::GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+      const auto field = o2::gpu::GPUO2InterfaceUtils::getNominalGPUBz(*o2::base::GRPGeomHelper::instance().getGRPMagField());
       LOGP(info, "Setting magnetic field to {} kG", field);
-      mPadGainTracks.setField(field);
+      mPadGainTracks.setFieldNominalGPUBz(field);
     }
   }
 

@@ -22,6 +22,7 @@
 #include "Headers/DataHeader.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceUtils.h"
 #include "GPUParam.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCClusterDecompressor.inc"
@@ -101,7 +102,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
 
     mConfig->configGRP.continuousMaxTimeBin = (GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
-    mConfig->configGRP.solenoidBzNominalGPU = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    mConfig->configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*GRPGeomHelper::instance().getGRPMagField());
     mParam->UpdateSettings(&mConfig->configGRP);
 
     mTPCVDriftHelper->extractCCDBInputs(pc);

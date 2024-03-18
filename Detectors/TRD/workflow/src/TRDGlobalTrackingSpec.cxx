@@ -42,6 +42,7 @@
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceUtils.h"
 #include "GPUSettings.h"
 #include "GPUDataTypes.h"
 #include "GPUTRDDef.h"
@@ -101,7 +102,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
     GPUO2InterfaceConfiguration config;
     config.ReadConfigurableParam(config);
-    config.configGRP.solenoidBzNominalGPU = o2::base::Propagator::Instance()->getNominalBz();
+    config.configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*o2::base::GRPGeomHelper::instance().getGRPMagField());
     config.configProcessing.o2PropagatorUseGPUField = false;
     mRec->SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, &cfgRecoStep);
 
