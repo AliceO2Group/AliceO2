@@ -114,8 +114,9 @@ class AlignRecordTask
     // Configuration for chamber fixing
     auto chambers = ic.options().get<string>("fix-chamber");
     for (int i = 0; i < chambers.length(); ++i) {
-      if (chambers[i] == ',')
+      if (chambers[i] == ',') {
         continue;
+      }
       int chamber = chambers[i] - '0';
       LOG(info) << Form("%s%d", "Fixing chamber: ", chamber);
       mAlign.FixChamber(chamber);
@@ -241,8 +242,9 @@ class AlignRecordTask
         }
       }
 
-      if (worstLocalChi2 < trackFitter.getMaxChi2())
+      if (worstLocalChi2 < trackFitter.getMaxChi2()) {
         break;
+      }
 
       if (!itWorstParam->isRemovable()) {
         removeTrack = true;
