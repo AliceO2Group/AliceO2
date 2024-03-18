@@ -28,7 +28,7 @@ namespace fv0
 struct ChannelDataFloat {
 
   int channel = -1;       // channel Id
-  double time = -20000;   // time in ps, 0 at the LHC clk center
+  double time = -20000;   // time in ns, 0 at the LHC clk center
   double charge = -20000; // charge [channels]
   int adcId = -1;         // QTC chain
 
