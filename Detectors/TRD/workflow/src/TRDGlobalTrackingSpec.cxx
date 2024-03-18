@@ -101,7 +101,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 
     GPUO2InterfaceConfiguration config;
     config.ReadConfigurableParam(config);
-    config.configGRP.solenoidBz = o2::base::Propagator::Instance()->getNominalBz();
+    config.configGRP.solenoidBzNominalGPU = o2::base::Propagator::Instance()->getNominalBz();
     config.configProcessing.o2PropagatorUseGPUField = false;
     mRec->SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, &cfgRecoStep);
 

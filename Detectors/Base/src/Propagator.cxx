@@ -62,9 +62,9 @@ void PropagatorImpl<value_T>::updateField()
   }
   const value_type xyz[3] = {0.};
   if (mFieldFast) {
-    mFieldFast->GetBz(xyz, mBz);
+    mFieldFast->GetBz(xyz, mNominalBz);
   } else {
-    mBz = mField->GetBz(xyz[0], xyz[1], xyz[2]);
+    mNominalBz = mField->GetBz(xyz[0], xyz[1], xyz[2]);
   }
 }
 
@@ -519,7 +519,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   if (d > maxD) {
     return false;
   }
-  value_type crv = track.getCurvature(mBz);
+  value_type crv = track.getCurvature(mNominalBz);
   value_type tgfv = -(crv * x - snp) / (crv * y + csp);
   sn = tgfv / math_utils::detail::sqrt<value_type>(1.f + tgfv * tgfv);
   cs = math_utils::detail::sqrt<value_type>((1. - sn) * (1. + sn));
@@ -616,7 +616,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   if (d > maxD) {
     return false;
   }
-  value_type crv = track.getCurvature(mBz);
+  value_type crv = track.getCurvature(mNominalBz);
   value_type tgfv = -(crv * x - snp) / (crv * y + csp);
   sn = tgfv / math_utils::detail::sqrt<value_type>(1.f + tgfv * tgfv);
   cs = math_utils::detail::sqrt<value_type>((1. - sn) * (1. + sn));
@@ -687,7 +687,7 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
       return math_utils::detail::abs<value_type>(trc.getY() * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl())); // distance from the current point to DCA
     }
   };
-  trc.getCircleParamsLoc(mBz, c);
+  trc.getCircleParamsLoc(mNominalBz, c);
   if (c.rC != 0.) {                                                     // helix
     auto distC = math_utils::detail::sqrt<value_type>(c.getCenterD2()); // distance from the circle center to origin
     if (distC > 1.e-3) {
@@ -698,7 +698,7 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
       auto angcos = (v0x * v1x + v0y * v1y) / (c.rC * c.rC);
       if (math_utils::detail::abs<value_type>(angcos) < 1.f) {
         auto ang = math_utils::detail::acos<value_type>(angcos);
-        if ((trc.getSign() > 0.f) == (mBz > 0.f)) {
+        if ((trc.getSign() > 0.f) == (mNominalBz > 0.f)) {
           ang = -ang;   // we need signeg angle
           c.rC = -c.rC; // we need signed curvature for zdca
         }

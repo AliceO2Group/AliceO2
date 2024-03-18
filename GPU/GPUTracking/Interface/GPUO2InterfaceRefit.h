@@ -69,7 +69,7 @@ class GPUO2InterfaceRefit
   // - Either the shared cluster map (sharedmap) or the vector of tpc tracks (trks) to build the shared cluster map internally
   // - o2::base::Propagator (p) in case RefitTrackAsTrackParCov is to be used
 
-  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::CorrectionMapsHelper* trans, float bz, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
+  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
   ~GPUO2InterfaceRefit();
 
   int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
@@ -79,7 +79,7 @@ class GPUO2InterfaceRefit
   void setGPUTrackFitInProjections(bool v = true);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
-  void updateCalib(const o2::gpu::CorrectionMapsHelper* trans, float bz);
+  void updateCalib(const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU);
 
   static void fillSharedClustersMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, unsigned char* shmap);
 

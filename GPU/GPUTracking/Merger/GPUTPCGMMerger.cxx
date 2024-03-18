@@ -657,7 +657,7 @@ GPUd() void GPUTPCGMMerger::MergeSlicesPrepareStep2(int nBlocks, int nThreads, i
   //* prepare slice tracks for merging with next/previous/same sector
   //* each track transported to the border line
 
-  float fieldBz = Param().constBz;
+  float fieldBz = Param().bzCLight;
 
   float dAlpha = Param().par.dAlpha / 2;
   float x0 = 0;
@@ -1021,7 +1021,7 @@ GPUd() void GPUTPCGMMerger::MergeWithinSlicesPrepare(int nBlocks, int nThreads, 
     GPUTPCGMSliceTrack& track = mSliceTrackInfos[itr];
     int iSlice = track.Slice();
     GPUTPCGMBorderTrack b;
-    if (track.TransportToX(this, x0, Param().constBz, b, maxSin)) {
+    if (track.TransportToX(this, x0, Param().bzCLight, b, maxSin)) {
       b.SetTrackID(itr);
       CADEBUG(printf("WITHIN SLICE %d Track %d - ", iSlice, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf("\n"));
       b.SetNClusters(track.NClusters());
@@ -1359,7 +1359,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
   for (int attempt = 0; attempt < 2; attempt++) {
     GPUTPCGMBorderTrack b;
     const float x0 = Param().tpcGeometry.Row2X(attempt == 0 ? 63 : cls.row);
-    if (track->TransportToX(this, x0, Param().constBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
+    if (track->TransportToX(this, x0, Param().bzCLight, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
       b.SetNClusters(mOutputTracks[itr].NClusters());
       if (CAMath::Abs(b.Cov()[4]) >= 0.5f) {
@@ -1847,7 +1847,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
 
     GPUTPCGMBorderTrack b;
     const float toX = Param().par.earlyTpcTransform ? clXYZ[0].x : Param().tpcGeometry.Row2X(cl[0].row);
-    if (p2.TransportToX(this, toX, Param().constBz, b, GPUCA_MAX_SIN_PHI, false)) {
+    if (p2.TransportToX(this, toX, Param().bzCLight, b, GPUCA_MAX_SIN_PHI, false)) {
       p1.X() = toX;
       p1.Y() = b.Par()[0];
       p1.Z() = b.Par()[1];
