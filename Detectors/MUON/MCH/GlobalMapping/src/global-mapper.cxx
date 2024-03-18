@@ -13,6 +13,7 @@
 
 #include "DataFormatsMCH/DsChannelId.h"
 #include "MCHConditions/DCSAliases.h"
+#include "MCHGlobalMapping/DsIndex.h"
 #include "MCHGlobalMapping/Mapper.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
@@ -88,7 +89,7 @@ void dcs2json()
                                         o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
                                         o2::mch::dcs::MeasurementType::LV_V_SOLAR});
 
-  std::map<std::string, std::set<int>> dsIndicesPerAliasBase;
+  std::map<std::string, std::set<o2::mch::DsIndex>> dsIndicesPerAliasBase;
 
   for (auto alias : aliases) {
     auto s = stripAlias(alias);
@@ -127,7 +128,7 @@ std::vector<DualSampaInfo> computeDualSampaInfos()
   auto det2elec = createDet2ElecMapper<ElectronicMapperGenerated>();
   auto solar2FeeLink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
 
-  for (uint16_t dsIndex = 0; dsIndex < o2::mch::NumberOfDualSampas; ++dsIndex) {
+  for (o2::mch::DsIndex dsIndex = 0; dsIndex < o2::mch::NumberOfDualSampas; ++dsIndex) {
     DsDetId det{o2::mch::getDsDetId(dsIndex)};
     auto elec = det2elec(det);
     if (!elec.has_value()) {

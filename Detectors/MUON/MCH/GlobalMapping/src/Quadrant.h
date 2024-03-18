@@ -13,13 +13,14 @@
 #define O2_MCH_GLOBAL_MAPPING_QUADRANT_H
 
 #include "MCHConditions/Cathode.h"
+#include "MCHGlobalMapping/DsIndex.h"
 #include <set>
 #include <string>
 
 namespace o2::mch::dcs::quadrant
 {
 Cathode lvAliasToCathode(std::string_view alias);
-std::set<int> solarAliasToDsIndices(std::string_view alias);
+std::set<DsIndex> solarAliasToDsIndices(std::string_view alias);
 } // namespace o2::mch::dcs::quadrant
 
 #endif

@@ -15,9 +15,11 @@
 #include <set>
 #include <string>
 
+#include "MCHGlobalMapping/DsIndex.h"
+
 namespace o2::mch::dcs
 {
-std::set<int> hvAliasToDsIndices(std::string_view alias);
+std::set<DsIndex> hvAliasToDsIndices(std::string_view alias);
 }
 
 #endif

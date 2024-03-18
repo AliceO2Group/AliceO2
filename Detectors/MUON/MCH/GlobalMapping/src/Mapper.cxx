@@ -28,7 +28,7 @@
 namespace o2::mch::dcs
 {
 
-std::set<int> solarAliasToDsIndices(std::string_view alias)
+std::set<DsIndex> solarAliasToDsIndices(std::string_view alias)
 {
   const auto chamber = aliasToChamber(alias);
   if (dcs::isQuadrant(chamber)) {
@@ -38,7 +38,7 @@ std::set<int> solarAliasToDsIndices(std::string_view alias)
   }
 }
 
-std::set<int> aliasToDsIndices(std::string_view alias)
+std::set<DsIndex> aliasToDsIndices(std::string_view alias)
 {
   auto m = aliasToMeasurementType(alias);
   switch (m) {
