@@ -39,7 +39,9 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
  protected:
   GPUReconstructionCPUBackend(const GPUSettingsDeviceBackend& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, Args... args);
+  int runKernelBackend(const krnlSetupArgs<T, I, Args...>& args);
+  template <class T, int I = 0, typename... Args>
+  int runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args);
   template <class T, int I>
   krnlProperties getKernelPropertiesBackend();
   unsigned int mNestedLoopOmpFactor = 1;
@@ -57,8 +59,8 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   static constexpr krnlRunRange krnlRunRangeNone{0, -1};
   static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
-  template <class S, int I = 0, int J = -1, typename... Args>
-  int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, const Args&... args);
+  template <class S, int I = 0, typename... Args>
+  int runKernel(krnlSetup&& setup, Args&&... args);
   template <class S, int I = 0>
   const krnlProperties getKernelProperties()
   {
@@ -92,6 +94,18 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   };
 
   GPUReconstructionCPU(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg) {}
+
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, x_types)                                                                                                                              \
+  inline int runKernelImplWrapper(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, bool cpuFallback, double& timer, krnlSetup&& setup GPUCA_M_STRIP(x_arguments))                                       \
+  {                                                                                                                                                                                                   \
+    if (cpuFallback) {                                                                                                                                                                                \
+      return GPUReconstructionCPU::runKernelImpl(GPUReconstruction::krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>(setup.x, setup.y, setup.z, timer GPUCA_M_STRIP(x_forward))); \
+    } else {                                                                                                                                                                                          \
+      return runKernelImpl(GPUReconstruction::krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>(setup.x, setup.y, setup.z, timer GPUCA_M_STRIP(x_forward)));                       \
+    }                                                                                                                                                                                                 \
+  }
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
 
   int registerMemoryForGPU_internal(const void* ptr, size_t size) override { return 0; }
   int unregisterMemoryForGPU_internal(const void* ptr) override { return 0; }
@@ -162,7 +176,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   std::vector<std::unique_ptr<timerMeta>> mTimers;
   RecoStepTimerMeta mTimersRecoSteps[GPUDataTypes::N_RECO_STEPS];
   HighResTimer timerTotal;
-  template <class T, int I = 0, int J = -1>
+  template <class T, int I = 0>
   HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0);
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
@@ -176,17 +190,18 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   timerMeta* insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step);
 };
 
-template <class S, int I, int J, typename... Args>
-inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args)
+template <class S, int I, typename... Args>
+inline int GPUReconstructionCPU::runKernel(krnlSetup&& setup, Args&&... args)
 {
   HighResTimer* t = nullptr;
-  GPUCA_RECO_STEP myStep = S::GetRecoStep() == GPUCA_RECO_STEP::NoRecoStep ? x.step : S::GetRecoStep();
+  GPUCA_RECO_STEP myStep = S::GetRecoStep() == GPUCA_RECO_STEP::NoRecoStep ? setup.x.step : S::GetRecoStep();
   if (myStep == GPUCA_RECO_STEP::NoRecoStep) {
     throw std::runtime_error("Failure running general kernel without defining RecoStep");
   }
-  int cpuFallback = IsGPU() ? (x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
-  unsigned int nThreads = x.nThreads;
-  unsigned int nBlocks = x.nBlocks;
+  int cpuFallback = IsGPU() ? (setup.x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
+  unsigned int& nThreads = setup.x.nThreads;
+  unsigned int& nBlocks = setup.x.nBlocks;
+  const unsigned int stream = setup.x.stream;
   auto prop = getKernelProperties<S, I>();
   const int autoThreads = cpuFallback ? 1 : prop.nThreads;
   const int autoBlocks = cpuFallback ? 1 : (prop.forceBlocks ? prop.forceBlocks : (prop.minBlocks * mBlockCount));
@@ -206,34 +221,26 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
     throw std::runtime_error("GPUCA_MAX_THREADS exceeded");
   }
   if (mProcessingSettings.debugLevel >= 3) {
-    GPUInfo("Running kernel %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), x.stream, y.start, y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
+    GPUInfo("Running kernel %s (Stream %d, Range %d/%d, Grid %d/%d) on %s", GetKernelName<S, I>(), stream, setup.y.start, setup.y.num, nBlocks, nThreads, cpuFallback == 2 ? "CPU (forced)" : cpuFallback ? "CPU (fallback)" : mDeviceName.c_str());
   }
   if (nThreads == 0 || nBlocks == 0) {
     return 0;
   }
   if (mProcessingSettings.debugLevel >= 1) {
-    t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
+    t = &getKernelTimer<S, I>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : stream);
     if ((!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) && (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0)) {
       t->Start();
     }
   }
-  krnlSetup setup{{nBlocks, nThreads, x.stream, x.device, x.step}, y, z, 0.};
-  if (cpuFallback) {
-    if (GPUReconstructionCPU::runKernelImpl(GPUReconstruction::classArgument<S, I>(), setup, args...)) {
-      return 1;
-    }
-  } else {
-    if (runKernelImpl(GPUReconstruction::classArgument<S, I>(), setup, args...)) {
-      return 1;
-    }
-  }
-  if (GPUDebug(GetKernelName<S, I>(), x.stream)) {
+  double deviceTimerTime = 0;
+  int retVal = runKernelImplWrapper(classArgument<S, I>(), cpuFallback, deviceTimerTime, std::forward<krnlSetup&&>(setup), std::forward<Args>(args)...);
+  if (GPUDebug(GetKernelName<S, I>(), stream)) {
     throw std::runtime_error("kernel failure");
   }
   if (mProcessingSettings.debugLevel >= 1) {
     if (t) {
-      if (!(!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback)) {
-        t->AddTime(setup.t);
+      if (mProcessingSettings.deviceTimers && IsGPU() && !cpuFallback) {
+        t->AddTime(deviceTimerTime);
       } else if (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0) {
         t->Stop();
       }
@@ -242,7 +249,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
       throw std::runtime_error("kernel error code");
     }
   }
-  return 0;
+  return retVal;
 }
 
 #define GPUCA_KRNL(x_class, ...)                                                              \
@@ -261,13 +268,13 @@ inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
   events = (T*)mEvents.back().data();
 }
 
-template <class T, int I, int J>
+template <class T, int I>
 HighResTimer& GPUReconstructionCPU::getKernelTimer(RecoStep step, int num, size_t addMemorySize)
 {
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    timer = insertTimer(id, GetKernelName<T, I>(), J, NSLICES, 0, step);
+    timer = insertTimer(id, GetKernelName<T, I>(), -1, NSLICES, 0, step);
   }
   if (addMemorySize) {
     timer->memSize += addMemorySize;

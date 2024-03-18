@@ -183,7 +183,7 @@ int GPUChainTracking::DoTRDGPUTracking(T* externalInstance)
   }
 
   TransferMemoryResourcesToGPU(RecoStep::TRDTracking, Tracker, useStream);
-  runKernel<GPUTRDTrackerKernels, I>(GetGridAuto(useStream), krnlRunRangeNone, krnlEventNone, externalInstance ? Tracker : nullptr);
+  runKernel<GPUTRDTrackerKernels, I>(GetGridAuto(useStream), externalInstance ? Tracker : nullptr);
   TransferMemoryResourcesToHost(RecoStep::TRDTracking, Tracker, useStream);
   SynchronizeStream(useStream);
 

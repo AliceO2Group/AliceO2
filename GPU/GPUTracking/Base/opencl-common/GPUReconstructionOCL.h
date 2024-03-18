@@ -64,7 +64,7 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   template <class T, int I = 0>
   unsigned int FindKernel(int num);
   template <typename K, typename... Args>
-  int runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args);
+  int runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args);
   template <class T, int I = 0>
   krnlProperties getKernelPropertiesBackend();
 

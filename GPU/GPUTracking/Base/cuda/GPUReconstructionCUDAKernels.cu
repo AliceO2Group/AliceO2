@@ -33,14 +33,14 @@ __global__ void gGPUConstantMemBuffer_dummy(int* p) { *p = *(int*)&gGPUConstantM
 #endif
 
 template <>
-inline void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+inline void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16, 0>(const krnlSetupTime& _xyz, void* const& ptr, unsigned long const& size)
 {
   GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   GPUFailedMsg(cudaMemsetAsync(ptr, 0, size, mInternals->Streams[_xyz.x.stream]));
 }
 
 template <class T, int I, typename... Args>
-inline void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
+inline void GPUReconstructionCUDABackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
 {
 #ifndef __HIPCC__ // CUDA version
   GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz, this);
@@ -78,25 +78,25 @@ inline void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _x
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
   }
 #endif
-  if (mProcessingSettings.checkKernelFailures) {
-    if (GPUDebug(GetKernelName<T, I>(), _xyz.x.stream, true)) {
-      throw std::runtime_error("Kernel Failure");
-    }
-  }
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args)
+int GPUReconstructionCUDABackend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
 {
-  auto& x = _xyz.x;
-  auto& z = _xyz.z;
+  auto& x = args.s.x;
+  auto& z = args.s.z;
   if (z.evList) {
     for (int k = 0; k < z.nEvents; k++) {
       GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[x.stream], ((cudaEvent_t*)z.evList)[k], 0));
     }
   }
-  runKernelBackendInternal<T, I>(_xyz, args...);
+  std::apply([this, &args](auto&... vals) { this->runKernelBackendInternal<T, I, Args...>(args.s, vals...); }, args.v);
   GPUFailedMsg(cudaGetLastError());
+  if (mProcessingSettings.checkKernelFailures) {
+    if (GPUDebug(GetKernelName<T, I>(), args.s.x.stream, true)) {
+      throw std::runtime_error("Kernel Failure");
+    }
+  }
   if (z.ev) {
     GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)z.ev, mInternals->Streams[x.stream]));
   }
@@ -104,9 +104,9 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 }
 
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, ...) \
-  GPUCA_KRNL_PROP(x_class, x_attributes)                    \
-  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types) \
+  GPUCA_KRNL_PROP(x_class, x_attributes)                                   \
+  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args);
 #else
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 2
 #define GPUCA_KRNL_DEFONLY
@@ -114,10 +114,10 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
 
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, ...)                     \
-  GPUCA_KRNL_PROP(x_class, x_attributes)                                        \
-  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, __VA_ARGS__) \
-  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types)             \
+  GPUCA_KRNL_PROP(x_class, x_attributes)                                               \
+  GPUCA_KRNL_WRAP(GPUCA_KRNL_, x_class, x_attributes, x_arguments, x_forward, x_types) \
+  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args);
 #ifndef __HIPCC__ // CUDA version
 #define GPUCA_KRNL_CALL_single(x_class, ...) \
   GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))<<<x.nBlocks, x.nThreads, 0, me->mInternals->Streams[x.stream]>>>(GPUCA_CONSMEM_CALL y.start, args...);

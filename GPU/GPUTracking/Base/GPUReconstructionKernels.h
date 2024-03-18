@@ -28,14 +28,14 @@ class GPUReconstructionKernels : public T
   GPUReconstructionKernels(const GPUSettingsDeviceBackend& cfg) : T(cfg) {}
 
  protected:
-#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, ...)                                                                      \
-  virtual int runKernelImpl(GPUReconstruction::classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, krnlSetup& _xyz GPUCA_M_STRIP(x_arguments)) \
-  {                                                                                                                                       \
-    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(_xyz GPUCA_M_STRIP(x_forward));                                   \
-  }                                                                                                                                       \
-  virtual GPUReconstruction::krnlProperties getKernelPropertiesImpl(GPUReconstruction::classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>)     \
-  {                                                                                                                                       \
-    return T::template getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();                                                      \
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, x_types)                                                              \
+  virtual int runKernelImpl(const GPUReconstruction::krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args)      \
+  {                                                                                                                                   \
+    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(args);                                                        \
+  }                                                                                                                                   \
+  virtual GPUReconstruction::krnlProperties getKernelPropertiesImpl(GPUReconstruction::classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>) \
+  {                                                                                                                                   \
+    return T::template getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();                                                  \
   }
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
