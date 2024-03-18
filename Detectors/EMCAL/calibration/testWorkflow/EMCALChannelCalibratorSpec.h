@@ -196,7 +196,9 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
     if (!mIsConfigured) {
       // configure calibrators (after calib params are loaded from the CCDB)
-      configureCalibrators();
+      // long tsMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + pc.services().get<o2::framework::TimingInfo>().firstTForbit * o2::constants::lhc::LHCOrbitMUS / 1000; // this reads the ts from the data.
+      long tsMS = o2::ccdb::getCurrentTimestamp();
+      configureCalibrators(tsMS);
       mIsConfigured = true;
     }
 
@@ -415,14 +417,22 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   }
 
   /// \brief Configure calibrators from the calib params
-  void configureCalibrators()
+  void configureCalibrators(long ts)
   {
+    auto currFill = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getFillNumber();
+    auto runtype = o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType();
+    LOG(debug) << "currFill  " << currFill << "  runtype " << runtype;
+
     if (mTimeCalibrator) {
       LOG(info) << "Configuring time calibrator";
       mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_tc);
       if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_tc) {
-        mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
+        mTimeCalibrator->setUpdateAtTheEndOfRunOnly();
       }
+      mTimeCalibrator->setSaveFileName("emc-time-calib-" + std::to_string(runtype) + ".root");
+      mTimeCalibrator->setFillNr(currFill);
+      mTimeCalibrator->setRunType(runtype);
+      mTimeCalibrator->setCurrTSInHours(static_cast<int>(ts / o2::ccdb::CcdbObjectInfo::HOUR));
     }
     if (mBadChannelCalibrator) {
       LOG(info) << "Configuring bad channel calibrator";
@@ -431,6 +441,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
       }
       mBadChannelCalibrator->setIsTest(EMCALCalibParams::Instance().enableTestMode_bc);
+      mBadChannelCalibrator->setFillNr(currFill);
+      mBadChannelCalibrator->setRunType(runtype);
+      mBadChannelCalibrator->setSaveFileName("emc-channel-calib-" + std::to_string(runtype) + ".root");
+      mBadChannelCalibrator->setCurrTSInHours(static_cast<int>(ts / o2::ccdb::CcdbObjectInfo::HOUR));
     }
   }
 }; // namespace calibration
@@ -482,7 +496,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
-                                                                false,                          // GRPLHCIF
+                                                                true,                           // GRPLHCIF
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry

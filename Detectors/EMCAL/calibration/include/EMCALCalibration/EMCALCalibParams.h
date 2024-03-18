@@ -82,6 +82,9 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   std::string selectedClassMasks = "C0TVX-B-NOPF-EMC"; ///< name of EMCal min. bias trigger that is used for calibration
   int bcShiftCTP = 0;                                  ///< bc shift of CTP digits to align them with EMC bc in case they are misaligned
   std::string filePathSave = "./emc_calib";            ///< path where calibration histograms are stored at EOR to save them for the next run
+  bool requireSameFill = false;                        ///< if loading calib objects from previous run, require it to be in the same fill as the current one
+  bool requireSameRunType = true;                      ///< if loading calib objects from previous run, require it to be the same run type
+  int tsDiffMax = 48;                                  ///< if loading calib objects from previous run, limit time between the object being stored and loaded again (in hours)
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
@@ -91,7 +94,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool enableTestMode = false;                ///< enable test mode for calibration
   float minCellEnergyForTimeCalib = 0.5;      ///< minimum cell energy to enter the time calibration (typical minimum seed energy for clusters), time resolution gets better with rising energy
   unsigned int slotLength = 0;                ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
-  bool UpdateAtEndOfRunOnly = false;          ///< switsch to enable trigger of calibration only at end of run
+  bool UpdateAtEndOfRunOnly = false;          ///< switch to enable trigger of calibration only at end of run
   int minTimeForFit = -300;                   ///< minimum cell time considered for the time calibration in ns
   int maxTimeForFit = 300;                    ///< maximum cell time considered for the time calibration in ns
   int restrictFitRangeToMax = 25;             ///< window around the largest entry within the minTimeForFit in which the fit is performed in ns
