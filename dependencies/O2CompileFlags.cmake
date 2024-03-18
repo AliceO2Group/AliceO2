@@ -139,5 +139,11 @@ if(DEFINED ENV{O2_CXXFLAGS_OVERRIDE})
   message(STATUS "Setting CXXFLAGS Override $ENV{O2_CXXFLAGS_OVERRIDE}")
 endif()
 
+if(GPUCA_NO_FAST_MATH_WHOLEO2)
+  set(GPUCA_NO_FAST_MATH 1)
+  add_definitions(-DGPUCA_NO_FAST_MATH)
+  set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -fno-fast-math -ffp-contract=off")
+  set(CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} -fno-fast-math -ffp-contract=off")
+endif()
 
 message(STATUS "Using build type: ${CMAKE_BUILD_TYPE} - CXXFLAGS: ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
