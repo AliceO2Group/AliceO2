@@ -134,7 +134,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   void setPropagateTrack(const bool propagate) { mPropagateTrack = propagate; }
 
   /// \param field magnetic field in kG, used for track propagation
-  void setField(const float field) { mField = field; }
+  void setFieldNominalGPUBz(const float field) { mFieldNominalGPUBz = field; }
 
   /// \param chargeType type of charge which is used for the dE/dx and the pad-by-pad histograms
   void setChargeType(const ChargeType chargeType) { mChargeType = chargeType; }
@@ -176,7 +176,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   bool getPropagateTrack() const { return mPropagateTrack; }
 
   /// \return returns magnetic field which is used for propagation of track parameters
-  float getField() const { return mField; };
+  float getFieldNominalGPUBz() const { return mFieldNominalGPUBz; };
 
   /// dump object to disc
   /// \param outFileName name of the output file
@@ -224,7 +224,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   unsigned char* mClusterShMapTPC{nullptr};                                           ///<! externally set TPC clusters sharing map
   DEdxType mMode = dedxTrack;                                                         ///< normalization type: type=DedxTrack use truncated mean, type=DedxBB use value from BB fit
   DEdxRegion mDedxRegion = stack;                                                     ///<  using the dE/dx per chamber, stack or per sector
-  float mField{-5};                                                                   ///< Magnetic field in kG, used for track propagation
+  float mFieldNominalGPUBz{-5};                                                       ///< Magnetic field in kG, used for track propagation
   float mMomMin{0.1f};                                                                ///< minimum momentum which is required by tracks
   float mMomMax{5.f};                                                                 ///< maximum momentum which is required by tracks
   float mDedxMin{0.f};                                                                ///< minimum accepted dE/dx

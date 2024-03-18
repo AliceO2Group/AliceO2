@@ -22,6 +22,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUO2InterfaceDisplay.h"
+#include "GPUO2InterfaceUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
@@ -113,7 +114,7 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 
   if (mGRPGeomUpdated) {
     mGRPGeomUpdated = false;
-    mConfig->configGRP.solenoidBzNominalGPU = 5.00668f * grp->getL3Current() / 30000.;
+    mConfig->configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*grp);
     if (mAutoContinuousMaxTimeBin) {
       mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
     }

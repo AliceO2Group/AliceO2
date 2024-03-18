@@ -42,8 +42,6 @@ namespace o2::tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
-template <class T>
-class CalDet;
 } // namespace o2::tpc
 
 namespace o2::its
