@@ -47,4 +47,4 @@ o2_add_executable(
         millerecord-writer-workflow
         SOURCES src/MilleRecordWriterSpec.cxx src/millerecord-writer-workflow.cxx
         COMPONENT_NAME fwdalign
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats O2::SimulationDataFormat O2::ForwardAlign)        
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats O2::SimulationDataFormat O2::ForwardAlign)

@@ -197,12 +197,12 @@ class AlignRecordTask
       if (convertedTrack.getNClusters() > 9) {
         // Erase removable track
         if (!RemoveTrack(convertedTrack)) {
-          //mRecords.emplace_back(mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord));
+          // mRecords.emplace_back(mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord));
           pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord));
         }
       }
     }
-    //pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, mRecords);
+    // pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, mRecords);
   }
 
  private:
