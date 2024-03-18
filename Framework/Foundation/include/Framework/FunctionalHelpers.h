@@ -25,6 +25,16 @@ struct memfun_type {
 };
 } // namespace
 
+template <size_t N>
+struct StringLiteral {
+  constexpr StringLiteral(const char (&str)[N])
+  {
+    std::copy_n(str, N, value);
+  }
+
+  char value[N];
+};
+
 /// Type helper to hold metadata about a lambda or a class
 /// method.
 template <typename Ret, typename Class, typename... Args>
