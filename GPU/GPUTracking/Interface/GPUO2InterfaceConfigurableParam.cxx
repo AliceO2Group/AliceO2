@@ -107,8 +107,8 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
   } else {
     obj.configGRP.continuousMaxTimeBin = global.tpcTriggeredMode ? 0 : -1;
   }
-  if (global.solenoidBz > -1e6f) {
-    obj.configGRP.solenoidBz = global.solenoidBz;
+  if (global.solenoidBzNominalGPU > -1e6f) {
+    obj.configGRP.solenoidBzNominalGPU = global.solenoidBzNominalGPU;
   }
   if (global.constBz) {
     obj.configGRP.constBz = global.constBz;

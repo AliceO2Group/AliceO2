@@ -282,7 +282,7 @@ int SetupReconstruction()
       printf("Error reading event config file\n");
       return 1;
     }
-    printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetGRPSettings().solenoidBz, (int)rec->GetGRPSettings().homemadeEvents, (int)rec->GetGRPSettings().constBz, rec->GetGRPSettings().continuousMaxTimeBin);
+    printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetGRPSettings().solenoidBzNominalGPU, (int)rec->GetGRPSettings().homemadeEvents, (int)rec->GetGRPSettings().constBz, rec->GetGRPSettings().continuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(filename);
     }
@@ -304,8 +304,8 @@ int SetupReconstruction()
   if (configStandalone.eventGenerator) {
     grp.homemadeEvents = true;
   }
-  if (configStandalone.solenoidBz != -1e6f) {
-    grp.solenoidBz = configStandalone.solenoidBz;
+  if (configStandalone.solenoidBzNominalGPU != -1e6f) {
+    grp.solenoidBzNominalGPU = configStandalone.solenoidBzNominalGPU;
   }
   if (configStandalone.constBz) {
     grp.constBz = true;
@@ -463,7 +463,7 @@ int SetupReconstruction()
   o2::base::Propagator* prop = nullptr;
   prop = o2::base::Propagator::Instance(true);
   prop->setGPUField(&rec->GetParam().polynomialField);
-  prop->setBz(rec->GetParam().bzkG);
+  prop->setNominalBz(rec->GetParam().bzkG);
   prop->setMatLUT(chainTracking->GetMatLUT());
   chainTracking->SetO2Propagator(prop);
   if (chainTrackingAsync) {

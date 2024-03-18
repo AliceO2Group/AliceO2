@@ -62,7 +62,7 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 {
   GRPGeomHelper::instance().setRequest(mGGR);
   mConfig.reset(new GPUO2InterfaceConfiguration);
-  mConfig->configGRP.solenoidBz = 0;
+  mConfig->configGRP.solenoidBzNominalGPU = 0;
   mConfParam.reset(new GPUSettingsO2(mConfig->ReadConfigurableParam()));
 
   mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
@@ -113,7 +113,7 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 
   if (mGRPGeomUpdated) {
     mGRPGeomUpdated = false;
-    mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+    mConfig->configGRP.solenoidBzNominalGPU = 5.00668f * grp->getL3Current() / 30000.;
     if (mAutoContinuousMaxTimeBin) {
       mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
     }

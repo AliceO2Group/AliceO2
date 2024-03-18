@@ -633,7 +633,7 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
     if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
       grp = std::make_unique<GPUSettingsGRP>(mRec->GetGRPSettings());
       if (mNewCalibValues->newSolenoidField) {
-        grp->solenoidBz = mNewCalibValues->solenoidField;
+        grp->solenoidBzNominalGPU = mNewCalibValues->solenoidField;
       }
       if (mNewCalibValues->newContinuousMaxTimeBin) {
         grp->continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;

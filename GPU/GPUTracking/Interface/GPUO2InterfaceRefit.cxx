@@ -40,7 +40,7 @@ void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, c
   }
 }
 
-GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
 {
   if (cl->nClustersTotal) {
     if (sharedmap == nullptr && trks == nullptr) {
@@ -53,7 +53,7 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const Co
     }
   }
   mRefit = std::make_unique<GPUTrackingRefit>();
-  mParam->SetDefaults(bz);
+  mParam->SetDefaults(bzNominalGPU);
   mRefit->SetGPUParam(mParam.get());
   mRefit->SetClusterStateArray(sharedmap);
   mRefit->SetPropagator(p);
@@ -62,9 +62,9 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const Co
   mRefit->SetFastTransformHelper(trans);
 }
 
-void GPUO2InterfaceRefit::updateCalib(const CorrectionMapsHelper* trans, float bz)
+void GPUO2InterfaceRefit::updateCalib(const CorrectionMapsHelper* trans, float bzNominalGPU)
 {
-  mParam->SetDefaults(bz);
+  mParam->SetDefaults(bzNominalGPU);
   mRefit->SetGPUParam(mParam.get());
   mRefit->SetFastTransformHelper(trans);
 }

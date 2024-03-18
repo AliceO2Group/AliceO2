@@ -69,7 +69,7 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
   mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
 
   mConfig.reset(new o2::gpu::GPUO2InterfaceConfiguration);
-  mConfig->configGRP.solenoidBz = 0;
+  mConfig->configGRP.solenoidBzNominalGPU = 0;
   mConfParam.reset(new o2::gpu::GPUSettingsO2(mConfig->ReadConfigurableParam()));
   mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
   if (mAutoContinuousMaxTimeBin) {
@@ -101,7 +101,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
 
     mConfig->configGRP.continuousMaxTimeBin = (GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
-    mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    mConfig->configGRP.solenoidBzNominalGPU = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
     mParam->UpdateSettings(&mConfig->configGRP);
 
     mTPCVDriftHelper->extractCCDBInputs(pc);

@@ -1132,16 +1132,16 @@ int GPUReconstruction::ReadSettings(const char* dir)
   return 0;
 }
 
-void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow)
+void GPUReconstruction::SetSettings(float solenoidBzNominalGPU, const GPURecoStepConfiguration* workflow)
 {
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
   config.ReadConfigurableParam(config);
-  config.configGRP.solenoidBz = solenoidBz;
+  config.configGRP.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
   GPUSettingsGRP grp;
-  grp.solenoidBz = solenoidBz;
+  grp.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&grp, nullptr, nullptr, workflow);
 #endif
 }

@@ -54,7 +54,7 @@ struct GPUParam_t {
   S par;
 
   float bzkG;
-  float constBz;
+  float bzCLight;
   float qptB5Scaler;
 
   GPUTPCGeometry tpcGeometry;                       // TPC Geometry

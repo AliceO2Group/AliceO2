@@ -133,7 +133,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   GPUO2InterfaceConfiguration& config = *mConfig.get();
 
   // Create configuration object and fill settings
-  mConfig->configGRP.solenoidBz = 0;
+  mConfig->configGRP.solenoidBzNominalGPU = 0;
   mTFSettings->hasSimStartOrbit = 1;
   auto& hbfu = o2::raw::HBFUtils::Instance();
   mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
@@ -152,7 +152,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mConfig->configProcessing.doublePipeline = 1;
   }
 
-  mAutoSolenoidBz = mConfParam->solenoidBz == -1e6f;
+  mAutoSolenoidBz = mConfParam->solenoidBzNominalGPU == -1e6f;
   mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
   if (mAutoContinuousMaxTimeBin) {
     mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
@@ -1001,7 +1001,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
 
     if (mAutoSolenoidBz) {
       newCalibValues.newSolenoidField = true;
-      newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+      newCalibValues.solenoidField = mConfig->configGRP.solenoidBzNominalGPU = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
       // Propagator::Instance()->setBz(newCalibValues.solenoidField); // Take value from o2::Propagator::UpdateField from GRPGeomHelper
       LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
     }

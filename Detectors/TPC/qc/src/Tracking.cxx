@@ -49,7 +49,7 @@ void Tracking::initialize(outputModes outputMode, bool postprocessOnly)
   mQAConfig = std::make_unique<GPUO2InterfaceConfiguration>();
   const auto grp = o2::parameters::GRPObject::loadFrom();
   if (grp) {
-    mQAConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+    mQAConfig->configGRP.solenoidBzNominalGPU = 5.00668f * grp->getL3Current() / 30000.;
     mQAConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0;
   } else {
     throw std::runtime_error("Failed to initialize run parameters from GRP");
