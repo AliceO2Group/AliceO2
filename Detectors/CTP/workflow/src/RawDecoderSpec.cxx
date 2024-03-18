@@ -111,7 +111,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   //
   std::vector<LumiInfo> lumiPointsHBF1;
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
-  if((mMaxInputSize > 0) && (inputs.size() > mMaxInputSize)) {
+  if ((mMaxInputSize > 0) && (inputs.size() > mMaxInputSize)) {
     dummyOutput();
     LOG(FATAL) << "Input data size:" << inputs.size();
     return;
