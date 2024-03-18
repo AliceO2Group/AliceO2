@@ -74,7 +74,7 @@ o2_add_test(StressTest3
         COMMAND_LINE_ARGS --testpos ${CMAKE_CURRENT_LIST_DIR}/data/test_random_pos.json --run2 --manunumbering
         PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHMappingSegContour
         RapidJSON::RapidJSON
-        CONFIGURATIONS RelWithDebInfo Release MinSizeRel
+        CONFIGURATIONS RELWITHDEBINFO RELEASE MINSIZEREL
         LABELS "muon;mch;long")
 
 o2_add_test(StressTest4
@@ -85,7 +85,7 @@ o2_add_test(StressTest4
         COMMAND_LINE_ARGS --testpos ${CMAKE_CURRENT_LIST_DIR}/data/test_random_pos.json --manunumbering
         PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl4 O2::MCHMappingSegContour
         RapidJSON::RapidJSON
-        CONFIGURATIONS RelWithDebInfo Release MinSizeRel
+        CONFIGURATIONS RELWITHDEBINFO RELEASE MINSIZEREL
         LABELS "muon;mch;long"
         TARGETVARNAME targetName)
 

@@ -19,6 +19,11 @@ if(DEFINED ENV{ALIBUILD_O2_WARNINGS})
   set(O2_ENABLE_WARNINGS "ON")
 endif()
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" TMP_BUILD_TYPE_UPPERCASE)
+if(NOT CMAKE_BUILD_TYPE STREQUAL TMP_BUILD_TYPE_UPPERCASE)
+  message(FATAL_ERROR "Build type ${CMAKE_BUILD_TYPE} is not uppercase, please use ${TMP_BUILD_TYPE_UPPERCASE}")
+endif()
+
 function(o2_build_warning_flags)
   cmake_parse_arguments(PARSE_ARGV 0 A "" "PREFIX;OUTPUTVARNAME" "WARNINGS")
 

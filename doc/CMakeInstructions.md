@@ -346,7 +346,7 @@ Note as well that some (very few) tests are ran only for some configurations
 :
 
 ```
-ctest -C RelWithDebInfo
+ctest -C RELWITHDEBINFO
 ```
 
 #### [Ex5](../Examples/Ex5) Adding a man page

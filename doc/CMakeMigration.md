@@ -105,9 +105,9 @@ The way it was developped : first make a regular install of O2@dev using aliBuil
 Then switch to `cmake-migration-step-1` branch. Create a build directory somewhere, and run cmake there :
 
 ```
-> cd build-RelWithDebInfo
+> cd build-RELWITHDEBINFO
 > rm -rf *
-> cmake $HOME/alice/cmake/O2 -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=../install-RelWithDebInfo -DCMAKE_GENERATOR=Ninja -DALIBUILD_BASEDIR=$HOME/alice/cmake/sw/osx_x86-64
+> cmake $HOME/alice/cmake/O2 -DCMAKE_BUILD_TYPE=RELWITHDEBINFO -DCMAKE_INSTALL_PREFIX=../install-RELWITHDEBINFO -DCMAKE_GENERATOR=Ninja -DALIBUILD_BASEDIR=$HOME/alice/cmake/sw/osx_x86-64
 ```
 
 Use `ninja` to build, `cmake .` to force rerunning cmake. Rince and repeat. Do it on Mac(10.14) and on CentOS7.
