@@ -120,7 +120,20 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
   static bool CheckInstanceAvailable(DeviceType type);
 
-  typedef void* deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
+  struct deviceEvent {
+    constexpr deviceEvent() = default;
+    constexpr deviceEvent(std::nullptr_t p) : v(nullptr){};
+    template <class T>
+    void set(T val) { v = reinterpret_cast<void*&>(val); }
+    template <class T>
+    T& get() { return reinterpret_cast<T&>(v); }
+    template <class T>
+    T* getEventList() { return reinterpret_cast<T*>(this); }
+    bool isSet() const { return v; }
+
+   private:
+    void* v = nullptr; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
+  };
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
@@ -150,8 +163,8 @@ class GPUReconstruction
     int num = 0;
   };
   struct krnlEvent {
-    constexpr krnlEvent(deviceEvent e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
-    deviceEvent ev;
+    constexpr krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
+    deviceEvent* ev;
     deviceEvent* evList;
     int nEvents;
   };
@@ -297,7 +310,7 @@ class GPUReconstruction
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
   int EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();

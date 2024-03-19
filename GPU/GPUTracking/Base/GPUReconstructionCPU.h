@@ -125,23 +125,23 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   virtual int HelperDone(int iThread) const { return 0; }
   virtual void ResetHelperThreads(int helpers) {}
 
-  size_t TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
-  size_t TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
+  size_t TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
+  size_t TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
   size_t TransferMemoryResourcesToGPU(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, true); }
   size_t TransferMemoryResourcesToHost(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, false); }
-  size_t TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
-  virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
+  size_t TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
+  virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
   int InitDevice() override;
   int ExitDevice() override;
   int GetThread();
 
   virtual int PrepareTextures() { return 0; }
-  virtual int DoStuckProtection(int stream, void* event) { return 0; }
+  virtual int DoStuckProtection(int stream, deviceEvent event) { return 0; }
 
   // Pointers to tracker classes
   GPUProcessorProcessors mProcShadow; // Host copy of tracker objects that will be used on the GPU

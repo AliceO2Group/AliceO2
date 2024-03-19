@@ -33,13 +33,13 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, 
   unsigned int n = withinSlice == -1 ? NSLICES / 2 : NSLICES;
   if (GetProcessingSettings().alternateBorderSort && (!mRec->IsGPU() || doGPUall)) {
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->init);
-    RecordMarker(&mEvents->single, 0);
+    RecordMarker(mEvents->single, 0);
     for (unsigned int i = 0; i < n; i++) {
       int stream = i % mRec->NStreams();
       runKernel<GPUTPCGMMergerMergeBorders, 0>({GetGridAuto(stream, deviceType), krnlRunRangeNone, {nullptr, stream && i < (unsigned int)mRec->NStreams() ? &mEvents->single : nullptr}}, i, withinSlice, mergeMode);
     }
-    ReleaseEvent(&mEvents->single);
-    SynchronizeEventAndRelease(&mEvents->init);
+    ReleaseEvent(mEvents->single);
+    SynchronizeEventAndRelease(mEvents->init);
     for (unsigned int i = 0; i < n; i++) {
       int stream = i % mRec->NStreams();
       int n1, n2;
@@ -55,7 +55,7 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, 
       if (i == n - 1) { // Synchronize all execution on stream 0 with the last kernel
         ne = std::min<int>(n, mRec->NStreams());
         for (int j = 1; j < ne; j++) {
-          RecordMarker(&mEvents->slice[j], j);
+          RecordMarker(mEvents->slice[j], j);
         }
         e = &mEvents->slice[1];
         ne--;
@@ -208,7 +208,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (doGPUall) {
     CondWaitEvent(waitForTransfer, &mEvents->single);
     if (waitForTransfer) {
-      ReleaseEvent(&mEvents->single);
+      ReleaseEvent(mEvents->single);
     }
   } else if (doGPU) {
     TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger, 0);
@@ -251,7 +251,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   DoDebugAndDump(RecoStep::TPCMerging, 2048, doGPUall, Merger, &GPUTPCGMMerger::DumpFinal, *mDebugFile);
 
   if (doGPUall) {
-    RecordMarker(&mEvents->single, 0);
+    RecordMarker(mEvents->single, 0);
     auto* waitEvent = &mEvents->single;
     if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1 || mFractionalQAEnabled) {
       if (!(GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1)) {
@@ -277,7 +277,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputState(), outputStream, nullptr, waitEvent);
       waitEvent = nullptr;
     }
-    ReleaseEvent(&mEvents->single);
+    ReleaseEvent(mEvents->single);
   } else {
     TransferMemoryResourcesToGPU(RecoStep::TPCMerging, &Merger, 0);
   }
@@ -302,7 +302,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->single);
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(GetGridAuto(0, deviceType));
     mRec->ReturnVolatileDeviceMemory();
-    SynchronizeEventAndRelease(&mEvents->single, doGPUall);
+    SynchronizeEventAndRelease(mEvents->single, doGPUall);
 
     if (GetProcessingSettings().clearO2OutputFromGPU) {
       mRec->AllocateVolatileDeviceMemory(0); // make future device memory allocation volatile
@@ -317,10 +317,10 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::mc>(GetGridAuto(0, GPUReconstruction::krnlDeviceType::CPU));
     } else if (doGPUall) {
-      RecordMarker(&mEvents->single, 0);
+      RecordMarker(mEvents->single, 0);
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2(), outputStream, nullptr, &mEvents->single);
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), outputStream);
-      ReleaseEvent(&mEvents->single);
+      ReleaseEvent(mEvents->single);
     }
     mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERG2"));
   }
