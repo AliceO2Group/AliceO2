@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+33// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -73,7 +73,7 @@ class TimeDeadMap
     }
   }
 
-  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true, long orbitGapAllowed = 33000)
+  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true, long orbitGapAllowed = 330000)
   { // for time-dependent and (optionally) static part. Use orbitGapAllowed = -1 to ignore check on orbit difference
 
     if (mMAP_VERSION != "3" && mMAP_VERSION != "4") {
