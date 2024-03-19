@@ -18,7 +18,6 @@ message(STATUS "Building GPUTracking with CUDA support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAGenRTC.cxx GPUReconstructionCUDAKernels.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstructionCUDADef.h GPUReconstructionCUDAIncludes.h CUDAThrustHelpers.h)
-
 # -------------------------------- Prepare RTC -------------------------------------------------------
 if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   enable_language(ASM)
@@ -37,7 +36,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   endif()
   #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -keep")
 
-  set(CUDARTC_FLAGS "${CMAKE_CUDA_FLAGS} ${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE}} -std=c++${CMAKE_CUDA_STANDARD}")
+  set(CUDARTC_FLAGS "${CMAKE_CUDA_FLAGS} ${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -std=c++${CMAKE_CUDA_STANDARD}")
   if(CUDA_COMPUTETARGET)
       foreach(CUDA_ARCH ${CUDA_COMPUTETARGET})
           set(CUDARTC_FLAGS "${CUDARTC_FLAGS} -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}")
