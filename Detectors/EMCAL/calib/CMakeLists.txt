@@ -18,6 +18,7 @@ o2_add_library(EMCALCalib
         src/TempCalibrationParams.cxx
         src/TempCalibParamSM.cxx
         src/GainCalibrationFactors.cxx
+        src/Pedestal.cxx
         src/TriggerTRUDCS.cxx
         src/TriggerSTUDCS.cxx
         src/TriggerSTUErrorCounter.cxx
@@ -37,6 +38,7 @@ o2_target_root_dictionary(EMCALCalib
         include/EMCALCalib/TempCalibrationParams.h
         include/EMCALCalib/TempCalibParamSM.h
         include/EMCALCalib/GainCalibrationFactors.h
+        include/EMCALCalib/Pedestal.h
         include/EMCALCalib/TriggerTRUDCS.h
         include/EMCALCalib/TriggerSTUDCS.h
         include/EMCALCalib/TriggerSTUErrorCounter.h
@@ -85,6 +87,13 @@ o2_add_test(TempCalibParamSM
 
 o2_add_test(GainCalibrationFactors
         SOURCES test/testGainCalibration.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALCalib
+        COMPONENT_NAME emcal
+        LABELS emcal
+        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
+o2_add_test(Pedestal
+        SOURCES test/testPedestal.cxx
         PUBLIC_LINK_LIBRARIES O2::EMCALCalib
         COMPONENT_NAME emcal
         LABELS emcal
