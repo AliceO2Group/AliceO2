@@ -111,10 +111,17 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   //
   std::vector<LumiInfo> lumiPointsHBF1;
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
-  if ((mMaxInputSize > 0) && (inputs.size() > mMaxInputSize)) {
-    dummyOutput();
-    LOG(FATAL) << "Input data size:" << inputs.size();
-    return;
+  {
+    int payloadSize = 0;
+    for (const auto& ref : o2::framework::InputRecordWalker(inputs, filter)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      payloadSize += o2::framework::DataRefUtils::getPayloadSize(ref);
+    }
+    if ( (mMaxInputSize > 0) && (payloadSize > mMaxInputSize)) {
+      LOG(error) << "Input data size:" << payloadSize;
+      dummyOutput();
+      //return;
+    }
   }
   int ret = mDecoder.decodeRaw(inputs, filter, mOutputDigits, lumiPointsHBF1);
   if (ret == 1) {
