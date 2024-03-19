@@ -65,18 +65,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   std::string url = config.options().get<std::string>("ccdb-url");
 
-  std::unordered_map<DPID, o2h::DataDescription> dpid2DataDesc;
+  std::unordered_map<DPID, std::vector<o2h::DataDescription>> dpid2DataDesc;
 
   if (testMode) {
     DPID dpidtmp;
     DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000100", DeliveryType::DPVAL_STRING);
-    dpid2DataDesc[dpidtmp] = "COMMON"; // i.e. this will go to {DCS/COMMON/0} OutputSpec
+    dpid2DataDesc[dpidtmp] = {"COMMON"}; // i.e. this will go to {DCS/COMMON/0} OutputSpec
     DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000110", DeliveryType::DPVAL_STRING);
-    dpid2DataDesc[dpidtmp] = "COMMON";
+    dpid2DataDesc[dpidtmp] = {"COMMON"};
     DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000200", DeliveryType::DPVAL_STRING);
-    dpid2DataDesc[dpidtmp] = "COMMON1";
+    dpid2DataDesc[dpidtmp] = {"COMMON1"};
     DPID::FILL(dpidtmp, "ADAPOS_LG/TEST_000240", DeliveryType::DPVAL_INT);
-    dpid2DataDesc[dpidtmp] = "COMMON1";
+    dpid2DataDesc[dpidtmp] = {"COMMON1"};
   }
 
   else {
@@ -95,7 +95,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
         for (auto& el : *dpid2Det) {
           o2::header::DataDescription tmpd;
           tmpd.runtimeInit(el.second.c_str(), el.second.size());
-          dpid2DataDesc[el.first] = tmpd;
+          dpid2DataDesc[el.first].push_back(tmpd);
         }
       }
     }
@@ -107,7 +107,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // now collect all required outputs to define OutputSpecs for specifyExternalFairMQDeviceProxy
   std::unordered_map<o2h::DataDescription, int, std::hash<o2h::DataDescription>> outMap;
   for (auto itdp : dpid2DataDesc) {
-    outMap[itdp.second]++;
+    for (const auto& ds : itdp.second) {
+      outMap[ds]++;
+    }
   }
 
   Outputs dcsOutputs;
