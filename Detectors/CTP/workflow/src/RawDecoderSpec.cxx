@@ -117,10 +117,10 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       payloadSize += o2::framework::DataRefUtils::getPayloadSize(ref);
     }
-    if ( (mMaxInputSize > 0) && (payloadSize > mMaxInputSize)) {
+    if ((mMaxInputSize > 0) && (payloadSize > mMaxInputSize)) {
       LOG(error) << "Input data size:" << payloadSize;
       dummyOutput();
-      //return;
+      // return;
     }
   }
   int ret = mDecoder.decodeRaw(inputs, filter, mOutputDigits, lumiPointsHBF1);
