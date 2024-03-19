@@ -216,10 +216,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
-    void* slice[NSLICES]; // TODO: Proper type for events
-    void* stream[GPUCA_MAX_STREAMS];
-    void* init;
-    void* single;
+    deviceEvent slice[NSLICES];
+    deviceEvent stream[GPUCA_MAX_STREAMS];
+    deviceEvent init;
+    deviceEvent single;
   };
 
   struct outputQueueEntry {

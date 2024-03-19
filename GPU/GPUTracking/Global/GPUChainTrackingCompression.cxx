@@ -36,7 +36,7 @@ int GPUChainTracking::RunTPCCompression()
   GPUTPCCompression& CompressorShadow = doGPU ? processorsShadow()->tpcCompressor : Compressor;
   const auto& threadContext = GetThreadContext();
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
-    RecordMarker(&mEvents->single, 0);
+    RecordMarker(mEvents->single, 0);
   }
 
   if (ProcessingSettings().tpcCompressionGatherMode == 3) {
@@ -52,7 +52,7 @@ int GPUChainTracking::RunTPCCompression()
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
-    SynchronizeEventAndRelease(&mEvents->single);
+    SynchronizeEventAndRelease(mEvents->single);
     ((GPUChainTracking*)GetNextChainInQueue())->RunTPCClusterizer_prepare(false);
     ((GPUChainTracking*)GetNextChainInQueue())->mCFContext->ptrClusterNativeSave = processorsShadow()->ioPtrs.clustersNative;
   }
@@ -124,7 +124,7 @@ int GPUChainTracking::RunTPCCompression()
         return 1;
     }
     if (ProcessingSettings().tpcCompressionGatherMode == 3) {
-      RecordMarker(&mEvents->stream[outputStream], outputStream);
+      RecordMarker(mEvents->stream[outputStream], outputStream);
       char* deviceFlatPts = (char*)Compressor.mOutput->qTotU;
       if (GetProcessingSettings().doublePipeline) {
         const size_t blockSize = CAMath::nextMultipleOf<1024>(copySize / 30);
@@ -189,7 +189,7 @@ int GPUChainTracking::RunTPCCompression()
   }
   mIOPtrs.tpcCompressedClusters = Compressor.mOutputFlat;
   if (ProcessingSettings().tpcCompressionGatherMode == 3) {
-    SynchronizeEventAndRelease(&mEvents->stream[outputStream]);
+    SynchronizeEventAndRelease(mEvents->stream[outputStream]);
     mRec->ReturnVolatileDeviceMemory();
   }
 

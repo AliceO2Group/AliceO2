@@ -43,7 +43,7 @@ template <class T, int I, typename... Args>
 inline void GPUReconstructionCUDABackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
 {
 #ifndef __HIPCC__ // CUDA version
-  GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz, this);
+  GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (deviceEvent*)mDebugEvents, mInternals->Streams, _xyz, this);
 #if !defined(GPUCA_KERNEL_COMPILE_MODE) || GPUCA_KERNEL_COMPILE_MODE != 1
   if (!mProcessingSettings.rtc.enable) {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
@@ -69,10 +69,10 @@ inline void GPUReconstructionCUDABackend::runKernelBackendInternal(const krnlSet
   }
 #else // HIP version
   if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
-    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
-    GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDebugEvents->DebugStop));
+    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, mDebugEvents->DebugStart.getEventList<hipEvent_t>(), mDebugEvents->DebugStop.getEventList<hipEvent_t>(), args...);
+    GPUFailedMsg(hipEventSynchronize(mDebugEvents->DebugStop.get<hipEvent_t>()));
     float v;
-    GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDebugEvents->DebugStart, (hipEvent_t)mDebugEvents->DebugStop));
+    GPUFailedMsg(hipEventElapsedTime(&v, mDebugEvents->DebugStart.get<hipEvent_t>(), mDebugEvents->DebugStop.get<hipEvent_t>()));
     _xyz.t = v * 1.e-3f;
   } else {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);

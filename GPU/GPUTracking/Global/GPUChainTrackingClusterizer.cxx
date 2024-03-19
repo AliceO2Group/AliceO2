@@ -917,9 +917,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           nClsTotal += clusterer.mPclusterInRow[j];
         }
         if (transferRunning[lane]) {
-          ReleaseEvent(&mEvents->stream[lane], doGPU);
+          ReleaseEvent(mEvents->stream[lane], doGPU);
         }
-        RecordMarker(&mEvents->stream[lane], mRec->NStreams() - 1);
+        RecordMarker(mEvents->stream[lane], mRec->NStreams() - 1);
         transferRunning[lane] = 1;
       }
 
@@ -957,7 +957,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
   for (int i = 0; i < GetProcessingSettings().nTPCClustererLanes; i++) {
     if (transferRunning[i]) {
-      ReleaseEvent(&mEvents->stream[i], doGPU);
+      ReleaseEvent(mEvents->stream[i], doGPU);
     }
   }
 

@@ -48,11 +48,11 @@ struct GPUReconstructionCUDAInternals {
 class GPUDebugTiming
 {
  public:
-  GPUDebugTiming(bool d, void** t, cudaStream_t* s, const GPUReconstruction::krnlSetupTime& x, GPUReconstructionCUDABackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
+  GPUDebugTiming(bool d, GPUReconstruction::deviceEvent* t, cudaStream_t* s, const GPUReconstruction::krnlSetupTime& x, GPUReconstructionCUDABackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
   {
     if (mDo) {
       if (mDeviceTimers) {
-        mRec->GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(cudaEventRecord(mDeviceTimers[0].get<cudaEvent_t>(), mStreams[mXYZ.x.stream]));
       } else {
         mTimer.ResetStart();
       }
@@ -62,10 +62,10 @@ class GPUDebugTiming
   {
     if (mDo) {
       if (mDeviceTimers) {
-        mRec->GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
-        mRec->GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(cudaEventRecord(mDeviceTimers[1].get<cudaEvent_t>(), mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(cudaEventSynchronize(mDeviceTimers[1].get<cudaEvent_t>()));
         float v;
-        mRec->GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDeviceTimers[0], (cudaEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(cudaEventElapsedTime(&v, mDeviceTimers[0].get<cudaEvent_t>(), mDeviceTimers[1].get<cudaEvent_t>()));
         mXYZ.t = v * 1.e-3f;
       } else {
         mRec->GPUFailedMsg(cudaStreamSynchronize(mStreams[mXYZ.x.stream]));

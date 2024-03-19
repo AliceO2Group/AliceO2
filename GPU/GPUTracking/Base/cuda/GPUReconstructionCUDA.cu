@@ -461,7 +461,7 @@ int GPUReconstructionCUDA::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionCUDA::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionCUDA::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (mProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -474,17 +474,17 @@ size_t GPUReconstructionCUDA::GPUMemCpy(void* dst, const void* src, size_t size,
       nEvents = 0;
     }
     for (int k = 0; k < nEvents; k++) {
-      GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[stream], ((cudaEvent_t*)evList)[k], 0));
+      GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[stream], evList[k].get<cudaEvent_t>(), 0));
     }
     GPUFailedMsg(cudaMemcpyAsync(dst, src, size, toGPU == -2 ? cudaMemcpyDeviceToDevice : toGPU ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToHost, mInternals->Streams[stream]));
   }
   if (ev) {
-    GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream == -1 ? 0 : stream]));
+    GPUFailedMsg(cudaEventRecord(ev->get<cudaEvent_t>(), mInternals->Streams[stream == -1 ? 0 : stream]));
   }
   return size;
 }
 
-size_t GPUReconstructionCUDA::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+size_t GPUReconstructionCUDA::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mProcessingSettings.debugLevel >= 4) {
@@ -498,7 +498,7 @@ size_t GPUReconstructionCUDA::TransferMemoryInternal(GPUMemoryResource* res, int
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionCUDA::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
+size_t GPUReconstructionCUDA::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
   for (unsigned int i = 0; i < 1 + mDeviceConstantMemList.size(); i++) {
     void* basePtr = i ? mDeviceConstantMemList[i - 1] : mDeviceConstantMem;
@@ -512,13 +512,13 @@ size_t GPUReconstructionCUDA::WriteToConstantMemory(size_t offset, const void* s
     }
   }
   if (ev && stream != -1) {
-    GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream]));
+    GPUFailedMsg(cudaEventRecord(ev->get<cudaEvent_t>(), mInternals->Streams[stream]));
   }
   return size;
 }
 
 void GPUReconstructionCUDA::ReleaseEvent(deviceEvent ev) {}
-void GPUReconstructionCUDA::RecordMarker(deviceEvent ev, int stream) { GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream])); }
+void GPUReconstructionCUDA::RecordMarker(deviceEvent ev, int stream) { GPUFailedMsg(cudaEventRecord(ev.get<cudaEvent_t>(), mInternals->Streams[stream])); }
 
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionCUDA::GetThreadContext()
 {
@@ -532,21 +532,21 @@ void GPUReconstructionCUDA::SynchronizeStream(int stream) { GPUFailedMsg(cudaStr
 void GPUReconstructionCUDA::SynchronizeEvents(deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {
-    GPUFailedMsg(cudaEventSynchronize(((cudaEvent_t*)evList)[i]));
+    GPUFailedMsg(cudaEventSynchronize(evList[i].get<cudaEvent_t>()));
   }
 }
 
 void GPUReconstructionCUDA::StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {
-    GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[stream], ((cudaEvent_t*)evList)[i], 0));
+    GPUFailedMsg(cudaStreamWaitEvent(mInternals->Streams[stream], evList[i].get<cudaEvent_t>(), 0));
   }
 }
 
 bool GPUReconstructionCUDA::IsEventDone(deviceEvent* evList, int nEvents)
 {
   for (int i = 0; i < nEvents; i++) {
-    cudaError_t retVal = cudaEventSynchronize(((cudaEvent_t*)evList)[i]);
+    cudaError_t retVal = cudaEventSynchronize(evList[i].get<cudaEvent_t>());
     if (retVal == cudaErrorNotReady) {
       return false;
     }
