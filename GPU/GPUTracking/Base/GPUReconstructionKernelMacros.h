@@ -135,9 +135,9 @@
   GPUCA_KRNL_LOAD_multi(__VA_ARGS__)
 
 #define GPUCA_KRNL_PROP(x_class, x_attributes) \
-  template <> GPUReconstruction::krnlProperties GPUCA_KRNL_BACKEND_CLASS::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>() { \
-    krnlProperties ret = krnlProperties{GPUCA_ATTRRES(_INTERNAL_PROP,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes)))}; \
-    return ret.nThreads > 0 ? ret : krnlProperties{(int)mThreadCount}; \
+  template <> gpu_reconstruction_kernels::krnlProperties GPUCA_KRNL_BACKEND_CLASS::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>() { \
+    gpu_reconstruction_kernels::krnlProperties ret = gpu_reconstruction_kernels::krnlProperties{GPUCA_ATTRRES(_INTERNAL_PROP,GPUCA_M_SHIFT(GPUCA_M_STRIP(x_attributes)))}; \
+    return ret.nThreads > 0 ? ret : gpu_reconstruction_kernels::krnlProperties{(int)mThreadCount}; \
   }
 
 // Generate GPU kernel and host wrapper

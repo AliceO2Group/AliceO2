@@ -39,11 +39,11 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
  protected:
   GPUReconstructionCPUBackend(const GPUSettingsDeviceBackend& cfg) : GPUReconstruction(cfg) {}
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlSetupArgs<T, I, Args...>& args);
+  int runKernelBackend(const gpu_reconstruction_kernels::krnlSetupArgs<T, I, Args...>& args);
   template <class T, int I = 0, typename... Args>
-  int runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args);
+  int runKernelBackendInternal(const gpu_reconstruction_kernels::krnlSetupTime& _xyz, const Args&... args);
   template <class T, int I>
-  krnlProperties getKernelPropertiesBackend();
+  gpu_reconstruction_kernels::krnlProperties getKernelPropertiesBackend();
   unsigned int mNestedLoopOmpFactor = 1;
   static int getOMPThreadNum();
   static int getOMPMaxThreads();
@@ -62,9 +62,9 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   template <class S, int I = 0, typename... Args>
   int runKernel(krnlSetup&& setup, Args&&... args);
   template <class S, int I = 0>
-  const krnlProperties getKernelProperties()
+  const gpu_reconstruction_kernels::krnlProperties getKernelProperties()
   {
-    return getKernelPropertiesImpl(GPUReconstruction::classArgument<S, I>());
+    return getKernelPropertiesImpl(gpu_reconstruction_kernels::classArgument<S, I>());
   }
 
   template <class T, int I>
@@ -95,14 +95,14 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   GPUReconstructionCPU(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg) {}
 
-#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, x_types)                                                                                                                              \
-  inline int runKernelImplWrapper(classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, bool cpuFallback, double& timer, krnlSetup&& setup GPUCA_M_STRIP(x_arguments))                                       \
-  {                                                                                                                                                                                                   \
-    if (cpuFallback) {                                                                                                                                                                                \
-      return GPUReconstructionCPU::runKernelImpl(GPUReconstruction::krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>(setup.x, setup.y, setup.z, timer GPUCA_M_STRIP(x_forward))); \
-    } else {                                                                                                                                                                                          \
-      return runKernelImpl(GPUReconstruction::krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>(setup.x, setup.y, setup.z, timer GPUCA_M_STRIP(x_forward)));                       \
-    }                                                                                                                                                                                                 \
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, x_types)                                                                                                                    \
+  inline int runKernelImplWrapper(gpu_reconstruction_kernels::classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>, bool cpuFallback, double& timer, krnlSetup&& setup GPUCA_M_STRIP(x_arguments)) \
+  {                                                                                                                                                                                         \
+    if (cpuFallback) {                                                                                                                                                                      \
+      return GPUReconstructionCPU::runKernelImpl(krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>(setup.x, setup.y, setup.z, timer GPUCA_M_STRIP(x_forward)));          \
+    } else {                                                                                                                                                                                \
+      return runKernelImpl(krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>(setup.x, setup.y, setup.z, timer GPUCA_M_STRIP(x_forward)));                                \
+    }                                                                                                                                                                                       \
   }
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
@@ -233,7 +233,7 @@ inline int GPUReconstructionCPU::runKernel(krnlSetup&& setup, Args&&... args)
     }
   }
   double deviceTimerTime = 0;
-  int retVal = runKernelImplWrapper(classArgument<S, I>(), cpuFallback, deviceTimerTime, std::forward<krnlSetup&&>(setup), std::forward<Args>(args)...);
+  int retVal = runKernelImplWrapper(gpu_reconstruction_kernels::classArgument<S, I>(), cpuFallback, deviceTimerTime, std::forward<krnlSetup&&>(setup), std::forward<Args>(args)...);
   if (GPUDebug(GetKernelName<S, I>(), stream)) {
     throw std::runtime_error("kernel failure");
   }

@@ -48,6 +48,7 @@ static inline int omp_get_max_threads() { return 1; }
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::gpu_reconstruction_kernels;
 
 constexpr GPUReconstructionCPU::krnlRunRange GPUReconstructionCPU::krnlRunRangeNone;
 constexpr GPUReconstructionCPU::krnlEvent GPUReconstructionCPU::krnlEventNone;
@@ -115,14 +116,14 @@ int GPUReconstructionCPUBackend::runKernelBackend(const krnlSetupArgs<T, I, Args
 }
 
 template <class T, int I>
-GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
+krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
 {
   return krnlProperties{1, 1};
 }
 
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types)                                                                                                      \
   template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args); \
-  template GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
+  template krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL
 
