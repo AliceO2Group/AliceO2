@@ -298,8 +298,10 @@ template <typename T>
 inline Double_t MCTrackT<T>::GetEnergy() const
 {
   const auto mass = GetMass();
-  return std::sqrt(mass * mass + mStartVertexMomentumX * mStartVertexMomentumX +
-                   mStartVertexMomentumY * mStartVertexMomentumY + mStartVertexMomentumZ * mStartVertexMomentumZ);
+  Double_t px = mStartVertexMomentumX;
+  Double_t py = mStartVertexMomentumY;
+  Double_t pz = mStartVertexMomentumZ;
+  return std::sqrt(mass * mass + px * px + py * py + pz * pz);
 }
 
 template <typename T>
