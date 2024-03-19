@@ -50,7 +50,7 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 /// A callback function to retrieve the FairMQChannel name to be used for sending
 /// messages of the specified OutputSpec
 
-o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dpid2group, bool fbiFirst, bool verbose = false, int FBIPerInterval = 1)
+o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, std::vector<o2h::DataDescription>>& dpid2group, bool fbiFirst, bool verbose = false, int FBIPerInterval = 1)
 {
 
   return [dpid2group, fbiFirst, verbose, FBIPerInterval](o2::framework::TimingInfo& tinfo, framework::ServiceRegistryRef const& services, fair::mq::Parts& parts, o2f::ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) -> bool {
@@ -104,7 +104,15 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         // do we want to check if this DP was requested ?
         auto mapEl = dpid2group.find(src.id);
         if (verbose) {
-          LOG(info) << "Received DP " << src.id << " (data = " << src.data << "), matched to output-> " << (mapEl == dpid2group.end() ? "none " : mapEl->second.as<std::string>());
+          std::string dest;
+          if (mapEl == dpid2group.end()) {
+            dest = "none";
+          } else {
+            for (const auto& ds : mapEl->second) {
+              dest += fmt::format("{}, ", ds.as<std::string>());
+            }
+          }
+          LOG(info) << "Received DP " << src.id << " (data = " << src.data << "), matched to output-> " << dest;
         }
         if (mapEl != dpid2group.end()) {
           cache[src.id] = src; // this is needed in case in the 1s window we get a new value for the same DP
@@ -132,7 +140,9 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
       for (auto& it : cache) {
         auto mapEl = dpid2group.find(it.first);
         if (mapEl != dpid2group.end()) {
-          outputs[mapEl->second].push_back(it.second);
+          for (const auto& ds : mapEl->second) {
+            outputs[ds].push_back(it.second);
+          }
         }
       }
       std::uint64_t creation = std::chrono::time_point_cast<std::chrono::milliseconds>(timerNow).time_since_epoch().count();
