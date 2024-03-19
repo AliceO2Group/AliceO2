@@ -40,9 +40,6 @@
 #define GPUCA_KRNL_CUSTOM(...)
 #endif
 #define GPUCA_KRNL_CUSTOM_INTERNAL_PROP(...)
-#ifndef GPUCA_KRNL_BACKEND_XARGS
-#define GPUCA_KRNL_BACKEND_XARGS
-#endif
 #define GPUCA_ATTRRES_REG(XX, reg, num, ...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_KRNL_REG, XX))(num) GPUCA_ATTRRES2(XX, __VA_ARGS__)
 #define GPUCA_ATTRRES2_REG(XX, reg, num, ...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_KRNL_REG, XX))(num) GPUCA_ATTRRES3(XX, __VA_ARGS__)
 #define GPUCA_ATTRRES_CUSTOM(XX, custom, args, ...) GPUCA_M_EXPAND(GPUCA_M_CAT(GPUCA_KRNL_CUSTOM, XX))(args) GPUCA_ATTRRES2(XX, __VA_ARGS__)
@@ -89,7 +86,7 @@
   template <> class GPUCA_KRNL_BACKEND_CLASS::backendInternal<GPUCA_M_KRNL_TEMPLATE(x_class)> { \
    public: \
     template <typename T, typename... Args> \
-    static inline void runKernelBackendMacro(const krnlSetupTime& _xyz, T* me, GPUCA_KRNL_BACKEND_XARGS const Args&... args) \
+    static inline void runKernelBackendMacro(const krnlSetupTime& _xyz, T* me, const Args&... args) \
     { \
       auto& x = _xyz.x; \
       auto& y = _xyz.y;

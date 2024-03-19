@@ -42,7 +42,6 @@ inline void GPUReconstructionCUDABackend::runKernelBackendInternal<GPUMemClean16
 template <class T, int I, typename... Args>
 inline void GPUReconstructionCUDABackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
 {
-#ifndef __HIPCC__ // CUDA version
   GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (deviceEvent*)mDebugEvents, mInternals->Streams, _xyz, this);
 #if !defined(GPUCA_KERNEL_COMPILE_MODE) || GPUCA_KERNEL_COMPILE_MODE != 1
   if (!mProcessingSettings.rtc.enable) {
@@ -67,17 +66,6 @@ inline void GPUReconstructionCUDABackend::runKernelBackendInternal(const krnlSet
       GPUFailedMsg(cuLaunchKernel(*mInternals->kernelFunctions[getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     }
   }
-#else // HIP version
-  if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
-    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, mDebugEvents->DebugStart.getEventList<hipEvent_t>(), mDebugEvents->DebugStop.getEventList<hipEvent_t>(), args...);
-    GPUFailedMsg(hipEventSynchronize(mDebugEvents->DebugStop.get<hipEvent_t>()));
-    float v;
-    GPUFailedMsg(hipEventElapsedTime(&v, mDebugEvents->DebugStart.get<hipEvent_t>(), mDebugEvents->DebugStop.get<hipEvent_t>()));
-    _xyz.t = v * 1.e-3f;
-  } else {
-    backendInternal<T, I>::runKernelBackendMacro(_xyz, this, nullptr, nullptr, args...);
-  }
-#endif
 }
 
 template <class T, int I, typename... Args>
@@ -126,20 +114,10 @@ int GPUReconstructionCUDABackend::runKernelBackend(const krnlSetupArgs<T, I, Arg
 #else // HIP version
 #undef GPUCA_KRNL_CUSTOM
 #define GPUCA_KRNL_CUSTOM(args) GPUCA_M_STRIP(args)
-#undef GPUCA_KRNL_BACKEND_XARGS
-#define GPUCA_KRNL_BACKEND_XARGS hipEvent_t *debugStartEvent, hipEvent_t *debugStopEvent,
-#define GPUCA_KRNL_CALL_single(x_class, ...)                                                                                                                                                                                                    \
-  if (debugStartEvent == nullptr) {                                                                                                                                                                                                             \
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);                                          \
-  } else {                                                                                                                                                                                                                                      \
-    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], *debugStartEvent, *debugStopEvent, 0, GPUCA_CONSMEM_CALL y.start, args...); \
-  }
-#define GPUCA_KRNL_CALL_multi(x_class, ...)                                                                                                                                                                                                                     \
-  if (debugStartEvent == nullptr) {                                                                                                                                                                                                                             \
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);                                          \
-  } else {                                                                                                                                                                                                                                                      \
-    hipExtLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], *debugStartEvent, *debugStopEvent, 0, GPUCA_CONSMEM_CALL y.start, y.num, args...); \
-  }
+#define GPUCA_KRNL_CALL_single(x_class, ...) \
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, args...);
+#define GPUCA_KRNL_CALL_multi(x_class, ...) \
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi)), dim3(x.nBlocks), dim3(x.nThreads), 0, me->mInternals->Streams[x.stream], GPUCA_CONSMEM_CALL y.start, y.num, args...);
 #endif // __HIPCC__
 #endif
 
