@@ -31,10 +31,10 @@ class GPUChain
   using GeneralStep = GPUReconstruction::GeneralStep;
   using InOutPointerType = GPUReconstruction::InOutPointerType;
   using GeometryType = GPUReconstruction::GeometryType;
-  using krnlRunRange = GPUReconstruction::krnlRunRange;
-  using krnlExec = GPUReconstruction::krnlExec;
-  using krnlEvent = GPUReconstruction::krnlEvent;
-  using deviceEvent = GPUReconstruction::deviceEvent;
+  using krnlRunRange = gpu_reconstruction_kernels::krnlRunRange;
+  using krnlExec = gpu_reconstruction_kernels::krnlExec;
+  using krnlEvent = gpu_reconstruction_kernels::krnlEvent;
+  using deviceEvent = gpu_reconstruction_kernels::deviceEvent;
   static constexpr krnlRunRange krnlRunRangeNone{0, -1};
   static constexpr krnlEvent krnlEventNone = krnlEvent{nullptr, nullptr, 0};
 
@@ -179,12 +179,12 @@ class GPUChain
     mRec->ReadStructFromFile<T>(file, obj);
   }
   template <class S, int I = 0, typename... Args>
-  inline int runKernel(GPUReconstruction::krnlSetup&& setup, Args&&... args)
+  inline int runKernel(gpu_reconstruction_kernels::krnlSetup&& setup, Args&&... args)
   {
-    return mRec->runKernel<S, I, Args...>(std::forward<GPUReconstruction::krnlSetup&&>(setup), std::forward<Args>(args)...);
+    return mRec->runKernel<S, I, Args...>(std::forward<gpu_reconstruction_kernels::krnlSetup&&>(setup), std::forward<Args>(args)...);
   }
   template <class S, int I = 0>
-  GPUReconstruction::krnlProperties getKernelProperties()
+  gpu_reconstruction_kernels::krnlProperties getKernelProperties()
   {
     return mRec->getKernelProperties<S, I>();
   }
