@@ -40,7 +40,7 @@
 /DataFormats/Detectors/Passive                 @sawenzel @benedikt-voelkel
 /DataFormats/Detectors/TOF                     @noferini
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
-/DataFormats/Detectors/TRD                     @f3sch @bazinski @martenole
+/DataFormats/Detectors/TRD                     @f3sch @bazinski @martenole @wille10
 /DataFormats/Detectors/Upgrades                @mconcas
 /DataFormats/Detectors/Upgrades/ITS3           @fgrosa @arossi81
 /DataFormats/Detectors/ZDC                     @coppedis
@@ -71,7 +71,7 @@
 /Detectors/Passive                 @sawenzel @benedikt-voelkel
 /Detectors/TOF                     @noferini
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
-/Detectors/TRD                     @f3sch @bazinski @martenole
+/Detectors/TRD                     @f3sch @bazinski @martenole @wille10
 /Detectors/Upgrades                @mconcas
 /Detectors/Upgrades/ITS3           @fgrosa @arossi81 @mconcas @f3sch
 /Detectors/ZDC                     @coppedis
