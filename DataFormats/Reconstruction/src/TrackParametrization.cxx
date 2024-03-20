@@ -591,7 +591,13 @@ GPUd() void TrackParametrization<value_T>::printParam() const
   printf("%s\n", asString().c_str());
 #else
   printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d %s",
-         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
+         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(),
+#ifndef __OPENCL__
+         getPID().getName()
+#else
+         ""
+#endif
+  );
 #endif
 }
 
@@ -604,15 +610,20 @@ GPUd() void TrackParametrization<value_T>::printParamHexadecimal()
   printf("%s\n", asStringHexadecimal().c_str());
 #else
   printf("X:%x Alp:%x Par: %x %x %x %x %x |Q|:%x %s",
-         __float_as_uint(getX()),
-         __float_as_uint(getAlpha()),
-         __float_as_uint(getY()),
-         __float_as_uint(getZ()),
-         __float_as_uint(getSnp()),
-         __float_as_uint(getTgl()),
-         __float_as_uint(getQ2Pt()),
-         __float_as_uint(getAbsCharge()),
-         getPID().getName());
+         gpu::CAMath::Float2UIntReint(getX()),
+         gpu::CAMath::Float2UIntReint(getAlpha()),
+         gpu::CAMath::Float2UIntReint(getY()),
+         gpu::CAMath::Float2UIntReint(getZ()),
+         gpu::CAMath::Float2UIntReint(getSnp()),
+         gpu::CAMath::Float2UIntReint(getTgl()),
+         gpu::CAMath::Float2UIntReint(getQ2Pt()),
+         gpu::CAMath::Float2UIntReint(getAbsCharge()),
+#ifndef __OPENCL__
+         getPID().getName()
+#else
+         ""
+#endif
+  );
 #endif
 }
 
