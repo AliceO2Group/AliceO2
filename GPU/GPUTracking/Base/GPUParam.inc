@@ -100,12 +100,13 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float y, 
 MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float x, float y, char sector) const
 {
-  if (rec.tpc.sysClusErrorC12Norm == 0.f) {
+  const float dx = x - 83.f;
+  if (dx > occupancyTotal * rec.tpc.sysClusErrorC12Box) {
     return 0.f;
   }
-  const float dEdge = CAMath::Pi() / 18.f;
-  const float dy = (sector == (GPUCA_NSLICES / 2 + 1) ? 0.5 : -0.5) * (y / x) / dEdge + dEdge;
-  const float errC12 = rec.tpc.sysClusErrorC12Norm * occupancyTotal * dy * CAMath::Exp(-(x - 83.f) * rec.tpc.sysClusErrorC12Slope);
+  CONSTEXPR float dEdgeInv = 18.f / CAMath::Pi();
+  const float dy = (sector == (GPUCA_NSLICES / 2 + 1) ? 0.5f : -0.5f) * (y / x) * dEdgeInv + 0.5f;
+  const float errC12 = rec.tpc.sysClusErrorC12Norm * occupancyTotal * dy;
   return errC12 * errC12;
 }
 
