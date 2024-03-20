@@ -159,16 +159,16 @@ DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
 DECLARE_SOA_DYNAMIC_COLUMN(Energy, energy, //! Track energy, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
-                             const auto p = 0.5f * (tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl))) * pt;
-                             return sqrt(p * p + mass * mass);
+                             const auto p = 0.5f * (std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl)) + 1.f / std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl))) * pt;
+                             return std::sqrt(p * p + mass * mass);
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(Rapidity, rapidity, //! Track rapidity, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
                              const auto pz = pt * tgl;
-                             const auto p = 0.5f * (tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl))) * pt;
-                             const auto energy = sqrt(p * p + mass * mass);
-                             return 0.5f * log((energy + pz) / (energy - pz));
+                             const auto p = 0.5f * (std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl)) + 1.f / std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl))) * pt;
+                             const auto energy = std::sqrt(p * p + mass * mass);
+                             return 0.5f * std::log((energy + pz) / (energy - pz));
                            });
 
 // TRACKPARCOV TABLE definition
