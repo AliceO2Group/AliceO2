@@ -284,7 +284,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   else if (!ccdburl.empty()) { // send from this workflow
 
-    LOG(info) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getFileName()
+    LOG(info) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
               << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
