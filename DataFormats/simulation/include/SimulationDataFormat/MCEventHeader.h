@@ -142,6 +142,12 @@ class MCEventHeader : public FairMCEventHeader
     mEventInfo.print();
   }
 
+  /// inits info fields from another Event header
+  void copyInfoFrom(MCEventHeader const& other)
+  {
+    mEventInfo.copyFrom(other.mEventInfo);
+  }
+
   /** methods **/
   virtual void Reset();
 
