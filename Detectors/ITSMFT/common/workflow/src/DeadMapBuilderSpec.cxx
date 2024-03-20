@@ -269,7 +269,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   if (ec != nullptr) {
 
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(important) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
               << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
@@ -284,7 +284,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   else if (!ccdburl.empty()) { // send from this workflow
 
-    LOG(info) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getPath() << "/" << info.getFileName()
+    LOG(important) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
               << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
@@ -335,7 +335,7 @@ void ITSMFTDeadMapBuilder::stop()
       LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << "deadmap builder workflow.";
       PrepareOutputCcdb(nullptr, mCCDBUrl);
     } else {
-      LOG(warning) << "endOfStream not processed. Nothing forwarded as output.";
+      LOG(alert) << "endOfStream not processed. Nothing forwarded as output.";
     }
     isEnded = true;
   }
