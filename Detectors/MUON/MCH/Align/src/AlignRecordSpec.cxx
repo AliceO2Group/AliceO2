@@ -176,35 +176,27 @@ class AlignRecordTask
       const auto& mchTrack = mchTracks[mchTrackID];
       int first = mchTrack.getFirstClusterIdx();
       int last = mchTrack.getLastClusterIdx();
+      int Ncluster = last - first + 1;
+
+      if (Ncluster < 9) {
+        continue;
+      }
+
       int clIndex = -1;
       mch::Track convertedTrack;
 
       for (int i = first; i <= last; i++) {
         clIndex += 1;
         const auto& cluster = mchClusters[i];
-        mch::Cluster* mch_cluster = new mch::Cluster();
-        mch_cluster->x = cluster.x;
-        mch_cluster->y = cluster.y;
-        mch_cluster->z = cluster.z;
-
-        uint32_t ClUId = mch::Cluster::buildUniqueId(int(cluster.getDEId() / 100) - 1, cluster.getDEId(), clIndex);
-        mch_cluster->uid = ClUId;
-
-        mch_cluster->ex = cluster.ex;
-        mch_cluster->ey = cluster.ey;
-
-        convertedTrack.createParamAtCluster(*mch_cluster);
+        convertedTrack.createParamAtCluster(cluster);
       }
 
-      if (convertedTrack.getNClusters() > 9) {
-        // Erase removable track
-        if (!RemoveTrack(convertedTrack)) {
-          // mRecords.emplace_back(mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord));
-          pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord));
-        }
+      // Erase removable track
+      if (!RemoveTrack(convertedTrack)) {
+        mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord);
+        pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, *mAlign.GetRecord());
       }
     }
-    // pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, mRecords);
   }
 
  private:

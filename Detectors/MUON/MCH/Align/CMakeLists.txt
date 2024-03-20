@@ -53,25 +53,7 @@ o2_add_executable(
         SOURCES src/align-record-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
-          O2::MathUtils
-          O2::CCDB
-          O2::MCHAlign
-          O2::DataFormatsMCH
-          O2::ForwardAlign
-          O2::MCHTracking
-          O2::GlobalTracking
-          O2::GlobalTrackingWorkflow
-          O2::MCHGeometryTransformer
-          O2::CommonUtils
-          O2::DataFormatsParameters
-          O2::DetectorsBase
-          O2::DetectorsRaw
-          O2::Framework
-          O2::DetectorsRaw
-          O2::Headers
-          O2::ReconstructionDataFormats
-          O2::DetectorsCommonDataFormats
-          Boost::program_options)
+          O2::MCHAlign)
 
 
 

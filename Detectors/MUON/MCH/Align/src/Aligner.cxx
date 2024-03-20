@@ -139,7 +139,7 @@ Aligner::Aligner()
     fGlobalParameterStatus(std::vector<int>(fNGlobal)),
     fGlobalDerivatives(std::vector<double>(fNGlobal)),
     fLocalDerivatives(std::vector<double>(fNLocal)),
-    fTrackRecord(),
+    fTrackRecord(nullptr),
     mNEntriesAutoSave(10000),
     mRecordWriter(new o2::fwdalign::MilleRecordWriter()),
     mWithConstraintsRecWriter(false),
@@ -170,6 +170,9 @@ Aligner::Aligner()
 
   // initialize millepede
   fMillepede = new o2::fwdalign::MillePede2();
+
+  // initialize millepede record
+  fTrackRecord = new o2::fwdalign::MillePedeRecord();
 
   // initialize degrees of freedom
   // by default all parameters are free
@@ -202,15 +205,18 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
   }
 
   if (!mRead) {
+    if (!fDisableRecordWriter) {
+      mRecordWriter->setCyclicAutoSave(mNEntriesAutoSave);
+      mRecordWriter->setDataFileName(DataRecFName);
+      fMillepede->SetRecordWriter(mRecordWriter);
 
-    mRecordWriter->setCyclicAutoSave(mNEntriesAutoSave);
-    mRecordWriter->setDataFileName(DataRecFName);
-    fMillepede->SetRecordWriter(mRecordWriter);
-
-    if (mWithConstraintsRecWriter) {
-      mConstraintsRecWriter->setCyclicAutoSave(mNEntriesAutoSave);
-      mConstraintsRecWriter->setDataFileName(ConsRecFName);
-      fMillepede->SetConstraintsRecWriter(mConstraintsRecWriter);
+      if (mWithConstraintsRecWriter) {
+        mConstraintsRecWriter->setCyclicAutoSave(mNEntriesAutoSave);
+        mConstraintsRecWriter->setDataFileName(ConsRecFName);
+        fMillepede->SetConstraintsRecWriter(mConstraintsRecWriter);
+      }
+    } else {
+      fMillepede->SetRecord(fTrackRecord);
     }
 
   } else {
@@ -358,7 +364,6 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
 void Aligner::terminate()
 {
   fInitialized = kFALSE;
-  mRecordWriter->terminate();
   LOG(info) << "Closing Evaluation TFile";
   if (fDoEvaluation) {
     if (fTFile && fTTree) {
@@ -367,18 +372,23 @@ void Aligner::terminate()
       fTFile->Close();
     }
   }
+  delete mRecordWriter;
+  delete mRecordReader;
+  delete fMillepede;
+  delete fTrackRecord;
 }
 
 //_____________________________________________________
-o2::fwdalign::MillePedeRecord Aligner::ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, bool doAlignment, double weight)
+void Aligner::ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, bool doAlignment, double weight)
 {
 
   /// process track for alignment minimization
   // reset track records
-  fTrackRecord.Reset();
+
   if (fMillepede->GetRecord()) {
     fMillepede->GetRecord()->Reset();
   }
+
   // loop over clusters to get starting values
   bool first(true);
 
@@ -533,48 +543,17 @@ o2::fwdalign::MillePedeRecord Aligner::ProcessTrack(Track& track, const o2::mch:
   }
 
   // copy track record
-  mRecordWriter->setRecordRun(fRunNumber);
-  mRecordWriter->setRecordWeight(weight);
-  fTrackRecord = *fMillepede->GetRecord();
+  if (!fDisableRecordWriter) {
+    mRecordWriter->setRecordRun(fRunNumber);
+    mRecordWriter->setRecordWeight(weight);
+  }
 
   // save record data
   if (doAlignment) {
     if (!fDisableRecordWriter) {
       mRecordWriter->fillRecordTree();
-    } else {
-      fMillepede->ResetRecord();
     }
   }
-
-  // return record
-  return fTrackRecord;
-}
-
-//______________________________________________________________________________
-void Aligner::ProcessTrack(o2::fwdalign::MillePedeRecord* trackRecord)
-{
-  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
-
-  /// process track record
-  if (!trackRecord) {
-    return;
-  }
-
-  // // make sure record storage is initialized
-  if (!fMillepede->GetRecord()) {
-    mRecordWriter->init();
-  }
-  // // copy content
-  *fMillepede->GetRecord() = *trackRecord;
-
-  // save record
-  if (!fDisableRecordWriter) {
-    mRecordWriter->fillRecordTree();
-  }
-  // write to local file
-  // mRecordWriter->terminate();
-
-  return;
 }
 
 //_____________________________________________________________________

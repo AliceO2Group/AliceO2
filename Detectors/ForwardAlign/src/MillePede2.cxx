@@ -97,7 +97,6 @@ MillePede2::MillePede2()
     fConstraintsRecReader(nullptr)
 {
   fWghScl[0] = fWghScl[1] = -1;
-  fRecord = new o2::fwdalign::MillePedeRecord();
   LOGF(info, "MillePede2 instantiated");
 }
 

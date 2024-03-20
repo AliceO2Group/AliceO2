@@ -212,6 +212,7 @@ class AlignmentTask
     mAlign.SetAllowedVariation(2, 0.002);
     mAlign.SetAllowedVariation(3, 2.0);
     trackFitter.smoothTracks(true);
+    trackFitter.useChamberResolution();
 
     // Fix chambers
     auto chambers = ic.options().get<string>("fix-chamber");

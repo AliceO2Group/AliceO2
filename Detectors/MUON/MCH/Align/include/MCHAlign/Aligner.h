@@ -184,9 +184,7 @@ class Aligner : public TObject
     AllSides = SideTop | SideBottom | SideLeft | SideRight
   };
 
-  o2::fwdalign::MillePedeRecord ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, Bool_t doAlignment, Double_t weight = 1);
-
-  void ProcessTrack(o2::fwdalign::MillePedeRecord*);
+  void ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, Bool_t doAlignment, Double_t weight = 1);
 
   //@name modifiers
   //@{
@@ -301,6 +299,8 @@ class Aligner : public TObject
 
   /// get error on a given parameter
   double GetParError(int iPar) const;
+
+  o2::fwdalign::MillePedeRecord* GetRecord() const { return fTrackRecord; }
 
   void ReAlign(std::vector<o2::detectors::AlignParam>& params, std::vector<double>& misAlignments);
 
@@ -449,7 +449,7 @@ class Aligner : public TObject
   int fDetElemNumber;
 
   /// running Track record
-  o2::fwdalign::MillePedeRecord fTrackRecord;
+  o2::fwdalign::MillePedeRecord* fTrackRecord;
 
   /// Geometry transformation
   o2::mch::geo::TransformationCreator fTransformCreator;
