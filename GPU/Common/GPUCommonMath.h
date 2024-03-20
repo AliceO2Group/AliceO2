@@ -71,8 +71,8 @@ class GPUCommonMath
   GPUd() static float Log(float x);
   GPUd() static float Exp(float x);
   GPUhdni() static float Copysign(float x, float y);
-  GPUd() static float TwoPi() { return 6.2831853f; }
-  GPUd() static float Pi() { return 3.1415927f; }
+  GPUd() static CONSTEXPR float TwoPi() { return 6.2831853f; }
+  GPUd() static CONSTEXPR float Pi() { return 3.1415927f; }
   GPUd() static float Round(float x);
   GPUd() static float Floor(float x);
   GPUd() static unsigned int Float2UIntRn(float x);
