@@ -270,8 +270,8 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
   if (ec != nullptr) {
 
     LOG(important) << "Sending object " << info.getPath() << "/" << info.getFileName()
-              << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
-              << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+                   << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
+                   << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     if (mRunMFT) {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 1}, *image.get());
@@ -285,8 +285,8 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
   else if (!ccdburl.empty()) { // send from this workflow
 
     LOG(important) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getPath() << "/" << info.getFileName()
-              << " of size " << image->size() << " bytes, valid for "
-              << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+                   << " of size " << image->size() << " bytes, valid for "
+                   << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     o2::ccdb::CcdbApi mApi;
     mApi.init(ccdburl);
