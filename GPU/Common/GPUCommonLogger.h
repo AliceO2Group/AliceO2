@@ -30,7 +30,7 @@ struct DummyLogger {
 } // namespace o2::gpu::detail
 #endif
 
-#if defined(__OPENCL__)
+#if defined(__OPENCL__) || (defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_GPU_DEBUG_PRINT))
 #define LOG(...) o2::gpu::detail::DummyLogger()
 #define LOGF(...)
 #define LOGP(...)
