@@ -278,7 +278,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 1}, info);
     } else {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 0}, *image.get());
-      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);a
     }
   }
 
@@ -335,7 +335,7 @@ void ITSMFTDeadMapBuilder::stop()
       LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << "deadmap builder workflow.";
       PrepareOutputCcdb(nullptr, mCCDBUrl);
     } else {
-      LOG(alert) << "endOfStream not processed. Nothing forwarded as output.";
+      LOG(alarm) << "endOfStream not processed. Nothing forwarded as output.";
     }
     isEnded = true;
   }
