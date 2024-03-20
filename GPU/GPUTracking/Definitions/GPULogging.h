@@ -25,6 +25,14 @@
   #define GPUAlarm(...)
   #define GPUError(...)
   #define GPUFatal(...)
+#elif defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_GPU_DEBUG_PRINT)
+  // Compile-time disable for performance-reasons
+  #define GPUInfo(...)
+  #define GPUImportant(...)
+  #define GPUWarning(...)
+  #define GPUAlarm(...)
+  #define GPUError(...)
+  #define GPUFatal(...)
 #elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
   #include <fmt/printf.h>
   #define GPUInfo(string, ...)                 \

@@ -30,9 +30,12 @@ namespace pid_constants // GPUs currently cannot have static constexpr array mem
 {
 typedef uint8_t ID;
 static constexpr ID NIDsTot = 17;
+
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(GPUCA_GPU_DEBUG_PRINT)
 GPUconstexpr() const char* sNames[NIDsTot + 1] = ///< defined particle names
   {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha",
    "Pion0", "Photon", "K0", "Lambda", "HyperTriton", "Hyperhydrog4", "XiMinus", "OmegaMinus", nullptr};
+#endif
 
 GPUconstexpr() const float sMasses[NIDsTot] = ///< defined particle masses
   {o2cp::MassElectron, o2cp::MassMuon, o2cp::MassPionCharged, o2cp::MassKaonCharged,
@@ -126,7 +129,7 @@ class PID
   GPUd() static float getMass2(ID id) { return pid_constants::sMasses2[id]; }
   GPUd() static float getMass2Z(ID id) { return pid_constants::sMasses2Z[id]; }
   GPUd() static int getCharge(ID id) { return pid_constants::sCharges[id]; }
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(GPUCA_GPU_DEBUG_PRINT)
   GPUd() const char* getName() const
   {
     return getName(mID);
@@ -137,13 +140,13 @@ class PID
  private:
   ID mID = Pion;
 
+#if !defined(GPUCA_GPUCODE_DEVICE) || defined(GPUCA_GPU_DEBUG_PRINT)
   // are 2 strings equal ? (trick from Giulio)
   GPUdi() static constexpr bool sameStr(char const* x, char const* y)
   {
     return !*x && !*y ? true : /* default */ (*x == *y && sameStr(x + 1, y + 1));
   }
 
-#ifndef GPUCA_GPUCODE_DEVICE
   GPUdi() static constexpr ID nameToID(char const* name, ID id)
   {
     return id > LastExt ? id : sameStr(name, pid_constants::sNames[id]) ? id : nameToID(name, id + 1);
