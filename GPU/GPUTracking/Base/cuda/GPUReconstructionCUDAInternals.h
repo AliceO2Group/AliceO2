@@ -60,7 +60,7 @@ class GPUDebugTiming
   }
   ~GPUDebugTiming()
   {
-    if (mDo) {
+    if (mDo && mXYZ.t == 0.) {
       if (mDeviceTimers) {
         mRec->GPUFailedMsg(cudaEventRecord(mDeviceTimers[1].get<cudaEvent_t>(), mStreams[mXYZ.x.stream]));
         mRec->GPUFailedMsg(cudaEventSynchronize(mDeviceTimers[1].get<cudaEvent_t>()));
