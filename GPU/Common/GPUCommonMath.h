@@ -75,6 +75,7 @@ class GPUCommonMath
   GPUd() static CONSTEXPR float Pi() { return 3.1415927f; }
   GPUd() static float Round(float x);
   GPUd() static float Floor(float x);
+  GPUd() static unsigned int Float2UIntReint(const float& x);
   GPUd() static unsigned int Float2UIntRn(float x);
   GPUd() static int Float2IntRn(float x);
   GPUd() static float Modf(float x, float y);
@@ -207,6 +208,16 @@ GPUdi() float2 GPUCommonMath::MakeFloat2(float x, float y)
 }
 
 GPUdi() float GPUCommonMath::Modf(float x, float y) { return CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
+
+GPUdi() unsigned int GPUCommonMath::Float2UIntReint(const float& x)
+{
+#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__) || defined(__OPENCL_HOST__)
+  return reinterpret_cast<const unsigned int&>(x);
+#else
+  return __float_as_uint(x);
+#endif
+}
+
 GPUdi() unsigned int GPUCommonMath::Float2UIntRn(float x) { return (unsigned int)(int)(x + 0.5f); }
 GPUdi() float GPUCommonMath::Floor(float x) { return CHOICE(floorf(x), floorf(x), floor(x)); }
 

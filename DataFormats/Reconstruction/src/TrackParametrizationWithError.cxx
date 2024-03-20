@@ -1244,11 +1244,11 @@ GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
     "<> %7s [%x %x %x %x]\n"
     "<> %7s [%x %x %x %x %x]\n",
     "<> CovMat:",
-    __float_as_uint(mC[kSigY2]), "",
-    __float_as_uint(mC[kSigZY]), __float_as_uint(mC[kSigZ2]), "",
-    __float_as_uint(mC[kSigSnpY]), __float_as_uint(mC[kSigSnpZ]), __float_as_uint(mC[kSigSnp2]), "",
-    __float_as_uint(mC[kSigTglY]), __float_as_uint(mC[kSigTglZ]), __float_as_uint(mC[kSigTglSnp]), __float_as_uint(mC[kSigTgl2]), "",
-    __float_as_uint(mC[kSigQ2PtY]), __float_as_uint(mC[kSigQ2PtZ]), __float_as_uint(mC[kSigQ2PtSnp]), __float_as_uint(mC[kSigQ2PtTgl]), __float_as_uint(mC[kSigQ2Pt2]));
+    gpu::CAMath::Float2UIntReint(mC[kSigY2]), "",
+    gpu::CAMath::Float2UIntReint(mC[kSigZY]), gpu::CAMath::Float2UIntReint(mC[kSigZ2]), "",
+    gpu::CAMath::Float2UIntReint(mC[kSigSnpY]), gpu::CAMath::Float2UIntReint(mC[kSigSnpZ]), gpu::CAMath::Float2UIntReint(mC[kSigSnp2]), "",
+    gpu::CAMath::Float2UIntReint(mC[kSigTglY]), gpu::CAMath::Float2UIntReint(mC[kSigTglZ]), gpu::CAMath::Float2UIntReint(mC[kSigTglSnp]), gpu::CAMath::Float2UIntReint(mC[kSigTgl2]), "",
+    gpu::CAMath::Float2UIntReint(mC[kSigQ2PtY]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtZ]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtSnp]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtTgl]), gpu::CAMath::Float2UIntReint(mC[kSigQ2Pt2]));
 #endif
 }
 
