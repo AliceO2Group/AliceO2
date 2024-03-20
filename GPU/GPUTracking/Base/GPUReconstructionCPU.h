@@ -232,16 +232,19 @@ inline int GPUReconstructionCPU::runKernel(krnlSetup&& setup, Args&&... args)
       t->Start();
     }
   }
-  double deviceTimerTime = 0;
+  double deviceTimerTime = 0.;
   int retVal = runKernelImplWrapper(gpu_reconstruction_kernels::classArgument<S, I>(), cpuFallback, deviceTimerTime, std::forward<krnlSetup&&>(setup), std::forward<Args>(args)...);
   if (GPUDebug(GetKernelName<S, I>(), stream)) {
     throw std::runtime_error("kernel failure");
   }
   if (mProcessingSettings.debugLevel >= 1) {
     if (t) {
-      if (mProcessingSettings.deviceTimers && IsGPU() && !cpuFallback) {
+      if (deviceTimerTime != 0.) {
         t->AddTime(deviceTimerTime);
-      } else if (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0) {
+        if (t->IsRunning()) {
+          t->Abort();
+        }
+      } else if (t->IsRunning()) {
         t->Stop();
       }
     }
