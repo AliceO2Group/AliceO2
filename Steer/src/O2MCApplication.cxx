@@ -1123,7 +1123,7 @@ void addSpecialParticles()
   //  Int_t mode[6][3];
   //  Float_t bratio[6];
 
-  for (Int_t kz = 0; kz < 9; kz++) {
+  for (Int_t kz = 0; kz < 6; kz++) {
     bratio[kz] = 0.;
     mode[kz][0] = 0;
     mode[kz][1] = 0;
@@ -1141,102 +1141,110 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(-102134, "Lambda1520bar", kPTNeutron, 1.5195, 0.0, 4.22e-23, "Hadron", 0.0156, 3, -1, 0, 0, 0, 0, 0, -1, kTRUE);
 
   // Lambda1520 decay modes
+  Int_t lmode[9][3];
+  Float_t lbratio[9];
+  for (Int_t kz = 0; kz < 9; kz++) {
+    lbratio[kz] = 0.;
+    lmode[kz][0] = 0;
+    lmode[kz][1] = 0;
+    lmode[kz][2] = 0;
+  }
 
   // L(1520) -> p K-
-  bratio[0] = 0.229944;
-  mode[0][0] = 2212;
-  mode[0][1] = -321;
+  lbratio[0] = 0.229944;
+  lmode[0][0] = 2212;
+  lmode[0][1] = -321;
 
   // L(1520) -> n K0
-  bratio[1] = 0.229944;
-  mode[1][0] = 2112;
-  mode[1][1] = -311;
+  lbratio[1] = 0.229944;
+  lmode[1][0] = 2112;
+  lmode[1][1] = -311;
 
   // L(1520) -> Sigma+ pi-
-  bratio[2] = 0.143076;
-  mode[2][0] = 3222;
-  mode[2][1] = -211;
+  lbratio[2] = 0.143076;
+  lmode[2][0] = 3222;
+  lmode[2][1] = -211;
 
   // L(1520) -> Sigma0 pi0
-  bratio[3] = 0.143076;
-  mode[3][0] = 3212;
-  mode[3][1] = 111;
+  lbratio[3] = 0.143076;
+  lmode[3][0] = 3212;
+  lmode[3][1] = 111;
 
   // L(1520) -> Sigma- pi+
-  bratio[4] = 0.143076;
-  mode[4][0] = 3112;
-  mode[4][1] = 211;
+  lbratio[4] = 0.143076;
+  lmode[4][0] = 3112;
+  lmode[4][1] = 211;
 
   // L(1520) -> Sigma*- pi+
-  bratio[5] = 0.034066;
-  mode[5][0] = 3114;
-  mode[5][1] = 211;
+  lbratio[5] = 0.034066;
+  lmode[5][0] = 3114;
+  lmode[5][1] = 211;
 
   // L(1520) -> Sigma*0 pi0
-  bratio[6] = 0.034066;
-  mode[6][0] = 3214;
-  mode[6][1] = 111;
+  lbratio[6] = 0.034066;
+  lmode[6][0] = 3214;
+  lmode[6][1] = 111;
 
   // L(1520) -> Sigma*+ pi-
-  bratio[7] = 0.034066;
-  mode[7][0] = 3224;
-  mode[7][1] = -211;
+  lbratio[7] = 0.034066;
+  lmode[7][0] = 3224;
+  lmode[7][1] = -211;
 
   // L(1520) -> Lambda gamma
-  bratio[8] = 0.008687;
-  mode[8][0] = 3122;
-  mode[8][1] = 22;
+  lbratio[8] = 0.008687;
+  lmode[8][0] = 3122;
+  lmode[8][1] = 22;
 
-  TVirtualMC::GetMC()->SetDecayMode(102134, bratio, mode);
+  TVirtualMC::GetMC()->SetDecayMode(102134, lbratio, lmode);
 
   // Lambda1520bar decay modes
 
   // L(1520)bar -> p- K+
-  bratio[0] = 0.229944;
-  mode[0][0] = -2212;
-  mode[0][1] = 321;
+  lbratio[0] = 0.229944;
+  lmode[0][0] = -2212;
+  lmode[0][1] = 321;
 
   // L(1520)bar -> nbar K0bar
-  bratio[1] = 0.229944;
-  mode[1][0] = -2112;
-  mode[1][1] = 311;
+  lbratio[1] = 0.229944;
+  lmode[1][0] = -2112;
+  lmode[1][1] = 311;
 
   // L(1520)bar -> Sigmabar- pi+
-  bratio[2] = 0.143076;
-  mode[2][0] = -3222;
-  mode[2][1] = 211;
+  lbratio[2] = 0.143076;
+  lmode[2][0] = -3222;
+  lmode[2][1] = 211;
 
   // L(1520)bar -> Sigma0bar pi0
-  bratio[3] = 0.143076;
-  mode[3][0] = -3212;
-  mode[3][1] = 111;
+  lbratio[3] = 0.143076;
+  lmode[3][0] = -3212;
+  lmode[3][1] = 111;
 
   // L(1520)bar -> Sigmabar+ pi-
-  bratio[4] = 0.143076;
-  mode[4][0] = -3112;
-  mode[4][1] = -211;
+  lbratio[4] = 0.143076;
+  lmode[4][0] = -3112;
+  lmode[4][1] = -211;
 
   // L(1520)bar -> anti-Sigma*- pi-
-  bratio[5] = 0.034066;
-  mode[5][0] = -3114;
-  mode[5][1] = -211;
+  lbratio[5] = 0.034066;
+  lmode[5][0] = -3114;
+  lmode[5][1] = -211;
 
   // L(1520)bar -> anti-Sigma*0 pi0
-  bratio[6] = 0.034066;
-  mode[6][0] = -3214;
-  mode[6][1] = 111;
+  lbratio[6] = 0.034066;
+  lmode[6][0] = -3214;
+  lmode[6][1] = 111;
 
   // L(1520)bar -> anti-Sigma*+ pi+
-  bratio[7] = 0.034066;
-  mode[7][0] = -3224;
-  mode[7][1] = 211;
+  lbratio[7] = 0.034066;
+  lmode[7][0] = -3224;
+  lmode[7][1] = 211;
 
   // L(1520)bar -> Anti-Lambda gamma
-  bratio[8] = 0.008687;
-  mode[8][0] = -3122;
-  mode[8][1] = 22;
+  lbratio[8] = 0.008687;
+  lmode[8][0] = -3122;
+  lmode[8][1] = 22;
 
-  TVirtualMC::GetMC()->SetDecayMode(-102134, bratio, mode);
+  TVirtualMC::GetMC()->SetDecayMode(-102134, lbratio, lmode);
 
   // --------------------------------------------------------------------
 
