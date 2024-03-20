@@ -278,7 +278,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 1}, info);
     } else {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 0}, *image.get());
-      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);a
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TimeDeadMap", 0}, info);
     }
   }
 
