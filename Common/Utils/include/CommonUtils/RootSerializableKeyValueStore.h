@@ -141,8 +141,17 @@ class RootSerializableKeyValueStore
     mStore.clear();
   }
 
-  /// print list of keys and type information
-  void print() const;
+  /// print list of keys, values (and optionally type information)
+  void print(bool includetypeinfo = false) const;
+
+  void copyFrom(RootSerializableKeyValueStore const& other)
+  {
+    for (auto& p : other.mStore) {
+      if (mStore.find(p.first) == mStore.end()) {
+        mStore.insert(std::pair<std::string, SerializedInfo>(p.first, SerializedInfo(p.second)));
+      }
+    }
+  }
 
  private:
   std::map<std::string, SerializedInfo> mStore;
