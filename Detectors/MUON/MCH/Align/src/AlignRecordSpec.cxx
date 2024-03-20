@@ -178,7 +178,7 @@ class AlignRecordTask
       int last = mchTrack.getLastClusterIdx();
       int Ncluster = last - first + 1;
 
-      if (Ncluster < 9) {
+      if (Ncluster <= 9) {
         continue;
       }
 
