@@ -110,7 +110,7 @@ if(ENABLE_CUDA)
   if(CMAKE_CUDA_COMPILER)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${O2_GPU_CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr --extended-lambda --allow-unsupported-compiler -Xptxas -v")
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "12.3")
-      string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=20257")
+      string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=20257") # TODO: Cleanup
     endif()
     set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -lineinfo -Xcompiler \"${CMAKE_CXX_FLAGS_DEBUG}\" -Xptxas -O0 -Xcompiler -O0")
     if(NOT CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
@@ -254,6 +254,9 @@ if(ENABLE_HIP)
     set_target_properties(roc::rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
     message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE} version ${hip_VERSION})")
     set(O2_HIP_CMAKE_CXX_FLAGS "-fgpu-defer-diag -mllvm -amdgpu-enable-lower-module-lds=false -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field -Wno-pass-failed")
+    if(hip_VERSION VERSION_GREATER_EQUAL "6.0")
+      set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -mllvm -amdgpu-legacy-sgpr-spill-lowering=true") # TODO: Cleanup
+    endif()
     set(O2_HIP_CMAKE_LINK_FLAGS "-Wno-pass-failed")
     string(REGEX REPLACE "(gfx1[0-9]+;?)" "" CMAKE_HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}") # ROCm currently doesn’t support integrated graphics
     if(HIP_AMDGPUTARGET)
