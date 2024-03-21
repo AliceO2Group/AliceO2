@@ -82,6 +82,11 @@ class CompCluster
     }
   }
 
+  bool operator==(const CompCluster& cl) const
+  {
+    return mData == cl.mData;
+  }
+
   void print() const;
 
   ClassDefNV(CompCluster, 2);
