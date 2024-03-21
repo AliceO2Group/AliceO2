@@ -211,10 +211,12 @@ GPUdi() float GPUCommonMath::Modf(float x, float y) { return CHOICE(fmodf(x, y),
 
 GPUdi() unsigned int GPUCommonMath::Float2UIntReint(const float& x)
 {
-#if !defined(GPUCA_GPUCODE) || defined(__OPENCL__) || defined(__OPENCL_HOST__)
-  return reinterpret_cast<const unsigned int&>(x);
-#else
+#if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__))
   return __float_as_uint(x);
+#elif defined(GPUCA_GPUCODE_DEVICE) && (defined(__OPENCL__) || defined(__OPENCLCPP__))
+  return as_uint(x);
+#else
+  return reinterpret_cast<const unsigned int&>(x);
 #endif
 }
 
