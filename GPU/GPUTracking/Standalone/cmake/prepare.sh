@@ -11,6 +11,6 @@ else
 fi
 eval "`alienv shell-helper`"
 alienv load O2/latest
-for i in Vc boost fmt CMake ms_gsl Clang ninja; do
+for i in Vc boost fmt CMake ms_gsl Clang; do
   source sw/$ALIARCH/$i/latest/etc/profile.d/init.sh
 done
