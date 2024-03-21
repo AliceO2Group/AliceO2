@@ -24,7 +24,6 @@ function(o2_add_hipified_executable baseTargetName)
                         "SOURCES;PUBLIC_LINK_LIBRARIES;JOB_POOL")
 
   # Process each .cu file to generate a .hip file
-  set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
   set(HIP_SOURCES)
 
   foreach(file ${A_SOURCES})
@@ -38,7 +37,7 @@ function(o2_add_hipified_executable baseTargetName)
 
       add_custom_command(
         OUTPUT ${OUTPUT_HIP_FILE}
-        COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${ABS_CUDA_SORUCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${OUTPUT_HIP_FILE}
+        COMMAND ${hip_HIPIFY_PERL_EXECUTABLE} --quiet-warnings ${ABS_CUDA_SORUCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${OUTPUT_HIP_FILE}
         DEPENDS ${file}
         COMMENT "Hippifying ${HIP_SOURCE}"
       )
