@@ -34,6 +34,7 @@
 namespace bpo = boost::program_options;
 //
 // get object from ccdb  auto pp = ccdbMgr.getSpecific<std::vector<long>>("CTP/Calib/OrbitResetTest")
+//  std::cout  << (*pp3)[0] << std::endl;
 int main(int argc, char** argv)
 {
   const std::string testCCDB = "http://ccdb-test.cern.ch:8080";
@@ -76,7 +77,7 @@ int main(int argc, char** argv)
   std::vector<int64_t> vect;
   std::string ccdbPath;
   auto now = std::chrono::system_clock::now();
-  long tt = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  long tt = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
   if (action == "sox") {
     // write to CTP/Calib/FirstRunOrbit
     std::cout << "===> FirsRunOrbit" << std::endl;
