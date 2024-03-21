@@ -592,7 +592,7 @@ GPUd() void TrackParametrization<value_T>::printParam() const
 #else
   printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d %s",
          getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(),
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT)
          getPID().getName()
 #else
          ""
@@ -618,7 +618,7 @@ GPUd() void TrackParametrization<value_T>::printParamHexadecimal()
          gpu::CAMath::Float2UIntReint(getTgl()),
          gpu::CAMath::Float2UIntReint(getQ2Pt()),
          gpu::CAMath::Float2UIntReint(getAbsCharge()),
-#ifndef __OPENCL__
+#if !defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT)
          getPID().getName()
 #else
          ""
