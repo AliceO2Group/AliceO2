@@ -269,6 +269,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         // somewhere here pruneFromCache should be called
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
         helper->mapURL2UUID[path].cachePopulatedAt = timestamp;
+        helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
