@@ -166,7 +166,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
         GPUInfo("Obtained device properties for device %d", i);
       }
       int deviceOK = true;
-      const char* deviceFailure = "";
+      [[maybe_unused]] const char* deviceFailure = "";
 #ifndef __HIPCC__
       if (deviceProp.major < reqVerMaj || (deviceProp.major == reqVerMaj && deviceProp.minor < reqVerMin)) {
         deviceOK = false;
