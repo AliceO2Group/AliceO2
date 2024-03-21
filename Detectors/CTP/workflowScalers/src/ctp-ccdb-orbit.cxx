@@ -108,7 +108,7 @@ int main(int argc, char** argv)
     o2::ccdb::CcdbApi api;
     api.init(ccdbAddress.c_str());
     std::map<std::string, std::string> metadata;
-    long tmin = tt/1000;
+    long tmin = tt / 1000;
     long tmax = tmin + 381928219;
     if (action == "sox") {
       int64_t runnum = vm["run-number"].as<int64_t>();
