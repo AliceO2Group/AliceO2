@@ -181,7 +181,7 @@ class AlignRecordTask
       if (Ncluster <= 9) {
         continue;
       }
-      
+
       mch::Track convertedTrack;
 
       for (int i = first; i <= last; i++) {
