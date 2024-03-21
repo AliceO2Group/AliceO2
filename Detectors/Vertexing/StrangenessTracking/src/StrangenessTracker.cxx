@@ -218,11 +218,11 @@ void StrangenessTracker::processCascade(int iCasc, const Cascade& casc, const Ca
           continue;
         }
         decayVtxTrackClone.getPxPyPzGlo(strangeTrack.mDecayMom);
-        std::array<float, 3> momV0, mombach;
+        std::array<float, 3> momV0, momBach;
         mFitter3Body[iThread].getTrack(0).getPxPyPzGlo(momV0);                            // V0 momentum at decay vertex
-        mFitter3Body[iThread].getTrack(1).getPxPyPzGlo(mombach);                          // bachelor momentum at decay vertex
-        strangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
-        strangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
+        mFitter3Body[iThread].getTrack(1).getPxPyPzGlo(momBach);                          // bachelor momentum at decay vertex
+        strangeTrack.mMasses[0] = calcMotherMass(momV0, momBach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
+        strangeTrack.mMasses[1] = calcMotherMass(momV0, momBach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
 
         LOG(debug) << "ITS Track matched with a Cascade decay topology ....";
         LOG(debug) << "Number of ITS track clusters attached: " << itsTrack.getNumberOfClusters();
@@ -256,7 +256,7 @@ void StrangenessTracker::process3Body(int i3Body, const Decay3Body& dec3body, co
       /// TODO: indices of daughters...
       daughterTracks[kV0DauPos] = dec3body.getProng(kV0DauPos); // proton
       daughterTracks[kV0DauNeg] = dec3body.getProng(kV0DauNeg); // pion
-      daughterTracks[kBach] = dec3body.getProng(kBach); // deuteron
+      daughterTracks[kBach] = dec3body.getProng(kBach);         // deuteron
       const auto& itsTrack = mSortedITStracks[iTrack];
       const auto& ITSindexRef = mSortedITSindexes[iTrack];
       if (mStrParams->mVertexMatching && (mITSvtxBrackets[ITSindexRef].getMin() > dec3bodyIdx.getVertexID() || mITSvtxBrackets[ITSindexRef].getMax() < dec3bodyIdx.getVertexID())) {
@@ -271,10 +271,10 @@ void StrangenessTracker::process3Body(int i3Body, const Decay3Body& dec3body, co
         }
         decayVtxTrackClone.getPxPyPzGlo(strangeTrack.mDecayMom);
         std::array<float, 3> momPos, momNeg, momBach;
-        mFitter3Body[iThread].propagateTracksToVertex();
-        mFitter3Body[iThread].getTrack(kV0DauPos).getPxPyPzGlo(momPos);
-        mFitter3Body[iThread].getTrack(kV0DauNeg).getPxPyPzGlo(momNeg);
-        mFitter3Body[iThread].getTrack(kBach).getPxPyPzGlo(momBach);
+        mFitter4Body[iThread].propagateTracksToVertex();
+        mFitter4Body[iThread].getTrack(kV0DauPos).getPxPyPzGlo(momPos);
+        mFitter4Body[iThread].getTrack(kV0DauNeg).getPxPyPzGlo(momNeg);
+        mFitter4Body[iThread].getTrack(kBach).getPxPyPzGlo(momBach);
         /// TODO: mother mass
         if (daughterTracks[kBach].getCharge() > 0) {
           strangeTrack.mMasses[0] = calcMotherMass3body(momPos, momNeg, momBach, PID::Proton, PID::Pion, PID::Deuteron);
@@ -295,7 +295,6 @@ void StrangenessTracker::process3Body(int i3Body, const Decay3Body& dec3body, co
       }
     }
   }
-
 }
 
 void StrangenessTracker::process()
