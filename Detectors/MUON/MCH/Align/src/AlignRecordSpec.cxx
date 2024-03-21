@@ -181,12 +181,10 @@ class AlignRecordTask
       if (Ncluster <= 9) {
         continue;
       }
-
-      int clIndex = -1;
+      
       mch::Track convertedTrack;
 
       for (int i = first; i <= last; i++) {
-        clIndex += 1;
         const auto& cluster = mchClusters[i];
         convertedTrack.createParamAtCluster(cluster);
       }
