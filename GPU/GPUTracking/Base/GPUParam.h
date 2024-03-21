@@ -109,7 +109,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   GPUd() void Slice2Global(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
   GPUd() void Global2Slice(int iSlice, float x, float y, float z, float* X, float* Y, float* Z) const;
 
-  GPUd() bool rejectEdgeClusterByY(float uncorrectedY, int iRow) const;
+  GPUd() bool rejectEdgeClusterByY(float uncorrectedY, int iRow, float trackSigmaY) const;
 };
 #endif
 

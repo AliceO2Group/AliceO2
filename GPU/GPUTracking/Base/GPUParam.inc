@@ -226,9 +226,9 @@ GPUdi() float MEM_LG(GPUParam)::GetScaledMult(float time) const
 }
 
 MEM_CLASS_PRE()
-GPUdi() bool MEM_LG(GPUParam)::rejectEdgeClusterByY(float uncorrectedY, int iRow) const
+GPUdi() bool MEM_LG(GPUParam)::rejectEdgeClusterByY(float uncorrectedY, int iRow, float trackSigmaY) const
 {
-  return CAMath::Abs(uncorrectedY) > (tpcGeometry.NPads(iRow) - 1) * 0.5f * tpcGeometry.PadWidth(iRow) + rec.tpc.rejectEdgeClustersMargin;
+  return CAMath::Abs(uncorrectedY) > (tpcGeometry.NPads(iRow) - 1) * 0.5f * tpcGeometry.PadWidth(iRow) + rec.tpc.rejectEdgeClustersMargin + trackSigmaY * rec.tpc.rejectEdgeClustersSigmaMargin;
 }
 
 } // namespace gpu
