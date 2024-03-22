@@ -104,33 +104,33 @@ struct AnalysisDataProcessorBuilder {
   template <typename G, typename... Args>
   static void addGroupingCandidates(std::vector<StringPair>& bk, std::vector<StringPair>& bku)
   {
-      [&bk, &bku]<typename... As>(framework::pack<As...>) mutable {
-        auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
-        ([&bk, &bku, &key]() mutable {
-          if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<As>>()) {
-            auto binding = soa::getLabelFromTypeForKey<std::decay_t<As>>(key);
-            if constexpr (o2::soa::is_smallgroups_v<std::decay_t<As>>) {
-              framework::updatePairList(bku, binding, key);
-            } else {
-              framework::updatePairList(bk, binding, key);
-            }
+    [&bk, &bku]<typename... As>(framework::pack<As...>) mutable {
+      auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
+      ([&bk, &bku, &key]() mutable {
+        if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<As>>()) {
+          auto binding = soa::getLabelFromTypeForKey<std::decay_t<As>>(key);
+          if constexpr (o2::soa::is_smallgroups_v<std::decay_t<As>>) {
+            framework::updatePairList(bku, binding, key);
+          } else {
+            framework::updatePairList(bk, binding, key);
           }
-        }(),
-         ...);
-      }(framework::pack<Args...>{});
+        }
+      }(),
+       ...);
+    }(framework::pack<Args...>{});
   }
 
   template <typename O>
   static void addOriginal(const char* name, bool value, std::vector<InputSpec>& inputs) requires soa::is_type_with_metadata_v<aod::MetadataTrait<std::decay_t<O>>>
   {
-      using metadata = typename aod::MetadataTrait<std::decay_t<O>>::metadata;
-      std::vector<ConfigParamSpec> inputMetadata;
-      inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-      if constexpr (soa::is_soa_index_table_v<std::decay_t<O>> || soa::is_soa_extension_table_v<std::decay_t<O>>) {
-        auto inputSources = getInputMetadata<std::decay_t<O>>();
-        inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
-      }
-      DataSpecUtils::updateInputList(inputs, InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata});
+    using metadata = typename aod::MetadataTrait<std::decay_t<O>>::metadata;
+    std::vector<ConfigParamSpec> inputMetadata;
+    inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
+    if constexpr (soa::is_soa_index_table_v<std::decay_t<O>> || soa::is_soa_extension_table_v<std::decay_t<O>>) {
+      auto inputSources = getInputMetadata<std::decay_t<O>>();
+      inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
+    }
+    DataSpecUtils::updateInputList(inputs, InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata});
   }
 
   template <typename R, typename C, typename... Args>
@@ -162,7 +162,7 @@ struct AnalysisDataProcessorBuilder {
         }
         // add inputs from the originals
         [&name, &value, &inputs]<typename... Os>(framework::pack<Os...>) mutable {
-          (addOriginal<Os>(name, value, inputs),...);
+          (addOriginal<Os>(name, value, inputs), ...);
         }(soa::make_originals_from_type<T>());
       }
       return true;
@@ -490,7 +490,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   homogeneous_apply_refs([&inputs](auto& x) { return ConditionManager<std::decay_t<decltype(x)>>::appendCondition(inputs, x); }, *task.get());
 
   /// parse process functions defined by corresponding configurables
-  if constexpr (requires {AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted);}) {
+  if constexpr (requires { AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted); }) {
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted);
   }
   homogeneous_apply_refs(
@@ -563,7 +563,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     },
                            *task.get());
 
-    if constexpr (requires {task->init(ic); }) {
+    if constexpr (requires { task->init(ic); }) {
       task->init(ic);
     }
 
@@ -598,11 +598,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // prepare outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
       // execute run()
-      if constexpr (requires {task->run(pc);}) {
+      if constexpr (requires { task->run(pc); }) {
         task->run(pc);
       }
       // execute process()
-      if constexpr (requires {AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);}) {
+      if constexpr (requires { AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices); }) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);
       }
       // execute optional process()

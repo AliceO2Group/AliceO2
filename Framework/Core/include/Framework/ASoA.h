@@ -1196,7 +1196,7 @@ inline constexpr bool is_soa_filtered_iterator_v()
   if constexpr (!is_soa_iterator_v<T>) {
     return false;
   } else {
-    if constexpr(std::is_same_v<typename T::policy_t, soa::FilteredIndexPolicy>) {
+    if constexpr (std::is_same_v<typename T::policy_t, soa::FilteredIndexPolicy>) {
       return true;
     } else {
       return false;
