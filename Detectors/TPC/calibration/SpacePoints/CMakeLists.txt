@@ -42,3 +42,11 @@ o2_add_test_root_macro(macro/staticMapCreator.C
 
 install(FILES macro/staticMapCreator.C
         DESTINATION share/macro/)
+
+o2_add_test(TrackResiduals
+COMPONENT_NAME calibration
+PUBLIC_LINK_LIBRARIES O2::SpacePoints
+SOURCES test/testTrackResiduals.cxx
+ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+LABELS tpc
+CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
