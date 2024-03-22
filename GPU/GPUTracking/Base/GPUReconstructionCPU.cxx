@@ -60,7 +60,7 @@ GPUReconstructionCPU::~GPUReconstructionCPU()
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
+inline int GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;
@@ -102,10 +102,16 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, Args... args)
 }
 
 template <>
-int GPUReconstructionCPUBackend::runKernelBackend<GPUMemClean16, 0>(krnlSetup& _xyz, void* ptr, unsigned long size)
+inline int GPUReconstructionCPUBackend::runKernelBackendInternal<GPUMemClean16, 0>(const krnlSetupTime& _xyz, void* const& ptr, unsigned long const& size)
 {
   memset(ptr, 0, size);
   return 0;
+}
+
+template <class T, int I, typename... Args>
+int GPUReconstructionCPUBackend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
+{
+  return std::apply([this, &args](auto&... vals) { return runKernelBackendInternal<T, I, Args...>(args.s, vals...); }, args.v);
 }
 
 template <class T, int I>
@@ -114,8 +120,8 @@ GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelProperti
   return krnlProperties{1, 1};
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, ...)                                                                                \
-  template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments)); \
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types)                                                                                                      \
+  template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args); \
   template GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
 #include "GPUReconstructionKernelList.h"
 #undef GPUCA_KRNL

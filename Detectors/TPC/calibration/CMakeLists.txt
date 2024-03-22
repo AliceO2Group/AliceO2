@@ -154,7 +154,7 @@ o2_add_test(IDCFourierTransform
             SOURCES test/testO2TPCIDCFourierTransform.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS tpc
-            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+            CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
 
 o2_add_test(IDCAverageGroup
             LABELS tpc
@@ -162,7 +162,7 @@ o2_add_test(IDCAverageGroup
             COMPONENT_NAME tpc
             SOURCES test/testO2TPCIDCAverageGroup.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+            CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

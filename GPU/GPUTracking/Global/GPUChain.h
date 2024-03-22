@@ -178,10 +178,10 @@ class GPUChain
   {
     mRec->ReadStructFromFile<T>(file, obj);
   }
-  template <class S, int I = 0, int J = -1, typename... Args>
-  inline int runKernel(const krnlExec& x, const krnlRunRange& y = krnlRunRangeNone, const krnlEvent& z = krnlEventNone, Args&&... args)
+  template <class S, int I = 0, typename... Args>
+  inline int runKernel(GPUReconstruction::krnlSetup&& setup, Args&&... args)
   {
-    return mRec->runKernel<S, I, J, Args...>(x, y, z, std::forward<Args>(args)...);
+    return mRec->runKernel<S, I, Args...>(std::forward<GPUReconstruction::krnlSetup&&>(setup), std::forward<Args>(args)...);
   }
   template <class S, int I = 0>
   GPUReconstruction::krnlProperties getKernelProperties()
@@ -189,10 +189,10 @@ class GPUChain
     return mRec->getKernelProperties<S, I>();
   }
 
-  template <class T, int I = 0, int J = -1>
+  template <class T, int I = 0>
   HighResTimer& getKernelTimer(RecoStep step, int num = 0, size_t addMemorySize = 0)
   {
-    return mRec->getKernelTimer<T, I, J>(step, num, addMemorySize);
+    return mRec->getKernelTimer<T, I>(step, num, addMemorySize);
   }
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1)

@@ -14,7 +14,6 @@
 #include "MCHConditions/Chamber.h"
 #include "MCHConditions/DetectionElement.h"
 #include "MCHConditions/Number.h"
-#include "MCHGlobalMapping/DsIndex.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/Mapper.h"
@@ -37,13 +36,13 @@ double findXmean(const o2::mch::mapping::Segmentation& seg, int dsId)
   return xmean / n;
 }
 
-std::set<int> hvAliasToDsIndices(std::string_view alias)
+std::set<DsIndex> hvAliasToDsIndices(std::string_view alias)
 {
   const auto chamber = aliasToChamber(alias);
   bool slat = isSlat(chamber);
   int deId = aliasToDetElemId(alias).value();
-  std::set<int> indices;
-  for (auto dsIndex = 0; dsIndex < o2::mch::NumberOfDualSampas; ++dsIndex) {
+  std::set<DsIndex> indices;
+  for (DsIndex dsIndex = 0; dsIndex < o2::mch::NumberOfDualSampas; ++dsIndex) {
     const auto& dd = getDsDetId(dsIndex);
     if (dd.deId() != deId) {
       continue;

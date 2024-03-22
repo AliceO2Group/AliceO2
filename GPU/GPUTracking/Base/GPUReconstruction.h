@@ -120,17 +120,17 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
   static bool CheckInstanceAvailable(DeviceType type);
 
-  // Helpers for kernel launches
-  template <class T, int I = 0>
-  class classArgument
-  {
-  };
-
   typedef void* deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
                                     Auto = -1 };
+  template <class T, int I = 0>
+  struct classArgument {
+    using t = T;
+    static constexpr int i = I;
+  };
+
   struct krnlExec {
     constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(GPUCA_RECO_STEP::NoRecoStep) {}
     constexpr krnlExec(unsigned int b, unsigned int t, int s, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(krnlDeviceType::Auto), step(st) {}
@@ -165,10 +165,21 @@ class GPUReconstruction
   };
 
   struct krnlSetup {
+    krnlSetup(const krnlExec& xx, const krnlRunRange& yy = {0, -1}, const krnlEvent& zz = {nullptr, nullptr, 0}) : x(xx), y(yy), z(zz) {}
     krnlExec x;
     krnlRunRange y;
     krnlEvent z;
-    double t;
+  };
+
+  struct krnlSetupTime : public krnlSetup {
+    double& t;
+  };
+
+  template <class T, int I = 0, typename... Args>
+  struct krnlSetupArgs : public classArgument<T, I> {
+    krnlSetupArgs(const krnlExec& xx, const krnlRunRange& yy, const krnlEvent& zz, double& tt, const Args&... args) : s{{xx, yy, zz}, tt}, v(args...) {}
+    const krnlSetupTime s;
+    std::tuple<typename std::conditional<(sizeof(Args) > sizeof(void*)), const Args&, const Args>::type...> v;
   };
 
   // Global steering functions

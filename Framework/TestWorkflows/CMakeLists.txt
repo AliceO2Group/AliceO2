@@ -127,6 +127,11 @@ o2_add_dpl_workflow(test-ccdb-fetcher
                     PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::Framework
                     COMPONENT_NAME TestWorkflows)
 
+o2_add_executable(fairmq-header-size-test
+                  SOURCES src/o2FairMQHeaderSizeTest.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME TestWorkflows)
+
 add_executable(o2-test-deadlock src/o2DeadlockReproducer.cxx)
 target_link_libraries(o2-test-deadlock PUBLIC FairMQ::FairMQ)
 add_test(NAME o2-test-deadlock COMMAND o2-test-deadlock --channel-config "name=data,type=sub,method=bind,address=ipc://127.0.0.1,rateLogging=0" --id foo --transport zeromq --control static)

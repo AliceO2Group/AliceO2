@@ -27,7 +27,7 @@ CommandInfo::CommandInfo(int argc, char* const* argv)
 
   for (size_t ai = 1; ai < argc; ++ai) {
     const char* arg = argv[ai];
-    if (strpbrk(arg, "\" ;@") != nullptr || arg[0] == 0) {
+    if (strpbrk(arg, "\" ;@&") != nullptr || arg[0] == 0) {
       commandStream << " '" << arg << "'";
     } else if (strpbrk(arg, "'") != nullptr) {
       commandStream << " \"" << arg << "\"";

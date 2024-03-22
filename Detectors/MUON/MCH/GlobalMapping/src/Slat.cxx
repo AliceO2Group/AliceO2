@@ -12,7 +12,6 @@
 #include "MCHConditions/DetectionElement.h"
 #include "MCHConditions/Number.h"
 #include "MCHConditions/SolarCrate.h"
-#include "MCHGlobalMapping/DsIndex.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "Slat.h"
 #include <vector>
@@ -74,7 +73,7 @@ std::set<dcs::Cathode> lvAliasToCathode(std::string_view alias)
   return cathodes;
 }
 
-std::set<int> solarAliasToDsIndices(std::string_view alias)
+std::set<DsIndex> solarAliasToDsIndices(std::string_view alias)
 {
   /** For St345 the relation solar alias to dual sampas
    * is a bit more involved than for quadrants.
@@ -85,7 +84,7 @@ std::set<int> solarAliasToDsIndices(std::string_view alias)
    */
   int solarCrate = aliasToSolarCrate(alias);
   static auto solarIds = raw::getSolarUIDs<raw::ElectronicMapperGenerated>();
-  std::set<int> dsIndices;
+  std::set<DsIndex> dsIndices;
   for (auto solarId : solarIds) {
     if (solarId / 8 == solarCrate) {
       auto dsDetIds = raw::getDualSampas<raw::ElectronicMapperGenerated>(solarId);

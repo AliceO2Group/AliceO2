@@ -175,7 +175,6 @@ bool GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
 
 bool GRPDCSDPsProcessor::processEnvVar(const DPCOM& dpcom)
 {
-
   // function to process Data Points that are related to env variables
   bool match = processPairD(dpcom, "CavernTemperature", mEnvVars.mEnvVars) ||
                processPairD(dpcom, "CavernAtmosPressure", mEnvVars.mEnvVars) ||
@@ -396,14 +395,14 @@ void GRPDCSDPsProcessor::updateEnvVarsCCDB()
 void GRPDCSDPsProcessor::updateCollimatorsCCDB()
 {
 
-  // we need to update a CCDB for the Env Variables DPs --> let's prepare the CCDBInfo
+  // we need to update a CCDB for the Collimators Variables DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
     LOG(info) << "Entry related to Collimators needs to be updated with startTime " << mStartValidityColli;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidityColli, mStartValidityColli + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mCollimators, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidityColli, mStartValidityColli + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 
