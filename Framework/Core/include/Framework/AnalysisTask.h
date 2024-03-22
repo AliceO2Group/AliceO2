@@ -352,7 +352,7 @@ struct AnalysisDataProcessorBuilder {
           },
                                  task);
 
-          invokeProcessWithArgsGeneric(task, processingFunction, slice.groupingElement(), associatedSlices);
+          invokeProcessWithArgs(task, processingFunction, slice.groupingElement(), associatedSlices);
         }
       } else {
         // bind partitions and grouping table
@@ -362,71 +362,17 @@ struct AnalysisDataProcessorBuilder {
         },
                                task);
 
-        invokeProcessWithArgsGeneric(task, processingFunction, groupingTable, associatedTables);
+        invokeProcessWithArgs(task, processingFunction, groupingTable, associatedTables);
       }
     }
   }
 
   template <typename C, typename T, typename G, typename... A>
-  static void invokeProcessWithArgsGeneric(C& task, T processingFunction, G g, std::tuple<A...>& at)
+  static void invokeProcessWithArgs(C& task, T processingFunction, G g, std::tuple<A...>& at)
   {
     std::invoke(processingFunction, task, g, std::get<A>(at)...);
   }
-
-  template <typename T, typename G, typename... A>
-  static void invokeProcessWithArgs(T& task, G g, std::tuple<A...>& at)
-  {
-    task.process(g, std::get<A>(at)...);
-  }
 };
-
-namespace
-{
-template <typename T>
-class has_process
-{
-  template <typename C>
-  static std::true_type test(decltype(&C::process));
-  template <typename C>
-  static std::false_type test(...);
-
- public:
-  static constexpr bool value = decltype(test<T>(nullptr))::value;
-};
-
-template <class T>
-inline constexpr bool has_process_v = has_process<T>::value;
-
-template <typename T>
-class has_run
-{
-  template <typename C>
-  static std::true_type test(decltype(&C::run));
-  template <typename C>
-  static std::false_type test(...);
-
- public:
-  static constexpr bool value = decltype(test<T>(nullptr))::value;
-};
-
-template <class T>
-inline constexpr bool has_run_v = has_run<T>::value;
-
-template <typename T>
-class has_init
-{
-  template <typename C>
-  static std::true_type test(decltype(&C::init));
-  template <typename C>
-  static std::false_type test(...);
-
- public:
-  static constexpr bool value = decltype(test<T>(nullptr))::value;
-};
-
-template <class T>
-inline constexpr bool has_init_v = has_init<T>::value;
-} // namespace
 
 struct SetDefaultProcesses {
   std::vector<std::pair<std::string, bool>> map;
@@ -544,7 +490,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   homogeneous_apply_refs([&inputs](auto& x) { return ConditionManager<std::decay_t<decltype(x)>>::appendCondition(inputs, x); }, *task.get());
 
   /// parse process functions defined by corresponding configurables
-  if constexpr (has_process_v<T>) {
+  if constexpr (requires {AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted);}) {
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted);
   }
   homogeneous_apply_refs(
@@ -617,7 +563,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     },
                            *task.get());
 
-    if constexpr (has_init_v<T>) {
+    if constexpr (requires {task->init(ic); }) {
       task->init(ic);
     }
 
@@ -652,11 +598,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // prepare outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
       // execute run()
-      if constexpr (has_run_v<T>) {
+      if constexpr (requires {task->run(pc);}) {
         task->run(pc);
       }
       // execute process()
-      if constexpr (has_process_v<T>) {
+      if constexpr (requires {AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);}) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos, slices);
       }
       // execute optional process()
