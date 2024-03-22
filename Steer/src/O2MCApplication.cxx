@@ -331,6 +331,22 @@ void addSpecialParticles()
   // f2(1270) (PDG: width = 185 MeV)
   TVirtualMC::GetMC()->DefineParticle(225, "f2_1270", kPTNeutron, 1.275, 0.0, 3.558e-24, "Hadron", 0.185, 4, 1, 1, 0, 0, 1, 0, 0, kTRUE);
 
+  // f1(1285) (PDG: width = 24.20 MeV) Spin/Parity might not be correct
+  TVirtualMC::GetMC()->DefineParticle(20223, "f1_1285", kPTNeutron, 1.28210, 0.0, 1e-24, "Hadron", 0.02420, 3, 1, 0, 0, 0, 0, 0, 1, kTRUE);
+  // f1(1420) (PDG: width = 54 MeV) Spin/Parity might not be correct
+  TVirtualMC::GetMC()->DefineParticle(20333, "f1_1420", kPTNeutron, 1.42640, 0.0, 1e-24, "Hadron", 0.05490, 3, 1, 0, 0, 0, 0, 0, 1, kTRUE);
+
+  // Glueball hunting family
+  // Their life times are not known, so we set them to 1e-24
+  // f0(1370) (PDG: width = 200-500 MeV) Spin/Parity might not be correct
+  TVirtualMC::GetMC()->DefineParticle(10221, "f0_1370", kPTNeutron, 1.37, 0.0, 1e-24, "Hadron", 0.2, 1, 1, 1, 0, 0, 1, 0, 0, kTRUE);
+  // f0(1500) (PDG: width = 112 MeV) Spin/Parity might not be correct
+  TVirtualMC::GetMC()->DefineParticle(9030221, "f0_1500", kPTNeutron, 1.506, 0.0, 1e-24, "Hadron", 0.112, 0, 1, 1, 0, 0, 1, 0, 0, kTRUE);
+  // f0(1710) (PDG: width = 139 MeV) Spin/Parity might not be correct
+  TVirtualMC::GetMC()->DefineParticle(10331, "f0_1710", kPTNeutron, 1.71, 0.0, 1e-24, "Hadron", 0.139, 1, 1, 1, 0, 0, 1, 0, 0, kTRUE);
+  // f2(1525) (PDG: width = 73 MeV) Spin/Parity might not be correct
+  TVirtualMC::GetMC()->DefineParticle(335, "f2_1525", kPTNeutron, 1.525, 0.0, 1e-24, "Hadron", 0.073, 5, 1, 1, 0, 0, 1, 0, 0, kTRUE);
+
   // Xi_0(1820)
   TVirtualMC::GetMC()->DefineParticle(123324, "Xi_0_1820", kPTNeutron, 1.8234, 0.0, 2.742550e-23, "Hadron", 0.024, 3, -1, 0, 1, 1, 0, 0, 1, kTRUE);
   TVirtualMC::GetMC()->DefineParticle(-123324, "Xi_0_Bar_1820", kPTNeutron, 1.8234, 0.0, 2.742550e-23, "Hadron", 0.024, 3, -1, 0, 1, -1, 0, 0, -1, kTRUE);
@@ -1083,78 +1099,153 @@ void addSpecialParticles()
 
   TVirtualMC::GetMC()->SetDecayMode(225, bratio, mode);
 
+  // Define the 2-body phase space decay for the resonances: f0(1500), f2(1525), f0(1710
+  for (Int_t kz = 0; kz < 6; kz++) {
+    bratio[kz] = 0.;
+    mode[kz][0] = 0;
+    mode[kz][1] = 0;
+    mode[kz][2] = 0;
+  }
+  bratio[0] = 100.;
+  mode[0][0] = 310; // K0s
+  mode[0][1] = 310; // K0s
+
+  TVirtualMC::GetMC()->SetDecayMode(9030221, bratio, mode); // f0(1500)
+  TVirtualMC::GetMC()->SetDecayMode(335, bratio, mode);     // f2(1525)
+  TVirtualMC::GetMC()->SetDecayMode(10331, bratio, mode);   // f0(1710)
+  TVirtualMC::GetMC()->SetDecayMode(10221, bratio, mode);   // f0(1370)
+
+  // Define the 3-body phase space decay for the resonances: f1(1285), f1(1420)
+  for (Int_t kz = 0; kz < 6; kz++) {
+    bratio[kz] = 0.;
+    mode[kz][0] = 0;
+    mode[kz][1] = 0;
+    mode[kz][2] = 0;
+  }
+
+  bratio2[0] = 50.;
+  mode[0][0] = 310;  // K0s
+  mode[0][1] = -321; // anti-K
+  mode[0][2] = 211;  // pion+
+
+  bratio2[1] = 50.;
+  mode[1][0] = 310;  // K0s
+  mode[1][1] = 321;  // K
+  mode[1][2] = -211; // pion-
+
+  TVirtualMC::GetMC()->SetDecayMode(20223, bratio2, mode); // f1(1285)
+  TVirtualMC::GetMC()->SetDecayMode(20333, bratio2, mode); // f1(1420)
+
   // Lambda1520/Lambda1520bar
 
-  TVirtualMC::GetMC()->DefineParticle(3124, "Lambda1520", kPTNeutron, 1.5195, 0.0, 4.22e-23, "Hadron", 0.0156, 3, -1, 0, 0, 0, 0, 0, 1, kTRUE);
-  TVirtualMC::GetMC()->DefineParticle(-3124, "Lambda1520bar", kPTNeutron, 1.5195, 0.0, 4.22e-23, "Hadron", 0.0156, 3, -1, 0, 0, 0, 0, 0, -1, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(102134, "Lambda1520", kPTNeutron, 1.5195, 0.0, 4.22e-23, "Hadron", 0.0156, 3, -1, 0, 0, 0, 0, 0, 1, kTRUE);
+  TVirtualMC::GetMC()->DefineParticle(-102134, "Lambda1520bar", kPTNeutron, 1.5195, 0.0, 4.22e-23, "Hadron", 0.0156, 3, -1, 0, 0, 0, 0, 0, -1, kTRUE);
 
   // Lambda1520 decay modes
+  Int_t lmode[9][3];
+  Float_t lbratio[9];
+  for (Int_t kz = 0; kz < 9; kz++) {
+    lbratio[kz] = 0.;
+    lmode[kz][0] = 0;
+    lmode[kz][1] = 0;
+    lmode[kz][2] = 0;
+  }
 
   // L(1520) -> p K-
-  bratio[0] = 0.223547;
-  mode[0][0] = 2212;
-  mode[0][1] = -321;
+  lbratio[0] = 0.229944;
+  lmode[0][0] = 2212;
+  lmode[0][1] = -321;
 
   // L(1520) -> n K0
-  bratio[1] = 0.223547;
-  mode[1][0] = 2112;
-  mode[1][1] = -311;
+  lbratio[1] = 0.229944;
+  lmode[1][0] = 2112;
+  lmode[1][1] = -311;
 
   // L(1520) -> Sigma+ pi-
-  bratio[2] = 0.139096;
-  mode[2][0] = 3222;
-  mode[2][1] = -211;
+  lbratio[2] = 0.143076;
+  lmode[2][0] = 3222;
+  lmode[2][1] = -211;
 
   // L(1520) -> Sigma0 pi0
-  bratio[3] = 0.139096;
-  mode[3][0] = 3212;
-  mode[3][1] = 111;
+  lbratio[3] = 0.143076;
+  lmode[3][0] = 3212;
+  lmode[3][1] = 111;
 
   // L(1520) -> Sigma- pi+
-  bratio[4] = 0.139096;
-  mode[4][0] = 3112;
-  mode[4][1] = 211;
+  lbratio[4] = 0.143076;
+  lmode[4][0] = 3112;
+  lmode[4][1] = 211;
 
-  // The other decay modes are neglected
-  bratio[5] = 0.;
-  mode[5][0] = 0;
-  mode[5][1] = 0;
+  // L(1520) -> Sigma*- pi+
+  lbratio[5] = 0.034066;
+  lmode[5][0] = 3114;
+  lmode[5][1] = 211;
 
-  TVirtualMC::GetMC()->SetDecayMode(3124, bratio, mode);
+  // L(1520) -> Sigma*0 pi0
+  lbratio[6] = 0.034066;
+  lmode[6][0] = 3214;
+  lmode[6][1] = 111;
+
+  // L(1520) -> Sigma*+ pi-
+  lbratio[7] = 0.034066;
+  lmode[7][0] = 3224;
+  lmode[7][1] = -211;
+
+  // L(1520) -> Lambda gamma
+  lbratio[8] = 0.008687;
+  lmode[8][0] = 3122;
+  lmode[8][1] = 22;
+
+  TVirtualMC::GetMC()->SetDecayMode(102134, lbratio, lmode);
 
   // Lambda1520bar decay modes
 
   // L(1520)bar -> p- K+
-  bratio[0] = 0.223547;
-  mode[0][0] = -2212;
-  mode[0][1] = 321;
+  lbratio[0] = 0.229944;
+  lmode[0][0] = -2212;
+  lmode[0][1] = 321;
 
   // L(1520)bar -> nbar K0bar
-  bratio[1] = 0.223547;
-  mode[1][0] = -2112;
-  mode[1][1] = 311;
+  lbratio[1] = 0.229944;
+  lmode[1][0] = -2112;
+  lmode[1][1] = 311;
 
   // L(1520)bar -> Sigmabar- pi+
-  bratio[2] = 0.139096;
-  mode[2][0] = -3222;
-  mode[2][1] = 211;
+  lbratio[2] = 0.143076;
+  lmode[2][0] = -3222;
+  lmode[2][1] = 211;
 
   // L(1520)bar -> Sigma0bar pi0
-  bratio[3] = 0.139096;
-  mode[3][0] = -3212;
-  mode[3][1] = 111;
+  lbratio[3] = 0.143076;
+  lmode[3][0] = -3212;
+  lmode[3][1] = 111;
 
   // L(1520)bar -> Sigmabar+ pi-
-  bratio[4] = 0.139096;
-  mode[4][0] = -3112;
-  mode[4][1] = -211;
+  lbratio[4] = 0.143076;
+  lmode[4][0] = -3112;
+  lmode[4][1] = -211;
 
-  // The other decay modes are neglected
-  bratio[5] = 0.;
-  mode[5][0] = 0;
-  mode[5][1] = 0;
+  // L(1520)bar -> anti-Sigma*- pi-
+  lbratio[5] = 0.034066;
+  lmode[5][0] = -3114;
+  lmode[5][1] = -211;
 
-  TVirtualMC::GetMC()->SetDecayMode(-3124, bratio, mode);
+  // L(1520)bar -> anti-Sigma*0 pi0
+  lbratio[6] = 0.034066;
+  lmode[6][0] = -3214;
+  lmode[6][1] = 111;
+
+  // L(1520)bar -> anti-Sigma*+ pi+
+  lbratio[7] = 0.034066;
+  lmode[7][0] = -3224;
+  lmode[7][1] = 211;
+
+  // L(1520)bar -> Anti-Lambda gamma
+  lbratio[8] = 0.008687;
+  lmode[8][0] = -3122;
+  lmode[8][1] = 22;
+
+  TVirtualMC::GetMC()->SetDecayMode(-102134, lbratio, lmode);
 
   // --------------------------------------------------------------------
 
