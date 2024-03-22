@@ -104,7 +104,6 @@ struct AnalysisDataProcessorBuilder {
   template <typename G, typename... Args>
   static void addGroupingCandidates(std::vector<StringPair>& bk, std::vector<StringPair>& bku)
   {
-    if constexpr (soa::is_soa_iterator_v<std::decay_t<G>>) {
       [&bk, &bku]<typename... As>(framework::pack<As...>) mutable {
         auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
         ([&bk, &bku, &key]() mutable {
@@ -119,7 +118,6 @@ struct AnalysisDataProcessorBuilder {
         }(),
          ...);
       }(framework::pack<Args...>{});
-    }
   }
 
   template <typename O>
@@ -139,7 +137,9 @@ struct AnalysisDataProcessorBuilder {
   static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku) requires(std::is_lvalue_reference_v<Args>&&...)
   {
     // update grouping cache
-    addGroupingCandidates<Args...>(bk, bku);
+    if constexpr (soa::is_soa_iterator_v<std::decay_t<framework::pack_element_t<0, framework::pack<Args...>>>>) {
+      addGroupingCandidates<Args...>(bk, bku);
+    }
 
     // populate input list and expression infos
     int ai = 0;
