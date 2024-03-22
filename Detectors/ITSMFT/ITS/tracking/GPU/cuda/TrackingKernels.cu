@@ -42,10 +42,6 @@
 // O2 track model
 #include "ReconstructionDataFormats/Track.h"
 using namespace o2::track;
-#ifdef __HIPCC__
-#include "TrackParametrization.cxx"
-#include "TrackParametrizationWithError.cxx"
-#endif
 
 namespace o2
 {
