@@ -146,26 +146,24 @@ struct AnalysisDataProcessorBuilder {
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
     ([&name, &value, &eInfos, &inputs, &hash, &ai]() mutable {
       ++ai;
-      using dT = std::decay_t<Args>;
-      if constexpr (is_enumeration_v<dT>) {
+      using T = std::decay_t<Args>;
+      if constexpr (is_enumeration_v<T>) {
         std::vector<ConfigParamSpec> inputMetadata;
         // FIXME: for the moment we do not support begin, end and step.
         DataSpecUtils::updateInputList(inputs, InputSpec{"enumeration", "DPL", "ENUM", 0, Lifetime::Enumeration, inputMetadata});
       } else {
         // populate expression infos
-        if constexpr (soa::is_soa_filtered_v<dT>) {
-          auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
-          eInfos.emplace_back(ai, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields));
-        } else if constexpr (soa::is_soa_iterator_v<dT>) {
-          auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
-          if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-            eInfos.emplace_back(ai, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
-          }
+        if constexpr (soa::is_soa_filtered_v<T>) {
+          auto fields = soa::createFieldsFromColumns(typename T::persistent_columns_t{});
+          eInfos.emplace_back(ai, hash, T::hashes(), std::make_shared<arrow::Schema>(fields));
+        } else if constexpr (soa::is_soa_filtered_iterator_v<T>()) {
+          auto fields = soa::createFieldsFromColumns(typename T::parent_t::persistent_columns_t{});
+          eInfos.emplace_back(ai, hash, T::parent_t::hashes(), std::make_shared<arrow::Schema>(fields));
         }
         // add inputs from the originals
         [&name, &value, &inputs]<typename... Os>(framework::pack<Os...>) mutable {
           (addOriginal<Os>(name, value, inputs),...);
-        }(soa::make_originals_from_type<dT>());
+        }(soa::make_originals_from_type<T>());
       }
       return true;
     }() &&
