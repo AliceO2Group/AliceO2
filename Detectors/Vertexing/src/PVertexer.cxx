@@ -847,6 +847,7 @@ void PVertexer::end()
 {
 #ifdef _PV_DEBUG_TREE_
   if (mDebugDumpFile) {
+    mDebugDumpFile->cd();
     mDebugPoolTree->Write();
     mDebugDBScanTree->Write();
     mDebugVtxCompTree->Write();
