@@ -32,7 +32,7 @@ VDriftHelper::VDriftHelper()
   const auto& elpar = o2::tpc::ParameterElectronics::Instance();
   mVD.corrFact = 1.0;
   mVD.refVDrift = gaspar.DriftV;
-  mVD.refTimeOffset = detpar.DriftTimeOffset / elpar.ZbinWidth;
+  mVD.refTimeOffset = detpar.DriftTimeOffset * elpar.ZbinWidth; // convert time bins to \mus
   // was it imposed from the command line?
   mVD.creationTime = 1;                                                                                                         // just to be above 0
   if (o2::conf::ConfigurableParam::getProvenance("TPCGasParam.DriftV") == o2::conf::ConfigurableParam::EParamProvenance::kRT) { // we stick to this value

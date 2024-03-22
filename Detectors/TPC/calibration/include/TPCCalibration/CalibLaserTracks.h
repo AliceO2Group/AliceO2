@@ -161,6 +161,7 @@ class CalibLaserTracks
   int mTriggerPos{0};                                          ///< trigger position, if < 0 it treats it as the CE position
   float mBz{0.5};                                              ///< Bz field in Tesla
   float mDriftV{0};                                            ///< drift velocity used during reconstruction
+  float mTOffsetMUS{0};                                        ///< time offset in \mus to impose
   float mZbinWidth{0};                                         ///< width of a bin in us
   uint64_t mTFstart{0};                                        ///< start time of processed time frames
   uint64_t mTFend{0};                                          ///< end time of processed time frames
