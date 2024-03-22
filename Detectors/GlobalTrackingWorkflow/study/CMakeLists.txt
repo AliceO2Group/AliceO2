@@ -14,6 +14,7 @@
 o2_add_library(GlobalTrackingStudy
                SOURCES src/TPCTrackStudy.cxx
                        src/TrackingStudy.cxx
+                       src/SVStudy.cxx
                        src/TrackMCStudy.cxx
                        src/TPCDataFilter.cxx
                        src/ITSOffsStudy.cxx
@@ -25,6 +26,11 @@ o2_add_library(GlobalTrackingStudy
                                      O2::DetectorsVertexing
                                      O2::TPCWorkflow
                                      O2::SimulationDataFormat)
+
+o2_add_executable(study-workflow
+                  COMPONENT_NAME sv
+                  SOURCES src/sv-study-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
 
 o2_add_executable(study-workflow
                   COMPONENT_NAME tpc-track
