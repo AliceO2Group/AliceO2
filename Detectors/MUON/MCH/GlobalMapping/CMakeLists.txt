@@ -21,6 +21,7 @@ o2_add_library(MCHGlobalMapping
         PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap
                               O2::MCHMappingInterface
                               O2::MCHConditions
+                              O2::Framework
         PRIVATE_LINK_LIBRARIES O2::MCHConstants)
 
 o2_target_root_dictionary(MCHGlobalMapping
