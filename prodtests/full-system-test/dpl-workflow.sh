@@ -124,7 +124,7 @@ if [[ $SYNCMODE == 1 ]]; then
 
   PVERTEXING_CONFIG_KEY+="pvertexer.meanVertexExtraErrConstraint=0.3;" # for calibration relax the constraint
   if [[ $SYNCRAWMODE == 1 ]]; then # add extra tolerance in sync mode to account for eventual time misalignment
-    PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
+    PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=2.5;"
     if [[ -z $ITSEXTRAERR ]]; then # in sync mode account for ITS residual misalignment
       ERRIB="100e-8"
       ERROB="100e-8"
