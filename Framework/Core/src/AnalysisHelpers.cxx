@@ -10,7 +10,8 @@
 // or submit itself to any jurisdiction.
 #include "Framework/ExpressionHelpers.h"
 
-namespace o2::framework {
+namespace o2::framework
+{
 void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter)
 {
   if (tree == nullptr) {
@@ -25,4 +26,4 @@ void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr
     gfilter = framework::expressions::createFilter(schema, framework::expressions::makeCondition(tree));
   }
 }
-}
+} // namespace o2::framework
