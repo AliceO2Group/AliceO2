@@ -1139,7 +1139,7 @@ void addSpecialParticles()
   //  Int_t mode[6][3];
   //  Float_t bratio[6];
 
-  for (Int_t kz = 0; kz < 9; kz++) {
+  for (Int_t kz = 0; kz < 6; kz++) {
     bratio[kz] = 0.;
     mode[kz][0] = 0;
     mode[kz][1] = 0;
