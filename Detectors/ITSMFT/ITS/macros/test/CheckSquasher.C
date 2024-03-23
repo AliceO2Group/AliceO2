@@ -142,7 +142,6 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
   gPad->SetGridx();
   gPad->SetGridy();
   hHitMapSuperimposed->Draw("colz");
-
 }
 
 void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::vector<o2::itsmft::CompClusterExt>* ITSclus, std::vector<unsigned char>* ITSpatt, o2::itsmft::TopologyDictionary& mdict)

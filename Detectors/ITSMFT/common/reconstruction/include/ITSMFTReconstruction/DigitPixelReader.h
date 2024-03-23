@@ -112,6 +112,8 @@ class DigitPixelReader : public PixelReader
     mMaxBCSeparationToSquash = n;
   }
 
+  void squashNeighbours(const uint16_t& iROF, const int& iDigit, const int& maxDigits, ChipPixelData& chipData);
+
  private:
   void addPixel(ChipPixelData& chipData, const Digit* dig)
   {
