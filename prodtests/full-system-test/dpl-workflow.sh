@@ -30,6 +30,8 @@ fi
 : ${CTF_FREE_DISK_WAIT:="10"}         # if disk on EPNs is close to full, wait X seconds before retrying to write
 : ${CTF_MAX_FREE_DISK_WAIT:="600"}    # if not enough disk space after this time throw error
 
+export CALIB_RCT_UPDATER=0
+
 # entropy encoding/decoding mode, '' is equivalent to '--ans-version compat' (compatible with < 09/2023 data),
 # use '--ans-version 1.0 --ctf-dict none' for the new per-TF dictionary mode
 : ${RANS_OPT:="--ans-version 1.0 --ctf-dict none"}
@@ -601,6 +603,7 @@ if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] &
   if [[ $CREATECTFDICT == 1 ]] && [[ $EXTINPUT == 1 ]]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
   [[ $EPNSYNCMODE == 1 ]] && CONFIG_CTF+=" --require-free-disk 53687091200 --wait-for-free-disk $CTF_FREE_DISK_WAIT --max-wait-for-free-disk $CTF_MAX_FREE_DISK_WAIT"
   add_W o2-ctf-writer-workflow "$CONFIG_CTF"
+  [[ $SYNCMODE == 1 ]] && export CALIB_RCT_UPDATER=1
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------

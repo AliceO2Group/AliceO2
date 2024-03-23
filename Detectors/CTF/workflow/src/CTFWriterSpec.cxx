@@ -530,6 +530,8 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   if (mCreateDict && mSaveDictAfter > 0 && (mNCTF % mSaveDictAfter) == 0) {
     storeDictionaries();
   }
+  int dummy = 0;
+  pc.outputs().snapshot({"ctfdone", 0}, dummy);
 }
 
 //___________________________________________________________________
@@ -795,7 +797,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
   return DataProcessorSpec{
     "ctf-writer",
     inputs,
-    Outputs{},
+    Outputs{{OutputLabel{"ctfdone"}, "CTF", "DONE", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
     Options{                                                                               //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
             {"save-ctf-after", VariantType::Int64, 0ll, {"autosave CTF tree with multiple CTFs after every N CTFs if >0 or every -N MBytes if < 0"}},
