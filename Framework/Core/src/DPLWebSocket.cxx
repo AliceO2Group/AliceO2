@@ -152,12 +152,12 @@ struct GUIWebSocketHandler : public WebSocketHandler {
       }
       case GUIOpcodes::Keydown: {
         char key = *frame;
-        mContext.gui->plugin->keyDown(key);
+        mContext.gui->plugin->keyEvent(key, true);
         break;
       }
       case GUIOpcodes::Keyup: {
         char key = *frame;
-        mContext.gui->plugin->keyUp(key);
+        mContext.gui->plugin->keyEvent(key, false);
         break;
       }
       case GUIOpcodes::Charin: {
