@@ -25,6 +25,7 @@
 #include "Framework/Traits.h"
 #include "Framework/TypeIdHelpers.h"
 #include "Framework/ArrowTableSlicingCache.h"
+#include "Framework/AnalysisDataModel.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
