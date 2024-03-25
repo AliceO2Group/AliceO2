@@ -1184,6 +1184,8 @@ class TPCTimeSeries : public Task
     float deltaP4 = -999;
     float phiITSTPCAtVertex = -999; // phi of ITS-TPC track at vertex
     float dcaTPCAtVertex = -999;
+    float covTPCAtVertex0 = -999;
+    float covTPCAtVertex1 = -999;
     if (hasITSTPC) {
       // propagate ITS-TPC track to (0,0)
       auto trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
@@ -1205,6 +1207,9 @@ class TPCTimeSeries : public Task
             o2::gpu::gpustd::array<float, 2> dcaTPCTmp{-1, -1};
             if (propagator->propagateToDCA(vertex.getXYZ(), track, propagator->getNominalBz(), mFineStep, mMatType, &dcaTPCTmp)) {
               dcaTPCAtVertex = dcaTPCTmp[0];
+              // store covariance of TPC track at vertex
+              covTPCAtVertex0 = track.getCovarElem(0, 0);
+              covTPCAtVertex1 = track.getCovarElem(1, 1);
             }
           }
 
@@ -1304,6 +1309,37 @@ class TPCTimeSeries : public Task
         }
         const int triggerMask = 0x1 * minBiasOk + 0x2 * writeData;
 
+        float deltaP2ConstrVtx = -999;
+        float deltaP3ConstrVtx = -999;
+        float deltaP4ConstrVtx = -999;
+
+        // cov of TPC track constrained at vertex
+        float covTPCConstrVtxP2 = -999;
+        float covTPCConstrVtxP3 = -999;
+        float covTPCConstrVtxP4 = -999;
+
+        // cov of ITS-TPC track at vertex
+        float covITSTPCConstrVtxP2 = -999;
+        float covITSTPCConstrVtxP3 = -999;
+        float covITSTPCConstrVtxP4 = -999;
+
+        // constrain tpc track at primary vertex and store cov
+        const bool contributeToVertex = (idxITSTPC.back() != -1);
+        if (contributeToVertex) {
+          if (track.rotate(tracksITS[idxITSTrack].getAlpha())) {
+            track.update(vertex);
+            deltaP2ConstrVtx = track.getParam(2) - tracksITS[idxITSTrack].getParam(2);
+            deltaP3ConstrVtx = track.getParam(3) - tracksITS[idxITSTrack].getParam(3);
+            deltaP4ConstrVtx = track.getParam(4) - tracksITS[idxITSTrack].getParam(4);
+            covTPCConstrVtxP2 = track.getCovarElem(2, 2);
+            covTPCConstrVtxP3 = track.getCovarElem(3, 3);
+            covTPCConstrVtxP4 = track.getCovarElem(4, 4);
+            covITSTPCConstrVtxP2 = tracksITS[idxITSTrack].getCovarElem(2, 2);
+            covITSTPCConstrVtxP3 = tracksITS[idxITSTrack].getCovarElem(3, 3);
+            covITSTPCConstrVtxP4 = tracksITS[idxITSTrack].getCovarElem(4, 4);
+          }
+        }
+
         *mStreamer[iThread] << "treeTimeSeries"
                             // DCAs
                             << "triggerMask=" << triggerMask
@@ -1343,6 +1379,21 @@ class TPCTimeSeries : public Task
                             << "chi2ITS=" << chi2ITS
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
+                            // TPC cov at vertex (without vertex constrained)
+                            << "covTPCAtVertex0=" << covTPCAtVertex0
+                            << "covTPCAtVertex1=" << covTPCAtVertex1
+                            // TPC cov at vertex (with vertex constrained)
+                            << "covTPCConstrVtxP2=" << covTPCConstrVtxP2
+                            << "covTPCConstrVtxP3=" << covTPCConstrVtxP3
+                            << "covTPCConstrVtxP4=" << covTPCConstrVtxP4
+                            // ITS-TPC cov at vertex (with vertex constrained)
+                            << "covITSTPCConstrVtxP2=" << covITSTPCConstrVtxP2
+                            << "covITSTPCConstrVtxP3=" << covITSTPCConstrVtxP3
+                            << "covITSTPCConstrVtxP4=" << covITSTPCConstrVtxP4
+                            // delta Parameter at vertex with TPC track constrained at vertex
+                            << "deltaP2ConstrVtx=" << deltaP2ConstrVtx
+                            << "deltaP3ConstrVtx=" << deltaP3ConstrVtx
+                            << "deltaP4ConstrVtx=" << deltaP4ConstrVtx
                             //
                             << "deltaPar0=" << deltaP0
                             << "deltaPar1=" << deltaP1
