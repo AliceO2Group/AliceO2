@@ -46,6 +46,7 @@ void ClustererDPL::init(InitContext& ic)
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
+  LOGP(info, "Initialising ITSClusterer with {} threads", mNThreads);
   mState = 1;
 }
 

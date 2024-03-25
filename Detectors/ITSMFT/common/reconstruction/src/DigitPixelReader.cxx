@@ -147,10 +147,17 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
     size_t initialSize{chipData.getData().size()};
     // Compile mask for repeated digits (digits with same row,col)
     for (size_t iPixel{0}, iDigitNext{0}; iPixel < initialSize; ++iPixel) {
-      auto& pixel = chipData.getData()[iPixel];
+      const auto& pixel = chipData.getData()[iPixel];
+      for (; iDigitNext < nDigitsNext; ++iDigitNext) {
+        const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
+        if (digitNext->getRow() == pixel.getRowDirect() && digitNext->getColumn() == pixel.getCol()) {
+          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          break;
+        }
+      }
       // seek to iDigitNext which is inferior than itC - mMaxSquashDist
-      auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
-      auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
+      const auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
+      const auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
       if (iDigitNext == nDigitsNext) { // in case iDigitNext loop below reached the end
         iDigitNext--;
       }
@@ -162,8 +169,8 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
           continue;
         }
         const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
-        auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
-        auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
+        const auto drow = digitNext->getRow() - pixel.getRowDirect();
+        const auto dcol = digitNext->getColumn() - pixel.getCol();
         if (!dcol && !drow) {
           mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
           break;
@@ -173,10 +180,10 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
 
     // loop over chip pixels
     for (int iPixel{0}, iDigitNext{0}; iPixel < initialSize; ++iPixel) {
-      auto& pixel = chipData.getData()[iPixel];
+      const o2::itsmft::PixelData pixel = chipData.getData()[iPixel]; // we need a copy to avoid the reference to be invalidated
       // seek to iDigitNext which is inferior than itC - mMaxSquashDist
-      auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
-      auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
+      const auto mincol = pixel.getCol() > mMaxSquashDist ? pixel.getCol() - mMaxSquashDist : 0;
+      const auto minrow = pixel.getRowDirect() > mMaxSquashDist ? pixel.getRowDirect() - mMaxSquashDist : 0;
       if (iDigitNext == nDigitsNext) { // in case iDigitNext loop below reached the end
         iDigitNext--;
       }
@@ -188,24 +195,25 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
           continue;
         }
         const auto* digitNext = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigitNext];
-        auto drow = static_cast<int>(digitNext->getRow()) - static_cast<int>(pixel.getRowDirect());
-        auto dcol = static_cast<int>(digitNext->getColumn()) - static_cast<int>(pixel.getCol());
-        if (!dcol && !drow) {
-          // same pixel fired in two ROFs
-          mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
-          continue;
-        }
+        const auto drow = digitNext->getRow() - pixel.getRowDirect();
+        const auto dcol = digitNext->getColumn() - pixel.getCol();
+        // if (!dcol && !drow) {
+        // same pixel fired in two ROFs, but we did it already
+        //   mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+        //   continue;
+        // }
         if (dcol > mMaxSquashDist || (dcol == mMaxSquashDist && drow > mMaxSquashDist)) {
           break; // all greater iDigitNexts will not match to this pixel too
         }
         if (dcol < -mMaxSquashDist || (drow > mMaxSquashDist || drow < -mMaxSquashDist)) {
           continue;
         } else {
-          chipData.getData().emplace_back(digitNext); // push squashed pixel
           mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iDigitNext] = true;
+          chipData.getData().emplace_back(digitNext); // push squashed pixel
           if (mDigitsMCTruth) {
             chipData.getPixIds().push_back(mBookmarkNextROFs[iROF - 1] + iDigitNext);
           }
+          squashNeighbours(iROF, iDigitNext, nDigitsNext, chipData); // recursively squash neighbours
         }
       }
     }
@@ -222,6 +230,34 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
   }
 
   return true;
+}
+
+//______________________________________________________________________________
+void DigitPixelReader::squashNeighbours(const uint16_t& iROF, const int& iDigit, const int& maxDigits, ChipPixelData& chipData)
+{                                                                     // Recursively find and squash neighbours
+  const auto* digit = &mDigits[mBookmarkNextROFs[iROF - 1] + iDigit]; // current pivot digit, already pushed back and marked
+
+  for (int iOtherDigit{0}; iOtherDigit < maxDigits; ++iOtherDigit) {
+    if (mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iOtherDigit]) {
+      continue;
+    }
+    const auto* otherDigit = &mDigits[mBookmarkNextROFs[iROF - 1] + iOtherDigit];
+    const auto drow = otherDigit->getRow() - digit->getRow();
+    const auto dcol = otherDigit->getColumn() - digit->getColumn();
+    if (dcol > mMaxSquashDist || (dcol == mMaxSquashDist && drow > mMaxSquashDist)) {
+      break; // all greater iOtherDigits will not match to this pixel too
+    }
+    if (dcol < -mMaxSquashDist || (drow > mMaxSquashDist || drow < -mMaxSquashDist)) {
+      continue;
+    } else {
+      mSquashedDigitsMask[mBookmarkNextROFs[iROF - 1] + iOtherDigit] = true;
+      chipData.getData().emplace_back(otherDigit); // push squashed pixel
+      if (mDigitsMCTruth) {
+        chipData.getPixIds().push_back(mBookmarkNextROFs[iROF - 1] + iOtherDigit);
+      }
+      squashNeighbours(iROF, iOtherDigit, maxDigits, chipData); // recursively squash neighbours
+    }
+  }
 }
 
 //______________________________________________________________________________
