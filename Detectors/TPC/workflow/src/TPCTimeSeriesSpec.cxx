@@ -99,7 +99,7 @@ class TPCTimeSeries : public Task
     mXOuterMatching = ic.options().get<float>("refX-for-outer-ITS");
     mUseMinBiasTrigger = !ic.options().get<bool>("disable-min-bias-trigger");
 
-    if (mSampleTsallis) {
+    if (mUnbinnedWriter) {
       for (int iThread = 0; iThread < mNThreads; ++iThread) {
         mGenerator.emplace_back(std::mt19937(std::random_device{}()));
       }
