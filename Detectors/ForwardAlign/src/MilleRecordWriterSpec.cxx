@@ -35,7 +35,7 @@ DataProcessorSpec getMilleRecordWriterSpec(bool useMC, const char* specName, con
   return MakeRootTreeWriterSpec(specName,
                                 fileName,
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MillePede records for MCH-MID tracks"},
-                                BranchDefinition<fwdalign::MillePedeRecord>{InputSpec{"data", "MUON", "RECORD_MCHMID"}, "data"})();
+                                BranchDefinition<fwdalign::MillePedeRecord>{InputSpec{"data", "MUON", "RECORD_MCHMID", Lifetime::Sporadic}, "data"})();
 }
 
 } // namespace fwdalign

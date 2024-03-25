@@ -132,14 +132,13 @@ Aligner::Aligner()
     fStartFac(65536),
     fResCutInitial(1000),
     fResCut(100),
-    fMillepede(nullptr), // to be modified
-    fCluster(nullptr),
+    fMillepede(nullptr),
     fNStdDev(3),
     fDetElemNumber(0),
     fGlobalParameterStatus(std::vector<int>(fNGlobal)),
     fGlobalDerivatives(std::vector<double>(fNGlobal)),
     fLocalDerivatives(std::vector<double>(fNLocal)),
-    fTrackRecord(nullptr),
+    fTrackRecord(),
     mNEntriesAutoSave(10000),
     mRecordWriter(new o2::fwdalign::MilleRecordWriter()),
     mWithConstraintsRecWriter(false),
@@ -148,12 +147,9 @@ Aligner::Aligner()
     mWithConstraintsRecReader(false),
     mConstraintsRecReader(nullptr),
     fTransformCreator(),
-    // fGeoCombiTransInverse(),
     fDoEvaluation(false),
     fDisableRecordWriter(false),
     mRead(false),
-    fTrackParamOrig(nullptr),
-    fTrackParamNew(nullptr),
     fTrkClRes(nullptr),
     fTFile(nullptr),
     fTTree(nullptr)
@@ -171,9 +167,6 @@ Aligner::Aligner()
   // initialize millepede
   fMillepede = new o2::fwdalign::MillePede2();
 
-  // initialize millepede record
-  fTrackRecord = new o2::fwdalign::MillePedeRecord();
-
   // initialize degrees of freedom
   // by default all parameters are free
   for (int iPar = 0; iPar < fNGlobal; ++iPar) {
@@ -188,6 +181,14 @@ Aligner::Aligner()
   for (int i = 0; i < fNGlobal; ++i) {
     fGlobalDerivatives[i] = 0.0;
   }
+}
+
+//________________________________________________________________________
+Aligner::~Aligner()
+{
+  delete mRecordWriter;
+  delete mRecordReader;
+  delete fMillepede;
 }
 
 //_____________________________________________________________________
@@ -216,7 +217,7 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
         fMillepede->SetConstraintsRecWriter(mConstraintsRecWriter);
       }
     } else {
-      fMillepede->SetRecord(fTrackRecord);
+      fMillepede->SetRecord(&fTrackRecord);
     }
 
   } else {
@@ -327,12 +328,6 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
     const int kSplitlevel = 98;
     const int kBufsize = 32000;
 
-    // fTrackParamOrig = new LocalTrackParam();
-    // fTTree->Branch("fTrackParamOrig", "LocalTrackParam", &fTrackParamOrig, kBufsize, kSplitlevel);
-
-    // fTrackParamNew = new LocalTrackParam();
-    // fTTree->Branch("fTrackParamNew", "LocalTrackParam", &fTrackParamNew, kBufsize, kSplitlevel);
-
     fTrkClRes = new o2::mch::LocalTrackClusterResidual();
     fTTree->Branch("fClDetElem", &(fTrkClRes->fClDetElem), "fClDetElem/I");
     fTTree->Branch("fClDetElemNumber", &(fTrkClRes->fClDetElemNumber), "fClDetElemNumber/I");
@@ -372,10 +367,6 @@ void Aligner::terminate()
       fTFile->Close();
     }
   }
-  delete mRecordWriter;
-  delete mRecordReader;
-  delete fMillepede;
-  delete fTrackRecord;
 }
 
 //_____________________________________________________

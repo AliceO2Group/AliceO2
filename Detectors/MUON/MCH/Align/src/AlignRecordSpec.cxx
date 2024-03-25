@@ -38,6 +38,7 @@
 #include "MCHTracking/TrackFitter.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHAlign/Aligner.h"
+#include "MCHBase/TrackerParam.h"
 #include "ForwardAlign/MillePedeRecord.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -85,7 +86,9 @@ class AlignRecordTask
   {
 
     LOG(info) << "initializing align record maker";
-
+    mTrackCount = 0;
+    mTrackMatched = 0;
+    mTrackMatchedPerTF = 0;
     if (mCCDBRequest) {
       base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     } else {
@@ -96,7 +99,6 @@ class AlignRecordTask
         TrackExtrap::setField();
         TrackExtrap::useExtrapV2();
         mAlign.SetBFieldOn(mch::TrackExtrap::isFieldON());
-        trackFitter.smoothTracks(true);
       } else {
         LOG(fatal) << "GRP file doesn't exist!";
       }
@@ -109,7 +111,14 @@ class AlignRecordTask
     mAlign.SetAllowedVariation(1, 0.3);
     mAlign.SetAllowedVariation(2, 0.002);
     mAlign.SetAllowedVariation(3, 2.0);
+
+    // Configuration for track fitter
+    const auto& trackerParam = TrackerParam::Instance();
+    trackFitter.setBendingVertexDispersion(trackerParam.bendingVertexDispersion);
+    trackFitter.setChamberResolution(trackerParam.chamberResolutionX, trackerParam.chamberResolutionY);
+    trackFitter.smoothTracks(true);
     trackFitter.useChamberResolution();
+    mImproveCutChi2 = trackerParam.sigmaCutForImprovement;
 
     // Configuration for chamber fixing
     auto chambers = ic.options().get<string>("fix-chamber");
@@ -129,6 +138,9 @@ class AlignRecordTask
 
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>([this]() {
       LOG(info) << "Saving records into ROOT file";
+      LOG(info) << "Nb of records being saved: " << mTrackCount;
+      LOG(info) << "Nb of matched MCH-MID tracks: " << mTrackMatched;
+      LOG(info) << "Nb of Matched MCH-MID tracks actually used: " << mTrackMatchedPerTF;
       mAlign.terminate();
     });
   }
@@ -142,7 +154,6 @@ class AlignRecordTask
         TrackExtrap::setField();
         TrackExtrap::useExtrapV2();
         mAlign.SetBFieldOn(mch::TrackExtrap::isFieldON());
-        trackFitter.smoothTracks(true);
       }
 
       if (matcher == framework::ConcreteDataMatcher("GLO", "GEOMALIGN", 0)) {
@@ -169,6 +180,7 @@ class AlignRecordTask
     const auto& mchTracks = recoData.getMCHTracks();
     const auto& mchmidMatches = recoData.getMCHMIDMatches();
     const auto& mchClusters = recoData.getMCHTrackClusters();
+    mTrackMatched += mchmidMatches.size();
 
     for (auto const& mchmidMatch : mchmidMatches) {
 
@@ -192,7 +204,9 @@ class AlignRecordTask
       // Erase removable track
       if (!RemoveTrack(convertedTrack)) {
         mAlign.ProcessTrack(convertedTrack, transformation, false, weightRecord);
-        pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, *mAlign.GetRecord());
+        mTrackCount += 1;
+        mTrackMatchedPerTF += 1;
+        pc.outputs().snapshot(Output{"MUON", "RECORD_MCHMID", 0}, mAlign.GetRecord());
       }
     }
   }
@@ -232,7 +246,7 @@ class AlignRecordTask
         }
       }
 
-      if (worstLocalChi2 < trackFitter.getMaxChi2()) {
+      if (worstLocalChi2 < mImproveCutChi2) {
         break;
       }
 
@@ -307,6 +321,10 @@ class AlignRecordTask
   TGeoManager* geo;
 
   mch::TrackFitter trackFitter;
+  double mImproveCutChi2{};
+  int mTrackCount{};
+  int mTrackMatched{};
+  int mTrackMatchedPerTF{};
   mch::Aligner mAlign{};
   Double_t weightRecord{1.0};
   std::vector<o2::fwdalign::MillePedeRecord> mRecords;
@@ -333,7 +351,7 @@ o2::framework::DataProcessorSpec getAlignRecordSpec(bool useMC, bool disableCCDB
                                                                                     dataRequest->inputs,
                                                                                     true); // query only once all objects except mag.field
 
-  outputSpecs.emplace_back("MUON", "RECORD_MCHMID", 0, Lifetime::Timeframe);
+  outputSpecs.emplace_back("MUON", "RECORD_MCHMID", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "mch-align-record",

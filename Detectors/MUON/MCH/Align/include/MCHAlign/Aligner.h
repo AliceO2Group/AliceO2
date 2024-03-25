@@ -107,7 +107,7 @@ class Aligner : public TObject
  public:
   Aligner();
 
-  ~Aligner() = default;
+  ~Aligner();
 
   // initialize
   void init(TString DataRecFName = "millerecords.root", TString ConsRecFName = "milleconstraints.root");
@@ -300,7 +300,7 @@ class Aligner : public TObject
   /// get error on a given parameter
   double GetParError(int iPar) const;
 
-  o2::fwdalign::MillePedeRecord* GetRecord() const { return fTrackRecord; }
+  o2::fwdalign::MillePedeRecord& GetRecord() { return fTrackRecord; }
 
   void ReAlign(std::vector<o2::detectors::AlignParam>& params, std::vector<double>& misAlignments);
 
@@ -401,9 +401,6 @@ class Aligner : public TObject
   /// Detector independent alignment class
   o2::fwdalign::MillePede2* fMillepede; // AliMillePede2 implementation
 
-  /// MCH cluster class
-  o2::mch::Cluster* fCluster;
-
   /// Number of standard deviations for chi2 cut
   int fNStdDev;
 
@@ -449,7 +446,7 @@ class Aligner : public TObject
   int fDetElemNumber;
 
   /// running Track record
-  o2::fwdalign::MillePedeRecord* fTrackRecord;
+  o2::fwdalign::MillePedeRecord fTrackRecord;
 
   /// Geometry transformation
   o2::mch::geo::TransformationCreator fTransformCreator;
@@ -459,10 +456,6 @@ class Aligner : public TObject
 
   /// disable record saving
   bool fDisableRecordWriter;
-
-  /// original local track params
-  LocalTrackParam* fTrackParamOrig;
-  LocalTrackParam* fTrackParamNew;
 
   LocalTrackClusterResidual* fTrkClRes;
 

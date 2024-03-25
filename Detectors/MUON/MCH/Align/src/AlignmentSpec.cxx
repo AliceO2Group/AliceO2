@@ -74,6 +74,7 @@
 #include "MCHTracking/TrackExtrap.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackFitter.h"
+#include "MCHBase/TrackerParam.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 
 namespace o2
@@ -211,8 +212,14 @@ class AlignmentTask
     mAlign.SetAllowedVariation(1, 0.3);
     mAlign.SetAllowedVariation(2, 0.002);
     mAlign.SetAllowedVariation(3, 2.0);
+
+    // Configuration for track fitter
+    const auto& trackerParam = TrackerParam::Instance();
+    trackFitter.setBendingVertexDispersion(trackerParam.bendingVertexDispersion);
+    trackFitter.setChamberResolution(trackerParam.chamberResolutionX, trackerParam.chamberResolutionY);
     trackFitter.smoothTracks(true);
     trackFitter.useChamberResolution();
+    mImproveCutChi2 = trackerParam.sigmaCutForImprovement;
 
     // Fix chambers
     auto chambers = ic.options().get<string>("fix-chamber");
@@ -564,7 +571,7 @@ class AlignmentTask
         }
       }
 
-      if (worstLocalChi2 < trackFitter.getMaxChi2()) {
+      if (worstLocalChi2 < mImproveCutChi2) {
         break;
       }
 
@@ -859,6 +866,7 @@ class AlignmentTask
 
   geo::TransformationCreator transformation{};
   TrackFitter trackFitter{};
+  double mImproveCutChi2{};
 
   std::chrono::duration<double> mElapsedTime{};
 };
