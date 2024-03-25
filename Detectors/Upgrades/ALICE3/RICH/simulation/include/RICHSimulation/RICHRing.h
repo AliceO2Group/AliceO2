@@ -98,6 +98,8 @@ class FWDRich
   // Silicon:
   float mZSiliconMin;
   float mDZSilicon;
+
+  ClassDef(FWDRich, 0);
 };
 
 class BWDRich
@@ -131,6 +133,8 @@ class BWDRich
   // Silicon:
   float mZSiliconMin;
   float mDZSilicon;
+
+  ClassDef(BWDRich, 0);
 };
 
 } // namespace rich
