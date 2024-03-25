@@ -40,8 +40,7 @@ struct DebugGUI {
   virtual void updateMouseButton(bool isClicked) = 0;
   virtual void updateMouseWheel(int direction) = 0;
   virtual void updateWindowSize(int x, int y) = 0;
-  virtual void keyDown(char key) = 0;
-  virtual void keyUp(char key) = 0;
+  virtual void keyEvent(char key, bool down) = 0;
   virtual void charIn(char key) = 0;
 
   virtual void* initGUI(char const* windowTitle, ServiceRegistry& registry) = 0;
