@@ -219,7 +219,7 @@ class AlignmentTask
     trackFitter.setChamberResolution(trackerParam.chamberResolutionX, trackerParam.chamberResolutionY);
     trackFitter.smoothTracks(true);
     trackFitter.useChamberResolution();
-    mImproveCutChi2 = trackerParam.sigmaCutForImprovement;
+    mImproveCutChi2 = 2. * trackerParam.sigmaCutForImprovement * trackerParam.sigmaCutForImprovement;
 
     // Fix chambers
     auto chambers = ic.options().get<string>("fix-chamber");
