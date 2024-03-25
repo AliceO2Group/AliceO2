@@ -41,8 +41,8 @@ class ClusterLabel
     labelWithE() : label(0), energyFraction(0.) {}
 
     /// \brief Constructor
-    /// \param e Energy fraction
     /// \param l MC label
+    /// \param e Energy fraction
     labelWithE(int l, float e) : label(l), energyFraction(e) {}
 
     /// \brief Comparison lower operator comparing cells based on energy
