@@ -46,7 +46,7 @@ const int mipMax = 50;
 const binning binsdEdxMIPTot{100, mipTot / 3., mipTot * 3.};
 const binning binsdEdxMIPMax{100, mipMax / 3., mipMax * 3.};
 const int binsPerSector = 5;
-const binning binsSec{36 * binsPerSector, 0., 36. * binsPerSector};
+const binning binsSec{36 * binsPerSector, 0., 36.};
 const auto bins = o2::tpc::qc::helpers::makeLogBinning(200, 0.05, 20);
 const int binNumber = 200;
 const float binsdEdxTot_MaxValue = 6000.;
