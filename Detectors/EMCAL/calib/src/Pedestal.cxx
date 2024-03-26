@@ -24,42 +24,70 @@
 
 using namespace o2::emcal;
 
-void Pedestal::addPedestalValue(unsigned short cellID, short pedestal, bool isLowGain)
+void Pedestal::addPedestalValue(unsigned short cellID, short pedestal, bool isLowGain, bool isLEDMON)
 {
   if (cellID >= mPedestalValuesHG.size()) {
     throw CalibContainerIndexException(cellID);
   }
-  if (isLowGain) {
-    mPedestalValuesLG[cellID] = pedestal;
+  if (isLEDMON) {
+    if (isLowGain) {
+      mPedestalValuesLEDMONLG[cellID] = pedestal;
+    } else {
+      mPedestalValuesLEDMONHG[cellID] = pedestal;
+    }
   } else {
-    mPedestalValuesHG[cellID] = pedestal;
+    if (isLowGain) {
+      mPedestalValuesLG[cellID] = pedestal;
+    } else {
+      mPedestalValuesHG[cellID] = pedestal;
+    }
   }
 }
 
-short Pedestal::getPedestalValue(unsigned short cellID, bool isLowGain) const
+short Pedestal::getPedestalValue(unsigned short cellID, bool isLowGain, bool isLEDMON) const
 {
   if (cellID >= mPedestalValuesHG.size()) {
     throw CalibContainerIndexException(cellID);
   }
-  if (isLowGain) {
-    return mPedestalValuesLG[cellID];
+  if (isLEDMON) {
+    if (isLowGain) {
+      return mPedestalValuesLEDMONLG[cellID];
+    } else {
+      return mPedestalValuesLEDMONHG[cellID];
+    }
   } else {
-    return mPedestalValuesHG[cellID];
+    if (isLowGain) {
+      return mPedestalValuesLG[cellID];
+    } else {
+      return mPedestalValuesHG[cellID];
+    }
   }
 }
 
-TH1* Pedestal::getHistogramRepresentation(bool isLowGain) const
+TH1* Pedestal::getHistogramRepresentation(bool isLowGain, bool isLEDMON) const
 {
   gsl::span<const short> data;
   std::string histname, histtitle;
-  if (isLowGain) {
-    histname = "PedestalLG";
-    histtitle = "Pedestal values Params low Gain";
-    data = gsl::span<const short>(mPedestalValuesLG);
+  if (isLEDMON) {
+    if (isLowGain) {
+      histname = "PedestalLG_LEDMON";
+      histtitle = "LEDMON Pedestal values Params low Gain";
+      data = gsl::span<const short>(mPedestalValuesLEDMONLG);
+    } else {
+      histname = "PedestalHG_LEDMON";
+      histtitle = "LEDMON Pedestal values Params high Gain";
+      data = gsl::span<const short>(mPedestalValuesLEDMONHG);
+    }
   } else {
-    histname = "PedestalHG";
-    histtitle = "Pedestal values Params high Gain";
-    data = gsl::span<const short>(mPedestalValuesHG);
+    if (isLowGain) {
+      histname = "PedestalLG";
+      histtitle = "Pedestal values Params low Gain";
+      data = gsl::span<const short>(mPedestalValuesLG);
+    } else {
+      histname = "PedestalHG";
+      histtitle = "Pedestal values Params high Gain";
+      data = gsl::span<const short>(mPedestalValuesHG);
+    }
   }
 
   auto hist = new TH1S(histname.data(), histtitle.data(), data.size(), -0.5, data.size() - 0.5);
@@ -70,18 +98,30 @@ TH1* Pedestal::getHistogramRepresentation(bool isLowGain) const
   return hist;
 }
 
-TH2* Pedestal::getHistogramRepresentation2D(bool isLowGain) const
+TH2* Pedestal::getHistogramRepresentation2D(bool isLowGain, bool isLEDMON) const
 {
   gsl::span<const short> data;
   std::string histname, histtitle;
-  if (isLowGain) {
-    histname = "PedestalDistLG";
-    histtitle = "Pedestal values Params low Gain";
-    data = gsl::span<const short>(mPedestalValuesLG);
+  if (isLEDMON) {
+    if (isLowGain) {
+      histname = "PedestalLG_LEDMON";
+      histtitle = "LEDMON Pedestal values Params low Gain";
+      data = gsl::span<const short>(mPedestalValuesLEDMONLG);
+    } else {
+      histname = "PedestalHG_LEDMON";
+      histtitle = "LEDMON Pedestal values Params high Gain";
+      data = gsl::span<const short>(mPedestalValuesLEDMONHG);
+    }
   } else {
-    histname = "PedestalDistHG";
-    histtitle = "Pedestal values Params high Gain";
-    data = gsl::span<const short>(mPedestalValuesHG);
+    if (isLowGain) {
+      histname = "PedestalLG";
+      histtitle = "Pedestal values Params low Gain";
+      data = gsl::span<const short>(mPedestalValuesLG);
+    } else {
+      histname = "PedestalHG";
+      histtitle = "Pedestal values Params high Gain";
+      data = gsl::span<const short>(mPedestalValuesHG);
+    }
   }
 
   const int MAXROWS = 208,
@@ -102,5 +142,5 @@ TH2* Pedestal::getHistogramRepresentation2D(bool isLowGain) const
 
 bool Pedestal::operator==(const Pedestal& other) const
 {
-  return mPedestalValuesHG == other.mPedestalValuesHG && mPedestalValuesLG == other.mPedestalValuesLG;
+  return mPedestalValuesHG == other.mPedestalValuesHG && mPedestalValuesLG == other.mPedestalValuesLG && mPedestalValuesLEDMONHG == other.mPedestalValuesLEDMONHG && mPedestalValuesLEDMONLG == other.mPedestalValuesLEDMONLG;
 }
