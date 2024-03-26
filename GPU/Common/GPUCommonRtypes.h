@@ -17,7 +17,7 @@
 
 #include "GPUCommonDef.h"
 
-#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_GPULIBRARY) // clang-format off
+#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_GPUCODE) // clang-format off
   #if !defined(ROOT_Rtypes) && !defined(__CLING__)
     #define GPUCOMMONRTYPES_H_ACTIVE
     #define ClassDef(name,id)
