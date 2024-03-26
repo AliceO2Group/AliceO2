@@ -71,5 +71,5 @@ void ClusterLabel::orderLabels()
 {
   // Sort the pairs based on values in descending order
   std::sort(mClusterLabels.begin(), mClusterLabels.end(),
-            [](const labelWithE& a, const labelWithE& b) { return a.label >= b.label; });
+            [](const labelWithE& a, const labelWithE& b) { return a.energyFraction >= b.energyFraction; });
 }
