@@ -82,6 +82,8 @@ class Detector : public o2::base::DetImpl<Detector>
   float mOuterRadius;
   float mLength;
 
+  bool mEnableEndcap{true};
+
  protected:
   template <typename Det>
   friend class o2::base::DetImpl;
