@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/Decay3Body.h"
 #include "ReconstructionDataFormats/DecayNBodyIndex.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
@@ -65,9 +66,12 @@ class StrangenessTracker
   using V0Index = o2::dataformats::V0Index;
   using Cascade = o2::dataformats::Cascade;
   using CascadeIndex = o2::dataformats::CascadeIndex;
+  using Decay3Body = o2::dataformats::Decay3Body;
+  using Decay3BodyIndex = o2::dataformats::Decay3BodyIndex;
   using GIndex = o2::dataformats::VtxTrackIndex;
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
   using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
+  using DCAFitter4 = o2::vertexing::DCAFitterN<4>;
   using MCLabContCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using MCLabSpan = gsl::span<const o2::MCCompLabel>;
   using VBracket = o2::math_utils::Bracket<int>;
@@ -81,6 +85,7 @@ class StrangenessTracker
   void process();
   void processV0(int iv0, const V0& v0, const V0Index& v0Idx, int iThread = 0);
   void processCascade(int icasc, const Cascade& casc, const CascadeIndex& cascIdx, const V0& cascV0, int iThread = 0);
+  void process3Body(int i3body, const Decay3Body& dec3body, const Decay3BodyIndex& dec3bodyIdx, int iThread = 0);
   bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
 
   std::vector<ClusAttachments>& getClusAttachments(int iThread = 0) { return mClusAttachments[iThread]; };
@@ -119,6 +124,7 @@ class StrangenessTracker
     mNThreads = nThreads;
     mFitterV0.resize(nThreads);
     mFitter3Body.resize(nThreads);
+    mFitter4Body.resize(nThreads);
     mStrangeTrackVec.resize(nThreads);
     mClusAttachments.resize(nThreads);
     mStrangeTrackLabels.resize(nThreads);
@@ -132,6 +138,10 @@ class StrangenessTracker
       fitter.setUseAbsDCA(true);
     }
     for (auto& fitter : mFitter3Body) {
+      fitter.setBz(mBz);
+      fitter.setUseAbsDCA(true);
+    }
+    for (auto& fitter : mFitter4Body) {
       fitter.setBz(mBz);
       fitter.setUseAbsDCA(true);
     }
@@ -160,6 +170,24 @@ class StrangenessTracker
     double pxMother = (pDauFirst[0] + pDauSecond[0]);
     double pyMother = (pDauFirst[1] + pDauSecond[1]);
     double pzMother = (pDauFirst[2] + pDauSecond[2]);
+    double p2Mother = (pxMother * pxMother) + (pyMother * pyMother) + (pzMother * pzMother);
+    return std::sqrt(e2Mother - p2Mother);
+  }
+
+  double calcMotherMass3body(const std::array<float, 3>& pDauFirst, const std::array<float, 3>& pDauSecond, const std::array<float, 3>& pDauThird, PID pidDauFirst, PID pidDauSecond, PID pidDauThird)
+  {
+    double m2DauFirst = PID::getMass2(pidDauFirst);
+    double m2DauSecond = PID::getMass2(pidDauSecond);
+    double m2DauThird = PID::getMass2(pidDauThird);
+    double p2DauFirst = (pDauFirst[0] * pDauFirst[0]) + (pDauFirst[1] * pDauFirst[1]) + (pDauFirst[2] * pDauFirst[2]);
+    double p2DauSecond = (pDauSecond[0] * pDauSecond[0]) + (pDauSecond[1] * pDauSecond[1]) + (pDauSecond[2] * pDauSecond[2]);
+    double p2DauThird = (pDauThird[0] * pDauThird[0]) + (pDauThird[1] * pDauThird[1]) + (pDauThird[2] * pDauThird[2]);
+    float eFirst = std::sqrt(p2DauFirst + m2DauFirst), eSecond = std::sqrt(p2DauSecond + m2DauSecond), eThird = std::sqrt(p2DauThird + m2DauThird);
+
+    double e2Mother = (eFirst + eSecond + eThird) * (eFirst + eSecond + eThird);
+    double pxMother = (pDauFirst[0] + pDauSecond[0] + pDauThird[0]);
+    double pyMother = (pDauFirst[1] + pDauSecond[1] + pDauThird[1]);
+    double pzMother = (pDauFirst[2] + pDauSecond[2] + pDauThird[2]);
     double p2Mother = (pxMother * pxMother) + (pyMother * pyMother) + (pzMother * pzMother);
     return std::sqrt(e2Mother - p2Mother);
   }
@@ -257,20 +285,22 @@ class StrangenessTracker
   }
 
  protected:
-  bool mMCTruthON = false;                            /// flag availability of MC truth
-  int mNThreads = 1;                                  /// number of threads (externally driven)
-  gsl::span<const TrackITS> mInputITStracks;          // input ITS tracks
-  std::vector<VBracket> mITSvtxBrackets;              // time brackets for ITS tracks
-  std::vector<int> mTracksIdxTable;                   // index table for ITS tracks
-  std::vector<int> mInputClusterSizes;                // input cluster sizes
-  std::vector<ITSCluster> mInputITSclusters;          // input ITS clusters
-  gsl::span<const int> mInputITSidxs;                 // input ITS track-cluster indexes
-  gsl::span<const V0> mInputV0tracks;                 // input V0 of decay daughters
-  gsl::span<const V0Index> mInputV0Indices;           // input V0 indices of decay daughters
-  gsl::span<const Cascade> mInputCascadeTracks;       // input cascade of decay daughters
-  gsl::span<const CascadeIndex> mInputCascadeIndices; // input cascade indices of decay daughters
-  const MCLabContCl* mITSClsLabels = nullptr;         /// input ITS Cluster MC labels
-  MCLabSpan mITSTrkLabels;                            /// input ITS Track MC labels
+  bool mMCTruthON = false;                             /// flag availability of MC truth
+  int mNThreads = 1;                                   /// number of threads (externally driven)
+  gsl::span<const TrackITS> mInputITStracks;           // input ITS tracks
+  std::vector<VBracket> mITSvtxBrackets;               // time brackets for ITS tracks
+  std::vector<int> mTracksIdxTable;                    // index table for ITS tracks
+  std::vector<int> mInputClusterSizes;                 // input cluster sizes
+  std::vector<ITSCluster> mInputITSclusters;           // input ITS clusters
+  gsl::span<const int> mInputITSidxs;                  // input ITS track-cluster indexes
+  gsl::span<const V0> mInputV0tracks;                  // input V0 of decay daughters
+  gsl::span<const V0Index> mInputV0Indices;            // input V0 indices of decay daughters
+  gsl::span<const Cascade> mInputCascadeTracks;        // input cascade of decay daughters
+  gsl::span<const CascadeIndex> mInputCascadeIndices;  // input cascade indices of decay daughters
+  gsl::span<const Decay3Body> mInput3BodyTracks;       // input decay3body of decay daughters
+  gsl::span<const Decay3BodyIndex> mInput3BodyIndices; // input decay3body indices of decay daughters
+  const MCLabContCl* mITSClsLabels = nullptr;          /// input ITS Cluster MC labels
+  MCLabSpan mITSTrkLabels;                             /// input ITS Track MC labels
 
   std::vector<o2::its::TrackITS> mSortedITStracks; // sorted ITS tracks
   std::vector<int> mSortedITSindexes;              // indexes of sorted ITS tracks
@@ -286,6 +316,7 @@ class StrangenessTracker
 
   std::vector<DCAFitter2> mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis (per thread)
   std::vector<DCAFitter3> mFitter3Body; // optional DCA Fitter for final 3 Body refit (per thread)
+  std::vector<DCAFitter4> mFitter4Body; // optional DCA Fitter for final 4 Body refit (per thread)
 
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
 
