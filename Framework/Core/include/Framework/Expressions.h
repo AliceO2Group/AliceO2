@@ -495,6 +495,8 @@ std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, std:
 
   return createProjectorHelper(sizeof...(C), projectors.data(), schema, fields);
 }
+
+void updateFilterInfo(ExpressionInfo& info, std::shared_ptr<arrow::Table>& table);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

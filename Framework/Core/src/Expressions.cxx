@@ -735,4 +735,15 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
   }
 }
 
+void updateFilterInfo(ExpressionInfo& info, std::shared_ptr<arrow::Table>& table)
+{
+  if (info.tree != nullptr && info.filter == nullptr) {
+    info.filter = framework::expressions::createFilter(table->schema(), framework::expressions::makeCondition(info.tree));
+  }
+  if (info.tree != nullptr && info.filter != nullptr && info.resetSelection == true) {
+    info.selection = framework::expressions::createSelection(table, info.filter);
+    info.resetSelection = false;
+  }
+}
+
 } // namespace o2::framework::expressions
