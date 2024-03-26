@@ -125,10 +125,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
       ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
-      ${CMAKE_CURRENT_SOURCE_DIR}
+      ${GPUCA_HIP_SOURCE_DIR}
     TARGETVARNAME targetName)
 
-  target_compile_definitions(${targetName} PUBLIC GPUCA_GPULIBRARY=HIP $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+  target_compile_definitions(${targetName} PUBLIC $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 
   install(FILES ${HDRS} DESTINATION include/GPU)
 
@@ -145,7 +145,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(NOT CMAKE_CXX_STANDARD OR CMAKE_CXX_STANDARD LESS 14)
     message(FATAL_ERROR "HIP support needs at least C++14")
   endif()
-  add_definitions(-DGPUCA_GPULIBRARY=HIP)
 
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
@@ -169,15 +168,16 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS ${targetName} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS} DESTINATION include)
+  include_directories(${GPUCA_HIP_SOURCE_DIR})
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(targetName "${MODULE}")
   set(TMP_BASELIB GPUTracking)
-  add_definitions(-DGPUCA_GPULIBRARY=HIP)
   add_library(${MODULE} SHARED ${SRCS})
   target_link_libraries(${MODULE} PUBLIC ${TMP_BASELIB})
   install(TARGETS GPUTrackingHIP)
+  include_directories(${GPUCA_HIP_SOURCE_DIR})
 endif()
 
 add_library(${MODULE}_CXX OBJECT ${SRCS_CXX})
