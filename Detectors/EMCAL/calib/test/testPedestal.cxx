@@ -53,30 +53,38 @@ pedestalarray shiftPedestalValue(const pedestalarray& input, short shift = 1)
 BOOST_AUTO_TEST_CASE(testPedestal)
 {
   auto pedestalsHG = createRandomPedestals(),
-       pedestalsLG = createRandomPedestals();
+       pedestalsLG = createRandomPedestals(),
+       pedestalsLEDMONHG = createRandomPedestals(),
+       pedestalsLEDMONLG = createRandomPedestals();
 
   o2::emcal::Pedestal pedestalObject;
   for (std::size_t ichan{0}; ichan < pedestalsHG.size(); ++ichan) {
-    pedestalObject.addPedestalValue(ichan, pedestalsHG[ichan], false);
-    pedestalObject.addPedestalValue(ichan, pedestalsLG[ichan], true);
+    pedestalObject.addPedestalValue(ichan, pedestalsHG[ichan], false, false);
+    pedestalObject.addPedestalValue(ichan, pedestalsLG[ichan], true, false);
+    pedestalObject.addPedestalValue(ichan, pedestalsLEDMONHG[ichan], false, true);
+    pedestalObject.addPedestalValue(ichan, pedestalsLEDMONLG[ichan], true, true);
   }
 
   // test adding entries beyond range
   for (std::size_t ichan{17665}; ichan < 18000; ++ichan) {
-    BOOST_CHECK_EXCEPTION(pedestalObject.addPedestalValue(ichan, 2, false), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
-    BOOST_CHECK_EXCEPTION(pedestalObject.addPedestalValue(ichan, 3, true), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
+    BOOST_CHECK_EXCEPTION(pedestalObject.addPedestalValue(ichan, 2, false, true), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
+    BOOST_CHECK_EXCEPTION(pedestalObject.addPedestalValue(ichan, 3, true, false), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
   }
 
   // test reading values in range
   for (std::size_t ichan{0}; ichan < pedestalsHG.size(); ++ichan) {
-    BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, false), pedestalsHG[ichan]);
-    BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, true), pedestalsLG[ichan]);
+    BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, false, false), pedestalsHG[ichan]);
+    BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, true, false), pedestalsLG[ichan]);
+    BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, false, true), pedestalsLEDMONHG[ichan]);
+    BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, true, true), pedestalsLEDMONLG[ichan]);
   }
 
   // test reading entries beyond range
   for (std::size_t ichan{17665}; ichan < 18000; ++ichan) {
-    BOOST_CHECK_EXCEPTION(pedestalObject.getPedestalValue(ichan, false), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
-    BOOST_CHECK_EXCEPTION(pedestalObject.getPedestalValue(ichan, true), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
+    BOOST_CHECK_EXCEPTION(pedestalObject.getPedestalValue(ichan, false, false), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
+    BOOST_CHECK_EXCEPTION(pedestalObject.getPedestalValue(ichan, true, false), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
+    BOOST_CHECK_EXCEPTION(pedestalObject.getPedestalValue(ichan, false, true), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
+    BOOST_CHECK_EXCEPTION(pedestalObject.getPedestalValue(ichan, true, true), o2::emcal::CalibContainerIndexException, [ichan](const o2::emcal::CalibContainerIndexException& e) { return e.getIndex() == ichan; });
   }
 
   // tests for operator==

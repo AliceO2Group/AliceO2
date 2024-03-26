@@ -28,9 +28,12 @@
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
+#include "EMCALCalib/Pedestal.h"
+#include "EMCALCalibration/PedestalProcessorData.h"
 #include <boost/histogram.hpp>
 
 #include <TRobustEstimator.h>
+#include <TProfile.h>
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
 #include <omp.h>
@@ -413,6 +416,47 @@ class EMCALCalibExtractor
       }
     }
     return TCP;
+  }
+
+  //____________________________________________
+  /// \brief Extract the pedestals from Stat Accumulators
+  /// \param obj PedestalProcessorData containing the data
+  /// \return Pedestal data
+  Pedestal extractPedestals(PedestalProcessorData& obj)
+  {
+    Pedestal pedestalData;
+    // loop over both low and high gain data as well as normal and LEDMON data
+    for (const auto& isLEDMON : {false, true}) {
+      for (const auto& isLG : {false, true}) {
+        for (unsigned short iCell = 0; iCell < mNcells; ++iCell) {
+          auto [mean, rms] = obj.getValue(iCell, isLG, isLEDMON); // get mean and rms for pedestals
+          pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+        }
+      }
+    }
+    return pedestalData;
+  }
+
+  //____________________________________________
+  /// \brief Extract the pedestals from TProfile (for old data)
+  /// \param objHG TProfile containing the HG data
+  /// \param objLHG TProfile containing the LG data
+  /// \param isLEDMON if true, data is LED data
+  /// \return Pedestal data
+  Pedestal extractPedestals(TProfile* objHG = nullptr, TProfile* objLG = nullptr, bool isLEDMON = false)
+  {
+    Pedestal pedestalData;
+    // loop over both low and high gain data
+    for (const auto& isLG : {false, true}) {
+      auto obj = (isLG == true ? objLG : objHG);
+      if (!obj)
+        continue;
+      for (unsigned short iCell = 0; iCell < mNcells; ++iCell) {
+        short mean = static_cast<short>(obj->GetBinContent(iCell + 1));
+        pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+      }
+    }
+    return pedestalData;
   }
 
  private:

@@ -16,6 +16,7 @@ o2_add_library(EMCALCalibration
                         src/EMCALCalibExtractor.cxx
                         src/EMCALCalibParams.cxx
                         src/EMCDCSProcessor.cxx
+                        src/PedestalCalibDevice.cxx
                         src/PedestalProcessorDevice.cxx
                         src/PedestalProcessorData.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
@@ -60,6 +61,14 @@ endif()
 o2_add_executable(emcal-pedestal-processor-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/emc-pedestal-processor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::EMCALCalibration
+                                        O2::DetectorsRaw
+                                        O2::DetectorsCalibration)
+
+o2_add_executable(emcal-pedestal-calib-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/emc-pedestal-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::EMCALCalibration
                                         O2::DetectorsRaw
