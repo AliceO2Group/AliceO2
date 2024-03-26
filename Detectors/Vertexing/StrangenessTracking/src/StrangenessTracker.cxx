@@ -312,9 +312,11 @@ void StrangenessTracker::process()
   }
 
   // Loop over 3bodys
-  for (int i3Body{0}; i3Body < mInput3BodyTracks.size(); i3Body++) {
-    LOG(debug) << "Analysing 3-Body: " << i3Body + 1 << "/" << mInput3BodyTracks.size();
-    process3Body(i3Body, mInput3BodyTracks[i3Body], mInput3BodyIndices[i3Body]);
+  if (!mStrParams->mSkip3Body) {
+    for (int i3Body{0}; i3Body < mInput3BodyTracks.size(); i3Body++) {
+      LOG(debug) << "Analysing 3-Body: " << i3Body + 1 << "/" << mInput3BodyTracks.size();
+      process3Body(i3Body, mInput3BodyTracks[i3Body], mInput3BodyIndices[i3Body]);
+    }
   }
 }
 
