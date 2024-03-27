@@ -74,7 +74,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   add_custom_command(
       OUTPUT ${GPU_RTC_BIN}.command
-      COMMAND echo -n "${CMAKE_CUDA_COMPILER} ${GPU_RTC_FLAGS} ${GPU_RTC_DEFINES}" > ${GPU_RTC_BIN}.command
+      COMMAND echo -n "${CMAKE_CUDA_COMPILER} ${GPU_RTC_FLAGS} ${GPU_RTC_DEFINES} -cubin" > ${GPU_RTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
       COMMENT "Preparing CUDA RTC command file ${GPU_RTC_BIN}.command"
