@@ -12,13 +12,17 @@
 #include "MCHStatus/StatusMapCreatorSpec.h"
 
 #include "DataFormatsMCH/DsChannelId.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/Task.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/WorkflowSpec.h"
+#include "MCHStatus/HVStatusCreator.h"
 #include "MCHStatus/StatusMap.h"
 #include "MCHStatus/StatusMapCreatorParam.h"
 #include <fmt/format.h>
@@ -53,17 +57,20 @@ class StatusMapCreatorTask
     mStatusMap.clear();
     mStatusMap.add(mBadChannels, StatusMap::kBadPedestal);
     mStatusMap.add(mRejectList, StatusMap::kRejectList);
-    mStatusMapUpdated = true;
+    mHVStatusCreator.updateStatusMap(mStatusMap);
+    mUpdateStatusMap = false;
   }
 
-  void
-    init(InitContext& ic)
+  void init(InitContext& ic)
   {
     mUseBadChannels = StatusMapCreatorParam::Instance().useBadChannels;
     mUseRejectList = StatusMapCreatorParam::Instance().useRejectList;
+    mUseHV = StatusMapCreatorParam::Instance().useHV;
     mBadChannels.clear();
     mRejectList.clear();
-    mStatusMapUpdated = true;
+    mHVStatusCreator.clear();
+    mStatusMap.clear();
+    mUpdateStatusMap = false;
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -71,12 +78,14 @@ class StatusMapCreatorTask
     if (matcher == ConcreteDataMatcher("MCH", "BADCHANNELS", 0)) {
       auto bad = static_cast<std::vector<o2::mch::DsChannelId>*>(obj);
       mBadChannels = *bad;
-      updateStatusMap();
-    }
-    if (matcher == ConcreteDataMatcher("MCH", "REJECTLIST", 0)) {
+      mUpdateStatusMap = true;
+    } else if (matcher == ConcreteDataMatcher("MCH", "REJECTLIST", 0)) {
       auto rl = static_cast<std::vector<o2::mch::DsChannelId>*>(obj);
       mRejectList = *rl;
-      updateStatusMap();
+      mUpdateStatusMap = true;
+    } else if (matcher == ConcreteDataMatcher("MCH", "HV", 0)) {
+      auto hv = static_cast<o2::mch::HVStatusCreator::DPMAP*>(obj);
+      mHVStatusCreator.findBadHVs(*hv);
     }
   }
 
@@ -86,54 +95,63 @@ class StatusMapCreatorTask
       // to trigger call to finaliseCCDB
       pc.inputs().get<std::vector<o2::mch::DsChannelId>*>("badchannels");
     }
+
     if (mUseRejectList) {
       // to trigger call to finaliseCCDB
       pc.inputs().get<std::vector<o2::mch::DsChannelId>*>("rejectlist");
     }
 
-    if (mStatusMapUpdated) {
-      // create the output message
+    if (mUseHV) {
+      // to trigger call to finaliseCCDB
+      pc.inputs().get<o2::mch::HVStatusCreator::DPMAP*>("hv");
+
+      // check for update of bad HV channels
+      auto timestamp = pc.services().get<o2::framework::TimingInfo>().creation;
+      if (mHVStatusCreator.findCurrentBadHVs(timestamp)) {
+        mUpdateStatusMap = true;
+      }
+    }
+
+    // update the status map if needed
+    if (mUpdateStatusMap) {
+      updateStatusMap();
       LOGP(info, "Sending updated StatusMap of size {}", size(mStatusMap));
-      pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
-      mStatusMapUpdated = false;
     } else {
       LOGP(info, "Sending unchanged StatusMap of size {}", size(mStatusMap));
-      pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
     }
+
+    // create the output message
+    pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
   }
 
  private:
   bool mUseBadChannels{false};
   bool mUseRejectList{false};
-  std::vector<o2::mch::DsChannelId> mBadChannels;
-  std::vector<o2::mch::DsChannelId> mRejectList;
-  StatusMap mStatusMap;
-  bool mStatusMapUpdated{false};
+  bool mUseHV{false};
+  std::vector<o2::mch::DsChannelId> mBadChannels{};
+  std::vector<o2::mch::DsChannelId> mRejectList{};
+  HVStatusCreator mHVStatusCreator{};
+  StatusMap mStatusMap{};
+  bool mUpdateStatusMap{false};
 };
 
 framework::DataProcessorSpec getStatusMapCreatorSpec(std::string_view specName)
 {
-  std::string input;
-
+  std::vector<InputSpec> inputs{};
   if (StatusMapCreatorParam::Instance().useBadChannels) {
-    input = "badchannels:MCH/BADCHANNELS/0?lifetime=condition&ccdb-path=MCH/Calib/BadChannel";
+    inputs.emplace_back(InputSpec{"badchannels", "MCH", "BADCHANNELS", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/BadChannel")});
   }
   if (StatusMapCreatorParam::Instance().useRejectList) {
-    if (!input.empty()) {
-      input += ";";
-    }
-    input += "rejectlist:MCH/REJECTLIST/0?lifetime=condition&ccdb-path=MCH/Calib/RejectList";
+    inputs.emplace_back(InputSpec{"rejectlist", "MCH", "REJECTLIST", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/RejectList")});
+  }
+  if (StatusMapCreatorParam::Instance().useHV) {
+    inputs.emplace_back(InputSpec{"hv", "MCH", "HV", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/HV", {}, 1)}); // query every TF
   }
 
-  std::string output = "statusmap:MCH/STATUSMAP/0";
+  std::vector<OutputSpec> outputs{};
+  outputs.emplace_back(OutputSpec{{"statusmap"}, "MCH", "STATUSMAP", 0, Lifetime::Timeframe});
 
-  std::vector<OutputSpec> outputs;
-  auto matchers = select(output.c_str());
-  for (auto& matcher : matchers) {
-    outputs.emplace_back(DataSpecUtils::asOutputSpec(matcher));
-  }
-
-  if (input.empty()) {
+  if (inputs.empty()) {
     return DataProcessorSpec{
       specName.data(),
       {},
@@ -148,7 +166,7 @@ framework::DataProcessorSpec getStatusMapCreatorSpec(std::string_view specName)
 
   return DataProcessorSpec{
     specName.data(),
-    Inputs{select(input.c_str())},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<StatusMapCreatorTask>()},
     Options{}};

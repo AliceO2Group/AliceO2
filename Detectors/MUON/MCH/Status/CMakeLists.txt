@@ -11,11 +11,13 @@
 
 o2_add_library(MCHStatus
         SOURCES
+          src/HVStatusCreator.cxx
           src/StatusMap.cxx
           src/StatusMapCreatorParam.cxx
           src/StatusMapCreatorSpec.cxx
         PUBLIC_LINK_LIBRARIES
           fmt::fmt
+          O2::DetectorsDCS
           O2::DataFormatsMCH
           O2::MCHGlobalMapping)
 
