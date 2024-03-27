@@ -106,7 +106,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   add_custom_command(
       OUTPUT ${GPU_RTC_BIN}.command
-      COMMAND echo -n "${CMAKE_HIP_COMPILER} ${GPU_RTC_FLAGS} ${GPU_RTC_DEFINES}" > ${GPU_RTC_BIN}.command
+      COMMAND echo -n "${hip_HIPCC_EXECUTABLE} ${GPU_RTC_FLAGS} ${GPU_RTC_DEFINES} --genco" > ${GPU_RTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
       COMMENT "Preparing HIP RTC command file ${GPU_RTC_BIN}.command"
