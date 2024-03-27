@@ -51,6 +51,8 @@ if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
     )
     list(APPEND HIP_SOURCES "${GPUCA_HIP_SOURCE_DIR}/${HIP_SOURCE}")
   endforeach()
+
+  add_custom_target(${MODULE}_HIPIFIED_CHK COMMAND diff -u ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip DEPENDS ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip ${CMAKE_CURRENT_SOURCE_DIR}/GPUReconstructionHIPkernel.template.hip)
 else()
   get_filename_component(GPUCA_HIP_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)
 endif()
@@ -186,7 +188,7 @@ target_include_directories(${MODULE}_CXX PRIVATE $<TARGET_PROPERTY:${TMP_BASELIB
 target_link_libraries(${targetName} PRIVATE ${MODULE}_CXX)
 
 if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
-  add_custom_target(${MODULE}_HIPIFIED DEPENDS ${HIP_SOURCES})
+  add_custom_target(${MODULE}_HIPIFIED DEPENDS ${HIP_SOURCES} ${MODULE}_HIPIFIED_CHK)
   add_dependencies(${targetName} ${MODULE}_HIPIFIED)
   add_dependencies(${MODULE}_CXX ${MODULE}_HIPIFIED)
 endif()
