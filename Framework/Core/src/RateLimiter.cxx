@@ -62,7 +62,7 @@ int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
       } while (count <= 0 && recvTimeout > 0 && !timeoutForMessage);
 
       if (count <= 0) {
-        recvTimeout = timeout || timeoutForMessage ? -1 : 1000;
+        recvTimeout = timeout || timeoutForMessage ? 1000: -1;
         continue;
       }
       assert(msg->GetSize() == 8);
