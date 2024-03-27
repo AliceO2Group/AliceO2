@@ -44,16 +44,8 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
   filename += std::to_string(rand());
 
   std::vector<std::string> kernels;
+  getRTCKernelCalls(kernels);
   std::string kernelsall;
-#undef GPUCA_KRNL_REG
-#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
-#define GPUCA_KRNL(...) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, __VA_ARGS__)
-#define GPUCA_KRNL_LOAD_single(...) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU_SINGLE(__VA_ARGS__)));
-#define GPUCA_KRNL_LOAD_multi(...) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU_MULTI(__VA_ARGS__)));
-#include "GPUReconstructionKernelList.h"
-#undef GPUCA_KRNL
-#undef GPUCA_KRNL_LOAD_single
-#undef GPUCA_KRNL_LOAD_multi
   for (unsigned int i = 0; i < kernels.size(); i++) {
     kernelsall += kernels[i];
   }

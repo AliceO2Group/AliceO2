@@ -16,6 +16,7 @@
 #define GPURECONSTRUCTIONCUDA_H
 
 #include "GPUReconstructionDeviceBase.h"
+#include <vector>
 #include <string>
 
 #ifdef _WIN32
@@ -53,6 +54,8 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   template <bool multi, class T, int I = 0>
   static int getRTCkernelNum(int k = -1);
+
+  void getRTCKernelCalls(std::vector<std::string>& kernels);
 
   GPUReconstructionCUDAInternals* mInternals;
 };
