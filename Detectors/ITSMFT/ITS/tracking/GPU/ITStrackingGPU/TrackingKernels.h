@@ -22,6 +22,7 @@ namespace its
 {
 namespace gpu
 {
+#ifdef GPUCA_GPUCODE // GPUg() global kernels must only when compiled by GPU compiler
 GPUd() bool fitTrack(TrackITSExt& track,
                      int start,
                      int end,
@@ -46,6 +47,7 @@ GPUg() void fitTrackSeedsKernel(
   float maxChi2ClusterAttachment,
   float maxChi2NDF,
   const o2::base::Propagator* propagator);
+#endif
 
 } // namespace gpu
 
