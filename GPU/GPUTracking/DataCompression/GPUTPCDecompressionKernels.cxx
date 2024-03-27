@@ -190,26 +190,6 @@ GPUdi() void GPUTPCDecompressionKernels::decompressorMemcpyBasic(T* GPUrestrict(
 }
 
 template <>
-GPUdii() void GPUTPCDecompressionUtilKernels::Thread<GPUTPCDecompressionUtilKernels::gatherAttachedClusters>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
-{
-  GPUTPCDecompression& GPUrestrict() decompressor = processors.tpcDecompressor;
-  CompressedClusters& GPUrestrict() cmprClusters = decompressor.mInputGPU;
-  ClusterNative* GPUrestrict() clusterBuffer = decompressor.mNativeClustersBuffer;
-  const ClusterNativeAccess* outputAccess = processors.ioPtrs.clustersNative;
-
-  unsigned int* offsets = decompressor.mUnattachedClustersOffsets;
-  for (unsigned int i = get_global_id(0); i < GPUCA_NSLICES * GPUCA_ROW_COUNT; i += get_global_size(0)) {
-    unsigned int slice = i / GPUCA_ROW_COUNT;
-    unsigned int row = i % GPUCA_ROW_COUNT;
-    unsigned int tmpBufferIndex = computeLinearTmpBufferIndex(slice, row, decompressor.mMaxNativeClustersPerBuffer);
-    ClusterNative* buffer = clusterBuffer + outputAccess->clusterOffset[slice][row];
-    if (decompressor.mNativeClustersIndex[i] != 0) {
-      decompressorMemcpyBasic(buffer, decompressor.mTmpNativeClusters + tmpBufferIndex, decompressor.mNativeClustersIndex[i]);
-    }
-  }
-}
-
-template <>
 GPUdii() void GPUTPCDecompressionUtilKernels::Thread<GPUTPCDecompressionUtilKernels::sortPerSectorRow>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
   ClusterNative* GPUrestrict() clusterBuffer = processors.tpcDecompressor.mNativeClustersBuffer;
