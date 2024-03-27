@@ -72,7 +72,7 @@ class PedestalProcessorData
   };
 
   using ProfileHistFEC = std::array<o2::math_utils::StatAccumulator, 17664>;
-  using ProfileHistLEDMON = std::array<o2::math_utils::StatAccumulator, 17664>;
+  using ProfileHistLEDMON = std::array<o2::math_utils::StatAccumulator, 480>;
   using PedestalValue = std::tuple<double, double>;
 
   /// \brief Constructor
