@@ -16,7 +16,6 @@
 #include <unistd.h>
 #include <thread>
 
-#define INVALID_TRIGGER_ERROR_NO_HOST_CODE // workaround to fix undefined type in GPUg() protection on host
 #include "DataFormatsITS/TrackITS.h"
 
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
