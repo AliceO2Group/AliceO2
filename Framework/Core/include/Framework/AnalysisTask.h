@@ -143,7 +143,7 @@ struct AnalysisDataProcessorBuilder {
     }
 
     // populate input list and expression infos
-    int ai = 0;
+    int ai = -1;
     constexpr auto hash = o2::framework::TypeIdHelpers::uniqueId<R (C::*)(Args...)>();
     ([&name, &value, &eInfos, &inputs, &hash, &ai]() mutable {
       ++ai;
