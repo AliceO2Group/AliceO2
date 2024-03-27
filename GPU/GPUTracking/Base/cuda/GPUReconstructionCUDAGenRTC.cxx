@@ -47,7 +47,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
   getRTCKernelCalls(kernels);
   std::string kernelsall;
   for (unsigned int i = 0; i < kernels.size(); i++) {
-    kernelsall += kernels[i];
+    kernelsall += kernels[i] + "\n";
   }
 
 #ifdef GPUCA_HAVE_O2HEADERS
