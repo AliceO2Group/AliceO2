@@ -105,7 +105,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           cl.setTime(t);
         }
       }
-      std::sort(buffer, buffer + clustersNative.nClusters[i][j]);
+//      std::sort(buffer, buffer + clustersNative.nClusters[i][j]);
     }
   }
 
