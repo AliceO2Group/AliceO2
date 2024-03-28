@@ -102,6 +102,7 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   int genRTC(std::string& filename, unsigned int& nCompile);
   void genAndLoadRTC();
   void loadKernelModules(bool perKernel, bool perSingleMulti = true);
+  const char *mRtcSrcExtension = ".src", *mRtcBinExtension = ".o";
 };
 
 } // namespace gpu

@@ -116,7 +116,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
           if (fread(buffer.data(), 1, len, fp) != len) {
             throw std::runtime_error("Cache file corrupt");
           }
-          FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".cubin").c_str(), "w+b");
+          FILE* fp2 = fopen((filename + "_" + std::to_string(i) + mRtcBinExtension).c_str(), "w+b");
           if (fp2 == nullptr) {
             throw std::runtime_error("Cannot open tmp file");
           }
@@ -144,9 +144,9 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
 #endif
     for (unsigned int i = 0; i < nCompile; i++) {
       if (mProcessingSettings.debugLevel >= 3) {
-        printf("Compiling %s\n", (filename + "_" + std::to_string(i) + ".cu").c_str());
+        printf("Compiling %s\n", (filename + "_" + std::to_string(i) + mRtcSrcExtension).c_str());
       }
-      FILE* fp = fopen((filename + "_" + std::to_string(i) + ".cu").c_str(), "w+b");
+      FILE* fp = fopen((filename + "_" + std::to_string(i) + mRtcSrcExtension).c_str(), "w+b");
       if (fp == nullptr) {
         throw std::runtime_error("Error opening file");
       }
@@ -162,7 +162,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
       }
       fclose(fp);
       std::string command = std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
-      command += " -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".cubin";
+      command += " -c " + filename + "_" + std::to_string(i) + mRtcSrcExtension + " -o " + filename + "_" + std::to_string(i) + mRtcBinExtension;
       if (mProcessingSettings.debugLevel < 0) {
         command += " &> /dev/null";
       } else if (mProcessingSettings.debugLevel < 2) {
@@ -199,7 +199,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
 
       std::vector<char> buffer;
       for (unsigned int i = 0; i < nCompile; i++) {
-        FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".cubin").c_str(), "rb");
+        FILE* fp2 = fopen((filename + "_" + std::to_string(i) + mRtcBinExtension).c_str(), "rb");
         if (fp2 == nullptr) {
           throw std::runtime_error("Cannot open cuda module file");
         }
