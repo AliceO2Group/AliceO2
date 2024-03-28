@@ -298,6 +298,8 @@ void GeneratorFromO2Kine::updateHeader(o2::dataformats::MCEventHeader* eventHead
   if (mOrigMCEventHeader.get()) {
     eventHeader->copyInfoFrom(*mOrigMCEventHeader.get());
   }
+  // we forward also the original basic vertex information contained in FairMCEventHeader
+  static_cast<FairMCEventHeader&>(*eventHeader) = static_cast<FairMCEventHeader&>(*mOrigMCEventHeader.get());
 
   // put additional information about input file and event number of the current event
   eventHeader->putInfo<std::string>("forwarding-generator", "generatorFromO2Kine");
