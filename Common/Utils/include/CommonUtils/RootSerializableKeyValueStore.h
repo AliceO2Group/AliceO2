@@ -144,13 +144,11 @@ class RootSerializableKeyValueStore
   /// print list of keys, values (and optionally type information)
   void print(bool includetypeinfo = false) const;
 
+  /// resets store to the store of another object
   void copyFrom(RootSerializableKeyValueStore const& other)
   {
-    for (auto& p : other.mStore) {
-      if (mStore.find(p.first) == mStore.end()) {
-        mStore.insert(std::pair<std::string, SerializedInfo>(p.first, SerializedInfo(p.second)));
-      }
-    }
+    mStore.clear();
+    mStore = other.mStore;
   }
 
  private:
