@@ -163,6 +163,11 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
       fclose(fp);
       std::string command = std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
       command += " -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".cubin";
+      if (mProcessingSettings.debugLevel < 0) {
+        command += " &> /dev/null";
+      } else if (mProcessingSettings.debugLevel < 2) {
+        command += " > /dev/null";
+      }
       if (mProcessingSettings.debugLevel >= 3) {
         printf("Running command %s\n", command.c_str());
       }
