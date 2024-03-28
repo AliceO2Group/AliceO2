@@ -581,12 +581,11 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
                              (uint64_t)oldestPossibleOutput.timeslice.value,
                              oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
                              (uint64_t)(oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value : oldestPossibleOutput.slot.index));
-      O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Ordered active %d", decongestion->orderedCompletionPolicyActive);
+      O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Ordered active %d", decongestion->orderedCompletionPolicyActive);
       if (decongestion->orderedCompletionPolicyActive) {
         auto oldNextTimeslice = decongestion->nextTimeslice;
         decongestion->nextTimeslice = std::max(decongestion->nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
-        timesliceIndex.updateOldestPossibleOutput();
-        O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Next timeslice %" PRIi64, decongestion->nextTimeslice);
+        O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Next timeslice %" PRIi64, decongestion->nextTimeslice);
         if (oldNextTimeslice != decongestion->nextTimeslice) {
           O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
           timesliceIndex.rescan();
