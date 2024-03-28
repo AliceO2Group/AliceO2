@@ -15,8 +15,6 @@
 /// @file   PHOSRunbyrunCalibDevice.h
 /// @brief  Device to calculate PHOS time shift (L1phase)
 
-#include "Framework/Task.h"
-#include "Framework/ProcessingContext.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/CalibParams.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
@@ -25,9 +23,7 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace phos
+namespace o2::phos
 {
 
 class PHOSL1phaseSlot
@@ -95,7 +91,6 @@ class PHOSL1phaseCalibrator final : public o2::calibration::TimeSlotCalibration<
   ClassDefOverride(PHOSL1phaseCalibrator, 3);
 };
 
-} // namespace phos
 } // namespace o2
 
 #endif

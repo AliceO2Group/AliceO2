@@ -15,8 +15,6 @@
 /// @file   PHOSEnergyCalibtor.h
 /// @brief  Device to collect energy and time PHOS energy and time calibration.
 
-#include "Framework/Task.h"
-#include "Framework/WorkflowSpec.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DataFormatsPHOS/Cluster.h"
@@ -32,9 +30,7 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace phos
+namespace o2::phos
 {
 
 // structure used to store digit info for re-calibration
@@ -156,7 +152,6 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   std::unique_ptr<ETCalibHistos> mHistos; /// final histograms
 };
 
-} // namespace phos
 } // namespace o2
 
 #endif
