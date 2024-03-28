@@ -115,6 +115,11 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
   constexpr int reqVerMaj = 2;
   constexpr int reqVerMin = 0;
 #endif
+  if (mProcessingSettings.rtc.enable && mProcessingSettings.rtc.runTest == 2) {
+    genAndLoadRTC();
+    exit(0);
+  }
+
   if (mMaster == nullptr) {
     cudaDeviceProp deviceProp;
     int count, bestDevice = -1;
@@ -350,18 +355,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
 
 #ifndef GPUCA_ALIROOT_LIB
     if (mProcessingSettings.rtc.enable) {
-      std::string filename = "";
-      unsigned int nCompile = 0;
-      if (genRTC(filename, nCompile)) {
-        throw std::runtime_error("Runtime compilation failed");
-      }
-      for (unsigned int i = 0; i < nCompile; i++) {
-        mInternals->kernelModules.emplace_back(std::make_unique<CUmodule>());
-        GPUFailedMsg(cuModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
-        remove((filename + "_" + std::to_string(i) + ".cu").c_str());
-        remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
-      }
-      loadKernelModules(mProcessingSettings.rtc.compilePerKernel);
+      genAndLoadRTC();
     }
 #if defined(GPUCA_KERNEL_COMPILE_MODE) && GPUCA_KERNEL_COMPILE_MODE == 1
     else {
@@ -421,6 +415,27 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
   }
 
   return (0);
+}
+
+void GPUReconstructionCUDA::genAndLoadRTC()
+{
+  std::string filename = "";
+  unsigned int nCompile = 0;
+  if (genRTC(filename, nCompile)) {
+    throw std::runtime_error("Runtime compilation failed");
+  }
+  for (unsigned int i = 0; i < nCompile; i++) {
+    if (mProcessingSettings.rtc.runTest != 2) {
+      mInternals->kernelModules.emplace_back(std::make_unique<CUmodule>());
+      GPUFailedMsg(cuModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
+    }
+    remove((filename + "_" + std::to_string(i) + ".cu").c_str());
+    remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
+  }
+  if (mProcessingSettings.rtc.runTest == 2) {
+    return;
+  }
+  loadKernelModules(mProcessingSettings.rtc.compilePerKernel);
 }
 
 int GPUReconstructionCUDA::ExitDevice_Runtime()
@@ -600,7 +615,7 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
   }
 }
 
-int GPUReconstructionCUDA::loadKernelModules(bool perKernel, bool perSingleMulti)
+void GPUReconstructionCUDA::loadKernelModules(bool perKernel, bool perSingleMulti)
 {
   unsigned int j = 0;
 #define GPUCA_KRNL(...)                          \
@@ -632,7 +647,6 @@ int GPUReconstructionCUDA::loadKernelModules(bool perKernel, bool perSingleMulti
   if (j != mInternals->kernelModules.size()) {
     GPUFatal("Did not load all kernels (%u < %u)", j, (unsigned int)mInternals->kernelModules.size());
   }
-  return 0;
 }
 
 #ifndef __HIPCC__ // CUDA

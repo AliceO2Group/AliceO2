@@ -195,6 +195,7 @@ AddOption(cacheOutput, bool, false, "", 0, "Cache RTC compilation results")
 AddOption(optConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddOption(runTest, int, 0, "", 0, "Do not run the actual benchmark, but just test RTC compilation (1 full test, 2 test only compilation)")
 AddHelp("help", 'h')
 EndConfig()
 
