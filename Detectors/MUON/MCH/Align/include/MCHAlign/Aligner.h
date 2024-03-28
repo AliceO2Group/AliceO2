@@ -107,13 +107,13 @@ class Aligner : public TObject
  public:
   Aligner();
 
-  ~Aligner() = default;
+  ~Aligner();
 
   // initialize
-  void init(TString DataRecFName = "recDataFile.root", TString ConsRecFName = "recConsFile.root");
+  void init(TString DataRecFName = "millerecords.root", TString ConsRecFName = "milleconstraints.root");
 
   // terminate
-  void terminate(void);
+  void terminate();
 
   // array dimendions
   enum {
@@ -184,9 +184,7 @@ class Aligner : public TObject
     AllSides = SideTop | SideBottom | SideLeft | SideRight
   };
 
-  o2::fwdalign::MillePedeRecord* ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, Bool_t doAlignment, Double_t weight = 1);
-
-  void ProcessTrack(o2::fwdalign::MillePedeRecord*);
+  void ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, Bool_t doAlignment, Double_t weight = 1);
 
   //@name modifiers
   //@{
@@ -302,6 +300,8 @@ class Aligner : public TObject
   /// get error on a given parameter
   double GetParError(int iPar) const;
 
+  o2::fwdalign::MillePedeRecord& GetRecord() { return fTrackRecord; }
+
   void ReAlign(std::vector<o2::detectors::AlignParam>& params, std::vector<double>& misAlignments);
 
   void SetAlignmentResolution(const TClonesArray* misAlignArray, int chId, double chResX, double chResY, double deResX, double deResY);
@@ -314,6 +314,11 @@ class Aligner : public TObject
   void SetReadOnly()
   {
     mRead = true;
+  }
+
+  void DisableRecordWriter()
+  {
+    fDisableRecordWriter = true;
   }
 
  private:
@@ -396,9 +401,6 @@ class Aligner : public TObject
   /// Detector independent alignment class
   o2::fwdalign::MillePede2* fMillepede; // AliMillePede2 implementation
 
-  /// MCH cluster class
-  o2::mch::Cluster* fCluster;
-
   /// Number of standard deviations for chi2 cut
   int fNStdDev;
 
@@ -452,9 +454,8 @@ class Aligner : public TObject
   /// preform evaluation
   bool fDoEvaluation;
 
-  /// original local track params
-  LocalTrackParam* fTrackParamOrig;
-  LocalTrackParam* fTrackParamNew;
+  /// disable record saving
+  bool fDisableRecordWriter;
 
   LocalTrackClusterResidual* fTrkClRes;
 

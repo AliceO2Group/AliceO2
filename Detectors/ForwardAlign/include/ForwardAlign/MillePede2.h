@@ -156,6 +156,7 @@ class MillePede2
       fNGroupsSet = grID;
     }
   }
+  void ResetRecord() { fRecord->Reset(); }
   void SetNGloPar(const int n) { fNGloPar = n; }
   void SetNLocPar(const int n) { fNLocPar = n; }
   void SetNMaxIterations(const int n = 10) { fMaxIter = n; }
@@ -285,6 +286,9 @@ class MillePede2
     fIsLinear[id] = !v;
   }
 
+  /// \brief Disable record writer for DPL process
+  void DisableRecordWriter() { fDisableRecordWriter = true; }
+
  protected:
   /// \brief read data record (if any) at entry recID
   void ReadRecordData(const long recID, const bool doPrint = false);
@@ -360,6 +364,7 @@ class MillePede2
   long fCurrRecConstrID;      ///< ID of the current constraint record
   bool fLocFitAdd;            ///< Add contribution of carrent track (and not eliminate it)
   bool fUseRecordWeight;      ///< force or ignore the record weight
+  bool fDisableRecordWriter;  ///< disable record writer for DPL process
   int fMinRecordLength;       ///< ignore shorter records
   int fSelFirst;              ///< event selection start
   int fSelLast;               ///< event selection end

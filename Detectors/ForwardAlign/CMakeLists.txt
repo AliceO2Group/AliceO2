@@ -21,6 +21,7 @@ o2_add_library(ForwardAlign
                 src/SymBDMatrix.cxx
                 src/SymMatrix.cxx
                 src/VectorSparse.cxx
+                src/MilleRecordWriterSpec.cxx
         PUBLIC_LINK_LIBRARIES O2::CCDB
                 O2::Steer
                 ROOT::TreePlayer)
@@ -37,4 +38,13 @@ o2_target_root_dictionary(ForwardAlign
                 include/ForwardAlign/SymBDMatrix.h
                 include/ForwardAlign/SymMatrix.h
                 include/ForwardAlign/VectorSparse.h
+                include/ForwardAlign/MilleRecordWriterSpec.h
         LINKDEF src/ForwardAlignLinkDef.h)
+
+
+
+o2_add_executable(
+        millerecord-writer-workflow
+        SOURCES src/MilleRecordWriterSpec.cxx src/millerecord-writer-workflow.cxx
+        COMPONENT_NAME fwdalign
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats O2::SimulationDataFormat O2::ForwardAlign)

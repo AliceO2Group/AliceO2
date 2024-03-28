@@ -29,6 +29,7 @@
 #include "ForwardAlign/MillePedeRecord.h"
 #include "Framework/Logger.h"
 #include "MCHAlign/Aligner.h"
+#include "MathUtils/Cartesian.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHGeometryTransformer/Transformations.h"
@@ -131,8 +132,7 @@ Aligner::Aligner()
     fStartFac(65536),
     fResCutInitial(1000),
     fResCut(100),
-    fMillepede(nullptr), // to be modified
-    fCluster(nullptr),
+    fMillepede(nullptr),
     fNStdDev(3),
     fDetElemNumber(0),
     fGlobalParameterStatus(std::vector<int>(fNGlobal)),
@@ -147,11 +147,9 @@ Aligner::Aligner()
     mWithConstraintsRecReader(false),
     mConstraintsRecReader(nullptr),
     fTransformCreator(),
-    // fGeoCombiTransInverse(),
     fDoEvaluation(false),
+    fDisableRecordWriter(false),
     mRead(false),
-    fTrackParamOrig(nullptr),
-    fTrackParamNew(nullptr),
     fTrkClRes(nullptr),
     fTFile(nullptr),
     fTTree(nullptr)
@@ -185,6 +183,14 @@ Aligner::Aligner()
   }
 }
 
+//________________________________________________________________________
+Aligner::~Aligner()
+{
+  delete mRecordWriter;
+  delete mRecordReader;
+  delete fMillepede;
+}
+
 //_____________________________________________________________________
 void Aligner::init(TString DataRecFName, TString ConsRecFName)
 {
@@ -200,15 +206,18 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
   }
 
   if (!mRead) {
+    if (!fDisableRecordWriter) {
+      mRecordWriter->setCyclicAutoSave(mNEntriesAutoSave);
+      mRecordWriter->setDataFileName(DataRecFName);
+      fMillepede->SetRecordWriter(mRecordWriter);
 
-    mRecordWriter->setCyclicAutoSave(mNEntriesAutoSave);
-    mRecordWriter->setDataFileName(DataRecFName);
-    fMillepede->SetRecordWriter(mRecordWriter);
-
-    if (mWithConstraintsRecWriter) {
-      mConstraintsRecWriter->setCyclicAutoSave(mNEntriesAutoSave);
-      mConstraintsRecWriter->setDataFileName(ConsRecFName);
-      fMillepede->SetConstraintsRecWriter(mConstraintsRecWriter);
+      if (mWithConstraintsRecWriter) {
+        mConstraintsRecWriter->setCyclicAutoSave(mNEntriesAutoSave);
+        mConstraintsRecWriter->setDataFileName(ConsRecFName);
+        fMillepede->SetConstraintsRecWriter(mConstraintsRecWriter);
+      }
+    } else {
+      fMillepede->SetRecord(&fTrackRecord);
     }
 
   } else {
@@ -283,7 +292,11 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
   fMillepede->InitMille(fNGlobal, fNLocal, fNStdDev, fResCut, fResCutInitial, fGlobalParameterStatus);
 
   if (!mRead) {
-    mRecordWriter->init();
+    if (!fDisableRecordWriter) {
+      mRecordWriter->init();
+    } else {
+      fMillepede->DisableRecordWriter();
+    }
   }
 
   fInitialized = true;
@@ -315,12 +328,6 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
     const int kSplitlevel = 98;
     const int kBufsize = 32000;
 
-    // fTrackParamOrig = new LocalTrackParam();
-    // fTTree->Branch("fTrackParamOrig", "LocalTrackParam", &fTrackParamOrig, kBufsize, kSplitlevel);
-
-    // fTrackParamNew = new LocalTrackParam();
-    // fTTree->Branch("fTrackParamNew", "LocalTrackParam", &fTrackParamNew, kBufsize, kSplitlevel);
-
     fTrkClRes = new o2::mch::LocalTrackClusterResidual();
     fTTree->Branch("fClDetElem", &(fTrkClRes->fClDetElem), "fClDetElem/I");
     fTTree->Branch("fClDetElemNumber", &(fTrkClRes->fClDetElemNumber), "fClDetElemNumber/I");
@@ -351,24 +358,24 @@ void Aligner::init(TString DataRecFName, TString ConsRecFName)
 //_____________________________________________________
 void Aligner::terminate()
 {
-  mRecordWriter->terminate();
   fInitialized = kFALSE;
   LOG(info) << "Closing Evaluation TFile";
-  if (fTFile && fTTree) {
-    fTFile->cd();
-    fTTree->Write();
-    fTFile->Close();
+  if (fDoEvaluation) {
+    if (fTFile && fTTree) {
+      fTFile->cd();
+      fTTree->Write();
+      fTFile->Close();
+    }
   }
 }
 
 //_____________________________________________________
-o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, bool doAlignment, double weight)
+void Aligner::ProcessTrack(Track& track, const o2::mch::geo::TransformationCreator& transformation, bool doAlignment, double weight)
 {
 
   /// process track for alignment minimization
-
   // reset track records
-  fTrackRecord.Reset();
+
   if (fMillepede->GetRecord()) {
     fMillepede->GetRecord()->Reset();
   }
@@ -436,8 +443,7 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
 
     // 'inverse' (GlobalToLocal) rotation matrix
     // const double* r(fGeoCombiTransInverse.GetRotationMatrix());
-
-    auto trans = transformation(cluster->getDEId());
+    o2::math_utils::Transform3D trans = transformation(cluster->getDEId());
     // LOG(info) << Form("cluster ID: %i", cluster->getDEId());
     TMatrixD transMat(3, 4);
     trans.GetTransformMatrix(transMat);
@@ -455,7 +461,6 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
     r[9] = transMat(0, 3);
     r[10] = transMat(1, 3);
     r[11] = transMat(2, 3);
-
     // calculate measurements
     if (fBFieldOn) {
 
@@ -529,42 +534,17 @@ o2::fwdalign::MillePedeRecord* Aligner::ProcessTrack(Track& track, const o2::mch
   }
 
   // copy track record
-  mRecordWriter->setRecordRun(fRunNumber);
-  mRecordWriter->setRecordWeight(weight);
-  fTrackRecord = *fMillepede->GetRecord();
+  if (!fDisableRecordWriter) {
+    mRecordWriter->setRecordRun(fRunNumber);
+    mRecordWriter->setRecordWeight(weight);
+  }
 
   // save record data
   if (doAlignment) {
-    mRecordWriter->fillRecordTree();
+    if (!fDisableRecordWriter) {
+      mRecordWriter->fillRecordTree();
+    }
   }
-
-  // return record
-  return &fTrackRecord;
-}
-
-//______________________________________________________________________________
-void Aligner::ProcessTrack(o2::fwdalign::MillePedeRecord* trackRecord)
-{
-  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
-
-  /// process track record
-  if (!trackRecord) {
-    return;
-  }
-
-  // // make sure record storage is initialized
-  if (!fMillepede->GetRecord()) {
-    mRecordWriter->init();
-  }
-  // // copy content
-  *fMillepede->GetRecord() = *trackRecord;
-
-  // save record
-  mRecordWriter->fillRecordTree();
-  // write to local file
-  // mRecordWriter->terminate();
-
-  return;
 }
 
 //_____________________________________________________________________
