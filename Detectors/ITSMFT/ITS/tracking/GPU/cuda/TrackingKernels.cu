@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 ///
 
+#include <cuda_runtime.h>
 #include <array>
 #include <sstream>
 #include <iostream>

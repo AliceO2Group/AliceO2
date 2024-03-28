@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <cuda_runtime.h>
 #include "ITStrackingGPU/TracerGPU.h"
 
 #if !defined(__HIPCC__) && defined(__USE_GPU_TRACER__)

@@ -17,9 +17,6 @@
 #define ITSTRACKINGGPU_ARRAY_H_
 
 #include "GPUCommonDef.h"
-#ifdef __HIPCC__
-#include <hip/hip_runtime.h>
-#endif
 
 namespace o2
 {

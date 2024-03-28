@@ -13,10 +13,6 @@
 #ifndef TRACKINGITSGPU_INCLUDE_TIMEFRAMEGPU_H
 #define TRACKINGITSGPU_INCLUDE_TIMEFRAMEGPU_H
 
-#ifdef __HIPCC__
-#include <hip/hip_runtime.h>
-#endif
-
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
 
