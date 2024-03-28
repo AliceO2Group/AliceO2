@@ -51,8 +51,26 @@ namespace its
 {
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+std::string asString(TrackingMode mode)
+{
+  switch (mode) {
+    case TrackingMode::Sync:
+      return "sync";
+    case TrackingMode::Async:
+      return "async";
+    case TrackingMode::Cosmics:
+      return "cosmics";
+  }
+  return "unknown";
+}
 
-CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
+std::ostream& operator<<(std::ostream& os, TrackingMode v)
+{
+  os << asString(v);
+  return os;
+}
+
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const TrackingMode& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
@@ -232,7 +250,7 @@ void CookedTrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     mTracker.setGeometry(geom);
     mTracker.setConfigParams();
     LOG(info) << "Tracking mode " << mMode;
-    if (mMode == "cosmics") {
+    if (mMode == TrackingMode::Cosmics) {
       LOG(info) << "Setting cosmics parameters...";
       mTracker.setParametersCosmics();
       mRunVertexer = false;
@@ -269,7 +287,7 @@ void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, const std::string& trMode)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, const std::string& trModeS)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -312,7 +330,11 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, co
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, trgType, trMode)},
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest,
+                                                  useMC,
+                                                  trgType,
+                                                  trModeS == "sync" ? o2::its::TrackingMode::Sync : trModeS == "async" ? o2::its::TrackingMode::Async
+                                                                                                                       : o2::its::TrackingMode::Cosmics)},
     Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
