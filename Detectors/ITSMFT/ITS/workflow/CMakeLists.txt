@@ -28,7 +28,7 @@ o2_add_library(ITSWorkflow
                        src/DCSAdaposParserWorkflow.cxx
                        src/DCSAdaposParserSpec.cxx
                        src/DCSDataGeneratorWorkflow.cxx
-           src/DCSGeneratorSpec.cxx
+                       src/DCSGeneratorSpec.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                O2::SimConfig
                                O2::DetectorsDCS
@@ -37,7 +37,7 @@ o2_add_library(ITSWorkflow
                                O2::DataFormatsTRD
                                O2::DataFormatsGlobalTracking
                                O2::SimulationDataFormat
-                               O2::ITStracking
+                               O2::ITSTrackingInterface
                                O2::ITSReconstruction
                                O2::ITSMFTReconstruction
                                O2::ITSMFTWorkflow
