@@ -140,7 +140,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
 #ifdef WITH_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
 #endif
     for (unsigned int i = 0; i < nCompile; i++) {
       if (mProcessingSettings.debugLevel >= 3) {
