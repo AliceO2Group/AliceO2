@@ -45,7 +45,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}},
     {"ccdb-meanvertex-seed", o2::framework::VariantType::Bool, false, {"use MeanVertex from CCDB if available to provide beam position seed (default: false)"}},
     {"select-with-triggers", o2::framework::VariantType::String, "none", {"use triggers to prescale processed ROFs: phys, trd, none"}},
-    {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
+    {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics,none"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},

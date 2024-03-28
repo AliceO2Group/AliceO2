@@ -57,7 +57,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
   if (!disableRootOutput) {
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   }
-  if (!trmode.empty()) {
+  if (!(trmode == "none")) {
     if (useCAtracker) {
       if (useGPUWF) {
         o2::gpu::GPURecoWorkflowSpec::Config cfg;
