@@ -10,8 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/AsyncQueue.h"
-#include "Framework/Logger.h"
+#include "Framework/Signpost.h"
 #include <numeric>
+
+O2_DECLARE_DYNAMIC_LOG(async_queue);
 
 namespace o2::framework
 {
@@ -23,7 +25,7 @@ auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTa
   return id;
 }
 
-auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTaskId id, std::function<void()> task, TimesliceId timeslice, int64_t debounce) -> void
+auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTaskId id, AsyncCallback task, TimesliceId timeslice, int64_t debounce) -> void
 {
   AsyncTask taskToPost;
   taskToPost.task = task;
@@ -38,7 +40,8 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
   if (queue.tasks.empty()) {
     return;
   }
-  LOGP(debug, "Attempting at running {} tasks", queue.tasks.size());
+  O2_SIGNPOST_ID_GENERATE(opid, async_queue);
+  O2_SIGNPOST_START(async_queue, opid, "run", "Attempting at running %zu tasks with oldestPossible timeframe %zu", queue.tasks.size(), oldestPossible.value);
   std::vector<int> order;
   order.resize(queue.tasks.size());
   std::iota(order.begin(), order.end(), 0);
@@ -47,6 +50,10 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
     if (task.timeslice.value <= oldestPossible.value) {
       task.runnable = true;
     }
+    O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run",
+                           "Task %d (timeslice %zu), score %d, debounce %d is %{public}s when oldestPossible timeframe is %zu",
+                           task.id.value, task.timeslice.value, queue.prototypes[task.id.value].score, task.debounce,
+                           task.runnable ? "runnable" : "not runnable", oldestPossible.value);
   }
 
   // Sort by runnable, timeslice, then priority and finally debounce
@@ -69,34 +76,43 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
       return queue.tasks[a].timeslice.value > queue.tasks[b].timeslice.value;
     }
   });
+
   for (auto i : order) {
     if (queue.tasks[i].runnable) {
-      LOGP(debug, "AsyncQueue: Running task {}, timeslice {}, score {}, debounce {}", queue.tasks[i].id.value, queue.tasks[i].timeslice.value, queue.prototypes[queue.tasks[i].id.value].score, queue.tasks[i].debounce);
+      O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Running task %d (%d), (timeslice %zu), score %d, debounce %d", queue.tasks[i].id.value, i, queue.tasks[i].timeslice.value, queue.prototypes[queue.tasks[i].id.value].score, queue.tasks[i].debounce);
     } else {
-      LOGP(debug, "AsyncQueue: Skipping task {}, timeslice {}, score {}, debounce {}", queue.tasks[i].id.value, queue.tasks[i].timeslice.value, queue.prototypes[queue.tasks[i].id.value].score, queue.tasks[i].debounce);
+      O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Skipping task %d (%d) (timeslice %zu), score %d, debounce %d", queue.tasks[i].id.value, i, queue.tasks[i].timeslice.value, queue.prototypes[queue.tasks[i].id.value].score, queue.tasks[i].debounce);
     }
   }
   // Keep only the tasks with the highest debounce value for a given id
   auto newEnd = std::unique(order.begin(), order.end(), [&queue](int a, int b) {
     return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value && queue.tasks[a].debounce >= 0 && queue.tasks[b].debounce >= 0;
   });
+  for (auto ii = newEnd; ii != order.end(); ii++) {
+    O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "dropping", "Dropping task %d for timeslice %zu", queue.tasks[*ii].id.value, queue.tasks[*ii].timeslice.value);
+  }
   order.erase(newEnd, order.end());
 
   if (order.empty() && queue.tasks.size() > 0) {
-    LOGP(debug, "AsyncQueue: not running iteration {} timeslice {} pending {}.", order.size(), queue.iteration, oldestPossible.value, queue.tasks.size());
+    O2_SIGNPOST_END(async_queue, opid, "run", "Not running iteration %zu pending %zu.",
+                    queue.iteration, queue.tasks.size());
     return;
   } else if (order.empty()) {
+    O2_SIGNPOST_END(async_queue, opid, "run", "Not running iteration %zu. No tasks.", queue.iteration);
     return;
   }
-  LOGP(debug, "AsyncQueue: Running {} tasks in iteration {} timeslice {}", order.size(), queue.iteration, oldestPossible.value);
-  bool obsolete = true;
+  O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Running %zu tasks in iteration %zu", order.size(), queue.iteration);
 
+  int runCount = 0;
   for (auto i : order) {
     if (queue.tasks[i].runnable) {
+      runCount++;
       // If a task is runable, we can run the task and remove it from the queue
-      LOGP(debug, "Running task {} ({})", queue.prototypes[queue.tasks[i].id.value].name, i);
-      queue.tasks[i].task();
-      LOGP(debug, "Done running {}", i);
+      O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Running task %{public}s (%d) for timeslice %zu",
+                             queue.prototypes[queue.tasks[i].id.value].name.c_str(), i,
+                             queue.tasks[i].timeslice.value);
+      queue.tasks[i].task(opid.value);
+      O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Done running %d", i);
     }
   }
   // Remove all runnable tasks regardless  they actually
@@ -105,6 +121,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
                       return task.runnable;
                     }),
                     queue.tasks.end());
+  O2_SIGNPOST_END(async_queue, opid, "run", "Done running %d/%zu tasks", runCount, order.size());
 }
 
 auto AsyncQueueHelpers::reset(AsyncQueue& queue) -> void

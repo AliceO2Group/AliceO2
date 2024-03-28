@@ -32,8 +32,9 @@ struct AsyncTaskId {
 
 /// An actuatual task to be executed
 struct AsyncTask {
-  // The task to be executed
-  std::function<void()> task;
+  // The task to be executed. Id can be used as unique
+  // id for the signpost in the async_queue stream.
+  std::function<void(size_t id)> task;
   // The associated task spec
   AsyncTaskId id = {-1};
   TimesliceId timeslice = {TimesliceId::INVALID};
@@ -49,10 +50,11 @@ struct AsyncQueue {
 };
 
 struct AsyncQueueHelpers {
+  using AsyncCallback = std::function<void(size_t)>;
   static AsyncTaskId create(AsyncQueue& queue, AsyncTaskSpec spec);
   // Schedule a task with @a taskId to be executed whenever the timeslice
   // is past timeslice. If debounce is provided, only execute the task
-  static void post(AsyncQueue& queue, AsyncTaskId taskId, std::function<void()> task, TimesliceId timeslice, int64_t debounce = 0);
+  static void post(AsyncQueue& queue, AsyncTaskId taskId, AsyncCallback task, TimesliceId timeslice, int64_t debounce = 0);
   /// Run all the tasks which are older than the oldestPossible timeslice
   /// executing them by:
   /// 1. sorting the tasks by timeslice
