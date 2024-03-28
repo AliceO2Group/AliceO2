@@ -159,8 +159,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
     mDecoder->setDecodeNextAuto(false);
     o2::InteractionRecord lastIR{}, firstIR{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
-   int nTriggersProcessed =0;
-   while (mDecoder->decodeNextTrigger() >= 0) {
+    int nTriggersProcessed = 0;
+    while (mDecoder->decodeNextTrigger() >= 0) {
       if ((!lastIR.isDummy() && lastIR >= mDecoder->getInteractionRecord()) || firstIR > mDecoder->getInteractionRecord()) {
         const int MaxErrLog = 2;
         static int errLocCount = 0;
@@ -170,7 +170,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         continue;
       }
       lastIR = mDecoder->getInteractionRecord();
-      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
+      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) {      // call before clusterization, since the latter will hide the digits
         mDecoder->fillDecodedDigits(digVec, digROFVec, chipStatus); // lot of copying involved
 
         if (mDoCalibData) {
@@ -186,9 +186,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
 
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    std::cout<<"mTFCounter= "<< mTFCounter << " from params: "<< 3564*32/alpParams.roFrameLengthInBC << " from redout: "<< nTriggersProcessed<< " number from geometry: "<< o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF()<<std::endl;
-    int expectedValue = static_cast<int>(o2::constants::lhc::LHCMaxBunches * o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() / alpParams.roFrameLengthInBC);
-    if ( (expectedValue != nTriggersProcessed) && mTFCounter > 1) LOG(fatal)<< "Inconsistant size of ROF and Strobbing rate, from parameters: "<< 3564*32/alpParams.roFrameLengthInBC << " from readout: "<<  nTriggersProcessed;
+    int expectedTFSize = static_cast<int>(o2::constants::lhc::LHCMaxBunches * o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() / alpParams.roFrameLengthInBC); // 3564*32 / ROF Length in BS = number of ROFs per TF
+    if ((expectedTFSize != nTriggersProcessed) && mTFCounter > 1)
+      LOG(fatal) << "Inconsistent number of ROF per TF. From parameters: " << expectedTFSize << " from readout: " << nTriggersProcessed;
 
     if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
       // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
