@@ -11,6 +11,7 @@
 ///
 /// \author matteo.concas@cern.ch
 
+#include <cuda_runtime.h>
 #include "ITStrackingGPU/ClusterLinesGPU.h"
 
 namespace o2
