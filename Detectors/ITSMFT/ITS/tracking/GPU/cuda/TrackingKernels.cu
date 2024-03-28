@@ -53,8 +53,9 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 {
   if (code != cudaSuccess) {
     LOGF(error, "GPUassert: %s %s %d", cudaGetErrorString(code), file, line);
-    if (abort)
+    if (abort) {
       throw std::runtime_error("GPU assert failed.");
+    }
   }
 }
 
