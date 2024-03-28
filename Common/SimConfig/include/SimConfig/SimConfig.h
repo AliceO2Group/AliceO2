@@ -180,7 +180,7 @@ class SimConfig
   SimConfigData mConfigData; //!
 
   // adjust/overwrite some option settings when collision context is used
-  void adjustFromCollContext();
+  void adjustFromCollContext(std::string const& collcontextfile, std::string const& prefix);
 
   ClassDefNV(SimConfig, 1);
 };
