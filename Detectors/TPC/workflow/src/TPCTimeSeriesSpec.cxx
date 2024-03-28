@@ -1184,8 +1184,6 @@ class TPCTimeSeries : public Task
     float deltaP4 = -999;
     float phiITSTPCAtVertex = -999; // phi of ITS-TPC track at vertex
     float dcaTPCAtVertex = -999;
-    float covTPCAtVertex0 = -999;
-    float covTPCAtVertex1 = -999;
     if (hasITSTPC) {
       // propagate ITS-TPC track to (0,0)
       auto trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
@@ -1207,9 +1205,6 @@ class TPCTimeSeries : public Task
             o2::gpu::gpustd::array<float, 2> dcaTPCTmp{-1, -1};
             if (propagator->propagateToDCA(vertex.getXYZ(), track, propagator->getNominalBz(), mFineStep, mMatType, &dcaTPCTmp)) {
               dcaTPCAtVertex = dcaTPCTmp[0];
-              // store covariance of TPC track at vertex
-              covTPCAtVertex0 = track.getCovarElem(0, 0);
-              covTPCAtVertex1 = track.getCovarElem(1, 1);
             }
           }
 
@@ -1220,11 +1215,11 @@ class TPCTimeSeries : public Task
               o2::track::TrackPar trackITS(tracksITS[idxITSTrack]);
               const bool propITSOk = propagator->propagateTo(trackITS, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType);
               if (propITSOk) {
-                deltaP0 = track.getParam(0) - trackITSTPCTmp.getParam(0);
-                deltaP1 = track.getParam(1) - trackITSTPCTmp.getParam(1);
-                deltaP2 = track.getParam(2) - trackITSTPCTmp.getParam(2);
-                deltaP3 = track.getParam(3) - trackITSTPCTmp.getParam(3);
-                deltaP4 = track.getParam(4) - trackITSTPCTmp.getParam(4);
+                deltaP0 = track.getParam(0) - trackITS.getParam(0);
+                deltaP1 = track.getParam(1) - trackITS.getParam(1);
+                deltaP2 = track.getParam(2) - trackITS.getParam(2);
+                deltaP3 = track.getParam(3) - trackITS.getParam(3);
+                deltaP4 = track.getParam(4) - trackITS.getParam(4);
                 mBufferVals[iThread].front().setDeltaParam(deltaP2, deltaP3, deltaP4);
               }
             }
@@ -1323,20 +1318,30 @@ class TPCTimeSeries : public Task
         float covITSTPCConstrVtxP3 = -999;
         float covITSTPCConstrVtxP4 = -999;
 
-        // constrain tpc track at primary vertex and store cov
+        float covTPCAtVertex0 = -999;
+        float covTPCAtVertex1 = -999;
+
         const bool contributeToVertex = (idxITSTPC.back() != -1);
-        if (contributeToVertex) {
-          if (track.rotate(tracksITS[idxITSTrack].getAlpha())) {
-            track.update(vertex);
-            deltaP2ConstrVtx = track.getParam(2) - tracksITS[idxITSTrack].getParam(2);
-            deltaP3ConstrVtx = track.getParam(3) - tracksITS[idxITSTrack].getParam(3);
-            deltaP4ConstrVtx = track.getParam(4) - tracksITS[idxITSTrack].getParam(4);
-            covTPCConstrVtxP2 = track.getCovarElem(2, 2);
-            covTPCConstrVtxP3 = track.getCovarElem(3, 3);
-            covTPCConstrVtxP4 = track.getCovarElem(4, 4);
-            covITSTPCConstrVtxP2 = tracksITS[idxITSTrack].getCovarElem(2, 2);
-            covITSTPCConstrVtxP3 = tracksITS[idxITSTrack].getCovarElem(3, 3);
-            covITSTPCConstrVtxP4 = tracksITS[idxITSTrack].getCovarElem(4, 4);
+        if (hasITSTPC && contributeToVertex) {
+          auto trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
+          o2::gpu::gpustd::array<float, 2> dcaITSTPCTmp{-1, -1};
+          if (propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp)) {
+            if (track.rotate(trackITSTPCTmp.getAlpha()) && propagator->propagateTo(track, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
+              // store covariance of TPC track at vertex
+              covTPCAtVertex0 = track.getCovarElem(0, 0);
+              covTPCAtVertex1 = track.getCovarElem(1, 1);
+
+              track.update(vertex);
+              deltaP2ConstrVtx = track.getParam(2) - trackITSTPCTmp.getParam(2);
+              deltaP3ConstrVtx = track.getParam(3) - trackITSTPCTmp.getParam(3);
+              deltaP4ConstrVtx = track.getParam(4) - trackITSTPCTmp.getParam(4);
+              covTPCConstrVtxP2 = track.getCovarElem(2, 2);
+              covTPCConstrVtxP3 = track.getCovarElem(3, 3);
+              covTPCConstrVtxP4 = track.getCovarElem(4, 4);
+              covITSTPCConstrVtxP2 = trackITSTPCTmp.getCovarElem(2, 2);
+              covITSTPCConstrVtxP3 = trackITSTPCTmp.getCovarElem(3, 3);
+              covITSTPCConstrVtxP4 = trackITSTPCTmp.getCovarElem(4, 4);
+            }
           }
         }
 
