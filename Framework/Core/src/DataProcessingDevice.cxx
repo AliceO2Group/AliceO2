@@ -92,6 +92,8 @@ struct formatter<o2::framework::CompletionPolicy::CompletionOp> : ostream_format
 O2_DECLARE_DYNAMIC_LOG(device);
 // Special log to keep track of the lifetime of the parts
 O2_DECLARE_DYNAMIC_LOG(parts);
+// Special log to track the async queue behavior
+O2_DECLARE_DYNAMIC_LOG(async_queue);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -681,9 +683,11 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
 
   auto& asyncQueue = registry.get<AsyncQueue>();
   auto& decongestion = registry.get<DecongestionService>();
-  LOG(debug) << "Queuing forwarding oldestPossible " << oldestTimeslice.timeslice.value;
+  auto& timesliceIndex = registry.get<TimesliceIndex>();
+  O2_SIGNPOST_ID_GENERATE(aid, async_queue);
+  O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputs", "Queuing forwarding oldestPossible %zu", oldestTimeslice.timeslice.value);
   AsyncQueueHelpers::post(
-    asyncQueue, decongestion.oldestPossibleTimesliceTask, [&proxy, &decongestion, registry, oldestTimeslice]() {
+    asyncQueue, decongestion.oldestPossibleTimesliceTask, [&proxy, &decongestion, registry, oldestTimeslice, &timesliceIndex](size_t aid) {
       // DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestTimeslice.timeslice.value);
       if (oldestTimeslice.timeslice.value <= decongestion.lastTimeslice) {
         LOG(debug) << "Not sending already sent oldest possible timeslice " << oldestTimeslice.timeslice.value;
@@ -692,13 +696,17 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
         auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
         auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+        O2_SIGNPOST_ID_GENERATE(aid, async_queue);
         // TODO: this we could cache in the proxy at the bind moment.
         if (info.channelType != ChannelAccountingType::DPL) {
-          LOG(debug) << "Skipping channel";
+          O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputsCallback", "Skipping channel %{public}s because it's not a DPL channel",
+                                 info.name.c_str());
+
           continue;
         }
         if (DataProcessingHelpers::sendOldestPossibleTimeframe(registry, info, state, oldestTimeslice.timeslice.value)) {
-          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestTimeslice.timeslice.value);
+          O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputsCallback", "Forwarding to channel %{public}s oldest possible timeslice %zu, prio 20",
+                                 info.name.c_str(), oldestTimeslice.timeslice.value);
         }
       }
     },
@@ -1900,7 +1908,9 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
             ii += (nMessages / 2) - 1;
           }
           auto onDrop = [ref](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
-            LOGP(debug, "Dropping message from slot {}. Forwarding as needed. Timeslice {}", slot.index, oldestOutputInfo.timeslice.value);
+            O2_SIGNPOST_ID_GENERATE(cid, async_queue);
+            O2_SIGNPOST_EVENT_EMIT(async_queue, cid, "onDrop", "Dropping message from slot %zu. Forwarding as needed. Timeslice %zu",
+                                   slot.index, oldestOutputInfo.timeslice.value);
             ref.get<AsyncQueue>();
             ref.get<DecongestionService>();
             ref.get<DataRelayer>();
