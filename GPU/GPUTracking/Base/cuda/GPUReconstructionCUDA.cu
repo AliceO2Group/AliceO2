@@ -82,6 +82,13 @@ void GPUReconstructionCUDABackend::GPUFailedMsgA(const long long int error, cons
 GPUReconstructionCUDA::GPUReconstructionCUDA(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg)
 {
   mDeviceBackendSettings.deviceType = DeviceType::CUDA;
+#ifndef __HIPCC__ // CUDA
+  mRtcSrcExtension = ".cu";
+  mRtcBinExtension = ".fatbin";
+#else // HIP
+  mRtcSrcExtension = ".hip";
+  mRtcBinExtension = ".o";
+#endif
 }
 
 GPUReconstructionCUDA::~GPUReconstructionCUDA()
@@ -427,10 +434,10 @@ void GPUReconstructionCUDA::genAndLoadRTC()
   for (unsigned int i = 0; i < nCompile; i++) {
     if (mProcessingSettings.rtc.runTest != 2) {
       mInternals->kernelModules.emplace_back(std::make_unique<CUmodule>());
-      GPUFailedMsg(cuModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + ".cubin").c_str()));
+      GPUFailedMsg(cuModuleLoad(mInternals->kernelModules.back().get(), (filename + "_" + std::to_string(i) + mRtcBinExtension).c_str()));
     }
-    remove((filename + "_" + std::to_string(i) + ".cu").c_str());
-    remove((filename + "_" + std::to_string(i) + ".cubin").c_str());
+    remove((filename + "_" + std::to_string(i) + mRtcSrcExtension).c_str());
+    remove((filename + "_" + std::to_string(i) + mRtcBinExtension).c_str());
   }
   if (mProcessingSettings.rtc.runTest == 2) {
     return;
