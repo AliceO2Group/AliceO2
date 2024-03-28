@@ -159,6 +159,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
     mDecoder->setDecodeNextAuto(false);
     o2::InteractionRecord lastIR{}, firstIR{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
+    int nTriggersProcessed = 0;
     while (mDecoder->decodeNextTrigger() >= 0) {
       if ((!lastIR.isDummy() && lastIR >= mDecoder->getInteractionRecord()) || firstIR > mDecoder->getInteractionRecord()) {
         const int MaxErrLog = 2;
@@ -169,8 +170,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         continue;
       }
       lastIR = mDecoder->getInteractionRecord();
-      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
+      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) {      // call before clusterization, since the latter will hide the digits
         mDecoder->fillDecodedDigits(digVec, digROFVec, chipStatus); // lot of copying involved
+
         if (mDoCalibData) {
           mDecoder->fillCalibData(calVec);
         }
@@ -180,7 +182,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
       if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
         mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
       }
+      nTriggersProcessed++;
     }
+
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    int expectedTFSize = static_cast<int>(o2::constants::lhc::LHCMaxBunches * o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() / alpParams.roFrameLengthInBC); // 3564*32 / ROF Length in BS = number of ROFs per TF
+    if ((expectedTFSize != nTriggersProcessed) && mTFCounter > 1)
+      LOG(error) << "Inconsistent number of ROF per TF. From parameters: " << expectedTFSize << " from readout: " << nTriggersProcessed;
 
     if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
       // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
