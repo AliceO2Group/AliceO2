@@ -309,7 +309,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
 #else // HIP
     if (GPUFailedMsgI(hipSetDeviceFlags(hipDeviceScheduleBlockingSync))) {
-      GPUError("Could not set HIP Device!");
+      GPUError("Could not set HIP Device flags!");
       return (1);
     }
 #endif
@@ -380,8 +380,13 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     runConstantRegistrators();
     devPtrConstantMem = mDeviceConstantMemList[0];
     for (unsigned int i = 0; i < mInternals->kernelModules.size(); i++) {
-      CUdeviceptr tmp;
-      GPUFailedMsg(cuModuleGetGlobal(&tmp, nullptr, *mInternals->kernelModules[i], "gGPUConstantMemBuffer"));
+#ifndef __HIPCC__
+      CUdeviceptr tmp; // CUDA has a custom type, that initializes to zero and cannot be initialized with nullptr
+#else
+      CUdeviceptr tmp = nullptr; // HIP just uses void*
+#endif
+      size_t tmpSize = 0;
+      GPUFailedMsg(cuModuleGetGlobal(&tmp, &tmpSize, *mInternals->kernelModules[i], "gGPUConstantMemBuffer"));
       mDeviceConstantMemList.emplace_back((void*)tmp);
     }
 #else
