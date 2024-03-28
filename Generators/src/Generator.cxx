@@ -235,8 +235,12 @@ void Generator::updateSubGeneratorInformation(o2::dataformats::MCEventHeader* he
   if (mSubGeneratorId < 0) {
     return;
   }
-  header->putInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, mSubGeneratorId);
-  header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP, mSubGeneratorsIdToDesc);
+  if (!header->hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
+    header->putInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, mSubGeneratorId);
+  }
+  if (!header->hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP)) {
+    header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP, mSubGeneratorsIdToDesc);
+  }
 }
 
 /*****************************************************************/
