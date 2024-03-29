@@ -161,7 +161,7 @@ class GPUChain
   template <class T>
   inline std::unique_ptr<T> ReadFlatObjectFromFile(const char* file)
   {
-    return std::move(mRec->ReadFlatObjectFromFile<T>(file));
+    return mRec->ReadFlatObjectFromFile<T>(file);
   }
   template <class T>
   inline void DumpStructToFile(const T* obj, const char* file)
@@ -171,7 +171,7 @@ class GPUChain
   template <class T>
   inline std::unique_ptr<T> ReadStructFromFile(const char* file)
   {
-    return std::move(mRec->ReadStructFromFile<T>(file));
+    return mRec->ReadStructFromFile<T>(file);
   }
   template <class T>
   inline void ReadStructFromFile(const char* file, T* obj)
