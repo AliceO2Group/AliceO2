@@ -124,15 +124,22 @@ TH2* Pedestal::getHistogramRepresentation2D(bool isLowGain, bool isLEDMON) const
     }
   }
 
-  const int MAXROWS = 208,
-            MAXCOLS = 96;
+  const int MAXROWS = isLEDMON ? 10 : 208,
+            MAXCOLS = isLEDMON ? 48 : 96;
+
   auto hist = new TH2S(histname.data(), histtitle.data(), MAXCOLS, -0.5, double(MAXCOLS) - 0.5, MAXROWS, -0.5, double(MAXROWS) - 0.5);
   hist->SetDirectory(nullptr);
   try {
     auto geo = Geometry::GetInstance();
-    for (size_t cellID = 0; cellID < data.size(); cellID++) {
-      auto position = geo->GlobalRowColFromIndex(cellID);
-      hist->Fill(std::get<1>(position), std::get<0>(position), data[cellID]);
+    for (size_t ichan = 0; ichan < data.size(); ichan++) {
+      if (isLEDMON) {
+        int col = ichan % 48,
+            row = ichan / 48;
+        hist->Fill(col, row, data[ichan]);
+      } else {
+        auto position = geo->GlobalRowColFromIndex(ichan);
+        hist->Fill(std::get<1>(position), std::get<0>(position), data[ichan]);
+      }
     }
   } catch (o2::emcal::GeometryNotInitializedException& e) {
     LOG(error) << "Geometry needs to be initialized";
