@@ -427,8 +427,9 @@ class EMCALCalibExtractor
     Pedestal pedestalData;
     // loop over both low and high gain data as well as normal and LEDMON data
     for (const auto& isLEDMON : {false, true}) {
+      auto maxChannels = isLEDMON ? mLEDMONs : mNcells;
       for (const auto& isLG : {false, true}) {
-        for (unsigned short iCell = 0; iCell < mNcells; ++iCell) {
+        for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
           auto [mean, rms] = obj.getValue(iCell, isLG, isLEDMON); // get mean and rms for pedestals
           pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
         }
@@ -446,12 +447,13 @@ class EMCALCalibExtractor
   Pedestal extractPedestals(TProfile* objHG = nullptr, TProfile* objLG = nullptr, bool isLEDMON = false)
   {
     Pedestal pedestalData;
+    auto maxChannels = isLEDMON ? mLEDMONs : mNcells;
     // loop over both low and high gain data
     for (const auto& isLG : {false, true}) {
       auto obj = (isLG == true ? objLG : objHG);
       if (!obj)
         continue;
-      for (unsigned short iCell = 0; iCell < mNcells; ++iCell) {
+      for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
         short mean = static_cast<short>(obj->GetBinContent(iCell + 1));
         pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
       }
@@ -481,6 +483,7 @@ class EMCALCalibExtractor
 
   o2::emcal::Geometry* mGeometry = nullptr; ///< pointer to the emcal geometry class
   static constexpr int mNcells = 17664;     ///< Number of total cells of EMCal + DCal
+  static constexpr int mLEDMONs = 480;      ///< Number of total LEDMONS of EMCal + DCal
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };
