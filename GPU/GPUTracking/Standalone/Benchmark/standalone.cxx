@@ -863,7 +863,7 @@ int main(int argc, char** argv)
         }
         if (configStandalone.dumpEvents) {
           char fname[1024];
-          sprintf(fname, "event.%d.dump", nEventsProcessed);
+          snprintf(fname, 1024, "event.%d.dump", nEventsProcessed);
           chainTracking->DumpData(fname);
           if (nEventsProcessed == 0) {
             rec->DumpSettings();

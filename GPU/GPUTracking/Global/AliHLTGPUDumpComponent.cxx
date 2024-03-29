@@ -486,7 +486,7 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     fRec->DumpSettings();
   }
 
-  sprintf(filename, GPUCA_EVDUMP_FILE ".%d.dump", nEvent++);
+  snprintf(filename, 256, GPUCA_EVDUMP_FILE ".%d.dump", nEvent++);
   fChain->DumpData(filename);
   return (0);
 }

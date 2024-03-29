@@ -106,9 +106,9 @@ void genEvents::InitEventGenerator()
     for (int j = 0; j < 2; j++) {
       char name[1024], title[1024];
 
-      sprintf(name, "clError%s%d", (j == 0 ? "Y" : "Z"), i);
+      snprintf(name, 1024, "clError%s%d", (j == 0 ? "Y" : "Z"), i);
 
-      sprintf(title, "Cluster %s Error for rows %s", (j == 0 ? "Y" : "Z"), rows[i]);
+      snprintf(title, 1024, "Cluster %s Error for rows %s", (j == 0 ? "Y" : "Z"), rows[i]);
 
       mClusterError[i][j] = new TH1F(name, title, 1000, 0., .7);
       mClusterError[i][j]->GetXaxis()->SetTitle("Cluster Error [cm]");

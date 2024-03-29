@@ -66,8 +66,8 @@ int checkPropagation()
   for (int i = 0; i < 3; i++) {
     char* s = i == 0 ? "X" : (i == 1 ? "Y" : "Z");
     char name[1024], title[1024];
-    sprintf(name, "hDiff%s", s);
-    sprintf(title, "Propagation Difference in %s", s);
+    snprintf(name, 1024, "hDiff%s", s);
+    snprintf(title, 1024, "Propagation Difference in %s", s);
     hDiff[i] = new TH1F(name, title, 1000, -20., 20.);
     hDiff[i]->GetXaxis()->SetTitle("Propagation difference [um]");
   }

@@ -348,7 +348,7 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == 't') {
     static int nScreenshot = 1;
     char fname[32];
-    sprintf(fname, "screenshot%d.bmp", nScreenshot++);
+    snprintf(fname, 32, "screenshot%d.bmp", nScreenshot++);
     mRequestScreenshot = true;
     mScreenshotFile = fname;
     SetInfo("Taking screenshot (%s)", fname);
