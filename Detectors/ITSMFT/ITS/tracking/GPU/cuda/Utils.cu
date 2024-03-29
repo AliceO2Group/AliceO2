@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <numeric>
 #include <iostream>
+#include <cstdint>
 
 namespace
 {
