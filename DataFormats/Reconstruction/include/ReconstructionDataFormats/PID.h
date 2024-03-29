@@ -16,6 +16,10 @@
 #ifndef ALICEO2_track_PID_H_
 #define ALICEO2_track_PID_H_
 
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstdint>
+#endif
+
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "CommonConstants/PhysicsConstants.h"
