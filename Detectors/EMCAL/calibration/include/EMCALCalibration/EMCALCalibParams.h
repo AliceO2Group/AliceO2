@@ -86,6 +86,9 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool requireSameRunType = true;                      ///< if loading calib objects from previous run, require it to be the same run type
   int tsDiffMax = 48;                                  ///< if loading calib objects from previous run, limit time between the object being stored and loaded again (in hours)
 
+  // Parameters for pedestal calibration
+  short maxPedestalRMS = 10; ///< Maximum value for RMS for pedestals (has to be tuned)
+
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
   unsigned int minNEntries = 1e6;             ///< minimum number of entries to trigger the calibration
