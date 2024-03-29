@@ -72,6 +72,7 @@ class ML : public PIDBase
   const OrtApi& mApi{Ort::GetApi()};                    ///< ONNX api
   std::unique_ptr<Ort::Experimental::Session> mSession; ///< ONNX session
   Ort::SessionOptions mSessionOptions;                  ///< ONNX session options
+  Ort::AllocatorWithDefaultOptions mAllocator;
 
   // Input/Output
   std::vector<std::string> mInputNames;            ///< model input names
