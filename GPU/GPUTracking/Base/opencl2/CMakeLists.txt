@@ -48,6 +48,7 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
       COMMAND ${CMAKE_COMMAND} -E env "PATH=${TMP_LLVM_SPIRV_PATH}:\$$PATH" ${LLVM_CLANG}
               -O0
               --target=spirv64
+              -fno-integrated-objemitter
               ${OCL_FLAGS}
               ${OCL_DEFINECL}
               -o ${CL_BIN}.spirv -c ${CL_SRC}
