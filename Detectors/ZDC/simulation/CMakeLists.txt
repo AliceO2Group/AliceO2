@@ -17,7 +17,7 @@ list(APPEND LinkLibraries O2::SimulationDataFormat
                           O2::DetectorsRaw
                           O2::Headers)
 
-if (ONNXRuntime::ONNXRuntime_FOUND)
+if (onnxruntime_FOUND)
         list(APPEND LinkLibraries O2::FASTSimulation)
 endif()
 

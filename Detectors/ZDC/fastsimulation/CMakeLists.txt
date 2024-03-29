@@ -14,7 +14,7 @@
 
 o2_add_library(FASTSimulation
         SOURCES src/FastSimulations.cxx src/Processors.cxx src/Utils.cxx
-        PUBLIC_LINK_LIBRARIES ONNXRuntime::ONNXRuntime)
+        PUBLIC_LINK_LIBRARIES onnxruntime::onnxruntime)
 
 o2_data_file(COPY scales DESTINATION Detectors/ZDC/fastsimulation)
 

@@ -41,10 +41,7 @@ o2_build_sanity_checks()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-find_package(ONNXRuntime::ONNXRuntime CONFIG)
-if (ONNXRuntime::ONNXRuntime_FOUND)
-  add_definitions(-DZDC_FASTSIM_ONNX)
-endif()
+include(dependencies/FindONNXRuntime.cmake)
 
 include(O2CheckCXXFeatures)
 o2_check_cxx_features()

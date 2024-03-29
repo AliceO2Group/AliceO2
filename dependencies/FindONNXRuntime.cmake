@@ -9,13 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-if (onnxruntime_FOUND)
-    add_subdirectory(fastsimulation)
+find_package(onnxruntime CONFIG)
+if (NOT onnxruntime_FOUND)
+  find_package(ONNXRuntime::ONNXRuntime CONFIG)
+  if (ONNXRuntime::ONNXRuntime_FOUND)
+    add_definitions(-DZDC_FASTSIM_ONNX)
+    set(onnxruntime_FOUND 1)
+    add_library(onnxruntime::onnxruntime ALIAS ONNXRuntime::ONNXRuntime)
+  endif()
 endif()
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(macro)
-add_subdirectory(raw)
-add_subdirectory(workflow)
-add_subdirectory(calib)
