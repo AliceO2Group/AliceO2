@@ -118,7 +118,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       payloadSize += o2::framework::DataRefUtils::getPayloadSize(ref);
     }
     if (payloadSize > (size_t)mMaxInputSize) {
-      LOG(fatal) << "Input data size:" << payloadSize;
+      LOG(error) << "Input data size:" << payloadSize;
       dummyOutput();
       return;
     }
