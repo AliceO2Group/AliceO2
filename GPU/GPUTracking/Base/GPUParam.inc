@@ -161,7 +161,7 @@ GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float trackX, floa
 }
 
 MEM_CLASS_PRE()
-GPUd() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float trackX, float trackY, char sector) const
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorC122(float trackX, float trackY, char sector) const
 {
   return 0;
 }

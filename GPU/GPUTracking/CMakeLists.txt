@@ -13,7 +13,7 @@ set(MODULE GPUTracking)
 
 # set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -O0") # to uncomment if needed, tired of typing this...
 
-if(NOT ${GPUCA_NO_FAST_MATH} AND NOT CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
+if(NOT "${GPUCA_NO_FAST_MATH}" AND NOT CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 endif()
 
@@ -453,6 +453,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                      ${SRCS_NO_CINT}
                      ${SRCS_NO_H}
                      ${SRCS_DATATYPES}
+                     ${SRCS_DATATYPE_HEADERS}
                      G__Ali${MODULE}.cxx)
   target_link_libraries(Ali${MODULE} ${LIBDEPS})
 
@@ -479,7 +480,7 @@ endif()
 
 # Main CMake part for Standalone
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES})
+  add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H} ${SRCS_DATATYPES} ${SRCS_DATATYPE_HEADERS})
   set(targetName ${MODULE})
   add_library(O2::${MODULE} ALIAS ${MODULE})
   install(TARGETS ${MODULE})
