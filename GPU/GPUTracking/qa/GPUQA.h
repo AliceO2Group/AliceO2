@@ -57,6 +57,7 @@ class GPUQA
   void* AllocateScratchBuffer(size_t nBytes) { return nullptr; }
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
+  void UpdateChain(GPUChainTracking* chain) {}
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

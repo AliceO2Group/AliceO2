@@ -150,7 +150,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  generate_dictionary("${targetName}" "" "GPUReconstructionHIP.h" "${incdirs} .")
+  generate_dictionary("${targetName}" "" "${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIP.h" "${incdirs} .")
 
   # Generate the ROOT map Dependecies
   generate_rootmap("${targetName}" "" "")
@@ -257,9 +257,11 @@ if(NOT GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   target_link_options(${targetName} PRIVATE "-fno-gpu-rdc")
 endif()
 
-add_library(GPUTrackingHIPExternalProvider OBJECT ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPExternalProvider.hip)
-add_library(O2::GPUTrackingHIPExternalProvider ALIAS GPUTrackingHIPExternalProvider)
-target_compile_options(GPUTrackingHIPExternalProvider PRIVATE "-fgpu-rdc")
-target_link_options(GPUTrackingHIPExternalProvider PRIVATE "-fgpu-rdc")
-target_compile_definitions(GPUTrackingHIPExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},COMPILE_DEFINITIONS>)
-target_include_directories(GPUTrackingHIPExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},INCLUDE_DIRECTORIES>)
+if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+  add_library(GPUTrackingHIPExternalProvider OBJECT ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPExternalProvider.hip)
+  add_library(O2::GPUTrackingHIPExternalProvider ALIAS GPUTrackingHIPExternalProvider)
+  target_compile_options(GPUTrackingHIPExternalProvider PRIVATE "-fgpu-rdc")
+  target_link_options(GPUTrackingHIPExternalProvider PRIVATE "-fgpu-rdc")
+  target_compile_definitions(GPUTrackingHIPExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},COMPILE_DEFINITIONS>)
+  target_include_directories(GPUTrackingHIPExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},INCLUDE_DIRECTORIES>)
+endif()

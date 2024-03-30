@@ -49,19 +49,19 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 {
 
  public:
-  trackInterface<AliExternalTrackParam>() : AliExternalTrackParam(){};
-  trackInterface<AliExternalTrackParam>(const trackInterface<AliExternalTrackParam>& param) : AliExternalTrackParam(param){};
-  trackInterface<AliExternalTrackParam>(const AliExternalTrackParam& param) CON_DELETE;
-  trackInterface<AliExternalTrackParam>(const AliHLTExternalTrackParam& param) : AliExternalTrackParam()
+  trackInterface() : AliExternalTrackParam(){};
+  trackInterface(const trackInterface<AliExternalTrackParam>& param) : AliExternalTrackParam(param){};
+  trackInterface(const AliExternalTrackParam& param) CON_DELETE;
+  trackInterface(const AliHLTExternalTrackParam& param) : AliExternalTrackParam()
   {
     float paramTmp[5] = {param.fY, param.fZ, param.fSinPhi, param.fTgl, param.fq1Pt};
     Set(param.fX, param.fAlpha, paramTmp, param.fC);
   }
-  trackInterface<AliExternalTrackParam>(const GPUTPCGMMergedTrack& trk) : AliExternalTrackParam()
+  trackInterface(const GPUTPCGMMergedTrack& trk) : AliExternalTrackParam()
   {
     Set(trk.GetParam().GetX(), trk.GetAlpha(), trk.GetParam().GetPar(), trk.GetParam().GetCov());
   }
-  trackInterface<AliExternalTrackParam>(const gputpcgmmergertypes::GPUTPCOuterParam& param) : AliExternalTrackParam()
+  trackInterface(const gputpcgmmergertypes::GPUTPCOuterParam& param) : AliExternalTrackParam()
   {
     Set(param.X, param.alpha, param.P, param.C);
   }
