@@ -69,7 +69,7 @@ endfunction()
 STRING(REGEX REPLACE "\-std=[^ ]*" "" O2_GPU_CMAKE_CXX_FLAGS_NOSTD "${CMAKE_CXX_FLAGS}") # Need to strip c++17 imposed by alidist defaults
 
 if(ENABLE_CUDA)
-  set(CMAKE_CUDA_STANDARD 20)
+  set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
   include(CheckLanguage)
   check_language(CUDA)
@@ -209,7 +209,7 @@ endif()
 # Detect and enable HIP
 if(ENABLE_HIP)
   if("$ENV{CMAKE_PREFIX_PATH}" MATCHES "rocm")
-    set(CMAKE_HIP_STANDARD 20)
+    set(CMAKE_HIP_STANDARD ${CMAKE_CXX_STANDARD})
     set(CMAKE_HIP_STANDARD_REQUIRED TRUE)
     if(HIP_AMDGPUTARGET)
       set(AMDGPU_TARGETS "${HIP_AMDGPUTARGET}" CACHE STRING "AMD GPU targets to compile for" FORCE)
