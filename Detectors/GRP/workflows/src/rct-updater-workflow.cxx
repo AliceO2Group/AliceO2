@@ -131,7 +131,7 @@ class RCTUpdaterSpec : public o2::framework::Task
     if (mCCDBApi) {
       int retValRCT = mCCDBApi->updateMetadata("RCT/Info/RunInformation", mdRCT, startValRCT);
       if (retValRCT == 0) {
-        LOGP(info, "Updated RCT object for run {} with TF start:{} end:{}", mRunNumber, mdRCT["STF"], mdRCT["ETF"]);
+        LOGP(info, "Updated {}/RCT/Info/RunInformation object for run {} with TF start:{} end:{}", mCCDBApi->getURL(), mRunNumber, mdRCT["STF"], mdRCT["ETF"]);
       } else {
         LOGP(alarm, "Update of RCT object for run {} with TF start:{} end:{} FAILED, returned with code {}", mRunNumber, mdRCT["STF"], mdRCT["ETF"], retValRCT);
       }
