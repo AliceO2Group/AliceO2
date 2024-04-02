@@ -41,7 +41,7 @@ class TrackerDPL : public framework::Task
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
              int trgType,
-             const TrackingMode& trModeS,
+             const TrackingMode& trMode,
              const bool overrBeamEst = false,
              o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
@@ -55,12 +55,11 @@ class TrackerDPL : public framework::Task
   void updateTimeDependentParams(framework::ProcessingContext& pc);
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   ITSTrackingInterface mITSTrackingInterface;
   TStopwatch mTimer;
 };
 
-/// create a processor spec
-/// run ITS CA tracker
 framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType);
 
 } // namespace its

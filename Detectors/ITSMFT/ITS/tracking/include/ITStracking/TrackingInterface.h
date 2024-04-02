@@ -23,8 +23,6 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 
-#include "DetectorsBase/GRPGeomHelper.h"
-
 #include "GPUDataTypes.h"
 #include "GPUO2Interface.h"
 #include "GPUChainITS.h"
@@ -34,13 +32,11 @@ namespace o2::its
 class ITSTrackingInterface
 {
  public:
-  ITSTrackingInterface(std::shared_ptr<o2::base::GRPGeomRequest> gr,
-                       bool isMC,
+  ITSTrackingInterface(bool isMC,
                        int trgType,
                        const TrackingMode trMode,
                        const bool overrBeamEst)
-    : mGGCCDBRequest(gr),
-      mIsMC{isMC},
+    : mIsMC{isMC},
       mUseTriggers{trgType},
       mMode{trMode},
       mOverrideBeamEstimation{overrBeamEst}
@@ -55,11 +51,14 @@ class ITSTrackingInterface
     }
     mMeanVertex = v;
   }
-  // Task handles
+  // Task callbacks
   void initialise();
+  template <bool isGPU = false>
   void run(framework::ProcessingContext& pc);
+
   void updateTimeDependentParams(framework::ProcessingContext& pc);
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
+
   // Custom
   void setTraitsFromProvider(VertexerTraits*, TrackerTraits*, TimeFrame*);
 
@@ -70,7 +69,6 @@ class ITSTrackingInterface
   int mUseTriggers = 0;
   TrackingMode mMode = TrackingMode::Sync;
   bool mOverrideBeamEstimation = false;
-  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;

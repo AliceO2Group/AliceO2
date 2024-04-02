@@ -37,6 +37,9 @@ enum class TrackingMode {
   Cosmics
 };
 
+std::string asString(TrackingMode mode);
+std::ostream& operator<<(std::ostream& os, TrackingMode v);
+
 template <typename Param>
 class Configuration : public Param
 {

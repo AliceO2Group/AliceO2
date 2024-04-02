@@ -28,8 +28,9 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        int trgType,
                        const TrackingMode& trMode,
                        const bool overrBeamEst,
-                       o2::gpu::GPUDataTypes::DeviceType dType) : mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
-                                                                  mITSTrackingInterface{gr, isMC, trgType, trMode, overrBeamEst}
+                       o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr),
+                                                                  mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
+                                                                  mITSTrackingInterface{isMC, trgType, trMode, overrBeamEst}
 {
 }
 
@@ -37,6 +38,7 @@ void TrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
   mITSTrackingInterface.setTraitsFromProvider(mChainITS->GetITSVertexerTraits(),
                                               mChainITS->GetITSTrackerTraits(),
@@ -54,6 +56,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   auto realt = mTimer.RealTime();
   mTimer.Start(false);
+  mITSTrackingInterface.updateTimeDependentParams(pc);
   mITSTrackingInterface.run(pc);
   mTimer.Stop();
   LOGP(info, "CPU Reconstruction time for this TF {} s (cpu), {} s (wall)", mTimer.CpuTime() - cput, mTimer.RealTime() - realt);
@@ -81,8 +84,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const st
   } else if (trgType == 2) {
     inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   }
-  inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
-  inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  inputs.emplace_back("itscldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
+  inputs.emplace_back("itsalppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
                                                               true,                                                                         // GRPECS=true
                                                               false,                                                                        // GRPLHCIF

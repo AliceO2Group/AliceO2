@@ -76,8 +76,7 @@
 #include "CommonUtils/DebugStreamer.h"
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "ITStracking/Tracker.h"
-#include "ITStracking/Vertexer.h"
+#include "ITStracking/TrackingInterface.h"
 #include "GPUWorkflowInternal.h"
 // #include "Framework/ThreadPool.h"
 
@@ -373,11 +372,6 @@ void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   }
   if (GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
     mGRPGeomUpdated = true;
-    return;
-  }
-  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
-    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
-    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
 }

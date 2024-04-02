@@ -21,35 +21,17 @@
 #include "DataFormatsITSMFT/PhysTrigger.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "CommonDataFormat/IRFrame.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 namespace o2
 {
 using namespace framework;
 namespace its
 {
-
-std::string asString(TrackingMode mode)
-{
-  switch (mode) {
-    case TrackingMode::Sync:
-      return "sync";
-    case TrackingMode::Async:
-      return "async";
-    case TrackingMode::Cosmics:
-      return "cosmics";
-  }
-  return "unknown";
-}
-
-std::ostream& operator<<(std::ostream& os, TrackingMode v)
-{
-  os << asString(v);
-  return os;
-}
-
 void ITSTrackingInterface::initialise()
 {
-  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mRunVertexer = true;
+  mCosmicsProcessing = false;
   std::vector<TrackingParameters> trackParams;
 
   if (mMode == TrackingMode::Async) {
@@ -99,9 +81,9 @@ void ITSTrackingInterface::initialise()
   mTracker->setParameters(trackParams);
 }
 
+template <bool isGPU>
 void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
@@ -182,7 +164,11 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   if (mRunVertexer) {
     vertROFvec.reserve(rofs.size());
     // Run seeding vertexer
-    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+    if constexpr (isGPU) {
+      vertexerElapsedTime = mVertexer->clustersToVerticesHybrid(logger);
+    } else {
+      vertexerElapsedTime = mVertexer->clustersToVertices(logger);
+    }
   } else { // cosmics
     mTimeFrame->resetRofPV();
   }
@@ -240,10 +226,18 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
     mTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
-    if (mMode == o2::its::TrackingMode::Async) {
-      mTracker->clustersToTracks(logger, fatalLogger);
+    if constexpr (isGPU) {
+      if (mMode == o2::its::TrackingMode::Async) {
+        mTracker->clustersToTracksHybrid(logger, fatalLogger);
+      } else {
+        mTracker->clustersToTracksHybrid(logger, errorLogger);
+      }
     } else {
-      mTracker->clustersToTracks(logger, errorLogger);
+      if (mMode == o2::its::TrackingMode::Async) {
+        mTracker->clustersToTracks(logger, fatalLogger);
+      } else {
+        mTracker->clustersToTracks(logger, errorLogger);
+      }
     }
     size_t totTracks{mTimeFrame->getNumberOfTracks()}, totClusIDs{mTimeFrame->getNumberOfUsedClusters()};
     allTracks.reserve(totTracks);
@@ -298,8 +292,8 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
-    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
-    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("itscldict"); // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("itsalppar");
     if (pc.inputs().getPos("itsTGeo") >= 0) {
       pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
     }
@@ -336,7 +330,7 @@ void ITSTrackingInterface::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
-    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    LOG(info) << "ITS GeometryTGeo loaded from ccdb";
     o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
@@ -352,5 +346,8 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraits* vertexerTraits,
   mVertexer->adoptTimeFrame(*mTimeFrame);
   mTracker->adoptTimeFrame(*mTimeFrame);
 }
+
+template void ITSTrackingInterface::run<true>(framework::ProcessingContext& pc);
+template void ITSTrackingInterface::run<false>(framework::ProcessingContext& pc);
 } // namespace its
 } // namespace o2
