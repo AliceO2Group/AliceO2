@@ -14,9 +14,9 @@
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCReaderWorkflow/TriggerReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
-
 #include "Algorithm/RangeTokenizer.h"
 
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
@@ -85,6 +85,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
     specs.push_back(o2::tpc::getTPCTrackReaderSpec(doMC));
   }
+
+  if (isEnabled(InputType::Tracks) && isEnabled(InputType::Clusters)) { // create shared clusters and occupancy maps
+    specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
+  }
+
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
   return std::move(specs);
 }

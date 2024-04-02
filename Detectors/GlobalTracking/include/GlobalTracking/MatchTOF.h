@@ -287,6 +287,7 @@ class MatchTOF
   /// data needed for refit of time-constrained TPC tracks
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap;                   ///< externally set TPC clusters occupancy map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;        ///< TPC cluster transformation
