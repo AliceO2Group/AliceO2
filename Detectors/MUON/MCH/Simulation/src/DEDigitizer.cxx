@@ -17,6 +17,8 @@
 
 #include "DetectorsRaw/HBFUtils.h"
 #include "MCHSimulation/DigitizerParam.h"
+#include <TGeoGlobalMagField.h>
+#include "Field/MagneticField.h"
 
 #include "TRandom.h"
 
@@ -28,9 +30,11 @@ std::pair<o2::InteractionRecord, uint8_t> time2ROFtime(const o2::InteractionReco
   return std::make_pair(o2::InteractionRecord(time.bc - bc, time.orbit), bc);
 }
 
+//_________________________________________________________________________________________________
+
 namespace o2::mch
 {
-
+//_________________________________________________________________________________________________
 DEDigitizer::DEDigitizer(int deId, math_utils::Transform3D transformation, std::mt19937& random)
   : mDeId{deId},
     mResponse{deId < 300 ? Station::Type1 : Station::Type2345},
@@ -86,11 +90,21 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ);//check sign convention between O2 and Aliroot
 
   // bfield
-  float b[3] = {0., 0., 0.};
-  //  TGeoGlobalMagField::Instance()->Field(lentrance, b);//need to add Field as member as transformation or find other example (e.g. use TrackFitter.cxx as model)
-
+  double b[3] = {0., 0., 0.};
+  double x[3] = {lentrance.X(), lentrance.Y(), lentrance.Z()};
+  if (TGeoGlobalMagField::Instance()->GetField())  {
+    TGeoGlobalMagField::Instance()->Field(x, b);
+  } else{
+    LOG(fatal) << "no b field in DEDigitizer";
+   // auto l3Current = ic.options().get<float>("l3Current");
+   // auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
+   // auto field =
+   // o2::field::MagneticField::createFieldMap(l3Current, dipoleCurrent, o2::field::MagneticField::kConvLHC, false, 3500.,
+   //                                          "A-A", "$(O2_ROOT)/share/Common/maps/mfchebKGI_sym.root");
+   //  field->Field(entrance, b);
+  }
   //calculate track betagamma
-  auto betagamma = 1.;//todo: access track information
+  auto betagamma = 50;//todo: use time of flight of entrance and exit
   auto yAngleEffect = mResponse.inclandbfield(thetawire, betagamma, b[0]);
   localY += yAngleEffect;
 
