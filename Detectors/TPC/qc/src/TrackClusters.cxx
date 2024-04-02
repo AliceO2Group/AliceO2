@@ -64,7 +64,7 @@ bool TrackClusters::processTrackAndClusters(const std::vector<o2::tpc::TrackTPC>
   std::vector<unsigned char> mBufVec;
   mBufVec.resize(clusterIndex->nClustersTotal);
 
-  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(clusterIndex, *tracks, clusRefs->data(), mBufVec.data());
+  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(clusterIndex, *tracks, clusRefs->data(), mBufVec.data());
 
   for (auto const& track : (*tracks)) {
     const auto dEdxTot = track.getdEdx().dEdxTotTPC;

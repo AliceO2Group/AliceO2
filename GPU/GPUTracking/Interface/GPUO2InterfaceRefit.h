@@ -68,8 +68,9 @@ class GPUO2InterfaceRefit
   // - In any case: Cluster Native access structure (cl), TPC Fast Transformation helper instance (trans), solenoid field (bz), TPC Track hit references (trackRef)
   // - Either the shared cluster map (sharedmap) or the vector of tpc tracks (trks) to build the shared cluster map internally
   // - o2::base::Propagator (p) in case RefitTrackAsTrackParCov is to be used
+  // - In case the --configKeyValues defining GPUParam settings require an occupancy map for TPC error estimation, the map must either be provided as occupancymap, or nHbfPerTf must be set non-zero
 
-  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
+  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU, const o2::tpc::TPCClRefElem* trackRef, unsigned int nHbfPerTf = 0, const unsigned char* sharedmap = nullptr, const unsigned int* occupancymap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
   ~GPUO2InterfaceRefit();
 
   int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
@@ -81,7 +82,12 @@ class GPUO2InterfaceRefit
   void setIgnoreErrorsAtTrackEnds(bool v);
   void updateCalib(const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU);
 
-  static void fillSharedClustersMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, unsigned char* shmap);
+  // To create shared cluster maps and occupancy maps.
+  // param is an optional parameter to override the param object, by default a default object from --configKeyValues is used.
+  // If the param object / default object requires an occupancy map, an occupancy map ptr and nHbfPerTf value must be provided.
+  // You can use the function fillOccupancyMapGetSize(...) to get the required size of the occupancy map. If 0 is returned, no map is required.
+  static void fillSharedClustersAndOccupancyMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, unsigned char* shmap, unsigned int* ocmap = nullptr, unsigned int nHbfPerTf = 0, const GPUParam* param = nullptr);
+  static size_t fillOccupancyMapGetSize(unsigned int nHbfPerTf);
 
  private:
   std::unique_ptr<GPUTrackingRefit> mRefit;
