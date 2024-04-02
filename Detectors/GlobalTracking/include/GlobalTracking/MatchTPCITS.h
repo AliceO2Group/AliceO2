@@ -636,6 +636,7 @@ class MatchTPCITS
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
 
   gsl::span<const unsigned char> mTPCRefitterShMap; ///< externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
 
   const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
 
