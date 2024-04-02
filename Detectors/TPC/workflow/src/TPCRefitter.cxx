@@ -92,6 +92,7 @@ class TPCRefitterSpec final : public Task
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;                 ///< input TPC tracks span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap;                   ///< externally set TPC clusters occupancy map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
   gsl::span<const o2::MCCompLabel> mTPCTrkLabels;                     ///< input TPC Track MC labels
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
@@ -177,6 +178,7 @@ void TPCRefitterSpec::process(o2::globaltracking::RecoContainer& recoData)
   mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
   mTPCRefitterShMap = recoData.clusterShMapTPC;
+  mTPCRefitterOccMap = recoData.occupancyMapTPC;
 
   std::vector<o2::InteractionTimeRecord> intRecs;
   if (mUseMC) { // extract MC tracks
@@ -189,7 +191,7 @@ void TPCRefitterSpec::process(o2::globaltracking::RecoContainer& recoData)
     mTPCTrkLabels = recoData.getTPCTracksMCLabels();
   }
 
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), nullptr, nullptr, prop);
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), nullptr, prop);
 
   float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);

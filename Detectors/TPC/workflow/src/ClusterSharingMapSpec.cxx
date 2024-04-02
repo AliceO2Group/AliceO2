@@ -38,8 +38,9 @@ void ClusterSharingMapSpec::run(ProcessingContext& pc)
     LOGP(info, "Will use {} HB per TF from GRPECS", nHBPerTF);
   }
 
-  auto& bufVec = pc.outputs().make<std::vector<unsigned char>>(Output{o2::header::gDataOriginTPC, "CLSHAREDMAP", 0}, clustersTPC->clusterIndex.nClustersTotal);
-  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(&clustersTPC->clusterIndex, tracksTPC, tracksTPCClRefs.data(), bufVec.data());
+  auto& bufVecSh = pc.outputs().make<std::vector<unsigned char>>(Output{o2::header::gDataOriginTPC, "CLSHAREDMAP", 0}, clustersTPC->clusterIndex.nClustersTotal);
+  auto& bufVecOcc = pc.outputs().make<std::vector<unsigned int>>(Output{o2::header::gDataOriginTPC, "TPCOCCUPANCYMAP", 0}, 0u);
+  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(&clustersTPC->clusterIndex, tracksTPC, tracksTPCClRefs.data(), bufVecSh.data());
 
   timer.Stop();
   LOGF(info, "Timing for TPC clusters sharing map creation: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
