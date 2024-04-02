@@ -25,7 +25,7 @@ void TestConfig(bool test = 0)
   o2::ctp::CTPRunManager::setCCDBHost("https://alice-ccdb.cern.ch");
   bool ok;
   auto ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(timestamp, run, ok);
-  if(ok == 0) {
+  if (ok == 0) {
     std::cout << "Can not get config for run:" << run << std::endl;
   }
   CTPConfiguration ctpconfig;
