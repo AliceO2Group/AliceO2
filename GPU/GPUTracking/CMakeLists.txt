@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 set(MODULE GPUTracking)
+cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 
 # set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -O0") # to uncomment if needed, tired of typing this...
 
@@ -21,9 +22,10 @@ include(cmake/helpers.cmake)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
-    cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
     include(FeatureSummary)
     find_package(O2GPU)
+  else()
+    include("cmake/kernel_helpers.cmake")
   endif()
 else()
   if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND))
