@@ -106,7 +106,7 @@ o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, buffered64"        "GPUTPCCom
 o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, buffered128"       "GPUTPCCompressionKernels"                              LB      simple)
 o2_gpu_add_kernel("GPUTPCCompressionGatherKernels, multiBlock"        "GPUTPCCompressionKernels"                              LB      simple)
 o2_gpu_add_kernel("GPUTPCDecompressionKernels, step0attached"         "= TPCDECOMPRESSION"                                    LB      simple int trackStart int trackEnd)
-o2_gpu_add_kernel("GPUTPCDecompressionKernels, step1unattached"       "= TPCDECOMPRESSION"                                    LB      simple)
+o2_gpu_add_kernel("GPUTPCDecompressionKernels, step1unattached"       "= TPCDECOMPRESSION"                                    LB      simple int iSlice)
 o2_gpu_add_kernel("GPUTPCDecompressionUtilKernels, sortPerSectorRow"  "GPUTPCDecompressionKernels"                            LB      simple)
 o2_gpu_add_kernel("GPUTPCCFCheckPadBaseline"                          "= TPCCLUSTERFINDER"                                    LB      single)
 o2_gpu_add_kernel("GPUTPCCFChargeMapFiller, fillIndexMap"             "= TPCCLUSTERFINDER"                                    LB      single)
