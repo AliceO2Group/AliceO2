@@ -13,6 +13,7 @@ o2_add_library(ITStracking
                TARGETVARNAME targetName
                SOURCES src/ClusterLines.cxx
                        src/Cluster.cxx
+                       src/Configuration.cxx
                        src/ROframe.cxx
                        src/TimeFrame.cxx
                        src/IOUtils.cxx
@@ -40,7 +41,7 @@ o2_add_library(ITStracking
 o2_add_library(ITSTrackingInterface
                TARGETVARNAME targetName
                SOURCES src/TrackingInterface.cxx
-               PUBLIC_LINK_LIBRARIES
+               PRIVATE_LINK_LIBRARIES
                        O2::ITStracking
                        O2::Framework
                        O2::GPUTracking)

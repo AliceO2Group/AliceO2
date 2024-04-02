@@ -284,14 +284,6 @@ void utils::gpuMemcpyFromSymbol(void* dst, const void* symbol, int size)
 {
   checkGPUError(cudaMemcpyFromSymbol(dst, symbol, size, 0, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 }
-
-GPUd() int utils::getLaneIndex()
-{
-  uint32_t laneIndex;
-  asm volatile("mov.u32 %0, %%laneid;"
-               : "=r"(laneIndex));
-  return static_cast<int>(laneIndex);
-}
 } // namespace gpu
 } // namespace its
 } // namespace o2

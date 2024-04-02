@@ -51,24 +51,6 @@ namespace its
 {
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
-std::string asString(TrackingMode mode)
-{
-  switch (mode) {
-    case TrackingMode::Sync:
-      return "sync";
-    case TrackingMode::Async:
-      return "async";
-    case TrackingMode::Cosmics:
-      return "cosmics";
-  }
-  return "unknown";
-}
-
-std::ostream& operator<<(std::ostream& os, TrackingMode v)
-{
-  os << asString(v);
-  return os;
-}
 
 CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const TrackingMode& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
@@ -281,7 +263,7 @@ void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
-    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    LOG(info) << "ITS GeometryTGeo loaded from ccdb";
     o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
