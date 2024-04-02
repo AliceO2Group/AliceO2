@@ -26,14 +26,14 @@ namespace o2
 namespace emcal
 {
 
-using pedestalarray = std::array<short, 17664>;
+using pedestalarray = std::vector<short>;
 
-pedestalarray createRandomPedestals()
+pedestalarray createRandomPedestals(bool isLEDMON)
 {
   std::random_device rd{};
   std::mt19937 gen{rd()};
   std::normal_distribution gaussrand{40., 5.};
-  pedestalarray pedestalcontainer;
+  pedestalarray pedestalcontainer(isLEDMON ? 480 : 17664);
   for (std::size_t ichan{0}; ichan < pedestalcontainer.size(); ++ichan) {
     pedestalcontainer[ichan] = std::round(gaussrand(gen));
   }
@@ -52,15 +52,17 @@ pedestalarray shiftPedestalValue(const pedestalarray& input, short shift = 1)
 
 BOOST_AUTO_TEST_CASE(testPedestal)
 {
-  auto pedestalsHG = createRandomPedestals(),
-       pedestalsLG = createRandomPedestals(),
-       pedestalsLEDMONHG = createRandomPedestals(),
-       pedestalsLEDMONLG = createRandomPedestals();
+  auto pedestalsHG = createRandomPedestals(false),
+       pedestalsLG = createRandomPedestals(false),
+       pedestalsLEDMONHG = createRandomPedestals(true),
+       pedestalsLEDMONLG = createRandomPedestals(true);
 
   o2::emcal::Pedestal pedestalObject;
   for (std::size_t ichan{0}; ichan < pedestalsHG.size(); ++ichan) {
     pedestalObject.addPedestalValue(ichan, pedestalsHG[ichan], false, false);
     pedestalObject.addPedestalValue(ichan, pedestalsLG[ichan], true, false);
+  }
+  for (std::size_t ichan{0}; ichan < pedestalsLEDMONHG.size(); ++ichan) {
     pedestalObject.addPedestalValue(ichan, pedestalsLEDMONHG[ichan], false, true);
     pedestalObject.addPedestalValue(ichan, pedestalsLEDMONLG[ichan], true, true);
   }
@@ -75,6 +77,8 @@ BOOST_AUTO_TEST_CASE(testPedestal)
   for (std::size_t ichan{0}; ichan < pedestalsHG.size(); ++ichan) {
     BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, false, false), pedestalsHG[ichan]);
     BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, true, false), pedestalsLG[ichan]);
+  }
+  for (std::size_t ichan{0}; ichan < pedestalsLEDMONHG.size(); ++ichan) {
     BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, false, true), pedestalsLEDMONHG[ichan]);
     BOOST_CHECK_EQUAL(pedestalObject.getPedestalValue(ichan, true, true), pedestalsLEDMONLG[ichan]);
   }

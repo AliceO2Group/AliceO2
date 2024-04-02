@@ -82,10 +82,10 @@ class Pedestal
   TH2* getHistogramRepresentation2D(bool isLowGain, bool isLEDMON) const;
 
  private:
-  std::array<short, 17664> mPedestalValuesHG;       ///< Container for the pedestal values (high gain)
-  std::array<short, 17664> mPedestalValuesLG;       ///< Container for the pedestal values (low gain)
-  std::array<short, 17664> mPedestalValuesLEDMONHG; ///< Container for the LEDMON pedestal values (high gain)
-  std::array<short, 17664> mPedestalValuesLEDMONLG; ///< Container for the LEDMON pedestal values (low gain)
+  std::array<short, 17664> mPedestalValuesHG;     ///< Container for the pedestal values (high gain)
+  std::array<short, 17664> mPedestalValuesLG;     ///< Container for the pedestal values (low gain)
+  std::array<short, 480> mPedestalValuesLEDMONHG; ///< Container for the LEDMON pedestal values (high gain)
+  std::array<short, 480> mPedestalValuesLEDMONLG; ///< Container for the LEDMON pedestal values (low gain)
 
   ClassDefNV(Pedestal, 1);
 };
