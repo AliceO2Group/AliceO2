@@ -187,8 +187,8 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     mEOX = 1;
   }
   static int nerror = 0;
-  if(topic == "rocnts") {
-    if(nerror < 1) {
+  if (topic == "rocnts") {
+    if (nerror < 1) {
       LOG(warning) << "Skipping topic rocnts";
       nerror++;
     }
