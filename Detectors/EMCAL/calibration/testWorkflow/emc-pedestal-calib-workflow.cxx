@@ -31,7 +31,8 @@ using namespace o2::emcal;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"dumpToFile", VariantType::Bool, false, {"if output (that goes to DCS ccdb) should be stored in txt file for local debugging"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -41,9 +42,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+  bool dumpToFile = cfgc.options().get<bool>("dumpToFile");
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::emcal::getPedestalCalibDevice());
+  specs.emplace_back(o2::emcal::getPedestalCalibDevice(dumpToFile));
 
   return specs;
 }

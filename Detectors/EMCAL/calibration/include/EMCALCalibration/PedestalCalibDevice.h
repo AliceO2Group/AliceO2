@@ -21,6 +21,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALCalibration/PedestalProcessorData.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
+#include "EMCALCalibration/EMCALPedestalHelper.h"
 
 namespace o2::emcal
 {
@@ -28,7 +29,7 @@ namespace o2::emcal
 class PedestalCalibDevice : o2::framework::Task
 {
  public:
-  PedestalCalibDevice() = default;
+  PedestalCalibDevice(bool dumpToFile) : mDumpToFile(dumpToFile){};
   ~PedestalCalibDevice() final = default;
 
   void init(framework::InitContext& ctx) final;
@@ -45,12 +46,14 @@ class PedestalCalibDevice : o2::framework::Task
 
  private:
   Geometry* mGeometry = nullptr;                  ///< pointer to the emcal geometry class
-  o2::emcal::EMCALCalibExtractor mCalibExtractor; // instance of the calibration extraction class                                                                ///< Calibration postprocessing
-  PedestalProcessorData mPedestalData;            /// pedestal data to accumulate data
-  long int mStartTS = 0;
+  o2::emcal::EMCALCalibExtractor mCalibExtractor; ///< instance of the calibration extraction class                                                                ///< Calibration postprocessing
+  PedestalProcessorData mPedestalData;            ///< pedestal data to accumulate data
+  long int mStartTS = 0;                          ///< timestamp at the start of run used for the object in the ccdb
+  bool mDumpToFile;                               ///< if output of pedestal calib (DCS ccdb) should be written to text file
+  int mRun = 0;                                   ///< current run number
 };
 
-o2::framework::DataProcessorSpec getPedestalCalibDevice();
+o2::framework::DataProcessorSpec getPedestalCalibDevice(bool dumpToFile);
 
 } // end namespace o2::emcal
 
