@@ -94,7 +94,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     tpcRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&data.inputsTPCclusters->clusterIndex,
                                                                  mTPCCorrMapsHelper, mBz,
                                                                  tpcClusRefs.data(), tpcClusShMap.data(),
-                                                                 nullptr, o2::base::Propagator::Instance());
+                                                                 nullptr, nullptr, o2::base::Propagator::Instance());
   }
 
   const auto& itsClusters = prepareITSClusters(data);

@@ -23,7 +23,7 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap)
+void GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap, unsigned int* ocmap, const GPUParam* param)
 {
   if (!cl || (!shmap && cl->nClustersTotal > 0)) {
     throw std::runtime_error("Must provide clusters access and preallocated recepient for shared map");
@@ -38,9 +38,11 @@ void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, c
   for (unsigned int i = 0; i < cl->nClustersTotal; i++) {
     shmap[i] = (shmap[i] > 1 ? GPUTPCGMMergedTrackHit::flagShared : 0) | cl->clustersLinear[i].getFlags();
   }
+  if (ocmap && param) {
+  }
 }
 
-GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const CorrectionMapsHelper* trans, float bzNominalGPU, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const unsigned int* occupancymap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
 {
   if (cl->nClustersTotal) {
     if (sharedmap == nullptr && trks == nullptr) {
@@ -49,11 +51,15 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const Co
     if (sharedmap == nullptr) {
       mSharedMap.resize(cl->nClustersTotal);
       sharedmap = mSharedMap.data();
-      fillSharedClustersMap(cl, *trks, trackRef, mSharedMap.data());
+      fillSharedClustersAndOccupancyMap(cl, *trks, trackRef, mSharedMap.data());
     }
   }
   mRefit = std::make_unique<GPUTrackingRefit>();
   mParam->SetDefaults(bzNominalGPU);
+  if (occupancymap) {
+    mParam->occupancyTotal = *occupancymap;
+    mParam->occupancyMap = occupancymap + 1;
+  }
   mRefit->SetGPUParam(mParam.get());
   mRefit->SetClusterStateArray(sharedmap);
   mRefit->SetPropagator(p);

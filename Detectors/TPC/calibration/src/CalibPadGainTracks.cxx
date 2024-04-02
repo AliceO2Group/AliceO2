@@ -38,7 +38,7 @@ void CalibPadGainTracks::processTracks(const int nMaxTracks)
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> refit;
   if (!mPropagateTrack) {
     mBufVec.resize(mClusterIndex->nClustersTotal);
-    o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mBufVec.data());
+    o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mBufVec.data());
     mClusterShMapTPC = mBufVec.data();
     refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
   }

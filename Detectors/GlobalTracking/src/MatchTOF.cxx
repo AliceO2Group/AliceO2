@@ -1798,6 +1798,6 @@ void MatchTOF::checkRefitter()
   if (mTPCClusterIdxStruct) {
     mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz,
                                                                   mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(),
-                                                                  nullptr, o2::base::Propagator::Instance());
+                                                                  nullptr, nullptr, o2::base::Propagator::Instance());
   }
 }
