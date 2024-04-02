@@ -186,6 +186,14 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     LOG(info) << "EOX received";
     mEOX = 1;
   }
+  static int nerror = 0;
+  if(topic == "rocnts") {
+    if(nerror < 1) {
+      LOG(warning) << "Skipping topic rocnts";
+      nerror++;
+    }
+    return 0;
+  }
   //
   std::vector<std::string> tokens;
   if (firstcounters.size() > 0) {
@@ -198,7 +206,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       mNew = 0;
       LOG(warning) << "v2 scaler size";
     } else {
-      LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1 << " or " << CTPRunScalers::NCOUNTERSv2 + 1;
+      LOG(warning) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1 << " or " << CTPRunScalers::NCOUNTERSv2 + 1;
       return 1;
     }
   }
