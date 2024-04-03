@@ -179,7 +179,7 @@ AddOptionRTC(maxTrackQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT, "", 0, "r
 AddOptionRTC(nonConsecutiveIDs, char, false, "", 0, "Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger")
 AddOptionRTC(fwdTPCDigitsAsClusters, unsigned char, 0, "", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddOptionRTC(bz0Pt10MeV, unsigned char, 60, "", 0, "Nominal Pt to set when bz = 0 (in 10 MeV)")
-AddOptionRTC(fitInProjections, char, -1, "", 0, "Fit in projection, -1 to enable for all but passes but the first one")
+AddOptionRTC(fitInProjections, char, -1, "", 0, "Fit in projection, -1 to enable full fit for all but passes but the first one")
 AddOptionRTC(fitPropagateBzOnly, char, -1, "", 0, "Propagate using Bz only for n passes")
 AddOptionRTC(useMatLUT, char, 0, "", 0, "Use material lookup table for TPC refit")
 AddOptionRTC(trackingRefitGPUModel, char, 1, "", 0, "Use GPU track model for the Global Track Refit")

@@ -77,7 +77,6 @@ class GPUO2InterfaceRefit
   int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false);
   int RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
   int RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2 = nullptr, bool outward = false, bool resetCov = false);
-  void setGPUTrackFitInProjections(bool v = true);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
   void updateCalib(const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU);
@@ -87,12 +86,13 @@ class GPUO2InterfaceRefit
   // If the param object / default object requires an occupancy map, an occupancy map ptr and nHbfPerTf value must be provided.
   // You can use the function fillOccupancyMapGetSize(...) to get the required size of the occupancy map. If 0 is returned, no map is required.
   static void fillSharedClustersAndOccupancyMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, unsigned char* shmap, unsigned int* ocmap = nullptr, unsigned int nHbfPerTf = 0, const GPUParam* param = nullptr);
-  static size_t fillOccupancyMapGetSize(unsigned int nHbfPerTf);
+  static size_t fillOccupancyMapGetSize(unsigned int nHbfPerTf, const GPUParam* param = nullptr);
 
  private:
   std::unique_ptr<GPUTrackingRefit> mRefit;
   std::unique_ptr<GPUParam> mParam;
   std::vector<unsigned char> mSharedMap;
+  std::vector<unsigned int> mOccupancyMap;
 };
 } // namespace o2::gpu
 
