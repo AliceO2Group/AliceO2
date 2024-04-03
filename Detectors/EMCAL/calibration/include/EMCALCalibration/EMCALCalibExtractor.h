@@ -431,6 +431,9 @@ class EMCALCalibExtractor
       for (const auto& isLG : {false, true}) {
         for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
           auto [mean, rms] = obj.getValue(iCell, isLG, isLEDMON); // get mean and rms for pedestals
+          if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
+            mean = mMaxPedestalVal;
+          }
           pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
         }
       }
@@ -455,6 +458,10 @@ class EMCALCalibExtractor
         continue;
       for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
         short mean = static_cast<short>(obj->GetBinContent(iCell + 1));
+        short rms = static_cast<short>(obj->GetBinError(iCell + 1) / obj->GetBinEntries(iCell + 1));
+        if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
+          mean = mMaxPedestalVal;
+        }
         pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
       }
     }
@@ -481,9 +488,10 @@ class EMCALCalibExtractor
   std::array<float, 20> mBadCellFracSM;                  ///< Fraction of bad+dead channels per SM
   std::array<std::array<float, 36>, 20> mBadCellFracFEC; ///< Fraction of bad+dead channels per FEC
 
-  o2::emcal::Geometry* mGeometry = nullptr; ///< pointer to the emcal geometry class
-  static constexpr int mNcells = 17664;     ///< Number of total cells of EMCal + DCal
-  static constexpr int mLEDMONs = 480;      ///< Number of total LEDMONS of EMCal + DCal
+  o2::emcal::Geometry* mGeometry = nullptr;      ///< pointer to the emcal geometry class
+  static constexpr int mNcells = 17664;          ///< Number of total cells of EMCal + DCal
+  static constexpr int mLEDMONs = 480;           ///< Number of total LEDMONS of EMCal + DCal
+  static constexpr short mMaxPedestalVal = 1023; ///< Maximum value for pedestals
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };
