@@ -41,7 +41,7 @@ std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal&
 
   for (int iledmon = 0; iledmon < 480; iledmon++) {
     int sm = iledmon / 24,
-        col = sm % 24,
+        col = iledmon % 24,
         ircu = 0, // LEDMONS always on RCU 0
       iddl = 2 * sm + ircu;
     const auto& mapping = mapper.getMappingForDDL(iddl);
