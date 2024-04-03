@@ -142,6 +142,8 @@ class MCEventHeader : public FairMCEventHeader
     return ref;
   };
 
+  void print() const;
+
   /// prints a summary of info keys/types attached to this header
   void printInfo() const
   {
