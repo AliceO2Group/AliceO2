@@ -110,7 +110,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   std::vector<o2::tpc::ClusterNative> clusterBuffer;
   GPUInfo("Compression statistics, decoding: %d attached (%d tracks), %d unattached", clustersCompressed->nAttachedClusters, clustersCompressed->nTracks, clustersCompressed->nUnattachedClusters);
   auto allocator = [&clusterBuffer](size_t size) {clusterBuffer.resize(size); return clusterBuffer.data(); };
-  mDecoder.decompress(clustersCompressed, clustersNativeDecoded, allocator, param);
+  mDecoder.decompress(clustersCompressed, clustersNativeDecoded, allocator, param, true);
   std::vector<o2::tpc::ClusterNative> tmpClusters;
   if (param.rec.tpc.rejectionStrategy == GPUSettings::RejectionNone) { // verification does not make sense if we reject clusters during compression
     for (unsigned int i = 0; i < NSLICES; i++) {
