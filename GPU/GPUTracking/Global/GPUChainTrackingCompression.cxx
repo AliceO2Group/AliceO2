@@ -17,7 +17,6 @@
 #include "GPUO2DataTypes.h"
 #include "GPUTrackingInputProvider.h"
 #include <numeric>
-#include <chrono>
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTPCCFChainContext.h"
@@ -207,8 +206,7 @@ int GPUChainTracking::RunTPCCompression()
 
 int GPUChainTracking::RunTPCDecompression()
 {
-  auto start = std::chrono::high_resolution_clock::now();
-  //#ifdef GPUCA_HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (GetProcessingSettings().tpcUseOldCPUDecoding) {
     const auto& threadContext = GetThreadContext();
     TPCClusterDecompressor decomp;
@@ -219,7 +217,7 @@ int GPUChainTracking::RunTPCDecompression()
     };
     auto& gatherTimer = getTimer<TPCClusterDecompressor>("TPCDecompression", 0);
     gatherTimer.Start();
-    if (decomp.decompress(mIOPtrs.tpcCompressedClusters, *mClusterNativeAccess, allocator, param())) {
+    if (decomp.decompress(mIOPtrs.tpcCompressedClusters, *mClusterNativeAccess, allocator, param(), GetProcessingSettings().deterministicGPUReconstruction)) {
       GPUError("Error decompressing clusters");
       return 1;
     }
@@ -257,7 +255,6 @@ int GPUChainTracking::RunTPCDecompression()
     inputGPU.nComppressionModes = param().rec.tpc.compressionTypeMask;
     inputGPU.solenoidBz = param().bzkG;
     inputGPU.maxTimeBin = param().par.continuousMaxTimeBin;
-
     SetupGPUProcessor(&Decompressor, true);
     WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), inputStream);
 
@@ -286,12 +283,12 @@ int GPUChainTracking::RunTPCDecompression()
     inputGPU.padA = cmprClsHost.padA;
 
     bool toGPU = true;
-    runKernel<GPUMemClean16>(GetGridAutoStep(inputStream, RecoStep::TPCDecompression), krnlRunRangeNone, &mEvents->init, DecompressorShadow.mNativeClustersIndex, NSLICES * GPUCA_ROW_COUNT * sizeof(DecompressorShadow.mNativeClustersIndex[0]));
-    std::exclusive_scan(cmprClsHost.nTrackClusters, cmprClsHost.nTrackClusters + cmprClsHost.nTracks, Decompressor.mAttachedClustersOffsets,0u);
-    int nStreams = mRec->NStreams() - 1;
+    runKernel<GPUMemClean16>({GetGridAutoStep(inputStream, RecoStep::TPCDecompression), krnlRunRangeNone, &mEvents->init}, DecompressorShadow.mNativeClustersIndex, NSLICES * GPUCA_ROW_COUNT * sizeof(DecompressorShadow.mNativeClustersIndex[0]));
+    std::exclusive_scan(cmprClsHost.nTrackClusters, cmprClsHost.nTrackClusters + cmprClsHost.nTracks, Decompressor.mAttachedClustersOffsets, 0u); // computing clusters offsets for first kernel
+    int nStreams = doGPU ? mRec->NStreams() - 1 : 1;
     for (unsigned int iStream = 0; iStream < nStreams; ++iStream) {
       unsigned int startTrack = cmprClsHost.nTracks / nStreams * iStream;
-      unsigned int endTrack = cmprClsHost.nTracks / nStreams * (iStream + 1) + (iStream < nStreams - 1 ? 0 : cmprClsHost.nTracks % nStreams);
+      unsigned int endTrack = cmprClsHost.nTracks / nStreams * (iStream + 1) + (iStream < nStreams - 1 ? 0 : cmprClsHost.nTracks % nStreams); // index of last track (excluded from computation)
       unsigned int numTracks = endTrack - startTrack;
       unsigned int* offsets = Decompressor.mAttachedClustersOffsets;
       unsigned int numClusters = (endTrack == cmprClsHost.nTracks ? offsets[endTrack - 1] + cmprClsHost.nTrackClusters[endTrack - 1] : offsets[endTrack]) - offsets[startTrack];
@@ -312,10 +309,8 @@ int GPUChainTracking::RunTPCDecompression()
       GPUMemCpy(myStep, inputGPUShadow.sliceA + startTrack, cmprClsHost.sliceA + startTrack, numTracks * sizeof(cmprClsHost.sliceA[0]), iStream, toGPU);
       GPUMemCpy(myStep, inputGPUShadow.timeA + startTrack, cmprClsHost.timeA + startTrack, numTracks * sizeof(cmprClsHost.timeA[0]), iStream, toGPU);
       GPUMemCpy(myStep, inputGPUShadow.padA + startTrack, cmprClsHost.padA + startTrack, numTracks * sizeof(cmprClsHost.padA[0]), iStream, toGPU);
-
-      runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step0attached>({60,96,iStream}, krnlRunRangeNone, {&mEvents->stream[iStream], &mEvents->init}, startTrack, endTrack);
+      runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step0attached>({GetGridAuto(iStream), krnlRunRangeNone, {&mEvents->stream[iStream], &mEvents->init}}, startTrack, endTrack);
     }
-
     GPUMemCpy(myStep, inputGPUShadow.nSliceRowClusters, cmprClsHost.nSliceRowClusters, NSLICES * GPUCA_ROW_COUNT * sizeof(cmprClsHost.nSliceRowClusters[0]), unattachedStream, toGPU);
     GPUMemCpy(myStep, inputGPUShadow.qTotU, cmprClsHost.qTotU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.qTotU[0]), unattachedStream, toGPU);
     GPUMemCpy(myStep, inputGPUShadow.qMaxU, cmprClsHost.qMaxU, cmprClsHost.nUnattachedClusters * sizeof(cmprClsHost.qMaxU[0]), unattachedStream, toGPU);
@@ -331,9 +326,8 @@ int GPUChainTracking::RunTPCDecompression()
     DecompressorShadow.mNativeClustersBuffer = mInputsShadow->mPclusterNativeBuffer;
     Decompressor.mNativeClustersBuffer = mInputsHost->mPclusterNativeOutput;
     WriteToConstantMemory(myStep, (char*)&processors()->tpcDecompressor - (char*)processors(), &DecompressorShadow, sizeof(DecompressorShadow), inputStream);
-    TransferMemoryResourceLinkToHost(RecoStep::TPCDecompression, Decompressor.mResourceTmpIndexes, inputStream,nullptr,mEvents->stream,nStreams);
+    TransferMemoryResourceLinkToHost(RecoStep::TPCDecompression, Decompressor.mResourceTmpIndexes, inputStream, nullptr, mEvents->stream, nStreams);
     SynchronizeStream(inputStream);
-
     unsigned int offset = 0;
     unsigned int decodedAttachedClusters = 0;
     for (unsigned int i = 0; i < NSLICES; i++) {
@@ -350,45 +344,42 @@ int GPUChainTracking::RunTPCDecompression()
     if (decodedAttachedClusters != cmprClsHost.nAttachedClusters) {
       GPUWarning("%u / %u clusters failed track model decoding (%f %%)", cmprClsHost.nAttachedClusters - decodedAttachedClusters, cmprClsHost.nAttachedClusters, 100.f * (float)(cmprClsHost.nAttachedClusters - decodedAttachedClusters) / (float)cmprClsHost.nAttachedClusters);
     }
-
     if (doGPU) {
       mClusterNativeAccess->clustersLinear = mInputsShadow->mPclusterNativeBuffer;
       mClusterNativeAccess->setOffsetPtrs();
       *mInputsHost->mPclusterNativeAccess = *mClusterNativeAccess;
       processorsShadow()->ioPtrs.clustersNative = mInputsShadow->mPclusterNativeAccess;
       WriteToConstantMemory(RecoStep::TPCDecompression, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), inputStream);
-      TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, inputStream, &mEvents->init);
+      TransferMemoryResourceLinkToGPU(RecoStep::TPCDecompression, mInputsHost->mResourceClusterNativeAccess, inputStream, &mEvents->single);
     }
     mIOPtrs.clustersNative = mClusterNativeAccess.get();
     mClusterNativeAccess->clustersLinear = mInputsHost->mPclusterNativeOutput;
     mClusterNativeAccess->setOffsetPtrs();
-    auto startU = std::chrono::high_resolution_clock::now();
-    for (unsigned int iSlice = 0; iSlice < NSLICES; ++iSlice) {
-      int iStream = iSlice % mRec->NStreams();
-      runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step1unattached>({120,32,iStream}, krnlRunRangeNone, {nullptr, &mEvents->init}, iSlice);
-      GPUMemCpy(RecoStep::TPCDecompression, mInputsHost->mPclusterNativeOutput + mClusterNativeAccess->clusterOffset[iSlice][0], DecompressorShadow.mNativeClustersBuffer + mClusterNativeAccess->clusterOffset[iSlice][0], sizeof(Decompressor.mNativeClustersBuffer[0]) * mClusterNativeAccess->nClustersSector[iSlice], iStream, false);
+
+    unsigned int batchSize = doGPU ? 6 : NSLICES;
+    for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice = iSlice + batchSize) {
+      int iStream = (iSlice / batchSize) % mRec->NStreams();
+      runKernel<GPUTPCDecompressionKernels, GPUTPCDecompressionKernels::step1unattached>({GetGridAuto(iStream), krnlRunRangeNone, {nullptr, &mEvents->single}}, iSlice, batchSize);
+      unsigned int copySize = std::accumulate(mClusterNativeAccess->nClustersSector + iSlice, mClusterNativeAccess->nClustersSector + iSlice + batchSize, 0u);
+      GPUMemCpy(RecoStep::TPCDecompression, mInputsHost->mPclusterNativeOutput + mClusterNativeAccess->clusterOffset[iSlice][0], DecompressorShadow.mNativeClustersBuffer + mClusterNativeAccess->clusterOffset[iSlice][0], sizeof(Decompressor.mNativeClustersBuffer[0]) * copySize, iStream, false);
     }
     SynchronizeGPU();
-  auto endU = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> durationU = endU - startU;
-  LOGP(info,"Unatt time: {} ms", durationU.count() * 1e3);
 
     if (GetProcessingSettings().deterministicGPUReconstruction || GetProcessingSettings().debugLevel >= 4) {
-      runKernel<GPUTPCDecompressionUtilKernels, GPUTPCDecompressionUtilKernels::sortPerSectorRow>(GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression), krnlRunRangeNone, krnlEventNone);
+      runKernel<GPUTPCDecompressionUtilKernels, GPUTPCDecompressionUtilKernels::sortPerSectorRow>(GetGridAutoStep(unattachedStream, RecoStep::TPCDecompression));
       const ClusterNativeAccess* decoded = mIOPtrs.clustersNative;
-      for (unsigned int i = 0; i < NSLICES; i++) {
-        for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
-          ClusterNative* begin = mInputsHost->mPclusterNativeOutput + decoded->clusterOffset[i][j];
-          ClusterNative* end = begin + decoded->nClusters[i][j];
-          std::sort(begin, end);
+      if (doGPU) {
+        for (unsigned int i = 0; i < NSLICES; i++) {
+          for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
+            ClusterNative* begin = mInputsHost->mPclusterNativeOutput + decoded->clusterOffset[i][j];
+            ClusterNative* end = begin + decoded->nClusters[i][j];
+            std::sort(begin, end);
+          }
         }
       }
     }
     mRec->PopNonPersistentMemory(RecoStep::TPCDecompression, qStr2Tag("TPCDCMPR"));
   }
-//#endif
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration = end - start;
-  LOGP(info,"Exec time: {} ms", duration.count() * 1e3);
+#endif
   return 0;
 }

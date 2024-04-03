@@ -25,7 +25,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
+int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param, bool deterministicRec)
 {
   CompressedClusters c;
   const CompressedClusters* p;
@@ -35,10 +35,10 @@ int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCom
     c = *clustersCompressed;
     p = &c;
   }
-  return decompress(p, clustersNative, allocator, param);
+  return decompress(p, clustersNative, allocator, param, deterministicRec);
 }
 
-int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
+int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param, bool deterministicRec)
 {
   if (clustersCompressed->nTracks && clustersCompressed->solenoidBz != -1e6f && clustersCompressed->solenoidBz != param.bzkG) {
     throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
@@ -105,9 +105,10 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           cl.setTime(t);
         }
       }
-//      std::sort(buffer, buffer + clustersNative.nClusters[i][j]);
+      if (deterministicRec) {
+        std::sort(buffer, buffer + clustersNative.nClusters[i][j]);
+      }
     }
   }
-
   return 0;
 }

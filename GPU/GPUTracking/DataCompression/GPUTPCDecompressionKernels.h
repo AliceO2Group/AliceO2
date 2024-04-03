@@ -62,8 +62,7 @@ class GPUTPCDecompressionUtilKernels : public GPUKernelTemplate
 {
  public:
   enum K : int {
-    gatherAttachedClusters = 0,
-    sortPerSectorRow = 1,
+    sortPerSectorRow = 0,
   };
 
   template <int iKernel = defaultKernel>
