@@ -38,7 +38,7 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, o2::dataformats::GlobalTrackID::mask_t src, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput) : mDataRequest(dr), mSources(src), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData), mDebugOutput(debugOutput) {}
+  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput) : mDataRequest(dr), mSources(src), mSourcesMap(srcMap), mGGCCDBRequest(gr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mSendTrackData(sendTrackData), mDebugOutput(debugOutput) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -53,6 +53,7 @@ class TPCInterpolationDPL : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; ///< cluster patterns dictionary
   o2::dataformats::GlobalTrackID::mask_t mSources{};        ///< which input sources are configured
+  o2::dataformats::GlobalTrackID::mask_t mSourcesMap{};     ///< possible subset of mSources specifically for map creation
   bool mUseMC{false}; ///< MC flag
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
   bool mProcessSeeds{false};      ///< process not only most complete track, but also its shorter parts
@@ -64,7 +65,7 @@ class TPCInterpolationDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t srcCls, o2::dataformats::GlobalTrackID::mask_t srcVtx, o2::dataformats::GlobalTrackID::mask_t srcTrk, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput);
+framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t srcCls, o2::dataformats::GlobalTrackID::mask_t srcVtx, o2::dataformats::GlobalTrackID::mask_t srcTrk, o2::dataformats::GlobalTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput);
 
 } // namespace tpc
 } // namespace o2

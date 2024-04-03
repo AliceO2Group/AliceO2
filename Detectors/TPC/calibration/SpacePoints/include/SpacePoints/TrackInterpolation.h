@@ -189,13 +189,13 @@ class TrackInterpolation
   // -------------------------------------- processing functions --------------------------------------------------
 
   /// Initialize everything, set the requested track sources
-  void init(o2::dataformats::GlobalTrackID::mask_t src);
+  void init(o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap);
 
   /// Check if input track passes configured cuts
   bool isInputTrackAccepted(const o2::dataformats::GlobalTrackID& gid, const o2::globaltracking::RecoContainer::GlobalIDSet& gidTable, const o2::dataformats::PrimaryVertex& pv) const;
 
   /// For given vertex track source which is not in mSourcesConfigured find the seeding source which is enabled
-  o2::dataformats::GlobalTrackID::Source findValidSource(o2::dataformats::GlobalTrackID::Source src) const;
+  o2::dataformats::GlobalTrackID::Source findValidSource(const o2::dataformats::GlobalTrackID::mask_t mask, const o2::dataformats::GlobalTrackID::Source src) const;
 
   /// Prepare input track sample (not relying on CreateTracksVariadic functionality)
   void prepareInputTrackSample(const o2::globaltracking::RecoContainer& inp);
@@ -252,8 +252,8 @@ class TrackInterpolation
   /// Sets the maximum number of tracks to be processed (successfully) per TF
   void setMaxTracksPerTF(int n) { mMaxTracksPerTF = n; }
 
-  /// In addition to mMaxTracksPerTF up to the set number of ITS-TPC only tracks can be processed
-  void setAddITSTPCTracksPerTF(int n) { mAddTracksITSTPC = n; }
+  /// In addition to mMaxTracksPerTF up to the set number of additional tracks can be processed
+  void setAddTracksForMapPerTF(int n) { mAddTracksForMapPerTF = n; }
 
   /// Enable full output
   void setDumpTrackPoints() { mDumpTrackPoints = true; }
@@ -288,11 +288,13 @@ class TrackInterpolation
   float mSqrtS{13600.f};                             ///< centre of mass energy set from LHC IF
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
-  int mAddTracksITSTPC{0};                           ///< number of ITS-TPC tracks which can be processed in addition to mMaxTracksPerTF
+  int mAddTracksForMapPerTF{0};                      ///< in case residuals from different track types are used for vDrift calibration and map creation this defines the statistics for the latter
   bool mDumpTrackPoints{false};                      ///< dump also track points in ITS, TRD and TOF
   bool mProcessSeeds{false};                         ///< in case for global tracks also their shorter parts are processed separately
   bool mProcessITSTPConly{false};                    ///< flag, whether or not to extrapolate ITS-only through TPC
-  o2::dataformats::GlobalTrackID::mask_t mSourcesConfigured; ///< keep only the matches here, not the individual detector contributors
+  o2::dataformats::GlobalTrackID::mask_t mSourcesConfigured;    ///< the track sources taken into account for extra-/interpolation
+  o2::dataformats::GlobalTrackID::mask_t mSourcesConfiguredMap; ///< possible subset of mSourcesConfigured
+  bool mSingleSourcesConfigured{true};                          ///< whether mSourcesConfigured == mSourcesConfiguredMap
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container
