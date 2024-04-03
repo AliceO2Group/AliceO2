@@ -38,6 +38,7 @@ namespace o2::gpu
 {
 struct GPUParam;
 struct GPUO2InterfaceConfiguration;
+struct GPUSettingsO2;
 struct TPCPadGainCalib;
 class GPUO2InterfaceUtils
 {
@@ -54,6 +55,8 @@ class GPUO2InterfaceUtils
   {
     return (5.00668f / 30000.f) * src.getL3Current();
   }
+  static std::unique_ptr<GPUParam> getFullParam(float solenoidBz, unsigned int nHbfPerTf = 0, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration = nullptr, std::unique_ptr<GPUSettingsO2>* pO2Settings = nullptr, bool* autoMaxTimeBin = nullptr);
+  static std::shared_ptr<GPUParam> getFullParamShared(float solenoidBz, unsigned int nHbfPerTf = 0, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration = nullptr, std::unique_ptr<GPUSettingsO2>* pO2Settings = nullptr, bool* autoMaxTimeBin = nullptr); // Return owning pointer
 
   class GPUReconstructionZSDecoder
   {
