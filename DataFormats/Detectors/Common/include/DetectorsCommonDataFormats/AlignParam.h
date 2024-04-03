@@ -52,7 +52,7 @@ class AlignParam
   double getZ() const { return mZ; }
 
   /// apply object to geoemetry
-  bool applyToGeometry() const;
+  bool applyToGeometry(bool usePW = false) const;
 
   /// extract global delta matrix
   TGeoHMatrix createMatrix() const;
@@ -136,7 +136,7 @@ class AlignParam
   ClassDefNV(AlignParam, 1);
 };
 
-}
-}
+} // namespace detectors
+} // namespace o2
 
 #endif

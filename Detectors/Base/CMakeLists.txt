@@ -14,6 +14,7 @@ o2_add_library(DetectorsBase
                        src/GeometryManager.cxx
                        src/MaterialManager.cxx
                        src/MaterialManagerParam.cxx
+                       src/GeometryManagerParam.cxx
                        src/Propagator.cxx
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
@@ -50,6 +51,7 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
                                   include/DetectorsBase/MaterialManagerParam.h
+                                  include/DetectorsBase/GeometryManagerParam.h
                                   include/DetectorsBase/Propagator.h
                                   include/DetectorsBase/Ray.h
                                   include/DetectorsBase/MatCell.h

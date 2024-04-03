@@ -12,6 +12,7 @@
 #include "DetectorsBase/Aligner.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/GeometryManagerParam.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <chrono>
@@ -49,7 +50,11 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
   ccdbmgr.setTimestamp(timestamp);
   DetID::mask_t done, skipped;
   DetID::mask_t detGeoMask(gGeoManager->GetUniqueID());
-  TGeoParallelWorld* pw = gGeoManager->CreateParallelWorld("priority_its_sensor");
+  auto& pars = GeometryManagerParam::Instance();
+  TGeoParallelWorld* pw = nullptr;
+  if (pars.useParallelWorld) {
+    pw = gGeoManager->CreateParallelWorld("priority_its_sensor");
+  }
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (!msk[id] || (detGeoMask.any() && !detGeoMask[id])) {
       continue;
@@ -66,9 +71,11 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
       skipped.set(id);
     }
   }
-  // pw->AddOverlap(gGeoManager->GetVolume("ITSUWrapVol0"));
-  pw->CloseGeometry();
-  gGeoManager->SetUseParallelWorldNav(true);
+  if (pars.useParallelWorld) {
+    // pw->AddOverlap(gGeoManager->GetVolume("ITSUWrapVol0"));
+    pw->CloseGeometry();
+    gGeoManager->SetUseParallelWorldNav(true);
+  }
   std::string log = fmt::format("Alignment from {} for timestamp {}: ", o2::base::NameConf::getCCDBServer(), timestamp);
   if (done.any()) {
     log += fmt::format("applied to [{}]", DetID::getNames(done));

@@ -268,7 +268,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry() const
+bool AlignParam::applyToGeometry(bool usePW) const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -288,7 +288,7 @@ bool AlignParam::applyToGeometry() const
   const char* path;
   TGeoPhysicalNode* node;
   TGeoParallelWorld* pw = nullptr;
-  if (getDetFromSymName(getSymName()) == "ITS") {
+  if (getDetFromSymName(getSymName()) == "ITS" && usePW) {
     pw = gGeoManager->GetParallelWorld();
   }
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
@@ -328,7 +328,7 @@ bool AlignParam::applyToGeometry() const
   LOG(debug) << "Aligning volume " << symname;
 
   node->Align(ginv);
-  if (getDetFromSymName(getSymName()) == "ITS") {
+  if (getDetFromSymName(getSymName()) == "ITS" && usePW) {
     pw->AddNode(path);
   }
   return true;

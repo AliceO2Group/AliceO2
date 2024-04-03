@@ -15,9 +15,9 @@
 #include <fairlogger/Logger.h> // for LOG
 #include <TCollection.h>       // for TIter
 #include <TFile.h>
-#include <TGeoMatrix.h>        // for TGeoHMatrix
-#include <TGeoNode.h>          // for TGeoNode
-#include <TGeoPhysicalNode.h>  // for TGeoPhysicalNode, TGeoPNEntry
+#include <TGeoMatrix.h>       // for TGeoHMatrix
+#include <TGeoNode.h>         // for TGeoNode
+#include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
 #include <TGeoParallelWorld.h>
 #include <string>
 #include <cassert>
@@ -25,6 +25,7 @@
 #include <numeric>
 
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/GeometryManagerParam.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Aligner.h"
@@ -254,10 +255,10 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
   std::vector<int> ord(nvols);
   std::iota(std::begin(ord), std::end(ord), 0); // sort to apply alignment in correct hierarchy
   std::sort(std::begin(ord), std::end(ord), [&algPars](int a, int b) { return algPars[a].getLevel() < algPars[b].getLevel(); });
-
+  auto& pars = o2::GeometryManagerParam::Instance();
   bool res = true;
   for (int i = 0; i < nvols; i++) {
-    if (!algPars[ord[i]].applyToGeometry()) {
+    if (!algPars[ord[i]].applyToGeometry(pars.useParallelWorld)) {
       res = false;
       LOG(error) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
     }
