@@ -184,7 +184,7 @@ void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zE
       ParamErrors[yz][rowType][0] = param[0] * param[0];
       ParamErrors[yz][rowType][1] = param[1] * param[1] * tpcGeometry.PadHeightByRegion(regionMap[rowType]);
       ParamErrors[yz][rowType][2] = param[2] * param[2] / tpcGeometry.TPCLength() / tpcGeometry.PadHeightByRegion(regionMap[rowType]);
-      ParamErrors[yz][rowType][3] = param[3] * param[3];
+      ParamErrors[yz][rowType][3] = param[3] * param[3] * rec.tpc.clusterErrorOccupancyScaler * rec.tpc.clusterErrorOccupancyScaler;
     }
   }
 #endif
