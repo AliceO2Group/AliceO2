@@ -29,8 +29,8 @@ MilleRecordWriter::MilleRecordWriter()
     mIsSuccessfulInit(false),
     mIsConstraintsRec(false),
     mNEntriesAutoSave(10000),
-    mDataFileName("mft_mille_records.root"),
-    mDataTreeName("milleRecords"),
+    mDataFileName("millerecords.root"),
+    mDataTreeName("o2sim"),
     mDataBranchName("data"),
     mRecord(nullptr),
     mCurrentDataID(-1)
@@ -135,6 +135,7 @@ void MilleRecordWriter::terminate()
     mDataTree->Write();
     LOG(info) << "MilleRecordWriter::terminate() - wrote tree "
               << mDataTreeName.Data();
+    mDataFile->Close();
   }
 }
 

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file MillePede2.cxx
-
+#include <iostream>
 #include "ForwardAlign/MillePede2.h"
 #include "Framework/Logger.h"
 #include <TStopwatch.h>
@@ -147,7 +147,8 @@ MillePede2::MillePede2(const MillePede2& src)
     fRecordWriter(nullptr),
     fConstraintsRecWriter(nullptr),
     fRecordReader(nullptr),
-    fConstraintsRecReader(nullptr)
+    fConstraintsRecReader(nullptr),
+    fDisableRecordWriter(false)
 {
   fWghScl[0] = src.fWghScl[0];
   fWghScl[1] = src.fWghScl[1];
@@ -314,16 +315,17 @@ void MillePede2::EndChi2Storage()
 void MillePede2::SetLocalEquation(std::vector<double>& dergb, std::vector<double>& derlc,
                                   const double lMeas, const double lSigma)
 {
-  if (!fRecordWriter) {
-    LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: null pointer to record writer";
-    return;
+  if (!fDisableRecordWriter) {
+    if (!fRecordWriter) {
+      LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: null pointer to record writer";
+      return;
+    }
+    if (!fRecordWriter->isInitOk()) {
+      LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: unintialised record writer";
+      return;
+    }
+    SetRecord(fRecordWriter->getRecord());
   }
-  if (!fRecordWriter->isInitOk()) {
-    LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: unintialised record writer";
-    return;
-  }
-  SetRecord(fRecordWriter->getRecord());
-
   // write data of single measurement
   if (lSigma <= 0.0) { // If parameter is fixed, then no equation
     for (int i = fNLocPar; i--;) {
@@ -336,7 +338,6 @@ void MillePede2::SetLocalEquation(std::vector<double>& dergb, std::vector<double
   }
 
   fRecord->AddResidual(lMeas);
-
   // Retrieve local param interesting indices
   for (int i = 0; i < fNLocPar; i++) {
     if (!IsZero(derlc[i])) {
@@ -364,16 +365,17 @@ void MillePede2::SetLocalEquation(std::vector<int>& indgb, std::vector<double>& 
                                   std::vector<double>& derlc, const int nlc,
                                   const double lMeas, const double lSigma)
 {
-  if (!fRecordWriter) {
-    LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: null pointer to record writer";
-    return;
+  if (!fDisableRecordWriter) {
+    if (!fRecordWriter) {
+      LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: null pointer to record writer";
+      return;
+    }
+    if (!fRecordWriter->isInitOk()) {
+      LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: unintialised record writer";
+      return;
+    }
+    SetRecord(fRecordWriter->getRecord());
   }
-  if (!fRecordWriter->isInitOk()) {
-    LOG(fatal) << "MillePede2::SetLocalEquation() - aborted: unintialised record writer";
-    return;
-  }
-  SetRecord(fRecordWriter->getRecord());
-
   if (lSigma <= 0.0) { // If parameter is fixed, then no equation
     for (int i = nlc; i--;) {
       derlc[i] = 0.0;
