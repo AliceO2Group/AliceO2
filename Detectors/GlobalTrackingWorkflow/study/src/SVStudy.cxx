@@ -142,6 +142,7 @@ void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   o2::track::TrackParCov dummyTr{};
   const o2::track::TrackParCov* tpcTracks[2] = {&dummyTr, &dummyTr};
   int nclTPC[2] = {0, 0}, nclITS[2] = {0, 0}, itsPatt[2] = {0, 0};
+  float chi2ITSTPC[2] = {-1., -1.};
   static int tfID = 0;
 
   for (int iv = 0; iv < nv0; iv++) {
@@ -150,7 +151,7 @@ void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       continue;
     }
     const auto& v0 = mRefit ? v0ref : v0s[iv];
-    if (mMaxEta > std::abs(v0.getEta())) {
+    if (mMaxEta < std::abs(v0.getEta())) {
       continue;
     }
     if (mSelK0 && std::abs(std::sqrt(v0.calcMass2AsK0()) - 0.497) > 0.1) {
@@ -158,12 +159,12 @@ void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     }
     for (int ip = 0; ip < 2; ip++) {
       auto gid = v0id.getProngID(ip);
-
+      auto gidset = recoData.getSingleDetectorRefs(gid);
       // get TPC tracks, if any
       tpcTracks[ip] = &dummyTr;
       nclTPC[ip] = 0;
-      if (gid.includesDet(DetID::TPC)) {
-        const auto& tpcTr = recoData.getTPCTrack(recoData.getTPCContributorGID(gid));
+      if (gidset[GTrackID::TPC].isSourceSet()) {
+        const auto& tpcTr = recoData.getTPCTrack(gidset[GTrackID::TPC]);
         tpcTracks[ip] = &tpcTr;
         nclTPC[ip] = tpcTr.getNClusters();
       }
@@ -171,7 +172,7 @@ void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       nclITS[ip] = itsPatt[ip] = 0;
       if (gid.includesDet(DetID::ITS)) {
         auto gidITS = recoData.getITSContributorGID(gid);
-        if (gidITS.getSource() == GTrackID::ITS) {
+        if (gidset[GTrackID::ITS].isSourceSet()) {
           const auto& itsTr = recoData.getITSTrack(recoData.getITSContributorGID(gid));
           nclITS[ip] = itsTr.getNClusters();
           for (int il = 0; il < 7; il++) {
@@ -180,7 +181,7 @@ void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
             }
           }
         } else {
-          const auto& itsTrf = recoData.getITSABRefs()[gidITS];
+          const auto& itsTrf = recoData.getITSABRefs()[gidset[GTrackID::ITSAB]];
           nclITS[ip] = itsTrf.getNClusters();
           for (int il = 0; il < 7; il++) {
             if (itsTrf.hasHitOnLayer(il)) {
@@ -189,12 +190,17 @@ void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           }
         }
       }
+      if (gidset[GTrackID::ITSTPC].isSourceSet()) {
+        auto mtc = recoData.getTPCITSTrack(gidset[GTrackID::ITSTPC]);
+        chi2ITSTPC[ip] = mtc.getChi2Match();
+      }
     }
     (*mDBGOut) << "tfinfo"
                << "orbit=" << recoData.startIR.orbit << "tfID=" << tfID << "\n";
     (*mDBGOut) << "v0s"
                << "v0=" << v0 << "v0ID=" << v0id << "tpc0=" << *tpcTracks[0] << "tpc1=" << *tpcTracks[1]
-               << "nclTPC0=" << nclTPC[0] << "nclTPC1=" << nclTPC[1] << "nclITS0=" << nclITS[0] << "nclITS1=" << nclITS[1] << "itsPatt0=" << itsPatt[0] << "itsPatt1=" << itsPatt[1] << "\n";
+               << "nclTPC0=" << nclTPC[0] << "nclTPC1=" << nclTPC[1] << "nclITS0=" << nclITS[0] << "nclITS1=" << nclITS[1] << "itsPatt0=" << itsPatt[0] << "itsPatt1=" << itsPatt[1]
+               << "chi2ITSTPC0=" << chi2ITSTPC[0] << "chi2ITSTPC1=" << chi2ITSTPC[1] << "\n";
   }
   tfID++;
 }
