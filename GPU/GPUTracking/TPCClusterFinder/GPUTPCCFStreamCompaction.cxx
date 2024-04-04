@@ -167,7 +167,7 @@ GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, i
   }
 
   if (idx == lastItem) {
-    newIdx[idx] = compIdx; // TODO: Eventually, we can just return the last value, no need to store to memory
+    newIdx[idx] = compIdx + pred; // TODO: Eventually, we can just return the last value, no need to store to memory
   }
 }
 
