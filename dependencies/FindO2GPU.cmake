@@ -111,7 +111,7 @@ if(ENABLE_CUDA)
     endif()
   endif()
   if(CMAKE_CUDA_COMPILER)
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${O2_GPU_CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr --extended-lambda --allow-unsupported-compiler -Xptxas -v")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${O2_GPU_CMAKE_CXX_FLAGS_NOSTD}\" --expt-relaxed-constexpr --extended-lambda --allow-unsupported-compiler -Xptxas -v -Wno-attributes")
     if(CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "12.3")
       string(APPEND CMAKE_CUDA_FLAGS " -Xcudafe --diag_suppress=20257") # TODO: Cleanup
     endif()

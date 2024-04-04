@@ -254,8 +254,8 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 
   for (int i = start; i != stop; i += cl ? 0 : direction) {
     float x = 0, y = 0, z = 0, charge = 0; // FIXME: initialization unneeded, but GCC incorrectly produces uninitialized warnings otherwise
+    float time = 0.f, invCharge = 0.f, invSqrtCharge = 0.f; // Same here...
     int clusters = 0;
-    float time, invCharge, invSqrtCharge;
     while (true) {
       if (!cl) {
         CADEBUG(ii = i);
