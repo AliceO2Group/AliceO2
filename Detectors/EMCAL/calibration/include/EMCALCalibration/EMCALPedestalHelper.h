@@ -38,7 +38,8 @@ class EMCALPedestalHelper
 
   /// \brief Encodes the pedestal object into a string. This function fills fMeanPed which is then converted to a string in createInstructionString
   /// \param obj pedestal object as stored in production ccdb
-  std::vector<char> createPedestalInstruction(const Pedestal& obj);
+  /// \param runNum current runnumber. If -1, will not be added to string that goes in the ccdb, otherwise runNum is the first entrey in the string
+  std::vector<char> createPedestalInstruction(const Pedestal& obj, const int runNum = -1);
 
   /// \brief print the vector produced by createInstructionString in a textfile
   void dumpInstructions(const std::string_view filename, const std::vector<char> data, int mRun);
@@ -48,7 +49,8 @@ class EMCALPedestalHelper
   void setZero();
 
   /// \brief converts fMeanPed to a vector of char
-  std::vector<char> createInstructionString();
+  /// \param runNum current runnumber. If -1, will not be added to string that goes in the ccdb, otherwise runNum is the first entrey in the string
+  std::vector<char> createInstructionString(const int runNum = -1);
 
   static constexpr short kNSM = 20;    ///< number of SuperModules
   static constexpr short kNRCU = 2;    ///< number of readout crates (and DDLs) per SM

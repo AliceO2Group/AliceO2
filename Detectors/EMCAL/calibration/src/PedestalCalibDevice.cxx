@@ -71,7 +71,7 @@ void PedestalCalibDevice::sendData(o2::framework::EndOfStreamContext& ec, const 
 
   // the following goes to the DCS ccdb
   EMCALPedestalHelper helper;
-  std::vector<char> vecPedData = helper.createPedestalInstruction(data);
+  std::vector<char> vecPedData = helper.createPedestalInstruction(data, mAddRunNumber ? mRun : -1);
   if (mDumpToFile) {
     helper.dumpInstructions("EMCAL-Pedestals.txt", vecPedData, mRun);
   }
@@ -95,7 +95,7 @@ void PedestalCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   resetStartTS();
 }
 
-o2::framework::DataProcessorSpec o2::emcal::getPedestalCalibDevice(bool dumpToFile)
+o2::framework::DataProcessorSpec o2::emcal::getPedestalCalibDevice(bool dumpToFile, bool addRunNum)
 {
 
   std::vector<o2::framework::InputSpec> inputs;
@@ -111,6 +111,6 @@ o2::framework::DataProcessorSpec o2::emcal::getPedestalCalibDevice(bool dumpToFi
     "PedestalCalibrator",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::emcal::PedestalCalibDevice>(dumpToFile)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::emcal::PedestalCalibDevice>(dumpToFile, addRunNum)},
     o2::framework::Options{}};
 }

@@ -12,7 +12,7 @@
 #include "EMCALCalibration/EMCALPedestalHelper.h"
 using namespace o2::emcal;
 
-std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal& obj)
+std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal& obj, const int runNum)
 {
 
   setZero();
@@ -41,7 +41,7 @@ std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal&
 
   for (int iledmon = 0; iledmon < 480; iledmon++) {
     int sm = iledmon / 24,
-        col = sm % 24,
+        col = iledmon % 24,
         ircu = 0, // LEDMONS always on RCU 0
       iddl = 2 * sm + ircu;
     const auto& mapping = mapper.getMappingForDDL(iddl);
@@ -59,7 +59,7 @@ std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal&
     fMeanPed[sm][ircu][branchLG][fecLG][chipLG][channelLG] = obj.getPedestalValue(iledmon, true, true);
   }
 
-  return createInstructionString();
+  return createInstructionString(runNum);
 }
 
 void EMCALPedestalHelper::setZero()
@@ -79,9 +79,13 @@ void EMCALPedestalHelper::setZero()
   }
 }
 
-std::vector<char> EMCALPedestalHelper::createInstructionString()
+std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
 {
   std::stringstream fout;
+
+  if (runNum > 0) {
+    fout << runNum << "\n";
+  }
 
   unsigned int lineValue = 0;
 
