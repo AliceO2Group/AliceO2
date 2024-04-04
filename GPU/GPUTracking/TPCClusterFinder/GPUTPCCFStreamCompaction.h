@@ -55,24 +55,7 @@ class GPUTPCCFStreamCompaction : public GPUKernelTemplate
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, Args... args);
 
  private:
-  static GPUd() void nativeScanUpStartImpl(int, int, int, int, GPUSharedMemory&,
-                                           const uchar*, int*, int*,
-                                           int);
-
-  static GPUd() void nativeScanUpImpl(int, int, int, int, GPUSharedMemory&,
-                                      int*, int*, int);
-
-  static GPUd() void nativeScanTopImpl(int, int, int, int, GPUSharedMemory&,
-                                       int*, int);
-
-  static GPUd() void nativeScanDownImpl(int, int, int, int, GPUSharedMemory&,
-                                        int*, const int*, unsigned int, int);
-
-  static GPUd() void compactImpl(int, int, int, int, GPUSharedMemory&,
-                                 const ChargePos*, ChargePos*,
-                                 const uchar*, int*, const int*,
-                                 int, tpccf::SizeT);
-  static GPUd() int compactionElems(processorType& clusterer, int stage);
+  static GPUd() int CompactionElems(processorType& clusterer, int stage);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
