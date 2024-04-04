@@ -188,7 +188,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     int expectedTFSize = static_cast<int>(o2::constants::lhc::LHCMaxBunches * o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() / alpParams.roFrameLengthInBC); // 3564*32 / ROF Length in BS = number of ROFs per TF
-    if ((expectedTFSize != nTriggersProcessed) && mTFCounter > 1)
+    if ((expectedTFSize != nTriggersProcessed) && mTFCounter > 1 && nTriggersProcessed > 0)
       LOG(error) << "Inconsistent number of ROF per TF. From parameters: " << expectedTFSize << " from readout: " << nTriggersProcessed;
 
     if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
