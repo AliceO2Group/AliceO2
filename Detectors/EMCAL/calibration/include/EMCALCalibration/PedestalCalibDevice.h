@@ -29,7 +29,7 @@ namespace o2::emcal
 class PedestalCalibDevice : o2::framework::Task
 {
  public:
-  PedestalCalibDevice(bool dumpToFile) : mDumpToFile(dumpToFile){};
+  PedestalCalibDevice(bool dumpToFile, bool addRunNum) : mDumpToFile(dumpToFile), mAddRunNumber(addRunNum){};
   ~PedestalCalibDevice() final = default;
 
   void init(framework::InitContext& ctx) final;
@@ -51,9 +51,10 @@ class PedestalCalibDevice : o2::framework::Task
   long int mStartTS = 0;                          ///< timestamp at the start of run used for the object in the ccdb
   bool mDumpToFile;                               ///< if output of pedestal calib (DCS ccdb) should be written to text file
   int mRun = 0;                                   ///< current run number
+  bool mAddRunNumber = false;                     ///< if true, runNumber will be added to ccdb string
 };
 
-o2::framework::DataProcessorSpec getPedestalCalibDevice(bool dumpToFile);
+o2::framework::DataProcessorSpec getPedestalCalibDevice(bool dumpToFile, bool addRunNum);
 
 } // end namespace o2::emcal
 

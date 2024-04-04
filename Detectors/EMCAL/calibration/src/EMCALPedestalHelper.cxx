@@ -12,7 +12,7 @@
 #include "EMCALCalibration/EMCALPedestalHelper.h"
 using namespace o2::emcal;
 
-std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal& obj)
+std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal& obj, const int runNum)
 {
 
   setZero();
@@ -59,7 +59,7 @@ std::vector<char> EMCALPedestalHelper::createPedestalInstruction(const Pedestal&
     fMeanPed[sm][ircu][branchLG][fecLG][chipLG][channelLG] = obj.getPedestalValue(iledmon, true, true);
   }
 
-  return createInstructionString();
+  return createInstructionString(runNum);
 }
 
 void EMCALPedestalHelper::setZero()
@@ -79,9 +79,13 @@ void EMCALPedestalHelper::setZero()
   }
 }
 
-std::vector<char> EMCALPedestalHelper::createInstructionString()
+std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
 {
   std::stringstream fout;
+
+  if (runNum > 0) {
+    fout << runNum << "\n";
+  }
 
   unsigned int lineValue = 0;
 
