@@ -120,6 +120,7 @@ class RawPixelDecoder final : public PixelReader
 
   void setSkipRampUpData(bool v = true) { mSkipRampUpData = v; }
   bool getSkipRampUpData() const { return mSkipRampUpData; }
+  auto getNROFsProcessed() const { return mROFCounter; }
 
   struct LinkEntry {
     int entry = -1;
