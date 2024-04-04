@@ -25,6 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <bitset>
 
 namespace o2::emcal
 {
@@ -42,7 +43,7 @@ class EMCALPedestalHelper
   std::vector<char> createPedestalInstruction(const Pedestal& obj, const int runNum = -1);
 
   /// \brief print the vector produced by createInstructionString in a textfile
-  void dumpInstructions(const std::string_view filename, const std::vector<char> data, int mRun);
+  void dumpInstructions(const std::string_view filename, const gsl::span<char>& data);
 
  private:
   /// \brief initialize fMeanPed with zeros
