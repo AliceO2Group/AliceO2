@@ -109,7 +109,7 @@ std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
       isect += 3; // skip non-installed sectors
     }
 
-    int activeDTC[kNDTC] = {0};
+    std::bitset<kNDTC> activeDTC;
     for (iDTC = 0; iDTC < kNDTC; iDTC++) {
       if (iDTC == 10 || iDTC == 20 || iDTC == 30) { // skip TRU
         activeDTC[iDTC] = 0;
@@ -180,17 +180,18 @@ std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
     } // iDTC
   }   // iSM
 
-  //   std::vector<char> output;
-  std::string instructionString(fout.str());
-  //   std::fill(instructionString.begin(), instructionString.end(), std::back_inserter(output));
+  if (runNum > 0) {
+    fout << 0xFFFFFFFF << std::endl;
+  }
+
+  const std::string instructionString(fout.str());
   std::vector<char> output(instructionString.begin(), instructionString.end());
   return output;
 }
 
-void EMCALPedestalHelper::dumpInstructions(const std::string_view filename, const std::vector<char> data, int mRun)
+void EMCALPedestalHelper::dumpInstructions(const std::string_view filename, const gsl::span<char>& data)
 {
   std::ofstream fout(filename.data());
-  fout << mRun << "\n";
   fout << data.data();
   fout.close();
 }

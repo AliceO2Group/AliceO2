@@ -73,7 +73,7 @@ void PedestalCalibDevice::sendData(o2::framework::EndOfStreamContext& ec, const 
   EMCALPedestalHelper helper;
   std::vector<char> vecPedData = helper.createPedestalInstruction(data, mAddRunNumber ? mRun : -1);
   if (mDumpToFile) {
-    helper.dumpInstructions("EMCAL-Pedestals.txt", vecPedData, mRun);
+    helper.dumpInstructions("EMCAL-Pedestals.txt", vecPedData);
   }
 
   auto clNameDCS = o2::utils::MemFileHelper::getClassName(vecPedData);
