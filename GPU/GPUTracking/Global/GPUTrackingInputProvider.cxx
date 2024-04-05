@@ -79,7 +79,7 @@ void* GPUTrackingInputProvider::SetPointersInputTRD(void* mem)
 void* GPUTrackingInputProvider::SetPointersTPCOccupancyMap(void* mem)
 {
   if (mHoldTPCOccupancyMap) {
-    computePointerWithAlignment(mem, mTPCClusterOccupancyMap, (mRec->GetParam().rec.tpc.occupancyMapTimeBins ? GPUTPCClusterOccupancyMapBin::getNBins(mRec->GetParam()) : 0) + 1); // +1 for total occupancy estimator
+    computePointerWithAlignment(mem, mTPCClusterOccupancyMap, (mRec->GetParam().rec.tpc.occupancyMapTimeBins ? GPUTPCClusterOccupancyMapBin::getNBins(mRec->GetParam()) + 1 : 0) + 1); // +1 for total occupancy estimator, +1 for sanity check information
   }
   return mem;
 }
