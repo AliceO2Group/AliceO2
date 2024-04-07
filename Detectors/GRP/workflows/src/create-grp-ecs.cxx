@@ -134,7 +134,7 @@ int createGRPECSObject(const std::string& dataPeriod,
     } else {
       LOGP(alarm, "Upload to {}/{} with validity {}:{} for SOR:{}/EOR:{} FAILED, returned with code {}", ccdbServer, objPath, tstart, tendVal, tstart, tend, retValGLO);
     }
-    if (runType == GRPECSObject::RunType::PHYSICS || runType == GRPECSObject::RunType::COSMICS) { // also create the RCT/Info/RunInformation entry in case the run type is PHYSICS, to be finalized at EOR
+    if ((runType == GRPECSObject::RunType::PHYSICS || runType == GRPECSObject::RunType::COSMICS) && tstart >= tend) { // also create the RCT/Info/RunInformation entry in case the run type is PHYSICS, to be finalized at EOR
       char tempChar{};
       std::map<std::string, std::string> mdRCT;
       mdRCT["SOR"] = std::to_string(tstart);
