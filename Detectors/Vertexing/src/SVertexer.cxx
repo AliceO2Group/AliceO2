@@ -448,7 +448,8 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
     mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
     mTPCRefitterShMap = recoData.clusterShMapTPC;
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;

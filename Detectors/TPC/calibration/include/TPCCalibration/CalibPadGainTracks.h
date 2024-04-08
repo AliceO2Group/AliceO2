@@ -104,7 +104,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param vTPCTracksArrayInp vector of tpc tracks
   /// \param tpcTrackClIdxVecInput set the TPCClRefElem member variable
   /// \param clIndex set the ClusterNativeAccess member variable
-  void setMembers(gsl::span<const o2::tpc::TrackTPC>* vTPCTracksArrayInp, gsl::span<const o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex);
+  void setMembers(gsl::span<const o2::tpc::TrackTPC>* vTPCTracksArrayInp, gsl::span<const o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex, gsl::span<const unsigned char> TPCRefitterShMap, gsl::span<const unsigned int> TPCRefitterOccMap);
 
   /// this function sets the mode of the class.
   /// e.g. mode=0 -> use the truncated mean from the track for normalizing the dedx
@@ -220,8 +220,9 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   gsl::span<const TrackTPC>* mTracks{nullptr};                                        ///<! vector containing the tpc tracks which will be processed. Cant be const due to the propagate function
   gsl::span<const TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};                     ///<! input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};                         ///<! needed to access clusternative with tpctracks
+  gsl::span<const unsigned char> mTPCRefitterShMap;                                   ///<! externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap;                                   ///<! externally set TPC clusters occupancy map
   std::vector<unsigned char> mBufVec;                                                 ///<! buffer for filling shared cluster map
-  unsigned char* mClusterShMapTPC{nullptr};                                           ///<! externally set TPC clusters sharing map
   DEdxType mMode = dedxTrack;                                                         ///< normalization type: type=DedxTrack use truncated mean, type=DedxBB use value from BB fit
   DEdxRegion mDedxRegion = stack;                                                     ///<  using the dE/dx per chamber, stack or per sector
   float mFieldNominalGPUBz{-5};                                                       ///< Magnetic field in kG, used for track propagation

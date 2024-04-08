@@ -76,8 +76,7 @@
 #include "CommonUtils/DebugStreamer.h"
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "ITStracking/Tracker.h"
-#include "ITStracking/Vertexer.h"
+#include "ITStracking/TrackingInterface.h"
 #include "GPUWorkflowInternal.h"
 // #include "Framework/ThreadPool.h"
 
@@ -98,6 +97,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <chrono>
+#include <unordered_set>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -373,11 +373,6 @@ void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   }
   if (GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
     mGRPGeomUpdated = true;
-    return;
-  }
-  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
-    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
-    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
 }
@@ -684,21 +679,23 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   using outputBufferUninitializedVector = std::decay_t<decltype(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{"", "", 0}))>;
   using outputBufferType = std::pair<std::optional<std::reference_wrapper<outputBufferUninitializedVector>>, outputDataType*>;
   std::vector<outputBufferType> outputBuffers(GPUInterfaceOutputs::count(), {std::nullopt, nullptr});
+  std::unordered_set<std::string> outputsCreated;
 
-  auto setOutputAllocator = [this, &outputBuffers, &outputRegions, &pc](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
+  auto setOutputAllocator = [this, &outputBuffers, &outputRegions, &pc, &outputsCreated](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
     if (condition) {
       auto& buffer = outputBuffers[outputRegions.getIndex(region)];
       if (mConfParam->allocateOutputOnTheFly) {
-        region.allocator = [this, name, &buffer, &pc, outputSpec = std::move(outputSpec), offset](size_t size) -> void* {
+        region.allocator = [this, name, &buffer, &pc, outputSpec = std::move(outputSpec), offset, &outputsCreated](size_t size) -> void* {
           size += offset;
           if (mVerbosity) {
-            LOG(info) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
+            LOG(info) << "ALLOCATING " << size << " bytes for " << name << ": " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
           }
           std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
           if (mVerbosity) {
             start = std::chrono::high_resolution_clock::now();
           }
           buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), size));
+          outputsCreated.insert(name);
           if (mVerbosity) {
             end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed_seconds = end - start;
@@ -711,6 +708,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
         buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), mConfParam->outputBufferSize));
         region.ptrBase = (buffer.second = buffer.first->get().data()) + offset;
         region.size = buffer.first->get().size() - offset;
+        outputsCreated.insert(name);
       }
     }
   };
@@ -848,10 +846,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     }
   }
 
-  if (mConfig->configReconstruction.tpc.occupancyMapTimeBins == 0) {
-    pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>({gDataOriginTPC, "TPCOCCUPANCYMAP", 0}, 0u);
-  }
-
   std::unique_ptr<o2::tpc::ClusterNativeAccess> tmpEmptyClNative;
   if (createEmptyOutput) {
     memset(&ptrs, 0, sizeof(ptrs));
@@ -977,7 +971,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot({gDataOriginGPU, "ERRORQA", 0}, mErrorQA);
     mErrorQA.clear(); // FIXME: This is a race condition once we run multi-threaded!
   }
-  if (mSpecConfig.tpcTriggerHandling && !mSpecConfig.caClusterer) {
+  if (mSpecConfig.outputSharedClusterMap && !outputsCreated.contains("TPCOCCUPANCYMAP")) {
+    pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>({gDataOriginTPC, "TPCOCCUPANCYMAP", 0}, 0u);
+  }
+  if (mSpecConfig.tpcTriggerHandling && !outputsCreated.contains("TRIGGERWORDS")) {
     pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0}, 0u);
   }
   mTimer->Stop();

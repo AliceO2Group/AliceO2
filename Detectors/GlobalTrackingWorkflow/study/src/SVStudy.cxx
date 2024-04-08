@@ -42,6 +42,7 @@
 #include "Steer/MCKinematicsReader.h"
 #include "DCAFitter/DCAFitterN.h"
 #include "MathUtils/fit.h"
+#include "GlobalTrackingStudy/V0Ext.h"
 
 namespace o2::svstudy
 {
@@ -70,6 +71,7 @@ class SVStudySpec : public Task
   void endOfStream(EndOfStreamContext& ec) final;
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
   void process(o2::globaltracking::RecoContainer& recoData);
+  o2::dataformats::V0Ext processV0(int iv, o2::globaltracking::RecoContainer& recoData);
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
@@ -78,7 +80,7 @@ class SVStudySpec : public Task
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC{false}; ///< MC flag
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
-  bool mSelK0 = false;
+  float mSelK0 = -1;
   bool mRefit = false;
   float mMaxEta = 0.8;
   float mBz = 0;
@@ -92,7 +94,7 @@ void SVStudySpec::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("svStudy.root", "recreate");
   mRefit = ic.options().get<bool>("refit");
-  mSelK0 = ic.options().get<bool>("sel-k0");
+  mSelK0 = ic.options().get<float>("sel-k0");
   mMaxEta = ic.options().get<float>("max-eta");
 }
 
@@ -132,71 +134,108 @@ void SVStudySpec::updateTimeDependentParams(ProcessingContext& pc)
   mFitterV0.setBz(mBz);
 }
 
-void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
+o2::dataformats::V0Ext SVStudySpec::processV0(int iv, o2::globaltracking::RecoContainer& recoData)
 {
+  o2::dataformats::V0Ext v0ext;
+  auto invalidate = [&v0ext]() { v0ext.v0ID.setVertexID(-1); };
+
   auto v0s = recoData.getV0s();
   auto v0IDs = recoData.getV0sIdx();
-  bool refit = mRefit || (v0s.size() < v0IDs.size());
-  int nv0 = v0IDs.size();
-  o2::dataformats::V0 v0ref;
-  o2::track::TrackParCov dummyTr{};
-  const o2::track::TrackParCov* tpcTracks[2] = {&dummyTr, &dummyTr};
-  int nclTPC[2] = {0, 0}, nclITS[2] = {0, 0}, itsPatt[2] = {0, 0};
   static int tfID = 0;
 
-  for (int iv = 0; iv < nv0; iv++) {
-    const auto& v0id = v0IDs[iv];
-    if (mRefit && !refitV0(v0id, v0ref, recoData)) {
-      continue;
+  const auto& v0id = v0IDs[iv];
+  if (mRefit && !refitV0(v0id, v0ext.v0, recoData)) {
+    invalidate();
+    return v0ext;
+  }
+  const auto& v0sel = mRefit ? v0ext.v0 : v0s[iv];
+  if (mMaxEta < std::abs(v0sel.getEta())) {
+    invalidate();
+    return v0ext;
+  }
+  if (mSelK0 > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mSelK0) {
+    invalidate();
+    return v0ext;
+  }
+  v0ext.v0ID = v0id;
+  for (int ip = 0; ip < 2; ip++) {
+    auto& prInfo = v0ext.prInfo[ip];
+    auto gid = v0ext.v0ID.getProngID(ip);
+    auto gidset = recoData.getSingleDetectorRefs(gid);
+    // get TPC tracks, if any
+    if (gidset[GTrackID::TPC].isSourceSet()) {
+      const auto& tpcTr = recoData.getTPCTrack(gidset[GTrackID::TPC]);
+      prInfo.trackTPC = tpcTr;
+      prInfo.nClTPC = tpcTr.getNClusters();
     }
-    const auto& v0 = mRefit ? v0ref : v0s[iv];
-    if (mMaxEta > std::abs(v0.getEta())) {
-      continue;
-    }
-    if (mSelK0 && std::abs(std::sqrt(v0.calcMass2AsK0()) - 0.497) > 0.1) {
-      continue;
-    }
-    for (int ip = 0; ip < 2; ip++) {
-      auto gid = v0id.getProngID(ip);
-
-      // get TPC tracks, if any
-      tpcTracks[ip] = &dummyTr;
-      nclTPC[ip] = 0;
-      if (gid.includesDet(DetID::TPC)) {
-        const auto& tpcTr = recoData.getTPCTrack(recoData.getTPCContributorGID(gid));
-        tpcTracks[ip] = &tpcTr;
-        nclTPC[ip] = tpcTr.getNClusters();
-      }
-      // get ITS tracks, if any
-      nclITS[ip] = itsPatt[ip] = 0;
-      if (gid.includesDet(DetID::ITS)) {
-        auto gidITS = recoData.getITSContributorGID(gid);
-        if (gidITS.getSource() == GTrackID::ITS) {
-          const auto& itsTr = recoData.getITSTrack(recoData.getITSContributorGID(gid));
-          nclITS[ip] = itsTr.getNClusters();
-          for (int il = 0; il < 7; il++) {
-            if (itsTr.hasHitOnLayer(il)) {
-              itsPatt[ip] |= 0x1 << il;
-            }
-          }
-        } else {
-          const auto& itsTrf = recoData.getITSABRefs()[gidITS];
-          nclITS[ip] = itsTrf.getNClusters();
-          for (int il = 0; il < 7; il++) {
-            if (itsTrf.hasHitOnLayer(il)) {
-              itsPatt[ip] |= 0x1 << il;
-            }
+    // get ITS tracks, if any
+    if (gid.includesDet(DetID::ITS)) {
+      auto gidITS = recoData.getITSContributorGID(gid);
+      if (gidset[GTrackID::ITS].isSourceSet()) {
+        const auto& itsTr = recoData.getITSTrack(recoData.getITSContributorGID(gid));
+        prInfo.nClITS = itsTr.getNClusters();
+        for (int il = 0; il < 7; il++) {
+          if (itsTr.hasHitOnLayer(il)) {
+            prInfo.pattITS |= 0x1 << il;
           }
         }
+      } else {
+        const auto& itsTrf = recoData.getITSABRefs()[gidset[GTrackID::ITSAB]];
+        prInfo.nClITS = itsTrf.getNClusters();
+        for (int il = 0; il < 7; il++) {
+          if (itsTrf.hasHitOnLayer(il)) {
+            prInfo.pattITS |= 0x1 << il;
+          }
+        }
+        prInfo.pattITS |= 0x1 << 31; // flag AB
+      }
+      if (gidset[GTrackID::ITSTPC].isSourceSet()) {
+        auto mtc = recoData.getTPCITSTrack(gidset[GTrackID::ITSTPC]);
+        prInfo.chi2ITSTPC = mtc.getChi2Match();
       }
     }
-    (*mDBGOut) << "tfinfo"
-               << "orbit=" << recoData.startIR.orbit << "tfID=" << tfID << "\n";
-    (*mDBGOut) << "v0s"
-               << "v0=" << v0 << "v0ID=" << v0id << "tpc0=" << *tpcTracks[0] << "tpc1=" << *tpcTracks[1]
-               << "nclTPC0=" << nclTPC[0] << "nclTPC1=" << nclTPC[1] << "nclITS0=" << nclITS[0] << "nclITS1=" << nclITS[1] << "itsPatt0=" << itsPatt[0] << "itsPatt1=" << itsPatt[1] << "\n";
   }
-  tfID++;
+  return v0ext;
+}
+
+void SVStudySpec::process(o2::globaltracking::RecoContainer& recoData)
+{
+  auto v0IDs = recoData.getV0sIdx();
+  auto nv0 = v0IDs.size();
+  if (nv0 > recoData.getV0s().size()) {
+    mRefit = true;
+  }
+  std::map<int, std::vector<int>> pv2sv;
+  static int tfID = 0;
+  for (int iv = 0; iv < nv0; iv++) {
+    const auto v0id = v0IDs[iv];
+    pv2sv[v0id.getVertexID()].push_back(iv);
+  }
+  std::vector<o2::dataformats::V0Ext> v0extVec;
+  for (auto it : pv2sv) {
+    int pvID = it.first;
+    auto& vv = it.second;
+    if (pvID < 0 || vv.size() == 0) {
+      continue;
+    }
+    v0extVec.clear();
+    for (int iv0 : vv) {
+      auto v0ext = processV0(iv0, recoData);
+      if (v0ext.v0ID.getVertexID() < 0) {
+        continue;
+      }
+      v0extVec.push_back(v0ext);
+    }
+    if (v0extVec.size()) {
+      const auto& pv = recoData.getPrimaryVertex(pvID);
+      (*mDBGOut) << "v0"
+                 << "orbit=" << recoData.startIR.orbit << "tfID=" << tfID
+                 << "v0Ext=" << v0extVec
+                 << "pv=" << pv
+                 << "\n";
+    }
+    tfID++;
+  }
 }
 
 bool SVStudySpec::refitV0(const V0ID& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData)
@@ -280,7 +319,7 @@ DataProcessorSpec getSVStudySpec(GTrackID::mask_t srcTracks, bool useMC)
     AlgorithmSpec{adaptFromTask<SVStudySpec>(dataRequest, ggRequest, srcTracks, useMC)},
     Options{
       {"refit", VariantType::Bool, false, {"refit SVertices"}},
-      {"sel-k0", VariantType::Bool, false, {"select K0s only"}},
+      {"sel-k0", VariantType::Float, -1.f, {"If positive, select K0s with this mass margin"}},
       {"max-eta", VariantType::Float, 1.2f, {"Cut on track eta"}},
     }};
 }

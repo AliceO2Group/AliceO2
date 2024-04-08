@@ -490,6 +490,7 @@ bool MatchTOF::prepareTPCData()
     mTPCTracksArray = mRecoCont->getTPCTracks();
     mTPCTrackClusIdx = mRecoCont->getTPCTracksClusterRefs();
     mTPCRefitterShMap = mRecoCont->clusterShMapTPC;
+    mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
   }
 
   return true;
@@ -1797,7 +1798,7 @@ void MatchTOF::checkRefitter()
 {
   if (mTPCClusterIdxStruct) {
     mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz,
-                                                                  mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(),
-                                                                  nullptr, o2::base::Propagator::Instance());
+                                                                  mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(),
+                                                                  mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }
 }

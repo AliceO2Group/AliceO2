@@ -1049,7 +1049,11 @@ int GPUReconstruction::EnqueuePipeline(bool terminate)
   if (q->retVal) {
     return q->retVal;
   }
-  return mChains[0]->FinalizePipelinedProcessing();
+  if (terminate) {
+    return 0;
+  } else {
+    return mChains[0]->FinalizePipelinedProcessing();
+  }
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()

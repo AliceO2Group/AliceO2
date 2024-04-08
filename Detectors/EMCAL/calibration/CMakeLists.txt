@@ -16,6 +16,7 @@ o2_add_library(EMCALCalibration
                         src/EMCALCalibExtractor.cxx
                         src/EMCALCalibParams.cxx
                         src/EMCDCSProcessor.cxx
+                        src/EMCALPedestalHelper.cxx
                         src/PedestalCalibDevice.cxx
                         src/PedestalProcessorDevice.cxx
                         src/PedestalProcessorData.cxx
@@ -43,6 +44,7 @@ o2_target_root_dictionary(EMCALCalibration
                                   include/EMCALCalibration/EMCALTimeCalibData.h
                                   include/EMCALCalibration/EMCALCalibParams.h
                                   include/EMCALCalibration/EMCDCSProcessor.h
+                                  include/EMCALCalibration/EMCALPedestalHelper.h
                                   include/EMCALCalibration/PedestalProcessorData.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
 

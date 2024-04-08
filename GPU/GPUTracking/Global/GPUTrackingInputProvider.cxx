@@ -79,7 +79,7 @@ void* GPUTrackingInputProvider::SetPointersInputTRD(void* mem)
 void* GPUTrackingInputProvider::SetPointersTPCOccupancyMap(void* mem)
 {
   if (mHoldTPCOccupancyMap) {
-    computePointerWithAlignment(mem, mTPCClusterOccupancyMap, GPUTPCClusterOccupancyMapBin::getNBins(mRec->GetParam()));
+    computePointerWithAlignment(mem, mTPCClusterOccupancyMap, (mRec->GetParam().rec.tpc.occupancyMapTimeBins ? GPUTPCClusterOccupancyMapBin::getNBins(mRec->GetParam()) + 1 : 0) + 1); // +1 for total occupancy estimator, +1 for sanity check information
   }
   return mem;
 }
@@ -99,6 +99,6 @@ void GPUTrackingInputProvider::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mHoldTPCZS = io.tpcZS && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding);
   mHoldTPCClusterNative = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && (mRec->IsGPU() || io.tpcCompressedClusters);
-  mHoldTPCOccupancyMap = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && mRec->GetParam().rec.tpc.occupancyMapTimeBins;
+  mHoldTPCOccupancyMap = (io.tpcZS || io.tpcPackedDigits || io.clustersNative || io.tpcCompressedClusters) && (mRec->GetParam().rec.tpc.occupancyMapTimeBins || mRec->GetParam().rec.tpc.sysClusErrorC12Norm);
   mHoldTPCClusterNativeOutput = io.tpcZS || io.tpcPackedDigits || io.tpcCompressedClusters;
 }

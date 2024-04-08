@@ -16,9 +16,7 @@
 
 #include "Framework/WorkflowSpec.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+#include "GPUDataTypes.h"
 
 namespace o2
 {
