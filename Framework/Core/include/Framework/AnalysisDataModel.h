@@ -1636,22 +1636,22 @@ DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInITS, mcMismatchInITS, //! Mismatch in the
                              if (layer >= 7 || layer < 0) {
                                return false;
                              }
-                             return (mcMask & 1 << layer);
+                             return (mcMask & (1 << layer));
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInTPC, mcMismatchInTPC, //! Mismatch in the TPC
                            [](uint16_t mcMask, int layer) -> bool {
                              if (layer >= 10 || layer < 7) {
                                return false;
                              }
-                             return (mcMask & 1 << layer);
+                             return (mcMask & (1 << layer));
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInTRD, mcMismatchInTRD, //! Mismatch in the TRD
-                           [](uint16_t mcMask) -> bool { return (mcMask & 1 << 10); });
+                           [](uint16_t mcMask) -> bool { return (mcMask & (1 << 10)); });
 DECLARE_SOA_DYNAMIC_COLUMN(McMismatchInTOF, mcMismatchInTOF, //! Mismatch in the TOF
-                           [](uint16_t mcMask) -> bool { return (mcMask & 1 << 11); });
+                           [](uint16_t mcMask) -> bool { return (mcMask & (1 << 11)); });
 
 DECLARE_SOA_DYNAMIC_COLUMN(McMismatch, mcMismatch, //! Mismatch
-                           [](uint16_t mcMask) -> bool { return (mcMask & 1 << 15); });
+                           [](uint16_t mcMask) -> bool { return (mcMask & (1 << 15)); });
 
 } // namespace mctracklabel
 
