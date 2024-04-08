@@ -7,7 +7,7 @@
 /mcTracking/loopVerbose 1
 /mcVerbose/composedPhysicsList 2
 /mcVerbose/runAction 2   # For looping thresholds control
-#/tracking/verbose 1
+/tracking/verbose 1
 #//control/cout/ignoreThreadsExcept 0
 
 /mcPhysics/rangeCuts 0.001 mm
