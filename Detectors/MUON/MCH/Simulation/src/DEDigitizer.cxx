@@ -104,7 +104,10 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
    //  field->Field(entrance, b);
   }
   //calculate track betagamma
-  auto betagamma = 50;//todo: use time of flight of entrance and exit
+  auto deltat = hit.exitTof() - hit.entranceTof();// delta t in nanoseconds
+  auto beta = std::sqrt((lexit.X() - lentrance.X()) * (lexit.X() - lentrance.X()) + (lexit.Y() - lentrance.Y()) * (lexit.Y() - lentrance.Y()) + hitlengthZ * hitlengthZ) / (deltat * 0.299792);
+
+  auto betagamma = beta * 1.0 / std::sqrt(1 - beta * beta);
   auto yAngleEffect = mResponse.inclandbfield(thetawire, betagamma, b[0]);
   localY += yAngleEffect;
 

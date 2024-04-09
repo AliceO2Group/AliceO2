@@ -32,7 +32,6 @@ class Response
  public:
   Response(Station station);
   ~Response() = default;
-
   float getChargeSpread() const { return mChargeSpread; }
   float getPitch() const { return mPitch; }
   float getSigmaIntegration() const { return mSigmaIntegration; }
@@ -48,6 +47,7 @@ class Response
    *
    */
   float etocharge(float edepos) const;
+
 
   /** Compute the charge fraction in a rectangle area for a unit charge
    * occuring at position (0,0)

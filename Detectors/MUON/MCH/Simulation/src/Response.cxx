@@ -47,7 +47,6 @@ Response::Response(Station station)
   mChargeCorr = ResponseParam::Instance().chargeCorrelation;
   mChargeThreshold = ResponseParam::Instance().chargeThreshold;
 }
-
 //_____________________________________________________________________
 float Response::etocharge(float edepos) const
 {
