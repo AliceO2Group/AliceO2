@@ -66,7 +66,7 @@ struct TPCVDTglContainer {
     }
     driftVFullMean = (driftVFullMean * nTFProc + vfull) / (nTFProc + 1);
     if (tOffsetRef == 0.f) {
-      tOffsetRef = data[0].first; // assign 1st full toffset as a reference
+      tOffsetRef = data[1].first; // assign 1st full toffset as a reference
     }
     nTFProc++;
   }
