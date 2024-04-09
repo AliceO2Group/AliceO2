@@ -24,6 +24,7 @@
 #include <Mergers/CustomMergeableObject.h>
 #include <Mergers/MergerBuilder.h>
 #include <Mergers/MergerInfrastructureBuilder.h>
+#include "common.h"
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
@@ -109,9 +110,12 @@ class CustomMergerTestGenerator
       },
       Outputs{},
       AlgorithmSpec{
-        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
+        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext& initContext) {
+          auto success = std::make_shared<bool>(false);
+          mergers::test::registerCallbacksForTestFailure(initContext.services().get<CallbackService>(), success);
+
           return AlgorithmSpec::ProcessCallback{
-            [expectedResult, numberOfCalls = 0, numberOfObjects = 0, numberOfMovingWindows = 0, lastObjectValue = 0, retries = 5](ProcessingContext& processingContext) mutable {
+            [expectedResult, numberOfCalls = 0, numberOfObjects = 0, numberOfMovingWindows = 0, lastObjectValue = 0, retries = 5, success](ProcessingContext& processingContext) mutable {
               numberOfCalls++;
 
               if (processingContext.inputs().isValid("custom")) {
@@ -139,7 +143,10 @@ class CustomMergerTestGenerator
                   if (lastObjectValue != expectedResult) {
                     LOG(fatal) << "got wrong secret from object: " << lastObjectValue << ", expected: " << expectedResult;
                   }
+                  return;
                 }
+                LOG(info) << "Received the expected objects, test successful";
+                *success = true;
               }
             }};
         }}}});
@@ -154,12 +161,17 @@ class CustomMergerTestGenerator
       },
       Outputs{},
       AlgorithmSpec{
-        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
+        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext& initContext) {
+          auto success = std::make_shared<bool>(false);
+          mergers::test::registerCallbacksForTestFailure(initContext.services().get<CallbackService>(), success);
+
           return AlgorithmSpec::ProcessCallback{
-            [expectedResult, retryNumber = 0, numberOfRetries = 5](ProcessingContext& processingContext) mutable {
+            [expectedResult, retryNumber = 0, numberOfRetries = 5, success](ProcessingContext& processingContext) mutable {
               const auto obj = processingContext.inputs().get<mergers::CustomMergeableObject*>("custom");
 
               if (obj->getSecret() == expectedResult) {
+                LOG(info) << "Received the expected object, test successful";
+                *success = true;
                 processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
                 return;
               }
