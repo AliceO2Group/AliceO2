@@ -22,6 +22,7 @@
 #include "ITSStudies/AvgClusSize.h"
 #include "ITSStudies/PIDStudy.h"
 #include "ITSStudies/AnomalyStudy.h"
+#include "ITSStudies/ITSZDCAnomalyStudy.h"
 #include "ITSStudies/TrackCheck.h"
 #include "Steer/MCKinematicsReader.h"
 
@@ -40,7 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"input-from-upstream", VariantType::Bool, false, {"read clusters from the clusterer"}},
-    {"track-sources", VariantType::String, std::string{"ITS,ITS-TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC,ITS-TPC-TRD"}, {"comma-separated list of track sources to use"}},
+    {"track-sources", VariantType::String, std::string{"ITS,ITS-TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC,ITS-TPC-TRD,ZDC"}, {"comma-separated list of track sources to use"}},
     {"cluster-sources", VariantType::String, std::string{"ITS"}, {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
@@ -49,6 +50,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"track-study", VariantType::Bool, false, {"Perform the track study"}},
     {"impact-parameter-study", VariantType::Bool, false, {"Perform the impact parameter study"}},
     {"anomaly-study", VariantType::Bool, false, {"Perform the anomaly study"}},
+    {"its-zdc-study", VariantType::Bool, false, {"Perform the ITS-ZDC anomaly study"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
   std::swap(workflowOptions, options);
@@ -119,6 +121,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
     specs.emplace_back(o2::its::study::getAnomalyStudy(srcCls, useMC));
   }
+  if (configcontext.options().get<bool>("its-zdc-study")) {
+    anyStudy = true;
+
+    srcCls = GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
+    srcTrc = GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+
+    if (!configcontext.options().get<bool>("input-from-upstream")) {
+      o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
+    }
+    specs.emplace_back(o2::its::study::getITSZDCAnomalyStudy(srcTrc, useMC));
+  }
+
   if (!anyStudy) {
     LOGP(info, "No study selected, dryrunning");
   }

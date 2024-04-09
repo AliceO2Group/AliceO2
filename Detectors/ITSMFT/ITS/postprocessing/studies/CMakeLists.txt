@@ -15,6 +15,7 @@ o2_add_library(ITSPostprocessing
                        src/PIDStudy.cxx
                        src/ITSStudiesConfigParam.cxx
                        src/AnomalyStudy.cxx
+                       src/ITSZDCAnomalyStudy.cxx
                        src/TrackCheck.cxx
                        src/Helpers.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
