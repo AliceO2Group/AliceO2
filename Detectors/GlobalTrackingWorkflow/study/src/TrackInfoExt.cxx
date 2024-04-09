@@ -9,17 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+// class for extended track info (for debugging)
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::dataformats::ProngInfoExt + ;
-#pragma link C++ class o2::dataformats::V0Ext + ;
-#pragma link C++ class o2::dataformats::TrackInfoExt + ;
-#pragma link C++ class std::vector < o2::dataformats::TrackInfoExt> + ;
-#pragma link C++ class std::vector < o2::dataformats::ProngInfoExt> + ;
-#pragma link C++ class std::vector < o2::dataformats::V0Ext> + ;
-
-#endif
+#include "GlobalTrackingStudy/TrackInfoExt.h"
