@@ -12,6 +12,7 @@
 #include <vector>
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -30,6 +31,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "GlobalTrackingStudy/TrackingStudy.h"
+#include "GlobalTrackingStudy/TrackInfoExt.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/PrimaryVertexExt.h"
@@ -80,7 +82,7 @@ class TrackingStudySpec : public Task
   float mMaxVTTimeDiff = 80.; // \mus
   float mTPCDCAYCut = 2.;
   float mTPCDCAZCut = 2.;
-  float mMinX = 6.;
+  float mMinX = 46.;
   float mMaxEta = 0.8;
   float mMinPt = 0.1;
   int mMinTPCClusters = 60;
@@ -144,23 +146,19 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   static int TFCount = 0;
   int nv = vtxRefs.size();
   o2::dataformats::PrimaryVertexExt pveDummy;
-  o2::dataformats::PrimaryVertex vtxDummy(mMeanVtx.getPos(), {}, {}, 0);
-  std::vector<o2::dataformats::PrimaryVertexExt> pveVec(nv - 1);
+  o2::dataformats::PrimaryVertexExt vtxDummy(mMeanVtx.getPos(), {}, {}, 0);
+  std::vector<o2::dataformats::PrimaryVertexExt> pveVec(nv);
+  pveVec.back() = vtxDummy;
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   float tBiasITS = alpParams.roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingMUS;
-  std::vector<float> dtvec, dzvec;
   const o2::ft0::InteractionTag& ft0Params = o2::ft0::InteractionTag::Instance();
-
+  std::vector<o2::dataformats::TrackInfoExt> trcExtVec;
   for (int iv = 0; iv < nv; iv++) {
     LOGP(debug, "processing PV {} of {}", iv, nv);
     const auto& vtref = vtxRefs[iv];
     if (iv != nv - 1) {
       auto& pve = pveVec[iv];
       static_cast<o2::dataformats::PrimaryVertex&>(pve) = pvvec[iv];
-      dtvec.clear();
-      dzvec.clear();
-      dtvec.reserve(pve.getNContributors());
-      dzvec.reserve(pve.getNContributors());
       float bestTimeDiff = 1000, bestTime = -999;
       int bestFTID = -1;
       if (mTracksSrc[GTrackID::FT0]) {
@@ -180,16 +178,11 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       if (bestFTID >= 0) {
         pve.FT0A = FITInfo[bestFTID].getTrigger().getAmplA();
         pve.FT0C = FITInfo[bestFTID].getTrigger().getAmplC();
-        pve.FT0Time = FITInfo[bestFTID].getInteractionRecord().differenceInBCMUS(recoData.startIR);
+        pve.FT0Time = double(FITInfo[bestFTID].getInteractionRecord().differenceInBCMUS(recoData.startIR)) + FITInfo[bestFTID].getCollisionTimeMean() * 1e-6; // time in \mus
       }
       pve.VtxID = iv;
     }
-    float meanT = 0, meanZ = 0, rmsT = 0, rmsZ = 0;
-    float meanTW = 0, meanZW = 0, rmsTW = 0, rmsZW = 0, WT = 0, WZ = 0;
-    float meanT0 = 0, rmsT0 = 0;
-    float meanTW0 = 0, rmsTW0 = 0, WT0 = 0;
-    int nContAdd = 0, nContAdd0 = 0, ntITS = 0;
-    int nAdjusted = 0;
+    trcExtVec.clear();
     float q2ptITS, q2ptTPC, q2ptITSTPC, q2ptITSTPCTRD;
     for (int is = 0; is < GTrackID::NSources; is++) {
       DetID::mask_t dm = GTrackID::getSourceDetectorsMask(is);
@@ -213,6 +206,7 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         }
         bool hasITS = GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS];
         bool acceptGlo = true;
+        int nclTPC = 0, nclITS = 0, pattITS = 0;
         while (1) {
           // do we cound this track for global multiplicity?
           if (!(acceptGlo = abs(trc.getEta()) < mMaxEta && trc.getPt() > mMinPt)) {
@@ -224,7 +218,7 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           GTrackID tpcTrID;
           if (GTrackID::getSourceDetectorsMask(is)[GTrackID::TPC] && recoData.isTrackSourceLoaded(GTrackID::TPC) && (tpcTrID = recoData.getTPCContributorGID(vid))) {
             auto& tpcTr = recoData.getTPCTrack(tpcTrID);
-            if (!(acceptGlo = tpcTr.getNClusters() >= mMinTPCClusters)) {
+            if (!(acceptGlo = (nclTPC = tpcTr.getNClusters()) >= mMinTPCClusters)) {
               break;
             }
           }
@@ -236,124 +230,58 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           }
           break;
         }
-
         if (!hasITS) {
           continue;
         }
-        float ttime = 0, ttimeE = 0;
-        recoData.getTrackTime(vid, ttime, ttimeE);
-        bool acceptForPV0 = pvCont;
-        if (vid.getSource() == GTrackID::ITS) {
-          ttimeE *= mITSROFrameLengthMUS;
-          ttime += ttimeE + tBiasITS;
-          ttimeE *= 1. / sqrt(3);
-          if (++ntITS > 0) { // do not allow ITS in the MAD
-            acceptForPV0 = false;
-          }
-        } else if (vid.getSource() == GTrackID::ITSTPC) {
-          float bcf = ttime / o2::constants::lhc::LHCBunchSpacingMUS + o2::constants::lhc::LHCMaxBunches;
-          int bcWrtROF = int(bcf - alpParams.roFrameBiasInBC) % alpParams.roFrameLengthInBC;
-          if (bcWrtROF == 0) {
-            float dbc = bcf - (int(bcf / alpParams.roFrameBiasInBC)) * alpParams.roFrameBiasInBC;
-            if (std::abs(dbc) < 1e-6 && (++nAdjusted) > 1) {
-              acceptForPV0 = false; // do not allow more than 1 adjusted track MAD
-            }
-          }
-        } else if (vid.getSource() == GTrackID::TPC) {
-          ttimeE *= o2::constants::lhc::LHCBunchSpacingMUS * 8;
-        }
-        if (pvCont) {
-          float dt = ttime - pveVec[iv].getTimeStamp().getTimeStamp();
-          float tW = 1. / (ttimeE * ttimeE), zW = 1. / trc.getSigmaZ2();
-          dzvec.push_back(dca.getZ());
-          WT += tW;
-          WZ += zW;
-          meanT += dt;
-          meanTW += dt * tW;
-          meanZ += dca.getZ();
-          meanZW += dca.getZ() * zW;
-
-          rmsT += dt * dt;
-          rmsTW += dt * dt * tW;
-          rmsZ += dca.getZ() * dca.getZ();
-          rmsZW += dca.getZ() * dca.getZ() * zW;
-          nContAdd++;
-          if (acceptForPV0) {
-            dtvec.push_back(dt);
-            WT0 += tW;
-            meanT0 += dt;
-            meanTW0 += dt * tW;
-            rmsT0 += dt * dt;
-            rmsTW0 += dt * dt * tW;
-            nContAdd0++;
-          }
-          LOGP(debug, "dt={} dz={}, tW={}, zW={} t={} tE={} {}", dt, dca.getZ(), tW, zW, ttime, ttimeE, vid.asString());
-        }
         if (acceptGlo) {
-          q2ptITS = q2ptTPC = q2ptITSTPC = q2ptITSTPCTRD = 0.;
+          auto& trcExt = trcExtVec.emplace_back();
+          recoData.getTrackTime(vid, trcExt.ttime, trcExt.ttimeE);
+          trcExt.track = trc;
+          trcExt.dca = dca;
+          trcExt.gid = vid;
+          trcExt.xmin = xmin;
           auto gidRefs = recoData.getSingleDetectorRefs(vid);
           if (gidRefs[GTrackID::ITS].isIndexSet()) {
-            q2ptITS = recoData.getTrackParam(gidRefs[GTrackID::ITS]).getQ2Pt();
+            const auto& itsTr = recoData.getITSTrack(gidRefs[GTrackID::ITS]);
+            trcExt.q2ptITS = itsTr.getQ2Pt();
+            trcExt.nClITS = itsTr.getNClusters();
+            for (int il = 0; il < 7; il++) {
+              if (itsTr.hasHitOnLayer(il)) {
+                trcExt.pattITS |= 0x1 << il;
+              }
+            }
+          } else if (gidRefs[GTrackID::ITSAB].isIndexSet()) {
+            const auto& itsTrf = recoData.getITSABRefs()[gidRefs[GTrackID::ITSAB]];
+            trcExt.nClITS = itsTrf.getNClusters();
+            for (int il = 0; il < 7; il++) {
+              if (itsTrf.hasHitOnLayer(il)) {
+                trcExt.pattITS |= 0x1 << il;
+              }
+            }
           }
           if (gidRefs[GTrackID::TPC].isIndexSet()) {
-            q2ptTPC = recoData.getTrackParam(gidRefs[GTrackID::TPC]).getQ2Pt();
+            trcExt.q2ptTPC = recoData.getTrackParam(gidRefs[GTrackID::TPC]).getQ2Pt();
+            trcExt.nClTPC = nclTPC;
           }
           if (gidRefs[GTrackID::ITSTPC].isIndexSet()) {
-            q2ptITSTPC = recoData.getTrackParam(gidRefs[GTrackID::ITSTPC]).getQ2Pt();
+            const auto& trTPCITS = recoData.getTPCITSTrack(gidRefs[GTrackID::ITSTPC]);
+            trcExt.q2ptITSTPC = trTPCITS.getQ2Pt();
+            trcExt.chi2ITSTPC = trTPCITS.getChi2Match();
           }
           if (gidRefs[GTrackID::TRD].isIndexSet()) {
-            q2ptITSTPCTRD = recoData.getTrackParam(gidRefs[GTrackID::TRD]).getQ2Pt();
+            trcExt.q2ptITSTPCTRD = recoData.getTrackParam(gidRefs[GTrackID::TRD]).getQ2Pt();
           }
-
-          (*mDBGOut) << "dca"
-                     << "tfID=" << TFCount << "ttime=" << ttime << "ttimeE=" << ttimeE
-                     << "gid=" << vid << "pvid=" << (iv == nv - 1 ? -1 : iv) << "pv=" << (iv == nv - 1 ? vtxDummy : pvvec[iv])
-                     << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin
-                     << "q2ptITS=" << q2ptITS << "q2ptTPC=" << q2ptTPC << "q2ptITSTPC=" << q2ptITSTPC << "q2ptITSTPCTRD=" << q2ptITSTPCTRD
-                     << "\n";
+          if (gidRefs[GTrackID::TOF].isIndexSet()) {
+            trcExt.infoTOF = recoData.getTOFMatch(vid);
+          }
         }
       }
     }
-
-    if (iv != nv - 1) {
-      auto& pve = pveVec[iv];
-      if (nContAdd) {
-        rmsT /= nContAdd;
-        rmsZ /= nContAdd;
-        meanT /= nContAdd;
-        meanZ /= nContAdd;
-        pve.rmsT = (rmsT - meanT * meanT);
-        pve.rmsT = pve.rmsT > 0 ? std::sqrt(pve.rmsT) : 0;
-        pve.rmsZ = rmsZ - meanZ * meanZ;
-        pve.rmsZ = pve.rmsZ > 0 ? std::sqrt(pve.rmsZ) : 0;
-      }
-      if (nContAdd0) {
-        rmsT0 /= nContAdd0;
-        meanT0 /= nContAdd0;
-        pve.rmsT0 = (rmsT0 - meanT0 * meanT0);
-        pve.rmsT0 = pve.rmsT0 > 0 ? std::sqrt(pve.rmsT0) : 0;
-      }
-      if (WT0 > 0) {
-        rmsTW0 /= WT0;
-        meanTW0 /= WT0;
-        pve.rmsTW0 = (rmsTW0 - meanTW0 * meanTW0);
-        pve.rmsTW0 = pve.rmsTW0 > 0 ? std::sqrt(pve.rmsTW0) : 0;
-      }
-      //
-      if (WT > 0 && WZ > 0) {
-        rmsTW /= WT;
-        meanTW /= WT;
-        pve.rmsTW = (rmsTW - meanTW * meanTW);
-        pve.rmsTW = pve.rmsTW > 0 ? std::sqrt(pve.rmsTW) : 0;
-        rmsZW /= WZ;
-        meanZW /= WZ;
-        pve.rmsZW = rmsZW - meanZW * meanZW;
-        pve.rmsZW = pve.rmsZ > 0 ? std::sqrt(pve.rmsZ) : 0;
-      }
-      pve.tMAD = o2::math_utils::MAD2Sigma(dtvec.size(), dtvec.data());
-      pve.zMAD = o2::math_utils::MAD2Sigma(dzvec.size(), dzvec.data());
-    }
+    (*mDBGOut) << "trpv"
+               << "orbit=" << recoData.startIR.orbit << "tfID=" << TFCount
+               << "pve=" << pveVec[iv] << "trc=" << trcExtVec << "\n";
   }
+
   int nvtot = mMaxNeighbours < 0 ? -1 : (int)pveVec.size();
 
   auto insSlot = [maxSlots = mMaxNeighbours](std::vector<float>& vc, float v, int slot, std::vector<int>& vid, int id) {
@@ -499,7 +427,7 @@ DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
       {"max-tpc-dcaz", VariantType::Float, 2.f, {"Cut on TPC dcaZ"}},
       {"max-eta", VariantType::Float, 0.8f, {"Cut on track eta"}},
       {"min-pt", VariantType::Float, 0.1f, {"Cut on track pT"}},
-      {"min-x-prop", VariantType::Float, 6.f, {"track should be propagated to this X at least"}},
+      {"min-x-prop", VariantType::Float, 46.f, {"track should be propagated to this X at least"}},
     }};
 }
 
