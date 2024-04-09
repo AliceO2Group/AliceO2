@@ -260,7 +260,7 @@ void TrackInterpolation::process()
   mClRes.reserve(maxOutputTracks * param::NPadRows);
   bool maxTracksReached = false;
   for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
-    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksForMapPerTF) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
       break;
     }
@@ -277,6 +277,10 @@ void TrackInterpolation::process()
         mTrackTimes.push_back(mTrackTimes[seedIndex]);
         mSeeds.push_back(mSeeds[seedIndex]);
       }
+    }
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+      LOG(debug) << "We already have reached mMaxTracksPerTF, but we continue to create seeds until mAddTracksForMapPerTF is also reached";
+      continue;
     }
     if (mGIDs[seedIndex].includesDet(DetID::TRD) || mGIDs[seedIndex].includesDet(DetID::TOF)) {
       interpolateTrack(seedIndex);
