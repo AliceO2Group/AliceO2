@@ -37,6 +37,7 @@ o2_add_executable(workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::CCDB
                                         O2::DetectorsBase
+                                        O2::DetectorsCalibration
                                         O2::DataFormatsParameters)
 
 o2_add_executable(grp-create
