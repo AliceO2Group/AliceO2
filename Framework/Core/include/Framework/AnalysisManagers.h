@@ -532,6 +532,14 @@ struct OptionManager {
   {
     /// Recurse, in case we are brace constructible
     if constexpr (std::is_base_of_v<ConfigurableGroup, ANY>) {
+      if constexpr (requires {x.prefix;}) {
+        homogeneous_apply_refs<true>([prefix = x.prefix]<typename C>(C& y) { //apend group prefix if set
+          if constexpr (requires {y.name;}) {
+            y.name = prefix + "." + y.name;
+          }
+          return true;
+        }, x);
+      }
       homogeneous_apply_refs<true>([&options](auto& y) { return OptionManager<std::decay_t<decltype(y)>>::appendOption(options, y); }, x);
       return true;
     } else {
