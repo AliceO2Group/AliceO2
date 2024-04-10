@@ -371,7 +371,9 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\""; fi
+# we must not add the o2-calibration-ccdb-populator-workflow in case the only workflow is the o2-rct-updater-workflow, since that provides no output for the populator
+if [[ `echo $WORKFLOW | tr '|' '\n' | wc -l` == 2 ]] && [[ $WORKFLOW =~ "o2-rct-updater-workflow" ]]; then REMOVE_POPULATOR=1; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]] && [[ ${REMOVE_POPULATOR:-} != 1 ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
