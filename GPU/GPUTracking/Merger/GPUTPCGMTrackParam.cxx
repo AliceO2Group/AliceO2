@@ -211,12 +211,11 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           // clang-format on
           continue;
         }
-      } else if (allowModification && lastRow != 255 && CAMath::Abs(cluster.row - lastRow) > 1) {
-        bool dodEdx = merger->Param().par.dodEdx && merger->Param().rec.tpc.adddEdxSubThresholdClusters && iWay == nWays - 1 && CAMath::Abs(cluster.row - lastRow) == 2 && cluster.leg == clusters[maxN - 1].leg;
-        dodEdx = AttachClustersPropagate(merger, cluster.slice, lastRow, cluster.row, iTrk, cluster.leg == clusters[maxN - 1].leg, prop, inFlyDirection, GPUCA_MAX_SIN_PHI, dodEdx);
-        if (dodEdx) {
+      } else if (allowModification && lastRow != 255 && CAMath::Abs(clusters[ihit].row - lastRow) > 1) {
+        if (merger->Param().par.dodEdx && iWay == nWays - 1 && clusters[ihit].row == lastRow - 2 && clusters[ihit].leg == clusters[maxN - 1].leg) {
           dEdx.fillSubThreshold(lastRow - 1, param);
         }
+        AttachClustersPropagate(merger, clusters[ihit].slice, lastRow, clusters[ihit].row, iTrk, clusters[ihit].leg == clusters[maxN - 1].leg, prop, inFlyDirection);
       }
 
       int err = prop.PropagateToXAlpha(xx, clAlpha, inFlyDirection);
@@ -362,25 +361,21 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
           CADEBUG(printf("Reinit linearization\n"));
           prop.SetTrack(this, prop.GetAlpha());
         }
-        if (merger->Param().par.dodEdx && iWay == nWays - 1 && cluster.leg == clusters[maxN - 1].leg && !(clusterState & GPUTPCGMMergedTrackHit::flagEdge)) {
-          float qtot = 0, qmax = 0, pad = 0, relTime = 0;
-          const int clusterCount = (ihit - ihitMergeFirst) * wayDirection + 1;
-          for (int iTmp = ihitMergeFirst; iTmp != ihit + wayDirection; iTmp += wayDirection) {
-            if (merger->GetConstantMem()->ioPtrs.clustersNative == nullptr) {
-              qtot += clustersXYZ[ihit].amp;
-            } else {
-              const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[cluster.num];
-              qtot += cl.qTot;
-              qmax = CAMath::Max<float>(qmax, cl.qMax);
-              pad += cl.getPad();
-              relTime += cl.getTime();
-            }
+        if (merger->Param().par.dodEdx && iWay == nWays - 1 && clusters[ihit].leg == clusters[maxN - 1].leg) {
+          float qtot, qmax, pad, relTime;
+          if (merger->GetConstantMem()->ioPtrs.clustersNative == nullptr) {
+            qtot = clustersXYZ[ihit].amp;
+            qmax = 0;
+            pad = 0;
+            relTime = 0;
+          } else {
+            const ClusterNative& cl = merger->GetConstantMem()->ioPtrs.clustersNative->clustersLinear[clusters[ihit].num];
+            qtot = cl.qTot;
+            qmax = cl.qMax;
+            pad = cl.getPad();
+            relTime = cl.getTime() - CAMath::Round(cl.getTime());
           }
-          qtot /= clusterCount;
-          pad /= clusterCount;
-          relTime /= clusterCount;
-          relTime = relTime - CAMath::Round(relTime);
-          dEdx.fillCluster(qtot, qmax, cluster.row, cluster.slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, pad, relTime);
+          dEdx.fillCluster(qtot, qmax, clusters[ihit].row, clusters[ihit].slice, mP[2], mP[3], param, merger->GetConstantMem()->calibObjects, zz, pad, relTime);
         }
       } else if (retVal >= GPUTPCGMPropagator::updateErrorClusterRejected) { // cluster far away form the track
         if (allowModification) {
@@ -633,39 +628,30 @@ GPUd() float GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestric
   return uncorrectedY;
 }
 
-GPUd() bool GPUTPCGMTrackParam::AttachClustersPropagate(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, GPUTPCGMPropagator& GPUrestrict() prop, bool inFlyDirection, float maxSinPhi, bool dodEdx)
+GPUd() void GPUTPCGMTrackParam::AttachClustersPropagate(const GPUTPCGMMerger* GPUrestrict() Merger, int slice, int lastRow, int toRow, int iTrack, bool goodLeg, GPUTPCGMPropagator& GPUrestrict() prop, bool inFlyDirection, float maxSinPhi)
 {
   if (Merger->Param().rec.tpc.disableRefitAttachment & 2) {
-    return dodEdx;
+    return;
   }
   if (CAMath::Abs(lastRow - toRow) < 2) {
-    return dodEdx;
+    return;
   }
   int step = toRow > lastRow ? 1 : -1;
   float xx = mX - Merger->Param().tpcGeometry.Row2X(lastRow);
   for (int iRow = lastRow + step; iRow != toRow; iRow += step) {
     if (CAMath::Abs(mP[2]) > maxSinPhi) {
-      return dodEdx;
+      return;
     }
     if (CAMath::Abs(mP[0]) > CAMath::Abs(mX) * CAMath::Tan(kSectAngle / 2.f)) {
-      return dodEdx;
+      return;
     }
     int err = prop.PropagateToXAlpha(xx + Merger->Param().tpcGeometry.Row2X(iRow), prop.GetAlpha(), inFlyDirection);
     if (err) {
-      return dodEdx;
-    }
-    if (dodEdx && iRow + step == toRow) {
-      float yUncorrected, zUncorrected;
-      Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(slice, iRow, mP[0], mP[1], yUncorrected, zUncorrected);
-      unsigned int pad = CAMath::Float2UIntRn(Merger->Param().tpcGeometry.LinearY2Pad(slice, iRow, yUncorrected));
-      if (pad >= Merger->Param().tpcGeometry.NPads(iRow) || (Merger->GetConstantMem()->calibObjects.dEdxCalibContainer && Merger->GetConstantMem()->calibObjects.dEdxCalibContainer->isDead(slice, iRow, pad))) {
-        dodEdx = false;
-      }
+      return;
     }
     CADEBUG(printf("Attaching in row %d\n", iRow));
     AttachClusters(Merger, slice, iRow, iTrack, goodLeg, prop);
   }
-  return dodEdx;
 }
 
 GPUd() bool GPUTPCGMTrackParam::FollowCircleChk(float lrFactor, float toY, float toX, bool up, bool right)
