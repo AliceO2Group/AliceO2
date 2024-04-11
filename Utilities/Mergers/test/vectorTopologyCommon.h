@@ -127,15 +127,20 @@ class VectorMergerTestGenerator
       Inputs{{"vec", origin, description, 0, Lifetime::Sporadic}},
       Outputs{},
       AlgorithmSpec{
-        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
+        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext& initContext) {
+          auto success = std::make_shared<bool>(false);
+          mergers::test::registerCallbacksForTestFailure(initContext.services().get<CallbackService>(), success);
+
           // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers.
           // number of retries was chosen a bit randomly, as we need to have at least 2 runs through this function because of publish
           // timers inside of the mergers
-          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5](ProcessingContext& processingContext) mutable {
+          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5, success](ProcessingContext& processingContext) mutable {
             const auto vectorOfHistos = processingContext.inputs().get<std::vector<TObject*>*>("vec");
 
             LOG(info) << "RETRY: " << retryNumber << ": comparing: " << std::to_string(vectorOfHistos) << " to the expected: " << std::to_string(expectedResult);
             if (vectorOfHistos == expectedResult) {
+              LOG(info) << "Received the expected object, test successful";
+              *success = true;
               processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
               return;
             }

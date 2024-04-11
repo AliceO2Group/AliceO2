@@ -22,6 +22,7 @@ class HighResTimer
   ~HighResTimer() = default;
   void Start();
   void Stop();
+  void Abort();
   void Reset();
   void ResetStart();
   double GetElapsedTime();

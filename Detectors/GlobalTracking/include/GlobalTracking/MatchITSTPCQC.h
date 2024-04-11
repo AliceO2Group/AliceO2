@@ -136,6 +136,7 @@ class MatchITSTPCQC
   void publishHistograms(const std::shared_ptr<T>& publisher)
   {
     for (int i = 0; i < matchType::SIZE; ++i) {
+      // Pt
       publisher->startPublishing(mPtNum[i]);
       publisher->startPublishing(mPtDen[i]);
       publisher->startPublishing(mFractionITSTPCmatch[i]);
@@ -144,13 +145,38 @@ class MatchITSTPCQC
       publisher->startPublishing(mPtDen_noEta0[i]);
       publisher->startPublishing(mFractionITSTPCmatch_noEta0[i]);
 
-      publisher->startPublishing(mPtPhysPrimNum[i]);
-      publisher->startPublishing(mPtPhysPrimDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchPhysPrim[i]);
-
+      // Phi
       publisher->startPublishing(mPhiNum[i]);
       publisher->startPublishing(mPhiDen[i]);
       publisher->startPublishing(mFractionITSTPCmatchPhi[i]);
+
+      publisher->startPublishing(mPhiVsPtNum[i]);
+      publisher->startPublishing(mPhiVsPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchPhiVsPt[i]);
+
+      // Eta
+      publisher->startPublishing(mEtaNum[i]);
+      publisher->startPublishing(mEtaDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchEta[i]);
+
+      publisher->startPublishing(mEtaVsPtNum[i]);
+      publisher->startPublishing(mEtaVsPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchEtaVsPt[i]);
+
+      // Clusters
+      publisher->startPublishing(mClsVsPtNum[i]);
+      publisher->startPublishing(mClsVsPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchClsVsPt[i]);
+
+      // Chi2
+      publisher->startPublishing(mChi2VsPtNum[i]);
+      publisher->startPublishing(mChi2VsPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatchChi2VsPt[i]);
+
+      // 1/pt
+      publisher->startPublishing(m1OverPtNum[i]);
+      publisher->startPublishing(m1OverPtDen[i]);
+      publisher->startPublishing(mFractionITSTPCmatch1OverPt[i]);
 
       if (mUseTrkPID) { // Vs Tracking PID hypothesis
         for (int j = 0; j < o2::track::PID::NIDs; ++j) {
@@ -158,10 +184,12 @@ class MatchITSTPCQC
           publisher->startPublishing(mPtNumVsTrkPID[i][j]);
           publisher->startPublishing(mPtDenVsTrkPID[i][j]);
           publisher->startPublishing(mFractionITSTPCmatchPtVsTrkPID[i][j]);
+
           // Phi
           publisher->startPublishing(mPhiNumVsTrkPID[i][j]);
           publisher->startPublishing(mPhiDenVsTrkPID[i][j]);
           publisher->startPublishing(mFractionITSTPCmatchPhiVsTrkPID[i][j]);
+
           // Eta
           publisher->startPublishing(mEtaNumVsTrkPID[i][j]);
           publisher->startPublishing(mEtaDenVsTrkPID[i][j]);
@@ -169,41 +197,20 @@ class MatchITSTPCQC
         }
       }
 
-      publisher->startPublishing(mPhiPhysPrimNum[i]);
-      publisher->startPublishing(mPhiPhysPrimDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchPhiPhysPrim[i]);
-
-      publisher->startPublishing(mPhiVsPtNum[i]);
-      publisher->startPublishing(mPhiVsPtDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchPhiVsPt[i]);
-
-      publisher->startPublishing(mEtaNum[i]);
-      publisher->startPublishing(mEtaDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchEta[i]);
-
-      publisher->startPublishing(mEtaPhysPrimNum[i]);
-      publisher->startPublishing(mEtaPhysPrimDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchEtaPhysPrim[i]);
-
-      publisher->startPublishing(mEtaVsPtNum[i]);
-      publisher->startPublishing(mEtaVsPtDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchEtaVsPt[i]);
-
-      publisher->startPublishing(mClsVsPtNum[i]);
-      publisher->startPublishing(mClsVsPtDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchClsVsPt[i]);
-
-      publisher->startPublishing(mChi2VsPtNum[i]);
-      publisher->startPublishing(mChi2VsPtDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchChi2VsPt[i]);
-
-      publisher->startPublishing(m1OverPtNum[i]);
-      publisher->startPublishing(m1OverPtDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatch1OverPt[i]);
-
-      publisher->startPublishing(m1OverPtPhysPrimNum[i]);
-      publisher->startPublishing(m1OverPtPhysPrimDen[i]);
-      publisher->startPublishing(mFractionITSTPCmatchPhysPrim1OverPt[i]);
+      if (mUseMC) {
+        publisher->startPublishing(mPhiPhysPrimNum[i]);
+        publisher->startPublishing(mPhiPhysPrimDen[i]);
+        publisher->startPublishing(mFractionITSTPCmatchPhiPhysPrim[i]);
+        publisher->startPublishing(mPtPhysPrimNum[i]);
+        publisher->startPublishing(mPtPhysPrimDen[i]);
+        publisher->startPublishing(mFractionITSTPCmatchPhysPrim[i]);
+        publisher->startPublishing(mEtaPhysPrimNum[i]);
+        publisher->startPublishing(mEtaPhysPrimDen[i]);
+        publisher->startPublishing(mFractionITSTPCmatchEtaPhysPrim[i]);
+        publisher->startPublishing(m1OverPtPhysPrimNum[i]);
+        publisher->startPublishing(m1OverPtPhysPrimDen[i]);
+        publisher->startPublishing(mFractionITSTPCmatchPhysPrim1OverPt[i]);
+      }
     }
     publisher->startPublishing(mChi2Matching);
     publisher->startPublishing(mChi2Refit);
@@ -225,8 +232,6 @@ class MatchITSTPCQC
   void deleteHistograms();
   void setBz(float bz) { mBz = bz; }
 
-  // track selection
-  bool selectTrack(o2::tpc::TrackTPC const& track); // still present but not used
   // ITS track
   void setMinPtITSCut(float v) { mPtITSCut = v; };
   void setEtaITSCut(float v) { mEtaITSCut = v; }; // TODO: define 2 different values for min and max (**)

@@ -19,6 +19,7 @@
 #pragma link C++ class o2::fwdalign::MatrixSq + ;
 #pragma link C++ class o2::fwdalign::MillePede2 + ;
 #pragma link C++ class o2::fwdalign::MillePedeRecord + ;
+#pragma link C++ class std::vector < o2::fwdalign::MillePedeRecord> + ;
 #pragma link C++ class o2::fwdalign::MilleRecordReader + ;
 #pragma link C++ class o2::fwdalign::MilleRecordWriter + ;
 #pragma link C++ class o2::fwdalign::MinResSolve + ;

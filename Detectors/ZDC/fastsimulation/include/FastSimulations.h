@@ -78,8 +78,8 @@ class NeuralFastSimulation
   Ort::MemoryInfo mMemoryInfo;
 
   /// Input/Output names and input shape
-  std::vector<char*> mInputNames;
-  std::vector<char*> mOutputNames;
+  std::vector<std::string> mInputNames;
+  std::vector<std::string> mOutputNames;
   std::vector<std::vector<int64_t>> mInputShapes;
   /// If model has dynamic axis (for batch processing) this will tell ONNX expected size of those axis
   /// otherwise mBatchSize has no effect during runtime

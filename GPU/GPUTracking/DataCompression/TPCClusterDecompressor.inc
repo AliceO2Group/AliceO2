@@ -37,7 +37,7 @@ static inline const auto& decompressTrackStore(const o2::tpc::CompressedClusters
   return clusterVector.back();
 }
 
-static inline const auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
+static inline auto decompressTrackStore(const o2::tpc::CompressedClusters* clustersCompressed, const unsigned int offset, unsigned int slice, unsigned int row, unsigned int pad, unsigned int time, std::vector<ClusterNative> (&clusters)[GPUCA_NSLICES][GPUCA_ROW_COUNT], std::atomic_flag (&locks)[GPUCA_NSLICES][GPUCA_ROW_COUNT])
 {
   std::vector<ClusterNative>& clusterVector = clusters[slice][row];
   auto& lock = locks[slice][row];

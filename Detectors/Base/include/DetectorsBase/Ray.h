@@ -74,8 +74,8 @@ class Ray
   GPUd() float getDist() const { return mDistXYZ; }
   GPUd() float getDist(float deltaT) const { return mDistXYZ * (deltaT > 0 ? deltaT : -deltaT); }
 
-  // for debud only
-  float getPos(float t, int i) const { return mP[i] + t * mD[i]; }
+  // for debug only
+  GPUd() float getPos(float t, int i) const { return mP[i] + t * mD[i]; }
 
   GPUd() float getPhi(float t) const
   {

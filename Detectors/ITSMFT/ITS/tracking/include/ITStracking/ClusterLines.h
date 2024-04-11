@@ -173,9 +173,9 @@ GPUhdi() void Line::getDCAComponents(const Line& line, const float point[3], flo
   destArray[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
   destArray[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
   destArray[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
-  destArray[1] = std::sqrt(destArray[0] * destArray[0] + destArray[3] * destArray[3]);
-  destArray[2] = std::sqrt(destArray[0] * destArray[0] + destArray[5] * destArray[5]);
-  destArray[4] = std::sqrt(destArray[3] * destArray[3] + destArray[5] * destArray[5]);
+  destArray[1] = o2::gpu::CAMath::Sqrt(destArray[0] * destArray[0] + destArray[3] * destArray[3]);
+  destArray[2] = o2::gpu::CAMath::Sqrt(destArray[0] * destArray[0] + destArray[5] * destArray[5]);
+  destArray[4] = o2::gpu::CAMath::Sqrt(destArray[3] * destArray[3] + destArray[5] * destArray[5]);
 }
 
 inline bool Line::operator==(const Line& rhs) const

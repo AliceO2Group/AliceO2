@@ -29,13 +29,10 @@
 #include <iostream>
 #include <fstream>
 
-#if defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_GPULIBRARY)
+#if defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_GPUCODE)
 #include "AliHLTDefinitions.h"
 #include "AliHLTSystem.h"
 #endif
-
-#define RANDOM_ERROR
-//#define RANDOM_ERROR || rand() % 500 == 1
 
 #define GPUCA_GPUReconstructionUpdateDefaults()                                             \
   if (mProcessingSettings.trackletConstructorInPipeline < 0) {                              \

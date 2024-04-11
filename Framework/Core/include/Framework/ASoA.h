@@ -67,6 +67,7 @@ struct Binding {
 
 void accessingInvalidIndexFor(const char* getter);
 void dereferenceWithWrongType();
+void missingFilterDeclaration(int hash, int ai);
 
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
@@ -582,7 +583,7 @@ struct IndexPolicyBase {
 };
 
 struct RowViewSentinel {
-  uint64_t const index;
+  int64_t const index;
 };
 
 struct FilteredIndexPolicy : IndexPolicyBase {
@@ -645,19 +646,9 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     updateRow();
   }
 
-  bool operator!=(FilteredIndexPolicy const& other) const
+  friend bool operator==(FilteredIndexPolicy const& lh, FilteredIndexPolicy const& rh)
   {
-    return O2_BUILTIN_LIKELY(mSelectionRow != other.mSelectionRow);
-  }
-
-  bool operator==(FilteredIndexPolicy const& other) const
-  {
-    return O2_BUILTIN_UNLIKELY(mSelectionRow == other.mSelectionRow);
-  }
-
-  bool operator!=(RowViewSentinel const& sentinel) const
-  {
-    return O2_BUILTIN_LIKELY(mSelectionRow != sentinel.index);
+    return lh.mSelectionRow == rh.mSelectionRow;
   }
 
   bool operator==(RowViewSentinel const& sentinel) const
@@ -757,19 +748,9 @@ struct DefaultIndexPolicy : IndexPolicyBase {
     this->setCursor(mMaxRow);
   }
 
-  friend bool operator!=(DefaultIndexPolicy const& lh, DefaultIndexPolicy const& rh)
-  {
-    return O2_BUILTIN_LIKELY(lh.mRowIndex != rh.mRowIndex);
-  }
-
   friend bool operator==(DefaultIndexPolicy const& lh, DefaultIndexPolicy const& rh)
   {
-    return O2_BUILTIN_UNLIKELY(lh.mRowIndex == rh.mRowIndex);
-  }
-
-  bool operator!=(RowViewSentinel const& sentinel) const
-  {
-    return O2_BUILTIN_LIKELY(this->mRowIndex != sentinel.index);
+    return lh.mRowIndex == rh.mRowIndex;
   }
 
   bool operator==(RowViewSentinel const& sentinel) const
@@ -893,14 +874,6 @@ struct RowViewCore : public IP, C... {
   {
     return *this;
   }
-
-  /// Inequality operator. Actual implementation
-  /// depend on the policy we use for the index.
-  using IP::operator!=;
-
-  /// Equality operator. Actual implementation
-  /// depend on the policy we use for the index.
-  using IP::operator==;
 
   template <typename... CL, typename TA>
   void doSetCurrentIndex(framework::pack<CL...>, TA* current)
@@ -1034,7 +1007,7 @@ struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T, typ
 };
 
 template <typename T>
-static std::string getLabelFromType()
+static constexpr std::string getLabelFromType()
 {
   if constexpr (soa::is_index_table_v<std::decay_t<T>>) {
     using TT = typename std::decay_t<T>::first_t;
@@ -1067,19 +1040,19 @@ static std::string getLabelFromType()
 }
 
 template <typename... C>
-static auto hasColumnForKey(framework::pack<C...>, std::string const& key)
+static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& key)
 {
   return ((C::inherited_t::mLabel == key) || ...);
 }
 
 template <typename T>
-static std::pair<bool, std::string> hasKey(std::string const& key)
+static constexpr std::pair<bool, std::string> hasKey(std::string const& key)
 {
   return {hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
 }
 
 template <typename... C>
-static auto haveKey(framework::pack<C...>, std::string const& key)
+static constexpr auto haveKey(framework::pack<C...>, std::string const& key)
 {
   return std::vector{hasKey<C>(key)...};
 }
@@ -1088,7 +1061,7 @@ void notFoundColumn(const char* label, const char* key);
 void missingOptionalPreslice(const char* label, const char* key);
 
 template <typename T, bool OPT = false>
-static std::string getLabelFromTypeForKey(std::string const& key)
+static constexpr std::string getLabelFromTypeForKey(std::string const& key)
 {
   if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
     using Os = typename std::decay_t<T>::originals;
@@ -1216,6 +1189,20 @@ namespace o2::soa
 //! Helper to check if a type T is an iterator
 template <typename T>
 inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
+
+template <typename T>
+inline constexpr bool is_soa_filtered_iterator_v()
+{
+  if constexpr (!is_soa_iterator_v<T>) {
+    return false;
+  } else {
+    if constexpr (std::is_same_v<typename T::policy_t, soa::FilteredIndexPolicy>) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
 
 template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
@@ -1555,7 +1542,7 @@ class Table
 
   Table(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : mTable(table),
-      mEnd{static_cast<uint64_t>(table->num_rows())},
+      mEnd{table->num_rows()},
       mOffset(offset)
   {
     if (mTable->num_rows() == 0) {
@@ -3089,7 +3076,7 @@ class FilteredBase : public T
     if (mCached) {
       mSelectedRows = gsl::span{mSelectedRowsCache};
     }
-    mFilteredEnd.reset(new RowViewSentinel{mSelectedRows.size()});
+    mFilteredEnd.reset(new RowViewSentinel{static_cast<int64_t>(mSelectedRows.size())});
     if (tableSize() == 0) {
       mFilteredBegin = *mFilteredEnd;
     } else {

@@ -134,6 +134,22 @@ int createGRPECSObject(const std::string& dataPeriod,
     } else {
       LOGP(alarm, "Upload to {}/{} with validity {}:{} for SOR:{}/EOR:{} FAILED, returned with code {}", ccdbServer, objPath, tstart, tendVal, tstart, tend, retValGLO);
     }
+    if ((runType == GRPECSObject::RunType::PHYSICS || runType == GRPECSObject::RunType::COSMICS) && tstart >= tend) { // also create the RCT/Info/RunInformation entry in case the run type is PHYSICS, to be finalized at EOR
+      char tempChar{};
+      std::map<std::string, std::string> mdRCT;
+      mdRCT["SOR"] = std::to_string(tstart);
+      mdRCT["EOR"] = std::to_string(tend);
+      mdRCT["SOX"] = std::to_string(tstartCTP);
+      mdRCT["EOX"] = std::to_string(tendCTP);
+      long startValRCT = (long)run;
+      long endValRCT = (long)(run + 1);
+      retValRCT = api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
+      if (retValRCT == 0) {
+        LOGP(info, "Uploaded initial RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+      } else {
+        LOGP(alarm, "Upload of initial RCT object to {}/{} with validity {}:{} FAILED, returned with code {}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT, retValRCT);
+      }
+    }
     if (tend > tstart) {
       // override SOR version to the same limits
       metadata.erase("EOR");
@@ -157,15 +173,14 @@ int createGRPECSObject(const std::string& dataPeriod,
         mdRCT["EOX"] = std::to_string(tendCTP);
         long startValRCT = (long)run;
         long endValRCT = (long)(run + 1);
-        retValRCT = api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
+        retValRCT = api.updateMetadata("RCT/Info/RunInformation", mdRCT, startValRCT);
         if (retValRCT == 0) {
-          LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+          LOGP(info, "Updated RCT object to SOR:{}/EOR:{} SOX:{}/EOX:{}", tstart, tend, tstartCTP, tendCTP);
         } else {
-          LOGP(alarm, "Uploaded RCT object to {}/{} with validity {}:{} FAILED, returned with code {}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT, retValRCT);
+          LOGP(alarm, "Update of RCT object to SOR:{}/EOR:{} SOX:{}/EOX:{} FAILED, returned with code {}", tstart, tend, tstartCTP, tendCTP, retValRCT);
         }
       }
     }
-
   } else { // write a local file
     auto fname = o2::base::NameConf::getGRPECSFileName();
     TFile grpF(fname.c_str(), "recreate");

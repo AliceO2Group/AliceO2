@@ -18,10 +18,6 @@
 
 #include "ITStracking/Definitions.h"
 
-#ifdef __HIPCC__
-#include <hip/hip_runtime.h>
-#endif
-
 namespace o2
 {
 namespace its

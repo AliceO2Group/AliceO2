@@ -69,31 +69,37 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
   }
 
   if (ctx.inputs().isValid("timer-publish")) {
-    mCyclesSinceReset++;
-
-    if (mConfig.publishMovingWindow.value == PublishMovingWindow::Yes) {
-      publishMovingWindow(ctx.outputs());
-    }
-
-    if (!std::holds_alternative<std::monostate>(mMergedObjectLastCycle)) {
-      merge(mMergedObjectIntegral, std::move(mMergedObjectLastCycle));
-    }
-    mMergedObjectLastCycle = std::monostate{};
-    mTotalDeltasMerged += mDeltasMerged;
-
-    publishIntegral(ctx.outputs());
-
-    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference ||
-        mConfig.mergedObjectTimespan.value == MergedObjectTimespan::NCycles && mConfig.mergedObjectTimespan.param == mCyclesSinceReset) {
-      clear();
-    }
-
-    mCollector->send({mTotalDeltasMerged, "total_deltas_merged"}, monitoring::DerivedMetricMode::RATE);
-    mCollector->send({mDeltasMerged, "deltas_merged_since_last_publication"});
-    mCollector->send({mCyclesSinceReset, "cycles_since_reset"});
-    mDeltasMerged = 0;
+    finishCycle(ctx.outputs());
   }
 }
+
+void IntegratingMerger::finishCycle(DataAllocator& outputs)
+{
+  mCyclesSinceReset++;
+
+  if (mConfig.publishMovingWindow.value == PublishMovingWindow::Yes) {
+    publishMovingWindow(outputs);
+  }
+
+  if (!std::holds_alternative<std::monostate>(mMergedObjectLastCycle)) {
+    merge(mMergedObjectIntegral, std::move(mMergedObjectLastCycle));
+  }
+  mMergedObjectLastCycle = std::monostate{};
+  mTotalDeltasMerged += mDeltasMerged;
+
+  publishIntegral(outputs);
+
+  if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference ||
+      mConfig.mergedObjectTimespan.value == MergedObjectTimespan::NCycles && mConfig.mergedObjectTimespan.param == mCyclesSinceReset) {
+    clear();
+  }
+
+  mCollector->send({mTotalDeltasMerged, "total_deltas_merged"}, monitoring::DerivedMetricMode::RATE);
+  mCollector->send({mDeltasMerged, "deltas_merged_since_last_publication"});
+  mCollector->send({mCyclesSinceReset, "cycles_since_reset"});
+  mDeltasMerged = 0;
+}
+
 void IntegratingMerger::merge(ObjectStore& target, ObjectStore&& other)
 {
   if (std::holds_alternative<std::monostate>(target)) {
@@ -121,7 +127,7 @@ void IntegratingMerger::merge(ObjectStore& target, ObjectStore&& other)
 
 void IntegratingMerger::endOfStream(framework::EndOfStreamContext& eosContext)
 {
-  publishIntegral(eosContext.outputs());
+  finishCycle(eosContext.outputs());
 }
 
 // I am not calling it reset(), because it does not have to be performed during the FairMQs reset.

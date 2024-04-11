@@ -22,7 +22,7 @@
 namespace o2::mch::dcs
 {
 /** get the list of dual sampa indices corresponding to a given DCS Alias */
-std::set<int> aliasToDsIndices(std::string_view alias);
+std::set<DsIndex> aliasToDsIndices(std::string_view alias);
 
 /** get indices of all dual sampas of a set of cathodes (={deId,plane}).
  * returned set might be empty if input Cathodes are not valid ones. */

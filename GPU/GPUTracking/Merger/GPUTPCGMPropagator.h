@@ -69,10 +69,14 @@ class GPUTPCGMPropagator
 
   struct MaterialCorrection {
     GPUhd() MaterialCorrection() : radLen(28811.7f), rho(1.025e-3f), radLenInv(1.f / radLen), DLMax(0.f), EP2(0.f), sigmadE2(0.f), k22(0.f), k33(0.f), k43(0.f), k44(0.f) {}
-
     float radLen;                                              // [cm]
     float rho;                                                 // [g/cm^3]
     float radLenInv, DLMax, EP2, sigmadE2, k22, k33, k43, k44; // precalculated values for MS and EnergyLoss correction
+  };
+
+  struct DebugStreamerVals {
+    int retVal = -100;
+    float err2Y = -1e6f, err2Z = -1e6f;
   };
 
   GPUd() void SetMaterial(float radLen, float rho);
@@ -108,7 +112,7 @@ class GPUTPCGMPropagator
 
   GPUd() int PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
-  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, char sideC, float time, float avgCharge, float charge GPUCA_DEBUG_STREAMER_CHECK(, int iTrk = 0));
+  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, char sideC, float time, float avgInvCharge, float invCharge GPUCA_DEBUG_STREAMER_CHECK(, DebugStreamerVals* debugVals = nullptr));
   GPUd() int Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
   GPUd() int InterpolateReject(const GPUParam& param, float posY, float posZ, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z);
   GPUd() float PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char sideC, float time, float avgCharge, float charge) const;
@@ -138,7 +142,7 @@ class GPUTPCGMPropagator
   GPUd() void GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const;
 
   GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState, char sector, float time, float avgCharge, float charge) const;
-  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float x, float y, int iRow, short clusterState, char sector, float time, float avgCharge, float charge, bool seedingErrors);
+  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float trackX, float trackY, int iRow, short clusterState, char sector, float time, float avgCharge, float charge, bool seedingErrors);
 
   GPUd() float GetAlpha() const { return mAlpha; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }

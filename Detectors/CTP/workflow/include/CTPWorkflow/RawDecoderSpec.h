@@ -56,7 +56,7 @@ class RawDecoderSpec : public framework::Task
   // for digits
   bool mDoDigits = true;
   o2::pmr::vector<CTPDigit> mOutputDigits;
-  int mMaxOutputSize = 0;
+  int mMaxInputSize = 0;
   // for lumi
   bool mDoLumi = true;
   //

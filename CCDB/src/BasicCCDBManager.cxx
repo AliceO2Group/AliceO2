@@ -37,22 +37,29 @@ std::pair<int64_t, int64_t> CCDBManagerInstance::getRunDuration(o2::ccdb::CcdbAp
   auto response = api.retrieveHeaders("RCT/Info/RunInformation", std::map<std::string, std::string>(), runnumber);
   if (response.size() != 0) {
     std::string report{};
-    auto strt = response.find("SOX");
+    auto strt = response.find("STF");
+    auto stop = response.find("ETF");
     long valStrt = (strt == response.end()) ? -1L : boost::lexical_cast<int64_t>(strt->second);
-    if (valStrt < 1) {
-      report += fmt::format(" Missing/invalid SOX -> use SOR");
-      strt = response.find("SOR");
-      valStrt = (strt == response.end()) ? -1L : boost::lexical_cast<int64_t>(strt->second);
-    }
-    auto stop = response.find("EOX");
     long valStop = (stop == response.end()) ? -1L : boost::lexical_cast<int64_t>(stop->second);
-    if (valStop < 1) {
-      report += fmt::format(" | Missing/invalid EOX -> use EOR");
-      stop = response.find("EOR");
+    if (valStrt < 0 || valStop < 0) {
+      report += "Missing STF/EFT -> use SOX/EOX;";
+      strt = response.find("SOX");
+      valStrt = (strt == response.end()) ? -1L : boost::lexical_cast<int64_t>(strt->second);
+      if (valStrt < 1) {
+        report += fmt::format(" Missing/invalid SOX -> use SOR");
+        strt = response.find("SOR");
+        valStrt = (strt == response.end()) ? -1L : boost::lexical_cast<int64_t>(strt->second);
+      }
+      stop = response.find("EOX");
       valStop = (stop == response.end()) ? -1L : boost::lexical_cast<int64_t>(stop->second);
-    }
-    if (!report.empty()) {
-      LOGP(warn, "{}", report);
+      if (valStop < 1) {
+        report += fmt::format(" | Missing/invalid EOX -> use EOR");
+        stop = response.find("EOR");
+        valStop = (stop == response.end()) ? -1L : boost::lexical_cast<int64_t>(stop->second);
+      }
+      if (!report.empty()) {
+        LOGP(warn, "{}", report);
+      }
     }
     if (valStrt > 0 && valStop >= valStrt) {
       return std::make_pair(valStrt, valStop);

@@ -31,6 +31,15 @@ o2_add_executable(grp-lhc-if-file-workflow
                                         O2::GRPCalibration
                                         O2::DetectorsCalibration)
 
+o2_add_executable(workflow
+                  COMPONENT_NAME rct-updater
+                  SOURCES src/rct-updater-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::CCDB
+                                        O2::DetectorsBase
+                                        O2::DetectorsCalibration
+                                        O2::DataFormatsParameters)
+
 o2_add_executable(grp-create
                   COMPONENT_NAME ecs
                   SOURCES src/create-grp-ecs.cxx

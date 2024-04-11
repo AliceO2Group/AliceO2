@@ -9,32 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HIPThrustHelpers.h
-/// \author David Rohr
+// class for extended V0 info (for debugging)
 
-#ifndef GPU_HIPTHRUSTHELPERS_H
-#define GPU_HIPTHRUSTHELPERS_H
-
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-
-class ThrustVolatileAsyncAllocator
-{
- public:
-  typedef char value_type;
-
-  ThrustVolatileAsyncAllocator(GPUReconstruction* r) : mRec(r) {}
-  char* allocate(std::ptrdiff_t n) { return (char*)mRec->AllocateVolatileDeviceMemory(n); }
-
-  void deallocate(char* ptr, size_t) {}
-
- private:
-  GPUReconstruction* mRec;
-};
-
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
-#endif
+#include "GlobalTrackingStudy/V0Ext.h"

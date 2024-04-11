@@ -83,7 +83,7 @@ class CalculatedEdx
   void setDebug(const bool debug) { mDebug = debug; }
 
   /// \param field magnetic field in kG, used for track propagation
-  void setField(const float field) { mField = field; }
+  void setFieldNominalGPUBz(const float field) { mFieldNominalGPUBz = field; }
 
   /// \param maxMissingCl maximum number of missing clusters for subthreshold check
   void setMaxMissingCl(int maxMissingCl) { mMaxMissingCl = maxMissingCl; }
@@ -92,7 +92,7 @@ class CalculatedEdx
   void setStreamer() { mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>("dEdxDebug.root", "recreate"); };
 
   /// \return returns magnetic field in kG
-  float getField() { return mField; }
+  float getFieldNominalGPUBz() { return mFieldNominalGPUBz; }
 
   /// \return returns maxMissingCl for subthreshold cluster treatment
   int getMaxMissingCl() { return mMaxMissingCl; }
@@ -144,7 +144,7 @@ class CalculatedEdx
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{2};                                                ///< maximum number of missing clusters for subthreshold check
-  float mField{5};                                                     ///< magnetic field in kG, used for track propagation
+  float mFieldNominalGPUBz{5};                                         ///< magnetic field in kG, used for track propagation
   bool mPropagateTrack{false};                                         ///< propagating the track instead of performing a refit
   bool mDebug{false};                                                  ///< use the debug streamer
   CalibdEdxContainer mCalibCont;                                       ///< calibration container

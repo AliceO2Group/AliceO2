@@ -555,6 +555,31 @@ std::string TrackParametrization<value_T>::asString() const
   return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e} |Q|:{:d} {:s}",
                      getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
 }
+
+//_____________________________________________________________
+template <typename value_T>
+std::string TrackParametrization<value_T>::asStringHexadecimal()
+{
+  auto _X = getX();
+  auto _Alpha = getAlpha();
+  auto _Y = getY();
+  auto _Z = getZ();
+  auto _Snp = getSnp();
+  auto _Tgl = getTgl();
+  float _Q2Pt = getQ2Pt();
+  float _AbsCharge = getAbsCharge();
+  // print parameters as string
+  return fmt::format("X:{:x} Alp:{:x} Par: {:x} {:x} {:x} {:x} {:x} |Q|:{:x} {:s}",
+                     reinterpret_cast<const unsigned int&>(_X),
+                     reinterpret_cast<const unsigned int&>(_Alpha),
+                     reinterpret_cast<const unsigned int&>(_Y),
+                     reinterpret_cast<const unsigned int&>(_Z),
+                     reinterpret_cast<const unsigned int&>(_Snp),
+                     reinterpret_cast<const unsigned int&>(_Tgl),
+                     reinterpret_cast<const unsigned int&>(_Q2Pt),
+                     reinterpret_cast<const unsigned int&>(_AbsCharge),
+                     getPID().getName());
+}
 #endif
 
 //______________________________________________________________
@@ -565,8 +590,40 @@ GPUd() void TrackParametrization<value_T>::printParam() const
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
 #else
-  printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d",
-         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge());
+  printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d %s",
+         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(),
+#if !defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT)
+         getPID().getName()
+#else
+         ""
+#endif
+  );
+#endif
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrization<value_T>::printParamHexadecimal()
+{
+  // print parameters
+#ifndef GPUCA_ALIGPUCODE
+  printf("%s\n", asStringHexadecimal().c_str());
+#else
+  printf("X:%x Alp:%x Par: %x %x %x %x %x |Q|:%x %s",
+         gpu::CAMath::Float2UIntReint(getX()),
+         gpu::CAMath::Float2UIntReint(getAlpha()),
+         gpu::CAMath::Float2UIntReint(getY()),
+         gpu::CAMath::Float2UIntReint(getZ()),
+         gpu::CAMath::Float2UIntReint(getSnp()),
+         gpu::CAMath::Float2UIntReint(getTgl()),
+         gpu::CAMath::Float2UIntReint(getQ2Pt()),
+         gpu::CAMath::Float2UIntReint(getAbsCharge()),
+#if !defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT)
+         getPID().getName()
+#else
+         ""
+#endif
+  );
 #endif
 }
 
@@ -767,7 +824,7 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
   // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
-  constexpr value_t kMinP = 0.01f;        // kill below this momentum
+  constexpr value_t kMinP = 0.01f; // kill below this momentum
 
   auto m = getPID().getMass();
   if (m > 0 && xrho != 0.f) {

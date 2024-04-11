@@ -8,6 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#ifndef ALICEO2_EMCAL_CALIBDB
+#define ALICEO2_EMCAL_CALIBDB
+
 #include <exception>
 #include <map>
 #include <string>
@@ -31,6 +35,7 @@ class GainCalibrationFactors;
 class EMCALChannelScaleFactors;
 class FeeDCS;
 class ElmbData;
+class Pedestal;
 
 /// \class CalibDB
 /// \brief Interface to calibration data from CCDB for EMCAL
@@ -45,6 +50,7 @@ class ElmbData;
 /// - Time calibration
 /// - Gain calibration
 /// - Temperature calibration
+/// - Pedestals
 /// Users only need to specify the CCDB server, the timestamp and
 /// (optionally) additional meta data. Handling of the CCDB path
 /// and type conversions is done internally - users deal directly
@@ -297,6 +303,20 @@ class CalibDB
   /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
   ElmbData* readTemperatureSensorData(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
 
+  /// \brief Store pedestal data in the CCDB
+  /// \param pedestals Pedestal data to be stored
+  /// \param metadata Additional metadata that can be used in the query
+  /// \param timestart Start of the time range of the validity of the object
+  /// \param timeend End of the time range of the validity of the object
+  void storePedestalData(Pedestal* pedestals, const std::map<std::string, std::string>& metadata, ULong_t timestart, ULong_t timeend);
+
+  /// \brief Find pedestal data in the CCDB for given timestamp
+  /// \param timestamp Timestamp used in query
+  /// \param metadata Additional metadata to be used in the query
+  /// \throw ObjectNotFoundException if object is not found for the given timestamp
+  /// \throw TypeMismatchException if object is present but type is different (CCDB corrupted)
+  Pedestal* readPedestalData(ULong_t timestamp, const std::map<std::string, std::string>& metadata);
+
   /// \brief Set new CCDB server URL
   /// \param server Name of the CCDB server to be used in queries
   ///
@@ -345,6 +365,10 @@ class CalibDB
   /// \return Path of the scale factors used in the bad channel calibration in the CCDB
   static const char* getCDBPathChannelScaleFactors() { return "EMC/Config/ChannelScaleFactors"; }
 
+  /// \brief Get CCDB path for the pedestal data
+  /// \return Path of the pedestal data
+  static const char* getCDBPathChannelPedestals() { return "EMC/Calib/Pedestal"; }
+
  private:
   /// \brief Initialize CCDB server (when new object is created or the server URL changes)
   void
@@ -359,3 +383,5 @@ class CalibDB
 } // namespace emcal
 
 } // namespace o2
+
+#endif

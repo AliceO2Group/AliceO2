@@ -44,7 +44,6 @@ void TrackClusters::initializeHistograms()
 {
   TH1::AddDirectory(false);
   mMapHist["sharedClusters"].emplace_back(std::make_unique<TH1F>("sharedClusters", "sharedClusters;NSharedClusters;Entries", binsSharedClusters.bins, binsSharedClusters.min, binsSharedClusters.max));
-  mMapHist["foundClusters"].emplace_back(std::make_unique<TH1F>("foundClusters", "foundClusters;foundClusters;Entries", binsFoundClusters.bins, binsFoundClusters.min, binsFoundClusters.max));
   mMapHist["crossedRows"].emplace_back(std::make_unique<TH1F>("crossedRows", "crossedRows;crossedRows;Entries", binsCrossedRows.bins, binsCrossedRows.min, binsCrossedRows.max));
 }
 
@@ -65,7 +64,7 @@ bool TrackClusters::processTrackAndClusters(const std::vector<o2::tpc::TrackTPC>
   std::vector<unsigned char> mBufVec;
   mBufVec.resize(clusterIndex->nClustersTotal);
 
-  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(clusterIndex, *tracks, clusRefs->data(), mBufVec.data());
+  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(clusterIndex, *tracks, clusRefs->data(), mBufVec.data());
 
   for (auto const& track : (*tracks)) {
     const auto dEdxTot = track.getdEdx().dEdxTotTPC;
@@ -81,7 +80,6 @@ bool TrackClusters::processTrackAndClusters(const std::vector<o2::tpc::TrackTPC>
     o2::TrackMethods::countTPCClusters(track, *clusRefs, mBufVec, *clusterIndex, shared, found, crossed);
 
     mMapHist["sharedClusters"][0]->Fill(shared);
-    mMapHist["foundClusters"][0]->Fill(found);
     mMapHist["crossedRows"][0]->Fill(crossed);
   }
 

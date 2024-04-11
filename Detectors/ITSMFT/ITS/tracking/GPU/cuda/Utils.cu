@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <cuda_runtime.h>
 #include "ITStrackingGPU/Utils.h"
 #include "ITStrackingGPU/Context.h"
 #include "ITStracking/Constants.h"
@@ -19,6 +20,7 @@
 #include <iomanip>
 #include <numeric>
 #include <iostream>
+#include <cstdint>
 
 namespace
 {
@@ -281,14 +283,6 @@ void utils::gpuMemcpyToSymbol(const void* symbol, const void* src, int size)
 void utils::gpuMemcpyFromSymbol(void* dst, const void* symbol, int size)
 {
   checkGPUError(cudaMemcpyFromSymbol(dst, symbol, size, 0, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-}
-
-GPUd() int utils::getLaneIndex()
-{
-  uint32_t laneIndex;
-  asm volatile("mov.u32 %0, %%laneid;"
-               : "=r"(laneIndex));
-  return static_cast<int>(laneIndex);
 }
 } // namespace gpu
 } // namespace its

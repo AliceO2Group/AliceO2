@@ -24,106 +24,101 @@ using namespace GPUCA_NAMESPACE::gpu::tpccf;
 template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage)
 {
-  int nElems = compactionElems(clusterer, stage);
-  nativeScanUpStartImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
-}
+  int nElems = CompactionElems(clusterer, stage);
 
-GPUdii() void GPUTPCCFStreamCompaction::nativeScanUpStartImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                              const uchar* predicate,
-                                                              int* sums,
-                                                              int* incr, int nElems)
-{
-  int idx = get_global_id(0);
+  const auto* predicate = clusterer.mPisPeak;
+  auto* scanOffset = clusterer.GetScanBuffer(iBuf);
+
+  int iThreadGlobal = get_global_id(0);
   int pred = 0;
-  if (idx < nElems) {
-    pred = predicate[idx];
+  if (iThreadGlobal < nElems) {
+    pred = predicate[iThreadGlobal];
   }
 
-  int scanRes = CfUtils::blockPredicateSum<GPUCA_THREAD_COUNT_SCAN>(smem, pred);
+  int nElemsInBlock = CfUtils::blockPredicateSum<GPUCA_THREAD_COUNT_SCAN>(smem, pred);
 
-  int lid = get_local_id(0);
-  int lastItem = get_local_size(0) - 1;
-  int gid = get_group_id(0);
-
-  if (lid == lastItem) {
-    incr[gid] = scanRes;
+  int lastThread = nThreads - 1;
+  if (iThread == lastThread) {
+    scanOffset[iBlock] = nElemsInBlock;
   }
 }
 
 template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanUp>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
 {
-  nativeScanUpImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems);
-}
+  auto* scanOffset = clusterer.GetScanBuffer(iBuf - 1);
+  auto* scanOffsetNext = clusterer.GetScanBuffer(iBuf);
 
-GPUdii() void GPUTPCCFStreamCompaction::nativeScanUpImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                         int* sums,
-                                                         int* incr, int nElems)
-{
-  int idx = get_global_id(0);
-  int scanRes = work_group_scan_inclusive_add((idx < nElems) ? sums[idx] : 0);
+  int iThreadGlobal = get_global_id(0);
+  int offsetInBlock = work_group_scan_inclusive_add((iThreadGlobal < nElems) ? scanOffset[iThreadGlobal] : 0);
 
-  /* DBGPR_2("ScanUp: idx = %d, res = %d", idx, scanRes); */
+  // TODO: This write isn't needed??
+  scanOffset[iThreadGlobal] = offsetInBlock;
 
-  sums[idx] = scanRes;
-
-  int lid = get_local_id(0);
-  int lastItem = get_local_size(0) - 1;
-  int gid = get_group_id(0);
-
-  /* DBGPR_1("ScanUp: idx = %d", idx); */
-
-  if (lid == lastItem) {
-    incr[gid] = scanRes;
+  int lastThread = nThreads - 1;
+  if (iThread == lastThread) {
+    scanOffsetNext[iBlock] = offsetInBlock;
   }
 }
 
 template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanTop>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int nElems)
 {
-  nativeScanTopImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, nElems);
-}
+  int iThreadGlobal = get_global_id(0);
+  int* scanOffset = clusterer.GetScanBuffer(iBuf - 1);
 
-GPUdii() void GPUTPCCFStreamCompaction::nativeScanTopImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, int* incr, int nElems)
-{
-  int idx = get_global_id(0);
+  bool inBounds = (iThreadGlobal < nElems);
 
-  /* DBGPR_1("ScanTop: idx = %d", idx); */
+  int offsetInBlock = work_group_scan_inclusive_add(inBounds ? scanOffset[iThreadGlobal] : 0);
 
-  int scanRes = work_group_scan_inclusive_add((idx < nElems) ? incr[idx] : 0);
-  incr[idx] = scanRes;
+  if (inBounds) {
+    scanOffset[iThreadGlobal] = offsetInBlock;
+  }
 }
 
 template <>
-GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, unsigned int offset, int nElems)
+GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::scanDown>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& /*smem*/, processorType& clusterer, int iBuf, unsigned int offset, int nElems)
 {
-  nativeScanDownImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, offset, nElems);
-}
+  int iThreadGlobal = get_global_id(0) + offset;
 
-GPUdii() void GPUTPCCFStreamCompaction::nativeScanDownImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                           int* sums,
-                                                           const int* incr,
-                                                           unsigned int offset, int nElems)
-{
-  int gid = get_group_id(0);
-  int idx = get_global_id(0) + offset;
+  int* scanOffsetPrev = clusterer.GetScanBuffer(iBuf - 1);
+  const int* scanOffset = clusterer.GetScanBuffer(iBuf);
 
-  int shift = incr[gid];
+  int shift = scanOffset[iBlock];
 
-  if (idx < nElems) {
-    sums[idx] += shift;
+  if (iThreadGlobal < nElems) {
+    scanOffsetPrev[iThreadGlobal] += shift;
   }
 }
 
 template <>
 GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compactDigits>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, int iBuf, int stage, ChargePos* in, ChargePos* out)
 {
-  unsigned int nElems = compactionElems(clusterer, stage);
+  unsigned int nElems = CompactionElems(clusterer, stage);
   SizeT bufferSize = (stage) ? clusterer.mNMaxClusters : clusterer.mNMaxPeaks;
-  compactImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems, bufferSize);
+
+  unsigned int iThreadGlobal = get_global_id(0);
+
+  const auto* predicate = clusterer.mPisPeak;
+  const auto* scanOffset = clusterer.GetScanBuffer(iBuf);
+
+  bool iAmDummy = (iThreadGlobal >= nElems);
+
+  int pred = (iAmDummy) ? 0 : predicate[iThreadGlobal];
+  int offsetInBlock = CfUtils::blockPredicateScan<GPUCA_THREAD_COUNT_SCAN>(smem, pred);
+
+  SizeT globalOffsetOut = offsetInBlock;
+  if (iBlock > 0) {
+    globalOffsetOut += scanOffset[iBlock - 1];
+  }
+
+  if (pred && globalOffsetOut < bufferSize) {
+    out[globalOffsetOut] = in[iThreadGlobal];
+  }
+
   unsigned int lastId = get_global_size(0) - 1;
-  if ((unsigned int)get_global_id(0) == lastId) {
-    SizeT nFinal = clusterer.mPbuf[lastId];
+  if (iThreadGlobal == lastId) {
+    SizeT nFinal = globalOffsetOut + pred;
     if (nFinal > bufferSize) {
       clusterer.raiseError(stage ? GPUErrors::ERROR_CF_CLUSTER_OVERFLOW : GPUErrors::ERROR_CF_PEAK_OVERFLOW, clusterer.mISlice, nFinal, bufferSize);
       nFinal = bufferSize;
@@ -136,42 +131,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
   }
 }
 
-GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem,
-                                                    const ChargePos* in,
-                                                    ChargePos* out,
-                                                    const uchar* predicate,
-                                                    int* newIdx,
-                                                    const int* incr,
-                                                    int nElems,
-                                                    SizeT bufferSize)
-{
-  int gid = get_group_id(0);
-  int idx = get_global_id(0);
-
-  int lastItem = get_global_size(0) - 1;
-
-  bool iAmDummy = (idx >= nElems);
-
-  int pred = (iAmDummy) ? 0 : predicate[idx];
-  int scanRes = CfUtils::blockPredicateScan<GPUCA_THREAD_COUNT_SCAN>(smem, pred);
-
-  SizeT compIdx = scanRes;
-  if (gid) {
-    compIdx += incr[gid - 1];
-  }
-
-  // SizeT tgtIdx = compIdx - 1;
-  SizeT tgtIdx = compIdx;
-  if (pred && tgtIdx < bufferSize) {
-    out[tgtIdx] = in[idx];
-  }
-
-  if (idx == lastItem) {
-    newIdx[idx] = compIdx; // TODO: Eventually, we can just return the last value, no need to store to memory
-  }
-}
-
-GPUdii() int GPUTPCCFStreamCompaction::compactionElems(processorType& clusterer, int stage)
+GPUdii() int GPUTPCCFStreamCompaction::CompactionElems(processorType& clusterer, int stage)
 {
   return (stage) ? clusterer.mPmemory->counters.nPeaks : clusterer.mPmemory->counters.nPositions;
 }

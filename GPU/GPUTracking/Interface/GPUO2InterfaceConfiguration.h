@@ -98,11 +98,10 @@ struct GPUO2InterfaceConfiguration {
   GPUCalibObjectsConst configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
+  static GPUSettingsO2 ReadConfigurableParam(GPUO2InterfaceConfiguration& obj);
   void PrintParam();
 
  private:
-  friend class GPUReconstruction;
-  GPUSettingsO2 ReadConfigurableParam_internal();
   void PrintParam_internal();
 };
 

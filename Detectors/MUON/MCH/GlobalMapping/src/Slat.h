@@ -12,14 +12,15 @@
 #ifndef O2_MCH_GLOBAL_MAPPING_SLAT_H
 #define O2_MCH_GLOBAL_MAPPING_SLAT_H
 
-#include <set>
 #include "MCHConditions/Cathode.h"
+#include "MCHGlobalMapping/DsIndex.h"
+#include <set>
 #include <string>
 
 namespace o2::mch::dcs::slat
 {
 std::set<dcs::Cathode> lvAliasToCathode(std::string_view alias);
-std::set<int> solarAliasToDsIndices(std::string_view alias);
+std::set<DsIndex> solarAliasToDsIndices(std::string_view alias);
 } // namespace o2::mch::dcs::slat
 
 #endif

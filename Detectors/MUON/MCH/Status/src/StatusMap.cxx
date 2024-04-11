@@ -10,7 +10,12 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHStatus/StatusMap.h"
+
+#include <stdexcept>
+
 #include "Framework/Logger.h"
+#include "MCHConstants/DetectionElements.h"
+#include "MCHMappingInterface/Segmentation.h"
 
 #include <fmt/format.h>
 
@@ -21,7 +26,7 @@ namespace o2::mch
 
 void assertValidMask(uint32_t mask)
 {
-  uint32_t maxMask = StatusMap::kBadPedestal + StatusMap::kRejectList;
+  static constexpr uint32_t maxMask = StatusMap::kBadPedestal | StatusMap::kRejectList | StatusMap::kBadHV;
   if (mask > maxMask) {
     throw std::runtime_error(fmt::format("invalid mask {} (max allowed is {}",
                                          mask, maxMask));
@@ -36,8 +41,8 @@ void StatusMap::add(gsl::span<const DsChannelId> badchannels, uint32_t mask)
       ChannelCode cc(id.getSolarId(), id.getElinkId(), id.getChannel());
       mStatus[cc] |= mask;
     } catch (const std::exception& e) {
-      // Catch exceptions thrown by the ChannelCode constructor
-      LOGP(warning, "Error processing channel - SolarId: {} ElinkId: {} Channel: {}. Error: {}. This channel is skipped.", id.getSolarId(), id.getElinkId(), id.getChannel(), e.what());
+      LOGP(warning, "Error processing channel - SolarId: {} ElinkId: {} Channel: {}. Error: {}. This channel is skipped.",
+           id.getSolarId(), id.getElinkId(), id.getChannel(), e.what());
     }
   }
 }
@@ -48,6 +53,54 @@ void StatusMap::add(gsl::span<const ChannelCode> badchannels, uint32_t mask)
   for (auto id : badchannels) {
     mStatus[id] |= mask;
   }
+}
+
+void StatusMap::addDS(DsIndex badDS, uint32_t mask)
+{
+  if (badDS >= NumberOfDualSampas) {
+    LOGP(warning, "Error processing Dual Sampa - index: {}. This DS is skipped.", badDS);
+    return;
+  }
+  addDS(getDsDetId(badDS), mask);
+}
+
+void StatusMap::addDS(raw::DsDetId badDS, uint32_t mask)
+{
+  assertValidMask(mask);
+  auto deId = badDS.deId();
+  if (!constants::isValidDetElemId(deId)) {
+    LOGP(warning, "Error processing Dual Sampa - {}. This DS is skipped.", raw::asString(badDS));
+    return;
+  }
+  const auto& seg = mapping::segmentation(deId);
+  seg.forEachPadInDualSampa(badDS.dsId(), [&](int dePadIndex) {
+    try {
+      ChannelCode cc(deId, dePadIndex);
+      mStatus[cc] |= mask;
+    } catch (const std::exception& e) {
+      LOGP(warning, "Error processing channel - {} padIndex: {}. Error: {}. This channel is skipped.",
+           raw::asString(badDS), dePadIndex, e.what());
+    }
+  });
+}
+
+void StatusMap::addDE(uint16_t badDE, uint32_t mask)
+{
+  assertValidMask(mask);
+  if (!constants::isValidDetElemId(badDE)) {
+    LOGP(warning, "Error processing DE - Id: {}. This DE is skipped.", badDE);
+    return;
+  }
+  const auto& seg = mapping::segmentation(badDE);
+  seg.forEachPad([&](int dePadIndex) {
+    try {
+      ChannelCode cc(badDE, dePadIndex);
+      mStatus[cc] |= mask;
+    } catch (const std::exception& e) {
+      LOGP(warning, "Error processing channel - deId: {} padIndex: {}. Error: {}. This channel is skipped.",
+           badDE, dePadIndex, e.what());
+    }
+  });
 }
 
 uint32_t StatusMap::status(const ChannelCode& id) const

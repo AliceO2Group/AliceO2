@@ -116,6 +116,8 @@ class GPUTPCClusterFinder : public GPUProcessor
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
+  GPUdi() int* GetScanBuffer(int iBuf) const { return mPbuf + iBuf * mBufSize; }
+
   o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> const* mPinputLabels = nullptr;
   unsigned int* mPlabelsInRow = nullptr;
   unsigned int mPlabelsHeaderGlobalOffset = 0;

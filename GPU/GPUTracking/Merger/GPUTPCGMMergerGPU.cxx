@@ -12,6 +12,7 @@
 /// \file GPUTPCGMMergerGPU.cxx
 /// \author David Rohr
 
+#if !defined(GPUCA_GPUCODE) || !defined(GPUCA_ALIROOT_LIB) // GPU Merger was not available for Run 2
 #include "GPUTPCGMMergerGPU.h"
 #include "GPUCommonAlgorithm.h"
 #if defined(WITH_OPENMP) && !defined(GPUCA_GPUCODE)
@@ -217,3 +218,4 @@ GPUdii() void GPUTPCGMMergerMergeLoopers::Thread<2>(int nBlocks, int nThreads, i
 {
   merger.MergeLoopersMain(nBlocks, nThreads, iBlock, iThread);
 }
+#endif // !defined(GPUCA_GPUCODE) || !defined(GPUCA_ALIROOT_LIB)

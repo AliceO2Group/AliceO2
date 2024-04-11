@@ -76,6 +76,7 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CALIB_FT0_TIMEOFFSET = $CALIB_FT0_TIMEOFFSET" 1>&2
   echo "CALIB_ITS_DEADMAP_TIME = $CALIB_ITS_DEADMAP_TIME" 1>&2
   echo "CALIB_MFT_DEADMAP_TIME = $CALIB_MFT_DEADMAP_TIME" 1>&2
+  echo "CALIB_RCT_UPDATER = ${CALIB_RCT_UPDATER:-}" 1>&2
 fi
 
 # beamtype dependent settings
@@ -191,6 +192,10 @@ fi
 
 # calibrations for AGGREGATOR_TASKS == BARREL_TF
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
+  # RCT updater
+  if [[ ${CALIB_RCT_UPDATER:-} == 1 ]]; then
+    add_W o2-rct-updater-workflow "--ccdb-server $CCDB_POPULATOR_UPLOAD_PATH"
+  fi
   # PrimaryVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     : ${TFPERSLOTS_MEANVTX:=55000}
@@ -199,11 +204,11 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # ITS
   if [[ $CALIB_ITS_DEADMAP_TIME == 1 ]]; then
-     add_W o2-itsmft-deadmap-builder-workflow "${CALIB_ITS_DEADMAP_TIME_OPT:-}"
+     add_W o2-itsmft-deadmap-builder-workflow "--ccdb-url $CCDB_POPULATOR_UPLOAD_PATH ${CALIB_ITS_DEADMAP_TIME_OPT:-}"
   fi
   # MFT
   if [[ $CALIB_MFT_DEADMAP_TIME == 1 ]]; then
-     add_W o2-itsmft-deadmap-builder-workflow  "--runmft ${CALIB_MFT_DEADMAP_TIME_OPT:---skip-static-map}"
+     add_W o2-itsmft-deadmap-builder-workflow  "--runmft --ccdb-url $CCDB_POPULATOR_UPLOAD_PATH ${CALIB_MFT_DEADMAP_TIME_OPT:---skip-static-map}"
   fi
   # TOF
   if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then

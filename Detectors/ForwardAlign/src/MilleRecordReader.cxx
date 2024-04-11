@@ -25,7 +25,7 @@ MilleRecordReader::MilleRecordReader()
     mIsSuccessfulInit(false),
     mIsConstraintsRec(false),
     mIsReadEntryOk(false),
-    mDataTreeName("milleRecords"),
+    mDataTreeName("o2sim"),
     mDataBranchName("data"),
     mRecord(nullptr),
     mCurrentDataID(-1),

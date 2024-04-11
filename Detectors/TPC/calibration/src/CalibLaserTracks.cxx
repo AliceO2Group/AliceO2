@@ -16,6 +16,7 @@
 #include "MathUtils/Utils.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
+#include "TPCBase/ParameterDetector.h"
 #include "TPCCalibration/CalibLaserTracks.h"
 #include "TLinearFitter.h"
 #include <chrono>
@@ -239,8 +240,10 @@ void CalibLaserTracks::updateParameters()
 {
   const auto& gasParam = ParameterGas::Instance();
   const auto& electronicsParam = ParameterElectronics::Instance();
+  const auto& detpar = o2::tpc::ParameterDetector::Instance();
   mDriftV = gasParam.DriftV;
   mZbinWidth = electronicsParam.ZbinWidth;
+  mTOffsetMUS = detpar.DriftTimeOffset * mZbinWidth;
 }
 
 //______________________________________________________________________________
@@ -335,6 +338,8 @@ void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<
   calibData.dvOffsetC = dvC.x1;
   calibData.dvCorrectionC = dvC.x2;
   calibData.nTracksC = uint16_t(pairsC.size());
+
+  calibData.refTimeOffset = mTOffsetMUS;
 }
 
 //______________________________________________________________________________

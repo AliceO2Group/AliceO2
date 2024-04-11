@@ -18,7 +18,7 @@ function(create_binary_resource RESOURCE OUTPUTFILE)
   add_custom_command(
     OUTPUT ${OUTPUTFILE}
     COMMAND ${CMAKE_LINKER} --relocatable --format binary --output ${OUTPUTFILE} ${input-file-rel}
-    DEPENDS ${RESOURCE}
+    DEPENDS ${input-file-rel}
     COMMENT "Adding binary resource ${input-file-rel}"
     VERBATIM
   )

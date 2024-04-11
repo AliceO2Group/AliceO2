@@ -381,6 +381,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       return;
     }
     std::string missing = "";
+    bool showAlarm = false;
     for (auto mi : unmatchedDescriptions) {
       auto& spec = routes[mi].matcher;
       missing += " " + DataSpecUtils::describe(spec);
@@ -407,10 +408,13 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       parts.AddPart(std::move(headerMessage));
       // add empty payload message
       parts.AddPart(device.NewMessageFor(channelName, 0, 0));
+      if ((concrete.origin != o2::header::gDataOriginEMC && concrete.origin != o2::header::gDataOriginPHS && concrete.origin != o2::header::gDataOriginHMP) || concrete.description != o2::header::DataDescription{"RAWDATA"}) {
+        showAlarm = true;
+      }
     }
     static int maxWarn = 10; // Correct would be o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef, but Framework does not depend on CommonUtils..., but not so critical since receives will send correct number of DEADBEEF messages
     static int contDeadBeef = 0;
-    if (++contDeadBeef <= maxWarn) {
+    if (showAlarm && ++contDeadBeef <= maxWarn) {
       LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF{}", foundDataSpecs, expectedDataSpecs, missing, contDeadBeef == maxWarn ? " - disabling alarm now to stop flooding the log" : "");
     }
   }

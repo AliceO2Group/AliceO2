@@ -75,19 +75,23 @@ Bool_t
 
     /** generate event **/
     if (!generateEvent()) {
+      LOG(error) << "ReadEvent failed in generateEvent";
       return kFALSE;
     }
 
     /** import particles **/
     if (!importParticles()) {
+      LOG(error) << "ReadEvent failed in importParticles";
       return kFALSE;
     }
 
     if (mSubGeneratorsIdToDesc.empty() && mSubGeneratorId > -1) {
+      LOG(error) << "ReadEvent failed because no SubGenerator description given";
       return kFALSE;
     }
 
     if (!mSubGeneratorsIdToDesc.empty() && mSubGeneratorId < 0) {
+      LOG(error) << "ReadEvent failed because SubGenerator description given but sub-generator not set";
       return kFALSE;
     }
 
@@ -102,6 +106,7 @@ Bool_t
 
   /** add tracks **/
   if (!addTracks(primGen)) {
+    LOG(error) << "ReadEvent failed in addTracks";
     return kFALSE;
   }
 

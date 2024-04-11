@@ -39,11 +39,11 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
   TColor::InvertPalette();
   gStyle->SetOptStat(0);
   // Geometry
-  o2::base::GeometryManager::loadGeometry("");
-  auto gman = o2::its::GeometryTGeo::Instance();
+  auto& cc = o2::ccdb::BasicCCDBManager::instance();
+  cc.setTimestamp(o2::ccdb::getCurrentTimestamp());
+  auto* gman = cc.get<o2::its::GeometryTGeo>("ITS/Config/Geometry");
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   // Topology dictionary
-  auto& cc = o2::ccdb::BasicCCDBManager::instance();
   auto mdict = cc.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
   auto fITSclus = TFile::Open(fname.data(), "r");
   auto treeITSclus = (TTree*)fITSclus->Get("o2sim");
@@ -60,6 +60,8 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
 
   auto clSpan = gsl::span(ITSclus->data(), ITSclus->size());
   std::vector<TH2D*> hHitMapsVsFrame(nRofs);
+  TH2D* hHitMapSuperimposed = nullptr;
+  hHitMapSuperimposed = new TH2D(Form("chip%i_superimposed", chipId), Form("chip %i superimposed; ; ; Counts", chipId), 1024, -0.5, 1023.5, 512, -0.5, 511.5);
 
   treeITSclus->GetEvent(0);
   LOGP(info, "there are {} rofs in this TF", ITSrof->size());
@@ -69,7 +71,7 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
   getClusterPatterns(pattVec, ITSclus, ITSpatt, *mdict);
 
   for (unsigned int iR{0}; iR < nRofs; iR++) {
-    LOGP(info, "Processing rof {}", iR + startingROF);
+    LOGP(info, "===============\n \tProcessing rof {} \n\t===============", iR + startingROF);
     hHitMapsVsFrame[iR] = new TH2D(Form("chip%i_rof%i", chipId, startingROF + iR), Form("chip %i rof %i; ; ; Counts", chipId, startingROF + iR), 1024, -0.5, 1023.5, 512, -0.5, 511.5);
 
     // work on data
@@ -83,6 +85,7 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
       auto sID = clus.getSensorID();
 
       if (sID == chipId) {
+        LOGP(info, "Processing cluster {}", clusInd);
         clus.print();
 
         // auto labels = clusLabArr->getLabels(clusInd);
@@ -106,6 +109,7 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
             if ((tempChar & s) != 0) // checking active pixels
             {
               hHitMapsVsFrame[iR]->Fill(col + ic, row + ir);
+              hHitMapSuperimposed->Fill(col + ic, row + ir);
             }
             ic++;
             s >>= 1;
@@ -125,6 +129,7 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
     }
   }
   auto canvas = new TCanvas(Form("chip%d", chipId), Form("chip%d", chipId), nRofs * 1000, 600);
+  auto canvasSuperimposition = new TCanvas(Form("chip%d_superimposed", chipId), Form("chip%d_superimposed", chipId), 600, 600);
 
   canvas->Divide(nRofs, 1);
   for (unsigned int i{0}; i < nRofs; ++i) {
@@ -133,6 +138,10 @@ void CheckSquasher(const uint chipId = 0, const uint startingROF = 0, const unsi
     gPad->SetGridy();
     hHitMapsVsFrame[i]->Draw("colz");
   }
+  canvasSuperimposition->cd();
+  gPad->SetGridx();
+  gPad->SetGridy();
+  hHitMapSuperimposed->Draw("colz");
 }
 
 void getClusterPatterns(std::vector<o2::itsmft::ClusterPattern>& pattVec, std::vector<o2::itsmft::CompClusterExt>* ITSclus, std::vector<unsigned char>* ITSpatt, o2::itsmft::TopologyDictionary& mdict)

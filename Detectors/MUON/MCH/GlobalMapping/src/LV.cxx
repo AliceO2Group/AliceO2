@@ -15,7 +15,6 @@
 #include "MCHConditions/Chamber.h"
 #include "MCHConditions/Plane.h"
 #include "MCHConstants/DetectionElements.h"
-#include "MCHGlobalMapping/DsIndex.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "Quadrant.h"
 #include "Slat.h"
@@ -33,10 +32,10 @@ std::set<Cathode> lvAliasToCathode(std::string_view alias)
   }
 }
 
-std::set<int> lvAliasToDsIndices(std::string_view alias)
+std::set<DsIndex> lvAliasToDsIndices(std::string_view alias)
 {
   auto cathodes = lvAliasToCathode(alias);
-  std::set<int> dsIndices;
+  std::set<DsIndex> dsIndices;
   for (auto cathode : cathodes) {
     auto deId = cathode.deId;
     auto plane = cathode.plane;

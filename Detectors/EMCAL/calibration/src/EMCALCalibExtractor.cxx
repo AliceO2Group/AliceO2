@@ -153,7 +153,59 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
 
   return eSumHistoScaled;
 }
+
 //____________________________________________
+void EMCALCalibExtractor::checkMaskSM(o2::emcal::BadChannelMap& bcm)
+{
+
+  for (unsigned int i = 0; i < mBadCellFracSM.size(); ++i) {
+    if (mGeometry->GetSMType(i) == o2::emcal::EMCALSMType::EMCAL_STANDARD) {
+      mBadCellFracSM[i] /= 1152.;
+    } else if (mGeometry->GetSMType(i) == o2::emcal::EMCALSMType::EMCAL_THIRD || mGeometry->GetSMType(i) == o2::emcal::EMCALSMType::DCAL_EXT) {
+      mBadCellFracSM[i] /= 384.;
+    } else if (mGeometry->GetSMType(i) == o2::emcal::EMCALSMType::DCAL_STANDARD) {
+      mBadCellFracSM[i] /= 768.;
+    }
+  }
+  for (unsigned int i = 0; i < mNcells; ++i) {
+    if (mBadCellFracSM[mGeometry->GetSuperModuleNumber(i)] > EMCALCalibParams::Instance().fracMaskSMFully_bc) {
+      if (bcm.getChannelStatus(i) == o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL) { // only mask good cells, to keep information about dead channels
+        bcm.addBadChannel(i, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+      }
+    }
+  }
+}
+
+//____________________________________________
+void EMCALCalibExtractor::checkMaskFEC(o2::emcal::BadChannelMap& bcm)
+{
+  for (unsigned int iSM = 0; iSM < mBadCellFracFEC.size(); ++iSM) {
+    for (unsigned int iFEC = 0; iFEC < mBadCellFracFEC[iSM].size(); ++iFEC) {
+      mBadCellFracFEC[iSM][iFEC] /= 32.; // 32 channels per FEC
+    }
+  }
+
+  for (unsigned int i = 0; i < mNcells; ++i) {
+    if (mBadCellFracFEC[mGeometry->GetSuperModuleNumber(i)][getFECNumberInSM(i)] > EMCALCalibParams::Instance().fracMaskFECFully_bc) {
+      if (bcm.getChannelStatus(i) == o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL) { // only mask good cells, to keep information about dead channels
+        bcm.addBadChannel(i, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+      }
+    }
+  }
+}
+
+//____________________________________________
+unsigned int EMCALCalibExtractor::getFECNumberInSM(int absCellID) const
+{
+  std::tuple<int, int> RowCol = mGeometry->GlobalRowColFromIndex(absCellID);
+  std::tuple<int, int, int> PosInSM = mGeometry->GetPositionInSupermoduleFromGlobalRowCol(std::get<0>(RowCol), std::get<1>(RowCol));
+  int iSM = std::get<0>(PosInSM);
+  int col = std::get<1>(PosInSM);
+  int row = std::get<2>(PosInSM);
+  int FECid = static_cast<int>(row / 4.) + 12 * static_cast<int>(col / 8.);
+  LOG(debug) << "FECid " << FECid << "   iSM " << iSM << "   row " << row << "   col " << col;
+  return FECid;
+}
 
 } // end namespace emcal
 } // end namespace o2

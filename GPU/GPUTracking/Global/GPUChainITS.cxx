@@ -22,7 +22,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 namespace o2::its
 {
-class GPUFrameworkExternalAllocator : public o2::its::ExternalAllocator
+class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
 {
  public:
   void* allocate(size_t size) override
@@ -90,7 +90,6 @@ o2::its::TimeFrame* GPUChainITS::GetITSTimeframe()
     mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);
     mFrameworkAllocator->setReconstructionFramework(rec());
     mITSTimeFrame->setExternalAllocator(mFrameworkAllocator.get());
-    LOGP(info, "GPUChainITS is giving me allocator: {}", (void*)mFrameworkAllocator.get());
   }
 #endif
   return mITSTimeFrame.get();

@@ -53,6 +53,11 @@ struct GPUMemorySizeScalers;
 struct GPUReconstructionPipelineContext;
 class GPUROOTDumpCore;
 
+namespace gpu_reconstruction_kernels
+{
+struct deviceEvent;
+}
+
 class GPUReconstruction
 {
   friend class GPUChain;
@@ -120,56 +125,9 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
   static bool CheckInstanceAvailable(DeviceType type);
 
-  // Helpers for kernel launches
-  template <class T, int I = 0>
-  class classArgument
-  {
-  };
-
-  typedef void* deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
-
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
                                     Auto = -1 };
-  struct krnlExec {
-    constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d = krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(GPUCA_RECO_STEP::NoRecoStep) {}
-    constexpr krnlExec(unsigned int b, unsigned int t, int s, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(krnlDeviceType::Auto), step(st) {}
-    constexpr krnlExec(unsigned int b, unsigned int t, int s, krnlDeviceType d, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
-    unsigned int nBlocks;
-    unsigned int nThreads;
-    int stream;
-    krnlDeviceType device;
-    GPUCA_RECO_STEP step;
-  };
-  struct krnlRunRange {
-    constexpr krnlRunRange() = default;
-    constexpr krnlRunRange(unsigned int a) : start(a), num(0) {}
-    constexpr krnlRunRange(unsigned int s, int n) : start(s), num(n) {}
-
-    unsigned int start = 0;
-    int num = 0;
-  };
-  struct krnlEvent {
-    constexpr krnlEvent(deviceEvent e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
-    deviceEvent ev;
-    deviceEvent* evList;
-    int nEvents;
-  };
-
-  struct krnlProperties {
-    krnlProperties(int t = 0, int b = 1, int b2 = 0) : nThreads(t), minBlocks(b), forceBlocks(b2) {}
-    unsigned int nThreads;
-    unsigned int minBlocks;
-    unsigned int forceBlocks;
-    unsigned int total() { return forceBlocks ? forceBlocks : (nThreads * minBlocks); }
-  };
-
-  struct krnlSetup {
-    krnlExec x;
-    krnlRunRange y;
-    krnlEvent z;
-    double t;
-  };
 
   // Global steering functions
   template <class T, typename... Args>
@@ -238,11 +196,10 @@ class GPUReconstruction
   const GPUSettingsDeviceBackend& GetDeviceBackendSettings() { return mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mProcessingSettings; }
   bool IsInitialized() const { return mInitialized; }
-  void SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow = nullptr);
+  void SetSettings(float solenoidBzNominalGPU, const GPURecoStepConfiguration* workflow = nullptr);
   void SetSettings(const GPUSettingsGRP* grp, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
   void SetResetTimers(bool reset) { mProcessingSettings.resetTimers = reset; } // May update also after Init()
   void SetDebugLevelTmp(int level) { mProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
-  GPUParam& GetNonConstParam() { return mHostConstantMem->param; }             // Kind of hack, but needed for manual updates after SetSettings(), if the default configKeyValues parsing for SetSettings() is used.
   void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
@@ -287,7 +244,7 @@ class GPUReconstruction
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, gpu_reconstruction_kernels::deviceEvent* ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
   int EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();

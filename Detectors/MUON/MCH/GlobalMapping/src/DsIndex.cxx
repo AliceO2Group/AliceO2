@@ -12,7 +12,10 @@
 #include "MCHGlobalMapping/DsIndex.h"
 
 #include <map>
+#include <stdexcept>
 #include <vector>
+
+#include "Framework/Logger.h"
 #include "MCHMappingInterface/Segmentation.h"
 
 namespace o2::mch
@@ -38,12 +41,16 @@ uint8_t numberOfDualSampaChannels(DsIndex dsIndex)
       auto dsId = det.dsId();
       auto deId = det.deId();
       const auto& seg = o2::mch::mapping::segmentation(deId);
-      seg.bending().forEachPadInDualSampa(dsId, [&nch](int /*catPadIndex*/) { ++nch; });
-      seg.nonBending().forEachPadInDualSampa(dsId, [&nch](int /*catPadIndex*/) { ++nch; });
+      seg.forEachPadInDualSampa(dsId, [&nch](int /*dePadIndex*/) { ++nch; });
       channelsPerDS.emplace_back(nch);
     }
   }
-  return channelsPerDS[dsIndex];
+  if (dsIndex < o2::mch::NumberOfDualSampas) {
+    return channelsPerDS[dsIndex];
+  } else {
+    LOGP(error, "invalid Dual Sampa index: {}", dsIndex);
+  }
+  return 0;
 }
 
 std::map<uint32_t, uint16_t> buildDetId2DsIndexMap()
@@ -72,13 +79,23 @@ std::map<uint32_t, uint16_t> buildDetId2DsIndexMap()
 DsIndex getDsIndex(const o2::mch::raw::DsDetId& dsDetId)
 {
   static std::map<uint32_t, uint16_t> m = buildDetId2DsIndexMap();
-  return m[encode(dsDetId)];
+  try {
+    return m.at(encode(dsDetId));
+  } catch (const std::exception&) {
+    LOGP(error, "invalid Dual Sampa Id: {}", raw::asString(dsDetId));
+  }
+  return NumberOfDualSampas;
 }
 
 o2::mch::raw::DsDetId getDsDetId(DsIndex dsIndex)
 {
   static std::map<uint16_t, uint32_t> m = inverseMap(buildDetId2DsIndexMap());
-  return raw::decodeDsDetId(m[dsIndex]);
+  try {
+    return raw::decodeDsDetId(m.at(dsIndex));
+  } catch (const std::exception&) {
+    LOGP(error, "invalid Dual Sampa index: {}", dsIndex);
+  }
+  return raw::DsDetId(0, 0);
 }
 
 } // namespace o2::mch

@@ -21,11 +21,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-#include "ITStracking/TimeFrame.h"
-#include "ITStracking/Tracker.h"
-#include "ITStracking/TrackerTraits.h"
-#include "ITStracking/Vertexer.h"
-#include "ITStracking/VertexerTraits.h"
+#include "ITStracking/TrackingInterface.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
@@ -45,7 +41,7 @@ class TrackerDPL : public framework::Task
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
              int trgType,
-             const std::string& trModeS,
+             const TrackingMode& trMode,
              const bool overrBeamEst = false,
              o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
@@ -54,37 +50,16 @@ class TrackerDPL : public framework::Task
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
   void stop() final;
-  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
-  void setMeanVertex(const o2::dataformats::MeanVertexObject* v)
-  {
-    if (!v) {
-      return;
-    }
-    mMeanVertex = v;
-  }
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
-
-  bool mIsMC = false;
-  bool mRunVertexer = true;
-  bool mCosmicsProcessing = false;
-  int mUseTriggers = 0;
-  std::string mMode = "sync";
-  bool mOverrideBeamEstimation = false;
-  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
-  const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
-  std::unique_ptr<Tracker> mTracker = nullptr;
-  std::unique_ptr<Vertexer> mVertexer = nullptr;
-  TimeFrame* mTimeFrame = nullptr;
-  const o2::dataformats::MeanVertexObject* mMeanVertex;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  ITSTrackingInterface mITSTrackingInterface;
   TStopwatch mTimer;
 };
 
-/// create a processor spec
-/// run ITS CA tracker
 framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType);
 
 } // namespace its

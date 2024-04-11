@@ -156,7 +156,7 @@ void Alice3Absorber::ConstructGeometry()
   TGeoVolume* abso = new TGeoVolume("Absorber", absorings, kMedIron);
 
   abso->SetVisibility(1);
-  abso->SetLineColor(kBlack);
+  abso->SetLineColor(kGray + 3);
 
   //
   //    Adding volumes to mother volume

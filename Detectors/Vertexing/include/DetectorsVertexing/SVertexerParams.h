@@ -116,7 +116,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   bool mSkipTPCOnly3Body = true;         // skip TPC only tracks when doing cascade finding
 
   // percent deviation from expected proton dEdx - to be replaced - estimated sigma from TPC for now 6%; a 6*sigma cut is therefore 36% = 0.36f. Any value above 1.0f will be ignored manually when checking.
-  float mFractiondEdxforCascBaryons = 0.36f;
+  float mFractiondEdxforCascBaryons = 2.f; // 0.36f;
   // default: average 2023 from C. Sonnabend, Nov 2023: ([0.217553   4.02762    0.00850178 2.33324    0.880904  ])
   // to-do: grab from CCDB when available -> discussion with TPC experts, not available yet
   float mBBpars[5] = {0.217553, 4.02762, 0.00850178, 2.33324, 0.880904};

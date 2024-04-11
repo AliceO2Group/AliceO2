@@ -40,17 +40,17 @@
   #endif
 #endif
 
-#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) //No GPU code for ROOT
+#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) // No GPU code for ROOT
   #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__) || defined(__OPENCL_HOST__)
-    #define GPUCA_GPUCODE //Compiled by GPU compiler
+    #define GPUCA_GPUCODE // Compiled by GPU compiler
   #endif
 
   #if defined(__CUDA_ARCH__) || defined(__OPENCL__) || defined(__HIP_DEVICE_COMPILE__)
-    #define GPUCA_GPUCODE_DEVICE //Executed on device
+    #define GPUCA_GPUCODE_DEVICE // Executed on device
   #endif
 #endif
 
-//Definitions for C++11 features not supported by CINT / OpenCL
+// Definitions for C++11 features not supported by CINT / OpenCL
 #ifdef GPUCA_NOCOMPAT
   #define CON_DELETE = delete
   #define CON_DEFAULT = default
@@ -72,8 +72,8 @@
   #define VOLATILE volatile
 #endif
 
-//Set AliRoot / O2 namespace
-#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY) || defined (GPUCA_GPUCODE)
+// Set AliRoot / O2 namespace
+#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_ALIROOT_LIB) || defined (GPUCA_GPUCODE)
   #define GPUCA_ALIGPUCODE
 #endif
 #ifdef GPUCA_ALIROOT_LIB
@@ -98,7 +98,7 @@
 #endif
 
 
-//API Definitions for GPU Compilation
+// API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"
 
 // clang-format on

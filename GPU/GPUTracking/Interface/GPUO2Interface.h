@@ -42,8 +42,6 @@ namespace o2::tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
-template <class T>
-class CalDet;
 } // namespace o2::tpc
 
 namespace o2::its
@@ -84,6 +82,7 @@ class GPUO2Interface
 
   void GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame);
   const o2::base::Propagator* GetDeviceO2Propagator(int iThread = 0) const;
+  void UseGPUPolynomialFieldInPropagator(o2::base::Propagator* prop) const;
 
   // Updates all calibration objects that are != nullptr in newCalib
   int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread = 0);

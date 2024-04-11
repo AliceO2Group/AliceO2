@@ -132,9 +132,11 @@ struct TestCCDBObject {
 
 struct KTask {
   struct : public ConfigurableGroup {
+    std::string prefix = "foo";
     Configurable<int> anInt{"someConfigurable", {}, "Some Configurable Object"};
     Configurable<int> anotherInt{"someOtherConfigurable", {}, "Some Configurable Object"};
   } foo;
+
   Configurable<int> anThirdInt{"someThirdConfigurable", {}, "Some Configurable Object"};
   struct : public ConditionGroup {
     Condition<TestCCDBObject> test{"path"};
@@ -241,7 +243,7 @@ TEST_CASE("TestPartitionIteration")
   TestA testA{tableA};
 
   PartitionTest p1 = aod::test::x < 4.0f;
-  p1.setTable(testA);
+  p1.bindTable(testA);
   REQUIRE(4 == p1.size());
   REQUIRE(p1.begin() != p1.end());
   auto i = 0;
@@ -257,7 +259,7 @@ TEST_CASE("TestPartitionIteration")
   auto selection = expressions::createSelection(testA.asArrowTable(), f1);
   FilteredTest filtered{{testA.asArrowTable()}, o2::soa::selectionToVector(selection)};
   PartitionFilteredTest p2 = aod::test::y > 9.0f;
-  p2.setTable(filtered);
+  p2.bindTable(filtered);
 
   REQUIRE(2 == p2.size());
   i = 0;
@@ -270,7 +272,7 @@ TEST_CASE("TestPartitionIteration")
   REQUIRE(i == 2);
 
   PartitionNestedFilteredTest p3 = aod::test::x < 3.0f;
-  p3.setTable(*(p2.mFiltered));
+  p3.bindTable(*(p2.mFiltered));
   REQUIRE(1 == p3.size());
   i = 0;
   for (auto& p : p3) {

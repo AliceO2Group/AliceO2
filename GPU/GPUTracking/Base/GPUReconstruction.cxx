@@ -353,6 +353,10 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.overrideClusterizerFragmentLen == -1) {
     mProcessingSettings.overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mProcessingSettings.ompThreads / mProcessingSettings.nTPCClustererLanes >= 3)) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
   }
+  if (mProcessingSettings.nTPCClustererLanes > GPUCA_NSLICES) {
+    GPUError("Invalid value for nTPCClustererLanes: %d", mProcessingSettings.nTPCClustererLanes);
+    mProcessingSettings.nTPCClustererLanes = GPUCA_NSLICES;
+  }
 #endif
 
   if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
@@ -1045,7 +1049,11 @@ int GPUReconstruction::EnqueuePipeline(bool terminate)
   if (q->retVal) {
     return q->retVal;
   }
-  return mChains[0]->FinalizePipelinedProcessing();
+  if (terminate) {
+    return 0;
+  } else {
+    return mChains[0]->FinalizePipelinedProcessing();
+  }
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()
@@ -1128,16 +1136,16 @@ int GPUReconstruction::ReadSettings(const char* dir)
   return 0;
 }
 
-void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow)
+void GPUReconstruction::SetSettings(float solenoidBzNominalGPU, const GPURecoStepConfiguration* workflow)
 {
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam_internal();
-  config.configGRP.solenoidBz = solenoidBz;
+  config.ReadConfigurableParam(config);
+  config.configGRP.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
   GPUSettingsGRP grp;
-  grp.solenoidBz = solenoidBz;
+  grp.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&grp, nullptr, nullptr, workflow);
 #endif
 }

@@ -1836,16 +1836,15 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   }
 
   // Encode amplitude and assign
-  auto myamp = TDCAmp / o2::zdc::FTDCAmp;
   rec.TDCVal[itdc].push_back(TDCVal);
-  rec.TDCAmp[itdc].push_back(myamp);
+  rec.TDCAmp[itdc].push_back(TDCAmp);
   int& ihit = mReco[ibun].ntdc[itdc];
 #ifdef O2_ZDC_TDC_C_ARRAY
   if (ihit < MaxTDCValues) {
     rec.tdcVal[itdc][ihit] = TDCVal;
-    rec.tdcAmp[itdc][ihit] = myamp;
+    rec.tdcAmp[itdc][ihit] = TDCAmp;
   } else {
-    LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * o2::zdc::FTDCVal << " TDCAmp=" << TDCAmp * o2::zdc::FTDCAmp << " OVERFLOW";
+    LOG(error) << rec.ir.orbit << "." << rec.ir.bc << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " TDCVal=" << TDCVal * o2::zdc::FTDCVal << " TDCAmp=" << TDCAmp << " OVERFLOW";
   }
 #endif
   // Assign info about pedestal subtration
@@ -1863,7 +1862,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   LOG(info) << __func__ << " itdc=" << itdc << " " << ChannelNames[isig] << " @ ibun=" << ibun << " " << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
             << " tdc=" << tdc << " -> " << TDCValCorr << " shift=" << tdc_shift[itdc] << " -> TDCVal=" << TDCVal << "=" << TDCVal * o2::zdc::FTDCVal
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]) << " = " << mOffset[isig]
-            << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " offset=" << tdc_offset[itdc] << " -> TDCAmp=" << TDCAmp << "=" << myamp
+            << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " offset=" << tdc_offset[itdc] << " -> TDCAmp=" << TDCAmp
             << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
   mAssignedTDC[itdc]++;
 #endif

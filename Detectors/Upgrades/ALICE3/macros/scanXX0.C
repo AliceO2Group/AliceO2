@@ -45,8 +45,8 @@
 constexpr int nBinsPhiScan = 90;
 constexpr int nBinsEtaScan = 200;
 constexpr int nBinsZvtxScan = 300;
-constexpr float maxEtaScan = 8.;
-constexpr int n = 1e4;      // testtracks
+constexpr float maxEtaScan = 5.;
+constexpr int n = 1e6;      // testtracks
 constexpr float len = 1000; // cm
 
 void vacuumFormMaterial(TGeoMaterial* mat)
@@ -202,7 +202,7 @@ std::vector<std::string> printMaterialDefinitions(TGeoManager* gman)
   return materialNames;
 }
 
-void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string OnlyMat = "all", const string fileName = "o2sim_geometry.root", const string path = "./")
+void scanXX0(const float rmax = 350, const float rmin = 0.1, const std::string OnlyMat = "all", const std::string fileName = "o2sim_geometry.root", const string path = "./")
 {
   gStyle->SetPadTopMargin(0.035);
   gStyle->SetPadRightMargin(0.035);
@@ -217,30 +217,30 @@ void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string O
 
   double etaPos = 1.;
 
-  TCanvas* canvStack = new TCanvas("canvStack", "canvStack", 2400, 800);
+  TCanvas* canvStack = new TCanvas("canvStack", "canvStack", 2400, 1400);
   canvStack->Divide(3, 1);
 
-  TCanvas* canv = new TCanvas("canv", "canv", 2400, 800);
+  TCanvas* canv = new TCanvas("canv", "canv", 2400, 1400);
   canv->Divide(3, 1);
 
   TLegend* legVsPhi = new TLegend(0.25, 0.6, 0.85, 0.9);
   legVsPhi->SetFillColor(kWhite);
-  legVsPhi->SetTextSize(0.045);
+  legVsPhi->SetTextSize(0.025);
   legVsPhi->SetHeader(Form("ALICE 3, |#it{#eta}| < %0.f, #it{Z}_{vtx} = 0", etaPos));
 
   TLegend* legVsEta = new TLegend(0.25, 0.6, 0.85, 0.9);
   legVsEta->SetFillColor(kWhite);
-  legVsEta->SetTextSize(0.045);
+  legVsEta->SetTextSize(0.025);
   legVsEta->SetHeader("ALICE 3, 0 < #it{#varphi} < #pi, #it{Z}_{vtx} = 0");
 
   TLegend* legVsZvtx = new TLegend(0.25, 0.6, 0.85, 0.9);
   legVsZvtx->SetFillColor(kWhite);
-  legVsZvtx->SetTextSize(0.045);
+  legVsZvtx->SetTextSize(0.025);
   legVsZvtx->SetHeader("ALICE 3, #it{#varphi} = #pi/2, #it{#eta} = 0");
 
-  auto* xOverX0VsPhiStack = new THStack("xOverX0VsPhi", "");
-  auto* xOverX0VsEtaStack = new THStack("xOverX0VsEta", "");
-  auto* xOverX0VsZvtxStack = new THStack("xOverX0VsZvtx", "");
+  auto* xOverX0VsPhiStack = new THStack("xOverX0VsPhi", ";#varphi (rad);#it{X/X0}");
+  auto* xOverX0VsEtaStack = new THStack("xOverX0VsEta", ";#eta;#it{X/X0}");
+  auto* xOverX0VsZvtxStack = new THStack("xOverX0VsZvtx", ";Z_{vtz} (cm);#it{X/X0}");
 
   std::vector<TH1F*> xOverX0VsPhi;
   std::vector<TH1F*> xOverX0VsEta;
@@ -251,14 +251,17 @@ void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string O
 
   const double phiMin = 0;
   const double phiMax = 2 * TMath::Pi();
-  const double len = 1000.;
+  const double len = 1200.;
   std::vector<int> colors = {kAzure + 4, kRed + 1};
 
   // delete gGeoManager; // We re-import the geometry at each iteration
   int count = 2;
   auto cols = TColor::GetPalette();
-
+  float maxPhiHist = 0.f, maxEtaHist = 0.f, maxZHist = 0.f;
   for (size_t iMaterial{0}; iMaterial < materials.size(); ++iMaterial) {
+    if (materials[iMaterial] == "VACUUM") {
+      continue;
+    }
     if (OnlyMat != "all" && materials[iMaterial] != OnlyMat) {
       continue;
     }
@@ -282,8 +285,11 @@ void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string O
     xOverX0VsZvtx.emplace_back(new TH1F(Form("xOverX0VsZvtx_step%zu", iMaterial), "", nBinsZvtxScan, -len / 2, len / 2));
 
     ComputeMaterialBudget(rmin, rmax, etaPos, phiMin, phiMax, xOverX0VsPhi.back(), xOverX0VsEta.back(), xOverX0VsZvtx.back());
-
+    // maxPhiHist = xOverX0VsPhi.back()->GetMaximum() > maxPhiHist ? 1.1 * xOverX0VsPhi.back()->GetMaximum() : maxPhiHist;
+    // maxEtaHist = xOverX0VsEta.back()->GetMaximum() > maxEtaHist ? 1.1 * xOverX0VsEta.back()->GetMaximum() : maxEtaHist;
+    // maxZHist = xOverX0VsZvtx.back()->GetMaximum() > maxZHist ? 1.1 * xOverX0VsZvtx.back()->GetMaximum() : maxZHist;
     double meanX0vsPhi = 0, meanX0vsEta = 0, meanX0vsZvtx = 0;
+
     for (int ix = 1; ix <= xOverX0VsPhi.back()->GetNbinsX(); ix++) {
       meanX0vsPhi += xOverX0VsPhi.back()->GetBinContent(ix);
     }
@@ -298,6 +304,11 @@ void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string O
       meanX0vsZvtx += xOverX0VsZvtx.back()->GetBinContent(ix);
     }
     meanX0vsZvtx /= xOverX0VsZvtx.back()->GetNbinsX();
+
+    if (!meanX0vsPhi && !meanX0vsEta && !meanX0vsZvtx) {
+      LOGP(info, "Material {} allegedly not present, skipping.", materials[iMaterial]);
+      continue;
+    }
 
     LOGP(info, "Mean X/X0 vs. phi: {}", meanX0vsPhi);
     LOGP(info, "Mean X/X0 vs. eta: {}", meanX0vsEta);
@@ -336,60 +347,68 @@ void scanXX0(const float rmax = 200, const float rmin = 0.2, const std::string O
     xOverX0VsZvtx.back()->SetLineColor(iMaterial + 2);
     xOverX0VsZvtx.back()->SetLineWidth(2);
 
-    if (xOverX0VsPhi.size() == 1) {
-      legVsPhi->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsPhi), "");
-      legVsEta->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsEta), "");
-      legVsZvtx->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsZvtx), "");
-    }
+    // if (xOverX0VsPhi.size() == materials.size() - 1 /*Vacuum is skipped*/) {
+    //   legVsPhi->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsPhi), "");
+    //   legVsEta->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsEta), "");
+    //   legVsZvtx->AddEntry("", Form("#LT #it{X}/#it{X}_{0} #GT = %0.3f %%", meanX0vsZvtx), "");
+    // }
+
     legVsPhi->AddEntry(xOverX0VsPhi.back(), materials[iMaterial].c_str(), "f");
     legVsEta->AddEntry(xOverX0VsPhi.back(), materials[iMaterial].c_str(), "f");
     legVsZvtx->AddEntry(xOverX0VsZvtx.back(), materials[iMaterial].c_str(), "f");
 
     canv->cd(1)->SetGrid();
     if (xOverX0VsPhi.size() == 1) {
-      xOverX0VsPhi.back()->SetMinimum(1.e-4);
-      // xOverX0VsPhi.back()->SetMaximum(20.f);
+      // xOverX0VsPhi.back()->SetMinimum(1.e-4);
+      xOverX0VsPhi.back()->SetMaximum(1e4);
       xOverX0VsPhi.back()->DrawCopy("HISTO");
-      legVsPhi->Draw();
       xOverX0VsPhiStack->Add(xOverX0VsPhi.back());
     } else {
+      xOverX0VsPhi.back()->SetMaximum(1e4);
       xOverX0VsPhi.back()->DrawCopy("HISTO SAME");
       xOverX0VsPhiStack->Add(xOverX0VsPhi.back());
     }
 
     canv->cd(2)->SetGrid();
     if (xOverX0VsEta.size() == 1) {
-      xOverX0VsEta.back()->SetMinimum(1.e-4);
-      // xOverX0VsEta.back()->SetMaximum(60.f);
+      // xOverX0VsEta.back()->SetMinimum(1.e-4);
+      xOverX0VsEta.back()->SetMaximum(1e4);
       xOverX0VsEta.back()->DrawCopy("HISTO");
-      legVsEta->Draw();
       xOverX0VsEtaStack->Add(xOverX0VsEta.back());
     } else {
+      xOverX0VsEta.back()->SetMaximum(1e4);
       xOverX0VsEta.back()->DrawCopy("HISTO SAME");
       xOverX0VsEtaStack->Add(xOverX0VsEta.back());
     }
 
     canv->cd(3)->SetGrid();
     if (xOverX0VsZvtx.size() == 1) {
-      xOverX0VsZvtx.back()->SetMinimum(1.e-4);
-      // xOverX0VsZvtx.back()->SetMaximum(120.f);
+      // xOverX0VsZvtx.back()->SetMinimum(1.e-4);
+      xOverX0VsZvtx.back()->SetMaximum(1e4);
       xOverX0VsZvtx.back()->DrawCopy("HISTO");
-      legVsZvtx->Draw();
       xOverX0VsZvtxStack->Add(xOverX0VsZvtx.back());
     } else {
+      xOverX0VsZvtx.back()->SetMaximum(1e4);
       xOverX0VsZvtx.back()->DrawCopy("HISTO SAME");
       xOverX0VsZvtxStack->Add(xOverX0VsZvtx.back());
     }
     delete gGeoManager;
   }
+  canv->cd(1)->SetLogy();
+  legVsPhi->Draw();
+  canv->cd(2)->SetLogy();
+  canv->cd(3)->SetLogy();
   canvStack->cd(1)->SetGrid();
+  legVsEta->Draw();
+  canvStack->cd(1)->SetLogy();
   xOverX0VsPhiStack->Draw("HISTO");
   canvStack->cd(2)->SetGrid();
+  canvStack->cd(2)->SetLogy();
   xOverX0VsEtaStack->Draw("HISTO");
   canvStack->cd(3)->SetGrid();
+  canvStack->cd(3)->SetLogy();
   xOverX0VsZvtxStack->Draw("HISTO");
-  canvStack->BuildLegend(0.25, 0.6, 0.85, 0.9);
 
-  canv->SaveAs("alice3_material_vsphietaz.pdf");
-  canvStack->SaveAs("alice3_material_vsphietaz_stack.pdf");
+  canv->SaveAs("alice3_material_vsphietaz.png");
+  canvStack->SaveAs("alice3_material_vsphietaz_stack.png");
 }

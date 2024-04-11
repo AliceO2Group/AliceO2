@@ -24,6 +24,8 @@ struct ECalBaseParam : public o2::conf::ConfigurableParamHelper<ECalBaseParam> {
   float rMax = 155.0;    // cm
   float zLength = 350.0; // cm
 
+  bool enableFwdEndcap = true;
+
   O2ParamDef(ECalBaseParam, "ECalBase");
 };
 

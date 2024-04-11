@@ -11,6 +11,7 @@
 //
 /// \author matteo.concas@cern.ch
 
+#include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>

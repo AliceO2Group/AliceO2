@@ -142,10 +142,18 @@ class MCEventHeader : public FairMCEventHeader
     return ref;
   };
 
+  void print() const;
+
   /// prints a summary of info keys/types attached to this header
   void printInfo() const
   {
     mEventInfo.print();
+  }
+
+  /// inits info fields from another Event header
+  void copyInfoFrom(MCEventHeader const& other)
+  {
+    mEventInfo.copyFrom(other.mEventInfo);
   }
 
   /** methods **/

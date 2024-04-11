@@ -28,9 +28,12 @@
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
+#include "EMCALCalib/Pedestal.h"
+#include "EMCALCalibration/PedestalProcessorData.h"
 #include <boost/histogram.hpp>
 
 #include <TRobustEstimator.h>
+#include <TProfile.h>
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
 #include <omp.h>
@@ -95,6 +98,11 @@ class EMCALCalibExtractor
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 39.0}}};
 
+    std::fill(std::begin(mBadCellFracSM), std::end(mBadCellFracSM), 0); // reset all fractions to 0
+    for (unsigned int i = 0; i < mBadCellFracFEC.size(); ++i) {
+      std::fill(std::begin(mBadCellFracFEC[i]), std::end(mBadCellFracFEC[i]), 0);
+    }
+
     auto histScaled = hist;
     if (mBCMScaleFactors) {
       LOG(info) << "Rescaling BCM histo";
@@ -138,6 +146,8 @@ class EMCALCalibExtractor
       if (calibrationInformation.energyPerHitMap[0][cellID] == 0) {
         LOG(debug) << "Cell " << cellID << " is dead.";
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
+        mBadCellFracSM[mGeometry->GetSuperModuleNumber(cellID)] += 1;
+        mBadCellFracFEC[mGeometry->GetSuperModuleNumber(cellID)][getFECNumberInSM(cellID)] += 1;
       } else {
         bool failed = false;
         for (auto& [sliceIndex, slice] : slices) {
@@ -188,12 +198,25 @@ class EMCALCalibExtractor
         if (failed) {
           LOG(debug) << "Cell " << cellID << " is bad.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+          mBadCellFracSM[mGeometry->GetSuperModuleNumber(cellID)] += 1;
+          mBadCellFracFEC[mGeometry->GetSuperModuleNumber(cellID)][getFECNumberInSM(cellID)] += 1;
         } else {
           LOG(debug) << "Cell " << cellID << " is good.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
         }
       }
     }
+
+    // Check if the fraction of bad+dead cells in a SM is above a certain threshold
+    // If yes, mask the whole SM
+    if (EMCALCalibParams::Instance().fracMaskSMFully_bc < 1) {
+      checkMaskSM(mOutputBCM);
+    }
+    // Same as above for FECs
+    if (EMCALCalibParams::Instance().fracMaskFECFully_bc < 1) {
+      checkMaskFEC(mOutputBCM);
+    }
+
     double time2 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     double diffTransfer = time2 - time1;
     LOG(info) << "Total time" << diffTransfer << " ns";
@@ -395,13 +418,80 @@ class EMCALCalibExtractor
     return TCP;
   }
 
- private:
-  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr; ///< Scale factors for nentries scaling in bad channel calibration
-  int mSigma = 5;                                       ///< number of sigma used in the calibration to define outliers
-  int mNThreads = 1;                                    ///< number of threads used for calibration
+  //____________________________________________
+  /// \brief Extract the pedestals from Stat Accumulators
+  /// \param obj PedestalProcessorData containing the data
+  /// \return Pedestal data
+  Pedestal extractPedestals(PedestalProcessorData& obj)
+  {
+    Pedestal pedestalData;
+    // loop over both low and high gain data as well as normal and LEDMON data
+    for (const auto& isLEDMON : {false, true}) {
+      auto maxChannels = isLEDMON ? mLEDMONs : mNcells;
+      for (const auto& isLG : {false, true}) {
+        for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
+          auto [mean, rms] = obj.getValue(iCell, isLG, isLEDMON); // get mean and rms for pedestals
+          if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
+            mean = mMaxPedestalVal;
+          }
+          pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+        }
+      }
+    }
+    return pedestalData;
+  }
 
-  o2::emcal::Geometry* mGeometry = nullptr;
-  static constexpr int mNcells = 17664;
+  //____________________________________________
+  /// \brief Extract the pedestals from TProfile (for old data)
+  /// \param objHG TProfile containing the HG data
+  /// \param objLHG TProfile containing the LG data
+  /// \param isLEDMON if true, data is LED data
+  /// \return Pedestal data
+  Pedestal extractPedestals(TProfile* objHG = nullptr, TProfile* objLG = nullptr, bool isLEDMON = false)
+  {
+    Pedestal pedestalData;
+    auto maxChannels = isLEDMON ? mLEDMONs : mNcells;
+    // loop over both low and high gain data
+    for (const auto& isLG : {false, true}) {
+      auto obj = (isLG == true ? objLG : objHG);
+      if (!obj)
+        continue;
+      for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
+        short mean = static_cast<short>(obj->GetBinContent(iCell + 1));
+        short rms = static_cast<short>(obj->GetBinError(iCell + 1) / obj->GetBinEntries(iCell + 1));
+        if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
+          mean = mMaxPedestalVal;
+        }
+        pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+      }
+    }
+    return pedestalData;
+  }
+
+ private:
+  //____________________________________________
+  /// \brief Check if a SM exceeds a certain fraction of dead+bad channels. If yes, mask the entire SM
+  /// \param bcm -- current bad channel map
+  void checkMaskSM(o2::emcal::BadChannelMap& bcm);
+
+  /// \brief Check if a FEC exceeds a certain fraction of dead+bad channels. If yes, mask the entire FEC
+  /// \param bcm -- current bad channel map
+  void checkMaskFEC(o2::emcal::BadChannelMap& bcm);
+
+  /// \brief Get the FEC ID in a SM (IDs are just for internal handling in this task itself)
+  /// \param absCellID -- cell ID
+  unsigned int getFECNumberInSM(int absCellID) const;
+
+  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr;  ///< Scale factors for nentries scaling in bad channel calibration
+  int mSigma = 5;                                        ///< number of sigma used in the calibration to define outliers
+  int mNThreads = 1;                                     ///< number of threads used for calibration
+  std::array<float, 20> mBadCellFracSM;                  ///< Fraction of bad+dead channels per SM
+  std::array<std::array<float, 36>, 20> mBadCellFracFEC; ///< Fraction of bad+dead channels per FEC
+
+  o2::emcal::Geometry* mGeometry = nullptr;      ///< pointer to the emcal geometry class
+  static constexpr int mNcells = 17664;          ///< Number of total cells of EMCal + DCal
+  static constexpr int mLEDMONs = 480;           ///< Number of total LEDMONS of EMCal + DCal
+  static constexpr short mMaxPedestalVal = 1023; ///< Maximum value for pedestals
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };

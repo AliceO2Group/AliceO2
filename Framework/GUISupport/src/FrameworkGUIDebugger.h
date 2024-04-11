@@ -43,8 +43,7 @@ void updateMousePos(float x, float y);
 void updateMouseButton(bool clicked);
 void updateMouseWheel(int direction);
 void updateWindowSize(int x, int y);
-void keyDown(char key);
-void keyUp(char key);
+void keyEvent(char key, bool pressed);
 void charIn(char key);
 
 } // namespace gui

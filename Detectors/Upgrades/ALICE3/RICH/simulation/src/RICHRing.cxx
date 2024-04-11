@@ -78,7 +78,7 @@ Ring::Ring(int rPosId,
     radiatorTile->SetVertex(7, radThick / 2, -radYmax / 2);
 
     TGeoVolume* radiatorTileVol = new TGeoVolume(Form("radTile_%d_%d", rPosId, radTileCount), radiatorTile, medAerogel);
-    radiatorTileVol->SetLineColor(kBlue - 9);
+    radiatorTileVol->SetLineColor(kOrange - 8);
     radiatorTileVol->SetLineWidth(1);
 
     auto* rotRadiator = new TGeoRotation(Form("radTileRotation_%d_%d", radTileCount, rPosId));
@@ -107,7 +107,7 @@ Ring::Ring(int rPosId,
     photoTile->SetVertex(7, photThick / 2, -photYmax / 2);
 
     TGeoVolume* photoTileVol = new TGeoVolume(Form("photoTile_%d_%d", rPosId, photTileCount), photoTile, medSi);
-    photoTileVol->SetLineColor(kOrange);
+    photoTileVol->SetLineColor(kOrange - 8);
     photoTileVol->SetLineWidth(1);
 
     auto* rotPhoto = new TGeoRotation(Form("photoTileRotation_%d_%d", photTileCount, rPosId));
@@ -140,7 +140,7 @@ Ring::Ring(int rPosId,
 
     TGeoVolume* argonSectorVol = new TGeoVolume(Form("argonSector_%d_%d", rPosId, argSectorsCount), argonSector, medAr);
     argonSectorVol->SetVisibility(kTRUE);
-    argonSectorVol->SetLineColor(kGray);
+    argonSectorVol->SetLineColor(kOrange - 8);
     argonSectorVol->SetLineWidth(1);
     auto* rotArgon = new TGeoRotation(Form("argonSectorRotation_%d_%d", argSectorsCount, rPosId));
     rotArgon->RotateY(-90 - thetaBDeg);
@@ -212,7 +212,7 @@ void FWDRich::createFWDRich(TGeoVolume* motherVolume)
   // Create the aerogel volume
   TGeoTube* aerogel = new TGeoTube(mRmin, mRmax, mDZAerogel / 2);
   TGeoVolume* aerogelVol = new TGeoVolume(mName.c_str(), aerogel, medAerogel);
-  aerogelVol->SetLineColor(kBlue - 9);
+  aerogelVol->SetLineColor(kOrange - 8);
 
   TGeoTranslation* transAerogel = new TGeoTranslation(0, 0, mZAerogelMin + mDZAerogel / 2);
   motherVolume->AddNode(aerogelVol, 1, transAerogel);
@@ -220,7 +220,7 @@ void FWDRich::createFWDRich(TGeoVolume* motherVolume)
   // Create the argon volume
   TGeoTube* argon = new TGeoTube(mRmin, mRmax, mDZArgon / 2);
   TGeoVolume* argonVol = new TGeoVolume(mName.c_str(), argon, medAr);
-  argonVol->SetLineColor(kGray);
+  argonVol->SetLineColor(kOrange - 9);
 
   TGeoTranslation* transArgon = new TGeoTranslation(0, 0, mZArgonMin + mDZArgon / 2);
   motherVolume->AddNode(argonVol, 1, transArgon);
@@ -228,7 +228,7 @@ void FWDRich::createFWDRich(TGeoVolume* motherVolume)
   // Create the silicon volume
   TGeoTube* silicon = new TGeoTube(mRmin, mRmax, mDZSilicon / 2);
   TGeoVolume* siliconVol = new TGeoVolume(mName.c_str(), silicon, medSi);
-  siliconVol->SetLineColor(kOrange);
+  siliconVol->SetLineColor(kOrange - 8);
 
   TGeoTranslation* transSilicon = new TGeoTranslation(0, 0, mZSiliconMin + mDZSilicon / 2);
   motherVolume->AddNode(siliconVol, 1, transSilicon);
@@ -252,7 +252,7 @@ void BWDRich::createBWDRich(TGeoVolume* motherVolume)
   // Create the aerogel volume
   TGeoTube* aerogel = new TGeoTube(mRmin, mRmax, mDZAerogel / 2);
   TGeoVolume* aerogelVol = new TGeoVolume(mName.c_str(), aerogel, medAerogel);
-  aerogelVol->SetLineColor(kBlue - 9);
+  aerogelVol->SetLineColor(kOrange - 8);
 
   TGeoTranslation* transAerogel = new TGeoTranslation(0, 0, -mZAerogelMin - mDZAerogel / 2);
   motherVolume->AddNode(aerogelVol, 1, transAerogel);
@@ -260,7 +260,7 @@ void BWDRich::createBWDRich(TGeoVolume* motherVolume)
   // Create the argon volume
   TGeoTube* argon = new TGeoTube(mRmin, mRmax, mDZArgon / 2);
   TGeoVolume* argonVol = new TGeoVolume(mName.c_str(), argon, medAr);
-  argonVol->SetLineColor(kGray);
+  argonVol->SetLineColor(kOrange - 8);
 
   TGeoTranslation* transArgon = new TGeoTranslation(0, 0, -mZArgonMin - mDZArgon / 2);
   motherVolume->AddNode(argonVol, 1, transArgon);
@@ -268,7 +268,7 @@ void BWDRich::createBWDRich(TGeoVolume* motherVolume)
   // Create the silicon volume
   TGeoTube* silicon = new TGeoTube(mRmin, mRmax, mDZSilicon / 2);
   TGeoVolume* siliconVol = new TGeoVolume(mName.c_str(), silicon, medSi);
-  siliconVol->SetLineColor(kOrange);
+  siliconVol->SetLineColor(kOrange - 8);
 
   TGeoTranslation* transSilicon = new TGeoTranslation(0, 0, -mZSiliconMin - mDZSilicon / 2);
   motherVolume->AddNode(siliconVol, 1, transSilicon);

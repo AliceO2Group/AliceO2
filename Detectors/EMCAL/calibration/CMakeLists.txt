@@ -16,11 +16,17 @@ o2_add_library(EMCALCalibration
                         src/EMCALCalibExtractor.cxx
                         src/EMCALCalibParams.cxx
                         src/EMCDCSProcessor.cxx
+                        src/EMCALPedestalHelper.cxx
+                        src/PedestalCalibDevice.cxx
+                        src/PedestalProcessorDevice.cxx
+                        src/PedestalProcessorData.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
+                                     O2::EMCALReconstruction
                                      O2::CommonUtils
                                      O2::DetectorsCalibration
                                      O2::DetectorsDCS
+                                     O2::DetectorsRaw
                                      O2::DataFormatsEMCAL
                                      O2::Framework
                                      O2::Algorithm
@@ -38,6 +44,8 @@ o2_target_root_dictionary(EMCALCalibration
                                   include/EMCALCalibration/EMCALTimeCalibData.h
                                   include/EMCALCalibration/EMCALCalibParams.h
                                   include/EMCALCalibration/EMCDCSProcessor.h
+                                  include/EMCALCalibration/EMCALPedestalHelper.h
+                                  include/EMCALCalibration/PedestalProcessorData.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
 
 o2_add_executable(emcal-channel-calib-workflow
@@ -52,6 +60,22 @@ if (OpenMP_CXX_FOUND)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
+o2_add_executable(emcal-pedestal-processor-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/emc-pedestal-processor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::EMCALCalibration
+                                        O2::DetectorsRaw
+                                        O2::DetectorsCalibration)
+
+o2_add_executable(emcal-pedestal-calib-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/emc-pedestal-calib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::EMCALCalibration
+                                        O2::DetectorsRaw
+                                        O2::DetectorsCalibration)
+
 o2_add_executable(run-calib-offline
                   COMPONENT_NAME emcal
                   TARGETVARNAME targetName
@@ -63,6 +87,13 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+o2_add_test(PedestalProcessorData
+        SOURCES test/testPedestalProcessorData.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALCalibration
+        COMPONENT_NAME emcal
+        LABELS emcal
+        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test_root_macro(macros/makeEMCALCCDBEntryForDCS.C
                                 PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB

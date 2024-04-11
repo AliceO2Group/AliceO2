@@ -33,7 +33,6 @@ set(OCL_DEFINECL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS
             -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
             -I${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
             -I${CMAKE_SOURCE_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
-            -DGPUCA_GPULIBRARY=OCL2
             -D__OPENCLCPP__
 )
 
@@ -49,12 +48,14 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
       COMMAND ${CMAKE_COMMAND} -E env "PATH=${TMP_LLVM_SPIRV_PATH}:\$$PATH" ${LLVM_CLANG}
               -O0
               --target=spirv64
+              -fno-integrated-objemitter
               ${OCL_FLAGS}
               ${OCL_DEFINECL}
               -o ${CL_BIN}.spirv -c ${CL_SRC}
       MAIN_DEPENDENCY ${CL_SRC}
       IMPLICIT_DEPENDS CXX ${CL_SRC}
-      COMMAND_EXPAND_LISTS)
+      COMMAND_EXPAND_LISTS
+      COMMENT "Compiling OpenCL2 CL source file ${CL_SRC} to SPIRV")
 
   create_binary_resource(${CL_BIN}.spirv ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
@@ -69,7 +70,8 @@ if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
               -E ${CL_SRC} > ${CL_BIN}.src
       MAIN_DEPENDENCY ${CL_SRC}
       IMPLICIT_DEPENDS CXX ${CL_SRC}
-      COMMAND_EXPAND_LISTS)
+      COMMAND_EXPAND_LISTS
+      COMMENT "Preparing OpenCL2 CL source file for run time compilation")
 
   create_binary_resource(${CL_BIN}.src ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.o)
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.src.o)
@@ -81,9 +83,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUTrackingOpenCLCommon
                  TARGETVARNAME targetName)
 
-  target_compile_definitions(
-    ${targetName} PRIVATE GPUCA_GPULIBRARY=OCL2
-    $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+  target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
   # the compile_defitions are not propagated automatically on purpose (they are
   # declared PRIVATE) so we are not leaking them outside of the GPU**
   # directories
@@ -92,8 +92,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_GPULIBRARY=OCL2)
-
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
   generate_dictionary("Ali${MODULE}" "" "GPUReconstructionOCL2.h" "${incdirs} .")
@@ -113,7 +111,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  add_definitions(-DGPUCA_GPULIBRARY=OCL2)
   add_library(${MODULE} SHARED ${SRCS})
   target_link_libraries(${MODULE} GPUTrackingOpenCLCommon)
   install(TARGETS ${MODULE})

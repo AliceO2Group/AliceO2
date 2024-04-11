@@ -57,13 +57,9 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::gui::updateWindowSize(x, y);
   }
-  void keyDown(char key) override
+  void keyEvent(char key, bool down) override
   {
-    o2::framework::gui::keyDown(key);
-  }
-  void keyUp(char key) override
-  {
-    o2::framework::gui::keyUp(key);
+    o2::framework::gui::keyEvent(key, down);
   }
   void charIn(char key) override
   {

@@ -12,7 +12,6 @@
 /// \file GPUReconstructionCPU.cxx
 /// \author David Rohr
 
-#define GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
 #include "GPUReconstructionCPU.h"
 #include "GPUReconstructionIncludes.h"
 #include "GPUChain.h"
@@ -49,6 +48,7 @@ static inline int omp_get_max_threads() { return 1; }
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace GPUCA_NAMESPACE::gpu::gpu_reconstruction_kernels;
 
 constexpr GPUReconstructionCPU::krnlRunRange GPUReconstructionCPU::krnlRunRangeNone;
 constexpr GPUReconstructionCPU::krnlEvent GPUReconstructionCPU::krnlEventNone;
@@ -61,7 +61,7 @@ GPUReconstructionCPU::~GPUReconstructionCPU()
 }
 
 template <class T, int I, typename... Args>
-int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&... args)
+inline int GPUReconstructionCPUBackend::runKernelBackendInternal(const krnlSetupTime& _xyz, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;
@@ -103,26 +103,38 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
 }
 
 template <>
-int GPUReconstructionCPUBackend::runKernelBackend<GPUMemClean16, 0>(krnlSetup& _xyz, void* const& ptr, unsigned long const& size)
+inline int GPUReconstructionCPUBackend::runKernelBackendInternal<GPUMemClean16, 0>(const krnlSetupTime& _xyz, void* const& ptr, unsigned long const& size)
 {
   memset(ptr, 0, size);
   return 0;
 }
 
+template <class T, int I, typename... Args>
+int GPUReconstructionCPUBackend::runKernelBackend(const krnlSetupArgs<T, I, Args...>& args)
+{
+  return std::apply([this, &args](auto&... vals) { return runKernelBackendInternal<T, I, Args...>(args.s, vals...); }, args.v);
+}
+
 template <class T, int I>
-GPUReconstruction::krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
+krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend()
 {
   return krnlProperties{1, 1};
 }
 
-size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
-size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents) { return 0; }
-size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents)
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward, x_types)                                                                                                      \
+  template int GPUReconstructionCPUBackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args); \
+  template krnlProperties GPUReconstructionCPUBackend::getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
+
+size_t GPUReconstructionCPU::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) { return 0; }
+size_t GPUReconstructionCPU::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents) { return 0; }
+size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   memcpy(dst, src, size);
   return 0;
 }
-size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev) { return 0; }
+size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) { return 0; }
 int GPUReconstructionCPU::GPUDebug(const char* state, int stream, bool force) { return 0; }
 size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
 {
@@ -375,11 +387,17 @@ unsigned int GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, 
   return mNestedLoopOmpFactor;
 }
 
-void GPUReconstructionCPU::UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, int stream)
+void GPUReconstructionCPU::UpdateParamOccupancyMap(const unsigned int* mapHost, const unsigned int* mapGPU, unsigned int occupancyTotal, int stream)
 {
   param().occupancyMap = mapHost;
+  param().occupancyTotal = occupancyTotal;
   if (IsGPU()) {
+    if (!((size_t)&param().occupancyTotal - (size_t)&param().occupancyMap == sizeof(param().occupancyMap) && sizeof(param().occupancyMap) == sizeof(size_t) && sizeof(param().occupancyTotal) < sizeof(size_t))) {
+      throw std::runtime_error("occupancy data not consecutive in GPUParam");
+    }
     const auto threadContext = GetThreadContext();
-    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &mapGPU, sizeof(mapGPU), stream);
+    size_t tmp[2] = {(size_t)mapGPU, 0};
+    memcpy(&tmp[1], &occupancyTotal, sizeof(occupancyTotal));
+    WriteToConstantMemory((char*)&processors()->param.occupancyMap - (char*)processors(), &tmp, sizeof(param().occupancyMap) + sizeof(param().occupancyTotal), stream);
   }
 }

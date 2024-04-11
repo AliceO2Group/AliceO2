@@ -1,8 +1,13 @@
-# 2024-03-08: Clean up helper functions for packs handling
+# 2024-04-11: Clean up helper functions for packs handling
 
 - `select_pack` now first sets to void non-matching elements, and then prunes voids.
 - `has_type_at` is now non-recursive
 - `doCopyIndexBindings` no longer needed.
+
+# 2024-03-14: Move DataProcessingDevice to use Signposts
+
+All the messages from DataProcessingDevice have been migrated to use Signpost.
+This will hopefully simplify debugging.
 
 # 2024-02-22: Drop Tracy support
 

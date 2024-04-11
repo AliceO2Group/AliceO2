@@ -30,6 +30,7 @@ struct TPCVDTglContainer {
   size_t entries = 0;
   size_t nTFProc = 0;
   double driftVFullMean = 0.;
+  static float tOffsetRef;
   static float driftVRef;
 
   TPCVDTglContainer(int ntgl, float tglMax, int ndtgl, float dtglMax)
@@ -64,6 +65,9 @@ struct TPCVDTglContainer {
       LOGP(warn, "data with VDriftRef={} were received while initially was set to {}, keep old one", vref, driftVRef);
     }
     driftVFullMean = (driftVFullMean * nTFProc + vfull) / (nTFProc + 1);
+    if (tOffsetRef == 0.f) {
+      tOffsetRef = data[1].first; // assign 1st full toffset as a reference
+    }
     nTFProc++;
   }
 

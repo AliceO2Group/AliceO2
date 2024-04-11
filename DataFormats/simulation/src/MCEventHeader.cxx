@@ -15,6 +15,7 @@
 #include "FairRootManager.h"
 #include <TFile.h>
 #include <TTree.h>
+#include <iostream>
 
 namespace o2
 {
@@ -59,6 +60,21 @@ void MCEventHeader::extractFileFromKinematics(std::string_view kinefilename, std
     oldfile->Close();
     delete oldfile;
   }
+}
+
+void MCEventHeader::print() const
+{
+  // print some used parts from FairMCEventHeader
+  std::cout << "RunID " << fRunId << "\n";
+  std::cout << "EventID " << fEventId << "\n";
+  std::cout << "Vertex-X " << fX << "\n";
+  std::cout << "Vertex-Y " << fY << "\n";
+  std::cout << "Vertex-Z " << fZ << "\n";
+  std::cout << "Vertex-T " << fT << "\n";
+  std::cout << "Impact-B " << fB << "\n";
+  std::cout << "NPrim " << fNPrim << "\n";
+  // print meta-fields
+  printInfo();
 }
 
 /** alternative implementations below

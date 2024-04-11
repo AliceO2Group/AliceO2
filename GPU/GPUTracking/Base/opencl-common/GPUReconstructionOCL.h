@@ -42,16 +42,16 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   void GPUFailedMsgA(const long int error, const char* file, int line);
 
   void SynchronizeGPU() override;
-  int DoStuckProtection(int stream, void* event) override;
+  int DoStuckProtection(int stream, deviceEvent event) override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
   void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
-  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
-  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
+  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
+  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
   void ReleaseEvent(deviceEvent ev) override;
   void RecordMarker(deviceEvent ev, int stream) override;
 
@@ -64,9 +64,9 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   template <class T, int I = 0>
   unsigned int FindKernel(int num);
   template <typename K, typename... Args>
-  int runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args);
+  int runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args);
   template <class T, int I = 0>
-  const krnlProperties getKernelPropertiesBackend();
+  gpu_reconstruction_kernels::krnlProperties getKernelPropertiesBackend();
 
   GPUReconstructionOCLInternals* mInternals;
 };

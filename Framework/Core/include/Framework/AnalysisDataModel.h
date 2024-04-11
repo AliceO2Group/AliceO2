@@ -12,9 +12,12 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
+
 #include <cmath>
 #include <bitset>
 #include <numeric>
+#include <utility> // std::move
+
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -153,22 +156,32 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                              auto pt = 1.f / std::abs(signed1Pt);
                              return pt * tgl;
                            });
-
+DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-directions in GeV/c
+                           [](float signed1Pt, float snp, float alpha, float tgl) -> std::array<float, 3> {
+                             const auto pt = 1.f / std::abs(signed1Pt);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             const float cs = cosf(alpha), sn = sinf(alpha);
+                             const auto r = std::sqrt((1.f - snp) * (1.f + snp));
+                             const auto px = pt * (r * cs - snp * sn);
+                             const auto py = pt * (snp * cs + r * sn);
+                             const auto pz = pt * tgl;
+                             return std::move(std::array<float, 3>{std::move(px), std::move(py), std::move(pz)});
+                           });
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               ifnode(nabs(aod::track::signed1Pt) <= o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Energy, energy, //! Track energy, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
-                             const auto p = 0.5f * (tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl))) * pt;
-                             return sqrt(p * p + mass * mass);
+                             const auto p = 0.5f * (std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl)) + 1.f / std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl))) * pt;
+                             return std::sqrt(p * p + mass * mass);
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(Rapidity, rapidity, //! Track rapidity, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
                              const auto pz = pt * tgl;
-                             const auto p = 0.5f * (tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl))) * pt;
-                             const auto energy = sqrt(p * p + mass * mass);
-                             return 0.5f * log((energy + pz) / (energy - pz));
+                             const auto p = 0.5f * (std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl)) + 1.f / std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl))) * pt;
+                             const auto energy = std::sqrt(p * p + mass * mass);
+                             return 0.5f * std::log((energy + pz) / (energy - pz));
                            });
 
 // TRACKPARCOV TABLE definition
@@ -367,6 +380,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::PVector<track::Signed1Pt, track::Snp, track::Alpha, track::Tgl>,
                        track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>,
@@ -386,6 +400,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::PVector<track::Signed1Pt, track::Snp, track::Alpha, track::Tgl>,
+                       track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>,
                        o2::soa::Marker<2>);
@@ -1341,8 +1357,10 @@ DECLARE_SOA_COLUMN(V0Type, v0Type, uint8_t);                            //! cust
 
 DECLARE_SOA_DYNAMIC_COLUMN(IsStandardV0, isStandardV0, //! is standard V0
                            [](uint8_t V0Type) -> bool { return V0Type & (1 << 0); });
-DECLARE_SOA_DYNAMIC_COLUMN(IsPhotonV0, isPhotonV0, //! is standard V0
+DECLARE_SOA_DYNAMIC_COLUMN(IsPhotonV0, isPhotonV0, //! is TPC-only V0 for which the photon-mass-hypothesis was good
                            [](uint8_t V0Type) -> bool { return V0Type & (1 << 1); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsCollinearV0, isCollinearV0, //! is V0 for which the photon-mass-hypothesis was good and was fitted collinearly
+                           [](uint8_t V0Type) -> bool { return V0Type & (1 << 2); });
 
 } // namespace v0
 
@@ -1357,7 +1375,8 @@ DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version
                             v0::PosTrackId, v0::NegTrackId,
                             v0::V0Type,
                             v0::IsStandardV0<v0::V0Type>,
-                            v0::IsPhotonV0<v0::V0Type>);
+                            v0::IsPhotonV0<v0::V0Type>,
+                            v0::IsCollinearV0<v0::V0Type>);
 
 using V0s = V0s_002; //! this defines the current default version
 using V0 = V0s::iterator;

@@ -42,6 +42,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   new (&tpcGeometry) GPUTPCGeometry;
   new (&rec) GPUSettingsRec;
   occupancyMap = nullptr;
+  occupancyTotal = 0;
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
   const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};
@@ -90,9 +91,7 @@ void GPUParam::SetDefaults(float solenoidBz)
 #endif
 
   par.dAlpha = 0.349066f;
-  bzkG = solenoidBz;
-  constBz = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
-  qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
+  UpdateBzOnly(solenoidBz);
   par.dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
@@ -124,29 +123,19 @@ void GPUParam::SetDefaults(float solenoidBz)
   par.debugLevel = 0;
   par.resetTimers = false;
   par.earlyTpcTransform = false;
-
-  polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
-  GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
 }
 
 void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
 {
   if (g) {
-    bzkG = g->solenoidBz;
-    constBz = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
+    UpdateBzOnly(g->solenoidBzNominalGPU);
     par.assumeConstantBz = g->constBz;
     par.toyMCEventsFlag = g->homemadeEvents;
     par.continuousTracking = g->continuousMaxTimeBin != 0;
     par.continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
-    polynomialField.Reset();
-    if (par.assumeConstantBz) {
-      GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, bzkG, polynomialField);
-    } else {
-      GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
-    }
   }
   par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
-  qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
+  qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f; // Repeat here, since passing in g is optional
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
@@ -160,9 +149,22 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
   }
 }
 
+void GPUParam::UpdateBzOnly(float newSolenoidBz)
+{
+  bzkG = newSolenoidBz;
+  bzCLight = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
+  polynomialField.Reset();
+  if (par.assumeConstantBz) {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, bzkG, polynomialField);
+  } else {
+    GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
+  }
+  qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
+}
+
 void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
 {
-  SetDefaults(g->solenoidBz);
+  SetDefaults(g->solenoidBzNominalGPU);
   if (r) {
     rec = *r;
     if (rec.fitPropagateBzOnly == -1) {
@@ -182,7 +184,7 @@ void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zE
       ParamErrors[yz][rowType][0] = param[0] * param[0];
       ParamErrors[yz][rowType][1] = param[1] * param[1] * tpcGeometry.PadHeightByRegion(regionMap[rowType]);
       ParamErrors[yz][rowType][2] = param[2] * param[2] / tpcGeometry.TPCLength() / tpcGeometry.PadHeightByRegion(regionMap[rowType]);
-      ParamErrors[yz][rowType][3] = param[3] * param[3];
+      ParamErrors[yz][rowType][3] = param[3] * param[3] * rec.tpc.clusterErrorOccupancyScaler * rec.tpc.clusterErrorOccupancyScaler;
     }
   }
 #endif
@@ -216,7 +218,7 @@ void GPUParam::LoadClusterErrors(bool Print)
   for (int i = 0; i < 2; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 4; k++) {
-        ParamErrorsSeeding0[i][j][k] = clparam->GetParamErrorsSeeding0(i, j, k);
+        ParamErrorsSeeding0[i][j][k] = clparam->GetParamRMS0(i, j, k);
       }
     }
   }
@@ -274,29 +276,10 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
 {
   return "#ifndef GPUCA_GPUCODE_DEVICE\n"
          "#include <string>\n"
+         "#include <vector>\n"
          "#endif\n"
          "namespace o2::gpu { class GPUDisplayFrontendInterface; }\n" +
          qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);
 }
 
 static_assert(sizeof(GPUCA_NAMESPACE::gpu::GPUParam) == sizeof(GPUCA_NAMESPACE::gpu::GPUParamRTC), "RTC param size mismatch");
-
-o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
-{
-  o2::base::Propagator* prop = nullptr;
-#ifdef GPUCA_HAVE_O2HEADERS
-#ifdef GPUCA_STANDALONE
-  if (useGPUField == false) {
-    throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
-  }
-#endif
-  prop = o2::base::Propagator::Instance(useGPUField);
-  if (useGPUField) {
-    prop->setGPUField(&polynomialField);
-    prop->setBz(polynomialField.GetNominalBz());
-  }
-#else
-  throw std::runtime_error("o2 propagator unsupported");
-#endif
-  return prop;
-}
