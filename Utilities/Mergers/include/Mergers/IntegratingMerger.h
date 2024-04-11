@@ -55,6 +55,7 @@ class IntegratingMerger : public framework::Task
   void endOfStream(framework::EndOfStreamContext& eosContext) override;
 
  private:
+  void finishCycle(framework::DataAllocator& outputs);
   void publishIntegral(framework::DataAllocator& allocator);
   void publishMovingWindow(framework::DataAllocator& allocator);
   static void merge(ObjectStore& mMergedDelta, ObjectStore&& other);

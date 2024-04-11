@@ -32,7 +32,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
   const auto mergersInputs = generator.generateHistoProducers(specs, producersCount);
 
-  generator.generateMergers(specs, mergersInputs, InputObjectsTimespan::LastDifference);
+  generator.generateMergers(specs, mergersInputs, InputObjectsTimespan::FullHistory);
 
   generator.generateChecker(specs);
 
