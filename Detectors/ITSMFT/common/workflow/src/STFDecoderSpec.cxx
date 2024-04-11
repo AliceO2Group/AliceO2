@@ -171,14 +171,12 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         continue;
       }
       lastIR = mDecoder->getInteractionRecord();
+      mDecoder->fillChipsStatus(chipStatus);
       if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) {      // call before clusterization, since the latter will hide the digits
-        mDecoder->fillDecodedDigits(digVec, digROFVec, chipStatus); // lot of copying involved
-
+        mDecoder->fillDecodedDigits(digVec, digROFVec);             // lot of copying involved
         if (mDoCalibData) {
           mDecoder->fillCalibData(calVec);
         }
-      } else {
-        mDecoder->fillChipsStatus(chipStatus);
       }
       if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
         mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
