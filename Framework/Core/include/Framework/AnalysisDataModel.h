@@ -12,9 +12,12 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
+
 #include <cmath>
 #include <bitset>
 #include <numeric>
+#include <utility> // std::move
+
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -152,6 +155,17 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                            [](float signed1Pt, float tgl) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
                              return pt * tgl;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-directions in GeV/c
+                           [](float signed1Pt, float snp, float alpha, float tgl) -> std::array<float, 3> {
+                             const auto pt = 1.f / std::abs(signed1Pt);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             const float cs = cosf(alpha), sn = sinf(alpha);
+                             const auto r = std::sqrt((1.f - snp) * (1.f + snp));
+                             const auto px = pt * (r * cs - snp * sn);
+                             const auto py = pt * (snp * cs + r * sn);
+                             const auto pz = pt * tgl;
+                             return std::move(std::array<float, 3>{std::move(px), std::move(py), std::move(pz)});
                            });
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               ifnode(nabs(aod::track::signed1Pt) <= o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
@@ -366,6 +380,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::PVector<track::Signed1Pt, track::Snp, track::Alpha, track::Tgl>,
                        track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>,
@@ -385,6 +400,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::PVector<track::Signed1Pt, track::Snp, track::Alpha, track::Tgl>,
                        track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>,
