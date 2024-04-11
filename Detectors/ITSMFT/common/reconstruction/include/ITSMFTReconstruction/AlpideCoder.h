@@ -122,7 +122,7 @@ class AlpideCoder
 
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T, typename CG>
-  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter)
+  static int decodeChip(ChipPixelData& chipData, T& buffer, std::vector<uint16_t>& seenChips, CG cidGetter)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -198,6 +198,7 @@ class AlpideCoder
 #endif
           return unexpectedEOF("CHIP_EMPTY:Timestamp"); // abandon cable data
         }
+        seenChips.push_back(chipIDGlo);
         chipData.resetChipID();
         expectInp = ExpectChipHeader | ExpectChipEmpty;
         continue;
@@ -437,6 +438,9 @@ class AlpideCoder
         }
         prevPix = currPix++;
       }
+    }
+    if (chipData.getData().size()) {
+      seenChips.push_back(chipData.getChipID());
     }
     return chipData.getData().size();
   }
