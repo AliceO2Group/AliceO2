@@ -26,7 +26,13 @@
 
 // inclusions and forward decl for fast sim
 #ifdef ZDC_FASTSIM_ONNX
+
+#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#else
+#include <onnxruntime_cxx_api.h>
+#endif
+
 namespace o2::zdc
 {
 namespace fastsim

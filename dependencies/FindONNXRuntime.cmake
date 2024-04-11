@@ -9,11 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-find_package(onnxruntime CONFIG)
-if (NOT onnxruntime_FOUND)
-  find_package(ONNXRuntime::ONNXRuntime CONFIG)
-  if (ONNXRuntime::ONNXRuntime_FOUND)
-    set(onnxruntime_FOUND 1)
-    add_library(onnxruntime::onnxruntime ALIAS ONNXRuntime::ONNXRuntime)
-  endif()
+find_package(ONNXRuntime::ONNXRuntime CONFIG)
+if (ONNXRuntime::ONNXRuntime_FOUND)
+  set(onnxruntime_FOUND 1)
+  add_library(onnxruntime::onnxruntime ALIAS ONNXRuntime::ONNXRuntime)
+endif()
+
+if (NOT ONNXRuntime::ONNXRuntime_FOUND)
+  find_package(onnxruntime CONFIG)
 endif()
