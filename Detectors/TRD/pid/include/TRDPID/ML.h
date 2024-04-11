@@ -27,9 +27,7 @@
 #include <array>
 #include <string>
 
-namespace o2
-{
-namespace trd
+namespace o2::trd
 {
 
 /// This is the ML Base class which defines the interface all machine learning
@@ -123,7 +121,6 @@ class PY final : public ML
   ClassDefNV(PY, 1);
 };
 
-} // namespace trd
-} // namespace o2
+} // namespace o2::trd
 
 #endif
