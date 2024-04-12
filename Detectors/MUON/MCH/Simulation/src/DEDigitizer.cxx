@@ -86,26 +86,20 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto localX = mResponse.getAnod(lpos.X());
   auto localY = lpos.Y();
 
-  //calculate angle between track and wire assuming wire perpendicular to z-axis
+  // calculate angle between track and wire assuming wire perpendicular to z-axis
   auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ);//check sign convention between O2 and Aliroot
 
-  // bfield
+  // local b-field
   double b[3] = {0., 0., 0.};
   double x[3] = {lentrance.X(), lentrance.Y(), lentrance.Z()};
   if (TGeoGlobalMagField::Instance()->GetField())  {
     TGeoGlobalMagField::Instance()->Field(x, b);
   } else{
     LOG(fatal) << "no b field in DEDigitizer";
-   // auto l3Current = ic.options().get<float>("l3Current");
-   // auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
-   // auto field =
-   // o2::field::MagneticField::createFieldMap(l3Current, dipoleCurrent, o2::field::MagneticField::kConvLHC, false, 3500.,
-   //                                          "A-A", "$(O2_ROOT)/share/Common/maps/mfchebKGI_sym.root");
-   //  field->Field(entrance, b);
   }
-  //calculate track betagamma
-  auto deltat = hit.exitTof() - hit.entranceTof();// delta t in nanoseconds
-  auto beta = std::sqrt((lexit.X() - lentrance.X()) * (lexit.X() - lentrance.X()) + (lexit.Y() - lentrance.Y()) * (lexit.Y() - lentrance.Y()) + hitlengthZ * hitlengthZ) / (deltat * 0.299792);
+  // calculate track betagamma, time in ns, space in cm
+  auto deltat = hit.exitTof() - hit.entranceTof();
+  auto beta = std::sqrt((lexit.X() - lentrance.X()) * (lexit.X() - lentrance.X()) + (lexit.Y() - lentrance.Y()) * (lexit.Y() - lentrance.Y()) + hitlengthZ * hitlengthZ) / (deltat * 29.9792);
 
   auto betagamma = beta * 1.0 / std::sqrt(1 - beta * beta);
   auto yAngleEffect = mResponse.inclandbfield(thetawire, betagamma, b[0]);
