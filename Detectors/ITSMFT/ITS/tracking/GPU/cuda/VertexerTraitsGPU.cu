@@ -93,7 +93,6 @@ VertexerTraitsGPU::VertexerTraitsGPU()
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
-  gpu::utils::gpuFree(mDeviceIndexTableUtils);
 }
 
 void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)

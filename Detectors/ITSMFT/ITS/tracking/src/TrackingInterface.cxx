@@ -195,10 +195,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                  iRof,
-                                  multEstConf.cutMultVtxLow,
-                                  multEstConf.cutMultVtxHigh);
+        LOGP(info, "ROF {} rejected by the vertex multiplicity selection [{},{}]", iRof, multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
         processingMask[iRof] = selROF;
         cutVertexMult++;
       }
