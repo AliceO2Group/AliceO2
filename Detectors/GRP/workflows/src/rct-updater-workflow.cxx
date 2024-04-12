@@ -69,7 +69,7 @@ class RCTUpdaterSpec : public o2::framework::Task
       if (grp->getRunType() == o2::parameters::GRPECS::PHYSICS || grp->getRunType() == o2::parameters::GRPECS::COSMICS) {
         mEnabled = true;
       } else {
-        LOGP(warning, "Run {} type is {}, disabling RCT update", mRunNumber, o2::parameters::GRPECS::RunTypeNames[mRunNumber]);
+        LOGP(warning, "Run {} type is {}, disabling RCT update", mRunNumber, o2::parameters::GRPECS::RunTypeNames[grp->getRunType()]);
         mEnabled = false;
       }
       if (mEnabled) {
