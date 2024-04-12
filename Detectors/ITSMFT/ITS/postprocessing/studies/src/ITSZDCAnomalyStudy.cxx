@@ -14,6 +14,12 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DataFormatsParameters/GRPObject.h"
 
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+
 // ZDC
 #include "DataFormatsZDC/RecEventFlat.h"
 
@@ -40,16 +46,36 @@ class ITSZDCAnomalyStudy : public Task
 
   // Custom
   void process(o2::globaltracking::RecoContainer& recoData);
+  void updateTimeDependentParams(ProcessingContext& pc);
 
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC;
+  size_t mTFn = 0;
+  const o2::itsmft::TopologyDictionary *dict;
 };
+
+void ITSZDCAnomalyStudy::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  // static bool initOnceDone = false;
+  // if (!initOnceDone) { // this param need to be queried only once
+  //   initOnceDone = true;
+  //   // mGeom = o2::its::GeometryTGeo::Instance();
+  //   // mGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
+  // }
+}
 
 void ITSZDCAnomalyStudy::init(InitContext& ic)
 {
   LOGP(info, "Initializing ITSZDCAnomalyStudy");
+  LOGP(info, "Fetching ClusterDictionary");
+  auto &mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
+  dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+  
 }
 
 void ITSZDCAnomalyStudy::endOfStream(EndOfStreamContext&)
@@ -59,7 +85,11 @@ void ITSZDCAnomalyStudy::endOfStream(EndOfStreamContext&)
 
 void ITSZDCAnomalyStudy::run(ProcessingContext& pc)
 {
-  LOGP(info, "Running ITSZDCAnomalyStudy");
+  LOGP(info, "Running ITSZDCAnomalyStudy on TF: {}", mTFn++);
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest.get());
+  // updateTimeDependentParams(pc);
+  process(recoData);
 }
 
 void ITSZDCAnomalyStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -79,24 +109,29 @@ void ITSZDCAnomalyStudy::process(o2::globaltracking::RecoContainer& recoData)
   o2::zdc::RecEventFlat ev;
 
   LOGP(info, "Processing RecoContainer");
+  LOGP(info, "Retrieving ZDC data");
   auto RecBC = recoData.getZDCBCRecData();
   auto Energy = recoData.getZDCEnergy();
   auto TDCData = recoData.getZDCTDCData();
   auto Info2 = recoData.getZDCInfo();
+  LOGP(info, "sizeof ZDC RC: {}, {}, {}, {}", RecBC.size(), Energy.size(), TDCData.size(), Info2.size());
+
+LOGP(info, "Retrieving ITS clusters");
+auto rofRecVec = recoData.getITSClustersROFRecords();
+auto clusArr = recoData.getITSClusters();
+auto clusPatt = recoData.getITSClustersPatterns();
+LOGP(info, "sizeof ITS RC: {}, {}, {}", clusArr.size(), clusPatt.size(), rofRecVec.size());
 
   ev.init(RecBC, Energy, TDCData, Info2);
   while (ev.next()) {
     // cout<<(int)(ev.getNTDC())<<endl;
-
     int32_t itdc = 0;
-
     int nhit = ev.NtdcV(itdc);
-
     for (int32_t ipos = 0; ipos < nhit; ipos++) {
       double mytdc = o2::zdc::FTDCVal * ev.TDCVal[itdc][ipos];
       // ht[ich]->Fill(mytdc);
       if (itdc == o2::zdc::TDCZNAC && mytdc > 5.7 && mytdc < 8.7) {
-        printf("ZNAC background %f hit on %u.%04u\n", mytdc, ev.ir.orbit, ev.ir.bc);
+        LOGF(info, "ZNAC background %f hit on %u.%04u\n", mytdc, ev.ir.orbit, ev.ir.bc);
       }
     }
   }
@@ -108,7 +143,7 @@ DataProcessorSpec getITSZDCAnomalyStudy(mask_t srcClustersMask, bool useMC)
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestClusters(srcClustersMask, useMC);
-  dataRequest->requestTracks(GTrackID::getSourcesMask(""), useMC);
+  dataRequest->requestTracks(GTrackID::getSourcesMask("ZDC"), useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
