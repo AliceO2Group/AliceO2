@@ -88,6 +88,10 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
     const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
     for (uint32_t iCalib = 0; iCalib < calibrations.size(); ++iCalib) {
       const auto& object = calibrations[iCalib];
+      if (!object.isValid()) {
+        LOGP(error, "Invalid Laser calibration (corrections: A-side={}, C-side={}, NTracks: A-side={} C-side={}), will NOT upload to CCDB", object.dvCorrectionA, object.dvCorrectionC, object.nTracksA, object.nTracksC);
+        continue;
+      }
       o2::ccdb::CcdbObjectInfo w;
       auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
 
