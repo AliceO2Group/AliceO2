@@ -57,6 +57,10 @@ void VDriftHelper::accountLaserCalibration(const LtrCalibData* calib, long fallB
   if (!calib || mForceParamDrift) { // laser may set only DriftParam (the offset is 0)
     return;
   }
+  if (!calib->isValid()) {
+    LOGP(warn, "Ignoring invalid laser calibration (corrections: A-side={}, C-side={}, NTracks: A-side={} C-side={})", calib->dvCorrectionA, calib->dvCorrectionC, calib->nTracksA, calib->nTracksC);
+    return;
+  }
   // old entries of laser calib have no update time assigned
   long updateTS = calib->creationTime > 0 ? calib->creationTime : fallBackTimeStamp;
   LOG(info) << "accountLaserCalibration " << calib->refVDrift << " / " << calib->getDriftVCorrection() << " t " << updateTS << " vs " << mVDLaser.creationTime;

@@ -121,14 +121,14 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
     using clbUtils = o2::calibration::Utils;
     auto ltrCalib = mCalib.getCalibData();
+    if (!ltrCalib.isValid()) {
+      LOGP(error, "Invalid Laser calibration (corrections: A-side={}, C-side={}, NTracks: A-side={} C-side={}), will NOT upload to CCDB", ltrCalib.dvCorrectionA, ltrCalib.dvCorrectionC, ltrCalib.nTracksA, ltrCalib.nTracksC);
+      return;
+    }
 
     if (mNormalize) {
       ltrCalib.normalize(0.);
       LOGP(info, "After normalization: correction factors: {} / {} for A- / C-Side, reference: {}, vdrift correction: {}", ltrCalib.dvCorrectionA, ltrCalib.dvCorrectionC, ltrCalib.refVDrift, ltrCalib.getDriftVCorrection());
-    }
-    if (ltrCalib.getDriftVCorrection() == 0) {
-      LOG(error) << "Extracted drift correction is 0, something is wrong, will not upload the object";
-      return;
     }
 
     o2::ccdb::CcdbObjectInfo w;

@@ -43,6 +43,11 @@ struct LtrCalibData {
   std::vector<uint16_t> nTrackTF;      ///< number of laser tracks per TF
   std::vector<float> dEdx;             ///< dE/dx of each track
 
+  bool isValid() const
+  {
+    return (std::abs(dvCorrectionA - 1.f) < 0.2) || (std::abs(dvCorrectionC - 1.f) < 0.2);
+  }
+
   float getDriftVCorrection() const
   {
     float correction = 0;
