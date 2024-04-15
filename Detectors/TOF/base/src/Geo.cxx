@@ -755,12 +755,12 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate, Int_t isector)
   int firstStripToCheck = stripFound;
   int lastStripToCheck = stripFound;
   if (stripFound != 0) {
-    while (std::abs(pos[2] + getGeoDistances(isector, iplate, firstStripToCheck - 1)) < 10) {
+    while (firstStripToCheck != 0 && std::abs(pos[2] + getGeoDistances(isector, iplate, firstStripToCheck - 1)) < 10) {
       --firstStripToCheck;
     }
   }
   if (stripFound != nstrips - 1) {
-    while (std::abs(pos[2] + getGeoDistances(isector, iplate, lastStripToCheck + 1)) < 10) {
+    while (lastStripToCheck != nstrips - 1 && std::abs(pos[2] + getGeoDistances(isector, iplate, lastStripToCheck + 1)) < 10) {
       ++lastStripToCheck;
     }
   }
