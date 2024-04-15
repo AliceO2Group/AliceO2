@@ -59,6 +59,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     corr->Draw("cx:y:z","iRoc==0&&iRow==10","")
     grid->Draw("cx:y:z","iRoc==0&&iRow==10","same")
     vox->Draw("vx:y:z","iRoc==0&&iRow==10","same")
+    corrvox->Draw("cx:y:z","iRoc==0&&iRow==10","same")
     points->Draw("px:y:z","iRoc==0&&iRow==10","same")
   */
 
@@ -98,17 +99,36 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   trackResiduals.setZ2XBinning(z2xBins);
   trackResiduals.init();
 
-  std::cout << "y2xBins: " << y2xBins.size() << " z2xBins: " << z2xBins.size() << std::endl;
+  {
+    std::cout << "input track residuals: " << std::endl;
+    std::cout << "voxel tree y2xBins: " << y2xBins.size() << std::endl;
 
-  for (auto y2x : y2xBins) {
-    std::cout << "y2x: " << y2x << std::endl;
+    for (auto y2x : y2xBins) {
+      std::cout << " y2x: " << y2x << std::endl;
+    }
+    std::cout << std::endl;
+
+    int nY2Xbins = trackResiduals.getNY2XBins();
+
+    std::cout << " TrackResiduals y2x bins: " << nY2Xbins << std::endl;
+    for (int i = 0; i < nY2Xbins; i++) {
+      std::cout << "scaled getY2X(bin) : " << trackResiduals.getY2X(0, i) / trackResiduals.getMaxY2X(0) << std::endl;
+    }
+
+    std::cout << "voxel tree z2xBins: " << z2xBins.size() << std::endl;
+
+    for (auto z2x : z2xBins) {
+      std::cout << "z2x: " << z2x << std::endl;
+    }
+    std::cout << std::endl;
+
+    int nZ2Xbins = trackResiduals.getNZ2XBins();
+    std::cout << " TrackResiduals z2x bins: " << nZ2Xbins << std::endl;
+    for (int i = 0; i < nZ2Xbins; i++) {
+      std::cout << "getZ2X(bin) : " << trackResiduals.getZ2X(i) << std::endl;
+    }
   }
 
-  std::cout << std::endl;
-
-  for (auto z2x : z2xBins) {
-    std::cout << "z2x: " << z2x << std::endl;
-  }
   std::cout << "create fast transformation ... " << std::endl;
 
   auto* helper = o2::tpc::TPCFastTransformHelperO2::instance();
@@ -122,15 +142,46 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(
     helper->create(0, *corrPtr));
 
-  o2::gpu::TPCFastSpaceChargeCorrection& corr = fastTransform->getCorrection();
-
   std::cout << "... create fast transformation completed " << std::endl;
 
   if (*outFileName) {
     fastTransform->writeToFile(outFileName, "ccdb_object");
   }
 
+  if (1) { // read transformation from the file
+
+    // const char* fileName = "master/out.root";
+
+    const char* fileName = outFileName;
+
+    std::cout << "load corrections from file " << fileName << std::endl;
+
+    fastTransform->cloneFromObject(*TPCFastTransform::loadFromFile(fileName, "ccdb_object"), nullptr);
+
+    o2::gpu::TPCFastSpaceChargeCorrection& corr = fastTransform->getCorrection();
+
+    if (0) {
+      std::cout << "check the loaded correction ..." << std::endl;
+
+      const o2::gpu::TPCFastTransformGeo& geo = helper->getGeometry();
+
+      // for (int iRoc = 0; iRoc < geo.getNumberOfSlices(); iRoc++) {
+      for (int iRoc = 0; iRoc < 1; iRoc++) {
+        for (int iRow = 0; iRow < geo.getNumberOfRows(); iRow++) {
+          auto& info = corr.getSliceRowInfo(iRoc, iRow);
+          std::cout << "roc " << iRoc << " row " << iRow
+                    << " gridV0 " << info.gridV0 << " gridCorrU0 " << info.gridCorrU0 << " gridCorrV0 " << info.gridCorrV0
+                    << " scaleCorrUtoGrid " << info.scaleCorrUtoGrid << " scaleCorrVtoGrid " << info.scaleCorrVtoGrid
+                    << " gridU0 " << info.gridU0 << " scaleUtoGrid " << info.scaleUtoGrid << " scaleVtoGrid " << info.scaleVtoGrid
+                    << std::endl;
+        }
+      }
+    }
+  }
+
   std::cout << "verify the results ..." << std::endl;
+
+  o2::gpu::TPCFastSpaceChargeCorrection& corr = fastTransform->getCorrection();
 
   // the difference
 
@@ -158,11 +209,20 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   // ntuple with the input data: voxel corrections
   debugFile->cd();
   TNtuple* debugVox =
-    new TNtuple("vox", "vox", "iRoc:iRow:x:y:z:vx:vy:vz:cx:cy:cz");
+    new TNtuple("vox", "vox", "iRoc:iRow:n:x:y:z:vx:vy:vz:cx:cy:cz");
 
   debugVox->SetMarkerStyle(8);
   debugVox->SetMarkerSize(0.8);
   debugVox->SetMarkerColor(kBlue);
+
+  // duplicate of debugVox
+  debugFile->cd();
+  TNtuple* debugCorrVox =
+    new TNtuple("corrvox", "corrvox", "iRoc:iRow:n:x:y:z:vx:vy:vz:cx:cy:cz");
+
+  debugCorrVox->SetMarkerStyle(8);
+  debugCorrVox->SetMarkerSize(0.8);
+  debugCorrVox->SetMarkerColor(kMagenta);
 
   // ntuple with spline grid points
   debugFile->cd();
@@ -244,13 +304,6 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
       correctionZ *= -1.;
     }
 
-    // TODO: skip empty voxels?
-    if (voxEntries < 1.) { // no statistics
-      // std::cout << "Empty Voxel!!! corrections: " << correctionX << " "
-      //         << correctionY << " " << correctionZ << std::endl;
-      //  continue;
-    }
-
     float u, v, cx, cu, cv, cy, cz;
     geo.convLocalToUV(iRoc, y, z, u, v);
     corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
@@ -258,19 +311,24 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     cy -= y;
     cz -= z;
     double d[3] = {cx - correctionX, cy - correctionY, cz - correctionZ};
-    for (int i = 0; i < 3; i++) {
-      if (fabs(maxDiff[i]) < fabs(d[i])) {
-        maxDiff[i] = d[i];
-        maxDiffRoc[i] = iRoc;
-        maxDiffRow[i] = iRow;
-        std::cout << " roc " << iRoc << " row " << iRow << " xyz " << i
-                  << " diff " << d[i] << std::endl;
+    if (voxEntries >= 1.) {
+      for (int i = 0; i < 3; i++) {
+        if (fabs(maxDiff[i]) < fabs(d[i])) {
+          maxDiff[i] = d[i];
+          maxDiffRoc[i] = iRoc;
+          maxDiffRow[i] = iRow;
+          std::cout << " roc " << iRoc << " row " << iRow << " xyz " << i
+                    << " diff " << d[i] << " entries " << voxEntries << " y " << y2xBin << " z " << z2xBin << std::endl;
+        }
+        sumDiff[i] += d[i] * d[i];
       }
-      sumDiff[i] += d[i] * d[i];
+      nDiff++;
     }
-    nDiff++;
-    debugVox->Fill(iRoc, iRow, x, y, z, correctionX, correctionY, correctionZ,
+
+    debugVox->Fill(iRoc, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ,
                    cx, cy, cz);
+    debugCorrVox->Fill(iRoc, iRow, voxEntries, x, y, z, correctionX, correctionY, correctionZ,
+                       cx, cy, cz);
   }
 
   std::cout << "create debug ntuples ..." << std::endl;
@@ -282,43 +340,71 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
       double x = geo.getRowInfo(iRow).x;
 
-      // the correction
-
-      for (double su = 0.; su <= 1.0001; su += 0.01) {
-        for (double sv = 0.; sv <= 1.0001; sv += 0.1) {
-          float u, v;
-          geo.convScaledUVtoUV(iRoc, iRow, su, sv, u, v);
-          float y, z;
-          geo.convUVtoLocal(iRoc, u, v, y, z);
-          float cx, cu, cv;
-          corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
-          float cy, cz;
-          geo.convUVtoLocal(iRoc, u + cu, v + cv, cy, cz);
-          cy -= y;
-          cz -= z;
-          debugCorr->Fill(iRoc, iRow, x, y, z, cx, cy, cz);
-        }
-      }
-
       // the spline grid
 
       const auto& gridU = corr.getSpline(iRoc, iRow).getGridX1();
       const auto& gridV = corr.getSpline(iRoc, iRow).getGridX2();
-      for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
-        double su = gridU.convUtoX(gridU.getKnot(iu).getU());
-        for (int iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
-          double sv = gridV.convUtoX(gridV.getKnot(iv).getU());
+      if (iRoc == 0 && iRow == 0) {
+        std::cout << "spline scenario " << corr.getRowInfo(iRow).splineScenarioID << std::endl;
+        std::cout << "spline grid U: u = " << 0 << ".." << gridU.getUmax() << ", x = " << gridU.getXmin() << ".." << gridU.getXmax() << std::endl;
+        std::cout << "spline grid V: u = " << 0 << ".." << gridV.getUmax() << ", x = " << gridV.getXmin() << ".." << gridV.getXmax() << std::endl;
+      }
+
+      // the correction
+      {
+        std::vector<double> p[2], g[2];
+
+        p[0].push_back(geo.getRowInfo(iRow).getUmin());
+        for (int iu = 0; iu < gridU.getNumberOfKnots(); iu++) {
           float u, v;
-          corr.convGridToUV(iRoc, iRow, iu, iv, u, v);
-          float y, z;
-          geo.convUVtoLocal(iRoc, u, v, y, z);
-          float cx, cu, cv;
-          corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
-          float cy, cz;
-          geo.convUVtoLocal(iRoc, u + cu, v + cv, cy, cz);
-          cy -= y;
-          cz -= z;
-          debugGrid->Fill(iRoc, iRow, x, y, z, cx, cy, cz);
+          corr.convGridToUV(iRoc, iRow, gridU.getKnot(iu).getU(), 0., u, v);
+          g[0].push_back(u);
+          p[0].push_back(u);
+        }
+        p[0].push_back(geo.getRowInfo(iRow).getUmax());
+
+        p[1].push_back(0.);
+        for (int iv = 0; iv < gridV.getNumberOfKnots(); iv++) {
+          float u, v;
+          corr.convGridToUV(iRoc, iRow, 0., gridV.getKnot(iv).getU(), u, v);
+          g[1].push_back(v);
+          p[1].push_back(v);
+        }
+        p[1].push_back(geo.getTPCzLength(iRoc));
+
+        for (int iuv = 0; iuv < 2; iuv++) {
+          int n = p[iuv].size();
+          for (unsigned int i = 0; i < n - 1; i++) {
+            double d = (p[iuv][i + 1] - p[iuv][i]) / 10.;
+            for (int ii = 1; ii < 10; ii++) {
+              p[iuv].push_back(p[iuv][i] + d * ii);
+            }
+          }
+          std::sort(p[iuv].begin(), p[iuv].end());
+        }
+
+        for (int iter = 0; iter < 2; iter++) {
+          std::vector<double>& pu = ((iter == 0) ? g[0] : p[0]);
+          std::vector<double>& pv = ((iter == 0) ? g[1] : p[1]);
+          for (unsigned int iu = 0; iu < pu.size(); iu++) {
+            for (unsigned int iv = 0; iv < pv.size(); iv++) {
+              float u = pu[iu];
+              float v = pv[iv];
+              float x, y, z;
+              geo.convUVtoLocal(iRoc, u, v, y, z);
+              float cx, cu, cv;
+              corr.getCorrection(iRoc, iRow, u, v, cx, cu, cv);
+              float cy, cz;
+              geo.convUVtoLocal(iRoc, u + cu, v + cv, cy, cz);
+              cy -= y;
+              cz -= z;
+              if (iter == 0) {
+                debugGrid->Fill(iRoc, iRow, x, y, z, cx, cy, cz);
+              } else {
+                debugCorr->Fill(iRoc, iRow, x, y, z, cx, cy, cz);
+              }
+            }
+          }
         }
       }
 
@@ -372,6 +458,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   debugFile->cd();
   debugCorr->Write();
   debugVox->Write();
+  debugCorrVox->Write();
   debugGrid->Write();
   debugPoints->Write();
   debugFile->Close();

@@ -52,8 +52,15 @@ class TPCFastTransformGeo
     float scaleUtoSU; ///< scale for su (scaled u ) coordinate
     float scaleSUtoU; ///< scale for u coordinate
 
+    /// get U min
+    GPUd() float getUmin() const { return u0; }
+
+    /// get U max
+    GPUd() float getUmax() const { return -u0; }
+
     /// get width in U
     GPUd() float getUwidth() const { return -2.f * u0; }
+
 #ifndef GPUCA_ALIROOT_LIB
     ClassDefNV(RowInfo, 1);
 #endif
@@ -113,6 +120,9 @@ class TPCFastTransformGeo
 
   /// Gives number of TPC rows
   GPUd() int getNumberOfRows() const { return mNumberOfRows; }
+
+  /// Gives number of TPC rows
+  GPUd() static constexpr int getMaxNumberOfRows() { return MaxNumberOfRows; }
 
   /// Gives slice info
   GPUd() const SliceInfo& getSliceInfo(int slice) const;

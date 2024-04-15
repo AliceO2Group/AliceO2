@@ -318,9 +318,14 @@ class TrackResiduals
   void getVoxelCoordinates(int isec, int ix, int ip, int iz, float& x, float& p, float& z) const;
 
   /// Calculates the x-coordinate for given x bin.
-  /// \param i Bin index
+  /// \param ix Bin index in x
   /// \return Coordinate in X
-  float getX(int i) const;
+  float getX(int ix) const;
+
+  /// Calculates the max y/x-coordinate for given x bin taking the dead zone into account.
+  /// \param ix Bin index in x
+  /// \return Max coordinate in Y/X
+  float getMaxY2X(int ix) const;
 
   /// Calculates the y/x-coordinate.
   /// \param ix Bin index in X
@@ -553,9 +558,15 @@ inline float TrackResiduals::getDXI(int ix) const
 }
 
 //_____________________________________________________
-inline float TrackResiduals::getX(int i) const
+inline float TrackResiduals::getX(int ix) const
 {
-  return mUniformBins[VoxX] ? param::MinX + (i + 0.5) * mDX : param::RowX[i];
+  return mUniformBins[VoxX] ? param::MinX + (ix + 0.5) * mDX : param::RowX[ix];
+}
+
+//_____________________________________________________
+inline float TrackResiduals::getMaxY2X(int ix) const
+{
+  return mMaxY2X[ix];
 }
 
 //_____________________________________________________
