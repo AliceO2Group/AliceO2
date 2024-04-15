@@ -22,7 +22,6 @@
 
 #include "TRandom.h"
 
-
 /// Convert collision time to ROF time (ROF duration = 4 BC)
 std::pair<o2::InteractionRecord, uint8_t> time2ROFtime(const o2::InteractionRecord& time)
 {
@@ -69,7 +68,6 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   math_utils::Point3D<float> lentrance{};
   mTransformation.MasterToLocal(exitPoint, lexit);
   mTransformation.MasterToLocal(entrancePoint, lentrance);
-  
 
   auto hitlengthZ = lentrance.Z() - lexit.Z();
   auto pitch = mResponse.getPitch();
@@ -87,24 +85,22 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto localY = lpos.Y();
 
   // calculate angle between track and wire assuming wire perpendicular to z-axis
-  auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ);//check sign convention between O2 and Aliroot
+  auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ); // check sign convention between O2 and Aliroot
 
   // local b-field
   double b[3] = {0., 0., 0.};
   double x[3] = {lentrance.X(), lentrance.Y(), lentrance.Z()};
-  if (TGeoGlobalMagField::Instance()->GetField())  {
+  if (TGeoGlobalMagField::Instance()->GetField()) {
     TGeoGlobalMagField::Instance()->Field(x, b);
-  } else{
-    LOG(fatal) << "no b field in DEDigitizer";
+  } else {
+    LOG(fatal) << "no b field in MCH DEDigitizer";
   }
-  // calculate track betagamma, time in ns, space in cm
-  auto deltat = hit.exitTof() - hit.entranceTof();
-  auto beta = std::sqrt((lexit.X() - lentrance.X()) * (lexit.X() - lentrance.X()) + (lexit.Y() - lentrance.Y()) * (lexit.Y() - lentrance.Y()) + hitlengthZ * hitlengthZ) / (deltat * 29.9792);
 
-  auto betagamma = beta * 1.0 / std::sqrt(1 - beta * beta);
+  // calculate track betagamma
+  // assume beta = 1 and mass of charged muon to calculate track betagamma from particle energy
+  auto betagamma = hit.eTot() / 0.1056583745;
   auto yAngleEffect = mResponse.inclandbfield(thetawire, betagamma, b[0]);
   localY += yAngleEffect;
-
 
   // borders of charge integration area
   auto dxy = mResponse.getSigmaIntegration() * mResponse.getChargeSpread();

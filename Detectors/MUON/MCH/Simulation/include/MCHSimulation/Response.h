@@ -39,7 +39,6 @@ class Response
   bool isAngleEffect() const { return mAngleEffect; }
   bool isMagnetEffect() const { return mMagnetEffect; }
 
-
   /** Converts energy deposition into a charge.
    *
    * @param edepos deposited energy from Geant (in GeV)
@@ -47,7 +46,6 @@ class Response
    *
    */
   float etocharge(float edepos) const;
-
 
   /** Compute the charge fraction in a rectangle area for a unit charge
    * occuring at position (0,0)
@@ -70,7 +68,6 @@ class Response
 
   /// compute deteriation of y-resolution due to track inclination and B-field
   float inclandbfield(float thetawire, float betagamma, float bx) const;
-
 
  private:
   MathiesonOriginal mMathieson{}; ///< Mathieson function

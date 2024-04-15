@@ -25,24 +25,25 @@ class Hit : public ::o2::BasicXYZEHit<float>
 
  public:
   Hit(int trackId = 0, short detElemId = 0, math_utils::Point3D<float> entrancePoint = {}, const math_utils::Point3D<float> exitPoint = {},
-      float eloss = 0.0, float length = 0.0, float entranceTof = 0.0, float exitTof = 0.0)
-    : ::o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), entranceTof, eloss, trackId, detElemId), mLength{length}, mExitPoint(exitPoint), mExitTof{exitTof}
+      float eloss = 0.0, float length = 0.0, float entranceTof = 0.0, float eTot = 0.0)
+    : ::o2::BasicXYZEHit<float>(entrancePoint.x(), entrancePoint.y(), entrancePoint.z(), entranceTof, eloss, trackId, detElemId), mLength{length}, mExitPoint(exitPoint), mEtot{eTot}
   {
   }
 
   math_utils::Point3D<float> entrancePoint() const { return GetPos(); }
   math_utils::Point3D<float> exitPoint() const { return mExitPoint; }
 
-  //time in ns 
+  // time in s
   float entranceTof() const { return GetTime(); }
-  float exitTof() const { return mExitTof; }
+  // particle energy in GeV
+  float eTot() const { return mEtot; }
 
   short detElemId() const { return GetDetectorID(); }
 
  private:
   float mLength = {};
   math_utils::Point3D<float> mExitPoint = {};
-  float mExitTof = {};
+  float mEtot = {};
   ClassDefNV(Hit, 1);
 };
 

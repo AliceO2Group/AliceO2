@@ -47,7 +47,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  public:
   MCHDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM) {}
 
-  void initDigitizerTask(framewor::InitContext& ic) override
+  void initDigitizerTask(framework::InitContext& ic) override
   {
     auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
     mDigitizer = std::make_unique<Digitizer>(transformation);
