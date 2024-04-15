@@ -104,6 +104,7 @@ void CalibratorGain::retrievePrev(o2::framework::ProcessingContext& pc)
 void CalibratorGain::finalizeSlot(Slot& slot)
 {
   LOG(info) << "Finalizing gain calibration";
+  print(); // to see current number of slots and their entries
   // do actual calibration for the data provided in the given slot
   TStopwatch timer;
   timer.Start();
