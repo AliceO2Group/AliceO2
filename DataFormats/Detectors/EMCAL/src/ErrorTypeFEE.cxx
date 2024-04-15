@@ -111,7 +111,7 @@ const char* ErrorTypeFEE::getErrorTypeTitle(unsigned int errorTypeID)
   };
 }
 
-std::ostream& operator<<(std::ostream& stream, const ErrorTypeFEE& error)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const ErrorTypeFEE& error)
 {
   error.PrintStream(stream);
   return stream;
