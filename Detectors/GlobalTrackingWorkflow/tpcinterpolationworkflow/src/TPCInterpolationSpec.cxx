@@ -52,6 +52,9 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mSlotLength = ic.options().get<uint32_t>("sec-per-slot");
   mProcessSeeds = ic.options().get<bool>("process-seeds");
   mMatCorr = ic.options().get<int>("matCorrType");
+  if (mProcessSeeds && mSources != mSourcesMap) {
+    LOG(fatal) << "process-seeds option is not compatible with using different track sources for vDrift and map extraction";
+  }
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -63,7 +66,7 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     // other init-once stuff
     const auto& param = SpacePointsCalibConfParam::Instance();
-    mInterpolation.init(mSources);
+    mInterpolation.init(mSources, mSourcesMap);
     if (mProcessITSTPConly) {
       mInterpolation.setProcessITSTPConly();
     }
@@ -74,10 +77,10 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     if (nTracksPerTfMax > 0) {
       LOGP(info, "We will stop processing tracks after validating {} tracks per TF, since we want to accumulate {} tracks for a slot with {} TFs",
            nTracksPerTfMax, param.maxTracksPerCalibSlot, nTfs);
-      if (param.additionalTracksITSTPC > 0) {
-        int nITSTPCadd = param.additionalTracksITSTPC / nTfs;
-        LOGP(info, "In addition up to {} ITS-TPC tracks are processed per TF", nITSTPCadd);
-        mInterpolation.setAddITSTPCTracksPerTF(nITSTPCadd);
+      if (param.additionalTracksMap > 0) {
+        int nTracksAdditional = param.additionalTracksMap / nTfs;
+        LOGP(info, "In addition up to {} additional tracks are processed per TF", nTracksAdditional);
+        mInterpolation.setAddTracksForMapPerTF(nTracksAdditional);
       }
     } else if (nTracksPerTfMax < 0) {
       LOG(info) << "The number of processed tracks per TF is not limited";
@@ -155,7 +158,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mask_t srcVtx, GTrackID::mask_t srcTrk, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mask_t srcVtx, GTrackID::mask_t srcTrk, GTrackID::mask_t srcTrkMap, bool useMC, bool processITSTPConly, bool sendTrackData, bool debugOutput)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
@@ -196,7 +199,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t srcCls, GTrackID::mas
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, srcTrk, srcTrkMap, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput)},
     Options{
       {"matCorrType", VariantType::Int, 2, {"material correction type (definition in Propagator.h)"}},
       {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},

@@ -39,6 +39,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"vtx-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources used for the vertex finding"}},
     {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for track inter-/extrapolation"}},
+    {"tracking-sources-map-extraction", VariantType::String, std::string{GID::ALL}, {"can be subset of \"tracking-sources\""}},
     {"send-track-data", VariantType::Bool, false, {"Send also the track information to the aggregator"}},
     {"debug-output", VariantType::Bool, false, {"Dump extended tracking information for debugging"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
@@ -69,14 +70,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t allowedSources = GID::getSourcesMask("ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   GID::mask_t srcVtx = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vtx-sources"));
   GID::mask_t srcTracks = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
+  GID::mask_t srcTracksMap = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources-map-extraction"));
   if (srcTracks.count() > srcVtx.count()) {
     LOGP(error, "More sources configured for inter-/extrapolation: {} than for vertexing: {}. Additional sources will be ignored", GID::getSourcesNames(srcTracks), GID::getSourcesNames(srcVtx));
     srcTracks &= srcVtx;
+  }
+  srcTracksMap &= srcVtx;
+  if (((srcTracksMap | srcTracks) ^ srcTracks).any()) {
+    LOGP(fatal, "tracking-sources-map-extraction ({}) must be a subset of tracking-sources ({}).", GID::getSourcesNames(srcTracksMap), GID::getSourcesNames(srcTracks));
+  } else if (srcTracksMap != srcTracks) {
+    LOGP(info, "Will extract residual from different track types. For vDrift from {} and for distortion map from {}", GID::getSourcesNames(srcTracks), GID::getSourcesNames(srcTracksMap));
+  } else {
+    LOGP(info, "Only a single track source is defined for residuals extraction: {}", GID::getSourcesNames(srcTracks));
   }
   LOG(debug) << "Data sources for inter-/extrapolation: " << GID::getSourcesNames(srcTracks);
   // check first if ITS-TPC tracks were specifically requested from command line
   bool processITSTPConly = srcTracks[GID::ITSTPC];
   srcTracks |= GID::getSourcesMask("ITS,TPC,ITS-TPC"); // now add them in any case
+  srcTracksMap |= GID::getSourcesMask("ITS,TPC,ITS-TPC");
   srcVtx |= srcTracks;
   GID::mask_t srcClusters = srcTracks;
   if (srcTracks[GID::ITSTPCTRD] || srcTracks[GID::ITSTPCTRDTOF]) {
@@ -94,7 +105,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto sendTrackData = configcontext.options().get<bool>("send-track-data");
   auto debugOutput = configcontext.options().get<bool>("debug-output");
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, useMC, processITSTPConly, sendTrackData, debugOutput));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, srcTracksMap, useMC, processITSTPConly, sendTrackData, debugOutput));
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
   }

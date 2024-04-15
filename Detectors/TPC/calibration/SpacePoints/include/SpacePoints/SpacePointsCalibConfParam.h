@@ -25,8 +25,8 @@ namespace tpc
 // These are configurable params for the TPC space point calibration
 struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<SpacePointsCalibConfParam> {
 
-  int maxTracksPerCalibSlot = 3'500'000; ///< the number of tracks which is required to obtain an average correction map
-  int additionalTracksITSTPC = 2'000'000; ///< will be added to maxTracksPerCalibSlot for track sample with uniform acceptance (no PHOS hole)
+  int maxTracksPerCalibSlot = 500'000; ///< the number of tracks which is required to obtain an average correction map
+  int additionalTracksMap = 3'500'000; ///< will be added to maxTracksPerCalibSlot for track sample with uniform acceptance (no PHOS hole)
 
   // define track cuts for track interpolation
   int minTPCNCls = 70;             ///< min number of TPC clusters
