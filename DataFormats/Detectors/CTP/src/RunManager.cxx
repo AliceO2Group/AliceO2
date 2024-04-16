@@ -306,7 +306,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run, bool ok)
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
@@ -322,6 +322,16 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
     ok = 1;
   }
   return *ctpconfigdb;
+}
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
+{
+  bool ok;
+  auto ctpconfig = getConfigFromCCDB(timestamp,run,ok);
+  if(ok == 0) {
+    LOG(error) << "CTP config not in CCDB";
+    return CTPConfiguration();
+  }
+  return ctpconfig;
 }
 CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
 {
