@@ -326,8 +326,8 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
 CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
 {
   bool ok;
-  auto ctpconfig = getConfigFromCCDB(timestamp,run,ok);
-  if(ok == 0) {
+  auto ctpconfig = getConfigFromCCDB(timestamp, run, ok);
+  if (ok == 0) {
     LOG(error) << "CTP config not in CCDB";
     return CTPConfiguration();
   }
