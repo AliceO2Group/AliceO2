@@ -134,7 +134,7 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
             break;
           }
         }
-        mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), xTmp, yTmp, zTmp, tOffset);
+        mController->getTPCCorrMaps()->Transform(sector, row, clTmp->getPad(), clTmp->getTime(), xTmp, yTmp, zTmp, tOffset);
         if (algConf.discardSectorEdgeDepth > 0) {
           if (std::abs(yTmp) + algConf.discardSectorEdgeDepth > xTmp * TAN10) {
             if (i + direction != stop) {
