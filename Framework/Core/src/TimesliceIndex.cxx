@@ -208,14 +208,16 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
     }
   }
   O2_SIGNPOST_ID_GENERATE(tid, timeslice_index);
-  if (changed && mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
-    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "updateOldestPossibleOutput", "Oldest possible output %zu due to %{public}s %zu",
-                           result.timeslice.value,
-                           result.channel.value == -1 ? "slot" : "channel",
-                           result.channel.value == -1 ? mOldestPossibleOutput.slot.index : mOldestPossibleOutput.channel.value);
-  } else if (mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
-    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "updateOldestPossibleOutput", "Oldest possible output updated from oldest Input : %zu --> %zu",
-                           mOldestPossibleOutput.timeslice.value, result.timeslice.value);
+  if (mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
+    if (changed) {
+      O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "updateOldestPossibleOutput", "Oldest possible output %zu (before %zu) due to %s %zu",
+                             result.timeslice.value, mOldestPossibleOutput.timeslice.value,
+                             result.channel.value == -1 ? "slot" : "channel",
+                             result.channel.value == -1 ? result.slot.index : result.channel.value);
+    } else {
+      O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "updateOldestPossibleOutput", "Oldest possible output updated from oldest Input : %zu --> %zu",
+                             mOldestPossibleOutput.timeslice.value, result.timeslice.value);
+    }
   }
   mOldestPossibleOutput = result;
 
