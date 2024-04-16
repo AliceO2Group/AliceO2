@@ -676,17 +676,21 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
             }
           }
           decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
-          if (decongestion.orderedCompletionPolicyActive) {
-
+        },
+        TimesliceId{oldestPossibleTimeslice}, -1);
+      if (decongestion.orderedCompletionPolicyActive) {
+        AsyncQueueHelpers::post(
+          queue, decongestion.oldestPossibleTimesliceTask, [ref = services, oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex](size_t id) {
+            O2_SIGNPOST_ID_GENERATE(cid, async_queue);
             int64_t oldNextTimeslice = decongestion.nextTimeslice;
             decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
             if (oldNextTimeslice != decongestion.nextTimeslice) {
               O2_SIGNPOST_EVENT_EMIT_ERROR(async_queue, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
               timesliceIndex.rescan();
             }
-          }
         },
-        TimesliceId{oldestPossibleTimeslice}, -1); },
+        TimesliceId{oldestPossibleOutput.timeslice.value}, -1);
+      } },
     .kind = ServiceKind::Serial};
 }
 
