@@ -73,7 +73,7 @@ class EMCALChannelData
     mHistoTime.resize(mNThreads);
     for (size_t i = 0; i < mNThreads; ++i) {
       mHisto[i] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0., mRange), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
-      mHistoTime[i] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBinsTime, mRangeTimeHigh, mRangeTimeLow), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
+      mHistoTime[i] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBinsTime, mRangeTimeLow, mRangeTimeHigh), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
       mVecNEntriesInHisto[i] = 0;
     }
   }
