@@ -21,7 +21,7 @@ The BadChannel and RejectList objects can be uploaded, e.g. for debug purposes, 
 
 ```shell
 $ o2-mch-bad-channels-ccdb --help
-This program dump MCH bad channels CCDB object
+This program get/set MCH bad channels CCDB object
 Usage:
   -h [ --help ]                         produce help message
   -c [ --ccdb ] arg (=http://localhost:6464)
@@ -37,6 +37,9 @@ Usage:
   -q [ --query ]                        dump bad channel object from CCDB
   -v [ --verbose ]                      verbose output
   -s [ --solar ] arg                    solar ids to reject
+  -d [ --ds ] arg                       dual sampas indices to reject
+  -e [ --de ] arg                       DE ids to reject
+  -a [ --alias ] arg                    DCS alias (HV or LV) to reject
 
 ```
 
@@ -44,5 +47,5 @@ For instance, to create a debug RejectList object which declares solar number 32
 
 ```shell
 $ o2-mch-bad-channels-ccdb -p -s 32 -t RejectList --starttimestamp 1667260801000 --endtimestamp 1672531199000
-storing default MCH bad channels (valid from 1667260801000to 1672531199000) to MCH/Calib/RejectList
+storing default MCH bad channels (valid from 1667260801000 to 1672531199000) to MCH/Calib/RejectList
 ```
