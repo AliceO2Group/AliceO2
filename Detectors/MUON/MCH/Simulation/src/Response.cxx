@@ -105,8 +105,9 @@ float Response::inclandbfield(float thetawire, float betagamma, float bx) const
         eLossParticleElossMip = eLossRatio(betagamma);
         sigmaEffect10degrees = angleEffect10(eLossParticleElossMip);
         sigmaEffectThetadegrees = sigmaEffect10degrees / angleEffectNorma(thetawire * TMath::RadToDeg());
-        if (o2::mch::Station() == o2::mch::Station::Type1)
+        if (o2::mch::Station() == o2::mch::Station::Type1) {
           sigmaEffectThetadegrees /= 1.09833 + 0.017 * (thetawire * TMath::RadToDeg());
+	}
         yAngleEffect = 0.0001 * gRandom->Gaus(0, sigmaEffectThetadegrees); // error due to the angle effect in cm
       }
     } else {
@@ -115,8 +116,9 @@ float Response::inclandbfield(float thetawire, float betagamma, float bx) const
         eLossParticleElossMip = eLossRatio(betagamma);
         sigmaEffect10degrees = angleEffect10(eLossParticleElossMip);
         sigmaEffectThetadegrees = sigmaEffect10degrees / magAngleEffectNorma(thetawire * TMath::RadToDeg(), bx / 10.); // check b-field unit in aliroot and O2
-        if (o2::mch::Station() == o2::mch::Station::Type1)
+        if (o2::mch::Station() == o2::mch::Station::Type1) {
           sigmaEffectThetadegrees /= 1.09833 + 0.017 * (thetawire * TMath::RadToDeg());
+	}
         yAngleEffect = 0.0001 * gRandom->Gaus(0, sigmaEffectThetadegrees);
       }
     }
