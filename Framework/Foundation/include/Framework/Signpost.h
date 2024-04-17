@@ -522,7 +522,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
-  O2_LOG_MACRO_RAW(warn, format, ##__VA_ARGS__);                                                                              \
+  O2_LOG_MACRO_RAW(warn, format, ##__VA_ARGS__);                                                                    \
 })
 
 #define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \
