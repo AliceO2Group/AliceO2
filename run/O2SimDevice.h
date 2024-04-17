@@ -205,6 +205,28 @@ class O2SimDevice final : public fair::mq::Device
       reproducibleSim = false;
     }
 
+    // Mainly for debugging reasons, we allow to transport
+    // a specific event + eventpart. This allows to reproduce and debug bugs faster, once
+    // we know in which precise chunk they occur. The expected format for the environment variable
+    // is "eventnum:partid".
+    auto eventselection = getenv("O2SIM_RESTRICT_EVENTPART");
+    int focus_on_event = -1;
+    int focus_on_part = -1;
+    if (eventselection) {
+      auto splitString = [](const std::string& str) {
+        std::pair<std::string, std::string> parts;
+        size_t pos = str.find(':');
+        if (pos != std::string::npos) {
+          parts.first = str.substr(0, pos);
+          parts.second = str.substr(pos + 1);
+        }
+        return parts;
+      };
+      auto p = splitString(eventselection);
+      focus_on_event = std::atoi(p.first.c_str());
+      focus_on_part = std::atoi(p.second.c_str());
+    }
+
     fair::mq::MessagePtr request(requestchannel.NewSimpleMessage(PrimaryChunkRequest{workerID, -1, counter++})); // <-- don't need content; channel means -> give primaries
     fair::mq::Parts reply;
 
@@ -252,14 +274,22 @@ class O2SimDevice final : public fair::mq::Device
           }
 
           if (goon) {
-            mVMCApp->setPrimaries(chunk->mParticles);
 
             auto info = chunk->mSubEventInfo;
-            mVMCApp->setSubEventInfo(&info);
-
             LOG(info) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
                       << "for event " << info.eventID << "/" << info.maxEvents << " "
                       << "part " << info.part << "/" << info.nparts;
+
+            if (eventselection == nullptr || (focus_on_event == info.eventID && focus_on_part == info.part)) {
+              mVMCApp->setPrimaries(chunk->mParticles);
+            } else {
+              // nothing to transport here
+              mVMCApp->setPrimaries(std::vector<TParticle>{});
+              LOG(info) << workerStr() << " This chunk will be skipped";
+            }
+
+            mVMCApp->setSubEventInfo(&info);
+
             if (reproducibleSim) {
               LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
               gRandom->SetSeed(chunk->mSubEventInfo.seed);
