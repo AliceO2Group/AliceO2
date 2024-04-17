@@ -426,6 +426,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     if (mTimeCalibrator) {
       LOG(info) << "Configuring time calibrator";
       mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_tc);
+      if (EMCALCalibParams::Instance().slotLength_tc == 0) {
+        // for infinite slot length do not check if there is enough statistics after every TF
+        mTimeCalibrator->setCheckIntervalInfiniteSlot(1e5);
+      }
       if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_tc) {
         mTimeCalibrator->setUpdateAtTheEndOfRunOnly();
       }
@@ -437,6 +441,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     if (mBadChannelCalibrator) {
       LOG(info) << "Configuring bad channel calibrator";
       mBadChannelCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_bc);
+      if (EMCALCalibParams::Instance().slotLength_bc == 0) {
+        // for infinite slot length do not check if there is enough statistics after every TF
+        mBadChannelCalibrator->setCheckIntervalInfiniteSlot(1e5);
+      }
       if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_bc) {
         mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
       }
