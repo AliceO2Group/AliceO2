@@ -26,7 +26,7 @@ namespace o2
 namespace align
 {
 
-class AlignableSensorTRD : public AlignableSensor
+class AlignableSensorTRD final : public AlignableSensor
 {
  public:
   AlignableSensorTRD() = default;

@@ -24,7 +24,7 @@ namespace o2
 namespace align
 {
 
-class ResidualsControllerFast : public TObject
+class ResidualsControllerFast final : public TObject
 {
  public:
   enum { kCosmicBit = BIT(14),

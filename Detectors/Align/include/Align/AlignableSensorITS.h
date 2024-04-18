@@ -29,7 +29,7 @@ namespace o2
 namespace align
 {
 
-class AlignableSensorITS : public AlignableSensor
+class AlignableSensorITS final : public AlignableSensor
 {
  public:
   AlignableSensorITS() = default;
