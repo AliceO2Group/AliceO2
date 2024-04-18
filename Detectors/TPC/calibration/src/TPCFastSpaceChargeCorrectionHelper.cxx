@@ -31,6 +31,7 @@
 #include "TStopwatch.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+#include "ROOT/TTreeProcessorMT.hxx"
 
 using namespace o2::gpu;
 
@@ -541,9 +542,6 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
   TStopwatch watch3;
 
-  // TTreeProcessorMT treeProcessor(*voxResTree); // multi-threaded tree processor
-  // treeProcessor.Init(voxResTree);
-
   // read the data ROC by ROC
 
   // data in the tree is not sorted by row
@@ -554,44 +552,40 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     float mCx, mCy, mCz; // corrections to the local coordinates
   };
 
-  std::vector<VoxelData> vRocData[nRows];
-  for (int ir = 0; ir < nRows; ir++) {
+  std::vector<VoxelData> vRocData[nRows * nROCs];
+  for (int ir = 0; ir < nRows * nROCs; ir++) {
     vRocData[ir].resize(nY2Xbins * nZ2Xbins);
   }
 
+  { // read data from the tree to vRocData
+
+    ROOT::TTreeProcessorMT processor(*voxResTree, mNthreads);
+
+    auto myThread = [&](TTreeReader& readerSubRange) {
+      TTreeReaderValue<o2::tpc::TrackResiduals::VoxRes> v(readerSubRange, "voxRes");
+      while (readerSubRange.Next()) {
+        int iRoc = (int)v->bsec;
+        if (iRoc < 0 || iRoc >= nROCs) {
+          LOG(fatal) << "Error reading voxels: voxel ROC number " << iRoc << " is out of range";
+          continue;
+        }
+        int iRow = (int)v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
+        if (iRow < 0 || iRow >= nRows) {
+          LOG(fatal) << "Row number " << iRow << " is out of range";
+        }
+        int iy = v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
+        int iz = v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
+        auto& vox = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
+        vox.mNentries = (int)v->stat[o2::tpc::TrackResiduals::VoxV];
+        vox.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
+        vox.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
+        vox.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
+      }
+    };
+    processor.Process(myThread);
+  }
+
   for (int iRoc = 0; iRoc < nROCs; iRoc++) {
-
-    for (int ir = 0; ir < nRows; ir++) {
-      for (int iv = 0; iv < nY2Xbins * nZ2Xbins; iv++) {
-        vRocData[ir][iv].mNentries = 0;
-      }
-    }
-
-    const int rocDataStart = iRoc * trackResiduals.getNVoxelsPerSector();
-    const int rocDataEnd = rocDataStart + trackResiduals.getNVoxelsPerSector();
-
-    TTreeReader reader(voxResTree);
-    reader.SetEntriesRange(rocDataStart, rocDataEnd);
-    TTreeReaderValue<o2::tpc::TrackResiduals::VoxRes> v(reader, "voxRes");
-    for (int iVox = rocDataStart; iVox < rocDataEnd; iVox++) {
-      reader.Next();
-      // voxResTree->GetEntry(iVox);
-      if ((int)v->bsec != iRoc) {
-        LOG(fatal) << "Error reading voxels: voxel ROC number " << v->bsec << " is not equal to the expected " << iRoc;
-        continue;
-      }
-      int iRow = (int)v->bvox[o2::tpc::TrackResiduals::VoxX]; // bin number in x (= pad row)
-      if (iRow < 0 || iRow >= nRows) {
-        LOG(fatal) << "Row number " << iRow << " is out of range";
-      }
-      int iy = v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
-      int iz = v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
-      auto& vox = vRocData[iRow][iy * nZ2Xbins + iz];
-      vox.mNentries = (int)v->stat[o2::tpc::TrackResiduals::VoxV];
-      vox.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
-      vox.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
-      vox.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
-    }
 
     // now process the data row-by-row
 
@@ -615,7 +609,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
           bool isDataFound = false;
           for (int iy = 0; iy < nY2Xbins; iy++) {
             for (int iz = 0; iz < nZ2Xbins; iz++) {
-              auto& data = vRocData[iRow][iy * nZ2Xbins + iz];
+              auto& data = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
               auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
               // y/x coordinate of the bin ~-0.15 ... 0.15
               double y2x = trackResiduals.getY2X(xBin, iy);
@@ -661,7 +655,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
         for (int ismooth = 1; ismooth <= 2; ismooth++) {
           for (int iy = 0; iy < nY2Xbins; iy++) {
             for (int iz = 0; iz < nZ2Xbins; iz++) {
-              auto& data = vRocData[iRow][iy * nZ2Xbins + iz];
+              auto& data = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
               auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
               if (vox.mSmoothingStep <= ismooth) { // already filled
                 continue;
@@ -673,7 +667,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
               double w = 0.;
               bool filled = false;
               auto update = [&](int iy1, int iz1) {
-                auto& data1 = vRocData[iRow][iy1 * nZ2Xbins + iz1];
+                auto& data1 = vRocData[iRoc * nRows + iRow][iy1 * nZ2Xbins + iz1];
                 auto& vox1 = vRowVoxels[iy1 * nZ2Xbins + iz1];
                 if (vox1.mSmoothingStep >= ismooth) {
                   return false;
@@ -746,7 +740,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
         for (int iy = 0; iy < nY2Xbins; iy++) {
           for (int iz = 0; iz < nZ2Xbins; iz++) {
-            auto& data = vRocData[iRow][iy * nZ2Xbins + iz];
+            auto& data = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
             auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
             if (vox.mSmoothingStep > 2) {
               LOG(fatal) << "empty voxel is not repared";
@@ -812,7 +806,6 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     for (auto& th : threads) {
       th.join();
     }
-
   } // iRoc
 
   LOGP(info, "Reading & reparing of the track residuals tooks: {}s", watch3.RealTime());
