@@ -29,7 +29,7 @@ namespace o2
 namespace align
 {
 
-class AlignableSensorTOF : public AlignableSensor
+class AlignableSensorTOF final : public AlignableSensor
 {
  public:
   AlignableSensorTOF() = default;

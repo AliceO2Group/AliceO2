@@ -26,6 +26,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "Align/AlignmentTrack.h"
+#include "Align/AlgTrcDbg.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
@@ -53,9 +54,8 @@
 #include <TTree.h>
 #include <TFile.h>
 #include "Align/Mille.h"
-#include "GPUO2Interface.h"
-#include "GPUParam.h"
-#include "DataFormatsTPC/WorkflowHelper.h"
+// #include "GPUO2Interface.h"
+// #include "DataFormatsTPC/WorkflowHelper.h"
 
 namespace o2
 {
@@ -70,6 +70,11 @@ class TrackletTransformer;
 namespace utils
 {
 class TreeStreamRedirector;
+}
+
+namespace gpu
+{
+class GPUParam;
 }
 
 namespace align
@@ -220,6 +225,7 @@ class Controller final : public TObject
   void initMIlleOutput();
   void initResidOutput();
   bool storeProcessedTrack(o2::dataformats::GlobalTrackID tid = {});
+  void extractDbgTrack();
   void printStatistics() const;
   //
   void genPedeSteerFile(const Option_t* opt = "") const;
@@ -302,6 +308,7 @@ class Controller final : public TObject
   float mMPRecOutFraction = 0.;
   float mControlFraction = 0.;
   std::unique_ptr<AlignmentTrack> mAlgTrack; // current alignment track
+  AlgTrcDbg mAlgTrackDbg;                    // current alignment track debug version
   const o2::globaltracking::RecoContainer* mRecoData = nullptr; // externally set RecoContainer
   const o2::trd::TrackletTransformer* mTRDTransformer = nullptr;  // TRD tracket transformer
   bool mTRDTrigRecFilterActive = false;                           // select TRD triggers processed with ITS

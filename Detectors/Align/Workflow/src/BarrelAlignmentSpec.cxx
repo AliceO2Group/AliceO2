@@ -192,6 +192,12 @@ void BarrelAlignmentSpec::init(InitContext& ic)
       if (ic.options().get<bool>("apply-xor")) {
         mTRDTransformer->setApplyXOR();
       }
+      auto prevShift = mTRDTransformer->isShiftApplied();
+      if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+        // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
+        mTRDTransformer->setApplyShift(false);
+      }
+      LOGP(info, "Old TRD shift : {} new : {}", prevShift, mTRDTransformer->isShiftApplied());
       mController->setTRDTransformer(mTRDTransformer.get());
     }
     mController->setAllowAfterburnerTracks(ic.options().get<bool>("allow-afterburner-tracks"));

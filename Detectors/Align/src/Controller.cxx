@@ -44,10 +44,13 @@
 #include <TH1F.h>
 #include <TList.h>
 #include <cstdio>
+#include "GPUO2Interface.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include <TGeoGlobalMagField.h>
 #include "CommonUtils/NameConf.h"
 #include "MathUtils/SymMatrixSolver.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "GPUParam.h"
 
 #include "SimulationDataFormat/MCUtils.h"
 #include "Steer/MCKinematicsReader.h"
@@ -329,8 +332,16 @@ void Controller::process()
           }
           continue;
         }
-
-        if (mUseMC && mDebugOutputLevel) {
+        if (mDebugOutputLevel && mAlgTrackDbg.setTrackParam(mAlgTrack.get())) {
+          mAlgTrackDbg.mGID = trackIndex;
+          (*mDBGOut) << "algtrack"
+                     << "runNumber=" << mTimingInfo.runNumber
+                     << "tfID=" << mTimingInfo.tfCounter
+                     << "orbit=" << mTimingInfo.firstTForbit
+                     << "bz=" << PropagatorD::Instance()->getNominalBz()
+                     << "t=" << mAlgTrackDbg << "\n";
+        }
+        if (mUseMC && mDebugOutputLevel > 1) {
           auto lbl = mRecoData->getTrackMCLabel(trackIndex);
           if (lbl.isValid()) {
             std::vector<float> pntX, pntY, pntZ, trcX, trcY, trcZ, prpX, prpY, prpZ, alpha, xsens, pntXTF, pntYTF, pntZTF, resY, resZ;
@@ -421,7 +432,19 @@ void Controller::processCosmic()
     nTrc++;
     mStat.data[ProcStat::kInput][ProcStat::kCosmic]++;
     std::array<GTrackID, GTrackID::NSources> contributorsGID[2] = {mRecoData->getSingleDetectorRefs(track.getRefBottom()), mRecoData->getSingleDetectorRefs(track.getRefTop())};
-
+    bool hasTRD = false, hasITS = false, hasTPC = false, hasTOF = false;
+    if (contributorsGID[0][GTrackID::TRD].isIndexSet() || contributorsGID[1][GTrackID::TRD].isIndexSet()) {
+      hasTRD = true;
+    }
+    if (contributorsGID[0][GTrackID::TOF].isIndexSet() || contributorsGID[1][GTrackID::TOF].isIndexSet()) {
+      hasTOF = true;
+    }
+    if (contributorsGID[0][GTrackID::TPC].isIndexSet() || contributorsGID[1][GTrackID::TPC].isIndexSet()) {
+      hasTPC = true;
+    }
+    if (contributorsGID[0][GTrackID::ITS].isIndexSet() || contributorsGID[1][GTrackID::ITS].isIndexSet()) {
+      hasITS = true;
+    }
     // check detectors contributions
     AlignableDetector* det = nullptr;
     int ndet = 0, npnt = 0;
@@ -511,7 +534,7 @@ void Controller::processCosmic()
     if (algConf.verbose > 1) {
       LOGP(info, "processing cosmic track B-Leg:{} T-Leg:{}, Ndets:{}, Npoints: {}", track.getRefBottom().asString(), track.getRefTop().asString(), ndet, npnt);
     }
-    if (ndet < algConf.minDetectorsCosm || (tpcIn && ndet == 1)) {
+    if (ndet < algConf.minDetectorsCosm /* || (tpcIn && ndet == 1)*/) {
       continue;
     }
     if (npnt < algConf.minPointTotalCosm) {
@@ -542,6 +565,16 @@ void Controller::processCosmic()
         LOGP(warn, "calcResidDeriv failed");
       }
       continue;
+    }
+    if (mDebugOutputLevel && mAlgTrackDbg.setTrackParam(mAlgTrack.get())) {
+      mAlgTrackDbg.mGID = track.getRefBottom();
+      mAlgTrackDbg.mGIDCosmUp = track.getRefTop();
+      (*mDBGOut) << "algtrack"
+                 << "runNumber=" << mTimingInfo.runNumber
+                 << "tfID=" << mTimingInfo.tfCounter
+                 << "orbit=" << mTimingInfo.firstTForbit
+                 << "bz=" << PropagatorD::Instance()->getNominalBz()
+                 << "t=" << mAlgTrackDbg << "\n";
     }
     storeProcessedTrack();
     mStat.data[ProcStat::kAccepted][ProcStat::kCosmic]++;

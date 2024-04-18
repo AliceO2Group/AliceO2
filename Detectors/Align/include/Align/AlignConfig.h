@@ -35,6 +35,8 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   float q2PtMin[NTrackTypes] = {0.01, 0.01};
   float q2PtMax[NTrackTypes] = {10., 10.};
   float tglMax[NTrackTypes] = {3., 10.};
+  float defPTB0Coll = 0.6;
+  float defPTB0Cosm = 3.0;
   int minPoints[NTrackTypes] = {4, 10};
   int minDetAcc[NTrackTypes] = {1, 1};
 
@@ -54,7 +56,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minTOFClusters = 1;  // min TOF clusters to accept track
   int maxTPCRowsCombined = 1;        // allow combining clusters on so many rows to a single cluster
   int discardEdgePadrows = 3;        // discard padrow if its distance to stack edge padrow < this
-  float discardSectorEdgeDepth = 2.; // discard clusters too close to the sector edge
+  float discardSectorEdgeDepth = 2.5; // discard clusters too close to the sector edge
   float ITSOverlapMargin = 0.15;     // consider for overlaps only clusters within this marging from the chip edge (in cm)
   float ITSOverlapMaxChi2 = 16;      // max chi2 between track and overlapping cluster
   int ITSOverlapEdgeRows = 1;        // require clusters to not have pixels closer than this distance from the edge
@@ -71,8 +73,11 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minTOFClustersCosm = 0;     // min TOF clusters to accept track
   int minTOFClustersCosmLeg = 1;  // min TOF clusters per leg to accept track
 
-  int minTPCPadRow = 0;    // min TPC pad-row to account
-  int maxTPCPadRow = 151;  // max TPC pad-row to account
+  int minTPCPadRow = 6;   // min TPC pad-row to account
+  int maxTPCPadRow = 146; // max TPC pad-row to account
+
+  float cosmMaxDSnp = 0.025; // reject cosmic tracks with larger than this snp difference
+  float cosmMaxDTgl = 0.1;   // reject cosmic tracks with larger than this tgl difference
 
   float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint
