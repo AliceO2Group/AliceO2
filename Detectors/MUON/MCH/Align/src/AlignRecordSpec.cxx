@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <filesystem>
+#include <sstream>
 
 #include "MCHAlign/AlignRecordSpec.h"
 
@@ -120,14 +121,14 @@ class AlignRecordTask
     mImproveCutChi2 = 2. * trackerParam.sigmaCutForImprovement * trackerParam.sigmaCutForImprovement;
 
     // Configuration for chamber fixing
-    auto chambers = ic.options().get<string>("fix-chamber");
-    for (int i = 0; i < chambers.length(); ++i) {
-      if (chambers[i] == ',') {
-        continue;
-      }
-      int chamber = chambers[i] - '0';
-      LOG(info) << Form("%s%d", "Fixing chamber: ", chamber);
-      mAlign.FixChamber(chamber);
+    auto input_fixchambers = ic.options().get<string>("fix-chamber");
+    std::stringstream string_chambers(input_fixchambers);
+    string_chambers >> std::ws;
+    while (string_chambers.good()) {
+      string substr;
+      std::getline(string_chambers, substr, ',');
+      LOG(info) << Form("%s%d", "Fixing chamber: ", std::stoi(substr));
+      mAlign.FixChamber(std::stoi(substr));
     }
 
     // Init for output saving
