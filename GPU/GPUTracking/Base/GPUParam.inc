@@ -47,9 +47,9 @@ GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float 
 #ifdef GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
 {
-  GetClusterErrors2(sector, iRow, z, sinPhi, DzDs, time, avgInvCharge, invCharge, ErrY2, ErrZ2);
+  GetClusterErrors2(sector, iRow, z, sinPhi, DzDs, time, 0.f, 0.f, ErrY2, ErrZ2);
 }
 
 MEM_CLASS_PRE()
@@ -122,14 +122,11 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float z
 }
 
 MEM_CLASS_PRE()
-GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float avgInvCharge, float invCharge, float& ErrY2, float& ErrZ2) const
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(char sector, int iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
 {
   int rowType = tpcGeometry.GetROC(iRow);
   z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
-  float s2 = sinPhi * sinPhi;
-  if (s2 > 0.95f * 0.95f) {
-    s2 = 0.95f * 0.95f;
-  }
+  const float s2 = CAMath::Min(sinPhi * sinPhi, 0.95f * 0.95f);
   float sec2 = 1.f / (1.f - s2);
   float angleY2 = s2 * sec2;          // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
@@ -174,10 +171,7 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(char sector, int iRow, float z,
   // Calibrated cluster error from OCDB for Y and Z
   const int rowType = tpcGeometry.GetROC(iRow);
   z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
-  float s2 = sinPhi * sinPhi;
-  if (s2 > 0.95f * 0.95f) {
-    s2 = 0.95f * 0.95f;
-  }
+  const float s2 = CAMath::Min(sinPhi * sinPhi, 0.95f * 0.95f);
   const float sec2 = 1.f / (1.f - s2);
   const float angleY2 = s2 * sec2;          // dy/dx
   const float angleZ2 = DzDs * DzDs * sec2; // dz/dx

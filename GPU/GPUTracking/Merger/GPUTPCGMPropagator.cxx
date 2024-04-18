@@ -607,7 +607,7 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUre
 {
 #ifndef GPUCA_TPC_GEOMETRY_O2
   if (seedingErrors) {
-    param.GetClusterErrorsSeeding2(sector, iRow, posZ, snp, tgl, time, avgCharge, charge, err2Y, err2Z);
+    param.GetClusterErrorsSeeding2(sector, iRow, posZ, snp, tgl, time, err2Y, err2Z);
   } else
 #endif
   {

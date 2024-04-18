@@ -100,7 +100,7 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 {
   mTrk.ConstrainSinPhi();
   float err2Y, err2Z;
-  GPUTPCTracker::GetErrors2Seeding(*mParam, iRow, mTrk, 0.f, err2Y, err2Z);
+  GPUTPCTracker::GetErrors2Seeding(*mParam, iRow, mTrk, -1.f, err2Y, err2Z);
   int retVal = !mTrk.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI, false);
   // GPUInfo("Filtered with %f %f: y %f z %f qPt %f", y, z, mTrk.Y(), mTrk.Z(), mTrk.QPt());
   return retVal;
