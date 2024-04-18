@@ -34,7 +34,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-
 namespace o2
 {
 namespace hmpid
@@ -102,34 +101,32 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       // try to start new readout cycle by setting the trigger time
       auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].getTimeNS());
       if (triggeraccepted) {
-        flushDigitsAndLabels(); // flush previous readout cycle
-      }
-      auto withinactivetime = mDigitizer.setEventTime(irecords[collID].getTimeNS());
-      if (withinactivetime) {
-        // for each collision, loop over the constituents event and source IDs
-        // (background signal merging is basically taking place here)
-        for (auto& part : eventParts[collID]) {
-          mDigitizer.setEventID(part.entryID);
-          mDigitizer.setSrcID(part.sourceID);
+        auto withinactivetime = mDigitizer.setEventTime(irecords[collID].getTimeNS());
+        if (withinactivetime) {
+          // for each collision, loop over the constituents event and source IDs
+          // (background signal merging is basically taking place here)
+          for (auto& part : eventParts[collID]) {
+            mDigitizer.setEventID(part.entryID);
+            mDigitizer.setSrcID(part.sourceID);
 
-          // get the hits for this event and this source
-          std::vector<o2::hmpid::HitType> hits;
-          context->retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
-          LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
+            // get the hits for this event and this source
+            std::vector<o2::hmpid::HitType> hits;
+            context->retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
+            LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
-          mDigitizer.setLabelContainer(&mLabels);
-          mLabels.clear();
-          mDigits.clear();
+            mDigitizer.setLabelContainer(&mLabels);
+            mLabels.clear();
+            mDigits.clear();
 
-          mDigitizer.process(hits, mDigits);
+            mDigitizer.process(hits, mDigits);
+          }
+
+          flushDigitsAndLabels(); // flush previous readout cycle
+        } else {
+          LOG(info) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
         }
-
-      } else {
-        LOG(info) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
       }
     }
-    // final flushing step; getting everything not yet written out
-    flushDigitsAndLabels();
 
     // send out to next stage
     pc.outputs().snapshot(Output{"HMP", "DIGITS", 0}, digitsAccum);
