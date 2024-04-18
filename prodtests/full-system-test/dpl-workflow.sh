@@ -140,6 +140,8 @@ if [[ $SYNCMODE == 1 ]]; then
 else
   if [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
+  elif [[ $BEAMTYPE == "PbPb" ]]; then
+    ITS_CONFIG_KEY+="ITSVertexerParam.lowMultBeamDistCut=0;ITSCATrackerParam.nROFsPerIterations=12;ITSCATrackerParam.perPrimaryVertexProcessing=true;"
   fi
 fi
 [[ $CTFINPUT == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.tpcInputWithClusterRejection=1;"
