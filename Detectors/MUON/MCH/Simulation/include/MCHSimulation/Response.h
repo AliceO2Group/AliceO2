@@ -85,7 +85,7 @@ class Response
   /// ToDo: check Aliroot formula vs PDG, if really log_10 and not ln or bug in Aliroot
 
   /// Angle effect in tracking chambers at theta =10 degres as a function of ElossRatio (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis) (in micrometers)
-  float angleEffect10(float elossratio) const;
+  float angleEffect10(float angle) const;
 
   /// Angle effect: Normalisation form theta=10 degres to theta between 0 and 10 (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis)
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.

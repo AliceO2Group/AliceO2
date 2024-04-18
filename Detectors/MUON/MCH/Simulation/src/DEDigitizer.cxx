@@ -20,8 +20,6 @@
 #include <TGeoGlobalMagField.h>
 #include "Field/MagneticField.h"
 
-#include "TRandom.h"
-
 /// Convert collision time to ROF time (ROF duration = 4 BC)
 std::pair<o2::InteractionRecord, uint8_t> time2ROFtime(const o2::InteractionRecord& time)
 {
@@ -85,11 +83,13 @@ void DEDigitizer::processHit(const Hit& hit, const InteractionRecord& collisionT
   auto localY = lpos.Y();
 
   // calculate angle between track and wire assuming wire perpendicular to z-axis
-  auto thetawire = asin((lexit.Y() - lentrance.Y()) / hitlengthZ); // check sign convention between O2 and Aliroot
+  // take global coordinates to avoid issues with rotations of detection elements
+  // neglect rotation of chambers w.r.t. beam
+  auto thetawire = atan((exitPoint.Y() - entrancePoint.Y()) / (entrancePoint.Z() - exitPoint.Z()));
 
   // local b-field
   double b[3] = {0., 0., 0.};
-  double x[3] = {lentrance.X(), lentrance.Y(), lentrance.Z()};
+  double x[3] = {entrancePoint.X(), entrancePoint.Y(), entrancePoint.Z()};
   if (TGeoGlobalMagField::Instance()->GetField()) {
     TGeoGlobalMagField::Instance()->Field(x, b);
   } else {
