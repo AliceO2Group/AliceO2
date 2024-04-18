@@ -33,8 +33,10 @@
 #include <string>
 namespace bpo = boost::program_options;
 //
-// get object from ccdb  auto pp = ccdbMgr.getSpecific<std::vector<long>>("CTP/Calib/OrbitResetTest")
-//  std::cout  << (*pp3)[0] << std::endl;
+// get object from ccdb
+// auto & cc = o2::ccdb::BasicCCDNManager::instance();
+// auto pp = ccdbMgr.getSpecific<std::vector<long>>("CTP/Calib/OrbitResetTest")
+// std::cout  << (*pp)[0] << std::endl;
 int main(int argc, char** argv)
 {
   const std::string testCCDB = "http://ccdb-test.cern.ch:8080";

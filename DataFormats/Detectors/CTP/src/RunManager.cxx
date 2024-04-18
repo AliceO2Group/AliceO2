@@ -186,6 +186,14 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     LOG(info) << "EOX received";
     mEOX = 1;
   }
+  static int nerror = 0;
+  if (topic == "rocnts") {
+    if (nerror < 1) {
+      LOG(warning) << "Skipping topic rocnts";
+      nerror++;
+    }
+    return 0;
+  }
   //
   std::vector<std::string> tokens;
   if (firstcounters.size() > 0) {
@@ -198,7 +206,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       mNew = 0;
       LOG(warning) << "v2 scaler size";
     } else {
-      LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1 << " or " << CTPRunScalers::NCOUNTERSv2 + 1;
+      LOG(warning) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1 << " or " << CTPRunScalers::NCOUNTERSv2 + 1;
       return 1;
     }
   }
@@ -298,7 +306,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
@@ -307,11 +315,23 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
   if (ctpconfigdb == nullptr) {
     LOG(info) << "CTP config not in database, timestamp:" << timestamp;
+    ok = 0;
   } else {
     // ctpconfigdb->printStream(std::cout);
     LOG(info) << "CTP config found. Run:" << run;
+    ok = 1;
   }
   return *ctpconfigdb;
+}
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
+{
+  bool ok;
+  auto ctpconfig = getConfigFromCCDB(timestamp, run, ok);
+  if (ok == 0) {
+    LOG(error) << "CTP config not in CCDB";
+    return CTPConfiguration();
+  }
+  return ctpconfig;
 }
 CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
 {
