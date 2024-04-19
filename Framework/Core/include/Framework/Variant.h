@@ -285,7 +285,7 @@ struct variant_helper<S, std::string_view> {
 
 template <typename S>
 struct variant_helper<S, std::string> {
-  static std::string get(const S* store) { return std::string(strdup(*reinterpret_cast<const char* const*>(store))); }
+  static std::string get(const S* store) { return std::string(*reinterpret_cast<const char* const*>(store)); }
 
   static void set(S* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
 };
