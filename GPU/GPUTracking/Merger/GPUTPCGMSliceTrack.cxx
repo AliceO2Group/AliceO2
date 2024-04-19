@@ -127,7 +127,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
   float kdx205 = 2.f + kdx * kdx * 0.5f;
 
   {
-    merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, mParam.mC0, mParam.mC2); // TODO: provide correct time and row
+    merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, mParam.mC0, mParam.mC2); // occupancy and charge contributions disabled, assuming iroc row
 #ifndef GPUCA_TPC_GEOMETRY_O2
     float C0a, C2a;
     merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
@@ -187,7 +187,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
       float dz = dS * mParam.mDzDs;
       float ex1i = 1.f / ex1;
       {
-        merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Provide correct time / row
+        merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, err2Y, err2Z);
 #ifndef GPUCA_TPC_GEOMETRY_O2
         float C0a, C2a;
         merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);

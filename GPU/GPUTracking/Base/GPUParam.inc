@@ -226,6 +226,18 @@ GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2ByState(short clusterState, fl
 }
 
 MEM_CLASS_PRE()
+GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2WithStateAndSyst(short clusterState, float trackX, float trackY, float z, char sector, bool sideC, float& ErrY2, float& ErrZ2) const
+{
+  UpdateClusterError2ByState(clusterState, ErrY2, ErrZ2);
+  float statErr2 = GetSystematicClusterErrorIFC2(trackX, trackY, z, sideC);
+  if (sector >= GPUCA_NSLICES / 2 + 1 && sector <= GPUCA_NSLICES / 2 + 2) {
+    statErr2 += GetSystematicClusterErrorC122(trackX, trackY, sector);
+  }
+  ErrY2 += statErr2;
+  ErrZ2 += statErr2;
+}
+
+MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetUnscaledMult(float time) const
 {
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)

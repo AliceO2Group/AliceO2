@@ -613,13 +613,7 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUre
   {
     param.GetClusterErrors2(sector, iRow, posZ, snp, tgl, time, avgCharge, charge, err2Y, err2Z);
   }
-  param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  float statErr2 = param.GetSystematicClusterErrorIFC2(trackX, trackY, posZ, sector >= (GPUCA_NSLICES / 2));
-  if (sector >= GPUCA_NSLICES / 2 + 1 && sector <= GPUCA_NSLICES / 2 + 2) {
-    statErr2 += param.GetSystematicClusterErrorC122(trackX, trackY, sector);
-  }
-  err2Y += statErr2;
-  err2Z += statErr2;
+  param.UpdateClusterError2WithStateAndSyst(clusterState, trackX, trackY, posZ, sector, sector >= (GPUCA_NSLICES / 2), err2Y, err2Z);
 }
 
 GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char sector, float time, float avgCharge, float charge) const
