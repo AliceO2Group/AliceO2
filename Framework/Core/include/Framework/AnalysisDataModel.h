@@ -165,7 +165,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-direct
                              const auto px = pt * (r * cs - snp * sn);
                              const auto py = pt * (snp * cs + r * sn);
                              const auto pz = pt * tgl;
-                             return std::array<float, 3>{std::move(px), std::move(py), std::move(pz)};
+                             return std::array<float, 3>{px, py, pz};
                            });
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               ifnode(nabs(aod::track::signed1Pt) <= o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
