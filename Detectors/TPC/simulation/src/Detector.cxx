@@ -315,7 +315,7 @@ void Detector::CreateMaterials()
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
   //-----------------------------------------------------------------
 
-  auto& gasParam = ParameterGas::Instance();
+  const auto& gasParam = ParameterGas::Instance();
 
   Int_t iSXFLD = 2;
   Float_t sXMGMX = 10.0;
@@ -329,8 +329,8 @@ void Detector::CreateMaterials()
   Float_t density;
 
   // TODO: load pressure and temperature values from CCDB
-  const double pressure = gasParam.Pressure;                // in mbar
-  const double temperature = gasParam.Temperature + 273.15; // in K
+  const Double_t pressure = gasParam.Pressure;                // in mbar
+  const Double_t temperature = gasParam.Temperature + 273.15; // in K
 
   // densities were taken for these values
   const Double_t t1 = 293.15;  // 20°C in K
