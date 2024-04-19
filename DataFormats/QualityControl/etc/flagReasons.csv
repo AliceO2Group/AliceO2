@@ -3,7 +3,8 @@
 2,"UnknownQuality","Unknown Quality",1,0
 3,"CertifiedByExpert","Certified by Expert",0,0
 10,"NoDetectorData","No Detector Data",1,0
-11,"LimitedAcceptance","Limited acceptance",1,0
+11,"LimitedAcceptanceMCNotReproducible","Limited Acceptance MC Not Reproducible",1,0
+ ,"LimitedAcceptanceMCReproducible","Limited Acceptance MC Reproducible",1,0
 12,"BadPID","Bad PID",1,0
 13,"BadTracking","Bad Tracking",1,0
 14,"BadHadronPID","Bad Hadron PID",1,0
@@ -13,3 +14,4 @@
 65500,"ObsoleteFlagExample","Obsolete flag example",1,1
 65501,"NotBadFlagExample","Not bad flag example",0,0
 65535,"Invalid","Invalid",1,0
+ ,"Good","Good",0,0
