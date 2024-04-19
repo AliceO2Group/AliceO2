@@ -165,7 +165,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-direct
                              const auto px = pt * (r * cs - snp * sn);
                              const auto py = pt * (snp * cs + r * sn);
                              const auto pz = pt * tgl;
-                             return std::move(std::array<float, 3>{std::move(px), std::move(py), std::move(pz)});
+                             return std::array<float, 3>{px, py, pz};
                            });
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               ifnode(nabs(aod::track::signed1Pt) <= o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
@@ -1580,6 +1580,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(GetHepMCStatusCode, getHepMCStatusCode, //! The HepMC
                            [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return o2::mcgenstatus::getHepMCStatusCode(statusCode); } else { return -1; } });
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
+DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-directions in GeV/c
+                           [](float px, float py, float pz) -> std::array<float, 3> { return std::array<float, 3>{px, py, pz}; });
 
 DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, //! Phi in the range [0, 2pi)
                               o2::constants::math::PI + natan2(-1.0f * aod::mcparticle::py, -1.0f * aod::mcparticle::px));
@@ -1618,6 +1620,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::Daughter0Id, mcparticle::Daughter1Id, mcparticle::Weight,
                        mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                        mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                       mcparticle::PVector<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
                        mcparticle::ProducedByGenerator<mcparticle::Flags>,
                        mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                        mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
@@ -1631,6 +1634,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "M
                                  mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
                                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                                 mcparticle::PVector<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
                                  mcparticle::ProducedByGenerator<mcparticle::Flags>,
                                  mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                                  mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
