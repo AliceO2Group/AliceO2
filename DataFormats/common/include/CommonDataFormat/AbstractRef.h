@@ -79,6 +79,7 @@ class AbstractRef
 
   GPUdi() bool operator==(const AbstractRef& o) const { return getRawWOFlags() == o.getRawWOFlags(); }
   GPUdi() bool operator!=(const AbstractRef& o) const { return !operator==(o); }
+  GPUdi() void clear() { setRaw((Base_t(SrcMask & ((0x1 << NBSrc) - 1)) << NBIdx) | Base_t(IdxMask & ((0x1 << NBIdx) - 1))); }
 
  protected:
   Base_t mRef = IdxMask | (SrcMask << NBIdx); // packed reference, dummy by default
