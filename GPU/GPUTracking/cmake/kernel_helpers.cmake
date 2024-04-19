@@ -95,7 +95,7 @@ function(o2_gpu_add_kernel kernel_name kernel_files kernel_bounds kernel_type)
   endif()
 
   if(HIP_ENABLED)
-    set(TMP_FILENAMEA "${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_${TMP_FILENAME}.hip")
+    set(TMP_FILENAMEA "${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_${TMP_FILENAME}.hip.cxx")
     set(O2_GPU_KERNEL_TEMPLATE_REPLACE "${TMP_KERNEL}")
     configure_file(${O2_GPU_BASE_DIR}/Base/hip/GPUReconstructionHIPkernel.template.hip ${TMP_FILENAMEA})
   endif()
