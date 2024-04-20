@@ -35,7 +35,12 @@ class AlignableSensorTRD final : public AlignableSensor
   int getSector() const { return mSector; }
   void setSector(int sc) { mSector = (uint8_t)sc; }
   void dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv, int calibID, const AlignableVolume* parent = nullptr) const final;
+
+  void prepareMatrixL2G(bool reco = false) final;
+  void prepareMatrixL2GIdeal() final;
   void prepareMatrixT2L() final;
+  void prepareMatrixClAlg() final;
+  void prepareMatrixClAlgReco() final;
 
  protected:
   uint8_t mSector = 0; // sector ID
