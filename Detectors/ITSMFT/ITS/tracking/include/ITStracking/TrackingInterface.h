@@ -34,11 +34,9 @@ class ITSTrackingInterface
  public:
   ITSTrackingInterface(bool isMC,
                        int trgType,
-                       const TrackingMode trMode,
                        const bool overrBeamEst)
     : mIsMC{isMC},
       mUseTriggers{trgType},
-      mMode{trMode},
       mOverrideBeamEstimation{overrBeamEst}
   {
   }
@@ -47,6 +45,7 @@ class ITSTrackingInterface
   void setMeanVertex(const o2::dataformats::MeanVertexObject* v)
   {
     if (!v) {
+      LOGP(error, "Mean Vertex Object is nullptr");
       return;
     }
     mMeanVertex = v;
@@ -61,6 +60,13 @@ class ITSTrackingInterface
 
   // Custom
   void setTraitsFromProvider(VertexerTraits*, TrackerTraits*, TimeFrame*);
+  void setTrackingMode(TrackingMode mode = TrackingMode::Unset)
+  {
+    if (mode == TrackingMode::Unset) {
+      LOGP(fatal, "ITS Tracking mode Unset is meant to be a default. Specify the mode");
+    }
+    mMode = mode;
+  }
 
  private:
   bool mIsMC = false;

@@ -455,6 +455,7 @@ void Tracker::rectifyClusterIndices()
 void Tracker::getGlobalConfiguration()
 {
   auto& tc = o2::its::TrackerParamConfig::Instance();
+  tc.printKeyValues(true, true);
   if (tc.useMatCorrTGeo) {
     mTraits->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
   } else if (tc.useFastMaterial) {

@@ -30,8 +30,9 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
                        const bool overrBeamEst,
                        o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr),
                                                                   mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)},
-                                                                  mITSTrackingInterface{isMC, trgType, trMode, overrBeamEst}
+                                                                  mITSTrackingInterface{isMC, trgType, overrBeamEst}
 {
+  mITSTrackingInterface.setTrackingMode(trMode);
 }
 
 void TrackerDPL::init(InitContext& ic)
