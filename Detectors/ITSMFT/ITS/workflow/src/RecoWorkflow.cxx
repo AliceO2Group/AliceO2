@@ -58,7 +58,35 @@ framework::WorkflowSpec getWorkflow(bool useMC,
   }
   if (!trmode.empty()) {
     if (useCAtracker) {
-      specs.emplace_back(o2::its::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
+      if (useGPUWF) {
+        o2::gpu::GPURecoWorkflowSpec::Config cfg;
+        cfg.runITSTracking = true;
+        cfg.itsTriggerType = useTrig;
+        cfg.itsOverrBeamEst = overrideBeamPosition;
+
+        Inputs ggInputs;
+        auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true,
+                                                                    useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None,
+                                                                    ggInputs, true);
+        if (!useGeom) {
+          ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("ITS/Config/Geometry")}, ggInputs);
+        }
+
+        auto task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(&gPolicyData, cfg, std::vector<int>(), 0, ggRequest);
+        gTask = task;
+        Inputs taskInputs = task->inputs();
+        Options taskOptions = task->options();
+        std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
+
+        specs.emplace_back(DataProcessorSpec{
+          "its-tracker",
+          taskInputs,
+          task->outputs(),
+          AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
+          taskOptions});
+      } else {
+        specs.emplace_back(o2::its::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
+      }
     } else {
       specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useGeom, useTrig, trmode));
     }

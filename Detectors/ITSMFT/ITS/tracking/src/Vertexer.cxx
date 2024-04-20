@@ -91,7 +91,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.PhiBins = vc.PhiBins;
 
   TimeFrameGPUParameters tfGPUpar;
-  tfGPUpar.nROFsPerChunk = grc.nROFsPerChunk;
+  // tfGPUpar.nROFsPerChunk = grc.nROFsPerChunk;
 
   mTraits->updateVertexingParameters(verPar, tfGPUpar);
 }

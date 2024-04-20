@@ -44,9 +44,11 @@ class ITSTrackingInterface
   void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
   void setMeanVertex(const o2::dataformats::MeanVertexObject* v)
   {
-    if (!v) {
+    if (v == nullptr) {
       LOGP(error, "Mean Vertex Object is nullptr");
       return;
+    } else {
+      LOGP(info, "Mean Vertex set with x: {} y: {}", v->getX(), v->getY());
     }
     mMeanVertex = v;
   }
@@ -73,7 +75,7 @@ class ITSTrackingInterface
   bool mRunVertexer = true;
   bool mCosmicsProcessing = false;
   int mUseTriggers = 0;
-  TrackingMode mMode = TrackingMode::Sync;
+  TrackingMode mMode = TrackingMode::Unset;
   bool mOverrideBeamEstimation = false;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
