@@ -321,11 +321,11 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
       fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
       if (fd == -1) {
-        throw std::runtime_error("Error opening lock file");
+        throw std::runtime_error("Error opening memlock mutex lock file");
       }
       fchmod(fd, mask);
       if (lockf(fd, F_LOCK, 0)) {
-        throw std::runtime_error("Error locking file");
+        throw std::runtime_error("Error locking memlock mutex file");
       }
     }
     std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
@@ -342,7 +342,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
     if (mConfParam->mutexMemReg) {
       if (lockf(fd, F_ULOCK, 0)) {
-        throw std::runtime_error("Error unlocking file");
+        throw std::runtime_error("Error unlocking memlock mutex file");
       }
       close(fd);
     }

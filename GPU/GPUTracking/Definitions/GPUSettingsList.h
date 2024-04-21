@@ -191,6 +191,7 @@ AddSubConfig(GPUSettingsRecTRD, trd)
 AddHelp("help", 'h')
 EndConfig()
 
+#ifndef __OPENCL__
 // Settings steering the processing once the device was selected, only available on the host
 BeginSubConfig(GPUSettingsProcessingRTC, rtc, configStandalone.proc, "RTC", 0, "Processing settings", proc_rtc)
 AddOption(cacheOutput, bool, false, "", 0, "Cache RTC compilation results")
@@ -198,6 +199,7 @@ AddOption(optConstexpr, bool, true, "", 0, "Replace constant variables by static
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(runTest, int, 0, "", 0, "Do not run the actual benchmark, but just test RTC compilation (1 full test, 2 test only compilation)")
+AddOption(cacheMutex, bool, true, "", 0, "Use a file lock to serialize access to the cache folder")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -276,11 +278,13 @@ AddOption(tpcSingleSector, int, -1, "", 0, "Restrict TPC processing to a single 
 AddOption(tpcDownscaledEdx, unsigned char, 0, "", 0, "If != 0, downscale dEdx processing (if enabled) to x %")
 AddOption(tpcMaxAttachedClustersPerSectorRow, unsigned int, 51000, "", 0, "Maximum number of TPC attached clusters which can be decoded per SectorRow")
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
+AddOption(RTCcacheFolder, std::string, "./rtccache/", "", 0, "Folder in which the cache file is stored")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddSubConfig(GPUSettingsProcessingParam, param)
 AddHelp("help", 'h')
 EndConfig()
+#endif // __OPENCL__
 
 #ifndef GPUCA_GPUCODE_DEVICE
 // Light settings concerning the event display (can be changed without rebuilding vertices)
