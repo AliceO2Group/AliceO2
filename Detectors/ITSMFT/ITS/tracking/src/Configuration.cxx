@@ -22,6 +22,8 @@ std::string asString(TrackingMode mode)
       return "async";
     case TrackingMode::Cosmics:
       return "cosmics";
+    case TrackingMode::Unset:
+      return "unset";
   }
   return "unknown";
 }
