@@ -309,6 +309,7 @@ class MatchTOF
   ///< per sector indices of track entry in mTracksWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache[trkType::SIZE];
   std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSeed[trkType::SIZE];
+  std::vector<float> mVZtpcOnly[o2::constants::math::NSectors];
 
   std::vector<float> mExtraTPCFwdTime[o2::constants::math::NSectors]; ///< track extra params for TPC tracks: Fws Max time
   std::vector<Cluster> mTOFClusWork;                                  ///< track params prepared for matching
@@ -347,7 +348,7 @@ class MatchTOF
   TStopwatch mTimerMatchITSTPC;
   TStopwatch mTimerMatchTPC;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 5);
+  ClassDefNV(MatchTOF, 6);
 };
 } // namespace globaltracking
 } // namespace o2
