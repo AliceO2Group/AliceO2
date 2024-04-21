@@ -29,6 +29,7 @@ o2_add_library(ITSWorkflow
                        src/DCSAdaposParserSpec.cxx
                        src/DCSDataGeneratorWorkflow.cxx
                        src/DCSGeneratorSpec.cxx
+                       src/TrackWriterWorkflow.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                O2::SimConfig
                                O2::DetectorsDCS
@@ -55,6 +56,11 @@ o2_add_executable(reco-workflow
 
 o2_add_executable(cluster-writer-workflow
                   SOURCES src/its-cluster-writer-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(track-writer-workflow
+                  SOURCES src/its-track-writer-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
