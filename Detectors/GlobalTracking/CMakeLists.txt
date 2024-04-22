@@ -36,6 +36,7 @@ o2_add_library(GlobalTracking
                         O2::FT0Reconstruction
                         O2::TPCFastTransformation
                         O2::GPUO2Interface
+                        O2::GPUTracking
                         O2::TPCBase
                         O2::TPCReconstruction
                         O2::TPCCalibration

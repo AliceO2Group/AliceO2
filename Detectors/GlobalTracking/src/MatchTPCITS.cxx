@@ -44,7 +44,9 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITStracking/IOUtils.h"
 
-#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+// #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUParam.h"
+#include "GPUParam.inc"
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -575,6 +577,28 @@ bool MatchTPCITS::prepareTPCData()
   }
 */
   mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+  mNTPCOccBinLength = mTPCRefitter->getParam()->rec.tpc.occupancyMapTimeBins;
+  mTBinClOcc.clear();
+  if (mNTPCOccBinLength > 1 && mTPCRefitterOccMap.size()) {
+    mNTPCOccBinLengthInv = 1. / mNTPCOccBinLength;
+    int nTPCBins = mNHBPerTF * o2::constants::lhc::LHCMaxBunches / 8, ninteg = 0;
+    int nTPCOccBins = nTPCBins * mNTPCOccBinLengthInv, sumBins = std::max(1, int(o2::constants::lhc::LHCMaxBunches / 8 * mNTPCOccBinLengthInv));
+    mTBinClOcc.resize(nTPCOccBins);
+    float sm = 0., tb = (nTPCOccBins - 0.5) * mNTPCOccBinLength, mltPrev = 0.;
+    for (int i = nTPCOccBins; i--;) {
+      float mlt = mTPCRefitter->getParam()->GetUnscaledMult(tb);
+      sm += mlt;
+      mTBinClOcc.push_back(sm);
+      if (ninteg++ > mNTPCOccBinLength) {
+        sm -= mltPrev;
+      }
+      //      LOGP(info, "BIN {} of {} -> {} with inst val {} (prev = {}) BL={} nInt={} tb={}", i, nTPCOccBins, sm, mlt, mltPrev, mNTPCOccBinLength, ninteg, tb);
+      mltPrev = mlt;
+      tb -= mNTPCOccBinLength;
+    }
+  } else {
+    mTBinClOcc.resize(1);
+  }
   mInteractionMUSLUT.clear();
   mInteractionMUSLUT.resize(maxTime + 3 * o2::constants::lhc::LHCOrbitMUS, -1);
   mTimer[SWPrepTPC].Stop();
@@ -1478,6 +1502,8 @@ void MatchTPCITS::fillCalibDebug(int ifit, int iTPC, const o2::dataformats::Trac
         itsRefAltPID.setX(-10);
       }
     }
+    int tb = mTPCTracksArray[tTPC.sourceID].getTime0() * mNTPCOccBinLengthInv;
+    float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
     (*mDBGOut) << "refit"
                << "tpcOrig=" << mTPCTracksArray[tTPC.sourceID] << "itsOrig=" << mITSTracksArray[tITS.sourceID] << "itsRef=" << tITS << "tpcRef=" << tTPC << "matchRefit=" << match
                << "timeCorr=" << timeC << "dTimeFT0=" << minDiffFT0 << "dTimes=" << dtimes
@@ -1487,6 +1513,9 @@ void MatchTPCITS::fillCalibDebug(int ifit, int iTPC, const o2::dataformats::Trac
                  << "itsLbl=" << mITSLblWork[iITS] << "tpcLbl=" << mTPCLblWork[iTPC];
     }
     (*mDBGOut) << "refit"
+               << "multTPC=" << mltTPC
+               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame]
+               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame]
                << "tf=" << mTFCount << "\n";
   }
 #endif
@@ -2803,8 +2832,14 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
     (*mDBGOut) << "match"
                << "itsLbl=" << mITSLblWork[itsID] << "tpcLbl=" << mTPCLblWork[tpcID];
   }
+  int tb = mTPCTracksArray[trackTPC.sourceID].getTime0() * mNTPCOccBinLengthInv;
+  float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
   (*mDBGOut) << "match"
-             << "rejFlag=" << rejFlag << "\n";
+             << "rejFlag=" << rejFlag
+             << "multTPC=" << tb
+             << "multITSTr=" << mITSTrackROFRec[trackITS.roFrame]
+             << "multITSCl=" << mITSClusterROFRec[trackITS.roFrame]
+             << "\n";
 
   mTimer[SWDBG].Stop();
 }
@@ -2833,7 +2868,12 @@ void MatchTPCITS::dumpWinnerMatches()
       (*mDBGOut) << "matchWin"
                  << "itsLbl=" << mITSLblWork[iits] << "tpcLbl=" << mTPCLblWork[itpc];
     }
+    int tb = mTPCTracksArray[tTPC.sourceID].getTime0() * mNTPCOccBinLengthInv;
+    float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
     (*mDBGOut) << "matchWin"
+               << "multTPC=" << mTPCRefitter->getParam()->GetUnscaledMult(mTPCTracksArray[tTPC.sourceID].getTime0())
+               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame]
+               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame]
                << "\n";
   }
   mTimer[SWDBG].Stop();
