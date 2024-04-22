@@ -47,10 +47,72 @@ namespace reco_workflow
 {
 
 /// \class RawToCellConverterSpec
-/// \brief Coverter task for Raw data to EMCAL cells
+/// \brief Coverter task for Raw data to EMCAL cells and trigger objects
 /// \author Hadi Hassan <hadi.hassan@cern.ch>, Oak Ridge National Laboratory
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALworkflow
 /// \since December 10, 2019
+////
+/// General reconstruction task of EMCAL raw data of FEC and trigger sources, running during the synchronous
+/// reconstruction. The task decodees pages from ALTRO, Fake ALTRO and STU sources, and mergees the data according
+/// to events (triggers). The data is then further processed based on the origin of the data:
 ///
+/// - in case of FEC data (cells or LEDMONS) a raw fit is performed, and data from high- and low-gain channels are
+///   merged, always preferring the high-gain data if not saturated (better resolution)
+/// - in case of Fake ALTRO data (TRU) the L0 timesums, trigger patches and TRU information are reconstructed. For
+///   the trigger patches a small peak finder selects the time sample with the max. patch energy. For the L0 timesums
+///   a fixed L0 time (8) is used for all event types
+///
+/// FEC and trigger information are ordered according to events and streamed to their output buffers, where corresponding
+/// trigger records mark ranges in the buffer belonging to the same trigger. Tasks subscribing to outputs from this
+/// task must always subscribe to teh trigger records in addition.
+///
+/// Several components of the task (raw parsing, ALTRO decoding, channel mapping and geometry, raw fit) can end in error
+/// states, particularly due to unexpected data. Error handling is performed internally at different stages. Errors are
+/// cathegoriezed as major or minor errors, where major errors prevent decoding the page while minor errors only lead
+/// to loss of certain segments. For monitoring tasks must subscribe to EMC/DECODERERR.
+///
+/// In order to guarantee data consistency a link checker compares the links contributing to data from a certain trigger
+/// to the links activated in the DCS. If not all links are present the timeframe is discarded. In order to switch off
+/// that feature the option --no-checkactivelinks must be activated.
+///
+/// Inputs:
+/// | Input spec           | Optional | CCDB | Purpose                                      |
+/// |----------------------|----------|------|----------------------------------------------|
+/// | EMC/RAWDATA          | no       | no   | EMCAL raw data                               |
+/// | FLP/DISTSUBTIMEFRAME | yes      | no   | Message send when no data was received in TF |
+/// | EMC/RECOPARAM        | no       | yes  | Reconstruction parameters                    |
+/// | EMC/FEEDCS           | no       | yes  | FEE DCS information                          |
+///
+/// Outputs:
+/// | Input spec           | Subspec (default) | Optional  | Purpose                                            |
+/// |----------------------|-------------------|-----------|----------------------------------------------------|
+/// | EMC/CELLS            | 1                 | no        | EMCAL cell (tower) data                            |
+/// | EMC/CELLSTRGR        | 1                 | no        | Trigger records related to cell data               |
+/// | EMC/DECODERERR       | 1                 | yes       | Decoder errors (for QC), if enabled                |
+/// | EMC/TRUS             | 1                 | yes       | TRU information, if trigger reconstruction enabled |
+/// | EMC/TRUSTRGR         | 1                 | yes       | Trigger reconrds related to TRU information        |
+/// | EMC/PATCHES          | 1                 | yes       | Trigger patches, if trigger reconstruction enabled |
+/// | EMC/PATCHESTRGR      | 1                 | yes       | Trigger reconrds related to trigger patches        |
+/// | EMC/FASTORS          | 1                 | yes       | L0 timesums, if trigger reconstruction enabled     |
+/// | EMC/FASTORSTRGR      | 1                 | yes       | Trigger reconrds related to L0 timesums            |
+///
+/// Workflow options (via --EMCALRawToCellConverterSpec ...):
+/// | Option              | Default | Possible values | Purpose                                        |
+/// |---------------------|---------|-----------------|------------------------------------------------|
+/// | fitmethod           | gamma2  | gamma2,standard | Raw fit method                                 |
+/// | maxmessage          | 100     | any int         | Max. amount of error messages on infoLogger    |
+/// | printtrailer        | false   | set (bool)      | Print RCU trailer (for debugging)              |
+/// | no-mergeHGLG        | false   | set (bool)      | Do not merge HG and LG channels for same tower |
+/// | no-checkactivelinks | false   | set (bool)      | Do not check for active links per BC           |
+/// | no-evalpedestal     | false   | set (bool)      | Disable pedestal evaluation                    |
+///
+/// Global switches of the EMCAL reco workflow related to the RawToCellConverter:
+/// | Option                         | Default | Purpose                                       |
+/// | -------------------------------|---------|-----------------------------------------------|
+/// | disable-decoding-errors        | false   | Disable sending decoding errors               |
+/// | disable-trigger-reconstruction | false   | Disable trigger reconstruction                |
+/// | ignore-dist-stf                | false   | disable subscribing to FLP/DISTSUBTIMEFRAME/0 |
 class RawToCellConverterSpec : public framework::Task
 {
  public:
@@ -297,27 +359,99 @@ class RawToCellConverterSpec : public framework::Task
   /// maximum. The patch time is the start time of the 4-integral
   std::tuple<uint16_t, uint8_t> reconstructTriggerPatch(const gsl::span<const FastORTimeSeries*> fastors) const;
 
+  /// \brief Handling of mapper hardware address errors
+  /// \param error Exception raised by the mapper
+  /// \param ddlID DDL ID of the segment raising the exception
+  /// \param hwaddress Hardware address raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
   void handleAddressError(const Mapper::AddressNotFoundException& error, int ddlID, int hwaddress);
 
+  /// \brief Handler function for major ALTRO decoder errors
+  /// \param altroerror Exception raised by the ALTRO decoder
+  /// \param ddlID DDL ID of the segment raising the exception
+  /// \param hwaddress Hardware address raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
   void handleAltroError(const o2::emcal::AltroDecoderError& altroerror, int ddlID);
 
+  /// \brief Handler function for minor ALTRO errors
+  /// \param altroerror Minor errors created by the ALTRO decoder
+  /// \param ddlID DDL ID of the segment raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
   void handleMinorAltroError(const o2::emcal::MinorAltroDecodingError& altroerror, int ddlID);
 
+  /// \brief Handler function of mapper errors related to invalid DDL
+  /// \param error Exception raised by the mapper
+  /// \param feeID FEE ID (DDL ID) of the segment raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
   void handleDDLError(const MappingHandler::DDLInvalid& error, int feeID);
 
-  void handleGeometryError(const ModuleIndexException& e, int supermoduleID, int cellID, int hwaddress, ChannelType_t chantype);
+  /// \brief Handler function of errors related to geometry (invalid supermodule / module/ tower ...)
+  /// \param error Geometry exception
+  /// \param supermoduleID Supermodule ID of the exception
+  /// \param cellID Cell (Tower) ID of the exception
+  /// \param hwaddress Hardware address raising the exception
+  /// \param chantype Channel type of the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
+  void handleGeometryError(const ModuleIndexException& error, int supermoduleID, int cellID, int hwaddress, ChannelType_t chantype);
 
+  /// \brief Handler function of mapper errors related to invalid DDL
+  /// \param error Exception raised by the mapper
+  /// \param feeID FEE ID (DDL ID) of the segment raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
   void handleFitError(const o2::emcal::CaloRawFitter::RawFitterError_t& fiterror, int ddlID, int cellID, int hwaddress);
 
-  /// \brief handler function for gain type errors
+  /// \brief Handler function for gain type errors
   /// \param errortype Gain error type
-  /// \param ddlID ID of the DDL
-  /// \param hwaddress Hardware address
+  /// \param ddlID DDL ID of the segment raising the exception
+  /// \param hwaddress Hardware address raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
   void handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int hwaddress);
 
-  void handlePageError(const RawDecodingError& e);
+  /// \brief Handler function for raw page decoding errors (i.e. header/trailer corruptions)
+  /// \param error Raw page error
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
+  void handlePageError(const RawDecodingError& error);
 
-  void handleMinorPageError(const RawReaderMemory::MinorError& e);
+  /// \brief Handler function for minor raw page decoding errors (i.e. header/trailer corruptions)
+  /// \param error Raw page error
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
+  void handleMinorPageError(const RawReaderMemory::MinorError& error);
 
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
   int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
