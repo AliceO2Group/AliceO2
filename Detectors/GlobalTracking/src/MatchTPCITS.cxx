@@ -45,6 +45,7 @@
 #include "ITStracking/IOUtils.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUParam.h"
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -1487,6 +1488,9 @@ void MatchTPCITS::fillCalibDebug(int ifit, int iTPC, const o2::dataformats::Trac
                  << "itsLbl=" << mITSLblWork[iITS] << "tpcLbl=" << mTPCLblWork[iTPC];
     }
     (*mDBGOut) << "refit"
+               << "multTPC=" << mTPCRefitter->getParam()->GetUnscaledMult(mTPCTracksArray[tTPC.sourceID].getTime0())
+               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame]
+               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame]
                << "tf=" << mTFCount << "\n";
   }
 #endif
@@ -2798,13 +2802,17 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
     chi2 = getPredictedChi2NoZ(trackITS, trackTPC);
   }
   (*mDBGOut) << "match"
-             << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC << "tcorr=" << tCorr;
-  if (mMCTruthON) {
+             << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC << "tcorr=" << tCorr if (mMCTruthON)
+  {
     (*mDBGOut) << "match"
                << "itsLbl=" << mITSLblWork[itsID] << "tpcLbl=" << mTPCLblWork[tpcID];
   }
   (*mDBGOut) << "match"
-             << "rejFlag=" << rejFlag << "\n";
+             << "rejFlag=" << rejFlag
+             << "multTPC=" << mTPCRefitter->getParam()->GetUnscaledMult(mTPCTracksArray[trackTPC.sourceID].getTime0())
+             << "multITSTr=" << mITSTrackROFRec[trackITS.roFrame]
+             << "multITSCl=" << mITSClusterROFRec[trackITS.roFrame]
+             << "\n";
 
   mTimer[SWDBG].Stop();
 }
@@ -2834,6 +2842,9 @@ void MatchTPCITS::dumpWinnerMatches()
                  << "itsLbl=" << mITSLblWork[iits] << "tpcLbl=" << mTPCLblWork[itpc];
     }
     (*mDBGOut) << "matchWin"
+               << "multTPC=" << mTPCRefitter->getParam()->GetUnscaledMult(mTPCTracksArray[tTPC.sourceID].getTime0())
+               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame]
+               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame]
                << "\n";
   }
   mTimer[SWDBG].Stop();
