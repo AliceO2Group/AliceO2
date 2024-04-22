@@ -301,6 +301,8 @@ class AODProducerWorkflowDPL : public Task
   std::vector<uint16_t> mMCHROFs;           // mapping from MCH tracks ID to corresponding ROF (for SA MCH tracks time extraction)
   double mITSROFrameHalfLengthNS = -1;      // ITS ROF half length
   double mMFTROFrameHalfLengthNS = -1;      // ITS ROF half length
+  double mITSROFBiasNS = 0;                 // ITS ROF start bias
+  double mMFTROFBiasNS = 0;                 // ITS ROF start bias
   double mNSigmaTimeTrack = -1;             // number track errors sigmas (for gaussian errors only) used in track-vertex matching
   double mTimeMarginTrackTime = -1;         // safety margin in NS used for track-vertex matching (additive to track uncertainty)
   double mTPCBinNS = -1;                    // inverse TPC time-bin in ns
