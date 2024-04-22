@@ -54,13 +54,25 @@ struct RecCellInfo {
 
 /// \class EventContainer
 /// \brief Containter of cells for a given event
-/// \ingroup EMCALReconstruction
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALreconstruction
+/// \since May 30, 2023
+///
+/// The EventContainer is part of the reco container and keeps the cell / LEDMON / TRU
+/// data of a given event (trigger) defined by the BC and orbit in the raw data header.
+/// In case the gain type merging is activated the event container performs on-the-fly
+/// merging of high- and low-gain data for cells and LEDMONS keeping only high- or
+/// low-gain and preferring the high-gain due to better resolution if not saturated.
+///
+/// Error handling:
+/// The EventContainer can raise a TRUIndexException in case TRU information with an
+/// unexpected index (>= 52) is added / requested.
 class EventContainer
 {
  public:
   /// \class TRUIndexException
   /// \brief Handler for access of TRU data with invalid TRU index
-  /// \ingroup EMCALReconstruction
+  /// \ingroup EMCALreconstruction
   class TRUIndexException final : public std::exception
   {
    public:
@@ -222,7 +234,18 @@ class EventContainer
 
 /// \class RecoContainer
 /// \brief Handler for cells/LEDMONS/Trigger data in timeframes
-/// \ingroup EMCALReconstruction
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALreconstruction
+/// \since May 30, 2023
+///
+/// The RecoContainer handles the cell/LEDMON/trigger data of all events of a given
+/// timeframe during the reconstruction. Event data are handled internally via the
+/// EventContainer, where the RecoContainer provides access to.
+///
+/// Error handling:
+/// The RecoContainer can raise an InteractionNotFoundException in case read access
+/// is requested for an interaction based on the o2::InteractionRecord which is not
+/// for which no data was inserted into the container.
 class RecoContainer
 {
  public:
@@ -291,7 +314,17 @@ class RecoContainer
 
 /// \class RecoContainerReader
 /// \brief Iterator over reco containers
-/// \ingroup EMCALReconstruction
+/// \author Markus Fasel <narkus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALreconstruction
+/// \since May 30, 2023
+///
+/// The RecoContainerReader iterates over the events stored in the RecoContainer in
+/// a time-ordered sequence. The function hasNext checks whether there are more
+/// events to iterate over, while nextEvent provides access to the next event.
+///
+/// Error handling:
+/// The RecoContainerReader can raise an InvalidAccessException in case access is tried to
+/// invalid data.
 class RecoContainerReader
 {
  public:

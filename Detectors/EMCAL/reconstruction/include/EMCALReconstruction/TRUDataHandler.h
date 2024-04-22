@@ -28,7 +28,7 @@ namespace o2::emcal
 /// \class TRUDataHandler
 /// \brief Helper class to handle decoded TRU data during the reconstruction
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
-/// \ingroup EMCALReconstruction
+/// \ingroup EMCALreconstruction
 /// \since April 19, 2024
 ///
 /// The decoded TRU data contains the following information
@@ -44,7 +44,7 @@ class TRUDataHandler
  public:
   /// \class PatchIndexException
   /// \brief Handler of errors related to invalid trigger patch IDs
-  /// \ingroup EMCALReconstruction
+  /// \ingroup EMCALreconstruction
   class PatchIndexException final : public std::exception
   {
    public:

@@ -21,7 +21,7 @@ namespace o2::emcal
 /// \class FastORTimeSeries
 /// \brief Container for FastOR time series
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
-/// \ingroup EMCALReconstruction
+/// \ingroup EMCALreconstruction
 /// \since April 19, 2024
 ///
 /// Time series are encoded in bunches in the raw data, which are usually time-reversed.
