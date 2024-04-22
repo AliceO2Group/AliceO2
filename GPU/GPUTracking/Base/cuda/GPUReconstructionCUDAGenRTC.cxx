@@ -238,7 +238,6 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
         }
       }
       fclose(fp);
-
     }
 #endif
   }
