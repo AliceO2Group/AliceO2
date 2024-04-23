@@ -44,7 +44,7 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITStracking/IOUtils.h"
 
-// #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
+#include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.h"
 #include "GPUParam.inc"
 #ifdef WITH_OPENMP
