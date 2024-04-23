@@ -78,16 +78,16 @@ class TimeFrame
   friend class TimeFrameGPU;
   TimeFrame(int nLayers = 7);
   const Vertex& getPrimaryVertex(const int) const;
-  gsl::span<const Vertex> getPrimaryVertices(int tf) const;
+  gsl::span<const Vertex> getPrimaryVertices(int rof) const;
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
   gsl::span<const std::vector<MCCompLabel>> getPrimaryVerticesLabels(const int rof) const;
-  gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int tf) const;
+  gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int rof) const;
   void fillPrimaryVerticesXandAlpha();
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
   void addPrimaryVertices(const std::vector<lightVertex>&);
-  void removePrimaryVerticesInROf(const int rofId);
+  void removePrimaryVerticesInROF(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
@@ -124,8 +124,8 @@ class TimeFrame
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
   gsl::span<const Cluster> getClustersPerROFrange(int rofMin, int range, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
-  gsl::span<const int> getROframesClustersPerROFrange(int rofMin, int range, int layerId) const;
-  gsl::span<const int> getROframeClusters(int layerId) const;
+  gsl::span<const int> getROFramesClustersPerROFrange(int rofMin, int range, int layerId) const;
+  gsl::span<const int> getROFrameClusters(int layerId) const;
   gsl::span<const int> getNClustersROFrange(int rofMin, int range, int layerId) const;
   gsl::span<const int> getIndexTablePerROFrange(int rofMin, int range, int layerId) const;
   gsl::span<int> getIndexTable(int rofId, int layerId);
@@ -146,11 +146,12 @@ class TimeFrame
   void resetRofPV()
   {
     mPrimaryVertices.clear();
-    mROframesPV.resize(1, 0);
+    mROFramesPV.resize(1, 0);
   };
 
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);
+  gsl::span<unsigned char> getUsedClusters(const int layer);
 
   std::vector<std::vector<Tracklet>>& getTracklets();
   std::vector<std::vector<int>>& getTrackletsLookupTable();
@@ -178,15 +179,19 @@ class TimeFrame
 
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
-  int getROfCutClusterMult() const { return mCutClusterMult; };
-  int getROfCutVertexMult() const { return mCutVertexMult; };
-  int getROfCutAllMult() const { return mCutClusterMult + mCutVertexMult; }
+  int getROFCutClusterMult() const { return mCutClusterMult; };
+  int getROFCutVertexMult() const { return mCutVertexMult; };
+  int getROFCutAllMult() const { return mCutClusterMult + mCutVertexMult; }
 
   // Vertexer
   void computeTrackletsScans(const int nThreads = 1);
-  int& getNTrackletsROf(int tf, int combId);
-  std::vector<Line>& getLines(int tf);
-  std::vector<ClusterLines>& getTrackletClusters(int tf);
+  int& getNTrackletsROF(int rof, int combId);
+  std::vector<Line>& getLines(int rof);
+  int getNLinesTotal() const
+  {
+    return std::accumulate(mLines.begin(), mLines.end(), 0, [](int sum, const auto& l) { return sum + l.size(); });
+  }
+  std::vector<ClusterLines>& getTrackletClusters(int rof);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
   gsl::span<Tracklet> getFoundTracklets(int rofId, int combId);
   gsl::span<const MCCompLabel> getLabelsFoundTracklets(int rofId, int combId) const;
@@ -249,15 +254,15 @@ class TimeFrame
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
-  std::vector<std::vector<int>> mROframesClusters;
+  std::vector<std::vector<int>> mROFramesClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
-  std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
+  std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROF
   std::vector<std::vector<int>> mNClustersPerROF;
   std::vector<std::vector<int>> mIndexTables;
   std::vector<std::vector<int>> mTrackletsLookupTable;
   std::vector<std::vector<unsigned char>> mUsedClusters;
   int mNrof = 0;
-  std::vector<int> mROframesPV = {0};
+  std::vector<int> mROFramesPV = {0};
   std::vector<Vertex> mPrimaryVertices;
 
   // State if memory will be externally managed.
@@ -305,10 +310,10 @@ class TimeFrame
   int mCutVertexMult;
 
   // Vertexer
-  std::vector<std::vector<int>> mNTrackletsPerROf;
+  std::vector<std::vector<int>> mNTrackletsPerROF;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
-  std::vector<std::vector<int>> mTrackletsIndexROf;
+  std::vector<std::vector<int>> mTrackletsIndexROF;
   std::vector<std::vector<MCCompLabel>> mLinesLabels;
   std::vector<std::vector<MCCompLabel>> mVerticesLabels;
   std::array<uint32_t, 2> mTotalTracklets = {0, 0};
@@ -319,43 +324,43 @@ inline const Vertex& TimeFrame::getPrimaryVertex(const int vertexIndex) const { 
 
 inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int rof) const
 {
-  const int start = mROframesPV[rof];
+  const int start = mROFramesPV[rof];
   const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
-  int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  int delta = mMultiplicityCutMask[rof] ? mROFramesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
   return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
 }
 
 inline gsl::span<const std::vector<MCCompLabel>> TimeFrame::getPrimaryVerticesLabels(const int rof) const
 {
-  const int start = mROframesPV[rof];
+  const int start = mROFramesPV[rof];
   const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
-  int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  int delta = mMultiplicityCutMask[rof] ? mROFramesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
   return {&mVerticesLabels[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
 }
 
 inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int romin, int romax) const
 {
-  return {&mPrimaryVertices[mROframesPV[romin]], static_cast<gsl::span<const Vertex>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
+  return {&mPrimaryVertices[mROFramesPV[romin]], static_cast<gsl::span<const Vertex>::size_type>(mROFramesPV[romax + 1] - mROFramesPV[romin])};
 }
 
 inline gsl::span<const std::array<float, 2>> TimeFrame::getPrimaryVerticesXAlpha(int rof) const
 {
-  const int start = mROframesPV[rof];
+  const int start = mROFramesPV[rof];
   const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
-  int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  int delta = mMultiplicityCutMask[rof] ? mROFramesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
   return {&(mPValphaX[start]), static_cast<gsl::span<const std::array<float, 2>>::size_type>(delta)};
 }
 
 inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
 {
-  return rofID < 0 ? mPrimaryVertices.size() : mROframesPV[rofID + 1] - mROframesPV[rofID];
+  return rofID < 0 ? mPrimaryVertices.size() : mROFramesPV[rofID + 1] - mROFramesPV[rofID];
 }
 
 inline bool TimeFrame::empty() const { return getTotalClusters() == 0; }
 
-inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return mROframesClusters[layer][rof] + index; }
+inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return mROFramesClusters[layer][rof] + index; }
 
-inline int TimeFrame::getSortedStartIndex(const int rof, const int layer) const { return mROframesClusters[layer][rof]; }
+inline int TimeFrame::getSortedStartIndex(const int rof, const int layer) const { return mROFramesClusters[layer][rof]; }
 
 inline int TimeFrame::getNrof() const { return mNrof; }
 
@@ -370,9 +375,9 @@ inline float TimeFrame::getBeamX() const { return mBeamPos[0]; }
 
 inline float TimeFrame::getBeamY() const { return mBeamPos[1]; }
 
-inline gsl::span<const int> TimeFrame::getROframeClusters(int layerId) const
+inline gsl::span<const int> TimeFrame::getROFrameClusters(int layerId) const
 {
-  return {&mROframesClusters[layerId][0], static_cast<gsl::span<const int>::size_type>(mROframesClusters[layerId].size())};
+  return {&mROFramesClusters[layerId][0], static_cast<gsl::span<const int>::size_type>(mROFramesClusters[layerId].size())};
 }
 
 inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
@@ -380,8 +385,8 @@ inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<Cluster>();
   }
-  int startIdx{mROframesClusters[layerId][rofId]};
-  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
+  int startIdx{mROFramesClusters[layerId][rofId]};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROFramesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId) const
@@ -389,8 +394,8 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<const Cluster>();
   }
-  int startIdx{mROframesClusters[layerId][rofId]};
-  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
+  int startIdx{mROFramesClusters[layerId][rofId]};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROFramesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline gsl::span<const Cluster> TimeFrame::getClustersPerROFrange(int rofMin, int range, int layerId) const
@@ -398,15 +403,15 @@ inline gsl::span<const Cluster> TimeFrame::getClustersPerROFrange(int rofMin, in
   if (rofMin < 0 || rofMin >= mNrof) {
     return gsl::span<const Cluster>();
   }
-  int startIdx{mROframesClusters[layerId][rofMin]}; // First cluster of rofMin
-  int endIdx{mROframesClusters[layerId][std::min(rofMin + range, mNrof)]};
+  int startIdx{mROFramesClusters[layerId][rofMin]}; // First cluster of rofMin
+  int endIdx{mROFramesClusters[layerId][std::min(rofMin + range, mNrof)]};
   return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(endIdx - startIdx)};
 }
 
-inline gsl::span<const int> TimeFrame::getROframesClustersPerROFrange(int rofMin, int range, int layerId) const
+inline gsl::span<const int> TimeFrame::getROFramesClustersPerROFrange(int rofMin, int range, int layerId) const
 {
   int chkdRange{std::min(range, mNrof - rofMin)};
-  return {&mROframesClusters[layerId][rofMin], static_cast<gsl::span<int>::size_type>(chkdRange)};
+  return {&mROFramesClusters[layerId][rofMin], static_cast<gsl::span<int>::size_type>(chkdRange)};
 }
 
 inline gsl::span<const int> TimeFrame::getNClustersROFrange(int rofMin, int range, int layerId) const
@@ -419,7 +424,7 @@ inline int TimeFrame::getTotalClustersPerROFrange(int rofMin, int range, int lay
 {
   int startIdx{rofMin}; // First cluster of rofMin
   int endIdx{std::min(rofMin + range, mNrof)};
-  return mROframesClusters[layerId][endIdx] - mROframesClusters[layerId][startIdx];
+  return mROFramesClusters[layerId][endIdx] - mROFramesClusters[layerId][startIdx];
 }
 
 inline gsl::span<const int> TimeFrame::getIndexTablePerROFrange(int rofMin, int range, int layerId) const
@@ -431,7 +436,7 @@ inline gsl::span<const int> TimeFrame::getIndexTablePerROFrange(int rofMin, int 
 
 inline int TimeFrame::getClusterROF(int iLayer, int iCluster)
 {
-  return std::lower_bound(mROframesClusters[iLayer].begin(), mROframesClusters[iLayer].end(), iCluster + 1) - mROframesClusters[iLayer].begin() - 1;
+  return std::lower_bound(mROFramesClusters[iLayer].begin(), mROFramesClusters[iLayer].end(), iCluster + 1) - mROFramesClusters[iLayer].begin() - 1;
 }
 
 inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId) const
@@ -439,8 +444,8 @@ inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId,
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<const Cluster>();
   }
-  int startIdx{mROframesClusters[layerId][rofId]};
-  return {&mUnsortedClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
+  int startIdx{mROFramesClusters[layerId][rofId]};
+  return {&mUnsortedClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROFramesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline const std::vector<TrackingFrameInfo>& TimeFrame::getTrackingFrameInfoOnLayer(int layerId) const
@@ -519,6 +524,11 @@ inline bool TimeFrame::isClusterUsed(int layer, int clusterId) const
   return mUsedClusters[layer][clusterId];
 }
 
+inline gsl::span<unsigned char> TimeFrame::getUsedClusters(const int layer)
+{
+  return {&mUsedClusters[layer][0], static_cast<gsl::span<unsigned char>::size_type>(mUsedClusters[layer].size())};
+}
+
 inline void TimeFrame::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
 
 inline std::vector<std::vector<Tracklet>>& TimeFrame::getTracklets()
@@ -553,13 +563,13 @@ inline gsl::span<int> TimeFrame::getNTrackletsCluster(int rofId, int combId)
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<int>();
   }
-  auto startIdx{mROframesClusters[1][rofId]};
-  return {&mNTrackletsPerCluster[combId][startIdx], static_cast<gsl::span<int>::size_type>(mROframesClusters[1][rofId + 1] - startIdx)};
+  auto startIdx{mROFramesClusters[1][rofId]};
+  return {&mNTrackletsPerCluster[combId][startIdx], static_cast<gsl::span<int>::size_type>(mROFramesClusters[1][rofId + 1] - startIdx)};
 }
 
-inline int& TimeFrame::getNTrackletsROf(int rof, int combId)
+inline int& TimeFrame::getNTrackletsROF(int rof, int combId)
 {
-  return mNTrackletsPerROf[combId][rof];
+  return mNTrackletsPerROF[combId][rof];
 }
 
 inline bool TimeFrame::isRoadFake(int i) const
@@ -594,8 +604,8 @@ inline gsl::span<Tracklet> TimeFrame::getFoundTracklets(int rofId, int combId)
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<Tracklet>();
   }
-  auto startIdx{mNTrackletsPerROf[combId][rofId]};
-  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
+  auto startIdx{mNTrackletsPerROF[combId][rofId]};
+  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROF[combId][rofId + 1] - startIdx)};
 }
 
 inline gsl::span<const Tracklet> TimeFrame::getFoundTracklets(int rofId, int combId) const
@@ -603,8 +613,8 @@ inline gsl::span<const Tracklet> TimeFrame::getFoundTracklets(int rofId, int com
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<const Tracklet>();
   }
-  auto startIdx{mNTrackletsPerROf[combId][rofId]};
-  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
+  auto startIdx{mNTrackletsPerROF[combId][rofId]};
+  return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROF[combId][rofId + 1] - startIdx)};
 }
 
 inline gsl::span<const MCCompLabel> TimeFrame::getLabelsFoundTracklets(int rofId, int combId) const
@@ -612,8 +622,8 @@ inline gsl::span<const MCCompLabel> TimeFrame::getLabelsFoundTracklets(int rofId
   if (rofId < 0 || rofId >= mNrof || !hasMCinformation()) {
     return gsl::span<const MCCompLabel>();
   }
-  auto startIdx{mNTrackletsPerROf[combId][rofId]};
-  return {&mTrackletLabels[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
+  auto startIdx{mNTrackletsPerROF[combId][rofId]};
+  return {&mTrackletLabels[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROF[combId][rofId + 1] - startIdx)};
 }
 
 inline int TimeFrame::getNumberOfClusters() const

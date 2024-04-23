@@ -23,6 +23,8 @@ namespace its
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
   bool allowSingleContribClusters = false;
+  // Number of ROFs to be considered for the vertexing
+  int deltaRof = 0;
 
   // geometrical cuts
   float zCut = 0.002f;

@@ -102,10 +102,10 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
       }
       iVertex++;
     } while (iVertex < maxNvertices);
-    logger(fmt::format("- Tracklet finding: {} tracklets found in {:.2f} ms", nTracklets, timeTracklets));
-    logger(fmt::format("- Cell finding: {} cells found in {:.2f} ms", nCells, timeCells));
-    logger(fmt::format("- Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
-    logger(fmt::format("- Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
+    logger(fmt::format(" - Tracklet finding: {} tracklets found in {:.2f} ms", nTracklets, timeTracklets));
+    logger(fmt::format(" - Cell finding: {} cells found in {:.2f} ms", nCells, timeCells));
+    logger(fmt::format(" - Neighbours finding: {} neighbours found in {:.2f} ms", nNeighbours, timeNeighbours));
+    logger(fmt::format(" - Track finding: {} tracks found in {:.2f} ms", nTracks + mTimeFrame->getNumberOfTracks(), timeRoads));
     total += timeTracklets + timeCells + timeNeighbours + timeRoads;
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
   }
