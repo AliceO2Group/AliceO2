@@ -307,7 +307,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSClsSizeInLayer, itsClsSizeInLayer, //! Size of the
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(IsITSAfterburner, isITSAfterburner, //! If the track used the afterburner in the ITS
                            [](uint8_t detectorMap, float itsChi2Ncl) -> bool {
-                             return (detectorMap & o2::aod::track::ITS) && (itsChi2Ncl >= 0.f);
+                             return (detectorMap & o2::aod::track::ITS) && (itsChi2Ncl < 0.f);
                            });
 } // namespace v001
 
