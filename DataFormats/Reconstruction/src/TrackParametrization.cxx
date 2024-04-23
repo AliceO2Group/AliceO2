@@ -589,15 +589,9 @@ GPUd() void TrackParametrization<value_T>::printParam() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
-#else
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d %s",
-         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(),
-#if !defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT)
-         getPID().getName()
-#else
-         ""
-#endif
-  );
+         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
 #endif
 }
 
@@ -608,7 +602,7 @@ GPUd() void TrackParametrization<value_T>::printParamHexadecimal()
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asStringHexadecimal().c_str());
-#else
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   printf("X:%x Alp:%x Par: %x %x %x %x %x |Q|:%x %s",
          gpu::CAMath::Float2UIntReint(getX()),
          gpu::CAMath::Float2UIntReint(getAlpha()),
@@ -618,12 +612,7 @@ GPUd() void TrackParametrization<value_T>::printParamHexadecimal()
          gpu::CAMath::Float2UIntReint(getTgl()),
          gpu::CAMath::Float2UIntReint(getQ2Pt()),
          gpu::CAMath::Float2UIntReint(getAbsCharge()),
-#if !defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT)
-         getPID().getName()
-#else
-         ""
-#endif
-  );
+         getPID().getName());
 #endif
 }
 
