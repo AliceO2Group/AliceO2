@@ -1648,6 +1648,7 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
   data->timestamp = requestContext.timestamp;
   data->localContentCallback = localContentCallback;
   data->userAgent = mUniqueAgentID;
+  data->optionsList = options_list;
 
   curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
   initCurlOptionsForRetrieve(curl_handle, (void*)(&data->hoPair), writeCallback, false);
