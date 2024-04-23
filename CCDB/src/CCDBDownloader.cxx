@@ -535,8 +535,10 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
           }
         }
         --(*performData->requestsLeft);
+        curl_slist_free_all(*performData->options);
         delete requestData;
         delete performData->codeDestination;
+        curl_easy_cleanup(easy_handle);
       }
     } break;
   }
@@ -681,6 +683,7 @@ void CCDBDownloader::asynchSchedule(CURL* handle, size_t* requestCounter)
   curl_easy_getinfo(handle, CURLINFO_PRIVATE, &requestData);
   headerMap = &(requestData->hoPair.header);
   hostsPool = &(requestData->hosts);
+  auto* options = &(requestData->optionsList);
 
   // Prepare temporary data about transfer
   auto* data = new CCDBDownloader::PerformData(); // Freed in transferFinished
@@ -692,6 +695,7 @@ void CCDBDownloader::asynchSchedule(CURL* handle, size_t* requestCounter)
   data->hostInd = 0;
   data->locInd = 0;
   data->requestData = requestData;
+  data->options = options;
 
   // Prepare handle and schedule download
   setHandleOptions(handle, data);
@@ -719,4 +723,4 @@ std::string CCDBDownloader::prepareLogMessage(std::string host_url, std::string 
   return fmt::format("CcdbDownloader finished transfer {}{}{} for {} (agent_id: {}) with http code: {}", host_url, (host_url.back() == '/') ? "" : "/", upath, (ts < 0) ? getCurrentTimestamp() : ts, userAgent, httpCode);
 }
 
-} // namespace o2
+} // namespace o2::ccdb
