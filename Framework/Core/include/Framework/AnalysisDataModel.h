@@ -305,7 +305,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSClsSizeInLayer, itsClsSizeInLayer, //! Size of the
                              }
                              return (itsClusterSizes >> (layer * 4)) & 0xf;
                            });
-
+DECLARE_SOA_DYNAMIC_COLUMN(IsITSAfterburner, isITSAfterburner, //! If the track used the afterburner in the ITS
+                           [](uint8_t detectorMap, float itsChi2Ncl) -> bool {
+                             return (detectorMap & o2::aod::track::ITS) && (itsChi2Ncl >= 0.f);
+                           });
 } // namespace v001
 
 DECLARE_SOA_DYNAMIC_COLUMN(HasITS, hasITS, //! Flag to check if track has a ITS match
@@ -488,6 +491,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
+                                 track::v001::IsITSAfterburner<track::DetectorMap, track::ITSChi2NCl>,
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
