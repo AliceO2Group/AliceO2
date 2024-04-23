@@ -122,7 +122,7 @@ void on_transition_requested_expired(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
-  O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "callback", "Exit transition timer expired. Exiting.");
+  O2_SIGNPOST_EVENT_EMIT_WARN(device, cid, "callback", "Exit transition timer expired. Exiting.");
   state->transitionHandling = TransitionHandlingState::Expired;
 }
 
