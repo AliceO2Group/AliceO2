@@ -39,7 +39,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     nThreads = 1;
   }
   auto autoDecode = reader.getDecodeNextAuto();
-  int rofcount{0};
   do {
     if (autoDecode) {
       reader.setDecodeNextAuto(false); // internally do not autodecode
@@ -79,7 +78,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     if (nThreads > mThreads.size()) {
       int oldSz = mThreads.size();
       mThreads.resize(nThreads);
-      for (int i = oldSz; i < nThreads; i++) {
+      for (size_t i = oldSz; i < nThreads; i++) {
         mThreads[i] = std::make_unique<ClustererThread>(this, i);
       }
     }
@@ -108,10 +107,10 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       mTimerMerge.Start(false);
 #endif
       size_t nClTot = 0, nPattTot = 0;
-      int chid = 0, thrStatIdx[nThreads];
+      int chid = 0;
+      std::vector<size_t> thrStatIdx(nThreads, 0);
       for (int ith = 0; ith < nThreads; ith++) {
         std::sort(mThreads[ith]->stats.begin(), mThreads[ith]->stats.end(), [](const ThreadStat& a, const ThreadStat& b) { return a.firstChip < b.firstChip; });
-        thrStatIdx[ith] = 0;
         nClTot += mThreads[ith]->compClusters.size();
         nPattTot += mThreads[ith]->patterns.size();
       }
@@ -129,7 +128,6 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
             thrStatIdx[ith]++;
             chid += stat.nChips; // next chip to look
             const auto clbeg = mThreads[ith]->compClusters.begin() + stat.firstClus;
-            auto szold = compClus->size();
             compClus->insert(compClus->end(), clbeg, clbeg + stat.nClus);
             if (patterns) {
               const auto ptbeg = mThreads[ith]->patterns.begin() + stat.firstPatt;
@@ -177,7 +175,6 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
         parent->mMaxRowColDiffToMask != 0 ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
       }
     }
-    auto nclus0 = compClusPtr->size();
     auto validPixID = curChipData->getFirstUnmasked();
     auto npix = curChipData->getData().size();
     LOGP(debug, "ClustererThread: Chip={}  npix={} validPixID={} -> valid={} -> singleHit={}", chipID, npix, validPixID, validPixID < npix, validPixID + 1 == npix);
@@ -210,7 +207,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
                                             PatternCont* patternsPtr, const ConstMCTruth* labelsDigPtr, MCTruth* labelsClusPtr)
 {
   const auto& pixData = curChipData->getData();
-  for (int i1 = 0; i1 < preClusterHeads.size(); ++i1) {
+  for (size_t i1 = 0; i1 < preClusterHeads.size(); ++i1) {
     auto ci = preClusterIndices[i1];
     if (ci < 0) {
       continue;
@@ -234,7 +231,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       next = pixEntry.first;
     }
     preClusterIndices[i1] = -1;
-    for (int i2 = i1 + 1; i2 < preClusterHeads.size(); ++i2) {
+    for (size_t i2 = i1 + 1; i2 < preClusterHeads.size(); ++i2) {
       if (preClusterIndices[i2] != ci) {
         continue;
       }

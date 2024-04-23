@@ -9,21 +9,49 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <ITS3Reconstruction/IOUtils.h>
-#include <ITStracking/IOUtils.h>
-#include <ITStracking/TimeFrame.h>
-#include <DataFormatsITSMFT/CompCluster.h>
-#include <DataFormatsITSMFT/ROFRecord.h>
-#include <ITS3Reconstruction/TopologyDictionary.h>
-#include <ITSBase/GeometryTGeo.h>
-#include <ITSMFTBase/SegmentationAlpide.h>
-#include <ITS3Base/SegmentationSuperAlpide.h>
-#include <Framework/Logger.h>
+#include "ITS3Reconstruction/IOUtils.h"
+#include "ITStracking/IOUtils.h"
+#include "ITStracking/TimeFrame.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITS3Reconstruction/TopologyDictionary.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITS3Base/SpecsV2.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 namespace o2::its3::ioutils
 {
-using SSAlpide = o2::its3::SegmentationSuperAlpide;
+
+/// convert compact clusters to 3D spacepoints
+void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
+                            gsl::span<const unsigned char>::iterator& pattIt,
+                            std::vector<o2::BaseCluster<float>>& output,
+                            const its3::TopologyDictionary* dict)
+{
+  auto geom = o2::its::GeometryTGeo::Instance();
+  bool applyMisalignment = false;
+  const auto& conf = o2::its::TrackerParamConfig::Instance();
+  for (int il = 0; il < geom->getNumberOfLayers(); ++il) {
+    if (conf.sysErrY2[il] > 0.f || conf.sysErrZ2[il] > 0.f) {
+      applyMisalignment = true;
+      break;
+    }
+  }
+
+  for (auto& c : clusters) {
+    float sigmaY2, sigmaZ2, sigmaYZ = 0;
+    auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
+    auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
+    if (applyMisalignment) {
+      auto lrID = geom->getLayer(c.getSensorID());
+      sigmaY2 += conf.sysErrY2[lrID];
+      sigmaZ2 += conf.sysErrZ2[lrID];
+    }
+    cl3d.setErrors(sigmaY2, sigmaZ2, sigmaYZ);
+  }
+}
 
 int loadROFrameDataITS3(its::TimeFrame* tf,
                         gsl::span<o2::itsmft::ROFRecord> rofs,
@@ -70,14 +98,12 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
       // for cylindrical layers we have a different alpha for each cluster, for regular silicon detectors instead a single alpha for the whole sensor
-      float alpha = 0.;
+      float alpha = geom->getSensorRefAlpha(sensorID);
       o2::math_utils::Point3D<float> trkXYZ;
       if (isITS3) {
-        alpha = geom->getAlphaFromGlobalITS3(gloXYZ);
         // Inverse transformation to the local --> tracking
         trkXYZ = geom->getT2LMatrixITS3(sensorID, alpha) ^ locXYZ;
       } else {
-        alpha = geom->getSensorRefAlpha(sensorID);
         // Inverse transformation to the local --> tracking
         trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
       }

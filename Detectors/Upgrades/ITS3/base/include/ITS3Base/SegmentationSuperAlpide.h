@@ -53,6 +53,11 @@ class SegmentationSuperAlpide
   // |           |          |
   // x----------------------x
  public:
+  virtual ~SegmentationSuperAlpide() = default;
+  SegmentationSuperAlpide(const SegmentationSuperAlpide&) = default;
+  SegmentationSuperAlpide(SegmentationSuperAlpide&&) = delete;
+  SegmentationSuperAlpide& operator=(const SegmentationSuperAlpide&) = delete;
+  SegmentationSuperAlpide& operator=(SegmentationSuperAlpide&&) = delete;
   constexpr SegmentationSuperAlpide(int layer) : mLayer{layer} {}
 
   static constexpr int mNCols{constants::pixelarray::nCols};
@@ -185,8 +190,8 @@ class SegmentationSuperAlpide
   template <typename T>
   [[nodiscard]] bool isValid(T const row, T const col) const noexcept
   {
-    namespace cp = constants::pixelarray;
     if constexpr (std::is_floating_point_v<T>) { // compares in local coord.
+      namespace cp = constants::pixelarray;
       return !static_cast<bool>(row <= -cp::width / 2. || cp::width / 2. <= row || col <= -cp::length / 2. || cp::length / 2. <= col);
     } else { // compares in rows/cols
       return !static_cast<bool>(row < 0 || row >= static_cast<int>(mNRows) || col < 0 || col >= static_cast<int>(mNCols));

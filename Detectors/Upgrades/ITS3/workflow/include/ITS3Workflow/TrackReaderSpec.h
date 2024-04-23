@@ -60,13 +60,13 @@ class TrackReader : public o2::framework::Task
   std::unique_ptr<TTree> mTree;
   std::string mInputFileName = "";
   std::string mTrackTreeName = "o2sim";
-  std::string mROFBranchName = "IT3TracksROF";
-  std::string mTrackBranchName = "IT3Track";
-  std::string mClusIdxBranchName = "IT3TrackClusIdx";
+  std::string mROFBranchName = "ITSTracksROF";
+  std::string mTrackBranchName = "ITSTrack";
+  std::string mClusIdxBranchName = "ITSTrackClusIdx";
   std::string mVertexBranchName = "Vertices";
   std::string mVertexROFBranchName = "VerticesROF";
-  std::string mTrackMCTruthBranchName = "IT3TrackMCTruth";
-  std::string mTrackMCVertTruthBranchName = "IT3VertexMCTruth";
+  std::string mTrackMCTruthBranchName = "ITSTrackMCTruth";
+  std::string mTrackMCVertTruthBranchName = "ITSVertexMCTruth";
 };
 
 /// create a processor spec

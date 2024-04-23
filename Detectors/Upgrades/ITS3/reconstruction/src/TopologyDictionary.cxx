@@ -133,9 +133,10 @@ TH1F* TopologyDictionary::getTopologyDistribution(const std::string_view hname) 
   return histo;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const itsmft::CompClusterExt& cl) const
+template <typename T>
+math_utils::Point3D<T> TopologyDictionary::getClusterCoordinates(const itsmft::CompClusterExt& cl) const
 {
-  math_utils::Point3D<float> locCl;
+  math_utils::Point3D<T> locCl;
   if (!its3::constants::detID::isDetITS3(cl.getSensorID())) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
     locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
@@ -152,7 +153,8 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const itsmf
   return locCl;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
+template <typename T>
+math_utils::Point3D<T> TopologyDictionary::getClusterCoordinates(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
 {
   auto refRow = cl.getRow();
   auto refCol = cl.getCol();
@@ -162,7 +164,7 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const itsmf
     refRow -= round(xCOG);
     refCol -= round(zCOG);
   }
-  math_utils::Point3D<float> locCl;
+  math_utils::Point3D<T> locCl;
   if (!its3::constants::detID::isDetITS3(cl.getSensorID())) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
@@ -189,5 +191,9 @@ TopologyDictionary* TopologyDictionary::loadFrom(const std::string& fname, const
   }
   return dict;
 }
+
+// Explicitly instaniate templates
+template math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates<float>(const itsmft::CompClusterExt& cl) const;
+template math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates<float>(const itsmft::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup);
 
 } // namespace o2::its3
