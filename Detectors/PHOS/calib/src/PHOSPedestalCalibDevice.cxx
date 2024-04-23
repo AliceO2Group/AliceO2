@@ -119,6 +119,7 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Pedestal", subSpec}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Pedestal", subSpec}, info);
+
     // Now same for DCS as vector
     std::vector<short> dcsPedestals(2 * (o2::phos::Mapping::NCHANNELS - 1792));
     // copy HG then LG pedestals
@@ -128,10 +129,18 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     for (short absId = 1793; absId <= o2::phos::Mapping::NCHANNELS; absId++) {
       dcsPedestals.emplace_back(mPedestals->getLGPedestal(absId));
     }
-    auto imageDCS = o2::ccdb::CcdbApi::createObjectImage(&dcsPedestals, &info);
+
+    auto flNameDCS = o2::ccdb::CcdbApi::generateFileName("PedestalsDCS");
+    std::map<std::string, std::string> mdDCS;
+    o2::ccdb::CcdbObjectInfo infoDCS("PHS/PedestalRun/Pedestals", "PedestalsDCS", flNameDCS, mdDCS, mRunStartTime, validityTime);
+    auto imageDCS = o2::ccdb::CcdbApi::createObjectImage(&dcsPedestals, &infoDCS);
+    // subspec 0 -> to normal CCDB
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_PedestalVec", subSpec}, *imageDCS.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_PedestalVec", subSpec}, infoDCS);
+    // subspec 1 -> to DCS CCDB
     header::DataHeader::SubSpecificationType subSpec1{(header::DataHeader::SubSpecificationType)1};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Pedestal", subSpec1}, *imageDCS.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Pedestal", subSpec1}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_PedestalVec", subSpec1}, *imageDCS.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_PedestalVec", subSpec1}, infoDCS);
   }
   // Anyway send change to QC
   LOG(info) << "[PHOSPedestalCalibDevice - run] Sending QC ";
@@ -220,6 +229,9 @@ o2::framework::DataProcessorSpec o2::phos::getPedestalCalibSpec(bool useCCDB, bo
   outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Pedestal"}, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Pedestal"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_PedestalVec"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_PedestalVec"}, o2::framework::Lifetime::Sporadic);
+
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",
                                           inputs,
                                           outputs,
