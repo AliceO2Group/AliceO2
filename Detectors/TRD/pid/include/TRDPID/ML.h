@@ -72,7 +72,11 @@ class ML : public PIDBase
                 },
                 (void*)3};                              ///< ONNX enviroment
   const OrtApi& mApi{Ort::GetApi()};                    ///< ONNX api
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
   std::unique_ptr<Ort::Experimental::Session> mSession; ///< ONNX session
+#else
+  std::unique_ptr<Ort::Session> mSession; ///< ONNX session
+#endif
   Ort::SessionOptions mSessionOptions;                  ///< ONNX session options
   Ort::AllocatorWithDefaultOptions mAllocator;
 
