@@ -159,6 +159,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
     }
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
+    std::string baseCommand = getenv("O2_GPU_RTC_OVERRIDE_CMD") ? std::string(getenv("O2_GPU_RTC_OVERRIDE_CMD")) : std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
@@ -181,7 +182,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
         throw std::runtime_error("Error writing file");
       }
       fclose(fp);
-      std::string command = std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
+      std::string command = baseCommand;
       command += " -c " + filename + "_" + std::to_string(i) + mRtcSrcExtension + " -o " + filename + "_" + std::to_string(i) + mRtcBinExtension;
       if (mProcessingSettings.debugLevel < 0) {
         command += " &> /dev/null";
