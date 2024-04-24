@@ -10,8 +10,8 @@
 // or submit itself to any jurisdiction.
 
 // O2 include
-#include "DataFormatsQualityControl/TimeRangeFlagCollection.h"
-#include "DataFormatsQualityControl/FlagReasonFactory.h"
+#include "DataFormatsQualityControl/QualityControlFlagCollection.h"
+#include "DataFormatsQualityControl/FlagTypeFactory.h"
 #include "Framework/Logger.h"
 
 #include <iostream>
@@ -25,56 +25,56 @@ namespace o2::quality_control
 constexpr const char* csvHeader = "start,end,flag_id,flag_name,flag_bad,comment,source";
 constexpr size_t csvColumns = 7;
 
-TimeRangeFlagCollection::TimeRangeFlagCollection(std::string name, std::string detector, RangeInterval validityRange,
-                                                 int runNumber, std::string periodName, std::string passName,
-                                                 std::string provenance)
+QualityControlFlagCollection::QualityControlFlagCollection(std::string name, std::string detector, RangeInterval validityRange,
+                                                           int runNumber, std::string periodName, std::string passName,
+                                                           std::string provenance)
   : mName(std::move(name)), mDetID(std::move(detector)), mValidityRange(validityRange), mRunNumber(runNumber), mPeriodName(std::move(periodName)), mPassName(passName), mProvenance(std::move(provenance))
 {
 }
 
-void TimeRangeFlagCollection::insert(TimeRangeFlag&& trf)
+void QualityControlFlagCollection::insert(QualityControlFlag&& trf)
 {
-  mTimeRangeFlags.insert(std::move(trf));
+  mQualityControlFlags.insert(std::move(trf));
 }
 
-void TimeRangeFlagCollection::insert(const TimeRangeFlag& trf)
+void QualityControlFlagCollection::insert(const QualityControlFlag& trf)
 {
-  mTimeRangeFlags.insert(trf);
+  mQualityControlFlags.insert(trf);
 }
 
-size_t TimeRangeFlagCollection::size() const
+size_t QualityControlFlagCollection::size() const
 {
-  return mTimeRangeFlags.size();
+  return mQualityControlFlags.size();
 }
 
-void TimeRangeFlagCollection::merge(TimeRangeFlagCollection& other)
+void QualityControlFlagCollection::merge(QualityControlFlagCollection& other)
 {
   if (mDetID != other.mDetID) {
-    // We assume that one TimeRangeFlagCollection should correspond to one detector at most.
+    // We assume that one QualityControlFlagCollection should correspond to one detector at most.
     // However, if this becomes annoying, we can reconsider it.
     throw std::runtime_error(
       "The detector ID of the target collection '" + mDetID + "' is different than the other '" + mDetID);
   }
-  mTimeRangeFlags.merge(other.mTimeRangeFlags);
+  mQualityControlFlags.merge(other.mQualityControlFlags);
 }
 
-void TimeRangeFlagCollection::merge(const TimeRangeFlagCollection& other)
+void QualityControlFlagCollection::merge(const QualityControlFlagCollection& other)
 {
-  TimeRangeFlagCollection otherCopy{other};
+  QualityControlFlagCollection otherCopy{other};
   merge(otherCopy);
 }
 
-TimeRangeFlagCollection::collection_t::const_iterator TimeRangeFlagCollection::begin() const
+QualityControlFlagCollection::collection_t::const_iterator QualityControlFlagCollection::begin() const
 {
-  return mTimeRangeFlags.begin();
+  return mQualityControlFlags.begin();
 }
 
-TimeRangeFlagCollection::collection_t::const_iterator TimeRangeFlagCollection::end() const
+QualityControlFlagCollection::collection_t::const_iterator QualityControlFlagCollection::end() const
 {
-  return mTimeRangeFlags.end();
+  return mQualityControlFlags.end();
 }
 
-void TimeRangeFlagCollection::streamTo(std::ostream& output) const
+void QualityControlFlagCollection::streamTo(std::ostream& output) const
 {
   auto escapeComma = [](const std::string& str) {
     return boost::algorithm::replace_all_copy(str, ",", "\\,");
@@ -88,7 +88,7 @@ void TimeRangeFlagCollection::streamTo(std::ostream& output) const
   }
 }
 
-void TimeRangeFlagCollection::streamFrom(std::istream& input)
+void QualityControlFlagCollection::streamFrom(std::istream& input)
 {
   std::string line;
   std::getline(input, line);
@@ -100,9 +100,9 @@ void TimeRangeFlagCollection::streamFrom(std::istream& input)
   while (std::getline(input, line)) {
     boost::tokenizer<boost::escaped_list_separator<char>> tok(line);
 
-    TimeRangeFlag::time_type start = 0;
-    TimeRangeFlag::time_type end = 0;
-    FlagReason flag = FlagReasonFactory::Invalid();
+    QualityControlFlag::time_type start = 0;
+    QualityControlFlag::time_type end = 0;
+    FlagType flag = FlagTypeFactory::Invalid();
     std::string comment;
     std::string source;
     auto it = tok.begin();
@@ -115,7 +115,7 @@ void TimeRangeFlagCollection::streamFrom(std::istream& input)
             LOG(error) << "Invalid line, empty start time of a flag, skipping...";
             valid = false;
           } else {
-            start = static_cast<TimeRangeFlag::time_type>(std::stoull(*it));
+            start = static_cast<QualityControlFlag::time_type>(std::stoull(*it));
           }
           break;
         }
@@ -124,7 +124,7 @@ void TimeRangeFlagCollection::streamFrom(std::istream& input)
             LOG(error) << "Invalid line, empty end time of a flag, skipping...";
             valid = false;
           } else {
-            end = static_cast<TimeRangeFlag::time_type>(std::stoull(*it));
+            end = static_cast<QualityControlFlag::time_type>(std::stoull(*it));
           }
           break;
         }
@@ -179,37 +179,37 @@ void TimeRangeFlagCollection::streamFrom(std::istream& input)
   }
 }
 
-std::ostream& operator<<(std::ostream& output, const TimeRangeFlagCollection& data)
+std::ostream& operator<<(std::ostream& output, const QualityControlFlagCollection& data)
 {
   data.streamTo(output);
   return output;
 }
 
-const std::string& TimeRangeFlagCollection::getName() const
+const std::string& QualityControlFlagCollection::getName() const
 {
   return mName;
 }
 
-const std::string& TimeRangeFlagCollection::getDetector() const
+const std::string& QualityControlFlagCollection::getDetector() const
 {
   return mDetID;
 }
 
-int TimeRangeFlagCollection::getRunNumber() const
+int QualityControlFlagCollection::getRunNumber() const
 {
   return mRunNumber;
 }
 
-const std::string& TimeRangeFlagCollection::getPeriodName() const
+const std::string& QualityControlFlagCollection::getPeriodName() const
 {
   return mPeriodName;
 }
 
-const std::string& TimeRangeFlagCollection::getPassName() const
+const std::string& QualityControlFlagCollection::getPassName() const
 {
   return mPassName;
 }
-const std::string& TimeRangeFlagCollection::getProvenance() const
+const std::string& QualityControlFlagCollection::getProvenance() const
 {
   return mProvenance;
 }

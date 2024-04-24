@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsQualityControl/FlagReasons.h"
-#include "DataFormatsQualityControl/FlagReasonFactory.h"
+#include "DataFormatsQualityControl/FlagType.h"
+#include "DataFormatsQualityControl/FlagTypeFactory.h"
 
 #include <iostream>
 #include <tuple>
@@ -18,29 +18,29 @@
 namespace o2::quality_control
 {
 
-FlagReason::FlagReason()
+FlagType::FlagType()
 {
-  *this = FlagReasonFactory::Invalid();
+  *this = FlagTypeFactory::Invalid();
 }
 
-std::ostream& operator<<(std::ostream& os, FlagReason const& my)
+std::ostream& operator<<(std::ostream& os, FlagType const& my)
 {
   os << "Flag Reason: id - " << my.mId << ", name - " << my.mName << ", bad - " << (my.mBad ? "true" : "false");
   return os;
 }
-bool FlagReason::operator==(const FlagReason& rhs) const
+bool FlagType::operator==(const FlagType& rhs) const
 {
   return std::tie(mId, mName, mBad) == std::tie(rhs.mId, rhs.mName, rhs.mBad);
 }
-bool FlagReason::operator!=(const FlagReason& rhs) const
+bool FlagType::operator!=(const FlagType& rhs) const
 {
   return std::tie(mId, mName, mBad) != std::tie(rhs.mId, rhs.mName, rhs.mBad);
 }
-bool FlagReason::operator<(const FlagReason& rhs) const
+bool FlagType::operator<(const FlagType& rhs) const
 {
   return std::tie(mId, mName, mBad) < std::tie(rhs.mId, rhs.mName, rhs.mBad);
 }
-bool FlagReason::operator>(const FlagReason& rhs) const
+bool FlagType::operator>(const FlagType& rhs) const
 {
   return std::tie(mId, mName, mBad) > std::tie(rhs.mId, rhs.mName, rhs.mBad);
 }
