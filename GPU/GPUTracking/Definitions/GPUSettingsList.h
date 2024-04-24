@@ -200,6 +200,7 @@ AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kern
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(runTest, int, 0, "", 0, "Do not run the actual benchmark, but just test RTC compilation (1 full test, 2 test only compilation)")
 AddOption(cacheMutex, bool, true, "", 0, "Use a file lock to serialize access to the cache folder")
+AddOption(ignoreCacheValid, bool, false, "", 0, "If set, allows to use RTC cached code files even if they are not valid for the current source code / parameters")
 AddHelp("help", 'h')
 EndConfig()
 

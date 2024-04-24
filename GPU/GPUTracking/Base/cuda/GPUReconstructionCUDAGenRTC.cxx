@@ -93,28 +93,28 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
         if (fread(sharead, 1, 20, fp) != 20) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (memcmp(sharead, shasource, 20)) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(sharead, shasource, 20)) {
           GPUInfo("Cache file content outdated (source)");
           break;
         }
         if (fread(sharead, 1, 20, fp) != 20) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (memcmp(sharead, shaparam, 20)) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(sharead, shaparam, 20)) {
           GPUInfo("Cache file content outdated (param)");
           break;
         }
         if (fread(sharead, 1, 20, fp) != 20) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (memcmp(sharead, shacmd, 20)) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(sharead, shacmd, 20)) {
           GPUInfo("Cache file content outdated (commandline)");
           break;
         }
         if (fread(sharead, 1, 20, fp) != 20) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (memcmp(sharead, shakernels, 20)) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(sharead, shakernels, 20)) {
           GPUInfo("Cache file content outdated (kernel definitions)");
           break;
         }
@@ -123,7 +123,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
         if (fread(&cachedSettings, sizeof(cachedSettings), 1, fp) != 1) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (memcmp(&cachedSettings, &mProcessingSettings.rtc, sizeof(cachedSettings))) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(&cachedSettings, &mProcessingSettings.rtc, sizeof(cachedSettings))) {
           GPUInfo("Cache file content outdated (rtc parameters)");
           break;
         }
