@@ -134,21 +134,21 @@ float Response::eLossRatio(float logbetagamma) const
   return eLossRatioParam[0] + eLossRatioParam[1] * logbetagamma + eLossRatioParam[2] * logbetagamma * logbetagamma + eLossRatioParam[3] * logbetagamma * logbetagamma * logbetagamma + eLossRatioParam[4] * logbetagamma * logbetagamma * logbetagamma * logbetagamma;
 }
 //_____________________________________________________________________
-float Response::angleEffect10(float angle) const
+float Response::angleEffect10(float elossratio) const
 {
   /// Angle effect in tracking chambers at theta =10 degres as a function of ElossRatio (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis) (in micrometers)
   /// copied from aliroot AliMUONv1.cxx
   float angleEffectParam[3] = {1.90691e+02, -6.62258e+01, 1.28247e+01};
-  return angleEffectParam[0] + angleEffectParam[1] * angle + angleEffectParam[2] * angle * angle;
+  return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * elossratio * elossratio;
 }
 //_____________________________________________________________________
-float Response::angleEffectNorma(float elossratio) const
+float Response::angleEffectNorma(float angle) const
 {
   /// Angle effect: Normalisation form theta=10 degres to theta between 0 and 10 (Khalil BOUDJEMLINE sep 2003 Ph.D Thesis)
   /// Angle with respect to the wires assuming that chambers are perpendicular to the z axis.
   /// copied from aliroot AliMUONv1.cxx
   float angleEffectParam[4] = {4.148, -6.809e-01, 5.151e-02, -1.490e-03};
-  return angleEffectParam[0] + angleEffectParam[1] * elossratio + angleEffectParam[2] * elossratio * elossratio + angleEffectParam[3] * elossratio * elossratio * elossratio;
+  return angleEffectParam[0] + angleEffectParam[1] * angle + angleEffectParam[2] * angle * angle + angleEffectParam[3] * angle * angle * angle;
 }
 //_____________________________________________________________________
 float Response::magAngleEffectNorma(float angle, float bfield) const
