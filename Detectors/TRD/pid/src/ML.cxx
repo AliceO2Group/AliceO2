@@ -115,7 +115,7 @@ float ML::process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& 
     Ort::MemoryInfo mem_info =
       Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
     auto inputTensor = Ort::Value::CreateTensor<float>(mem_info, input.data(), input.size(),
-						       {static_cast<int64_t>(input.size()) / mInputShapes[0][1], mInputShapes[0][1]});
+                                                       {static_cast<int64_t>(input.size()) / mInputShapes[0][1], mInputShapes[0][1]});
 #endif
     std::vector<Ort::Value> ortTensor;
     ortTensor.push_back(std::move(inputTensor));
