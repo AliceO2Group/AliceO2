@@ -101,8 +101,8 @@ struct GeneratorTask {
     }
 
     // report number of TFs injected for the rate limiter to work
-    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
     ++tfCounter;
+    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
     bool time_expired = false;
     if (ttl > 0) {
       timer.Stop();
