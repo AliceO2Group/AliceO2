@@ -61,8 +61,8 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
     mDigitizerTRU.setDebugStreaming(true);
   }
   // mDigitizer.init();
-  if (ctx.options().get<bool>("enable-dig-tru")) {
-    mRunDigitizerTRU = true;
+  if (ctx.options().get<bool>("disable-dig-tru")) {
+    mRunDigitizerTRU = false;
   }
 
   mFinished = false;
@@ -471,7 +471,8 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool require
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader, requireCTPInput)},
     Options{
-      {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
+      {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}, 
+      {"disable-dig-tru", VariantType::Bool, false, {"Disable TRU digitisation"}},
       {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };

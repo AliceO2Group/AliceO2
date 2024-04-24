@@ -94,7 +94,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
 
   DigitizerTRU mDigitizerTRU;             ///< Digitizer object TRU
   o2::emcal::SDigitizer mSumDigitizerTRU; ///< Summed digitizer TRU
-  bool mRunDigitizerTRU = false;          ///< Run Digitizer TRU?
+  bool mRunDigitizerTRU = true;          ///< Run Digitizer TRU?
 };
 
 /// \brief Create new digitizer spec
