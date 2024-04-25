@@ -11,6 +11,7 @@
 
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
 
+#include <algorithm>
 #include <string_view>
 
 // o2 includes
@@ -85,4 +86,52 @@ void CalibdEdxCorrection::dumpToTree(const char* outFileName) const
                << "\n";
     }
   }
+}
+
+const std::array<float, CalibdEdxCorrection::ParamSize> CalibdEdxCorrection::getMeanParams(ChargeType charge) const
+{
+  std::array<float, ParamSize> params{};
+
+  for (int index = 0; index < FitSize / 2; ++index) {
+    std::transform(params.begin(), params.end(), mParams[index + charge * FitSize / 2], params.begin(), std::plus<>());
+  }
+  std::for_each(params.begin(), params.end(), [](auto& val) { val /= (0.5f * FitSize); });
+  return params;
+}
+
+const std::array<float, CalibdEdxCorrection::ParamSize> CalibdEdxCorrection::getMeanParams(const GEMstack stack, ChargeType charge) const
+{
+  std::array<float, ParamSize> params{};
+
+  for (int index = 0; index < SECTORSPERSIDE * SIDES; ++index) {
+    std::transform(params.begin(), params.end(), getParams(StackID{index, stack}, charge), params.begin(), std::plus<>());
+  }
+  std::for_each(params.begin(), params.end(), [](auto& val) { val /= (SECTORSPERSIDE * SIDES); });
+  return params;
+}
+
+float CalibdEdxCorrection::getMeanParam(ChargeType charge, uint32_t param) const
+{
+  if (param >= ParamSize) {
+    return 0.f;
+  }
+  float mean{};
+  for (int index = 0; index < FitSize / 2; ++index) {
+    mean += mParams[index + charge * FitSize / 2][param];
+  }
+
+  return mean / (0.5f * FitSize);
+}
+
+float CalibdEdxCorrection::getMeanParam(const GEMstack stack, ChargeType charge, uint32_t param) const
+{
+  if (param >= ParamSize) {
+    return 0.f;
+  }
+  float mean{};
+  for (int index = 0; index < SECTORSPERSIDE * SIDES; ++index) {
+    mean += getParams(StackID{index, stack}, charge)[param];
+  }
+
+  return mean / (SECTORSPERSIDE * SIDES);
 }
