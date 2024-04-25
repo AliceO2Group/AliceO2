@@ -390,7 +390,13 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     o2::ctp::CTPInputDigit nextdigit;
     nextdigit.intRecord = std::get<0>(trg);
     nextdigit.detector = o2::detectors::DetID::EMC;
-    nextdigit.inputsMask = std::get<1>(trg);
+    // nextdigit.inputsMask = std::get<1>(trg);
+    for (size_t i = 0; i < nextdigit.inputsMask.size(); i++)
+    {
+      if(std::get<1>(trg)[i] != 0) {
+        nextdigit.inputsMask.set(i);
+      } 
+    }
     LOG(info) << "EMCAL TRU simulation: assigning = " << std::get<1>(trg)     << " to nextdigit for CTP";
     LOG(info) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP";
     triggerinputs.push_back(nextdigit);
