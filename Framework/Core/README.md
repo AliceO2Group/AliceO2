@@ -277,7 +277,7 @@ however, no API is provided to explicitly send it. All the created DataChunks ar
 
 When an error happens during processing of some data, the writer of the `process` function should simply throw an exception. By default the exception is caught by the `DataProcessingDevice` and a message is printed (if `std::exeception` derived `what()` method is used, otherwise a generic message is given). Users can provide themselves an error handler by specifying via the `onError` callback specified in `DataProcessorSpec`. This will allow in the future to reinject data into the flow in case of an error.
 
-When the exception is thrown inside processing function it's message and stack trace is printed. However, the application itself is not terminated. If the error encountered is so severe that current workflow cannot continue it is advisable to call `LOG(fatal)` with proper describing message, which makes the application shutdown with non zero error code.
+When the exception is thrown inside processing function its message and stack trace is printed. However, the application itself is not terminated. If the error encountered is so severe that current workflow cannot continue it is advisable to call `LOG(fatal)` with proper describing message, which makes the application shutdown with non zero error code.
 
 ### Services
 
