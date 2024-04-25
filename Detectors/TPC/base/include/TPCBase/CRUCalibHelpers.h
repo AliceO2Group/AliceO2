@@ -214,7 +214,7 @@ int fillCalPad(CalDet<float>& calPad, gsl::span<const char> data)
   membuf sbuf((char*)data.data(), data.size());
   std::istream in(&sbuf);
 
-  return fillCalPad(calPad, in);
+  return fillCalPad<SignificantBitsT>(calPad, in);
 }
 
 /// create cal pad object from HW value file
@@ -237,7 +237,7 @@ o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::str
     return calPad;
   }
 
-  fillCalPad(calPad, infile);
+  fillCalPad<SignificantBitsT>(calPad, infile);
 
   if (outputFile.size()) {
     TFile f(outputFile.data(), "recreate");
