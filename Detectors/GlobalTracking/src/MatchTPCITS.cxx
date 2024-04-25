@@ -588,7 +588,7 @@ bool MatchTPCITS::prepareTPCData()
     for (int i = nTPCOccBins; i--;) {
       float mlt = mTPCRefitter->getParam()->GetUnscaledMult(tb);
       sm += mlt;
-      mTBinClOcc.push_back(sm);
+      mTBinClOcc[i] = sm;
       if (ninteg++ > mNTPCOccBinLength) {
         sm -= mltPrev;
       }
@@ -1514,8 +1514,8 @@ void MatchTPCITS::fillCalibDebug(int ifit, int iTPC, const o2::dataformats::Trac
     }
     (*mDBGOut) << "refit"
                << "multTPC=" << mltTPC
-               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame]
-               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame]
+               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame].getNEntries()
+               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame].getNEntries()
                << "tf=" << mTFCount << "\n";
   }
 #endif
@@ -2836,9 +2836,9 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
   (*mDBGOut) << "match"
              << "rejFlag=" << rejFlag
-             << "multTPC=" << tb
-             << "multITSTr=" << mITSTrackROFRec[trackITS.roFrame]
-             << "multITSCl=" << mITSClusterROFRec[trackITS.roFrame]
+             << "multTPC=" << mltTPC
+             << "multITSTr=" << mITSTrackROFRec[trackITS.roFrame].getNEntries()
+             << "multITSCl=" << mITSClusterROFRec[trackITS.roFrame].getNEntries()
              << "\n";
 
   mTimer[SWDBG].Stop();
@@ -2871,9 +2871,9 @@ void MatchTPCITS::dumpWinnerMatches()
     int tb = mTPCTracksArray[tTPC.sourceID].getTime0() * mNTPCOccBinLengthInv;
     float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
     (*mDBGOut) << "matchWin"
-               << "multTPC=" << mTPCRefitter->getParam()->GetUnscaledMult(mTPCTracksArray[tTPC.sourceID].getTime0())
-               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame]
-               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame]
+               << "multTPC=" << mltTPC
+               << "multITSTr=" << mITSTrackROFRec[tITS.roFrame].getNEntries()
+               << "multITSCl=" << mITSClusterROFRec[tITS.roFrame].getNEntries()
                << "\n";
   }
   mTimer[SWDBG].Stop();
