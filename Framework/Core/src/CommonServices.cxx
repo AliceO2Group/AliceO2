@@ -131,6 +131,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       } },
     .exit = [](ServiceRegistryRef registry, void* service) {
                        auto* monitoring = reinterpret_cast<Monitoring*>(service);
+                       monitoring->flushBuffer();
                        delete monitoring; },
     .kind = ServiceKind::Serial};
 }
