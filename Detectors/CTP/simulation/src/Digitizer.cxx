@@ -165,7 +165,7 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
           // class identification can be handled like in the case of the other
           // classes as EMCAL trigger input is required
           classmask |= tcl.classMask;
-          LOG(info) << "SIMONE EMCAL WAS HERE IN CTPPPPPPPPPPPPPPPP";
+          LOG(info) << "SIMONE EMCAL WAS HERE IN CTPPPPPPPPPPPPPPPP, class mask = " << tcl.classMask;
         }
       }
     } else {
