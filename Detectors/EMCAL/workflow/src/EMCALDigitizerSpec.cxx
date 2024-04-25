@@ -318,6 +318,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     }
     // Trigger sim: Prepare CTP input digit
     acceptedTriggers.push_back(std::make_tuple(timesview[collID], trigger));
+    LOG(info) << "EMCAL TRU simulation: Sending trg = " << trigger << " to CTP";
 
     mDigitizer.setEventTime(timesview[collID], trigger.any());
 
@@ -390,6 +391,8 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     nextdigit.intRecord = std::get<0>(trg);
     nextdigit.detector = o2::detectors::DetID::EMC;
     nextdigit.inputsMask = std::get<1>(trg);
+    LOG(info) << "EMCAL TRU simulation: assigning = " << std::get<1>(trg)     << " to nextdigit for CTP";
+    LOG(info) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP";
     triggerinputs.push_back(nextdigit);
   }
   ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);
