@@ -253,7 +253,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
     add_W o2-tpc-calibrator-dedx "--min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000"
   fi
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
-    add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000 --store-RMS-CCDB true"
+    add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 200000 --store-RMS-CCDB true"
   fi
   # TOF
   if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then
