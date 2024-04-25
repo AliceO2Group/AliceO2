@@ -80,31 +80,38 @@ class IDCToVectorDevice : public o2::framework::Task
 
     auto pedestalFile = ic.options().get<std::string>("pedestal-url");
     if (pedestalFile.length()) {
-      if (pedestalFile.find("ccdb") != std::string::npos) {
-        if (pedestalFile.find("-default") != std::string::npos) {
-          pedestalFile = o2::base::NameConf::getCCDBServer();
+      auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+      long timeStamp = o2::ccdb::getCurrentTimestamp();
+      const auto tsPos = pedestalFile.find("@");
+      std::string pedestalURL = pedestalFile.substr(0, tsPos);
+      if (pedestalURL.find("ccdb") != std::string::npos) {
+        if (pedestalURL.find("-default") != std::string::npos) {
+          pedestalURL = o2::base::NameConf::getCCDBServer();
         }
-        LOGP(info, "Loading pedestals from ccdb: {}", pedestalFile);
-        auto& cdb = o2::ccdb::BasicCCDBManager::instance();
-        cdb.setURL(pedestalFile);
+        LOGP(info, "Loading pedestals from ccdb: {}", pedestalURL);
+        cdb.setURL(pedestalURL);
         if (cdb.isHostReachable()) {
-          auto pedestalNoise = cdb.get<std::unordered_map<std::string, CalPad>>("TPC/Calib/PedestalNoise");
+          if (tsPos != std::string::npos) {
+            timeStamp = std::stol(pedestalFile.substr(tsPos + 1));
+            LOGP(info, "Using custom time stamp {}", timeStamp);
+          }
+          auto pedestalNoise = cdb.getForTimeStamp<std::unordered_map<std::string, CalPad>>("TPC/Calib/PedestalNoise", timeStamp);
           try {
             if (!pedestalNoise) {
               throw std::runtime_error("Couldn't retrieve PedestaNoise map");
             }
             mPedestal = std::make_unique<CalPad>(pedestalNoise->at("Pedestals"));
           } catch (const std::exception& e) {
-            LOGP(fatal, "could not load pedestals from {} ({}), required for IDC processing", pedestalFile, e.what());
+            LOGP(fatal, "could not load pedestals from {} ({}), required for IDC processing", pedestalURL, e.what());
           }
         } else {
-          LOGP(fatal, "ccdb access to {} requested, but host is not reachable. Cannot load pedestals, required for IDC processing", pedestalFile);
+          LOGP(fatal, "ccdb access to {} requested, but host is not reachable. Cannot load pedestals, required for IDC processing", pedestalURL);
         }
       } else {
-        LOGP(info, "Loading pedestals from file: {}", pedestalFile);
-        auto calPads = utils::readCalPads(pedestalFile, "Pedestals");
+        LOGP(info, "Loading pedestals from file: {}", pedestalURL);
+        auto calPads = utils::readCalPads(pedestalURL, "Pedestals");
         if (calPads.size() != 1) {
-          LOGP(fatal, "Pedestal could not be loaded from file {}, required for IDC processing", pedestalFile);
+          LOGP(fatal, "Pedestal could not be loaded from file {}, required for IDC processing", pedestalURL);
         } else {
           mPedestal.reset(calPads[0]);
         }
