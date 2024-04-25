@@ -21,7 +21,6 @@
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
-#include <numeric>
 
 #include "Rtypes.h"
 
