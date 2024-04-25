@@ -402,6 +402,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     triggerinputs.push_back(nextdigit);
   }
   ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);
+  for (auto& trg : triggerinputs) {
+    LOG(info) << "EMCAL TRU simulation: reading  = " << trg.inputsMask << " as nextdigit for CTP";
+  }
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";
