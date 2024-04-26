@@ -68,7 +68,11 @@ void ML::init(o2::framework::ProcessingContext& pc)
   LOG(info) << "Set GraphOptimizationLevel to " << mParams.graphOptimizationLevel;
 
   // create actual session
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
   mSession = std::make_unique<Ort::Experimental::Session>(mEnv, reinterpret_cast<void*>(model_data.data()), model_data.size(), mSessionOptions);
+#else
+  mSession = std::make_unique<Ort::Session>(mEnv, reinterpret_cast<void*>(model_data.data()), model_data.size(), mSessionOptions);
+#endif
   LOG(info) << "ONNX runtime session created";
 
   // print name/shape of inputs
@@ -104,8 +108,15 @@ float ML::process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& 
   try {
     auto input = prepareModelInput(trk, inputTracks);
     // create memory mapping to vector above
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
     auto inputTensor = Ort::Experimental::Value::CreateTensor<float>(input.data(), input.size(),
                                                                      {static_cast<int64_t>(input.size()) / mInputShapes[0][1], mInputShapes[0][1]});
+#else
+    Ort::MemoryInfo mem_info =
+      Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+    auto inputTensor = Ort::Value::CreateTensor<float>(mem_info, input.data(), input.size(),
+                                                       {static_cast<int64_t>(input.size()) / mInputShapes[0][1], mInputShapes[0][1]});
+#endif
     std::vector<Ort::Value> ortTensor;
     ortTensor.push_back(std::move(inputTensor));
     auto outTensor = mSession->Run(mInputNames, ortTensor, mOutputNames);
