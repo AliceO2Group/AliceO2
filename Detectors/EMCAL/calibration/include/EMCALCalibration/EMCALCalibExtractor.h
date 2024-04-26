@@ -19,6 +19,7 @@
 #define EMCALCALIBEXTRACTOR_H_
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include "CCDB/BasicCCDBManager.h"
 #include "EMCALCalib/BadChannelMap.h"
@@ -465,7 +466,7 @@ class EMCALCalibExtractor
           if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
             mean = mMaxPedestalVal;
           }
-          pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+          pedestalData.addPedestalValue(iCell, std::round(mean), isLG, isLEDMON);
         }
       }
     }
@@ -488,7 +489,7 @@ class EMCALCalibExtractor
       if (!obj)
         continue;
       for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
-        short mean = static_cast<short>(obj->GetBinContent(iCell + 1));
+        short mean = static_cast<short>(std::round(obj->GetBinContent(iCell + 1)));
         short rms = static_cast<short>(obj->GetBinError(iCell + 1) / obj->GetBinEntries(iCell + 1));
         if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
           mean = mMaxPedestalVal;
