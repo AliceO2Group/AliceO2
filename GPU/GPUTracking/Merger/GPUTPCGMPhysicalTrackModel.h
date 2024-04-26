@@ -184,10 +184,10 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::Set(const GPUTPCGMTrackParam& GPUrestri
   if (mSinPhi < -GPUCA_MAX_SIN_PHI) {
     mSinPhi = -GPUCA_MAX_SIN_PHI;
   }
-  mCosPhi = sqrt((1.f - mSinPhi) * (1.f + mSinPhi));
+  mCosPhi = CAMath::Sqrt((1.f - mSinPhi) * (1.f + mSinPhi));
   mSecPhi = 1.f / mCosPhi;
   mDzDs = t.GetDzDs();
-  mDlDs = sqrt(1.f + mDzDs * mDzDs);
+  mDlDs = CAMath::Sqrt(1.f + mDzDs * mDzDs);
   mP = mPt * mDlDs;
 
   mPy = mPt * mSinPhi;
@@ -215,9 +215,9 @@ GPUdi() void GPUTPCGMPhysicalTrackModel::UpdateValues()
     px = copysign(1.e-4f, px);
   }
 
-  mPt = sqrt(px * px + mPy * mPy);
+  mPt = CAMath::Sqrt(px * px + mPy * mPy);
   float pti = 1.f / mPt;
-  mP = sqrt(px * px + mPy * mPy + mPz * mPz);
+  mP = CAMath::Sqrt(px * px + mPy * mPy + mPz * mPz);
   mSinPhi = mPy * pti;
   mCosPhi = px * pti;
   mSecPhi = mPt / px;

@@ -23,11 +23,6 @@ o2_target_root_dictionary(
           include/Mergers/CustomMergeableTObject.h
   LINKDEF include/Mergers/LinkDef.h)
 
-o2_add_executable(topology-example
-                  SOURCES src/mergersTopologyExample.cxx
-                  COMPONENT_NAME mergers
-                  PUBLIC_LINK_LIBRARIES O2::Mergers)
-
 o2_add_executable(benchmark-topology
                   SOURCES test/mergersBenchmarkTopology.cxx
                   COMPONENT_NAME mergers
@@ -83,7 +78,43 @@ o2_add_test(Algorithm
             LABELS utils)
 
 o2_add_test(ObjectStore
-  SOURCES test/test_ObjectStore.cxx
-  COMPONENT_NAME mergers
-  PUBLIC_LINK_LIBRARIES O2::Mergers
-  LABELS utils)
+            SOURCES test/test_ObjectStore.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyHistosIntegrating
+            SOURCES test/test_MergerTopologyHistosIntegrating.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyHistosFullHistory
+            SOURCES test/test_MergerTopologyHistosFullHistory.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyCustomIntegrating
+            SOURCES test/test_MergerTopologyCustomIntegrating.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyCustomFullHistory
+            SOURCES test/test_MergerTopologyCustomFullHistory.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyVectorIntegrating
+            SOURCES test/test_MergerTopologyVectorIntegrating.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)
+
+o2_add_test(TopologyVectorFullHistory
+            SOURCES test/test_MergerTopologyVectorFullHistory.cxx
+            COMPONENT_NAME mergers
+            PUBLIC_LINK_LIBRARIES O2::Mergers
+            LABELS utils)

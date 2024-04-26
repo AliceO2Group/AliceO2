@@ -12,8 +12,12 @@
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
 #include "Framework/ASoA.h"
+
 #include <cmath>
 #include <bitset>
+#include <numeric>
+#include <utility> // std::move
+
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -152,22 +156,32 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                              auto pt = 1.f / std::abs(signed1Pt);
                              return pt * tgl;
                            });
-
+DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-directions in GeV/c
+                           [](float signed1Pt, float snp, float alpha, float tgl) -> std::array<float, 3> {
+                             const auto pt = 1.f / std::abs(signed1Pt);
+                             // FIXME: GCC & clang should optimize to sincosf
+                             const float cs = cosf(alpha), sn = sinf(alpha);
+                             const auto r = std::sqrt((1.f - snp) * (1.f + snp));
+                             const auto px = pt * (r * cs - snp * sn);
+                             const auto py = pt * (snp * cs + r * sn);
+                             const auto pz = pt * tgl;
+                             return std::array<float, 3>{px, py, pz};
+                           });
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               ifnode(nabs(aod::track::signed1Pt) <= o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(o2::constants::math::PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Energy, energy, //! Track energy, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
-                             const auto p = 0.5f * (tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl))) * pt;
-                             return sqrt(p * p + mass * mass);
+                             const auto p = 0.5f * (std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl)) + 1.f / std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl))) * pt;
+                             return std::sqrt(p * p + mass * mass);
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(Rapidity, rapidity, //! Track rapidity, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
                              const auto pz = pt * tgl;
-                             const auto p = 0.5f * (tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(o2::constants::math::PIQuarter - 0.5f * atan(tgl))) * pt;
-                             const auto energy = sqrt(p * p + mass * mass);
-                             return 0.5f * log((energy + pz) / (energy - pz));
+                             const auto p = 0.5f * (std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl)) + 1.f / std::tan(o2::constants::math::PIQuarter - 0.5f * std::atan(tgl))) * pt;
+                             const auto energy = std::sqrt(p * p + mass * mass);
+                             return 0.5f * std::log((energy + pz) / (energy - pz));
                            });
 
 // TRACKPARCOV TABLE definition
@@ -284,6 +298,13 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of
                              }
                              return itsNclsInnerBarrel;
                            });
+DECLARE_SOA_DYNAMIC_COLUMN(ITSClsSizeInLayer, itsClsSizeInLayer, //! Size of the ITS cluster in a given layer
+                           [](uint32_t itsClusterSizes, int layer) -> uint8_t {
+                             if (layer >= 7) {
+                               return 0;
+                             }
+                             return (itsClusterSizes >> (layer * 4)) & 0xf;
+                           });
 
 } // namespace v001
 
@@ -359,6 +380,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::PVector<track::Signed1Pt, track::Snp, track::Alpha, track::Tgl>,
                        track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>,
@@ -378,6 +400,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::PVector<track::Signed1Pt, track::Snp, track::Alpha, track::Tgl>,
+                       track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>,
                        o2::soa::Marker<2>);
@@ -463,6 +487,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
+                                 track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
@@ -493,6 +518,32 @@ namespace aod
 {
 using FullTracks = soa::Join<Tracks, TracksExtra>;
 using FullTrack = FullTracks::iterator;
+
+namespace trackqa
+{
+// TRACKQA TABLE COLUMNS
+DECLARE_SOA_INDEX_COLUMN(Track, track);                              //! track to which this QA information belongs
+DECLARE_SOA_COLUMN(TPCTime0, tpcTime0, float);                       //! tpc only time0 (mTime0 in TPC track)
+DECLARE_SOA_COLUMN(TPCDCAR, tpcdcaR, int16_t);                       //! tpc only DCAr
+DECLARE_SOA_COLUMN(TPCDCAZ, tpcdcaZ, int16_t);                       //! tpc only DCAz
+DECLARE_SOA_COLUMN(TPCClusterByteMask, tpcClusterByteMask, uint8_t); //! tracklet bitmask - track defining 8 tracklets (152=8*19 rows) bit set if nCluster>thr (default 5)
+DECLARE_SOA_COLUMN(TPCdEdxMax0R, tpcdEdxMax0R, uint8_t);             //! TPC dEdxQMax -ROC0/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxMax1R, tpcdEdxMax1R, uint8_t);             //! TPC dEdxQMax -ROC1/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxMax2R, tpcdEdxMax2R, uint8_t);             //! TPC dEdxQMax -ROC2/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxMax3R, tpcdEdxMax3R, uint8_t);             //! TPC dEdxQMax -ROC3/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxTot0R, tpcdEdxTot0R, uint8_t);             //! TPC dEdxQtot -ROC0/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxTot1R, tpcdEdxTot1R, uint8_t);             //! TPC dEdxQtot -ROC1/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxTot2R, tpcdEdxTot2R, uint8_t);             //! TPC dEdxQtot -ROC2/dEdx
+DECLARE_SOA_COLUMN(TPCdEdxTot3R, tpcdEdxTot3R, uint8_t);             //! TPC dEdxQtot -ROC3/dEdx
+} // namespace trackqa
+
+DECLARE_SOA_TABLE(TracksQA, "AOD", "TRACKQA", //! trackQA information - sampled QA information currently for the TPC
+                  o2::soa::Index<>, trackqa::TrackId, trackqa::TPCTime0, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
+                  //                  o2::soa::Index<>, trackqa::TrackId, trackqa::TPCDCAR, trackqa::TPCDCAZ, trackqa::TPCClusterByteMask,
+                  trackqa::TPCdEdxMax0R, trackqa::TPCdEdxMax1R, trackqa::TPCdEdxMax2R, trackqa::TPCdEdxMax3R,
+                  trackqa::TPCdEdxTot0R, trackqa::TPCdEdxTot1R, trackqa::TPCdEdxTot2R, trackqa::TPCdEdxTot3R);
+
+using TrackQA = TracksQA::iterator;
 
 namespace fwdtrack
 {
@@ -743,6 +794,32 @@ DECLARE_SOA_TABLE(AmbiguousFwdTracks, "AOD", "AMBIGUOUSFWDTR", //! Table for Fwd
                   o2::soa::Index<>, ambiguous::FwdTrackId, ambiguous::BCIdSlice);
 
 using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
+
+// Forward Tracks Cluster information
+namespace fwdtrkcl
+{
+DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! Track index
+DECLARE_SOA_COLUMN(X, x, float);              //! Cluster x coordinate
+DECLARE_SOA_COLUMN(Y, y, float);              //! Cluster y coordinate
+DECLARE_SOA_COLUMN(Z, z, float);              //! Cluster z coordinate
+DECLARE_SOA_COLUMN(ClInfo, clInfo, uint16_t); //! Encoded detection element of cluster and cluster type along x and y
+DECLARE_SOA_DYNAMIC_COLUMN(DEId, deId, [](uint16_t info) -> uint16_t { return (info & 0x7FF); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsGoodX, isGoodX, [](uint16_t info) -> bool { return ((info & 0x800) >> 11); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsGoodY, isGoodY, [](uint16_t info) -> bool { return ((info & 0x1000) >> 12); });
+} // namespace fwdtrkcl
+
+DECLARE_SOA_TABLE(FwdTrkCls, "AOD", "FWDTRKCL", //! Forward Track Cluster information
+                  o2::soa::Index<>,
+                  fwdtrkcl::FwdTrackId,
+                  fwdtrkcl::X,
+                  fwdtrkcl::Y,
+                  fwdtrkcl::Z,
+                  fwdtrkcl::ClInfo,
+                  fwdtrkcl::DEId<fwdtrkcl::ClInfo>,
+                  fwdtrkcl::IsGoodX<fwdtrkcl::ClInfo>,
+                  fwdtrkcl::IsGoodY<fwdtrkcl::ClInfo>);
+
+using FwdTrkCl = FwdTrkCls::iterator;
 
 // HMPID information
 namespace hmpid
@@ -1203,15 +1280,42 @@ DECLARE_SOA_COLUMN(TimeA, timeA, float);                        //! Average A-si
 DECLARE_SOA_COLUMN(TimeC, timeC, float);                        //! Average C-side time
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);          //!
 DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                          //! Z position calculated from timeA and timeC in cm
-                           [](float t0A, float t0C) -> float {
-                             return o2::constants::physics::LightSpeedCm2NS * (t0C - t0A) / 2;
+                           [](float timeA, float timeC) -> float {
+                             return o2::constants::physics::LightSpeedCm2NS * (timeC - timeA) / 2;
                            });
+DECLARE_SOA_DYNAMIC_COLUMN(CollTime, collTime, //! Collision time, one need also check validation (code below) for timeA and timeC
+                           [](float timeA, float timeC) -> float {
+                             return (timeA + timeC) / 2;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeA, isValidTimeA, //! Checks if time from A side was calculated, and if is not dummy
+                           [](float timeA) -> bool {
+                             return timeA < 30.f; // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(IsValidTimeC, isValidTimeC, //! Checks if time from C side was calculated
+                           [](float timeC) -> bool {
+                             return timeC < 30.f; // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(IsValidTime, isValidTime, //! Checks if times from A and C side were calculated simultaneously
+                           [](float timeA, float timeC) -> bool {
+                             return (timeA < 30.f) && (timeC < 30.f); // Due to HW limitations time can be only within range (-25,25) ns, dummy time is around 32 ns
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(SumAmpA, sumAmpA, //! Calculates sum of positive amplitudes from side A
+                           [](gsl::span<const float> vecAmpA) -> float {
+                             return std::accumulate(vecAmpA.begin(), vecAmpA.end(), 0.f, [](auto&& sum, auto&& curr) { return sum + (curr > 0 ? curr : 0); });
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(SumAmpC, sumAmpC, //! Calculates sum of positive amplitudes from side C
+                           [](gsl::span<const float> vecAmpC) -> float {
+                             return std::accumulate(vecAmpC.begin(), vecAmpC.end(), 0.f, [](auto&& sum, auto&& curr) { return sum + (curr > 0 ? curr : 0); });
+                           });
+
 } // namespace ft0
 
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", //!
                   o2::soa::Index<>, ft0::BCId,
                   ft0::AmplitudeA, ft0::ChannelA, ft0::AmplitudeC, ft0::ChannelC, ft0::TimeA, ft0::TimeC,
-                  ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>);
+                  ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>, ft0::CollTime<ft0::TimeA, ft0::TimeC>,
+                  ft0::IsValidTimeA<ft0::TimeA>, ft0::IsValidTimeC<ft0::TimeC>, ft0::IsValidTime<ft0::TimeA, ft0::TimeC>,
+                  ft0::SumAmpA<ft0::AmplitudeA>, ft0::SumAmpC<ft0::AmplitudeC>);
 using FT0 = FT0s::iterator;
 
 namespace fdd
@@ -1249,6 +1353,15 @@ namespace v0
 DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //! Positive track
 DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Negative track
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
+DECLARE_SOA_COLUMN(V0Type, v0Type, uint8_t);                            //! custom bitmap for various selections (see below)
+
+DECLARE_SOA_DYNAMIC_COLUMN(IsStandardV0, isStandardV0, //! is standard V0
+                           [](uint8_t V0Type) -> bool { return V0Type & (1 << 0); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsPhotonV0, isPhotonV0, //! is TPC-only V0 for which the photon-mass-hypothesis was good
+                           [](uint8_t V0Type) -> bool { return V0Type & (1 << 1); });
+DECLARE_SOA_DYNAMIC_COLUMN(IsCollinearV0, isCollinearV0, //! is V0 for which the photon-mass-hypothesis was good and was fitted collinearly
+                           [](uint8_t V0Type) -> bool { return V0Type & (1 << 2); });
+
 } // namespace v0
 
 DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
@@ -1257,8 +1370,15 @@ DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
 DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version 001)
                             o2::soa::Index<>, v0::CollisionId,
                             v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE_VERSIONED(V0s_002, "AOD", "V0", 2, //! Run 3 V0 table (version 002)
+                            o2::soa::Index<>, v0::CollisionId,
+                            v0::PosTrackId, v0::NegTrackId,
+                            v0::V0Type,
+                            v0::IsStandardV0<v0::V0Type>,
+                            v0::IsPhotonV0<v0::V0Type>,
+                            v0::IsCollinearV0<v0::V0Type>);
 
-using V0s = V0s_001; //! this defines the current default version
+using V0s = V0s_002; //! this defines the current default version
 using V0 = V0s::iterator;
 
 namespace cascade
@@ -1460,6 +1580,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(GetHepMCStatusCode, getHepMCStatusCode, //! The HepMC
                            [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return o2::mcgenstatus::getHepMCStatusCode(statusCode); } else { return -1; } });
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
+DECLARE_SOA_DYNAMIC_COLUMN(PVector, pVector, //! Momentum vector in x,y,z-directions in GeV/c
+                           [](float px, float py, float pz) -> std::array<float, 3> { return std::array<float, 3>{px, py, pz}; });
 
 DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, //! Phi in the range [0, 2pi)
                               o2::constants::math::PI + natan2(-1.0f * aod::mcparticle::py, -1.0f * aod::mcparticle::px));
@@ -1498,6 +1620,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::Daughter0Id, mcparticle::Daughter1Id, mcparticle::Weight,
                        mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                        mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                       mcparticle::PVector<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
                        mcparticle::ProducedByGenerator<mcparticle::Flags>,
                        mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                        mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
@@ -1511,6 +1634,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "M
                                  mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
                                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                                 mcparticle::PVector<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
                                  mcparticle::ProducedByGenerator<mcparticle::Flags>,
                                  mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                                  mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,

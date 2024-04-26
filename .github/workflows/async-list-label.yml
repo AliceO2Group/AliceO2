@@ -1,0 +1,19 @@
+---
+name: Collect and print async labels
+
+'on':
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+    branches:
+      - dev
+
+permissions: {}
+
+jobs:
+  list_async_labels:
+    name: Collect and print async labels
+    uses: alisw/ali-bot/.github/workflows/async-list-label.yml@master
+    permissions:
+      pull-requests: write   # to update labels

@@ -80,6 +80,8 @@ class Tracking
   /// Initialize the input arrays
   void setInput(const o2::globaltracking::RecoContainer& input);
 
+  void setApplyShift(bool f) { mApplyShift = f; }
+
   /// Main processing function
   void run();
 
@@ -107,6 +109,7 @@ class Tracking
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
   bool mPID{true};                                   ///< if TPC only tracks are not available we don't fill PID info
+  bool mApplyShift{true};
 
   // QA results
   std::vector<TrackQC> mTrackQC;

@@ -72,25 +72,24 @@ TH2* BadChannelMap::getHistogramRepresentation() const
             MAXCOLS = 96;
   auto hist = new TH2S("badchannelmap", "Bad Channel Map", MAXCOLS, -0.5, double(MAXCOLS) - 0.5, MAXROWS, -0.5, double(MAXROWS) - 0.5);
   hist->SetDirectory(nullptr);
-  auto geo = Geometry::GetInstance();
-  if (!geo) {
+  try {
+    auto geo = Geometry::GetInstance();
+    for (size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
+      int value(0);
+      if (mBadCells.test(cellID)) {
+        value = 1;
+      } else if (mDeadCells.test(cellID)) {
+        value = 2;
+      } else if (mWarmCells.test(cellID)) {
+        value = 3;
+      }
+      if (value) {
+        auto position = geo->GlobalRowColFromIndex(cellID);
+        hist->Fill(std::get<1>(position), std::get<0>(position), value);
+      }
+    }
+  } catch (o2::emcal::GeometryNotInitializedException& e) {
     LOG(error) << "Geometry needs to be initialized";
-    return hist;
-  }
-
-  for (size_t cellID = 0; cellID < mBadCells.size(); cellID++) {
-    int value(0);
-    if (mBadCells.test(cellID)) {
-      value = 1;
-    } else if (mDeadCells.test(cellID)) {
-      value = 2;
-    } else if (mWarmCells.test(cellID)) {
-      value = 3;
-    }
-    if (value) {
-      auto position = geo->GlobalRowColFromIndex(cellID);
-      hist->Fill(std::get<1>(position), std::get<0>(position), value);
-    }
   }
   return hist;
 }

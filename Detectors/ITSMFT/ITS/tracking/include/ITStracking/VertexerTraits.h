@@ -85,13 +85,13 @@ class VertexerTraits
                             TimeFrame*,
                             std::vector<o2::MCCompLabel>*);
 
-  VertexingParameters getVertexingParameters() const { return mVrtParams; }
   static const std::vector<std::pair<int, int>> selectClusters(const int* indexTable,
                                                                const std::array<int, 4>& selectedBinsRect,
                                                                const IndexTableUtils& utils);
 
   // utils
   VertexingParameters& getVertexingParameters() { return mVrtParams; }
+  VertexingParameters getVertexingParameters() const { return mVrtParams; }
   void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
   unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();

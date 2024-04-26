@@ -34,6 +34,10 @@ o2_add_executable(track-reader
                  COMPONENT_NAME trd
                  SOURCES src/trd-track-reader-workflow.cxx
                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflowIO)
+o2_add_executable(calib-reader-workflow
+                 COMPONENT_NAME trd
+                 SOURCES src/trd-calib-reader-workflow.cxx
+                 PUBLIC_LINK_LIBRARIES O2::TRDWorkflowIO)
 o2_add_executable(digittracklet-writer
                  COMPONENT_NAME trd
                  SOURCES src/trd-digittracklet-writer-workflow.cxx

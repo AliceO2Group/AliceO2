@@ -19,7 +19,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-
 using namespace o2::framework;
 
 struct FakeCluster {
@@ -58,7 +57,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       Outputs{
         {"TPC", "CLUSTERS_P", 0, Lifetime::Timeframe}},
       AlgorithmSpec{
-        //CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
+        // CLion says it ambiguous without (AlgorithmSpec::ProcessCallback), but cmake compiles fine anyway.
         (AlgorithmSpec::ProcessCallback)someProcessingStageAlgorithm}},
     parallelSize,
     [](DataProcessorSpec& spec, size_t index) {
@@ -96,7 +95,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     auto matcher = DataSpecUtils::asConcreteDataMatcher(*inputSpec);
     o2::header::DataDescription outputDescription = matcher.description;
 
-    //todo: better sampled data flagging
+    // todo: better sampled data flagging
     size_t len = strlen(outputDescription.str);
     if (len < outputDescription.size - 2) {
       outputDescription.str[len] = '_';
@@ -114,7 +113,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     const auto* inputHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
     auto& output = ctx.outputs().make<char>(description, inputHeader->size());
 
-    //todo: use some std function or adopt(), when it is available for POD data
+    // todo: use some std function or adopt(), when it is available for POD data
     const char* input_ptr = input.payload;
     for (char& it : output) {
       it = *input_ptr++;

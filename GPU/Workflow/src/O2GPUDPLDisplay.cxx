@@ -22,6 +22,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUO2InterfaceDisplay.h"
+#include "GPUO2InterfaceUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
@@ -62,16 +63,19 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 {
   GRPGeomHelper::instance().setRequest(mGGR);
   mConfig.reset(new GPUO2InterfaceConfiguration);
-  mConfig->configGRP.solenoidBz = 0;
+  mConfig->configGRP.solenoidBzNominalGPU = 0;
   mConfParam.reset(new GPUSettingsO2(mConfig->ReadConfigurableParam()));
 
   mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformRef = std::move(TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformMShape = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformHelper->setCorrMap(mFastTransform.get());
   mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
+  mFastTransformHelper->setCorrMapMShape(mFastTransformMShape.get());
   mConfig->configCalib.fastTransform = mFastTransformHelper->getCorrMap();
   mConfig->configCalib.fastTransformRef = mFastTransformHelper->getCorrMapRef();
+  mConfig->configCalib.fastTransformMShape = mFastTransformHelper->getCorrMapMShape();
   mConfig->configCalib.fastTransformHelper = mFastTransformHelper.get();
 
   mTrdGeo.reset(new o2::trd::GeometryFlat());
@@ -110,7 +114,7 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 
   if (mGRPGeomUpdated) {
     mGRPGeomUpdated = false;
-    mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+    mConfig->configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*grp);
     if (mAutoContinuousMaxTimeBin) {
       mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
     }

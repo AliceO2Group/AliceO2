@@ -43,9 +43,13 @@ class PHOSL1phaseCalibDevice
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
+  void sendCCDB(DataAllocator& outputs);
 
  private:
   unsigned long mRunStartTime = 0;                              /// start time of the run (ms)
+  int mPrevCalibration = -1;                                    /// calibration produced so far, -1: not yet
+  int mNprocessed = 0;                                          /// number of TFs processed so far
+  int minStatisticsForCalib = 100000;                           /// minimal statistics to try to calculate calibration
   std::unique_ptr<o2::phos::PHOSL1phaseCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };

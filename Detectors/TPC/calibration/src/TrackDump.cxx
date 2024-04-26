@@ -13,10 +13,7 @@
 #include <vector>
 #include <filesystem>
 #include <fmt/format.h>
-#include "GPUO2Interface.h"
-#include "GPUDefOpenCL12Templates.h"
-#include "GPUDefConstantsAndSettings.h"
-#include "SliceTracker/GPUTPCGeometry.h"
+#include "GPUTPCGeometry.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/ClusterNative.h"

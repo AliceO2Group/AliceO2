@@ -51,6 +51,10 @@ struct HBFUtilsInitializer {
   static constexpr char HBFConfOpt[] = "hbfutils-config";
   static constexpr char HBFTFInfoOpt[] = "tf-info-source";
   static constexpr char HBFUSrc[] = "hbfutils";
+  static constexpr char ReaderDriverDevice[] = "reader-driver";
+  static constexpr char UpstreamOpt[] = "upstream";
+
+  static int NTFs;
 
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
   static HBFOpt getOptType(const std::string& optString);

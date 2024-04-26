@@ -30,8 +30,8 @@ struct LtrCalibData {
   uint64_t firstTime{};                ///< first time stamp of processed TFs
   uint64_t lastTime{};                 ///< last time stamp of processed TFs
   long creationTime{};                 ///< time of creation
-  float dvCorrectionA{};               ///< drift velocity correction factor A-Side (inverse multiplicative)
-  float dvCorrectionC{};               ///< drift velocity correction factor C-Side (inverse multiplicative)
+  float dvCorrectionA{1.f};            ///< drift velocity correction factor A-Side (inverse multiplicative)
+  float dvCorrectionC{1.f};            ///< drift velocity correction factor C-Side (inverse multiplicative)
   float dvOffsetA{};                   ///< drift velocity trigger offset A-Side
   float dvOffsetC{};                   ///< drift velocity trigger offset C-Side
   float refVDrift{};                   ///< reference vdrift for which factor was extracted
@@ -42,6 +42,11 @@ struct LtrCalibData {
   std::vector<uint16_t> matchedLtrIDs; ///< matched laser track IDs
   std::vector<uint16_t> nTrackTF;      ///< number of laser tracks per TF
   std::vector<float> dEdx;             ///< dE/dx of each track
+
+  bool isValid() const
+  {
+    return (std::abs(dvCorrectionA - 1.f) < 0.2) || (std::abs(dvCorrectionC - 1.f) < 0.2);
+  }
 
   float getDriftVCorrection() const
   {
@@ -69,6 +74,8 @@ struct LtrCalibData {
 
     return correction / nCorr;
   }
+
+  float getVDrift() const { return refVDrift / getDriftVCorrection(); }
 
   float getTimeOffset() const { return refTimeOffset + timeOffsetCorr; }
 

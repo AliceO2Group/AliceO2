@@ -23,6 +23,7 @@
 #pragma link C++ class o2::emcal::TempCalibrationParams + ;
 #pragma link C++ class o2::emcal::TempCalibParamSM + ;
 #pragma link C++ class o2::emcal::GainCalibrationFactors + ;
+#pragma link C++ class o2::emcal::Pedestal + ;
 #pragma link C++ class o2::emcal::TriggerTRUDCS + ;
 #pragma link C++ class o2::emcal::TriggerSTUDCS + ;
 #pragma link C++ class o2::emcal::TriggerSTUErrorCounter + ;

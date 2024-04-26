@@ -23,14 +23,14 @@
 
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "fairlogger/Logger.h" // for LOG, LOG_IF
 
 // FairRoot includes
-#include "FairDetector.h"      // for FairDetector
-#include <fairlogger/Logger.h> // for LOG, LOG_IF
-#include "FairRootManager.h"   // for FairRootManager
-#include "FairRun.h"           // for FairRun
-#include "FairRuntimeDb.h"     // for FairRuntimeDb
-#include "FairVolume.h"        // for FairVolume
+#include "FairDetector.h"    // for FairDetector
+#include "FairRootManager.h" // for FairRootManager
+#include "FairRun.h"         // for FairRun
+#include "FairRuntimeDb.h"   // for FairRuntimeDb
+#include "FairVolume.h"      // for FairVolume
 #include "FairRootManager.h"
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
@@ -43,6 +43,7 @@
 #include "TFile.h"           // for TVirtualMCStack
 
 #include <cstdio> // for NULL, snprintf
+#include <cmath>
 
 class FairModule;
 
@@ -126,7 +127,7 @@ void Detector::configOuterBarrelITS(int nInnerBarrelLayers, int buildLevel)
   }
 }
 
-Detector::Detector(Bool_t active, TString name, TString its3Version)
+Detector::Detector(Bool_t active, TString name)
   : o2::base::DetImpl<Detector>(name, active),
     mTrackData(),
     /*
@@ -146,9 +147,6 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
   } else if (name == "IT3") {
 #ifdef ENABLE_UPGRADES
     mDescriptorIB.reset(new DescriptorInnerBarrelITS3());
-    if (its3Version != "") {
-      ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->setVersion(its3Version.Data());
-    }
 #endif
   } else {
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
@@ -159,14 +157,14 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
 
   TString detName = GetName();
   if (detName == "ITS") {
-    ((DescriptorInnerBarrelITS2*)mDescriptorIB.get())->configure(buildLevelITS);
+    dynamic_cast<DescriptorInnerBarrelITS2*>(mDescriptorIB.get())->configure(buildLevelITS);
   } else if (detName == "IT3") {
 #ifdef ENABLE_UPGRADES
-    ((DescriptorInnerBarrelITS3*)mDescriptorIB.get())->configure();
+    dynamic_cast<DescriptorInnerBarrelITS3*>(mDescriptorIB.get())->configure();
 #endif
   }
 
-  mNumberInnerLayers = mDescriptorIB.get()->getNumberOfLayers();
+  mNumberInnerLayers = mDescriptorIB->getNumberOfLayers();
   mNumberLayers = mNumberInnerLayers + sNumberOuterLayers;
 
   mLayerName.resize(mNumberLayers);
@@ -186,10 +184,11 @@ Detector::Detector(Bool_t active, TString name, TString its3Version)
 
   for (int j{0}; j < mNumberLayers; j++) {
     if (detName == "IT3" && j < mNumberInnerLayers) {
-      mLayerName[j].Form("%s%d", GeometryTGeo::getITS3SensorPattern(), j); // See V3Layer
+      mLayerName[j].Form("%s%d", GeometryTGeo::getITS3SensorPattern(), j);
     } else {
       mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
     }
+    LOGP(info, "{}: mLayerName={}", j, mLayerName[j].Data());
   }
 
   if (mNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
@@ -387,7 +386,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
-    int halfbarrel(0), stave(0), halfstave(0), chipinmodule(0), module;
+    int halfbarrel(0), stave(0), halfstave(0), chipinmodule(0), module(0);
     fMC->CurrentVolOffID(1, chipinmodule);
     fMC->CurrentVolOffID(2, module);
     fMC->CurrentVolOffID(3, halfstave);
@@ -799,7 +798,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   switch (id) {
     case 0: // IB Layer 0,1,2: simple cylinder
     {
-      tube = (TGeoShape*)mDescriptorIB.get()->defineWrapperVolume();
+      tube = (TGeoShape*)mDescriptorIB->defineWrapperVolume();
     } break;
     case 1: // MB Layer 3,4: complex Pcon to avoid MFT overlaps
     {
@@ -1284,17 +1283,15 @@ void Detector::addAlignableVolumesChip(Int_t lr, Int_t hb, Int_t st, Int_t hst, 
 
   LOG(debug) << "Add " << sname << " <-> " << path;
 
-  if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID)) {
+  if (gGeoManager->SetAlignableEntry(sname, path.Data(), modUID) == nullptr) {
     LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
-
-  return;
 }
 
 void Detector::defineSensitiveVolumes()
 {
   TGeoManager* geoManager = gGeoManager;
-  TGeoVolume* v;
+  TGeoVolume* v = nullptr;
 
   TString volumeName;
 

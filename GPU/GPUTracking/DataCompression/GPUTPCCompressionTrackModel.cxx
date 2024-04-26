@@ -54,7 +54,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
 GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 {
   mTrk.ConstrainSinPhi();
-  int retVal = mProp.Update(y, z, iRow, *mParam, 0, 0, nullptr, false);
+  int retVal = mProp.Update(y, z, iRow, *mParam, 0, 0, nullptr, false, false, 0.f);
   // GPUInfo("Filtered with %f %f: y %f z %f qPt %f", y, z, mTrk.Y(), mTrk.Z(), mTrk.QPt());
   return retVal;
 }
@@ -91,7 +91,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
   if (alpha != mAlpha && !mTrk.Rotate(alpha, t0, GPUCA_MAX_SIN_PHI)) {
     return 2;
   }
-  int retVal = !mTrk.TransportToX(x, t0, mParam->constBz, GPUCA_MAX_SIN_PHI);
+  int retVal = !mTrk.TransportToX(x, t0, mParam->bzCLight, GPUCA_MAX_SIN_PHI);
   // GPUInfo("Propagated to: x %f y %f z %f alpha %f qPt %f", x, mTrk.Y(), mTrk.Z(), alpha, mTrk.QPt());
   return retVal;
 }
@@ -100,7 +100,7 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 {
   mTrk.ConstrainSinPhi();
   float err2Y, err2Z;
-  GPUTPCTracker::GetErrors2Seeding(*mParam, iRow, mTrk, err2Y, err2Z);
+  GPUTPCTracker::GetErrors2Seeding(*mParam, iRow, mTrk, -1.f, err2Y, err2Z);
   int retVal = !mTrk.Filter(y, z, err2Y, err2Z, GPUCA_MAX_SIN_PHI, false);
   // GPUInfo("Filtered with %f %f: y %f z %f qPt %f", y, z, mTrk.Y(), mTrk.Z(), mTrk.QPt());
   return retVal;
@@ -118,8 +118,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
   // initialize track model
   mX = x;
   mAlpha = alpha;
-  mCosAlpha = CAMath::Cos(alpha);
-  mSinAlpha = CAMath::Sin(alpha);
+  CAMath::SinCos(alpha, mSinAlpha, mCosAlpha);
   mP[0] = y;
   mP[1] = z;
   mP[2] = 0.f;
@@ -127,7 +126,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
   mP[4] = (qPt - 127.f) * (20.f / 127.f);
   resetCovariance();
   mNDF = -5;
-  mBz = param.constBz;
+  mBz = param.bzCLight;
   float pti = CAMath::Abs(mP[4]);
   if (pti < 1.e-4f) {
     pti = 1.e-4f; // set 10.000 GeV momentum for straight track
@@ -154,7 +153,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
     mP[2] = -MaxSinPhi;
   }
   // propagate track parameters to specified x
-  if (CAMath::Abs(alpha - mAlpha) > 1.e-4) {
+  if (CAMath::Abs(alpha - mAlpha) > 1.e-4f) {
     if (rotateToAlpha(alpha) != 0) {
       return -2;
     }
@@ -308,7 +307,7 @@ GPUd() int GPUTPCCompressionTrackModel::Mirror()
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrtf(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = CAMath(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   if (mTrk.sinphi < 0.f) {
@@ -363,9 +362,9 @@ GPUd() void GPUTPCCompressionTrackModel::updatePhysicalTrackValues(PhysicalTrack
     px = CAMath::Copysign(1.e-4f, px);
   }
 
-  trk.pt = sqrt(px * px + trk.py * trk.py);
+  trk.pt = CAMath::Sqrt(px * px + trk.py * trk.py);
   float pti = 1.f / trk.pt;
-  trk.p = sqrt(px * px + trk.py * trk.py + trk.pz * trk.pz);
+  trk.p = CAMath::Sqrt(px * px + trk.py * trk.py + trk.pz * trk.pz);
   trk.sinphi = trk.py * pti;
   trk.cosphi = px * pti;
   trk.secphi = trk.pt / px;
@@ -399,11 +398,11 @@ GPUd() int GPUTPCCompressionTrackModel::rotateToAlpha(float newAlpha)
   // return value is error code (0==no error)
   //
 
-  float newCosAlpha = CAMath::Cos(newAlpha);
-  float newSinAlpha = CAMath::Sin(newAlpha);
+  float newCosAlpha = 0, newSinAlpha = 0;
+  CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
-  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
-  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // sin(newAlpha - mAlpha);
+  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // CAMath::Cos(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // CAMath::Sin(newAlpha - mAlpha);
 
   PhysicalTrackModel t0 = mTrk;
 
@@ -578,7 +577,7 @@ GPUd() int GPUTPCCompressionTrackModel::propagateToXBzLightNoUpdate(PhysicalTrac
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrt(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = CAMath::Sqrt(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   dLp = pti * dS; // path in XYZ / p == path in XY / pt
@@ -864,8 +863,8 @@ GPUd() float GPUTPCCompressionTrackModel::approximateBetheBloch(float beta2)
   // (the approximation is reasonable only for solid materials)
   //------------------------------------------------------------------
 
-  const float log0 = log(5940.f);
-  const float log1 = log(3.5f * 5940.f);
+  const float log0 = CAMath::Log(5940.f);
+  const float log1 = CAMath::Log(3.5f * 5940.f);
 
   bool bad = (beta2 >= .999f) || (beta2 < 1.e-8f);
 
@@ -874,7 +873,7 @@ GPUd() float GPUTPCCompressionTrackModel::approximateBetheBloch(float beta2)
   }
 
   float a = beta2 / (1.f - beta2);
-  float b = 0.5f * log(a);
+  float b = 0.5f * CAMath::Log(a);
   float d = 0.153e-3f / beta2;
   float c = b - beta2;
 

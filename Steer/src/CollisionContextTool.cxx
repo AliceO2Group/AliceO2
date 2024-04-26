@@ -45,7 +45,7 @@ struct Options {
   bool printContext = false;
   std::string bcpatternfile;
   int tfid = 0;          // tfid -> used to calculate start orbit for collisions
-  int firstOrbit = 0;    // first orbit in run (orbit offset)
+  uint32_t firstOrbit = 0; // first orbit in run (orbit offset)
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
   bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
@@ -196,7 +196,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     "orbitsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(256), "Orbits per timeframes")(
     "use-existing-kine", "Read existing kinematics to adjust event counts")(
     "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
-    "first-orbit", bpo::value<int>(&optvalues.firstOrbit)->default_value(0), "First orbit in the run (HBFUtils.firstOrbit)")(
+    "first-orbit", bpo::value<uint32_t>(&optvalues.firstOrbit)->default_value(0), "First orbit in the run (HBFUtils.firstOrbit)")(
     "maxCollsPerTF", bpo::value<int>(&optvalues.maxCollsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe. By default no constraint.")(
     "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision")("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')")("with-vertices", "Assign vertices to collisions.")("timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring");
 

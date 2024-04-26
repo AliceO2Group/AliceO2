@@ -138,20 +138,16 @@ class Tracklet64
   GPUd() float getPadWidth() const { return 0.635f + 0.03f * (getDetector() % constants::NLAYER); }
 
   // pad column number inside pad row as float
-  GPUd() float getPadColFloat() const { return getPositionFloat() + getMCMCol() * constants::NCOLMCM + constants::NADCMCM / 2.f; }
+  // FIXME: understand why the offset seems to be 8 pads and not nChannels / 2 = 10.5
+  // Due to wrong pad shift included in alignment we need to optionally shift the tracklets by one pad
+  // in case we are not using the ideal alignment
+  GPUd() float getPadColFloat(bool applyShift) const { return getPositionFloat() + getMCMCol() * constants::NCOLMCM + 8.f + (applyShift ? 1.f : 0.f); }
 
   // pad column number inside pad row as int can be off by +-1 pad (same function name as for TRD digit)
-  // FIXME: understand why the offset seems to be 8 pads and not nChannels / 2 = 10.5
-  GPUd() int getPadCol() const { return GPUCA_NAMESPACE::gpu::CAMath::Nint(getPadColFloat() - 2); }
+  GPUd() int getPadCol(bool applyShift = false) const { return GPUCA_NAMESPACE::gpu::CAMath::Float2IntRn(getPadColFloat(applyShift)); }
 
   // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
-  GPUd() float getUncalibratedY() const
-  {
-    // one pad column has 144 pads, the offset of -63 is the center of the first MCM in that column
-    // which is connected to the pads -63 - 9 = -72 to -63 + 9 = -54
-    int offsetInNumberOfPads = -63 + constants::NCOLMCM * getMCMCol();
-    return (offsetInNumberOfPads + getPositionFloat()) * getPadWidth();
-  }
+  GPUd() float getUncalibratedY(bool applyShift = false) const { return (getPadColFloat(applyShift) - (constants::NCOLUMN / 2.f)) * getPadWidth(); }
 
   // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
   GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const { return getSlopeFloat() * getPadWidth() * nTbDrift; }

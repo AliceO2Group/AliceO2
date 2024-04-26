@@ -46,7 +46,7 @@ void PoissonSolver<DataT>::poissonSolver3D(DataContainer& matricesV, const DataC
   auto stop = timer::now();
   std::chrono::duration<float> time = stop - start;
   const float totalTime = time.count();
-  LOGP(info, "poissonSolver3D took {}s", totalTime);
+  LOGP(detail, "poissonSolver3D took {}s", totalTime);
 }
 
 template <typename DataT>
@@ -88,7 +88,7 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
 
   const int nLoop = std::max(nGridRow, nGridCol); // Calculate the number of nLoop for the binary expansion
 
-  LOGP(info, "{}", fmt::format("PoissonMultiGrid2D: nGridRow={}, nGridCol={}, nLoop={}, nMGCycle={}", nGridRow, nGridCol, nLoop, MGParameters::nMGCycle));
+  LOGP(detail, "{}", fmt::format("PoissonMultiGrid2D: nGridRow={}, nGridCol={}, nLoop={}, nMGCycle={}", nGridRow, nGridCol, nLoop, MGParameters::nMGCycle));
 
   unsigned int iOne = 1; // index
   unsigned int jOne = 1; // index
@@ -132,7 +132,7 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
   /// full multi grid
   if (MGParameters::cycleType == CycleType::FCycle) {
 
-    LOGP(info, "PoissonMultiGrid2D: Do full cycle");
+    LOGP(detail, "PoissonMultiGrid2D: Do full cycle");
     // FMG
     // 1) Relax on the coarsest grid
     iOne /= 2;
@@ -170,7 +170,7 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
     }
   } else if (MGParameters::cycleType == CycleType::VCycle) {
     // 2. VCycle
-    LOGP(info, "PoissonMultiGrid2D: Do V cycle");
+    LOGP(detail, "PoissonMultiGrid2D: Do V cycle");
 
     int gridFrom = 1;
     int gridTo = nLoop;
@@ -202,7 +202,7 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
 template <typename DataT>
 void PoissonSolver<DataT>::poissonMultiGrid3D2D(DataContainer& matricesV, const DataContainer& matricesCharge, const int symmetry)
 {
-  LOGP(info, "{}", fmt::format("PoissonMultiGrid3D2D: in Poisson Solver 3D multiGrid semi coarsening mParamGrid.NRVertices={}, cols={}, mParamGrid.NPhiVertices={}", mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices));
+  LOGP(detail, "{}", fmt::format("PoissonMultiGrid3D2D: in Poisson Solver 3D multiGrid semi coarsening mParamGrid.NRVertices={}, cols={}, mParamGrid.NPhiVertices={}", mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices));
 
   // Check that the number of mParamGrid.NRVertices and mParamGrid.NZVertices is suitable for a binary expansion
   if (!isPowerOfTwo((mParamGrid.NRVertices - 1))) {
@@ -352,7 +352,7 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
   const DataT gridSpacingZ = getSpacingZ();
   const DataT ratioZ = gridSpacingR * gridSpacingR / (gridSpacingZ * gridSpacingZ); // ratio_{Z} = gridSize_{r} / gridSize_{z}
 
-  LOGP(info, "{}", fmt::format("PoissonMultiGrid3D: in Poisson Solver 3D multi grid full coarsening  mParamGrid.NRVertices={}, cols={}, mParamGrid.NPhiVertices={}", mParamGrid.NRVertices, mParamGrid.NZVertices, mParamGrid.NPhiVertices));
+  LOGP(detail, "{}", fmt::format("PoissonMultiGrid3D: in Poisson Solver 3D multi grid full coarsening  mParamGrid.NRVertices={}, cols={}, mParamGrid.NPhiVertices={}", mParamGrid.NRVertices, mParamGrid.NZVertices, mParamGrid.NPhiVertices));
 
   // Check that the number of mParamGrid.NRVertices and mParamGrid.NZVertices is suitable for a binary expansion
   if (!isPowerOfTwo((mParamGrid.NRVertices - 1))) {
@@ -390,7 +390,7 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
     nnPhi /= 2;
   }
 
-  LOGP(info, "{}", fmt::format("PoissonMultiGrid3D: nGridRow={}, nGridCol={}, nGridPhi={}", nGridRow, nGridCol, nGridPhi));
+  LOGP(detail, "{}", fmt::format("PoissonMultiGrid3D: nGridRow={}, nGridCol={}, nGridPhi={}", nGridRow, nGridCol, nGridPhi));
   const int nLoop = std::max({nGridRow, nGridCol, nGridPhi}); // Calculate the number of nLoop for the binary expansion
 
   // Vector for storing multi grid array
@@ -462,7 +462,7 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
       tPhiSlice = kOne == 1 ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / kOne;
       tPhiSlice = tPhiSlice < nnPhi ? nnPhi : tPhiSlice;
 
-      LOGP(info, "{}", fmt::format("PoissonMultiGrid3D: Restrict3D, tnRRow={}, tnZColumn={}, newPhiSlice={}, oldPhiSlice={}", tnRRow, tnZColumn, tPhiSlice, otPhiSlice));
+      LOGP(detail, "{}", fmt::format("PoissonMultiGrid3D: Restrict3D, tnRRow={}, tnZColumn={}, newPhiSlice={}, oldPhiSlice={}", tnRRow, tnZColumn, tPhiSlice, otPhiSlice));
       restrict3D(tvChargeFMG[count - 1], tvChargeFMG[count - 2], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
       // copy boundary values of V
       restrictBoundary3D(tvArrayV[count - 1], tvArrayV[count - 2], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
@@ -535,7 +535,7 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
         const DataT convergenceError = getConvergenceError(tvArrayV[count], tvPrevArrayV[count]);
         // if already converge just break move to finer grid
         if (convergenceError <= sConvergenceError) {
-          LOGP(info, "Cycle converged. Continue to next cycle...");
+          LOGP(detail, "Cycle converged. Continue to next cycle...");
           break;
         }
         if (count <= 1 && !(mgCycle % 10)) {
@@ -544,7 +544,7 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
           const float totalTime = time.count();
           const float timePerCycle = totalTime / (mgCycle + 1);
           const float remaining = timePerCycle * (MGParameters::nMGCycle - mgCycle);
-          LOGP(info, "Cycle {} out of {} for current V cycle {}. Processed time {}s with {}s per cycle. Max remaining time for current cycle {}s. Convergence {} > {}", mgCycle, MGParameters::nMGCycle, count, time.count(), timePerCycle, remaining, convergenceError, sConvergenceError);
+          LOGP(detail, "Cycle {} out of {} for current V cycle {}. Processed time {}s with {}s per cycle. Max remaining time for current cycle {}s. Convergence {} > {}", mgCycle, MGParameters::nMGCycle, count, time.count(), timePerCycle, remaining, convergenceError, sConvergenceError);
         }
         if (mgCycle == (MGParameters::nMGCycle - 1)) {
           LOGP(warning, "Cycle {} did not convergence! Current convergence error is larger than expected convergence error: {} > {}", mgCycle, convergenceError, sConvergenceError);

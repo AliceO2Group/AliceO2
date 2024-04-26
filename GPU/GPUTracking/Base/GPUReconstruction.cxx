@@ -55,6 +55,8 @@
 #include "GPUO2InterfaceConfiguration.h"
 #endif
 
+#include "GPUReconstructionIncludesITS.h"
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -248,7 +250,25 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.debugLevel < 1) {
     mProcessingSettings.deviceTimers = false;
   }
-  if (mProcessingSettings.debugLevel >= 6 && mProcessingSettings.comparableDebutOutput) {
+  if (mProcessingSettings.deterministicGPUReconstruction == -1) {
+    mProcessingSettings.deterministicGPUReconstruction = mProcessingSettings.debugLevel >= 6;
+  }
+  if (mProcessingSettings.deterministicGPUReconstruction) {
+#ifndef GPUCA_NO_FAST_MATH
+    GPUError("Warning, deterministicGPUReconstruction needs GPUCA_NO_FAST_MATH, otherwise results will never be deterministic!");
+#endif
+#ifdef GPUCA_HAVE_O2HEADERS
+    mProcessingSettings.overrideClusterizerFragmentLen = TPC_MAX_FRAGMENT_LEN_GPU;
+    param().rec.tpc.nWaysOuter = true;
+    if (param().rec.tpc.looperInterpolationInExtraPass == -1) {
+      param().rec.tpc.looperInterpolationInExtraPass = 0;
+    }
+    if (mProcessingSettings.createO2Output > 1) {
+      mProcessingSettings.createO2Output = 1;
+    }
+#endif
+  }
+  if (mProcessingSettings.deterministicGPUReconstruction && mProcessingSettings.debugLevel >= 6) {
     mProcessingSettings.nTPCClustererLanes = 1;
     if (mProcessingSettings.trackletConstructorInPipeline < 0) {
       mProcessingSettings.trackletConstructorInPipeline = 1;
@@ -279,11 +299,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.tpc.mergerReadFromTrackerDirectly) {
     mProcessingSettings.fullMergerOnGPU = false;
   }
-  if (mProcessingSettings.debugLevel > 3 || !mProcessingSettings.fullMergerOnGPU) {
+  if (mProcessingSettings.debugLevel > 3 || !mProcessingSettings.fullMergerOnGPU || mProcessingSettings.deterministicGPUReconstruction) {
     mProcessingSettings.delayedOutput = false;
   }
-  if (!mProcessingSettings.fullMergerOnGPU && GetRecoStepsGPU() & RecoStep::TPCMerging) {
-    param().rec.tpc.loopInterpolationInExtraPass = 0;
+  if (!mProcessingSettings.fullMergerOnGPU && (GetRecoStepsGPU() & RecoStep::TPCMerging)) {
+    param().rec.tpc.looperInterpolationInExtraPass = 0;
     if (param().rec.tpc.retryRefit == 1) {
       param().rec.tpc.retryRefit = 2;
     }
@@ -332,6 +352,10 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
   if (mProcessingSettings.overrideClusterizerFragmentLen == -1) {
     mProcessingSettings.overrideClusterizerFragmentLen = ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) || (mProcessingSettings.ompThreads / mProcessingSettings.nTPCClustererLanes >= 3)) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
+  }
+  if (mProcessingSettings.nTPCClustererLanes > GPUCA_NSLICES) {
+    GPUError("Invalid value for nTPCClustererLanes: %d", mProcessingSettings.nTPCClustererLanes);
+    mProcessingSettings.nTPCClustererLanes = GPUCA_NSLICES;
   }
 #endif
 
@@ -676,7 +700,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
     if (pool > poolend) {
-      GPUError("Insufficient unmanaged memory: missing %lu", (size_t)((char*)pool - (char*)poolend));
+      GPUError("Insufficient unmanaged memory: missing %lu bytes", (size_t)((char*)pool - (char*)poolend));
       throw std::bad_alloc();
     }
     UpdateMaxMemoryUsed();
@@ -707,6 +731,15 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   }
 
   return retVal;
+}
+
+void* GPUReconstruction::AllocateVolatileMemory(size_t size, bool device)
+{
+  if (device) {
+    return AllocateVolatileDeviceMemory(size);
+  }
+  mVolatileChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
+  return GPUProcessor::alignPointer<GPUCA_BUFFER_ALIGNMENT>(mVolatileChunks.back().get());
 }
 
 void GPUReconstruction::ResetRegisteredMemoryPointers(GPUProcessor* proc)
@@ -776,6 +809,12 @@ void GPUReconstruction::ReturnVolatileDeviceMemory()
   }
 }
 
+void GPUReconstruction::ReturnVolatileMemory()
+{
+  ReturnVolatileDeviceMemory();
+  mVolatileChunks.clear();
+}
+
 void GPUReconstruction::PushNonPersistentMemory(unsigned long tag)
 {
   mNonPersistentMemoryStack.emplace_back(mHostMemoryPoolEnd, mDeviceMemoryPoolEnd, mNonPersistentIndividualAllocations.size(), tag);
@@ -790,7 +829,7 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, unsigned long tag)
     GPUFatal("Trying to pop memory state from empty stack");
   }
   if (tag != 0 && std::get<3>(mNonPersistentMemoryStack.back()) != tag) {
-    GPUFatal("Tag mismatch when poping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<3>(mNonPersistentMemoryStack.back())).c_str());
+    GPUFatal("Tag mismatch when popping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<3>(mNonPersistentMemoryStack.back())).c_str());
   }
   if ((mProcessingSettings.debugLevel >= 3 || mProcessingSettings.allocDebugLevel) && (IsGPU() || mProcessingSettings.forceHostMemoryPoolSize)) {
     if (IsGPU()) {
@@ -1010,7 +1049,11 @@ int GPUReconstruction::EnqueuePipeline(bool terminate)
   if (q->retVal) {
     return q->retVal;
   }
-  return mChains[0]->FinalizePipelinedProcessing();
+  if (terminate) {
+    return 0;
+  } else {
+    return mChains[0]->FinalizePipelinedProcessing();
+  }
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()
@@ -1093,16 +1136,16 @@ int GPUReconstruction::ReadSettings(const char* dir)
   return 0;
 }
 
-void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow)
+void GPUReconstruction::SetSettings(float solenoidBzNominalGPU, const GPURecoStepConfiguration* workflow)
 {
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam_internal();
-  config.configGRP.solenoidBz = solenoidBz;
+  config.ReadConfigurableParam(config);
+  config.configGRP.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
   GPUSettingsGRP grp;
-  grp.solenoidBz = solenoidBz;
+  grp.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&grp, nullptr, nullptr, workflow);
 #endif
 }

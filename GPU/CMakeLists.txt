@@ -21,8 +21,9 @@
 if(NOT DEFINED GPUCA_NO_FAST_MATH)
   set(GPUCA_NO_FAST_MATH 0)
 endif()
+set(GPUCA_CXX_NO_FAST_MATH_FLAGS "-fno-fast-math -ffp-contract=off")
 if(${GPUCA_NO_FAST_MATH})
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-fast-math -ffp-contract=off")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GPUCA_CXX_NO_FAST_MATH_FLAGS}")
 endif()
 
 add_subdirectory(Common)

@@ -48,7 +48,12 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC, bool withPID, PIDPolicy policy, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy) {}
+  TRDGlobalTracking(bool useMC, bool withPID, PIDPolicy policy, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts,
+                    o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mWithPID(withPID), mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict), mPolicy(policy)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+  }
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
@@ -94,7 +99,8 @@ class TRDGlobalTracking : public o2::framework::Task
   gsl::span<const int> mITSABTrackClusIdx;                            ///< input ITSAB track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;           ///< cluster patterns dictionary
-
+  std::array<float, 5> mCovDiagInner{};                               ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::array<float, 5> mCovDiagOuter{};                               ///< total cov.matrix extra diagonal error from TrackTuneParams
   // PID
   PIDPolicy mPolicy{PIDPolicy::DEFAULT}; ///< Model to load an evaluate
   std::unique_ptr<PIDBase> mBase;        ///< PID engine

@@ -40,7 +40,6 @@ class Projector;
 #include <variant>
 #include <string>
 #include <memory>
-#include <typeinfo>
 #include <set>
 namespace gandiva
 {
@@ -50,13 +49,20 @@ using FilterPtr = std::shared_ptr<gandiva::Filter>;
 
 using atype = arrow::Type;
 struct ExpressionInfo {
+  ExpressionInfo(int ai, size_t hash, std::set<uint32_t>&& hs, gandiva::SchemaPtr sc)
+    : argumentIndex(ai),
+      processHash(hash),
+      hashes(hs),
+      schema(sc)
+  {
+  }
   int argumentIndex;
   size_t processHash;
-  std::set<size_t> hashes;
+  std::set<uint32_t> hashes;
   gandiva::SchemaPtr schema;
-  gandiva::NodePtr tree;
-  gandiva::FilterPtr filter;
-  gandiva::Selection selection;
+  gandiva::NodePtr tree = nullptr;
+  gandiva::FilterPtr filter = nullptr;
+  gandiva::Selection selection = nullptr;
   bool resetSelection = false;
 };
 
@@ -122,9 +128,9 @@ struct LiteralNode {
 struct BindingNode {
   BindingNode(BindingNode const&) = default;
   BindingNode(BindingNode&&) = delete;
-  BindingNode(std::string const& name_, std::size_t hash_, atype::type type_) : name{name_}, hash{hash_}, type{type_} {}
-  std::string name;
-  std::size_t hash;
+  constexpr BindingNode(const char* name_, uint32_t hash_, atype::type type_) : name{name_}, hash{hash_}, type{type_} {}
+  const char* name;
+  uint32_t hash;
   atype::type type;
 };
 
@@ -445,7 +451,7 @@ using Operations = std::vector<ColumnOperationSpec>;
 Operations createOperations(Filter const& expression);
 
 /// Function to check compatibility of a given arrow schema with operation sequence
-bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs);
+bool isTableCompatible(std::set<uint32_t> const& hashes, Operations const& specs);
 /// Function to create gandiva expression tree from operation sequence
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       gandiva::SchemaPtr const& Schema);
@@ -489,6 +495,8 @@ std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, std:
 
   return createProjectorHelper(sizeof...(C), projectors.data(), schema, fields);
 }
+
+void updateFilterInfo(ExpressionInfo& info, std::shared_ptr<arrow::Table>& table);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

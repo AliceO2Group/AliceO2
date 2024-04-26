@@ -176,6 +176,56 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
 O2_DECLARE_DYNAMIC_LOG(driver);
+O2_DECLARE_DYNAMIC_LOG(gui);
+
+void doBoostException(boost::exception& e, const char*);
+void doDPLException(o2::framework::RuntimeErrorRef& ref, char const*);
+void doUnknownException(std::string const& s, char const*);
+
+char* getIdString(int argc, char** argv)
+{
+  for (int argi = 0; argi < argc; argi++) {
+    if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
+      return argv[argi + 1];
+    }
+  }
+  return nullptr;
+}
+
+int callMain(int argc, char** argv, int (*mainNoCatch)(int, char**))
+{
+  static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
+  int result = 1;
+  if (noCatch) {
+    try {
+      result = mainNoCatch(argc, argv);
+    } catch (o2::framework::RuntimeErrorRef& ref) {
+      doDPLException(ref, argv[0]);
+      throw;
+    }
+  } else {
+    try {
+      // The 0 here is an int, therefore having the template matching in the
+      // SFINAE expression above fit better the version which invokes user code over
+      // the default one.
+      // The default policy is a catch all pub/sub setup to be consistent with the past.
+      result = mainNoCatch(argc, argv);
+    } catch (boost::exception& e) {
+      doBoostException(e, argv[0]);
+      throw;
+    } catch (std::exception const& error) {
+      doUnknownException(error.what(), argv[0]);
+      throw;
+    } catch (o2::framework::RuntimeErrorRef& ref) {
+      doDPLException(ref, argv[0]);
+      throw;
+    } catch (...) {
+      doUnknownException("", argv[0]);
+      throw;
+    }
+  }
+  return result;
+}
 
 // Read from a given fd and print it.
 // return true if we can still read from it,
@@ -370,14 +420,14 @@ void spawnRemoteDevice(uv_loop_t* loop,
 struct DeviceLogContext {
   int fd;
   int index;
-  uv_loop_t* loop;
-  std::vector<DeviceInfo>* infos;
+  DriverServerContext* serverContext;
 };
 
 void log_callback(uv_poll_t* handle, int status, int events)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(sid, driver, handle->loop);
   auto* logContext = reinterpret_cast<DeviceLogContext*>(handle->data);
-  std::vector<DeviceInfo>* infos = logContext->infos;
+  std::vector<DeviceInfo>* infos = logContext->serverContext->infos;
   DeviceInfo& info = infos->at(logContext->index);
 
   if (status < 0) {
@@ -389,16 +439,26 @@ void log_callback(uv_poll_t* handle, int status, int events)
   if (events & UV_DISCONNECT) {
     info.active = false;
   }
+  O2_SIGNPOST_EVENT_EMIT(driver, sid, "loop", "log_callback invoked by poller for device %{xcode:pid}d which is %{public}s%{public}s",
+                         info.pid, info.active ? "active" : "inactive",
+                         info.active ? " and still has data to read." : ".");
+  if (info.active == false) {
+    uv_poll_stop(handle);
+  }
+  uv_async_send(logContext->serverContext->asyncLogProcessing);
 }
 
 void close_websocket(uv_handle_t* handle)
 {
-  LOG(debug) << "Handle is being closed";
+  O2_SIGNPOST_ID_FROM_POINTER(sid, driver, handle->loop);
+  O2_SIGNPOST_EVENT_EMIT(driver, sid, "mainloop", "close_websocket");
   delete (WSDPLHandler*)handle->data;
 }
 
 void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(sid, driver, stream->loop);
+  O2_SIGNPOST_EVENT_EMIT(driver, sid, "mainloop", "websocket_callback");
   auto* handler = (WSDPLHandler*)stream->data;
   if (nread == 0) {
     return;
@@ -442,6 +502,8 @@ static void my_alloc_cb(uv_handle_t*, size_t suggested_size, uv_buf_t* buf)
 /// A callback for the rest engine
 void ws_connect_callback(uv_stream_t* server, int status)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(sid, driver, server->loop);
+  O2_SIGNPOST_EVENT_EMIT(driver, sid, "mainloop", "websocket_callback");
   auto* serverContext = reinterpret_cast<DriverServerContext*>(server->data);
   if (status < 0) {
     LOGF(error, "New connection error %s\n", uv_strerror(status));
@@ -535,9 +597,8 @@ void handleSignals()
   }
 }
 
-void handleChildrenStdio(uv_loop_t* loop,
+void handleChildrenStdio(DriverServerContext* serverContext,
                          std::string const& forwardedStdin,
-                         std::vector<DeviceInfo>& deviceInfos,
                          std::vector<DeviceStdioContext>& childFds,
                          std::vector<uv_poll_t*>& handles)
 {
@@ -547,7 +608,7 @@ void handleChildrenStdio(uv_loop_t* loop,
 
     auto* req = (uv_work_t*)malloc(sizeof(uv_work_t));
     req->data = new StreamConfigContext{forwardedStdin, childstdin[1]};
-    uv_queue_work(loop, req, stream_config, nullptr);
+    uv_queue_work(serverContext->loop, req, stream_config, nullptr);
 
     // Setting them to non-blocking to avoid haing the driver hang when
     // reading from child.
@@ -557,16 +618,15 @@ void handleChildrenStdio(uv_loop_t* loop,
     }
 
     /// Add pollers for stdout and stderr
-    auto addPoller = [&handles, &deviceInfos, &loop](int index, int fd) {
+    auto addPoller = [&handles, &serverContext](int index, int fd) {
       auto* context = new DeviceLogContext{};
       context->index = index;
       context->fd = fd;
-      context->loop = loop;
-      context->infos = &deviceInfos;
+      context->serverContext = serverContext;
       handles.push_back((uv_poll_t*)malloc(sizeof(uv_poll_t)));
       auto handle = handles.back();
       handle->data = context;
-      uv_poll_init(loop, handle, fd);
+      uv_poll_init(serverContext->loop, handle, fd);
       uv_poll_start(handle, UV_READABLE, log_callback);
     };
 
@@ -646,6 +706,12 @@ void spawnDevice(uv_loop_t* loop,
   if (id == 0) {
     // We allow being debugged and do not terminate on SIGTRAP
     signal(SIGTRAP, SIG_IGN);
+    // We immediately ignore SIGUSR1 and SIGUSR2 so that we do not
+    // get killed by the parent trying to force stepping children.
+    // We will re-enable them later on, when it is actually safe to
+    // do so.
+    signal(SIGUSR1, SIG_IGN);
+    signal(SIGUSR2, SIG_IGN);
 
     // This is the child.
     // For stdout / stderr, we close the read part of the pipe, the
@@ -765,7 +831,8 @@ void spawnDevice(uv_loop_t* loop,
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
 
-void processChildrenOutput(DriverInfo& driverInfo,
+void processChildrenOutput(uv_loop_t* loop,
+                           DriverInfo& driverInfo,
                            DeviceInfos& infos,
                            DeviceSpecs const& specs,
                            DeviceControls& controls)
@@ -781,8 +848,8 @@ void processChildrenOutput(DriverInfo& driverInfo,
   std::match_results<std::string_view::const_iterator> match;
   ParsedMetricMatch metricMatch;
   ParsedConfigMatch configMatch;
-  const std::string delimiter("\n");
 
+  int processed = 0;
   for (size_t di = 0, de = infos.size(); di < de; ++di) {
     DeviceInfo& info = infos[di];
     DeviceControl& control = controls[di];
@@ -792,16 +859,17 @@ void processChildrenOutput(DriverInfo& driverInfo,
     if (info.unprinted.empty()) {
       continue;
     }
+    processed++;
 
     O2_SIGNPOST_ID_FROM_POINTER(sid, driver, &info);
-    O2_SIGNPOST_START(driver, sid, "bytes_processed", "bytes processed by " O2_ENG_TYPE(pid, "d"), info.pid);
+    O2_SIGNPOST_START(driver, sid, "bytes_processed", "bytes processed by %{xcode:pid}d", info.pid);
 
     std::string_view s = info.unprinted;
     size_t pos = 0;
     info.history.resize(info.historySize);
     info.historyLevel.resize(info.historySize);
 
-    while ((pos = s.find(delimiter)) != std::string::npos) {
+    while ((pos = s.find("\n")) != std::string::npos) {
       std::string_view token{s.substr(0, pos)};
       auto logLevel = LogParsingHelpers::parseTokenLevel(token);
 
@@ -837,12 +905,17 @@ void processChildrenOutput(DriverInfo& driverInfo,
           info.firstSevereError = token;
         }
       }
-      s.remove_prefix(pos + delimiter.length());
+      // +1 is to skip the \n
+      s.remove_prefix(pos + 1);
     }
     size_t oldSize = info.unprinted.size();
     info.unprinted = std::string(s);
     int64_t bytesProcessed = oldSize - info.unprinted.size();
-    O2_SIGNPOST_END(driver, sid, "bytes_processed", "bytes processed by " O2_ENG_TYPE(network - size - in - bytes, PRIi64), bytesProcessed);
+    O2_SIGNPOST_END(driver, sid, "bytes_processed", "bytes processed by %{xcode:network-size-in-bytes}" PRIi64, bytesProcessed);
+  }
+  if (processed == 0) {
+    O2_SIGNPOST_ID_FROM_POINTER(lid, driver, loop);
+    O2_SIGNPOST_EVENT_EMIT(driver, lid, "mainloop", "processChildrenOutput invoked for nothing!");
   }
 }
 
@@ -971,10 +1044,12 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     }
     boost::program_options::options_description optsDesc;
     ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+    char const* defaultSignposts = getenv("DPL_SIGNPOSTS");
     optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
       ("dpl-tracing-flags", bpo::value<std::string>()->default_value(""), "pipe `|` separate list of events to be traced")                                                                 //
+      ("signposts", bpo::value<std::string>()->default_value(defaultSignposts ? defaultSignposts : ""), "comma separated list of signposts to enable")                                     //
       ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
       ("exit-transition-timeout", bpo::value<std::string>()->default_value(defaultExitTransitionTimeout), "how many second to wait before switching from RUN to READY")                    //
       ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
@@ -1059,14 +1134,29 @@ void gui_callback(uv_timer_s* ctx)
 {
   auto* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
   if (gui->plugin == nullptr) {
+    // The gui is not there. Why are we here?
+    O2_SIGNPOST_ID_FROM_POINTER(sid, driver, ctx->loop);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(driver, sid, "gui", "GUI timer callback invoked without a GUI plugin.");
+    uv_timer_stop(ctx);
     return;
   }
+  *gui->guiTimerExpired = true;
+  static int counter = 0;
+  if ((counter++ % 6000) == 0) {
+    O2_SIGNPOST_ID_FROM_POINTER(sid, driver, ctx->loop);
+    O2_SIGNPOST_EVENT_EMIT(driver, sid, "gui", "The GUI callback got called %d times.", counter);
+    *gui->guiTimerExpired = false;
+  }
+  // One interval per GUI invocation, using the loop as anchor.
+  O2_SIGNPOST_ID_FROM_POINTER(sid, gui, ctx->loop);
+  O2_SIGNPOST_START(gui, sid, "gui", "gui_callback");
 
   // New version which allows deferred closure of windows
   if (gui->plugin->supportsDeferredClose()) {
     // For now, there is nothing for which we want to defer the close
     // so if the flag is set, we simply exit
     if (*(gui->guiQuitRequested)) {
+      O2_SIGNPOST_END(gui, sid, "gui", "Quit requested by the GUI.");
       return;
     }
     void* draw_data = nullptr;
@@ -1076,6 +1166,7 @@ void gui_callback(uv_timer_s* ctx)
     // if less than 15ms have passed reuse old frame
     if (frameLatency / 1000000 <= 15) {
       draw_data = gui->lastFrame;
+      O2_SIGNPOST_END(gui, sid, "gui", "Reusing old frame.");
       return;
     }
     // The result of the pollGUIPreRender is used to determine if we
@@ -1101,6 +1192,7 @@ void gui_callback(uv_timer_s* ctx)
     if (frameLatency / 1000000 > 15) {
       if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency / 1000000000.0f)) {
         *(gui->guiQuitRequested) = true;
+        O2_SIGNPOST_END(gui, sid, "gui", "Reusing old frame.");
         return;
       }
       draw_data = gui->plugin->pollGUIRender(gui->callback);
@@ -1116,6 +1208,7 @@ void gui_callback(uv_timer_s* ctx)
       gui->frameLast = frameStart;
     }
   }
+  O2_SIGNPOST_END(gui, sid, "gui", "Gui redrawn.");
 }
 
 /// Force single stepping of the children
@@ -1382,12 +1475,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   ServiceRegistryRef ref{serviceRegistry};
   ref.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
+  bool guiTimerExpired = false;
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
   guiContext.guiQuitRequested = &guiQuitRequested;
+  guiContext.guiTimerExpired = &guiTimerExpired;
 
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
@@ -1420,6 +1515,16 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   metricDumpTimer.data = &serverContext;
   bool allChildrenGone = false;
   guiContext.allChildrenGone = &allChildrenGone;
+  O2_SIGNPOST_ID_FROM_POINTER(sid, driver, loop);
+  O2_SIGNPOST_START(driver, sid, "driver", "Starting driver loop");
+
+  // Async callback to process the output of the children, if needed.
+  serverContext.asyncLogProcessing = (uv_async_t*)malloc(sizeof(uv_async_t));
+  serverContext.asyncLogProcessing->data = &serverContext;
+  uv_async_init(loop, serverContext.asyncLogProcessing, [](uv_async_t* handle) {
+    auto* context = (DriverServerContext*)handle->data;
+    processChildrenOutput(context->loop, *context->driver, *context->infos, *context->specs, *context->controls);
+  });
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -1642,6 +1747,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.resourcePolicies,
                                                             driverInfo.callbacksPolicies,
                                                             driverInfo.sendingPolicies,
+                                                            driverInfo.forwardingPolicies,
                                                             runningWorkflow.devices,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
@@ -1998,7 +2104,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
         }
         handleSignals();
-        handleChildrenStdio(loop, forwardedStdin.str(), infos, childFds, pollHandles);
+        handleChildrenStdio(&serverContext, forwardedStdin.str(), childFds, pollHandles);
         for (auto& callback : postScheduleCallbacks) {
           callback(serviceRegistry, {varmap});
         }
@@ -2019,6 +2125,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // any, so that we do not consume CPU time when the driver is
         // idle.
         devicesManager->flush();
+        // We print the event loop for the gui only once every
+        // 6000 iterations (i.e. ~2 minutes). To avoid spamming, while still
+        // being able to see the event loop in case of a deadlock / systematic failure.
+        if (guiTimerExpired == false) {
+          O2_SIGNPOST_EVENT_EMIT(driver, sid, "mainloop", "Entering event loop with %{public}s", once ? "UV_RUN_ONCE" : "UV_RUN_NOWAIT");
+        }
         uv_run(loop, once ? UV_RUN_ONCE : UV_RUN_NOWAIT);
         once = true;
         // Calculate what we should do next and eventually
@@ -2050,9 +2162,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         } else {
           driverInfo.states.push_back(DriverState::RUNNING);
-        }
-        {
-          processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls);
         }
         break;
       case DriverState::QUIT_REQUESTED:
@@ -2087,7 +2196,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         sigchld_requested = false;
         driverInfo.sigchldRequested = false;
-        processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls);
+        processChildrenOutput(loop, driverInfo, infos, runningWorkflow.devices, controls);
         hasError = processSigChild(infos, runningWorkflow.devices);
         allChildrenGone = areAllChildrenGone(infos);
         bool canExit = checkIfCanExit(infos);
@@ -2165,6 +2274,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
     }
   }
+  O2_SIGNPOST_END(driver, sid, "driver", "End driver loop");
 }
 
 // Print help
@@ -2636,6 +2746,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 {
   std::vector<std::string> currentArgs;
   std::vector<PluginInfo> plugins;
+  std::vector<ForwardingPolicy> forwardingPolicies = ForwardingPolicy::createDefaultPolicies();
 
   for (int ai = 1; ai < argc; ++ai) {
     currentArgs.emplace_back(argv[ai]);
@@ -2943,6 +3054,39 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  static pid_t pid = getpid();
+  if (varmap.count("signposts")) {
+    auto signpostsToEnable = varmap["signposts"].as<std::string>();
+    auto matchingLogEnabler = [](char const* name, void* l, void* context) {
+      auto* log = (_o2_log_t*)l;
+      auto* selectedName = (char const*)context;
+      std::string prefix = "ch.cern.aliceo2.";
+      if (strcmp(name, (prefix + selectedName).data()) == 0) {
+        LOGP(info, "Enabling signposts for {}", *selectedName);
+        _o2_log_set_stacktrace(log, 1);
+        return false;
+      } else {
+        LOGP(info, "Signpost stream \"{}\" disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
+      }
+      return true;
+    };
+    // Split signpostsToEnable by comma using strtok_r
+    char* saveptr;
+    char* src = const_cast<char*>(signpostsToEnable.data());
+    auto* token = strtok_r(src, ",", &saveptr);
+    while (token) {
+      o2_walk_logs(matchingLogEnabler, token);
+      token = strtok_r(nullptr, ",", &saveptr);
+    }
+  } else {
+    auto printAllSignposts = [](char const* name, void* l, void* context) {
+      auto* log = (_o2_log_t*)l;
+      LOGP(detail, "Signpost stream {} disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
+      return true;
+    };
+    o2_walk_logs(printAllSignposts, nullptr);
+  }
+
   auto evaluateBatchOption = [&varmap]() -> bool {
     if (varmap.count("no-batch") > 0) {
       return false;
@@ -2960,6 +3104,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   };
   DriverInfo driverInfo{
     .sendingPolicies = sendingPolicies,
+    .forwardingPolicies = forwardingPolicies,
     .callbacksPolicies = callbacksPolicies};
   driverInfo.states.reserve(10);
   driverInfo.sigintRequested = false;

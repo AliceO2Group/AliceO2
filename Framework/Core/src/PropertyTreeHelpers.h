@@ -23,7 +23,7 @@ namespace o2::framework
 
 /// Helpers to manipulate property_trees.
 struct PropertyTreeHelpers {
-  /// For all the options specified in @a schama, this fills
+  /// For all the options specified in @a schema, this fills
   /// @a tree with the contents of @a vmap, which is populated via boost
   /// program options. Any key in the @a schema will be marked as
   /// "default" in the provenance ptree.

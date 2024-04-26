@@ -19,6 +19,7 @@
 #include "EMCALCalib/FeeDCS.h"
 #include "EMCALCalib/CalibDB.h"
 #include "EMCALCalib/ElmbData.h"
+#include "EMCALCalib/Pedestal.h"
 
 using namespace o2::emcal;
 
@@ -97,6 +98,14 @@ void CalibDB::storeTemperatureSensorData(ElmbData* dcs, const std::map<std::stri
     init();
   }
   mCCDBManager.storeAsTFileAny(dcs, getCDBPathTemperatureSensor(), metadata, rangestart, rangeend);
+}
+
+void CalibDB::storePedestalData(Pedestal* pedestals, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
+{
+  if (!mInit) {
+    init();
+  }
+  mCCDBManager.storeAsTFileAny(pedestals, getCDBPathTemperatureSensor(), metadata, rangestart, rangeend);
 }
 
 BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
@@ -212,6 +221,19 @@ ElmbData* CalibDB::readTemperatureSensorData(ULong_t timestamp, const std::map<s
   ElmbData* result = mgr.getForTimeStamp<o2::emcal::ElmbData>(getCDBPathTemperatureSensor(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathTemperatureSensor(), metadata, timestamp);
+  }
+  return result;
+}
+
+Pedestal* CalibDB::readPedestalData(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+{
+  if (!mInit) {
+    init();
+  }
+  auto& mgr = CcdbManager::instance();
+  Pedestal* result = mgr.getForTimeStamp<o2::emcal::Pedestal>(getCDBPathChannelPedestals(), timestamp);
+  if (!result) {
+    throw ObjectNotFoundException(mCCDBServer, getCDBPathChannelPedestals(), metadata, timestamp);
   }
   return result;
 }

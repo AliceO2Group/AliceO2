@@ -13,10 +13,6 @@
 #ifndef TRACKINGITSGPU_INCLUDE_TIMEFRAMEGPU_H
 #define TRACKINGITSGPU_INCLUDE_TIMEFRAMEGPU_H
 
-#ifdef __HIPCC__
-#include <hip/hip_runtime.h>
-#endif
-
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Configuration.h"
 
@@ -27,10 +23,6 @@
 
 #include <gsl/gsl>
 
-#include "GPUCommonDef.h"
-#include "GPUCommonMath.h"
-#include "GPUCommonLogger.h"
-
 namespace o2
 {
 namespace gpu
@@ -39,6 +31,12 @@ class GPUChainITS;
 }
 namespace its
 {
+template <typename T1, typename T2>
+struct gpuPair {
+  T1 first;
+  T2 second;
+};
+
 namespace gpu
 {
 
@@ -46,7 +44,6 @@ class DefaultGPUAllocator : public ExternalAllocator
 {
   void* allocate(size_t size) override;
 };
-
 template <int nLayers>
 struct StaticTrackingParameters {
   StaticTrackingParameters<nLayers>& operator=(const StaticTrackingParameters<nLayers>& t) = default;
@@ -190,7 +187,7 @@ class TimeFrameGPU : public TimeFrame
   void initialiseHybrid(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceSAFitting();
-  void loadTrackingFrameInfoDevice();
+  void loadTrackingFrameInfoDevice(const int);
   void loadUnsortedClustersDevice();
   void loadClustersDevice();
   void loadTrackletsDevice();
@@ -199,9 +196,9 @@ class TimeFrameGPU : public TimeFrame
   void loadTrackSeedsChi2Device();
   void loadRoadsDevice();
   void loadTrackSeedsDevice(std::vector<CellSeed>&);
-  void createTrackITSExtDevice(const std::vector<CellSeed>& seeds);
-  void createTrackITSExtDevice(); // deprecated
-  void downloadTrackITSExtDevice();
+  void createCellNeighboursDevice(const unsigned int& layer, std::vector<std::pair<int, int>>& neighbours);
+  void createTrackITSExtDevice(std::vector<CellSeed>&);
+  void downloadTrackITSExtDevice(std::vector<CellSeed>&);
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);
@@ -228,6 +225,7 @@ class TimeFrameGPU : public TimeFrame
   // Hybrid
   Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
   TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
+  gpuPair<int, int>* getDeviceNeighbours(const int layer) { return mNeighboursDevice[layer]; }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() { return mTrackingFrameInfoDeviceArray; }
   Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
@@ -275,6 +273,7 @@ class TimeFrameGPU : public TimeFrame
 
   Road<nLayers - 2>* mRoadsDevice;
   TrackITSExt* mTrackITSExtDevice;
+  std::array<gpuPair<int, int>*, nLayers - 2> mNeighboursDevice;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
   TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 

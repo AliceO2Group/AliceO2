@@ -108,7 +108,7 @@ class TimeFrame
   void setBeamPosition(const float x, const float y, const float s2, const float base = 50.f, const float systematic = 0.f)
   {
     isBeamPositionOverridden = true;
-    resetBeamXY(x, y, s2 / std::sqrt(base * base + systematic));
+    resetBeamXY(x, y, s2 / o2::gpu::CAMath::Sqrt(base * base + systematic));
   }
 
   float getBeamX() const;
@@ -270,8 +270,16 @@ class TimeFrame
   std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<Road<5>> mRoads;
   std::vector<std::vector<TrackITSExt>> mTracks;
+  std::vector<std::vector<int>> mCellsNeighbours;
 
   const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
+ protected:
+  template <typename T>
+  void deepVectorClear(std::vector<T>& vec)
+  {
+    std::vector<T>().swap(vec);
+  }
+
  private:
   float mBz = 5.;
   int mBeamPosWeight = 0;
@@ -288,7 +296,6 @@ class TimeFrame
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
   std::vector<std::vector<int>> mCellsLookupTable;
-  std::vector<std::vector<int>> mCellsNeighbours;
   std::vector<std::vector<int>> mCellsNeighboursLUT;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates

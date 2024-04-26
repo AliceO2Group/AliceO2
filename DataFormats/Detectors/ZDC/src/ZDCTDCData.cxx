@@ -14,7 +14,6 @@
 using namespace o2::zdc;
 
 uint32_t ZDCTDCDataErr::mErrVal[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-uint32_t ZDCTDCDataErr::mErrAmp[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 uint32_t ZDCTDCDataErr::mErrId = 0;
 
 void o2::zdc::ZDCTDCData::print() const
@@ -24,5 +23,5 @@ void o2::zdc::ZDCTDCData::print() const
   if (id != 0xff && itdc >= 0 && itdc < NTDCChannels) {
     isig = TDCSignal[itdc];
   }
-  printf("%2d (%s) %d = %8.3f @ %d = %6.3f%s%s\n", isig, channelName(isig), amp, amplitude(), val, value(), isBeg() ? " B" : "", isEnd() ? " E" : "");
+  printf("%2d (%s) %8.3f @ %d = %6.3f%s%s\n", isig, channelName(isig), amp, val, value(), isBeg() ? " B" : "", isEnd() ? " E" : "");
 }

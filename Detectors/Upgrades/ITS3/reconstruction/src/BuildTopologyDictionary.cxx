@@ -13,16 +13,15 @@
 
 #include "ITS3Reconstruction/BuildTopologyDictionary.h"
 #include "ITS3Reconstruction/LookUp.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
+
+#include "TFile.h"
 
 ClassImp(o2::its3::BuildTopologyDictionary);
-namespace o2
-{
-namespace its3
-{
-constexpr float BuildTopologyDictionary::IgnoreVal;
 
-BuildTopologyDictionary::BuildTopologyDictionary() : mTotClusters{0} {}
-
+namespace o2::its3
+{
 void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& cluster, float dX, float dZ)
 {
   mTotClusters++;
@@ -46,10 +45,10 @@ void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& clu
       topInf.mZmean = dZ;
       topoStat.countsWithBias = 1;
     } else { // assign expected sigmas from the pixel X, Z sizes
-      topInf.mXsigma2 = 1 / 12. / std::min(10, topInf.mSizeX);
-      topInf.mZsigma2 = 1 / 12. / std::min(10, topInf.mSizeZ);
+      topInf.mXsigma2 = SegmentationSuperAlpide::mPitchRow * SegmentationSuperAlpide::mPitchRow / 12.f / (float)std::min(10, topInf.mSizeX);
+      topInf.mZsigma2 = SegmentationSuperAlpide::mPitchCol * SegmentationSuperAlpide::mPitchCol / 12.f / (float)std::min(10, topInf.mSizeZ);
     }
-    mMapInfo.insert(std::make_pair(cluster.getHash(), topInf));
+    mMapInfo.emplace(cluster.getHash(), topInf);
   } else {
     if (useDf) {
       auto num = topoStat.countsWithBias++;
@@ -70,7 +69,7 @@ void BuildTopologyDictionary::setThreshold(double thr)
 {
   mTopologyFrequency.clear();
   for (auto&& p : mTopologyMap) { // p is pair<ulong,TopoStat>
-    mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
+    mTopologyFrequency.emplace_back(p.second.countsTotal, p.first);
   }
   std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
             [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -86,22 +85,22 @@ void BuildTopologyDictionary::setThreshold(double thr)
       break;
     }
   }
-  if (mNCommonTopologies >= its3::CompCluster::InvalidPatternID) {
-    mFrequencyThreshold = ((double)mTopologyFrequency[its3::CompCluster::InvalidPatternID - 1].first) / mTotClusters;
+  if (mNCommonTopologies >= itsmft::CompCluster::InvalidPatternID) {
+    mFrequencyThreshold = ((double)mTopologyFrequency[itsmft::CompCluster::InvalidPatternID - 1].first) / mTotClusters;
     LOGP(warning, "Redefining prob. threshould from {} to {} to be below InvalidPatternID (was {})", thr, mFrequencyThreshold, mNCommonTopologies);
-    mNCommonTopologies = its3::CompCluster::InvalidPatternID - 1;
+    mNCommonTopologies = itsmft::CompCluster::InvalidPatternID - 1;
   }
 }
 
 void BuildTopologyDictionary::setNCommon(unsigned int nCommon)
 {
-  if (nCommon >= its3::CompCluster::InvalidPatternID) {
-    LOGP(warning, "Redefining nCommon from {} to {} to be below InvalidPatternID", nCommon, its3::CompCluster::InvalidPatternID - 1);
-    nCommon = its3::CompCluster::InvalidPatternID - 1;
+  if (nCommon >= itsmft::CompCluster::InvalidPatternID) {
+    LOGP(warning, "Redefining nCommon from {} to {} to be below InvalidPatternID", nCommon, itsmft::CompCluster::InvalidPatternID - 1);
+    nCommon = itsmft::CompCluster::InvalidPatternID - 1;
   }
   mTopologyFrequency.clear();
   for (auto&& p : mTopologyMap) { // p os pair<ulong,TopoStat>
-    mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
+    mTopologyFrequency.emplace_back(p.second.countsTotal, p.first);
   }
   std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
             [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -120,7 +119,7 @@ void BuildTopologyDictionary::setThresholdCumulative(double cumulative)
   }
   double totFreq = 0.;
   for (auto&& p : mTopologyMap) { // p os pair<ulong,TopoStat>
-    mTopologyFrequency.emplace_back(std::make_pair(p.second.countsTotal, p.first));
+    mTopologyFrequency.emplace_back(p.second.countsTotal, p.first);
   }
   std::sort(mTopologyFrequency.begin(), mTopologyFrequency.end(),
             [](const std::pair<unsigned long, unsigned long>& couple1,
@@ -132,7 +131,7 @@ void BuildTopologyDictionary::setThresholdCumulative(double cumulative)
     totFreq += ((double)(q.first)) / mTotClusters;
     if (totFreq < cumulative) {
       mNCommonTopologies++;
-      if (mNCommonTopologies >= its3::CompCluster::InvalidPatternID) {
+      if (mNCommonTopologies >= itsmft::CompCluster::InvalidPatternID) {
         totFreq -= ((double)(q.first)) / mTotClusters;
         mNCommonTopologies--;
         LOGP(warning, "Redefining cumulative threshould from {} to {} to be below InvalidPatternID)", cumulative, totFreq);
@@ -150,8 +149,8 @@ void BuildTopologyDictionary::setThresholdCumulative(double cumulative)
 
 void BuildTopologyDictionary::groupRareTopologies()
 {
-  std::cout << "Dictionary finalisation" << std::endl;
-  std::cout << "Number of clusters: " << mTotClusters << std::endl;
+  LOG(info) << "Dictionary finalisation";
+  LOG(info) << "Number of clusters: " << mTotClusters;
 
   double totFreq = 0.;
   for (int j = 0; j < mNCommonTopologies; j++) {
@@ -160,17 +159,18 @@ void BuildTopologyDictionary::groupRareTopologies()
     gr.mFrequency = ((double)(mTopologyFrequency[j].first)) / mTotClusters;
     totFreq += gr.mFrequency;
     // rough estimation for the error considering a8 uniform distribution
-    gr.mErrX = std::sqrt(mMapInfo.find(gr.mHash)->second.mXsigma2);
-    gr.mErrZ = std::sqrt(mMapInfo.find(gr.mHash)->second.mZsigma2);
-    gr.mErr2X = mMapInfo.find(gr.mHash)->second.mXsigma2;
-    gr.mErr2Z = mMapInfo.find(gr.mHash)->second.mZsigma2;
-    gr.mXCOG = -1 * mMapInfo.find(gr.mHash)->second.mCOGx;
-    gr.mZCOG = mMapInfo.find(gr.mHash)->second.mCOGz;
-    gr.mNpixels = mMapInfo.find(gr.mHash)->second.mNpixels;
-    gr.mPattern = mMapInfo.find(gr.mHash)->second.mPattern;
+    const auto& topo = mMapInfo.find(gr.mHash)->second;
+    gr.mErrX = std::sqrt(topo.mXsigma2);
+    gr.mErrZ = std::sqrt(topo.mZsigma2);
+    gr.mErr2X = topo.mXsigma2;
+    gr.mErr2Z = topo.mZsigma2;
+    gr.mXCOG = -1 * topo.mCOGx;
+    gr.mZCOG = topo.mCOGz;
+    gr.mNpixels = topo.mNpixels;
+    gr.mPattern = topo.mPattern;
     gr.mIsGroup = false;
     mDictionary.mVectorOfIDs.push_back(gr);
-    if (j == int(its3::CompCluster::InvalidPatternID - 1)) {
+    if (j == int(itsmft::CompCluster::InvalidPatternID - 1)) {
       LOGP(warning, "Limiting N unique topologies to {}, threshold freq. to {}, cumulative freq. to {} to be below InvalidPatternID", j, gr.mFrequency, totFreq);
       mNCommonTopologies = j;
       mFrequencyThreshold = gr.mFrequency;
@@ -212,7 +212,7 @@ void BuildTopologyDictionary::groupRareTopologies()
         dummyPattern[iB] = (unsigned char)255;
       }
       int residualBits = nBits % 8;
-      if (residualBits) {
+      if (residualBits != 0) {
         unsigned char tempChar = 0;
         while (residualBits > 0) {
           residualBits--;
@@ -225,12 +225,10 @@ void BuildTopologyDictionary::groupRareTopologies()
       tmp_GroupMap[grNum] = std::make_pair(gr, 0);
     }
   }
-  int rs;
-  int cs;
-  int index;
+  int rs{}, cs{}, index{};
 
   // Updating the counts for the groups of rare topologies
-  for (unsigned int j = (unsigned int)mNCommonTopologies; j < mTopologyFrequency.size(); j++) {
+  for (auto j{mNCommonTopologies}; j < mTopologyFrequency.size(); j++) {
     unsigned long hash1 = mTopologyFrequency[j].second;
     rs = mTopologyMap.find(hash1)->second.topology.getRowSpan();
     cs = mTopologyMap.find(hash1)->second.topology.getColumnSpan();
@@ -248,9 +246,9 @@ void BuildTopologyDictionary::groupRareTopologies()
   std::sort(mDictionary.mVectorOfIDs.begin(), mDictionary.mVectorOfIDs.end(), [](const itsmft::GroupStruct& a, const itsmft::GroupStruct& b) {
     return (!a.mIsGroup) && b.mIsGroup ? true : (a.mIsGroup && (!b.mIsGroup) ? false : (a.mFrequency > b.mFrequency));
   });
-  if (mDictionary.mVectorOfIDs.size() >= its3::CompCluster::InvalidPatternID - 1) {
-    LOGP(warning, "Max allowed {} patterns is reached, stopping", its3::CompCluster::InvalidPatternID - 1);
-    mDictionary.mVectorOfIDs.resize(its3::CompCluster::InvalidPatternID - 1);
+  if (mDictionary.mVectorOfIDs.size() >= itsmft::CompCluster::InvalidPatternID - 1) {
+    LOGP(warning, "Max allowed {} patterns is reached, stopping", itsmft::CompCluster::InvalidPatternID - 1);
+    mDictionary.mVectorOfIDs.resize(itsmft::CompCluster::InvalidPatternID - 1);
   }
   // Sorting the dictionary to final form
   std::sort(mDictionary.mVectorOfIDs.begin(), mDictionary.mVectorOfIDs.end(), [](const itsmft::GroupStruct& a, const itsmft::GroupStruct& b) { return a.mFrequency > b.mFrequency; });
@@ -258,29 +256,29 @@ void BuildTopologyDictionary::groupRareTopologies()
   for (int iKey = 0; iKey < mDictionary.getSize(); iKey++) {
     itsmft::GroupStruct& gr = mDictionary.mVectorOfIDs[iKey];
     if (!gr.mIsGroup) {
-      mDictionary.mCommonMap.insert(std::make_pair(gr.mHash, iKey));
+      mDictionary.mCommonMap.emplace(gr.mHash, iKey);
       if (gr.mPattern.getUsedBytes() == 1) {
         mDictionary.mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.getByte(2)] = iKey;
       }
     } else {
-      mDictionary.mGroupMap.insert(std::make_pair((int)(gr.mHash >> 32) & 0x00000000ffffffff, iKey));
+      mDictionary.mGroupMap.emplace((int)(gr.mHash >> 32) & 0x00000000ffffffff, iKey);
     }
   }
-  std::cout << "Dictionay finalised" << std::endl;
-  std::cout << "Number of keys: " << mDictionary.getSize() << std::endl;
-  std::cout << "Number of common topologies: " << mDictionary.mCommonMap.size() << std::endl;
-  std::cout << "Number of groups of rare topologies: " << mDictionary.mGroupMap.size() << std::endl;
+  LOG(info) << "Dictionay finalised";
+  LOG(info) << "Number of keys: " << mDictionary.getSize();
+  LOG(info) << "Number of common topologies: " << mDictionary.mCommonMap.size();
+  LOG(info) << "Number of groups of rare topologies: " << mDictionary.mGroupMap.size();
 }
 
 std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& DB)
 {
   for (int i = 0; i < DB.mNCommonTopologies; i++) {
     const unsigned long& hash = DB.mTopologyFrequency[i].second;
-    os << "Hash: " << hash << std::endl;
+    os << "Hash: " << hash << '\n';
     os << "counts: " << DB.mTopologyMap.find(hash)->second.countsTotal;
-    os << " (with bias provided: " << DB.mTopologyMap.find(hash)->second.countsWithBias << ")" << std::endl;
-    os << "sigmaX: " << std::sqrt(DB.mMapInfo.find(hash)->second.mXsigma2) << std::endl;
-    os << "sigmaZ: " << std::sqrt(DB.mMapInfo.find(hash)->second.mZsigma2) << std::endl;
+    os << " (with bias provided: " << DB.mTopologyMap.find(hash)->second.countsWithBias << ")" << '\n';
+    os << "sigmaX: " << std::sqrt(DB.mMapInfo.find(hash)->second.mXsigma2) << '\n';
+    os << "sigmaZ: " << std::sqrt(DB.mMapInfo.find(hash)->second.mZsigma2) << '\n';
     os << DB.mTopologyMap.find(hash)->second.topology;
   }
   return os;
@@ -288,30 +286,29 @@ std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& DB)
 
 void BuildTopologyDictionary::printDictionary(const std::string& fname)
 {
-  std::cout << "Saving the the dictionary in binary format: ";
+  LOG(info) << "Saving the the dictionary in binary format: ";
   std::ofstream out(fname);
   out << mDictionary;
   out.close();
-  std::cout << "done!" << std::endl;
+  LOG(info) << " `-> done!";
 }
 
 void BuildTopologyDictionary::printDictionaryBinary(const std::string& fname)
 {
-  std::cout << "Printing the dictionary: ";
+  LOG(info) << "Printing the dictionary: ";
   std::ofstream out(fname);
   mDictionary.writeBinaryFile(fname);
   out.close();
-  std::cout << "done!" << std::endl;
+  LOG(info) << " `-> done!";
 }
 
 void BuildTopologyDictionary::saveDictionaryRoot(const std::string& fname)
 {
-  std::cout << "Saving the the dictionary in a ROOT file: ";
+  LOG(info) << "Saving the the dictionary in a ROOT file: " << fname;
   TFile output(fname.c_str(), "recreate");
   output.WriteObjectAny(&mDictionary, mDictionary.Class(), "ccdb_object");
   output.Close();
-  std::cout << "done!" << std::endl;
+  LOG(info) << " `-> done!";
 }
 
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3

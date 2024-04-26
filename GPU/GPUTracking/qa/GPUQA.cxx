@@ -1742,44 +1742,59 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     if (!clNative || !mTracking || !mTracking->mIOPtrs.mergedTrackHitAttachment || !mTracking->mIOPtrs.mergedTracks) {
       throw std::runtime_error("Cannot dump non o2::tpc::clusterNative clusters, need also hit attachmend and GPU tracks");
     }
-    static auto cldump = GPUROOTDump<o2::tpc::ClusterNative, GPUTPCGMMergedTrack, GPUTPCGMMergedTrackHit, unsigned int, unsigned int, float, float, float, unsigned int, unsigned int, unsigned int>::getNew("cluster", "track", "trackHit", "attach", "extState", "x", "y", "z", "sector", "row", "nEv", "clusterTree");
     unsigned int clid = 0;
     for (unsigned int i = 0; i < GPUChainTracking::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         for (unsigned int k = 0; k < mClNative->nClusters[i][j]; k++) {
           const auto& cl = mClNative->clusters[i][j][k];
           unsigned int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[clid];
-          GPUTPCGMMergedTrack trk;
-          GPUTPCGMMergedTrackHit trkHit;
-          memset((void*)&trk, 0, sizeof(trk));
-          memset((void*)&trkHit, 0, sizeof(trkHit));
           float x = 0, y = 0, z = 0;
           if (attach & gputpcgmmergertypes::attachFlagMask) {
             unsigned int track = attach & gputpcgmmergertypes::attachTrackMask;
-            trk = mTracking->mIOPtrs.mergedTracks[track];
-            for (unsigned int l = 0; l < trk.NClusters(); l++) {
-              const auto& tmp = mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + l];
-              if (tmp.num == clid) {
-                trkHit = tmp;
-                break;
-              }
-            }
+            const auto& trk = mTracking->mIOPtrs.mergedTracks[track];
             mTracking->GetTPCTransformHelper()->Transform(i, j, cl.getPad(), cl.getTime(), x, y, z, trk.GetParam().GetTZOffset());
             mTracking->GetParam().Slice2Global(i, x, y, z, &x, &y, &z);
           }
-
           unsigned int extState = mTracking->mIOPtrs.mergedTrackHitStates ? mTracking->mIOPtrs.mergedTrackHitStates[clid] : 0;
 
-          cldump.Fill(cl, trk, trkHit, attach, extState, x, y, z, i, j, mNEvents - 1);
+          if (mConfig.dumpToROOT >= 2) {
+            GPUTPCGMMergedTrack trk;
+            GPUTPCGMMergedTrackHit trkHit;
+            memset((void*)&trk, 0, sizeof(trk));
+            memset((void*)&trkHit, 0, sizeof(trkHit));
+            if (attach & gputpcgmmergertypes::attachFlagMask) {
+              unsigned int track = attach & gputpcgmmergertypes::attachTrackMask;
+              trk = mTracking->mIOPtrs.mergedTracks[track];
+              for (unsigned int l = 0; l < trk.NClusters(); l++) {
+                const auto& tmp = mTracking->mIOPtrs.mergedTrackHits[trk.FirstClusterRef() + l];
+                if (tmp.num == clid) {
+                  trkHit = tmp;
+                  break;
+                }
+              }
+            }
+            static auto cldump = GPUROOTDump<o2::tpc::ClusterNative, GPUTPCGMMergedTrack, GPUTPCGMMergedTrackHit, unsigned int, unsigned int, float, float, float, unsigned int, unsigned int, unsigned int>::getNew("cluster", "track", "trackHit", "attach", "extState", "x", "y", "z", "sector", "row", "nEv", "clusterTree");
+            cldump.Fill(cl, trk, trkHit, attach, extState, x, y, z, i, j, mNEvents - 1);
+          } else {
+            static auto cldump = GPUROOTDump<o2::tpc::ClusterNative, unsigned int, unsigned int, float, float, float, unsigned int, unsigned int, unsigned int>::getNew("cluster", "attach", "extState", "x", "y", "z", "sector", "row", "nEv", "clusterTree");
+            cldump.Fill(cl, attach, extState, x, y, z, i, j, mNEvents - 1);
+          }
           clid++;
         }
       }
     }
 
-    static auto trkdump = GPUROOTDump<unsigned int, GPUTPCGMMergedTrack>::getNew("nEv", "tracks");
+    static auto trkdump = GPUROOTDump<unsigned int, GPUTPCGMMergedTrack>::getNew("nEv", "track", "tracksTree");
     for (unsigned int i = 0; i < mTracking->mIOPtrs.nMergedTracks; i++) {
       if (mTracking->mIOPtrs.mergedTracks[i].OK()) {
         trkdump.Fill(mNEvents - 1, mTracking->mIOPtrs.mergedTracks[i]);
+      }
+    }
+
+    if (mTracking && mTracking->GetProcessingSettings().createO2Output) {
+      static auto o2trkdump = GPUROOTDump<unsigned int, o2::tpc::TrackTPC>::getNew("nEv", "track", "tracksO2Tree");
+      for (unsigned int i = 0; i < mTracking->mIOPtrs.nOutputTracksTPCO2; i++) {
+        o2trkdump.Fill(mNEvents - 1, mTracking->mIOPtrs.outputTracksTPCO2[i]);
       }
     }
   }

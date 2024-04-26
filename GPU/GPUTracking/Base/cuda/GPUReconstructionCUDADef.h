@@ -15,8 +15,13 @@
 #ifndef O2_GPU_GPURECONSTRUCTIONCUDADEF_H
 #define O2_GPU_GPURECONSTRUCTIONCUDADEF_H
 
-#define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##CUDA
-#define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##CUDA()
+#ifndef __HIPCC__ // CUDA
+#define GPUCA_UNROLL(optCu, optHi) GPUCA_M_UNROLL_##optCu
+#define GPUdic(optCu, optHi) GPUCA_GPUdic_select_##optCu()
+#else
+#define GPUCA_UNROLL(optCu, optHi) GPUCA_M_UNROLL_##optHi
+#define GPUdic(optCu, optHi) GPUCA_GPUdic_select_##optHi()
+#endif
 
 #include "GPUDef.h"
 

@@ -921,9 +921,15 @@ def extractTables(nslevel, content):
   for icol in inds:
     iend = [i for i, x in enumerate(
         O2DMT.list_in([")", ";"], words[icol:])) if x == True]
+    iend1 = [i for i, x in enumerate(
+        O2DMT.list_in([")"], words[icol:])) if x == True]
     if len(iend) == 0:
-      print(nslevel)
-      sys.exit('Ending ); not found in table declaration! EXIT -->')
+      if len(iend1) == 0:
+        print(iend1)
+        print(lines)
+        sys.exit('Ending ); not found in table declaration! EXIT -->')
+      else:
+        iend = iend1
     cont = words[icol:iend[0]+icol+2]
 
     kind = [i for i, x in enumerate(types) if x == words[icol].txt][0]

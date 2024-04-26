@@ -17,8 +17,12 @@
 #include <string>
 #include <vector>
 #include "DataFormatsMCH/DsChannelId.h"
-#include "MCHRawElecMap/Mapper.h"
+#include "MCHConditions/DCSAliases.h"
+#include "MCHConstants/DetectionElements.h"
+#include "MCHGlobalMapping/DsIndex.h"
+#include "MCHGlobalMapping/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "MCHRawElecMap/Mapper.h"
 
 namespace po = boost::program_options;
 
@@ -45,38 +49,87 @@ void queryBadChannels(const std::string ccdbUrl,
   }
 }
 
+void rejectDS(const o2::mch::raw::DsDetId& dsDetId, BadChannelsVector& bv)
+{
+  static auto det2elec = o2::mch::raw::createDet2ElecMapper<o2::mch::raw::ElectronicMapperGenerated>();
+  const auto& seg = o2::mch::mapping::segmentation(dsDetId.deId());
+  auto dsElecId = det2elec(dsDetId);
+  seg.forEachPadInDualSampa(dsDetId.dsId(), [&](int pad) {
+    uint8_t channel = seg.padDualSampaChannel(pad);
+    const auto c = o2::mch::DsChannelId(dsElecId->solarId(), dsElecId->elinkId(), channel);
+    bv.emplace_back(c);
+  });
+}
+
+void rejectSolars(const std::vector<uint16_t> solarIds, BadChannelsVector& bv)
+{
+  for (auto solar : solarIds) {
+    auto ds = o2::mch::raw::getDualSampas<o2::mch::raw::ElectronicMapperGenerated>(solar);
+    for (const auto& dsDetId : ds) {
+      rejectDS(dsDetId, bv);
+    }
+  }
+}
+
+void rejectDSs(const std::vector<uint16_t> dsIdxs, BadChannelsVector& bv)
+{
+  for (auto ds : dsIdxs) {
+    if (ds >= o2::mch::NumberOfDualSampas) {
+      std::cout << "Error: invalid DS index " << ds << std::endl;
+      continue;
+    }
+    o2::mch::raw::DsDetId dsDetId = o2::mch::getDsDetId(ds);
+    rejectDS(dsDetId, bv);
+  }
+}
+
+void rejectHVLVs(const std::vector<std::string> dcsAliases, BadChannelsVector& bv)
+{
+  for (auto alias : dcsAliases) {
+    if (!o2::mch::dcs::isValid(alias)) {
+      std::cout << "Error: invalid alias " << alias << std::endl;
+      continue;
+    }
+    for (auto ds : o2::mch::dcs::aliasToDsIndices(alias)) {
+      o2::mch::raw::DsDetId dsDetId = o2::mch::getDsDetId(ds);
+      rejectDS(dsDetId, bv);
+    }
+  }
+}
+
+void rejectDEs(const std::vector<uint16_t> deIds, BadChannelsVector& bv)
+{
+  static auto det2elec = o2::mch::raw::createDet2ElecMapper<o2::mch::raw::ElectronicMapperGenerated>();
+  for (auto de : deIds) {
+    if (!o2::mch::constants::isValidDetElemId(de)) {
+      std::cout << "Error: invalid DE ID " << de << std::endl;
+      continue;
+    }
+    const auto& seg = o2::mch::mapping::segmentation(de);
+    seg.forEachPad([&](int pad) {
+      auto ds = seg.padDualSampaId(pad);
+      o2::mch::raw::DsDetId dsDetId(de, ds);
+      auto dsElecId = det2elec(dsDetId);
+      uint8_t channel = seg.padDualSampaChannel(pad);
+      const auto c = o2::mch::DsChannelId(dsElecId->solarId(), dsElecId->elinkId(), channel);
+      bv.emplace_back(c);
+    });
+  }
+}
+
 void uploadBadChannels(const std::string ccdbUrl,
                        const std::string badChannelType,
                        uint64_t startTimestamp,
                        uint64_t endTimestamp,
-                       std::vector<uint16_t> solarsToReject,
+                       const BadChannelsVector& bv,
                        bool makeDefault)
 {
-  BadChannelsVector bv;
-
-  auto det2elec = o2::mch::raw::createDet2ElecMapper<o2::mch::raw::ElectronicMapperGenerated>();
-
-  for (auto solar : solarsToReject) {
-    auto ds = o2::mch::raw::getDualSampas<o2::mch::raw::ElectronicMapperGenerated>(solar);
-    for (const auto& dsDetId : ds) {
-      o2::mch::mapping::Segmentation seg(dsDetId.deId());
-      for (uint8_t channel = 0; channel < 64; channel++) {
-        auto dsElecId = det2elec(dsDetId);
-        auto padId = seg.findPadByFEE(dsDetId.dsId(), channel);
-        if (seg.isValid(padId)) {
-          const auto c = o2::mch::DsChannelId(solar, dsElecId->elinkId(), channel);
-          bv.emplace_back(c);
-        }
-      }
-    }
-  }
-
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
   auto dest = ccdbPath(badChannelType);
   std::cout << "storing default MCH bad channels (valid from "
-            << startTimestamp << "to " << endTimestamp << ") to "
+            << startTimestamp << " to " << endTimestamp << ") to "
             << dest << "\n";
 
   if (makeDefault) {
@@ -120,7 +173,10 @@ int main(int argc, char** argv)
       ("query,q",po::bool_switch(&query),"dump bad channel object from CCDB")
       ("verbose,v",po::bool_switch(&verbose),"verbose output")
       ("solar,s",po::value<std::vector<uint16_t>>()->multitoken(),"solar ids to reject")
-      ;
+      ("ds,d", po::value<std::vector<uint16_t>>()->multitoken(), "dual sampas indices to reject")
+      ("de,e", po::value<std::vector<uint16_t>>()->multitoken(), "DE ids to reject")
+      ("alias,a", po::value<std::vector<std::string>>()->multitoken(), "DCS alias (HV or LV) to reject")
+        ;
   // clang-format on
 
   po::options_description cmdline;
@@ -151,12 +207,21 @@ int main(int argc, char** argv)
   }
 
   if (put) {
-    std::vector<uint16_t> solarsToReject;
+    BadChannelsVector bv;
     if (vm.count("solar")) {
-      solarsToReject = vm["solar"].as<std::vector<uint16_t>>();
+      rejectSolars(vm["solar"].as<std::vector<uint16_t>>(), bv);
+    }
+    if (vm.count("ds")) {
+      rejectDSs(vm["ds"].as<std::vector<uint16_t>>(), bv);
+    }
+    if (vm.count("de")) {
+      rejectDEs(vm["de"].as<std::vector<uint16_t>>(), bv);
+    }
+    if (vm.count("alias")) {
+      rejectHVLVs(vm["alias"].as<std::vector<std::string>>(), bv);
     }
 
-    uploadBadChannels(ccdbUrl, badChannelType, startTimestamp, endTimestamp, solarsToReject, uploadDefault);
+    uploadBadChannels(ccdbUrl, badChannelType, startTimestamp, endTimestamp, bv, uploadDefault);
   }
   return 0;
 }

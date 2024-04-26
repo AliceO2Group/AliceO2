@@ -77,17 +77,17 @@ void Detector::configDefault()
   mLayers.clear();
 
   LOGP(warning, "Loading default configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.55f, 50.f, 100.e-4); // Adjusted rmin not to overlap with inner BP
+  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
   mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
   mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-3); // Adjusted rmin not to overlap with outer BP
+  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-3);
   mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 7.f, 124.f, 100.e-3);
   mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 12.f, 124.f, 100.e-3);
   mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 20.f, 124.f, 100.e-3);
   mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 30.f, 124.f, 100.e-3);
-  mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 264.f, 100.e-3);
-  mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 264.f, 100.e-3);
-  mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 264.f, 100.e-3);
+  mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 258.f, 100.e-3);
+  mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 258.f, 100.e-3);
+  mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 258.f, 100.e-3);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -173,8 +173,8 @@ void Detector::createMaterials()
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
-  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::createGeometry()

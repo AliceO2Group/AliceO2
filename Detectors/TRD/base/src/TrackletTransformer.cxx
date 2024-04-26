@@ -27,18 +27,6 @@ void TrackletTransformer::init()
   mXAnode = mGeo->cdrHght() + mGeo->camHght() / 2;
 }
 
-float TrackletTransformer::calculateY(int hcid, int column, int position, const PadPlane* padPlane) const
-{
-  double padWidth = padPlane->getWidthIPad();
-  int side = hcid % 2;
-  position += 1 << (NBITSTRKLPOS - 1); // shift such that position = 1 << (NBITSTRKLPOS - 1) corresponds to the MCM center
-  // slightly modified TDP eq 16.1 (appended -1 to the end to account for MCM shared pads)
-  double pad = float(position - (1 << (NBITSTRKLPOS - 1))) * GRANULARITYTRKLPOS + NCOLMCM * (4 * side + column) + 10. - 1.;
-  float y = padWidth * (pad - 72);
-
-  return y;
-}
-
 float TrackletTransformer::calculateZ(int padrow, const PadPlane* padPlane) const
 {
   double rowPos = padPlane->getRowPos(padrow);
@@ -114,7 +102,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
 
   // 5mm below cathode plane to reduce error propogation from tracklet fit and driftV
   float x = mGeo->cdrHght() - 0.5;
-  float y = calculateY(hcid, column, position, padPlane);
+  float y = tracklet.getUncalibratedY(mApplyShift);
   float z = calculateZ(padrow, padPlane);
 
   float dy = calculateDy(detector, slope, padPlane);

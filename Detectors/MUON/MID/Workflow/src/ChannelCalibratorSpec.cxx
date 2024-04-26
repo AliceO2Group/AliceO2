@@ -19,14 +19,11 @@
 #include <array>
 #include <vector>
 #include <gsl/gsl>
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/ControlService.h"
-#include "Framework/DataRefUtils.h"
 #include "Framework/DeviceStateEnums.h"
-#include "Framework/InputRecordWalker.h"
 #include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/Task.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DataFormatsMID/ColumnData.h"
@@ -71,7 +68,18 @@ class ChannelCalibratorDeviceDPL
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
   {
-    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    if (matcher == of::ConcreteDataMatcher(header::gDataOriginMID, "FAKE_DEAD", 0)) {
+      LOG(info) << "Update fake dead channels";
+      auto* fakeDead = static_cast<std::vector<ColumnData>*>(obj);
+      if (fakeDead) {
+        mFakeDead = *fakeDead;
+      }
+      return;
+    }
+
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
   }
 
   void run(of::ProcessingContext& pc)
@@ -79,7 +87,8 @@ class ChannelCalibratorDeviceDPL
     if (mHasAlreadySent) {
       return;
     }
-    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+
+    updateTimeDependentParams(pc);
 
     std::array<gsl::span<const ColumnData>, 2> calibData{pc.inputs().get<gsl::span<ColumnData>>("mid_noise"), pc.inputs().get<gsl::span<ColumnData>>("mid_dead")};
     auto deadRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_dead_rof");
@@ -121,8 +130,20 @@ class ChannelCalibratorDeviceDPL
   std::array<ChannelCalibrator, 2> mCalibrators{};        ///! Channels calibrators
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///! CCDB request
   std::vector<ColumnData> mRefMasks{};                    ///! Reference masks
+  std::vector<ColumnData> mFakeDead{};                    ///! Fake dead channels
   bool mHasAlreadySent = false;                           ///! Flag that the object was already sent
   unsigned long int mNCalibTriggers = 0;                  ///! Number of calibration triggers since last send
+
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc)
+  {
+    // Triggers finalizeCCDB
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) {
+      initOnceDone = true;
+      pc.inputs().get<std::vector<ColumnData>*>("mid_fake_dead");
+    }
+  }
 
   void finalise(of::DataAllocator& output)
   {
@@ -132,16 +153,34 @@ class ChannelCalibratorDeviceDPL
     sendOutput(output);
   }
 
+  std::vector<ColumnData> removeFakeDead(std::vector<ColumnData> dead)
+  {
+    ChannelMasksHandler fakeDeadHandler;
+    for (auto& col : mFakeDead) {
+      fakeDeadHandler.switchOffChannels(col);
+    }
+    std::vector<ColumnData> realDead;
+    for (auto& col : dead) {
+      fakeDeadHandler.applyMask(col);
+      if (!col.isEmpty()) {
+        realDead.emplace_back(col);
+      }
+    }
+    return realDead;
+  }
+
   void sendOutput(of::DataAllocator& output)
   {
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
 
+    auto dead = removeFakeDead(mCalibrators[1].getBadChannels());
+
     output.snapshot(of::Output{header::gDataOriginMID, "NOISY_CHANNELS", 0}, mCalibrators[0].getBadChannels());
-    output.snapshot(of::Output{header::gDataOriginMID, "DEAD_CHANNELS", 0}, mCalibrators[1].getBadChannels());
+    output.snapshot(of::Output{header::gDataOriginMID, "DEAD_CHANNELS", 0}, dead);
 
     ChannelCalibratorFinalizer finalizer;
     finalizer.setReferenceMasks(mRefMasks);
-    finalizer.process(mCalibrators[0].getBadChannels(), mCalibrators[1].getBadChannels());
+    finalizer.process(mCalibrators[0].getBadChannels(), dead);
     sendOutput(output, finalizer.getBadChannels(), mCalibrators[1].getCurrentTFInfo(), "MID/Calib/BadChannels", 0);
 
     TObjString masks(finalizer.getMasksAsString().c_str());
@@ -175,6 +214,7 @@ of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, c
   inputSpecs.emplace_back("mid_noise_rof", header::gDataOriginMID, "NOISEROF");
   inputSpecs.emplace_back("mid_dead", header::gDataOriginMID, "DEAD");
   inputSpecs.emplace_back("mid_dead_rof", header::gDataOriginMID, "DEADROF");
+  inputSpecs.emplace_back("mid_fake_dead", header::gDataOriginMID, "FAKE_DEAD", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/FakeDeadChannels"));
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

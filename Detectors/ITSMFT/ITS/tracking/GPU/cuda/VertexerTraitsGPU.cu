@@ -11,6 +11,7 @@
 //
 /// \author matteo.concas@cern.ch
 
+#include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -18,9 +19,7 @@
 #include <cassert>
 #include <thread>
 
-#ifndef GPUCA_GPUCODE_GENRTC
 #include <cub/cub.cuh>
-#endif
 
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/Configuration.h"
@@ -94,7 +93,6 @@ VertexerTraitsGPU::VertexerTraitsGPU()
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
-  gpu::utils::gpuFree(mDeviceIndexTableUtils);
 }
 
 void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)

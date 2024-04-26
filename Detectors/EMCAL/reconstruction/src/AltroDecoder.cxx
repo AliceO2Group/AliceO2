@@ -178,8 +178,10 @@ bool AltroDecoder::checkChannelHWAddress(int hwaddress)
   if (fec > 9) {
     return false;
   }
-  if (!(altro == 0 || altro == 2 || altro == 3 || altro == 4)) {
-    return false;
+  if (fec > 0) { // fec == 0 corresponds to trigger, which only has a fake altro information. Hence it's not checked
+    if (!(altro == 0 || altro == 2 || altro == 3 || altro == 4)) {
+      return false;
+    }
   }
   return true;
 }

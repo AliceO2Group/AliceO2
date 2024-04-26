@@ -126,11 +126,11 @@ CathodeSegmentation::CathodeSegmentation(
 {
   fillRtree();
   for (auto dualSampaId : mDualSampaIds) {
-    mDualSampaId2CatPadIndices.emplace(dualSampaId, getCatPadIndices(dualSampaId));
+    mDualSampaId2CatPadIndices.emplace(dualSampaId, catPadIndices(dualSampaId));
   }
 }
 
-std::vector<int> CathodeSegmentation::getCatPadIndices(int dualSampaId) const
+std::vector<int> CathodeSegmentation::catPadIndices(int dualSampaId) const
 {
   std::vector<int> pi;
 
@@ -145,6 +145,15 @@ std::vector<int> CathodeSegmentation::getCatPadIndices(int dualSampaId) const
     }
   }
   return pi;
+}
+
+std::vector<int> CathodeSegmentation::getCatPadIndices(int dualSampaId) const
+{
+  auto it = mDualSampaId2CatPadIndices.find(dualSampaId);
+  if (it == mDualSampaId2CatPadIndices.end()) {
+    return {};
+  }
+  return it->second;
 }
 
 std::vector<int> CathodeSegmentation::getCatPadIndices(double xmin, double ymin,

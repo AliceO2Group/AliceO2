@@ -58,9 +58,8 @@ class GeometryFlat;
 
 namespace its
 {
-class Tracker;
-class Vertexer;
 class TimeFrame;
+class ITSTrackingInterface;
 } // namespace its
 
 namespace itsmft
@@ -104,6 +103,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct Config {
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
+    bool enableMShape = false;
+    bool enableCTPLumi = false;
     int enableDoublePipeline = 0;
     int tpcDeadMapSources = -1;
     bool decompressTPC = false;
@@ -135,8 +136,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
-  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void stop() final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   o2::framework::Inputs inputs();
   o2::framework::Outputs outputs();
   o2::framework::Options options();
@@ -147,6 +148,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct calibObjectStruct {
     std::unique_ptr<TPCFastTransform> mFastTransform;
     std::unique_ptr<TPCFastTransform> mFastTransformRef;
+    std::unique_ptr<TPCFastTransform> mFastTransformMShape;
     std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
     std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
     std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;
@@ -180,6 +182,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void RunWorkerThread(int id);
   void ExitPipeline();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
+  void handlePipelineStop();
   void initPipeline(o2::framework::InitContext& ic);
   void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context, bool inputFinal);
   void finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
@@ -206,8 +209,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUO2InterfaceQA> mQA;
   std::vector<int> mClusterOutputIds;
   std::vector<int> mTPCSectors;
-  std::unique_ptr<o2::its::Tracker> mITSTracker;
-  std::unique_ptr<o2::its::Vertexer> mITSVertexer;
+  std::unique_ptr<o2::its::ITSTrackingInterface> mITSTrackingInterface;
   std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflowSpec_PipelineInternals> mPipeline;
   o2::its::TimeFrame* mITSTimeFrame = nullptr;
   std::vector<fair::mq::RegionInfo> mRegionInfos;
@@ -230,9 +232,6 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mITSGeometryCreated = false;
   bool mTRDGeometryCreated = false;
   bool mPropagatorInstanceCreated = false;
-  bool mITSRunVertexer = false;
-  bool mITSCosmicsProcessing = false;
-  std::string mITSMode = "sync";
 };
 
 } // end namespace gpu

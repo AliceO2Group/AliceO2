@@ -39,10 +39,14 @@ namespace o2::framework
  * Static helper class to fill root histograms of any type. Contains functionality to fill once per call or a whole (filtered) table at once.
  */
 //**************************************************************************************************
+template <typename T>
+concept FillValue = std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_enum_v<T>;
+
 struct HistFiller {
   // fill any type of histogram (if weight was requested it must be the last argument)
   template <typename T, typename... Ts>
-  static void fillHistAny(std::shared_ptr<T> hist, const Ts&... positionAndWeight);
+  static void fillHistAny(std::shared_ptr<T> hist, Ts... positionAndWeight)
+    requires(FillValue<Ts> && ...);
 
   // fill any type of histogram with columns (Cs) of a filtered table (if weight is requested it must reside the last specified column)
   template <typename... Cs, typename R, typename T>
@@ -127,7 +131,8 @@ class HistogramRegistry
 
   // fill hist with values
   template <typename... Ts>
-  void fill(const HistName& histName, Ts&&... positionAndWeight);
+  void fill(const HistName& histName, Ts... positionAndWeight)
+    requires(FillValue<Ts> && ...);
 
   // fill hist with content of (filtered) table columns
   template <typename... Cs, typename T>
@@ -175,6 +180,7 @@ class HistogramRegistry
   void registerName(const std::string& name);
 
   std::string mName{};
+  uint32_t nameHash;
   OutputObjHandlingPolicy mPolicy{};
   bool mCreateRegistryDir{};
   bool mSortHistos{};
@@ -196,7 +202,8 @@ class HistogramRegistry
 //--------------------------------------------------------------------------------------------------
 
 template <typename T, typename... Ts>
-void HistFiller::fillHistAny(std::shared_ptr<T> hist, const Ts&... positionAndWeight)
+void HistFiller::fillHistAny(std::shared_ptr<T> hist, Ts... positionAndWeight)
+  requires(FillValue<Ts> && ...)
 {
   constexpr int nArgs = sizeof...(Ts);
 
@@ -411,10 +418,15 @@ uint32_t HistogramRegistry::getHistIndex(const T& histName)
 }
 
 template <typename... Ts>
-void HistogramRegistry::fill(const HistName& histName, Ts&&... positionAndWeight)
+void HistogramRegistry::fill(const HistName& histName, Ts... positionAndWeight)
+  requires(FillValue<Ts> && ...)
 {
-  std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(histName)]);
+  std::visit([positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, positionAndWeight...); }, mRegistryValue[getHistIndex(histName)]);
 }
+
+extern template void HistogramRegistry::fill(const HistName& histName, double);
+extern template void HistogramRegistry::fill(const HistName& histName, float);
+extern template void HistogramRegistry::fill(const HistName& histName, int);
 
 template <typename... Cs, typename T>
 void HistogramRegistry::fill(const HistName& histName, const T& table, const o2::framework::expressions::Filter& filter)

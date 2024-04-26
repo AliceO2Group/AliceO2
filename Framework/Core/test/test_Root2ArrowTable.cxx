@@ -45,9 +45,8 @@ TEST_CASE("RootTree2Table")
   t1.Branch("ev", &ev, "ev/I");
   t1.Branch("xyz", xyz, "xyz[3]/F");
   t1.Branch("ij", ij, "ij[2]/I");
-  //fill the tree
+  // fill the tree
   for (Int_t i = 0; i < 1000; i++) {
-    //gRandom->Rannor(xyz[0], xyz[1]);
     xyz[0] = 1;
     xyz[1] = 2;
     xyz[2] = 3;
@@ -92,16 +91,11 @@ TEST_CASE("RootTree2Table")
     REQUIRE(array->length() == 3000);
     const float* c = reinterpret_cast<float const*>(array->values()->data());
 
-    //auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->chunk(0));
-    //CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
-    //const float* c = reinterpret_cast<float const*>(array->Value(0));
-
     CHECK(c[0] == 1);
     CHECK(c[1] == 2);
     CHECK(c[2] == 1);
   }
   {
-    //auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(1)->chunk(0));
     auto chunkToUse = table->column(1)->chunk(0);
     chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
     auto array = std::static_pointer_cast<arrow::Int32Array>(chunkToUse);
@@ -151,7 +145,7 @@ TEST_CASE("RootTree2TableViaASoA")
   t2.Branch("ev", &ev, "ev/I");
   t2.Branch("xyz", xyz, "xyz[3]/F");
   t2.Branch("ij", ij, "ij[2]/I");
-  //fill the tree
+  // fill the tree
   for (Int_t i = 0; i < 1000; i++) {
     gRandom->Rannor(xyz[0], xyz[1]);
     gRandom->Rannor(px, py);

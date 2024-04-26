@@ -378,7 +378,7 @@ int main(int argc, char* argv[])
     LOG(info) << "######################################################";
   });
   writer.EndObject();
-  writer.Flush();
+  stream.Flush();
   of.close();
 
   // writerFrequencies.EndObject();

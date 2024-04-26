@@ -78,13 +78,13 @@ class Tracker
 
  private:
   void initialiseTimeFrame(int& iteration);
-  void computeTracklets(int& iteration);
+  void computeTracklets(int& iteration, int& iROFslice, int& iVertex);
   void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
 
   void initialiseTimeFrameHybrid(int& iteration);
-  void computeTrackletsHybrid(int& iteration);
+  void computeTrackletsHybrid(int& iteration, int& iROFslice, int& iVertex);
   void computeCellsHybrid(int& iteration);
   void findCellsNeighboursHybrid(int& iteration);
   void findRoadsHybrid(int& iteration);
@@ -137,6 +137,20 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
       sstream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms";
     }
     logger(sstream.str());
+
+    if (mTrkParams[0].SaveTimeBenchmarks) {
+      std::stringstream str2file;
+      std::string taskNameStr(taskName);
+      std::transform(taskNameStr.begin(), taskNameStr.end(), taskNameStr.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      std::replace(taskNameStr.begin(), taskNameStr.end(), ' ', '_');
+      str2file << taskNameStr << "\t" << diff;
+      std::ofstream file;
+      file.open("its_time_benchmarks.txt", std::ios::app);
+      file << str2file.str() << std::endl;
+      file.close();
+    }
+
   } else {
     (this->*task)(std::forward<T>(args)...);
   }

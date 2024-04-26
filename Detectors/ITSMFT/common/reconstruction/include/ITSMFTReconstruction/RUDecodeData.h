@@ -36,6 +36,7 @@ struct RUDecodeData {
 
   std::array<PayLoadCont, MaxCablesPerRU> cableData{};     // cable data in compressed ALPIDE format
   std::vector<o2::itsmft::ChipPixelData> chipsData{};      // fully decoded data in 1st nChipsFired chips
+  std::vector<uint16_t> seenChipIDs{};                     // IDs of all chips seen during ROF decoding, including empty ones
   std::array<int, MaxLinksPerRU> links{};                  // link entry RSTODO: consider removing this and using pointer
   std::array<uint8_t, MaxCablesPerRU> cableHWID{};         // HW ID of cable whose data is in the corresponding slot of cableData
   std::array<uint8_t, MaxCablesPerRU> cableLinkID{};       // ID of the GBT link transmitting this cable data
@@ -79,6 +80,7 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
 
   std::array<bool, Mapping::getNChips()> doneChips{};
   auto* chipData = &chipsData[0];
+  seenChipIDs.clear();
   for (int icab = 0; icab < ruInfo->nCables; icab++) { // cableData is ordered in such a way to have chipIDs in increasing order
     if (!cableData[icab].getSize()) {
       continue;
@@ -95,7 +97,7 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
     int ret = 0;
     // dumpcabledata(icab);
 
-    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], seenChipIDs, chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
       auto nhits = chipData->getData().size();
       if (nhits && doneChips[chipData->getChipID()]) {
@@ -128,7 +130,6 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
     }
     cableData[icab].clear();
   }
-
   return ntot;
 }
 

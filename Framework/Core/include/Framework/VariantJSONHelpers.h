@@ -154,21 +154,25 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       states.push(State::IN_ERROR);
       return true;
     } else {
-      if (states.top() == State::IN_ARRAY) {
+      if (states.top() == State::IN_ARRAY || states.top() == State::IN_ROW) {
         debug << "added to array" << std::endl;
         if constexpr (isLabeledArray<V>()) {
           if (currentKey == labels_rows_str) {
             labels_rows.push_back(str);
             return true;
-          } else if (currentKey == labels_cols_str) {
+          }
+          if (currentKey == labels_cols_str) {
             labels_cols.push_back(str);
             return true;
+          }
+        }
+        if (currentKey == "values") {
+          if constexpr (std::is_same_v<std::string, variant_array_element_type_t<V>>) {
+            accumulatedData.push_back(str);
           } else {
             states.push(State::IN_ERROR);
-            return true;
           }
-        } else {
-          accumulatedData.push_back(str);
+          return true;
         }
         return true;
       }

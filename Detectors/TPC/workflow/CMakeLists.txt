@@ -51,8 +51,8 @@ o2_add_library(TPCWorkflow
                                      O2::TPCQC O2::DetectorsCalibration
                                      O2::TPCReaderWorkflow
                                      O2::CTPWorkflowIO
-               PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
-                                      O2::GPUWorkflow
+                                     O2::GPUWorkflow
+               PRIVATE_LINK_LIBRARIES O2::GPUTracking
            )
 
 o2_add_library(TPCWorkflowGUI
@@ -62,6 +62,12 @@ o2_add_library(TPCWorkflowGUI
                                      O2::TPCMonitor
            )
 
+o2_add_library(TPCWorkflowStudies
+               SOURCES src/TPCRefitter.cxx
+               TARGETVARNAME targetName
+               PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
+                                     O2::GlobalTrackingWorkflow
+           )
 
 o2_add_executable(chunkeddigit-merger
         COMPONENT_NAME tpc
@@ -250,7 +256,7 @@ o2_add_test(workflow
 
 o2_add_executable(digits-to-rawzs
                   COMPONENT_NAME tpc
-                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw O2::TPCReconstruction
+                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::DetectorsRaw O2::TPCReconstruction
                   SOURCES src/convertDigitsToRawZS.cxx)
 
 o2_add_executable(monitor-workflow
@@ -282,5 +288,9 @@ o2_add_executable(calibration-workflow
                                         O2::DetectorsCalibrationWorkflow
                                         O2::DataFormatsCalibration
                                         O2::CCDB)
+o2_add_executable(refitter
+                  SOURCES src/tpc-refitter-workflow.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflowStudies)
 
 add_subdirectory(readers)

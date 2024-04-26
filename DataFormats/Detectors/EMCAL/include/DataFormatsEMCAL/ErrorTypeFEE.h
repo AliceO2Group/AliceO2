@@ -191,7 +191,7 @@ class ErrorTypeFEE
 
   /// \brief Get the number of error types
   /// \return Number of error types (including undefined)
-  static constexpr int getNumberOfErrorTypes() { return 7; }
+  static constexpr int getNumberOfErrorTypes() { return 9; }
 
   /// \brief Get the name of the error type
   /// \param errorTypeID ID of the error type

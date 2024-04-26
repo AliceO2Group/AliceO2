@@ -43,7 +43,9 @@ o2_add_library(DataFormatsQualityControl
         )
 
 o2_target_root_dictionary(DataFormatsQualityControl
-                          HEADERS include/DataFormatsQualityControl/FlagReasons.h
+                          HEADERS include/DataFormatsQualityControl/FlagType.h
+                                  include/DataFormatsQualityControl/FlagReasons.h
+                                  include/DataFormatsQualityControl/QualityControlFlag.h
                                   include/DataFormatsQualityControl/TimeRangeFlag.h
                                   include/DataFormatsQualityControl/TimeRangeFlagCollection.h)
 

@@ -50,9 +50,11 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 class TPCTrackStudySpec : public Task
 {
  public:
-  TPCTrackStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useMC)
+  TPCTrackStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, GTrackID::mask_t src, bool useMC)
     : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC)
   {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
   }
   ~TPCTrackStudySpec() final = default;
   void init(InitContext& ic) final;
@@ -75,6 +77,7 @@ class TPCTrackStudySpec : public Task
   int mTFEnd = 999999999;
   int mTFCount = -1;
   bool mUseR = false;
+  bool mRepRef = false;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutCl;
   float mITSROFrameLengthMUS = 0.;
@@ -85,6 +88,7 @@ class TPCTrackStudySpec : public Task
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;                 ///< input TPC tracks span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap;                   ///< externally set TPC clusters occupancy map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
   gsl::span<const o2::MCCompLabel> mTPCTrkLabels;                     ///< input TPC Track MC labels
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
@@ -96,6 +100,7 @@ void TPCTrackStudySpec::init(InitContext& ic)
   mXRef = ic.options().get<float>("target-x");
   mNMoves = std::max(2, ic.options().get<int>("n-moves"));
   mUseR = ic.options().get<bool>("use-r-as-x");
+  mRepRef = ic.options().get<bool>("repeat-ini-ref");
   mUseGPUModel = ic.options().get<bool>("use-gpu-fitter");
   mTFStart = ic.options().get<int>("tf-start");
   mTFEnd = ic.options().get<int>("tf-end");
@@ -167,6 +172,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
   mTPCRefitterShMap = recoData.clusterShMapTPC;
+  mTPCRefitterOccMap = recoData.occupancyMapTPC;
 
   std::vector<o2::InteractionTimeRecord> intRecs;
   if (mUseMC) { // extract MC tracks
@@ -179,7 +185,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     mTPCTrkLabels = recoData.getTPCTracksMCLabels();
   }
 
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
 
   float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
@@ -374,7 +380,12 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                  << "counter=" << counter
                  << "copy=" << it
                  << "maxCopy=" << mnm
-                 << "movTrackRef=" << trfm
+                 << "movTrackRef=" << trfm;
+      if (mRepRef) {
+        (*mDBGOut) << "tpcMov"
+                   << "iniTrackRef=" << trf << "time=" << tr.getTime0();
+      }
+      (*mDBGOut) << "tpcMov"
                  << "imposedTB=" << tb
                  << "dz=" << dz
                  << "clX=" << clX
@@ -414,6 +425,7 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     {"tf-start", VariantType::Int, 0, {"1st TF to process"}},
     {"tf-end", VariantType::Int, 999999999, {"last TF to process"}},
     {"use-gpu-fitter", VariantType::Bool, false, {"use GPU track model for refit instead of TrackParCov"}},
+    {"repeat-ini-ref", VariantType::Bool, false, {"store ini-refit param with every moved track"}},
     {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 
@@ -434,7 +446,7 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     "tpc-track-study",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCTrackStudySpec>(dataRequest, ggRequest, srcTracks, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCTrackStudySpec>(dataRequest, ggRequest, sclOpts, srcTracks, useMC)},
     opts};
 }
 

@@ -15,24 +15,14 @@ o2_add_library(MFTAlignment
                 src/AlignPointControl.cxx
                 src/AlignPointHelper.cxx
                 src/AlignSensorHelper.cxx
-                src/MatrixSparse.cxx
-                src/MatrixSq.cxx
-                src/MillePede2.cxx
-                src/MillePedeRecord.cxx
-                src/MilleRecordReader.cxx
-                src/MilleRecordWriter.cxx
-                src/MinResSolve.cxx
                 src/RecordsToAlignParams.cxx
-                src/RectMatrix.cxx
-                src/SymBDMatrix.cxx
-                src/SymMatrix.cxx
                 src/TracksToRecords.cxx
-                src/VectorSparse.cxx
         PUBLIC_LINK_LIBRARIES O2::MFTBase
                 O2::DataFormatsMFT
                 O2::MFTTracking
                 O2::CCDB
                 O2::Steer
+                O2::ForwardAlign
                 ROOT::TreePlayer)
 
 o2_target_root_dictionary(MFTAlignment
@@ -41,17 +31,6 @@ o2_target_root_dictionary(MFTAlignment
                 include/MFTAlignment/AlignPointControl.h
                 include/MFTAlignment/AlignPointHelper.h
                 include/MFTAlignment/AlignSensorHelper.h
-                include/MFTAlignment/MatrixSparse.h
-                include/MFTAlignment/MatrixSq.h
-                include/MFTAlignment/MillePede2.h
-                include/MFTAlignment/MillePedeRecord.h
-                include/MFTAlignment/MilleRecordReader.h
-                include/MFTAlignment/MilleRecordWriter.h
-                include/MFTAlignment/MinResSolve.h
                 include/MFTAlignment/RecordsToAlignParams.h
-                include/MFTAlignment/RectMatrix.h
-                include/MFTAlignment/SymBDMatrix.h
-                include/MFTAlignment/SymMatrix.h
                 include/MFTAlignment/TracksToRecords.h
-                include/MFTAlignment/VectorSparse.h
         LINKDEF src/MFTAlignmentLinkDef.h)

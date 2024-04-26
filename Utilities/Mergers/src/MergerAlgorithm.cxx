@@ -16,18 +16,19 @@
 
 #include "Mergers/MergerAlgorithm.h"
 
-#include "Mergers/MergeInterface.h"
 #include "Framework/Logger.h"
+#include "Mergers/MergeInterface.h"
+#include "Mergers/ObjectStore.h"
 
+#include <TEfficiency.h>
+#include <TGraph.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
 #include <THn.h>
-#include <TTree.h>
 #include <THnSparse.h>
 #include <TObjArray.h>
-#include <TGraph.h>
-#include <TEfficiency.h>
+#include <TTree.h>
 
 namespace o2::mergers::algorithm
 {
@@ -128,16 +129,41 @@ void merge(TObject* const target, TObject* const other)
   }
 }
 
+void merge(VectorOfTObjectPtrs& targets, const VectorOfTObjectPtrs& others)
+{
+  for (const auto& other : others) {
+    if (const auto targetSameName = std::find_if(targets.begin(), targets.end(), [&other](const auto& target) {
+          return std::string_view{other->GetName()} == std::string_view{target->GetName()};
+        });
+        targetSameName != targets.end()) {
+      merge(targetSameName->get(), other.get());
+    } else {
+      targets.push_back(std::shared_ptr<TObject>(other->Clone(), deleteTCollections));
+    }
+  }
+}
+
+void deleteRecursive(TCollection* Coll)
+{
+  // I can iterate a collection
+  Coll->SetOwner(false);
+  auto ITelem = Coll->MakeIterator();
+  while (auto* element = ITelem->Next()) {
+    if (auto* Coll2 = dynamic_cast<TCollection*>(element)) {
+      Coll2->SetOwner(false);
+      deleteRecursive(Coll2);
+    }
+    Coll->Remove(element); // Remove from mother collection
+    delete element;        // Delete payload
+  }
+  delete ITelem;
+}
+
 void deleteTCollections(TObject* obj)
 {
-  if (auto c = dynamic_cast<TCollection*>(obj)) {
-    c->SetOwner(false);
-    auto iter = c->MakeIterator();
-    while (auto element = iter->Next()) {
-      deleteTCollections(element);
-    }
-    delete iter;
-    delete c;
+  if (auto* L = dynamic_cast<TCollection*>(obj)) {
+    deleteRecursive(L);
+    delete L;
   } else {
     delete obj;
   }

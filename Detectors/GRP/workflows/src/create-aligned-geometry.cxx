@@ -18,6 +18,8 @@
 #include <TGeoManager.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -96,7 +98,33 @@ class AlignerTask : public Task
     gGeoManager->SetName(std::string(o2::base::NameConf::CCDBOBJECT).c_str());
     auto fnm = o2::base::NameConf::getAlignedGeomFileName();
     gGeoManager->Export(fnm.c_str());
-    LOG(info) << "Stored to local file " << fnm;
+    LOGP(info, "Stored aligned geometry to local file {}", fnm);
+
+    // create GeometryTGeo for detectors which support it
+    if (mDetsMask[DetID::ITS]
+#ifdef ENABLE_UPGRADES
+        || mDetsMask[DetID::IT3]
+#endif
+    ) {
+      auto itsTGeo = o2::its::GeometryTGeo::Instance();
+      itsTGeo->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2GRot));
+      TFile outF("its_GeometryTGeo.root", "recreate");
+      outF.WriteObjectAny(itsTGeo, "o2::its::GeometryTGeo", "ccdb_object");
+      LOGP(info, "Stored ITS geometry to {}", outF.GetName());
+      outF.Close();
+      itsTGeo->destroy();
+    }
+    if (mDetsMask[DetID::MFT]) {
+      auto mftTGeo = o2::mft::GeometryTGeo::Instance();
+      mftTGeo->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2G));
+      TFile outF("mft_GeometryTGeo.root", "recreate");
+      outF.WriteObjectAny(mftTGeo, "o2::mft::GeometryTGeo", "ccdb_object");
+      LOGP(info, "Stored MFT geometry to {}", outF.GetName());
+      outF.Close();
+      mftTGeo->destroy();
+    }
+    // consider upgrades?
+
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

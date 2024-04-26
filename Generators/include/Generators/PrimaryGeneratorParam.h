@@ -28,6 +28,7 @@ namespace eventgen
 struct PrimaryGeneratorParam : public o2::conf::ConfigurableParamHelper<PrimaryGeneratorParam> {
   int id = -1;
   std::string description = "";
+  int verbose = 0; // if > 1 the primary generator may emit more info messages about what's going on
   O2ParamDef(PrimaryGeneratorParam, "PrimaryGenerator");
 };
 

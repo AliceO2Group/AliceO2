@@ -52,7 +52,7 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const TrackingMode& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
@@ -222,7 +222,9 @@ void CookedTrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
-
+    if (pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+    }
     mVertexerPtr->getGlobalConfiguration();
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
@@ -230,7 +232,7 @@ void CookedTrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     mTracker.setGeometry(geom);
     mTracker.setConfigParams();
     LOG(info) << "Tracking mode " << mMode;
-    if (mMode == "cosmics") {
+    if (mMode == TrackingMode::Cosmics) {
       LOG(info) << "Setting cosmics parameters...";
       mTracker.setParametersCosmics();
       mRunVertexer = false;
@@ -260,9 +262,14 @@ void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     par.printKeyValues();
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "ITS GeometryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
+    return;
+  }
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC, int trgType, const std::string& trMode)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useGeom, int trgType, const std::string& trModeS)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -290,19 +297,26 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, int trgType, const std::strin
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
+                                                              true,                                                                         // GRPECS=true
+                                                              false,                                                                        // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              true,                                                                         // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               inputs,
                                                               true);
+  if (!useGeom) {
+    ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("ITS/Config/Geometry")}, inputs);
+  }
   return DataProcessorSpec{
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, trgType, trMode)},
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest,
+                                                  useMC,
+                                                  trgType,
+                                                  trModeS == "sync" ? o2::its::TrackingMode::Sync : trModeS == "async" ? o2::its::TrackingMode::Async
+                                                                                                                       : o2::its::TrackingMode::Cosmics)},
     Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 

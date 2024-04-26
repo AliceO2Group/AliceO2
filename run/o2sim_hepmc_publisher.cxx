@@ -25,6 +25,7 @@
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
+using namespace o2::dataformats;
 
 struct O2simHepmcPublisher {
   Configurable<std::string> hepmcFileName{"hepmc", "input.hepmc", "name of the input file with HepMC events"};
@@ -70,51 +71,56 @@ struct O2simHepmcPublisher {
       mcHeader.SetVertex(event.event_pos().px(), event.event_pos().py(), event.event_pos().pz());
       auto xsecInfo = event.cross_section();
       if (xsecInfo != nullptr) {
-        mcHeader.putInfo("Accepted", (uint64_t)xsecInfo->get_accepted_events());
-        mcHeader.putInfo("Attempted", (uint64_t)xsecInfo->get_attempted_events());
-        mcHeader.putInfo("XsectGen", (float)xsecInfo->xsec());
-        mcHeader.putInfo("XsectErr", (float)xsecInfo->xsec_err());
+        mcHeader.putInfo(MCInfoKeys::acceptedEvents, (uint64_t)xsecInfo->get_accepted_events());
+        mcHeader.putInfo(MCInfoKeys::attemptedEvents, (uint64_t)xsecInfo->get_attempted_events());
+        mcHeader.putInfo(MCInfoKeys::xSection, (float)xsecInfo->xsec());
+        mcHeader.putInfo(MCInfoKeys::xSectionError, (float)xsecInfo->xsec_err());
       }
-      auto scale = event.attribute<HepMC3::DoubleAttribute>("event_scale");
+      auto scale = event.attribute<HepMC3::DoubleAttribute>(MCInfoKeys::eventScale);
       if (scale != nullptr) {
-        mcHeader.putInfo("PtHard", (float)scale->value());
+        mcHeader.putInfo(MCInfoKeys::eventScale, (float)scale->value());
       }
-      auto nMPI = event.attribute<HepMC3::IntAttribute>("mpi");
+      auto nMPI = event.attribute<HepMC3::IntAttribute>(MCInfoKeys::mpi);
       if (nMPI != nullptr) {
-        mcHeader.putInfo("MPI", nMPI->value());
+        mcHeader.putInfo(MCInfoKeys::mpi, nMPI->value());
       }
-      auto sid = event.attribute<HepMC3::IntAttribute>("signal_process_id");
+      auto sid = event.attribute<HepMC3::IntAttribute>(MCInfoKeys::processCode);
+      auto scode = event.attribute<HepMC3::IntAttribute>(MCInfoKeys::processID); // default pythia8 hepmc3 interface uses signal_process_id
       if (sid != nullptr) {
-        mcHeader.putInfo("ProcessId", sid->value());
+        mcHeader.putInfo(MCInfoKeys::processCode, sid->value());
+      } else if (scode != nullptr) {
+        mcHeader.putInfo(MCInfoKeys::processCode, scode->value());
       }
       auto pdfInfo = event.pdf_info();
       if (pdfInfo != nullptr) {
-        mcHeader.putInfo("Id1", pdfInfo->parton_id[0]);
-        mcHeader.putInfo("Id2", pdfInfo->parton_id[1]);
-        mcHeader.putInfo("PdfId1", pdfInfo->pdf_id[0]);
-        mcHeader.putInfo("PdfId2", pdfInfo->pdf_id[1]);
-        mcHeader.putInfo("X1", (float)pdfInfo->x[0]);
-        mcHeader.putInfo("X2", (float)pdfInfo->x[1]);
-        mcHeader.putInfo("scale", (float)pdfInfo->scale);
-        mcHeader.putInfo("Pdf1", (float)pdfInfo->xf[0]);
-        mcHeader.putInfo("Pdf2", (float)pdfInfo->xf[1]);
+        mcHeader.putInfo(MCInfoKeys::pdfParton1Id, pdfInfo->parton_id[0]);
+        mcHeader.putInfo(MCInfoKeys::pdfParton2Id, pdfInfo->parton_id[1]);
+        mcHeader.putInfo(MCInfoKeys::pdfCode1, pdfInfo->pdf_id[0]);
+        mcHeader.putInfo(MCInfoKeys::pdfCode2, pdfInfo->pdf_id[1]);
+        mcHeader.putInfo(MCInfoKeys::pdfX1, (float)pdfInfo->x[0]);
+        mcHeader.putInfo(MCInfoKeys::pdfX2, (float)pdfInfo->x[1]);
+        mcHeader.putInfo(MCInfoKeys::pdfScale, (float)pdfInfo->scale);
+        mcHeader.putInfo(MCInfoKeys::pdfXF1, (float)pdfInfo->xf[0]);
+        mcHeader.putInfo(MCInfoKeys::pdfXF2, (float)pdfInfo->xf[1]);
       }
       auto heavyIon = event.heavy_ion();
       if (heavyIon != nullptr) {
-        mcHeader.putInfo("NcollHard", heavyIon->Ncoll_hard);
-        mcHeader.putInfo("NpartProj", heavyIon->Npart_proj);
-        mcHeader.putInfo("NpartTarg", heavyIon->Npart_targ);
-        mcHeader.putInfo("Ncoll", heavyIon->Ncoll);
-        mcHeader.putInfo("NNwoundedCollisions", heavyIon->N_Nwounded_collisions);
-        mcHeader.putInfo("NwoundedNCollisions", heavyIon->Nwounded_N_collisions);
-        mcHeader.putInfo("NwoundedNwoundedCollisions", heavyIon->Nwounded_Nwounded_collisions);
-        mcHeader.putInfo("SpectatorNeutrons", heavyIon->spectator_neutrons);
-        mcHeader.putInfo("SpectatorProtons", heavyIon->spectator_protons);
-        mcHeader.putInfo("ImpactParameter", (float)heavyIon->impact_parameter);
-        mcHeader.putInfo("EventPlaneAngle", (float)heavyIon->event_plane_angle);
-        mcHeader.putInfo("Eccentricity", (float)heavyIon->eccentricity);
-        mcHeader.putInfo("SigmaInelNN", (float)heavyIon->sigma_inel_NN);
-        mcHeader.putInfo("Centrality", (float)heavyIon->centrality);
+        mcHeader.putInfo(MCInfoKeys::nCollHard, heavyIon->Ncoll_hard);
+        mcHeader.putInfo(MCInfoKeys::nPartProjectile, heavyIon->Npart_proj);
+        mcHeader.putInfo(MCInfoKeys::nPartTarget, heavyIon->Npart_targ);
+        mcHeader.putInfo(MCInfoKeys::nColl, heavyIon->Ncoll);
+        mcHeader.putInfo(MCInfoKeys::nCollNNWounded, heavyIon->N_Nwounded_collisions);
+        mcHeader.putInfo(MCInfoKeys::nCollNWoundedN, heavyIon->Nwounded_N_collisions);
+        mcHeader.putInfo(MCInfoKeys::nCollNWoundedNwounded, heavyIon->Nwounded_Nwounded_collisions);
+        mcHeader.putInfo(MCInfoKeys::nSpecProjectileNeutron, heavyIon->Nspec_proj_n);
+        mcHeader.putInfo(MCInfoKeys::nSpecProjectileProton, heavyIon->Nspec_proj_p);
+        mcHeader.putInfo(MCInfoKeys::nSpecTargetNeutron, heavyIon->Nspec_targ_n);
+        mcHeader.putInfo(MCInfoKeys::nSpecTargetProton, heavyIon->Nspec_targ_p);
+        mcHeader.putInfo(MCInfoKeys::impactParameter, (float)heavyIon->impact_parameter);
+        mcHeader.putInfo(MCInfoKeys::planeAngle, (float)heavyIon->event_plane_angle);
+        mcHeader.putInfo("eccentricity", (float)heavyIon->eccentricity);
+        mcHeader.putInfo(MCInfoKeys::sigmaInelNN, (float)heavyIon->sigma_inel_NN);
+        mcHeader.putInfo(MCInfoKeys::centrality, (float)heavyIon->centrality);
       }
 
       auto particles = event.particles();
@@ -142,8 +148,8 @@ struct O2simHepmcPublisher {
     }
 
     // report number of TFs injected for the rate limiter to work
-    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
     ++tfCounter;
+    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
     if (eos || (maxEvents > 0 && eventCounter == maxEvents)) {
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

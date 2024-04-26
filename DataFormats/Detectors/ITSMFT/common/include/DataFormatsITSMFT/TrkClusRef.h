@@ -29,7 +29,7 @@ struct TrkClusRef : public o2::dataformats::RangeRefComp<4> {
   uint16_t pattern = 0; ///< layers pattern
 
   GPUd() int getNClusters() const { return getEntries(); }
-  bool hasHitOnLayer(int i) { return pattern & (0x1 << i); }
+  bool hasHitOnLayer(int i) const { return pattern & (0x1 << i); }
 
   void setClusterSize(int l, int size)
   {
@@ -41,11 +41,9 @@ struct TrkClusRef : public o2::dataformats::RangeRefComp<4> {
     clsizes |= (size << (l * 4));
   }
 
-  int getClusterSize(int l)
+  int getClusterSize(int l) const
   {
-    if (l >= 8)
-      return 0;
-    return (clsizes >> (l * 4)) & 0xf;
+    return (l >= 8) ? 0 : (clsizes >> (l * 4)) & 0xf;
   }
 
   int getClusterSizes() const

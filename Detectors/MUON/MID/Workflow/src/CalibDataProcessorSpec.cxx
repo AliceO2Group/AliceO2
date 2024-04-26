@@ -81,10 +81,16 @@ class CalibDataProcessorDPL
     mDead.clear();
     mDeadROF.clear();
 
-    mNoise.insert(mNoise.end(), data[1].begin(), data[1].end());
-    mNoiseROF.insert(mNoiseROF.end(), dataRof[1].begin(), dataRof[1].end());
+    if (data[1].empty()) {
+      mNoise.insert(mNoise.end(), data[0].begin(), data[0].end());
+      mNoiseROF.insert(mNoiseROF.end(), dataRof[0].begin(), dataRof[0].end());
+    } else {
 
-    mergeChannels(data[2], dataRof[2], data[0], dataRof[0]);
+      mNoise.insert(mNoise.end(), data[1].begin(), data[1].end());
+      mNoiseROF.insert(mNoiseROF.end(), dataRof[1].begin(), dataRof[1].end());
+
+      mergeChannels(data[2], dataRof[2], data[0], dataRof[0]);
+    }
 
     pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISE", 0}, mNoise);
     pc.outputs().snapshot(of::Output{header::gDataOriginMID, "NOISEROF", 0}, mNoiseROF);

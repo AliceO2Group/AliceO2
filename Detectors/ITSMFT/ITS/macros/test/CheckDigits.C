@@ -1,3 +1,14 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file CheckDigits.C
 /// \brief Simple macro to check ITSU digits
 
@@ -91,8 +102,8 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
   // >> build min and max MC events used by each ROF
   for (int imc = MC2ROFRecordArrrayRef.size(); imc--;) {
     const auto& mc2rof = MC2ROFRecordArrrayRef[imc];
-    printf("MCRecord: ");
-    mc2rof.print();
+    // printf("MCRecord: ");
+    // mc2rof.print();
 
     if (mc2rof.rofRecordID < 0) {
       continue; // this MC event did not contribute to any ROF
@@ -198,10 +209,44 @@ void CheckDigits(std::string digifile = "itsdigits.root", std::string hitfile = 
 
   } // end loop on ROFRecords array
 
-  new TCanvas;
-  nt->Draw("y:x");
-  new TCanvas;
-  nt->Draw("dx:dz", "abs(dx)<0.01 && abs(dz)<0.01");
+  auto canvXY = new TCanvas("canvXY", "", 1600, 1600);
+  canvXY->Divide(2, 2);
+  canvXY->cd(1);
+  nt->Draw("y:x>>h_y_vs_x_IB(1000, -5, 5, 1000, -5, 5)", "id < 3120 ", "colz");
+  canvXY->cd(2);
+  nt->Draw("y:z>>h_y_vs_z_IB(1000, -15, 15, 1000, -5, 5)", "id < 3120 ", "colz");
+  canvXY->cd(3);
+  nt->Draw("y:x>>h_y_vs_x_OB(1000, -50, 50, 1000, -50, 50)", "id >= 3120 ", "colz");
+  canvXY->cd(4);
+  nt->Draw("y:z>>h_y_vs_z_OB(1000, -100, 100, 1000, -50, 50)", "id >= 3120 ", "colz");
+  canvXY->SaveAs("itsdigits_y_vs_x_vs_z.pdf");
+
+  auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
+  canvdXdZ->Divide(2, 2);
+  canvdXdZ->cd(1);
+  nt->Draw("dx:dz>>h_dx_vs_dz_IB(500, -0.02, 0.02, 500, -0.01, 0.01)", "id < 3120", "colz");
+  auto h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_IB");
+  Info("IB", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
+  Info("IB", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
+  canvdXdZ->cd(2);
+  nt->Draw("dx:dz>>h_dx_vs_dz_OB(500, -0.02, 0.02, 500, -0.02, 0.02)", "id >= 3120", "colz");
+  h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OB");
+  Info("OB", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
+  Info("OB", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
+  canvdXdZ->cd(3);
+  nt->Draw("dx:dz>>h_dx_vs_dz_IB_z(500, -0.005, 0.005, 500, -0.005, 0.005)", "id < 3120 && abs(z)<2", "colz");
+  h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_IB_z");
+  Info("IB |z|<2", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
+  Info("IB |z|<2", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
+  canvdXdZ->cd(4);
+  nt->Draw("dx:dz>>h_dx_vs_dz_OB_z(500, -0.005, 0.005, 500, -0.005, 0.005)", "id >= 3120 && abs(z)<2", "colz");
+  h = (TH2F*)gPad->GetPrimitive("h_dx_vs_dz_OB_z");
+  Info("OB |z|<2", "RMS(dx)=%.1f mu", h->GetRMS(2) * 1e4);
+  Info("OB |z|<2", "RMS(dz)=%.1f mu", h->GetRMS(1) * 1e4);
+  canvdXdZ->SaveAs("itsdigits_dx_vs_dz.pdf");
+
+  f->Write();
+  f->Close();
 
   f->Write();
   f->Close();

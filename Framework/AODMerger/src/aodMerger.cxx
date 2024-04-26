@@ -388,7 +388,7 @@ int main(int argc, char* argv[])
         }
       }
 
-      if (currentDirSize > maxDirSize) {
+      if (maxDirSize == 0 || currentDirSize > maxDirSize) {
         if (verbosity > 0) {
           printf("Maximum size reached: %ld. Closing folder %s.\n", currentDirSize, dfName);
         }

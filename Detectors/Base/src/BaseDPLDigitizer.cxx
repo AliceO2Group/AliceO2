@@ -16,6 +16,7 @@
 #include <DetectorsBase/Propagator.h>
 #include <fairlogger/Logger.h>
 #include <TGeoGlobalMagField.h>
+#include <TRandom.h>
 
 using namespace o2::base;
 
@@ -53,6 +54,10 @@ void BaseDPLDigitizer::init(o2::framework::InitContext& ic)
       LOG(info) << "Field exists; Not reinitializing";
     }
   }
+
+  // initialize the global ROOT random number generator (needed or not)
+  LOG(info) << "Initializing ROOT digitizer random with seed " << o2::conf::DigiParams::Instance().seed;
+  gRandom->SetSeed(o2::conf::DigiParams::Instance().seed);
 
   // finally call specific init
   this->initDigitizerTask(ic);

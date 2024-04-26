@@ -46,9 +46,18 @@ class V0 : public o2::track::TrackParCov
   float getDCA() const { return mDCA; }
   void setDCA(float d) { mDCA = d; }
 
-  float calcMass2() const { return calcMass2(mProngs[0].getPID(), mProngs[1].getPID()); }
-  float calcMass2(PID pidPos, PID pidNeg) const { return calcMass2(pidPos.getMass2(), pidNeg.getMass2()); }
+  float calcMass2() const { return calcMass2PID(mProngs[0].getPID(), mProngs[1].getPID()); }
+  float calcMass2PID(PID pidPos, PID pidNeg) const { return calcMass2(PID::getMass2(pidPos), PID::getMass2(pidNeg)); }
   float calcMass2(float massPos2, float massNeg2) const;
+
+  float calcMass2AsPhoton() const { return calcMass2PID(PID::Electron, PID::Electron); }
+  float calcMass2AsK0() const { return calcMass2PID(PID::Pion, PID::Pion); }
+  float calcMass2AsLambda() const { return calcMass2PID(PID::Proton, PID::Pion); }
+  float calcMass2AsAntiLambda() const { return calcMass2PID(PID::Pion, PID::Proton); }
+  float calcMass2AsHyperTriton() const { return calcMass2PID(PID::Helium3, PID::Pion); }
+  float calcMass2AsAntiHyperTriton() const { return calcMass2PID(PID::Pion, PID::Helium3); }
+  float calcMass2AsHyperhydrog4() const { return calcMass2PID(PID::Alpha, PID::Pion); }
+  float calcMass2AsAntiHyperhydrog4() const { return calcMass2PID(PID::Pion, PID::Alpha); }
 
   float calcR2() const { return getX() * getX() + getY() * getY(); }
 

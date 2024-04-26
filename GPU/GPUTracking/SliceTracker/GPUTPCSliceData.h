@@ -68,9 +68,13 @@ class GPUTPCSliceData
 
   MEM_TEMPLATE()
   GPUhdi() GPUglobalref() const cahit2* HitData(const MEM_TYPE(GPUTPCRow) & row) const { return &mHitData[row.mHitNumberOffset]; }
+  MEM_TEMPLATE()
+  GPUhdi() GPUglobalref() cahit2* HitData(const MEM_TYPE(GPUTPCRow) & row) { return &mHitData[row.mHitNumberOffset]; }
   GPUhd() GPUglobalref() const cahit2* HitData() const { return (mHitData); }
   MEM_TEMPLATE()
   GPUdi() GPUglobalref() const calink* HitLinkUpData(const MEM_TYPE(GPUTPCRow) & row) const { return &mLinkUpData[row.mHitNumberOffset]; }
+  MEM_TEMPLATE()
+  GPUdi() GPUglobalref() calink* HitLinkUpData(const MEM_TYPE(GPUTPCRow) & row) { return &mLinkUpData[row.mHitNumberOffset]; }
   MEM_TEMPLATE()
   GPUdi() GPUglobalref() const calink* HitLinkDownData(const MEM_TYPE(GPUTPCRow) & row) const { return &mLinkDownData[row.mHitNumberOffset]; }
   MEM_TEMPLATE()
@@ -98,7 +102,7 @@ class GPUTPCSliceData
  * \param binIndexes in the range 0 to row.Grid.N + row.Grid.Ny + 3.
  */
   MEM_TEMPLATE()
-  GPUd() calink FirstHitInBin(const MEM_TYPE(GPUTPCRow) & row, calink binIndexes) const;
+  GPUd() calink FirstHitInBin(const MEM_TYPE(GPUTPCRow) & row, calink binIndex) const;
 
   /**
  * If the given weight is higher than what is currently stored replace with the new weight.
@@ -120,6 +124,7 @@ class GPUTPCSliceData
   MEM_TEMPLATE()
   GPUhd() int ClusterDataIndex(const MEM_TYPE(GPUTPCRow) & row, unsigned int hitIndex) const;
   GPUd() GPUglobalref() const int* ClusterDataIndex() const { return mClusterDataIndex; }
+  GPUd() GPUglobalref() int* ClusterDataIndex() { return mClusterDataIndex; }
 
   /**
  * Return the row object for the given row index.
@@ -127,7 +132,7 @@ class GPUTPCSliceData
   GPUhdi() GPUglobalref() const MEM_GLOBAL(GPUTPCRow) & Row(int rowIndex) const { return mRows[rowIndex]; }
   GPUhdi() GPUglobalref() MEM_GLOBAL(GPUTPCRow) * Rows() const { return mRows; }
 
-  GPUhdi() GPUglobalref() GPUAtomic(unsigned int) * HitWeights() const { return (mHitWeights); }
+  GPUhdi() GPUglobalref() GPUAtomic(unsigned int) * HitWeights() { return (mHitWeights); }
 
   GPUhdi() void SetGPUTextureBase(GPUglobalref() const void* val) { mGPUTextureBase = val; }
   GPUhdi() char* GPUTextureBase() const { return ((char*)mGPUTextureBase); }
@@ -205,7 +210,7 @@ GPUdi() cahit2 MEM_LG(GPUTPCSliceData)::HitData(const MEM_TYPE(GPUTPCRow) & row,
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()
-GPUdi() calink MEM_LG(GPUTPCSliceData)::FirstHitInBin(const MEM_TYPE(GPUTPCRow) & row, calink binIndexes) const { return mFirstHitInBin[row.mFirstHitInBinOffset + binIndexes]; }
+GPUdi() calink MEM_LG(GPUTPCSliceData)::FirstHitInBin(const MEM_TYPE(GPUTPCRow) & row, calink binIndex) const { return mFirstHitInBin[row.mFirstHitInBinOffset + binIndex]; }
 
 MEM_CLASS_PRE()
 MEM_TEMPLATE()

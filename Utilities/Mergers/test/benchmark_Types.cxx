@@ -165,11 +165,16 @@ auto measure = [](Measurement m, auto* o, auto* i) -> double {
         tm->WriteObject(o);
         start = std::chrono::high_resolution_clock::now();
 
-        o2::framework::FairTMessage ftm(const_cast<char*>(tm->Buffer()), tm->BufferSize());
-        auto* storedClass = ftm.GetClass();
+        // Needed to take into account that  FairInputTBuffer expects the first 8 bytes to be the
+        // allocator pointer, which is not present in the TMessage buffer.
+        o2::framework::FairInputTBuffer ftm(const_cast<char*>(tm->Buffer() - 8), tm->BufferSize() + 8);
+        ftm.InitMap();
+        auto* storedClass = ftm.ReadClass();
         if (storedClass == nullptr) {
           throw std::runtime_error("Unknown stored class");
         }
+        ftm.SetBufferOffset(0);
+        ftm.ResetMap();
         auto* tObjectClass = TClass::GetClass(typeid(TObject));
 
         if (!storedClass->InheritsFrom(tObjectClass)) {

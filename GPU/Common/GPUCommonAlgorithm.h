@@ -245,11 +245,7 @@ GPUdi() void GPUCommonAlgorithm::sortDeviceDynamic(T* begin, T* end)
 template <class T, class S>
 GPUdi() void GPUCommonAlgorithm::sortDeviceDynamic(T* begin, T* end, const S& comp)
 {
-#ifndef GPUCA_GPUCODE
   GPUCommonAlgorithm::sort(begin, end, comp);
-#else
-  GPUCommonAlgorithm::sortInBlock(begin, end, comp);
-#endif
 }
 
 } // namespace gpu
@@ -348,7 +344,7 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
 #elif (defined(__CUDACC__) || defined(__HIPCC__))
 // CUDA and HIP work the same way using cub, need just different header
 
-#if !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
+#if !defined(GPUCA_GPUCODE_COMPILEKERNELS) && !defined(GPUCA_GPUCODE_HOSTONLY)
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
 #elif defined(__HIPCC__)

@@ -62,7 +62,11 @@ namespace globaltracking
 class CosmicsMatchingSpec : public Task
 {
  public:
-  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC) {}
+  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+  }
   ~CosmicsMatchingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -129,10 +133,10 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
   bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
-    mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateMaps = true;
   }
+  mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -204,7 +208,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC, const
     "cosmics-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, sclOpts, useMC)},
     opts};
 }
 

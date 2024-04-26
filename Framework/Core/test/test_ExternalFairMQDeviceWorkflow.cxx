@@ -174,7 +174,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       callbacks.set<CallbackService::Id::Start>(producerChannelInit);
     }
     // the compute callback of the producer
-    auto producerCallback = [nRolls, channelName, proxyMode, counter = std::make_shared<size_t>()](DataAllocator& outputs, ControlService& control, RawDeviceService& rds) {
+    auto producerCallback = [nRolls, channelName, proxyMode, counter = std::make_shared<size_t>()](DataAllocator& outputs, ControlService& control, RawDeviceService& rds, MessageContext& messageContext) {
       int data = *counter;
       // outputs.make<int>(OutputRef{"data", 0}) = data;
 
@@ -233,6 +233,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       }
       // using utility from ExternalFairMQDeviceProxy
       o2::framework::sendOnChannel(device, messages, *channelName, (size_t)-1);
+      messageContext.fakeDispatch();
 
       if (++(*counter) >= nRolls) {
         // send the end of stream signal, this is transferred by the proxies
@@ -256,6 +257,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
           // add empty payload message
           out.AddPart(std::move(device.NewMessageFor(*channelName, 0, 0)));
           o2::framework::sendOnChannel(device, out, *channelName, (size_t)-1);
+          messageContext.fakeDispatch();
         }
       }
     };
@@ -401,7 +403,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         output.AddPart(std::move(inputs.At(msgidx)));
       }
     }
+    auto& messageContext = services.get<MessageContext>();
     o2::framework::sendOnChannel(*device, output, channelName, (size_t)-1);
+    messageContext.fakeDispatch();
     return output.Size() != 0;
   };
 

@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <iostream>
 #include <bitset>
+#include <set>
 
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -75,6 +76,10 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(error) << "Failed to initialize mapper";
   }
 
+  if (!mTriggerMapping) {
+    mTriggerMapping = std::make_unique<TriggerMappingV2>(mGeometry);
+  }
+
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "standard") {
     LOG(info) << "Using standard raw fitter";
@@ -131,9 +136,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   mOutputCells.clear();
   mOutputTriggerRecords.clear();
   mOutputDecoderErrors.clear();
+  mOutputTRUs.clear();
+  mOutputTRUTriggerRecords.clear();
+  mOutputPatches.clear();
+  mOutputPatchTriggerRecords.clear();
+  mOutputTimesums.clear();
+  mOutputTimesumTriggerRecords.clear();
 
   if (isLostTimeframe(ctx)) {
-    sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+    sendData(ctx);
     return;
   }
 
@@ -216,6 +227,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (!currentEvent.getTriggerBits()) {
         currentEvent.setTriggerBits(triggerbits);
       }
+      CellTimeCorrection timeCorrector{timeshift, bcmod4};
 
       if (feeID >= 40) {
         continue; // skip STU ddl
@@ -268,67 +280,32 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         // Loop over all the channels
         int nBunchesNotOK = 0;
         for (auto& chan : decoder.getChannels()) {
-          int iRow, iCol;
-          ChannelType_t chantype;
           try {
-            iRow = map.getRow(chan.getHardwareAddress());
-            iCol = map.getColumn(chan.getHardwareAddress());
-            chantype = map.getChannelType(chan.getHardwareAddress());
+            auto iRow = map.getRow(chan.getHardwareAddress());
+            auto iCol = map.getColumn(chan.getHardwareAddress());
+            auto chantype = map.getChannelType(chan.getHardwareAddress());
+            LocalPosition channelPosition{iSM, feeID, iCol, iRow};
+            switch (chantype) {
+              case o2::emcal::ChannelType_t::HIGH_GAIN:
+              case o2::emcal::ChannelType_t::LOW_GAIN:
+                addFEEChannelToEvent(currentEvent, chan, timeCorrector, channelPosition, chantype);
+                break;
+              case o2::emcal::ChannelType_t::LEDMON:
+                // Drop LEDMON reconstruction in case of physics triggers
+                if (triggerbits & o2::trigger::Cal) {
+                  addFEEChannelToEvent(currentEvent, chan, timeCorrector, channelPosition, chantype);
+                }
+                break;
+              case o2::emcal::ChannelType_t::TRU:
+                addTRUChannelToEvent(currentEvent, chan, channelPosition);
+                break;
+              default:
+                LOG(error) << "Unknown channel type for HW address " << chan.getHardwareAddress();
+                break;
+            }
           } catch (Mapper::AddressNotFoundException& ex) {
             handleAddressError(ex, feeID, chan.getHardwareAddress());
             continue;
-          }
-
-          if (!(chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN || chantype == o2::emcal::ChannelType_t::LEDMON)) {
-            continue;
-          }
-
-          // Drop LEDMON reconstruction in case of physics triggers
-          if (chantype == o2::emcal::ChannelType_t::LEDMON && !(triggerbits & o2::trigger::Cal)) {
-            continue;
-          }
-
-          int CellID = -1;
-          bool isLowGain = false;
-          try {
-            if (chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
-              // high- / low-gain cell
-              CellID = getCellAbsID(iSM, iCol, iRow);
-              isLowGain = chantype == o2::emcal::ChannelType_t::LOW_GAIN;
-            } else {
-              CellID = geLEDMONAbsID(iSM, iCol); // Module index encoded in colum for LEDMONs
-              isLowGain = iRow == 0;             // For LEDMONs gain type is encoded in the row (0 - low gain, 1 - high gain)
-            }
-          } catch (ModuleIndexException& e) {
-            handleGeometryError(e, iSM, CellID, chan.getHardwareAddress(), chantype);
-            continue;
-          }
-
-          // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-          CaloFitResults fitResults;
-          try {
-            fitResults = mRawFitter->evaluate(chan.getBunches());
-            // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
-            if (fitResults.getAmp() < 0) {
-              fitResults.setAmp(0.);
-            }
-            if (fitResults.getTime() < 0) {
-              fitResults.setTime(0.);
-            }
-            // apply correction for bc mod 4
-            double celltime = fitResults.getTime() - timeshift - 25 * bcmod4;
-            double amp = fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY;
-            if (isLowGain) {
-              amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
-            }
-            if (chantype == o2::emcal::ChannelType_t::LEDMON) {
-              // Mark LEDMONs as HIGH_GAIN/LOW_GAIN for gain type merging - will be flagged as LEDMON later when pushing to the output container
-              currentEvent.setLEDMONCell(CellID, amp, celltime, isLowGain ? o2::emcal::ChannelType_t::LOW_GAIN : o2::emcal::ChannelType_t::HIGH_GAIN, chan.getHardwareAddress(), feeID, mMergeLGHG);
-            } else {
-              currentEvent.setCell(CellID, amp, celltime, chantype, chan.getHardwareAddress(), feeID, mMergeLGHG);
-            }
-          } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-            handleFitError(fiterror, feeID, CellID, chan.getHardwareAddress());
           }
         }
       } catch (o2::emcal::MappingHandler::DDLInvalid& ddlerror) {
@@ -400,10 +377,31 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
     LOG(debug) << "Next event [Orbit " << interaction.orbit << ", BC (" << interaction.bc << "]: Accepted " << ncellsEvent << " cells and " << nLEDMONsEvent << " LEDMONS";
     mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), eventstart, ncellsEvent + nLEDMONsEvent);
+
+    // Add trigger data
+    if (mDoTriggerReconstruction) {
+      auto [trus, patches] = buildL0Patches(currentevent);
+      LOG(debug) << "Found " << patches.size() << " L0 patches from " << trus.size() << " TRUs";
+      auto trusstart = mOutputTRUs.size();
+      std::copy(trus.begin(), trus.end(), std::back_inserter(mOutputTRUs));
+      mOutputTRUTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), trusstart, trus.size());
+      auto patchesstart = mOutputPatches.size();
+      std::copy(patches.begin(), patches.end(), std::back_inserter(mOutputPatches));
+      mOutputPatchTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), patchesstart, patches.size());
+      // For L0 timesums use fixed time, across TRUs and triggers, determined from the patch time QC
+      // average found to be - will be made configurable
+      auto timesumsstart = mOutputTimesums.size();
+      auto timesums = buildL0Timesums(currentevent, 8);
+      std::copy(timesums.begin(), timesums.end(), std::back_inserter(mOutputTimesums));
+      mOutputTimesumTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), timesumsstart, timesums.size());
+    }
   }
 
   LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells from " << mOutputTriggerRecords.size() << " events ...";
-  sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+  if (mDoTriggerReconstruction) {
+    LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputTRUs.size() << " TRU infos and " << mOutputPatches.size() << " trigger patches and " << mOutputTimesums.size() << " timesums from " << mOutputTRUTriggerRecords.size() << " events ...";
+  }
+  sendData(ctx);
 }
 
 void RawToCellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -438,7 +436,7 @@ bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) 
     if (payloadSize == 0) {
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
@@ -447,6 +445,197 @@ bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) 
   }
   contDeadBeef = 0; // if good data, reset the counter
   return false;
+}
+
+void RawToCellConverterSpec::addFEEChannelToEvent(o2::emcal::EventContainer& currentEvent, const o2::emcal::Channel& currentchannel, const CellTimeCorrection& timeCorrector, const LocalPosition& position, ChannelType_t chantype)
+{
+  int CellID = -1;
+  bool isLowGain = false;
+  try {
+    if (chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
+      // high- / low-gain cell
+      CellID = getCellAbsID(position.mSupermoduleID, position.mColumn, position.mRow);
+      isLowGain = chantype == o2::emcal::ChannelType_t::LOW_GAIN;
+    } else {
+      CellID = geLEDMONAbsID(position.mSupermoduleID, position.mColumn); // Module index encoded in colum for LEDMONs
+      isLowGain = position.mRow == 0;                                    // For LEDMONs gain type is encoded in the row (0 - low gain, 1 - high gain)
+    }
+  } catch (ModuleIndexException& e) {
+    handleGeometryError(e, position.mSupermoduleID, CellID, currentchannel.getHardwareAddress(), chantype);
+    return;
+  }
+
+  // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
+  CaloFitResults fitResults;
+  try {
+    fitResults = mRawFitter->evaluate(currentchannel.getBunches());
+    // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
+    if (fitResults.getAmp() < 0) {
+      fitResults.setAmp(0.);
+    }
+    if (fitResults.getTime() < 0) {
+      fitResults.setTime(0.);
+    }
+    // apply correction for bc mod 4
+    double celltime = timeCorrector.getCorrectedTime(fitResults.getTime());
+    double amp = fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY;
+    if (isLowGain) {
+      amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
+    }
+    if (chantype == o2::emcal::ChannelType_t::LEDMON) {
+      // Mark LEDMONs as HIGH_GAIN/LOW_GAIN for gain type merging - will be flagged as LEDMON later when pushing to the output container
+      currentEvent.setLEDMONCell(CellID, amp, celltime, isLowGain ? o2::emcal::ChannelType_t::LOW_GAIN : o2::emcal::ChannelType_t::HIGH_GAIN, currentchannel.getHardwareAddress(), position.mFeeID, mMergeLGHG);
+    } else {
+      currentEvent.setCell(CellID, amp, celltime, chantype, currentchannel.getHardwareAddress(), position.mFeeID, mMergeLGHG);
+    }
+  } catch (CaloRawFitter::RawFitterError_t& fiterror) {
+    handleFitError(fiterror, position.mFeeID, CellID, currentchannel.getHardwareAddress());
+  }
+}
+
+void RawToCellConverterSpec::addTRUChannelToEvent(o2::emcal::EventContainer& currentEvent, const o2::emcal::Channel& currentchannel, const LocalPosition& position)
+{
+  auto tru = mTriggerMapping->getTRUIndexFromOnlineHardareAddree(currentchannel.getHardwareAddress(), position.mFeeID, position.mSupermoduleID);
+  if (position.mColumn >= 96 && position.mColumn <= 105) {
+    auto& trudata = currentEvent.getTRUData(tru);
+    // Trigger patch information encoded columns 95-105
+    for (auto& bunch : currentchannel.getBunches()) {
+      LOG(debug) << "Found bunch of length " << static_cast<int>(bunch.getBunchLength()) << " with start time " << static_cast<int>(bunch.getStartTime()) << " (column " << static_cast<int>(position.mColumn) << ")";
+      auto l0time = bunch.getStartTime();
+      int isample = 0;
+      for (auto& adc : bunch.getADC()) {
+        // patch word might be in any of the samples, need to check all of them
+        // in case of colum 105 the first 6 bits are the patch word, the remaining 4 bits are the header word
+        if (adc == 0) {
+          isample++;
+          continue;
+        }
+        if (position.mColumn == 105) {
+          std::bitset<6> patchBits(adc & 0x3F);
+          std::bitset<4> headerbits((adc >> 6) & 0xF);
+          for (auto localindex = 0; localindex < patchBits.size(); localindex++) {
+            if (patchBits.test(localindex)) {
+              auto globalindex = (position.mColumn - 96) * 10 + localindex;
+              LOG(debug) << "Found patch with index " << globalindex << " in sample " << isample;
+              // std::cout << "Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
+              trudata.setPatch(globalindex, bunch.getStartTime() - isample);
+            }
+          }
+          if (headerbits.test(2)) {
+            LOG(debug) << "TRU " << tru << ": Found TRU fired (" << tru << ") in sample " << isample;
+            // std::cout << "TRU " << tru << ": Found TRU fired (" << tru << ") in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
+            trudata.setFired(true);
+            trudata.setL0time(bunch.getStartTime() - isample);
+          }
+        } else {
+          std::bitset<10> patchBits(adc & 0x3FF);
+          for (auto localindex = 0; localindex < patchBits.size(); localindex++) {
+            if (patchBits.test(localindex)) {
+              auto globalindex = (position.mColumn - 96) * 10 + localindex;
+              LOG(debug) << "TRU " << tru << ": Found patch with index " << globalindex << " in sample " << isample;
+              // std::cout << "TRU " << tru << ": Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
+              trudata.setPatch(globalindex, bunch.getStartTime() - isample);
+            }
+          }
+        }
+        isample++;
+      }
+    }
+  } else {
+    auto absFastOR = mTriggerMapping->getAbsFastORIndexFromIndexInTRU(tru, position.mColumn);
+    for (auto& bunch : currentchannel.getBunches()) {
+      // FastOR data reversed internally (positive in time direction)
+      // -> Start time marks the first timebin, consequently it must be also reversed.
+      // std::cout << "Adding non-reversed FastOR time series for FastOR " << absFastOR << " (TRU " << tru << ", index " << static_cast<int>(position.mColumn) << ") with start time " << static_cast<int>(bunch.getStartTime()) << " (reversed " << bunch.getStartTime() + 1 - bunch.getADC().size() << "): ";
+      // for (auto adc : bunch.getADC()) {
+      //  std::cout << adc << ", ";
+      //}
+      // std::cout << std::endl;
+      currentEvent.setFastOR(absFastOR, bunch.getStartTime(), bunch.getADC());
+    }
+  }
+}
+
+std::tuple<RawToCellConverterSpec::TRUContainer, RawToCellConverterSpec::PatchContainer> RawToCellConverterSpec::buildL0Patches(const EventContainer& currentevent) const
+{
+  LOG(debug) << "Reconstructing patches for Orbit " << currentevent.getInteractionRecord().orbit << ", BC " << currentevent.getInteractionRecord().bc;
+  TRUContainer eventTRUs;
+  PatchContainer eventPatches;
+  auto& fastOrs = currentevent.getTimeSeriesContainer();
+  std::set<uint16_t> foundFastOrs;
+  for (auto fastor : fastOrs) {
+    foundFastOrs.insert(fastor.first);
+  }
+  for (std::size_t itru = 0; itru < TriggerMappingV2::ALLTRUS; itru++) {
+    auto& currenttru = currentevent.readTRUData(itru);
+    if (!currenttru.hasAnyPatch()) {
+      continue;
+    }
+    auto l0time = currenttru.getL0time();
+    LOG(debug) << "Found patches in TRU " << itru << ", fired:  " << (currenttru.isFired() ? "yes" : "no") << ", L0 time " << static_cast<int>(l0time);
+    uint8_t npatches = 0;
+    for (auto ipatch = 0; ipatch < o2::emcal::TriggerMappingV2::PATCHESINTRU; ipatch++) {
+      if (currenttru.hasPatch(ipatch)) {
+        auto patchtime = currenttru.getPatchTime(ipatch);
+        LOG(debug) << "Found patch " << ipatch << " in TRU " << itru << " with time " << static_cast<int>(patchtime);
+        auto fastorStart = mTriggerMapping->getAbsFastORIndexFromIndexInTRU(itru, ipatch);
+        auto fastORs = mTriggerMapping->getFastORIndexFromL0Index(itru, ipatch, 4);
+        std::array<const FastORTimeSeries*, 4> fastors;
+        std::fill(fastors.begin(), fastors.end(), nullptr);
+        int indexFastorInTRU = 0;
+        for (auto fastor : fastORs) {
+          auto [truID, fastorTRU] = mTriggerMapping->getTRUFromAbsFastORIndex(fastor);
+          // std::cout << "Patch has abs FastOR " << fastor << " -> " << fastorTRU << " (in TRU)" << std::endl;
+          auto timeseriesFound = fastOrs.find(fastor);
+          if (timeseriesFound != fastOrs.end()) {
+            LOG(debug) << "Adding FastOR (" << indexFastorInTRU << ") with index " << fastor << " to patch";
+            fastors[indexFastorInTRU] = &(timeseriesFound->second);
+            indexFastorInTRU++;
+          }
+        }
+        auto [patchADC, recpatchtime] = reconstructTriggerPatch(fastors);
+        // Correct for bit shift 12->10 bits due to ALTRO format
+        patchADC = patchADC << 2;
+        LOG(debug) << "Reconstructed patch at index " << ipatch << " with peak time " << static_cast<int>(recpatchtime) << " (time sample " << static_cast<int>(patchtime) << ") and energy " << patchADC;
+        eventPatches.push_back({static_cast<uint8_t>(itru), static_cast<uint8_t>(ipatch), patchtime, patchADC});
+      }
+    }
+    eventTRUs.push_back({static_cast<uint8_t>(itru), static_cast<uint8_t>(l0time), currenttru.isFired(), npatches});
+  }
+  return std::make_tuple(eventTRUs, eventPatches);
+}
+
+std::vector<o2::emcal::CompressedL0TimeSum> RawToCellConverterSpec::buildL0Timesums(const o2::emcal::EventContainer& currentevent, uint8_t l0time) const
+{
+  std::vector<o2::emcal::CompressedL0TimeSum> timesums;
+  for (const auto& [fastorID, timeseries] : currentevent.getTimeSeriesContainer()) {
+    timesums.push_back({fastorID, static_cast<uint16_t>(timeseries.calculateL1TimeSum(l0time) << 2)});
+  }
+  return timesums;
+}
+
+std::tuple<uint16_t, uint8_t> RawToCellConverterSpec::reconstructTriggerPatch(const gsl::span<const FastORTimeSeries*> fastors) const
+{
+  constexpr size_t INTEGRATE_SAMPLES = 4,
+                   MAX_SAMPLES = 12;
+  double maxpatchenergy = 0;
+  uint8_t foundtime = 0;
+  for (size_t itime = 0; itime < MAX_SAMPLES - INTEGRATE_SAMPLES; ++itime) {
+    double currenttimesum = 0;
+    for (size_t isample = 0; isample < INTEGRATE_SAMPLES; ++isample) {
+      for (auto ifastor = 0; ifastor < fastors.size(); ++ifastor) {
+        if (fastors[ifastor]) {
+          currenttimesum += fastors[ifastor]->getADCs()[itime + isample];
+        }
+      }
+    }
+    if (currenttimesum > maxpatchenergy) {
+      maxpatchenergy = currenttimesum;
+      foundtime = itime;
+    }
+  }
+
+  return std::make_tuple(maxpatchenergy, foundtime);
 }
 
 int RawToCellConverterSpec::bookEventCells(const gsl::span<const o2::emcal::RecCellInfo>& cells, bool isLELDMON)
@@ -719,14 +908,22 @@ void RawToCellConverterSpec::handleMinorPageError(const RawReaderMemory::MinorEr
   }
 }
 
-void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
+void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx) const
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification}, cells);
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification}, triggers);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification}, mOutputCells);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification}, mOutputTriggerRecords);
   if (mCreateRawDataErrors) {
-    LOG(debug) << "Sending " << decodingErrors.size() << " decoding errors";
-    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification}, decodingErrors);
+    LOG(debug) << "Sending " << mOutputDecoderErrors.size() << " decoding errors";
+    ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification}, mOutputDecoderErrors);
+  }
+  if (mDoTriggerReconstruction) {
+    ctx.outputs().snapshot(framework::Output{originEMC, "TRUS", mSubspecification}, mOutputTRUs);
+    ctx.outputs().snapshot(framework::Output{originEMC, "TRUSTRGR", mSubspecification}, mOutputTRUTriggerRecords);
+    ctx.outputs().snapshot(framework::Output{originEMC, "PATCHES", mSubspecification}, mOutputPatches);
+    ctx.outputs().snapshot(framework::Output{originEMC, "PATCHESTRGR", mSubspecification}, mOutputPatchTriggerRecords);
+    ctx.outputs().snapshot(framework::Output{originEMC, "FASTORS", mSubspecification}, mOutputTimesums);
+    ctx.outputs().snapshot(framework::Output{originEMC, "FASTORSTRGR", mSubspecification}, mOutputTimesumTriggerRecords);
   }
 }
 
@@ -739,7 +936,7 @@ RawToCellConverterSpec::ModuleIndexException::ModuleIndexException(int moduleInd
 
 RawToCellConverterSpec::ModuleIndexException::ModuleIndexException(int moduleIndex) : mModuleType(ModuleType_t::LEDMON_MODULE), mIndex(moduleIndex) {}
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, int subspecification)
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, bool disableTriggerReconstruction, int subspecification)
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   std::vector<o2::framework::OutputSpec> outputs;
@@ -748,6 +945,14 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   outputs.emplace_back(originEMC, "CELLSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
   if (!disableDecodingErrors) {
     outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+  }
+  if (!disableTriggerReconstruction) {
+    outputs.emplace_back(originEMC, "TRUS", subspecification, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back(originEMC, "TRUSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back(originEMC, "PATCHES", subspecification, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back(originEMC, "PATCHESTRGR", subspecification, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back(originEMC, "FASTORS", subspecification, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back(originEMC, "FASTORSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
   }
 
   std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Timeframe}};
@@ -764,7 +969,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
     "EMCALRawToCellConverterSpec",
     inputs,
     outputs,
-    o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors, calibhandler),
+    o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors, !disableTriggerReconstruction, calibhandler),
     o2::framework::Options{
       {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
       {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},

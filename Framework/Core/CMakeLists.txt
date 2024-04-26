@@ -11,6 +11,8 @@
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
+                       src/AnalysisHelpers.cxx
+                       src/AlgorithmSpec.cxx
                        src/ArrowSupport.cxx
                        src/ArrowTableSlicingCache.cxx
                        src/AnalysisDataModel.cxx
@@ -260,6 +262,11 @@ o2_add_test(Timers NAME test_Framework_test_Timers
             SOURCES test/test_Timers.cxx
             COMPONENT_NAME Framework
             LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
+
+# FIXME: make this a proper test, when it actually does not hang.
+o2_add_executable(test-framework-ConsumeWhenAllOrdered
+            SOURCES test/test_ConsumeWhenAllOrdered.cxx
             PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_test(SuppressionGenerator NAME test_Framework_test_SuppressionGenerator

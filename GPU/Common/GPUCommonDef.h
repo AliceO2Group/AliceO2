@@ -40,20 +40,21 @@
   #endif
 #endif
 
-#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) //No GPU code for ROOT
+#if !(defined(__CINT__) || defined(__ROOTCINT__) || defined(__CLING__) || defined(__ROOTCLING__) || defined(G__ROOT)) // No GPU code for ROOT
   #if defined(__CUDACC__) || defined(__OPENCL__) || defined(__HIPCC__) || defined(__OPENCL_HOST__)
-    #define GPUCA_GPUCODE //Compiled by GPU compiler
+    #define GPUCA_GPUCODE // Compiled by GPU compiler
   #endif
 
   #if defined(__CUDA_ARCH__) || defined(__OPENCL__) || defined(__HIP_DEVICE_COMPILE__)
-    #define GPUCA_GPUCODE_DEVICE //Executed on device
+    #define GPUCA_GPUCODE_DEVICE // Executed on device
   #endif
 #endif
 
-//Definitions for C++11 features not supported by CINT / OpenCL
+// Definitions for C++11 features not supported by CINT / OpenCL
 #ifdef GPUCA_NOCOMPAT
   #define CON_DELETE = delete
   #define CON_DEFAULT = default
+  #define GPUCA_CPP11_INIT(...) __VA_ARGS__
   #if defined(__cplusplus) && __cplusplus >= 201703L
     #define CONSTEXPR constexpr
   #else
@@ -63,6 +64,7 @@
   #define CON_DELETE
   #define CON_DEFAULT
   #define CONSTEXPR
+  #define GPUCA_CPP11_INIT(...)
 #endif
 #if defined(__ROOT__) && !defined(GPUCA_NOCOMPAT)
   #define VOLATILE // ROOT5 has a problem with volatile in CINT
@@ -70,8 +72,8 @@
   #define VOLATILE volatile
 #endif
 
-//Set AliRoot / O2 namespace
-#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_GPULIBRARY) || defined (GPUCA_GPUCODE)
+// Set AliRoot / O2 namespace
+#if defined(GPUCA_STANDALONE) || (defined(GPUCA_O2_LIB) && !defined(GPUCA_O2_INTERFACE)) || defined(GPUCA_ALIROOT_LIB) || defined (GPUCA_GPUCODE)
   #define GPUCA_ALIGPUCODE
 #endif
 #ifdef GPUCA_ALIROOT_LIB
@@ -85,12 +87,6 @@
 #elif defined(__CUDACC__) || defined(__HIPCC__)
   #define GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
 #endif
-#if (defined(__HIPCC__) && defined(GPUCA_HIP_CONSTANT_AS_ARGUMENT))
-  #define GPUCA_CONSTANT_AS_ARGUMENT
-  #ifdef GPUCA_NO_CONSTANT_MEMORY
-    #error Invalid settings
-  #endif
-#endif
 #if !defined(GPUCA_HAVE_O2HEADERS) && (defined(GPUCA_O2_LIB) || (!defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_STANDALONE)))
   #define GPUCA_HAVE_O2HEADERS
 #endif
@@ -102,7 +98,7 @@
 #endif
 
 
-//API Definitions for GPU Compilation
+// API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"
 
 // clang-format on

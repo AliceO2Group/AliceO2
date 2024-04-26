@@ -555,6 +555,31 @@ std::string TrackParametrization<value_T>::asString() const
   return fmt::format("X:{:+.4e} Alp:{:+.3e} Par: {:+.4e} {:+.4e} {:+.4e} {:+.4e} {:+.4e} |Q|:{:d} {:s}",
                      getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
 }
+
+//_____________________________________________________________
+template <typename value_T>
+std::string TrackParametrization<value_T>::asStringHexadecimal()
+{
+  auto _X = getX();
+  auto _Alpha = getAlpha();
+  auto _Y = getY();
+  auto _Z = getZ();
+  auto _Snp = getSnp();
+  auto _Tgl = getTgl();
+  float _Q2Pt = getQ2Pt();
+  float _AbsCharge = getAbsCharge();
+  // print parameters as string
+  return fmt::format("X:{:x} Alp:{:x} Par: {:x} {:x} {:x} {:x} {:x} |Q|:{:x} {:s}",
+                     reinterpret_cast<const unsigned int&>(_X),
+                     reinterpret_cast<const unsigned int&>(_Alpha),
+                     reinterpret_cast<const unsigned int&>(_Y),
+                     reinterpret_cast<const unsigned int&>(_Z),
+                     reinterpret_cast<const unsigned int&>(_Snp),
+                     reinterpret_cast<const unsigned int&>(_Tgl),
+                     reinterpret_cast<const unsigned int&>(_Q2Pt),
+                     reinterpret_cast<const unsigned int&>(_AbsCharge),
+                     getPID().getName());
+}
 #endif
 
 //______________________________________________________________
@@ -564,9 +589,30 @@ GPUd() void TrackParametrization<value_T>::printParam() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
-#else
-  printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d",
-         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge());
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
+  printf("X:%+.4e Alp:%+.3e Par: %+.4e %+.4e %+.4e %+.4e %+.4e |Q|:%d %s",
+         getX(), getAlpha(), getY(), getZ(), getSnp(), getTgl(), getQ2Pt(), getAbsCharge(), getPID().getName());
+#endif
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrization<value_T>::printParamHexadecimal()
+{
+  // print parameters
+#ifndef GPUCA_ALIGPUCODE
+  printf("%s\n", asStringHexadecimal().c_str());
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
+  printf("X:%x Alp:%x Par: %x %x %x %x %x |Q|:%x %s",
+         gpu::CAMath::Float2UIntReint(getX()),
+         gpu::CAMath::Float2UIntReint(getAlpha()),
+         gpu::CAMath::Float2UIntReint(getY()),
+         gpu::CAMath::Float2UIntReint(getZ()),
+         gpu::CAMath::Float2UIntReint(getSnp()),
+         gpu::CAMath::Float2UIntReint(getTgl()),
+         gpu::CAMath::Float2UIntReint(getQ2Pt()),
+         gpu::CAMath::Float2UIntReint(getAbsCharge()),
+         getPID().getName());
 #endif
 }
 
@@ -757,7 +803,7 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
 
 //______________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool anglecorr, value_t dedx)
+GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool anglecorr)
 {
   //------------------------------------------------------------------
   // This function corrects the track parameters for the energy loss in crossed material.
@@ -767,41 +813,77 @@ GPUd() bool TrackParametrization<value_T>::correctForELoss(value_t xrho, bool an
   // "dedx" - mean enery loss (GeV/(g/cm^2), if <=kCalcdEdxAuto : calculate on the fly
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
-  constexpr value_t kMaxELossFrac = 0.3f; // max allowed fractional eloss
-  constexpr value_t kMinP = 0.01f;        // kill below this momentum
+  constexpr value_t kMinP = 0.01f; // kill below this momentum
 
-  // Apply angle correction, if requested
-  if (anglecorr) {
-    value_t csp2 = (1.f - getSnp()) * (1.f + getSnp()); // cos(phi)^2
-    value_t cst2I = (1.f + getTgl() * getTgl());        // 1/cos(lambda)^2
-    value_t angle = gpu::CAMath::Sqrt(cst2I / (csp2));
-    xrho *= angle;
-  }
-  value_t p = getP();
-  value_t p2 = p * p;
-  value_t e2 = p2 + getPID().getMass2();
-  value_t beta2 = p2 / e2;
-
-  // Calculating the energy loss corrections************************
-  if ((xrho != 0.f) && (beta2 < 1.f)) {
-    if (dedx < kCalcdEdxAuto + constants::math::Almost1) { // request to calculate dedx on the fly
-      dedx = BetheBlochSolid(p / getPID().getMass());
-      if (mAbsCharge != 1) {
-        dedx *= mAbsCharge * mAbsCharge;
+  auto m = getPID().getMass();
+  if (m > 0 && xrho != 0.f) {
+    // Apply angle correction, if requested
+    if (anglecorr) {
+      value_t csp2 = (1.f - getSnp()) * (1.f + getSnp()); // cos(phi)^2
+      value_t cst2I = (1.f + getTgl() * getTgl());        // 1/cos(lambda)^2
+      value_t angle = gpu::CAMath::Sqrt(cst2I / (csp2));
+      xrho *= angle;
+    }
+    int charge2 = getAbsCharge() * getAbsCharge();
+    value_t p = getP(), p0 = p, p2 = p * p, e2 = p2 + getPID().getMass2(), massInv = 1. / m, bg = p * massInv;
+    value_t e = gpu::CAMath::Sqrt(e2), ekin = e - m, dedx = getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+    value_t dedxDer = 0., dedx1 = dedx;
+#endif
+    if (charge2 != 1) {
+      dedx *= charge2;
+    }
+    value_t dE = dedx * xrho;
+    int na = 1 + int(gpu::CAMath::Abs(dE) / ekin * ELoss2EKinThreshInv);
+    if (na > MaxELossIter) {
+      na = MaxELossIter;
+    }
+    if (na > 1) {
+      dE /= na;
+      xrho /= na;
+#ifdef _BB_NONCONST_CORR_
+      dedxDer = getBetheBlochSolidDerivativeApprox(dedx1, bg); // require correction for non-constantness of dedx vs betagamma
+      if (charge2 != 1) {
+        dedxDer *= charge2;
+      }
+#endif
+    }
+    while (na--) {
+#ifdef _BB_NONCONST_CORR_
+      if (dedxDer != 0.) { // correction for non-constantness of dedx vs beta*gamma (in linear approximation): for a single step dE -> dE * [(exp(dedxDer) - 1)/dedxDer]
+        if (xrho < 0) {
+          dedxDer = -dedxDer; // E.loss ( -> positive derivative)
+        }
+        auto corrC = (gpu::CAMath::Exp(dedxDer) - 1.) / dedxDer;
+        dE *= corrC;
+      }
+#endif
+      e += dE;
+      if (e > m) { // stopped
+        p = gpu::CAMath::Sqrt(e * e - getPID().getMass2());
+      } else {
+        return false;
+      }
+      if (na) {
+        bg = p * massInv;
+        dedx = getdEdxBBOpt(bg);
+#ifdef _BB_NONCONST_CORR_
+        dedxDer = getBetheBlochSolidDerivativeApprox(dedx, bg);
+#endif
+        if (charge2 != 1) {
+          dedx *= charge2;
+#ifdef _BB_NONCONST_CORR_
+          dedxDer *= charge2;
+#endif
+        }
+        dE = dedx * xrho;
       }
     }
 
-    value_t dE = dedx * xrho;
-    value_t e = gpu::CAMath::Sqrt(e2);
-    if (gpu::CAMath::Abs(dE) > kMaxELossFrac * e) {
-      return false; // 30% energy loss is too much!
-    }
-    value_t eupd = e + dE;
-    value_t pupd2 = eupd * eupd - getPID().getMass2();
-    if (pupd2 < kMinP * kMinP) {
+    if (p < kMinP) {
       return false;
     }
-    setQ2Pt(getQ2Pt() * p / gpu::CAMath::Sqrt(pupd2));
+    setQ2Pt(getQ2Pt() * p0 / p);
   }
 
   return true;

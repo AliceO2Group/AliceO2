@@ -261,9 +261,6 @@ void displayDeviceInspector(DeviceSpec const& spec,
     ImGui::Text("Pid: %d (exit status: %d)", info.pid, info.exitStatus);
   }
   ImGui::Text("Device state: %s", info.deviceState.data());
-#ifdef DPL_ENABLE_TRACING
-  ImGui::Text("Tracy Port: %d", info.tracyPort);
-#endif
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button(ICON_FA_BUG "Attach debugger")) {
@@ -324,16 +321,6 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 #endif
 
-#if DPL_ENABLE_TRACING
-  ImGui::SameLine();
-  if (ImGui::Button("Tracy")) {
-    std::string tracyPort = std::to_string(info.tracyPort);
-    auto cmd = fmt::format("tracy-profiler -p {} -a 127.0.0.1 &", info.tracyPort);
-    LOG(debug) << cmd;
-    int retVal = system(cmd.c_str());
-    (void)retVal;
-  }
-#endif
   if (control.controller) {
     if (ImGui::Button("Offer SHM")) {
       control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));
@@ -354,6 +341,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
   deviceInfoTable("Outputs:", ProcessingStateId::OUTPUT_MATCHERS, states, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
+  if (ImGui::CollapsingHeader("Labels", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (auto& label : spec.labels) {
+      ImGui::Text("%s", label.value.c_str());
+    }
+  }
   servicesTable("Services", spec.services);
   if (ImGui::CollapsingHeader("Command line arguments", ImGuiTreeNodeFlags_DefaultOpen)) {
     static ImGuiTextFilter filter;
@@ -397,6 +389,19 @@ void displayDeviceInspector(DeviceSpec const& spec,
     ImGui::SameLine();
     if (ImGui::Button("SIGUSR2")) {
       kill(info.pid, SIGUSR2);
+    }
+  }
+
+  bool logsChanged = false;
+  if (ImGui::CollapsingHeader("Signposts", ImGuiTreeNodeFlags_DefaultOpen)) {
+    logsChanged = ImGui::CheckboxFlags("Device", &control.logStreams, DeviceState::LogStreams::DEVICE_LOG);
+    logsChanged = ImGui::CheckboxFlags("Completion", &control.logStreams, DeviceState::LogStreams::COMPLETION_LOG);
+    logsChanged = ImGui::CheckboxFlags("Monitoring", &control.logStreams, DeviceState::LogStreams::MONITORING_SERVICE_LOG);
+    logsChanged = ImGui::CheckboxFlags("DataProcessorContext", &control.logStreams, DeviceState::LogStreams::DATA_PROCESSOR_CONTEXT_LOG);
+    logsChanged = ImGui::CheckboxFlags("StreamContext", &control.logStreams, DeviceState::LogStreams::STREAM_CONTEXT_LOG);
+    if (logsChanged && control.controller) {
+      std::string cmd = fmt::format("/log-streams {}", control.logStreams);
+      control.controller->write(cmd.c_str(), cmd.size());
     }
   }
 

@@ -23,11 +23,9 @@
 #include <TStyle.h>
 #include <TGaxis.h>
 
-#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
-#include "Framework/Logger.h"
-
 #endif
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 void CheckDuplicates(TString tracfile = "./o2trac_its.root", TString output = ".", TString rootSave = "", int rofStart = 0, int rofEnd = -1, int windowSize = 2, bool includeSame = 1)
 {

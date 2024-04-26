@@ -19,6 +19,7 @@
 #include "EMCALSimulation/DigitsWriteoutBuffer.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "TMath.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::emcal;
 
@@ -80,7 +81,7 @@ void DigitsWriteoutBuffer::addDigits(unsigned int towerID, std::vector<LabeledDi
 // is removed and pushed at the end of the past dequeue. At the same time a new entry in
 // the future dequeue is pushed at the end, and - in case the past dequeue reached 15 entries
 // the first entry of the past dequeue is removed.
-void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record)
+void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record, bool trigger)
 {
 
   unsigned long eventTime = record.getTimeNS();
@@ -124,7 +125,8 @@ void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record)
 
   // If we have a trigger, all the time bins in the future buffer will be set to record mode
   // the last time bin will the end of the readout window since it will be mTriggerTime + 1500 ns
-  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime) || mFirstEvent) {
+  if (trigger && ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime) || mFirstEvent)) {
+    LOG(debug) << "Trigger received and accepted";
     mTriggerTime = eventTime;
     mTimedDigitsFuture.front().mTriggerColl = true;
     mTimedDigitsFuture.front().mInterRecord = record;
@@ -142,8 +144,8 @@ void DigitsWriteoutBuffer::forwardMarker(o2::InteractionTimeRecord record)
   }
 
   // If we have a pre-trigger collision, all the time bins in the future buffer will be set to record mode
-  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime)) {
-    std::cout << "Pre-trigger collision\n";
+  if ((eventTime - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime) || mFirstEvent) {
+    LOG(debug) << "Pre-trigger collision";
     long timeStamp = (eventTime / 100) * 100; /// This is to make the event time multiple of 100s
     for (auto& iNode : mTimedDigitsFuture) {
       long diff = (timeStamp - eventTime);

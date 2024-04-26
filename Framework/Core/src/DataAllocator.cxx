@@ -19,6 +19,8 @@
 #include "Framework/FairMQResizableBuffer.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/StreamContext.h"
+#include "Framework/Signpost.h"
 #include "Headers/Stack.h"
 
 #include <fairmq/Device.h>
@@ -31,6 +33,9 @@
 #include <TClonesArray.h>
 
 #include <utility>
+
+O2_DECLARE_DYNAMIC_LOG(stream_context);
+O2_DECLARE_DYNAMIC_LOG(parts);
 
 namespace o2::framework
 {
@@ -47,10 +52,15 @@ DataAllocator::DataAllocator(ServiceRegistryRef contextRegistry)
 RouteIndex DataAllocator::matchDataHeader(const Output& spec, size_t timeslice)
 {
   auto& allowedOutputRoutes = mRegistry.get<DeviceSpec const>().outputs;
+  auto& stream = mRegistry.get<o2::framework::StreamContext>();
   // FIXME: we should take timeframeId into account as well.
   for (auto ri = 0; ri < allowedOutputRoutes.size(); ++ri) {
     auto& route = allowedOutputRoutes[ri];
     if (DataSpecUtils::match(route.matcher, spec.origin, spec.description, spec.subSpec) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
+      stream.routeCreated.at(ri) = true;
+      auto sid = _o2_signpost_id_t{(int64_t)&stream};
+      O2_SIGNPOST_EVENT_EMIT(stream_context, sid, "data_allocator", "Route %" PRIu64 " (%{public}s) created for timeslice %" PRIu64,
+                             (uint64_t)ri, DataSpecUtils::describe(route.matcher).c_str(), (uint64_t)timeslice);
       return RouteIndex{ri};
     }
   }
@@ -116,12 +126,12 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
   return o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph, spec.metaHeader});
 }
 
-void DataAllocator::addPartToContext(fair::mq::MessagePtr&& payloadMessage, const Output& spec,
+void DataAllocator::addPartToContext(RouteIndex routeIndex, fair::mq::MessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  auto& timingInfo = mRegistry.get<TimingInfo>();
-  RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto headerMessage = headerMessageFromOutput(spec, routeIndex, serializationMethod, 0);
+  O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerMessage->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %p", headerMessage->GetData());
 
   // FIXME: this is kind of ugly, we know that we can change the content of the
   // header message because we have just created it, but the API declares it const
@@ -143,6 +153,8 @@ void DataAllocator::adopt(const Output& spec, std::string* ptr)
   // the correct payload size is set later when sending the
   // StringContext, see DataProcessor::doSend
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+  O2_SIGNPOST_ID_FROM_POINTER(pid, parts, header->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "addPartToContext %p", header->GetData());
   mRegistry.get<StringContext>().addString(std::move(header), std::move(payload), routeIndex);
   assert(payload.get() == nullptr);
 }
@@ -199,6 +211,8 @@ void DataAllocator::adopt(const Output& spec, LifetimeHolder<TableBuilder>& tb)
   auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
+  O2_SIGNPOST_ID_FROM_POINTER(pid, parts, header->GetData());
+  O2_SIGNPOST_START(parts, pid, "parts", "adopt %p", header->GetData());
   auto& context = mRegistry.get<ArrowContext>();
 
   auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {
@@ -281,7 +295,7 @@ void DataAllocator::snapshot(const Output& spec, const char* payload, size_t pay
   fair::mq::MessagePtr payloadMessage(proxy.createOutputMessage(routeIndex, payloadSize));
   memcpy(payloadMessage->GetData(), payload, payloadSize);
 
-  addPartToContext(std::move(payloadMessage), spec, serializationMethod);
+  addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationMethod);
 }
 
 Output DataAllocator::getOutputByBind(OutputRef&& ref)
@@ -345,7 +359,7 @@ void DataAllocator::cookDeadBeef(const Output& spec)
   auto deadBeefOutput = Output{spec.origin, spec.description, 0xdeadbeef};
   auto headerMessage = headerMessageFromOutput(deadBeefOutput, routeIndex, header::gSerializationMethodNone, 0);
 
-  addPartToContext(proxy.createOutputMessage(routeIndex, 0), deadBeefOutput, header::gSerializationMethodNone);
+  addPartToContext(routeIndex, proxy.createOutputMessage(routeIndex, 0), deadBeefOutput, header::gSerializationMethodNone);
 }
 
 } // namespace o2::framework

@@ -86,8 +86,8 @@ Int_t Digit::getAmplitudeADC(ChannelType_t ctype) const
     case ChannelType_t::TRU: {
       int ampADC = std::floor(mAmplitudeGeV / constants::EMCAL_TRU_ADCENERGY);
       // truncate energy in case dynamic range is saturated
-      if (ampADC >= constants::EMCAL_TRU_ADCENERGY) {
-        return constants::EMCAL_TRU_ADCENERGY;
+      if (ampADC >= constants::MAX_RANGE_ADC) {
+        return constants::MAX_RANGE_ADC;
       }
       return ampADC;
     };

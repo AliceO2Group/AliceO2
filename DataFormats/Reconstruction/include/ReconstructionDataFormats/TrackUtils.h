@@ -33,8 +33,11 @@ namespace track
 {
 // helper function
 template <typename value_T = float>
-GPUd() value_T BetheBlochSolid(value_T bg, value_T rho = 2.33, value_T kp1 = 0.20, value_T kp2 = 3.00, value_T meanI = 173e-9,
-                               value_T meanZA = 0.49848);
+GPUd() value_T BetheBlochSolid(value_T bg, value_T rho = 2.33, value_T kp1 = 0.20, value_T kp2 = 3.00, value_T meanI = 173e-9, value_T meanZA = 0.49848);
+
+template <typename value_T = float>
+GPUd() value_T BetheBlochSolidOpt(value_T bg);
+
 template <typename value_T = float>
 GPUd() void g3helx3(value_T qfield, value_T step, gpu::gpustd::array<value_T, 7>& vect);
 
@@ -121,11 +124,11 @@ GPUd() value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2
   static_assert(std::is_floating_point_v<value_T>);
 #endif
 
-  constexpr value_T mK = 0.307075e-3f; // [GeV*cm^2/g]
-  constexpr value_T me = 0.511e-3f;    // [GeV/c^2]
+  constexpr value_T mK = 0.307075e-3; // [GeV*cm^2/g]
+  constexpr value_T me = 0.511e-3;    // [GeV/c^2]
   kp1 *= 2.303f;
   kp2 *= 2.303f;
-  value_T bg2 = bg * bg;
+  value_T bg2 = bg * bg, beta2 = bg2 / (1 + bg2);
   value_T maxT = 2.f * me * bg2; // neglecting the electron mass
 
   //*** Density effect
@@ -138,7 +141,75 @@ GPUd() value_T BetheBlochSolid(value_T bg, value_T rho, value_T kp1, value_T kp2
     double r = (kp2 - x) / (kp2 - kp1);
     d2 = lhwI + x - 0.5f + (0.5f - lhwI - kp1) * r * r * r;
   }
-  return mK * meanZA * (1 + bg2) / bg2 * (0.5f * gpu::CAMath::Log(2 * me * bg2 * maxT / (meanI * meanI)) - bg2 / (1 + bg2) - d2);
+  auto dedx = mK * meanZA / beta2 * (0.5f * gpu::CAMath::Log(2 * me * bg2 * maxT / (meanI * meanI)) - beta2 - d2);
+  return dedx > 0. ? dedx : 0.;
+}
+
+//____________________________________________________
+template <typename value_T>
+GPUd() value_T BetheBlochSolidOpt(value_T bg)
+{
+  //
+  // This is the parameterization of the Bethe-Bloch formula inspired by Geant with hardcoded constants and better optimization
+  //
+  // bg  - beta*gamma
+  // rho - density [g/cm^3]
+  // kp1 - density effect first junction point
+  // kp2 - density effect second junction point
+  // meanI - mean excitation energy [GeV]
+  // meanZA - mean Z/A
+  //
+  // The default values for the kp* parameters are for silicon.
+  // The returned value is in [GeV/(g/cm^2)].
+  //
+  //  constexpr value_T rho = 2.33;
+  //  constexpr value_T meanI = 173e-9;
+  //  constexpr value_T me = 0.511e-3;    // [GeV/c^2]
+
+  constexpr value_T mK = 0.307075e-3; // [GeV*cm^2/g]
+  constexpr value_T kp1 = 0.20 * 2.303;
+  constexpr value_T kp2 = 3.00 * 2.303;
+  constexpr value_T meanZA = 0.49848;
+  constexpr value_T lhwI = -1.7175226;         // gpu::CAMath::Log(28.816 * 1e-9 * gpu::CAMath::Sqrt(rho * meanZA) / meanI);
+  constexpr value_T log2muTomeanI = 8.6839805; // gpu::CAMath::Log( 2. * me / meanI);
+
+  value_T bg2 = bg * bg, beta2 = bg2 / (1. + bg2);
+
+  //*** Density effect
+  value_T d2 = 0.;
+  const value_T x = gpu::CAMath::Log(bg);
+  if (x > kp2) {
+    d2 = lhwI - 0.5f + x;
+  } else if (x > kp1) {
+    value_T r = (kp2 - x) / (kp2 - kp1);
+    d2 = lhwI - 0.5 + x + (0.5 - lhwI - kp1) * r * r * r;
+  }
+  auto dedx = mK * meanZA / beta2 * (log2muTomeanI + x + x - beta2 - d2);
+  return dedx > 0. ? dedx : 0.;
+}
+
+//____________________________________________________
+template <typename value_T>
+GPUd() value_T inline BetheBlochSolidDerivative(value_T dedx, value_T bg)
+{
+  //
+  // This is approximate derivative of the BB over betagamm, NO check for the consistency of the provided dedx and bg is done
+  // Charge 1 particle is assumed for the provied dedx. For charge > 1 particles dedx/q^2 should be provided and obtained value must be scaled by q^2
+  // The call should be usually done as
+  // auto dedx = BetheBlochSolidOpt(bg);
+  // // if derivative needed
+  // auto ddedx = BetheBlochSolidDerivative(dedx, bg, bg*bg)
+  //
+  // dedx - precalculate dedx for bg
+  // bg  - beta*gamma
+  //
+  constexpr value_T mK = 0.307075e-3; // [GeV*cm^2/g]
+  constexpr value_T meanZA = 0.49848;
+  auto bg2 = bg * bg;
+  auto t1 = 1 + bg2;
+  //  auto derH = (mK * meanZA * (t1+bg2) - dedx*bg2)/(bg*t1);
+  auto derH = (mK * meanZA * (t1 + 1. / bg2) - dedx) / (bg * t1);
+  return derH + derH;
 }
 
 } // namespace track

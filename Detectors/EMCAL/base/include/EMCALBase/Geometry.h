@@ -70,6 +70,7 @@ class Geometry
 
   /// \brief Get geometry instance. It should have been set before.
   /// \return the pointer of the unique instance of the geometry
+  /// \throw GeometryNotInitializedException in case the geometry is not initialized
   static Geometry* GetInstance();
 
   /// \brief Get instance of the EMCAL geometry

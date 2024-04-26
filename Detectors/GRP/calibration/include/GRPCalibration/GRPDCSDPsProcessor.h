@@ -42,7 +42,14 @@ inline unsigned long llu2lu(std::uint64_t v) { return (unsigned long)v; }
 struct GRPEnvVariables {
 
   std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>> mEnvVars;
-
+  size_t totalEntries() const
+  {
+    size_t s = 0;
+    for (const auto& el : mEnvVars) {
+      s += el.second.size();
+    }
+    return s;
+  }
   void print()
   {
     for (const auto& el : mEnvVars) {
@@ -116,10 +123,16 @@ struct MagFieldHelper {
 struct GRPCollimators {
 
   std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>> mCollimators;
-
+  size_t totalEntries() const
+  {
+    size_t s = 0;
+    for (const auto& el : mCollimators) {
+      s += el.second.size();
+    }
+    return s;
+  }
   void print()
   {
-
     for (const auto& el : mCollimators) {
       std::printf("%-60s\n", el.first.c_str());
       for (const auto& it : el.second) {
@@ -291,7 +304,9 @@ class GRPDCSDPsProcessor
   {
     // keep only the latest measurement
     for (auto& el : mapToReset) {
-      el.second.erase(el.second.begin(), el.second.end() - 1);
+      if (el.second.begin() != el.second.end()) {
+        el.second.erase(el.second.begin(), el.second.end() - 1);
+      }
     }
   }
 

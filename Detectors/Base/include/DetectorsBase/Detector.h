@@ -29,7 +29,6 @@
 #include <typeinfo>
 #include <type_traits>
 #include <string>
-#include <TMessage.h>
 #include "CommonUtils/ShmManager.h"
 #include "CommonUtils/ShmAllocator.h"
 #include <sys/shm.h>
@@ -42,9 +41,7 @@
 
 #include <fairmq/FwdDecls.h>
 
-namespace o2
-{
-namespace base
+namespace o2::base
 {
 
 /// This is the basic class for any AliceO2 detector module, whether it is
@@ -260,17 +257,12 @@ T decodeShmMessage(fair::mq::Parts& dataparts, int index, bool*& busy)
 }
 
 // this goes into the source
-void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& channel,
-                                void* data, size_t size, void (*func_ptr)(void* data, void* hint), void* hint);
+void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& channel, void* data, TClass* cl);
 
 template <typename Container>
 void attachTMessage(Container const& hits, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
-  TMessage* tmsg = new TMessage();
-  tmsg->WriteObjectAny((void*)&hits, TClass::GetClass(typeid(hits)));
-  attachMessageBufferToParts(
-    parts, channel, tmsg->Buffer(), tmsg->BufferSize(),
-    [](void* data, void* hint) { delete static_cast<TMessage*>(hint); }, tmsg);
+  attachMessageBufferToParts(parts, channel, (void*)&hits, TClass::GetClass(typeid(hits)));
 }
 
 void* decodeTMessageCore(fair::mq::Parts& dataparts, int index);
@@ -746,7 +738,6 @@ class DetImpl : public o2::base::Detector
 
   ClassDefOverride(DetImpl, 0);
 };
-} // namespace base
-} // namespace o2
+} // namespace o2::base
 
 #endif

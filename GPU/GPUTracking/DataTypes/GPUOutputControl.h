@@ -71,6 +71,7 @@ struct GPUTrackingOutputs {
   GPUOutputControl tpcTracks;
   GPUOutputControl clusterLabels;
   GPUOutputControl sharedClusterMap;
+  GPUOutputControl tpcOccupancyMap;
   GPUOutputControl tpcTracksO2;
   GPUOutputControl tpcTracksO2ClusRefs;
   GPUOutputControl tpcTracksO2Labels;

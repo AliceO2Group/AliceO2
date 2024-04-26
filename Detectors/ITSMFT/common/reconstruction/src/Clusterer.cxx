@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <TTree.h>
 #include "Framework/Logger.h"
-#include "ITSMFTBase/GeometryTGeo.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"

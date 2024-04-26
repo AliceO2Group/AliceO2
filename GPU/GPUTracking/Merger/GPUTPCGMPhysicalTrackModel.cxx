@@ -35,7 +35,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLight(float x, float Bz, fl
 GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, float Bz, float& GPUrestrict() dLp)
 {
   //
-  // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*0.000299792458] )
+  // transport the track to X=x in magnetic field B = ( 0, 0, Bz[kG*0.000299792458f] )
   // dLp is a return value == path length / track momentum [cm/(GeV/c)]
   // the method returns error code (0 == no error)
   //
@@ -69,7 +69,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, floa
     const float k4 = 3.f / 40.f;
     // const float k6 = 5.f/112.f;
     dS = chord + chord * sa2 * (k2 + k4 * sa2);
-    // dS = sqrt(pt2)/b*2.*CAMath::ASin( sa );
+    // dS = CAMath::Sqrt(pt2)/b*2.f*CAMath::ASin( sa );
   }
 
   dLp = pti * dS; // path in XYZ / p == path in XY / pt
@@ -89,7 +89,7 @@ GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBzLightNoUpdate(float x, floa
 GPUd() int GPUTPCGMPhysicalTrackModel::PropagateToXBxByBz(float x, float Bx, float By, float Bz, float& GPUrestrict() dLp)
 {
   //
-  // transport the track to X=x in magnetic field B = ( Bx, By, Bz )[kG*0.000299792458]
+  // transport the track to X=x in magnetic field B = ( Bx, By, Bz )[kG*0.000299792458f]
   // xyzPxPyPz as well as all the additional values will change. No need to call UpdateValues() afterwards.
   // the method returns error code (0 == no error)
   //

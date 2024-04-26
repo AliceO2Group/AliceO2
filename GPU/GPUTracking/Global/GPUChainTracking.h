@@ -77,7 +77,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RegisterPermanentMemoryAndProcessors() override;
   void RegisterGPUProcessors() override;
   int Init() override;
-  int EarlyConfigure() override;
   int PrepareEvent() override;
   int Finalize() override;
   int RunChain() override;
@@ -182,16 +181,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
   const o2::base::Propagator* GetO2Propagator() const { return processors()->calibObjects.o2Propagator; }
+  const o2::base::Propagator* GetDeviceO2Propagator();
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform, std::unique_ptr<CorrectionMapsHelper>&& tpcTransformHelper);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
-  void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
+  void SetO2Propagator(const o2::base::Propagator* prop);
   void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
   void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
   void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals);
-  void SetDefaultInternalO2Propagator(bool useGPUField);
   void LoadClusterErrors();
   void SetSubOutputControl(int i, GPUOutputControl* v) { mSubOutputControls[i] = v; }
   void SetFinalInputCallback(std::function<void()> v) { mWaitForFinalInputs = v; }
@@ -206,6 +205,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     GPUCalibObjects mCalibObjects;
     char* mTpcTransformBuffer = nullptr;
     char* mTpcTransformRefBuffer = nullptr;
+    char* mTpcTransformMShapeBuffer = nullptr;
     char* mdEdxSplinesBuffer = nullptr;
     char* mMatLUTBuffer = nullptr;
     short mMemoryResFlat = -1;
@@ -216,10 +216,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
   {
-    void* slice[NSLICES]; // TODO: Proper type for events
-    void* stream[GPUCA_MAX_STREAMS];
-    void* init;
-    void* single;
+    deviceEvent slice[NSLICES];
+    deviceEvent stream[GPUCA_MAX_STREAMS];
+    deviceEvent init;
+    deviceEvent single;
   };
 
   struct outputQueueEntry {
@@ -262,6 +262,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Ptr to detector / calibration objects
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
   std::unique_ptr<TPCFastTransform> mTPCFastTransformRefU;           // Global TPC fast transformation ref object
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformMShapeU;        // Global TPC fast transformation for M-shape object
   std::unique_ptr<CorrectionMapsHelper> mTPCFastTransformHelperU;    // Global TPC fast transformation helper object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder

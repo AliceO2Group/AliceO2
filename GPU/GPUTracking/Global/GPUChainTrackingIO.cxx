@@ -309,6 +309,11 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpctransformref.dump";
     DumpFlatObjectToFile(processors()->calibObjects.fastTransformRef, f.c_str());
   }
+  if (processors()->calibObjects.fastTransformMShape != nullptr) {
+    f = dir;
+    f += "tpctransformmshape.dump";
+    DumpFlatObjectToFile(processors()->calibObjects.fastTransformMShape, f.c_str());
+  }
   if (processors()->calibObjects.fastTransformHelper != nullptr) {
     f = dir;
     f += "tpctransformhelper.dump";
@@ -355,11 +360,16 @@ void GPUChainTracking::ReadSettings(const char* dir)
   mTPCFastTransformRefU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
   processors()->calibObjects.fastTransformRef = mTPCFastTransformRefU.get();
   f = dir;
+  f += "tpctransformmshape.dump";
+  mTPCFastTransformMShapeU = ReadFlatObjectFromFile<TPCFastTransform>(f.c_str());
+  processors()->calibObjects.fastTransformMShape = mTPCFastTransformMShapeU.get();
+  f = dir;
   f += "tpctransformhelper.dump";
   mTPCFastTransformHelperU = ReadStructFromFile<CorrectionMapsHelper>(f.c_str());
   if ((processors()->calibObjects.fastTransformHelper = mTPCFastTransformHelperU.get())) {
     mTPCFastTransformHelperU->setCorrMap(mTPCFastTransformU.get());
     mTPCFastTransformHelperU->setCorrMapRef(mTPCFastTransformRefU.get());
+    mTPCFastTransformHelperU->setCorrMapMShape(mTPCFastTransformMShapeU.get());
   }
   f = dir;
   f += "tpcpadgaincalib.dump";

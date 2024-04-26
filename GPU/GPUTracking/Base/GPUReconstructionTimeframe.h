@@ -62,7 +62,7 @@ class GPUReconstructionTimeframe
   std::mt19937_64 mRndGen2;
 
   int mTrainDist = 0;
-  float mCollisionProbability = 0.;
+  float mCollisionProbability = 0.f;
   int mMaxBunchesFull;
   int mMaxBunches;
 

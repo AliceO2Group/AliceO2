@@ -55,7 +55,7 @@ class Spline1DContainer : public FlatObject
     DataT u;  ///< u coordinate of the knot i (an integer number in float format)
     DataT Li; ///< inverse length of the [knot_i, knot_{i+1}] segment ( == 1./ a (small) integer )
     /// Get u as an integer
-    GPUd() int getU() const { return (int)(u + 0.1); }
+    GPUd() int getU() const { return (int)(u + 0.1f); }
   };
 
   /// _____________  Version control __________________________

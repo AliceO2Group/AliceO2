@@ -113,7 +113,8 @@ enum TrackRejFlag : int {
   RejectOnTgl,
   RejectOnQ2Pt,
   RejectOnChi2,
-  NSigmaShift = 10
+  NSigmaShift = 10,
+  RejectoOnPIDCorr = 20
 };
 
 ///< TPC track parameters propagated to reference X, with time bracket and index of
@@ -139,7 +140,7 @@ struct TrackLocTPC : public o2::track::TrackParCov {
     return constraint == Constrained ? 0. : (constraint == ASide ? dt : -dt);
   }
 
-  ClassDefNV(TrackLocTPC, 1);
+  ClassDefNV(TrackLocTPC, 2);
 };
 
 ///< ITS track outward parameters propagated to reference X, with time bracket and index of
@@ -151,6 +152,8 @@ struct TrackLocITS : public o2::track::TrackParCov {
   int sourceID = 0;                    ///< track origin id
   int roFrame = MinusOne;              ///< ITS readout frame assigned to this track
   int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
+  float xrho = 0;                      ///< x*rho seen during propagation to reference X (as pion)
+  float dL = 0;                        ///< distance integrated during propagation to reference X (as pion)
   bool hasCloneBefore() const { return getUserField() & CloneBefore; }
   bool hasCloneAfter() const { return getUserField() & CloneAfter; }
   int getCloneShift() const { return hasCloneBefore() ? -1 : (hasCloneAfter() ? 1 : 0); }
@@ -339,7 +342,8 @@ class MatchTPCITS
            pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
            pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
   void refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
-  bool refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
+  bool refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
+  void fillCalibDebug(int ifit, int iTPC, const o2::dataformats::TrackTPCITS& match, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
   void reportSizes(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks,
                    pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs,
                    pmr::vector<int>& ABTrackletClusterIDs,
@@ -360,12 +364,15 @@ class MatchTPCITS
   ///< perform all initializations
   void init();
   void end();
+  void reportTiming();
 
   ///< clear results of previous event reco
   void clear();
 
   ///< set Bunch filling and init helpers for validation by BCs
   void setBunchFilling(const o2::BunchFilling& bf);
+
+  void setNHBPerTF(int n) { mNHBPerTF = n; }
 
   ///< ITS readout mode
   void setITSTriggered(bool v) { mITSTriggered = v; }
@@ -479,8 +486,8 @@ class MatchTPCITS
 
   int compareTPCITSTracks(const TrackLocITS& tITS, const TrackLocTPC& tTPC, float& chi2) const;
   float getPredictedChi2NoZ(const o2::track::TrackParCov& trITS, const o2::track::TrackParCov& trTPC) const;
-  bool propagateToRefX(o2::track::TrackParCov& trc);
-  void addLastTrackCloneForNeighbourSector(int sector);
+  bool propagateToRefX(o2::track::TrackParCov& trc, o2::track::TrackLTIntegral* lti = nullptr);
+  void addLastTrackCloneForNeighbourSector(int sector, o2::track::TrackLTIntegral* trackLTInt = nullptr);
 
   ///------------------- manipulations with matches records ----------------------
   bool registerMatchRecordTPC(int iITS, int iTPC, float chi2, int candIC = MinusOne);
@@ -558,6 +565,9 @@ class MatchTPCITS
   float mBz = 0;                        ///< nominal Bz
   int mTFCount = 0;                     ///< internal TF counter for debugger
   int mNThreads = 1;                    ///< number of OMP threads
+  int mNHBPerTF = 0;
+  int mNTPCOccBinLength = 0; ///< TPC occ. histo bin length in TBs
+  float mNTPCOccBinLengthInv;
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
@@ -575,7 +585,7 @@ class MatchTPCITS
 
   float YMaxAtXMatchingRef = 999.; ///< max Y in the sector at reference X
 
-  float mSectEdgeMargin2 = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
+  float mSectEdgeMargin = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
 
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
@@ -611,6 +621,9 @@ class MatchTPCITS
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
 
+  std::array<float, 5> mCovDiagInner{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+
   const o2::itsmft::ChipMappingITS ITSChMap{};
 
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
@@ -628,6 +641,7 @@ class MatchTPCITS
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
 
   gsl::span<const unsigned char> mTPCRefitterShMap; ///< externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
 
   const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
 
@@ -659,7 +673,7 @@ class MatchTPCITS
   std::vector<o2::MCCompLabel> mTPCLblWork; ///< TPC track labels
   std::vector<o2::MCCompLabel> mITSLblWork; ///< ITS track labels
   std::vector<float> mWinnerChi2Refit; ///< vector of refitChi2 for winners
-
+  std::vector<float> mTBinClOcc;       ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
   // ------------------------------
   std::vector<TPCABSeed> mTPCABSeeds; ///< pool of primary TPC seeds for AB
   ///< indices of selected track entries in mTPCWork (for tracks selected by AfterBurner)

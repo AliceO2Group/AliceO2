@@ -19,11 +19,10 @@
 #include "GPUMemorySizeScalers.h"
 #include "GPUOutputControl.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "GPUReconstructionConvert.h"
 #include "GPUParam.inc"
 #include "GPUQA.h"
 #include "GPUOutputControl.h"
-#include "TPCPadGainCalib.h"
-#include "CalibdEdxContainer.h"
 #include <iostream>
 #include <fstream>
 #include <thread>
@@ -235,21 +234,6 @@ int GPUO2Interface::unregisterMemoryForGPU(const void* ptr)
   return mCtx[0].mRec->unregisterMemoryForGPU(ptr);
 }
 
-std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalibDefault()
-{
-  return std::make_unique<TPCPadGainCalib>();
-}
-
-std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalib(const o2::tpc::CalDet<float>& in)
-{
-  return std::make_unique<TPCPadGainCalib>(in);
-}
-
-std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContainerDefault()
-{
-  return std::make_unique<o2::tpc::CalibdEdxContainer>();
-}
-
 int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread)
 {
   for (unsigned int i = 0; i < mNContexts; i++) {
@@ -270,4 +254,14 @@ void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::it
   trackerTraits = mChainITS->GetITSTrackerTraits();
   vertexerTraits = mChainITS->GetITSVertexerTraits();
   timeFrame = mChainITS->GetITSTimeframe();
+}
+
+const o2::base::Propagator* GPUO2Interface::GetDeviceO2Propagator(int iThread) const
+{
+  return mCtx[iThread].mChain->GetDeviceO2Propagator();
+}
+
+void GPUO2Interface::UseGPUPolynomialFieldInPropagator(o2::base::Propagator* prop) const
+{
+  prop->setGPUField(&mCtx[0].mRec->GetParam().polynomialField);
 }

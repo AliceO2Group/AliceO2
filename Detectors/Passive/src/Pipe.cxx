@@ -23,6 +23,8 @@
 #include "TGeoMaterial.h" // for TGeoMaterial
 #include "TGeoMedium.h"   // for TGeoMedium
 #include "TGeoVolume.h"   // for TGeoVolume
+#include <TGeoArb8.h>     // for TGeoTrap
+#include <TGeoTrd1.h>     // for TGeoTrap
 // force availability of assert
 #ifdef NDEBUG
 #undef NDEBUG
@@ -104,11 +106,12 @@ void Pipe::ConstructGeometry()
   const TGeoMedium* kMedCuHC = matmgr.getTGeoMedium("PIPE_CU_HC");
   const TGeoMedium* kMedCuNFHC = matmgr.getTGeoMedium("PIPE_CU_NFHC");
 
-  const TGeoMedium* kMedAlu2219 = matmgr.getTGeoMedium("PIPE_AA2219"); // fm
+  const TGeoMedium* kMedAlu2219 = matmgr.getTGeoMedium("PIPE_AA2219");
   const TGeoMedium* kMedRohacell = matmgr.getTGeoMedium("PIPE_ROHACELL");
   const TGeoMedium* kMedPolyimide = matmgr.getTGeoMedium("PIPE_POLYIMIDE");
   const TGeoMedium* kMedCarbonFiber = matmgr.getTGeoMedium("PIPE_M55J6K");
   const TGeoMedium* kMedTitanium = matmgr.getTGeoMedium("PIPE_TITANIUM");
+  const TGeoMedium* kMedAlu7075 = matmgr.getTGeoMedium("PIPE_AA7075");
 
   // Top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -153,7 +156,7 @@ void Pipe::ConstructGeometry()
   const Float_t kCP3pos    = kCPz0 + kCP2Length + kCP1Length + kCP3Length/2.;
   */
 
-  //////////////////// NEW BEAM PIPE GEOMETRY FOR MuonForwardTracker ,
+  ////////////////////        NEW BEAM PIPE GEOMETRY FOR MuonForwardTracker     ////////////////////////
   // Authors: F. Manso, R. Tieulent
   // Drawings from C. Gargiulo :
   // \\cern.ch\dfs\Workspaces\c\cgargiul\EXPERIMENT\ALICE\ALICE_MECHANICS\ALICE_DATA_PACKAGE\IN\DETECTORS\ITS_UPGRADE\1-DESIGN\3D_cad_model\R14_20140311_ALI\
@@ -336,27 +339,24 @@ void Pipe::ConstructGeometry()
 
   barrel->AddNode(beamPipeCsideSection, 1, new TGeoTranslation(0., 30., 0.));
 
-  ///////////////////////////////////
-  //    Beam Pipe support          //
-  ///////////////////////////////////
+  ///////////////////////////////////////////////////////////////////
+  //              Beam Pipe support       F.M.     2021  rev 2023  //
+  ///////////////////////////////////////////////////////////////////
 
   // Beam Pipe Support
   TGeoVolume* beamPipeSupport = new TGeoVolumeAssembly("BeamPipeSupport");
   const Float_t kBeamPipesupportZpos = kZ5;
 
   // Dimensions :
-
   const Float_t kSupportXdim = 20.67;
   const Float_t kBeamPipeRingZdim = 3.6;
   const Float_t kVespelRmax = 2.3;
   const Float_t kVespelRmin = 2.22;
   const Float_t kBeampipeCarbonCollarRmin = 2.5;
   const Float_t kBeampipeCarbonCollarRmax = 2.7;
-
   const Float_t kFixationCarbonCollarRmin = 1.5;
   const Float_t kFixationCarbonCollarRmax = 1.7;
   const Float_t kFixationCarbonCollarDZ = 2.5;
-
   const Float_t kSkinThickness = 0.3;
   const Float_t kSkinXdim = 14.2;
   const Float_t kSkinYdim = 1.4;
@@ -406,8 +406,7 @@ void Pipe::ConstructGeometry()
   tHoleScrew3->RegisterYourself();
   tHoleScrew4->RegisterYourself();
 
-  TGeoCompositeShape* supportBarCarbon = new TGeoCompositeShape(
-    "BPS_supportBarCarbon", "(carbonSkinBPS-foambarBPS)+carbonEarsBPSin:tBP1-holeScrew:tHoleScrew1-holeScrew:tHoleScrew2+carbonEarsBPSout:tBP2-holeSight:tHoleSight-holeScrew:tHoleScrew3-holeScrew:tHoleScrew4");
+  TGeoCompositeShape* supportBarCarbon = new TGeoCompositeShape("BPS_supportBarCarbon", "(carbonSkinBPS-foambarBPS)+carbonEarsBPSin:tBP1-holeScrew:tHoleScrew1-holeScrew:tHoleScrew2+carbonEarsBPSout:tBP2-holeSight:tHoleSight-holeScrew:tHoleScrew3-holeScrew:tHoleScrew4");
   TGeoVolume* supportBarCarbonVol = new TGeoVolume("BPS_supportBarCarbon", supportBarCarbon, kMedCarbonFiber);
   supportBarCarbonVol->SetLineColor(kGray + 2);
   supportBar->AddNode(supportBarCarbonVol, 1, new TGeoTranslation(-(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax), 0, 0));
@@ -454,7 +453,7 @@ void Pipe::ConstructGeometry()
   supportBar->AddNode(screw, 4, tScrew4);
   //==============================================
 
-  // === Optical sights ===
+  // === Optical sights  (assuming the same than the MFT ones) ===
   TGeoVolumeAssembly* fixationSight = new TGeoVolumeAssembly("fixationSight");
   TGeoTube* screwSight = new TGeoTube("screwSight", holeSightDiameterIn / 2., holeSightDiameterOut / 2., kScrewThreadLength / 2.);
   TGeoVolume* ScrewSight = new TGeoVolume("ScrewSight", screwSight, kMedSteel);
@@ -478,17 +477,10 @@ void Pipe::ConstructGeometry()
   beamPipeSupport->AddNode(supportBar, 1);
 
   //=======================  Fixation to pipe ========================
-  TGeoVolumeAssembly* fixationToPipe = new TGeoVolumeAssembly("fixationToPipe");
-  TGeoTube* pipeSupportTubeCarbon =
-    new TGeoTube(kBeampipeCarbonCollarRmin, kBeampipeCarbonCollarRmax, kFixationCarbonCollarDZ / 2.);
-  pipeSupportTubeCarbon->SetName("pipeSupportTubeCarbon");
-  TGeoCompositeShape* halfFixationToPipe = new TGeoCompositeShape(
-    "halfFixationToPipe",
-    "pipeSupportTubeCarbon");
+  TGeoTube* pipeSupportTubeCarbon = new TGeoTube(kBeampipeCarbonCollarRmin, kBeampipeCarbonCollarRmax, kFixationCarbonCollarDZ / 2.);
   TGeoVolume* FixationToPipeVol = new TGeoVolume("FixationToPipe", pipeSupportTubeCarbon, kMedCarbonFiber);
   FixationToPipeVol->SetLineColor(kGray + 2);
-  fixationToPipe->AddNode(FixationToPipeVol, 1);
-  beamPipeSupport->AddNode(fixationToPipe, 1);
+  beamPipeSupport->AddNode(FixationToPipeVol, 1);
   //==================================================================
 
   //================ Beam Pipe Ring =================
@@ -508,12 +500,148 @@ void Pipe::ConstructGeometry()
   beamPipeSupport->IsVisible();
   //==================================================
 
-  // Wings
-  //TGeoVolumeAssembly* Wing = new TGeoVolumeAssembly("Wing"); not yet, be patient...
+  //============  Wings   (connecting the support bars to the cage support) ===============
+  TGeoVolumeAssembly* Wing = new TGeoVolumeAssembly("Wing");
 
-  barrel->AddNode(beamPipeSupport, 1, new TGeoTranslation(0., 30, kBeamPipesupportZpos + kFixationCarbonCollarDZ / 2.));
+  // Tige
+  Double_t lengthRod = 28.7 - 1.0 - 1.0 - 1.9; // sligtly decreased to accomodate to the fixation pieces
+  Double_t diameterRod = 1.815;                // sligtly increased to account of the two ends of the rod
+  Double_t xRod = 22.1;
+  TGeoTube* Rod = new TGeoTube(0., diameterRod / 2., lengthRod / 2.);
+  TGeoVolume* rod = new TGeoVolume("rod", Rod, kMedAlu7075);
+  rod->SetLineColor(kGray);
 
-  ///////////// END NEW BEAM PIPE GEOMETRY fOR MFT ////////////////////
+  // Connecteur Tige / Beam support
+  Double_t lengthFixRod = 4.0;
+  Double_t diameterFixRod = 3.0;
+  //---------------------------------------
+  TGeoTube* RodBracket = new TGeoTube("RodBracket", 0., diameterFixRod / 2., lengthFixRod / 2.);
+  TGeoBBox* BracketPlane = new TGeoBBox("BracketPlane", 3., 3., 3.);
+  TGeoTranslation* tBracketPlane = new TGeoTranslation("tBracketPlane", 0., 3. - kCarbonEarsYdimOut / 2., (lengthFixRod + 6.) / 2. - 2.6);
+  tBracketPlane->RegisterYourself();
+  TGeoCompositeShape* Bracket = new TGeoCompositeShape("Bracket", "RodBracket-BracketPlane:tBracketPlane");
+  TGeoVolume* bracket = new TGeoVolume("bracket", Bracket, kMedAlu7075);
+  //---------------------------------------
+
+  // Carbon box surrounding the aluminum rod
+  TGeoVolumeAssembly* carbonBox = new TGeoVolumeAssembly("carbonBox");
+  Double_t eCarbonBox = 0.1;
+  Double_t trdWidth = 8.6;
+  Double_t trdLength = 11.05 - 1.0 - 0.6; // on each side to accomodate the bracket and TRDPlate
+  TGeoTrd1* trdOut = new TGeoTrd1("trdOut", 1.405 / 2, 6.632 / 2, trdLength / 2, trdWidth / 2);
+  TGeoTrd1* trdIn = new TGeoTrd1("trdIn", 1.405 / 2 - eCarbonBox, 6.632 / 2 - eCarbonBox, trdLength / 2 + eCarbonBox, trdWidth / 2 - eCarbonBox);
+  TGeoCompositeShape* trd = new TGeoCompositeShape("trd", "trdOut-trdIn");
+  TGeoVolume* TRD = new TGeoVolume("TRD", trd, kMedCarbonFiber);
+  TRD->SetLineColor(kGray);
+
+  // To close the carbon box
+  TGeoTrd1* trdPlate = new TGeoTrd1("trdPlate", 1.405 / 2, 6.632 / 2, 1.0 / 2, trdWidth / 2);
+  TGeoVolume* TRDPlate = new TGeoVolume("TDRPlate", trdPlate, kMedAlu7075);
+
+  // To connect on the main cage
+  TGeoBBox* plateBox = new TGeoBBox("plateBox", 7.5 / 2., 9.5 / 2., 1.9 / 2.);
+  TGeoBBox* removeBox = new TGeoBBox("removeBox", 2.1 / 2 + 0.0001, 2.5 / 2. + 0.0001, 1.9 / 2. + 0.0001);
+  TGeoTranslation* tRemove1 = new TGeoTranslation("tRemove1", (7.5 - 2.1) / 2, -(9.5 - 2.5) / 2, 0.);
+  TGeoTranslation* tRemove2 = new TGeoTranslation("tRemove2", -(7.5 - 2.1) / 2, -(9.5 - 2.5) / 2, 0.);
+  tRemove1->RegisterYourself();
+  tRemove2->RegisterYourself();
+
+  // Connectors Rod / Cage
+  TGeoCompositeShape* PlateBox = new TGeoCompositeShape("PlateBox", "plateBox-removeBox:tRemove1-removeBox:tRemove2");
+  TGeoVolume* PLATEBox = new TGeoVolume("PLATEBox", PlateBox, kMedAlu7075);
+
+  TGeoRotation* PlateRot = new TGeoRotation("PlateRot", 0., 0., 0.);
+  TGeoRotation* FrontRot = new TGeoRotation("FrontRot", 180., 90., 0.);
+  TGeoCombiTrans* tFrontCarbonBox = new TGeoCombiTrans("tFrontCarbonBox", 0., 0., 0., FrontRot);
+  PlateRot->RegisterYourself();
+  FrontRot->RegisterYourself();
+  tFrontCarbonBox->RegisterYourself();
+  TGeoCombiTrans* tTRDPlate = new TGeoCombiTrans("tTRDPlate", 0., 0., -(trdLength + 1.0) / 2, FrontRot);
+  tTRDPlate->RegisterYourself();
+  TRDPlate->SetLineColor(kGray + 2);
+  TGeoCombiTrans* tPlateBox = new TGeoCombiTrans("tPlateBox", 0., 0., -(trdLength + 1.9) / 2 - 1.0, PlateRot);
+  tPlateBox->RegisterYourself();
+  PLATEBox->SetLineColor(kGray);
+
+  Double_t xyOut[16] = {0};
+  xyOut[0] = 3.316;
+  xyOut[1] = 4.3;
+  xyOut[2] = 0.7025;
+  xyOut[3] = -xyOut[1];
+  xyOut[4] = -xyOut[2];
+  xyOut[5] = -xyOut[1];
+  xyOut[6] = -xyOut[0];
+  xyOut[7] = xyOut[1];
+  //--------------
+  xyOut[8] = 1.3;
+  xyOut[9] = 1.3 - xyOut[1] + xyOut[8];
+  xyOut[10] = xyOut[8];
+  xyOut[11] = -xyOut[8] - xyOut[1] + xyOut[8];
+  xyOut[12] = -xyOut[8];
+  xyOut[13] = -xyOut[8] - xyOut[1] + xyOut[8];
+  xyOut[14] = -xyOut[8];
+  xyOut[15] = xyOut[8] - xyOut[1] + xyOut[8];
+  Double_t ARB8Length = 15.35;
+  TGeoArb8* ARB8Out = new TGeoArb8("ARB8Out", ARB8Length / 2, xyOut);
+
+  Double_t xyIn[16] = {0};
+  xyIn[0] = xyOut[0] - eCarbonBox;
+  xyIn[1] = xyOut[1] - eCarbonBox;
+  xyIn[2] = 0.7025 - eCarbonBox;
+  xyIn[3] = -xyIn[1];
+  xyIn[4] = -xyIn[2];
+  xyIn[5] = -xyIn[1];
+  xyIn[6] = -xyIn[0];
+  xyIn[7] = xyIn[1];
+  //--------------
+  xyIn[8] = xyOut[8] - eCarbonBox;
+  xyIn[9] = xyOut[8] - xyIn[1] + xyIn[8] - eCarbonBox;
+  xyIn[10] = xyIn[8];
+  xyIn[11] = -xyIn[8] - xyOut[1] + xyOut[8];
+  xyIn[12] = -xyIn[8];
+  xyIn[13] = -xyIn[8] - xyOut[1] + xyOut[8];
+  xyIn[14] = -xyIn[8];
+  xyIn[15] = xyIn[8] - xyOut[1] + xyOut[8];
+  TGeoArb8* ARB8In = new TGeoArb8("ARB8In", ARB8Length / 2 + 0.0001, xyIn);
+
+  TGeoCompositeShape* arb8 = new TGeoCompositeShape("arb8", "ARB8Out-ARB8In");
+  TGeoVolume* ARB8 = new TGeoVolume("ARB8", arb8, kMedCarbonFiber);
+  ARB8->SetLineColor(kGray);
+  TGeoRotation* RearRot = new TGeoRotation("RearRot", 0., 0., 0.);
+  TGeoCombiTrans* tRearCarbonBox = new TGeoCombiTrans("tRearCarbonBox", 0., 0., (ARB8Length + trdLength) / 2, RearRot);
+  RearRot->RegisterYourself();
+  tRearCarbonBox->RegisterYourself();
+  //===============================================================
+
+  carbonBox->AddNode(TRD, 1, tFrontCarbonBox);
+  carbonBox->AddNode(ARB8, 1, tRearCarbonBox);
+  carbonBox->AddNode(TRDPlate, 1, tTRDPlate);
+  carbonBox->AddNode(PLATEBox, 1, tPlateBox);
+
+  TGeoRotation* CarbonBoxRot1 = new TGeoRotation("CarbonBoxRot1", 90., 0., 0.);
+  Double_t xCarbonBox = xRod + trdWidth / 2 - xyOut[8];
+  Double_t zCarbonBox = -trdLength / 2 - ARB8Length - lengthFixRod + 1.3;
+  TGeoCombiTrans* tCarbonBox1 = new TGeoCombiTrans("tCarbonBox1", -xCarbonBox, 0., zCarbonBox, CarbonBoxRot1);
+  CarbonBoxRot1->RegisterYourself();
+  tCarbonBox1->RegisterYourself();
+  TGeoRotation* CarbonBoxRot2 = new TGeoRotation("CarbonBoxRot2", 270., 0., 0.);
+  TGeoCombiTrans* tCarbonBox2 = new TGeoCombiTrans("tCarbonBox2", xCarbonBox, 0., zCarbonBox, CarbonBoxRot2);
+  CarbonBoxRot2->RegisterYourself();
+  tCarbonBox2->RegisterYourself();
+
+  Wing->AddNode(rod, 1, new TGeoTranslation(xRod, 0., -(lengthRod / 2. + lengthFixRod) + 1.3));
+  Wing->AddNode(rod, 2, new TGeoTranslation(-xRod, 0., -(lengthRod / 2. + lengthFixRod) + 1.3));
+  bracket->SetLineColor(kGray);
+  Wing->AddNode(bracket, 1, new TGeoTranslation(xRod, 0., -lengthFixRod / 2. + 1.3));
+  Wing->AddNode(bracket, 2, new TGeoTranslation(-xRod, 0., -lengthFixRod / 2. + 1.3));
+  Wing->AddNode(carbonBox, 1, tCarbonBox1);
+  Wing->AddNode(carbonBox, 2, tCarbonBox2);
+
+  beamPipeSupport->AddNode(Wing, 1);
+  Double_t mGlobalShift = 2.45; // to be closest to the first bellow according to Corrado blueprints
+  barrel->AddNode(beamPipeSupport, 1, new TGeoTranslation(0., 30, kBeamPipesupportZpos + kFixationCarbonCollarDZ / 2. - mGlobalShift));
+
+  ///////////// END NEW BEAM PIPE GEOMETRY FOR MFT ////////////////////
 
   /////////////////////////////////////////////////////////////////////
   // Side A section after Beryllium
@@ -2659,6 +2787,10 @@ void Pipe::createMaterials()
   Float_t aALU2219[6] = {26.982, 63.546, 54.938, 47.867, 50.941, 91.224};
   Float_t zALU2219[6] = {13., 29., 25., 22., 23., 40.};
   Float_t wALU2219[6] = {0.93, 0.063, 0.003, 0.0006, 0.001, 0.0018};
+  // Aluminium AA 7075 for beam pipe support (wings): Al Zn Mg Cu
+  Float_t aALU7075[4] = {26.982, 65.38, 24.305, 63.546};
+  Float_t zALU7075[4] = {13., 30., 12., 29.};
+  Float_t wALU7075[4] = {0.902, 0.06, 0.024, 0.014};
   //---------------------------------
 
   // ****************
@@ -2745,8 +2877,12 @@ void Pipe::createMaterials()
   matmgr.Medium("PIPE", 67, "ROHACELL", 67, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   // Titanium
-  matmgr.Material("PIPE", 22, "Titanium", 47.867, 22, 4.54, 3.560, 27.80);
+  matmgr.Material("PIPE", 22, "Titanium$", 47.867, 22, 4.54, 3.560, 27.80);
   matmgr.Medium("PIPE", 22, "TITANIUM", 22, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+
+  // Alu 7075 (ZICRAL)
+  matmgr.Mixture("PIPE", 68, "ALUMINIUM7075$", aALU7075, zALU7075, 2.810, -4, wALU7075);
+  matmgr.Medium("PIPE", 68, "AA7075", 68, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t imax, Float_t r0, Int_t nz)

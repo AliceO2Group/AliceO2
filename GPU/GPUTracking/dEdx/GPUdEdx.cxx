@@ -61,7 +61,7 @@ GPUd() float GPUdEdx::GetSortTruncMean(GPUCA_DEDX_STORAGE_TYPE* GPUrestrict() ar
   trunclow = count * trunclow / 128;
   trunchigh = count * trunchigh / 128;
   if (trunclow >= trunchigh) {
-    return (0.);
+    return (0.f);
   }
   CAAlgo::sort(array, array + count);
   float mean = 0;

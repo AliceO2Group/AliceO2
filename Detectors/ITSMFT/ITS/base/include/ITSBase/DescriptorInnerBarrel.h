@@ -36,7 +36,7 @@ class DescriptorInnerBarrel : public TObject
   DescriptorInnerBarrel(const DescriptorInnerBarrel& src) = delete;
   DescriptorInnerBarrel& operator=(const DescriptorInnerBarrel& geom) = delete;
 
-  double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
+  double radii2Turbo(double rMin, double rMid, double rMax, double sensW) const
   {
     // compute turbo angle from radii and sensor width
     return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
@@ -44,8 +44,9 @@ class DescriptorInnerBarrel : public TObject
 
   int getNumberOfLayers() const { return mNumLayers; }
   double getSensorThickness() const { return mSensorLayerThickness; }
-  void getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan);
-  TGeoTube* defineWrapperVolume();
+  void getConfigurationWrapperVolume(double& minradius, double& maxradius, double& zspan) const;
+  void setConfigurationWrapperVolume(double minradius, double maxradius, double zspan);
+  TGeoTube* defineWrapperVolume() const;
 
  protected:
   int mNumLayers{3};

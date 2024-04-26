@@ -11,7 +11,7 @@
 
 # Preamble
 
-cmake_minimum_required(VERSION 3.21.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.27.1 FATAL_ERROR)
 
 # it's important to specify accurately the list of languages. for instance C and
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
@@ -25,6 +25,7 @@ include(CTest)
 set(ALIGPU_BUILD_TYPE "O2")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 
 cmake_host_system_information(RESULT _totalmem QUERY TOTAL_PHYSICAL_MEMORY)
@@ -37,13 +38,10 @@ set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
 
 include(O2BuildSanityChecks)
 o2_build_sanity_checks()
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-find_package(ONNXRuntime::ONNXRuntime CONFIG)
-if (ONNXRuntime::ONNXRuntime_FOUND)
-  add_definitions(-DZDC_FASTSIM_ONNX)
-endif()
+include(dependencies/FindONNXRuntime.cmake)
 
 include(O2CheckCXXFeatures)
 o2_check_cxx_features()
@@ -140,4 +138,3 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 endif()
 
 set_root_pcm_dependencies()
-

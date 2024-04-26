@@ -9,7 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_compile_options(-O0 -g -fPIC)
+#add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(Align
                SOURCES  src/GeometricalConstraint.cxx
@@ -36,6 +36,8 @@ o2_add_library(Align
                         src/EventVertex.cxx
                         src/AlignConfig.cxx
                         src/Mille.cxx
+                        src/AlgPntDbg.cxx
+                        src/AlgTrcDbg.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
                                      O2::Steer
                                      O2::ReconstructionDataFormats
@@ -82,6 +84,8 @@ o2_target_root_dictionary(
           include/Align/GeometricalConstraint.h
           include/Align/utils.h
           include/Align/AlignConfig.h
+          include/Align/AlgPntDbg.h
+          include/Align/AlgTrcDbg.h
           )
 
 add_subdirectory(Workflow)

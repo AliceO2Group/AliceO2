@@ -22,6 +22,7 @@
 #include "TPCWorkflow/TPCTriggerWriterSpec.h"
 #include "TPCReaderWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClustererSpec.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 #include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "TPCWorkflow/EntropyEncoderSpec.h"
@@ -172,11 +173,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     }
     return false;
   }};
-
   if (!disableRootInput || inputType == InputType::PassThrough) {
-    if (sclOpts.lumiType == 1) { // need CTP digits (lumi) reader
-      specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
-    }
     // The OutputSpec of the PublisherSpec is configured depending on the input
     // type. Note that the configuration of the dispatch trigger in the main file
     // needs to be done in accordance. This means, if a new input option is added
@@ -196,6 +193,12 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                            laneConfiguration,
                                                            &hook},
                                                          propagateMC));
+      if (sclOpts.needTPCScalersWorkflow()) { // for standalone tpc-reco workflow
+        specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == 2, sclOpts.enableMShapeCorrection));
+      }
+      if (sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
+        specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
+      }
     } else if (inputType == InputType::ClustersHardware) {
       specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                      "tpc-clusterhardware-reader",
@@ -213,6 +216,12 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       specs.emplace_back(o2::tpc::getClusterReaderSpec(propagateMC, &tpcSectors, &laneConfiguration));
       if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
         specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
+      }
+      if (sclOpts.needTPCScalersWorkflow()) { // for standalone tpc-reco workflow
+        specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpts.lumiType == 2, sclOpts.enableMShapeCorrection));
+      }
+      if (sclOpts.requestCTPLumi) { // need CTP digits (lumi) reader
+        specs.emplace_back(o2::ctp::getDigitsReaderSpec(false));
       }
     } else if (inputType == InputType::CompClusters) {
       // TODO: need to check if we want to store the MC labels alongside with compressed clusters
@@ -446,6 +455,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.runTPCTracking = true;
     cfg.lumiScaleType = sclOpts.lumiType;
     cfg.lumiScaleMode = sclOpts.lumiMode;
+    cfg.enableMShape = sclOpts.enableMShapeCorrection;
+    cfg.enableCTPLumi = sclOpts.requestCTPLumi;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;

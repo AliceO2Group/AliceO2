@@ -15,14 +15,14 @@
 #define O2_AODMCPRODUCER_WORKFLOW_SPEC
 
 #include "AODProducerHelpers.h"
+#include "AODMcProducerHelpers.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Framework/DataProcessorSpec.h"
 #include "Steer/MCKinematicsReader.h"
-#include "TMap.h"
-#include "TStopwatch.h"
+#include <TStopwatch.h>
 
 #include <string>
 #include <vector>
@@ -41,30 +41,95 @@ class AODMcProducerWorkflowDPL : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
+  /** Some types we will use */
+  using MCEventHeader = dataformats::MCEventHeader;
+  using McCollisions = aod::McCollisions;
+  using McParticles = aod::StoredMcParticles;
+  using Origins = aod::Origins;
+  using XSections = aod::HepMCXSections;
+  using PdfInfos = aod::HepMCPdfInfos;
+  using HeavyIons = aod::HepMCHeavyIons;
+  using MCKinematicsReader = steer::MCKinematicsReader;
+  /** */
  private:
+  /** some other types we will use */
+  using CollisionCursor = aodmchelpers::CollisionCursor;
+  using XSectionCursor = aodmchelpers::XSectionCursor;
+  using PdfInfoCursor = aodmchelpers::PdfInfoCursor;
+  using HeavyIonCursor = aodmchelpers::HeavyIonCursor;
+  using HepMCUpdate = aodmchelpers::HepMCUpdate;
+  /**
+   * Update the header (collision and HepMC aux) information.
+   *
+   * When updating the HepMC aux tables, we take the relevant policies
+   * into account (mXSectionUpdate, mPdfInfoUpdate, mHeavyIonUpdate).
+   *
+   * - If a policy is "never", then the corresponding table is never
+   *   updated.
+   *
+   * - If the policy is "always", then the table is always
+   *   update.
+   *
+   * - If the policy is either "anyKey" or "allKeys", _and_
+   *   this is the first event, then we check if any or all keys,
+   *   respectively are present in the header.
+   *
+   *   - If that check fails, then we do not update and set the
+   *     corresponding policy to be "never".
+   *
+   *   - If the check succeeds, then we do update the table, and set
+   *     the corresponding policty to "always".
+   *
+   *   In this way, we will let the first event decide what to do for
+   *   subsequent events and thus avoid too many string comparisions.
+   *
+   * @param collisionCursor Cursor over aod::McCollisions
+   * @param xSectionCursor Cursor over aod::HepMCXSections
+   * @param pdfInfoCursor Cursor over aod::HepMCPdfInfos
+   * @param heavyIonCursor Cursor over aod::HepMCHeavyIons
+   * @param header Header to read information from
+   * @param collisionID Index of collision in table
+   * @param bcID Current event identifier (bcID)
+   * @param time Time of event
+   * @param generatorID Generator identifier, if any
+   * @param sourceID Source identifier
+   *
+   */
+  void updateHeader(CollisionCursor& collisionCursor,
+                    XSectionCursor& xSectionCursor,
+                    PdfInfoCursor& pdfInfoCursor,
+                    HeavyIonCursor& heavyIonCursor,
+                    const MCEventHeader& header,
+                    int collisionID, // Index
+                    int bcID,
+                    float time,
+                    short generatorID,
+                    int sourceID);
+  /** Current timeframe number */
   int64_t mTFNumber{1};
-  int mTruncate{1};
+  /** Whether to filter tracks so that only primary particles,
+      particles from EG, or their parents are written out */
   int mFilterMC{0};
+  /** Whether to enable embedding */
   bool mEnableEmbed{false};
-  std::string mMCHeaderFNames;
+  /** LPM production tag, for anchoring */
   TString mLPMProdTag{""};
+  /** Pass identifier for anchoring */
   TString mAnchorPass{""};
+  /** Production identifier for anchoring */
   TString mAnchorProd{""};
+  /** Reconstruction pass for anchoring */
   TString mRecoPass{""};
+  /** Timer */
   TStopwatch mTimer;
+  /** Rules for when to update HepMC tables */
+  HepMCUpdate mXSectionUpdate = HepMCUpdate::anyKey;
+  HepMCUpdate mPdfInfoUpdate = HepMCUpdate::anyKey;
+  HepMCUpdate mHeavyIonUpdate = HepMCUpdate::anyKey;
 
   std::string mSimPrefix;
 
-  o2::aodhelpers::TripletsMap_t mToStore;
-
-  // keep track event/source id for each mc-collision
-  // using map and not unordered_map to ensure
-  // correct ordering when iterating over container elements
-  std::vector<std::vector<int>> mMCColToEvSrc;
-
   // MC production metadata holder
-  std::vector<TString> mMetaDataKeys;
-  std::vector<TString> mMetaDataVals;
   bool mIsMDSent{false};
 
   // truncation is enabled by default
@@ -72,10 +137,6 @@ class AODMcProducerWorkflowDPL : public Task
   uint32_t mMcParticleW = 0xFFFFFFF0;       // 19 bits
   uint32_t mMcParticlePos = 0xFFFFFFF0;     // 19 bits
   uint32_t mMcParticleMom = 0xFFFFFFF0;     // 19 bits
-
-  template <typename MCParticlesCursorType>
-  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
-                            const MCParticlesCursorType& mcParticlesCursor);
 };
 
 /// create a processor spec

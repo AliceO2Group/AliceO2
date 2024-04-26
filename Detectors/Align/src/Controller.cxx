@@ -44,10 +44,13 @@
 #include <TH1F.h>
 #include <TList.h>
 #include <cstdio>
+#include "GPUO2Interface.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include <TGeoGlobalMagField.h>
 #include "CommonUtils/NameConf.h"
 #include "MathUtils/SymMatrixSolver.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "GPUParam.h"
 
 #include "SimulationDataFormat/MCUtils.h"
 #include "Steer/MCKinematicsReader.h"
@@ -164,6 +167,10 @@ void Controller::process()
     bool useVertexConstrain = false;
     if (vtx) {
       auto nContrib = vtx->getNContributors();
+      // check cov matrix since data reconstructed with < 6797a257f5ab8ffaec32d56dddb0a321939bdf1c may have negative errors
+      if (vtx->getSigmaX2() < 0. || vtx->getSigmaY2() < 0. || vtx->getSigmaZ2() < 0.) {
+        continue;
+      }
       useVertexConstrain = nContrib >= algConf.vtxMinCont && nContrib <= algConf.vtxMaxCont;
       mStat.data[ProcStat::kInput][ProcStat::kVertices]++;
     }
@@ -180,6 +187,7 @@ void Controller::process()
       int start = trackRef.getFirstEntryOfSource(src), end = start + trackRef.getEntriesOfSource(src);
       for (int ti = start; ti < end; ti++) {
         auto trackIndex = primVerGIs[ti];
+        mAlgTrack->setCurrentTrackID(trackIndex);
         bool tpcIn = false;
         if (trackIndex.isAmbiguous()) {
           auto& ambSeen = ambigTable[trackIndex];
@@ -324,8 +332,16 @@ void Controller::process()
           }
           continue;
         }
-
-        if (mUseMC && mDebugOutputLevel) {
+        if (mDebugOutputLevel && mAlgTrackDbg.setTrackParam(mAlgTrack.get())) {
+          mAlgTrackDbg.mGID = trackIndex;
+          (*mDBGOut) << "algtrack"
+                     << "runNumber=" << mTimingInfo.runNumber
+                     << "tfID=" << mTimingInfo.tfCounter
+                     << "orbit=" << mTimingInfo.firstTForbit
+                     << "bz=" << PropagatorD::Instance()->getNominalBz()
+                     << "t=" << mAlgTrackDbg << "\n";
+        }
+        if (mUseMC && mDebugOutputLevel > 1) {
           auto lbl = mRecoData->getTrackMCLabel(trackIndex);
           if (lbl.isValid()) {
             std::vector<float> pntX, pntY, pntZ, trcX, trcY, trcZ, prpX, prpY, prpZ, alpha, xsens, pntXTF, pntYTF, pntZTF, resY, resZ;
@@ -398,7 +414,7 @@ void Controller::processCosmic()
   auto timerStart = std::chrono::system_clock::now();
   const auto tracks = mRecoData->getCosmicTracks();
   if (!tracks.size()) {
-    LOGP(info, "Sipping TF {}: No cosmic tracks", mNTF);
+    LOGP(info, "Skipping TF {}: No cosmic tracks", mNTF);
     mNTF++;
     return;
   }
@@ -416,7 +432,19 @@ void Controller::processCosmic()
     nTrc++;
     mStat.data[ProcStat::kInput][ProcStat::kCosmic]++;
     std::array<GTrackID, GTrackID::NSources> contributorsGID[2] = {mRecoData->getSingleDetectorRefs(track.getRefBottom()), mRecoData->getSingleDetectorRefs(track.getRefTop())};
-
+    bool hasTRD = false, hasITS = false, hasTPC = false, hasTOF = false;
+    if (contributorsGID[0][GTrackID::TRD].isIndexSet() || contributorsGID[1][GTrackID::TRD].isIndexSet()) {
+      hasTRD = true;
+    }
+    if (contributorsGID[0][GTrackID::TOF].isIndexSet() || contributorsGID[1][GTrackID::TOF].isIndexSet()) {
+      hasTOF = true;
+    }
+    if (contributorsGID[0][GTrackID::TPC].isIndexSet() || contributorsGID[1][GTrackID::TPC].isIndexSet()) {
+      hasTPC = true;
+    }
+    if (contributorsGID[0][GTrackID::ITS].isIndexSet() || contributorsGID[1][GTrackID::ITS].isIndexSet()) {
+      hasITS = true;
+    }
     // check detectors contributions
     AlignableDetector* det = nullptr;
     int ndet = 0, npnt = 0;
@@ -426,6 +454,7 @@ void Controller::processCosmic()
       int npntDet = 0;
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::ITS].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::ITS], algConf.minITSClustersCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -446,6 +475,7 @@ void Controller::processCosmic()
       ((AlignableDetectorTPC*)det)->setTrackTimeStamp(track.getTimeMUS().getTimeStamp());
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::TPC].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TPC], algConf.minTPCClustersCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -466,6 +496,7 @@ void Controller::processCosmic()
       int npntDet = 0;
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::TRD].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TRD], algConf.minTRDTrackletsCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -485,6 +516,7 @@ void Controller::processCosmic()
       int npntDet = 0;
       for (int ibt = 0; ibt < 2; ibt++) {
         int npntDetBT = 0;
+        mAlgTrack->setCurrentTrackID(ibt ? track.getRefBottom() : track.getRefTop());
         if (contributorsGID[ibt][GIndex::TOF].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TOF], algConf.minTOFClustersCosmLeg, ibt)) < 0) {
           accTrack = false;
           break;
@@ -502,7 +534,7 @@ void Controller::processCosmic()
     if (algConf.verbose > 1) {
       LOGP(info, "processing cosmic track B-Leg:{} T-Leg:{}, Ndets:{}, Npoints: {}", track.getRefBottom().asString(), track.getRefTop().asString(), ndet, npnt);
     }
-    if (ndet < algConf.minDetectorsCosm || (tpcIn && ndet == 1)) {
+    if (ndet < algConf.minDetectorsCosm /* || (tpcIn && ndet == 1)*/) {
       continue;
     }
     if (npnt < algConf.minPointTotalCosm) {
@@ -533,6 +565,16 @@ void Controller::processCosmic()
         LOGP(warn, "calcResidDeriv failed");
       }
       continue;
+    }
+    if (mDebugOutputLevel && mAlgTrackDbg.setTrackParam(mAlgTrack.get())) {
+      mAlgTrackDbg.mGID = track.getRefBottom();
+      mAlgTrackDbg.mGIDCosmUp = track.getRefTop();
+      (*mDBGOut) << "algtrack"
+                 << "runNumber=" << mTimingInfo.runNumber
+                 << "tfID=" << mTimingInfo.tfCounter
+                 << "orbit=" << mTimingInfo.firstTForbit
+                 << "bz=" << PropagatorD::Instance()->getNominalBz()
+                 << "t=" << mAlgTrackDbg << "\n";
     }
     storeProcessedTrack();
     mStat.data[ProcStat::kAccepted][ProcStat::kCosmic]++;

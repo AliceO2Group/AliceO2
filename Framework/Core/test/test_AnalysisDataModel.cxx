@@ -12,9 +12,6 @@
 #include "Framework/ASoA.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/AnalysisDataModel.h"
-#include "gandiva/tree_expr_builder.h"
-#include "arrow/status.h"
-#include "gandiva/filter.h"
 #include <catch_amalgamated.hpp>
 
 using namespace o2::framework;
@@ -50,7 +47,7 @@ TEST_CASE("TestJoinedTablesContains")
 
   using Test = o2::soa::Join<XY, ZD>;
 
-  Test tests{0, tXY, tZD};
+  Test tests{{tXY, tZD}, 0};
   REQUIRE(tests.asArrowTable()->num_columns() != 0);
   REQUIRE(tests.asArrowTable()->num_columns() ==
           tXY->num_columns() + tZD->num_columns());

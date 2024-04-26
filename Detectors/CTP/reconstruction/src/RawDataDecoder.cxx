@@ -134,11 +134,11 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   uint64_t countsMBV = 0;
   std::map<o2::InteractionRecord, CTPDigit> digitsMap;
   //
-  using InputSpec = o2::framework::InputSpec;
-  using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
-  using Lifetime = o2::framework::Lifetime;
+  // using InputSpec = o2::framework::InputSpec;
+  // using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
+  // using Lifetime = o2::framework::Lifetime;
   o2::framework::DPLRawParser parser(inputs, filter);
-  uint32_t payloadCTP;
+  uint32_t payloadCTP = 0;
   gbtword80_t remnant = 0;
   uint32_t size_gbt = 0;
   mTFOrbit = 0;
@@ -358,7 +358,7 @@ int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit
 
 int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, o2::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit)
 {
-  int nClasswoInp = 0; // counting classes without input which should never happen
+  // int nClasswoInp = 0; // counting classes without input which should never happen
   int nLM = 0;
   int nL0 = 0;
   int nL1 = 0;

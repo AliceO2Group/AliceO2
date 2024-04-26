@@ -20,6 +20,7 @@
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "GlobalTrackingWorkflowWriters/IRFrameWriterSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
+#include "Framework/CCDBParamSpec.h"
 
 // Dummy TPC completion policy data
 using CompletionPolicyData = std::vector<InputSpec>;
@@ -30,7 +31,6 @@ namespace o2
 {
 namespace its
 {
-
 namespace reco_workflow
 {
 
@@ -41,6 +41,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool upstreamDigits,
                                     bool upstreamClusters,
                                     bool disableRootOutput,
+                                    bool useGeom,
                                     int useTrig,
                                     bool useGPUWF,
                                     o2::gpu::GPUDataTypes::DeviceType dtype)
@@ -64,7 +65,12 @@ framework::WorkflowSpec getWorkflow(bool useMC,
         cfg.itsOverrBeamEst = overrideBeamPosition;
 
         Inputs ggInputs;
-        auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
+        auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true,
+                                                                    useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None,
+                                                                    ggInputs, true);
+        if (!useGeom) {
+          ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("ITS/Config/Geometry")}, ggInputs);
+        }
 
         auto task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(&gPolicyData, cfg, std::vector<int>(), 0, ggRequest);
         gTask = task;
@@ -79,10 +85,10 @@ framework::WorkflowSpec getWorkflow(bool useMC,
           AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},
           taskOptions});
       } else {
-        specs.emplace_back(o2::its::getTrackerSpec(useMC, useTrig, trmode, overrideBeamPosition, dtype));
+        specs.emplace_back(o2::its::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
       }
     } else {
-      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useTrig, trmode));
+      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useGeom, useTrig, trmode));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));

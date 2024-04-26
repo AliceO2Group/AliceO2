@@ -52,12 +52,12 @@ class TrackerTraits
   virtual ~TrackerTraits() = default;
   virtual void adoptTimeFrame(TimeFrame* tf);
   virtual void initialiseTimeFrame(const int iteration);
-  virtual void computeLayerTracklets(const int iteration);
+  virtual void computeLayerTracklets(const int iteration, int iROFslice, int iVertex);
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
   virtual void initialiseTimeFrameHybrid(const int iteration) { LOGP(error, "initialiseTimeFrameHybrid: this method should never be called with CPU traits"); }
-  virtual void computeTrackletsHybrid(const int iteration) { LOGP(error, "computeTrackletsHybrid: this method should never be called with CPU traits"); }
+  virtual void computeTrackletsHybrid(const int iteration, int, int) { LOGP(error, "computeTrackletsHybrid: this method should never be called with CPU traits"); }
   virtual void computeCellsHybrid(const int iteration) { LOGP(error, "computeCellsHybrid: this method should never be called with CPU traits"); }
   virtual void findCellsNeighboursHybrid(const int iteration) { LOGP(error, "findCellsNeighboursHybrid: this method should never be called with CPU traits"); }
   virtual void findRoadsHybrid(const int iteration) { LOGP(error, "findRoadsHybrid: this method should never be called with CPU traits"); }
@@ -103,9 +103,9 @@ class TrackerTraits
 
   int mNThreads = 1;
   bool mApplySmoothing = false;
-  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
 
  protected:
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame* mTimeFrame;
   std::vector<TrackingParameters> mTrkParams;

@@ -122,7 +122,6 @@ std::string EnumRegistry::toString() const
     out.append("\n");
   }
 
-  LOG(info) << out;
   return out;
 }
 
@@ -509,6 +508,8 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
     return el.size() > 0 && (el.at(0) == '[') && (el.at(el.size() - 1) == ']');
   };
 
+  bool nonFatal = getenv("ALICEO2_CONFIGURABLEPARAM_WRONGKEYISNONFATAL") != nullptr;
+
   // Take a vector of param key/value pairs
   // and update the storage map for each of them by calling setValue.
   // 1. For string/scalar types this is simple.
@@ -521,6 +522,10 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
     std::string value = o2::utils::Str::trim_copy(keyValue.second);
 
     if (!keyInTree(sPtree, key)) {
+      if (nonFatal) {
+        LOG(warn) << "Ignoring non-existent ConfigurableParam key: " << key;
+        continue;
+      }
       LOG(fatal) << "Inexistant ConfigurableParam key: " << key;
     }
 

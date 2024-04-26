@@ -9,96 +9,44 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <Framework/TMessageSerializer.h>
+#include <FairMQTransportFactory.h>
 #include <algorithm>
 #include <memory>
 
 using namespace o2::framework;
 
-TMessageSerializer::StreamerList TMessageSerializer::sStreamers{};
-std::mutex TMessageSerializer::sStreamersLock{};
-
-void TMessageSerializer::loadSchema(gsl::span<std::byte> buffer)
+void* FairOutputTBuffer::embedInItself(fair::mq::Message& msg)
 {
-  std::unique_ptr<TObject> obj = deserialize(buffer);
-
-  TObjArray* pSchemas = dynamic_cast<TObjArray*>(obj.get());
-  if (!pSchemas) {
-    return;
+  // The first bytes of the message are used to store the pointer to the message itself
+  // so that we can reallocate it if needed.
+  if (sizeof(char*) > msg.GetSize()) {
+    throw std::runtime_error("Message size too small to embed pointer");
   }
-
-  // TODO: this is a bit of a problem in general: non-owning ROOT containers should become
-  // owners at deserialize, otherwise there is a leak. Switch to a better container.
-  pSchemas->SetOwner(kTRUE);
-
-  for (int i = 0; i < pSchemas->GetEntriesFast(); i++) {
-    TStreamerInfo* pSchema = dynamic_cast<TStreamerInfo*>(pSchemas->At(i));
-    if (!pSchema) {
-      continue;
-    }
-    int version = pSchema->GetClassVersion();
-    TClass* pClass = TClass::GetClass(pSchema->GetName());
-    if (!pClass) {
-      continue;
-    }
-    if (pClass->GetClassVersion() == version) {
-      continue;
-    }
-    TObjArray* pInfos = const_cast<TObjArray*>(pClass->GetStreamerInfos());
-    if (!pInfos) {
-      continue;
-    }
-    TVirtualStreamerInfo* pInfo = dynamic_cast<TVirtualStreamerInfo*>(pInfos->At(version));
-    if (pInfo) {
-      continue;
-    }
-    pSchema->SetClass(pClass);
-    pSchema->BuildOld();
-    pInfos->AddAtAndExpand(pSchema, version);
-    pSchemas->Remove(pSchema);
-  }
+  char* data = reinterpret_cast<char*>(msg.GetData());
+  char* ptr = reinterpret_cast<char*>(&msg);
+  std::memcpy(data, &ptr, sizeof(char*));
+  return data + sizeof(char*);
 }
 
-void TMessageSerializer::fillSchema(FairTMessage& msg, const StreamerList& streamers)
+// Reallocation function. Get the message pointer from the data and call Rebuild.
+char* FairOutputTBuffer::fairMQrealloc(char* oldData, size_t newSize, size_t oldSize)
 {
-  // TODO: this is a bit of a problem in general: non-owning ROOT containers should become
-  // owners at deserialize, otherwise there is a leak. Switch to a better container.
-  TObjArray infoArray{};
-  for (const auto& info : streamers) {
-    infoArray.Add(info);
+  // Old data is the pointer at the beginning of the message, so the pointer
+  // to the message is **stored** in the 8 bytes before it.
+  auto* msg = *(fair::mq::Message**)(oldData - sizeof(char*));
+  if (newSize <= msg->GetSize()) {
+    // no need to reallocate, the message is already big enough
+    return oldData;
   }
-  serialize(msg, &infoArray);
-}
+  // Create a shallow copy of the message
+  fair::mq::MessagePtr oldMsg = msg->GetTransport()->CreateMessage();
+  oldMsg->Copy(*msg);
+  // Copy the old data while rebuilding. Reference counting should make
+  // sure the old message is not deleted until the new one is ready.
+  // We need 8 extra bytes for the pointer to the message itself (realloc does not know about it)
+  // and we need to copy 8 bytes more than the old size (again, the extra pointer).
+  msg->Rebuild(newSize + 8, fair::mq::Alignment{64});
+  memcpy(msg->GetData(), oldMsg->GetData(), oldSize + 8);
 
-void TMessageSerializer::loadSchema(const fair::mq::Message& msg) { loadSchema(as_span(msg)); }
-void TMessageSerializer::fillSchema(fair::mq::Message& msg, const StreamerList& streamers)
-{
-  // TODO: this is a bit of a problem in general: non-owning ROOT containers should become
-  // owners at deserialize, otherwise there is a leak. Switch to a better container.
-  TObjArray infoArray{};
-  for (const auto& info : streamers) {
-    infoArray.Add(info);
-  }
-  Serialize(msg, &infoArray);
-}
-
-void TMessageSerializer::updateStreamers(const FairTMessage& message, StreamerList& streamers)
-{
-  std::lock_guard<std::mutex> lock{TMessageSerializer::sStreamersLock};
-
-  TIter nextStreamer(message.GetStreamerInfos()); // unfortunately ROOT uses TList* here
-  // this looks like we could use std::map here.
-  while (TVirtualStreamerInfo* in = static_cast<TVirtualStreamerInfo*>(nextStreamer())) {
-    auto found = std::find_if(streamers.begin(), streamers.end(), [&](const auto& old) {
-      return (old->GetName() == in->GetName() && old->GetClassVersion() == in->GetClassVersion());
-    });
-    if (found == streamers.end()) {
-      streamers.push_back(in);
-    }
-  }
-}
-
-void TMessageSerializer::updateStreamers(const TObject* object)
-{
-  FairTMessage msg(kMESS_OBJECT);
-  serialize(msg, object, CacheStreamers::yes, CompressionLevel{0});
+  return reinterpret_cast<char*>(msg->GetData()) + sizeof(char*);
 }

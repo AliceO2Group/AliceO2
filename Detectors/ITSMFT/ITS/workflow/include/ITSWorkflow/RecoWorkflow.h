@@ -16,9 +16,7 @@
 
 #include "Framework/WorkflowSpec.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
+#include "GPUDataTypes.h"
 
 namespace o2
 {
@@ -29,7 +27,7 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, const bool overrideBeamPosition = false,
-                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, int useTrig = 0,
+                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, bool useGeom = false, int useTrig = 0,
                                     bool useGPUWF = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
 }
 

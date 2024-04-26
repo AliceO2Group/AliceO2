@@ -15,12 +15,10 @@
 #ifndef O2_GPU_RECONSTRUCTIONHIPINCLUDES_H
 #define O2_GPU_RECONSTRUCTIONHIPINCLUDES_H
 
+#define __HIP_ENABLE_DEVICE_MALLOC__ 1 // Fix SWDEV-239120
+
 #include <hip/hip_runtime.h>
-#ifdef __CUDACC__
-#define hipExtLaunchKernelGGL(...)
-#else
 #include <hip/hip_ext.h>
-#endif
 #include <hipcub/hipcub.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"

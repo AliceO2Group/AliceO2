@@ -27,8 +27,11 @@
 #include "CommonDataFormat/EvIndex.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFV0/Digit.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -91,6 +94,77 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   TStopwatch timer;
   timer.Start();
 
+  // Load FIT triggers if not running in self-triggered mode
+  std::vector<o2::InteractionRecord> mbtriggers;
+  if (mRequireCTPInput) {
+    // Hopefully at some point we can replace it by CTP input digits
+    // In case of CTP digits react only to trigger inputs activated in trigger configuration
+    // For the moment react to FIT vertex, cent and semicent triggers
+    ctx.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
+    std::vector<uint64_t> inputmasks;
+    for (const auto& trg : mCTPConfig->getCTPClasses()) {
+      if (trg.cluster->maskCluster[o2::detectors::DetID::EMC]) {
+        // Class triggering EMCAL cluster
+        LOG(debug) << "Found trigger class for EMCAL cluster: " << trg.name << " with input mask " << std::bitset<64>(trg.descriptor->getInputsMask());
+        inputmasks.emplace_back(trg.descriptor->getInputsMask());
+      }
+    }
+    unsigned long ft0mask = 0, fv0mask = 0;
+    std::map<std::string, uint64_t> detInputName2Mask =
+      {{"MVBA", 1}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MVIR", 0x10}, {"MT0A", 1}, {"MT0C", 2}, {"MTSC", 4}, {"MTCE", 8}, {"MTVX", 0x10}};
+    // Translation 2022: EMCAL cluster received CTP input masks, need to track it to FIT trigger masks
+    std::map<std::string, std::pair<o2::detectors::DetID, std::string>> ctpInput2DetInput = {
+      {"0VBA", {o2::detectors::DetID::FV0, "MVBA"}}, {"0VOR", {o2::detectors::DetID::FV0, "MVOR"}}, {"0VNC", {o2::detectors::DetID::FV0, "MVNC"}}, {"0VCH", {o2::detectors::DetID::FV0, "MVCH"}}, {"0VIR", {o2::detectors::DetID::FV0, "MVIR"}}, {"0T0A", {o2::detectors::DetID::FT0, "MT0A"}}, {"0T0C", {o2::detectors::DetID::FT0, "MT0C"}}, {"0TSC", {o2::detectors::DetID::FT0, "MTSC"}}, {"0TCE", {o2::detectors::DetID::FT0, "MTCE"}}, {"0TVX", {o2::detectors::DetID::FT0, "MTVX"}}};
+    for (const auto& [det, ctpinputs] : mCTPConfig->getDet2InputMap()) {
+      if (!(det == o2::detectors::DetID::FT0 || det == o2::detectors::DetID::FV0 || det == o2::detectors::DetID::CTP)) {
+        continue;
+      }
+      for (const auto& input : ctpinputs) {
+        LOG(debug) << "CTP det input: " << input.name << " with mask " << std::bitset<64>(input.inputMask);
+        bool isSelected = false;
+        for (auto testmask : inputmasks) {
+          if (testmask & input.inputMask) {
+            isSelected = true;
+          }
+        }
+        if (isSelected) {
+          std::string usedInputName = input.name;
+          o2::detectors::DetID usedDetID = det;
+          if (det == o2::detectors::DetID::CTP) {
+            auto found = ctpInput2DetInput.find(input.name);
+            if (found != ctpInput2DetInput.end()) {
+              usedInputName = found->second.second;
+              usedDetID = found->second.first;
+              LOG(debug) << "Decoded " << input.name << " -> " << usedInputName;
+            }
+          }
+          auto maskFound = detInputName2Mask.find(usedInputName);
+          if (maskFound != detInputName2Mask.end()) {
+            if (usedDetID == o2::detectors::DetID::FT0) {
+              ft0mask |= maskFound->second;
+            } else {
+              fv0mask |= maskFound->second;
+            }
+          }
+        }
+      }
+    }
+    LOG(debug) << "FTO mask: " << std::bitset<64>(ft0mask);
+    LOG(debug) << "FVO mask: " << std::bitset<64>(fv0mask);
+    for (const auto& trg : ctx.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0inputs")) {
+      if (trg.mInputs.to_ulong() & ft0mask) {
+        mbtriggers.emplace_back(trg.mIntRecord);
+      }
+    }
+    for (const auto& trg : ctx.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0inputs")) {
+      if (trg.mInputs.to_ulong() & fv0mask) {
+        if (std::find(mbtriggers.begin(), mbtriggers.end(), trg.mIntRecord) == mbtriggers.end()) {
+          mbtriggers.emplace_back(trg.mIntRecord);
+        }
+      }
+    }
+  }
+
   LOG(info) << " CALLING EMCAL DIGITIZATION ";
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> labelAccum;
 
@@ -99,8 +173,13 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
+    bool trigger = true; // Default: Self-triggered mode - all collisions treated as trigger
+    if (mRequireCTPInput) {
+      // check if we have a trigger input from CTP
+      trigger = (std::find(mbtriggers.begin(), mbtriggers.end(), timesview[collID]) != mbtriggers.end());
+    }
 
-    mDigitizer.setEventTime(timesview[collID]);
+    mDigitizer.setEventTime(timesview[collID], trigger);
 
     if (!mDigitizer.isLive()) {
       continue;
@@ -180,9 +259,13 @@ void DigitizerSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, vo
   if (mCalibHandler->finalizeCCDB(matcher, obj)) {
     return;
   }
+  if (matcher == o2::framework::ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
+    std::cout << "Loading CTP configuration" << std::endl;
+    mCTPConfig = reinterpret_cast<o2::ctp::CTPConfiguration*>(obj);
+  }
 }
 
-o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth, bool useccdb)
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool requireCTPInput, bool mctruth, bool useccdb)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -206,12 +289,17 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth
     calibloader->enableSimParams(true);
     calibloader->defineInputSpecs(inputs);
   }
+  if (requireCTPInput) {
+    inputs.emplace_back("ft0inputs", "FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    inputs.emplace_back("fv0inputs", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", true));
+  }
 
   return DataProcessorSpec{
     "EMCALDigitizer", // Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}, InputSpec{"EMC_SimParam", o2::header::gDataOriginEMC, "SIMPARAM", 0, Lifetime::Condition, ccdbParamSpec("EMC/Config/SimParam")}},
     inputs,
     outputs,
-    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader)},
+    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader, requireCTPInput)},
     Options{
       {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
       {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}}}

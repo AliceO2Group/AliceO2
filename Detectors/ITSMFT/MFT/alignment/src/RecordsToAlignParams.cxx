@@ -28,13 +28,13 @@ RecordsToAlignParams::RecordsToAlignParams()
   : Aligner(),
     mWithControl(false),
     mNEntriesAutoSave(10000),
-    mRecordReader(new MilleRecordReader()),
+    mRecordReader(new o2::fwdalign::MilleRecordReader()),
     mWithConstraintsRecReader(false),
     mConstraintsRecReader(nullptr),
-    mMillepede(new MillePede2())
+    mMillepede(new o2::fwdalign::MillePede2())
 {
   if (mWithConstraintsRecReader) {
-    mConstraintsRecReader = new MilleRecordReader();
+    mConstraintsRecReader = new o2::fwdalign::MilleRecordReader();
   }
 
   // allocate memory in vectors to store the results of the global fit

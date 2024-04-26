@@ -10,8 +10,11 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <TMath.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <DataFormatsCTP/Configuration.h>
+#include <DataFormatsParameters/GRPLHCIFData.h>
+#include "Common/CCDB/ctpRateFetcher.h"
 #endif
 using namespace o2::ctp;
 
@@ -22,11 +25,8 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   }
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
-  // o2::ccdb::CcdbApi api;
-  // api.init("http://alice-ccdb.cern.ch"); // alice-ccdb.cern.ch
-  // api.init("http://ccdb-test.cern.ch:8080");
+
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  // ccdbMgr.setURL("http://ccdb-test.cern.ch:8080");
   auto soreor = ccdbMgr.getRunDuration(runNumber);
   uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
   std::cout << "Timestamp:" << timeStamp << std::endl;
@@ -34,7 +34,7 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   std::string sfill = std::to_string(fillN);
   std::map<string, string> metadata;
   metadata["fillNumber"] = sfill;
-  auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
+  auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp);
   auto bfilling = lhcifdata->getBunchFilling();
   std::vector<int> bcs = bfilling.getFilledBCs();
   std::cout << "Number of interacting bc:" << bcs.size() << std::endl;
@@ -42,7 +42,6 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   std::string srun = std::to_string(runNumber);
   metadata.clear(); // can be empty
   metadata["runNumber"] = srun;
-  ccdbMgr.setURL("http://ccdb-test.cern.ch:8080");
   auto ctpscalers = ccdbMgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timeStamp, metadata);
   if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timeStamp;
@@ -82,30 +81,35 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
       vch = cls.getIndex();
       std::cout << cls.name << ":" << vch << std::endl;
     }
-    if (cls.name.find("C1ZNC-B-NOPF-CRU") != std::string::npos) {
+    // if (cls.name.find("C1ZNC-B-NOPF-CRU") != std::string::npos) {
+    if (cls.name.find("C1ZNC-B-NOPF") != std::string::npos) {
       iznc = cls.getIndex();
       std::cout << cls.name << ":" << iznc << std::endl;
     }
   }
-  std::cout << "ZNC:";
-  int inp = 26;
-  double_t nbc = bcs.size();
-  double_t frev = 11245;
-  double_t sigmaratio = 28.;
   std::vector<CTPScalerRecordO2> recs = ctpscalers->getScalerRecordO2();
-  double_t time0 = recs[0].epochTime;
-  double_t timeL = recs[recs.size() - 1].epochTime;
-  double_t Trun = timeL - time0;
-  double_t integral = recs[recs.size() - 1].scalersInps[inp - 1] - recs[0].scalersInps[inp - 1];
-  double_t rate = integral / Trun;
-  double_t rat = integral / Trun / nbc / frev;
-  double_t mu = -TMath::Log(1 - rat);
-  double_t pp = 1 - mu / (TMath::Exp(mu) - 1);
-  double_t ratepp = mu * nbc * frev;
-  double_t integralpp = ratepp * Trun;
-  std::cout << "Rate:" << rate / sigmaratio << " Integral:" << integral << " mu:" << mu << " Pileup prob:" << pp;
-  std::cout << " Integralpp:" << integralpp << " Ratepp:" << ratepp / sigmaratio << std::endl;
-  // ctpscalers->printInputRateAndIntegral(26);
+  if (recs[0].scalersInps.size() == 48) {
+    std::cout << "ZNC:";
+    int inp = 26;
+    double_t nbc = bcs.size();
+    double_t frev = 11245;
+    double_t sigmaratio = 28.;
+    double_t time0 = recs[0].epochTime;
+    double_t timeL = recs[recs.size() - 1].epochTime;
+    double_t Trun = timeL - time0;
+    double_t integral = recs[recs.size() - 1].scalersInps[inp - 1] - recs[0].scalersInps[inp - 1];
+    double_t rate = integral / Trun;
+    double_t rat = integral / Trun / nbc / frev;
+    double_t mu = -TMath::Log(1 - rat);
+    double_t pp = 1 - mu / (TMath::Exp(mu) - 1);
+    double_t ratepp = mu * nbc * frev;
+    double_t integralpp = ratepp * Trun;
+    std::cout << "Rate:" << rate / sigmaratio << " Integral:" << integral << " mu:" << mu << " Pileup prob:" << pp;
+    std::cout << " Integralpp:" << integralpp << " Ratepp:" << ratepp / sigmaratio << std::endl;
+    // ctpscalers->printInputRateAndIntegral(26);
+  } else {
+    std::cout << "Inputs not available" << std::endl;
+  }
   //
   if (tsc != 255) {
     std::cout << "TSC:";
@@ -122,7 +126,16 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   }
   if (iznc != 255) {
     std::cout << "ZNC class:";
-    int integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
-    std::cout << integral << std::endl;
+    // uint64_t integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
+    auto zncrate = ctpscalers->getRateGivenT(timeStamp * 1.e-3, iznc, 6);
+    std::cout << "ZNC class rate:" << zncrate.first / 28. << std::endl;
+  } else {
+    std::cout << "ZNC class not available, rate from input:" << std::endl;
   }
+  auto zncinprate = ctpscalers->getRateGivenT((timeStamp + 100) * 1.e-3, 25, 7);
+  std::cout << "ZNC inp rate:" << zncinprate.first / 28. << " " << zncinprate.second / 28. << std::endl;
+
+  // ctpRateFetcher ctprate;
+  // auto fetcherRate = ctprate.fetch(&ccdbMgr, timeStamp, runNumber, "ZNChadronic");
+  // std::cout << "Result from the fetcher (ZNC): " << fetcherRate << std::endl;
 }

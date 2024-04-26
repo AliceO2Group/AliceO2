@@ -14,11 +14,17 @@
 #include "Framework/ConfigParamSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 using GTrackID = o2::dataformats::GlobalTrackID;
 
 // ------------------------------------------------------------------
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -29,7 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"track-types", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"output-strict", o2::framework::VariantType::Bool, false, {"outputs specs should correspond to strict matching mode"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -58,5 +64,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (GTrackID::includesSource(GTrackID::Source::TPCTRD, srcTRD)) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(useMC, configcontext.options().get<bool>("output-strict")));
   }
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

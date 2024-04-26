@@ -66,7 +66,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 
   // local copies
 
-  if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2) || (rowUp.mNHits < 0) || (rowDn.mNHits < 0)) {
+  if ((s.mIRow <= 1) || (s.mIRow >= GPUCA_ROW_COUNT - 2) || (rowUp.mNHits <= 0) || (rowDn.mNHits <= 0)) {
     const int lHitNumberOffset = row.mHitNumberOffset;
     for (int ih = iThread; ih < s.mNHits; ih += nThreads) {
       tracker.mData.mLinkUpData[lHitNumberOffset + ih] = CALINK_INVAL;
@@ -85,7 +85,7 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
 #define MaxTotal MaxShared + MaxGlobal
 
   const float chi2Cut = 3.f * 3.f * 4 * (s.mUpDx * s.mUpDx + s.mDnDx * s.mDnDx);
-  // float chi2Cut = 3.*3.*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
+  // float chi2Cut = 3.f*3.f*(s.mUpDx*s.mUpDx + s.mDnDx*s.mDnDx ); //SG
 
   const int lHitNumberOffset = row.mHitNumberOffset;
   const int lHitNumberOffsetUp = rowUp.mHitNumberOffset;
@@ -217,8 +217,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
     rowDn.Grid().GetBin(maxY, maxZ, &binYmax, &binZmax);
     nY = rowDn.Grid().Ny();
 
-    int linkUp = -1;
-    int linkDn = -1;
+    int linkUp = -1; // CALINK_INVAL as integer
+    int linkDn = -1; // CALINK_INVAL as integer
     float bestD = chi2Cut;
 
     for (int k1 = binZmin; k1 <= binZmax; k1++) {

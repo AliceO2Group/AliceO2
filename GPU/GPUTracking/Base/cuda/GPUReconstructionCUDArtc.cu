@@ -12,8 +12,10 @@
 /// \file GPUReconstructionCUDArtc.cu
 /// \author David Rohr
 
+#define GPUCA_GPUCODE_GENRTC
+#define GPUCA_GPUCODE_COMPILEKERNELS
 #include "GPUReconstructionCUDADef.h"
-#include "GPUReconstructionIncludesDevice.h"
+#include "GPUReconstructionIncludesDeviceAll.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #error RTC Preprocessing must run on device code

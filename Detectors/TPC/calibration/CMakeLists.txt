@@ -54,12 +54,13 @@ o2_add_library(TPCCalibration
                        src/CalculatedEdx.cxx
                        src/TPCScaler.cxx
                        src/CorrMapParam.cxx
+                       src/TPCMShapeCorrection.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
                                      O2::DetectorsCalibration
                                      O2::GPUO2Interface
-                                     O2::GPUTracking
+                                     O2::GPUDataTypes
                                      O2::TPCFastTransformation
                                      O2::DataFormatsCTP
                                      O2::CCDB
@@ -107,7 +108,8 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h
                                   include/TPCCalibration/CalculatedEdx.h
                                   include/TPCCalibration/TPCScaler.h
-                                  include/TPCCalibration/CorrMapParam.h)
+                                  include/TPCCalibration/CorrMapParam.h
+                                  include/TPCCalibration/TPCMShapeCorrection.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
@@ -152,7 +154,7 @@ o2_add_test(IDCFourierTransform
             SOURCES test/testO2TPCIDCFourierTransform.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS tpc
-            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+            CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
 
 o2_add_test(IDCAverageGroup
             LABELS tpc
@@ -160,7 +162,7 @@ o2_add_test(IDCAverageGroup
             COMPONENT_NAME tpc
             SOURCES test/testO2TPCIDCAverageGroup.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+            CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

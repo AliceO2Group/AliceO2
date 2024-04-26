@@ -25,6 +25,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "EMCALSimulation/SimParam.h"
+#include "EMCALSimulation/DigitTimebin.h"
 
 namespace o2
 {
@@ -37,14 +38,6 @@ namespace emcal
 /// \author Hadi Hassan, ORNL
 /// \author Markus Fasel, ORNL
 /// \date 16/02/2022
-
-struct DigitTimebin {
-  bool mRecordMode = false;
-  bool mEndWindow = false;
-  bool mTriggerColl = false;
-  std::optional<o2::InteractionRecord> mInterRecord;
-  std::shared_ptr<std::unordered_map<int, std::list<LabeledDigit>>> mDigitMap = std::make_shared<std::unordered_map<int, std::list<LabeledDigit>>>();
-};
 
 class DigitsVectorStream
 {

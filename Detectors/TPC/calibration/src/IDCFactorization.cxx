@@ -209,17 +209,15 @@ void o2::tpc::IDCFactorization::dumpToTreeIDC1(const float integrationTimeOrbits
 {
   o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
   pcstream.GetFile()->cd();
-  std::vector<float> idcOneA = getIDCOneVec(Side::A);
-  std::vector<float> idcOneC = getIDCOneVec(Side::C);
   std::vector<double> timestamp;
 
-  for (int i = 0; i < idcOneA.size(); ++i) {
+  for (int i = 0; i < getIDCOneVec(Side::A).size(); ++i) {
     timestamp.emplace_back((mTimeStamp + i * integrationTimeOrbits * o2::constants::lhc::LHCOrbitMUS * 0.001) / 1000);
   }
 
   pcstream << "tree"
-           << "IDC1A=" << idcOneA
-           << "IDC1C=" << idcOneC
+           << "IDC1A=" << getIDCOne(o2::tpc::Side::A)
+           << "IDC1C=" << getIDCOne(o2::tpc::Side::C)
            << "timestamp=" << timestamp
            << "\n";
 
@@ -334,72 +332,70 @@ void o2::tpc::IDCFactorization::calcIDCOne()
 {
   const unsigned int integrationIntervals = getNIntegrationIntervals();
   for (auto& idcOne : mIDCOne) {
-    idcOne.clear();
-    idcOne.resize(integrationIntervals);
-  }
-
-  std::vector<std::vector<std::vector<float>>> idcOneSafe(mSides.size());
-  std::vector<std::vector<std::vector<unsigned int>>> weightsSafe(mSides.size());
-
-  for (auto& vecSide : idcOneSafe) {
-    vecSide.resize(sNThreads);
-    for (auto& interavalvec : vecSide) {
-      interavalvec.resize(integrationIntervals);
-    }
-  }
-
-  for (auto& vecSide : weightsSafe) {
-    vecSide.resize(sNThreads);
-    for (auto& interavalvec : vecSide) {
-      interavalvec.resize(integrationIntervals);
-    }
+    idcOne.mIDCOne.clear();
+    idcOne.mIDCOneMedian.clear();
+    idcOne.mIDCOneRMS.clear();
+    idcOne.mIDCOne.resize(integrationIntervals);
+    idcOne.mIDCOneMedian.resize(integrationIntervals);
+    idcOne.mIDCOneRMS.resize(integrationIntervals);
+    std::fill(idcOne.mIDCOne.begin(), idcOne.mIDCOne.end(), 1);
   }
 
 #pragma omp parallel for num_threads(sNThreads)
-  for (unsigned int cruInd = 0; cruInd < mCRUs.size(); ++cruInd) {
-    const unsigned int cru = mCRUs[cruInd];
-#ifdef WITH_OPENMP
-    const int ithread = omp_get_thread_num();
-#else
-    const int ithread = 0;
-#endif
-    const o2::tpc::CRU cruTmp(cru);
-    const unsigned int region = cruTmp.region();
-    const auto side = cruTmp.side();
-    const unsigned int indexSide = mSideIndex[side];
+  for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
+    const unsigned int nIDCsSide = mNIDCsPerSector * SECTORSPERSIDE;
+    std::vector<std::vector<std::vector<float>>> idcOneSafe(mSides.size()); // side -> intervals -> IDCs
 
-    const auto factorIndexGlob = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
-    unsigned int integrationIntervalOffset = 0;
-    for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
-      calcIDCOne(mIDCs[cru][timeframe], mNIDCsPerCRU[region], integrationIntervalOffset, factorIndexGlob, cru, idcOneSafe[indexSide][ithread], weightsSafe[indexSide][ithread], &mIDCZero[indexSide], mInputGrouped ? nullptr : mPadFlagsMap.get(), mUsePadStatusMap);
-      integrationIntervalOffset += mIntegrationIntervalsPerTF[timeframe];
-    }
-  }
-
-#pragma omp parallel for num_threads(sNThreads)
-  for (int side = 0; side < mSides.size(); ++side) {
-    const unsigned int indexSide = mSideIndex[side];
-    for (int i = 1; i < sNThreads; ++i) {
-      std::transform(idcOneSafe[indexSide].front().begin(), idcOneSafe[indexSide].front().end(), idcOneSafe[indexSide][i].begin(), idcOneSafe[indexSide].front().begin(), std::plus<float>());
-      std::transform(weightsSafe[indexSide].front().begin(), weightsSafe[indexSide].front().end(), weightsSafe[indexSide][i].begin(), weightsSafe[indexSide].front().begin(), std::plus<unsigned int>());
+    // reserve memory
+    for (auto& interavalvec : idcOneSafe) {
+      interavalvec.resize(mIntegrationIntervalsPerTF[timeframe]);
+      for (auto& idcsPerInteraval : interavalvec) {
+        idcsPerInteraval.reserve(nIDCsSide);
+      }
     }
 
-    // replace all 0 with 1 to avoid division by 0
-    std::replace(weightsSafe[indexSide].front().begin(), weightsSafe[indexSide].front().end(), 0, 1);
+    // loop over CRUs and fill idcOneSafe vector with IDC/IDC0 values
+    for (unsigned int cruInd = 0; cruInd < mCRUs.size(); ++cruInd) {
+      const unsigned int cru = mCRUs[cruInd];
+      const o2::tpc::CRU cruTmp(cru);
+      const unsigned int region = cruTmp.region();
+      const auto side = cruTmp.side();
+      const unsigned int indexSide = mSideIndex[side];
+      const auto factorIndexGlob = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
+      unsigned int integrationIntervalOffset = 0;
+      calcIDCOne(mIDCs[cru][timeframe], mNIDCsPerCRU[region], integrationIntervalOffset, factorIndexGlob, cru, idcOneSafe[indexSide], &mIDCZero[indexSide], mInputGrouped ? nullptr : mPadFlagsMap.get(), mUsePadStatusMap);
+    }
 
-    // move IDC1 to member
-    mIDCOne[indexSide].mIDCOne = std::move(idcOneSafe[indexSide].front());
+    // calculate global offset for interval
+    int offsInterval = 0;
+    for (unsigned int tf = 0; tf < timeframe; ++tf) {
+      offsInterval += mIntegrationIntervalsPerTF[tf];
+    }
 
-    // normalize IDC1 to number of IDC values used
-    std::transform(mIDCOne[indexSide].mIDCOne.begin(), mIDCOne[indexSide].mIDCOne.end(), weightsSafe[side].front().begin(), mIDCOne[indexSide].mIDCOne.begin(), std::divides<float>());
+    for (int side = 0; side < mSides.size(); ++side) {
+      const unsigned int indexSide = mSideIndex[side];
+      for (int interval = 0; interval < mIntegrationIntervalsPerTF[timeframe]; ++interval) {
 
-    // replace all 0 i.e. where all data for one TF was dropped
-    std::replace(mIDCOne[indexSide].mIDCOne.begin(), mIDCOne[indexSide].mIDCOne.end(), 0, 1);
+        // calculate robust average for each slice
+        const int intervalGlobal = interval + offsInterval;
+        if (!idcOneSafe[indexSide].empty()) {
+          RobustAverage average(std::move(idcOneSafe[indexSide][interval]));
+          const float mean = average.getTrunctedMean(0.05, 0.95);
+          const float median = average.getMedian();
+          const float rms = average.getStdDev();
+          if (mean != 0) {
+            mIDCOne[indexSide].mIDCOne[intervalGlobal] = mean;
+          }
+          mIDCOne[indexSide].mIDCOneMedian[intervalGlobal] = median;
+          mIDCOne[indexSide].mIDCOneRMS[intervalGlobal] = rms;
+        }
+      }
+    }
   }
 }
 
 template <typename DataVec>
-void o2::tpc::IDCFactorization::calcIDCOne(const DataVec& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap, const bool usePadStatusMap)
+void o2::tpc::IDCFactorization::calcIDCOne(const DataVec& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<std::vector<float>>& idcOneTmp, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap, const bool usePadStatusMap)
 {
   for (unsigned int idcs = 0; idcs < idcsData.size(); ++idcs) {
     if ((idcsData[idcs] == -1) || (idcsData[idcs] == 0)) {
@@ -423,8 +419,10 @@ void o2::tpc::IDCFactorization::calcIDCOne(const DataVec& idcsData, const int id
       LOGP(error, "integrationInterval {} is larger than maximum: {}", integrationInterval, idcOneTmp.size());
       break;
     }
-    idcOneTmp[integrationInterval] += (idcZeroVal == 0) ? idcsData[idcs] : idcsData[idcs] / idcZeroVal;
-    ++weights[integrationInterval];
+    const double epsilon = 0.001;
+    if (std::abs(idcZeroVal) > epsilon) {
+      idcOneTmp[integrationInterval].emplace_back(idcsData[idcs] / idcZeroVal);
+    }
   }
 }
 
@@ -1243,4 +1241,4 @@ bool o2::tpc::IDCFactorization::checkReceivedIDCs()
   return idcsGood;
 }
 
-template void o2::tpc::IDCFactorization::calcIDCOne(const o2::pmr::vector<float>&, const int, const int, const unsigned int, const CRU, std::vector<float>&, std::vector<unsigned int>&, const IDCZero*, const CalDet<PadFlags>*, const bool);
+template void o2::tpc::IDCFactorization::calcIDCOne(const o2::pmr::vector<float>&, const int, const int, const unsigned int, const CRU, std::vector<std::vector<float>>&, const IDCZero*, const CalDet<PadFlags>*, const bool);

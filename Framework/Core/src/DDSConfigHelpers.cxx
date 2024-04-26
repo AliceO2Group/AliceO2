@@ -181,7 +181,7 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
     out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | o2-dpl-run --driver-mode embedded", workflowSuffix);
     out << R"(</exe>)"
         << "<requirements>\n"
-        << "  <requirement name=\"odc_expendable_task\" />\n"
+        << "  <name>odc_expendable_task</name>\n"
         << "</requirements>\n"
         << "\n";
     out << "</decltask>";
@@ -252,7 +252,7 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
           return label.value == "expendable";
         }) != spec.labels.end()) {
       out << "       <requirements>\n";
-      out << "           <requirement name=\"odc_expendable_task\" />\n";
+      out << "           <name>odc_expendable_task</name>\n";
       out << "       </requirements>\n";
     }
     auto& rewriter = rewriters[di];

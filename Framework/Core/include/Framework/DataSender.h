@@ -61,7 +61,7 @@ class DataSender
   std::vector<bool> mPresent;
   std::vector<bool> mPresentDefaults;
 
-  TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
+  O2_LOCKABLE_NAMED(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 
 } // namespace o2::framework

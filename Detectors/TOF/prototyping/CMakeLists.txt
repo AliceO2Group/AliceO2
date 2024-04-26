@@ -39,7 +39,7 @@ o2_add_test_root_macro(findTOFclusterFromLabel.C
                                              O2::ReconstructionDataFormats
                                              O2::CommonDataFormat
                                              O2::TOFBase
-                       LABELS tof)
+                       LABELS tof COMPILE_ONLY)
 
 o2_add_test_root_macro(checkTS.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF

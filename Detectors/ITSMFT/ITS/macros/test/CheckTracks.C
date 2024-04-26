@@ -15,16 +15,16 @@
 
 #include "TGeoGlobalMagField.h"
 #include "Field/MagneticField.h"
-#include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "SimulationDataFormat/TrackReference.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITS/TrackITS.h"
+#include "SimulationDataFormat/TrackReference.h"
+#include "DetectorsBase/Propagator.h"
 
 #endif
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace std;
 

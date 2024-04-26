@@ -66,6 +66,77 @@ class Ring
   ClassDef(Ring, 0);
 };
 
+// Definitions for fwd and bwd RICH are put here
+class FWDRich
+{
+ public:
+  FWDRich() = default;
+  FWDRich(std::string name,
+          float rMin,
+          float rMax,
+          float zAerogelMin,
+          float dZAerogel,
+          float zArgonMin,
+          float dZArgon,
+          float zSiliconMin,
+          float dZSilicon);
+  void createFWDRich(TGeoVolume* motherVolume);
+
+ protected:
+  std::string mName;
+  float mRmin;
+  float mRmax;
+
+  // Aerogel:
+  float mZAerogelMin;
+  float mDZAerogel;
+
+  // Argon:
+  float mZArgonMin;
+  float mDZArgon;
+
+  // Silicon:
+  float mZSiliconMin;
+  float mDZSilicon;
+
+  ClassDef(FWDRich, 0);
+};
+
+class BWDRich
+{
+ public:
+  BWDRich() = default;
+  BWDRich(std::string name,
+          float rMin,
+          float rMax,
+          float zAerogelMin,
+          float dZAerogel,
+          float zArgonMin,
+          float dZArgon,
+          float zSiliconMin,
+          float dZSilicon);
+  void createBWDRich(TGeoVolume* motherVolume);
+
+ protected:
+  std::string mName;
+  float mRmin;
+  float mRmax;
+
+  // Aerogel:
+  float mZAerogelMin;
+  float mDZAerogel;
+
+  // Argon:
+  float mZArgonMin;
+  float mDZArgon;
+
+  // Silicon:
+  float mZSiliconMin;
+  float mDZSilicon;
+
+  ClassDef(BWDRich, 0);
+};
+
 } // namespace rich
 } // namespace o2
 #endif // ALICEO2_RICH_RING_H

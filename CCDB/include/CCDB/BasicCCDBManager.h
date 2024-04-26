@@ -18,6 +18,8 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/NameConf.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 #include <string>
 #include <chrono>
 #include <map>
@@ -48,10 +50,19 @@ class CCDBManagerInstance
     std::string uuid;
     long startvalidity = 0;
     long endvalidity = -1;
+    long cacheValidFrom = 0;   // time for which the object was cached
+    long cacheValidUntil = -1; // object is guaranteed to be valid till this time (modulo new updates)
+    size_t minSize = -1ULL;
+    size_t maxSize = 0;
     int queries = 0;
     int fetches = 0;
     int failures = 0;
-    bool isValid(long ts) { return ts < endvalidity && ts > startvalidity; }
+    bool isValid(long ts) { return ts < endvalidity && ts >= startvalidity; }
+    bool isCacheValid(long ts)
+    {
+      LOGP(debug, "isCacheValid : {} : {} : {} --> {}", cacheValidFrom, ts, cacheValidUntil, ts < cacheValidUntil && ts >= cacheValidFrom);
+      return ts < cacheValidUntil && ts >= cacheValidFrom;
+    }
     void clear()
     {
       noCleanupPtr = nullptr;
@@ -68,6 +79,7 @@ class CCDBManagerInstance
   CCDBManagerInstance(std::string const& path) : mCCDBAccessor{}
   {
     mCCDBAccessor.init(path);
+    mDeplMode = o2::framework::DefaultsHelpers::deploymentMode();
   }
   /// set a URL to query from
   void setURL(const std::string& url);
@@ -98,6 +110,9 @@ class CCDBManagerInstance
     mMetaData = metaData;
     return getForTimeStamp<T>(path, timestamp);
   }
+
+  /// detect online processing modes (i.e. CCDB objects may be updated in the lifetime of the manager)
+  bool isOnline() const { return mDeplMode == o2::framework::DeploymentMode::OnlineAUX || mDeplMode == o2::framework::DeploymentMode::OnlineDDS || mDeplMode == o2::framework::DeploymentMode::OnlineECS; }
 
   /// retrieve an object of type T from CCDB as stored under path; will use the timestamp member
   template <typename T>
@@ -132,7 +147,7 @@ class CCDBManagerInstance
     if (!isCachingEnabled()) {
       return false;
     }
-    return mCache[path].isValid(timestamp);
+    return (mCheckObjValidityEnabled && mCache[path].isValid(timestamp)) || mCache[path].isCacheValid(timestamp); // use stricter check
   }
 
   /// check if checks of object validity before CCDB query is enabled
@@ -165,16 +180,18 @@ class CCDBManagerInstance
   void setFatalWhenNull(bool b) { mFatalWhenNull = b; }
 
   /// A convenience function for MC to fetch
-  /// valid start and end timestamps given an ALICE run number.
+  /// valid start and end timestamps for recorded TF data given an ALICE run number.
+  /// In absence of STF/ETF fields in the RCT with fall back to CTP SOX/EOX then to
+  /// ECS SOR/EOR.
   /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
-  std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true) const;
-
-  /// A convenience function for MC to fetch
-  /// valid start and end timestamps given an ALICE run number.
-  /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
+  std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true);
   static std::pair<int64_t, int64_t> getRunDuration(o2::ccdb::CcdbApi const& api, int runnumber, bool fatal = true);
 
   std::string getSummaryString() const;
+
+  size_t getFetchedSize() const { return mFetchedSize; }
+
+  void report(bool longrep = false);
 
   void endOfStream();
 
@@ -190,14 +207,15 @@ class CCDBManagerInstance
   bool mCanDefault = false;                             // whether default is ok --> useful for testing purposes done standalone/isolation
   bool mCachingEnabled = true;                          // whether caching is enabled
   bool mCheckObjValidityEnabled = false;                // wether the validity of cached object is checked before proceeding to a CCDB API query
+  bool mFatalWhenNull = true;                           // if nullptr blob replies should be treated as fatal (can be set by user)
   long mCreatedNotAfter = 0;                            // upper limit for object creation timestamp (TimeMachine mode) - If-Not-After HTTP header
   long mCreatedNotBefore = 0;                           // lower limit for object creation timestamp (TimeMachine mode) - If-Not-Before HTTP header
   long mTimerMS = 0;                                    // timer for queries
-  bool mFatalWhenNull = true;                           // if nullptr blob replies should be treated as fatal (can be set by user)
+  size_t mFetchedSize = 0;                              // total fetched size
   int mQueries = 0;                                     // total number of object queries
   int mFetches = 0;                                     // total number of succesful fetches from CCDB
   int mFailures = 0;                                    // total number of failed fetches
-
+  o2::framework::DeploymentMode mDeplMode;              // O2 deployment mode
   ClassDefNV(CCDBManagerInstance, 1);
 };
 
@@ -218,11 +236,16 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
       mFailures++;
     } else {
       mFetches++;
+      auto sh = mHeaders.find("fileSize");
+      if (sh != mHeaders.end()) {
+        size_t s = atol(sh->second.c_str());
+        mFetchedSize += s;
+      }
     }
   } else {
     auto& cached = mCache[path];
-    if (mCheckObjValidityEnabled && cached.isValid(timestamp)) {
-      cached.queries++;
+    cached.queries++;
+    if ((!isOnline() && cached.isCacheValid(timestamp)) || (mCheckObjValidityEnabled && cached.isValid(timestamp))) {
       return reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
     }
     ptr = mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, &mHeaders, cached.uuid,
@@ -238,17 +261,41 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
         cached.objPtr.reset(ptr);
       }
       cached.uuid = mHeaders["ETag"];
-      try { // this conversion can throw, better to catch immediately
-        cached.startvalidity = std::stol(mHeaders["Valid-From"]);
-        cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
+
+      try {
+        if (mHeaders.find("Valid-From") != mHeaders.end()) {
+          cached.startvalidity = std::stol(mHeaders["Valid-From"]);
+        } else {
+          // if meta-information missing assume infinit validity
+          // (should happen only for locally created objects)
+          cached.startvalidity = 0;
+        }
+        if (mHeaders.find("Valid-Until") != mHeaders.end()) {
+          cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
+        } else {
+          cached.endvalidity = std::numeric_limits<long>::max();
+        }
+        cached.cacheValidFrom = timestamp;
       } catch (std::exception const& e) {
         reportFatal("Failed to read validity from CCDB response (Valid-From :  " + mHeaders["Valid-From"] + std::string(" Valid-Until: ") + mHeaders["Valid-Until"] + std::string(")"));
+      }
+      auto sh = mHeaders.find("fileSize");
+      if (sh != mHeaders.end()) {
+        size_t s = atol(sh->second.c_str());
+        mFetchedSize += s;
+        cached.minSize = std::min(s, cached.minSize);
+        cached.maxSize = std::max(s, cached.minSize);
       }
     } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
       cached.failures++;
       cached.clear(); // in case of any error clear cache for this object
-    } else {          // the old object is valid
-      ptr = reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
+    }
+    // the old object is valid, fetch cache end of validity
+    ptr = reinterpret_cast<T*>(cached.noCleanupPtr ? cached.noCleanupPtr : cached.objPtr.get());
+    if (mHeaders.find("Cache-Valid-Until") != mHeaders.end()) {
+      cached.cacheValidUntil = std::stol(mHeaders["Cache-Valid-Until"]);
+    } else {
+      cached.cacheValidUntil = -1;
     }
     mHeaders.clear();
     mMetaData.clear();

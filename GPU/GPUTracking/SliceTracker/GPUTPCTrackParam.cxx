@@ -21,11 +21,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 //
 // Circle in XY:
 //
-// kCLight = 0.000299792458;
+// kCLight = 0.000299792458f;
 // Kappa = -Bz*kCLight*QPt;
-// R  = 1/fabsf(Kappa);
-// Xc = X - sin(Phi)/Kappa;
-// Yc = Y + cos(Phi)/Kappa;
+// R  = 1/CAMath::Abs(Kappa);
+// Xc = X - CAMath::Sin(Phi)/Kappa;
+// Yc = Y + CAMath::Cos(Phi)/Kappa;
 //
 
 MEM_CLASS_PRE()
@@ -80,7 +80,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, flo
   float dy = y - y0;
   float ax = dx * k + ey;
   float ay = dy * k - ex;
-  float a = sqrt(ax * ax + ay * ay);
+  float a = CAMath::Sqrt(ax * ax + ay * ay);
   xp = x0 + (dx - ey * ((dx * dx + dy * dy) * k - 2 * (-dx * ey + dy * ex)) / (a + 1)) / a;
   yp = y0 + (dy + ex * ((dx * dx + dy * dy) * k - 2 * (-dx * ey + dy * ex)) / (a + 1)) / a;
   float s = GetS(x, y, Bz);
@@ -88,7 +88,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::GetDCAPoint(float x, float y, float z, flo
   if (CAMath::Abs(k) > 1.e-2f) {
     float dZ = CAMath::Abs(GetDzDs() * CAMath::TwoPi() / k);
     if (dZ > .1f) {
-      zp += CAMath::Nint((z - zp) / dZ) * dZ;
+      zp += CAMath::Round((z - zp) / dZ) * dZ;
     }
   }
 }
@@ -133,7 +133,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToX(float x, GPUTPCTrackLinearisa
     return 0;
   }
 
-  float tg = ss / cc; // tanf((phi1+phi)/2)
+  float tg = ss / cc; // CAMath::Tan((phi1+phi)/2)
 
   float dy = dx * tg;
   float dl = dx * CAMath::Sqrt(1 + tg * tg);
@@ -315,7 +315,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::TransportToXWithMaterial(float x, GPUTPCTr
   static constexpr float kRho = 1.025e-3f;   // [g/cm^3]
   static constexpr float kRadLen = 28811.7f; //[cm]
 
-  static constexpr float kRadLenInv = 1. / kRadLen;
+  static constexpr float kRadLenInv = 1.f / kRadLen;
   float dl;
 
   if (!TransportToX(x, t0, Bz, maxSinPhi, &dl)) {
@@ -433,9 +433,9 @@ GPUd() float MEM_LG(GPUTPCTrackParam)::ApproximateBetheBloch(float beta2)
   }
 
   if (beta2 / (1 - beta2) > 3.5f * 3.5f) {
-    return 0.153e-3f / beta2 * (log(3.5f * 5940) + 0.5f * log(beta2 / (1 - beta2)) - beta2);
+    return 0.153e-3f / beta2 * (CAMath::Log(3.5f * 5940) + 0.5f * CAMath::Log(beta2 / (1 - beta2)) - beta2);
   }
-  return 0.153e-3f / beta2 * (log(5940 * beta2 / (1 - beta2)) - beta2);
+  return 0.153e-3f / beta2 * (CAMath::Log(5940 * beta2 / (1 - beta2)) - beta2);
 }
 
 MEM_CLASS_PRE()
@@ -463,7 +463,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::CalculateFitParameters(GPUTPCTrackFitParam
 
   // Approximate energy loss fluctuation (M.Ivanov)
 
-  const float knst = 0.07f; // To be tuned.
+  const float knst = 0.0007f; // To be tuned.
   par.sigmadE2 = knst * par.EP2 * qpt;
   par.sigmadE2 = par.sigmadE2 * par.sigmadE2;
 
@@ -709,7 +709,7 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
     ok = 0;
   }
   if (c[0] > 5.f || c[2] > 5.f || c[5] > 2.f || c[9] > 2
-      //|| ( CAMath::Abs( QPt() ) > 1.e-2 && c[14] > 2. )
+      //|| ( CAMath::Abs( QPt() ) > 1.e-2f && c[14] > 2.f )
   ) {
     ok = 0;
   }
@@ -779,7 +779,7 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::ShiftZ(float z1, float z2, float x1, float
     const float sinab = CAMath::Sin((comp ? 0.5f : -0.5f) * alpha + beta); // Angle of circle through origin and track position, to be compared to Snp
     const float res = CAMath::Abs(sinab - mParam.mP[2]);
 
-    if (res < 0.2) {
+    if (res < 0.2f) {
       const float r = 1.f / r1;
       const float dS = alpha * r;
       float z0 = dS * mParam.mP[3];

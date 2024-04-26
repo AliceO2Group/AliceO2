@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "CTPDigitizerSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
@@ -19,6 +20,7 @@
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CTPSimulation/Digitizer.h"
+#include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFV0/Digit.h"
 
@@ -52,6 +54,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
+    pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
     LOG(info) << "CALLING CTP DIGITIZATION";
     // Input order: T0, V0, ... but O need also position of inputs DETInputs
     // fv0
@@ -86,6 +89,15 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOG(info) << "CTP Digitization took " << timer.CpuTime() << "s";
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+
+    if (matcher == o2::framework::ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
+      LOG(info) << "Loading CTP configuration" << std::endl;
+      mDigitizer.setCTPConfiguration(reinterpret_cast<o2::ctp::CTPConfiguration*>(obj));
+    }
+  }
+
  protected:
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT;
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
@@ -105,6 +117,7 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::EMC) != detList.end()) {
     inputs.emplace_back("emc", "EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
+  inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", true));
   output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
   output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{

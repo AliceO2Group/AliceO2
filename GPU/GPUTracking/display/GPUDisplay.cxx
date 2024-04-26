@@ -707,14 +707,11 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
   size_t startCount = mVertexBufferStart[iSlice].size();
   for (unsigned int i = 0; i < *tracker.NTracklets(); i++) {
     const GPUTPCTracklet& tracklet = tracker.Tracklet(i);
-    if (tracklet.NHits() == 0) {
-      continue;
-    }
     size_t startCountInner = mVertexBuffer[iSlice].size();
     float4 oldpos;
     for (int j = tracklet.FirstRow(); j <= tracklet.LastRow(); j++) {
       const calink rowHit = tracker.TrackletRowHits()[tracklet.FirstHit() + (j - tracklet.FirstRow())];
-      if (rowHit != CALINK_INVAL) {
+      if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
         const GPUTPCRow& row = tracker.Data().Row(j);
         const int cid = GET_CID(iSlice, tracker.Data().ClusterDataIndex(row, rowHit));
         oldpos = mGlobalPos[cid];
@@ -1038,16 +1035,16 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             break;
           }
           if (inFlyDirection) {
-            if (fabsf(trkParam.SinPhi()) > 0.4) {
+            if (fabsf(trkParam.SinPhi()) > 0.4f) {
               float dalpha = asinf(trkParam.SinPhi());
               trkParam.Rotate(dalpha);
               alpha += dalpha;
             }
             x = trkParam.X() + 1.f;
             if (!mCfgH.propagateLoopers) {
-              float diff = fabsf(alpha - alphaOrg) / (2. * CAMath::Pi());
+              float diff = fabsf(alpha - alphaOrg) / (2.f * CAMath::Pi());
               diff -= floor(diff);
-              if (diff > 0.25 && diff < 0.75) {
+              if (diff > 0.25f && diff < 0.75f) {
                 break;
               }
             }
@@ -1058,7 +1055,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           if (trkParam.PropagateToXBxByBz(x, B[0], B[1], B[2], dLp)) {
             break;
           }
-          if (fabsf(trkParam.SinPhi()) > 0.9) {
+          if (fabsf(trkParam.SinPhi()) > 0.9f) {
             break;
           }
           float sa = sinf(alpha), ca = cosf(alpha);
@@ -1473,17 +1470,17 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   bool rotateModelTPC = mFrontend->mKeys[mFrontend->KEY_RALT];
 
   // Calculate rotation / translation scaling factors
-  float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2 : 1.0;
+  float scalefactor = mFrontend->mKeys[mFrontend->KEY_SHIFT] ? 0.2f : 1.0f;
   float rotatescalefactor = scalefactor * 0.25f;
   if (mCfgL.drawSlice != -1) {
     scalefactor *= 0.2f;
   }
-  float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) / GL_SCALE_FACTOR) * 0.8;
-  if (sqrdist < 0.2) {
-    sqrdist = 0.2;
+  float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) / GL_SCALE_FACTOR) * 0.8f;
+  if (sqrdist < 0.2f) {
+    sqrdist = 0.2f;
   }
-  if (sqrdist > 5) {
-    sqrdist = 5;
+  if (sqrdist > 5.f) {
+    sqrdist = 5.f;
   }
   scalefactor *= sqrdist;
 
@@ -1539,10 +1536,10 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     if (mCfgL.animationMode != 6) {
       if (mCfgL.animationMode & 1) // Rotation from euler angles
       {
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {1, 0, 0}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {0, 1, 0}) * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {0, 0, 1});
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {{1, 0, 0}}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {{0, 1, 0}}) * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {{0, 0, 1}});
       } else { // Rotation from quaternion
         const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
-        if (mag < 0.0001) {
+        if (mag < 0.0001f) {
           vals[7] = 1;
         } else {
           for (int i = 0; i < 4; i++) {
@@ -1563,7 +1560,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       vals[1] = r * sinf(theta);
     } else if (mCfgL.animationMode & 2) { // Scale cartesion translation to interpolated radius
       float r = sqrtf(vals[0] * vals[0] + vals[1] * vals[1] + vals[2] * vals[2]);
-      if (fabsf(r) < 0.0001) {
+      if (fabsf(r) < 0.0001f) {
         r = 1;
       }
       r = vals[3] / r;
@@ -1572,12 +1569,12 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       }
     }
     if (mCfgL.animationMode == 6) {
-      nextViewMatrix = HMM_LookAt({vals[0], vals[1], vals[2]}, {0, 0, 0}, {0, 1, 0});
+      nextViewMatrix = HMM_LookAt({{vals[0], vals[1], vals[2]}}, {{0, 0, 0}}, {{0, 1, 0}});
     } else {
-      nextViewMatrix = nextViewMatrix * HMM_Translate({-vals[0], -vals[1], -vals[2]});
+      nextViewMatrix = nextViewMatrix * HMM_Translate({{-vals[0], -vals[1], -vals[2]}});
     }
   } else if (mResetScene) {
-    nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, mParam->par.continuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
+    nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, mParam->par.continuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8}});
     mViewMatrix = MY_HMM_IDENTITY;
     mModelMatrix = MY_HMM_IDENTITY;
 
@@ -1592,9 +1589,9 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     mResetScene = 0;
   } else {
-    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(unsigned char)'W'] - mFrontend->mKeys[(unsigned char)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
-    float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2 * mFPSScale);
-    float moveX = scalefactor * ((float)(mFrontend->mKeys[(unsigned char)'A'] - mFrontend->mKeys[(unsigned char)'D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2 * mFPSScale);
+    float moveZ = scalefactor * ((float)mMouseWheelTmp / 150 + (float)(mFrontend->mKeys[(unsigned char)'W'] - mFrontend->mKeys[(unsigned char)'S']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
+    float moveY = scalefactor * ((float)(mFrontend->mKeys[mFrontend->KEY_PAGEDOWN] - mFrontend->mKeys[mFrontend->KEY_PAGEUP]) * 0.2f * mFPSScale);
+    float moveX = scalefactor * ((float)(mFrontend->mKeys[(unsigned char)'A'] - mFrontend->mKeys[(unsigned char)'D']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]) * 0.2f * mFPSScale);
     float rotRoll = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[(unsigned char)'E'] - mFrontend->mKeys[(unsigned char)'F']) * (!mFrontend->mKeys[mFrontend->KEY_SHIFT]);
     float rotYaw = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_RIGHT] - mFrontend->mKeys[mFrontend->KEY_LEFT]);
     float rotPitch = rotatescalefactor * mFPSScale * 2 * (mFrontend->mKeys[mFrontend->KEY_DOWN] - mFrontend->mKeys[mFrontend->KEY_UP]);
@@ -1604,8 +1601,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       moveZ += -scalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY) / 4;
       rotRoll += -rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvX - (float)mFrontend->mMouseDnX);
     } else if (mFrontend->mMouseDnR) {
-      moveX += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mMouseDnX - (float)mFrontend->mMouseMvX) / 4;
-      moveY += scalefactor * 0.5 * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY) / 4;
+      moveX += scalefactor * 0.5f * mouseScale * ((float)mFrontend->mMouseDnX - (float)mFrontend->mMouseMvX) / 4;
+      moveY += scalefactor * 0.5f * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY) / 4;
     } else if (mFrontend->mMouseDn) {
       rotYaw += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvX - (float)mFrontend->mMouseDnX);
       rotPitch += rotatescalefactor * mouseScale * ((float)mFrontend->mMouseMvY - (float)mFrontend->mMouseDnY);
@@ -1613,8 +1610,8 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
 
     if (mFrontend->mKeys[(unsigned char)'<'] && !mFrontend->mKeysShift[(unsigned char)'<']) {
       mAnimationDelay += moveX;
-      if (mAnimationDelay < 0.05) {
-        mAnimationDelay = 0.05;
+      if (mAnimationDelay < 0.05f) {
+        mAnimationDelay = 0.05f;
       }
       moveX = 0.f;
       moveY = 0.f;
@@ -1629,10 +1626,10 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     if (lookOrigin) {
       if (!yUp) {
         if (mAngleRollOrigin < -1e6) {
-          mAngleRollOrigin = yUp ? 0. : -mAngle[2];
+          mAngleRollOrigin = yUp ? 0.f : -mAngle[2];
         }
         mAngleRollOrigin += rotRoll;
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(mAngleRollOrigin, {0, 0, 1});
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(mAngleRollOrigin, {{0, 0, 1}});
         float tmpX = moveX, tmpY = moveY;
         moveX = tmpX * cosf(mAngle[2]) - tmpY * sinf(mAngle[2]);
         moveY = tmpX * sinf(mAngle[2]) + tmpY * cosf(mAngle[2]);
@@ -1645,14 +1642,14 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       phi += moveX * 0.1f;
       float theta = atan2f(mXYZ[1], r2);
       theta -= moveY * 0.1f;
-      const float max_theta = CAMath::Pi() / 2 - 0.01;
+      const float max_theta = CAMath::Pi() / 2 - 0.01f;
       if (theta >= max_theta) {
         theta = max_theta;
       } else if (theta <= -max_theta) {
         theta = -max_theta;
       }
-      if (moveZ >= r - 0.1) {
-        moveZ = r - 0.1;
+      if (moveZ >= r - 0.1f) {
+        moveZ = r - 0.1f;
       }
       r -= moveZ;
       r2 = r * cosf(theta);
@@ -1663,46 +1660,46 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       if (yUp) {
         nextViewMatrix = MY_HMM_IDENTITY;
       }
-      nextViewMatrix = nextViewMatrix * HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
+      nextViewMatrix = nextViewMatrix * HMM_LookAt({{mXYZ[0], mXYZ[1], mXYZ[2]}}, {{0, 0, 0}}, {{0, 1, 0}});
     } else {
-      nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY * mYFactor, moveZ});
+      nextViewMatrix = nextViewMatrix * HMM_Translate({{moveX, moveY * mYFactor, moveZ}});
       if (!rotateModel) {
         if (rotYaw != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {{0, 1, 0}});
         }
         if (rotPitch != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch * mYFactor, {1, 0, 0});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch * mYFactor, {{1, 0, 0}});
         }
         if (!yUp && rotRoll != 0.f) {
-          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {0, 0, 1});
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll * mYFactor, {{0, 0, 1}});
         }
       }
       nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
       if (yUp) {
         calcXYZ(&nextViewMatrix.Elements[0][0]);
-        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / CAMath::Pi(), {0, 0, 1}) * nextViewMatrix;
+        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / CAMath::Pi(), {{0, 0, 1}}) * nextViewMatrix;
       }
       if (rotateModel) {
         if (rotYaw != 0.f) {
-          mModelMatrix = HMM_Rotate(rotYaw, {nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}) * mModelMatrix;
+          mModelMatrix = HMM_Rotate(rotYaw, {{nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}}) * mModelMatrix;
         }
         if (rotPitch != 0.f) {
-          mModelMatrix = HMM_Rotate(rotPitch, {nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}) * mModelMatrix;
+          mModelMatrix = HMM_Rotate(rotPitch, {{nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}}) * mModelMatrix;
         }
         if (rotRoll != 0.f) {
           if (rotateModelTPC) {
-            mModelMatrix = HMM_Rotate(-rotRoll, {0, 0, 1}) * mModelMatrix;
+            mModelMatrix = HMM_Rotate(-rotRoll, {{0, 0, 1}}) * mModelMatrix;
           } else {
-            mModelMatrix = HMM_Rotate(-rotRoll, {nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}) * mModelMatrix;
+            mModelMatrix = HMM_Rotate(-rotRoll, {{nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}}) * mModelMatrix;
           }
         }
       }
     }
 
     // Graphichs Options
-    float minSize = 0.4 / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
+    float minSize = 0.4f / (mCfgR.drawQualityDownsampleFSAA > 1 ? mCfgR.drawQualityDownsampleFSAA : 1);
     int deltaLine = mFrontend->mKeys[(unsigned char)'+'] * mFrontend->mKeysShift[(unsigned char)'+'] - mFrontend->mKeys[(unsigned char)'-'] * mFrontend->mKeysShift[(unsigned char)'-'];
-    mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02 * mCfgL.lineWidth;
+    mCfgL.lineWidth += (float)deltaLine * mFPSScale * 0.02f * mCfgL.lineWidth;
     if (mCfgL.lineWidth < minSize) {
       mCfgL.lineWidth = minSize;
     }
@@ -1712,7 +1709,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
     }
     minSize *= 2;
     int deltaPoint = mFrontend->mKeys[(unsigned char)'+'] * (!mFrontend->mKeysShift[(unsigned char)'+']) - mFrontend->mKeys[(unsigned char)'-'] * (!mFrontend->mKeysShift[(unsigned char)'-']);
-    mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02 * mCfgL.pointSize;
+    mCfgL.pointSize += (float)deltaPoint * mFPSScale * 0.02f * mCfgL.pointSize;
     if (mCfgL.pointSize < minSize) {
       mCfgL.pointSize = minSize;
     }
@@ -2218,11 +2215,11 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     double fpstime = mTimerFPS.GetCurrentElapsedTime();
     char info[1024];
     float fps = (double)mFramesDoneFPS / fpstime;
-    sprintf(info,
-            "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
-            "(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
-            fps, mCfgL.drawSlice, mCfgL.drawClusters, mCfgL.drawInitLinks, mCfgL.drawLinks, mCfgL.drawSeeds, mCfgL.drawTracklets, mCfgL.drawTracks, mCfgL.drawGlobalTracks, mCfgL.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
-            mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi());
+    snprintf(info, 1024,
+             "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
+             "(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
+             fps, mCfgL.drawSlice, mCfgL.drawClusters, mCfgL.drawInitLinks, mCfgL.drawLinks, mCfgL.drawSeeds, mCfgL.drawTracklets, mCfgL.drawTracks, mCfgL.drawGlobalTracks, mCfgL.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
+             mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi());
     if (fpstime > 1.) {
       if (mPrintInfoText & 2) {
         GPUInfo("%s", info);
@@ -2245,7 +2242,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     std::vector<char> pixels = mBackend->getPixels();
     char tmpFileName[48];
     if (mAnimateScreenshot) {
-      sprintf(tmpFileName, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
+      snprintf(tmpFileName, 48, "mAnimation%d_%05d.bmp", mAnimationExport, mAnimationFrame);
     }
     DoScreenshot(mAnimateScreenshot ? tmpFileName : mScreenshotFile.c_str(), pixels);
   }

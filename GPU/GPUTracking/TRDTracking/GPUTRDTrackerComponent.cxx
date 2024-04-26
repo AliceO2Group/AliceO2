@@ -185,7 +185,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   iResult = ReadConfigurationString(arguments.Data());
 
   GPUSettingsGRP cfgGRP;
-  cfgGRP.solenoidBz = GetBz();
+  cfgGRP.solenoidBzNominalGPU = GetBz();
   GPUSettingsRec cfgRec;
   GPUSettingsProcessing cfgDeviceProcessing;
   GPURecoStepConfiguration cfgRecoStep;

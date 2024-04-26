@@ -48,6 +48,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"use-gpu-workflow", o2::framework::VariantType::Bool, false, {"use GPU workflow (default: false)"}},
     {"gpu-device", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -72,6 +73,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   if (configcontext.options().get<bool>("disable-tracking")) {
     trmode = "";
   }
@@ -95,6 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                 extDigits,
                                                 extClusters,
                                                 disableRootOutput,
+                                                useGeom,
                                                 trType,
                                                 useGpuWF,
                                                 gpuDevice);

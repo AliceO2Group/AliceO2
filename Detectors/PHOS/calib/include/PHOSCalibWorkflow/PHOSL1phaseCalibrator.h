@@ -45,7 +45,7 @@ class PHOSL1phaseSlot
   void clear();
 
   void addMeanRms(std::array<std::array<float, 4>, 14>& sumMean, std::array<std::array<float, 4>, 14>& sumRMS, std::array<float, 14>& sumNorm);
-  void addQcHistos(std::array<unsigned int, 1400> (&sum)[4]);
+  void addQcHistos(std::array<unsigned int, 1400> (&sum)[5]);
 
   void setRunStartTime(long tf) { mRunStartTime = tf; }
 
@@ -81,7 +81,7 @@ class PHOSL1phaseCalibrator final : public o2::calibration::TimeSlotCalibration<
   void endOfStream();
 
   int getCalibration() { return mL1phase; }
-  std::array<unsigned int, 1400>& getQcHistos() { return mQcHisto[0]; }
+  std::array<unsigned int, 1400>& getQcHistos() { return mQcHisto[4]; }
 
  private:
   static constexpr int mDDL = 14;               /// Number of PHOS DDLs
@@ -90,9 +90,9 @@ class PHOSL1phaseCalibrator final : public o2::calibration::TimeSlotCalibration<
   std::array<std::array<float, 4>, mDDL> mMean; /// Collected RMS
   std::array<float, mDDL> mNorm;                /// Normalization
   int mL1phase = 0;                             /// Final calibration
-  std::array<unsigned int, 1400> mQcHisto[4];   ///! Histograms for QC
+  std::array<unsigned int, 1400> mQcHisto[5];   ///! Histograms for QC
 
-  ClassDefOverride(PHOSL1phaseCalibrator, 2);
+  ClassDefOverride(PHOSL1phaseCalibrator, 3);
 };
 
 } // namespace phos

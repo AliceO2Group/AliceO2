@@ -294,7 +294,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   GPUSettingsGRP grp;
   GPUSettingsRec rec;
   GPUSettingsProcessing devProc;
-  grp.solenoidBz = fSolenoidBz;
+  grp.solenoidBzNominalGPU = fSolenoidBz;
   if (fClusterErrorCorrectionY > 1.e-4) {
     rec.tpc.clusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
   }
@@ -448,7 +448,7 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
 
       // normalize the angle to +-Pi
 
-      currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Nint(tp.GetAlpha() / CAMath::TwoPi()) * CAMath::TwoPi();
+      currOutTrack->fAlpha = tp.GetAlpha() - CAMath::Round(tp.GetAlpha() / CAMath::TwoPi()) * CAMath::TwoPi();
       currOutTrack->fX = tp.GetX();
       currOutTrack->fY = tp.GetY();
       currOutTrack->fZ = tp.GetZ();
@@ -518,7 +518,7 @@ int GPUTPCGlobalMergerComponent::DoEvent(const AliHLTComponentEventData& evtData
 
       // normalize the angle to +-Pi
 
-      currOutTrack->fAlpha = track.OuterParam().alpha - CAMath::Nint(tp.GetAlpha() / CAMath::TwoPi()) * CAMath::TwoPi();
+      currOutTrack->fAlpha = track.OuterParam().alpha - CAMath::Round(tp.GetAlpha() / CAMath::TwoPi()) * CAMath::TwoPi();
       currOutTrack->fX = track.OuterParam().X;
       currOutTrack->fY = track.OuterParam().P[0];
       currOutTrack->fZ = track.OuterParam().P[1];

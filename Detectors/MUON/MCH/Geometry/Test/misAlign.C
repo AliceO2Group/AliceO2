@@ -1,21 +1,14 @@
+#include "DetectorsBase/MaterialManager.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 //#include "MCHGeometryTest/Helpers.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/MaterialManager.h"
-#include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
 #include "MCHGeometryMisAligner/MisAligner.h"
 #include "MCHGeometryTransformer/Transformations.h"
 
-#include "MCHGeometryTest/Helpers.h"
-#include "MCHGeometryCreator/Geometry.h"
-#include "CCDB/CcdbApi.h"
-
-#include "MathUtils/Cartesian.h"
-#include "Math/GenVector/Cartesian3D.h"
 #include "TGLRnrCtx.h"
 #include "TGLViewer.h"
 #include "TGeoManager.h"
@@ -26,7 +19,13 @@
 
 #include <iostream>
 #include <fmt/format.h>
+#include "MCHGeometryTest/Helpers.h"
+#include "MCHGeometryCreator/Geometry.h"
+#include "CCDB/CcdbApi.h"
 
+#include "MathUtils/Cartesian.h"
+#include "Math/GenVector/Cartesian3D.h"
+#include "DetectorsBase/GeometryManager.h"
 #endif
 
 // void misAlign()

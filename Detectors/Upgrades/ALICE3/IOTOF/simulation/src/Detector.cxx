@@ -65,10 +65,10 @@ void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof)
     mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 0.f, 680.f, 0.f, 0.02f, true); // oTOF
   }
   if (ftof) {
-    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 150.f, 0.f, 405.f, 0.02f, false); // fTOF
+    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 100.f, 0.f, 370.f, 0.02f, false); // fTOF
   }
   if (btof) {
-    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 150.f, 0.f, -405.f, 0.02f, false); // bTOF
+    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 100.f, 0.f, -370.f, 0.02f, false); // bTOF
   }
 }
 
@@ -103,8 +103,8 @@ void Detector::createMaterials()
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
-  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::createGeometry()
@@ -202,7 +202,7 @@ bool Detector::ProcessHits(FairVolume* vol)
   int lay = vol->getVolumeId();
   int volID = vol->getMCid();
 
-  // Is it needed to keep a track reference when the outer ITS volume is encountered?
+  // Is it needed to keep a track reference when the outer volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
   if (fMC->IsTrackExiting() /*&& (lay == 0 || lay == mLayers.size() - 1)*/) {
     // Keep the track refs for the innermost and outermost layers only

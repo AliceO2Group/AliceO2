@@ -12,6 +12,7 @@
 #include <catch_amalgamated.hpp>
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/ServiceRegistry.h"
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
 #include "Framework/CompletionPolicy.h"
@@ -39,7 +40,9 @@ TEST_CASE("TestCompletionPolicy_callback")
     return true;
   };
 
-  auto callback = [&stack](InputSpan const& inputRefs) {
+  ServiceRegistry services;
+
+  auto callback = [&stack](InputSpan const& inputRefs, std::vector<InputSpec> const&, ServiceRegistryRef&) {
     for (auto const& ref : inputRefs) {
       auto const* header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
       REQUIRE(header == reinterpret_cast<o2::header::DataHeader*>(stack.data()));
@@ -53,7 +56,9 @@ TEST_CASE("TestCompletionPolicy_callback")
     {"test", matcher, callback}};
   CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
   InputSpan const& inputs{[&ref](size_t) { return ref; }, 1};
+  std::vector<InputSpec> specs;
+  ServiceRegistryRef servicesRef{services};
   for (auto& policy : policies) {
-    policy.callback(inputs);
+    policy.callbackFull(inputs, specs, servicesRef);
   }
 }

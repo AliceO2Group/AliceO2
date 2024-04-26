@@ -120,8 +120,8 @@ void Detector::createMaterials()
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
-  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   o2::base::Detector::Mixture(2, "AEROGEL$", aAerogel, zAerogel, dAerogel, 3, wAerogel);
   o2::base::Detector::Medium(2, "AEROGEL$", 2, 0, ifield, fieldm, tmaxfdAerogel, stemaxAerogel, deemaxAerogel, epsilAerogel, stminAerogel);
@@ -145,20 +145,12 @@ void Detector::createGeometry()
   vRICH->SetTitle(vstrng);
   auto& richPars = RICHBaseParam::Instance();
 
-  // TGeoTube* richVessel = new TGeoTube(richPars.rMin, richPars.rMax, richPars.zRichLength / 2.0);
-  // TGeoMedium* medArgon = gGeoManager->GetMedium("RCH_ARGON$");
-  // TGeoVolume* vRichVessel = new TGeoVolume(vstrng, richVessel, medArgon);
-  // vRichVessel->SetLineColor(kGray);
-  // vRichVessel->SetVisibility(kTRUE);
-  // vRichVessel->SetTransparency(75);
-  // vALIC->AddNode(vRichVessel, 1, new TGeoTranslation(0, 30., 0));
+  prepareLayout();
 
-  if (!(richPars.nRings % 2)) {
-    prepareEvenLayout();
-  } else {
-    prepareOddLayout();
-  }
   for (int iRing{0}; iRing < richPars.nRings; ++iRing) {
+    if (!richPars.oddGeom && iRing == (richPars.nRings / 2)) {
+      continue;
+    }
     mRings[iRing] = Ring{iRing,
                          richPars.nTiles,
                          richPars.rMin,
@@ -176,6 +168,13 @@ void Detector::createGeometry()
                          (float)mTRplusG[iRing],
                          (float)mThetaBi[iRing],
                          GeometryTGeo::getRICHVolPattern()};
+  }
+
+  if (richPars.enableFWDRich) {
+    mFWDRich.createFWDRich(vRICH);
+  }
+  if (richPars.enableBWDRich) {
+    mBWDRich.createBWDRich(vRICH);
   }
 }
 
@@ -317,15 +316,12 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
   return &(mHits->back());
 }
 
-void Detector::prepareEvenLayout()
-{
-}
-
-void Detector::prepareOddLayout()
+void Detector::prepareLayout()
 { // Mere translation of Nicola's code
-  LOGP(info, "Setting up ODD layout for bRICH");
   auto& richPars = RICHBaseParam::Instance();
+  LOGP(info, "Setting up {} layout for bRICH", richPars.oddGeom ? "odd" : "even");
 
+  bool isOdd = richPars.oddGeom;
   mThetaBi.resize(richPars.nRings);
   mR0Tilt.resize(richPars.nRings);
   mZ0Tilt.resize(richPars.nRings);
@@ -346,9 +342,9 @@ void Detector::prepareOddLayout()
   mThetaBi[richPars.nRings / 2] = TMath::ATan(mVal);
   mR0Tilt[richPars.nRings / 2] = richPars.rMax;
   mZ0Tilt[richPars.nRings / 2] = mR0Tilt[richPars.nRings / 2] * TMath::Tan(mThetaBi[richPars.nRings / 2]);
-  mLAerogelZ[richPars.nRings / 2] = TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize);
+  mLAerogelZ[richPars.nRings / 2] = isOdd ? TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMin * richPars.zBaseSize / (TMath::Sqrt(1.0 + mVal * mVal) * richPars.rMax - mVal * richPars.zBaseSize) : 0.f;
   mTRplusG[richPars.nRings / 2] = richPars.rMax - richPars.rMin;
-  double t = TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal)));
+  double t = isOdd ? TMath::Tan(TMath::ATan(mVal) + TMath::ATan(richPars.zBaseSize / (2.0 * richPars.rMax * TMath::Sqrt(1.0 + mVal * mVal) - richPars.zBaseSize * mVal))) : 0.f;
   mMinRadialMirror[richPars.nRings / 2] = richPars.rMax;
   mMaxRadialRadiator[richPars.nRings / 2] = richPars.rMin;
 
@@ -401,6 +397,32 @@ void Detector::prepareOddLayout()
   for (size_t iRing{0}; iRing < richPars.nRings; ++iRing) {
     mR0Radiator[iRing] = mR0Tilt[iRing] - (mTRplusG[iRing] - richPars.radiatorThickness / 2) * TMath::Cos(mThetaBi[iRing]);
     mR0PhotoDet[iRing] = mR0Tilt[iRing] - (richPars.detectorThickness / 2) * TMath::Cos(mThetaBi[iRing]);
+  }
+
+  // FWD and BWD RICH
+  if (richPars.enableFWDRich) {
+    LOGP(info, "Setting up FWD RICH layout");
+    mFWDRich = FWDRich(GeometryTGeo::getRICHSensorFWDPattern(),
+                       richPars.rFWDMin,
+                       richPars.rFWDMax,
+                       richPars.zAerogelMin,
+                       richPars.zAerogelMax - richPars.zAerogelMin,
+                       richPars.zArgonMin,
+                       richPars.zArgonMax - richPars.zArgonMin,
+                       richPars.zSiliconMin,
+                       richPars.zSiliconMax - richPars.zSiliconMin);
+  }
+  if (richPars.enableBWDRich) {
+    LOGP(info, "Setting up BWD RICH layout");
+    mBWDRich = BWDRich(GeometryTGeo::getRICHSensorBWDPattern(),
+                       richPars.rFWDMin,
+                       richPars.rFWDMax,
+                       richPars.zAerogelMin,
+                       richPars.zAerogelMax - richPars.zAerogelMin,
+                       richPars.zArgonMin,
+                       richPars.zArgonMax - richPars.zArgonMin,
+                       richPars.zSiliconMin,
+                       richPars.zSiliconMax - richPars.zSiliconMin);
   }
 }
 } // namespace rich

@@ -206,7 +206,7 @@ bool ResidualsController::fillTrack(AlignmentTrack& trc, bool doKalman)
   int nfill = 0;
   for (int i = 0; i < np; i++) {
     auto pnt = trc.getPoint(i);
-    int inv = pnt->isInvDir() ? -1 : 1; // Flag invertion for cosmic upper leg
+    int inv = pnt->isInvDir() ? -1 : 1; // Flag inversion for cosmic upper leg
     if (!pnt->containsMeasurement()) {
       continue;
     }
@@ -216,7 +216,7 @@ bool ResidualsController::fillTrack(AlignmentTrack& trc, bool doKalman)
     mVolID[nfill] = pnt->getVolID();
     mLabel[nfill] = pnt->getSensor()->getInternalID();
     mAlpha[nfill] = pnt->getAlphaSens();
-    mX[nfill] = pnt->getXTracking() * inv;
+    mX[nfill] = pnt->getXTracking();
     mY[nfill] = pnt->getYTracking();
     mZ[nfill] = pnt->getZTracking();
     mDY[nfill] = pnt->getResidY();

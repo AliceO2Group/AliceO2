@@ -18,6 +18,11 @@ using namespace o2::framework;
 
 // ------------------------------------------------------------------
 
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
@@ -45,5 +50,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto dataSubspec = configcontext.options().get<int>("digit-subspec");
   WorkflowSpec specs;
   specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC, sendTriggerRecords, dataSubspec));
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

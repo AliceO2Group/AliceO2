@@ -51,24 +51,15 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
 }
 } // namespace
 
-namespace o2
+namespace o2::its3
 {
-namespace its3
-{
-
 using namespace o2::base;
 class ITS3DPLDigitizerTask : BaseDPLDigitizer
 {
  public:
-  static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::IT3;
-  static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginIT3;
   using BaseDPLDigitizer::init;
 
-  ITS3DPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth)
-  {
-    mID = DETID;
-    mOrigin = DETOR;
-  }
+  ITS3DPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -131,7 +122,7 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
     LOG(info) << "SIMCHAINS " << mSimChains.size();
 
     // if there is nothing to do ... return
-    if (timesview.size() == 0) {
+    if (timesview.empty()) {
       return;
     }
     TStopwatch timer;
@@ -148,7 +139,7 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
     auto accumulate = [this, &digitsAccum]() {
       // accumulate result of single event processing, called after processing every event supplied
       // AND after the final flushing via digitizer::fillOutputContainer
-      if (!mDigits.size()) {
+      if (mDigits.empty()) {
         return; // no digits were flushed, nothing to accumulate
       }
       static int fixMC2ROF = 0; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
@@ -202,7 +193,7 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
         mHits.clear();
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
-        if (mHits.size() > 0) {
+        if (!mHits.empty()) {
           LOG(debug) << "For collision " << collID << " eventID " << part.entryID
                      << " found " << mHits.size() << " hits ";
           mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
@@ -238,40 +229,37 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
   }
 
  protected:
-  bool mWithMCTruth = true;
-  bool mFinished = false;
-  bool mDisableQED = false;
-  o2::detectors::DetID mID;
-  o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
-  o2::its3::Digitizer mDigitizer;
-  std::vector<o2::itsmft::Digit> mDigits;
-  std::vector<o2::itsmft::ROFRecord> mROFRecords;
-  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum;
-  std::vector<o2::itsmft::Hit> mHits;
+  bool mWithMCTruth{true};
+  bool mFinished{false};
+  bool mDisableQED{false};
+  const o2::detectors::DetID mID{o2::detectors::DetID::IT3};
+  o2::header::DataOrigin mOrigin{o2::header::gDataOriginIT3};
+  o2::its3::Digitizer mDigitizer{};
+  std::vector<o2::itsmft::Digit> mDigits{};
+  std::vector<o2::itsmft::ROFRecord> mROFRecords{};
+  std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum{};
+  std::vector<o2::itsmft::Hit> mHits{};
   std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
-  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
-  std::vector<TChain*> mSimChains;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels{};
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum{};
+  std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum{};
+  std::vector<TChain*> mSimChains{};
 
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 
-constexpr o2::detectors::DetID::ID ITS3DPLDigitizerTask::DETID;
-constexpr o2::header::DataOrigin ITS3DPLDigitizerTask::DETOR;
-
 DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth)
 {
-  std::string detStr = o2::detectors::DetID::getName(ITS3DPLDigitizerTask::DETID);
-  auto detOrig = ITS3DPLDigitizerTask::DETOR;
+  std::string detStr = o2::detectors::DetID::getName(o2::detectors::DetID::IT3);
+  auto detOrig = o2::header::gDataOriginIT3;
   std::stringstream parHelper;
   parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<o2::detectors::DetID::ITS>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLDigitizerParam<o2::detectors::DetID::ITS>::Instance()
             << "\n or " << o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
 
-  return DataProcessorSpec{(detStr + "Digitizer").c_str(),
+  return DataProcessorSpec{detStr + "Digitizer",
                            Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT",
                                             static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
                            makeOutChannels(detOrig, mctruth),
@@ -282,5 +270,4 @@ DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth)
                            }};
 }
 
-} // namespace its3
-} // end namespace o2
+} // namespace o2::its3

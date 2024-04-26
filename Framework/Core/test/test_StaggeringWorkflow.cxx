@@ -53,7 +53,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
                         // search for spec names starting with "processor"
                         return spec.name.find("processor") == 0;
                       },
-                      [](auto const&) { return o2::framework::CompletionPolicy::CompletionOp::Consume; }});
+                      [](auto const&, auto const&, auto&) { return o2::framework::CompletionPolicy::CompletionOp::Consume; }});
 }
 
 #include "Framework/runDataProcessing.h"

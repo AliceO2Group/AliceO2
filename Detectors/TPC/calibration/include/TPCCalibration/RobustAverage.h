@@ -80,7 +80,9 @@ class RobustAverage
   /// \return returns mean of stored values
   float getMean() const { return mValues.empty() ? 0 : getMean(mValues.begin(), mValues.end()); }
 
-  /// returns truncated mean fir range min and max
+  /// returns truncated mean for range min and max
+  /// \param low lower fraction rejection e.g. 0.05 -> lower 5% are rejected
+  /// \param high upper fraction rejection e.g. 0.95 -> upper 5% are rejected
   float getTrunctedMean(float low, float high);
 
   /// \return returns the median

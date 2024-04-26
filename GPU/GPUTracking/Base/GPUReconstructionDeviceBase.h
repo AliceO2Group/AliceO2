@@ -19,6 +19,7 @@
 #include <pthread.h>
 #include "GPUReconstructionHelpers.h"
 #include "GPUChain.h"
+#include <vector>
 
 namespace GPUCA_NAMESPACE
 {
@@ -34,6 +35,12 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   ~GPUReconstructionDeviceBase() override;
 
   const GPUParam* DeviceParam() const { return &mDeviceConstantMem->param; }
+  struct deviceConstantMemRegistration {
+    deviceConstantMemRegistration(void* (*reg)())
+    {
+      GPUReconstructionDeviceBase::getDeviceConstantMemRegistratorsVector().emplace_back(reg);
+    }
+  };
 
  protected:
   GPUReconstructionDeviceBase(const GPUSettingsDeviceBackend& cfg, size_t sizeCheck);
@@ -49,10 +56,10 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   virtual const GPUTPCTracker* CPUTracker(int iSlice) { return &processors()->tpcTrackers[iSlice]; }
 
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override = 0;
-  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override = 0;
-  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override = 0;
-  size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override = 0;
+  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override = 0;
+  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override = 0;
+  size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override = 0;
 
   int StartHelperThreads() override;
   int StopHelperThreads() override;
@@ -74,12 +81,20 @@ class GPUReconstructionDeviceBase : public GPUReconstructionCPU
   int mNSlaveThreads = 0;                                         // Number of slave threads currently active
 
   struct DebugEvents {
-    void *DebugStart, *DebugStop; // Debug timer events
+    deviceEvent DebugStart, DebugStop; // Debug timer events
   };
   DebugEvents* mDebugEvents = nullptr;
+
+  std::vector<void*> mDeviceConstantMemList;
+  static std::vector<void* (*)()>& getDeviceConstantMemRegistratorsVector()
+  {
+    static std::vector<void* (*)()> deviceConstantMemRegistrators{};
+    return deviceConstantMemRegistrators;
+  }
+  void runConstantRegistrators();
 };
 
-inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents)
+inline size_t GPUReconstructionDeviceBase::GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
 {
   if (onGpu) {
     return GPUMemCpy(dst, src, size, stream, toGPU, ev, evList, nEvents);

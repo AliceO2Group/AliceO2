@@ -23,7 +23,6 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
-#include "Framework/CheckTypes.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/RouteState.h"
@@ -174,10 +173,10 @@ class DataAllocator
   decltype(auto) make(const Output& spec, Args... args)
   {
     auto& timingInfo = mRegistry.get<TimingInfo>();
-    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
     auto& context = mRegistry.get<MessageContext>();
 
     if constexpr (is_specialization_v<T, UninitializedVector>) {
+      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
       using ValueType = typename T::value_type;
 
@@ -187,6 +186,7 @@ class DataAllocator
                       std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...)
         .get();
     } else if constexpr (is_specialization_v<T, std::vector> && has_messageable_value_type<T>::value) {
+      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
@@ -195,6 +195,7 @@ class DataAllocator
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
       return context.add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...).get();
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
+      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
       if constexpr (enable_root_serialization<T>::value) {
@@ -209,18 +210,14 @@ class DataAllocator
       auto* s = new std::string(args...);
       adopt(spec, s);
       return *s;
-    } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
-      return call_if_defined_forward<LifetimeHolder<struct TableBuilder>>([&](auto* p) {
-        auto tb = std::move(LifetimeHolder<TableBuilder>(new typename std::decay_t<decltype(*p)>::type(args...)));
-        adopt(spec, tb);
-        return std::move(tb);
-      });
-    } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
-      return call_if_defined_forward<LifetimeHolder<struct TreeToTable>>([&](auto* p) {
-        auto t2t = std::move(LifetimeHolder<TreeToTable>(new typename std::decay_t<decltype(*p)>::type(args...)));
-        adopt(spec, t2t);
-        return std::move(t2t);
-      });
+    } else if constexpr (requires { static_cast<struct TableBuilder>(std::declval<std::decay_t<T>>()); }) {
+      auto tb = std::move(LifetimeHolder<TableBuilder>(new std::decay_t<T>(args...)));
+      adopt(spec, tb);
+      return tb;
+    } else if constexpr (requires { static_cast<struct TreeToTable>(std::declval<std::decay_t<T>>()); }) {
+      auto t2t = std::move(LifetimeHolder<TreeToTable>(new std::decay_t<T>(args...)));
+      adopt(spec, t2t);
+      return t2t;
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
@@ -233,6 +230,7 @@ class DataAllocator
         if constexpr (is_messageable<T>::value == true) {
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
+          auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
 
           fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
           return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
@@ -356,6 +354,7 @@ class DataAllocator
     } else if constexpr (has_root_dictionary<T>::value == true || is_specialization_v<T, ROOTSerialized> == true) {
       // Serialize a snapshot of an object with root dictionary
       payloadMessage = proxy.createOutputMessage(routeIndex);
+      payloadMessage->Rebuild(4096, {64});
       if constexpr (is_specialization_v<T, ROOTSerialized> == true) {
         // Explicitely ROOT serialize a snapshot of object.
         // An object wrapped into type `ROOTSerialized` is explicitely marked to be ROOT serialized
@@ -399,7 +398,7 @@ class DataAllocator
                     "\n - std::vector of messageable structures or pointers to those"
                     "\n - types with ROOT dictionary and implementing ROOT ClassDef interface");
     }
-    addPartToContext(std::move(payloadMessage), spec, serializationType);
+    addPartToContext(routeIndex, std::move(payloadMessage), spec, serializationType);
   }
 
   /// Take a snapshot of a raw data array which can be either POD or may contain a serialized
@@ -527,7 +526,7 @@ class DataAllocator
                                                size_t payloadSize);                                 //
 
   Output getOutputByBind(OutputRef&& ref);
-  void addPartToContext(fair::mq::MessagePtr&& payload,
+  void addPartToContext(RouteIndex routeIndex, fair::mq::MessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
 };

@@ -106,9 +106,9 @@ void genEvents::InitEventGenerator()
     for (int j = 0; j < 2; j++) {
       char name[1024], title[1024];
 
-      sprintf(name, "clError%s%d", (j == 0 ? "Y" : "Z"), i);
+      snprintf(name, 1024, "clError%s%d", (j == 0 ? "Y" : "Z"), i);
 
-      sprintf(title, "Cluster %s Error for rows %s", (j == 0 ? "Y" : "Z"), rows[i]);
+      snprintf(title, 1024, "Cluster %s Error for rows %s", (j == 0 ? "Y" : "Z"), rows[i]);
 
       mClusterError[i][j] = new TH1F(name, title, 1000, 0., .7);
       mClusterError[i][j]->GetXaxis()->SetTitle("Cluster Error [cm]");
@@ -278,7 +278,7 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
       float sigmaZ = 0.5;
       const int rowType = iRow < 64 ? 0 : iRow < 128 ? 2 : 1;
       t.UpdateValues();
-      param.GetClusterErrors2(rowType, t.GetZ(), t.GetSinPhi(), t.GetDzDs(), sigmaY, sigmaZ);
+      param.GetClusterErrors2(iSlice, rowType, t.GetZ(), t.GetSinPhi(), t.GetDzDs(), -1.f, 0.f, 0.f, sigmaY, sigmaZ);
       sigmaY = std::sqrt(sigmaY);
       sigmaZ = std::sqrt(sigmaZ);
       mClusterError[rowType][0]->Fill(sigmaY);

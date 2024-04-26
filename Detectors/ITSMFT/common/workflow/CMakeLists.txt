@@ -16,12 +16,14 @@ o2_add_library(ITSMFTWorkflow
                        src/STFDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
+                       src/DeadMapBuilderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat
                                      O2::ITSMFTReconstruction
                                      O2::ITSBase
                                      O2::MFTBase
+                                     O2::DetectorsCalibration
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsParameters)
 
@@ -48,5 +50,10 @@ o2_add_executable(digit-reader-workflow
 
 o2_add_executable(trigges-writer-workflow
                   SOURCES src/trigger-writer-workflow.cxx
+                  COMPONENT_NAME itsmft
+                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+
+o2_add_executable(deadmap-builder-workflow
+                  SOURCES src/deadmap-builder-workflow.cxx
                   COMPONENT_NAME itsmft
                   PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)

@@ -62,14 +62,9 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  void configDefault();
-  void configFromFile(std::string fileName = "alice3_RICH_layout.txt");
-  void configToFile(std::string fileName = "alice3_RICH_layout.txt");
-
   void createMaterials();
   void createGeometry();
-  void prepareEvenLayout();
-  void prepareOddLayout();
+  void prepareLayout();
   void createRings(TGeoVolume*);
 
  private:
@@ -110,6 +105,11 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<double> mR0PhotoDet;
   template <typename Det>
   friend class o2::base::DetImpl;
+
+  // FWD and BWD RICH
+  FWDRich mFWDRich;
+  BWDRich mBWDRich;
+
   ClassDefOverride(Detector, 1);
 };
 } // namespace rich

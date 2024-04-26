@@ -96,7 +96,7 @@ class TrackerDPL : public o2::framework::Task
 };
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getTrackerSpec(bool useMC, int nThreads);
+o2::framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int nThreads);
 
 } // namespace mft
 } // namespace o2

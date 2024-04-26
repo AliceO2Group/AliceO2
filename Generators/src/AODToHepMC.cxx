@@ -27,24 +27,31 @@ void AODToHepMC::init()
   mRecenter = configs.recenter;
   enableDump(configs.dump);
 
-  LOG(debug) << "\n"
-             << "=== o2::rivet::Converter ===\n"
+  LOG(debug) << "=== o2::rivet::Converter ===\n"
              << "  Dump to output:        " << configs.dump << "\n"
              << "  Only generated tracks: " << mOnlyGen << "\n"
              << "  Use tree store:        " << mUseTree << "\n"
              << "  Output precision:      " << mPrecision;
 }
 // -------------------------------------------------------------------
-void AODToHepMC::process(Header const& collision,
-                         Tracks const& tracks)
+void AODToHepMC::startEvent()
 {
-  LOG(debug) << "--- Processing track information";
+  LOG(debug) << ">>> Starting an event";
   mBeams.clear();
   mOrphans.clear();
   mParticles.clear();
   mVertices.clear();
   mEvent.clear();
+}
+// -------------------------------------------------------------------
+void AODToHepMC::process(Header const& collision,
+                         Tracks const& tracks)
+{
+  LOG(debug) << "--- Processing track information";
 
+  if (not mUseTree) {
+    mEvent.reserve(tracks.size(), tracks.size() / 2);
+  }
   makeHeader(collision);
   makeParticles(tracks);
   makeEvent(collision, tracks);
@@ -60,19 +67,21 @@ void AODToHepMC::process(Header const& collision,
   makePdfInfo(pdfs);
   makeHeavyIon(heavyions, collision);
 }
+// -------------------------------------------------------------------
+void AODToHepMC::endEvent()
+{
+  LOG(debug) << "<<< an event";
+  if (not mWriter) {
+    return;
+  }
+  // If we have a writer, then dump event to output file
+  LOG(debug) << "=== write out";
+  mWriter->write_event(mEvent);
+}
 // ===================================================================
 void AODToHepMC::makeEvent(Header const& collision,
                            Tracks const& tracks)
 {
-  LOG(debug) << "Event # " << mEvent.event_number() << " "
-             << "(# " << mEventNo << " processed)"
-             << "\n"
-             << "# of particles " << mParticles.size() << " "
-             << "(" << tracks.size() << " input tracks)"
-             << "\n"
-             << "# of orphans   " << mOrphans.size() << "\n"
-             << "# of beams     " << mBeams.size() << "\n"
-             << "# of vertexes  " << mVertices.size();
   if (mUseTree) {
     mEvent.reserve(mParticles.size() + mBeams.size(), mVertices.size());
     mEvent.add_tree(mBeams);
@@ -105,10 +114,17 @@ void AODToHepMC::makeEvent(Header const& collision,
   }
   // Flesh out the tracks based on daughter information.
   fleshOut(tracks);
-  if (mWriter) {
-    // If we have a writer, then dump event to output file
-    mWriter->write_event(mEvent);
-  }
+  LOG(debug) << "Event # " << mEvent.event_number() << " "
+             << "(# " << mEventNo << " processed)"
+             << "\n"
+             << "# of particles " << mParticles.size() << " "
+             << "(" << tracks.size() << " input tracks "
+             << mEvent.particles().size() << " output)"
+             << "\n"
+             << "# of orphans   " << mOrphans.size() << "\n"
+             << "# of beams     " << mBeams.size() << "\n"
+             << "# of vertexes  " << mVertices.size() << " ("
+             << mEvent.vertices().size() << " output)";
 }
 // -------------------------------------------------------------------
 void AODToHepMC::makeHeader(Header const& header)
@@ -134,6 +150,7 @@ void AODToHepMC::makeHeader(Header const& header)
 // -------------------------------------------------------------------
 void AODToHepMC::makeXSection(XSections const& xsections)
 {
+  LOG(debug) << "--- Process cross-section information";
   if (not mCrossSec) {
     // If we do not have a cross-sections object, create it
     mCrossSec = std::make_shared<HepMC3::GenCrossSection>();
@@ -144,6 +161,7 @@ void AODToHepMC::makeXSection(XSections const& xsections)
 
   if (xsections.size() <= 0) {
     // If we have no info, skip the rest
+    LOG(warning) << "??? No input cross-section";
     return;
   }
 
@@ -156,6 +174,7 @@ void AODToHepMC::makeXSection(XSections const& xsections)
 // -------------------------------------------------------------------
 void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 {
+  LOG(debug) << "--- Process PDF information";
   if (not mPdf) {
     // If we do not have a Parton Distribution Function object, create it
     mPdf = std::make_shared<HepMC3::GenPdfInfo>();
@@ -166,6 +185,7 @@ void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 
   if (pdfs.size() <= 0) {
     // If we have no PDF info, skip the rest
+    LOG(warning) << "??? No input pdf-info, skipping";
     return;
   }
 
@@ -184,6 +204,7 @@ void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
                               Header const& header)
 {
+  LOG(debug) << "--- Process input heavy-ion header";
   if (not mIon) {
     // Generate heavy ion element if it doesn't exist
     mIon = std::make_shared<HepMC3::GenHeavyIon>();
@@ -215,6 +236,7 @@ void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
 
   if (heavyions.size() <= 0) {
     // If we have no heavy-ion information, skip the rest
+    LOG(warning) << "??? No input heavy-ion header, skipping";
     return;
   }
 
@@ -259,6 +281,9 @@ void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
 // -------------------------------------------------------------------
 void AODToHepMC::makeParticles(Tracks const& tracks)
 {
+  // mVertices.reserve(tracks.size() / 2);
+  // mOrphans.reserve(tracks.size() / 20);
+  mBeams.reserve(2);
   for (auto track : tracks) {
     makeParticleRecursive(track, tracks);
   }
@@ -307,24 +332,28 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticleRecursive(Track const& track,
   mParticles[track.globalIndex()] = particle;
 
   // Generate mother particles, recurses down tree
-  ParticleVector mothers;
+  ParticleList mothers;
   VertexPtr vout;
-  for (auto mtrack : track.mothers_as<Tracks>()) {
-    auto mother = makeParticleRecursive(mtrack, tracks, true);
-    // If mother not found, continue
-    if (not mother) {
-      continue;
-    }
 
-    // Overrride mother status based on production mechanism of daughter
-    if (motherStatus != 0) {
-      mother->set_status(motherStatus);
-    }
+  // Check with has_mothers?
+  if (track.has_mothers()) {
+    for (auto mtrack : track.mothers_as<Tracks>()) {
+      auto mother = makeParticleRecursive(mtrack, tracks, true);
+      // If mother not found, continue
+      if (not mother) {
+        continue;
+      }
 
-    mothers.push_back(mother);
-    // Update the production vertex if not set already
-    if (not vout) {
-      vout = mother->end_vertex();
+      // Overrride mother status based on production mechanism of daughter
+      if (motherStatus != 0) {
+        mother->set_status(motherStatus);
+      }
+
+      mothers.push_back(mother);
+      // Update the production vertex if not set already
+      if (not vout) {
+        vout = mother->end_vertex();
+      }
     }
   }
 
@@ -335,7 +364,9 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticleRecursive(Track const& track,
       particle->status() != 4 and
       mothers.size() > 0) {
     vout = makeVertex(track);
-    mVertices.push_back(vout);
+    if (mUseTree) {
+      mVertices.push_back(vout);
+    }
 
     // If mothers do not have any end-vertex, add them to the found
     // vertex.
@@ -437,61 +468,67 @@ void AODToHepMC::fleshOutParticle(Track const& track, Tracks const& tracks)
   // daughters have the same production vertex.
   int svId = particle->id();
   VertexPtr candidate = endVtx;
-  ParticleVector headLess;
-  for (auto dtrack : track.daughters_as<Tracks>()) {
-    // Check that the daughther is generated by EG.  If not, and we
-    // only store generated tracks, then go on to the next daughter
-    // (or return?).
-    if (isIgnored(dtrack)) {
-      continue;
-    }
+  ParticleList headLess;
 
-    auto daughter = getParticle(dtrack);
-    if (not daughter) {
-      LOG(warning) << "Daughter " << dtrack.globalIndex()
-                   << " of " << track.globalIndex()
-                   << " not found in map!";
-      continue;
-    }
+  // Explicitly check for daughters, since creating empy slices takes
+  // up a lot of time
+  if (track.has_daughters()) {
+    for (auto dtrack : track.daughters_as<Tracks>()) {
+      // Check that the daughther is generated by EG.  If not, and we
+      // only store generated tracks, then go on to the next daughter
+      // (or return?).
+      if (isIgnored(dtrack)) {
+        continue;
+      }
 
-    // We get the production vertex of the daughter.  If there's no
-    // production vertex, then the daughter is deemed "head-less", and
-    // we will attach it to the end vertex of the mother, if one
-    // exists or is found below.
-    auto prodVtx = daughter->production_vertex();
-    if (not prodVtx) {
-      headLess.push_back(daughter);
-      continue;
-    }
+      auto daughter = getParticle(dtrack);
+      if (not daughter) {
+        LOG(warning) << "Daughter " << dtrack.globalIndex()
+                     << " of " << track.globalIndex()
+                     << " not found in map!";
+        continue;
+      }
 
-    // If the mother has an end vertex, but it doesn't match the
-    // production vertex of the daughter, then this daughter does not
-    // belong to that mother.  This comes about because O2 encodes
-    // daughters as a range - a la HEPEVT, which requires a specific
-    // ordering of particles so that all daughters of a vertex are
-    // consequitive.  Since we decide to trust the mother information,
-    // rather than the daughter information, we will simply disregard
-    // such daughters.
-    //
-    // This check may not be needed
-    if (endVtx and endVtx->id() != prodVtx->id()) {
-      continue;
-    }
+      // We get the production vertex of the daughter.  If there's no
+      // production vertex, then the daughter is deemed "head-less", and
+      // we will attach it to the end vertex of the mother, if one
+      // exists or is found below.
+      auto prodVtx = daughter->production_vertex();
+      if (not prodVtx) {
+        headLess.push_back(daughter);
+        continue;
+      }
 
-    // If we have a current candidate end vertex, but it doesn't match
-    // the production vertex of the daughter, then we give a warning.
-    //
-    // This check may not be needed
-    if (candidate and prodVtx->id() != candidate->id()) {
-      LOG(warning) << "Production vertex of daughter " << daughter->id()
-                   << " of " << particle->id()
-                   << " is not the same as previously found from "
-                   << svId;
-      continue;
+      // If the mother has an end vertex, but it doesn't match the
+      // production vertex of the daughter, then this daughter does not
+      // belong to that mother.  This comes about because O2 encodes
+      // daughters as a range - a la HEPEVT, which requires a specific
+      // ordering of particles so that all daughters of a vertex are
+      // consequitive.  Since we decide to trust the mother information,
+      // rather than the daughter information, we will simply disregard
+      // such daughters.
+      //
+      // This check may not be needed
+      if (endVtx and endVtx->id() != prodVtx->id()) {
+        continue;
+      }
+
+      // If we have a current candidate end vertex, but it doesn't match
+      // the production vertex of the daughter, then we give a warning.
+      //
+      // This check may not be needed
+      if (candidate and prodVtx->id() != candidate->id()) {
+        LOG(warning) << "Production vertex of daughter " << daughter->id()
+                     << " of " << particle->id()
+                     << " is not the same as previously found from "
+                     << svId;
+        continue;
+      }
+      candidate = prodVtx;
+      svId = daughter->id();
     }
-    candidate = prodVtx;
-    svId = daughter->id();
   }
+  // The logic below is a little funny
   if (not endVtx) {
     // Give warning for decayed or beam particles without and
     // end vertex

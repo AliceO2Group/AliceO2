@@ -34,6 +34,7 @@ o2_add_executable(
     O2::Framework
     O2::MCHMappingImpl4
     O2::MCHRawElecMap
+    O2::MCHGlobalMapping
     )
 
 if(BUILD_TESTING)

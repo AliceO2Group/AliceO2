@@ -74,6 +74,12 @@ std::string expandShellVarsInFileName(std::string const& input)
   std::sregex_iterator iter;
   auto words_end = std::sregex_iterator(); // the end iterator (default)
   auto words_begin = std::sregex_iterator(input.begin(), input.end(), e);
+
+  // check first of all if there is shell variable inside
+  if (words_end == words_begin) {
+    return input;
+  }
+
   std::string tail;
   for (auto i = words_begin; i != words_end; ++i) {
     std::smatch match = *i;
@@ -85,8 +91,11 @@ std::string expandShellVarsInFileName(std::string const& input)
       auto envlookup = getenv(m[0].str().c_str());
       if (envlookup) {
         finalstr += match.prefix().str() + std::string(envlookup);
-        tail = match.suffix().str();
+      } else {
+        // in case of non existance we keep the env part unreplaced
+        finalstr += match.prefix().str() + "${" + m[0].str().c_str() + "}";
       }
+      tail = match.suffix().str();
     }
   }
   finalstr += tail;

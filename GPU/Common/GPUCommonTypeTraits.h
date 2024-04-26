@@ -15,8 +15,10 @@
 #ifndef GPUCOMMONTYPETRAITS_H
 #define GPUCOMMONTYPETRAITS_H
 
+#include "GPUCommonDef.h"
+
 #if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__)
-#ifndef GPUCA_GPUCODE_GENRTC
+#ifndef GPUCA_GPUCODE_COMPILEKERNELS
 #include <type_traits>
 #endif
 #elif !defined(__OPENCL__) || defined(__OPENCLCPP__)

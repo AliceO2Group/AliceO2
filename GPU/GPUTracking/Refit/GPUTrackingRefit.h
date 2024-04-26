@@ -63,7 +63,6 @@ class GPUTrackingRefit
   void SetClusterStateArray(const unsigned char* v) { mPclusterState = v; }
   void SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CONSTANT(GPUParam) * p = nullptr);
   void SetPropagator(const o2::base::Propagator* v) { mPpropagator = v; }
-  void SetPropagatorDefault();
   void SetClusterNative(const o2::tpc::ClusterNativeAccess* v) { mPclusterNative = v; }
   void SetTrackHits(const GPUTPCGMMergedTrackHit* v) { mPtrackHits = v; }
   void SetTrackHitReferences(const unsigned int* v) { mPtrackHitReferences = v; }

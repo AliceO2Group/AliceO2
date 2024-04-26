@@ -16,13 +16,7 @@
 #ifndef GPUDEFOPENCL12TEMPLATES_H
 #define GPUDEFOPENCL12TEMPLATES_H
 
-#ifdef GPUCA_NOCOMPAT
-  #define GPUCA_CPP11_INIT(...) __VA_ARGS__
-#else
-  #define GPUCA_CPP11_INIT(...)
-#endif
-
-//Special macros for OpenCL rev. 1.2 (encode address space in template parameter)
+// Special macros for OpenCL rev. 1.2 (encode address space in template parameter)
 enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_USE_TEMPLATE_ADDRESS_SPACES)
   template<LocalOrGlobal, typename L, typename G, typename C, typename P> struct MakeTypeHelper;
@@ -83,10 +77,10 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
   #define MEM_TYPE4(type) type
 #endif
 
-#if defined(GPUCA_NO_CONSTANT_MEMORY) || defined(GPUCA_CONSTANT_AS_ARGUMENT)
+#if defined(GPUCA_NO_CONSTANT_MEMORY)
   #undef MEM_CONSTANT
   #define MEM_CONSTANT(type) MEM_GLOBAL(type)
 #endif
 
-#endif //GPUDEFOPENCL12TEMPLATES_H
+#endif // GPUDEFOPENCL12TEMPLATES_H
 // clang-format on

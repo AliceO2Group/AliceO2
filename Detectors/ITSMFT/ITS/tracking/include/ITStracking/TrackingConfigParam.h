@@ -74,6 +74,12 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   float trackletsPerClusterLimit = -1.f;
   int findShortTracks = -1;
   int nThreads = 1;
+  int nOrbitsPerIterations = 0;
+  int nROFsPerIterations = 0;
+  bool perPrimaryVertexProcessing = false;
+  bool saveTimeBenchmarks = false;
+  bool overrideBeamEstimation = false; // used by gpuwf only
+  int trackingMode = -1;               // -1: unset, 0=sync, 1=async, 2=cosmics used by gpuwf only
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

@@ -28,7 +28,11 @@
 #include "DetectorsBase/Propagator.h"
 
 #include <fmt/format.h>
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
 #include <onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>
+#else
+#include <onnxruntime_cxx_api.h>
+#endif
 #include <boost/range.hpp>
 
 #include <array>
@@ -68,16 +72,25 @@ void ML::init(o2::framework::ProcessingContext& pc)
   LOG(info) << "ONNX runtime session created";
 
   // print name/shape of inputs
-  mInputNames = mSession->GetInputNames();
-  mInputShapes = mSession->GetInputShapes();
+  for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
+    mInputNames.push_back(mSession->GetInputNameAllocated(i, mAllocator).get());
+  }
+  for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
+    mInputShapes.emplace_back(mSession->GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
+  }
+  for (size_t i = 0; i < mSession->GetOutputCount(); ++i) {
+    mOutputNames.push_back(mSession->GetOutputNameAllocated(i, mAllocator).get());
+  }
+  for (size_t i = 0; i < mSession->GetOutputCount(); ++i) {
+    mOutputShapes.emplace_back(mSession->GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
+  }
+
   LOG(info) << "Input Node Name/Shape (" << mInputNames.size() << "):";
   for (size_t i = 0; i < mInputNames.size(); i++) {
     LOG(info) << "\t" << mInputNames[i] << " : " << printShape(mInputShapes[i]);
   }
 
   // print name/shape of outputs
-  mOutputNames = mSession->GetOutputNames();
-  mOutputShapes = mSession->GetOutputShapes();
   LOG(info) << "Output Node Name/Shape (" << mOutputNames.size() << "):";
   for (size_t i = 0; i < mOutputNames.size(); i++) {
     LOG(info) << "\t" << mOutputNames[i] << " : " << printShape(mOutputShapes[i]);

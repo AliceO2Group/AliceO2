@@ -28,8 +28,8 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
-#include "MFTAlignment/MillePedeRecord.h"
-#include "MFTAlignment/MilleRecordWriter.h"
+#include "ForwardAlign/MillePedeRecord.h"
+#include "ForwardAlign/MilleRecordWriter.h"
 #include "MFTAlignment/AlignPointHelper.h"
 #include "MFTAlignment/AlignPointControl.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -105,12 +105,12 @@ class TracksToRecords : public Aligner
   bool mWithControl;                                       ///< boolean to set the use of the control tree
   long mNEntriesAutoSave = 10000;                          ///< number of entries needed to call AutoSave for the output TTrees
   o2::mft::AlignPointControl mPointControl;                ///< AlignPointControl handles the control tree
-  o2::mft::MilleRecordWriter* mRecordWriter;               ///< utility that handles the writing of the data records to a ROOT file
+  o2::fwdalign::MilleRecordWriter* mRecordWriter;          ///< utility that handles the writing of the data records to a ROOT file
   bool mWithConstraintsRecWriter;                          ///< boolean to be set to true if one wants to also write constaints records
-  o2::mft::MilleRecordWriter* mConstraintsRecWriter;       ///< utility that handles the writing of the constraints records
+  o2::fwdalign::MilleRecordWriter* mConstraintsRecWriter;  ///< utility that handles the writing of the constraints records
   std::vector<o2::BaseCluster<double>> mMFTClustersLocal;  ///< MFT clusters in local coordinate system
   std::vector<o2::BaseCluster<double>> mMFTClustersGlobal; ///< MFT clusters in global coordinate system
-  o2::mft::MillePede2* mMillepede;                         ///< Millepede2 implementation copied from AliROOT
+  o2::fwdalign::MillePede2* mMillepede;                    ///< Millepede2 implementation copied from AliROOT
 
   // access these data from CTFs provided uptream by the workflow
 

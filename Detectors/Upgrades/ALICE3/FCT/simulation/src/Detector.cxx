@@ -22,13 +22,13 @@
 #include "SimulationDataFormat/TrackReference.h"
 
 // FairRoot includes
-#include "FairDetector.h"    // for FairDetector
+#include "FairDetector.h"      // for FairDetector
 #include <fairlogger/Logger.h> // for LOG, LOG_IF
-#include "FairModule.h"      // for FairModule
-#include "FairRootManager.h" // for FairRootManager
-#include "FairRun.h"         // for FairRun
-#include "FairRuntimeDb.h"   // for FairRuntimeDb
-#include "FairVolume.h"      // for FairVolume
+#include "FairModule.h"        // for FairModule
+#include "FairRootManager.h"   // for FairRootManager
+#include "FairRun.h"           // for FairRun
+#include "FairRuntimeDb.h"     // for FairRuntimeDb
+#include "FairVolume.h"        // for FairVolume
 #include "FairRootManager.h"
 
 #include "TGeoManager.h"     // for TGeoManager, gGeoManager
@@ -92,7 +92,6 @@ void Detector::buildFCTFromFile(std::string configFileName)
   }
   std::string tempstr;
   float z_layer, r_in, r_out_l_side, Layerx2X0;
-  char delimiter;
   int layerNumber = 0;
   int layerNumberSquare = 0;
   int layerNumberDisk = 0;
@@ -155,12 +154,7 @@ void Detector::exportLayout()
 {
   // Export FCT Layout description to file. One line per disk
   // z_layer r_in r_out Layerx2X0
-
-  TDatime* time = new TDatime();
-  TString configFileName = "FCT_layout_";
-  configFileName.Append(Form("%d.cfg", time->GetTime()));
-
-  // std::string configFileName = "FCT_layout.cfg";
+  TString configFileName = "FCT_layout.cfg";
 
   LOG(info) << "Exporting FCT Detector layout to " << configFileName;
 
@@ -212,23 +206,25 @@ void Detector::buildBasicFCT(const FCTBaseParam& param)
 //_________________________________________________________________________________________________
 void Detector::buildFCTV1()
 {
-  // Build default FCT detector
+  // Build FCT according to Scoping Document
 
   LOG(info) << "Building FCT Detector: V1";
 
-  mNumberOfLayers = 9;
+  mNumberOfLayers = 11;
   Float_t layersx2X0 = 1.e-2;
 
   std::vector<std::array<Float_t, 4>> layersConfig{
-    {-442.0, 6.0, 44.1, layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
-    {-444.0, 6.0, 44.3, layersx2X0},
-    {-446.0, 6.0, 44.5, layersx2X0},
-    {-448.0, 6.0, 44.7, layersx2X0},
-    {-450.0, 6.1, 44.9, layersx2X0},
-    {-460.0, 6.2, 45.9, layersx2X0},
-    {-470.0, 6.3, 46.9, layersx2X0},
-    {-480.0, 6.5, 47.9, layersx2X0},
-    {-490.0, 6.6, 48.9, layersx2X0}};
+    {442.0, 5.0, 17.0, layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
+    {444.0, 5.0, 17.0, layersx2X0},
+    {446.0, 5.0, 17.0, layersx2X0},
+    {448.0, 5.0, 17.0, layersx2X0},
+    {450.0, 5.0, 17.0, layersx2X0},
+    {452.0, 5.0, 17.0, layersx2X0},
+    {460.0, 5.0, 17.0, layersx2X0},
+    {470.0, 5.0, 18.0, layersx2X0},
+    {480.0, 5.0, 18.0, layersx2X0},
+    {490.0, 5.0, 19.0, layersx2X0},
+    {500.0, 5.0, 19.0, layersx2X0}};
 
   mLayerID.clear();
   mLayerName.clear();
@@ -434,12 +430,12 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
   // Add Silicon
-  o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
-  o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Material(3, "SILICON$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
+  o2::base::Detector::Medium(3, "SILICON$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Add Lead (copied from EMCAL)
-  o2::base::Detector::Material(2, "Pb$", 207.2, 82, 11.35, 0.56, 0.);
-  o2::base::Detector::Medium(2, "Pb$", 2, 0, ifield, fieldm, tmaxfdPb, stemaxPb, deemaxPb, epsilPb, stminPb);
+  o2::base::Detector::Material(2, "LEAD$", 207.2, 82, 11.35, 0.56, 18.5);
+  o2::base::Detector::Medium(2, "LEAD$", 2, 0, ifield, fieldm, tmaxfdPb, stemaxPb, deemaxPb, epsilPb, stminPb);
 }
 
 //_________________________________________________________________________________________________
@@ -488,6 +484,7 @@ void Detector::ConstructGeometry()
         break;
     }
   }
+
   exportLayout();
 
   // Create detector materials
@@ -541,6 +538,7 @@ void Detector::createGeometry()
     }
     vALIC->AddNode(volFCT, 2, new TGeoTranslation(0., 30., 0.));
   }
+
   LOG(info) << "Registering FCT SensitiveLayerIDs:";
   for (int iLayer = 0; iLayer < mLayers.size(); iLayer++) {
     auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d", GeometryTGeo::getFCTSensorPattern(), mLayers[iLayer].getLayerNumber())) : 0;

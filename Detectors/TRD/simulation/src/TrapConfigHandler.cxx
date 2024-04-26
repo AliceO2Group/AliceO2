@@ -366,7 +366,7 @@ int TrapConfigHandler::loadConfig(std::string filename)
   LOG(debug3) << "Ignored lines: " << ignoredLines << ", ignored cmds: " << ignoredCmds;
 
   if (ignoredLines > readLines) {
-    LOG(error) << "More than 50 %% of the input file could not be processed. Perhaps you should check the input file %s", filename.c_str();
+    LOG(error) << "More than 50% of the input file could not be processed. Perhaps you should check the input file " << filename.c_str();
   }
 
   return true;

@@ -36,7 +36,7 @@ float PadColF(o2::trd::Tracklet64& tracklet)
 
   // original calculation
   // FIXME: understand why the offset seems to be 6 pads and not nChannels / 2 = 10.5
-  // return CAMath::Nint(6.f + mcmCol * ((float)constants::NCOLMCM) + padLocal);
+  // return CAMath::Round(6.f + mcmCol * ((float)constants::NCOLMCM) + padLocal);
 
   // my calculation
   return float((mcmCol + 1) * constants::NCOLMCM) + padLocal - 10.0;

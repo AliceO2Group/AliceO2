@@ -104,7 +104,7 @@ void Diagnostic::merge(const Diagnostic* prev)
 {
   LOG(debug) << "Merging diagnostic words";
   for (auto const& el : prev->mVector) {
-    fill(el.first, el.second + getFrequency(el.first));
+    fill(el.first, el.second);
   }
 }
 

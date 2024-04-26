@@ -40,11 +40,12 @@ GPUCA_ERROR_CODE(20, ERROR_CF_PEAK_OVERFLOW, Sector, Value, Max)
 GPUCA_ERROR_CODE(21, ERROR_CF_CLUSTER_OVERFLOW, Sector, Value, Max)
 GPUCA_ERROR_CODE(22, ERROR_CF_ROW_CLUSTER_OVERFLOW, SectorRow, Value, Max)
 GPUCA_ERROR_CODE(23, ERROR_CF_GLOBAL_CLUSTER_OVERFLOW, SectorRow, Value, Max)
-GPUCA_ERROR_CODE(24, MAX_OVERFLOW_ERROR_NUMBER) // Overflow errors are detected as errno <= MAX_OVERFLOW_ERROR_NUMBER
+GPUCA_ERROR_CODE(24, ERROR_DECOMPRESSION_ATTACHED_CLUSTER_OVERFLOW, SectorRow, Value, Max)
+GPUCA_ERROR_CODE(25, MAX_OVERFLOW_ERROR_NUMBER) // Overflow errors are detected as errno <= MAX_OVERFLOW_ERROR_NUMBER
 
-GPUCA_ERROR_CODE(25, ERROR_TPCZS_INVALID_ROW, SectorRow)                                  // Data from invalid row is skipped
-GPUCA_ERROR_CODE(26, ERROR_TPCZS_INVALID_NADC, SectorCRU, SamplesInPage, SamplesWritten)  // Invalid number of ADC samples in header, existing samples were decoded
-GPUCA_ERROR_CODE(27, ERROR_TPCZS_INCOMPLETE_HBF, SectorCRU, PacketCount, NextPacketCount) // Part of HBF is missing, decoding incomplete
-GPUCA_ERROR_CODE(28, ERROR_TPCZS_INVALID_OFFSET, SectorEndpoint, Value, Expected)         // Raw page is skipped since it contains invalid payload offset
+GPUCA_ERROR_CODE(26, ERROR_TPCZS_INVALID_ROW, SectorRow)                                  // Data from invalid row is skipped
+GPUCA_ERROR_CODE(27, ERROR_TPCZS_INVALID_NADC, SectorCRU, SamplesInPage, SamplesWritten)  // Invalid number of ADC samples in header, existing samples were decoded
+GPUCA_ERROR_CODE(28, ERROR_TPCZS_INCOMPLETE_HBF, SectorCRU, PacketCount, NextPacketCount) // Part of HBF is missing, decoding incomplete
+GPUCA_ERROR_CODE(29, ERROR_TPCZS_INVALID_OFFSET, SectorEndpoint, Value, Expected)         // Raw page is skipped since it contains invalid payload offset
 
 // #define GPUCA_CHECK_TPCZS_CORRUPTION

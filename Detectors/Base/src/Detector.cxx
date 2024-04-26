@@ -17,6 +17,7 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Field/MagneticField.h"
+#include "Framework/TMessageSerializer.h"
 #include "TString.h" // for TString
 #include "TGeoManager.h"
 
@@ -196,16 +197,19 @@ int Detector::registerSensitiveVolumeAndGetVolID(std::string const& name)
 #include <fairmq/Message.h>
 #include <fairmq/Parts.h>
 #include <fairmq/Channel.h>
-namespace o2
-{
-namespace base
+namespace o2::base
 {
 // this goes into the source
-void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& channel, void* data, size_t size,
-                                void (*free_func)(void* data, void* hint), void* hint)
+void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& channel, void* data, TClass* cl)
 {
-  std::unique_ptr<fair::mq::Message> message(channel.NewMessage(data, size, free_func, hint));
-  parts.AddPart(std::move(message));
+  auto msg = channel.Transport()->CreateMessage(4096, fair::mq::Alignment{64});
+  // This will serialize the data directly into the message buffer, without any further
+  // buffer or copying. Notice how the message will have 8 bytes of header and then
+  // the serialized data as TBufferFile. In principle one could construct a serialized TMessage payload
+  // however I did not manage to get it to work for every case.
+  o2::framework::FairOutputTBuffer buffer(*msg);
+  o2::framework::TMessageSerializer::serialize(buffer, data, cl);
+  parts.AddPart(std::move(msg));
 }
 void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
@@ -246,17 +250,14 @@ void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy)
 
 void* decodeTMessageCore(fair::mq::Parts& dataparts, int index)
 {
-  class TMessageWrapper : public TMessage
-  {
-   public:
-    TMessageWrapper(void* buf, Int_t len) : TMessage(buf, len) { ResetBit(kIsOwner); }
-    ~TMessageWrapper() override = default;
-  };
   auto rawmessage = std::move(dataparts.At(index));
-  auto message = std::make_unique<TMessageWrapper>(rawmessage->GetData(), rawmessage->GetSize());
-  return message.get()->ReadObjectAny(message.get()->GetClass());
+  o2::framework::FairInputTBuffer buffer((char*)rawmessage->GetData(), rawmessage->GetSize());
+  buffer.InitMap();
+  auto* cl = buffer.ReadClass();
+  buffer.SetBufferOffset(0);
+  buffer.ResetMap();
+  return buffer.ReadObjectAny(cl);
 }
 
-} // namespace base
-} // namespace o2
+} // namespace o2::base
 ClassImp(o2::base::Detector);

@@ -33,6 +33,7 @@
 #include "TSystem.h"
 #include "DetectorsBase/DPLWorkflowUtils.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -147,7 +148,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (src[GID::TPC] && refitTPCTOF) { // load clusters
     clustermask |= GID::getSourceMask(GID::TPC);
   }
-  if (sclOpt.lumiType == 1) {
+  if (sclOpt.requestCTPLumi) {
     src = src | GID::getSourcesMask("CTP");
   }
   if (useMC) {
@@ -167,7 +168,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.push_back(s);
     }
   }
-
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
   specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, refitTPCTOF, strict, extratolerancetrd, writeMatchable, sclOpt, nLanes)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {

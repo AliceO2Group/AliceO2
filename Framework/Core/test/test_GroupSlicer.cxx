@@ -9,8 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoA.h"
+#include "Framework/TableBuilder.h"
+#include "Framework/GroupSlicer.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include <arrow/util/config.h>
 
@@ -111,7 +112,7 @@ TEST_CASE("GroupSlicerOneAssociated")
   auto s = slices.updateCacheEntry(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
-  unsigned int count = 0;
+  auto count = 0;
   for (auto& slice : g) {
     auto as = slice.associatedTables();
     auto gg = slice.groupingElement();
@@ -189,7 +190,7 @@ TEST_CASE("GroupSlicerSeveralAssociated")
   s = slices.updateCacheEntry(2, {trkTableZ});
   o2::framework::GroupSlicer g(e, tt, slices);
 
-  unsigned int count = 0;
+  auto count = 0;
   for (auto& slice : g) {
     auto as = slice.associatedTables();
     auto gg = slice.groupingElement();
@@ -250,7 +251,7 @@ TEST_CASE("GroupSlicerMismatchedGroups")
   auto s = slices.updateCacheEntry(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
-  unsigned int count = 0;
+  auto count = 0;
   for (auto& slice : g) {
     auto as = slice.associatedTables();
     auto gg = slice.groupingElement();
@@ -308,7 +309,7 @@ TEST_CASE("GroupSlicerMismatchedUnassignedGroups")
   auto s = slices.updateCacheEntry(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
-  unsigned int count = 0;
+  auto count = 0;
   for (auto& slice : g) {
     auto as = slice.associatedTables();
     auto gg = slice.groupingElement();
@@ -358,7 +359,7 @@ TEST_CASE("GroupSlicerMismatchedFilteredGroups")
   auto s = slices.updateCacheEntry(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
-  unsigned int count = 0;
+  auto count = 0;
 
   for (auto& slice : g) {
     auto as = slice.associatedTables();
@@ -468,6 +469,117 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
       REQUIRE(trks.size() == 10);
     }
     ++count;
+  }
+}
+
+namespace o2::aod
+{
+namespace parts
+{
+DECLARE_SOA_INDEX_COLUMN(Event, event);
+DECLARE_SOA_COLUMN(Property, property, int);
+DECLARE_SOA_SELF_SLICE_INDEX_COLUMN(Relatives, relatives);
+} // namespace parts
+DECLARE_SOA_TABLE(Parts, "AOD", "PRTS", soa::Index<>, parts::EventId, parts::Property, parts::RelativesIdSlice);
+
+namespace things
+{
+DECLARE_SOA_INDEX_COLUMN(Event, event);
+DECLARE_SOA_INDEX_COLUMN(Part, part);
+} // namespace things
+DECLARE_SOA_TABLE(Things, "AOD", "THNGS", soa::Index<>, things::EventId, things::PartId);
+
+} // namespace o2::aod
+
+template <typename... As>
+static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
+{
+  (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
+}
+
+TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroupsWithSelfIndex")
+{
+  TableBuilder builderE;
+  auto evtsWriter = builderE.cursor<aod::Events>();
+  for (auto i = 0; i < 20; ++i) {
+    evtsWriter(0, i, 0.5f * i, 2.f * i, 3.f * i);
+  }
+  auto evtTable = builderE.finalize();
+
+  TableBuilder builderP;
+  auto partsWriter = builderP.cursor<aod::Parts>();
+  int filler[2];
+  std::random_device rd;  // a seed source for the random number engine
+  std::mt19937 gen(rd()); // mersenne_twister_engine seeded with rd()
+  std::uniform_int_distribution<> distrib(0, 99);
+
+  for (auto i = 0; i < 100; ++i) {
+
+    filler[0] = distrib(gen);
+    filler[1] = distrib(gen);
+    if (filler[0] > filler[1]) {
+      std::swap(filler[0], filler[1]);
+    }
+    partsWriter(0, std::floor(i / 10.), i, filler);
+  }
+  auto partsTable = builderP.finalize();
+
+  TableBuilder builderT;
+  auto thingsWriter = builderT.cursor<aod::Things>();
+  for (auto i = 0; i < 10; ++i) {
+    thingsWriter(0, i, distrib(gen));
+  }
+  auto thingsTable = builderT.finalize();
+
+  aod::Events e{evtTable};
+  // aod::Parts p{partsTable};
+  aod::Things t{thingsTable};
+  using FilteredParts = soa::Filtered<aod::Parts>;
+  auto size = distrib(gen);
+  soa::SelectionVector rows;
+  for (auto i = 0; i < size; ++i) {
+    rows.push_back(distrib(gen));
+  }
+  FilteredParts fp{{partsTable}, rows};
+  auto associatedTuple = std::make_tuple(fp, t);
+  ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::Parts>(), "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>())},
+                                 {soa::getLabelFromType<aod::Things>(), "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>())}});
+  auto s0 = slices.updateCacheEntry(0, partsTable);
+  auto s1 = slices.updateCacheEntry(1, thingsTable);
+  o2::framework::GroupSlicer g(e, associatedTuple, slices);
+
+  overwriteInternalIndices(associatedTuple, associatedTuple);
+
+  // For a grouped case, the recursive access of a slice-self index of a filtered table should have consistent types
+  for (auto& slice : g) {
+    auto as = slice.associatedTables();
+    auto gg = slice.groupingElement();
+    overwriteInternalIndices(as, associatedTuple);
+    auto& ts = std::get<1>(as);
+    ts.bindExternalIndices(&e, &std::get<0>(associatedTuple));
+    for (auto& thing : ts) {
+      if (thing.has_part()) {
+        auto part = thing.part_as<FilteredParts>();
+        REQUIRE(std::is_same_v<std::decay_t<decltype(part)>::parent_t, FilteredParts>);
+        auto rs = part.relatives_as<std::decay_t<decltype(part)::parent_t>>();
+        REQUIRE(std::is_same_v<std::decay_t<decltype(rs)>, FilteredParts>);
+        for (auto& r : rs) {
+          REQUIRE(std::is_same_v<std::decay_t<decltype(r)>::parent_t, FilteredParts>);
+          auto rss = r.relatives_as<std::decay_t<decltype(r)>::parent_t>();
+          REQUIRE(std::is_same_v<std::decay_t<decltype(rss)>, FilteredParts>);
+          for (auto& rr : rss) {
+            REQUIRE(std::is_same_v<std::decay_t<decltype(rr)>::parent_t, FilteredParts>);
+            auto rsss = rr.relatives_as<std::decay_t<decltype(rr)>::parent_t>();
+            REQUIRE(std::is_same_v<std::decay_t<decltype(rsss)>, FilteredParts>);
+            for (auto& rrr : rsss) {
+              REQUIRE(std::is_same_v<std::decay_t<decltype(rrr)>::parent_t, FilteredParts>);
+              auto rssss = rrr.relatives_as<std::decay_t<decltype(rrr)>::parent_t>();
+              REQUIRE(std::is_same_v<std::decay_t<decltype(rssss)>, FilteredParts>);
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -595,7 +707,7 @@ TEST_CASE("ArrowDirectSlicing")
       REQUIRE(arr[2] == 0.3f * (float)rid);
 
       auto d = row.lst();
-      REQUIRE(d.size() == sizes[i]);
+      REQUIRE(d.size() == (size_t)sizes[i]);
       for (auto z = 0u; z < d.size(); ++z) {
         REQUIRE(d[z] == 0.5 * (double)z);
       }

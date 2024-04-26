@@ -47,6 +47,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
+#include "GPUO2InterfaceUtils.h"
 #include "CalibdEdxContainer.h"
 #include "GPUNewCalibValues.h"
 #include "TPCPadGainCalib.h"
@@ -110,9 +111,13 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
   mCalibObjects.mFastTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mCalibObjects.mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  mCalibObjects.mFastTransformMShape = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get()); // just to reserve the space
   mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
+  mCalibObjects.mFastTransformHelper->setLumiScaleType(mSpecConfig.lumiScaleType);
+  mCalibObjects.mFastTransformHelper->setCorrMapMShape(mCalibObjects.mFastTransformMShape.get());
   mCalibObjects.mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
+  mCalibObjects.mFastTransformHelper->enableMShapeCorrection(mSpecConfig.enableMShape);
   if (mSpecConfig.outputTracks) {
     mCalibObjects.mFastTransformHelper->init(ic);
   }
@@ -202,7 +207,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   if (std::filesystem::exists(mConfParam->gainCalibFile)) {
     LOG(info) << "Loading tpc gain correction from file " << mConfParam->gainCalibFile;
     const auto* gainMap = o2::tpc::utils::readCalPads(mConfParam->gainCalibFile, "GainMap")[0];
-    mCalibObjects.mTPCPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
+    mCalibObjects.mTPCPadGainCalib = GPUO2InterfaceUtils::getPadGainCalib(*gainMap);
 
     LOGP(info, "Disabling loading the TPC gain correction map from the CCDB as it was already loaded from input file");
     mUpdateGainMapCCDB = false;
@@ -210,7 +215,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
     if (not mConfParam->gainCalibFile.empty()) {
       LOG(warn) << "Couldn't find tpc gain correction file " << mConfParam->gainCalibFile << ". Not applying any gain correction.";
     }
-    mCalibObjects.mTPCPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
+    mCalibObjects.mTPCPadGainCalib = GPUO2InterfaceUtils::getPadGainCalibDefault();
     mCalibObjects.mTPCPadGainCalib->getGainCorrection(30, 5, 5);
   }
   mConfig->configCalib.tpcPadGain = mCalibObjects.mTPCPadGainCalib.get();
@@ -242,7 +247,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     }
 
     if (mUpdateGainMapCCDB && mSpecConfig.caClusterer) {
-      mTPCPadGainCalibBufferNew = GPUO2Interface::getPadGainCalib(*gainMap);
+      mTPCPadGainCalibBufferNew = GPUO2InterfaceUtils::getPadGainCalib(*gainMap);
     }
 
   } else if (matcher == ConcreteDataMatcher(gDataOriginTPC, "PADGAINRESIDUAL", 0)) {
@@ -357,12 +362,21 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
           newCalibObjects.fastTransformRef = mCalibObjects.mFastTransformRef.get();
           mustUpdateHelper = true;
         }
+        if (mTPCVDriftHelper->isUpdated() || mCalibObjects.mFastTransformHelper->isUpdatedMapMShape()) {
+          oldCalibObjects.mFastTransformMShape = std::move(mCalibObjects.mFastTransformMShape);
+          mCalibObjects.mFastTransformMShape.reset(new TPCFastTransform);
+          mCalibObjects.mFastTransformMShape->cloneFromObject(*mCalibObjects.mFastTransformHelper->getCorrMapMShape(), nullptr);
+          o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCalibObjects.mFastTransformMShape, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
+          newCalibObjects.fastTransformMShape = mCalibObjects.mFastTransformMShape.get();
+          mustUpdateHelper = true;
+        }
         if (mustUpdateHelper || mCalibObjects.mFastTransformHelper->isUpdatedLumi()) {
           oldCalibObjects.mFastTransformHelper = std::move(mCalibObjects.mFastTransformHelper);
           mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader);
           mCalibObjects.mFastTransformHelper->copySettings(*oldCalibObjects.mFastTransformHelper);
           mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get());
           mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
+          mCalibObjects.mFastTransformHelper->setCorrMapMShape(mCalibObjects.mFastTransformMShape.get());
           mCalibObjects.mFastTransformHelper->acknowledgeUpdate();
           newCalibObjects.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
         }
@@ -400,19 +414,26 @@ void GPURecoWorkflowSpec::doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* b
       throw std::runtime_error("Buffer does not match span");
     }
     o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
+    float scale = mCalibObjects.mFastTransformHelper->getInstLumiCTP();
+    if (scale < 0.f) {
+      scale = 0.f;
+    }
+    auto diagInner = trackTune.getCovInnerTotal(scale);
+    auto diagOuter = trackTune.getCovOuterTotal(scale);
+
     for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
       auto& trc = tpcTracks[itr];
       if (trackTune.useTPCInnerCorr) {
         trc.updateParams(trackTune.tpcParInner);
       }
       if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
-        trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
+        trc.updateCov(diagInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
       }
       if (trackTune.useTPCOuterCorr) {
         trc.getParamOut().updateParams(trackTune.tpcParOuter);
       }
       if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
-        trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
+        trc.getParamOut().updateCov(diagOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
       }
     }
   }

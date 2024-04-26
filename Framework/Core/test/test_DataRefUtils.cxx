@@ -21,17 +21,38 @@
 
 using namespace o2::framework;
 
+TEST_CASE("PureRootTest")
+{
+  TBufferFile buffer(TBuffer::kWrite);
+  TObjString s("test");
+  buffer.WriteObject(&s);
+
+  TBufferFile buffer2(TBuffer::kRead, buffer.BufferSize(), buffer.Buffer(), false);
+  buffer2.SetReadMode();
+  buffer2.InitMap();
+  TClass* storedClass = buffer2.ReadClass();
+  // ReadClass advances the buffer, so we need to reset it.
+  buffer2.SetBufferOffset(0);
+  buffer2.ResetMap();
+  REQUIRE(storedClass != nullptr);
+  auto* outS = (TObjString*)buffer2.ReadObjectAny(storedClass);
+  REQUIRE(outS != nullptr);
+  REQUIRE(outS->GetString() == "test");
+}
+
 // Simple test to do root deserialization.
 TEST_CASE("TestRootSerialization")
 {
   DataRef ref;
-  TMessage* tm = new TMessage(kMESS_OBJECT);
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto msg = transport->CreateMessage(4096);
+  FairOutputTBuffer tm(*msg);
   auto sOrig = std::make_unique<TObjString>("test");
-  tm->WriteObject(sOrig.get());
+  tm << sOrig.get();
   o2::header::DataHeader dh;
   dh.payloadSerializationMethod = o2::header::gSerializationMethodROOT;
-  ref.payload = tm->Buffer();
-  dh.payloadSize = tm->BufferSize();
+  ref.payload = (char*)msg->GetData();
+  dh.payloadSize = (size_t)msg->GetSize();
   ref.header = reinterpret_cast<char const*>(&dh);
 
   // Check by using the same type

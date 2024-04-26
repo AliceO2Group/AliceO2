@@ -41,10 +41,8 @@ FCTLayer::~FCTLayer() = default;
 
 FCTLayer::FCTLayer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut_SideL, Float_t Layerx2X0, Int_t type) : mLayerNumber(layerNumber), mLayerName(layerName), mx2X0(Layerx2X0), mType(type), mInnerRadius(rIn)
 {
-  // Creates a simple parametrized FCT layer covering the given
-  // (rIn, rOut_SideL) range at the z layer position
-  mZ = -std::abs(z);
-  if (type == 0) { // Disk
+  mZ = z;
+  if (type == 0 || type == 2) { // Disk
     mOuterRadius = rOut_SideL;
   } else if (type == 1) { // Square
     mSideLength = rOut_SideL;
@@ -95,15 +93,15 @@ void FCTLayer::createDiskLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("FCT_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("FCT_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("FCT_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
-  sensVol->SetLineColor(kGreen + 3);
+  sensVol->SetLineColor(kSpring + 5);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
-  chipVol->SetLineColor(kGreen + 3);
+  chipVol->SetLineColor(kSpring + 5);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  layerVol->SetLineColor(kGreen + 3);
+  layerVol->SetLineColor(kSpring + 5);
 
   LOG(info) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -175,7 +173,7 @@ void FCTLayer::createConverterLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-  TGeoMedium* medPb = gGeoManager->GetMedium("FCT_Pb$");
+  TGeoMedium* medPb = gGeoManager->GetMedium("FCT_LEAD$");
   TGeoMedium* medAir = gGeoManager->GetMedium("FCT_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medPb);

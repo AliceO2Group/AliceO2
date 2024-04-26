@@ -74,23 +74,32 @@ class define:
         # no substitution of variables needed
         expandedLine = line.replace(self.name, self.cont)
       else:
-        # substitute variables vars
-        vars = "".join(line.split("(")[1:]).split(")")[0].split(",")
-        if len(vars) != len(self.vars):
-          print("ATTENTION")
-          print("Substitution error!")
-          print("")
-          self.print()
-          print("")
-          print("    ", line)
+        inds = [i for i in range(len(line)) if line.startswith(self.name, i)]
+        expandedLine = line[:inds[0]]
+        for i, ind in enumerate(inds):
 
-        else:
-          words = split(self.cont)
-          for ind1 in range(len(self.vars)):
-            for ind2 in range(len(words)):
-              if self.vars[ind1].strip() in words[ind2]:
-                words[ind2] = re.sub(self.vars[ind1].strip(), vars[ind1].strip(), words[ind2])
-          expandedLine = block(words)
+          # make sure that the name of the define == self.name and not only starts with self.name
+          words = line[ind:].split('(')
+          if words[0].strip() != self.name:
+            if i < len(inds)-1:
+              expandedLine += line[ind:inds[i+1]]
+            else:
+              expandedLine += line[ind:]
+            continue
+
+          # substitute variables vars
+          vars = "".join(line[ind:].split("(")[1:]).split(")")[0].split(",")
+          if len(vars) != len(self.vars):
+            print("ATTENTION")
+            print("Substitution error!")
+            print('>> ', line)
+          else:
+            words = split(self.cont)
+            for ind1 in range(len(self.vars)):
+              for ind2 in range(len(words)):
+                if self.vars[ind1].strip() in words[ind2]:
+                  words[ind2] = re.sub(self.vars[ind1].strip(), vars[ind1].strip(), words[ind2])
+            expandedLine += block(words)
 
       # remove ##, which connects two strings
       expandedLine = block(split(expandedLine.replace(" # # ", "")))
@@ -324,8 +333,7 @@ def pickContent(lines_in_file):
     linesWithoutComments[ind] = res[1]
 
   # select all lines starting with #define
-  idfs = [l for l, s in enumerate(
-      linesWithoutComments) if s.lstrip().startswith("#define")][::-1]
+  idfs = [l for l, s in enumerate(linesWithoutComments) if s.lstrip().startswith("#define")]
   for idf in idfs:
     ws = split(linesWithoutComments[idf])
     defstring = linesWithoutComments[idf].split(ws[2], 1)[1]
@@ -334,8 +342,7 @@ def pickContent(lines_in_file):
     # find the corresponding #undef
     # if no #undef then apply to the end of the file
     iend = len(linesWithoutComments)
-    iudfs = [l for l, s in enumerate(
-        linesWithoutComments) if s.lstrip().startswith("#undef")][::-1]
+    iudfs = [l for l, s in enumerate(linesWithoutComments) if s.lstrip().startswith("#undef")]
     for iudf in iudfs:
       ws = split(linesWithoutComments[iudf])
       if ws[2] == df.name:

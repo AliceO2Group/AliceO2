@@ -63,6 +63,7 @@ class GPUTPCGMSliceTrack
   GPUd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
   GPUd() int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
   GPUd() void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
+  GPUd() int* GlobalTrackIds() { return mGlobalTrackIds; }
 
   GPUd() float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
   GPUd() float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }
@@ -134,7 +135,7 @@ class GPUTPCGMSliceTrack
   int mNClusters;                // N clusters
   int mNeighbour[2];             //
   int mSegmentNeighbour[2];      //
-  int mLocalTrackId;             // Corrected local track id in terms of GMSliceTracks array
+  int mLocalTrackId;             // Corrected local track id in terms of GMSliceTracks array for global tracks, UNDEFINED for local tracks!
   int mGlobalTrackIds[2];        // IDs of associated global tracks
   unsigned char mSlice;          // slice of this track segment
   unsigned char mLeg;            // Leg of this track segment

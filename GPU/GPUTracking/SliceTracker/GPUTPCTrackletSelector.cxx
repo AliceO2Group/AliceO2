@@ -36,16 +36,9 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
   GPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
 
   for (int itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.mNThreadsTotal) {
-    while (tracker.Tracklets()[itr].NHits() == 0) {
-      itr += s.mNThreadsTotal;
-      if (itr >= s.mNTracklets) {
-        return;
-      }
-    }
     GPUbarrierWarp();
 
     GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) & GPUrestrict() tracklet = tracker.Tracklets()[itr];
-    const int kMaxRowGap = 4;
     const float kMaxShared = .1f;
 
     int firstRow = tracklet.FirstRow();
@@ -62,9 +55,11 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
 
     GPUCA_UNROLL(, U(1))
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
-      gap++;
       calink ih = tracker.TrackletRowHits()[tracklet.FirstHit() + (irow - firstRow)];
-      if (ih != CALINK_INVAL) {
+      if (ih != CALINK_DEAD_CHANNEL) {
+        gap++;
+      }
+      if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
         GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
         bool own = (tracker.HitWeight(row, ih) <= w);
         bool sharedOK = ((nShared < nHits * kMaxShared));
@@ -85,7 +80,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
         }
       }
 
-      if (gap > kMaxRowGap || irow == lastRow) { // store
+      if (gap > tracker.Param().rec.tpc.trackFollowingMaxRowGap || irow == lastRow) { // store
         if (nHits >= minHits) {
           unsigned int nFirstTrackHit = CAMath::AtomicAdd(tracker.NTrackHits(), (unsigned int)nHits);
           if (nFirstTrackHit + nHits > tracker.NMaxTrackHits()) {

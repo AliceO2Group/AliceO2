@@ -32,6 +32,7 @@ namespace reco_workflow
 
 framework::WorkflowSpec getWorkflow(
   bool useMC,
+  bool useGeom,
   bool upstreamDigits,
   bool upstreamClusters,
   bool disableRootOutput,
@@ -58,12 +59,12 @@ framework::WorkflowSpec getWorkflow(
   }
 
   if (runTracking) {
-    specs.emplace_back(o2::mft::getTrackerSpec(useMC, nThreads));
+    specs.emplace_back(o2::mft::getTrackerSpec(useMC, useGeom, nThreads));
     if (!disableRootOutput) {
       specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
     }
     if (runAssessment) {
-      specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen));
+      specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, useGeom, processGen));
     }
     if (runTracks2Records) {
       specs.emplace_back(o2::mft::getTracksToRecordsSpec());

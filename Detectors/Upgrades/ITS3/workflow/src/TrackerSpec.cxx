@@ -15,7 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ITS3Workflow/TrackerSpec.h"
-#include "DataFormatsITS3/CompCluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -28,15 +28,13 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "DataFormatsTRD/TriggerRecord.h"
-#include <ITS3Reconstruction/IOUtils.h>
+#include "ITS3Reconstruction/IOUtils.h"
 #include "ITSReconstruction/FastMultEstConfig.h"
-#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
-// #include "ITS3Reconstruction/FastMultEst.h"
+#include "ITS3Base/SpecsV2.h"
 
 namespace o2
 {
 using namespace framework;
-// using its3::FastMultEst;
 using its::FastMultEstConfig;
 using its::TimeFrame;
 using its::Tracker;
@@ -53,15 +51,12 @@ TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC, 
   std::transform(mMode.begin(), mMode.end(), mMode.begin(), [](unsigned char c) { return std::tolower(c); });
 }
 
-void TrackerDPL::init(InitContext& ic)
+void TrackerDPL::init(InitContext& /*ic*/)
 {
   mTimer.Stop();
   mTimer.Reset();
+
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  auto& paramGeom = DescriptorInnerBarrelITS3Param::Instance();
-  if (paramGeom.getITS3LayerConfigString() == "FourLayers") {
-    mNLayers = 8;
-  }
 
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
   mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
@@ -126,18 +121,9 @@ void TrackerDPL::init(InitContext& ic)
 
   for (auto& params : trackParams) {
     params.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
-    params.NLayers = mNLayers;
-    if (params.NLayers > 7) { // shift by one position OB radii and lengths
-      params.LayerZ.resize(params.NLayers);
-      params.LayerRadii.resize(params.NLayers);
-      for (int iLayer{params.NLayers - 1}; iLayer >= params.NLayers - 4; iLayer--) {
-        params.LayerZ[iLayer] = params.LayerZ[iLayer - 1];
-        params.LayerRadii[iLayer] = params.LayerRadii[iLayer - 1];
-      }
-    }
     for (int iLayer{0}; iLayer < params.NLayers - 4; ++iLayer) { // initialise ITS3 radii and lengths
-      params.LayerZ[iLayer] = paramGeom.mLength;
-      params.LayerRadii[iLayer] = paramGeom.mRadii[iLayer];
+      params.LayerZ[iLayer] = constants::segment::lengthSensitive;
+      params.LayerRadii[iLayer] = constants::radii[iLayer];
     }
   }
 
@@ -148,7 +134,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
   updateTimeDependentParams(pc);
-  auto compClusters = pc.inputs().get<gsl::span<o2::its3::CompClusterExt>>("compClusters");
+  auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
   std::vector<o2::itsmft::PhysTrigger> fromTRD;
@@ -200,7 +186,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"IT3", "VERTICES", 0});
 
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
-  timeFrame->resizeVectors(mNLayers);
+  timeFrame->resizeVectors(7);
   mTracker->adoptTimeFrame(*timeFrame);
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
@@ -211,8 +197,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   ioutils::loadROFrameDataITS3(timeFrame, rofspan, compClusters, pattIt, mDict, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
-  auto logger = [&](std::string s) { LOG(info) << s; };
-  auto errorLogger = [&](std::string s) { LOG(error) << s; };
+  auto logger = [&](const std::string& s) { LOG(info) << s; };
+  auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
 
   // o2::its3::FastMultEst multEst;                        // mult estimator
   std::vector<bool> processingMask(rofs.size(), true); // Override mult estimator
@@ -274,7 +260,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     timeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
     mTracker->clustersToTracks(logger, errorLogger);
-    if (timeFrame->hasBogusClusters()) {
+    if (timeFrame->hasBogusClusters() != 0) {
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
     }
 
@@ -331,6 +317,11 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     pc.inputs().get<o2::its3::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+
+    // Check if lightweight geometry was requested, otherwise full geometry is loaded
+    if (pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+    }
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     mVertexer->getGlobalConfiguration();
@@ -346,7 +337,12 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
   if (matcher == ConcreteDataMatcher("IT3", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
-    setClusterDictionary((const o2::its3::TopologyDictionary*)obj);
+    setClusterDictionary((o2::its3::TopologyDictionary*)obj);
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "IT3 GeomtetryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
@@ -364,7 +360,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, const int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "IT3", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -377,14 +373,19 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
   }
   inputs.emplace_back("cldict", "IT3", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary"));
   inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              false,                             // GRPECS
-                                                              false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
+                                                              false,                                                                        // GRPECS
+                                                              false,                                                                        // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              true,                                                                         // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               inputs,
                                                               true);
+
+  if (!useGeom) {
+    inputs.emplace_back("itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/Geometry"));
+  }
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("IT3", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("IT3", "TRACKCLSID", 0, Lifetime::Timeframe);

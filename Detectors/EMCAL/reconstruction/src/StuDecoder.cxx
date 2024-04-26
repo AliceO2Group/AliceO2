@@ -43,8 +43,9 @@ void StuDecoder::init()
   //  STU payload structure is described in JIRA-EMCAL-562
   auto& buffer = mRawReader.getPayload().getPayloadWords();
   bool vbit = ((buffer[0] >> 31) & 0x1); // payload version control bit
-  if (!vbit)                             // old payloads version cannot be decoded with this method; discard 2022 early data
+  if (!vbit) {                           // old payloads version cannot be decoded with this method; discard 2022 early data
     throw STUDecoderError(feeID, STUDecoderError::ErrorCode_t::OLD_PAYLOAD_VERSION);
+  }
 
   mIsFullPayload = (buffer[1] & 0x1);
 
@@ -103,8 +104,9 @@ void StuDecoder::decode()
   offset += (2 * getL1JetIndexWords() + getL0indexWords());
   decodeL1GammaPatchIndices(&buffer[offset]);
 
-  if (!isFullPayload())
+  if (!isFullPayload()) {
     return;
+  }
 
   // decode FastOR data
   offset += (2 * getL1GammaIndexWords());
@@ -119,10 +121,12 @@ void StuDecoder::decodeL1JetPatchIndices(const uint32_t* buffer)
   int offset = getL1JetIndexWords(); // offset for Jet Low threshold
 
   if (mDebug >= 2) {
-    for (int i = 0; i < offset; i++)
+    for (int i = 0; i < offset; i++) {
       std::cout << std::dec << i << ")  0x" << std::hex << buffer[i] << "   <- Jet-high-word\n";
-    for (int i = 0; i < offset; i++)
+    }
+    for (int i = 0; i < offset; i++) {
       std::cout << std::dec << i << ")  0x" << std::hex << buffer[offset + i] << "   <- Jet-low-word\n";
+    }
   }
 
   int nSubregionEta = getSubregionsEta();

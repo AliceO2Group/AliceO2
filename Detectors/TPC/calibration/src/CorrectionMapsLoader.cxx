@@ -23,6 +23,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 
 using namespace o2::tpc;
 using namespace o2::framework;
@@ -36,6 +37,9 @@ void CorrectionMapsLoader::updateVDrift(float vdriftCorr, float vdrifRef, float 
   if (mCorrMapRef) {
     o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCorrMapRef, 0, vdriftCorr, vdrifRef, driftTimeOffset);
   }
+  if (mCorrMapMShape) {
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCorrMapMShape, 0, vdriftCorr, vdrifRef, driftTimeOffset);
+  }
 }
 
 //________________________________________________________
@@ -48,7 +52,8 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
   int dumRep = 0;
   o2::ctp::LumiInfo lumiObj;
   static o2::ctp::LumiInfo lumiPrev;
-  if (getLumiScaleType() == 1 && mInstLumiOverride <= 0.) {
+
+  if (getLumiCTPAvailable() && mInstCTPLumiOverride <= 0.) {
     if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(o2::ctp::LumiInfo)) {
       lumiPrev = lumiObj = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
     } else {
@@ -57,11 +62,30 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
       }
       lumiObj = lumiPrev;
     }
-    setInstLumi(mInstLumiFactor * (mCTPLumiSource == 0 ? lumiObj.getLumi() : lumiObj.getLumiAlt()));
-  } else if (getLumiScaleType() == 2 && mInstLumiOverride <= 0.) {
-    float tpcScaler = pc.inputs().get<float>("tpcscaler");
-    setInstLumi(mInstLumiFactor * tpcScaler);
+    setInstLumiCTP(mInstLumiCTPFactor * (mLumiCTPSource == 0 ? lumiObj.getLumi() : lumiObj.getLumiAlt()));
+    if (getLumiScaleType() == 1) {
+      setInstLumi(getInstLumiCTP());
+    }
   }
+  if (getLumiScaleType() == 2) {
+    float tpcScaler = pc.inputs().get<float>("tpcscaler");
+    setInstLumi(tpcScaler);
+  }
+  if (getUseMShapeCorrection()) {
+    LOGP(info, "Setting M-Shape map");
+    const auto mapMShape = pc.inputs().get<o2::gpu::TPCFastTransform*>("mshape");
+    const_cast<o2::gpu::TPCFastTransform*>(mapMShape.get())->rectifyAfterReadingFromFile();
+    mCorrMapMShape = std::unique_ptr<TPCFastTransform>(new TPCFastTransform);
+    mCorrMapMShape->cloneFromObject(*(mapMShape.get()), nullptr);
+    setCorrMapMShape(mCorrMapMShape.get());
+    setUpdatedMapMShape();
+  }
+
+  // update inverse in case it is requested
+  if (!mScaleInverse) {
+    updateInverse();
+  }
+  reportScaling();
 }
 
 //________________________________________________________
@@ -81,14 +105,19 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std
     LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
   }
 
-  if (gloOpts.lumiType == 1) {
+  if (gloOpts.requestCTPLumi) {
     addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
-  } else if (gloOpts.lumiType == 2) {
+  }
+
+  if (gloOpts.lumiType == 2) {
     addInput(inputs, {"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe});
   }
 
   addInput(inputs, {"tpcCorrPar", "TPC", "CorrMapParam", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CorrMapParam), {}, 0)}); // load once
 
+  if (gloOpts.enableMShapeCorrection) {
+    addInput(inputs, {"mshape", o2::header::gDataOriginTPC, "TPCMSHAPE", 0, Lifetime::Timeframe});
+  }
   addOptions(options);
 }
 
@@ -97,14 +126,18 @@ void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
 {
   // these are options which should be added at the level of device using TPC corrections
   // At the moment - nothing, all options are moved to configurable param CorrMapParam
+  addOption(options, ConfigParamSpec{"recalculate-inverse-correction", o2::framework::VariantType::Bool, false, {"recalculate the inverse correction in case lumi mode 1 or 2 is used"}});
+  addOption(options, ConfigParamSpec{"nthreads-inverse-correction", o2::framework::VariantType::Int, 4, {"Number of threads used for calculating the inverse correction (-1=all threads)"}});
 }
 
 //________________________________________________________
 void CorrectionMapsLoader::addGlobalOptions(std::vector<ConfigParamSpec>& options)
 {
   // these are options which should be added at the workflow level, since they modify the inputs of the devices
-  addOption(options, ConfigParamSpec{"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}});
+  addOption(options, ConfigParamSpec{"lumi-type", o2::framework::VariantType::Int, 0, {"1 = use CTP lumi for TPC correction scaling, 2 = use TPC scalers for TPC correction scaling"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-mode", o2::framework::VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative; 2 = full + scale * derivative (for MC)"}});
+  addOption(options, ConfigParamSpec{"enable-M-shape-correction", o2::framework::VariantType::Bool, false, {"Enable M-shape distortion correction"}});
+  addOption(options, ConfigParamSpec{"disable-ctp-lumi-request", o2::framework::VariantType::Bool, false, {"do not request CTP lumi (regardless what is used for corrections)"}});
 }
 
 //________________________________________________________
@@ -113,6 +146,11 @@ CorrectionMapsLoaderGloOpts CorrectionMapsLoader::parseGlobalOptions(const o2::f
   CorrectionMapsLoaderGloOpts tpcopt;
   tpcopt.lumiType = opts.get<int>("lumi-type");
   tpcopt.lumiMode = opts.get<int>("corrmap-lumi-mode");
+  tpcopt.enableMShapeCorrection = opts.get<bool>("enable-M-shape-correction");
+  tpcopt.requestCTPLumi = !opts.get<bool>("disable-ctp-lumi-request");
+  if (!tpcopt.requestCTPLumi && tpcopt.lumiType == 1) {
+    LOGP(fatal, "Scaling with CTP Lumi is requested but this input is disabled");
+  }
   return tpcopt;
 }
 
@@ -139,7 +177,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     setCorrMap((o2::gpu::TPCFastTransform*)obj);
     mCorrMap->rectifyAfterReadingFromFile();
     if (getMeanLumiOverride() == 0 && mCorrMap->getLumi() > 0.) {
-      setMeanLumi(mCorrMap->getLumi());
+      setMeanLumi(mCorrMap->getLumi(), false);
     }
     LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());
     setUpdatedMap();
@@ -148,7 +186,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
   if (matcher == ConcreteDataMatcher("TPC", "CorrMapRef", 0)) {
     setCorrMapRef((o2::gpu::TPCFastTransform*)obj);
     mCorrMapRef->rectifyAfterReadingFromFile();
-    if (getMeanLumiRefOverride() == 0 && mCorrMapRef->getLumi() > 0.) {
+    if (getMeanLumiRefOverride() == 0) {
       setMeanLumiRef(mCorrMapRef->getLumi());
     }
     LOGP(debug, "MeanLumiRefOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiRefOverride(), mCorrMapRef->getLumi(), getMeanLumiRef());
@@ -157,11 +195,11 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
   }
   if (matcher == ConcreteDataMatcher("TPC", "CorrMapParam", 0)) {
     const auto& par = o2::tpc::CorrMapParam::Instance();
-    mMeanLumiOverride = par.lumiMean;
+    mMeanLumiOverride = par.lumiMean; // negative value switches off corrections !!!
     mMeanLumiRefOverride = par.lumiMeanRef;
-    mInstLumiOverride = par.lumiInst;
-    mInstLumiFactor = par.lumiInstFactor;
-    mCTPLumiSource = par.ctpLumiSource;
+    mInstCTPLumiOverride = par.lumiInst;
+    mInstLumiCTPFactor = par.lumiInstFactor;
+    mLumiCTPSource = par.ctpLumiSource;
 
     if (mMeanLumiOverride != 0.) {
       setMeanLumi(mMeanLumiOverride, false);
@@ -169,8 +207,11 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     if (mMeanLumiRefOverride != 0.) {
       setMeanLumiRef(mMeanLumiRefOverride);
     }
-    if (mInstLumiOverride != 0.) {
-      setInstLumi(mInstLumiOverride, false);
+    if (mInstCTPLumiOverride != 0.) {
+      setInstLumiCTP(mInstCTPLumiOverride * mInstLumiCTPFactor);
+      if (getLumiScaleType() == 1) {
+        setInstLumi(getInstLumiCTP(), false);
+      }
     }
     setUpdatedLumi();
     int scaleType = getLumiScaleType();
@@ -178,8 +219,10 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     if (scaleType >= lumiS.size()) {
       LOGP(fatal, "Wrong lumi-scale-type provided!");
     }
-    LOGP(info, "TPC correction map params updated (corr.map scaling type={}): override values: lumiMean={} lumiRefMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
-         lumiS[scaleType], mMeanLumiOverride, mMeanLumiRefOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
+
+    LOGP(info, "TPC correction map params updated: SP corrections: {} (corr.map scaling type={}, override values: lumiMean={} lumiRefMean={} lumiScaleMode={}), CTP Lumi: source={} lumiInstOverride={} , LumiInst scale={} ",
+         canUseCorrections() ? "ON" : "OFF",
+         lumiS[scaleType], mMeanLumiOverride, mMeanLumiRefOverride, mLumiScaleMode, mLumiCTPSource, mInstCTPLumiOverride, mInstLumiCTPFactor);
   }
   return false;
 }
@@ -187,31 +230,70 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
 //________________________________________________________
 void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
 {
+  if (getLumiScaleMode() < 0) {
+    LOGP(fatal, "TPC correction lumi scaling mode is not set");
+  }
   const auto& inputRouts = ic.services().get<const o2::framework::DeviceSpec>().inputs;
+  bool foundCTP = false, foundTPCScl = false, foundMShape = false;
   for (const auto& route : inputRouts) {
     if (route.matcher == InputSpec{"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe}) {
-      setLumiScaleType(1);
-      break;
+      foundCTP = true;
     } else if (route.matcher == InputSpec{"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe}) {
-      setLumiScaleType(2);
+      foundTPCScl = true;
+    } else if (route.matcher == InputSpec{"mshape", o2::header::gDataOriginTPC, "TPCMSHAPE", 0, Lifetime::Timeframe}) {
+      foundMShape = true;
     }
   }
+  setLumiCTPAvailable(foundCTP);
+  enableMShapeCorrection(foundMShape);
+  if ((getLumiScaleType() == 1 && !foundCTP) || (getLumiScaleType() == 2 && !foundTPCScl)) {
+    LOGP(fatal, "Lumi scaling source {}({}) is not available for TPC correction", getLumiScaleType(), getLumiScaleType() == 1 ? "CTP" : "TPCScaler");
+  }
+
+  if ((getLumiScaleMode() == 1) || (getLumiScaleMode() == 2)) {
+    mScaleInverse = !(ic.options().get<bool>("recalculate-inverse-correction"));
+  } else {
+    mScaleInverse = true;
+  }
+  const int nthreadsInv = (ic.options().get<int>("nthreads-inverse-correction"));
+  (nthreadsInv < 0) ? TPCFastSpaceChargeCorrectionHelper::instance()->setNthreadsToMaximum() : TPCFastSpaceChargeCorrectionHelper::instance()->setNthreads(nthreadsInv);
 }
 
 //________________________________________________________
 void CorrectionMapsLoader::copySettings(const CorrectionMapsLoader& src)
 {
   setInstLumi(src.getInstLumi(), false);
+  setInstLumiCTP(src.getInstLumiCTP());
   setMeanLumi(src.getMeanLumi(), false);
+  setLumiCTPAvailable(src.getLumiCTPAvailable());
   setMeanLumiRef(src.getMeanLumiRef());
   setLumiScaleType(src.getLumiScaleType());
   setMeanLumiOverride(src.getMeanLumiOverride());
   setMeanLumiRefOverride(src.getMeanLumiRefOverride());
-  setInstLumiOverride(src.getInstLumiOverride());
+  setInstCTPLumiOverride(src.getInstCTPLumiOverride());
   setLumiScaleMode(src.getLumiScaleMode());
-  mInstLumiFactor = src.mInstLumiFactor;
-  mCTPLumiSource = src.mCTPLumiSource;
+  enableMShapeCorrection(src.getUseMShapeCorrection());
+  mInstLumiCTPFactor = src.mInstLumiCTPFactor;
+  mLumiCTPSource = src.mLumiCTPSource;
   mLumiScaleMode = src.mLumiScaleMode;
+  mScaleInverse = src.getScaleInverse();
+}
+
+void CorrectionMapsLoader::updateInverse()
+{
+  if (mLumiScaleMode == 1 || mLumiScaleMode == 2) {
+    LOGP(info, "Recalculating the inverse correction");
+    setUpdatedMap();
+    std::vector<float> scaling{1, mLumiScale};
+    std::vector<o2::gpu::TPCFastSpaceChargeCorrection*> corr{&(mCorrMap->getCorrection()), &(mCorrMapRef->getCorrection())};
+    if (mCorrMapMShape) {
+      scaling.emplace_back(1);
+      corr.emplace_back(&(mCorrMapMShape->getCorrection()));
+    }
+    TPCFastSpaceChargeCorrectionHelper::instance()->initInverse(corr, scaling, false);
+  } else {
+    LOGP(info, "Reinitializing inverse correction with lumi scale mode {} not supported for now", mLumiScaleMode);
+  }
 }
 
 #endif // #ifndef GPUCA_GPUCODE_DEVICE

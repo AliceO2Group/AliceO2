@@ -34,11 +34,11 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
 
   GPUTPCTrackParam tParam;
   tParam.InitParam();
-  tParam.SetCov(0, 0.05);
-  tParam.SetCov(2, 0.05);
-  tParam.SetCov(5, 0.001);
-  tParam.SetCov(9, 0.001);
-  tParam.SetCov(14, 0.05);
+  tParam.SetCov(0, 0.05f);
+  tParam.SetCov(2, 0.05f);
+  tParam.SetCov(5, 0.001f);
+  tParam.SetCov(9, 0.001f);
+  tParam.SetCov(14, 0.05f);
   tParam.SetParam(sliceSource.Tracks()[iTrack].Param());
 
   // GPUInfo("Parameters X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());
@@ -51,7 +51,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   GPUTPCTrackLinearisation t0(tParam);
   do {
     rowIndex += direction;
-    if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().constBz, GPUCA_MAX_SIN_PHI)) {
+    if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().bzCLight, GPUCA_MAX_SIN_PHI)) {
       return 0; // Reuse t0 linearization until we are in the next sector
     }
     // GPUInfo("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), Row(rowIndex).MaxY());
@@ -61,7 +61,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   } while (CAMath::Abs(tParam.Y()) > tracker.Row(rowIndex).MaxY());
 
   float err2Y, err2Z;
-  tracker.GetErrors2Seeding(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), err2Y, err2Z);
+  tracker.GetErrors2Seeding(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), -1.f, err2Y, err2Z); // TODO: Use correct time for multiplicity part of error estimation
   if (tParam.GetCov(0) < err2Y) {
     tParam.SetCov(0, err2Y);
   }
@@ -90,10 +90,10 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
       int i = 0;
       while (i < nHits) {
         const calink rowHit = rowHits[rowIndex];
-        if (rowHit != CALINK_INVAL) {
+        if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * tracker.CommonMemory()->nTracklets]);
           tracker.TrackHits()[hitId + i].Set(rowIndex, rowHit);
-          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().constBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
+          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().bzCLight(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
           i++;
         }
         rowIndex++;
@@ -102,7 +102,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
       int i = nHits - 1;
       while (i >= 0) {
         const calink rowHit = rowHits[rowIndex];
-        if (rowHit != CALINK_INVAL) {
+        if (rowHit != CALINK_INVAL && rowHit != CALINK_DEAD_CHANNEL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * tracker.CommonMemory()->nTracklets]);
           tracker.TrackHits()[hitId + i].Set(rowIndex, rowHit);
           i--;

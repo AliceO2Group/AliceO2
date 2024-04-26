@@ -46,6 +46,7 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
 
   std::vector<DPID> vect;
   mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
+  mWarnEmptyCycles = ic.options().get<int>("warn-empty-cycles");
   if (mDPsUpdateInterval == 0) {
     LOG(error) << "GRP DPs update interval set to zero seconds --> changed to 60";
     mDPsUpdateInterval = 60;
@@ -248,6 +249,14 @@ void GRPDCSDPsDataProcessor::sendCollimatorsDPsoutput(DataAllocator& output)
   // filling CCDB with Collimators object
 
   const auto& payload = mProcessor->getCollimatorsObj();
+  if (payload.totalEntries() == 0) {
+    if ((mEmptyCyclesCollimators % size_t(mWarnEmptyCycles)) == 0) {
+      LOGP(alarm, "No Collimator DPs were received after {} {}-s cycles", mEmptyCyclesCollimators, mDPsUpdateInterval);
+    }
+    mEmptyCyclesCollimators++;
+  } else {
+    mEmptyCyclesCollimators = 0;
+  }
   auto& info = mProcessor->getccdbCollimatorsInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
@@ -264,6 +273,14 @@ void GRPDCSDPsDataProcessor::sendEnvVarsDPsoutput(DataAllocator& output)
   // filling CCDB with EnvVars object
 
   const auto& payload = mProcessor->getEnvVarsObj();
+  if (payload.totalEntries() == 0) {
+    if ((mEmptyCyclesEnvVars % size_t(mWarnEmptyCycles)) == 0) {
+      LOGP(alarm, "No EnvVar DPs were received after {} {}-s cycles", mEmptyCyclesEnvVars, mDPsUpdateInterval);
+    }
+    mEmptyCyclesEnvVars++;
+  } else {
+    mEmptyCyclesEnvVars = 0;
+  }
   auto& info = mProcessor->getccdbEnvVarsInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
@@ -305,6 +322,7 @@ DataProcessorSpec getGRPDCSDPsDataProcessorSpec()
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}},
+            {"warn-empty-cycles", VariantType::Int, 1, {"Warn about empty object after this number of cycles"}},
             {"clear-vectors", VariantType::Bool, false, {"Clear vectors when starting processing for a new CCDB entry (latest value will not be kept)"}}}};
 }
 

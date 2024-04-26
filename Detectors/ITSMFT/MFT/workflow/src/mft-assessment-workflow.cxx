@@ -23,6 +23,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable use of MC information even if available"}},
     {"disable-process-gen", o2::framework::VariantType::Bool, false, {"disable processing of all generated tracks"}},
     {"finalize-analysis", o2::framework::VariantType::Bool, false, {"Process collected assessment data"}},
+    {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight MFT part"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -40,12 +41,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto processGen = !configcontext.options().get<bool>("disable-process-gen");
   auto finalizeAnalysis = configcontext.options().get<bool>("finalize-analysis");
+  auto useGeom = configcontext.options().get<bool>("use-full-geometry");
 
   LOG(info) << "MFT Assessment: disable-mc = " << configcontext.options().get<std::string>("disable-mc");
   LOG(info) << "MFT Assessment: disable-process-gen = " << configcontext.options().get<std::string>("disable-process-gen");
   LOG(info) << "MFT Assessment: finalize-analysis = " << configcontext.options().get<std::string>("finalize-analysis");
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen, finalizeAnalysis));
+  specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, useGeom, processGen, finalizeAnalysis));
   return specs;
 }

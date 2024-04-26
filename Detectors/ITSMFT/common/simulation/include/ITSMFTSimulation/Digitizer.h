@@ -111,8 +111,8 @@ class Digitizer : public TObject
 
   static constexpr float sec2ns = 1e9;
 
-  o2::itsmft::DigiParams mParams; ///< digitization parameters
-  o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  o2::itsmft::DigiParams mParams;          ///< digitization parameters
+  o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
   double mCollisionTimeWrtROF;
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits

@@ -150,12 +150,14 @@ class TRDDCSDataProcessor : public o2::framework::Task
       LOG(info) << "Invalid voltage variation trigger of DPs to update Anode/DriftUMon to " << utrigger << ", using default value of 1 V";
     }
 
+    mUploadAtEoS = ic.options().get<bool>("enable-uploadAtEoS");
+    LOG(info) << "Setting upload of CCDB objects at end of stream to " << mUploadAtEoS;
+
     mProcessor->init(vect);
     mTimerGas = std::chrono::high_resolution_clock::now();
     mTimerVoltages = mTimerGas;
     mTimerCurrents = mTimerGas;
     mTimerEnv = mTimerGas;
-    // LB: new DPs for Fed
     mTimerFedChamberStatus = mTimerGas;
     mTimerFedCFGtag = mTimerGas;
 
@@ -201,7 +203,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
       mTimerEnv = timeNow;
     }
 
-    // LB: processing logic for FedChamberStatus and FedCFGtag
     if (mProcessor->shouldUpdateFedChamberStatus()) {
       sendDPsoutputFedChamberStatus(pc.outputs());
     }
@@ -210,10 +211,8 @@ class TRDDCSDataProcessor : public o2::framework::Task
       sendDPsoutputFedCFGtag(pc.outputs());
     }
 
-    if (mProcessor->shouldUpdateRun()) {
-      sendDPsoutputRun(pc.outputs());
-    }
     sw.Stop();
+
     if (mReportTiming) {
       LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
     }
@@ -221,24 +220,26 @@ class TRDDCSDataProcessor : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    sendDPsoutputGas(ec.outputs());
-    sendDPsoutputVoltages(ec.outputs());
-    sendDPsoutputCurrents(ec.outputs());
-    sendDPsoutputEnv(ec.outputs());
-    sendDPsoutputRun(ec.outputs());
-    // LB: new DPs for Fed
-    sendDPsoutputFedChamberStatus(ec.outputs());
-    sendDPsoutputFedCFGtag(ec.outputs());
+    // LB: no objects should be uploaded at end of stream, unless stated otherwise
+    if (mUploadAtEoS) {
+      LOG(info) << "End of stream upload of CCDB objects";
+      sendDPsoutputGas(ec.outputs());
+      sendDPsoutputVoltages(ec.outputs());
+      sendDPsoutputCurrents(ec.outputs());
+      sendDPsoutputEnv(ec.outputs());
+    } else {
+      LOG(info) << "No CCDB object upload done at the end of stream";
+    }
   }
 
  private:
+  bool mUploadAtEoS = false;
   bool mReportTiming = false;
   std::unique_ptr<DCSProcessor> mProcessor;
   std::chrono::high_resolution_clock::time_point mTimerGas;
   std::chrono::high_resolution_clock::time_point mTimerVoltages;
   std::chrono::high_resolution_clock::time_point mTimerCurrents;
   std::chrono::high_resolution_clock::time_point mTimerEnv;
-  // LB: new DPs for Fed
   std::chrono::high_resolution_clock::time_point mTimerFedChamberStatus;
   std::chrono::high_resolution_clock::time_point mTimerFedCFGtag;
 
@@ -247,7 +248,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
   int64_t mCurrentsDPsUpdateInterval;
   int64_t mMinUpdateIntervalU;
   int64_t mEnvDPsUpdateInterval;
-  // LB: new DPs for Fed
   int64_t mFedChamberStatusDPsUpdateInterval;
   int64_t mFedCFGtagDPsUpdateInterval;
 
@@ -326,27 +326,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
   }
 
   //________________________________________________________________
-  void sendDPsoutputRun(DataAllocator& output)
-  {
-    // extract CCDB infos and calibration object for DPs
-    if (mProcessor->updateRunDPsCCDB()) {
-      const auto& payload = mProcessor->getTRDRunDPsInfo();
-      auto& info = mProcessor->getccdbRunDPsInfo();
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSRunDPs", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSRunDPs", 0}, info);
-      mProcessor->clearRunDPsInfo();
-    } else {
-      auto& info = mProcessor->getccdbRunDPsInfo();
-      // LOG(info) << "Not sending object " << info.getPath() << "/" << info.getFileName() << " since no DPs were processed for it";
-      LOG(info) << "Not sending object " << info.getPath() << "/" << info.getFileName() << " as upload of Run DPs was deactivated";
-    }
-  }
-
-  // LB: new DP for FedChamberStatus
-  //________________________________________________________________
   void sendDPsoutputFedChamberStatus(DataAllocator& output)
   {
     // extract CCDB infos and calibration object for DPs
@@ -365,7 +344,6 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
   }
 
-  // LB: new DP for FedCFGtag
   //________________________________________________________________
   void sendDPsoutputFedCFGtag(DataAllocator& output)
   {
@@ -395,23 +373,19 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
 {
 
   std::vector<OutputSpec> outputs;
-
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSGasDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSGasDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSUDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSUDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSIDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSIDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSRunDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSRunDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSEnvDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSEnvDPs"});
-  // LB: new DPs for Fed
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSGasDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSGasDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSUDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSUDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSIDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSIDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_DCSEnvDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_DCSEnvDPs"}, Lifetime::Sporadic);
   // Must use reduced names due to initializer string cannot exceed descriptor size in Data Format
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_ChamberStat"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_ChamberStat"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_CFGtag"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_CFGtag"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_ChamberStat"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_ChamberStat"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRD_CFGtag"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TRD_CFGtag"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "trd-dcs-data-processor",
@@ -429,7 +403,8 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"DPs-voltage-variation-trigger", VariantType::Int64, 1ll, {"Voltage variation trigger for upload of CCDB object"}},
             {"DPs-update-interval-gas", VariantType::Int64, 900ll, {"Interval (in s) after which to update the DPs CCDB entry for gas parameters"}},
             {"DPs-max-counter-alarm-fed", VariantType::Int, 1, {"Maximum number of alarms after FedChamberStatus and FedCFGtag changes, following changes are logged as warnings"}},
-            {"DPs-min-counter-update-fed", VariantType::Int, 522, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}}}};
+            {"DPs-min-counter-update-fed", VariantType::Int, 522, {"Minimum number of DPs to update FedChamberStatus and FedCFGtag objects"}},
+            {"enable-uploadAtEoS", VariantType::Bool, false, {"Upload CCDB objects at end of stream"}}}};
 }
 
 } // namespace framework

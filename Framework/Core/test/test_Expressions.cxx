@@ -32,7 +32,7 @@ static BindingNode testInt{"testInt", 6, atype::INT32};
 
 namespace o2::aod::track
 {
-DECLARE_SOA_EXPRESSION_COLUMN(Pze, pz, float, o2::aod::track::tgl*(1.f / o2::aod::track::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(Pze, pz, float, o2::aod::track::tgl * (1.f / o2::aod::track::signed1Pt));
 } // namespace o2::aod::track
 
 TEST_CASE("TestTreeParsing")
@@ -163,7 +163,7 @@ TEST_CASE("TestGandivaTreeCreation")
   auto gandiva_tree2 = createExpressionTree(ptespecs, schema2);
 
   auto gandiva_expression2 = makeExpression(gandiva_tree2, resfield2);
-  REQUIRE(gandiva_expression2->ToString() == "if (bool less_than_or_equal_to(float absf((float) fSigned1Pt), (const float) 1.17549e-38 raw(7fffe1))) { (const float) 8.50709e+37 raw(7e80001f) } else { float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt)) }");
+  REQUIRE(gandiva_expression2->ToString() == "if (bool less_than_or_equal_to(float absf((float) fSigned1Pt), (const float) 1.17549e-38 raw(800000))) { (const float) 8.50706e+37 raw(7e800000) } else { float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt)) }");
 
   auto projector_b = createProjector(schema2, ptespecs, resfield2);
   auto fields = o2::soa::createFieldsFromColumns(o2::aod::Tracks::persistent_columns_t{});

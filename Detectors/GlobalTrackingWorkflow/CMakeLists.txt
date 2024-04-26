@@ -33,6 +33,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/GlobalFwdTrackWriterSpec.cxx
                        src/GlobalFwdMatchingAssessmentSpec.cxx
                        src/MatchedMFTMCHWriterSpec.cxx
+                       src/ReaderDriverSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
@@ -48,6 +49,10 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::SimulationDataFormat
                                      O2::DetectorsVertexing
                                      O2::StrangenessTracking)
+o2_add_executable(driver-workflow
+                  COMPONENT_NAME reader
+                  SOURCES src/reader-driver-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
 
 o2_add_executable(match-workflow
                   COMPONENT_NAME tpcits

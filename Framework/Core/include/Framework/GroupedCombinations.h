@@ -44,8 +44,7 @@ expressions::BindingNode getMatchingIndexNode()
   using selected_indices_t = selected_pack_multicondition<is_index_to_g_t, pack<G>, external_index_columns_pack>;
   static_assert(pack_size(selected_indices_t{}) == 1, "No matching index column from associated to grouping");
   using index_column_t = pack_head_t<selected_indices_t>;
-  auto label = std::string(index_column_t::mLabel);
-  return expressions::BindingNode{label, typeid(typename index_column_t::column_t).hash_code(), expressions::selectArrowType<typename index_column_t::type>()};
+  return expressions::BindingNode{index_column_t::mLabel, o2::framework::TypeIdHelpers::uniqueId<typename index_column_t::column_t>(), expressions::selectArrowType<typename index_column_t::type>()};
 }
 
 template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... As>

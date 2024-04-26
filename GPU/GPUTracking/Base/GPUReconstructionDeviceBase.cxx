@@ -317,3 +317,11 @@ void GPUReconstructionDeviceBase::unregisterRemainingRegisteredMemory()
   }
   mRegisteredMemoryPtrs.clear();
 }
+
+void GPUReconstructionDeviceBase::runConstantRegistrators()
+{
+  auto& list = getDeviceConstantMemRegistratorsVector();
+  for (unsigned int i = 0; i < list.size(); i++) {
+    mDeviceConstantMemList.emplace_back(list[i]());
+  }
+}

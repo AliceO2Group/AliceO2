@@ -96,8 +96,13 @@ class TPCTimeSeries : public Task
     mMaxdEdxRegionRatio = ic.options().get<float>("max-dedx-region-ratio");
     mSamplingFactor = ic.options().get<float>("sampling-factor");
     mSampleTsallis = ic.options().get<bool>("sample-unbinned-tsallis");
+    mXOuterMatching = ic.options().get<float>("refX-for-outer-ITS");
+    mUseMinBiasTrigger = !ic.options().get<bool>("disable-min-bias-trigger");
+
     if (mSampleTsallis) {
-      mGenerator = std::mt19937(std::random_device{}());
+      for (int iThread = 0; iThread < mNThreads; ++iThread) {
+        mGenerator.emplace_back(std::mt19937(std::random_device{}()));
+      }
     }
     mBufferVals.resize(mNThreads);
     mBufferDCA.setBinning(mPhiBins, mTglBins, mQPtBins, mMultBins, mMaxTgl, mMaxQPt, mMultMax);
@@ -127,6 +132,9 @@ class TPCTimeSeries : public Task
     }
 
     const int nBins = getNBins();
+
+    mTimeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + processing_helpers::getFirstTForbit(pc) * o2::constants::lhc::LHCOrbitMUS / 1000;
+    mRun = processing_helpers::getRunNumber(pc);
 
     // init only once
     if (mAvgADCAr.size() != nBins) {
@@ -428,11 +436,14 @@ class TPCTimeSeries : public Task
           const auto dcarW = val.dcarW[i];
           const int binInt = nBins - 1;
           const bool fillCombDCA = ((type == 1) && (val.dcarcomb[i] != -1) && (val.dcazcomb[i] != -1));
+          const bool fillDCAR = (type == 1) ? (dcar != -999) : true;
           const std::array<int, 5> bins{tglBin, phiBin, qPtBin, multBin, binInt};
           // fill bins
           for (auto bin : bins) {
             if (val.side[i] == Side::C) {
-              mAvgCDCAr[bin][type].addValue(dcar, dcarW);
+              if (fillDCAR) {
+                mAvgCDCAr[bin][type].addValue(dcar, dcarW);
+              }
               if (fillCombDCA) {
                 mAvgCDCAr[bin][2].addValue(val.dcarcomb[i], dcarW);
                 mAvgCDCAz[bin][2].addValue(val.dcazcomb[i], dcarW);
@@ -442,7 +453,9 @@ class TPCTimeSeries : public Task
                 mAvgCDCAz[bin][type].addValue(dcaz, dcarW);
               }
             } else {
-              mAvgADCAr[bin][type].addValue(dcar, dcarW);
+              if (fillDCAR) {
+                mAvgADCAr[bin][type].addValue(dcar, dcarW);
+              }
               if (fillCombDCA) {
                 mAvgADCAr[bin][2].addValue(val.dcarcomb[i], dcarW);
                 mAvgADCAz[bin][2].addValue(val.dcazcomb[i], dcarW);
@@ -1012,22 +1025,43 @@ class TPCTimeSeries : public Task
   float mMaxdEdxRegionRatio{0.5};                                          ///< maximum abs dedx region ratio: log(dedx_region/dedx)
   float mSamplingFactor{0.1};                                              ///< sampling factor in case sampling is used for unbinned data
   bool mSampleTsallis{false};                                              ///< perform sampling of unbinned data
-  std::mt19937 mGenerator;                                                 ///< random generator for debug tree sampling
+  std::vector<std::mt19937> mGenerator;                                    ///< random generator for debug tree sampling
   std::vector<std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamer; ///< streamer for unbinned data
+  float mXOuterMatching{60};                                               ///< reference x where delta track parameters for TPC with ITS-TPC track are stored in skimmed data
+  bool mUseMinBiasTrigger{false};                                          ///< use minimum bias trigger for skimmed data (accept fraction of tracks with nCl < 80)
+  long mTimeMS{};                                                          ///< time in MS of current TF
+  int mRun{};                                                              ///< run number
 
   /// check if track passes coarse cuts
-  bool acceptTrack(const TrackTPC& track) const
+  bool acceptTrack(const TrackTPC& track) const { return std::abs(track.getTgl()) < mMaxTgl; }
+
+  bool checkTrack(const TrackTPC& track) const
   {
-    if ((track.getP() < mMinMom) || (track.getNClusters() < mMinNCl) || std::abs(track.getTgl()) > mMaxTgl) {
-      return false;
-    }
-    return true;
+    const bool isGoodTrack = ((track.getNClusters() < mMinNCl) || (track.getP() < mMinMom)) ? false : true;
+    return isGoodTrack;
   }
 
   void fillDCA(const gsl::span<const TrackTPC> tracksTPC, const gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC, const gsl::span<const o2::dataformats::PrimaryVertex> vertices, const int iTrk, const int iThread, const std::unordered_map<unsigned int, std::array<int, 2>>& indicesITSTPC, const gsl::span<const o2::its::TrackITS> tracksITS, const std::vector<std::tuple<int, float, float>>& idxTPCTrackToTOFCluster, const gsl::span<const o2::tof::Cluster> tofClusters)
   {
-    o2::track::TrackParCov track = tracksTPC[iTrk];
     const auto& trackFull = tracksTPC[iTrk];
+    const bool isGoodTrack = checkTrack(trackFull);
+
+    // check for min bias trigger - sample flat -
+    bool minBiasOk = false;
+    const float factorMinBias = 0.1 * mSamplingFactor;
+    if (mUnbinnedWriter && mUseMinBiasTrigger) {
+      std::uniform_real_distribution<> distr(0., 1.);
+      if (distr(mGenerator[iThread]) < factorMinBias) {
+        minBiasOk = true;
+      }
+    }
+
+    // check if at least one check passed
+    if (!isGoodTrack && !minBiasOk) {
+      return;
+    }
+
+    o2::track::TrackParCov track = tracksTPC[iTrk];
 
     // propagate track to the DCA and fill in slice
     auto propagator = o2::base::Propagator::Instance();
@@ -1132,18 +1166,24 @@ class TPCTimeSeries : public Task
     }
     sigmaY2 = track.getSigmaY2();
     sigmaZ2 = track.getSigmaZ2();
-    if (trackFull.hasCSideClustersOnly()) {
-      mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
-    } else if (trackFull.hasASideClustersOnly()) {
-      mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
+    if (isGoodTrack) {
+      if (trackFull.hasCSideClustersOnly()) {
+        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
+      } else if (trackFull.hasASideClustersOnly()) {
+        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars, sigmaY2, sigmaZ2);
+      }
     }
 
     // make propagation for ITS-TPC Track
     // check if the track was assigned to ITS track
     o2::gpu::gpustd::array<float, 2> dcaITSTPC{0, 0};
+    float deltaP0 = -999;
+    float deltaP1 = -999;
     float deltaP2 = -999;
     float deltaP3 = -999;
     float deltaP4 = -999;
+    float phiITSTPCAtVertex = -999; // phi of ITS-TPC track at vertex
+    float dcaTPCAtVertex = -999;
     if (hasITSTPC) {
       // propagate ITS-TPC track to (0,0)
       auto trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
@@ -1157,27 +1197,43 @@ class TPCTimeSeries : public Task
           o2::gpu::gpustd::array<float, 2> dcaITSTPCTmp{-1, -1};
 
           if (contributeToVertex) {
-            propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp);
+            if (propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp)) {
+              phiITSTPCAtVertex = trackITSTPCTmp.getPhi();
+            }
+
+            // propagate TPC track to vertex
+            o2::gpu::gpustd::array<float, 2> dcaTPCTmp{-1, -1};
+            if (propagator->propagateToDCA(vertex.getXYZ(), track, propagator->getNominalBz(), mFineStep, mMatType, &dcaTPCTmp)) {
+              dcaTPCAtVertex = dcaTPCTmp[0];
+            }
           }
 
           // make cut around DCA to vertex due to gammas
           if ((std::abs(dcaITSTPCTmp[0]) < maxITSTPCDCAr_comb) && (std::abs(dcaITSTPCTmp[1]) < maxITSTPCDCAz_comb)) {
-            // propagate TPC track to ITS-TPC track and store delta track parameters
-            if (track.rotate(trackITSTPCTmp.getAlpha()) && propagator->propagateTo(track, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
-              deltaP2 = track.getParam(2) - trackITSTPCTmp.getParam(2);
-              deltaP3 = track.getParam(3) - trackITSTPCTmp.getParam(3);
-              deltaP4 = track.getParam(4) - trackITSTPCTmp.getParam(4);
-              mBufferVals[iThread].front().setDeltaParam(deltaP2, deltaP3, deltaP4);
+            // propagate TPC track to ITS track and store delta track parameters
+            if (track.rotate(tracksITS[idxITSTrack].getAlpha()) && propagator->propagateTo(track, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
+              o2::track::TrackPar trackITS(tracksITS[idxITSTrack]);
+              const bool propITSOk = propagator->propagateTo(trackITS, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType);
+              if (propITSOk) {
+                deltaP0 = track.getParam(0) - trackITSTPCTmp.getParam(0);
+                deltaP1 = track.getParam(1) - trackITSTPCTmp.getParam(1);
+                deltaP2 = track.getParam(2) - trackITSTPCTmp.getParam(2);
+                deltaP3 = track.getParam(3) - trackITSTPCTmp.getParam(3);
+                deltaP4 = track.getParam(4) - trackITSTPCTmp.getParam(4);
+                mBufferVals[iThread].front().setDeltaParam(deltaP2, deltaP3, deltaP4);
+              }
             }
           } else {
             dcaITSTPCTmp[0] = -1;
             dcaITSTPCTmp[1] = -1;
           }
 
-          if (trackFull.hasCSideClustersOnly()) {
-            mBufferVals[iThread].back().emplace_back_ITSTPC(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
-          } else if (trackFull.hasASideClustersOnly()) {
-            mBufferVals[iThread].back().emplace_back_ITSTPC(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
+          if (isGoodTrack) {
+            if (trackFull.hasCSideClustersOnly()) {
+              mBufferVals[iThread].back().emplace_back_ITSTPC(Side::C, tglBin, phiBin, qPtBin, multBin, dcaTPCAtVertex, dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
+            } else if (trackFull.hasASideClustersOnly()) {
+              mBufferVals[iThread].back().emplace_back_ITSTPC(Side::A, tglBin, phiBin, qPtBin, multBin, dcaTPCAtVertex, dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
+            }
           }
         }
       }
@@ -1189,9 +1245,9 @@ class TPCTimeSeries : public Task
       float weight = 0;
       if (mSampleTsallis) {
         std::uniform_real_distribution<> distr(0., 1.);
-        writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, distr(mGenerator));
+        writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, distr(mGenerator[iThread]));
       }
-      if (writeData) {
+      if (writeData || minBiasOk) {
         auto clusterMask = makeClusterBitMask(trackFull);
         const auto& trkOrig = tracksTPC[iTrk];
         const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
@@ -1225,10 +1281,36 @@ class TPCTimeSeries : public Task
         float deltaTPCParamInOutTgl = trackFull.getTgl() - trackFull.getParamOut().getTgl();
         float deltaTPCParamInOutQPt = trackFull.getQ2Pt() - trackFull.getParamOut().getQ2Pt();
 
+        // propagate TPC track and ITS-TPC track to outer matching at 60cm
+        float deltaP0OuterITS = -999;
+        float deltaP1OuterITS = -999;
+        float deltaP2OuterITS = -999;
+        float deltaP3OuterITS = -999;
+        float deltaP4OuterITS = -999;
+        if (idxITSCheck) {
+          o2::track::TrackPar trackTmpOut(tracksITS[idxITSTrack].getParamOut());
+          const bool propITSOk = propagator->propagateTo(trackTmpOut, mXOuterMatching, false, mMaxSnp, mCoarseStep, mMatType);
+          if (propITSOk && trackTmp.rotate(trackTmpOut.getAlpha())) {
+            const bool propTPCOk = propagator->propagateTo(trackTmp, mXOuterMatching, false, mMaxSnp, mCoarseStep, mMatType);
+            if (propTPCOk) {
+              // store delta parameters
+              deltaP0OuterITS = trackTmp.getParam(0) - trackTmpOut.getParam(0);
+              deltaP1OuterITS = trackTmp.getParam(1) - trackTmpOut.getParam(2);
+              deltaP2OuterITS = trackTmp.getParam(2) - trackTmpOut.getParam(2);
+              deltaP3OuterITS = trackTmp.getParam(3) - trackTmpOut.getParam(3);
+              deltaP4OuterITS = trackTmp.getParam(4) - trackTmpOut.getParam(4);
+            }
+          }
+        }
+        const int triggerMask = 0x1 * minBiasOk + 0x2 * writeData;
+
         *mStreamer[iThread] << "treeTimeSeries"
                             // DCAs
+                            << "triggerMask=" << triggerMask
+                            << "factorMinBias=" << factorMinBias
                             << "factorPt=" << factorPt
                             << "weight=" << weight
+                            << "dcar_tpc_vertex=" << dcaTPCAtVertex
                             << "dcar_tpc=" << dca[0]
                             << "dcaz_tpc=" << dca[1]
                             << "dcar_itstpc=" << dcaITSTPC[0]
@@ -1260,7 +1342,10 @@ class TPCTimeSeries : public Task
                             << "nClITS=" << nClITS
                             << "chi2ITS=" << chi2ITS
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
+                            << "PID=" << trkOrig.getPID().getID()
                             //
+                            << "deltaPar0=" << deltaP0
+                            << "deltaPar1=" << deltaP1
                             << "deltaPar2=" << deltaP2
                             << "deltaPar3=" << deltaP3
                             << "deltaPar4=" << deltaP4
@@ -1270,6 +1355,8 @@ class TPCTimeSeries : public Task
                             << "mult=" << mNTracksWindow[iTrk]
                             << "time_window_mult=" << mTimeWindowMUS
                             << "firstTFOrbit=" << mFirstTFOrbit
+                            << "timeMS=" << mTimeMS
+                            << "run=" << mRun
                             << "mVDrift=" << mVDrift
                             << "its_flag=" << int(gID)
                             << "sqrtChi2Match=" << chi2Match
@@ -1281,6 +1368,15 @@ class TPCTimeSeries : public Task
                             // TPC delta param
                             << "deltaTPCParamInOutTgl=" << deltaTPCParamInOutTgl
                             << "deltaTPCParamInOutQPt=" << deltaTPCParamInOutQPt
+                            // delta parameter between ITS-TPC - TPC at 60 cm
+                            << "deltaP0OuterITS=" << deltaP0OuterITS
+                            << "deltaP1OuterITS=" << deltaP1OuterITS
+                            << "deltaP2OuterITS=" << deltaP2OuterITS
+                            << "deltaP3OuterITS=" << deltaP3OuterITS
+                            << "deltaP4OuterITS=" << deltaP4OuterITS
+                            << "mXOuterMatching=" << mXOuterMatching
+                            // phi of ITS-TPC track at vertex
+                            << "phiITSTPCAtVertex=" << phiITSTPCAtVertex
                             << "\n";
       }
     }
@@ -1288,14 +1384,13 @@ class TPCTimeSeries : public Task
 
   void sendOutput(ProcessingContext& pc)
   {
+    mBufferDCA.mTSTPC.setStartTime(mTimeMS);
+    mBufferDCA.mTSITSTPC.setStartTime(mTimeMS);
     pc.outputs().snapshot(Output{header::gDataOriginTPC, getDataDescriptionTimeSeries()}, mBufferDCA);
     // in case of ROOT output also store the TFinfo in the TTree
     if (!mDisableWriter) {
       o2::dataformats::TFIDInfo tfinfo;
       o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
-      const long timeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + processing_helpers::getFirstTForbit(pc) * o2::constants::lhc::LHCOrbitMUS / 1000;
-      mBufferDCA.mTSTPC.setStartTime(timeMS);
-      mBufferDCA.mTSITSTPC.setStartTime(timeMS);
       pc.outputs().snapshot(Output{header::gDataOriginTPC, getDataDescriptionTPCTimeSeriesTFId()}, tfinfo);
     }
   }
@@ -1614,7 +1709,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
     Options{
       {"min-momentum", VariantType::Float, 0.2f, {"Minimum momentum of the tracks"}},
       {"min-cluster", VariantType::Int, 80, {"Minimum number of clusters of the tracks"}},
-      {"max-tgl", VariantType::Float, 1.1f, {"Maximum accepted tgl of the tracks"}},
+      {"max-tgl", VariantType::Float, 1.4f, {"Maximum accepted tgl of the tracks"}},
       {"max-qPt", VariantType::Float, 5.f, {"Maximum abs(qPt) bin"}},
       {"max-snp", VariantType::Float, 0.85f, {"Maximum sinus(phi) for propagation"}},
       {"coarse-step", VariantType::Float, 5.f, {"Coarse step during track propagation"}},
@@ -1624,7 +1719,8 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"cut-DCA-median", VariantType::Float, 3.f, {"Cut on the DCA: abs(DCA-medianDCA)<cut-DCA-median"}},
       {"cut-DCA-RMS", VariantType::Float, 3.f, {"Sigma cut on the DCA"}},
       {"refX-for-sector", VariantType::Float, 108.475f, {"Reference local x position for the sector information (default centre of IROC)"}},
-      {"tgl-bins", VariantType::Int, 10, {"Number of tgl bins for time series variables"}},
+      {"refX-for-outer-ITS", VariantType::Float, 60.f, {"Reference local x position for matching at outer ITS"}},
+      {"tgl-bins", VariantType::Int, 30, {"Number of tgl bins for time series variables"}},
       {"phi-bins", VariantType::Int, 18, {"Number of phi bins for time series variables"}},
       {"qPt-bins", VariantType::Int, 18, {"Number of qPt bins for time series variables"}},
       {"mult-bins", VariantType::Int, 20, {"Number of multiplicity bins for time series variables"}},
@@ -1642,6 +1738,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"max-dedx-region-ratio", VariantType::Float, 0.5f, {"Maximum absolute log(dedx(region)/dedx) ratio"}},
       {"sample-unbinned-tsallis", VariantType::Bool, false, {"Perform sampling of unbinned data based on Tsallis function"}},
       {"sampling-factor", VariantType::Float, 0.001f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
+      {"disable-min-bias-trigger", VariantType::Bool, false, {"Disable the minimum bias trigger for skimmed data"}},
       {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}}}};
 }
 

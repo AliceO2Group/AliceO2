@@ -37,8 +37,11 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using CalibInfosType = std::vector<o2::dataformats::CalibInfoTOF>;
 using CalibDiaType = o2::tof::Diagnostic;
-DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc, bool addDia)
+DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc, bool addDia, bool onlyDia)
 {
+  if (!addDia) {
+    onlyDia = false;
+  }
   // A spectator for logging
   auto logger = [](CalibInfosType const& indata) {
     LOG(debug) << "RECEIVED MATCHED SIZE " << indata.size();
@@ -55,7 +58,7 @@ DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc, bool ad
                                 BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, ddCalib, 0},
                                                                  "TOFCalibInfo",
                                                                  "calibinfo-branch-name",
-                                                                 1,
+                                                                 !onlyDia,
                                                                  logger},
                                 BranchDefinition<CalibDiaType>{InputSpec{"inputDia", o2::header::gDataOriginTOF, ddCalibDia, 0},
                                                                "TOFDiaInfo",

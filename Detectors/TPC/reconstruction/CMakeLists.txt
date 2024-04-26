@@ -36,7 +36,7 @@ o2_add_library(TPCReconstruction
                                      O2::TPCBase
                                      O2::GPUO2Interface
                                      O2::TPCFastTransformation
-                                     O2::DetectorsRaw 
+                                     O2::DetectorsRaw
                                      O2::DetectorsBase)
 
 o2_target_root_dictionary(
@@ -92,7 +92,7 @@ o2_add_test(AdcClockMonitor
 o2_add_test(GPUCATracking
             COMPONENT_NAME tpc
             LABELS tpc
-            PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+            PUBLIC_LINK_LIBRARIES O2::TPCReconstruction O2::GPUO2Interface
             SOURCES test/testGPUCATracking.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
@@ -112,7 +112,7 @@ o2_add_test(FastTransform
             PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
             SOURCES test/testTPCFastTransform.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+            CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
 
 # FIXME: should be moved to TPCCalibration as it requires O2::TPCCalibration
 # which is built after TPCReconstruction

@@ -249,8 +249,10 @@ struct IDCOne {
     return *this;
   }
 
-  std::vector<float> mIDCOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  ClassDefNV(IDCOne, 2)
+  std::vector<float> mIDCOne{};       ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  std::vector<float> mIDCOneMedian{}; ///< median of IDCs
+  std::vector<float> mIDCOneRMS{};    ///< RMS of IDCs
+  ClassDefNV(IDCOne, 3)
 };
 
 /// Helper class for aggregation of 1D-IDCs from different CRUs

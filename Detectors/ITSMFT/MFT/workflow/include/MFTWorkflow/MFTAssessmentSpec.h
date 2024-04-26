@@ -59,7 +59,7 @@ class MFTAssessmentSpec : public Task
   TStopwatch mTimer[NStopWatches];
 };
 
-DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finalizeAnalysis = false);
+DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool useGeom, bool processGen, bool finalizeAnalysis = false);
 
 } // namespace mft
 } // namespace o2

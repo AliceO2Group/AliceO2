@@ -12,93 +12,121 @@
 /// \file GPUReconstructionKernels.h
 /// \author David Rohr
 
-// No header protection, this may be used multiple times
-#include "GPUReconstructionKernelMacros.h"
+#ifndef GPURECONSTRUCTIONKERNELS_H
+#define GPURECONSTRUCTIONKERNELS_H
 
-// clang-format off
-GPUCA_KRNL_LB((GPUTPCNeighboursFinder                       ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCNeighboursCleaner                      ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCStartHitsFinder                        ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCStartHitsSorter                        ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCTrackletConstructor, singleSlice       ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCTrackletConstructor, allSlices         ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCTrackletSelector                       ), (both), (), ())
-GPUCA_KRNL((   GPUMemClean16                                ), (simple, REG, (GPUCA_THREAD_COUNT, 1)), (, GPUPtr1(void*, ptr), unsigned long size), (, GPUPtr2(void*, ptr), size))
-GPUCA_KRNL((   GPUTPCGlobalTrackingCopyNumbers              ), (single), (, int n), (, n))
-#if !defined(GPUCA_OPENCL1) && (!defined(GPUCA_ALIROOT_LIB) || !defined(GPUCA_GPUCODE))
-GPUCA_KRNL_LB((GPUTPCCreateSliceData                        ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCGlobalTracking                         ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerTrackFit                       ), (simple), (, int mode), (, mode))
-GPUCA_KRNL_LB((GPUTPCGMMergerFollowLoopers                  ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerUnpackResetIds                 ), (simple), (, int iSlice), (, iSlice))
-GPUCA_KRNL_LB((GPUTPCGMMergerSliceRefit                     ), (simple), (, int iSlice), (, iSlice))
-GPUCA_KRNL_LB((GPUTPCGMMergerUnpackGlobal                   ), (simple), (, int iSlice), (, iSlice))
-GPUCA_KRNL((   GPUTPCGMMergerUnpackSaveNumber               ), (simple), (, int id), (, id))
-GPUCA_KRNL_LB((GPUTPCGMMergerResolve, step0                 ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerResolve, step1                 ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerResolve, step2                 ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerResolve, step3                 ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerResolve, step4                 ), (simple), (, char useOrigTrackParam, char mergeAll), (, useOrigTrackParam, mergeAll))
-GPUCA_KRNL_LB((GPUTPCGMMergerClearLinks                     ), (simple), (, char nOutput), (, nOutput))
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeWithinPrepare             ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeSlicesPrepare             ), (simple), (, int border0, int border1, char useOrigTrackParam), (, border0, border1, useOrigTrackParam))
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeBorders, step0            ), (simple), (, int iSlice, char withinSlice, char mergeMode), (, iSlice, withinSlice, mergeMode))
-GPUCA_KRNL((   GPUTPCGMMergerMergeBorders, step1            ), (simple), (, int iSlice, char withinSlice, char mergeMode), (, iSlice, withinSlice, mergeMode))
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeBorders, step2            ), (simple), (, int iSlice, char withinSlice, char mergeMode), (, iSlice, withinSlice, mergeMode))
-GPUCA_KRNL((   GPUTPCGMMergerMergeBorders, variant          ), (simple), (, GPUPtr1(gputpcgmmergertypes::GPUTPCGMBorderRange*, range), int N, int cmpMax), (, GPUPtr2(gputpcgmmergertypes::GPUTPCGMBorderRange*, range), N, cmpMax))
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeCE                        ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerLinkGlobalTracks               ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerCollect                        ), (simple), (), ())
-GPUCA_KRNL((   GPUTPCGMMergerSortTracks                     ), (simple), (), ())
-GPUCA_KRNL((   GPUTPCGMMergerSortTracksQPt                  ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerSortTracksPrepare              ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerPrepareClusters, step0         ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerPrepareClusters, step1         ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerPrepareClusters, step2         ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step0                ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step1                ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step2                ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step0            ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step1            ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step2            ), (simple), (), ())
-#ifdef GPUCA_HAVE_O2HEADERS
-GPUCA_KRNL_LB((GPUTPCGMO2Output, prepare                    ), (simple), (), ())
-GPUCA_KRNL((   GPUTPCGMO2Output, sort                       ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMO2Output, output                     ), (simple), (), ())
-GPUCA_KRNL((   GPUTPCGMO2Output, mc                         ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTRDTrackerKernels, gpuVersion             ), (simple), (, GPUPtr1(GPUTRDTrackerGPU*, externalInstance)), (, GPUPtr2(GPUTRDTrackerGPU*, externalInstance)))
-GPUCA_KRNL_LB((GPUTRDTrackerKernels, o2Version              ), (simple), (, GPUPtr1(GPUTRDTracker*, externalInstance)), (, GPUPtr2(GPUTRDTracker*, externalInstance)))
-GPUCA_KRNL_LB((GPUITSFitterKernel                           ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCConvertKernel                          ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionKernels, step0attached      ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionKernels, step1unattached    ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, unbuffered   ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered32   ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered64   ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, buffered128  ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCompressionGatherKernels, multiBlock   ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCCFCheckPadBaseline                     ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller, fillIndexMap        ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller, fillFromDigits      ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFChargeMapFiller, findFragmentStart   ), (single), (, char setPositions), (, setPositions))
-GPUCA_KRNL_LB((GPUTPCCFPeakFinder                           ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFNoiseSuppression, noiseSuppression   ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFNoiseSuppression, updatePeaks        ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFDeconvolution                        ), (single), (), ())
-GPUCA_KRNL_LB((GPUTPCCFClusterizer                          ), (single), (, char onlyMC), (, onlyMC))
-GPUCA_KRNL((   GPUTPCCFMCLabelFlattener, setRowOffsets      ), (single), (), ())
-GPUCA_KRNL((   GPUTPCCFMCLabelFlattener, flatten            ), (single), (, GPUPtr1(GPUTPCLinearLabels*, out)), (, GPUPtr2(GPUTPCLinearLabels*, out)))
-GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, scanStart          ), (single), (, int iBuf, int stage), (, iBuf, stage))
-GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, scanUp             ), (single), (, int iBuf, int nElems), (, iBuf, nElems))
-GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, scanTop            ), (single), (, int iBuf, int nElems), (, iBuf, nElems))
-GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, scanDown           ), (single), (, int iBuf, unsigned int offset, int nElems), (, iBuf, offset, nElems))
-GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, compactDigits      ), (single), (, int iBuf, int stage, GPUPtr1(ChargePos*, in), GPUPtr1(ChargePos*, out)), (, iBuf, stage, GPUPtr2(ChargePos*, in), GPUPtr2(ChargePos*, out)))
-GPUCA_KRNL_LB((GPUTPCCFDecodeZS                             ), (single), (, int firstHBF), (, firstHBF))
-GPUCA_KRNL_LB((GPUTPCCFDecodeZSLink                         ), (single), (, int firstHBF), (, firstHBF))
-GPUCA_KRNL_LB((GPUTPCCFDecodeZSDenseLink                    ), (single), (, int firstHBF), (, firstHBF))
-GPUCA_KRNL_LB((GPUTPCCFGather                               ), (single), (, GPUPtr1(o2::tpc::ClusterNative*, dest)), (, GPUPtr2(o2::tpc::ClusterNative*, dest)))
-GPUCA_KRNL_LB((GPUTrackingRefitKernel, mode0asGPU           ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTrackingRefitKernel, mode1asTrackParCov   ), (simple), (), ())
+#include "GPUReconstruction.h"
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+
+namespace gpu_reconstruction_kernels
+{
+struct deviceEvent {
+  constexpr deviceEvent() = default;
+  constexpr deviceEvent(std::nullptr_t p) : v(nullptr){};
+  template <class T>
+  void set(T val) { v = reinterpret_cast<void*&>(val); }
+  template <class T>
+  T& get() { return reinterpret_cast<T&>(v); }
+  template <class T>
+  T* getEventList() { return reinterpret_cast<T*>(this); }
+  bool isSet() const { return v; }
+
+ private:
+  void* v = nullptr; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
+};
+
+template <class T, int I = 0>
+struct classArgument {
+  using t = T;
+  static constexpr int i = I;
+};
+
+struct krnlExec {
+  constexpr krnlExec(unsigned int b, unsigned int t, int s, GPUReconstruction::krnlDeviceType d = GPUReconstruction::krnlDeviceType::Auto) : nBlocks(b), nThreads(t), stream(s), device(d), step(GPUCA_RECO_STEP::NoRecoStep) {}
+  constexpr krnlExec(unsigned int b, unsigned int t, int s, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(GPUReconstruction::krnlDeviceType::Auto), step(st) {}
+  constexpr krnlExec(unsigned int b, unsigned int t, int s, GPUReconstruction::krnlDeviceType d, GPUCA_RECO_STEP st) : nBlocks(b), nThreads(t), stream(s), device(d), step(st) {}
+  unsigned int nBlocks;
+  unsigned int nThreads;
+  int stream;
+  GPUReconstruction::krnlDeviceType device;
+  GPUCA_RECO_STEP step;
+};
+struct krnlRunRange {
+  constexpr krnlRunRange() = default;
+  constexpr krnlRunRange(unsigned int a) : start(a), num(0) {}
+  constexpr krnlRunRange(unsigned int s, int n) : start(s), num(n) {}
+
+  unsigned int start = 0;
+  int num = 0;
+};
+struct krnlEvent {
+  constexpr krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
+  deviceEvent* ev;
+  deviceEvent* evList;
+  int nEvents;
+};
+
+struct krnlProperties {
+  krnlProperties(int t = 0, int b = 1, int b2 = 0) : nThreads(t), minBlocks(b), forceBlocks(b2) {}
+  unsigned int nThreads;
+  unsigned int minBlocks;
+  unsigned int forceBlocks;
+  unsigned int total() { return forceBlocks ? forceBlocks : (nThreads * minBlocks); }
+};
+
+struct krnlSetup {
+  krnlSetup(const krnlExec& xx, const krnlRunRange& yy = {0, -1}, const krnlEvent& zz = {nullptr, nullptr, 0}) : x(xx), y(yy), z(zz) {}
+  krnlExec x;
+  krnlRunRange y;
+  krnlEvent z;
+};
+
+struct krnlSetupTime : public krnlSetup {
+  double& t;
+};
+
+template <class T, int I = 0, typename... Args>
+struct krnlSetupArgs : public gpu_reconstruction_kernels::classArgument<T, I> {
+  krnlSetupArgs(const krnlExec& xx, const krnlRunRange& yy, const krnlEvent& zz, double& tt, const Args&... args) : s{{xx, yy, zz}, tt}, v(args...) {}
+  const krnlSetupTime s;
+  std::tuple<typename std::conditional<(sizeof(Args) > sizeof(void*)), const Args&, const Args>::type...> v;
+};
+} // namespace gpu_reconstruction_kernels
+
+template <class T>
+class GPUReconstructionKernels : public T
+{
+ public:
+  GPUReconstructionKernels(const GPUSettingsDeviceBackend& cfg) : T(cfg) {}
+
+ protected:
+  using deviceEvent = gpu_reconstruction_kernels::deviceEvent;
+  using krnlExec = gpu_reconstruction_kernels::krnlExec;
+  using krnlRunRange = gpu_reconstruction_kernels::krnlRunRange;
+  using krnlEvent = gpu_reconstruction_kernels::krnlEvent;
+  using krnlSetup = gpu_reconstruction_kernels::krnlSetup;
+  using krnlSetupTime = gpu_reconstruction_kernels::krnlSetupTime;
+  template <class S, int I = 0, typename... Args>
+  using krnlSetupArgs = gpu_reconstruction_kernels::krnlSetupArgs<S, I, Args...>;
+
+#define GPUCA_KRNL(x_class, attributes, x_arguments, x_forward, x_types)                                                                                \
+  virtual int runKernelImpl(const krnlSetupArgs<GPUCA_M_KRNL_TEMPLATE(x_class) GPUCA_M_STRIP(x_types)>& args)                                           \
+  {                                                                                                                                                     \
+    return T::template runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(args);                                                                          \
+  }                                                                                                                                                     \
+  virtual gpu_reconstruction_kernels::krnlProperties getKernelPropertiesImpl(gpu_reconstruction_kernels::classArgument<GPUCA_M_KRNL_TEMPLATE(x_class)>) \
+  {                                                                                                                                                     \
+    return T::template getKernelPropertiesBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>();                                                                    \
+  }
+#include "GPUReconstructionKernelList.h"
+#undef GPUCA_KRNL
+};
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+
 #endif
-#endif
-// clang-format on

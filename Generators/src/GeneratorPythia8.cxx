@@ -21,10 +21,17 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/ParticleStatus.h"
+#if PYTHIA_VERSION_INTEGER >= 8310
+#include "Pythia8/HIInfo.h"
+#else
 #include "Pythia8/HIUserHooks.h"
+#endif
 #include "Pythia8Plugins/PowhegHooks.h"
 #include "TSystem.h"
 #include "ZDCBase/FragmentParam.h"
+#include <CommonUtils/ConfigurationMacroHelper.h>
+#include <filesystem>
+#include <CommonUtils/FileSystemUtils.h>
 
 #include <iostream>
 #include <unordered_map>
@@ -137,6 +144,8 @@ Bool_t GeneratorPythia8::Init()
     LOG(fatal) << "Failed to init \'Pythia8\': init returned with error";
     return false;
   }
+
+  initUserFilterCallback();
 
   /** success **/
   return true;
@@ -500,10 +509,33 @@ void GeneratorPythia8::pruneEvent(Pythia8::Event& event, Select select)
       }
     }
   }
-  LOG(info) << "Pythia event was pruned from " << event.size()
-            << " to " << pruned.size() << " particles";
+  if (GeneratorPythia8Param::Instance().verbose) {
+    LOG(info) << "Pythia event was pruned from " << event.size()
+              << " to " << pruned.size() << " particles";
+  }
   // Assign our pruned event to the event passed in
   event = pruned;
+}
+
+/*****************************************************************/
+void GeneratorPythia8::initUserFilterCallback()
+{
+  mUserFilterFcn = [](Pythia8::Particle const&) -> bool { return true; };
+
+  auto& filter = GeneratorPythia8Param::Instance().particleFilter;
+  if (filter.size() > 0) {
+    LOG(info) << "Initializing the callback for user-based particle pruning " << filter;
+    auto expandedFileName = o2::utils::expandShellVarsInFileName(filter);
+    if (std::filesystem::exists(expandedFileName)) {
+      // if the filter is in a file we will compile the hook on the fly
+      mUserFilterFcn = o2::conf::GetFromMacro<UserFilterFcn>(expandedFileName, "filterPythia()", "o2::eventgen::GeneratorPythia8::UserFilterFcn", "o2mc_pythia8_userfilter_hook");
+      LOG(info) << "Hook initialized from file " << expandedFileName;
+    } else {
+      // if it's not a file we interpret it as a C++ lambda string and JIT it directly;
+      LOG(error) << "Did not find a file " << expandedFileName << " ; Will not execute hook";
+    }
+    mApplyPruning = true;
+  }
 }
 
 /*****************************************************************/
@@ -517,10 +549,12 @@ Bool_t
   // event information) Here, we aim to filter out everything before
   // hadronization with the motivation to reduce the size of the MC
   // event record in the AOD.
+
+  std::function<bool(const Pythia8::Particle&)> partonSelect = [](const Pythia8::Particle&) { return true; };
   if (not GeneratorPythia8Param::Instance().includePartonEvent) {
 
     // Select pythia particles
-    auto particleSelect = [](const Pythia8::Particle& particle) {
+    partonSelect = [](const Pythia8::Particle& particle) {
       switch (particle.statusHepMC()) {
         case 1: // Final st
         case 2: // Decayed
@@ -531,8 +565,12 @@ Bool_t
       // if (particle.id() == 9902210) return true;
       return false;
     };
+    mApplyPruning = true;
+  }
 
-    pruneEvent(event, particleSelect);
+  if (mApplyPruning) {
+    auto finalSelect = [partonSelect, this](const Pythia8::Particle& p) { return partonSelect(p) && mUserFilterFcn(p); };
+    pruneEvent(event, finalSelect);
   }
 
   /* loop over particles */
@@ -593,6 +631,10 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   // Set cross section
   eventHeader->putInfo<float>(Key::xSection, info.sigmaGen() * 1e9);
   eventHeader->putInfo<float>(Key::xSectionError, info.sigmaErr() * 1e9);
+
+  // Set event scale and nMPI
+  eventHeader->putInfo<float>(Key::eventScale, info.QRen());
+  eventHeader->putInfo<int>(Key::mpi, info.nMPI());
 
   // Set weights (overrides cross-section for each weight)
   size_t iw = 0;
@@ -710,14 +752,21 @@ void GeneratorPythia8::getNcoll(const Pythia8::Info& info, int& nColl)
 #else
   auto hiinfo = info.hiInfo;
 #endif
+  nColl = 0;
+  if (!hiinfo) {
+    LOG(warn) << "No heavy-ion information from Pythia";
+    return;
+  }
 
   // This is how the Pythia authors define Ncoll
   nColl = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
            hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
            hiinfo->nCollND() - hiinfo->nCollDD());
-  nColl = 0;
 
-  if (!hiinfo) {
+  if (not hiinfo->subCollisionsPtr()) {
+#if PYTHIA_VERSION_INTEGER < 8310
+    LOG(fatal) << "No sub-collision pointer from Pythia";
+#endif
     return;
   }
 
@@ -743,15 +792,21 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nPart)
 
   /** compute number of participants as the sum of all participants nucleons **/
 
-  // This is how the Pythia authors calculate Npart
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = info.hiinfo;
 #else
   auto hiinfo = info.hiInfo;
 #endif
-  if (hiinfo) {
-    nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
-             hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  nPart = 0;
+  if (not hiinfo) {
+    return;
+  }
+
+  // This is how the Pythia authors calculate Npart
+  nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+           hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  if (not hiinfo->subCollisionsPtr()) {
+    return;
   }
 
   int nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg;
@@ -774,6 +829,15 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nProtonProj, int
 
   nProtonProj = nNeutronProj = nProtonTarg = nNeutronTarg = 0;
   if (!hiinfo) {
+    return;
+  }
+
+  nProtonProj = hiinfo->nAbsProj() + hiinfo->nDiffProj();
+  nProtonTarg = hiinfo->nAbsTarg() + hiinfo->nDiffTarg();
+  if (not hiinfo->subCollisionsPtr()) {
+#if PYTHIA_VERSION_INTEGER < 8310
+    LOG(fatal) << "No sub-collision pointer from Pythia";
+#endif
     return;
   }
 

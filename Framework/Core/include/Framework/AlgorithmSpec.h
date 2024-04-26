@@ -46,22 +46,9 @@ struct AlgorithmSpec {
   using ErrorCallback = std::function<void(ErrorContext&)>;
   using InitErrorCallback = std::function<void(InitErrorContext&)>;
 
-  static AlgorithmSpec dummyAlgorithm()
-  {
-    return AlgorithmSpec{ProcessCallback{nullptr}};
-  }
-
-  static ErrorCallback& emptyErrorCallback()
-  {
-    static ErrorCallback callback = nullptr;
-    return callback;
-  }
-
-  static InitErrorCallback& emptyInitErrorCallback()
-  {
-    static InitErrorCallback callback = nullptr;
-    return callback;
-  }
+  static AlgorithmSpec dummyAlgorithm();
+  static ErrorCallback& emptyErrorCallback();
+  static InitErrorCallback& emptyInitErrorCallback();
 
   AlgorithmSpec() = default;
 
@@ -95,6 +82,22 @@ struct AlgorithmSpec {
 /// Helper class for an algorithm which is loaded as a plugin.
 struct AlgorithmPlugin {
   virtual AlgorithmSpec create() = 0;
+};
+// Allow fetching inputs from the context using a string literal.
+template <StringLiteral lit, typename T>
+struct Input {
+  // The size of the string is available as a constant expression.
+  static constexpr auto size = sizeof(lit.value);
+  // and so is the string's content.
+  static constexpr auto contents = lit.value;
+  ProcessingContext& ctx;
+  Input(ProcessingContext& c) : ctx(c)
+  {
+  }
+  operator T const&() const
+  {
+    return ctx.inputs().template get<T>(lit.value);
+  }
 };
 
 template <typename T, typename S = std::void_t<>>
@@ -150,6 +153,30 @@ struct ContextElementTraits<ProcessingContext> {
   }
 };
 
+template <>
+struct ContextElementTraits<InitContext> {
+  static InitContext& get(InitContext& ctx)
+  {
+    return ctx;
+  }
+};
+
+template <StringLiteral L, typename T>
+struct ContextElementTraits<Input<L, T> const> {
+  static Input<L, T> get(ProcessingContext& ctx)
+  {
+    return Input<L, T>{ctx};
+  }
+};
+
+template <StringLiteral L, typename T>
+struct ContextElementTraits<Input<L, T>> {
+  static Input<L, T> get(ProcessingContext& ctx)
+  {
+    static_assert(always_static_assert_v<Input<L, T>>, "Should be Input<L, T> const&");
+  }
+};
+
 template <typename... CONTEXTELEMENT>
 AlgorithmSpec::ProcessCallback adaptStatelessF(std::function<void(CONTEXTELEMENT&...)> callback)
 {
@@ -190,6 +217,11 @@ AlgorithmSpec::ProcessCallback adaptStatelessP(R (*callback)(ARGS...))
 ///   inputs.get<int>("someInt");
 /// }}
 ///
+/// and if you have C++20 enabled you can also do:
+///
+/// AlgorithmSpec{[](Input<"someInt", int> someInt){
+///  someInt.value; // do something with the inputs
+/// }
 /// Notice you can specify in any order any of InputRecord, DataAllocator,
 /// ConfigParamRegistry or any of the services which are usually hanging
 /// from the ServiceRegistry, e.g. ControlService.

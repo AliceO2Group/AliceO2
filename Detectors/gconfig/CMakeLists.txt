@@ -16,12 +16,12 @@ o2_add_library(G3Setup
 
 o2_add_library(G4Setup
                SOURCES src/G4Config.cxx
-               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup  ROOT::EGPythia6
+               PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 o2_add_library(FLUKASetup
                SOURCES src/FlukaConfig.cxx
-               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6 O2::SimSetup
+               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
 
 o2_add_library(MCReplaySetup
@@ -44,9 +44,6 @@ o2_target_root_dictionary(SimSetup
                                   include/SimSetup/FlukaParam.h
                                   include/SimSetup/MCReplayParam.h
                           LINKDEF src/GConfLinkDef.h)
-o2_add_test_root_macro(DecayConfig.C
-                       PUBLIC_LINK_LIBRARIES O2::SimSetup
-                       LABELS simsetup)
 
 o2_add_test_root_macro(UserDecay.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup

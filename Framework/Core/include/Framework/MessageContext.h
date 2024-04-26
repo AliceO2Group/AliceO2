@@ -444,38 +444,7 @@ class MessageContext
   /// Schedule a context object for sending.
   /// The object is considered complete at this point and is sent directly through the dispatcher callback
   /// of the context if initialized.
-  void schedule(Messages::value_type&& message)
-  {
-    auto const* header = message->header();
-    if (header == nullptr) {
-      throw std::logic_error("No valid header message found");
-    }
-    mScheduledMessages.emplace_back(std::move(message));
-    if (mDispatchControl.dispatch != nullptr) {
-      // send all scheduled messages if there is no trigger callback or its result is true
-      if (mDispatchControl.trigger == nullptr || mDispatchControl.trigger(*header)) {
-        std::vector<fair::mq::Parts> outputsPerChannel;
-        outputsPerChannel.resize(mProxy.getNumOutputChannels());
-        for (auto& message : mScheduledMessages) {
-          fair::mq::Parts parts = message->finalize();
-          assert(message->empty());
-          assert(parts.Size() == 2);
-          for (auto& part : parts) {
-            outputsPerChannel[mProxy.getOutputChannelIndex(message->route()).value].AddPart(std::move(part));
-          }
-        }
-        for (int ci = 0; ci < mProxy.getNumOutputChannels(); ++ci) {
-          auto& parts = outputsPerChannel[ci];
-          if (parts.Size() == 0) {
-            continue;
-          }
-          mDispatchControl.dispatch(std::move(parts), ChannelIndex{ci}, DefaultChannelIndex);
-        }
-        mDidDispatch = mScheduledMessages.empty() == false;
-        mScheduledMessages.clear();
-      }
-    }
-  }
+  void schedule(Messages::value_type&& message);
 
   Messages getMessagesForSending()
   {
@@ -495,14 +464,7 @@ class MessageContext
   /// Prepares the context to create messages for the given timeslice. This
   /// expects that the previous context was already sent and can be completely
   /// discarded.
-  void clear()
-  {
-    // Verify that everything has been sent on clear.
-    for (auto& m : mMessages) {
-      assert(m->empty());
-    }
-    mMessages.clear();
-  }
+  void clear();
 
   FairMQDeviceProxy& proxy()
   {
@@ -527,8 +489,9 @@ class MessageContext
   /// return the headers of the 1st (from the end) matching message checking first in mMessages then in mScheduledMessages
   o2::header::DataHeader* findMessageHeader(const Output& spec);
   o2::header::Stack* findMessageHeaderStack(const Output& spec);
-  int countDeviceOutputs(bool excludeDPLOrigin = false);
+  [[nodiscard]] int countDeviceOutputs(bool excludeDPLOrigin = false) const;
   void fakeDispatch() { mDidDispatch = true; }
+  bool didDispatch() { return mDidDispatch; }
   o2::framework::DataProcessingHeader* findMessageDataProcessingHeader(const Output& spec);
   std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> findMessageHeaders(const Output& spec);
 

@@ -49,7 +49,7 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
            {"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}},
 
            // options for TF rate limiting
-           {"timeframes-rate-limit-ipcid", VariantType::String, "-1", {"Suffix for IPC channel for metrix-feedback, -1 = disable"}},
+           {"timeframes-rate-limit-ipcid", VariantType::String, "-1", {"Suffix for IPC channel for metric-feedback, -1 = disable"}},
 
            // options for AOD rate limiting
            {"aod-memory-rate-limit", VariantType::Int64, 0LL, {"Rate limit AOD processing based on memory"}},

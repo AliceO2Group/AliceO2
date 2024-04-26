@@ -11,13 +11,44 @@
 #ifndef O2_FRAMEWORK_SIGNPOST_H_
 #define O2_FRAMEWORK_SIGNPOST_H_
 
+#include "Framework/CompilerBuiltins.h"
 #include <atomic>
+#include <array>
+#ifdef __APPLE__
+#include <os/log.h>
+#endif
 
 struct o2_log_handle_t {
   char const* name = nullptr;
   void* log = nullptr;
   o2_log_handle_t* next = nullptr;
 };
+
+// Helper function which replaces engineering types with a printf
+// compatible format string.
+// FIXME: make this consteval when available in C++20
+template <auto N>
+constexpr auto remove_engineering_type(char const (&src)[N])
+{
+  std::array<char, N> res = {};
+  // do whatever string manipulation you want in res.
+  char* t = res.data();
+  for (int i = 0; i < N; ++i) {
+    if (src[i] == '%' && src[i + 1] == '{') {
+      *t++ = src[i];
+      while (src[i] != '}' && src[i] != 0) {
+        ++i;
+      }
+      if (src[i] == 0) {
+        *t = 0;
+        return res;
+      }
+    } else {
+      *t++ = src[i];
+    }
+  }
+  return res;
+}
 
 // Loggers registry is actually a feature available to all platforms
 // We use this to register the loggers and to walk over them.
@@ -56,78 +87,52 @@ o2_log_handle_t* o2_walk_logs(bool (*callback)(char const* name, void* log, void
 }
 #endif
 
-#if !defined(O2_FORCE_LOGGER_SIGNPOST) && defined(__APPLE__) && (!defined(NDEBUG) || defined(O2_FORCE_SIGNPOSTS))
+#if defined(__APPLE__)
 #include <os/log.h>
 #include <os/signpost.h>
 #include <cstring>
-void* _o2_log_create(char const* name, char const* category);
-#define O2_DECLARE_DYNAMIC_LOG(x) static os_log_t private_o2_log_##x = (os_log_t)_o2_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_TRACING)
-#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(x) static os_log_t private_o2_log_##x = (os_log_t)_o2_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_STACK_TRACING)
-// This is a no-op on macOS using the os_signpost API because only external instruments can enable/disable dynamic signposts
-#define O2_LOG_ENABLE_DYNAMIC(log)
-// This is a no-op on macOS using the os_signpost API because only external instruments can enable/disable dynamic signposts
-#define O2_LOG_ENABLE_STACKTRACE(log)
-#define O2_DECLARE_LOG(x, category) static os_log_t private_o2_log_##x = (os_log_t)_o2_log_create("ch.cern.aliceo2." #x, #category)
-#define O2_LOG_DEBUG(log, ...) os_log_debug(private_o2_log_##log, __VA_ARGS__)
-#define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer) os_signpost_id_t name = os_signpost_id_make_with_pointer(private_o2_log_##log, pointer)
-#define O2_SIGNPOST_ID_GENERATE(name, log) os_signpost_id_t name = os_signpost_id_generate(private_o2_log_##log)
-#define O2_SIGNPOST_EVENT_EMIT(log, id, name, ...) os_signpost_event_emit(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_START(log, id, name, ...) os_signpost_interval_begin(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_END(log, id, name, ...) os_signpost_interval_end(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_ENG_TYPE(x, what) "%{xcode:" #x "}" what
-
-#ifdef O2_SIGNPOST_IMPLEMENTATION
-/// We use a wrapper so that we can keep track of the logs.
-void* _o2_log_create(char const* name, char const* category)
-{
-  // iterate over the list of logs and check if we already have
-  // one with the same name.
-  auto findLogByName = [](char const* name, void* log, void* context) -> bool {
-    char const* currentName = (char const*)context;
-    if (strcmp(name, currentName) == 0) {
-      return false;
-    }
-    return true;
-  };
-
-  o2_log_handle_t* handle = o2_walk_logs(findLogByName, (void*)name);
-
-  // If we found one, return it.
-  if (handle) {
-    return handle->log;
-  }
-  // Otherwise, create a new one and add it to the end of the list.
-  os_log_t log = os_log_create(name, category);
-  o2_log_handle_t* newHandle = new o2_log_handle_t();
-  newHandle->log = log;
-  newHandle->name = strdup(name);
-  newHandle->next = o2_get_logs_tail().load();
-  // Until I manage to replace the log I have in next, keep trying.
-  // Notice this does not protect against two threads trying to insert
-  // a log with the same name. I should probably do a sorted insert for that.
-  while (!o2_get_logs_tail().compare_exchange_weak(newHandle->next, newHandle,
-                                                   std::memory_order_release,
-                                                   std::memory_order_relaxed)) {
-    newHandle->next = o2_get_logs_tail();
-  }
-
-  return log;
-}
-#endif
-
-#elif !defined(NDEBUG) || defined(O2_FORCE_LOGGER_SIGNPOST) || defined(O2_FORCE_SIGNPOSTS)
-
-#ifndef O2_LOG_MACRO
-#if __has_include("Framework/Logger.h")
-#include "Framework/Logger.h"
-// If NDEBUG is not defined, we use the logger to print out the signposts at the debug level.
-#if !defined(NDEBUG)
-#define O2_LOG_MACRO(...) LOGF(debug, __VA_ARGS__)
-#elif defined(O2_FORCE_LOGGER_SIGNPOST) || defined(O2_FORCE_SIGNPOSTS)
-// If we force the presence of the logger, we use it to print out the signposts at the detail level, which is not optimized out.
-#define O2_LOG_MACRO(...) LOGF(info, __VA_ARGS__)
-#endif
+#define O2_LOG_DEBUG_MAC(log, ...) os_log_debug(private_o2_log_##log, __VA_ARGS__)
+// FIXME: use __VA_OPT__ when available in C++20
+#define O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ...) os_signpost_event_emit(private_o2_log_##log->os_log, (uint64_t)id.value, name, format, ##__VA_ARGS__)
+#define O2_SIGNPOST_START_MAC(log, id, name, format, ...) os_signpost_interval_begin(private_o2_log_##log->os_log, (uint64_t)id.value, name, format, ##__VA_ARGS__)
+#define O2_SIGNPOST_END_MAC(log, id, name, format, ...) os_signpost_interval_end(private_o2_log_##log->os_log, (uint64_t)id.value, name, format, ##__VA_ARGS__)
+#define O2_SIGNPOST_ENABLED_MAC(log) os_signpost_enabled(private_o2_log_##log->os_log)
 #else
+// These are no-ops on linux.
+#define O2_DECLARE_LOG_MAC(x, category)
+#define O2_LOG_DEBUG_MAC(log, ...)
+#define O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ...)
+#define O2_SIGNPOST_START_MAC(log, id, name, format, ...)
+#define O2_SIGNPOST_END_MAC(log, id, name, format, ...)
+#define O2_SIGNPOST_ENABLED_MAC(log) false
+#endif // __APPLE__
+
+// Unless we are on apple we enable checking for signposts only if in debug mode or if we force them.
+#if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(O2_NSIGNPOSTS)
+#define O2_LOG_ENABLED(log) private_o2_log_##log->stacktrace
+#else
+#define O2_LOG_ENABLED(log) false
+#endif
+
+#if !defined(O2_LOG_MACRO_RAW) && __has_include("Framework/Logger.h")
+#include "Framework/Logger.h"
+#define O2_LOG_MACRO_RAW(level, ...) LOGF(level, __VA_ARGS__)
+#elif !defined(O2_LOG_MACRO_RAW)
+// If we do not have the fairlogger, we simply print out the signposts to the console.
+// This is useful for things like the tests, which this way do not need to depend on the FairLogger.
+#define O2_LOG_MACRO_RAW(level, format, ...) \
+  do {                                       \
+    printf(#level ":" #format, __VA_ARGS__); \
+    printf("\n");                            \
+  } while (0)
+#else
+#define O2_LOG_MACRO_RAW(...)
+#endif // O2_LOG_MACRO_RAW
+
+#if !defined(O2_LOG_MACRO) && __has_include("Framework/Logger.h")
+#include "Framework/Logger.h"
+#define O2_LOG_MACRO(...) LOGF(info, __VA_ARGS__)
+#elif !defined(O2_LOG_MACRO)
 // If we do not have the fairlogger, we simply print out the signposts to the console.
 // This is useful for things like the tests, which this way do not need to depend on the FairLogger.
 #define O2_LOG_MACRO(...) \
@@ -135,8 +140,9 @@ void* _o2_log_create(char const* name, char const* category)
     printf(__VA_ARGS__);  \
     printf("\n");         \
   } while (0)
-#endif
-#endif
+#else
+#define O2_LOG_MACRO(...)
+#endif // O2_LOG_MACRO
 
 // This is the linux implementation, it is not as nice as the apple one and simply prints out
 // the signpost information to the log.
@@ -155,7 +161,7 @@ struct _o2_lock_free_stack {
 // A log is simply an inbox which keeps track of the available id, so that we can print out different signposts
 // with different indentation levels.
 // supports up to 1024 paralle signposts before it spinlocks.
-typedef int _o2_signpost_index_t;
+using _o2_signpost_index_t = int;
 
 struct _o2_activity_t {
   // How much the activity is indented in the output log.
@@ -165,10 +171,13 @@ struct _o2_activity_t {
 
 struct _o2_signpost_id_t {
   // The id of the activity.
-  int64_t id = -1;
+  int64_t value = -1;
 };
 
 struct _o2_log_t {
+#ifdef __APPLE__
+  os_log_t os_log = nullptr;
+#endif
   // A circular buffer of available slots. Each unique interval pulls an id from this buffer.
   _o2_lock_free_stack slots;
   // Up to 256 activities can be active at the same time.
@@ -185,14 +194,14 @@ struct _o2_log_t {
   // 0 means the log is disabled.
   // 1 means only the current signpost is printed.
   // >1 means the current signpost and n levels of the stacktrace are printed.
-  std::atomic<int> stacktrace = 1;
+  int stacktrace = 0;
+
+  // Default stacktrace level for the log, when enabled.
+  int defaultStacktrace = 1;
 };
 
 bool _o2_lock_free_stack_push(_o2_lock_free_stack& stack, const int& value, bool spin = false);
 bool _o2_lock_free_stack_pop(_o2_lock_free_stack& stack, int& value, bool spin = false);
-//_o2_signpost_id_t _o2_signpost_id_generate_local(_o2_log_t* log);
-//_o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void* pointer);
-_o2_signpost_index_t o2_signpost_id_make_with_pointer(_o2_log_t* log, void* pointer);
 void* _o2_log_create(char const* name, int stacktrace);
 void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...);
 void _o2_signpost_interval_begin(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...);
@@ -213,19 +222,11 @@ inline _o2_signpost_id_t _o2_signpost_id_generate_local(_o2_log_t* log)
 
 // Generate a unique id for a signpost. Do not use this directly, use O2_SIGNPOST_ID_FROM_POINTER instead.
 // Notice that this will fail for pointers to bytes as it might overlap with the id above.
-inline _o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void* pointer)
+inline _o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void const* pointer)
 {
   assert(((int64_t)pointer & 1) != 1);
   _o2_signpost_id_t uniqueId{(int64_t)pointer};
   return uniqueId;
-}
-
-inline _o2_signpost_index_t o2_signpost_id_make_with_pointer(_o2_log_t* log, void* pointer)
-{
-  _o2_signpost_index_t signpost_index;
-  _o2_lock_free_stack_pop(log->slots, signpost_index, true);
-  log->ids[signpost_index].id = (int64_t)pointer;
-  return signpost_index;
 }
 
 // Implementation start here. Include this file with O2_SIGNPOST_IMPLEMENTATION defined in one file of your
@@ -293,7 +294,7 @@ bool _o2_lock_free_stack_pop(_o2_lock_free_stack& stack, int& value, bool spin)
   }
 }
 
-void* _o2_log_create(char const* name, int stacktrace)
+void* _o2_log_create(char const* name, int defaultStacktrace)
 {
   // iterate over the list of logs and check if we already have
   // one with the same name.
@@ -311,7 +312,7 @@ void* _o2_log_create(char const* name, int stacktrace)
     return handle->log;
   }
   // Otherwise, create a new one and add it to the end of the list.
-  _o2_log_t* log = new _o2_log_t();
+  auto* log = new _o2_log_t();
   // Write the initial 256 ids to the inbox, in reverse, so that the
   // linear search below is just for an handful of elements.
   int n = _o2_lock_free_stack::N;
@@ -319,9 +320,18 @@ void* _o2_log_create(char const* name, int stacktrace)
     _o2_signpost_index_t signpost_index{n - 1 - i};
     _o2_lock_free_stack_push(log->slots, signpost_index, true);
   }
-  log->stacktrace = stacktrace;
-  o2_log_handle_t* newHandle = new o2_log_handle_t();
+  log->defaultStacktrace = defaultStacktrace;
+  auto* newHandle = new o2_log_handle_t();
   newHandle->log = log;
+#ifdef __APPLE__
+  // On macOS, we use the os_signpost API so that when we are
+  // using instruments we can see the messages there.
+  if (defaultStacktrace > 1) {
+    log->os_log = os_log_create(name, OS_LOG_CATEGORY_DYNAMIC_STACK_TRACING);
+  } else {
+    log->os_log = os_log_create(name, OS_LOG_CATEGORY_DYNAMIC_TRACING);
+  }
+#endif
   newHandle->name = strdup(name);
   newHandle->next = o2_get_logs_tail().load();
   // Until I manage to replace the log I have in next, keep trying.
@@ -340,10 +350,6 @@ void* _o2_log_create(char const* name, int stacktrace)
 // If the slot is empty, it will return the id and increment the indentation level.
 void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...)
 {
-  // Nothing to be done
-  if (log->stacktrace == 0) {
-    return;
-  }
   va_list args;
   va_start(args, format);
 
@@ -351,10 +357,10 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
   int leading = 0;
 
   // This is the equivalent of exclusive
-  if (id.id != 0) {
+  if (id.value != 0) {
     int i = 0;
     for (i = 0; i < log->ids.size(); ++i) {
-      if (log->ids[i].id == id.id) {
+      if (log->ids[i].value == id.value) {
         break;
       }
     }
@@ -368,7 +374,7 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
   }
 
   char prebuffer[4096];
-  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16s*>%*c", id.id, name, leading, ' ');
+  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16s*>%*c", id.value, name, leading, ' ');
   vsnprintf(prebuffer + s, 4096 - s, format, args);
   va_end(args);
   O2_LOG_MACRO("%s", prebuffer);
@@ -378,22 +384,19 @@ void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* n
 // If the slot is empty, it will return the id and increment the indentation level.
 void _o2_signpost_interval_begin(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...)
 {
-  if (log->stacktrace == 0) {
-    return;
-  }
   va_list args;
   va_start(args, format);
   // This is a unique slot for this interval.
   _o2_signpost_index_t signpost_index;
   _o2_lock_free_stack_pop(log->slots, signpost_index, true);
   // Put the id in the slot, to close things or to attach signposts to a given interval
-  log->ids[signpost_index].id = id.id;
+  log->ids[signpost_index].value = id.value;
   auto* activity = &log->activities[signpost_index];
   activity->indentation = log->current_indentation++;
   activity->name = name;
   int leading = activity->indentation * 2;
   char prebuffer[4096];
-  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16sS>%*c", id.id, name, leading, ' ');
+  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16sS>%*c", id.value, name, leading, ' ');
   vsnprintf(prebuffer + s, 4096 - s, format, args);
   va_end(args);
   O2_LOG_MACRO("%s", prebuffer);
@@ -407,7 +410,7 @@ void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char cons
   // Find the index of the activity
   int i = 0;
   for (i = 0; i < log->ids.size(); ++i) {
-    if (log->ids[i].id == id.id) {
+    if (log->ids[i].value == id.value) {
       break;
     }
   }
@@ -422,13 +425,13 @@ void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char cons
   _o2_activity_t* activity = &log->activities[i];
   int leading = activity->indentation * 2;
   char prebuffer[4096];
-  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16sE>%*c", id.id, name, leading, ' ');
+  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16sE>%*c", id.value, name, leading, ' ');
   vsnprintf(prebuffer + s, 4096 - s, format, args);
   O2_LOG_MACRO("%s", prebuffer);
   // Clear the slot
   activity->indentation = -1;
   activity->name = nullptr;
-  log->ids[i].id = -1;
+  log->ids[i].value = -1;
   // Put back the slot
   log->current_indentation--;
   _o2_signpost_index_t signpost_index{i};
@@ -449,39 +452,103 @@ void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 {
   log->stacktrace = stacktrace;
 }
+// A C function which can be used to enable the signposts
+extern "C" {
+void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
+{
+  log->stacktrace = stacktrace;
+}
+}
 #endif // O2_SIGNPOST_IMPLEMENTATION
 
-/// Dynamic logs need to be enabled via the O2_LOG_ENABLE_DYNAMIC macro. Notice this will only work
+#if defined(__APPLE__) || defined(O2_FORCE_SIGNPOSTS) || !defined(O2_NSIGNPOSTS)
+/// Dynamic logs need to be enabled via the O2_LOG_ENABLE macro. Notice this will only work
 /// for the logger based logging, since the Apple version needs instruments to enable them.
-#define O2_DECLARE_DYNAMIC_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 0)
+#define O2_DECLARE_DYNAMIC_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 1)
 /// For the moment we do not support logs with a stacktrace.
-#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 0)
+#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 64)
 #define O2_DECLARE_LOG(name, category) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 1)
-#define O2_LOG_ENABLE_DYNAMIC(log) _o2_log_set_stacktrace(private_o2_log_##log, 1)
-// We print out only the first 64 frames.
-#define O2_LOG_ENABLE_STACKTRACE(log) _o2_log_set_stacktrace(private_o2_log_##log, 64)
+// When we enable the log, we set the stacktrace to the default value.
+#define O2_LOG_ENABLE(log) _o2_log_set_stacktrace(private_o2_log_##log, private_o2_log_##log->defaultStacktrace)
+#define O2_LOG_DISABLE(log) _o2_log_set_stacktrace(private_o2_log_##log, 0)
 // For the moment we simply use LOG DEBUG. We should have proper activities so that we can
 // turn on and off the printing.
-#define O2_LOG_DEBUG(log, ...) O2_LOG_MACRO(__VA_ARGS__)
+#define O2_LOG_DEBUG(log, ...) __extension__({                        \
+  if (O2_BUILTIN_UNLIKELY(O2_LOG_ENABLED(log))) {                     \
+    O2_LOG_MACRO(__VA_ARGS__);                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) { \
+    O2_LOG_MACRO(__VA_ARGS__);                                        \
+  }                                                                   \
+})
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer) _o2_signpost_id_t name = _o2_signpost_id_make_with_pointer(private_o2_log_##log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log) _o2_signpost_id_t name = _o2_signpost_id_generate_local(private_o2_log_##log)
-#define O2_SIGNPOST_EVENT_EMIT(log, id, name, ...) _o2_signpost_event_emit(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_START(log, id, name, ...) _o2_signpost_interval_begin(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_SIGNPOST_END(log, id, name, ...) _o2_signpost_interval_end(private_o2_log_##log, id, name, __VA_ARGS__)
-#define O2_ENG_TYPE(x, what) "%" what
+// In case Instruments is attached, we switch to the Apple signpost API otherwise, both one
+// mac and on linux we use our own implementation, using the logger. We can use the same ids because
+// they are compatible between the two implementations, we also use remove_engineering_type to remove
+// the engineering types from the format string, so that we can use the same format string for both.
+#define O2_SIGNPOST_EVENT_EMIT(log, id, name, format, ...) __extension__({                                          \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+})
+
+// Similar to the above, however it will print a normal info message if the signpost is not enabled.
+#define O2_SIGNPOST_EVENT_EMIT_INFO(log, id, name, format, ...) __extension__({                                     \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  } else {                                                                                                          \
+    O2_LOG_MACRO_RAW(info, format, ##__VA_ARGS__);                                                                  \
+  }                                                                                                                 \
+})
+
+// Similar to the above, however it will always print a normal error message regardless of the signpost being enabled or not.
+#define O2_SIGNPOST_EVENT_EMIT_ERROR(log, id, name, format, ...) __extension__({                                    \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+  O2_LOG_MACRO_RAW(error, format, ##__VA_ARGS__);                                                                   \
+})
+
+// Similar to the above, however it will also print a normal warning message regardless of the signpost being enabled or not.
+#define O2_SIGNPOST_EVENT_EMIT_WARN(log, id, name, format, ...) __extension__({                                     \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                          \
+    O2_SIGNPOST_EVENT_EMIT_MAC(log, id, name, format, ##__VA_ARGS__);                                               \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
+    _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }                                                                                                                 \
+  O2_LOG_MACRO_RAW(warn, format, ##__VA_ARGS__);                                                                    \
+})
+
+#define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                              \
+    O2_SIGNPOST_START_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                   \
+    _o2_signpost_interval_begin(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }
+#define O2_SIGNPOST_END(log, id, name, format, ...)                                                                   \
+  if (O2_BUILTIN_UNLIKELY(O2_SIGNPOST_ENABLED_MAC(log))) {                                                            \
+    O2_SIGNPOST_END_MAC(log, id, name, format, ##__VA_ARGS__);                                                        \
+  } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                                 \
+    _o2_signpost_interval_end(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
+  }
 #else // This is the release implementation, it does nothing.
 #define O2_DECLARE_DYNAMIC_LOG(x)
 #define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(x)
 #define O2_DECLARE_LOG(x, category)
-#define O2_LOG_ENABLE_DYNAMIC(log)
-#define O2_LOG_ENABLE_STACKTRACE(log)
+#define O2_LOG_ENABLE(log)
+#define O2_LOG_DISABLE(log)
 #define O2_LOG_DEBUG(log, ...)
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log)
-#define O2_SIGNPOST_EVENT_EMIT(log, id, name, ...)
-#define O2_SIGNPOST_START(log, id, name, ...)
-#define O2_SIGNPOST_END(log, id, name, ...)
-#define O2_ENG_TYPE(x)
+#define O2_SIGNPOST_EVENT_EMIT(log, id, name, format, ...)
+#define O2_SIGNPOST_START(log, id, name, format, ...)
+#define O2_SIGNPOST_END(log, id, name, format, ...)
 #endif
 
 #endif // O2_FRAMEWORK_SIGNPOST_H_

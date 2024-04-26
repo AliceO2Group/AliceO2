@@ -58,7 +58,14 @@ std::string GeometryTGeo::sLadderName = "MFT_L";     ///<
 std::string GeometryTGeo::sChipName = "MFT_C";       ///<
 std::string GeometryTGeo::sSensorName = "MFTSensor"; ///<
 
-GeometryTGeo::~GeometryTGeo() = default; // Instantiate explicitly to avoid missing symbol
+GeometryTGeo::~GeometryTGeo() // Instantiate explicitly to avoid missing symbol
+{
+  LOGP(info, "~GeometryTGeo");
+  if (!mOwner) {
+    mOwner = true;
+    sInstance.release();
+  }
+}
 
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::GeometryTGeo(DetID::MFT)
@@ -74,6 +81,17 @@ GeometryTGeo::GeometryTGeo(Bool_t build, Int_t loadTrans) : o2::itsmft::Geometry
     // loadTrans = kTRUE;
     Build(loadTrans);
   }
+}
+
+//__________________________________________________________________________
+void GeometryTGeo::adopt(GeometryTGeo* raw, bool canDelete)
+{
+  // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
+  if (sInstance) {
+    LOG(fatal) << "No adoption: o2::mft::GeometryTGeo instance exists";
+  }
+  sInstance = std::unique_ptr<o2::mft::GeometryTGeo>(raw);
+  sInstance->mOwner = canDelete;
 }
 
 //__________________________________________________________________________

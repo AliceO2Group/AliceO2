@@ -14,7 +14,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/Traits.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoA.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/OutputRef.h"
 #include "Framework/InputSpec.h"
@@ -422,7 +422,7 @@ struct OutputObj {
   OutputSpec const spec()
   {
     header::DataDescription desc{};
-    auto lhash = compile_time_hash(label.c_str());
+    auto lhash = runtime_hash(label.c_str());
     std::memset(desc.str, '_', 16);
     std::stringstream s;
     s << std::hex << lhash;
@@ -482,6 +482,8 @@ auto getTableFromFilter(const T& table, soa::SelectionVector&& selection)
   }
 }
 
+void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
+
 template <typename T>
 struct Partition {
   Partition(expressions::Node&& filter_) : filter{std::forward<expressions::Node>(filter_)}
@@ -494,29 +496,14 @@ struct Partition {
     setTable(table);
   }
 
-  void intializeCaches(std::shared_ptr<arrow::Schema> const& schema)
+  void intializeCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema)
   {
-    if (tree == nullptr) {
-      expressions::Operations ops = createOperations(filter);
-      if (isSchemaCompatible(schema, ops)) {
-        tree = createExpressionTree(ops, schema);
-      } else {
-        throw std::runtime_error("Partition filter does not match declared table type");
-      }
-    }
-    if (gfilter == nullptr) {
-      gfilter = framework::expressions::createFilter(schema, framework::expressions::makeCondition(tree));
-    }
+    initializePartitionCaches(hashes, schema, filter, tree, gfilter);
   }
 
-  void inline bindTable(T const& table)
+  void bindTable(T const& table)
   {
-    setTable(table);
-  }
-
-  void setTable(T const& table)
-  {
-    intializeCaches(table.asArrowTable()->schema());
+    intializeCaches(T::table_t::hashes(), table.asArrowTable()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;
@@ -528,13 +515,6 @@ struct Partition {
   {
     if (mFiltered != nullptr) {
       mFiltered->bindExternalIndices(tables...);
-    }
-  }
-
-  void bindInternalIndices()
-  {
-    if (mFiltered != nullptr) {
-      mFiltered->bindInternalIndices();
     }
   }
 
@@ -559,6 +539,28 @@ struct Partition {
   o2::soa::Filtered<T>* operator->()
   {
     return mFiltered.get();
+  }
+
+  template <typename T1>
+  [[nodiscard]] auto rawSliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  {
+    return mFiltered->rawSliceBy(container, value);
+  }
+
+  [[nodiscard]] auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
+  {
+    return mFiltered->sliceByCached(node, value, cache);
+  }
+
+  [[nodiscard]] auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
+  {
+    return mFiltered->sliceByCachedUnsorted(node, value, cache);
+  }
+
+  template <typename T1, bool OPT, bool SORTED>
+  [[nodiscard]] auto sliceBy(o2::framework::PresliceBase<T1, OPT, SORTED> const& container, int value) const
+  {
+    return mFiltered->sliceBy(container, value);
   }
 
   expressions::Filter filter;

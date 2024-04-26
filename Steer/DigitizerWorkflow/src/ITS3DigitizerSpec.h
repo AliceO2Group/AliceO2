@@ -14,14 +14,12 @@
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2
-{
-namespace its3
+namespace o2::its3
 {
 
 o2::framework::DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth = true);
 
-} // namespace its3
-} // end namespace o2
+} // namespace o2::its3
+  // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_ITS3DIGITIZER_H_ */

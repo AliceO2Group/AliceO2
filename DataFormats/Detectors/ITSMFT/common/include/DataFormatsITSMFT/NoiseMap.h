@@ -170,6 +170,7 @@ class NoiseMap
   void print();
   void fill(const gsl::span<const CompClusterExt> data);
   void merge(const NoiseMap* prev) {}
+
   const std::map<int, int>* getChipMap(int chip) const { return chip < (int)mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
 
   std::map<int, int>& getChip(int chip) { return mNoisyPixels[chip]; }

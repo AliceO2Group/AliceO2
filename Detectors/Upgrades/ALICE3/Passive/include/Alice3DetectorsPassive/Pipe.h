@@ -27,44 +27,47 @@ class Alice3Pipe : public Alice3PassiveBase
   Alice3Pipe(const char* name,
              const char* title = "Alice 3 Pipe",
              const bool isTRKActivated = false,
-             const float rMinInnerPipe = 0.f,
-             const float innerThickness = 0.f,
-             const float innerLength = 0.f,
-             const float rMinOuterPipe = 0.f,
-             const float outerThickness = 0.f,
-             const float outerLength = 0.f);
+             const bool isFT3Activated = false,
+             const float pipeRIn = 0.f,
+             const float pipeThickness = 0.f,
+             const float a3ipLength = 0.f,
+             const float vacuumVesselRIn = 0.f,
+             const float vacuumVesselThickness = 0.f,
+             const float vacuumVesselLength = 0.f);
 
   void ConstructGeometry() override;
 
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override;
 
-  float getInnerRmin() const { return mBeInnerPipeRmin; }
-  float getInnerRmax() const { return mBeInnerPipeRmin + mBeInnerPipeThick; }
-  float getInnerWidth() const { return mBeInnerPipeThick; }
-  float getInnerDz() const { return mInnerIpHLength; }
+  float getPipeRIn() const { return mPipeRIn; }
+  float getPipeRMax() const { return mPipeRIn + mPipeThick; }
+  float getPipeWidth() const { return mPipeThick; }
+  float getA3IPLength() const { return mA3IPLength; }
 
-  float getOuterRmin() const { return mBeOuterPipeRmin; }
-  float getOuterRmax() const { return mBeOuterPipeRmin + mBeOuterPipeThick; }
-  float getOuterWidth() const { return mBeOuterPipeThick; }
-  float getOuterDz() const { return mOuterIpHLength; }
+  float getVacuumVesselRIn() const { return mVacuumVesselRIn; }
+  float getVacuumVesselRMax() const { return mVacuumVesselRIn + mVacuumVesselThick; }
+  float getVacuumVesselWidth() const { return mVacuumVesselThick; }
+  float getVacuumVesselLength() const { return mVacuumVesselLength; }
 
   bool IsTRKActivated() const { return mIsTRKActivated; }
+  bool IsFT3Activated() const { return mIsFT3Activated; }
 
  private:
   void createMaterials();
   Alice3Pipe(const Alice3Pipe& orig) = default;
   Alice3Pipe& operator=(const Alice3Pipe&);
 
-  float mBeInnerPipeRmin = 0.;  // inner diameter of the inner Be section
-  float mBeInnerPipeThick = 0.; // inner beam pipe section thickness
-  float mInnerIpHLength = 0.;   // half length of the inner beampipe around the IP
+  float mPipeRIn = 0.;    // inner diameter of the pipe
+  float mPipeThick = 0.;  // inner beam pipe section thickness
+  float mA3IPLength = 0.; // Length of A3IP
 
-  float mBeOuterPipeRmin = 0.;  // inner diameter of the outer Be section
-  float mBeOuterPipeThick = 0.; // outer beam pipe section thickness
-  float mOuterIpHLength = 0.;   // half length of the outer beampipe around the IP
+  float mVacuumVesselRIn = 0.;    // inner diameter of the vacuum vessel
+  float mVacuumVesselThick = 0.;  // outer beam pipe section thickness
+  float mVacuumVesselLength = 0.; // half length of the outer beampipe around the IP
 
   bool mIsTRKActivated = true; // If TRK is not active don't create TRK layers allocations in the vacuum volume
+  bool mIsFT3Activated = true;
 
   ClassDefOverride(Alice3Pipe, 1);
 };

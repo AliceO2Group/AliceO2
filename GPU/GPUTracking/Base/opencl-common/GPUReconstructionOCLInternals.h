@@ -173,7 +173,7 @@ struct GPUReconstructionOCLInternals {
 };
 
 template <typename K, typename... Args>
-int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args)
+inline int GPUReconstructionOCL::runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;
@@ -199,7 +199,7 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
     GPUFailedMsg(clWaitForEvents(1, evr));
     GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, nullptr));
     GPUFailedMsg(clGetEventProfilingInfo(*evr, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, nullptr));
-    _xyz.t = (time_end - time_start) * 1.e-9;
+    _xyz.t = (time_end - time_start) * 1.e-9f;
     if (tmpEvent) {
       GPUFailedMsg(clReleaseEvent(ev));
     }

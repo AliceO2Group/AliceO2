@@ -10,145 +10,144 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessingContext.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Signpost.h"
 
+O2_DECLARE_DYNAMIC_LOG(data_processor_context);
 namespace o2::framework
 {
+
+namespace
+{
+template <typename T, typename... ARGS>
+void invokeAll(T& handles, char const* callbackName, o2::framework::DataProcessorSpec* spec, ARGS&... args)
+{
+  assert(callbackName);
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, data_processor_context, spec);
+  // FIXME: for now spec is nullptr because we don't have a list of possible DataProcessorSpecs
+  // per device.
+  char const* dataProcessorName = spec ? spec->name.c_str() : "DataProcessorContext";
+  O2_SIGNPOST_START(data_processor_context, dpid, "callbacks", "Starting %{public}s::%{public}s", dataProcessorName, callbackName);
+  for (auto& handle : handles) {
+    O2_SIGNPOST_ID_FROM_POINTER(cid, data_processor_context, handle.service);
+    O2_SIGNPOST_START(data_processor_context, cid, "callbacks", "Starting %{public}s::%{public}s::%{public}s", dataProcessorName, handle.spec.name.c_str(), callbackName);
+    handle.callback(args..., handle.service);
+    O2_SIGNPOST_END(data_processor_context, cid, "callbacks", "Ending %{public}s::%{public}s::%{public}s", dataProcessorName, handle.spec.name.c_str(), callbackName);
+  }
+  O2_SIGNPOST_END(data_processor_context, dpid, "callbacks", "Ending %{public}s::%{public}s", dataProcessorName, callbackName);
+}
+} // namespace
+
 /// Invoke callbacks to be executed before every dangling check
 void DataProcessorContext::preProcessingCallbacks(ProcessingContext& ctx)
 {
-  for (auto& handle : preProcessingHandlers) {
-    LOGP(debug, "Invoking preDanglingCallback for service {}", handle.spec.name);
-    handle.callback(ctx, handle.service);
-  }
+  invokeAll(preProcessingHandlers, "preProcessingCallbacks", spec, ctx);
 }
 
 void DataProcessorContext::finaliseOutputsCallbacks(ProcessingContext& ctx)
 {
-  for (auto& handle : finaliseOutputsHandles) {
-    LOGP(debug, "Invoking postProcessingCallback for service {}", handle.spec.name);
-    handle.callback(ctx, handle.service);
-  }
+  invokeAll(finaliseOutputsHandles, "finaliseOutputsCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed before every dangling check
 void DataProcessorContext::postProcessingCallbacks(ProcessingContext& ctx)
 {
-  for (auto& handle : postProcessingHandlers) {
-    LOGP(debug, "Invoking postProcessingCallback for service {}", handle.spec.name);
-    handle.callback(ctx, handle.service);
-  }
+  invokeAll(postProcessingHandlers, "postProcessingCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed before every dangling check
-void DataProcessorContext::preDanglingCallbacks(DanglingContext& danglingContext)
+void DataProcessorContext::preDanglingCallbacks(DanglingContext& ctx)
 {
-  for (auto& handle : preDanglingHandles) {
-    LOGP(debug, "Invoking preDanglingCallback for service {}", handle.spec.name);
-    handle.callback(danglingContext, handle.service);
-  }
+  invokeAll(preDanglingHandles, "preDanglingCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed after every dangling check
-void DataProcessorContext::postDanglingCallbacks(DanglingContext& danglingContext)
+void DataProcessorContext::postDanglingCallbacks(DanglingContext& ctx)
 {
-  for (auto& handle : postDanglingHandles) {
-    LOGP(debug, "Invoking postDanglingCallback for service {}", handle.spec.name);
-    handle.callback(danglingContext, handle.service);
-  }
+  invokeAll(postDanglingHandles, "postDanglingCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed before every EOS user callback invokation
-void DataProcessorContext::preEOSCallbacks(EndOfStreamContext& eosContext)
+void DataProcessorContext::preEOSCallbacks(EndOfStreamContext& ctx)
 {
-  for (auto& handle : preEOSHandles) {
-    LOGP(detail, "Invoking preEosCallback for service {}", handle.spec.name);
-    handle.callback(eosContext, handle.service);
-  }
+  invokeAll(preEOSHandles, "preEOSCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed after every EOS user callback invokation
-void DataProcessorContext::postEOSCallbacks(EndOfStreamContext& eosContext)
+void DataProcessorContext::postEOSCallbacks(EndOfStreamContext& ctx)
 {
-  for (auto& handle : postEOSHandles) {
-    LOGP(detail, "Invoking postEoSCallback for service {}", handle.spec.name);
-    handle.callback(eosContext, handle.service);
-  }
+  invokeAll(postEOSHandles, "postEOSCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed after every data Dispatching
-void DataProcessorContext::postDispatchingCallbacks(ProcessingContext& processContext)
+void DataProcessorContext::postDispatchingCallbacks(ProcessingContext& ctx)
 {
-  for (auto& handle : postDispatchingHandles) {
-    LOGP(debug, "Invoking postDispatchingCallback for service {}", handle.spec.name);
-    handle.callback(processContext, handle.service);
-  }
+  invokeAll(postDispatchingHandles, "postDispatchingCallbacks", spec, ctx);
 }
 
 /// Invoke callbacks to be executed after every data Dispatching
-void DataProcessorContext::postForwardingCallbacks(ProcessingContext& processContext)
+void DataProcessorContext::postForwardingCallbacks(ProcessingContext& ctx)
 {
-  for (auto& handle : postForwardingHandles) {
-    LOGP(debug, "Invoking postForwardingCallback for service {}", handle.spec.name);
-    handle.callback(processContext, handle.service);
-  }
+  invokeAll(postForwardingHandles, "postForwardingCallbacks", spec, ctx);
 }
 
 /// Callbacks to be called in fair::mq::Device::PreRun()
 void DataProcessorContext::preStartCallbacks(ServiceRegistryRef ref)
 {
-  for (auto& handle : preStartHandles) {
-    LOGP(detail, "Invoking preStartCallback for service {}", handle.spec.name);
-    handle.callback(ref, handle.service);
-  }
+  invokeAll(preStartHandles, "preStartCallbacks", spec, ref);
 }
 
 void DataProcessorContext::postStopCallbacks(ServiceRegistryRef ref)
 {
-  // FIXME: we need to call the callback only once for the global services
-  /// I guess...
-  for (auto& handle : postStopHandles) {
-    LOGP(detail, "Invoking postStopCallback for service {}", handle.spec.name);
-    handle.callback(ref, handle.service);
-  }
+  invokeAll(postStopHandles, "postStopCallbacks", spec, ref);
 }
 
 /// Invoke callback to be executed on exit, in reverse order.
 void DataProcessorContext::preExitCallbacks(std::vector<ServiceExitHandle> handles, ServiceRegistryRef ref)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, data_processor_context, &ref);
+  O2_SIGNPOST_START(data_processor_context, dpid, "callbacks", "Starting DataProcessorContext preExitCallbacks");
   // FIXME: we need to call the callback only once for the global services
   /// I guess...
   for (auto handle = handles.rbegin(); handle != handles.rend(); ++handle) {
-    LOGP(detail, "Invoking preExitCallback for service {}", handle->spec.name);
+    O2_SIGNPOST_ID_FROM_POINTER(cid, data_processor_context, handle->service);
+    O2_SIGNPOST_START(data_processor_context, cid, "callbacks", "Starting DataProcessorContext::preExitCallbacks for service %{public}s", handle->spec.name.c_str());
     handle->callback(ref, handle->service);
+    O2_SIGNPOST_END(data_processor_context, cid, "callbacks", "Ending DataProcessorContext::preExitCallbacks for service %{public}s", handle->spec.name.c_str());
   }
+  O2_SIGNPOST_END(data_processor_context, dpid, "callbacks", "Ending DataProcessorContext preExitCallbacks");
 }
 
 /// Invoke callback to be executed on exit, in reverse order.
 void DataProcessorContext::preLoopCallbacks(ServiceRegistryRef ref)
 {
-  // FIXME: we need to call the callback only once for the global services
-  /// I guess...
-  LOGP(debug, "Invoking preLoopCallbacks");
-  for (auto& handle : preLoopHandles) {
-    LOGP(debug, "Invoking preLoopCallback for service {}", handle.spec.name);
-    handle.callback(ref, handle.service);
-  }
+  invokeAll(preLoopHandles, "preLoopCallbacks", spec, ref);
 }
 
 void DataProcessorContext::domainInfoUpdatedCallback(ServiceRegistryRef ref, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, data_processor_context, this);
+  O2_SIGNPOST_START(data_processor_context, dpid, "callbacks", "Starting DataProcessorContext domainInfoUpdatedCallback");
   for (auto& handle : domainInfoHandles) {
-    LOGP(debug, "Invoking domainInfoHandles for service {}", handle.spec.name);
+    O2_SIGNPOST_ID_FROM_POINTER(cid, data_processor_context, handle.service);
+    O2_SIGNPOST_START(data_processor_context, cid, "callbacks", "Starting DataProcessorContext::domainInfoUpdatedCallback for service %{public}s", handle.spec.name.c_str());
     handle.callback(ref, oldestPossibleTimeslice, channelIndex);
+    O2_SIGNPOST_END(data_processor_context, cid, "callbacks", "Ending DataProcessorContext::domainInfoUpdatedCallback for service %{public}s", handle.spec.name.c_str());
   }
+  O2_SIGNPOST_END(data_processor_context, dpid, "callbacks", "Ending DataProcessorContext domainInfoUpdatedCallback");
 }
 
 void DataProcessorContext::preSendingMessagesCallbacks(ServiceRegistryRef ref, fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
+  O2_SIGNPOST_ID_FROM_POINTER(dpid, data_processor_context, this);
+  O2_SIGNPOST_START(data_processor_context, dpid, "callbacks", "Starting DataProcessorContext preSendingMessagesCallbacks");
   for (auto& handle : preSendingMessagesHandles) {
-    LOGP(debug, "Invoking preSending for service {}", handle.spec.name);
+    O2_SIGNPOST_ID_FROM_POINTER(cid, data_processor_context, handle.service);
+    O2_SIGNPOST_START(data_processor_context, cid, "callbacks", "Starting DataProcessorContext::preSendingMessagesCallbacks for service %{public}s", handle.spec.name.c_str());
     handle.callback(ref, parts, channelIndex);
+    O2_SIGNPOST_END(data_processor_context, cid, "callbacks", "Ending DataProcessorContext::preSendingMessagesCallbacks for service %{public}s", handle.spec.name.c_str());
   }
+  O2_SIGNPOST_END(data_processor_context, dpid, "callbacks", "Ending DataProcessorContext preSendingMessagesCallbacks");
 }
 
 } // namespace o2::framework

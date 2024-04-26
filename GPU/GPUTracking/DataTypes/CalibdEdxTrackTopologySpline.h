@@ -59,12 +59,12 @@ namespace o2::tpc
 /// angleY = sqrt( snp2 * sec2 )
 ///
 /// relative pad position
-/// relPadPos = COG_Pad - int(COG_Pad + 0.5);
-/// -0.5<relPadPos<0.5
+/// relPadPos = COG_Pad - int(COG_Pad + 0.5f);
+/// -0.5f<relPadPos<0.5f
 ///
 /// relative time position
-/// relTimePos = COG_Time - int(COG_Time + 0.5);
-/// -0.5<relTimePos<0.5
+/// relTimePos = COG_Time - int(COG_Time + 0.5f);
+/// -0.5f<relTimePos<0.5f
 ///
 
 class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject

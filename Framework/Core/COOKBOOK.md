@@ -524,8 +524,7 @@ Sometimes (e.g. when running a child inside valgrind) it might be useful to disa
 some-workflow --monitoring-backend=no-op://
 ```
 
-notice that the 
-will not function properly if you do so.
+notice that the will not function properly if you do so.
 
 ## Profiling
 
@@ -538,3 +537,15 @@ perf script -i perf.data > profile.linux-perf.txt
 ```
 
 and then you can either upload it to https://www.speedscope.app or use chrome://tracing.
+
+## Internal debug log streams
+
+Debug log entries for several DPL components are now provided via the Signpost API.
+
+Such streams can be enabled using the "Signpost" part of the Device Inspector GUI or alternatively from the command line, by specifying the `--signposts <log name>,...` option or exporting the variable `DPL_SIGNPOSTS=<log name>,...`).
+
+Streams can be explicitly enabled or disabled in code using the `O2_SIGNPOST_ENABLE()` and `O2_SIGNPOST_DISABLE` macros.
+
+If a process is already running and you wish to enable one or more of its signposts logs, you can do so using the `o2-log` utility, passing the address of the log to enable and the PID of the running process. E.g. `o2-log -p <PID> -a <hook address of the signpost>`.
+
+Finally, on macOS, you can also use Instruments to visualise your Signpost, just like any other macOS application. In order to do so you need to enable the "Signpost" instrument, making sure you add `ch.cern.aliceo2.completion` to the list of loggers to watch.

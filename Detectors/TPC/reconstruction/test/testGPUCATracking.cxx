@@ -27,6 +27,7 @@
 #include "CorrectionMapsHelper.h"
 #include "TPCFastTransform.h"
 #include "GPUO2Interface.h"
+#include "GPUO2InterfaceUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCPadGainCalib.h"
 #include "CalibdEdxContainer.h"
@@ -61,7 +62,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configProcessing.runQA = false;          //Run QA after tracking
   config.configProcessing.eventDisplay = nullptr; //Ptr to event display backend, for running standalone OpenGL event display
 
-  config.configGRP.solenoidBz = solenoidBz;
+  config.configGRP.solenoidBzNominalGPU = solenoidBz;
   config.configGRP.continuousMaxTimeBin = continuous ? GPUSettings::TPC_MAX_TF_TIME_BIN : 0; //Number of timebins in timeframe if continuous, 0 otherwise
 
   config.configReconstruction.tpc.nWays = 3;               //Should always be 3!
@@ -79,9 +80,9 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   fastTransformHelper->setCorrMap(fastTransform.get());
   config.configCalib.fastTransform = fastTransform.get();
   config.configCalib.fastTransformHelper = fastTransformHelper.get();
-  auto dEdxCalibContainer = GPUO2Interface::getCalibdEdxContainerDefault();
+  auto dEdxCalibContainer = GPUO2InterfaceUtils::getCalibdEdxContainerDefault();
   config.configCalib.dEdxCalibContainer = dEdxCalibContainer.get();
-  std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2Interface::getPadGainCalibDefault();
+  std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2InterfaceUtils::getPadGainCalibDefault();
   config.configCalib.tpcPadGain = gainCalib.get();
 
   tracker.Initialize(config);

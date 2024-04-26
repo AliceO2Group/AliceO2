@@ -12,9 +12,9 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITSMFTSimulation/MC2RawEncoder.h"
 #endif
 
+#include "ITSMFTSimulation/MC2RawEncoder.h"
 // demo macro the MC->raw conversion with new (variable page size) format
 void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, const std::string& outPrefix);
 

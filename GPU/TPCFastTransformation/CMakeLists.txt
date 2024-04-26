@@ -81,7 +81,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
               SOURCES test/testMultivarPolynomials.cxx
               ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
               LABELS gpu
-              CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+              CONFIGURATIONS RelWithDebInfo Release MinSizeRel)
 
   foreach(m
           SplineDemo.C

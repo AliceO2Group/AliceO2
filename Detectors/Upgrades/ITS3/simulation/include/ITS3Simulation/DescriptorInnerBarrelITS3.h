@@ -15,62 +15,47 @@
 #ifndef ALICEO2_ITS3_DESCRIPTORINNERBARRELITS3_H
 #define ALICEO2_ITS3_DESCRIPTORINNERBARRELITS3_H
 
-#include <string>
-#include <vector>
-#include <TObject.h>
-
+#include "ITS3Base/SpecsV2.h"
 #include "ITSBase/DescriptorInnerBarrel.h"
 #include "ITS3Simulation/ITS3Layer.h"
+#include "ITS3Simulation/ITS3Services.h"
 
-namespace o2
-{
-namespace its3
+#include "TGeoVolume.h"
+
+#include <array>
+#include <memory>
+
+namespace o2::its3
 {
 
 class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
 {
  public:
-  // default constructor
-  DescriptorInnerBarrelITS3() = default;
+  DescriptorInnerBarrelITS3()
+  {
+    // redefine the wrapper volume
+    setConfigurationWrapperVolume(mWrapperMinRadiusITS3, mWrapperMaxRadiusITS3, mWrapperZSpanITS3);
+  }
 
-  DescriptorInnerBarrelITS3(const DescriptorInnerBarrelITS3& src) = delete;
-  DescriptorInnerBarrelITS3& operator=(const DescriptorInnerBarrelITS3& geom) = delete;
-  void setVersion(std::string version) { mVersion = version; }
-
-  void configure();
-  ITS3Layer* createLayer(int idLayer, TGeoVolume* dest);
+  void createLayer(int idLayer, TGeoVolume* dest);
   void createServices(TGeoVolume* dest);
+  void configure() {}
+
+ protected:
+  int mNumLayers{constants::nLayers};
+
+  // wrapper volume properties
+  double mWrapperMinRadiusITS3{1.8};
+  double mWrapperMaxRadiusITS3{4.};
+  double mWrapperZSpanITS3{50};
 
  private:
-  std::string mVersion{"ThreeLayersNoDeadZones"}; //! version of ITS3
-  std::vector<double> mLayerZLen{};               //! Vector of layer length in Z coordinate (in cm)
-  std::vector<double> mGapY{};                    //! Vector of gap between empispheres in Y direction (in cm)
-  std::vector<double> mGapPhi{};                  //! Vector of gap between empispheres in phi (distance in Y direction in cm)
-  std::vector<int> mNumSubSensorsHalfLayer{};     //! Vector of num of subsensors in half layer
-  std::vector<double> mFringeChipWidth{};         //! Vector of fringe chip width (in cm)
-  std::vector<double> mMiddleChipWidth{};         //! Vector of middle chip width (in cm)
-  std::vector<double> mHeightStripFoam{};         //! Vector of strip foam height (in cm)
-  std::vector<double> mLengthSemiCircleFoam{};    //! Vector of semi-circle foam length (in cm)
-  std::vector<double> mThickGluedFoam{};          //! Vector of glued foam thickness (in cm)
-  double mGapXDirection4thLayer{0.};              //! x-direction gap for layer 4  (in cm)
+  std::array<std::unique_ptr<ITS3Layer>, constants::nLayers> mIBLayers;
+  std::unique_ptr<ITS3Services> mServices;
 
-  std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
-
-  double mCyssCylInnerD{0.};       //! CYSS cylinder inner diameter
-  double mCyssCylOuterD{0.};       //! CYSS cylinder outer diameter
-  double mCyssCylFabricThick{0.};  //! CYSS cylinder fabric thickness
-  double mCyssConeIntSectDmin{0.}; //! CYSS cone internal section min diameter
-  double mCyssConeIntSectDmax{0.}; //! CYSS cone internal section max diameter
-  double mCyssConeFabricThick{0.}; //! CYSS cone fabric thickness
-  double mCyssFlangeCDExt{0.};     //! CYSS flange on side C external diameter
-
-  double mAddMaterial3rdLayer{0.}; //! additional material for layer 3 to mimic services (in cm)
-
-  /// \cond CLASSIMP
-  ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS3 inner barrel geometry descriptor
-  /// \endcond
+  ClassDefNV(DescriptorInnerBarrelITS3, 0); /// ITS3 inner barrel geometry descriptor
 };
-} // namespace its3
-} // namespace o2
+
+} // namespace o2::its3
 
 #endif

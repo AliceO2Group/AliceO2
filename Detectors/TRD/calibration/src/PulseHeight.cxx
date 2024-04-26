@@ -135,7 +135,7 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
     if (digit.isSharedDigit()) {
       continue; // avoid double-counting of the same digit
     }
-    if (digit.getDetector() != trkltDet || digit.getPadRow() != trklt.getPadRow() || digit.getPadCol() != trklt.getPadCol()) {
+    if (digit.getDetector() != trkltDet || digit.getPadRow() != trklt.getPadRow() || digit.getPadCol() != trklt.getPadCol(mApplyShift)) {
       // for now we loose charge information from padrow-crossing tracklets (~15% of all tracklets)
       continue;
     }

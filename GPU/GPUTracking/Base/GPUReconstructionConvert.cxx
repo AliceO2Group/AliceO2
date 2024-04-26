@@ -109,8 +109,8 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
       ClusterNative& c = nativeBuffer[native.clusterOffset[i][row] + native.nClusters[i][row]++];
       c.setTimeFlags(org.GetTime(), org.GetFlags());
       c.setPad(org.GetPad());
-      c.setSigmaTime(std::sqrt(org.GetSigmaTime2()));
-      c.setSigmaPad(std::sqrt(org.GetSigmaPad2()));
+      c.setSigmaTime(CAMath::Sqrt(org.GetSigmaTime2()));
+      c.setSigmaPad(CAMath::Sqrt(org.GetSigmaPad2()));
       c.qMax = org.GetQMax();
       c.qTot = org.GetCharge();
     }
@@ -1308,7 +1308,7 @@ size_t zsEncoderRun<T>::compare(std::vector<zsPage>* buffer, std::vector<o2::tpc
   } else {
     for (unsigned int j = 0; j < tmpBuffer.size(); j++) {
       const float decodeBitsFactor = (1 << (encodeBits - 10));
-      const float c = (float)((int)(tmpBuffer[j].getChargeFloat() * decodeBitsFactor + 0.5f)) / decodeBitsFactor;
+      const float c = CAMath::Round(tmpBuffer[j].getChargeFloat() * decodeBitsFactor) / decodeBitsFactor;
       int ok = c == compareBuffer[j].getChargeFloat() && (int)tmpBuffer[j].getTimeStamp() == (int)compareBuffer[j].getTimeStamp() && (int)tmpBuffer[j].getPad() == (int)compareBuffer[j].getPad() && (int)tmpBuffer[j].getRow() == (int)compareBuffer[j].getRow();
       if (ok) {
         continue;
@@ -1376,12 +1376,12 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     if (version >= ZSVersion::ZSVersionRowBased10BitADC && version <= ZSVersion::ZSVersionRowBased12BitADC) {
       zsEncoderRun<zsEncoderRow> enc{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}};
       runZS(enc);
-    } else if (version >= ZSVersion::ZSVersionLinkBasedWithMeta || version <= ZSVersion::ZSVersionDenseLinkBased) {
+    } else if (version >= ZSVersion::ZSVersionLinkBasedWithMeta && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
 #ifdef GPUCA_O2_LIB
       if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
         zsEncoderRun<zsEncoderImprovedLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
-      } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersionDenseLinkBasedV2) {
+      } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
         zsEncoderRun<zsEncoderDenseLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
       }
@@ -1450,9 +1450,9 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* bu
           buffers[i][j] = buffers[i][k];
         }
         if (zs12bit) {
-          buffers[i][j].setCharge((float)((int)(buffers[i][j].getChargeFloat() * decodeBitsFactor + 0.5f)) / decodeBitsFactor);
+          buffers[i][j].setCharge(CAMath::Round(buffers[i][j].getChargeFloat() * decodeBitsFactor) / decodeBitsFactor);
         } else {
-          buffers[i][j].setCharge((float)((int)(buffers[i][j].getChargeFloat() + 0.5f)));
+          buffers[i][j].setCharge(CAMath::Round(buffers[i][j].getChargeFloat()));
         }
         j++;
       }
@@ -1464,10 +1464,14 @@ void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* bu
 
 #ifdef GPUCA_O2_LIB
 template <class T>
-static inline auto GetDecoder_internal(const GPUParam& param, int version)
+static inline auto GetDecoder_internal(const GPUParam* param, int version)
 {
   std::shared_ptr<T> enc = std::make_shared<T>();
-  enc->param = &param;
+  if (param == nullptr) {
+    static GPUParam dummyParam;
+    param = &dummyParam;
+  }
+  enc->param = param;
   enc->zsVersion = version;
   enc->init();
   return [enc](std::vector<o2::tpc::Digit>& outBuffer, const void* page, unsigned int firstTfOrbit, unsigned int triggerBC = 0) {
@@ -1485,33 +1489,16 @@ static inline auto GetDecoder_internal(const GPUParam& param, int version)
   };
 }
 
-std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)> GPUReconstructionConvert::GetDecoder(int version, const GPUParam& param)
+std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)> GPUReconstructionConvert::GetDecoder(int version, const GPUParam* param)
 {
-  if (version >= ZSVersion::ZSVersionRowBased10BitADC && version <= ZSVersion::ZSVersionRowBased12BitADC) {
+  if (version >= o2::tpc::ZSVersion::ZSVersionRowBased10BitADC && version <= o2::tpc::ZSVersion::ZSVersionRowBased12BitADC) {
     return GetDecoder_internal<zsEncoderRow>(param, version);
-  } else if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
+  } else if (version == o2::tpc::ZSVersion::ZSVersionLinkBasedWithMeta) {
     return GetDecoder_internal<zsEncoderImprovedLinkBased>(param, version);
-  } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
+  } else if (version >= o2::tpc::ZSVersion::ZSVersionDenseLinkBased && version <= o2::tpc::ZSVersion::ZSVersionDenseLinkBasedV2) {
     return GetDecoder_internal<zsEncoderDenseLinkBased>(param, version);
   } else {
     throw std::runtime_error("Invalid ZS version "s + std::to_string(version) + ", cannot create decoder"s);
   }
-}
-
-void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam& param, unsigned int triggerBC)
-{
-  const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
-  if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
-    return;
-  }
-  TPCZSHDR* const hdr = (TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? ((const char*)page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : ((const char*)page + sizeof(o2::header::RAWDataHeader)));
-
-  if (mDecoders.size() < hdr->version + 1) {
-    mDecoders.resize(hdr->version + 1);
-  }
-  if (mDecoders[hdr->version] == nullptr) {
-    mDecoders[hdr->version] = GPUReconstructionConvert::GetDecoder(hdr->version, param);
-  }
-  mDecoders[hdr->version](outputBuffer, page, tfFirstOrbit, triggerBC);
 }
 #endif

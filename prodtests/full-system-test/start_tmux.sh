@@ -53,7 +53,6 @@ export SYNCMODE=1
 export SHMTHROW=0
 export IS_SIMULATED_DATA=1
 export DATADIST_NEW_DPL_CHAN=1
-export RANS_OPT="--ans-version 1.0 --ctf-dict none" # Use new RANS coding scheme without dictionary
 
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
@@ -98,19 +97,16 @@ fi
 
 FST_SLEEP0=0
 FST_SLEEP1=0
-FST_SLEEP2=45
+FST_SLEEP2=30
 if [[ -z $SHM_MANAGER_SHMID ]]; then
   rm -f /dev/shm/*fmq*
   if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
     echo "FMQ SHM files left which cannot be deleted, please clean up!"
     exit 1
   fi
-else
-  FST_SLEEP0=0
-  FST_SLEEP1=0
-  FST_SLEEP2=30
 fi
 [[ ! -z $FST_TMUX_DD_WAIT ]] && FST_SLEEP2=$FST_TMUX_DD_WAIT
+[[ ${O2_GPU_RTC:-0} == 1 ]] && FST_SLEEP2=60
 
 if workflow_has_parameter CALIB_PROXIES; then
   CALIB_COMMAND="$GEN_TOPO_MYDIR/aggregator-workflow.sh"

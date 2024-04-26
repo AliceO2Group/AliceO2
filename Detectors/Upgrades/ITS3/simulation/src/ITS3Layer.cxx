@@ -11,379 +11,363 @@
 
 /// \file ITS3Layer.h
 /// \brief Definition of the ITS3Layer class
-/// \author Fabrizio Grosa <fgrosa@cern.ch>
+/// \author felix.schlepper@cern.ch
+/// \author chunzheng.wang@cern.ch
 
+#include "TGeoTube.h"
+#include "TGeoVolume.h"
+#include "TGeoCompositeShape.h"
+
+#include "CommonConstants/MathConstants.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "ITS3Base/SegmentationSuperAlpide.h"
+#include "ITS3Base/SpecsV2.h"
 #include "ITS3Simulation/ITS3Layer.h"
+#include "fairlogger/Logger.h"
 
-#include <fairlogger/Logger.h> // for LOG
+namespace o2m = o2::constants::math;
+namespace its3c = o2::its3::constants;
 
-#include <TGeoTube.h> // for TGeoTube, TGeoTubeSeg
-#include <TGeoCompositeShape.h>
-#include <TGeoVolume.h> // for TGeoVolume, TGeoVolumeAssembly
-
-using namespace o2::its3;
-
-/// \cond CLASSIMP
-ClassImp(ITS3Layer);
-/// \endcond
-
-ITS3Layer::ITS3Layer(int lay)
-  : TObject(),
-    mLayerNumber(lay)
+namespace o2::its3
 {
-  SegmentationSuperAlpide seg(lay);
-  mChipThickness = seg.mDetectorLayerThickness;
-  mSensorThickness = seg.mSensorLayerThickness;
+using its3TGeo = o2::its::GeometryTGeo;
+
+void ITS3Layer::init()
+{
+  // First we start by creating variables which we are reusing a couple of times.
+  mR = its3c::radii[mNLayer];
+  mRmin = mR - its3c::thickness / 2.;
+  mRmax = mR + its3c::thickness / 2.;
+
+  if (gGeoManager == nullptr) {
+    LOGP(fatal, "gGeoManager not initalized!");
+  }
+
+  mSilicon = gGeoManager->GetMedium("IT3_SI$");
+  if (mSilicon == nullptr) {
+    LOGP(fatal, "IT3_SI$ == nullptr!");
+  }
+
+  mAir = gGeoManager->GetMedium("IT3_AIR$");
+  if (mAir == nullptr) {
+    LOGP(fatal, "IT3_AIR$ == nullptr!");
+  }
+
+  mCarbon = gGeoManager->GetMedium("IT3_CARBON$");
+  if (mCarbon == nullptr) {
+    LOGP(fatal, "IT3_CARBON$ == nullptr!");
+  }
 }
 
-ITS3Layer::~ITS3Layer() = default;
-
-void ITS3Layer::createLayer(TGeoVolume* motherVolume, double radiusBetweenLayer)
+void ITS3Layer::createLayer(TGeoVolume* motherVolume)
 {
-  TGeoMedium* medSi = gGeoManager->GetMedium("IT3_SI$");
-  TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
+  // Create one layer of ITS3 and attach it to the motherVolume.
+  init();
+  createPixelArray();
+  createTile();
+  createRSU();
+  createSegment();
+  createChip();
+  createCarbonForm();
+  createLayerImpl();
 
-  double rmin = mRadius;
-  double rmax = rmin + mChipThickness;
-  double rminSensor = rmax - mSensorThickness;
-  radiusBetweenLayer = radiusBetweenLayer - mChipThickness;
-  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
-  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
-
-  const int nElements = 7;
-  std::string names[nElements];
-
-  // do we need to keep the hierarchy?
-  names[0] = Form("%s%d", o2::its::GeometryTGeo::getITS3SensorPattern(), mLayerNumber);
-  names[1] = Form("%s%d", o2::its::GeometryTGeo::getITS3ChipPattern(), mLayerNumber);
-  names[2] = Form("%s%d", o2::its::GeometryTGeo::getITS3ModulePattern(), mLayerNumber);
-  names[3] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfStavePattern(), mLayerNumber);
-  names[4] = Form("%s%d", o2::its::GeometryTGeo::getITS3StavePattern(), mLayerNumber);
-  names[5] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfBarrelPattern(), mLayerNumber);
-  names[6] = Form("%s%d", o2::its::GeometryTGeo::getITS3LayerPattern(), mLayerNumber);
-
-  TGeoTubeSeg* halfLayer[nElements - 1];
-  TGeoVolume* volHalfLayer[nElements - 1];
-  for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
-    if (iEl == 3) {
-      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap);
-      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
-      createCarbonFoamStructure(volHalfLayer[iEl], radiusBetweenLayer);
-      volHalfLayer[iEl]->SetVisibility(true);
-      volHalfLayer[iEl]->SetLineColor(kGray + 2);
-    } else if (iEl < 2) {
-      halfLayer[iEl] = new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, phiGap, piDeg - phiGap);
-      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
-      volHalfLayer[iEl]->SetVisibility(true);
-      volHalfLayer[iEl]->SetLineColor(kRed + 1);
-    } else if (iEl == 2) {
-      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax, mZLen / 2, phiGap, piDeg - phiGap);
-      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
-      volHalfLayer[iEl]->SetVisibility(true);
-      volHalfLayer[iEl]->SetLineColor(kRed + 1);
-    } else { // all the others are simply half cylinders filling all the space
-      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap);
-      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
-    }
-    volHalfLayer[iEl]->SetUniqueID(mChipTypeID);
-
-    if (iEl > 0) {
-      LOGP(debug, "Inserting {} inside {}", volHalfLayer[iEl - 1]->GetName(), volHalfLayer[iEl]->GetName());
-      int id = 0;
-      if (iEl == 1) {
-        id = 1;
-      }
-      volHalfLayer[iEl]->AddNode(volHalfLayer[iEl - 1], id, nullptr);
-    }
+  LOGP(info, "ITS3-Layer: Created Layer {} with mR={} (minR={}, maxR={})", mNLayer, mR, mRmin, mRmax);
+  if (motherVolume == nullptr) {
+    return;
   }
-
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
-  TGeoRotation* rotationBottom = new TGeoRotation("", piDeg, 0., 0.);
-  TGeoCombiTrans* rotoTranslationBottom =
-    new TGeoCombiTrans(*translationBottom, *rotationBottom);
-
-  TGeoVolumeAssembly* volLayer = new TGeoVolumeAssembly(names[nElements - 1].data());
-  volLayer->AddNode(volHalfLayer[nElements - 2], 0, translationTop);
-  volLayer->AddNode(volHalfLayer[nElements - 2], 1, rotoTranslationBottom);
-
-  // Finally put everything in the mother volume
-  LOGP(debug, "Inserting {} inside {}", volLayer->GetName(), motherVolume->GetName());
-  motherVolume->AddNode(volLayer, 1, nullptr);
+  // Add it to motherVolume
+  LOGP(info, "  `-> Attaching to motherVolume '{}'", motherVolume->GetName());
+  auto* trans = new TGeoTranslation(0, 0, -constants::segment::lengthSensitive / 2.);
+  motherVolume->AddNode(mLayer, 0, trans);
 }
 
-void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume, double radiusBetweenLayer)
+void ITS3Layer::createPixelArray()
 {
-  TGeoMedium* medSi = gGeoManager->GetMedium("IT3_SI$");
-  TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
-
-  double rmin = mRadius;
-  double rmax = rmin + mChipThickness;
-  double rminSensor = rmax - mSensorThickness;
-  double rmed = (rmax + rmin) / 2;
-  // width of sensors of layers is calculated from r and chips' widths
-  double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
-  radiusBetweenLayer = radiusBetweenLayer - mChipThickness;
-  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
-  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
-
-  const int nElements = 7;
-  std::string names[nElements];
-  int nObjPerElement[nElements] = {mNumSubSensorsHalfLayer, 1, 1, 1, 1, 1, 1}; // mNumSubSensorsHalfLayer chips and sensors per half layer
-
-  names[0] = Form("%s%d", o2::its::GeometryTGeo::getITS3SensorPattern(), mLayerNumber);
-  names[1] = Form("%s%d", o2::its::GeometryTGeo::getITS3ChipPattern(), mLayerNumber);
-  names[2] = Form("%s%d", o2::its::GeometryTGeo::getITS3ModulePattern(), mLayerNumber);
-  names[3] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfStavePattern(), mLayerNumber);
-  names[4] = Form("%s%d", o2::its::GeometryTGeo::getITS3StavePattern(), mLayerNumber);
-  names[5] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfBarrelPattern(), mLayerNumber);
-  names[6] = Form("%s%d", o2::its::GeometryTGeo::getITS3LayerPattern(), mLayerNumber);
-
-  std::array<std::vector<TGeoTubeSeg*>, nElements - 1> halfLayer{};
-  TGeoVolume* volHalfLayer[nElements - 1];
-
-  for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
-
-    for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
-      if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
-        if (iObj == 0) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed + phiGap, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
-        } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, piDeg - TMath::RadToDeg() * mFringeChipWidth / rmed - phiGap));
-        } else {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
-        }
-      } else if (iEl == 1) {
-        halfLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, phiGap, piDeg - phiGap));
-      } else if (iEl == 2) {
-        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, phiGap, piDeg - phiGap));
-      } else { // all the others are simply half cylinders filling all the space
-        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap));
-      }
-    }
-
-    if (iEl == 0) {
-      std::string subSensNames = "";
-      for (int iObj{0}; iObj < nObjPerElement[iEl] - 1; ++iObj) {
-        subSensNames += Form("subsens%dlayer%d+", iObj, mLayerNumber);
-      }
-      subSensNames += Form("subsens%dlayer%d", nObjPerElement[iEl] - 1, mLayerNumber);
-      TGeoCompositeShape* sensor = new TGeoCompositeShape(subSensNames.data());
-      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), sensor, med);
-      volHalfLayer[iEl]->SetUniqueID(mChipTypeID);
-      volHalfLayer[iEl]->SetVisibility(true);
-      volHalfLayer[iEl]->SetLineColor(kRed + 1);
-    } else {
-      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl][0], med);
-      volHalfLayer[iEl]->SetUniqueID(mChipTypeID);
-      if (iEl == 3) {
-        createCarbonFoamStructure(volHalfLayer[iEl], radiusBetweenLayer);
-        volHalfLayer[iEl]->SetVisibility(true);
-        volHalfLayer[iEl]->SetLineColor(kGray + 2);
-      } else if (iEl == 1) {
-        volHalfLayer[iEl]->SetVisibility(true);
-        volHalfLayer[iEl]->SetLineColor(kBlue + 2);
-      }
-
-      int id = (iEl == 1) ? 1 : 0;
-      LOGP(debug, "Inserting {} id {} inside {}", volHalfLayer[iEl - 1]->GetName(), id, volHalfLayer[iEl]->GetName());
-      volHalfLayer[iEl]->AddNode(volHalfLayer[iEl - 1], id, nullptr);
-    }
-  }
-
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
-  TGeoRotation* rotationBottom = new TGeoRotation("", piDeg, 0., 0.);
-  TGeoCombiTrans* rotoTranslationBottom =
-    new TGeoCombiTrans(*translationBottom, *rotationBottom);
-
-  TGeoVolumeAssembly* volLayer = new TGeoVolumeAssembly(names[nElements - 1].data());
-  volLayer->AddNode(volHalfLayer[nElements - 2], 0, translationTop);
-  volLayer->AddNode(volHalfLayer[nElements - 2], 1, rotoTranslationBottom);
-
-  // Finally put everything in the mother volume
-  LOGP(debug, "Inserting {} inside {}", volLayer->GetName(), motherVolume->GetName());
-  motherVolume->AddNode(volLayer, 1, nullptr);
+  using namespace its3c::pixelarray;
+  // A pixel array is pure silicon and the sensitive part of our detector.
+  // It will be segmented into a 442x156 matrix by the
+  // SuperSegmentationAlpide.
+  // Pixel Array is just a longer version of the biasing but starts in phi at
+  // biasPhi2.
+  double pixelArrayPhi1 = constants::tile::readout::width / mR * o2m::Rad2Deg;
+  double pixelArrayPhi2 = width / mR * o2m::Rad2Deg + pixelArrayPhi1;
+  auto pixelArray = new TGeoTubeSeg(mRmin, mRmax, length / 2.,
+                                    pixelArrayPhi1, pixelArrayPhi2);
+  mPixelArray = new TGeoVolume(its3TGeo::getITS3PixelArrayPattern(mNLayer), pixelArray, mSilicon);
+  mPixelArray->SetLineColor(color);
+  mPixelArray->RegisterYourself();
 }
 
-void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
+void ITS3Layer::createTile()
 {
-  TGeoMedium* medSi = gGeoManager->GetMedium("IT3_SI$");
-  TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
+  using namespace constants::tile;
+  // This functions creates a single Tile, which is the basic building block
+  // of the chip. It consists of a pixelArray (sensitive area), biasing, power
+  // switches and readout periphery (latter three are insensitive).
+  // We construct the Tile such that the PixelArray is in the z-middle
+  mTile = new TGeoVolumeAssembly(its3TGeo::getITS3TilePattern(mNLayer));
+  mTile->VisibleDaughters();
 
-  double rmin = mRadius;
-  double rmax = rmin + mChipThickness;
-  double rminSensor = rmax - mSensorThickness;
-  double rmed = (rmax + rmin) / 2;
-  // width of sensors of layers is calculated from r and chips' widths
-  double widthSensor = (0.5 * TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
-  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
-  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
+  // The readout periphery is also on top of the pixel array but extrudes on +z a bit e.g. is wider.
+  auto zMoveReadout = new TGeoTranslation(0, 0, +powerswitches::length / 2.);
+  double readoutPhi1 = 0;
+  double readoutPhi2 = readout::width / mR * o2m::Rad2Deg;
+  auto readout = new TGeoTubeSeg(mRmin, mRmax, readout::length / 2, readoutPhi1, readoutPhi2);
+  auto readoutVol = new TGeoVolume(Form("readout%d", mNLayer), readout, mSilicon);
+  readoutVol->SetLineColor(readout::color);
+  readoutVol->RegisterYourself();
+  mTile->AddNode(readoutVol, 0, zMoveReadout);
 
-  const int nElements = 7;
-  std::string names[nElements];
-  int nObjPerElement[nElements] = {mNumSubSensorsHalfLayer, 1, 1, 1, 1, 1, 1}; // mNumSubSensorsHalfLayer chips and sensors per half layer
+  // Pixel Array is just a longer version of the biasing but starts in phi at
+  // biasPhi2.
+  mTile->AddNode(mPixelArray, 0);
 
-  names[0] = Form("%s%d", o2::its::GeometryTGeo::getITS3SensorPattern(), mLayerNumber);
-  names[1] = Form("%s%d", o2::its::GeometryTGeo::getITS3ChipPattern(), mLayerNumber);
-  names[2] = Form("%s%d", o2::its::GeometryTGeo::getITS3ModulePattern(), mLayerNumber);
-  names[3] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfStavePattern(), mLayerNumber);
-  names[4] = Form("%s%d", o2::its::GeometryTGeo::getITS3StavePattern(), mLayerNumber);
-  names[5] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfBarrelPattern(), mLayerNumber);
-  names[6] = Form("%s%d", o2::its::GeometryTGeo::getITS3LayerPattern(), mLayerNumber);
+  // Biasing
+  double biasPhi1 = constants::pixelarray::width / mR * o2m::Rad2Deg + readoutPhi2;
+  double biasPhi2 = biasing::width / mR * o2m::Rad2Deg + biasPhi1;
+  auto biasing = new TGeoTubeSeg(mRmin, mRmax, biasing::length / 2, biasPhi1, biasPhi2);
+  auto biasingVol = new TGeoVolume(Form("biasing%d", mNLayer), biasing, mSilicon);
+  biasingVol->SetLineColor(biasing::color);
+  biasingVol->RegisterYourself();
+  mTile->AddNode(biasingVol, 0);
 
-  std::array<std::vector<TGeoTubeSeg*>, nElements - 1> quarterLayer{};
-  TGeoVolume* volQuarterLayer[nElements - 1];
-
-  for (int iEl{0}; iEl < nElements - 2; ++iEl) { // we need only 2 half barrels as usual, so we stop at the stave
-    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
-
-    for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
-      if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
-        if (iObj == 0) {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, piDeg / 4. + TMath::RadToDeg() * mFringeChipWidth / rmed + phiGap, piDeg / 4. + TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
-        } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, piDeg / 4. + TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, 3. / 4. * piDeg - TMath::RadToDeg() * mFringeChipWidth / rmed - phiGap));
-        } else {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, piDeg / 4. + TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, piDeg / 4. + TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
-        }
-      } else if (iEl == 1) {
-        quarterLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, phiGap, piDeg / 4. + piDeg * 3 / 4. - phiGap));
-      } else if (iEl == 2) {
-        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, piDeg / 4. + phiGap, piDeg * 3 / 4. - phiGap));
-      } else { // all the others are simply quarter cylinders filling all the space
-        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, piDeg / 4. + phiGap, piDeg * 3 / 4. - phiGap));
-      }
-    }
-
-    if (iEl == 0) {
-      std::string subSensNames = "";
-      for (int iObj{0}; iObj < nObjPerElement[iEl] - 1; ++iObj) {
-        subSensNames += Form("subsens%dlayer%d+", iObj, mLayerNumber);
-      }
-      subSensNames += Form("subsens%dlayer%d", nObjPerElement[iEl] - 1, mLayerNumber);
-      TGeoCompositeShape* sensor = new TGeoCompositeShape(subSensNames.data());
-      volQuarterLayer[iEl] = new TGeoVolume(names[iEl].data(), sensor, med);
-      volQuarterLayer[iEl]->SetUniqueID(mChipTypeID);
-      volQuarterLayer[iEl]->SetVisibility(true);
-      volQuarterLayer[iEl]->SetLineColor(kRed + 1);
-    } else {
-      volQuarterLayer[iEl] = new TGeoVolume(names[iEl].data(), quarterLayer[iEl][0], med);
-      volQuarterLayer[iEl]->SetUniqueID(mChipTypeID);
-      if (iEl == 4) {
-        // createCarbonFoamStructure(volQuarterLayer[iEl], 0., true);
-        volQuarterLayer[iEl]->SetVisibility(true);
-        volQuarterLayer[iEl]->SetLineColor(kGray + 2);
-      } else if (iEl == 1) {
-        volQuarterLayer[iEl]->SetVisibility(true);
-        volQuarterLayer[iEl]->SetLineColor(kBlue + 2);
-      }
-
-      int id = (iEl == 1) ? 1 : 0;
-      LOGP(debug, "Inserting {} id {} inside {}", volQuarterLayer[iEl - 1]->GetName(), id, volQuarterLayer[iEl]->GetName());
-      volQuarterLayer[iEl]->AddNode(volQuarterLayer[iEl - 1], id, nullptr);
-    }
-  }
-
-  TGeoTranslation* translationTopRight = new TGeoTranslation(mGapXDirection / 2, 0., 0.);
-  TGeoRotation* rotationTopRight = new TGeoRotation("", -piDeg / 4, 0., 0.);
-  TGeoCombiTrans* rotoTranslationTopRight = new TGeoCombiTrans(*translationTopRight, *rotationTopRight);
-
-  TGeoTranslation* translationTopLeft = new TGeoTranslation(-mGapXDirection / 2, 0., 0.);
-  TGeoRotation* rotationTopLeft = new TGeoRotation("", piDeg / 4, 0., 0.);
-  TGeoCombiTrans* rotoTranslationTopLeft = new TGeoCombiTrans(*translationTopLeft, *rotationTopLeft);
-
-  TGeoVolumeAssembly* halfLayer = new TGeoVolumeAssembly(names[nElements - 2].data());
-  halfLayer->AddNode(volQuarterLayer[nElements - 3], 0, rotoTranslationTopRight);
-  halfLayer->AddNode(volQuarterLayer[nElements - 3], 1, rotoTranslationTopLeft);
-
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
-  TGeoRotation* rotationBottom = new TGeoRotation("", piDeg, 0., 0.);
-  TGeoCombiTrans* rotoTranslationBottom = new TGeoCombiTrans(*translationBottom, *rotationBottom);
-
-  TGeoVolumeAssembly* volLayer = new TGeoVolumeAssembly(names[nElements - 1].data());
-  volLayer->AddNode(halfLayer, 0, translationTop);
-  volLayer->AddNode(halfLayer, 1, rotoTranslationBottom);
-
-  // Finally put everything in the mother volume
-  LOGP(debug, "Inserting {} inside {}", volLayer->GetName(), motherVolume->GetName());
-  motherVolume->AddNode(volLayer, 1, nullptr);
+  // Power Switches are on the side right side of the pixel array and biasing.
+  auto zMovePowerSwitches = new TGeoTranslation(0, 0, +powerswitches::length / 2. + constants::pixelarray::length / 2.);
+  double powerPhi1 = readoutPhi2;
+  double powerPhi2 = powerswitches::width / mR * o2m::Rad2Deg + powerPhi1;
+  auto powerSwitches = new TGeoTubeSeg(mRmin, mRmax, powerswitches::length / 2, powerPhi1, powerPhi2);
+  auto powerSwitchesVol = new TGeoVolume(Form("powerswitches%d", mNLayer), powerSwitches, mSilicon);
+  powerSwitchesVol->SetLineColor(powerswitches::color);
+  powerSwitchesVol->RegisterYourself();
+  mTile->AddNode(powerSwitchesVol, 0, zMovePowerSwitches);
 }
 
-void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume, double deltaR, bool fourthLayer)
+void ITS3Layer::createRSU()
 {
-  TGeoMedium* medCarbonFoam = (mBuildLevel < 1) ? gGeoManager->GetMedium("IT3_ERGDUOCEL$") : gGeoManager->GetMedium("IT3_AIR$"); // if build level >= 1 we do not put carbon foam but air
-  TGeoMedium* medGlue = (mBuildLevel < 2) ? gGeoManager->GetMedium("IT3_IMPREG_FLEECE$") : gGeoManager->GetMedium("IT3_AIR$");   // if build level >= 2 we do not put glue but air
-  TGeoMedium* medSi = (mBuildLevel <= 2) ? gGeoManager->GetMedium("IT3_SI$") : gGeoManager->GetMedium("IT3_AIR$");               // if build level > 2 we do not put silicon but air
+  using namespace constants::rsu;
+  // A Repeated Sensor Unit (RSU) is 12 Tiles + 4 Databackbones stichted together.
+  mRSU = new TGeoVolumeAssembly(its3TGeo::getITS3RSUPattern(mNLayer));
+  mRSU->VisibleDaughters();
+  int nCopyRSU{0}, nCopyDB{0};
 
-  double rmaxWoAddMat = mRadius + mChipThickness;
-  double rmax = rmaxWoAddMat + mAddMaterial;
-  double radiusBetweenLayer = deltaR - mChipThickness;
-  double rmedFoam = rmax + radiusBetweenLayer / 2;
-  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
-  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
-  double phiMin = (fourthLayer) ? piDeg / 4 : 0.;                           // degrees
-  double phiMax = (fourthLayer) ? piDeg * 3 / 4 : piDeg;                    // degrees
+  // Create the DatabackBone
+  // The Databackbone spans the whole phi of the tile.
+  double dataBackbonePhi1 = 0;
+  double dataBackbonePhi2 = databackbone::width / mR * o2m::Rad2Deg;
+  auto dataBackbone = new TGeoTubeSeg(mRmin, mRmax, databackbone::length / 2., dataBackbonePhi1, dataBackbonePhi2);
+  auto dataBackboneVol = new TGeoVolume(Form("databackbone%d", mNLayer), dataBackbone, mSilicon);
+  dataBackboneVol->SetLineColor(databackbone::color);
+  dataBackboneVol->RegisterYourself();
 
-  TGeoTranslation* transSemicircle[2];
-  transSemicircle[0] = new TGeoTranslation("transSemicircleFoam0", 0, 0, (mZLen - mLengthSemiCircleFoam) / 2);
-  transSemicircle[0]->RegisterYourself();
-  transSemicircle[1] = new TGeoTranslation("transSemicircleFoam1", 0, 0, -(mZLen - mLengthSemiCircleFoam) / 2);
-  transSemicircle[1]->RegisterYourself();
+  // Lower Left
+  auto zMoveLL1 = new TGeoTranslation(0, 0, constants::tile::length);
+  auto zMoveLL2 = new TGeoTranslation(0, 0, constants::tile::length * 2.);
+  auto zMoveLLDB = new TGeoTranslation(0, 0, -databackbone::length / 2. - constants::pixelarray::length / 2.);
+  // Lets attach the tiles to the QS.
+  mRSU->AddNode(mTile, nCopyRSU++, nullptr);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveLL1);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveLL2);
+  mRSU->AddNode(dataBackboneVol, nCopyDB++, zMoveLLDB);
 
-  TGeoTubeSeg* subGluedFoamBottom[4];
-  subGluedFoamBottom[0] = new TGeoTubeSeg(Form("subgluedfoambottom0layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-  subGluedFoamBottom[1] = new TGeoTubeSeg(Form("subgluedfoambottom1layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-  subGluedFoamBottom[2] = new TGeoTubeSeg(Form("subgluedfoambottom2layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, phiMin + phiGap, phiMin + TMath::RadToDeg() * mHeightStripFoam / rmedFoam + phiGap);
-  subGluedFoamBottom[3] = new TGeoTubeSeg(Form("subgluedfoambottom3layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, phiMax - TMath::RadToDeg() * (mHeightStripFoam / rmedFoam) - phiGap, phiMax - phiGap);
-  TGeoTubeSeg* subGluedFoamTop[4];
-  subGluedFoamTop[0] = new TGeoTubeSeg(Form("subgluedfoamtop0layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-  subGluedFoamTop[1] = new TGeoTubeSeg(Form("subgluedfoamtop1layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-  subGluedFoamTop[2] = new TGeoTubeSeg(Form("subgluedfoamtop2layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, phiMin + phiGap, phiMin + TMath::RadToDeg() * mHeightStripFoam / rmedFoam + phiGap);
-  subGluedFoamTop[3] = new TGeoTubeSeg(Form("subgluedfoamtop3layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, phiMax - TMath::RadToDeg() * (mHeightStripFoam / rmedFoam) - phiGap, phiMax - phiGap);
+  // Lower Right
+  auto zMoveLR0 = new TGeoTranslation(0, 0, +length / 2.);
+  auto zMoveLR1 = new TGeoTranslation(0, 0, constants::tile::length + length / 2.);
+  auto zMoveLR2 = new TGeoTranslation(0, 0, constants::tile::length * 2. + length / 2.);
+  auto zMoveLRDB = new TGeoTranslation(0, 0, -databackbone::length / 2. + length / 2. - constants::pixelarray::length / 2.);
+  // Lets attach the tiles to the QS.
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveLR0);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveLR1);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveLR2);
+  mRSU->AddNode(dataBackboneVol, nCopyDB++, zMoveLRDB);
 
-  std::string subGluedFoamsNames = "";
-  for (int iObj{0}; iObj < 2; ++iObj) {
-    subGluedFoamsNames += Form("(subgluedfoambottom%dlayer%d:transSemicircleFoam%d)+", iObj, mLayerNumber, iObj);
+  // Rotation for top half and vertical mirroring
+  double phi = width / mR * o2m::Rad2Deg;
+  auto rot = new TGeoRotation("", 0, 0, -phi);
+  rot->ReflectY(true);
+
+  // Upper Left
+  auto zMoveUL1 = new TGeoCombiTrans(0, 0, constants::tile::length, rot);
+  auto zMoveUL2 = new TGeoCombiTrans(0, 0, constants::tile::length * 2., rot);
+  auto zMoveULDB = new TGeoCombiTrans(0, 0, -databackbone::length / 2. - constants::pixelarray::length / 2., rot);
+  // Lets attach the tiles to the QS.
+  mRSU->AddNode(mTile, nCopyRSU++, rot);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveUL1);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveUL2);
+  mRSU->AddNode(dataBackboneVol, nCopyDB++, zMoveULDB);
+
+  // Upper Right
+  auto zMoveUR0 = new TGeoCombiTrans(0, 0, +length / 2., rot);
+  auto zMoveUR1 = new TGeoCombiTrans(0, 0, constants::tile::length + length / 2., rot);
+  auto zMoveUR2 = new TGeoCombiTrans(0, 0, constants::tile::length * 2. + length / 2., rot);
+  auto zMoveURDB = new TGeoCombiTrans(0, 0, -databackbone::length / 2. + length / 2. - constants::pixelarray::length / 2., rot);
+  // Lets attach the tiles to the QS.
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveUR0);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveUR1);
+  mRSU->AddNode(mTile, nCopyRSU++, zMoveUR2);
+  mRSU->AddNode(dataBackboneVol, nCopyDB++, zMoveURDB);
+}
+
+void ITS3Layer::createSegment()
+{
+  using namespace constants::segment;
+  // A segment is 12 RSUs + left and right end cap. We place the first rsu
+  // as z-coordinate center and attach to this. Hence, we will displace the
+  // left end-cap to the left and the right to right.
+  mSegment = new TGeoVolumeAssembly(its3TGeo::getITS3SegmentPattern(mNLayer));
+  mSegment->VisibleDaughters();
+
+  for (int i{0}; i < nRSUs; ++i) {
+    auto zMove = new TGeoTranslation(0, 0, +i * constants::rsu::length + constants::rsu::databackbone::length + constants::pixelarray::length / 2.);
+    mSegment->AddNode(mRSU, i, zMove);
   }
-  subGluedFoamsNames += Form("subgluedfoambottom2layer%d+", mLayerNumber);
-  subGluedFoamsNames += Form("subgluedfoambottom3layer%d+", mLayerNumber);
 
-  for (int iObj{0}; iObj < 2; ++iObj) {
-    subGluedFoamsNames += Form("(subgluedfoamtop%dlayer%d:transSemicircleFoam%d)+", iObj, mLayerNumber, iObj);
-  }
-  subGluedFoamsNames += Form("subgluedfoamtop2layer%d+", mLayerNumber);
-  subGluedFoamsNames += Form("subgluedfoamtop3layer%d", mLayerNumber);
+  // LEC
+  double lecPhi1 = 0;
+  double lecPhi2 = lec::width / mR * o2m::Rad2Deg;
+  auto zMoveLEC = new TGeoTranslation(0, 0, -lec::length / 2.);
+  auto lec =
+    new TGeoTubeSeg(mRmin, mRmax, lec::length / 2., lecPhi1, lecPhi2);
+  auto lecVol = new TGeoVolume(Form("lec%d", mNLayer), lec, mSilicon);
+  lecVol->SetLineColor(lec::color);
+  lecVol->RegisterYourself();
+  mSegment->AddNode(lecVol, 0, zMoveLEC);
 
-  TGeoCompositeShape* gluedfoam = new TGeoCompositeShape(subGluedFoamsNames.data());
-  TGeoVolume* volGlue = new TGeoVolume(Form("Glue%d", mLayerNumber), gluedfoam, medGlue);
-  motherVolume->AddNode(volGlue, 1, nullptr);
+  // REC; reuses lecPhi1,2
+  auto zMoveREC = new TGeoTranslation(0, 0, nRSUs * constants::rsu::length + rec::length / 2.);
+  auto rec =
+    new TGeoTubeSeg(mRmin, mRmax, rec::length / 2., lecPhi1, lecPhi2);
+  auto recVol = new TGeoVolume(Form("rec%d", mNLayer), rec, mSilicon);
+  recVol->SetLineColor(rec::color);
+  recVol->RegisterYourself();
+  mSegment->AddNode(recVol, 0, zMoveREC);
+}
 
-  TGeoTubeSeg* subFoam[4];
-  subFoam[0] = new TGeoTubeSeg(Form("subfoam0layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-  subFoam[1] = new TGeoTubeSeg(Form("subfoam1layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-  subFoam[2] = new TGeoTubeSeg(Form("subfoam2layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, phiMin + phiGap, phiMin + TMath::RadToDeg() * mHeightStripFoam / rmedFoam + phiGap);
-  subFoam[3] = new TGeoTubeSeg(Form("subfoam3layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, phiMax - TMath::RadToDeg() * (mHeightStripFoam / rmedFoam) - phiGap, phiMax - phiGap);
+void ITS3Layer::createChip()
+{
 
-  std::string subFoamNames = "";
-  for (int iObj{0}; iObj < 2; ++iObj) {
-    subFoamNames += Form("(subfoam%dlayer%d:transSemicircleFoam%d)+", iObj, mLayerNumber, iObj);
-  }
-  subFoamNames += Form("subfoam2layer%d+", mLayerNumber);
-  subFoamNames += Form("subfoam3layer%d", mLayerNumber);
+  // A HalfLayer is composed out of multiple segment stitched together along
+  // rphi.
+  mChip = new TGeoVolumeAssembly(its3TGeo::getITS3ChipPattern(mNLayer));
+  mChip->VisibleDaughters();
 
-  TGeoCompositeShape* foam = new TGeoCompositeShape(subFoamNames.data());
-  TGeoVolume* volFoam = new TGeoVolume(Form("CarbonFoam%d", mLayerNumber), foam, medCarbonFoam);
-  motherVolume->AddNode(volFoam, 1, nullptr);
-
-  if (mAddMaterial > 0.) {
-    TGeoTubeSeg* addMat = new TGeoTubeSeg(Form("additionalMaterialLayer%d", mLayerNumber), rmaxWoAddMat, rmax, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
-    TGeoVolume* volAddMat = new TGeoVolume(Form("AdditionalMaterial%d", mLayerNumber), addMat, medSi);
-    motherVolume->AddNode(volAddMat, 1, nullptr);
+  for (int i{0}; i < constants::nSegments[mNLayer]; ++i) {
+    double phiOffset = constants::segment::width / mR * o2m::Rad2Deg;
+    auto rot = new TGeoRotation("", 0, 0, phiOffset * i);
+    mChip->AddNode(mSegment, i, rot);
   }
 }
+
+void ITS3Layer::createCarbonForm()
+{
+  // TODO : Waiting for the further information from WP5(Corrado)
+  using namespace constants::carbonfoam;
+  mCarbonForm = new TGeoVolumeAssembly(its3TGeo::getITS3CarbonFormPattern(mNLayer));
+  mCarbonForm->VisibleDaughters();
+  double dRadius = -1;
+  if (mNLayer < 2) {
+    dRadius = constants::radii[mNLayer + 1] - constants::radii[mNLayer] - constants::thickness;
+  } else {
+    dRadius = 0.7; // TODO: lack of carbon foam radius for layer 2, use 0.7mm as a temporary value
+  }
+  double phiSta = edgeBetwChipAndFoam / (0.5 * constants::radii[mNLayer + 1] + constants::radii[mNLayer]) * o2m::Rad2Deg;
+  double phiEnd = (constants::nSegments[mNLayer] * constants::segment::width) / constants::radii[mNLayer] * o2m::Rad2Deg - phiSta;
+  double phiLongeronsCover = longeronsWidth / (0.5 * constants::radii[mNLayer + 1] + constants::radii[mNLayer]) * o2m::Rad2Deg;
+
+  // H-rings foam
+  auto HringC = new TGeoTubeSeg(Form("HringC%d", mNLayer), mRmax, mRmax + dRadius, HringLength / 2., phiSta, phiEnd);
+  auto HringA = new TGeoTubeSeg(Form("HringA%d", mNLayer), mRmax, mRmax + dRadius, HringLength / 2., phiSta, phiEnd);
+  auto HringCWithHoles = getHringShape(HringC);
+  auto HringAWithHoles = getHringShape(HringA);
+  auto HringCVol = new TGeoVolume(Form("hringC%d", mNLayer), HringCWithHoles, mCarbon);
+  HringCVol->SetLineColor(color);
+  auto HringAVol = new TGeoVolume(Form("hringA%d", mNLayer), HringAWithHoles, mCarbon);
+  HringAVol->SetLineColor(color);
+  auto zMoveHringC = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2.);
+  auto zMoveHringA = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2. + constants::segment::length - HringLength);
+
+  // Longerons are made by same material
+  auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiSta, phiSta + phiLongeronsCover);
+  auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiEnd - phiLongeronsCover, phiEnd);
+  TString nameLongerons = Form("longeronR%d + longeronL%d", mNLayer, mNLayer);
+  auto longerons = new TGeoCompositeShape(nameLongerons);
+  auto longeronsVol = new TGeoVolume(Form("longerons%d", mNLayer), longerons, mCarbon);
+  longeronsVol->SetLineColor(color);
+  auto zMoveLongerons = new TGeoTranslation(0, 0, -constants::segment::lec::length + constants::segment::length / 2.);
+
+  mCarbonForm->AddNode(HringCVol, 0, zMoveHringC);
+  mCarbonForm->AddNode(HringAVol, 0, zMoveHringA);
+  mCarbonForm->AddNode(longeronsVol, 0, zMoveLongerons);
+  mCarbonForm->AddNode(mChip, 0);
+}
+
+TGeoCompositeShape* ITS3Layer::getHringShape(TGeoTubeSeg* Hring)
+{
+  // Function to dig holes in H-rings
+  using namespace constants::carbonfoam;
+  double stepPhiHoles = (Hring->GetPhi2() - Hring->GetPhi1()) / (nHoles[mNLayer]);
+  double phiHolesSta = Hring->GetPhi1() + stepPhiHoles / 2.;
+  double radiusHring = 0.5 * (Hring->GetRmin() + Hring->GetRmax());
+  TGeoCompositeShape* HringWithHoles = nullptr;
+  TString nameAllHoles = "";
+  for (int iHoles = 0; iHoles < nHoles[mNLayer]; iHoles++) {
+    double phiHole = phiHolesSta + stepPhiHoles * iHoles;
+    TString nameHole = Form("hole_%d_%d", iHoles, mNLayer);
+    auto hole = new TGeoTube(nameHole, 0, radiusHoles[mNLayer], 3 * Hring->GetDz());
+    // move hole to the hring radius
+    auto zMoveHole = new TGeoTranslation(Form("zMoveHole_%d_%d", iHoles, mNLayer), radiusHring * cos(phiHole * o2m::Deg2Rad), radiusHring * sin(phiHole * o2m::Deg2Rad), 0);
+    zMoveHole->RegisterYourself();
+    nameAllHoles += Form("hole_%d_%d:zMoveHole_%d_%d + ", iHoles, mNLayer, iHoles, mNLayer);
+  }
+  nameAllHoles.Remove(nameAllHoles.Length() - 3, 3);
+  TString nameHringWithHoles = Form("%s - (%s)", Hring->GetName(), nameAllHoles.Data());
+  HringWithHoles = new TGeoCompositeShape(nameHringWithHoles);
+  return HringWithHoles;
+}
+
+void ITS3Layer::createLayerImpl()
+{
+  // At long last a single layer... A layer is two HalfLayers (duuhhh) but
+  // we have to take care of the equatorial gap. So both half layers will be
+  // offset slightly by rotating in phi the upper HalfLayer and negative phi
+  // the other one.
+  mLayer = new TGeoVolumeAssembly(its3TGeo::getITS3LayerPattern(mNLayer));
+  mLayer->VisibleDaughters();
+
+  // The offset is the right angle triangle of the middle radius with the
+  // transverse axis.
+  double phiOffset = std::asin(constants::equatorialGap / 2. / mR) * o2m::Rad2Deg;
+  auto rotTop = new TGeoRotation("", 0, 0, +phiOffset);
+  auto rotBot = new TGeoRotation("", 0, 0, phiOffset + 180);
+
+  mLayer->AddNode(mCarbonForm, 0, rotTop);
+  mLayer->AddNode(mCarbonForm, 1, rotBot);
+}
+
+void ITS3Layer::buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat, BuildLevel level)
+{
+  switch (level) {
+    case kPixelArray:
+      motherVolume->AddNode(mPixelArray, 0, mat);
+      break;
+    case kTile:
+      motherVolume->AddNode(mTile, 0, mat);
+      break;
+    case kRSU:
+      motherVolume->AddNode(mRSU, 0, mat);
+      break;
+    case kSegment:
+      motherVolume->AddNode(mSegment, 0, mat);
+      break;
+    case kChip:
+      motherVolume->AddNode(mChip, 0, mat);
+      break;
+    case kCarbonForm:
+      motherVolume->AddNode(mCarbonForm, 0, mat);
+      break;
+    case kLayer:
+      [[fallthrough]];
+    default:
+      motherVolume->AddNode(mLayer, 0, mat);
+  }
+}
+
+} // namespace o2::its3

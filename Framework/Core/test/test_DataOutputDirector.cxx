@@ -29,7 +29,6 @@ TEST_CASE("TestDataOutputDirector")
   std::string keepString("AOD/UNO/0:tr1:c1/c2/c3:fn1,AOD/UNO/0::c4");
   dod.readString(keepString);
   dod.setFilenameBase(mydfn);
-  //dod.printOut(); printf("\n\n");
 
   auto ds = dod.getDataOutputDescriptors(dh);
 
@@ -59,7 +58,6 @@ TEST_CASE("TestDataOutputDirector")
 
   dod.reset();
   std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJsonString(jsonString);
-  //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
   REQUIRE(ds.size() == 1);
@@ -106,7 +104,6 @@ TEST_CASE("TestDataOutputDirector")
   dod.reset();
   std::tie(rdn, dfn, fmode, mfs, ntf) = dod.readJson(jsonFile);
   dod.setFilenameBase("AnalysisResults");
-  //dod.printOut(); printf("\n\n");
   ds = dod.getDataOutputDescriptors(dh);
 
   REQUIRE(ds.size() == 2);

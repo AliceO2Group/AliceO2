@@ -155,6 +155,28 @@ ChipMappingITS::ChipMappingITS()
       chipCount += NChipsPerStaveSB[sInfo.ruType];
     }
   }
+
+  // MB lookup
+  for (int ichw = 0; ichw <= MaxHWCableID[MB]; ichw++) { // loop over HW cables
+    for (int ihw = 0; ihw < 15; ihw++) {                 // init with invalid IDs
+      HWCableHWChip2ChipOnRU_MB[ichw][ihw] = 0xff;
+    }
+  }
+  for (int ichip = 0; ichip < NChipsPerStaveSB[MB]; ichip++) {
+    const auto& chInfo = mChipsInfo[NChipsPerStaveSB[IB] + ichip];
+    HWCableHWChip2ChipOnRU_MB[chInfo.cableHW][chInfo.chipOnModuleHW] = uint8_t(ichip);
+  }
+
+  // OB lookup
+  for (int ichw = 0; ichw <= MaxHWCableID[OB]; ichw++) { // loop over HW cables
+    for (int ihw = 0; ihw < 15; ihw++) {                 // init with invalid IDs
+      HWCableHWChip2ChipOnRU_OB[ichw][ihw] = 0xff;
+    }
+  }
+  for (int ichip = 0; ichip < NChipsPerStaveSB[OB]; ichip++) {
+    const auto& chInfo = mChipsInfo[NChipsPerStaveSB[IB] + NChipsPerStaveSB[MB] + ichip];
+    HWCableHWChip2ChipOnRU_OB[chInfo.cableHW][chInfo.chipOnModuleHW] = uint8_t(ichip);
+  }
   assert(ctrStv == getNRUs());
 }
 
@@ -243,10 +265,10 @@ std::vector<ChipMappingITS::Overlaps> ChipMappingITS::getOverlapsInfo() const
     int ruTp = getRUType(sta);
     if (ruTp == IB) {
       int chOnLr = id - getFirstChipsOnLayer(lay), chPerSStave = getNChipsOnRUType(ruTp);
-      vval.lowRow = getFirstChipsOnLayer(lay) + (chOnLr - chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay);  // chips overlapping from rowMin side with other chips high row side
-      vval.highRow = getFirstChipsOnLayer(lay) + (chOnLr + chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay); // chips overlapping from rowMax side with other chips low row side
-      vval.lowRowOverlap = ChipMappingITS::Overlaps::HighRow;
-      vval.highRowOverlap = ChipMappingITS::Overlaps::LowRow;
+      vval.rowSide[ChipMappingITS::Overlaps::LowRow] = getFirstChipsOnLayer(lay) + (chOnLr - chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay);  // chips overlapping from rowMin side with other chips high row side
+      vval.rowSide[ChipMappingITS::Overlaps::HighRow] = getFirstChipsOnLayer(lay) + (chOnLr + chPerSStave + getNChipsOnLayer(lay)) % getNChipsOnLayer(lay); // chips overlapping from rowMax side with other chips low row side
+      vval.rowSideOverlap[ChipMappingITS::Overlaps::LowRow] = ChipMappingITS::Overlaps::HighRow;
+      vval.rowSideOverlap[ChipMappingITS::Overlaps::HighRow] = ChipMappingITS::Overlaps::LowRow;
     } else {
       int staOv = sta, modOv = mod;
       auto NChipsModule = NChipsPerModuleSB[ruTp];
@@ -261,8 +283,8 @@ std::vector<ChipMappingITS::Overlaps> ChipMappingITS::getOverlapsInfo() const
           staOv = getFirstStavesOnLr(lay) + (sta - getFirstStavesOnLr(lay) + 1 + getNStavesOnLr(lay)) % getNStavesOnLr(lay); // stave above
         }
       }
-      vval.highRow = getGlobalChipIDSW(lay, staOv, modOv, NChipsModule - 1 - chip);
-      vval.highRowOverlap = ChipMappingITS::Overlaps::HighRow;
+      vval.rowSide[ChipMappingITS::Overlaps::HighRow] = getGlobalChipIDSW(lay, staOv, modOv, NChipsModule - 1 - chip);
+      vval.rowSideOverlap[ChipMappingITS::Overlaps::HighRow] = ChipMappingITS::Overlaps::HighRow;
     }
   }
   return v;

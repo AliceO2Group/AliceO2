@@ -18,6 +18,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Framework/CCDBParamSpec.h"
 
 namespace o2
 {
@@ -39,7 +40,9 @@ o2::framework::DataProcessorSpec getClusterSharingMapSpec()
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("clusTPC", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("grpecs", "GLO", "GRPECS", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("GLO/Config/GRPECS", true));
   outputs.emplace_back("TPC", "CLSHAREDMAP", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "TPCOCCUPANCYMAP", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{
     "tpc-clusters-sharing-map-producer",

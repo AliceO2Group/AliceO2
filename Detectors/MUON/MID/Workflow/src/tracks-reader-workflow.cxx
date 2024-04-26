@@ -15,16 +15,25 @@
 
 #include <vector>
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CallbacksPolicy.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.emplace_back("disable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Disable MC info"});
-  workflowOptions.emplace_back("configKeyValues", VariantType::String, "", ConfigParamSpec::HelpString{"Semicolon separated key=value strings ..."});
+  std::vector<ConfigParamSpec> options{{"disable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Disable MC info"}},
+                                       {"configKeyValues", VariantType::String, "", ConfigParamSpec::HelpString{"Semicolon separated key=value strings ..."}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -32,5 +41,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   bool useMC = !config.options().get<bool>("disable-mc");
-  return WorkflowSpec{o2::mid::getTrackReaderSpec(useMC)};
+  WorkflowSpec specs{o2::mid::getTrackReaderSpec(useMC)};
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(config, specs);
+  return specs;
 }

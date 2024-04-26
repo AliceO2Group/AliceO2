@@ -14,11 +14,13 @@
 #include <vector>
 
 #include "GlobalTracking/MatchTPCITS.h"
+#include "GlobalTracking/MatchTPCITSParams.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -36,6 +38,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DataFormatsParameters/GRPECSObject.h"
@@ -60,8 +63,13 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC) {}
+  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts,
+                    bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC)
+  {
+    mTPCCorrMapsLoader.setLumiScaleType(sclOpts.lumiType);
+    mTPCCorrMapsLoader.setLumiScaleMode(sclOpts.lumiMode);
+  }
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -120,6 +128,7 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
   mMatching.end();
   LOGF(info, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mMatching.reportTiming();
 }
 
 void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -133,6 +142,10 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "ITSTPCPARAM", 0)) {
+    LOG(info) << "ITS-TPC Matching params updated from ccdb";
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMatching.setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -142,6 +155,11 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << "ITS Alpide param updated";
     const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
+    LOG(info) << "ITS GeomtetryTGeo loaded from ccdb";
+    o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
 }
@@ -154,6 +172,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
+    pc.inputs().get<o2::globaltracking::MatchTPCITSParams*>("MatchParam");
 
     //  Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -165,6 +184,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     mMatching.setITSTimeBiasInBC(alpParams.roFrameBiasInBC);
     mMatching.setSkipTPCOnly(mSkipTPCOnly);
     mMatching.setITSTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
+    mMatching.setNHBPerTF(o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF());
     mMatching.setMCTruthOn(mUseMC);
     mMatching.setUseFT0(mUseFT0);
     mMatching.setVDriftCalib(mCalibMode);
@@ -173,15 +193,23 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mMatching.setCosmics(true);
     }
+    if (pc.inputs().getPos("itsTGeo") >= 0) {
+      pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+    }
     mMatching.init();
+    // check consistency of material correction options
+    if (mMatching.getUseMatCorrFlag() == o2::base::Propagator::MatCorrType::USEMatCorrTGeo && !o2::base::GeometryManager::isGeometryLoaded()) {
+      LOGP(fatal, "USEMatCorrTGeo cannot work w/o  full geometry request in the GRPGeomHelper");
+    }
   }
   // we may have other params which need to be queried regularly
   bool updateMaps = false;
   if (mTPCCorrMapsLoader.isUpdated()) {
-    mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
     mTPCCorrMapsLoader.acknowledgeUpdate();
     updateMaps = true;
   }
+  mMatching.setTPCCorrMaps(&mTPCCorrMapsLoader);
+
   if (mTPCVDriftHelper.isUpdated()) {
     LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
          mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
@@ -196,13 +224,14 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useGeom, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   if ((src & GTrackID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any()) { // preliminary stage of extended workflow ?
     dataRequest->setMatchingInputStrict();
   }
+  dataRequest->inputs.emplace_back("MatchParam", "GLO", "ITSTPCPARAM", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/ITSTPCParam"));
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestTPCClusters(false);
@@ -224,14 +253,17 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   }
   // Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
 
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              true,                              // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                                                         // orbitResetTime
+                                                              true,                                                                         // GRPECS=true
+                                                              true,                                                                         // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              true,                                                                         // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
+  if (!useGeom) {                                                    // load ITS GeomTGeo since the full geometry is not loaded
+    ggRequest->addInput({"itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/Geometry")}, dataRequest->inputs);
+  }
 
   Options opts{
     {"nthreads", VariantType::Int, 1, {"Number of afterburner threads"}},
@@ -245,7 +277,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     "itstpc-track-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, ggRequest, useFT0, calib, skipTPCOnly, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, ggRequest, sclOpts, useFT0, calib, skipTPCOnly, useMC)},
     opts};
 }
 

@@ -188,10 +188,10 @@ void configLayers()
   o2::itsmft::ChipMappingITS mp;
   int nStave = 0;
   //                           rMin    rMax   zHalf
-  lrData.emplace_back(LrData(0.0f, 1.65f, 30.f));
+  lrData.emplace_back(0.0f, 1.65f, 30.f);
 
   // beam pipe
-  lrData.emplace_back(LrData(lrData.back().rMax, 1.8f, 30.f));
+  lrData.emplace_back(lrData.back().rMax, 1.8f, 30.f);
 
   //===================================================================================
   // ITS3 Inner Barrel
@@ -220,24 +220,6 @@ void configLayers()
 
   // Layer 3
   lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStepChip, zSpanH, zBin, rphiBin));
-
-  // Check if the layer 4 is present
-  TGeoVolume* cave = gGeoManager->FindVolumeFast("cave");
-  TGeoVolume* barrel_1 = cave->FindNode("barrel_1")->GetVolume();
-  TGeoVolume* ITSV_2 = barrel_1->FindNode("ITSV_2")->GetVolume();
-  TGeoVolume* ITSUWrapVol0_1 = ITSV_2->FindNode("ITSUWrapVol0_1")->GetVolume();
-  if (ITSUWrapVol0_1->FindNode("ITS3Layer3_1")) {
-    LOG(info) << "FourLayers version of ITS3 IB geometry is used";
-    // Air
-    do {
-      lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStep, zSpanH, zBin, rphiBin));
-    } while (lrData.back().rMax < 6.0f - drStep + kToler);
-    lrData.emplace_back(LrData(lrData.back().rMax, 6.0f, zSpanH, zBin, rphiBin));
-    // Layer 4
-    lrData.emplace_back(LrData(lrData.back().rMax, lrData.back().rMax + drStepChip4Layer, zSpanH, zBin, rphiBin));
-  } else {
-    LOG(info) << "ThreeLayers version of ITS3 IB geometry is used";
-  }
 
   //===================================================================================
   // air space between Inner and Middle Barrels

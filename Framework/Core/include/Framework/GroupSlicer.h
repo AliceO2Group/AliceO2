@@ -194,10 +194,9 @@ struct GroupSlicer {
             return typedTable;
 
           } else {
-            auto groupedElementsTable = originalTable.asArrowTable()->Slice(offset, count);
-            std::decay_t<A1> typedTable{{groupedElementsTable}, offset};
-            typedTable.bindInternalIndicesTo(&originalTable);
-            return typedTable;
+            auto groupedElementsTable = originalTable.rawSlice(offset, offset + count - 1);
+            groupedElementsTable.bindInternalIndicesTo(&originalTable);
+            return groupedElementsTable;
           }
         } else {
           // generic split

@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
@@ -43,6 +44,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, "TPC", {"comma-separated list of sources to use: TPC,TPC-TOF,TPC-TRD,TPC-TRD-TOF"}},
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
+    {"use-full-geometry", o2::framework::VariantType::Bool, false, {"use full geometry instead of the light-weight ITS part"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::tpc::CorrectionMapsLoader::addGlobalOptions(options);
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -75,6 +77,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   bool needStrictTRDTOF = (src & GID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any();
   auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(configcontext.options());
+  auto useGeom = configcontext.options().get<bool>("use-full-geometry");
   auto useFT0 = configcontext.options().get<bool>("use-ft0");
   if (useFT0) {
     src |= GID::getSourceMask(GID::FT0);
@@ -82,12 +85,15 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
   auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is neadded always, TPC must be loaded even if bare TPC tracks are not used in matching
-  if (sclOpt.lumiType == 1) {
+  if (sclOpt.requestCTPLumi) {
     srcL = srcL | GID::getSourcesMask("CTP");
   }
 
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useMC, sclOpt));
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useGeom, useMC, sclOpt));
 
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));

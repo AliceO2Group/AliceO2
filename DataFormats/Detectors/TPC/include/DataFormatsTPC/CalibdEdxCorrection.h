@@ -22,6 +22,7 @@
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
 #include <algorithm>
+#include <array>
 #endif
 
 // o2 includes
@@ -95,6 +96,18 @@ class CalibdEdxCorrection
 
   /// \param outFileName name of the output file
   void dumpToTree(const char* outFileName = "calib_dedx.root") const;
+
+  /// Parameters averaged over all stacks
+  const std::array<float, ParamSize> getMeanParams(ChargeType charge) const;
+
+  /// Parameters averaged over all sectors for a stack type
+  const std::array<float, ParamSize> getMeanParams(const GEMstack stack, ChargeType charge) const;
+
+  /// Single fit parameters averaged over all sectors for a stack type
+  float getMeanParam(ChargeType charge, uint32_t param) const;
+
+  /// Single fit parameters averaged over all sectors for a stack type
+  float getMeanParam(const GEMstack stack, ChargeType charge, uint32_t param) const;
 
 #endif
 

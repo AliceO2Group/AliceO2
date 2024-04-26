@@ -16,7 +16,6 @@
 #include <fairlogger/Logger.h>
 #include "TGeant4.h"
 #include "TG4RunConfiguration.h"
-#include "TPythia6Decayer.h"
 #include "FairModule.h"
 #include "SimConfig/G4Params.h"
 #include "SimConfig/SimParams.h"

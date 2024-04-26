@@ -41,16 +41,16 @@ enum class VariantType : int { Int = 0,
                                Array2DInt,
                                Array2DFloat,
                                Array2DDouble,
-                               LabeledArrayInt,
-                               LabeledArrayFloat,
-                               LabeledArrayDouble,
+                               LabeledArrayInt,    // 2D array
+                               LabeledArrayFloat,  // 2D array
+                               LabeledArrayDouble, // 2D array
                                UInt8,
                                UInt16,
                                UInt32,
                                UInt64,
                                Int8,
                                Int16,
-                               LabeledArrayString,
+                               LabeledArrayString, // 2D array
                                Empty,
                                Dict,
                                Unknown };
@@ -71,6 +71,12 @@ constexpr auto isArray2D()
   return (V == VariantType::Array2DInt ||
           V == VariantType::Array2DFloat ||
           V == VariantType::Array2DDouble);
+}
+
+template <VariantType V>
+constexpr auto isLabeledArrayString()
+{
+  return V == VariantType::LabeledArrayString;
 }
 
 template <VariantType V>
@@ -279,7 +285,7 @@ struct variant_helper<S, std::string_view> {
 
 template <typename S>
 struct variant_helper<S, std::string> {
-  static std::string get(const S* store) { return std::string(strdup(*reinterpret_cast<const char* const*>(store))); }
+  static std::string get(const S* store) { return std::string(*reinterpret_cast<const char* const*>(store)); }
 
   static void set(S* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
 };
@@ -290,9 +296,9 @@ class Variant
   using storage_t = std::aligned_union<8, int, int8_t, int16_t, int64_t,
                                        uint8_t, uint16_t, uint32_t, uint64_t,
                                        const char*, float, double, bool,
-                                       int*, float*, double*, bool*,
-                                       Array2D<int>, Array2D<float>, Array2D<double>,
-                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>>::type;
+                                       int*, float*, double*, bool*, std::string*,
+                                       Array2D<int>, Array2D<float>, Array2D<double>, Array2D<std::string>,
+                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>, LabeledArray<std::string>>::type;
 
  public:
   Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}

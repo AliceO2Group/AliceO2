@@ -337,12 +337,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
     auto name = processor.name;
-    auto hash = compile_time_hash(name.c_str());
+    auto hash = runtime_hash(name.c_str());
     outTskMap.push_back({hash, name});
 
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
-      processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str())), Lifetime::Enumeration});
+      processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(runtime_hash(processor.name.c_str())), Lifetime::Enumeration});
       ConfigParamsHelper::addOptionIfMissing(processor.options, ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"1st injected orbit"}});
       ConfigParamsHelper::addOptionIfMissing(processor.options, ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"orbits/TForbit"}});
       processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}});
@@ -368,7 +368,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
     if (std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid")) != -1) {
       if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
-        processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str()))}});
+        processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(runtime_hash(processor.name.c_str()))}});
       }
     }
     bool hasConditionOption = false;
@@ -1214,8 +1214,14 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-bool validateLifetime(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+bool validateLifetime(std::ostream& errors,
+                      DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorPoliciesInfo const& producerPolicies,
+                      DataProcessorSpec const& consumer, InputSpec const& input, DataProcessorPoliciesInfo const& consumerPolicies)
 {
+  // In case the completion policy is consume-any, we do not need to check anything.
+  if (consumerPolicies.completionPolicyName == "consume-any") {
+    return true;
+  }
   if (input.lifetime == Lifetime::Timeframe && output.lifetime == Lifetime::Sporadic) {
     errors << fmt::format("Input {} of {} has lifetime Timeframe, but output {} of {} has lifetime Sporadic\n",
                           DataSpecUtils::describe(input).c_str(), consumer.name,
@@ -1225,7 +1231,9 @@ bool validateLifetime(std::ostream& errors, DataProcessorSpec const& producer, O
   return true;
 }
 
-bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)
+bool validateExpendable(std::ostream& errors,
+                        DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorPoliciesInfo const& producerPolicies,
+                        DataProcessorSpec const& consumer, InputSpec const& input, DataProcessorPoliciesInfo const& consumerPolicies)
 {
   auto isExpendable = [](DataProcessorLabel const& label) {
     return label.value == "expendable";
@@ -1244,8 +1252,12 @@ bool validateExpendable(std::ostream& errors, DataProcessorSpec const& producer,
   return true;
 }
 
-using Validator = std::function<bool(std::ostream& errors, DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorSpec const& consumer, InputSpec const& input)>;
+using Validator = std::function<bool(std::ostream& errors,
+                                     DataProcessorSpec const& producer, OutputSpec const& output, DataProcessorPoliciesInfo const& producerPolicies,
+                                     DataProcessorSpec const& consumer, InputSpec const& input, DataProcessorPoliciesInfo const& consumerPolicies)>;
+
 void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
+                                    std::vector<DataProcessorPoliciesInfo> const& policies,
                                     std::vector<DeviceConnectionEdge> const& edges,
                                     std::vector<OutputSpec> const& outputs)
 {
@@ -1262,10 +1274,12 @@ void WorkflowHelpers::validateEdges(WorkflowSpec const& workflow,
   for (auto& edge : edges) {
     DataProcessorSpec const& producer = workflow[edge.producer];
     DataProcessorSpec const& consumer = workflow[edge.consumer];
+    DataProcessorPoliciesInfo const& producerPolicies = policies[edge.producer];
+    DataProcessorPoliciesInfo const& consumerPolicies = policies[edge.consumer];
     OutputSpec const& output = outputs[edge.outputGlobalIndex];
     InputSpec const& input = consumer.inputs[edge.consumerInputIndex];
     for (auto& validator : defaultValidators) {
-      hasErrors |= !validator(errors, producer, output, consumer, input);
+      hasErrors |= !validator(errors, producer, output, producerPolicies, consumer, input, consumerPolicies);
     }
   }
   if (hasErrors) {

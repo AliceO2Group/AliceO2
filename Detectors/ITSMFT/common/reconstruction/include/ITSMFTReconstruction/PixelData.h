@@ -122,10 +122,11 @@ class ChipPixelData
   void setFirstUnmasked(uint32_t n) { mFirstUnmasked = n; }
   void setTrigger(uint32_t t) { mTrigger = t; }
 
-  void setError(ChipStat::DecErrors i) { mErrors |= 0x1 << i; }
+  void setError(ChipStat::DecErrors i) { mErrors |= 0x1UL << i; }
   void addErrorInfo(uint64_t b) { mErrorInfo |= b; }
-  void setErrorFlags(uint32_t f) { mErrors |= f; }
-  bool isErrorSet(ChipStat::DecErrors i) const { return mErrors & (0x1 << i); }
+  void setErrorInfo(uint64_t b) { mErrorInfo = b; }
+  void setErrorFlags(uint64_t f) { mErrors |= f; }
+  bool isErrorSet(ChipStat::DecErrors i) const { return mErrors & (0x1UL << i); }
   bool isErrorSet() const { return mErrors != 0; }
   auto getErrorFlags() const { return mErrors; }
   auto getErrorInfo() const { return mErrorInfo; }
@@ -254,7 +255,7 @@ class ChipPixelData
   uint32_t mFirstUnmasked = 0;                     // first unmasked entry in the mPixels
   uint32_t mStartID = 0;                           // entry of the 1st pixel data in the whole detector data, for MCtruth access
   uint32_t mTrigger = 0;                           // trigger pattern
-  uint32_t mErrors = 0;                            // errors set during decoding
+  uint64_t mErrors = 0;                            // errors set during decoding
   uint64_t mErrorInfo = 0;                         // optional extra info on the error
   std::array<uint8_t, MAXDATAERRBYTES> mRawBuff{}; // buffer for raw data showing an error
   o2::InteractionRecord mInteractionRecord = {};   // interaction record
@@ -262,7 +263,7 @@ class ChipPixelData
   std::vector<uint32_t> mPixIds;                   // vector of label indices in case of squashing+Monte Carlo
   std::vector<int> mPixelsOrder;                   // vector to get ordered access to pixel ids
 
-  ClassDefNV(ChipPixelData, 1);
+  ClassDefNV(ChipPixelData, 2);
 };
 } // namespace itsmft
 } // namespace o2

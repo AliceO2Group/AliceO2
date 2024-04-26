@@ -40,7 +40,7 @@ void GPUTPCSliceData::InitializeRows(const MEM_CONSTANT(GPUParam) & p)
   }
   for (int i = 0; i < GPUCA_ROW_COUNT; ++i) {
     mRows[i].mX = p.tpcGeometry.Row2X(i);
-    mRows[i].mMaxY = CAMath::Tan(p.par.dAlpha / 2.) * mRows[i].mX;
+    mRows[i].mMaxY = CAMath::Tan(p.par.dAlpha / 2.f) * mRows[i].mX;
   }
 }
 
@@ -112,7 +112,7 @@ void* GPUTPCSliceData::SetPointersRows(void* mem)
 GPUd() void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ)
 {
   maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
-  maxZ = mem->param.par.continuousMaxTimeBin > 0 ? mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.par.continuousMaxTimeBin) + 50 : 300;
+  maxZ = (mem->param.par.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.par.continuousMaxTimeBin)) : mem->param.tpcGeometry.TPCLength()) + 50;
   maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
 }
 
@@ -129,7 +129,7 @@ GPUdi() void GPUTPCSliceData::CreateGrid(GPUconstantref() const MEM_CONSTANT(GPU
     tfFactor = dz / GPUTPCGeometry::TPCLength();
     dz = GPUTPCGeometry::TPCLength();
   }
-  const float norm = CAMath::FastInvSqrt(row->mNHits / tfFactor);
+  const float norm = CAMath::InvSqrt(row->mNHits / tfFactor);
   float sy = CAMath::Min(CAMath::Max((yMax - yMin) * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
   float sz = CAMath::Min(CAMath::Max(dz * norm, GPUCA_MIN_BIN_SIZE), GPUCA_MAX_BIN_SIZE);
   int maxy, maxz;
@@ -355,7 +355,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     GPUbarrier();
 
     constexpr float maxVal = (((long int)1 << (sizeof(cahit) < 3 ? sizeof(cahit) * 8 : 24)) - 1); // Stay within float precision in any case!
-    constexpr float packingConstant = 1.f / (maxVal - 2.);
+    constexpr float packingConstant = 1.f / (maxVal - 2.f);
     const float y0 = row.mGrid.YMin();
     const float z0 = row.mGrid.ZMin();
     const float stepY = (row.mGrid.YMax() - y0) * packingConstant;

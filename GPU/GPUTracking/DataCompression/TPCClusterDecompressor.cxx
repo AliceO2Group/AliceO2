@@ -52,7 +52,7 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
     (&locks[0][0])[i].clear();
   }
   unsigned int offset = 0, lasti = 0;
-  const unsigned int maxTime = (param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
+  const unsigned int maxTime = param.par.continuousMaxTimeBin > 0 ? ((param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1) : TPC_MAX_TIME_BIN_TRIGGERED;
   GPUCA_OPENMP(parallel for firstprivate(offset, lasti))
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
     if (i < lasti) {

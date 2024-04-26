@@ -25,6 +25,7 @@
 #include "TRDWorkflow/TRDPulseHeightSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
 using GTrackID = o2::dataformats::GlobalTrackID;
@@ -95,7 +96,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-ft0-pileup-tagging")) {
     srcTRD |= GTrackID::getSourcesMask("FT0");
   }
-  if (sclOpt.lumiType == 1) {
+  if (sclOpt.requestCTPLumi) {
     srcTRD = srcTRD | GTrackID::getSourcesMask("CTP");
   }
   // Parse PID policy string
@@ -112,6 +113,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // processing devices
   o2::framework::WorkflowSpec specs;
+  if (sclOpt.needTPCScalersWorkflow() && !configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy, sclOpt));
   if (vdexb || gain) {
     specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD, vdexb, gain));

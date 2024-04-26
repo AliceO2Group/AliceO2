@@ -12,7 +12,7 @@
 /// \file LookUp.h
 /// \brief Definition of the LookUp class for its3.
 ///
-/// Short LookUp descritpion
+/// Short LookUp description
 ///
 /// This class is for the association of the cluster topology with the corresponding
 /// entry in the dictionary - its3 implementation
@@ -20,36 +20,33 @@
 
 #ifndef ALICEO2_ITS3_LOOKUP_H
 #define ALICEO2_ITS3_LOOKUP_H
-#include <array>
+
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
 
-namespace o2
-{
-namespace its3
+namespace o2::its3
 {
 class LookUp
 {
  public:
-  LookUp();
+  LookUp() = default;
   LookUp(std::string fileName);
   static int groupFinder(int nRow, int nCol);
   int findGroupID(int nRow, int nCol, const unsigned char patt[itsmft::ClusterPattern::MaxPatternBytes]) const;
   int getTopologiesOverThreshold() const { return mTopologiesOverThreshold; }
   void loadDictionary(std::string fileName);
-  void setDictionary(const its3::TopologyDictionary* dict);
+  void setDictionary(const TopologyDictionary* dict);
   bool isGroup(int id) const { return mDictionary.isGroup(id); }
   int size() const { return mDictionary.getSize(); }
   auto getPattern(int id) const { return mDictionary.getPattern(id); }
   auto getDictionaty() const { return mDictionary; }
 
  private:
-  its3::TopologyDictionary mDictionary;
-  int mTopologiesOverThreshold;
+  TopologyDictionary mDictionary{};
+  int mTopologiesOverThreshold{0};
 
-  ClassDefNV(LookUp, 1);
+  ClassDefNV(LookUp, 2);
 };
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3
 
 #endif

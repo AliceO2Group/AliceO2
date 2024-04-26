@@ -287,6 +287,7 @@ class MatchTOF
   /// data needed for refit of time-constrained TPC tracks
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
+  gsl::span<const unsigned int> mTPCRefitterOccMap;                   ///< externally set TPC clusters occupancy map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;        ///< TPC cluster transformation
@@ -335,6 +336,9 @@ class MatchTOF
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   UInt_t mDBGFlags = 0;
   std::string mDebugTreeFileName = "dbg_matchTOF.root"; ///< name for the debug tree file
+
+  std::array<float, 5> mCovDiagInner{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
 
   ///----------- aux stuff --------------///
   static constexpr float MAXSNP = 0.85; // max snp of ITS or TPC track at xRef to be matched

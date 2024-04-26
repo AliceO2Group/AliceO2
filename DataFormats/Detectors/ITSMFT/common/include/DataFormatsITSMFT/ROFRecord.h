@@ -58,7 +58,6 @@ class ROFRecord
     mROFEntry.clear();
     mBCData.clear();
   }
-  void print() const;
 
   template <typename T>
   gsl::span<const T> getROFData(const gsl::span<const T> tfdata) const
@@ -84,6 +83,10 @@ class ROFRecord
     return i < getNEntries() ? &tfdata[getFirstEntry() + i] : nullptr;
   }
 
+  std::string asString() const;
+  void print() const;
+  friend std::ostream& operator<<(std::ostream& output, const ROFRecord& rec);
+
  private:
   o2::InteractionRecord mBCData; // BC data for given trigger
   EvIdx mROFEntry;               //< reference on the 1st object of the ROF in data
@@ -105,7 +108,10 @@ struct MC2ROFRecord {
   MC2ROFRecord() = default;
   MC2ROFRecord(int evID, int rofRecID, ROFtype mnrof, ROFtype mxrof) : eventRecordID(evID), rofRecordID(rofRecID), minROF(mnrof), maxROF(mxrof) {}
   int getNROFs() const { return (rofRecordID < 0 || minROF > maxROF) ? 0 : (maxROF - minROF); }
+  std::string asString() const;
   void print() const;
+  friend std::ostream& operator<<(std::ostream& output, const MC2ROFRecord& rec);
+
   ClassDefNV(MC2ROFRecord, 1);
 };
 } // namespace itsmft

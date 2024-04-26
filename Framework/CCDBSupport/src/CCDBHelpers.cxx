@@ -19,10 +19,13 @@
 #include "Framework/DataSpecUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "CommonConstants/LHCConstants.h"
+#include "Framework/Signpost.h"
 #include <typeinfo>
 #include <TError.h>
 #include <TMemFile.h>
 #include <functional>
+
+O2_DECLARE_DYNAMIC_LOG(ccdb);
 
 namespace o2::framework
 {
@@ -30,6 +33,8 @@ namespace o2::framework
 struct CCDBFetcherHelper {
   struct CCDBCacheInfo {
     std::string etag;
+    size_t cacheValidUntil = 0;
+    size_t cachePopulatedAt = 0;
     size_t cacheMiss = 0;
     size_t cacheHit = 0;
     size_t minSize = -1ULL;
@@ -173,6 +178,11 @@ auto getOrbitResetTime(o2::pmr::vector<char> const& v) -> Long64_t
   return (*ctp)[0];
 };
 
+bool isOnlineRun(DataTakingContext const& dtc)
+{
+  return dtc.deploymentMode == DeploymentMode::OnlineAUX || dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS;
+}
+
 auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
                        int64_t timestamp,
                        TimingInfo& timingInfo,
@@ -181,8 +191,14 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
 {
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
   int objCnt = -1;
+  // We use the timeslice, so that we hook into the same interval as the rest of the
+  // callback.
+  static bool isOnline = isOnlineRun(dtc);
+
+  auto sid = _o2_signpost_id_t{(int64_t)timingInfo.timeslice};
+  O2_SIGNPOST_START(ccdb, sid, "populateCacheWith", "Starting to populate cache with CCDB objects");
   for (auto& route : helper->routes) {
-    LOGP(debug, "Fetching object for route {}", DataSpecUtils::describe(route.matcher));
+    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Fetching object for route %{public}s", DataSpecUtils::describe(route.matcher).data());
     objCnt++;
     auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
     Output output{concrete.origin, concrete.description, concrete.subSpec};
@@ -201,7 +217,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       } else if (isPrefix(ccdbMetadataPrefix, meta.name)) {
         std::string key = meta.name.substr(ccdbMetadataPrefix.size());
         auto value = meta.defaultValue.get<std::string>();
-        LOGP(debug, "Adding metadata {}: {} to the request", key, value);
+        O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Adding metadata %{public}s: %{public}s to the request", key.data(), value.data());
         metadata[key] = value;
       } else if (meta.name == "ccdb-query-rate") {
         chRate = meta.defaultValue.get<int>() * helper->queryPeriodFactor;
@@ -210,12 +226,19 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second.etag;
-      checkValidity = int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF) >= chRate;
+      // We check validity every chRate timeslices or if the cache is expired
+      uint64_t validUntil = url2uuid->second.cacheValidUntil;
+      // When the cache was populated. If the cache was populated after the timestamp, we need to check validity.
+      uint64_t cachePopulatedAt = url2uuid->second.cachePopulatedAt;
+      // If timestamp is before the time the element was cached or after the claimed validity, we need to check validity, again
+      // when online.
+      bool cacheExpired = (validUntil <= timestamp) || (timestamp <= cachePopulatedAt);
+      checkValidity = (std::abs(int(timingInfo.tfCounter - url2uuid->second.lastCheckedTF)) >= chRate) && (isOnline || cacheExpired);
     } else {
       checkValidity = true; // never skip check if the cache is empty
     }
 
-    LOGP(debug, "checkValidity is {} for tfID {} of {}", checkValidity, timingInfo.tfCounter, path);
+    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "checkValidity is %{public}s for tfID %d of %{public}s", checkValidity ? "true" : "false", timingInfo.tfCounter, path.data());
 
     const auto& api = helper->getAPI(path);
     if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
@@ -233,35 +256,42 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       helper->mapURL2UUID[path].lastCheckedTF = timingInfo.tfCounter;
       if (etag.empty()) {
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
+        helper->mapURL2UUID[path].cachePopulatedAt = timestamp;
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
-        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
         continue;
       }
       if (v.size()) { // but should be overridden by fresh object
         // somewhere here pruneFromCache should be called
         helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
+        helper->mapURL2UUID[path].cachePopulatedAt = timestamp;
+        helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
         auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
-        LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+        O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
         // one could modify the    adoptContainer to take optional old cacheID to clean:
         // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
         continue;
+      } else {
+        // Only once the etag is actually used, we get the information on how long the object is valid
+        helper->mapURL2UUID[path].cacheValidUntil = headers["Cache-Valid-Until"].empty() ? 0 : std::stoul(headers["Cache-Valid-Until"]);
       }
     }
     // cached object is fine
     auto cacheId = helper->mapURL2DPLCache[path];
-    LOGP(debug, "Reusing {} for {}", cacheId.value, path);
+    O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "populateCacheWith", "Reusing %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
     helper->mapURL2UUID[path].cacheHit++;
     allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
     // the outputBuffer was not used, can we destroy it?
   }
+  O2_SIGNPOST_END(ccdb, sid, "populateCacheWith", "Finished populating cache with CCDB objects");
 };
 
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
@@ -276,6 +306,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       helper->queryPeriodGlo = checkRate > 0 ? checkRate : std::numeric_limits<int>::max();
       helper->queryPeriodFactor = checkMult > 0 ? checkMult : 1;
       LOGP(info, "CCDB Backend at: {}, validity check for every {} TF{}", defHost, helper->queryPeriodGlo, helper->queryPeriodFactor == 1 ? std::string{} : fmt::format(", (query for high-rate objects downscaled by {})", helper->queryPeriodFactor));
+      LOGP(info, "Hook to enable signposts for CCDB messages at {}", (void*)&private_o2_log_ccdb->stacktrace);
       auto remapString = options.get<std::string>("condition-remap");
       ParserResult result = CCDBHelpers::parseRemappings(remapString.c_str());
       if (!result.error.empty()) {
@@ -322,6 +353,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       });
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+        auto sid = _o2_signpost_id_t{(int64_t)timingInfo.timeslice};
+        O2_SIGNPOST_START(ccdb, sid, "fetchFromCCDB", "Fetching CCDB objects for timeslice %" PRIu64, (uint64_t)timingInfo.timeslice);
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
         if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
@@ -335,14 +368,15 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
-          bool checkValidity = int(timingInfo.tfCounter - helper->lastCheckedTFCounterOrbReset) >= helper->queryPeriodGlo;
+          bool checkValidity = std::abs(int(timingInfo.tfCounter - helper->lastCheckedTFCounterOrbReset)) >= helper->queryPeriodGlo;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
             etag = url2uuid->second.etag;
           } else {
             checkValidity = true; // never skip check if the cache is empty
           }
-          LOG(debug) << "checkValidity = " << checkValidity << " for TF " << timingInfo.timeslice;
+          O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "checkValidity is %{public}s for tfID %d of %{public}s",
+                                 checkValidity ? "true" : "false", timingInfo.tfCounter, path.data());
           Output output{"CTP", "OrbitReset", 0};
           Long64_t newOrbitResetTime = orbitResetTime;
           auto&& v = allocator.makeVector<char>(output);
@@ -363,7 +397,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               newOrbitResetTime = getOrbitResetTime(v);
               auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
-              LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+              O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
             } else if (v.size()) { // but should be overridden by fresh object
               // somewhere here pruneFromCache should be called
               helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
@@ -373,19 +407,19 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               newOrbitResetTime = getOrbitResetTime(v);
               auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
-              LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
+              O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Caching %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
               // one could modify the adoptContainer to take optional old cacheID to clean:
               // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
             }
             // cached object is fine
           }
           auto cacheId = helper->mapURL2DPLCache[path];
-          LOGP(debug, "Reusing {} for {}", cacheId.value, path);
+          O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Reusing %{public}s for %{public}s (DPL id %" PRIu64 ")", path.data(), headers["ETag"].data(), cacheId.value);
           helper->mapURL2UUID[path].cacheHit++;
           allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
 
           if (newOrbitResetTime != orbitResetTime) {
-            LOGP(debug, "Orbit reset time now at {} (was {})", newOrbitResetTime, orbitResetTime);
+            O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Orbit reset time changed from %lld to %lld", orbitResetTime, newOrbitResetTime);
             orbitResetTime = newOrbitResetTime;
             dtc.orbitResetTimeMUS = orbitResetTime;
           }
@@ -403,10 +437,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           timestamp = timingInfo.creation;
         }
         // Fetch the rest of the objects.
-        LOGP(debug, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTForbit: {}",
-             dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTForbit);
+        O2_SIGNPOST_EVENT_EMIT(ccdb, sid, "fetchFromCCDB", "Fetching objects. Run %{public}s. OrbitResetTime %lld. Creation %lld. Timestamp %lld. firstTForbit %" PRIu32,
+            dtc.runNumber.data(), orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTForbit);
 
         populateCacheWith(helper, timestamp, timingInfo, dtc, allocator);
+        O2_SIGNPOST_END(ccdb, _o2_signpost_id_t{(int64_t)timingInfo.timeslice}, "fetchFromCCDB", "Fetching CCDB objects");
       }); });
 }
 

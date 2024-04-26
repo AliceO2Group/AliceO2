@@ -141,6 +141,11 @@ struct TopoIndexInfo {
   friend std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info);
 };
 
+// Information about the policies which were derived for a given data processor.
+struct DataProcessorPoliciesInfo {
+  std::string completionPolicyName;
+};
+
 struct OutputObj {
   InputSpec spec;
   bool isdangling;
@@ -234,6 +239,7 @@ struct WorkflowHelpers {
   /// For example we should make sure that Lifetime::Timeframe inputs of
   /// one node is not connected to an Output of Lifetime::Sporadic of another node.
   static void validateEdges(WorkflowSpec const& workflow,
+                            std::vector<DataProcessorPoliciesInfo> const& policiesInfos,
                             std::vector<DeviceConnectionEdge> const& edges,
                             std::vector<OutputSpec> const& outputs);
 };

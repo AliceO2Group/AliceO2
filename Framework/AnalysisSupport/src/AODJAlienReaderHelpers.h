@@ -16,7 +16,9 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/Logger.h"
 #include <Monitoring/Monitoring.h>
+
 #include <uv.h>
+class TFile;
 
 namespace o2::framework::readers
 {

@@ -16,6 +16,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include <array>
 
 namespace o2
 {
@@ -32,13 +33,19 @@ struct TrackTuneParams : public o2::conf::ConfigurableParamHelper<TrackTuneParam
   };
   AddCovType tpcCovInnerType = AddCovType::Disable;
   AddCovType tpcCovOuterType = AddCovType::Disable;
-  bool sourceLevelTPC = true;   // if TPC corrections are allowed, apply them TPC source output level (tracking/reader), otherwise in the global tracking consumers BEFORE update by external detector
+  bool sourceLevelTPC = true;    // if TPC corrections are allowed, apply them TPC source output level (tracking), otherwise in the global tracking consumers BEFORE update by external detector
+  bool applyWhenReading = false; // if true, then apply at reading tracks from the file. This better NOT used as there is no way to apply lumi-dependent scaling in the reader
   bool useTPCInnerCorr = false; // request to correct TPC inner param
   bool useTPCOuterCorr = false; // request to correct TPC outer param
   float tpcParInner[5] = {};    // ad hoc correction to be added to TPC param at the inner XRef
   float tpcParOuter[5] = {};    // ad hoc correction to be added to TPC param at the outer XRef
-  float tpcCovInner[5] = {}; // ad hoc errors to be added to TPC cov.matrix at the inner XRef
-  float tpcCovOuter[5] = {}; // ad hoc errors to be added to TPC outer param at the outer XRef
+  float tpcCovInner[5] = {};    // ad hoc errors to be added to TPC cov.matrix at the inner XRef (not squared!)
+  float tpcCovOuter[5] = {};    // ad hoc errors to be added to TPC outer param cov.matrix at the outer XRef (not squared!)
+  float tpcCovInnerSlope[5] = {}; // slope of the error with respect to lumi, total correction = [tpcCovInner + lumi*tpcCovInnerSlope]^2
+  float tpcCovOuterSlope[5] = {}; // slope of the error with respect to lumi, total correction = [tpcCovOuter + lumi*tpcCovOuterSlope]^2
+
+  std::array<float, 5> getCovInnerTotal(float scale) const;
+  std::array<float, 5> getCovOuterTotal(float scale) const;
 
   O2ParamDef(TrackTuneParams, "trackTuneParams");
 };

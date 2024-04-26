@@ -36,7 +36,7 @@ if(Vulkan_FOUND)
   endif()
 endif()
 if(Vulkan_FOUND)
-  include(../Standalone/cmake/vulkan_display.cmake)
+  include(../cmake/vulkan_display.cmake)
   set(GPUCA_EVENT_DISPLAY_VULKAN ON)
   if(O2GPUWayland_FOUND)
     set(GPUCA_EVENT_DISPLAY_WAYLAND ON)
@@ -73,22 +73,26 @@ if(GPUCA_EVENT_DISPLAY_VULKAN)
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
       COMMAND ${O2GPUWayland_SCANNER} client-header ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h
-  MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml)
+      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
+      COMMENT "Preparing Wayland xdg-shell-client-protocol.h")
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
       COMMAND ${O2GPUWayland_SCANNER} private-code ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c
-  MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml)
+      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml
+      COMMENT "Preparing Wayland xdg-shell-protocol.c")
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
       COMMAND ${O2GPUWayland_SCANNER} client-header ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h
-  MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
+      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+      COMMENT "Preparing Wayland xdg-decoration-client-protocol.h")
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
       COMMAND ${O2GPUWayland_SCANNER} private-code ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
-  MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
+      MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+      COMMENT "Preparing Wayland xdg-decoration-protocol.c")
 
     set_property(SOURCE GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
     set_property(SOURCE GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)

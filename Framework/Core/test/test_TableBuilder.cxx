@@ -32,7 +32,7 @@ namespace test2
 DECLARE_SOA_COLUMN_FULL(X, x, uint64_t, "x");
 DECLARE_SOA_COLUMN_FULL(Y, y, uint64_t, "y");
 DECLARE_SOA_COLUMN_FULL(Pos, pos, int[4], "pos");
-} // namespace test
+} // namespace test2
 
 using TestTable = o2::soa::Table<test2::X, test2::Y>;
 using ArrayTable = o2::soa::Table<test2::Pos>;
@@ -295,7 +295,7 @@ TEST_CASE("TestColumnCount")
 
 TEST_CASE("TestMakeFields")
 {
-  auto fields = TableBuilderHelpers::makeFields<int, float>({ "i", "f" });
+  auto fields = TableBuilderHelpers::makeFields<int, float>({"i", "f"});
   REQUIRE(fields.size() == 2);
   REQUIRE(fields[0]->name() == "i");
   REQUIRE(fields[1]->name() == "f");

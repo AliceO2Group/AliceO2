@@ -700,9 +700,9 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
+bool isTableCompatible(std::set<uint32_t> const& hashes, Operations const& specs)
 {
-  std::set<size_t> opHashes;
+  std::set<uint32_t> opHashes;
   for (auto const& spec : specs) {
     if (spec.left.datum.index() == 3) {
       opHashes.insert(spec.left.hash);
@@ -714,27 +714,6 @@ bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
 
   return std::includes(hashes.begin(), hashes.end(),
                        opHashes.begin(), opHashes.end());
-}
-
-bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
-{
-  std::set<std::string> opFieldNames;
-  for (auto const& spec : opSpecs) {
-    if (spec.left.datum.index() == 3) {
-      opFieldNames.insert(std::get<std::string>(spec.left.datum));
-    }
-    if (spec.right.datum.index() == 3) {
-      opFieldNames.insert(std::get<std::string>(spec.right.datum));
-    }
-  }
-
-  std::set<std::string> schemaFieldNames;
-  for (auto const& field : Schema->fields()) {
-    schemaFieldNames.insert(field->name());
-  }
-
-  return std::includes(schemaFieldNames.begin(), schemaFieldNames.end(),
-                       opFieldNames.begin(), opFieldNames.end());
 }
 
 void updateExpressionInfos(expressions::Filter const& filter, std::vector<ExpressionInfo>& eInfos)
@@ -753,6 +732,17 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
         info.tree = tree;
       }
     }
+  }
+}
+
+void updateFilterInfo(ExpressionInfo& info, std::shared_ptr<arrow::Table>& table)
+{
+  if (info.tree != nullptr && info.filter == nullptr) {
+    info.filter = framework::expressions::createFilter(table->schema(), framework::expressions::makeCondition(info.tree));
+  }
+  if (info.tree != nullptr && info.filter != nullptr && info.resetSelection == true) {
+    info.selection = framework::expressions::createSelection(table, info.filter);
+    info.resetSelection = false;
   }
 }
 

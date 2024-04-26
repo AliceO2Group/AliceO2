@@ -43,7 +43,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   LOGP(info, "Media: {} {}", (void*)medSi, (void*)medAir);
@@ -51,9 +51,9 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kMagenta - 2);
-  chipVol->SetLineColor(kMagenta - 2);
-  layerVol->SetLineColor(kMagenta - 2);
+  sensVol->SetLineColor(kRed + 3);
+  chipVol->SetLineColor(kRed + 3);
+  layerVol->SetLineColor(kRed + 3);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -74,15 +74,15 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kMagenta - 7);
-  chipVol->SetLineColor(kMagenta - 7);
-  layerVol->SetLineColor(kMagenta - 7);
+  sensVol->SetLineColor(kRed + 3);
+  chipVol->SetLineColor(kRed + 3);
+  layerVol->SetLineColor(kRed + 3);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -103,15 +103,15 @@ void FTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kMagenta - 7);
-  chipVol->SetLineColor(kMagenta - 7);
-  layerVol->SetLineColor(kMagenta - 7);
+  sensVol->SetLineColor(kRed + 3);
+  chipVol->SetLineColor(kRed + 3);
+  layerVol->SetLineColor(kRed + 3);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -135,15 +135,15 @@ void BTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
 
-  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SI$");
+  TGeoMedium* medSi = gGeoManager->GetMedium("TF3_SILICON$");
   TGeoMedium* medAir = gGeoManager->GetMedium("TF3_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kMagenta - 7);
-  chipVol->SetLineColor(kMagenta - 7);
-  layerVol->SetLineColor(kMagenta - 7);
+  sensVol->SetLineColor(kRed + 3);
+  chipVol->SetLineColor(kRed + 3);
+  layerVol->SetLineColor(kRed + 3);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);

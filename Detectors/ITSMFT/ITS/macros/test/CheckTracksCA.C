@@ -1,3 +1,14 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file CheckTracksCA.C
 /// \brief Simple macro to check ITSU tracks
 
@@ -17,14 +28,16 @@
 #include <TPad.h>
 
 #include "ITSBase/GeometryTGeo.h"
+#include "SimulationDataFormat/MCEventHeader.h"
+#include "DetectorsBase/Propagator.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 
 #endif
+#include "DataFormatsITSMFT/CompCluster.h"
 
 using namespace std;
 
@@ -36,6 +49,11 @@ struct ParticleInfo {
   float phi;
   int mother;
   int first;
+  float pvx{};
+  float pvy{};
+  float pvz{};
+  float dcaxy;
+  float dcaz;
   unsigned short clusters = 0u;
   unsigned char isReco = 0u;
   unsigned char isFake = 0u;
@@ -46,11 +64,19 @@ struct ParticleInfo {
 
 #pragma link C++ class ParticleInfo + ;
 
-void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
+void CheckTracksCA(bool doFakeClStud = false,
+                   std::string tracfile = "o2trac_its.root",
+                   std::string magfile = "o2sim_grp.root",
+                   std::string clusfile = "o2clus_its.root",
+                   std::string kinefile = "o2sim_Kine.root")
 {
 
   using namespace o2::itsmft;
   using namespace o2::its;
+
+  // Magnetic field and Propagator
+  o2::base::Propagator::initFieldFromGRP(magfile);
+  float bz = o2::base::Propagator::Instance()->getNominalBz();
 
   // Geometry
   o2::base::GeometryManager::loadGeometry();
@@ -59,11 +85,13 @@ void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its
   // MC tracks
   TFile* file0 = TFile::Open(kinefile.data());
   TTree* mcTree = (TTree*)gFile->Get("o2sim");
-  mcTree->SetBranchStatus("*", 0); //disable all branches
+  mcTree->SetBranchStatus("*", 0); // disable all branches
   mcTree->SetBranchStatus("MCTrack*", 1);
 
   std::vector<o2::MCTrack>* mcArr = nullptr;
   mcTree->SetBranchAddress("MCTrack", &mcArr);
+  o2::dataformats::MCEventHeader* mcEvent = nullptr;
+  mcTree->SetBranchAddress("MCEventHeader.", &mcEvent);
 
   // Clusters
   TFile::Open(clusfile.data());
@@ -95,6 +123,9 @@ void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its
       auto part = mcArr->at(mcI);
       info[n][mcI].event = n;
       info[n][mcI].pdg = part.GetPdgCode();
+      info[n][mcI].pvx = mcEvent->GetX();
+      info[n][mcI].pvy = mcEvent->GetY();
+      info[n][mcI].pvz = mcEvent->GetZ();
       info[n][mcI].pt = part.GetPt();
       info[n][mcI].phi = part.GetPhi();
       info[n][mcI].eta = part.GetEta();
@@ -159,8 +190,13 @@ void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its
       info[evID][trackID].isFake += fake;
       /// We keep the best track we would keep in the data
       if (recArr->at(iTrack).isBetter(info[evID][trackID].track, 1.e9)) {
-        info[evID][trackID].storedStatus = fake;
         info[evID][trackID].track = recArr->at(iTrack);
+        info[evID][trackID].storedStatus = fake;
+        static float ip[2]{0., 0.};
+        info[evID][trackID].track.getImpactParams(info[evID][trackID].pvx, info[evID][trackID].pvy, info[evID][trackID].pvz, bz, ip);
+        info[evID][trackID].dcaxy = ip[0];
+        info[evID][trackID].dcaz = ip[1];
+        Info("", "dcaxy=%f dcaz=%f bz=%f", ip[0], ip[1], bz);
       }
 
       fakes += fake;

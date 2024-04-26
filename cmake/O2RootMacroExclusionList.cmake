@@ -60,7 +60,8 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/load_all_libs.C
             macro/putCondition.C
             macro/rootlogon.C
-            Detectors/FIT/FT0/calibration/macros/makeChannelOffsetCalibObjectInCCDB.C)
+            Detectors/FIT/FT0/calibration/macros/makeChannelOffsetCalibObjectInCCDB.C
+            Detectors/Upgrades/ALICE3/macros/ALICE3Field.C)
 
 
 if(NOT BUILD_SIMULATION)
@@ -81,10 +82,6 @@ if(NOT ENABLE_UPGRADES)
   # exclude all the macros found under Detectors/Upgrades directory
   o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/Upgrades upgradeMacros)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${upgradeMacros})
-endif()
-
-if(NOT pythia6_FOUND)
-  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/pythia6.C)
 endif()
 
 list(REMOVE_DUPLICATES O2_ROOT_MACRO_EXCLUSION_LIST)

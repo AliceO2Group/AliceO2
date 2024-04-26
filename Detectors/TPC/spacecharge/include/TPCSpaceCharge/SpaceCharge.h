@@ -40,6 +40,11 @@ namespace parameters
 class GRPMagField;
 }
 
+namespace utils
+{
+class TreeStreamRedirector;
+}
+
 namespace tpc
 {
 
@@ -373,6 +378,9 @@ class SpaceCharge
   int getBField() const { return mBField.getBField(); }
 
   const auto& getPotential(const Side side) const& { return mPotential[side]; }
+
+  /// setting the potential directly for given vertex
+  void setPotential(int iz, int ir, int iphi, Side side, float val);
 
   /// get the space charge density for given coordinate
   /// \param z global z coordinate
@@ -1189,6 +1197,12 @@ class SpaceCharge
   float getMeanLumi() const { return mMeta.meanLumi; }
   void setMeanLumi(float lumi) { mMeta.meanLumi = lumi; }
   void initAfterReadingFromFile();
+
+  /// get DCA in RPhi for high pt track
+  /// \param tgl tgl of the track
+  /// \param nPoints number of points used to calculate the DCAr
+  /// \param pcstream if provided debug output is being created
+  float getDCAr(float tgl, const int nPoints, const float phi, o2::utils::TreeStreamRedirector* pcstream = nullptr) const;
 
  private:
   ParamSpaceCharge mParamGrid{};                                                                          ///< parameters of the grid on which the calculations are performed

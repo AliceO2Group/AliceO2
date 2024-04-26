@@ -52,6 +52,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
+#include "GPUO2InterfaceUtils.h"
 #include "CalibdEdxContainer.h"
 #include "GPUNewCalibValues.h"
 #include "TPCPadGainCalib.h"
@@ -75,8 +76,7 @@
 #include "CommonUtils/DebugStreamer.h"
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "ITStracking/Tracker.h"
-#include "ITStracking/Vertexer.h"
+#include "ITStracking/TrackingInterface.h"
 #include "GPUWorkflowInternal.h"
 // #include "Framework/ThreadPool.h"
 
@@ -97,6 +97,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <chrono>
+#include <unordered_set>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -133,7 +134,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   GPUO2InterfaceConfiguration& config = *mConfig.get();
 
   // Create configuration object and fill settings
-  mConfig->configGRP.solenoidBz = 0;
+  mConfig->configGRP.solenoidBzNominalGPU = 0;
   mTFSettings->hasSimStartOrbit = 1;
   auto& hbfu = o2::raw::HBFUtils::Instance();
   mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
@@ -152,7 +153,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mConfig->configProcessing.doublePipeline = 1;
   }
 
-  mAutoSolenoidBz = mConfParam->solenoidBz == -1e6f;
+  mAutoSolenoidBz = mConfParam->solenoidBzNominalGPU == -1e6f;
   mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
   if (mAutoContinuousMaxTimeBin) {
     mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
@@ -250,6 +251,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 
     mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformHelper->getCorrMap();
     mConfig->configCalib.fastTransformRef = mCalibObjects.mFastTransformHelper->getCorrMapRef();
+    mConfig->configCalib.fastTransformMShape = mCalibObjects.mFastTransformHelper->getCorrMapMShape();
     mConfig->configCalib.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
@@ -270,7 +272,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
     }
 
-    mConfig->configProcessing.internalO2PropagatorGPUField = true;
+    mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
     if (mConfParam->printSettings) {
       mConfig->PrintParam();
@@ -319,11 +321,11 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
       fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
       if (fd == -1) {
-        throw std::runtime_error("Error opening lock file");
+        throw std::runtime_error("Error opening memlock mutex lock file");
       }
       fchmod(fd, mask);
       if (lockf(fd, F_LOCK, 0)) {
-        throw std::runtime_error("Error locking file");
+        throw std::runtime_error("Error locking memlock mutex file");
       }
     }
     std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
@@ -340,7 +342,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
     if (mConfParam->mutexMemReg) {
       if (lockf(fd, F_ULOCK, 0)) {
-        throw std::runtime_error("Error unlocking file");
+        throw std::runtime_error("Error unlocking memlock mutex file");
       }
       close(fd);
     }
@@ -353,6 +355,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 void GPURecoWorkflowSpec::stop()
 {
   LOGF(info, "GPU Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer->CpuTime(), mTimer->RealTime(), mTimer->Counter() - 1);
+  handlePipelineStop();
 }
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
@@ -556,6 +559,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mPipeline->mutexDecodeInput);
 
   GRPGeomHelper::instance().checkUpdates(pc);
+  if (pc.inputs().getPos("itsTGeo") >= 0) {
+    pc.inputs().get<o2::its::GeometryTGeo*>("itsTGeo");
+  }
   if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
     LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
   }
@@ -673,21 +679,23 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   using outputBufferUninitializedVector = std::decay_t<decltype(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{"", "", 0}))>;
   using outputBufferType = std::pair<std::optional<std::reference_wrapper<outputBufferUninitializedVector>>, outputDataType*>;
   std::vector<outputBufferType> outputBuffers(GPUInterfaceOutputs::count(), {std::nullopt, nullptr});
+  std::unordered_set<std::string> outputsCreated;
 
-  auto setOutputAllocator = [this, &outputBuffers, &outputRegions, &pc](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
+  auto setOutputAllocator = [this, &outputBuffers, &outputRegions, &pc, &outputsCreated](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
     if (condition) {
       auto& buffer = outputBuffers[outputRegions.getIndex(region)];
       if (mConfParam->allocateOutputOnTheFly) {
-        region.allocator = [this, name, &buffer, &pc, outputSpec = std::move(outputSpec), offset](size_t size) -> void* {
+        region.allocator = [this, name, &buffer, &pc, outputSpec = std::move(outputSpec), offset, &outputsCreated](size_t size) -> void* {
           size += offset;
           if (mVerbosity) {
-            LOG(info) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
+            LOG(info) << "ALLOCATING " << size << " bytes for " << name << ": " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
           }
           std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
           if (mVerbosity) {
             start = std::chrono::high_resolution_clock::now();
           }
           buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), size));
+          outputsCreated.insert(name);
           if (mVerbosity) {
             end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed_seconds = end - start;
@@ -700,6 +708,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
         buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), mConfParam->outputBufferSize));
         region.ptrBase = (buffer.second = buffer.first->get().data()) + offset;
         region.size = buffer.first->get().size() - offset;
+        outputsCreated.insert(name);
       }
     }
   };
@@ -736,10 +745,11 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   setOutputAllocator("COMPCLUSTERSFLAT", mSpecConfig.outputCompClustersFlat, outputRegions.compressedClusters, std::make_tuple(gDataOriginTPC, (DataDescription) "COMPCLUSTERSFLAT", 0));
   setOutputAllocator("CLUSTERNATIVE", mClusterOutputIds.size() > 0, outputRegions.clustersNative, std::make_tuple(gDataOriginTPC, mSpecConfig.sendClustersPerSector ? (DataDescription) "CLUSTERNATIVETMP" : (DataDescription) "CLUSTERNATIVE", NSectors, clusterOutputSectorHeader), sizeof(o2::tpc::ClusterCountIndex));
   setOutputAllocator("CLSHAREDMAP", mSpecConfig.outputSharedClusterMap, outputRegions.sharedClusterMap, std::make_tuple(gDataOriginTPC, (DataDescription) "CLSHAREDMAP", 0));
+  setOutputAllocator("TPCOCCUPANCYMAP", mSpecConfig.outputSharedClusterMap, outputRegions.tpcOccupancyMap, std::make_tuple(gDataOriginTPC, (DataDescription) "TPCOCCUPANCYMAP", 0));
   setOutputAllocator("TRACKS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
   setOutputAllocator("CLUSREFS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
   setOutputAllocator("TRACKSMCLBL", mSpecConfig.outputTracks && mSpecConfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSMCLBL", 0));
-  setOutputAllocator("TRIGGERWORDS", mSpecConfig.zsDecoder && mConfig->configProcessing.param.tpcTriggerHandling, outputRegions.tpcTriggerWords, std::make_tuple(gDataOriginTPC, (DataDescription) "TRIGGERWORDS", 0));
+  setOutputAllocator("TRIGGERWORDS", mSpecConfig.caClusterer && mConfig->configProcessing.param.tpcTriggerHandling, outputRegions.tpcTriggerWords, std::make_tuple(gDataOriginTPC, (DataDescription) "TRIGGERWORDS", 0));
   o2::tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
   if (mSpecConfig.processMC && mSpecConfig.caClusterer) {
     outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
@@ -961,7 +971,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot({gDataOriginGPU, "ERRORQA", 0}, mErrorQA);
     mErrorQA.clear(); // FIXME: This is a race condition once we run multi-threaded!
   }
-  if (mSpecConfig.tpcTriggerHandling && !(mSpecConfig.zsOnTheFly || mSpecConfig.zsDecoder)) {
+  if (mSpecConfig.outputSharedClusterMap && !outputsCreated.contains("TPCOCCUPANCYMAP")) {
+    pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>({gDataOriginTPC, "TPCOCCUPANCYMAP", 0}, 0u);
+  }
+  if (mSpecConfig.tpcTriggerHandling && !outputsCreated.contains("TRIGGERWORDS")) {
     pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0}, 0u);
   }
   mTimer->Stop();
@@ -986,9 +999,10 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
 
     if (mAutoSolenoidBz) {
       newCalibValues.newSolenoidField = true;
-      newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+      newCalibValues.solenoidField = mConfig->configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*GRPGeomHelper::instance().getGRPMagField());
+      // Propagator::Instance()->setBz(newCalibValues.solenoidField); // Take value from o2::Propagator::UpdateField from GRPGeomHelper
+      LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
     }
-    LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
     if (mAutoContinuousMaxTimeBin) {
       mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
       newCalibValues.newContinuousMaxTimeBin = true;
@@ -998,6 +1012,9 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
 
     if (!mPropagatorInstanceCreated) {
       newCalibObjects.o2Propagator = mConfig->configCalib.o2Propagator = Propagator::Instance();
+      if (mConfig->configProcessing.o2PropagatorUseGPUField) {
+        mGPUReco->UseGPUPolynomialFieldInPropagator(Propagator::Instance());
+      }
       mPropagatorInstanceCreated = true;
     }
 
@@ -1075,20 +1092,20 @@ Inputs GPURecoWorkflowSpec::inputs()
     if (mapSources != 0) {
       tpc::SourcesDeadMap sources((mapSources > -1) ? static_cast<tpc::SourcesDeadMap>(mapSources) : tpc::SourcesDeadMap::All);
       if ((sources & tpc::SourcesDeadMap::IDCPadStatus) == tpc::SourcesDeadMap::IDCPadStatus) {
-        inputs.emplace_back("tpcidcpadflags", gDataOriginTPC, "IDCPADFLAGS", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalIDCPadStatusMapA)));
+        inputs.emplace_back("tpcidcpadflags", gDataOriginTPC, "IDCPADFLAGS", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalIDCPadStatusMapA), {}, 1)); // time-dependent
       }
       if ((sources & tpc::SourcesDeadMap::FEEConfig) == tpc::SourcesDeadMap::FEEConfig) {
         inputs.emplace_back("tpcruninfo", gDataOriginTPC, "TPCRUNINFO", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ConfigRunInfo)));
       }
     }
     inputs.emplace_back("tpcgain", gDataOriginTPC, "PADGAINFULL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainFull)));
-    inputs.emplace_back("tpcgainresidual", gDataOriginTPC, "PADGAINRESIDUAL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainResidual)));
-    inputs.emplace_back("tpctimegain", gDataOriginTPC, "TIMEGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain)));
+    inputs.emplace_back("tpcgainresidual", gDataOriginTPC, "PADGAINRESIDUAL", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainResidual), {}, 1)); // time-dependent
+    inputs.emplace_back("tpctimegain", gDataOriginTPC, "TIMEGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain), {}, 1));                   // time-dependent
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
     Options optsDummy;
-    o2::tpc::CorrectionMapsLoaderGloOpts gloOpts{mSpecConfig.lumiScaleType, mSpecConfig.lumiScaleMode};
+    o2::tpc::CorrectionMapsLoaderGloOpts gloOpts{mSpecConfig.lumiScaleType, mSpecConfig.lumiScaleMode, mSpecConfig.enableMShape, mSpecConfig.enableCTPLumi};
     mCalibObjects.mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, gloOpts); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
@@ -1200,6 +1217,7 @@ Outputs GPURecoWorkflowSpec::outputs()
   }
   if (mSpecConfig.outputSharedClusterMap) {
     outputSpecs.emplace_back(gDataOriginTPC, "CLSHAREDMAP", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginTPC, "TPCOCCUPANCYMAP", 0, Lifetime::Timeframe);
   }
   if (mSpecConfig.tpcTriggerHandling) {
     outputSpecs.emplace_back(gDataOriginTPC, "TRIGGERWORDS", 0, Lifetime::Timeframe);

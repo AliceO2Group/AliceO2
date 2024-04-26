@@ -49,6 +49,7 @@ class FT3Layer : public TObject
   /// getters
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
+  auto getDirection() const { return mDirection; }
   auto getZ() const { return mZ; }
   auto getx2X0() const { return mx2X0; }
 
@@ -57,14 +58,14 @@ class FT3Layer : public TObject
   virtual void createLayer(TGeoVolume* motherVolume);
 
  private:
-  Int_t mLayerNumber = -1;   ///< Current layer number
-  Int_t mDirection;          ///< Layer direction 0=Forward 1 = Backward
-  std::string mLayerName;    ///< Current layer name
-  Double_t mInnerRadius;     ///< Inner radius of this layer
-  Double_t mOuterRadius;     ///< Outer radius of this layer
-  Double_t mZ;               ///< Z position of the layer
-  Double_t mChipThickness;   ///< Chip thickness
-  Double_t mx2X0;            ///< Layer material budget x/X0
+  Int_t mLayerNumber = -1; ///< Current layer number
+  Int_t mDirection;        ///< Layer direction 0=Forward 1 = Backward
+  std::string mLayerName;  ///< Current layer name
+  Double_t mInnerRadius;   ///< Inner radius of this layer
+  Double_t mOuterRadius;   ///< Outer radius of this layer
+  Double_t mZ;             ///< Z position of the layer
+  Double_t mChipThickness; ///< Chip thickness
+  Double_t mx2X0;          ///< Layer material budget x/X0
 
   ClassDefOverride(FT3Layer, 0); // ALICE 3 EndCaps geometry
 };

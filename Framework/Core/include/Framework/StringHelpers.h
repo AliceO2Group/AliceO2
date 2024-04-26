@@ -63,7 +63,7 @@ constexpr uint32_t crc_table[256] = {0x0L, 0x77073096L, 0xee0e612cL,
                                      0xc4614ab8L, 0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
                                      0x2d02ef8dL};
 
-constexpr uint32_t crc32(char const* str, int length)
+consteval uint32_t crc32(char const* str, int length)
 {
   uint32_t crc = 0xFFFFFFFF;
   for (auto j = 0; j <= length; ++j) {
@@ -72,13 +72,27 @@ constexpr uint32_t crc32(char const* str, int length)
   return crc;
 }
 
-constexpr uint32_t compile_time_hash(char const* str)
+consteval uint32_t compile_time_hash(char const* str)
 {
   return crc32(str, static_cast<int>(__builtin_strlen(str)) - 1) ^ 0xFFFFFFFF;
 }
 
+constexpr uint32_t runtime_crc32(char const* str, int length)
+{
+  uint32_t crc = 0xFFFFFFFF;
+  for (auto j = 0; j <= length; ++j) {
+    crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<unsigned int>(str[j])) & 0x000000FF];
+  }
+  return crc;
+}
+
+constexpr uint32_t runtime_hash(char const* str)
+{
+  return runtime_crc32(str, static_cast<int>(__builtin_strlen(str)) - 1) ^ 0xFFFFFFFF;
+}
+
 template <int N>
-constexpr uint32_t compile_time_hash_from_literal(const char (&str)[N])
+consteval uint32_t compile_time_hash_from_literal(const char (&str)[N])
 {
   return crc32(str, N - 2) ^ 0xFFFFFFFF;
 }
@@ -98,7 +112,7 @@ struct is_const_str<ConstStr<chars...>> : std::true_type {
 };
 
 template <typename T>
-constexpr bool is_const_str_v(T)
+consteval bool is_const_str_v(T)
 {
   return is_const_str<T>::value;
 }
@@ -162,11 +176,5 @@ constexpr auto get_size(const std::string_view& str)
     };                                                      \
     return const_str_details::as_chars<literal_to_chars>(); \
   }()
-
-template <typename T>
-constexpr auto typeHash()
-{
-  return compile_time_hash(typeid(T).name());
-}
 
 #endif // O2_FRAMEWORK_STRINGHELPERS_H

@@ -40,6 +40,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::TOFBase
                 O2::PHOSBase
                 O2::EMCALBase
+                O2::EMCALCalib
+                O2::EMCALWorkflow
                 O2::MIDBase
                 O2::TOFWorkflowIO
                 O2::TPCReconstruction
@@ -74,6 +76,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::TOFBase
                 O2::PHOSBase
                 O2::EMCALBase
+                O2::EMCALCalib
                 O2::MIDBase
                 O2::TOFWorkflowIO
                 O2::TPCReconstruction

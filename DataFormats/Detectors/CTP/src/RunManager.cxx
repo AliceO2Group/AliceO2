@@ -27,8 +27,8 @@ std::string CTPRunManager::mCCDBHost = "http://o2-ccdb.internal";
 ///
 void CTPRunManager::init()
 {
-  for (auto r : mActiveRuns) {
-    r = nullptr;
+  for (uint32_t i = 0; i < NRUNS; i++) {
+    mActiveRuns[i] = nullptr;
   }
   loadScalerNames();
   LOG(info) << "CCDB host:" << mCCDBHost;
@@ -136,7 +136,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     }
   }
   */
-  int NINPS = 48;
+  uint32_t NINPS = 48;
   int offset = 599;
   for (uint32_t i = 0; i < NINPS; i++) {
     uint32_t inpcount = mCounters[offset + i];
@@ -160,6 +160,11 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
 {
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
+  if (topic.find("clear") != std::string::npos) {
+    mRunsLoaded.clear();
+    LOG(info) << "Loaded runs cleared.";
+    return 0;
+  }
   if (topic.find("ctpconfig") != std::string::npos) {
     LOG(info) << "ctpconfig received";
     loadRun(message);
@@ -181,6 +186,14 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     LOG(info) << "EOX received";
     mEOX = 1;
   }
+  static int nerror = 0;
+  if (topic == "rocnts") {
+    if (nerror < 1) {
+      LOG(warning) << "Skipping topic rocnts";
+      nerror++;
+    }
+    return 0;
+  }
   //
   std::vector<std::string> tokens;
   if (firstcounters.size() > 0) {
@@ -189,18 +202,18 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     tokens = o2::utils::Str::tokenize(message, ' ');
   }
   if (tokens.size() != (CTPRunScalers::NCOUNTERS + 1)) {
-    if (tokens.size() == (CTPRunScalers::NCOUNTERS)) {
+    if (tokens.size() == (CTPRunScalers::NCOUNTERSv2 + 1)) {
       mNew = 0;
-      LOG(warning) << "v1 scaler size, using external orbit";
+      LOG(warning) << "v2 scaler size";
     } else {
-      LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1;
+      LOG(warning) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1 << " or " << CTPRunScalers::NCOUNTERSv2 + 1;
       return 1;
     }
   }
   double timeStamp = std::stold(tokens.at(0));
   std::time_t tt = timeStamp;
   LOG(info) << "Processing scalers, all good, time:" << tokens.at(0) << " " << std::asctime(std::localtime(&tt));
-  for (int i = 1; i < tokens.size(); i++) {
+  for (uint32_t i = 1; i < tokens.size(); i++) {
     mCounters[i - 1] = std::stoull(tokens.at(i));
     if (i < (NRUNS + 1)) {
       std::cout << mCounters[i - 1] << " ";
@@ -293,7 +306,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
@@ -302,11 +315,23 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
   if (ctpconfigdb == nullptr) {
     LOG(info) << "CTP config not in database, timestamp:" << timestamp;
+    ok = 0;
   } else {
     // ctpconfigdb->printStream(std::cout);
     LOG(info) << "CTP config found. Run:" << run;
+    ok = 1;
   }
   return *ctpconfigdb;
+}
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
+{
+  bool ok;
+  auto ctpconfig = getConfigFromCCDB(timestamp, run, ok);
+  if (ok == 0) {
+    LOG(error) << "CTP config not in CCDB";
+    return CTPConfiguration();
+  }
+  return ctpconfig;
 }
 CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
 {
@@ -340,7 +365,7 @@ void CTPRunManager::printCounters()
 {
   int NDET = 18;
   int NINPS = 48;
-  int NCLKFP = 7;
+  // int NCLKFP = 7;
   int NLTG_start = NRUNS;
   int NCLKFP_start = NLTG_start + NDET * 32;
   int NINPS_start = NCLKFP_start + 7;
@@ -348,7 +373,7 @@ void CTPRunManager::printCounters()
   std::cout << "====> CTP counters:" << std::endl;
   std::cout << "RUNS:" << std::endl;
   int ipos = 0;
-  for (int i = 0; i < NRUNS; i++) {
+  for (uint32_t i = 0; i < NRUNS; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
@@ -410,7 +435,7 @@ void CTPRunManager::printCounters()
   }
   std::cout << std::endl;
   std::cout << " REST:" << std::endl;
-  for (int i = NCLS_start + 6 * 64; i < mCounters.size(); i++) {
+  for (uint32_t i = NCLS_start + 6 * 64; i < mCounters.size(); i++) {
     if ((ipos % 10) == 0) {
       std::cout << std::endl;
       std::cout << ipos << ":";

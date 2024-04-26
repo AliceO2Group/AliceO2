@@ -29,6 +29,7 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/DeviceState.h"
 #include "Framework/Monitoring.h"
+#include "Framework/SendingPolicy.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "DecongestionService.h"
@@ -380,6 +381,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       return;
     }
     std::string missing = "";
+    bool showAlarm = false;
     for (auto mi : unmatchedDescriptions) {
       auto& spec = routes[mi].matcher;
       missing += " " + DataSpecUtils::describe(spec);
@@ -406,10 +408,13 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       parts.AddPart(std::move(headerMessage));
       // add empty payload message
       parts.AddPart(device.NewMessageFor(channelName, 0, 0));
+      if ((concrete.origin != o2::header::gDataOriginEMC && concrete.origin != o2::header::gDataOriginPHS && concrete.origin != o2::header::gDataOriginHMP) || concrete.description != o2::header::DataDescription{"RAWDATA"}) {
+        showAlarm = true;
+      }
     }
     static int maxWarn = 10; // Correct would be o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef, but Framework does not depend on CommonUtils..., but not so critical since receives will send correct number of DEADBEEF messages
     static int contDeadBeef = 0;
-    if (++contDeadBeef <= maxWarn) {
+    if (showAlarm && ++contDeadBeef <= maxWarn) {
       LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF{}", foundDataSpecs, expectedDataSpecs, missing, contDeadBeef == maxWarn ? " - disabling alarm now to stop flooding the log" : "");
     }
   }
@@ -923,10 +928,16 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
 
     auto& spec = const_cast<DeviceSpec&>(deviceSpec);
+    static auto policy = ForwardingPolicy::createDefaultForwardingPolicy();
     for (auto const& inputSpec : inputSpecs) {
       // this is a prototype, in principle we want to have all spec objects const
       // and so only the const object can be retrieved from service registry
-      ForwardRoute route{0, 1, inputSpec, outputChannelName};
+      ForwardRoute route{
+        .timeslice = 0,
+        .maxTimeslices = 1,
+        .matcher = inputSpec,
+        .channel = outputChannelName,
+        .policy = &policy};
       spec.forwards.emplace_back(route);
     }
 
@@ -1010,7 +1021,13 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         if (device->GetChannels().count(channel) == 0) {
           throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
-        ForwardRoute route{0, 1, spec, channel};
+        static auto policy = ForwardingPolicy::createDefaultForwardingPolicy();
+        ForwardRoute route{
+          .timeslice = 0,
+          .maxTimeslices = 1,
+          .matcher = spec,
+          .channel = channel,
+          .policy = &policy};
         // this we will try to fix on the framework level, there will be an API to
         // set external routes. Basically, this has to be added while setting up the
         // workflow. After that, the actual spec provided by the service is supposed

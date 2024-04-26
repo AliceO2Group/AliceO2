@@ -41,11 +41,15 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
 
   float XMatchingRef = 70.f; ///< reference radius to propagate tracks for matching
+  float ITSStepEffFraction = 0.5;     //< when correcting the ITS tracks for parameters difference between default PION and other PID hipothesis, use this fraction of propagated distance
+  float minBetaGammaForPIDDiff = 1.2; // account for difference between ITS and TPC PIDs used in propagation if TPC beta*gamma is below this
 
   float minTPCTrackR = 50.; ///< cut on minimal TPC tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
   float minITSTrackR = 50.; ///< cut on minimal ITS tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
   int minTPCClusters = 25; ///< minimum number of clusters to consider
-  int askMinTPCRow = 15;   ///< disregard tracks starting above this row
+  int askMinTPCRow[36] = { ///< disregard tracks starting above this row
+                          15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+                          15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15};
 
   float cutMatchingChi2 = 30.f; ///< cut on matching chi2
 
@@ -90,6 +94,16 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 };
 
 } // namespace globaltracking
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::globaltracking::MatchTPCITSParams> : std::true_type {
+};
+} // namespace framework
+
 } // end namespace o2
 
 #endif

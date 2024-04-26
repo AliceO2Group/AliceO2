@@ -140,13 +140,13 @@ void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
 
     //                        z tan(theta) sin(phi) |relPad| relTime
     const float minqMax[FDim]{0, 0, 0, 0, -0.5f};
-    const float maxqMax[FDim]{250, 1.5, 0.9, 0.5f, 0.5f};
+    const float maxqMax[FDim]{250, 1.5f, 0.9f, 0.5f, 0.5f};
     mCalibPolsqMax[i].init(minqMax, maxqMax, n);
     mCalibPolsqMax[i].setDefault();
 
     //                        z tan(theta) sin(phi) threshold <qTot>
     const float minqTot[FDim]{0, 0, 0, 2, 30};
-    const float maxqTot[FDim]{250, 1.5, 0.9, 5, 200};
+    const float maxqTot[FDim]{250, 1.5f, 0.9f, 5, 200};
     mCalibPolsqTot[i].init(minqTot, maxqTot, n);
     mCalibPolsqTot[i].setDefault();
   }

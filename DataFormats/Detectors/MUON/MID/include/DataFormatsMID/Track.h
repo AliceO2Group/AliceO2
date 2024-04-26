@@ -188,6 +188,9 @@ class Track
   /// Overload ostream operator for MID track
   friend std::ostream& operator<<(std::ostream& stream, const Track& track);
 
+  /// set efficiency word (public function)
+  void setEfficiencyWord(uint32_t efficiencyWord) { mEfficiencyWord = efficiencyWord; }
+
  private:
   /// Set portions of the efficiency word
   /// \param pos Position in the word

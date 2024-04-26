@@ -17,6 +17,7 @@
 /// \date 17/11/2020
 
 /* ------ HISTORY ---------
+24/01/2024 - review of pointer management from the stream AF
  */
 
 #include <fairlogger/Logger.h> // for LOG
@@ -532,9 +533,7 @@ void HmpidDecoder2::decodePage(uint32_t** streamBuf)
   while (payIndex < mNumberWordToRead) { // start the payload loop word by word
     if (newOne == true) {
       wpprev = wp;
-      if (!getWordFromStream(&wp)) { // end the stream
-        break;
-      }
+      wp = readWordFromStream();
       type = checkType(wp, &p1, &p2, &p3, &p4);
       if (type == WTYPE_NONE) {
         if (eq->mWillBePad == true) { // try to recover the first pad !
@@ -745,7 +744,7 @@ void HmpidDecoder2::decodePage(uint32_t** streamBuf)
     }
   }
   for (int i = 0; i < mPayloadTail; i++) { // move the pointer to skip the Payload Tail
-    getWordFromStream(&wp);
+    wp = readWordFromStream();
   }
   *streamBuf = mActualStreamPtr;
 }
@@ -823,7 +822,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
     // The stream end !
     if (mVerbose > 6) {
       std::cout << "HMPID Decoder2 : [INFO] "
-                << "End Fast Page decoding loop !" << std::endl;
+                << "End Fast Page decoding loop ! (" << e << ")" << std::endl;
     }
     throw TH_BUFFEREMPTY;
   }
@@ -832,15 +831,19 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
   } catch (int e) {
     if (mVerbose > 6) {
       std::cout << "HMPID Decoder2 : [INFO] "
-                << "Failed to decode the Header !" << std::endl;
+                << "Failed to decode the Header ! (" << e << ")" << std::endl;
     }
-    throw TH_WRONGHEADER;
+    throw e;
   }
   HmpidEquipment* eq;
   try {
     eq = evaluateHeaderContents(equipmentIndex);
   } catch (int e) {
-    throw TH_WRONGHEADER;
+    if (mVerbose > 6) {
+      std::cout << "HMPID Decoder2 : [INFO] "
+                << "Failed to evaluate the Header ! (" << e << ")" << std::endl;
+    }
+    throw e;
   }
   uint32_t wpprev = 0;
   uint32_t wp = 0;
@@ -882,7 +885,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
 /// @throws TH_WRONGHEADER Thrown if the Fails to decode the Header
 bool HmpidDecoder2::decodeBufferFast()
 {
-  bool isNotEmpty = false;
+  bool isNotEmpty = true; // suppress the Error Decoding Superpage message in normal verbosity
   // ---------resets the PAdMap-----------
   for (int i = 0; i < mNumberOfEquipments; i++) {
     mTheEquipments[i]->init();
@@ -898,15 +901,14 @@ bool HmpidDecoder2::decodeBufferFast()
     try {
       decodePageFast(&streamBuf);
     } catch (int e) {
-      if (mVerbose > 6) {
-        std::cout << "HMPID Decoder2 : [INFO] "
-                  << " End Buffer Fast Decoding !" << std::endl;
+      if (mVerbose > 6) { // print all the decode errors eccept the end buffer
+        std::cout << "HMPID Decoder2 : [ERROR] "
+                  << "End Buffer Fast Decoding! Exit code error = " << e << std::endl;
+        isNotEmpty = false;
       }
       break;
     }
-    isNotEmpty = true;
-  } // this is the end of stream
-
+  }
   // cycle in order to update info for the last event
   for (int i = 0; i < mNumberOfEquipments; i++) {
     if (mTheEquipments[i]->mNumberOfEvents > 0) {
@@ -1106,6 +1108,33 @@ void HmpidDecoder2::dumpHmpidError(HmpidEquipment* eq, int ErrorField, int mHeBC
   return;
 }
 
+/// Prints a block of memory
+/// @param[in] MemoryStartPtr : the pointer to the begin
+/// @param[in] Dimension : the block dimension in bytes
+void HmpidDecoder2::dumpMemory(const void* MemoryStartPtr, std::size_t Dimension)
+{
+  const unsigned char* data = static_cast<const unsigned char*>(MemoryStartPtr);
+  for (std::size_t i = 0; i < Dimension; i += 16) {
+    std::cout << std::hex << std::setw(4) << std::setfill('0') << i << " : ";
+    // Print hexadecimal values
+    for (std::size_t j = 0; j < 16; ++j) {
+      if (i + j < Dimension) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(data[i + j]) << " ";
+      } else {
+        std::cout << "   ";
+      }
+    }
+    // Print ASCII values
+    std::cout << " - ";
+    for (std::size_t j = 0; j < 16 && i + j < Dimension; ++j) {
+      char ch = (data[i + j] >= 32 && data[i + j] <= 126) ? static_cast<char>(data[i + j]) : '.';
+      std::cout << ch;
+    }
+    std::cout << std::endl;
+  }
+  return;
+}
+
 /// Writes in a ASCCI File the complete report of the decoding
 /// procedure
 /// @param[in] *summaryFileName : the name of the output file
@@ -1193,17 +1222,20 @@ void HmpidDecoder2::writeSummaryFile(char* summaryFileName)
 }
 
 /// Gets a sized chunk from the stream. The stream pointers members are updated
-/// @param[in] **streamPtr : the pointer to the memory buffer
+/// @param[out] **streamPtr : the pointer to the memory buffer
 /// @param[in] Size : the dimension of the chunk (words)
 /// @returns True every time
-/// @throw TH_WRONGBUFFERDIM Buffer length shorter then the requested
+/// @throws TH_BUFFERPOINTERTOEND Thrown if the pointer to the buffer is past end
+/// @throws TH_WRONGBUFFERDIM Thrown if the buffer len is less then the size requested
 bool HmpidDecoder2::getBlockFromStream(uint32_t** streamPtr, uint32_t Size)
 {
+  if (mActualStreamPtr > mEndStreamPtr) {
+    throw TH_BUFFERPOINTERTOEND;
+    return (false);
+  }
   *streamPtr = mActualStreamPtr;
   mActualStreamPtr += Size;
   if (mActualStreamPtr > mEndStreamPtr) {
-    //    std::cout << " getBlockFromStream : StPtr=" << mActualStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << Size << std::endl;
-    //    std::cout << "Beccato " << std::endl;
     throw TH_WRONGBUFFERDIM;
     return (false);
   }
@@ -1211,7 +1243,7 @@ bool HmpidDecoder2::getBlockFromStream(uint32_t** streamPtr, uint32_t Size)
 }
 
 /// Gets the Header Block from the stream.
-/// @param[in] **streamPtr : the pointer to the memory buffer
+/// @param[out] **streamPtr : the pointer to the memory buffer
 /// @returns True if the header is read
 bool HmpidDecoder2::getHeaderFromStream(uint32_t** streamPtr)
 {
@@ -1219,27 +1251,18 @@ bool HmpidDecoder2::getHeaderFromStream(uint32_t** streamPtr)
 }
 
 /// Gets a Word from the stream.
-/// @param[in] *word : the buffer for the read word
-/// @returns True if the operation end well
-bool HmpidDecoder2::getWordFromStream(uint32_t* word)
-{
-  uint32_t* appo;
-  if (getBlockFromStream(&appo, 1)) {
-    *word = *mActualStreamPtr;
-    return (true);
-  }
-  return (false);
-}
-
-/// Gets a Word from the stream.
 /// @returns The word read
+/// @throws TH_BUFFERPOINTERTOEND Thrown if the pointer to the buffer is past end
 uint32_t HmpidDecoder2::readWordFromStream()
 {
-  mActualStreamPtr++;
+  uint32_t word = 0;
   if (mActualStreamPtr > mEndStreamPtr) {
-    throw TH_WRONGBUFFERDIM;
+    throw TH_BUFFERPOINTERTOEND;
+    return (word);
   }
-  return (*mActualStreamPtr);
+  word = *mActualStreamPtr;
+  mActualStreamPtr++;
+  return (word);
 }
 
 /// Setup the Input Stream with a Memory Pointer
@@ -1279,5 +1302,14 @@ bool HmpidDecoder2::setUpStream(void* Buffer, long BufferLen)
   mActualStreamPtr = (uint32_t*)Buffer;                 // sets the pointer to the Buffer
   mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen - 1; // sets the End of buffer
   mStartStreamPtr = ((uint32_t*)Buffer);
+
+  if (mVerbose > 6) {
+    std::cout << "HMPID Decoder2 : setUpStream() "
+              << "Buffer addr = " << std::hex << mActualStreamPtr << " End addr = " << mEndStreamPtr
+              << " BufferLen = " << std::dec << BufferLen << std::endl;
+    if (BufferLen < 256) {
+      dumpMemory((const void*)mActualStreamPtr, (std::size_t)BufferLen);
+    }
+  }
   return (true);
 }

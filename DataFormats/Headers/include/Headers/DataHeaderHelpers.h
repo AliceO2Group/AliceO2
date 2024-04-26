@@ -40,7 +40,7 @@ struct fmt::formatter<T, std::enable_if_t<o2::header::is_descriptor<T>::value, c
   template <typename FormatContext>
   auto format(const T& p, FormatContext& ctx)
   {
-    return format_to(ctx.out(), "{}", p.template as<std::string>());
+    return fmt::format_to(ctx.out(), "{}", p.template as<std::string>());
   }
 };
 
@@ -79,7 +79,7 @@ struct fmt::formatter<o2::header::DataHeader> {
                fmt::format("  firstTForbit : {}\n", h.firstTForbit) +
                fmt::format("  tfCounter    : {}\n", h.tfCounter) +
                fmt::format("  runNumber    : {}\n", h.runNumber);
-    return format_to(ctx.out(), "{}", res);
+    return fmt::format_to(ctx.out(), "{}", res);
   }
 };
 

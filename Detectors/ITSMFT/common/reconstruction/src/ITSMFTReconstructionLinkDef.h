@@ -48,6 +48,8 @@
 #pragma link C++ class o2::itsmft::ChipStat + ;
 #pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
 
+#pragma link C++ class std::map < unsigned long, std::vector < uint16_t>> + ;
+
 #pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::ITS> + ;
 #pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::MFT> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::ITS>> + ;

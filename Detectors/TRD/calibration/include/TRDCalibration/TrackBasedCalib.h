@@ -62,6 +62,8 @@ class TrackBasedCalib
   // Set the local gain factors with values from the ccdb
   void setLocalGainFactors(const LocalGainFactor* localGain) { mLocalGain = localGain; }
 
+  void setApplyShift(bool f) { mApplyShift = f; }
+
   /// Reset the output
   void reset();
 
@@ -92,6 +94,7 @@ class TrackBasedCalib
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
   std::vector<int> mGainCalibHistos;                 ///< aggregated input data for gain calibration
   float bz;                                          ///< magnetic field
+  bool mApplyShift{true};
 
   // input arrays which should not be modified since they are provided externally
   gsl::span<const TrackTRD> mTracksInITSTPCTRD;        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds

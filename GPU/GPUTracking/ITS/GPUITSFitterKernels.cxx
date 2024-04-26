@@ -30,7 +30,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
 
-GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& GPUrestrict() Fitter, GPUTPCGMPropagator& GPUrestrict() prop, GPUITSTrack& GPUrestrict() track, int start, int end, int step)
+GPUdii() bool GPUITSFitterKernels::fitTrack(GPUITSFitter& GPUrestrict() Fitter, GPUTPCGMPropagator& GPUrestrict() prop, GPUITSTrack& GPUrestrict() track, int start, int end, int step)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.mClusters[iLayer] == o2::its::constants::its::UnusedIndex) {
@@ -56,7 +56,7 @@ GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& GPUrestrict() Fitter, G
 }
 
 template <>
-GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUITSFitterKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   GPUITSFitter& Fitter = processors.itsFitter;
 
@@ -129,7 +129,7 @@ GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBloc
 
       const float r2 = CAMath::Sqrt(cluster2.xCoordinate * cluster2.xCoordinate + cluster2.yCoordinate * cluster2.yCoordinate);
       const float r3 = CAMath::Sqrt(cluster3.xCoordinate * cluster3.xCoordinate + cluster3.yCoordinate * cluster3.yCoordinate);
-      const float fy = 1. / (r2 - r3);
+      const float fy = 1.f / (r2 - r3);
       const float& tz = fy;
       const float cy = (o2::its::math_utils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
       constexpr float s2 = o2::its::constants::its::Resolution * o2::its::constants::its::Resolution;

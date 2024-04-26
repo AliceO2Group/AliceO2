@@ -15,6 +15,7 @@
 #include "FairRootManager.h"
 #include <TFile.h>
 #include <TTree.h>
+#include <iostream>
 
 namespace o2
 {
@@ -60,6 +61,69 @@ void MCEventHeader::extractFileFromKinematics(std::string_view kinefilename, std
     delete oldfile;
   }
 }
+
+void MCEventHeader::print() const
+{
+  // print some used parts from FairMCEventHeader
+  std::cout << "RunID " << fRunId << "\n";
+  std::cout << "EventID " << fEventId << "\n";
+  std::cout << "Vertex-X " << fX << "\n";
+  std::cout << "Vertex-Y " << fY << "\n";
+  std::cout << "Vertex-Z " << fZ << "\n";
+  std::cout << "Vertex-T " << fT << "\n";
+  std::cout << "Impact-B " << fB << "\n";
+  std::cout << "NPrim " << fNPrim << "\n";
+  // print meta-fields
+  printInfo();
+}
+
+/** alternative implementations below
+
+void MCEventHeader::extractFileFromKinematics(std::string_view kinefilename, std::string_view targetfilename) {
+  TFile kinefile(kinefilename.data(), "OPEN");
+  auto kinetree = static_cast<TTree*>(kinefile.Get("o2sim")); // belongs to "kinefile"
+  kinetree->SetBranchStatus("*", 0);
+  // activate header branch
+  kinetree->SetBranchStatus("MCEventHeader*", 1);
+  std::unique_ptr<TFile> headeronlyfile{TFile::Open(targetfilename.data(), "RECREATE")};
+  auto headeronlytree = kinetree->CloneTree(0);
+
+  // copy the branches
+  headeronlytree->CopyEntries(kinetree, kinetree->GetEntries());
+  headeronlytree->SetEntries(kinetree->GetEntries());
+  // flush to disc
+  headeronlytree->Write();
+}
+
+void MCEventHeader::extractFileFromKinematics(std::string_view kinefilename, std::string_view targetfilename)
+{
+  TFile kinefile(kinefilename.data(), "OPEN");
+  auto kinetree = static_cast<TTree*>(kinefile.Get("o2sim")); // owned by "kinefile"
+  auto headerbranchorig = kinetree->GetBranch("MCEventHeader.");
+  if (!headerbranchorig) {
+    return;
+  }
+
+  std::unique_ptr<TFile> headeronlyfile{TFile::Open(targetfilename.data(), "RECREATE")};
+  auto headeronlytree = new TTree("o2sim", "o2sim"); // owned by headeronlyfile
+  MCEventHeader* header = nullptr;
+  auto targetBranch = headeronlytree->Branch("MCEventHeader.", &header);
+  headerbranchorig->SetAddress(&header);
+
+  for (auto entry = 0; entry < kinetree->GetEntries(); ++entry) {
+    headerbranchorig->GetEntry(entry);
+    targetBranch->Fill();
+    if (header) {
+      delete header;
+      header = nullptr;
+    }
+  }
+  headeronlytree->SetEntries(kinetree->GetEntries());
+  // flush to disc
+  headeronlytree->Write();
+}
+
+*/
 
 /*****************************************************************/
 /*****************************************************************/

@@ -15,3 +15,25 @@
 
 #include "DataFormatsGlobalTracking/TrackTuneParams.h"
 O2ParamImpl(o2::globaltracking::TrackTuneParams);
+
+using namespace o2::globaltracking;
+
+std::array<float, 5> TrackTuneParams::getCovInnerTotal(float scale) const
+{
+  std::array<float, 5> cov{};
+  for (int i = 0; i < 5; i++) {
+    cov[i] = tpcCovInner[i] + scale * tpcCovInnerSlope[i];
+    cov[i] *= cov[i];
+  }
+  return cov;
+}
+
+std::array<float, 5> TrackTuneParams::getCovOuterTotal(float scale) const
+{
+  std::array<float, 5> cov{};
+  for (int i = 0; i < 5; i++) {
+    cov[i] = tpcCovOuter[i] + scale * tpcCovOuterSlope[i];
+    cov[i] *= cov[i];
+  }
+  return cov;
+}

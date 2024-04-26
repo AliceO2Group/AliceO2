@@ -183,10 +183,7 @@
 #define GPUCA_GPUdic_select_1() GPUdii()
 #define GPUCA_GPUdic_select_2() GPUd()
 
-#ifdef GPUCA_CONSTANT_AS_ARGUMENT
-  #undef GPUconstant
-  #define GPUconstant()
-#elif defined(GPUCA_NO_CONSTANT_MEMORY)
+#if defined(GPUCA_NO_CONSTANT_MEMORY)
   #undef GPUconstant
   #define GPUconstant() GPUglobal()
 #endif

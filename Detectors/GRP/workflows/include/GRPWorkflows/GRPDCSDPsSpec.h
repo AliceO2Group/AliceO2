@@ -45,6 +45,9 @@ class GRPDCSDPsDataProcessor : public Task
   int64_t mDPsUpdateInterval;
   bool mReportTiming = false;
   bool mLHCIFupdated = false;
+  size_t mEmptyCyclesEnvVars = 0;
+  size_t mEmptyCyclesCollimators = 0;
+  size_t mWarnEmptyCycles = 1;
 };
 } // namespace grp
 

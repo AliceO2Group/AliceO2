@@ -182,9 +182,9 @@ struct HistogramConfigSpec {
  */
 //**************************************************************************************************
 struct HistogramSpec {
-  HistogramSpec(char const* const name_, char const* const title_, HistogramConfigSpec config_, bool callSumw2_ = false)
+  HistogramSpec(char const* name_, char const* const title_, HistogramConfigSpec config_, bool callSumw2_ = false)
     : name(name_),
-      hash(compile_time_hash(name_)),
+      hash(runtime_hash(name_)),
       title(title_),
       config(std::move(config_)),
       callSumw2(callSumw2_)

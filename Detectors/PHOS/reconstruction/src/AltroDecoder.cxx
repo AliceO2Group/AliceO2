@@ -284,7 +284,7 @@ void AltroDecoder::readTRUDigits(short absId, int payloadSize)
     currentsample += bunchlength + 2;
   }
   truDigitPack dp = {0};
-  dp.mHeader = 1;
+  dp.mHeader = -1;
   dp.mAmp = maxAmp;
   dp.mTime = timeBin;
   int chId = (absId - Mapping::NCHANNELS - 1) % 224;

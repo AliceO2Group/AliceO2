@@ -347,6 +347,9 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
+    if (pc.inputs().getPos("mftTGeo") >= 0) {
+      pc.inputs().get<o2::mft::GeometryTGeo*>("mftTGeo");
+    }
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT);
     LOG(info) << "MFTTracker RO: continuous =" << continuous;
@@ -397,6 +400,12 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mDict = (const o2::itsmft::TopologyDictionary*)obj;
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("MFT", "GEOMTGEO", 0)) {
+    LOG(info) << "MFT GeomtetryTGeo loaded from ccdb";
+    o2::mft::GeometryTGeo::adopt((o2::mft::GeometryTGeo*)obj);
+    return;
   }
 }
 
@@ -417,7 +426,7 @@ void TrackerDPL::setMFTROFrameLengthInBC(int nbc)
 }
 
 ///_______________________________________
-DataProcessorSpec getTrackerSpec(bool useMC, int nThreads)
+DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int nThreads)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -430,14 +439,17 @@ DataProcessorSpec getTrackerSpec(bool useMC, int nThreads)
     inputs.emplace_back("IRFramesITS", "ITS", "IRFRAMES", 0, Lifetime::Timeframe);
   }
 
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              true,                              // GRPECS=true
-                                                              false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              false,                             // askMatLUT
-                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                        // orbitResetTime
+                                                              true,                                                                         // GRPECS=true
+                                                              false,                                                                        // GRPLHCIF
+                                                              true,                                                                         // GRPMagField
+                                                              false,                                                                        // askMatLUT
+                                                              useGeom ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               inputs,
                                                               true);
+  if (!useGeom) {
+    ggRequest->addInput({"mftTGeo", "MFT", "GEOMTGEO", 0, Lifetime::Condition, framework::ccdbParamSpec("MFT/Config/Geometry")}, inputs);
+  }
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "MFTTrackROF", 0, Lifetime::Timeframe);

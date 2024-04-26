@@ -11,36 +11,13 @@
 #ifndef O2_FRAMEWORK_TRACING_H_
 #define O2_FRAMEWORK_TRACING_H_
 
-#if DPL_ENABLE_TRACING && __has_include(<tracy/Tracy.hpp>)
-#define DPL_HAS_TRACING
-#include <tracy/Tracy.hpp>
+#if DPL_ENABLE_TRACING
+// FIXME: not implemented yet in terms of Signposts
+#define O2_LOCKABLE_NAMED(T, V, N) T V
+#define O2_LOCKABLE(T) T
 #else
-#define ZoneScoped \
-  while (false) {  \
-  }
-#define FrameMark \
-  while (false) { \
-  }
-#define TracyPlot(...) \
-  while (false) {      \
-  }
-#define ZoneScopedN(...) \
-  while (false) {        \
-  }
-#define ZoneScopedNS(...) \
-  while (false) {         \
-  }
-#define TracyAlloc(...) \
-  while (false) {       \
-  }
-#define TracyFree(...) \
-  while (false) {      \
-  }
-#define TracyAppInfo(...) \
-  while (false) {         \
-  }
-#define TracyLockableN(T, V, N) T V
-#define LockableBase(T) T
+#define O2_LOCKABLE_NAMED(T, V, N) T V
+#define O2_LOCKABLE(T) T
 #endif
 
 #endif // O2_FRAMEWORK_TRACING_H_

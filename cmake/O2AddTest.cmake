@@ -72,7 +72,7 @@ function(o2_add_test)
     1
     A
     "INSTALL;NO_BOOST_TEST"
-    "COMPONENT_NAME;TIMEOUT;WORKING_DIRECTORY;NAME;TARGETVARNAME"
+    "COMPONENT_NAME;TIMEOUT;WORKING_DIRECTORY;NAME;TARGETVARNAME;HIPIFIED"
     "SOURCES;PUBLIC_LINK_LIBRARIES;COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT"
     )
 
@@ -103,12 +103,20 @@ function(o2_add_test)
   endif()
 
   # create the executable
-  o2_add_executable(${testName}
-                    SOURCES ${A_SOURCES}
-                    PUBLIC_LINK_LIBRARIES ${linkLibraries}
-                    COMPONENT_NAME ${A_COMPONENT_NAME}
-                    IS_TEST ${noInstall} TARGETVARNAME targetName)
-
+  if (NOT A_HIPIFIED)
+    o2_add_executable(${testName}
+                      SOURCES ${A_SOURCES}
+                      PUBLIC_LINK_LIBRARIES ${linkLibraries}
+                      COMPONENT_NAME ${A_COMPONENT_NAME}
+                      IS_TEST ${noInstall} TARGETVARNAME targetName)
+  else()
+    o2_add_hipified_executable(${testName}
+                        SOURCES ${A_SOURCES}
+                        DEST_SRC_REL_PATH ${A_HIPIFIED}
+                        PUBLIC_LINK_LIBRARIES ${linkLibraries}
+                        COMPONENT_NAME ${A_COMPONENT_NAME}
+                        IS_TEST ${noInstall} TARGETVARNAME targetName)
+  endif()
 
   if(A_TARGETVARNAME)
     set(${A_TARGETVARNAME} ${targetName} PARENT_SCOPE)

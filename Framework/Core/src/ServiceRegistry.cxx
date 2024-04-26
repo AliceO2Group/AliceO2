@@ -271,7 +271,7 @@ void ServiceRegistry::postRenderGUICallbacks(ServiceRegistryRef ref)
 
 void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const& spec, void* service) const
 {
-  static TracyLockableN(std::mutex, bindMutex, "bind mutex");
+  static O2_LOCKABLE_NAMED(std::mutex, bindMutex, "bind mutex");
   // Stream services need to store their callbacks in the stream context.
   // This is to make sure we invoke the correct callback only once per
   // stream, since they could bind multiple times.
@@ -280,12 +280,12 @@ void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const&
   if (spec.kind == ServiceKind::Stream) {
     ServiceRegistryRef ref{const_cast<ServiceRegistry&>(*this), salt};
     auto& streamContext = ref.get<StreamContext>();
-    std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
+    std::scoped_lock<O2_LOCKABLE(std::mutex)> lock(bindMutex);
     auto& dataProcessorContext = ref.get<DataProcessorContext>();
     ContextHelpers::bindStreamService(dataProcessorContext, streamContext, spec, service);
   } else {
     ServiceRegistryRef ref{const_cast<ServiceRegistry&>(*this), salt};
-    std::scoped_lock<LockableBase(std::mutex)> lock(bindMutex);
+    std::scoped_lock<O2_LOCKABLE(std::mutex)> lock(bindMutex);
     if (ref.active<DataProcessorContext>()) {
       auto& dataProcessorContext = ref.get<DataProcessorContext>();
       ContextHelpers::bindProcessorService(dataProcessorContext, spec, service);

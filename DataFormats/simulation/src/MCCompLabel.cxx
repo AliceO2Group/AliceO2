@@ -14,6 +14,7 @@
 #include <ios>
 #include <iostream>
 #include <cassert>
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -29,6 +30,16 @@ std::ostream& operator<<(std::ostream& os, MCCompLabel const& c)
     os << (c.isNoise() ? "[noise]" : "[unset]");
   }
   return os;
+}
+
+//_____________________________________________
+std::string MCCompLabel::asString() const
+{
+  // describe itself
+  if (isValid()) {
+    return fmt::format("[{}/{}{}/{:6d}]", getSourceID(), getEventID(), isFake() ? '-' : '+', getTrackID());
+  }
+  return isNoise() ? "[noise]" : "[unset]";
 }
 
 //_____________________________________________

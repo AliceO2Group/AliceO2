@@ -18,6 +18,8 @@
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/AnalysisCluster.h"
 #include "DataFormatsEMCAL/Constants.h"
+#include "DataFormatsEMCAL/CellLabel.h"
+#include "DataFormatsEMCAL/ClusterLabel.h"
 #include "EMCALBase/Geometry.h"
 #include "MathUtils/Cartesian.h"
 
@@ -25,17 +27,9 @@
 
 using namespace o2::emcal;
 
-template <typename InputType>
-ClusterFactory<InputType>::ClusterFactory()
-{
-  mGeomPtr = o2::emcal::Geometry::GetInstance();
-}
-
 template <class InputType>
 ClusterFactory<InputType>::ClusterFactory(gsl::span<const o2::emcal::Cluster> clustersContainer, gsl::span<const InputType> inputsContainer, gsl::span<const int> cellsIndices)
 {
-  mGeomPtr = o2::emcal::Geometry::GetInstance();
-
   setContainer(clustersContainer, inputsContainer, cellsIndices);
 }
 
@@ -46,13 +40,14 @@ void ClusterFactory<InputType>::reset()
   mInputsContainer = gsl::span<const InputType>();
   mCellsIndices = gsl::span<int>();
   mLookUpInit = false;
+  mCellLabelContainer = gsl::span<const o2::emcal::CellLabel>();
 }
 
 ///
 /// evaluates cluster parameters: position, shower shape, primaries ...
 //____________________________________________________________________________
 template <class InputType>
-o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIndex) const
+o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIndex, o2::emcal::ClusterLabel* clusterLabel) const
 {
   if (clusterIndex >= mClustersContainer.size()) {
     throw ClusterRangeException(clusterIndex, mClustersContainer.size());
@@ -94,8 +89,22 @@ o2::emcal::AnalysisCluster ClusterFactory<InputType>::buildCluster(int clusterIn
 
   std::vector<unsigned short> cellsIdices;
 
+  bool addClusterLabels = ((clusterLabel != nullptr) && (mCellLabelContainer.size() > 0));
   for (auto cellIndex : inputsIndices) {
     cellsIdices.push_back(cellIndex);
+    if (addClusterLabels) {
+      for (size_t iLabel = 0; iLabel < mCellLabelContainer[cellIndex].GetLabelSize(); iLabel++) {
+        if (mCellLabelContainer[cellIndex].GetAmplitudeFraction(iLabel) <= 0.f) {
+          continue; // skip 0 entries
+        }
+        clusterLabel->addValue(mCellLabelContainer[cellIndex].GetLabel(iLabel),
+                               mCellLabelContainer[cellIndex].GetAmplitudeFraction(iLabel) * mInputsContainer[cellIndex].getEnergy());
+      }
+    }
+  }
+  if (addClusterLabels) {
+    clusterLabel->orderLabels();
+    clusterLabel->normalize(cellAmp);
   }
 
   clusterAnalysis.setCellsIndices(cellsIdices);

@@ -63,6 +63,14 @@ struct StreamContext {
   // Notice that in such a case all the services will be created upfront, so
   // the callback will be called for all of them.
   std::vector<ServiceStartStreamHandle> preStartStreamHandles;
+
+  // Information on wether or not all the required routes have been created.
+  // This is used to check if the LifetimeTimeframe routes were all created
+  // for a given iteration.
+  // This is in the stream context to allow tracking data creation on a per thread
+  // basis.
+  std::vector<bool> routeDPLCreated;
+  std::vector<bool> routeCreated;
 };
 
 } // namespace o2::framework

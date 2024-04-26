@@ -133,7 +133,7 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   const float tanTheta = CAMath::Sqrt(tgl2 * sec2);
 
   // getting the topology correction
-  const int padPos = int(pad + 0.5f); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
+  const unsigned int padPos = CAMath::Float2UIntRn(pad); // position of the pad is shifted half a pad ( pad=3 -> centre position of third pad)
   const float absRelPad = CAMath::Abs(pad - padPos);
   const int region = param.tpcGeometry.GetRegion(padRow);
   z = CAMath::Abs(z);

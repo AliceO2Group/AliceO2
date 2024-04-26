@@ -111,7 +111,16 @@ o2_add_test_root_macro(analyzeOriginHits.C
                                              O2::DetectorsCommonDataFormats)
 
 if(ENABLE_UPGRADES)
-  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation O2::FT3Simulation O2::FCTSimulation O2::IOTOFSimulation O2::RICHSimulation)
+  set(upgradeTargets
+      O2::Alice3DetectorsPassive
+      O2::ITS3Simulation
+      O2::TRKSimulation
+      O2::FT3Simulation
+      O2::FCTSimulation
+      O2::IOTOFSimulation
+      O2::RICHSimulation
+      O2::ECalSimulation
+      O2::MI3Simulation)
 endif()
 
 o2_add_test_root_macro(build_geometry.C
@@ -217,7 +226,7 @@ o2_add_test_root_macro(runTPCRefit.C
                                              O2::ReconstructionDataFormats
                                              O2::SimulationDataFormat
                                              O2::TPCReconstruction
-                       LABELS tpc)
+                       LABELS tpc COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_CRUDataSkimming_its.C

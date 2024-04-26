@@ -74,14 +74,29 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   if (activeModules[0] != "all") {
     if (isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3" && activeModules[i] != "RCH" && activeModules[i] != "MI3") {
+        if (activeModules[i] != "A3IP" &&
+            activeModules[i] != "IT3" &&
+            activeModules[i] != "TRK" &&
+            activeModules[i] != "FT3" &&
+            activeModules[i] != "FCT" &&
+            activeModules[i] != "TF3" &&
+            activeModules[i] != "RCH" &&
+            activeModules[i] != "MI3" &&
+            activeModules[i] != "ECL") {
           LOGP(fatal, "List of active modules contains {}, which is not a module from the upgrades.", activeModules[i]);
         }
       }
     }
     if (!isUpgrade) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3" && activeModules[i] == "RCH" && activeModules[i] == "MI3") {
+        if (activeModules[i] == "A3IP" ||
+            activeModules[i] == "TRK" ||
+            activeModules[i] == "FT3" ||
+            activeModules[i] == "FCT" ||
+            activeModules[i] == "TF3" ||
+            activeModules[i] == "RCH" ||
+            activeModules[i] == "MI3" ||
+            activeModules[i] == "ECL") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
@@ -93,7 +108,13 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
 #ifdef ENABLE_UPGRADES
     if (isUpgrade) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
-        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3 || d == DetID::RCH) {
+        if (d == DetID::TRK ||
+            d == DetID::FT3 ||
+            d == DetID::FCT ||
+            d == DetID::TF3 ||
+            d == DetID::RCH ||
+            d == DetID::ECL ||
+            d == DetID::MI3) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
@@ -112,7 +133,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       activeModules.emplace_back("SHIL");
       for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3 && d != DetID::RCH && d != DetID::MI3) {
+        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3 && d != DetID::RCH && d != DetID::ECL && d != DetID::MI3) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
@@ -235,7 +256,17 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     mConfigData.mFilterNoHitEvents = true;
   }
   mConfigData.mFromCollisionContext = vm["fromCollContext"].as<std::string>();
-  adjustFromCollContext();
+  // we decompose the argument to fetch
+  // (a) collision contextfilename
+  // (b) sim prefix to use from the context
+  auto pos = mConfigData.mFromCollisionContext.find(':');
+  std::string collcontextfile{mConfigData.mFromCollisionContext};
+  std::string simprefix{mConfigData.mOutputPrefix};
+  if (pos != std::string::npos) {
+    collcontextfile = mConfigData.mFromCollisionContext.substr(0, pos);
+    simprefix = mConfigData.mFromCollisionContext.substr(pos + 1);
+  }
+  adjustFromCollContext(collcontextfile, simprefix);
 
   // analyse vertex options
   if (!parseVertexModeString(vm["vertexMode"].as<std::string>(), mConfigData.mVertexMode)) {
@@ -302,28 +333,28 @@ bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue
   return true;
 }
 
-void SimConfig::adjustFromCollContext()
+void SimConfig::adjustFromCollContext(std::string const& collcontextfile, std::string const& prefix)
 {
   // When we use pregenerated collision contexts, some options
   // need to be auto-adjusted. Do so and inform about this in the logs.
-  if (mConfigData.mFromCollisionContext == "") {
+  if (collcontextfile == "") {
     return;
   }
 
-  auto context = o2::steer::DigitizationContext::loadFromFile(mConfigData.mFromCollisionContext);
+  auto context = o2::steer::DigitizationContext::loadFromFile(collcontextfile);
   if (context) {
     //  find the events belonging to a source that corresponds to a sim prefix
-    LOG(info) << "Looking up simprefixes " << mConfigData.mOutputPrefix;
-    int sourceid = context->findSimPrefix(mConfigData.mOutputPrefix);
+    LOG(info) << "Looking up simprefixes " << prefix;
+    int sourceid = context->findSimPrefix(prefix);
     if (sourceid == -1) {
-      LOG(error) << "Could not find collisions with sim prefix " << mConfigData.mOutputPrefix << " in the collision context. The collision contet specifies the following prefixes:";
-      for (auto& prefix : context->getSimPrefixes()) {
-        LOG(info) << prefix;
+      LOG(error) << "Could not find collisions with sim prefix " << prefix << " in the collision context. The collision context specifies the following prefixes:";
+      for (auto& sp : context->getSimPrefixes()) {
+        LOG(info) << sp;
       }
       LOG(fatal) << "Aborting due to prefix error";
     } else {
       auto collisionmap = context->getCollisionIndicesForSource(sourceid);
-      LOG(info) << "Found " << collisionmap.size() << " events in the collisioncontext for prefix " << mConfigData.mOutputPrefix;
+      LOG(info) << "Found " << collisionmap.size() << " events in the collisioncontext for prefix " << prefix;
 
       // check if collisionmap is dense (otherwise it will get screwed up with order/indexing in ROOT output)
       bool good = true;
@@ -347,7 +378,7 @@ void SimConfig::adjustFromCollContext()
       LOG(info) << "Setting number of events to simulate to " << mConfigData.mNEvents;
     }
   } else {
-    LOG(fatal) << "Could not open collision context file " << mConfigData.mFromCollisionContext;
+    LOG(fatal) << "Could not open collision context file " << collcontextfile;
   }
 }
 

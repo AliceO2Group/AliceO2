@@ -211,6 +211,14 @@ bool isQcReconfigurable(const DeviceSpec& spec)
   return std::find(spec.labels.begin(), spec.labels.end(), ecs::qcReconfigurable) != spec.labels.end();
 }
 
+bool isCritical(const DeviceSpec& spec)
+{
+  // DPL's expendable Data Processor corresponds to a non-critical task in ECS
+  // DPL's resilient Data Processor corresponds to a critical task in ECS
+  // All tasks are considered critical by default in ECS
+  return std::find(spec.labels.begin(), spec.labels.end(), DataProcessorLabel{"expendable"}) == spec.labels.end();
+}
+
 void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, const DeviceSpec& spec, const std::string& indLevel)
 {
   // get the argument `--config`
@@ -358,6 +366,7 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
 
   dumpOut << indLevel << indScheme << "task:\n";
   dumpOut << indLevel << indScheme << indScheme << "load: " << taskName << "\n";
+  dumpOut << indLevel << indScheme << indScheme << "critical: " << (isCritical(spec) ? "true" : "false") << "\n";
 }
 
 std::string removeO2ControlArg(std::string_view command)

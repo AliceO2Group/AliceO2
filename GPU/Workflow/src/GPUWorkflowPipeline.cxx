@@ -257,6 +257,13 @@ void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
   }
 }
 
+void GPURecoWorkflowSpec::handlePipelineStop()
+{
+  if (mSpecConfig.enableDoublePipeline == 1) {
+    mPipeline->mayInjectTFId = 0;
+  }
+}
+
 void GPURecoWorkflowSpec::receiveFMQStateCallback(fair::mq::State newState)
 {
   {

@@ -29,7 +29,7 @@ namespace o2
 namespace align
 {
 
-class AlignableSensorHMPID : public AlignableSensor
+class AlignableSensorHMPID final : public AlignableSensor
 {
  public:
   AlignableSensorHMPID(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);

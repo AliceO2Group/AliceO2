@@ -22,17 +22,13 @@
 
 using namespace o2::framework;
 
-namespace o2
-{
-
-namespace its3
+namespace o2::its3
 {
 
 class ClustererDPL : public Task
 {
  public:
-  ClustererDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
-  ~ClustererDPL() override = default;
+  ClustererDPL(const std::shared_ptr<o2::base::GRPGeomRequest>& gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
@@ -43,10 +39,8 @@ class ClustererDPL : public Task
 
   int mState = 0;
   bool mUseMC = true;
-  bool mPatterns = true;
   int mNThreads = 1;
   bool mUseClusterDictionary = true;
-  std::unique_ptr<std::ifstream> mFile = nullptr;
   std::unique_ptr<o2::its3::Clusterer> mClusterer = nullptr;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
@@ -55,7 +49,6 @@ class ClustererDPL : public Task
 /// run ITS cluster finder
 framework::DataProcessorSpec getClustererSpec(bool useMC);
 
-} // namespace its3
-} // namespace o2
+} // namespace o2::its3
 
 #endif /* O2_ITS3_CLUSTERERDPL */

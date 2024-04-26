@@ -1257,10 +1257,6 @@ struct CombinationsGenerator {
     {
       return (lh.mIsEnd && rh.mIsEnd) || (lh.mCurrent == rh.mCurrent);
     }
-    friend bool operator!=(const CombinationsIterator& lh, const CombinationsIterator& rh)
-    {
-      return !(lh == rh);
-    }
   };
 
   using iterator = CombinationsIterator;

@@ -18,7 +18,8 @@
 #include "TGeoMaterial.h"       // for TGeoMaterial
 #include "TGeoMedium.h"         // for TGeoMedium
 #include "TGeoVolume.h"         // for TGeoVolume
-#include "TGeoCompositeShape.h" // forTGeoCompositeShape
+#include "TGeoCompositeShape.h" // for TGeoCompositeShape
+#include "TCanvas.h"
 // force availability of assert
 #ifdef NDEBUG
 #undef NDEBUG
@@ -31,20 +32,22 @@ Alice3Pipe::Alice3Pipe() : Alice3PassiveBase{"Alice3PIPE", ""} {}
 Alice3Pipe::Alice3Pipe(const char* name,
                        const char* title,
                        bool isTRKActivated,
-                       float rMinInnerPipe,
-                       float innerThickness,
-                       float innerLength,
-                       float rMinOuterPipe,
-                       float outerThickness,
-                       float outerLength)
+                       bool isFT3Activated,
+                       float pipeRIn,
+                       float pipeThickness,
+                       float a3ipLength,
+                       float vacuumVesselRIn,
+                       float vacuumVesselThickness,
+                       float vacuumVesselLength)
   : Alice3PassiveBase{name, title},
     mIsTRKActivated{isTRKActivated},
-    mBeInnerPipeRmin{rMinInnerPipe},
-    mBeInnerPipeThick{innerThickness},
-    mInnerIpHLength{innerLength},
-    mBeOuterPipeRmin{rMinOuterPipe},
-    mBeOuterPipeThick{outerThickness},
-    mOuterIpHLength{outerLength}
+    mIsFT3Activated{isFT3Activated},
+    mPipeRIn{pipeRIn},
+    mPipeThick{pipeThickness},
+    mA3IPLength{a3ipLength},
+    mVacuumVesselRIn{vacuumVesselRIn},
+    mVacuumVesselThick{vacuumVesselThickness},
+    mVacuumVesselLength{vacuumVesselLength}
 {
 }
 
@@ -68,8 +71,6 @@ void Alice3Pipe::ConstructGeometry()
   //
   //  Class describing the beam Alice3Pipe geometry
   //
-  float z, zsh, z0;
-  //
   // Rotation Matrices
   //
   const float kDegRad = TMath::Pi() / 180.;
@@ -83,11 +84,8 @@ void Alice3Pipe::ConstructGeometry()
   // Media
   auto& matmgr = o2::base::MaterialManager::Instance();
 
-  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("ALICE3PIPE_BE");
-  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM");
-  const TGeoMedium* kMedVacNF = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_NF");
-  const TGeoMedium* kMedVacHC = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_HC");
-  const TGeoMedium* kMedVacNFHC = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_NFHC");
+  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("ALICE3_PIPE_BE");
+  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("ALICE3_PIPE_VACUUM");
 
   // Top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -96,75 +94,139 @@ void Alice3Pipe::ConstructGeometry()
     LOG(fatal) << "Could not find the top volume";
   }
 
-  //---------------- Outermost Be pipe around the IP ----------
-  // Outer pipe has to be filled with vacuum. There we have also TRK layers, which we don't want to depend on the pipe volume.
-  // Eventually, we will depend on some information passed from the outside.
-  // For A3PIP-only simulations, we don't want TRK's shade.
-  // Strategy used here is to use a composite shape where shapes of TRK layers are subtracted to the vacuum volume
-  TGeoTube* outerBeTube = new TGeoTube("OUT_PIPEsh", mBeOuterPipeRmin, mBeOuterPipeRmin + mBeOuterPipeThick, mOuterIpHLength);
-  TGeoVolume* outerBeTubeVolume = new TGeoVolume("OUT_PIPE", outerBeTube, kMedBe);
-  outerBeTubeVolume->SetLineColor(kGreen - 9);
+  // We split the naming of the parts if the beam pipe for ALICE 3 into parts
+  // - pipe
+  // - vacuum vessel (which hosts the primary vacuum)
+  // - iris vacuum vessel (which hosts the secondary vacuum)
 
-  TGeoTube* outerBerylliumTubeVacuumBase = new TGeoTube("OUT_PIPEVACUUM_BASEsh", mBeInnerPipeRmin + mBeInnerPipeThick, mBeOuterPipeRmin, mOuterIpHLength); // Vacuum filling for outer pipe
-  TGeoCompositeShape* outerBerylliumTubeVacuumComposite;                                                                                                   // Composite volume to subctract to vacuum
-  TGeoVolume* outerBerylliumTubeVacuumVolume;                                                                                                              // Final volume to be used
-
-  TString compositeFormula{"OUT_PIPEVACUUM_BASEsh"}; // If pipe is alone we won't subctract anything
+  // A3IP update
+  // Vacuum
+  TGeoTube* vacuumBasePipe = new TGeoTube("PIPEVACUUM_BASEsh", 0., mPipeRIn, mA3IPLength / 2.);
+  TGeoTube* vacuumBaseVacuumVessel = new TGeoTube("VACUUM_VESSELVACUUM_BASEsh", mPipeRIn, mVacuumVesselRIn, mVacuumVesselLength / 2.);
+  // Excavate volumes from the vacuum such that there is place for the TRK barrel layers and FT3 disc layers of the IRIS tracker
+  // And the other passive shapes: coldplate, iris tracker vacuum vessel
+  TGeoCompositeShape* vacuumComposite;
+  TGeoVolume* vacuumVolume;
+  TString compositeFormula{"PIPEVACUUM_BASEsh+VACUUM_VESSELVACUUM_BASEsh"};
   TString subtractorsFormula;
 
   if (!mIsTRKActivated) {
     std::vector<TGeoTube*> trkLayerShapes;
 
-    std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 50.f, 50.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
-                                                      std::array<float, 3>{1.2f, 50.f, 50.e-4},
-                                                      std::array<float, 3>{2.5f, 50.f, 50.e-4}};
+    std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 50.f, 100.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
+                                                      std::array<float, 3>{1.2f, 50.f, 100.e-4},
+                                                      std::array<float, 3>{2.5f, 50.f, 100.e-4}};
 
-    subtractorsFormula = "TRKLAYER_0sh";                           // First volume to be subctracted (at least one has to be provided)
     for (auto iLayer{0}; iLayer < layersQuotas.size(); ++iLayer) { // Create TRK layers shapes
       auto& layerData = layersQuotas[iLayer];
-      trkLayerShapes.emplace_back(new TGeoTube(Form("TRKLAYER_%dsh", iLayer), layerData[0], layerData[0] + layerData[2], layerData[1] / 2));
-      if (iLayer > 0) {
-        subtractorsFormula += Form("+TRKLAYER_%dsh", iLayer);
+      trkLayerShapes.emplace_back(new TGeoTube(Form("TRKLAYER_%dsh", iLayer), layerData[0], layerData[0] + layerData[2], layerData[1] / 2.));
+      if (iLayer != 0) {
+        subtractorsFormula += "+";
       }
+      subtractorsFormula += Form("TRKLAYER_%dsh", iLayer);
     }
 
-    // Escavate vacuum for hosting cold plate
-    TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", 2.6f, 2.6f + 150.e-3, 50.f / 2);
+    // IRIS vacuum vessel and coldplate dimensions
+    float coldplateRIn = 2.6f;              // cm
+    float coldplateThick = 150.e-3;         // cm
+    float coldplateLength = 50.f;           // cm
+    float irisVacuumVesselInnerRIn = 0.48f; // cm
+    float irisVacuumVesselOuterRIn = coldplateRIn + coldplateThick;
+    float irisVacuumVesselLength = 70.f;   // cm
+    float irisVacuumVesselThick = 150.e-4; // cm
+
+    // Excavate vacuum for hosting cold plate and IRIS tracker
+    TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", coldplateRIn, coldplateRIn + coldplateThick, coldplateLength / 2.);
     subtractorsFormula += "+TRK_COLDPLATEsh";
 
+    TGeoTube* irisVacuumVesselInner = new TGeoTube("TRK_IRISVACUUMVESSELINNERsh", irisVacuumVesselInnerRIn, irisVacuumVesselInnerRIn + irisVacuumVesselThick, irisVacuumVesselLength / 2.);
+    subtractorsFormula += "+TRK_IRISVACUUMVESSELINNERsh";
+
+    TGeoTube* irisVacuumVesselOuter = new TGeoTube("TRK_IRISVACUUMVESSELOUTERsh", irisVacuumVesselOuterRIn, irisVacuumVesselOuterRIn + irisVacuumVesselThick, irisVacuumVesselLength / 2.);
+    subtractorsFormula += "+TRK_IRISVACUUMVESSELOUTERsh";
+
+    TGeoTube* irisVacuumVesselWall = new TGeoTube("TRK_IRISVACUUMVESSELWALLsh", irisVacuumVesselInnerRIn, irisVacuumVesselOuterRIn + irisVacuumVesselThick, irisVacuumVesselThick / 2.);
+    TGeoTranslation* posIrisVacVWallNegZSide = new TGeoTranslation("IRISWALLNEGZ", 0., 0., -irisVacuumVesselLength / 2. - irisVacuumVesselThick / 2.);
+    posIrisVacVWallNegZSide->RegisterYourself();
+    subtractorsFormula += "+TRK_IRISVACUUMVESSELWALLsh:IRISWALLNEGZ";
+
+    TGeoTranslation* posIrisVacVWallPosZSide = new TGeoTranslation("IRISWALLPOSZ", 0., 0., irisVacuumVesselLength / 2. + irisVacuumVesselThick / 2.);
+    posIrisVacVWallPosZSide->RegisterYourself();
+    subtractorsFormula += "+TRK_IRISVACUUMVESSELWALLsh:IRISWALLPOSZ";
+  }
+
+  if (!mIsFT3Activated) {
+    std::vector<TGeoTube*> ft3DiscShapes;
+    std::vector<TGeoTranslation*> ft3DiscPositions;
+
+    std::vector<std::array<float, 4>> discsQuotas = {std::array<float, 4>{0.5f, 2.5f, 100.e-4, 26.}, // TODO: Set discs dynamically. {rIn, rOut, thickness, zpos}
+                                                     std::array<float, 4>{0.5f, 2.5f, 100.e-4, 30.},
+                                                     std::array<float, 4>{0.5f, 2.5f, 100.e-4, 34.},
+                                                     std::array<float, 4>{0.5f, 2.5f, 100.e-4, -26.},
+                                                     std::array<float, 4>{0.5f, 2.5f, 100.e-4, -30.},
+                                                     std::array<float, 4>{0.5f, 2.5f, 100.e-4, -34.}};
+    TString tempSubtractorsFormula = "";
+    if (!mIsTRKActivated) {
+      tempSubtractorsFormula = "+";
+    }
+    for (auto iDisc{0}; iDisc < discsQuotas.size(); ++iDisc) {
+      auto& discData = discsQuotas[iDisc];
+      ft3DiscShapes.emplace_back(new TGeoTube(Form("FT3DISC_%dsh", iDisc), discData[0], discData[1], discData[2] / 2.));
+      ft3DiscPositions.emplace_back(new TGeoTranslation(Form("t%d", iDisc), 0., 0., discData[3]));
+      ft3DiscPositions[iDisc]->RegisterYourself();
+      if (iDisc != 0) {
+        tempSubtractorsFormula += "+";
+      }
+      tempSubtractorsFormula += Form("FT3DISC_%dsh:t%d", iDisc, iDisc);
+    }
+    subtractorsFormula += tempSubtractorsFormula;
+  }
+
+  // Pipe tubes
+  Double_t pipeLengthHalf = mA3IPLength / 2. - mVacuumVesselThick - mVacuumVesselLength / 2.;
+  TGeoTube* pipe = new TGeoTube("PIPEsh", mPipeRIn, mPipeRIn + mPipeThick, pipeLengthHalf / 2.);
+  TGeoTube* vacuumVesselTube = new TGeoTube("VACUUM_VESSEL_TUBEsh", mVacuumVesselRIn, mVacuumVesselRIn + mVacuumVesselThick, mVacuumVesselLength / 2.);
+  TGeoTube* vacuumVesselWall = new TGeoTube("VACUUM_VESSEL_WALLsh", mPipeRIn, mVacuumVesselRIn + mVacuumVesselThick, mVacuumVesselThick / 2.);
+
+  // Pipe and vacuum vessel positions
+  TGeoTranslation* posVacuumVesselWallNegZSide = new TGeoTranslation("WALLNEGZ", 0, 0, -mVacuumVesselLength / 2. - mVacuumVesselThick / 2.);
+  posVacuumVesselWallNegZSide->RegisterYourself();
+  TGeoTranslation* posVacuumVesselWallPosZSide = new TGeoTranslation("WALLPOSZ", 0, 0, mVacuumVesselLength / 2. + mVacuumVesselThick / 2.);
+  posVacuumVesselWallPosZSide->RegisterYourself();
+  TGeoTranslation* posPipeNegZSide = new TGeoTranslation("PIPENEGZ", 0, 0, -mVacuumVesselLength / 2. - mVacuumVesselThick - pipeLengthHalf / 2.);
+  posPipeNegZSide->RegisterYourself();
+  TGeoTranslation* posPipePosZSide = new TGeoTranslation("PIPEPOSZ", 0, 0, mVacuumVesselLength / 2. + mVacuumVesselThick + pipeLengthHalf / 2.);
+  posPipePosZSide->RegisterYourself();
+
+  // Pipe composite shape and volume
+  TString pipeCompositeFormula =
+    "VACUUM_VESSEL_WALLsh:WALLNEGZ"
+    "+VACUUM_VESSEL_WALLsh:WALLPOSZ"
+    "+VACUUM_VESSEL_TUBEsh"
+    "+PIPEsh:PIPEPOSZ"
+    "+PIPEsh:PIPENEGZ";
+
+  if (subtractorsFormula.Length()) {
     LOG(info) << "Subtractors formula before : " << subtractorsFormula;
     subtractorsFormula = Form("-(%s)", subtractorsFormula.Data());
     LOG(info) << "Subtractors formula after: " << subtractorsFormula;
 
-    outerBerylliumTubeVacuumComposite = new TGeoCompositeShape("OUT_PIPEVACUUMsh", (compositeFormula + subtractorsFormula).Data());
-    outerBerylliumTubeVacuumVolume = new TGeoVolume("OUT_PIPEVACUUM", outerBerylliumTubeVacuumComposite, kMedVac);
+    vacuumComposite = new TGeoCompositeShape("VACUUM_BASEsh", (compositeFormula + subtractorsFormula).Data());
+    vacuumVolume = new TGeoVolume("VACUUM_BASE", vacuumComposite, kMedVac);
   } else {
-    outerBerylliumTubeVacuumVolume = new TGeoVolume("OUT_PIPEVACUUM", outerBerylliumTubeVacuumBase, kMedVac);
+    vacuumComposite = new TGeoCompositeShape("VACUUM_BASEsh", compositeFormula.Data());
+    vacuumVolume = new TGeoVolume("VACUUM_BASE", vacuumComposite, kMedVac);
   }
 
-  outerBerylliumTubeVacuumVolume->SetVisibility(1);
-  outerBerylliumTubeVacuumVolume->SetTransparency(50);
-  outerBerylliumTubeVacuumVolume->SetLineColor(kGreen);
+  TGeoCompositeShape* pipeComposite = new TGeoCompositeShape("A3IPsh", pipeCompositeFormula);
+  TGeoVolume* pipeVolume = new TGeoVolume("A3IP", pipeComposite, kMedBe);
 
-  //  outerBeTubeVolume->AddNode(outerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
-  barrel->AddNode(outerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
+  // Add everything to the barrel
+  barrel->AddNode(vacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
+  barrel->AddNode(pipeVolume, 1, new TGeoTranslation(0, 30.f, 0));
 
-  barrel->AddNode(outerBeTubeVolume, 1, new TGeoTranslation(0, 30.f, 0)); // Add to surrounding geometry
-
-  //---------------- Innermost Be pipe around the IP ----------
-  TGeoTube* innerBeTube =
-    new TGeoTube("INN_PIPEsh", mBeInnerPipeRmin, mBeInnerPipeRmin + mBeInnerPipeThick, mInnerIpHLength);
-  TGeoVolume* innerBeTubeVolume = new TGeoVolume("INN_PIPE", innerBeTube, kMedBe);
-  innerBeTubeVolume->SetLineColor(kGreen - 9);
-
-  TGeoTube* berylliumTubeVacuum =
-    new TGeoTube("INN_PIPEVACUUMsh", 0., mBeInnerPipeRmin, mInnerIpHLength);
-  TGeoVolume* innerBerylliumTubeVacuumVolume = new TGeoVolume("INN_PIPEVACUUM", berylliumTubeVacuum, kMedVac);
-  innerBerylliumTubeVacuumVolume->SetVisibility(1);
-  innerBerylliumTubeVacuumVolume->SetLineColor(kGreen);
-
-  barrel->AddNode(innerBeTubeVolume, 1, new TGeoTranslation(0, 30.f, 0));
-  barrel->AddNode(innerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
+  vacuumVolume->SetLineColor(kGreen + 3);
+  pipeVolume->SetLineColor(kGreen + 3);
 }
 
 void Alice3Pipe::createMaterials()
@@ -197,20 +259,14 @@ void Alice3Pipe::createMaterials()
 
   auto& matmgr = o2::base::MaterialManager::Instance();
 
-  //    Beryllium
-  matmgr.Material("ALICE3PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
-  matmgr.Medium("ALICE3PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  // Beryllium
+  matmgr.Material("ALICE3_PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
+  matmgr.Medium("ALICE3_PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
-  //    Vacuum
-  matmgr.Mixture("ALICE3PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("ALICE3PIPE", 36, "VACUUM$_NF", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("ALICE3PIPE", 56, "VACUUM$_HC ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("ALICE3PIPE", 76, "VACUUM$_NFHC", aAir, zAir, dAir1, 4, wAir);
+  // Vacuum
+  matmgr.Mixture("ALICE3_PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
 
-  matmgr.Medium("ALICE3PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3PIPE", 36, "VACUUM_NF", 36, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3PIPE", 56, "VACUUM_HC", 56, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("ALICE3PIPE", 76, "VACUUM_NFHC", 76, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3_PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 // ----------------------------------------------------------------------------

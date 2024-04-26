@@ -44,6 +44,7 @@ struct GuiCallbackContext {
   void* window = nullptr;
   bool* guiQuitRequested = nullptr;
   bool* allChildrenGone = nullptr;
+  bool* guiTimerExpired = nullptr;
   std::function<void(void)> callback;
   std::set<GuiRenderer*> renderers;
 };

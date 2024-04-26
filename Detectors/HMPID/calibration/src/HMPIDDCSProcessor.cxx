@@ -708,6 +708,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
     } else {
       (pHvTF).reset(new TF1(Form("HV%i%i", iCh, iSec), "[0]+x*[1]",
                             hvFirstTime, hvLastTime));
+      pGrHV->Fit(Form("HV%i%i", iCh, iSec), "Q"); // ef added
     }
   } else {
     LOGP(warn, "No entries in High Voltage for HV{}{}", iCh, iSec);

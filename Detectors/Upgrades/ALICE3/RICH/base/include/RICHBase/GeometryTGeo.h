@@ -30,6 +30,8 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getRICHRingPattern() { return sRingName.c_str(); }
   static const char* getRICHChipPattern() { return sChipName.c_str(); }
   static const char* getRICHSensorPattern() { return sSensorName.c_str(); }
+  static const char* getRICHSensorFWDPattern() { return sSensorFWDName.c_str(); }
+  static const char* getRICHSensorBWDPattern() { return sSensorBWDName.c_str(); }
 
   static const char* composeSymNameRICH(int d)
   {
@@ -38,12 +40,16 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* composeSymNameRing(int d, int ring);
   static const char* composeSymNameChip(int d, int ring);
   static const char* composeSymNameSensor(int d, int ring);
+  static const char* composeSymNameSensorFWD(int d);
+  static const char* composeSymNameSensorBWD(int d);
 
  protected:
   static std::string sVolumeName;
   static std::string sRingName;
   static std::string sChipName;
   static std::string sSensorName;
+  static std::string sSensorFWDName;
+  static std::string sSensorBWDName;
 
  private:
   static std::unique_ptr<o2::rich::GeometryTGeo> sInstance;

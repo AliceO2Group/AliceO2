@@ -22,9 +22,9 @@ TEST_CASE("TestDebouncing")
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId, [&count]() { count += 1; }, TimesliceId{0}, 10);
+    queue, taskId, [&count](size_t) { count += 1; }, TimesliceId{0}, 10);
   AsyncQueueHelpers::post(
-    queue, taskId, [&count]() { count += 2; }, TimesliceId{1}, 20);
+    queue, taskId, [&count](size_t) { count += 2; }, TimesliceId{1}, 20);
   AsyncQueueHelpers::run(queue, TimesliceId{2});
   REQUIRE(count == 2);
 }
@@ -39,9 +39,9 @@ TEST_CASE("TestPriority")
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{0});
+    queue, taskId1, [&count](size_t) { count += 10; }, TimesliceId{0});
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count /= 10; }, TimesliceId{0});
+    queue, taskId2, [&count](size_t) { count /= 10; }, TimesliceId{0});
   AsyncQueueHelpers::run(queue, TimesliceId{2});
   REQUIRE(count == 10);
 }
@@ -56,9 +56,9 @@ TEST_CASE("TestOldestTimeslice")
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{1});
+    queue, taskId1, [&count](size_t) { count += 10; }, TimesliceId{1});
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 20; }, TimesliceId{0});
+    queue, taskId2, [&count](size_t) { count += 20; }, TimesliceId{0});
   AsyncQueueHelpers::run(queue, TimesliceId{0});
   REQUIRE(count == 20);
   AsyncQueueHelpers::run(queue, TimesliceId{0});
@@ -77,11 +77,11 @@ TEST_CASE("TestOldestTimesliceWithBounce")
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{2});
+    queue, taskId1, [&count](size_t) { count += 10; }, TimesliceId{2});
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 20; }, TimesliceId{1}, 10);
+    queue, taskId2, [&count](size_t) { count += 20; }, TimesliceId{1}, 10);
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 30; }, TimesliceId{1}, 20);
+    queue, taskId2, [&count](size_t) { count += 30; }, TimesliceId{1}, 20);
   AsyncQueueHelpers::run(queue, TimesliceId{0});
   REQUIRE(count == 0);
   REQUIRE(queue.tasks.size() == 3);
@@ -103,11 +103,11 @@ TEST_CASE("TestOldestTimesliceWithNegativeBounce")
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{2});
+    queue, taskId1, [&count](size_t) { count += 10; }, TimesliceId{2});
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 20; }, TimesliceId{1}, -10);
+    queue, taskId2, [&count](size_t) { count += 20; }, TimesliceId{1}, -10);
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 30; }, TimesliceId{1}, -20);
+    queue, taskId2, [&count](size_t) { count += 30; }, TimesliceId{1}, -20);
   AsyncQueueHelpers::run(queue, TimesliceId{0});
   REQUIRE(count == 0);
   REQUIRE(queue.tasks.size() == 3);
@@ -128,13 +128,13 @@ TEST_CASE("TestOldestTimeslicePerTimeslice")
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{1});
+    queue, taskId1, [&count](size_t) { count += 10; }, TimesliceId{1});
   REQUIRE(queue.tasks.size() == 1);
   AsyncQueueHelpers::run(queue, TimesliceId{0});
   REQUIRE(queue.tasks.size() == 1);
   REQUIRE(count == 0);
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 20; }, TimesliceId{2});
+    queue, taskId1, [&count](size_t) { count += 20; }, TimesliceId{2});
   REQUIRE(queue.tasks.size() == 2);
   AsyncQueueHelpers::run(queue, TimesliceId{1});
   REQUIRE(queue.tasks.size() == 1);

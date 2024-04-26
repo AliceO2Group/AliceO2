@@ -81,8 +81,8 @@ RP CollisionTimeRecoTask::processDigit(const o2::ft0::Digit& digit,
   }
   std::array<short, 4> mCollisionTime = {RP::sDummyCollissionTime, RP::sDummyCollissionTime, RP::sDummyCollissionTime, RP::sDummyCollissionTime};
 
-  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / ndigitsA : RP::sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
-  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / ndigitsC : RP::sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeA] = (ndigitsA > 0) ? std::round(sideAtime / ndigitsA) : RP::sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeC] = (ndigitsC > 0) ? std::round(sideCtime / ndigitsC) : RP::sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
 
   if (ndigitsA > 0 && ndigitsC > 0) {
     mCollisionTime[Vertex] = (mCollisionTime[TimeA] - mCollisionTime[TimeC]) / 2.;

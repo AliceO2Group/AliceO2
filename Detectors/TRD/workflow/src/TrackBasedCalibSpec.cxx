@@ -26,6 +26,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "TStopwatch.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include <cstring>
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -61,6 +62,10 @@ class TRDTrackBasedCalibDevice : public Task
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+    // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
+    mCalibrator.setApplyShift(false);
+  }
   mTimer.Stop();
   mTimer.Reset();
 }

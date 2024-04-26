@@ -21,6 +21,7 @@
 #include "TPCWorkflow/TPCCalibPadGainTracksSpec.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
+#include "TPCWorkflow/TPCScalerSpec.h"
 
 using namespace o2::framework;
 
@@ -63,6 +64,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const std::string polynomialsFile = config.options().get<std::string>("polynomialsFile");
   const auto disablePolynomialsCCDB = config.options().get<bool>("disablePolynomialsCCDB");
   const auto sclOpt = o2::tpc::CorrectionMapsLoader::parseGlobalOptions(config.options());
-  WorkflowSpec workflow{getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB, sclOpt)};
+  WorkflowSpec workflow;
+  if (sclOpt.needTPCScalersWorkflow()) {
+    workflow.emplace_back(o2::tpc::getTPCScalerSpec(sclOpt.lumiType == 2, sclOpt.enableMShapeCorrection));
+  }
+  workflow.emplace_back(o2::tpc::getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB, sclOpt));
   return workflow;
 }

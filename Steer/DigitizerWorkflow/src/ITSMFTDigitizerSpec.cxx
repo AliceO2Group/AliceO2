@@ -20,6 +20,7 @@
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
+#include "DataFormatsITSMFT/TimeDeadMap.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -59,6 +60,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     if (mFinished) {
       return;
     }
+    mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
     mID == o2::detectors::DetID::ITS ? updateTimeDependentParams<o2::detectors::DetID::ITS>(pc) : updateTimeDependentParams<o2::detectors::DetID::MFT>(pc);
     std::string detStr = mID.getName();
     // read collision context from input
@@ -90,7 +92,6 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       if (!mDigits.size()) {
         return; // no digits were flushed, nothing to accumulate
       }
-      static int fixMC2ROF = 0; // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
       auto ndigAcc = digitsAccum.size();
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
 
@@ -189,8 +190,25 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       return;
     }
     if (matcher == ConcreteDataMatcher(mOrigin, "DEADMAP", 0)) {
-      LOG(info) << mID.getName() << " dead map updated";
-      mDigitizer.setDeadChannelsMap((const o2::itsmft::NoiseMap*)obj);
+      LOG(info) << mID.getName() << " static dead map updated";
+      mDeadMap = (o2::itsmft::NoiseMap*)obj;
+      mDigitizer.setDeadChannelsMap(mDeadMap);
+      return;
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "TimeDeadMap", 0)) {
+      o2::itsmft::TimeDeadMap* timedeadmap = (o2::itsmft::TimeDeadMap*)obj;
+      if (!timedeadmap->isDefault()) {
+        timedeadmap->decodeMap(mFirstOrbitTF, *mDeadMap, true);
+        if (mTimeDeadMapUpdated) {
+          LOGP(fatal, "Attempt to add time-dependent map to already modified static map");
+        }
+        mTimeDeadMapUpdated = true;
+        mDigitizer.setDeadChannelsMap(mDeadMap);
+        LOG(info) << mID.getName() << " time-dependent dead map updated";
+      } else {
+        LOG(info) << mID.getName() << " time-dependent dead map is default/empty";
+      }
+
       return;
     }
     if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDEPARAM", 0)) {
@@ -215,6 +233,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     std::string detstr(o2::detectors::DetID::getName(DETID));
     pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_noise");
     pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_dead");
+    // TODO: the code should run even if this object does not exist. Or: create default object
+    pc.inputs().get<o2::itsmft::TimeDeadMap*>(detstr + "_time_dead");
     pc.inputs().get<o2::itsmft::DPLAlpideParam<DETID>*>(detstr + "_alppar");
 
     auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
@@ -263,6 +283,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   bool mWithMCTruth = true;
   bool mFinished = false;
   bool mDisableQED = false;
+  unsigned long mFirstOrbitTF = 0x0;
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::Digitizer mDigitizer;
@@ -275,8 +296,10 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum;
   std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum;
   std::vector<TChain*> mSimChains;
+  o2::itsmft::NoiseMap* mDeadMap = nullptr;
 
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
+  bool mTimeDeadMapUpdated = false;
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 
@@ -340,6 +363,7 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   inputs.emplace_back("ITS_noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
   inputs.emplace_back("ITS_dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
+  inputs.emplace_back("ITS_time_dead", "ITS", "TimeDeadMap", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/TimeDeadMap"));
   inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
 
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
@@ -358,6 +382,7 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   inputs.emplace_back("MFT_noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
   inputs.emplace_back("MFT_dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
+  inputs.emplace_back("MFT_time_dead", "MFT", "TimeDeadMap", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/TimeDeadMap"));
   inputs.emplace_back("MFT_alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
   parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
