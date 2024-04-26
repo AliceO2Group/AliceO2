@@ -23,18 +23,18 @@ using namespace o2::quality_control;
 
 BOOST_AUTO_TEST_CASE(test_QualityControlFlag)
 {
-  QualityControlFlag trf1{12, 34, FlagReasonFactory::BadTracking(), "comment", "source"};
+  QualityControlFlag qcFlag1{12, 34, FlagTypeFactory::BadTracking(), "comment", "source"};
 
-  BOOST_CHECK_EQUAL(trf1.getStart(), 12);
-  BOOST_CHECK_EQUAL(trf1.getEnd(), 34);
-  BOOST_CHECK_EQUAL(trf1.getFlag(), FlagReasonFactory::BadTracking());
-  BOOST_CHECK_EQUAL(trf1.getComment(), "comment");
-  BOOST_CHECK_EQUAL(trf1.getSource(), "source");
+  BOOST_CHECK_EQUAL(qcFlag1.getStart(), 12);
+  BOOST_CHECK_EQUAL(qcFlag1.getEnd(), 34);
+  BOOST_CHECK_EQUAL(qcFlag1.getFlag(), FlagTypeFactory::BadTracking());
+  BOOST_CHECK_EQUAL(qcFlag1.getComment(), "comment");
+  BOOST_CHECK_EQUAL(qcFlag1.getSource(), "source");
 
-  BOOST_CHECK_THROW((QualityControlFlag{12, 0, FlagReasonFactory::BadTracking()}), std::runtime_error);
+  BOOST_CHECK_THROW((QualityControlFlag{12, 0, FlagTypeFactory::BadTracking()}), std::runtime_error);
 
-  QualityControlFlag trf2{10, 34, FlagReasonFactory::BadTracking(), "comment", "source"};
+  QualityControlFlag qcFlag2{10, 34, FlagTypeFactory::BadTracking(), "comment", "source"};
 
-  BOOST_CHECK(trf1 > trf2);
-  BOOST_CHECK(!(trf1 < trf2));
+  BOOST_CHECK(qcFlag1 > qcFlag2);
+  BOOST_CHECK(!(qcFlag1 < qcFlag2));
 }
