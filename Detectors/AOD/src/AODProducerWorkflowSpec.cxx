@@ -329,6 +329,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     extraInfoHolder.tpcNClsFindableMinusFound,
                     extraInfoHolder.tpcNClsFindableMinusCrossedRows,
                     extraInfoHolder.tpcNClsShared,
+                    // truncateFloatFraction(extraInfoHolder.tpcTime0, mTPCTrackTime), FS TODO uncomment when changing to _002
                     extraInfoHolder.trdPattern,
                     truncateFloatFraction(extraInfoHolder.itsChi2NCl, mTrackChi2),
                     truncateFloatFraction(extraInfoHolder.tpcChi2NCl, mTrackChi2),
@@ -2438,6 +2439,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
     extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
     extraInfoHolder.tpcNClsShared = tpcClData.shared;
+    extraInfoHolder.tpcTime0 = tpcOrig.getTime0();
     if (src == GIndex::TPC) {                                                                                // standalone TPC track should set its time from their timebins range
       double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;                     // half-span of the interval
       double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value

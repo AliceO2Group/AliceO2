@@ -338,6 +338,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mTrackSignal = 0xFFFFFF00;          // 15 bits
   uint32_t mTrackTime = 0xFFFFFFFF;            // use full float precision for time
   uint32_t mTrackTimeError = 0xFFFFFF00;       // 15 bits
+  uint32_t mTPCTrackTime = 0xFFFFFFFF;         // use full float precision for time
   uint32_t mTrackPosEMCAL = 0xFFFFFF00;        // 15 bits
   uint32_t mTracklets = 0xFFFFFF00;            // 15 bits
   uint32_t mMcParticleW = 0xFFFFFFF0;          // 19 bits
@@ -374,6 +375,7 @@ class AODProducerWorkflowDPL : public Task
     int8_t tpcNClsFindableMinusFound = 0;
     int8_t tpcNClsFindableMinusCrossedRows = 0;
     uint8_t tpcNClsShared = 0;
+    float tpcTime0 = 0.f;
     uint8_t trdPattern = 0;
     float itsChi2NCl = -999.f;
     float tpcChi2NCl = -999.f;

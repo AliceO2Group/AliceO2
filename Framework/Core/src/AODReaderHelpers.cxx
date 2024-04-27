@@ -180,6 +180,8 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
             outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtra_000ExtensionMetadata{}));
           } else if (version == 1U) {
             outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtra_001ExtensionMetadata{}));
+          } else if (version == 2U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtra_002ExtensionMetadata{}));
           }
         } else if (description == header::DataDescription{"MFTTRACK"}) {
           if (version == 0U) {
