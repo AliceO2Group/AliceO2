@@ -96,6 +96,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
                                                                  mTPCCorrMapsHelper, mBz,
                                                                  tpcClusRefs.data(), 0, tpcClusShMap.data(),
                                                                  tpcClusOccMap.data(), tpcClusOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    tpcRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
   }
 
   const auto& itsClusters = prepareITSClusters(data);
