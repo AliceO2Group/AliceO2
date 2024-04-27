@@ -1805,7 +1805,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
   if (mTPCClusterIdxStruct) { // refit was requested
     float chi2 = 0;
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCInnerRef);
-    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
+    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // inward refit after resetting cov.mat.
       LOGP(debug, "Inward Refit failed {}", trConstr.asString());
       return false;
     }

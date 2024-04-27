@@ -577,6 +577,7 @@ bool MatchTPCITS::prepareTPCData()
   }
 */
   mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+  mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
   mNTPCOccBinLength = mTPCRefitter->getParam()->rec.tpc.occupancyMapTimeBins;
   mTBinClOcc.clear();
   if (mNTPCOccBinLength > 1 && mTPCRefitterOccMap.size()) {
