@@ -668,7 +668,7 @@ GPUd() float PropagatorImpl<value_T>::estimateLTIncrement(const o2::track::Track
 
 //____________________________________________________________
 template <typename value_T>
-GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
+GPUd() value_T PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
   value_T xdca = 0., ydca = 0., length = 0.; // , zdca = 0. // zdca might be used in future
   o2::math_utils::CircleXY<value_T> c;
@@ -715,8 +715,10 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
     length = straigh_line_approx();
   }
   // since we assume the track or its parent comes from the beam-line or decay, add XY(?) distance to it
-  length += math_utils::detail::sqrt<value_type>(xdca * xdca + ydca * ydca);
+  value_T dcaT = math_utils::detail::sqrt<value_type>(xdca * xdca + ydca * ydca);
+  length += dcaT;
   lt.addStep(length, trc.getP2Inv());
+  return dcaT;
 }
 
 //____________________________________________________________
