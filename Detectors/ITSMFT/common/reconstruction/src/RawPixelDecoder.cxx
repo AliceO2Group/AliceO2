@@ -111,6 +111,8 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
         ru.ROFRampUpStage = mROFRampUpStage;
         mNPixelsFiredROF += ru.decodeROF(mMAP, mInteractionRecord);
         mNChipsFiredROF += ru.nChipsFired;
+      } else {
+        ru.clearSeenChipIDs();
       }
     }
 
