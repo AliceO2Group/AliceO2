@@ -553,7 +553,7 @@ void MatchTOF::propagateTPCTracks(int sec)
     }
 
     if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
-      if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT0) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
+      if (!propagateToRefXWithoutCov(trc, o2::constants::geom::XTPCOuterRef, 10, mBz) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
         mNotPropagatedToTOF[trkType::UNCONS]++;
         continue;
       }
@@ -1690,7 +1690,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
 }
 
 //______________________________________________
-bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
+bool MatchTOF::propagateToRefXWithoutCov(const o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
 {
   // propagate track to matching reference X without using the covariance matrix
   // we create the copy of the track in a TrackPar object (no cov matrix)
