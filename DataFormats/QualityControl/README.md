@@ -15,7 +15,7 @@ Data quality is determined through two methods:
 
 Both methods utilize the same data format for Flags.
 During processing (both synchronous and asynchronous), Checks produce Qualities and associate them with Flags.
-The Quality Control framework then transmits these Flags to the RCT through a gRPC interface.
+The Quality Control framework then transmits these Flags to the RCT through a gRPC interface (**not ready yet**, to be done in the scope of QC-978).
 Detector experts can then review the automatically generated Flags and make any necessary modifications or additions directly in the RCT.
 
 ### Quality Control Flag Structure
