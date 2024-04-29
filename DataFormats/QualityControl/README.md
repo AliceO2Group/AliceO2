@@ -31,7 +31,7 @@ A [Quality Control Flag](include/DataFormatsQualityControl/QualityControlFlag.h)
 
 ```
 flag: Limited Acceptance MC Reproducible
-start: 1612707603626 
+start: 1612707603626
 end: 1613999652000
 comment: Sector B in TPC inactive
 source: TPC/Clusters Check
