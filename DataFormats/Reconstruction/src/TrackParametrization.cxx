@@ -522,6 +522,40 @@ GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 
 //______________________________________________________________
 template <typename value_T>
+GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhiAt(value_t xk, value_t b) const
+{
+  ///< this method is just an alias for obtaining phi @ X in the tree->Draw()
+  value_t dx = xk - getX();
+  if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
+    return getPhi();
+  }
+  value_t crv = (gpu::CAMath::Abs(b) < constants::math::Almost0) ? 0.f : getCurvature(b);
+  value_t x2r = crv * dx;
+  value_t snp = mP[kSnp] + x2r;
+  value_t phi = 999.;
+  if (gpu::CAMath::Abs(snp) < constants::math::Almost1) {
+    value_t phi = gpu::CAMath::ASin(snp) + getAlpha();
+    math_utils::detail::bringTo02Pi<value_t>(phi);
+  }
+  return phi;
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhiPosAt(value_t xk, value_t b) const
+{
+  ///< this method is just an alias for obtaining phiPos @ X in the tree->Draw()
+  value_t phi = 999.;
+  auto y = getYAt(xk, b);
+  if (y > -9998.) {
+    phi = gpu::CAMath::ATan2(y, xk) + getAlpha();
+    math_utils::detail::bringTo02Pi<value_t>(phi);
+  }
+  return phi;
+}
+
+//______________________________________________________________
+template <typename value_T>
 GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getSnpAt(value_t alpha, value_t xk, value_t b) const
 {
   ///< this method is just an alias for obtaining snp @ alpha, X in the tree->Draw()
