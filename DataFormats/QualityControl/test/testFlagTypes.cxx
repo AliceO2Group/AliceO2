@@ -33,14 +33,14 @@ BOOST_AUTO_TEST_CASE(FlagTypes)
   BOOST_CHECK_EQUAL(fDefault, FlagTypeFactory::Invalid());
 
   auto f1 = FlagTypeFactory::Unknown();
-  BOOST_CHECK_EQUAL(f1.getID(), 1);
+  BOOST_CHECK_EQUAL(f1.getID(), 14);
   BOOST_CHECK_EQUAL(f1.getName(), "Unknown");
   BOOST_CHECK_EQUAL(f1.getBad(), true);
 
-  std::cout << f1 << std::endl;
+  BOOST_CHECK_NO_THROW(std::cout << f1 << std::endl);
 
   auto f2 = f1;
-  BOOST_CHECK_EQUAL(f2.getID(), 1);
+  BOOST_CHECK_EQUAL(f2.getID(), 14);
   BOOST_CHECK_EQUAL(f1.getName(), f2.getName());
   BOOST_CHECK_EQUAL(f2.getName(), "Unknown");
   BOOST_CHECK_EQUAL(f2.getBad(), true);
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(FlagTypes)
   BOOST_CHECK(!(f1 < f2));
   BOOST_CHECK(!(f1 > f2));
 
-  auto f3 = FlagTypeFactory::LimitedAcceptance();
-  BOOST_CHECK(f3 > f1);
-  BOOST_CHECK(!(f3 < f1));
+  auto f3 = FlagTypeFactory::LimitedAcceptanceMCNotReproducible();
+  BOOST_CHECK(f3 < f1);
+  BOOST_CHECK(!(f3 > f1));
 }
