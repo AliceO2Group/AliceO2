@@ -1,63 +1,99 @@
 \page refDataFormatsQualityControl Data Formats Quality Control
 
-Data formats for tagging good quality data for analysis.
+## Tagging Good Quality Data for Processing and Analysis
 
-# Flagging time ranges
-## General idea
-* Each detector has its own CCDB (QCDB) entry - TimeRangeFlagCollection
-* The CCDB Entry validity will be run or fill, depending on the final data taking granularity
-* Each entry can define sub ranges (TimeRangeFlags) of certain data characteristics (FlagReasons) inside the CCDB Entry validity
-* Flags are defined in a CSV master file, they are used to derive the Data Tags - the final filters for good quality data during analysis.
-* Data Tag are stored as CCDB entries. They might require different detectors and may suppress different flags dependent on the analysis type.
+This document outlines the data formats used for tagging good quality data for further processing and analysis.
+They allow us to describe problems affecting the data in concrete time intervals.
+Using this information, data can be filtered out according to criteria specific to a given analysis type.
 
-## Implementation
+### Data Quality Control workflow
 
-[Flag Reason](include/DataFormatsQualityControl/FlagReasons.h) is defined with an identifier number, a name and a 'bad quality' determinant.
-The latter decides if such a flag should mark the data quality as bad by default.
-FlagReasons can be created only with FlagReasonFactory, so that the list of available reasons is common and centralised. 
-For example:
+Data quality is determined through two methods:
+
+1. **Automated Checks:** The Quality Control framework runs Checks which may return quality Flags.
+2. **Manual Review:** Detector experts review data using the Run Condition Table (RCT) and can modify or add Flags.
+
+Both methods utilize the same data format for Flags.
+During processing (both synchronous and asynchronous), Checks produce Qualities and associate them with Flags.
+The Quality Control framework then transmits these Flags to the RCT through a gRPC interface.
+Detector experts can then review the automatically generated Flags and make any necessary modifications or additions directly in the RCT.
+
+### Quality Control Flag Structure
+
+A [Quality Control Flag](include/DataFormatsQualityControl/QualityControlFlag.h) consists of the following elements:
+
+* **Flag Type:** This identifies the specific issue the flag represents. (More details below)
+* **Time Range:** This defines the time period affected by the flag.
+* **Comment (Optional):** This allows human-readable explanations for assigning the flag.
+* **Source String:** This identifies the entity (person or software module) that created the flag.
+
+**Example:**
+
 ```
-id: 10
-name: Limited Acceptance
-bad: true
-```
-The list of available FlagReasons is defined in [etc/flagReasons.csv](etc/flagReasons.csv), which is used to generate the corresponding list of methods in FlagReasonFactory.
-The existing flags should never be modified, except for marking them as obsolete.
-New flags may be added via pull requests if there is no flag which conveys a similar meaning.
-
-With [TimeRangeFlags](include/DataFormatsQualityControl/TimeRangeFlag.h) we can define the time range of a chosen FlagReason, add an additional comment and specify the source of this flag.
-For example:
-```
+flag: Limited Acceptance MC Reproducible
 start: 1612707603626 
 end: 1613999652000
-flag: Limited Acceptance
 comment: Sector B in TPC inactive
-source: o2::quality_control_modules::tpc::ClustersCheck
+source: TPC/Clusters Check
 ```
 
-[TimeRangeFlagCollection](include/DataFormatsQualityControl/TimeRangeFlagCollection.h) contains all TimeRangeFlags for the validity range (run or fill).
-TimeRangeFlags may overlap, e.g. if they use different FlagReasons and they are sorted by their start time.
-If certain period does not include any TimeRangeFlags with *bad* FlagReasons, then the data quality can be considered as good.
-The [TimeRangeFlagCollection test](test/testTimeRangeFlagCollection.cxx) shows the usage example.
+### Flag Types
 
-TimeRangeFlagCollections are supposed to be created automatically with QC Post-processing Tasks based on Quality Objects created by QC Checks.
-However, they might be created manually by QA experts as well.
-The procedure to do that has to be defined.
+[Flag Types](include/DataFormatsQualityControl/FlagType.h) define the specific categories of issues represented by flags.
+Each Flag Type has the following attributes:
 
-## TODO
-* Define the complete list of available Flag Reasons
-* implement CCDB storage and access
-  - define CCDB storage place e.g.
-    * `<Detector>/QC/QualityFlags`
-    * `Analysis/QualityFlags/<Detector>`
-* Data Tags Definitions and Data Tags
+* **Identifier Number:** A unique numerical ID for the Flag Type.
+* **Name:** A human-readable name describing the issue.
+* **"Bad Quality" Determinant:** This boolean constant indicates whether the type inherently signifies bad data quality.
 
-### Notes on plans for Data Tags
+#### Creating and Managing Flag Types
+
+* **FlagTypeFactory** ensures a centralized and consistent list of available Flag Types.
+  New types can only be created through this factory.
+* **[flagTypes.csv](etc/flagTypes.csv)** defines the existing Flag Types, including their ID, name, and "bad quality" determinant, factory method name and a switch to deprecate a flag.
+  The table serves as the source to automatically generate the corresponding methods in FlagTypeFactory.
+* **Adding new Flag Types:** If a new issue requires a flag not currently defined, propose the addition by contacting the async QC coordinators.
+  They have the authority to add new Flag Types to the RCT.
+  These changes will then be reflected in the [flagTypes.csv](etc/flagTypes.csv) file through a pull request.
+* **Modification of existing Flag Types:** Existing Flag Types should not be modified in terms of their definition.
+  Instead, one may create a new Flag Type and mark the existing one as obsolete in the CSV table.
+  This will add the `[[ deprecated ]]` attribute to the corresponding method.
+
+#### Currently available Flag Types
+
+This section details the currently available Flag Types and provides a brief explanation of their intended use cases.
+
+* **Good:** a Check or an expert sees nothing wrong with given time interval, but would like to add a comment.
+  Note that the absence of any flag for a run implies good data quality.
+  Thus, there is no need to mark it explicitly as such by using this flag type.
+* **No Detector Data:** a complete and unexpected absence of data for a specific detector.
+* **Limited Acceptance MC Not Reproducible:** a part of a detector did not acquire good data and this condition cannot be reproduced in Monte Carlo.
+  If an automated Check cannot determine MC reproducibility, it should default to "Not Reproducible" for later expert review.
+* **Limited Acceptance MC Reproducible:** a part of a detector did not acquire good data, but this condition can be reproduced in Monte Carlo.
+* **Bad Tracking:** analyses relying on accurate track reconstruction should not use this data.
+* **Bad PID:** analyses relying on correct identification of all kinds of tracked particles should not use this data.
+* **Bad Hadron PID:** analyses relying on correct hadron identification should not use this data.
+* **Bad Electron PID:** analyses relying on correct electron identification should not use this data.
+* **Bad Photon Calorimetry:** analyses relying on correct photon calorimetry should not use this data.
+* **Bad EMCalorimetry:** analyses relying on correct electromagnetic calorimetry should not use this data.
+* **Unknown:** the exact impact of an issue on the data is unclear, but it's likely bad.
+  Treat data with this flag with caution until further investigation.
+* **Unknown Quality:** the quality of data could not be determined definitively.
+* **Invalid:** there was an issue with processing the flags.
+
+## Usage in Analysis framework (plans, wishlist)
+
+## General idea
+* RCT exports a read-only copy of the flags for each detector, run and pass combination in the CCDB.
+* The Analysis framework uses the flags and user selection criteria to provide their Analysis Task with data matching these criteria.
+  **Data Tags** are the structures defining the good time intervals for the provided criteria.
+
+## Notes on plans for Data Tags
 
 Data Tag definition has:
 * name
-* global suppression list for bad flag reasons (applies to all detectors)
-* global requirement list for not bad flag reasons
+* global suppression list for bad flag types (applies to all detectors)
+* global requirement list for not bad flag types
 * list of needed detectors,
 * list of suppression list and requirement list specific to detectors
 
@@ -94,10 +130,3 @@ Example configurations
 }
 ]
 ```
-
-## Wishlist / Ideas
-* executable to add flags to the flag store
-* executable to extrags the flag store
-* summary of all masks for one TimeRangeFlagCollection
-* functionality to extract flags for a specific detector (from CCDB)
-* cut class to specify detectors and flags which to exclude
