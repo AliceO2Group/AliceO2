@@ -49,6 +49,12 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   mMaxTrialPerCluster = 0;
   mLongestClusterTimeMS = 0;
   mLongestClusterMult = 0;
+  mNIniFound = 0;
+  mNKilledBCValid = 0;
+  mNKilledIntCand = 0;
+  mNKilledDebris = 0;
+  mNKilledQuality = 0;
+  mNKilledITSOnly = 0;
   mPoolDumpProduced = false;
 
   std::vector<PVertex> verticesLoc;
@@ -82,6 +88,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
     createMCLabels(lblTracks, trackIDs, v2tRefsLoc, lblVtxLoc);
   }
 #endif
+  mNIniFound = verticesLoc.size();
 
   if (mValidateWithIR && mPVParams->minNContributorsForIRcutIni >= 0) {
     applInteractionValidation(verticesLoc, vtTimeSortID, intCand, mPVParams->minNContributorsForIRcutIni);
@@ -126,6 +133,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
     auto& vtx = verticesLoc[i];
     if (!setCompatibleIR(vtx)) {
       i = -1;
+      mNKilledBCValid++;
     }
   }
   // do we need to validate by Int. records ?
@@ -576,6 +584,7 @@ void PVertexer::applyMADSelection(std::vector<PVertex>& vertices, std::vector<in
       dvec.clear();
       if (tmad > mPVParams->maxTMAD || tmad < mPVParams->minTMAD) {
         timeSort[ivt] = -1; // disable vertex
+        mNKilledQuality++;
         LOGP(debug, "Killing vertex {} with TMAD {}, {} of {} killed", iv, tmad, ++nkill, nv);
         continue;
       }
@@ -590,6 +599,7 @@ void PVertexer::applyMADSelection(std::vector<PVertex>& vertices, std::vector<in
       float zmad = o2::math_utils::MAD2Sigma(dvec.size(), dvec.data());
       if (zmad > mPVParams->maxZMAD || zmad < mPVParams->minZMAD) {
         timeSort[ivt] = -1; // disable vertex
+        mNKilledQuality++;
         LOGP(debug, "Killing vertex {} with ZMAD {}, {} of {} killed", iv, zmad, ++nkill, nv);
         continue;
       }
@@ -621,6 +631,7 @@ void PVertexer::applITSOnlyFractionCut(std::vector<PVertex>& vertices, std::vect
     float frac = nITS / float(trefs.getEntries());
     if (frac > mPVParams->maxITSOnlyFraction || frac < mPVParams->minITSOnlyFraction) {
       timeSort[ivt] = -1; // disable vertex
+      mNKilledITSOnly++;
     }
   }
 }
@@ -669,6 +680,7 @@ void PVertexer::applInteractionValidation(std::vector<PVertex>& vertices, std::v
       }
     } else if (pv.getNContributors() >= minContrib) {
       timeSort[ivt] = -1; // discard
+      mNKilledIntCand++;
     }
   }
 }
@@ -724,6 +736,7 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
     }
     if (rej) {
       timeSort[j] = -1;
+      mNKilledDebris++;
       vtJ.setNContributors(0);
     }
     return false;
@@ -964,7 +977,7 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
 bool PVertexer::setCompatibleIR(PVertex& vtx)
 {
   // assign compatible IRs accounting for the bunch filling scheme
-  if (mClosestBunchAbove[0] < 0) { // empty or no BF was provided
+  if (mClosestBunchAbove[0] < 0 && mPVParams->doBCValidation) { // empty or no BF was provided
     return false;
   }
   const auto& vtxT = vtx.getTimeStamp();
@@ -979,22 +992,24 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   }
   irMax += o2::InteractionRecord(1.e3 * (t + rangeT)); // RS TODO: make sure that irMax does not exceed TF edge
   irMax++; // to account for rounding
-  // restrict using bunch filling
-  int bc = mClosestBunchAbove[irMin.bc];
-  LOG(debug) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
-  if (bc < irMin.bc) {
-    irMin.orbit++;
-  }
-  irMin.bc = bc;
-  bc = mClosestBunchBelow[irMax.bc];
-  LOG(debug) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
-  if (bc > irMax.bc) {
-    if (irMax.orbit == 0) {
-      return false;
+  if (mPVParams->doBCValidation) {
+    // restrict using bunch filling
+    int bc = mClosestBunchAbove[irMin.bc];
+    LOG(debug) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
+    if (bc < irMin.bc) {
+      irMin.orbit++;
     }
-    irMax.orbit--;
+    irMin.bc = bc;
+    bc = mClosestBunchBelow[irMax.bc];
+    LOG(debug) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
+    if (bc > irMax.bc) {
+      if (irMax.orbit == 0) {
+        return false;
+      }
+      irMax.orbit--;
+    }
+    irMax.bc = bc;
   }
-  irMax.bc = bc;
   vtx.setIRMin(irMin);
   vtx.setIRMax(irMax);
   if (irMin > irMax) {

@@ -119,6 +119,12 @@ class PVertexer
   auto getMaxTrialsPerCluster() const { return mMaxTrialPerCluster; }
   auto getLongestClusterMult() const { return mLongestClusterMult; }
   auto getLongestClusterTimeMS() const { return mLongestClusterTimeMS; }
+  auto getNKilledBCValid() const { return mNKilledBCValid; }
+  auto getNKilledIntCand() const { return mNKilledIntCand; }
+  auto getNKilledDebris() const { return mNKilledDebris; }
+  auto getNKilledQuality() const { return mNKilledQuality; }
+  auto getNKilledITSOnly() const { return mNKilledITSOnly; }
+  auto getNIniFound() const { return mNIniFound; }
 
   TStopwatch& getTimeDBScan() { return mTimeDBScan; }
   TStopwatch& getTimeVertexing() { return mTimeVertexing; }
@@ -184,9 +190,7 @@ class PVertexer
   float mDBScanDeltaT = 0.;                 ///< deltaT cut for DBScan check
   float mDBSMaxZ2InvCorePoint = 0;          ///< inverse of max sigZ^2 of the track which can be core point in the DBScan
   bool mValidateWithIR = false;             ///< require vertex validation with InteractionCandidates (if available)
-
-  o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
-
+  o2::InteractionRecord mStartIR{0, 0};     ///< IR corresponding to the start of the TF
   // structure for the vertex refit
   o2d::VertexBase mVtxRefitOrig{};   ///< original vertex whose tracks are refitted
   std::vector<int> mRefitTrackIDs{}; ///< dummy IDs for refitted tracks
@@ -201,6 +205,12 @@ class PVertexer
   static constexpr float kHugeF = 1.e12;     ///< very large float
   static constexpr float kAlmost0F = 1e-12;  ///< tiny float
   static constexpr double kAlmost0D = 1e-16; ///< tiny double
+  int mNIniFound = 0;
+  int mNKilledBCValid = 0;
+  int mNKilledIntCand = 0;
+  int mNKilledDebris = 0;
+  int mNKilledQuality = 0;
+  int mNKilledITSOnly = 0;
   size_t mNTZClustersIni = 0;
   size_t mTotTrials = 0;
   size_t mMaxTrialPerCluster = 0;
