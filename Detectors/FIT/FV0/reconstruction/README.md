@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITFV0reconstruction FV0 Reconstyruction
+/doxy -->
+
 # FV0 reconstruction
 
 Please note that this readme shows how the reconstruction is done _at the moment_. The current reconstruction is not necessarily done the way it _should be_. The algorithm is under review and subject to change.

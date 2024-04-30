@@ -8,4 +8,5 @@ This is a top page for the HMPID detector documentation.
 
 <!-- doxy
 * \subpage refHMPIDworkflow
+* \subpage refHMPIDcalibration
 /doxy -->

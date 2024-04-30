@@ -1,8 +1,11 @@
 <!-- doxy
 \page refTPCcalibration TPC Calibration
-\subpage refTPCcalibrationCalibdEdx
-\subpage refTPCcalibrationIDC
-\subpage refTPCcalibrationCalibPadGainTracks
+
+* \subpage refTPCcalibrationCalibdEdx
+* \subpage refTPCcalibrationIDC
+* \subpage refTPCcalibrationCalibPadGainTracks
+* \subpage refTPCcalibrationAverageDistortionCorrection
+
 /doxy -->
 
 # TPC Calibration
