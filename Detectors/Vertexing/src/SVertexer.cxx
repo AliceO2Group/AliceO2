@@ -1328,7 +1328,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     // require minimum of tpc clusters
     bool dCls = trTPC.getNClusters() < mSVParams->mTPCTrackMinNClusters;
     // check track z cuts
-    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() - vtx.getZ()) > mSVParams->mTPCTrack2Beam;
+    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() + vtx.getZ()) > mSVParams->mTPCTrack2Beam;
     // check track transveres cuts
     float sna{0}, csa{0};
     o2::math_utils::CircleXYf_t trkCircle;
