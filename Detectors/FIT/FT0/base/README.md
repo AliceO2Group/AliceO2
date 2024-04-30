@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITFT0base FT0 Base
+/doxy -->
+
 # FT0 Base
 
 ## Geometry
