@@ -132,7 +132,7 @@ class TimeDeadMap
       LOG(warning) << "Requested orbit " << orbit << "from an empty time-dependent map. Doing nothing";
       return (long)orbit;
     }
-    auto closest = mEvolvingDeadMap.lower_bound(orbit);
+    auto closest = mEvolvingDeadMap.upper_bound(orbit);
     if (closest != mEvolvingDeadMap.begin()) {
       --closest;
       mmap = closest->second;
