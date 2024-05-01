@@ -157,6 +157,9 @@ o2::dataformats::V0Ext SVStudySpec::processV0(int iv, o2::globaltracking::RecoCo
     invalidate();
     return v0ext;
   }
+  if (!mRefit) {
+    v0ext.v0 = v0sel;
+  }
   v0ext.v0ID = v0id;
   for (int ip = 0; ip < 2; ip++) {
     auto& prInfo = v0ext.prInfo[ip];
