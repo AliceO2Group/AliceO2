@@ -330,12 +330,12 @@ void Detector::buildFT3NewVacuumVessel()
       std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + std::string("_") + std::to_string(layerNumber);
       mLayerName[direction][layerNumber] = layerName;
       float z, rIn, rOut, x0;
-      if (direction == 0){ // C-Side
+      if (direction == 0) { // C-Side
         z = layersConfigCSide[layerNumber][0];
         rIn = layersConfigCSide[layerNumber][1];
         rOut = layersConfigCSide[layerNumber][2];
         x0 = layersConfigCSide[layerNumber][3];
-      } else if (direction == 1){ // A-Side
+      } else if (direction == 1) { // A-Side
         z = layersConfigASide[layerNumber][0];
         rIn = layersConfigASide[layerNumber][1];
         rOut = layersConfigASide[layerNumber][2];
@@ -346,7 +346,7 @@ void Detector::buildFT3NewVacuumVessel()
       // Add layers
       auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, x0);
     }
-  } 
+  }
 }
 
 //_________________________________________________________________________________________________
