@@ -48,7 +48,7 @@ Detector::Detector(bool active)
   if (trkPars.configFile != "") {
     configFromFile(trkPars.configFile);
   } else {
-    configDefault();
+    buildTRKNewVacuumVessel();
     configToFile();
     configServices();
   }
@@ -74,9 +74,12 @@ void Detector::ConstructGeometry()
 
 void Detector::configDefault()
 {
+
+  // Build TRK detector according to the scoping document
+
   mLayers.clear();
 
-  LOGP(warning, "Loading default configuration for ALICE3 TRK");
+  LOGP(warning, "Loading Scoping Document configuration for ALICE3 TRK");
   mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
   mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
   mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
@@ -88,6 +91,29 @@ void Detector::configDefault()
   mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 258.f, 100.e-3);
   mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 258.f, 100.e-3);
   mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 258.f, 100.e-3);
+}
+
+void Detector::buildTRKNewVacuumVessel()
+{
+  // Build the TRK detector according to changes proposed during
+  // https://indico.cern.ch/event/1407704/
+  // to adhere to the changes that were presented at the ALICE 3 Upgrade days in March 2024
+  // L3 -> 7 cm, L4 -> 9 cm
+
+  mLayers.clear();
+
+  LOGP(warning, "Loading \"After Upgrade Days March 2024\" configuration for ALICE3 TRK");
+  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
+  mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
+  mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
+  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 7.f, 124.f, 100.e-3);
+  mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 9.f, 124.f, 100.e-3);
+  mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 12.f, 124.f, 100.e-3);
+  mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 20.f, 124.f, 100.e-3);
+  mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 30.f, 124.f, 100.e-3);
+  mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 258.f, 100.e-3);
+  mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 258.f, 100.e-3);
+  mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 258.f, 100.e-3);  
 }
 
 void Detector::configFromFile(std::string fileName)
