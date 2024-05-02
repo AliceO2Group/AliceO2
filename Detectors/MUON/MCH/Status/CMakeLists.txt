@@ -35,6 +35,19 @@ o2_add_executable(
     O2::MCHStatus
     )
 
+o2_add_executable(
+  statusmap-to-rejectlist
+  COMPONENT_NAME mch
+  SOURCES src/statusmap-to-rejectlist.cxx
+  PUBLIC_LINK_LIBRARIES
+    ROOT::TreePlayer
+    O2::CCDB
+    O2::DataFormatsMCH
+    O2::Framework
+    O2::MCHGlobalMapping
+    O2::MCHStatus
+    )
+
 if(BUILD_TESTING)
 
   o2_add_test(
