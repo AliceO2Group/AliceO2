@@ -303,7 +303,7 @@ class TrackInterpolation
   std::vector<float> mTrackTimes{};                                                        ///< time estimates for all input tracks in micro seconds
   std::vector<o2::track::TrackParCov> mSeeds{};                                            ///< seeding track parameters (ITS tracks)
   std::map<int, int> mTrackTypes;                                                          ///< mapping of track source to array index in mTrackIndices
-  std::array<std::vector<o2::dataformats::GlobalTrackID>, 4> mTrackIndices;                ///< keep GIDs of input tracks separately for each track type
+  std::array<std::vector<uint32_t>, 4> mTrackIndices;                                      ///< keep GIDs of input tracks separately for each track type
   gsl::span<const TPCClRefElem> mTPCTracksClusIdx;                                         ///< input TPC cluster indices from span
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
   // ITS specific input only needed for debugging
