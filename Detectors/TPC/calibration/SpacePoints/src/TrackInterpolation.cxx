@@ -262,7 +262,7 @@ void TrackInterpolation::process()
   // in blocks.
   std::random_device rd;
   std::mt19937 g(rd());
-  std::vector<GTrackID> trackIndices; // here we keep the GIDs for all track types in a single vector to use in loop
+  std::vector<uint32_t> trackIndices; // here we keep the GIDs for all track types in a single vector to use in loop
   std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].end(), g);
   std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].end(), g);
   std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].end(), g);
