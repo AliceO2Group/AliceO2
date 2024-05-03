@@ -244,7 +244,7 @@ elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "perkernel")
                               ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step1unattached.hip
                               TARGET_DIRECTORY ${targetName}
                               PROPERTIES
-                              COMPILE_FLAGS "${GPUCA_HIP_NO_FAST_MATH_FLAGS}"
+                              COMPILE_FLAGS "${GPUCA_CXX_NO_FAST_MATH_FLAGS}"
                               COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
 elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   message(FATAL_ERROR "HIP RDC compilation of GPUReconstruction ios not yet working!")
