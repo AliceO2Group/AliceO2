@@ -22,7 +22,7 @@
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"

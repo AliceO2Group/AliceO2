@@ -12,10 +12,7 @@
 #define O2_FRAMEWORK_PLUGINS_H_
 
 #include "Framework/AlgorithmSpec.h"
-#include <cstring>
 #include <string>
-#include <functional>
-#include <uv.h>
 
 namespace o2::framework
 {
@@ -82,14 +79,6 @@ struct DPLPluginHandle {
   DPLPluginHandle* previous = nullptr;
 };
 
-// Struct to hold live plugin information which the plugin itself cannot
-// know and that is owned by the framework.
-struct PluginInfo {
-  uv_lib_t* dso = nullptr;
-  std::string name;
-  DPLPluginHandle* instance = nullptr;
-};
-
 #define DEFINE_DPL_PLUGIN(NAME, KIND)                                                                    \
   extern "C" {                                                                                           \
   DPLPluginHandle* dpl_plugin_callback(DPLPluginHandle* previous)                                        \
@@ -110,35 +99,5 @@ struct PluginInfo {
   return previous;             \
   }                            \
   }
-
-namespace o2::framework
-{
-struct PluginManager {
-  using WrapperProcessCallback = std::function<void(AlgorithmSpec::ProcessCallback&, ProcessingContext&)>;
-
-  template <typename T>
-  static T* getByName(DPLPluginHandle* handle, char const* name)
-  {
-    while (handle != nullptr) {
-      if (strncmp(handle->name, name, strlen(name)) == 0) {
-        return reinterpret_cast<T*>(handle->instance);
-      }
-      handle = handle->previous;
-    }
-    return nullptr;
-  }
-  /// Load a DSO called @a dso and insert its handle in @a infos
-  /// On successfull completion @a onSuccess is called passing
-  /// the DPLPluginHandle provided by the library.
-  static void load(std::vector<PluginInfo>& infos, const char* dso, std::function<void(DPLPluginHandle*)>& onSuccess);
-  /// Load an called @plugin from a library called @a library and
-  /// return the associtated AlgorithmSpec.
-  static auto loadAlgorithmFromPlugin(std::string library, std::string plugin) -> AlgorithmSpec;
-  /// Wrap an algorithm with some lambda @wrapper which will be called
-  /// with the original callback and the ProcessingContext.
-  static auto wrapAlgorithm(AlgorithmSpec const& spec, WrapperProcessCallback&& wrapper) -> AlgorithmSpec;
-};
-
-} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_PLUGINS_H_

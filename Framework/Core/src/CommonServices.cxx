@@ -36,7 +36,7 @@
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "Framework/AsyncQueue.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/StreamContext.h"
@@ -1260,7 +1260,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
   }
   // Load plugins depending on the environment
-  std::vector<LoadableService> loadableServices = {};
+  std::vector<LoadablePlugin> loadablePlugins = {};
   char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
   // String to define the services to load is:
   //
@@ -1271,8 +1271,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     }
     loadableServicesStr += loadableServicesEnv;
   }
-  loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesStr.c_str());
-  ServiceHelpers::loadFromPlugin(loadableServices, specs);
+  loadablePlugins = PluginManager::parsePluginSpecString(loadableServicesStr.c_str());
+  PluginManager::loadFromPlugin<ServiceSpec, ServicePlugin>(loadablePlugins, specs);
   // I should make it optional depending wether the GUI is there or not...
   specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {
