@@ -228,6 +228,10 @@ enum class TRUDecodingError_t {
   UNKNOWN_ERROR         ///< Unknown error type
 };
 
+/// \brief Get the number of TRU error codes
+/// \return Number of TRU error codes
+constexpr int getNumberOfTRUErrorCodes() { return 3; }
+
 /// \brief Convert error code to TRU decoding error type
 ///
 /// Attention: Error code must be a valid error code, handled

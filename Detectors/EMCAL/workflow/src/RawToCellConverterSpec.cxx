@@ -520,7 +520,11 @@ void RawToCellConverterSpec::addTRUChannelToEvent(o2::emcal::EventContainer& cur
                 auto globalindex = (position.mColumn - 96) * 10 + localindex;
                 LOG(debug) << "Found patch with index " << globalindex << " in sample " << isample;
                 // std::cout << "Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
-                trudata.setPatch(globalindex, bunch.getStartTime() - isample);
+                try {
+                  trudata.setPatch(globalindex, bunch.getStartTime() - isample);
+                } catch (TRUDataHandler::PatchIndexException& e) {
+                  handlePatchError(e, position.mFeeID, tru);
+                }
               }
             }
             if (headerbits.test(2)) {
