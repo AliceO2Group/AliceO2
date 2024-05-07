@@ -501,7 +501,7 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
       auto fn = resdirname + "/" + mfilenameBases[ind] + ".root";
       delete mfilePtrs[ind];
       mParentMaps[ind]->Clear();
-      mfilePtrs[ind] = TFile::Open(fn.c_str(), mfileMode.c_str(), "", 501);
+      mfilePtrs[ind] = TFile::Open(fn.c_str(), mfileMode.c_str(), "", 505);
     }
     fileAndFolder.file = mfilePtrs[ind];
 
