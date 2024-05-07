@@ -161,6 +161,7 @@ class ITSThresholdCalibrator : public Task
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
+  TTree* mScTree = nullptr;
   TTree* mSlopeTree = nullptr;
   short int vChipid[N_COL];
   short int vRow[N_COL];
@@ -169,9 +170,11 @@ class ITSThresholdCalibrator : public Task
   float vNoise[N_COL];
   unsigned char vPoints[N_COL];
   short int vMixData[N_COL];
-  unsigned char vCharge[N_COL];
   float vSlope[N_COL];
   float vIntercept[N_COL];
+  unsigned char vCharge[N_COL];
+  unsigned char vHits[N_COL];
+  short int mColStep = 8; // save s-curves to tree every mColStep pixels on 1 row
 
   // Initialize pointers for doing error function fits
   TH1F* mFitHist = nullptr;
@@ -231,7 +234,7 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeUp = -1;
   short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeChip[24120] = {0};
-  short int mChipLastRow[24120] = {-1};
+  short int mChipLastRow[24120] = {0};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
   short int mRu = 0;
