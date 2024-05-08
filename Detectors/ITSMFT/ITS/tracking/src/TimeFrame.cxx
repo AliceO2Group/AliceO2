@@ -247,8 +247,9 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
     mNrof++;
   }
 
-  for (auto& v : mNTrackletsPerCluster) {
-    v.resize(mUnsortedClusters[1].size());
+  for (auto i = 0; i < mNTrackletsPerCluster.size(); ++i) {
+    mNTrackletsPerCluster[i].resize(mUnsortedClusters[1].size());
+    mNTrackletsPerClusterSum[i].resize(mUnsortedClusters[1].size() + 1); // Exc sum "prepends" a 0
   }
 
   if (mcLabels) {
@@ -461,6 +462,15 @@ void TimeFrame::fillPrimaryVerticesXandAlpha()
   }
 }
 
+void TimeFrame::computeTrackletsPerROFScans()
+{
+  for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
+    mTotalTracklets[iLayer] = std::accumulate(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), 0);
+    std::exclusive_scan(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), mNTrackletsPerROF[iLayer].begin(), 0);
+    std::exclusive_scan(mNTrackletsPerCluster[iLayer].begin(), mNTrackletsPerCluster[iLayer].end(), mNTrackletsPerClusterSum[iLayer].begin(), 0);
+  }
+}
+
 void TimeFrame::checkTrackletLUTs()
 {
   for (uint32_t iLayer{0}; iLayer < getTracklets().size(); ++iLayer) {
@@ -579,15 +589,5 @@ void TimeFrame::printNClsPerROF()
     std::cout << std::endl;
   }
 }
-
-void TimeFrame::computeTrackletsScans(const int nThreads)
-{
-  // #pragma omp parallel for num_threads(nThreads > 1 ? 2 : nThreads)
-  for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
-    mTotalTracklets[iLayer] = std::accumulate(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), 0);
-    std::exclusive_scan(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), mNTrackletsPerROF[iLayer].begin(), 0);
-  }
-}
-
 } // namespace its
 } // namespace o2
