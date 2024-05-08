@@ -184,7 +184,8 @@ class TimeFrame
   int getROFCutAllMult() const { return mCutClusterMult + mCutVertexMult; }
 
   // Vertexer
-  void computeTrackletsScans(const int nThreads = 1);
+  void computeTrackletsPerROFScans();
+  void computeTracletsPerClusterScans();
   int& getNTrackletsROF(int rof, int combId);
   std::vector<Line>& getLines(int rof);
   int getNLinesTotal() const
@@ -196,6 +197,7 @@ class TimeFrame
   gsl::span<Tracklet> getFoundTracklets(int rofId, int combId);
   gsl::span<const MCCompLabel> getLabelsFoundTracklets(int rofId, int combId) const;
   gsl::span<int> getNTrackletsCluster(int rofId, int combId);
+  gsl::span<int> getExclusiveNTrackletsCluster(int rofId, int combId);
   uint32_t getTotalTrackletsTF(const int iLayer) { return mTotalTracklets[iLayer]; }
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
@@ -225,6 +227,7 @@ class TimeFrame
   }
 
   virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
 
   template <typename... T>
@@ -257,6 +260,7 @@ class TimeFrame
   std::vector<std::vector<int>> mROFramesClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROF
+  std::array<std::vector<int>, 2> mNTrackletsPerClusterSum;
   std::vector<std::vector<int>> mNClustersPerROF;
   std::vector<std::vector<int>> mIndexTables;
   std::vector<std::vector<int>> mTrackletsLookupTable;
@@ -565,6 +569,16 @@ inline gsl::span<int> TimeFrame::getNTrackletsCluster(int rofId, int combId)
   }
   auto startIdx{mROFramesClusters[1][rofId]};
   return {&mNTrackletsPerCluster[combId][startIdx], static_cast<gsl::span<int>::size_type>(mROFramesClusters[1][rofId + 1] - startIdx)};
+}
+
+inline gsl::span<int> TimeFrame::getExclusiveNTrackletsCluster(int rofId, int combId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<int>();
+  }
+  auto clusStartIdx{mROFramesClusters[1][rofId]};
+
+  return {&mNTrackletsPerClusterSum[combId][clusStartIdx], static_cast<gsl::span<int>::size_type>(mROFramesClusters[1][rofId + 1] - clusStartIdx)};
 }
 
 inline int& TimeFrame::getNTrackletsROF(int rof, int combId)
