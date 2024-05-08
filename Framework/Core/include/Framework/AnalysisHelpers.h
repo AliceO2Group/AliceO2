@@ -14,7 +14,7 @@
 #include "Framework/DataAllocator.h"
 #include "Framework/Traits.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/AnalysisDataModel.h"
+#include "Framework/ASoA.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/OutputRef.h"
 #include "Framework/InputSpec.h"
@@ -482,6 +482,8 @@ auto getTableFromFilter(const T& table, soa::SelectionVector&& selection)
   }
 }
 
+void initializePartitionCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema, expressions::Filter const& filter, gandiva::NodePtr& tree, gandiva::FilterPtr& gfilter);
+
 template <typename T>
 struct Partition {
   Partition(expressions::Node&& filter_) : filter{std::forward<expressions::Node>(filter_)}
@@ -494,29 +496,14 @@ struct Partition {
     setTable(table);
   }
 
-  void intializeCaches(std::shared_ptr<arrow::Schema> const& schema)
+  void intializeCaches(std::set<uint32_t> const& hashes, std::shared_ptr<arrow::Schema> const& schema)
   {
-    if (tree == nullptr) {
-      expressions::Operations ops = createOperations(filter);
-      if (isSchemaCompatible(schema, ops)) {
-        tree = createExpressionTree(ops, schema);
-      } else {
-        throw std::runtime_error("Partition filter does not match declared table type");
-      }
-    }
-    if (gfilter == nullptr) {
-      gfilter = framework::expressions::createFilter(schema, framework::expressions::makeCondition(tree));
-    }
+    initializePartitionCaches(hashes, schema, filter, tree, gfilter);
   }
 
-  void inline bindTable(T const& table)
+  void bindTable(T const& table)
   {
-    setTable(table);
-  }
-
-  void setTable(T const& table)
-  {
-    intializeCaches(table.asArrowTable()->schema());
+    intializeCaches(T::table_t::hashes(), table.asArrowTable()->schema());
     if (dataframeChanged) {
       mFiltered = getTableFromFilter(table, soa::selectionToVector(framework::expressions::createSelection(table.asArrowTable(), gfilter)));
       dataframeChanged = false;

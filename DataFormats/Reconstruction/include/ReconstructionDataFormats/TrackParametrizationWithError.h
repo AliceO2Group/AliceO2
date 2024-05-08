@@ -79,8 +79,10 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() bool getCovXYZPxPyPzGlo(gpu::gpustd::array<value_t, kLabCovMatSize>& c) const;
 
   GPUd() void print() const;
+  GPUd() void printHexadecimal();
 #ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
+  std::string asStringHexadecimal();
 #endif
 
   // parameters + covmat manipulation
@@ -100,7 +102,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   void buildCombinedCovMatrix(const TrackParametrizationWithError& rhs, MatrixDSym5& cov) const;
   value_t getPredictedChi2(const TrackParametrizationWithError& rhs, MatrixDSym5& covToSet) const;
-  value_t getPredictedChi2(const TrackParametrizationWithError& rhs) const;
+  GPUd() value_t getPredictedChi2(const TrackParametrizationWithError& rhs) const;
   bool update(const TrackParametrizationWithError& rhs, const MatrixDSym5& covInv);
   bool update(const TrackParametrizationWithError& rhs);
 

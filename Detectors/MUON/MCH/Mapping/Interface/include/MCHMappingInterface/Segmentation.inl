@@ -122,6 +122,20 @@ void Segmentation::forEachPad(CALLABLE&& func) const
 }
 
 template <typename CALLABLE>
+void Segmentation::forEachPadInDualSampa(int dualSampaId, CALLABLE&& func) const
+{
+  bool isBending = dualSampaId < 1024;
+  if (isBending) {
+    mBending.forEachPadInDualSampa(dualSampaId, func);
+  } else {
+    int offset{mPadIndexOffset};
+    mNonBending.forEachPadInDualSampa(dualSampaId, [&offset, &func](int catPadIndex) {
+      func(catPadIndex + offset);
+    });
+  }
+}
+
+template <typename CALLABLE>
 void Segmentation::forEachPadInArea(double xmin, double ymin, double xmax, double ymax, CALLABLE&& func) const
 {
   mBending.forEachPadInArea(xmin, ymin, xmax, ymax, func);

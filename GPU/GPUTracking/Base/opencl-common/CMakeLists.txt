@@ -21,9 +21,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES OpenCL::OpenCL O2::GPUTracking
                  TARGETVARNAME targetName)
 
-  target_compile_definitions(
-    ${targetName} PRIVATE GPUCA_GPULIBRARY=OCL
-    $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+  target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
   # the compile_defitions are not propagated automatically on purpose (they are
   # declared PRIVATE) so we are not leaking them outside of the GPU**
   # directories
@@ -32,8 +30,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_GPULIBRARY=OCL)
-
   # Generate the dictionary
   get_directory_property(incdirs INCLUDE_DIRECTORIES)
   generate_dictionary("Ali${MODULE}" "" "GPUReconstructionOCL.h" "${incdirs} .")
@@ -53,7 +49,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  add_definitions(-DGPUCA_GPULIBRARY=OCL)
   add_library(${MODULE} SHARED ${SRCS})
   target_link_libraries(${MODULE} GPUTracking OpenCL)
   target_include_directories(${MODULE} PUBLIC ${CMAKE_CURRENT_LIST_DIR})

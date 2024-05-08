@@ -524,8 +524,7 @@ Sometimes (e.g. when running a child inside valgrind) it might be useful to disa
 some-workflow --monitoring-backend=no-op://
 ```
 
-notice that the 
-will not function properly if you do so.
+notice that the will not function properly if you do so.
 
 ## Profiling
 

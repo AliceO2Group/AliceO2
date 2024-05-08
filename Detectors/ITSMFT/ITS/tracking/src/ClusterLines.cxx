@@ -26,8 +26,8 @@ Line::Line(std::array<float, 3> firstPoint, std::array<float, 3> secondPoint)
     cosinesDirector[index] = secondPoint[index] - firstPoint[index];
   }
 
-  float inverseNorm{1.f / std::sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
-                                    cosinesDirector[2] * cosinesDirector[2])};
+  float inverseNorm{1.f / o2::gpu::CAMath::Sqrt(cosinesDirector[0] * cosinesDirector[0] + cosinesDirector[1] * cosinesDirector[1] +
+                                                cosinesDirector[2] * cosinesDirector[2])};
   for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
   }
@@ -73,9 +73,9 @@ std::array<float, 6> Line::getDCAComponents(const Line& line, const std::array<f
   components[0] = line.originPoint[0] - point[0] + line.cosinesDirector[0] * cdelta;
   components[3] = line.originPoint[1] - point[1] + line.cosinesDirector[1] * cdelta;
   components[5] = line.originPoint[2] - point[2] + line.cosinesDirector[2] * cdelta;
-  components[1] = std::sqrt(components[0] * components[0] + components[3] * components[3]);
-  components[2] = std::sqrt(components[0] * components[0] + components[5] * components[5]);
-  components[4] = std::sqrt(components[3] * components[3] + components[5] * components[5]);
+  components[1] = o2::gpu::CAMath::Sqrt(components[0] * components[0] + components[3] * components[3]);
+  components[2] = o2::gpu::CAMath::Sqrt(components[0] * components[0] + components[5] * components[5]);
+  components[4] = o2::gpu::CAMath::Sqrt(components[3] * components[3] + components[5] * components[5]);
 
   return components;
 }

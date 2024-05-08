@@ -39,7 +39,7 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/RateLimiter.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/DeviceSpec.h"
 #include "WorkflowHelpers.h"
 #include <Monitoring/Monitoring.h>

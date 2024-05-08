@@ -188,6 +188,7 @@ class DCAFitterN
   void setMaxSnp(float s) { mMaxSnp = s; }
   void setMaxStep(float s) { mMaxStep = s; }
   void setMinXSeed(float x) { mMinXSeed = x; }
+  void setCollinear(bool isCollinear) { mIsCollinear = isCollinear; }
 
   int getNCandidates() const { return mCurHyp; }
   int getMaxIter() const { return mMaxIter; }
@@ -324,6 +325,7 @@ class DCAFitterN
   bool mPropagateToPCA = true;                                                                    // create tracks version propagated to PCA
   bool mUsePropagator = false;                                                                    // use propagator with 3D B-field, set automatically if material correction is requested
   bool mRefitWithMatCorr = false;                                                                 // when doing propagateTracksToVertex, propagate tracks to V0 with material corrections and rerun minimization again
+  bool mIsCollinear = false;                                                                      // use collinear fits when there 2 crossing points
   o2::base::Propagator::MatCorrType mMatCorr = o2::base::Propagator::MatCorrType::USEMatCorrNONE; // material corrections type
   int mMaxIter = 20;                                                                              // max number of iterations
   float mBz = 0;                                                                                  // bz field, to be set by user
@@ -339,7 +341,7 @@ class DCAFitterN
   float mMaxStep = 2.0;                                                                           // Max step for propagation with Propagator
   int mFitterID = 0;                                                                              // locat fitter ID (mostly for debugging)
   size_t mCallID = 0;
-  ClassDefNV(DCAFitterN, 1);
+  ClassDefNV(DCAFitterN, 2);
 };
 
 ///_________________________________________________________________________
@@ -355,8 +357,8 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
   for (int i = 0; i < N; i++) {
     mTrAux[i].set(*mOrigTrPtr[i], mBz);
   }
-  if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1], mMaxDXYIni)) { // even for N>2 it should be enough to test just 1 loop
-    return 0;                                                                              // no crossing
+  if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1], mMaxDXYIni, mIsCollinear)) { // even for N>2 it should be enough to test just 1 loop
+    return 0;                                                                                            // no crossing
   }
   for (int ih = 0; ih < MAXHYP; ih++) {
     mPropFailed[ih] = false;

@@ -88,11 +88,15 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
 
   TFile* mEventFile = nullptr;     //! the file containing the persistent events
   TBranch* mEventBranch = nullptr; //! the branch containing the persistent events
+  TBranch* mMCHeaderBranch = nullptr; //! branch containing MC event headers
   int mEventCounter = 0;
   int mEventsAvailable = 0;
   bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
   bool mContinueMode = false;    //! whether we want to continue simulation of previously inhibited tracks
   bool mRoundRobin = false;      //! whether we want to take events from file in a round robin fashion
+
+  std::unique_ptr<o2::dataformats::MCEventHeader> mOrigMCEventHeader; //! the MC event header of the original file
+
   ClassDefOverride(GeneratorFromO2Kine, 2);
 };
 

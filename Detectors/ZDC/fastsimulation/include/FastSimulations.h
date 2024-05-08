@@ -17,7 +17,11 @@
 #ifndef O2_ZDC_FAST_SIMULATIONS_H
 #define O2_ZDC_FAST_SIMULATIONS_H
 
+#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#else
+#include <onnxruntime_cxx_api.h>
+#endif
 #include <optional>
 #include <mutex>
 
@@ -78,8 +82,8 @@ class NeuralFastSimulation
   Ort::MemoryInfo mMemoryInfo;
 
   /// Input/Output names and input shape
-  std::vector<char*> mInputNames;
-  std::vector<char*> mOutputNames;
+  std::vector<std::string> mInputNames;
+  std::vector<std::string> mOutputNames;
   std::vector<std::vector<int64_t>> mInputShapes;
   /// If model has dynamic axis (for batch processing) this will tell ONNX expected size of those axis
   /// otherwise mBatchSize has no effect during runtime

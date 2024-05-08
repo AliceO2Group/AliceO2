@@ -999,7 +999,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x
   // "anglecorr" - switch for the angular correction
   //------------------------------------------------------------------
   constexpr value_t kMSConst2 = 0.0136f * 0.0136f;
-  constexpr value_t kMinP = 0.01f;        // kill below this momentum
+  constexpr value_t kMinP = 0.01f; // kill below this momentum
 
   value_t csp2 = (1.f - this->getSnp()) * (1.f + this->getSnp()); // cos(phi)^2
   value_t cst2I = (1.f + this->getTgl() * this->getTgl());        // 1/cos(lambda)^2
@@ -1193,6 +1193,18 @@ std::string TrackParametrizationWithError<value_T>::asString() const
                      mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
                      mC[kSigQ2Pt2]);
 }
+
+template <typename value_T>
+std::string TrackParametrizationWithError<value_T>::asStringHexadecimal()
+{
+  return TrackParametrization<value_t>::asStringHexadecimal() +
+         fmt::format(" Cov: [{:x}] [{:x} {:x}] [{:x} {:x} {:x}] [{:x} {:x} {:x} {:x}] [{:x} {:x} {:x} {:x} {:x}]",
+                     reinterpret_cast<const unsigned int&>(mC[kSigY2]), reinterpret_cast<const unsigned int&>(mC[kSigZY]), reinterpret_cast<const unsigned int&>(mC[kSigZ2]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigSnpY]), reinterpret_cast<const unsigned int&>(mC[kSigSnpZ]), reinterpret_cast<const unsigned int&>(mC[kSigSnp2]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigTglY]), reinterpret_cast<const unsigned int&>(mC[kSigTglZ]), reinterpret_cast<const unsigned int&>(mC[kSigTglSnp]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigTgl2]), reinterpret_cast<const unsigned int&>(mC[kSigQ2PtY]), reinterpret_cast<const unsigned int&>(mC[kSigQ2PtZ]),
+                     reinterpret_cast<const unsigned int&>(mC[kSigQ2PtSnp]), reinterpret_cast<const unsigned int&>(mC[kSigQ2PtTgl]), reinterpret_cast<const unsigned int&>(mC[kSigQ2Pt2]));
+}
 #endif
 
 //______________________________________________________________
@@ -1202,17 +1214,32 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
-#else
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   TrackParametrization<value_T>::printParam();
   printf(
-    "\n%7s %+.3e\n"
-    "%7s %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e\n"
-    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e",
-    "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
-    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+    "\nCov: [%+.3e] [%+.3e %+.3e] [%+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e %+.3e]",
+    mC[kSigY2], mC[kSigZY], mC[kSigZ2], mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], mC[kSigTglY],
+    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
     mC[kSigQ2Pt2]);
+#endif
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
+{
+  // print parameters
+#ifndef GPUCA_ALIGPUCODE
+  printf("%s\n", asStringHexadecimal().c_str());
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
+  TrackParametrization<value_T>::printParamHexadecimal();
+  printf(
+    "\nCov: [%x] [%x %x] [%x %x %x] [%x %x %x %x] [%x %x %x %x %x]",
+    gpu::CAMath::Float2UIntReint(mC[kSigY2]),
+    gpu::CAMath::Float2UIntReint(mC[kSigZY]), gpu::CAMath::Float2UIntReint(mC[kSigZ2]),
+    gpu::CAMath::Float2UIntReint(mC[kSigSnpY]), gpu::CAMath::Float2UIntReint(mC[kSigSnpZ]), gpu::CAMath::Float2UIntReint(mC[kSigSnp2]),
+    gpu::CAMath::Float2UIntReint(mC[kSigTglY]), gpu::CAMath::Float2UIntReint(mC[kSigTglZ]), gpu::CAMath::Float2UIntReint(mC[kSigTglSnp]), gpu::CAMath::Float2UIntReint(mC[kSigTgl2]),
+    gpu::CAMath::Float2UIntReint(mC[kSigQ2PtY]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtZ]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtSnp]), gpu::CAMath::Float2UIntReint(mC[kSigQ2PtTgl]), gpu::CAMath::Float2UIntReint(mC[kSigQ2Pt2]));
 #endif
 }
 

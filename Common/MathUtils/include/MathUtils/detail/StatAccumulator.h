@@ -66,6 +66,7 @@ struct StatAccumulator {
     sum += other.sum;
     sum2 += other.sum2;
     wsum += other.wsum;
+    n += other.n;
     return *this;
   }
 

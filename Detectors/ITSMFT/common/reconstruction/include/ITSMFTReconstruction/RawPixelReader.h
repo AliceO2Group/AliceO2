@@ -1256,7 +1256,8 @@ class RawPixelReader : public PixelReader
       auto chIdGetter = [this, cabHW, ri](int cid) {
         return this->mMAP.getGlobalChipID(cid, cabHW, *ri);
       };
-      while ((res = mCoder.decodeChip(*chipData, cableData, chIdGetter))) { // we register only chips with hits or errors flags set
+      std::vector<uint16_t> dummyStat;
+      while ((res = mCoder.decodeChip(*chipData, cableData, dummyStat, chIdGetter))) { // we register only chips with hits or errors flags set
         if (res > 0) {
 #ifdef _RAW_READER_ERROR_CHECKS_
           // for the IB staves check if the cable ID is the same as the chip ID on the module

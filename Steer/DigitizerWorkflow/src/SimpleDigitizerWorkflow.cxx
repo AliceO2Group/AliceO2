@@ -228,6 +228,18 @@ void customize(std::vector<o2::framework::DispatchPolicy>& policies)
   policies.push_back({"prompt-for-simreader", matcher, DispatchOp::WhenReady});
 }
 
+void setTimingInfoInHeaders(o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph)
+{
+  const auto& hbfu = o2::raw::HBFUtils::Instance();
+  const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
+  const auto increment = int64_t(hbfu.nHBFPerTF);
+  const auto startTime = hbfu.startTime;
+  const auto orbitFirst = hbfu.orbitFirst;
+  dh.firstTForbit = offset + increment * dh.tfCounter;
+  dh.runNumber = hbfu.runNumber;
+  dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+}
+
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   // we customize the time information sent in DPL headers
@@ -239,17 +251,10 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
       // simple linear enumeration from already updated HBFUtils (set via config key values)
       service.set<o2::framework::CallbackService::Id::NewTimeslice>(
         [](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
-          const auto& hbfu = o2::raw::HBFUtils::Instance();
-          const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
-          const auto increment = int64_t(hbfu.nHBFPerTF);
-          const auto startTime = hbfu.startTime;
-          const auto orbitFirst = hbfu.orbitFirst;
-          dh.firstTForbit = offset + increment * dh.tfCounter;
-          LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
-          dh.runNumber = hbfu.runNumber;
-          LOG(info) << "Setting runNumber to " << dh.runNumber;
-          dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-          LOG(info) << "Setting timeframe creation time to " << dph.creation;
+          setTimingInfoInHeaders(dh, dph);
+          LOG(info) << "Setting DPL-header firstTForbit to " << dh.firstTForbit;
+          LOG(info) << "Setting DPL-header runNumber to " << dh.runNumber;
+          LOG(info) << "Setting DPL-header timeframe creation time to " << dph.creation;
         });
     }} // end of struct
   );
@@ -486,7 +491,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // init on a high level, the time for the CCDB queries
     // we expect that digitizers do not play with the manager themselves
     // this will only be needed until digitizers take CCDB objects via DPL mechanism
-    o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
+
+    // fix the timestamp for CCDB manager in the same way as for DPL-CCDB-fetcher
+    o2::header::DataHeader dh;
+    o2::framework::DataProcessingHeader dph;
+    setTimingInfoInHeaders(dh, dph);
+    LOG(info) << "Setting timestamp of BasicCCDBManager to " << dph.creation;
+    o2::ccdb::BasicCCDBManager::instance().setTimestamp(dph.creation);
     // activate caching
     o2::ccdb::BasicCCDBManager::instance().setCaching(true);
     // this is asking the manager to check validity only locally - no further query to server done

@@ -256,7 +256,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
                                                               false,                                                                                                    // GRPLHCIF
                                                               true,                                                                                                     // GRPMagField
                                                               true,                                                                                                     // askMatLUT
-                                                              useGeom && enableStrangenesTracking ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
+                                                              useGeom || enableStrangenesTracking ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
   if (!useGeom && enableStrangenesTracking) {

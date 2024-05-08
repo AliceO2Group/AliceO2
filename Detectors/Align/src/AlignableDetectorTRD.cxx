@@ -201,18 +201,10 @@ int AlignableDetectorTRD::processPoints(GIndex gid, int npntCut, bool inv)
       continue;
     }
     double locXYZ[3] = {trackletCalibLoc.getX(), trackletCalibLoc.getY(), trackletCalibLoc.getZ()}, locXYZC[3], traXYZ[3];
-
     const auto& matAlg = sensor->getMatrixClAlg(); // local alignment matrix
     matAlg.LocalToMaster(locXYZ, locXYZC);         // aligned point in the local frame
     const auto& mat = sensor->getMatrixT2L();      // RS FIXME check if correct
     mat.MasterToLocal(locXYZC, traXYZ);
-
-    // This is a hack until TRD T2L matrix problem will be solved
-    const auto trackletCalib = recoData->getTRDCalibratedTracklets()[trkltId];
-    traXYZ[0] = trackletCalib.getX();
-    traXYZ[1] = trackletCalib.getY();
-    traXYZ[2] = trackletCalib.getZ();
-
     int trkltSec = sensor->getSector();       // trkltDet / (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK);
     float alpSens = sensor->getAlpTracking(); // o2::math_utils::sector2Angle(trkltSec);
     if (trkltSec != o2::math_utils::angle2Sector(trkParam.getAlpha()) ||

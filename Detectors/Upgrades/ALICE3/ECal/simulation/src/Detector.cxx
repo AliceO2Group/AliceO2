@@ -45,6 +45,7 @@ Detector::Detector(bool active)
   mInnerRadius = ecalPars.rMin;
   mOuterRadius = ecalPars.rMax;
   mLength = ecalPars.zLength;
+  mEnableEndcap = ecalPars.enableFwdEndcap;
 }
 
 Detector::~Detector()
@@ -128,12 +129,14 @@ void Detector::createGeometry()
   ecalVol->SetTransparency(0);
   vECal->AddNode(ecalVol, 1, nullptr);
 
-  // Buil the ecal endcap
-  TGeoTube* ecalEndcapShape = new TGeoTube("ECLECsh", 15.f, 160.f, 0.5 * (mOuterRadius - mInnerRadius));
-  TGeoVolume* ecalEndcapVol = new TGeoVolume("ECLEC", ecalEndcapShape, medPb);
-  ecalEndcapVol->SetLineColor(kAzure - 9);
-  ecalEndcapVol->SetTransparency(0);
-  vECal->AddNode(ecalEndcapVol, 1, new TGeoTranslation(0, 0, -450.f));
+  if (mEnableEndcap) {
+    // Build the ecal endcap
+    TGeoTube* ecalEndcapShape = new TGeoTube("ECLECsh", 15.f, 160.f, 0.5 * (mOuterRadius - mInnerRadius));
+    TGeoVolume* ecalEndcapVol = new TGeoVolume("ECLEC", ecalEndcapShape, medPb);
+    ecalEndcapVol->SetLineColor(kAzure - 9);
+    ecalEndcapVol->SetTransparency(0);
+    vECal->AddNode(ecalEndcapVol, 1, new TGeoTranslation(0, 0, -450.f));
+  }
 }
 
 void Detector::Reset()

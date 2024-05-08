@@ -11,6 +11,7 @@
 //
 /// \author matteo.concas@cern.ch
 
+#include <cuda_runtime.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -92,7 +93,6 @@ VertexerTraitsGPU::VertexerTraitsGPU()
 
 VertexerTraitsGPU::~VertexerTraitsGPU()
 {
-  gpu::utils::gpuFree(mDeviceIndexTableUtils);
 }
 
 void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)

@@ -32,6 +32,7 @@ o2_add_library(Generators
                        src/TriggerExternalParam.cxx
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
+                       src/BoxGenerator.cxx
                        src/QEDGenParam.cxx
                        src/GenCosmicsParam.cxx
                        src/GeneratorFactory.cxx
@@ -80,6 +81,7 @@ set(headers
     include/Generators/GeneratorTParticle.h
     include/Generators/GeneratorTParticleParam.h
     include/Generators/GeneratorService.h
+    include/Generators/BoxGenerator.h
     )
 
 if(pythia_FOUND)

@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorszdctestWorkflow testWorkflow
+\page refDetectorszdctestWorkflow Calibration Workflows
 /doxy -->
 
 # zdc calibration workflows

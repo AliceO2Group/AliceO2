@@ -59,7 +59,7 @@ struct CrossInfo {
   float yDCA[2] = {};
   int nDCA = 0;
 
-  int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1, float maxDistXY = MaxDistXYDef)
+  int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
   {
     const auto& trcA = trax0.rC > trax1.rC ? trax0 : trax1; // designate the largest circle as A
     const auto& trcB = trax0.rC > trax1.rC ? trax1 : trax0;
@@ -74,14 +74,24 @@ struct CrossInfo {
       if (dist - rsum > maxDistXY) { // too large distance
         return nDCA;
       }
-      notTouchingXY(dist, xDist, yDist, trcA, trcB.rC);
+      notTouchingXY(dist, xDist, yDist, trcA, trcB.rC, isCollinear);
     } else if (dist + trcB.rC < trcA.rC) { // the small circle is nestled into large one w/o touching
       // select the point of closest approach of 2 circles
-      notTouchingXY(dist, xDist, yDist, trcA, -trcB.rC);
+      notTouchingXY(dist, xDist, yDist, trcA, -trcB.rC, isCollinear);
     } else { // 2 intersection points
-      // to simplify calculations, we move to new frame x->x+Xc0, y->y+Yc0, so that
-      // the 1st one is centered in origin
-      if (std::abs(xDist) < std::abs(yDist)) {
+      if (isCollinear) {
+        /// collinear tracks, e.g. electrons from photon conversion
+        /// if there are 2 crossings of the circle it is better to take
+        /// a weighted average of the crossing points as a radius
+        float r2r = trcA.rC + trcB.rC;
+        float r1_r = trcA.rC / r2r;
+        float r2_r = trcB.rC / r2r;
+        xDCA[0] = r2_r * trcA.xC + r1_r * trcB.xC;
+        yDCA[0] = r2_r * trcA.yC + r1_r * trcB.yC;
+        nDCA = 1;
+      } else if (std::abs(xDist) < std::abs(yDist)) {
+        // to simplify calculations, we move to new frame x->x+Xc0, y->y+Yc0, so that
+        // the 1st one is centered in origin
         float a = (trcA.rC * trcA.rC - trcB.rC * trcB.rC + dist2) / (2. * yDist), b = -xDist / yDist, ab = a * b, bb = b * b;
         float det = ab * ab - (1. + bb) * (a * a - trcA.rC * trcA.rC);
         if (det > 0.) {
@@ -116,18 +126,28 @@ struct CrossInfo {
     return nDCA;
   }
 
-  void notTouchingXY(float dist, float xDist, float yDist, const TrackAuxPar& trcA, float rBSign)
+  void notTouchingXY(float dist, float xDist, float yDist, const TrackAuxPar& trcA, float rBSign, bool isCollinear = false)
   {
-    // fast method to calculate DCA between 2 circles, assuming that they don't touch each outer:
-    // the parametric equation of lines connecting the centers is x = xA + t/dist * xDist, y = yA + t/dist * yDist
-    // with xA,yY being the center of the circle A ( = trcA.xC, trcA.yC ), xDist = trcB.xC = trcA.xC ...
-    // There are 2 special cases:
-    // (a) small circle is inside the large one: provide rBSign as -trcB.rC
-    // (b) circle are side by side: provide rBSign as trcB.rC
+    if (isCollinear) {
+      /// for collinear tracks it is better to take
+      /// a weighted average of the crossing points as a radius
+      float r2r = trcA.rC + std::abs(rBSign);
+      float r1_r = trcA.rC / r2r;
+      float r2_r = std::abs(rBSign) / r2r;
+      xDCA[0] = r2_r * trcA.xC + r1_r * (xDist + trcA.xC);
+      yDCA[0] = r2_r * trcA.yC + r1_r * (yDist + trcA.yC);
+    } else {
+      // fast method to calculate DCA between 2 circles, assuming that they don't touch each outer:
+      // the parametric equation of lines connecting the centers is x = xA + t/dist * xDist, y = yA + t/dist * yDist
+      // with xA,yY being the center of the circle A ( = trcA.xC, trcA.yC ), xDist = trcB.xC = trcA.xC ...
+      // There are 2 special cases:
+      // (a) small circle is inside the large one: provide rBSign as -trcB.rC
+      // (b) circle are side by side: provide rBSign as trcB.rC
+      auto t2d = (dist + trcA.rC - rBSign) / dist;
+      xDCA[0] = trcA.xC + 0.5 * (xDist * t2d);
+      yDCA[0] = trcA.yC + 0.5 * (yDist * t2d);
+    }
     nDCA = 1;
-    auto t2d = (dist + trcA.rC - rBSign) / dist;
-    xDCA[0] = trcA.xC + 0.5 * (xDist * t2d);
-    yDCA[0] = trcA.yC + 0.5 * (yDist * t2d);
   }
 
   template <typename T>
@@ -251,12 +271,12 @@ struct CrossInfo {
   }
 
   template <typename T>
-  int set(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
+  int set(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
   {
     // calculate up to 2 crossings between 2 circles
     nDCA = 0;
     if (trax0.rC > o2::constants::math::Almost0 && trax1.rC > o2::constants::math::Almost0) { // both are not straight lines
-      nDCA = circlesCrossInfo(trax0, trax1, maxDistXY);
+      nDCA = circlesCrossInfo(trax0, trax1, maxDistXY, isCollinear);
     } else if (trax0.rC < o2::constants::math::Almost0 && trax1.rC < o2::constants::math::Almost0) { // both are straigt lines
       nDCA = linesCrossInfo(trax0, tr0, trax1, tr1, maxDistXY);
     } else {
@@ -269,9 +289,9 @@ struct CrossInfo {
   CrossInfo() = default;
 
   template <typename T>
-  CrossInfo(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
+  CrossInfo(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
   {
-    set(trax0, tr0, trax1, tr1, maxDistXY);
+    set(trax0, tr0, trax1, tr1, maxDistXY, isCollinear);
   }
   ClassDefNV(CrossInfo, 1);
 };

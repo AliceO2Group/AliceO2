@@ -377,7 +377,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   int bcSlice[2] = {-1, -1};
   const auto& track = data.getMFTTrack(trackID);
   const auto& rof = data.getMFTTracksROFRecords()[mMFTROFs[trackID.getIndex()]];
-  float trackTime = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mMFTROFrameHalfLengthNS;
+  float trackTime = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mMFTROFrameHalfLengthNS + mMFTROFBiasNS;
   float trackTimeRes = mMFTROFrameHalfLengthNS;
   bool needBCSlice = collisionID < 0;
   std::uint64_t bcOfTimeRef;
@@ -2422,7 +2422,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.itsClusterSizes = itsTrack.getClusterSizes();
     if (src == GIndex::ITS) { // standalone ITS track should set its time from the ROF
       const auto& rof = data.getITSTracksROFRecords()[mITSROFs[trackIndex.getIndex()]];
-      double t = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mITSROFrameHalfLengthNS;
+      double t = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mITSROFrameHalfLengthNS + mITSROFBiasNS;
       setTrackTime(t, mITSROFrameHalfLengthNS, false);
     }
   } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
@@ -2652,9 +2652,10 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
 
     const auto& alpParamsITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     mITSROFrameHalfLengthNS = 0.5 * (grpECS->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsITS.roFrameLengthTrig);
-
+    mITSROFBiasNS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS;
     const auto& alpParamsMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
     mMFTROFrameHalfLengthNS = 0.5 * (grpECS->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsMFT.roFrameLengthTrig);
+    mMFTROFBiasNS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS;
 
     // RS FIXME: this is not yet fetched from the CCDB
     auto& elParam = o2::tpc::ParameterElectronics::Instance();

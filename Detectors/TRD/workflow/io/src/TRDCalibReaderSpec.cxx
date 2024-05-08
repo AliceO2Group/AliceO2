@@ -43,7 +43,17 @@ void TRDCalibReader::connectTree()
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get(mInTreeName.c_str()));
   assert(mTree);
-  mTree->SetBranchAddress("AngularResids", &mAngResidPtr);
+  auto attachBranch = [this](const char* brName, void* add) {
+    auto br = this->mTree->GetBranch(brName);
+    if (!br) {
+      LOGP(warn, "Branch {} is absent, will send empty output", std::string(brName));
+      return;
+    }
+    br->SetAddress(add);
+  };
+  attachBranch("AngularResids", &mAngResidPtr);
+  attachBranch("PulseHeight", &mPHDataPtr);
+  attachBranch("calibdatagain", &mGainData);
   LOG(info) << "Loaded tree from " << mInFileName << " with " << mTree->GetEntries() << " entries";
 }
 
@@ -54,6 +64,8 @@ void TRDCalibReader::run(ProcessingContext& pc)
   mTree->GetEntry(currEntry);
   LOG(info) << "Pushing angular residual histograms filled with " << mAngResids.getNEntries() << " entries at tree entry " << currEntry;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0}, mAngResids);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "PULSEHEIGHT", 0}, mPHData);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0}, mGainData);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -65,6 +77,8 @@ DataProcessorSpec getTRDCalibReaderSpec()
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "PULSEHEIGHT", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "TRDCalibReader",

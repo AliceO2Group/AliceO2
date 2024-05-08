@@ -315,6 +315,8 @@ void Detector::CreateMaterials()
   // Origin: Marek Kowalski  IFJ, Krakow, Marek.Kowalski@ifj.edu.pl
   //-----------------------------------------------------------------
 
+  const auto& gasParam = ParameterGas::Instance();
+
   Int_t iSXFLD = 2;
   Float_t sXMGMX = 10.0;
   // init the field tracking params
@@ -325,6 +327,23 @@ void Detector::CreateMaterials()
   Float_t wmat[7]; // proportions
 
   Float_t density;
+
+  // TODO: load pressure and temperature values from CCDB
+  const Double_t pressure = gasParam.Pressure;                // in mbar
+  const Double_t temperature = gasParam.Temperature + 273.15; // in K
+
+  // densities were taken for these values
+  const Double_t t1 = 293.15;  // 20°C in K
+  const Double_t p1 = 1013.25; // 1 atm in mbars
+
+  // sanity check - temperature between 10 and 30 deg, pressure between 800 and 1200 mbar
+  Double_t ptCorr = 1.;
+  if (TMath::Abs(temperature - 293.15) > 10. || TMath::Abs(pressure - 1000.) > 200.) {
+    ptCorr = 1.;
+  } else {
+    ptCorr = (pressure * t1) / (p1 * temperature);
+  }
+  LOG(info) << "Setting gas density correction to: " << ptCorr;
 
   //***************** Gases *************************
 
@@ -345,7 +364,7 @@ void Detector::CreateMaterials()
 
   density = 1.842e-3;
 
-  o2::base::Detector::Mixture(10, "CO2", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(10, "CO2", amat, zmat, density * ptCorr, 2, wmat);
   //
   // Air
   //
@@ -360,7 +379,7 @@ void Detector::CreateMaterials()
   //
   density = 0.001205;
 
-  o2::base::Detector::Mixture(11, "Air", amat, zmat, density, 2, wmat);
+  o2::base::Detector::Mixture(11, "Air", amat, zmat, density * ptCorr, 2, wmat);
 
   //----------------------------------------------------------------
   // drift gases 5 mixtures, 5 materials
@@ -466,9 +485,9 @@ void Detector::CreateMaterials()
   }
 
   //
-  o2::base::Detector::Mixture(12, gname1.Data(), amat1, zmat1, density, cnt, wmat1); // nonsensitive
-  o2::base::Detector::Mixture(13, gname2.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive
-  o2::base::Detector::Mixture(40, gname3.Data(), amat1, zmat1, density, cnt, wmat1); // sensitive Kr
+  o2::base::Detector::Mixture(12, gname1.Data(), amat1, zmat1, density * ptCorr, cnt, wmat1); // nonsensitive
+  o2::base::Detector::Mixture(13, gname2.Data(), amat1, zmat1, density * ptCorr, cnt, wmat1); // sensitive
+  o2::base::Detector::Mixture(40, gname3.Data(), amat1, zmat1, density * ptCorr, cnt, wmat1); // sensitive Kr
 
   //----------------------------------------------------------------------
   //               solid materials

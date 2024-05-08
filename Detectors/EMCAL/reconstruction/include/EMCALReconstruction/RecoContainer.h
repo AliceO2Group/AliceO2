@@ -14,8 +14,10 @@
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since May 30, 2023
 
+#include <array>
 #include <cstdint>
 #include <exception>
+#include <iosfwd>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -24,6 +26,9 @@
 #include <Rtypes.h>
 #include <CommonDataFormat/InteractionRecord.h>
 #include <DataFormatsEMCAL/Cell.h>
+#include <EMCALBase/TriggerMappingV2.h>
+#include <EMCALReconstruction/FastORTimeSeries.h>
+#include <EMCALReconstruction/TRUDataHandler.h>
 
 namespace o2::emcal
 {
@@ -49,10 +54,52 @@ struct RecCellInfo {
 
 /// \class EventContainer
 /// \brief Containter of cells for a given event
-/// \ingroup EMCALReconstruction
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALreconstruction
+/// \since May 30, 2023
+///
+/// The EventContainer is part of the reco container and keeps the cell / LEDMON / TRU
+/// data of a given event (trigger) defined by the BC and orbit in the raw data header.
+/// In case the gain type merging is activated the event container performs on-the-fly
+/// merging of high- and low-gain data for cells and LEDMONS keeping only high- or
+/// low-gain and preferring the high-gain due to better resolution if not saturated.
+///
+/// Error handling:
+/// The EventContainer can raise a TRUIndexException in case TRU information with an
+/// unexpected index (>= 52) is added / requested.
 class EventContainer
 {
  public:
+  /// \class TRUIndexException
+  /// \brief Handler for access of TRU data with invalid TRU index
+  /// \ingroup EMCALreconstruction
+  class TRUIndexException final : public std::exception
+  {
+   public:
+    /// \brief Constructor
+    /// \param index TRU index raising the exception
+    TRUIndexException(std::size_t index);
+
+    /// \brief Destructor
+    ~TRUIndexException() noexcept final = default;
+
+    /// \brief Get the error message of the exception
+    /// \return Error message
+    const char* what() const noexcept final { return mMessage.data(); }
+
+    /// \brief Get the TRU index raising the exception
+    /// \return TRU index
+    std::size_t getIndex() const { return mIndex; }
+
+    /// \brief Print error message on stream
+    /// \param stream Stream to print on
+    void printStream(std::ostream& stream) const;
+
+   private:
+    std::size_t mIndex;   ///< TRU index raising the exception
+    std::string mMessage; ///< Buffer for error message
+  };
+
   /// \brief Constructor
   EventContainer() = default;
 
@@ -95,6 +142,22 @@ class EventContainer
   /// \return Number of LEDMONs
   int getNumberOfLEDMONs() const { return mLEDMons.size(); }
 
+  /// \brief Read and write access TRU data of a given TRU
+  /// \param truIndex Index of the TRU
+  /// \return TRU data handler for the TRU
+  /// \throw TRUIndexException in case the TRU index is invalid (>= 52)
+  TRUDataHandler& getTRUData(std::size_t truIndex);
+
+  /// \brief Read-only access TRU data of a given TRU
+  /// \param truIndex Index of the TRU
+  /// \return TRU data handler for the TRU
+  /// \throw TRUIndexException in case the TRU index is invalid (>= 52)
+  const TRUDataHandler& readTRUData(std::size_t truIndex) const;
+
+  /// \brief Access to container with FastOR time series
+  /// \return Container with time series
+  const std::unordered_map<uint16_t, FastORTimeSeries>& getTimeSeriesContainer() const { return mL0FastORs; }
+
   /// \brief Add cell information to the event container
   /// \param tower Tower ID
   /// \param energy Cell energy
@@ -129,6 +192,16 @@ class EventContainer
     setCellCommon(tower, energy, time, celltype, true, hwaddress, ddlID, doMergeHGLG);
   }
 
+  /// \brief Add bunch of time series to the container
+  /// \param fastORAbsID Absolute ID of the FastOR
+  /// \param starttime Start time of the bunch
+  /// \param timesamples Time samples of the bunch in time-reversed format
+  ///
+  /// In case a TimeSeries is already present for the given FastOR abs. ID in the container
+  /// the bunch is added to this, otherwise a new TimeSeries is added with the ADCs of the
+  /// bunch.
+  void setFastOR(uint16_t fastORAbsID, uint8_t starttime, const gsl::span<const uint16_t> timesamples);
+
   /// \brief Sort Cells / LEDMONs in container according to tower / module ID
   /// \param isLEDmon Switch between Cell and LEDMON
   void sortCells(bool isLEDmon);
@@ -148,21 +221,37 @@ class EventContainer
   /// \return True if the energy is in the saturation region, false otherwise
   bool isCellSaturated(double energy) const;
 
-  o2::InteractionRecord mInteractionRecord;
-  uint64_t mTriggerBits = 0;         ///< Trigger bits of the event
-  std::vector<RecCellInfo> mCells;   ///< Container of cells in event
-  std::vector<RecCellInfo> mLEDMons; ///< Container of LEDMONs in event
+  /// \brief Initialize the TRU handlers
+  void initTRUs();
+
+  o2::InteractionRecord mInteractionRecord;                       ///< Interaction record of the event
+  uint64_t mTriggerBits = 0;                                      ///< Trigger bits of the event
+  std::vector<RecCellInfo> mCells;                                ///< Container of cells in event
+  std::vector<RecCellInfo> mLEDMons;                              ///< Container of LEDMONs in event
+  std::array<TRUDataHandler, TriggerMappingV2::ALLTRUS> mTRUData; ///< TRU status
+  std::unordered_map<uint16_t, FastORTimeSeries> mL0FastORs;      ///< L0 FastOR time series
 };
 
 /// \class RecoContainer
-/// \brief Handler for cells in
-/// \ingroup EMCALReconstruction
+/// \brief Handler for cells/LEDMONS/Trigger data in timeframes
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALreconstruction
+/// \since May 30, 2023
+///
+/// The RecoContainer handles the cell/LEDMON/trigger data of all events of a given
+/// timeframe during the reconstruction. Event data are handled internally via the
+/// EventContainer, where the RecoContainer provides access to.
+///
+/// Error handling:
+/// The RecoContainer can raise an InteractionNotFoundException in case read access
+/// is requested for an interaction based on the o2::InteractionRecord which is not
+/// for which no data was inserted into the container.
 class RecoContainer
 {
  public:
   /// \class InteractionNotFoundException
   /// \brief Handling of access to trigger interaction record not present in container
-  class InteractionNotFoundException : public std::exception
+  class InteractionNotFoundException final : public std::exception
   {
    public:
     /// \brief Constructor
@@ -225,7 +314,17 @@ class RecoContainer
 
 /// \class RecoContainerReader
 /// \brief Iterator over reco containers
-/// \ingroup EMCALReconstruction
+/// \author Markus Fasel <narkus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \ingroup EMCALreconstruction
+/// \since May 30, 2023
+///
+/// The RecoContainerReader iterates over the events stored in the RecoContainer in
+/// a time-ordered sequence. The function hasNext checks whether there are more
+/// events to iterate over, while nextEvent provides access to the next event.
+///
+/// Error handling:
+/// The RecoContainerReader can raise an InvalidAccessException in case access is tried to
+/// invalid data.
 class RecoContainerReader
 {
  public:

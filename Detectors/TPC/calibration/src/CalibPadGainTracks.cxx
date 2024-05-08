@@ -37,10 +37,7 @@ void CalibPadGainTracks::processTracks(const int nMaxTracks)
 {
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> refit;
   if (!mPropagateTrack) {
-    mBufVec.resize(mClusterIndex->nClustersTotal);
-    o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mBufVec.data());
-    mClusterShMapTPC = mBufVec.data();
-    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper, mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
+    refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
   }
 
   const size_t loopEnd = (nMaxTracks < 0) ? mTracks->size() : ((nMaxTracks > mTracks->size()) ? mTracks->size() : size_t(nMaxTracks));
@@ -310,11 +307,13 @@ void CalibPadGainTracks::dumpToFile(const char* outFileName, const char* outName
   fOut.Close();
 }
 
-void CalibPadGainTracks::setMembers(gsl::span<const o2::tpc::TrackTPC>* vTPCTracksArrayInp, gsl::span<const o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex)
+void CalibPadGainTracks::setMembers(gsl::span<const o2::tpc::TrackTPC>* vTPCTracksArrayInp, gsl::span<const o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex, gsl::span<const unsigned char> TPCRefitterShMap, gsl::span<const unsigned int> TPCRefitterOccMap)
 {
   mTracks = vTPCTracksArrayInp;
   mTPCTrackClIdxVecInput = tpcTrackClIdxVecInput;
   mClusterIndex = &clIndex;
+  mTPCRefitterShMap = TPCRefitterShMap;
+  mTPCRefitterOccMap = TPCRefitterOccMap;
 }
 
 void CalibPadGainTracks::setMomentumRange(const float momMin, const float momMax)

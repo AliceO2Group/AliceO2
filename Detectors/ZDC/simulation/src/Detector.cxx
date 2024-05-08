@@ -271,7 +271,7 @@ void Detector::getDetIDandSecID(TString const& volname, math_utils::Vector3D<flo
 
     if (x.Z() > 0) {
       detector = ZNA;
-      xDet = x - math_utils::Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]);
+      xDet = -(x - math_utils::Vector3D<float>(Geometry::ZNAPOSITION[0], Geometry::ZNAPOSITION[1], Geometry::ZNAPOSITION[2]));
 
     } else if (x.Z() < 0) {
       detector = ZNC;
@@ -297,7 +297,7 @@ void Detector::getDetIDandSecID(TString const& volname, math_utils::Vector3D<flo
     // proton calorimeter
     if (x.Z() > 0) {
       detector = ZPA; // (NB -> DIFFERENT FROM AliRoot!!!)
-      xDet = x - math_utils::Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]);
+      xDet = -(x - math_utils::Vector3D<float>(Geometry::ZPAPOSITION[0], Geometry::ZPAPOSITION[1], Geometry::ZPAPOSITION[2]));
     } else if (x.Z() < 0) {
       detector = ZPC; // (NB -> DIFFERENT FROM AliRoot!!!)
       xDet = x - math_utils::Vector3D<float>(Geometry::ZPCPOSITION[0], Geometry::ZPCPOSITION[1], Geometry::ZPCPOSITION[2]);

@@ -12,6 +12,7 @@
 #include "Framework/ASoA.h"
 #include "Framework/Expressions.h"
 #include "Framework/AnalysisHelpers.h"
+#include "CommonConstants/MathConstants.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"

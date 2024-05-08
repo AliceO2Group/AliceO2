@@ -49,6 +49,12 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   mMaxTrialPerCluster = 0;
   mLongestClusterTimeMS = 0;
   mLongestClusterMult = 0;
+  mNIniFound = 0;
+  mNKilledBCValid = 0;
+  mNKilledIntCand = 0;
+  mNKilledDebris = 0;
+  mNKilledQuality = 0;
+  mNKilledITSOnly = 0;
   mPoolDumpProduced = false;
 
   std::vector<PVertex> verticesLoc;
@@ -82,6 +88,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
     createMCLabels(lblTracks, trackIDs, v2tRefsLoc, lblVtxLoc);
   }
 #endif
+  mNIniFound = verticesLoc.size();
 
   if (mValidateWithIR && mPVParams->minNContributorsForIRcutIni >= 0) {
     applInteractionValidation(verticesLoc, vtTimeSortID, intCand, mPVParams->minNContributorsForIRcutIni);
@@ -126,6 +133,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
     auto& vtx = verticesLoc[i];
     if (!setCompatibleIR(vtx)) {
       i = -1;
+      mNKilledBCValid++;
     }
   }
   // do we need to validate by Int. records ?
@@ -576,6 +584,7 @@ void PVertexer::applyMADSelection(std::vector<PVertex>& vertices, std::vector<in
       dvec.clear();
       if (tmad > mPVParams->maxTMAD || tmad < mPVParams->minTMAD) {
         timeSort[ivt] = -1; // disable vertex
+        mNKilledQuality++;
         LOGP(debug, "Killing vertex {} with TMAD {}, {} of {} killed", iv, tmad, ++nkill, nv);
         continue;
       }
@@ -590,6 +599,7 @@ void PVertexer::applyMADSelection(std::vector<PVertex>& vertices, std::vector<in
       float zmad = o2::math_utils::MAD2Sigma(dvec.size(), dvec.data());
       if (zmad > mPVParams->maxZMAD || zmad < mPVParams->minZMAD) {
         timeSort[ivt] = -1; // disable vertex
+        mNKilledQuality++;
         LOGP(debug, "Killing vertex {} with ZMAD {}, {} of {} killed", iv, zmad, ++nkill, nv);
         continue;
       }
@@ -621,6 +631,7 @@ void PVertexer::applITSOnlyFractionCut(std::vector<PVertex>& vertices, std::vect
     float frac = nITS / float(trefs.getEntries());
     if (frac > mPVParams->maxITSOnlyFraction || frac < mPVParams->minITSOnlyFraction) {
       timeSort[ivt] = -1; // disable vertex
+      mNKilledITSOnly++;
     }
   }
 }
@@ -669,6 +680,7 @@ void PVertexer::applInteractionValidation(std::vector<PVertex>& vertices, std::v
       }
     } else if (pv.getNContributors() >= minContrib) {
       timeSort[ivt] = -1; // discard
+      mNKilledIntCand++;
     }
   }
 }
@@ -699,30 +711,32 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
     }
     bool rej = false;
     float zDiff = std::abs(vtI.getZ() - vtJ.getZ());
+    float chi2z = 0.f, chi2t = 0.f, chi2zE = 0.f, chi2tE = 0.f;
     if (zDiff < this->mMaxZDiffDebrisFiducial && float(vtJ.getNContributors() < float(vtI.getNContributors()) * this->mMaxMultRatDebrisFiducial)) {
       if (this->mMaxTDiffDebrisExtra <= 0 || // if no extra cut requested, no need to recheck the differences
           (zDiff < this->mPVParams->maxZDiffDebris && tDiff < this->mMaxTDiffDebris && float(vtJ.getNContributors()) < float(vtI.getNContributors()) * this->mPVParams->maxMultRatDebris)) {
-        float chi2z = zDiff * zDiff / (vtI.getSigmaZ2() + vtJ.getSigmaZ2() + this->mPVParams->addZSigma2Debris);
-        float chi2t = tDiff * tDiff / (vtI.getTimeStamp().getTimeStampError2() + vtJ.getTimeStamp().getTimeStampError2() + this->mPVParams->addTimeSigma2Debris);
+        chi2z = zDiff * zDiff / (vtI.getSigmaZ2() + vtJ.getSigmaZ2() + this->mPVParams->addZSigma2Debris);
+        chi2t = tDiff * tDiff / (vtI.getTimeStamp().getTimeStampError2() + vtJ.getTimeStamp().getTimeStampError2() + this->mPVParams->addTimeSigma2Debris);
         rej = (chi2z + chi2t) < this->mPVParams->maxChi2TZDebris;
       }
       if (!rej && this->mMaxTDiffDebrisExtra > 0 &&
           (zDiff < this->mPVParams->maxZDiffDebrisExtra && tDiff < this->mMaxTDiffDebrisExtra && float(vtJ.getNContributors()) < float(vtI.getNContributors()) * this->mPVParams->maxMultRatDebrisExtra)) {
-        float chi2z = zDiff * zDiff / (vtI.getSigmaZ2() + vtJ.getSigmaZ2() + this->mPVParams->addZSigma2DebrisExtra);
-        float chi2t = tDiff * tDiff / (vtI.getTimeStamp().getTimeStampError2() + vtJ.getTimeStamp().getTimeStampError2() + this->mPVParams->addTimeSigma2DebrisExtra);
-        rej = (chi2z + chi2t) < this->mPVParams->maxChi2TZDebrisExtra;
+        chi2zE = zDiff * zDiff / (vtI.getSigmaZ2() + vtJ.getSigmaZ2() + this->mPVParams->addZSigma2DebrisExtra);
+        chi2tE = tDiff * tDiff / (vtI.getTimeStamp().getTimeStampError2() + vtJ.getTimeStamp().getTimeStampError2() + this->mPVParams->addTimeSigma2DebrisExtra);
+        rej = (chi2zE + chi2tE) < this->mPVParams->maxChi2TZDebrisExtra;
       }
-    }
 #ifdef _PV_DEBUG_TREE_
-    o2::MCEventLabel dummyLbl;
-    this->mDebugDumpPVComp.emplace_back(PVtxCompDump{vtI, vtJ, chi2z, chi2t, rej});
-    if (!lblVtx.empty()) {
-      this->mDebugDumpPVCompLbl0.push_back(lblVtx[timeSort[i]]);
-      this->mDebugDumpPVCompLbl1.push_back(lblVtx[timeSort[j]]);
-    }
+      o2::MCEventLabel dummyLbl;
+      this->mDebugDumpPVComp.emplace_back(vtI, vtJ, chi2z, chi2t, chi2zE, chi2tE, rej);
+      if (!lblVtx.empty()) {
+        this->mDebugDumpPVCompLbl0.push_back(lblVtx[timeSort[i]]);
+        this->mDebugDumpPVCompLbl1.push_back(lblVtx[timeSort[j]]);
+      }
 #endif
+    }
     if (rej) {
       timeSort[j] = -1;
+      mNKilledDebris++;
       vtJ.setNContributors(0);
     }
     return false;
@@ -846,6 +860,7 @@ void PVertexer::end()
 {
 #ifdef _PV_DEBUG_TREE_
   if (mDebugDumpFile) {
+    mDebugDumpFile->cd();
     mDebugPoolTree->Write();
     mDebugDBScanTree->Write();
     mDebugVtxCompTree->Write();
@@ -962,7 +977,7 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
 bool PVertexer::setCompatibleIR(PVertex& vtx)
 {
   // assign compatible IRs accounting for the bunch filling scheme
-  if (mClosestBunchAbove[0] < 0) { // empty or no BF was provided
+  if (mClosestBunchAbove[0] < 0 && mPVParams->doBCValidation) { // empty or no BF was provided
     return false;
   }
   const auto& vtxT = vtx.getTimeStamp();
@@ -977,22 +992,24 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   }
   irMax += o2::InteractionRecord(1.e3 * (t + rangeT)); // RS TODO: make sure that irMax does not exceed TF edge
   irMax++; // to account for rounding
-  // restrict using bunch filling
-  int bc = mClosestBunchAbove[irMin.bc];
-  LOG(debug) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
-  if (bc < irMin.bc) {
-    irMin.orbit++;
-  }
-  irMin.bc = bc;
-  bc = mClosestBunchBelow[irMax.bc];
-  LOG(debug) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
-  if (bc > irMax.bc) {
-    if (irMax.orbit == 0) {
-      return false;
+  if (mPVParams->doBCValidation) {
+    // restrict using bunch filling
+    int bc = mClosestBunchAbove[irMin.bc];
+    LOG(debug) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
+    if (bc < irMin.bc) {
+      irMin.orbit++;
     }
-    irMax.orbit--;
+    irMin.bc = bc;
+    bc = mClosestBunchBelow[irMax.bc];
+    LOG(debug) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
+    if (bc > irMax.bc) {
+      if (irMax.orbit == 0) {
+        return false;
+      }
+      irMax.orbit--;
+    }
+    irMax.bc = bc;
   }
-  irMax.bc = bc;
   vtx.setIRMin(irMin);
   vtx.setIRMax(irMax);
   if (irMin > irMax) {
@@ -1221,7 +1238,7 @@ void PVertexer::doDBScanDump(const VertexingInput& input, gsl::span<const o2::MC
   for (int i : input.idRange) {
     const auto& trc = mTracksPool[i];
     if (trc.canUse()) {
-      mDebugDumpDBSTrc.emplace_back(TrackVFDump{trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wghHisto});
+      mDebugDumpDBSTrc.emplace_back(trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wghHisto);
       mDebugDumpDBSGID.push_back(trc.gid);
       if (lblTracks.size()) {
         mDebugDumpDBSTrcMC.push_back(lblTracks[trc.entry]);
@@ -1241,7 +1258,7 @@ void PVertexer::doDBGPoolDump(gsl::span<const o2::MCCompLabel> lblTracks)
   // dump tracks of the pool
 #ifdef _PV_DEBUG_TREE_
   for (const auto& trc : mTracksPool) {
-    mDebugDumpDBSTrc.emplace_back(TrackVFDump{trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wghHisto});
+    mDebugDumpDBSTrc.emplace_back(trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wghHisto);
     mDebugDumpDBSGID.push_back(trc.gid);
     if (lblTracks.size()) {
       mDebugDumpDBSTrcMC.push_back(lblTracks[trc.entry]);
@@ -1269,7 +1286,7 @@ void PVertexer::doVtxDump(std::vector<PVertex>& vertices, std::vector<uint32_t> 
     int start = v2tRefsLoc[iv].getFirstEntry(), stop = start + v2tRefsLoc[iv].getEntries();
     for (int it = start; it < stop; it++) {
       const auto& trc = mTracksPool[trackIDsLoc[it]];
-      mDebugDumpVtxTrc.emplace_back(TrackVFDump{trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wgh});
+      mDebugDumpVtxTrc.emplace_back(trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wgh);
       mDebugDumpVtxGID.push_back(trc.gid);
       if (lblTracks.size()) {
         mDebugDumpVtxTrcMC.push_back(lblTracks[trc.entry]);

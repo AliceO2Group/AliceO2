@@ -346,7 +346,7 @@ void TFReaderSpec::TFBuilder()
   bool waitAcknowledged = false;
   long startWait = 0;
   while (mRunning && mDevice) {
-    LOGP(info, "mTFQueue.size()={} mWaitSendingLast = {}", mTFQueue.size(), mWaitSendingLast);
+    LOGP(debug, "mTFQueue.size()={} mWaitSendingLast = {}", mTFQueue.size(), mWaitSendingLast);
     if (mTFQueue.size() >= size_t(mInput.maxTFCache)) {
       mWaitSendingLast = false;
       std::this_thread::sleep_for(sleepTime);

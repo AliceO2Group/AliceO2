@@ -269,9 +269,9 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   if (ec != nullptr) {
 
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
-              << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
-              << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    LOG(important) << "Sending object " << info.getPath() << "/" << info.getFileName()
+                   << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
+                   << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     if (mRunMFT) {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TimeDeadMap", 1}, *image.get());
@@ -284,9 +284,9 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   else if (!ccdburl.empty()) { // send from this workflow
 
-    LOG(info) << mSelfName << "sending object " << ccdburl << "/browse/" << info.getFileName()
-              << " of size " << image->size() << " bytes, valid for "
-              << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    LOG(important) << mSelfName << " sending object " << ccdburl << "/browse/" << info.getPath() << "/" << info.getFileName()
+                   << " of size " << image->size() << " bytes, valid for "
+                   << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     o2::ccdb::CcdbApi mApi;
     mApi.init(ccdburl);
@@ -335,7 +335,7 @@ void ITSMFTDeadMapBuilder::stop()
       LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << "deadmap builder workflow.";
       PrepareOutputCcdb(nullptr, mCCDBUrl);
     } else {
-      LOG(warning) << "endOfStream not processed. Nothing forwarded as output.";
+      LOG(alarm) << "endOfStream not processed. Nothing forwarded as output.";
     }
     isEnded = true;
   }
@@ -378,7 +378,7 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<ITSMFTDeadMapBuilder>(datasource, doMFT)},
-    Options{{"tf-sampling", VariantType::Int, 1000, {"Process every Nth TF. Selection according to first TF orbit."}},
+    Options{{"tf-sampling", VariantType::Int, 350, {"Process every Nth TF. Selection according to first TF orbit."}},
             {"sampling-mode", VariantType::String, "first-orbit-run", {"Use absolute orbit value or offset from first processed orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
             {"skip-static-map", VariantType::Bool, false, {"Do not fill static part of the map."}},

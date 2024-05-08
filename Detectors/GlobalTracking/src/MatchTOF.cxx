@@ -185,12 +185,44 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp, unsigned long f
             matchingPair.setFakeMatch();
           }
         }
+      } else {
+        for (auto& matchingPair : mMatchedTracksPairsSec[sec]) {
+          int bct0 = int((matchingPair.getSignal() - 10000) * Geo::BC_TIME_INPS_INV);
+          float tof = matchingPair.getSignal() - bct0 * Geo::BC_TIME_INPS;
+          if (abs(tof - matchingPair.getLTIntegralOut().getTOF(2)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(3)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(4)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(0)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(1)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(5)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(6)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(7)) < 600) {
+          } else if (abs(tof - matchingPair.getLTIntegralOut().getTOF(8)) < 600) {
+          } else { // no pion, kaon, proton, electron, muon, deuteron, triton, 3He, 4He
+            matchingPair.setFakeMatch();
+          }
+        }
       }
     }
 
     LOG(debug) << "...done. Now check the best matches";
     nMatches[sec] = mMatchedTracksPairsSec[sec].size();
     selectBestMatches(sec);
+
+    if (mStoreMatchable) {
+      for (auto& matchingPair : mMatchedTracksPairsSec[sec]) {
+        trkType trkTypeSplitted = trkType::TPC;
+        auto sourceID = matchingPair.getTrackRef().getSource();
+        if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+          trkTypeSplitted = trkType::ITSTPC;
+        } else if (sourceID == o2::dataformats::GlobalTrackID::TPCTRD) {
+          trkTypeSplitted = trkType::TPCTRD;
+        } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
+          trkTypeSplitted = trkType::ITSTPCTRD;
+        }
+        matchingPair.setTrackType(trkTypeSplitted);
+      }
+    }
   }
   std::string nMatchesStr = "Number of pairs matched per sector: ";
   for (int sec = o2::constants::math::NSectors - 1; sec > -1; sec--) {
@@ -490,6 +522,7 @@ bool MatchTOF::prepareTPCData()
     mTPCTracksArray = mRecoCont->getTPCTracks();
     mTPCTrackClusIdx = mRecoCont->getTPCTracksClusterRefs();
     mTPCRefitterShMap = mRecoCont->clusterShMapTPC;
+    mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
   }
 
   return true;
@@ -520,7 +553,7 @@ void MatchTOF::propagateTPCTracks(int sec)
     }
 
     if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
-      if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT0) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
+      if (!propagateToRefXWithoutCov(trc, o2::constants::geom::XTPCOuterRef, 10, mBz) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
         mNotPropagatedToTOF[trkType::UNCONS]++;
         continue;
       }
@@ -800,6 +833,7 @@ void MatchTOF::doMatching(int sec)
     int nStripsCrossedInPropagation = 0; // how many strips were hit during the propagation
     auto& trackWork = mTracksWork[sec][type][cacheTrk[itrk]];
     auto& trefTrk = trackWork.first;
+    float pt = trefTrk.getPt();
     auto& intLT = mLTinfos[sec][type][cacheTrk[itrk]];
     float timeShift = intLT.getL() * 33.35641; // integrated time for 0.75 beta particles in ps, to take into account the t.o.f. delay with respect the interaction BC
                                                // using beta=0.75 to cover beta range [0.59 , 1.04] also for a 8 m track lenght with a 10 ns track resolution (TRD)
@@ -1002,6 +1036,7 @@ void MatchTOF::doMatching(int sec)
           // set event indexes (to be checked)
           int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
           mMatchedTracksPairsSec[sec].emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[sec][type][cacheTrk[itrk]], type, (trefTOF.getTime() - (minTrkTime + maxTrkTime - 100E3) * 0.5) * 1E-6, trefTOF.getZ(), resX, resZ); // subracting 100 ns to max track which was artificially added
+          mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setPt(pt);
         }
       }
     }
@@ -1047,6 +1082,7 @@ void MatchTOF::doMatchingForTPC(int sec)
   for (int itrk = 0; itrk < cacheTrk.size(); itrk++) {
     auto& trackWork = mTracksWork[sec][trkType::UNCONS][cacheTrk[itrk]];
     auto& trefTrk = trackWork.first;
+    float pt = trefTrk.getPt();
     auto& intLT = mLTinfos[sec][trkType::UNCONS][cacheTrk[itrk]];
 
     float timeShift = intLT.getL() * 33.35641; // integrated time for 0.75 beta particles in ps, to take into account the t.o.f. delay with respect the interaction BC
@@ -1332,6 +1368,7 @@ void MatchTOF::doMatchingForTPC(int sec)
             // set event indexes (to be checked)
             int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
             mMatchedTracksPairsSec[sec].emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[ibc][iPropagation], mTrackGid[sec][trkType::UNCONS][cacheTrk[itrk]], trkType::UNCONS, trefTOF.getTime() * 1E-6 - tpctime, trefTOF.getZ(), resX, resZ); // TODO: check if this is correct!
+            mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setPt(pt);
           }
         }
       }
@@ -1653,7 +1690,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
 }
 
 //______________________________________________
-bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
+bool MatchTOF::propagateToRefXWithoutCov(const o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
 {
   // propagate track to matching reference X without using the covariance matrix
   // we create the copy of the track in a TrackPar object (no cov matrix)
@@ -1768,7 +1805,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
   if (mTPCClusterIdxStruct) { // refit was requested
     float chi2 = 0;
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCInnerRef);
-    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
+    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // inward refit after resetting cov.mat.
       LOGP(debug, "Inward Refit failed {}", trConstr.asString());
       return false;
     }
@@ -1797,7 +1834,7 @@ void MatchTOF::checkRefitter()
 {
   if (mTPCClusterIdxStruct) {
     mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz,
-                                                                  mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(),
-                                                                  nullptr, o2::base::Propagator::Instance());
+                                                                  mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(),
+                                                                  mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
   }
 }

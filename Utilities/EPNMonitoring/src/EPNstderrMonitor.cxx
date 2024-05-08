@@ -126,7 +126,7 @@ void EPNMonitor::sendLog(const std::string& file, const std::string& message)
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Facility, ("stderr/" + file).substr(0, 31));
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, mRunNumber != 0 ? std::to_string(mRunNumber) : "unspecified");
     static const InfoLogger::InfoLogger::InfoLoggerMessageOption opt = {InfoLogger::InfoLogger::Severity::Error, 3, InfoLogger::InfoLogger::undefinedMessageOption.errorCode, InfoLogger::InfoLogger::undefinedMessageOption.sourceFile, InfoLogger::InfoLogger::undefinedMessageOption.sourceLine};
-    mLogger->log(opt, *mLoggerContext, "stderr: %s", message.c_str());
+    mLogger->log(opt, *mLoggerContext, "stderr: %s", file == "SYSLOG" ? (std::string("[GLOBAL SYSLOG]: ") + message).c_str() : message.c_str());
   } else {
     printf("stderr: %s: %s\n", file.c_str(), message.c_str());
   }

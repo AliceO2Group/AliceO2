@@ -22,6 +22,7 @@
 #include "Headers/DataHeader.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "GPUO2InterfaceUtils.h"
 #include "GPUParam.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCClusterDecompressor.inc"
@@ -68,18 +69,9 @@ void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
   mCTFCoder.init<CTF>(ic);
   mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
 
-  mConfig.reset(new o2::gpu::GPUO2InterfaceConfiguration);
-  mConfig->configGRP.solenoidBz = 0;
-  mConfParam.reset(new o2::gpu::GPUSettingsO2(mConfig->ReadConfigurableParam()));
-  mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
-  if (mAutoContinuousMaxTimeBin) {
-    mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
-  }
-
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
 
-  mParam.reset(new o2::gpu::GPUParam);
-  mParam->SetDefaults(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, nullptr);
+  mParam = GPUO2InterfaceUtils::getFullParam(0.f, 0, &mConfig, &mConfParam, &mAutoContinuousMaxTimeBin);
 
   if (mSelIR) {
     mTPCVDriftHelper.reset(new VDriftHelper);
@@ -101,7 +93,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
 
     mConfig->configGRP.continuousMaxTimeBin = (GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
-    mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    mConfig->configGRP.solenoidBzNominalGPU = GPUO2InterfaceUtils::getNominalGPUBz(*GRPGeomHelper::instance().getGRPMagField());
     mParam->UpdateSettings(&mConfig->configGRP);
 
     mTPCVDriftHelper->extractCCDBInputs(pc);

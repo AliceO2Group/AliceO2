@@ -67,6 +67,7 @@ float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logg
 void Vertexer::getGlobalConfiguration()
 {
   auto& vc = o2::its::VertexerParamConfig::Instance();
+  vc.printKeyValues(true, true);
   auto& grc = o2::its::GpuRecoParamConfig::Instance();
 
   VertexingParameters verPar;
@@ -90,8 +91,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.PhiBins = vc.PhiBins;
 
   TimeFrameGPUParameters tfGPUpar;
-  tfGPUpar.maxGPUMemoryGB = grc.maxGPUMemoryGB;
-  tfGPUpar.maxVerticesCapacity = grc.maxVerticesCapacity;
+  // tfGPUpar.nROFsPerChunk = grc.nROFsPerChunk;
 
   mTraits->updateVertexingParameters(verPar, tfGPUpar);
 }

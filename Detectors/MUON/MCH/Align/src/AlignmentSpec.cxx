@@ -23,6 +23,7 @@
 #include <chrono>
 #include <iostream>
 #include <filesystem>
+#include <sstream>
 
 #include <TCanvas.h>
 #include <TChain.h>
@@ -74,6 +75,7 @@
 #include "MCHTracking/TrackExtrap.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackFitter.h"
+#include "MCHBase/TrackerParam.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 
 namespace o2
@@ -88,15 +90,6 @@ using namespace o2;
 class AlignmentTask
 {
  public:
-  double Reso_X{0.4};
-  double Reso_Y{0.4};
-  double ImproveCut{6.0};
-
-  int tracksGood = 0;
-  int tracksGoodwithoutFit = 0;
-  int tracksAll = 0;
-  int trackMCHMID = 0;
-
   const int fgNDetElemCh[10] = {4, 4, 4, 4, 18, 18, 26, 26, 26, 26};
   const int fgSNDetElemCh[11] = {0, 4, 8, 12, 16, 34, 52, 78, 104, 130, 156};
   const int fgNDetElemHalfCh[20] = {2, 2, 2, 2, 2, 2, 2, 2, 9,
@@ -170,22 +163,6 @@ class AlignmentTask
       LOG(info) << "Re-alignment mode";
     }
 
-    auto param_config = ic.options().get<string>("fitter-config");
-    if (param_config == "PbPb") {
-      Reso_X = 0.2;
-      Reso_Y = 0.2;
-      ImproveCut = 4.0;
-      LOG(info) << "Using PbPb parameter set for TrackFitter";
-    } else if (param_config == "pp") {
-      Reso_X = 0.4;
-      Reso_Y = 0.4;
-      ImproveCut = 6.0;
-      LOG(info) << "Using pp parameter set for TrackFitter";
-    } else {
-      LOG(fatal) << "Please enter a correct parameter configuration option";
-      exit(-1);
-    }
-
     if (mCCDBRequest) {
       LOG(info) << "Loading magnetic field and reference geometry from CCDB";
       base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
@@ -229,26 +206,31 @@ class AlignmentTask
       }
     }
 
-    trackFitter.smoothTracks(true);
-    trackFitter.setChamberResolution(Reso_X, Reso_Y);
-    trackFitter.useChamberResolution();
-
-    mAlign.SetDoEvaluation(true);
+    auto doEvaluation = ic.options().get<bool>("do-evaluation");
+    mAlign.SetDoEvaluation(doEvaluation);
     // Variation range for parameters
     mAlign.SetAllowedVariation(0, 2.0);
     mAlign.SetAllowedVariation(1, 0.3);
     mAlign.SetAllowedVariation(2, 0.002);
     mAlign.SetAllowedVariation(3, 2.0);
 
+    // Configuration for track fitter
+    const auto& trackerParam = TrackerParam::Instance();
+    trackFitter.setBendingVertexDispersion(trackerParam.bendingVertexDispersion);
+    trackFitter.setChamberResolution(trackerParam.chamberResolutionX, trackerParam.chamberResolutionY);
+    trackFitter.smoothTracks(true);
+    trackFitter.useChamberResolution();
+    mImproveCutChi2 = 2. * trackerParam.sigmaCutForImprovement * trackerParam.sigmaCutForImprovement;
+
     // Fix chambers
-    auto chambers = ic.options().get<string>("fix-chamber");
-    for (int i = 0; i < chambers.length(); ++i) {
-      if (chambers[i] == ',') {
-        continue;
-      }
-      int chamber = chambers[i] - '0';
-      LOG(info) << Form("%s%d", "Fixing chamber: ", chamber);
-      mAlign.FixChamber(chamber);
+    auto input_fixchambers = ic.options().get<string>("fix-chamber");
+    std::stringstream string_chambers(input_fixchambers);
+    string_chambers >> std::ws;
+    while (string_chambers.good()) {
+      string substr;
+      std::getline(string_chambers, substr, ',');
+      LOG(info) << Form("%s%d", "Fixing chamber: ", std::stoi(substr));
+      mAlign.FixChamber(std::stoi(substr));
     }
 
     doMatched = ic.options().get<bool>("matched");
@@ -298,12 +280,10 @@ class AlignmentTask
 
       for (int iMCHTrack = mchROF.getFirstIdx();
            iMCHTrack <= mchROF.getLastIdx(); ++iMCHTrack) {
-        tracksAll += 1;
         // MCH-MID matching
         if (!FindMuon(iMCHTrack, muonTracks)) {
           continue;
         }
-        trackMCHMID += 1;
 
         auto mchTrack = mchTracks.at(iMCHTrack);
         int id_track = iMCHTrack;
@@ -313,21 +293,17 @@ class AlignmentTask
         if (nb_clusters <= 9) {
           continue;
         }
-        tracksGoodwithoutFit += 1;
 
         // Format conversion from TrackMCH to Track(MCH internal use)
         mch::Track convertedTrack = MCHFormatConvert(mchTrack, mchClusters, doReAlign);
 
         // Erase removable track
-        if (RemoveTrack(convertedTrack, ImproveCut)) {
+        if (RemoveTrack(convertedTrack)) {
           continue;
-        } else {
-          tracksGood += 1;
         }
 
         //  Track processing, saving residuals
-        o2::fwdalign::MillePedeRecord* mchRecord = mAlign.ProcessTrack(convertedTrack, transformation,
-                                                                       doAlign, weightRecord);
+        mAlign.ProcessTrack(convertedTrack, transformation, doAlign, weightRecord);
       }
     }
   }
@@ -345,27 +321,22 @@ class AlignmentTask
         auto mchTrack = mchTracks.at(iMCHTrack);
         int id_track = iMCHTrack;
         int nb_clusters = mchTrack.getNClusters();
-        tracksAll += 1;
 
         // Track selection, saving only tracks having exactly 10 clusters
         if (nb_clusters <= 9) {
           continue;
         }
-        tracksGoodwithoutFit += 1;
 
         // Format conversion from TrackMCH to Track(MCH internal use)
         Track convertedTrack = MCHFormatConvert(mchTrack, mchClusters, doReAlign);
 
         // Erase removable track
-        if (RemoveTrack(convertedTrack, ImproveCut)) {
+        if (RemoveTrack(convertedTrack)) {
           continue;
-        } else {
-          tracksGood += 1;
         }
 
         //  Track processing, saving residuals
-        o2::fwdalign::MillePedeRecord* mchRecord = mAlign.ProcessTrack(convertedTrack, transformation,
-                                                                       doAlign, weightRecord);
+        mAlign.ProcessTrack(convertedTrack, transformation, doAlign, weightRecord);
       }
     }
   }
@@ -445,14 +416,6 @@ class AlignmentTask
     }
     auto tEnd = std::chrono::high_resolution_clock::now();
     mElapsedTime = tEnd - tStart;
-    // Evaluation for track removing and selection
-    LOG(info) << Form("%s%d", "Number of good tracks used in alignment process: ", tracksGood);
-    LOG(info) << Form("%s%d", "Number of good tracks without fit processing: ", tracksGoodwithoutFit);
-    LOG(info) << Form("%s%d", "Number of MCH-MID tracks: ", trackMCHMID);
-    LOG(info) << Form("%s%d", "Total number of tracks loaded: ", tracksAll);
-    LOG(info) << Form("%s%f", "Ratio of MCH-MID track: ", double(trackMCHMID) / tracksAll);
-    LOG(info) << Form("%s%f", "Ratio before fit: ", double(tracksGoodwithoutFit) / tracksAll);
-    LOG(info) << Form("%s%f", "Ratio after fit: ", double(tracksGood) / tracksAll);
 
     // Generate new geometry w.r.t alignment results
     if (doAlign) {
@@ -573,10 +536,9 @@ class AlignmentTask
   }
 
   //_________________________________________________________________________________________________
-  bool RemoveTrack(Track& track, double ImproveCut)
+  bool RemoveTrack(Track& track)
   {
 
-    double maxChi2Cluster = 2 * ImproveCut * ImproveCut;
     bool removeTrack = false;
 
     try {
@@ -610,7 +572,7 @@ class AlignmentTask
         }
       }
 
-      if (worstLocalChi2 < maxChi2Cluster) {
+      if (worstLocalChi2 < mImproveCutChi2) {
         break;
       }
 
@@ -905,6 +867,7 @@ class AlignmentTask
 
   geo::TransformationCreator transformation{};
   TrackFitter trackFitter{};
+  double mImproveCutChi2{};
 
   std::chrono::duration<double> mElapsedTime{};
 };
@@ -933,8 +896,8 @@ o2::framework::DataProcessorSpec getAlignmentSpec(bool disableCCDB)
     Options{{"geo-file-ref", VariantType::String, o2::base::NameConf::getAlignedGeomFileName(), {"Name of the reference geometry file"}},
             {"geo-file-ideal", VariantType::String, o2::base::NameConf::getGeomFileName(), {"Name of the ideal geometry file"}},
             {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
-            {"fitter-config", VariantType::String, "", {"Option of parameter set for TrackFitter, pp or PbPb"}},
             {"do-align", VariantType::Bool, false, {"Switch for alignment, otherwise only residuals will be stored"}},
+            {"do-evaluation", VariantType::Bool, false, {"Option for saving residuals for evaluation"}},
             {"do-realign", VariantType::Bool, false, {"Switch for re-alignment using another geometry"}},
             {"matched", VariantType::Bool, false, {"Switch for using MCH-MID matched tracks"}},
             {"fix-chamber", VariantType::String, "", {"Chamber fixing, ex 1,2,3"}},

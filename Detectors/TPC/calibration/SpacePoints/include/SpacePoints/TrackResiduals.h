@@ -564,7 +564,7 @@ inline float TrackResiduals::getY2X(int ix, int ip) const
   if (mUniformBins[VoxF]) {
     return (0.5f + ip) * mDY2X[ix] - mMaxY2X[ix];
   }
-  return mMaxY2X[ix] * (mY2XBinsCenter[ip] - mY2XBinsDH[ip]);
+  return mMaxY2X[ix] * mY2XBinsCenter[ip];
 }
 
 //_____________________________________________________

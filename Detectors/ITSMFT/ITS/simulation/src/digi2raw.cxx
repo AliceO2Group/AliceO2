@@ -42,7 +42,7 @@ constexpr int DefRDHVersion = o2::raw::RDHUtils::getVersion<o2::header::RAWDataH
 
 void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, std::string_view outPrefix, std::string_view fileFor);
 void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV = DefRDHVersion, bool enablePadding = false,
-              bool noEmptyHBF = false, int superPageSizeInB = 1024 * 1024);
+              bool noEmptyHBF = false, bool noEmptyROF = false, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -63,6 +63,7 @@ int main(int argc, char** argv)
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(DefRDHVersion), "RDH version to use");
     add_option("enable-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "enable GBT word padding to 128 bits even for RDH V7");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
+    add_option("no-empty-rof", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty ROF blocks");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -96,7 +97,8 @@ int main(int argc, char** argv)
            vm["verbosity"].as<uint32_t>(),
            vm["rdh-version"].as<uint32_t>(),
            vm["enable-padding"].as<bool>(),
-           vm["no-empty-hbf"].as<bool>());
+           vm["no-empty-hbf"].as<bool>(),
+           vm["no-empty-rof"].as<bool>());
   LOG(info) << "HBFUtils settings used for conversion:";
 
   o2::raw::HBFUtils::Instance().print();
@@ -104,7 +106,7 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV, bool enablePadding, bool noEmptyHBF, int superPageSizeInB)
+void digi2raw(std::string_view inpName, std::string_view outDir, std::string_view fileFor, int verbosity, uint32_t rdhV, bool enablePadding, bool noEmptyHBF, bool noEmptyROF, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -178,9 +180,9 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
         LOG(info) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
         rofRec.print();
       }
-      if (!nDigROF) {
+      if (!nDigROF && noEmptyROF) {
         if (verbosity) {
-          LOG(info) << "Frame is empty"; // ??
+          LOG(info) << "Frame is empty";
         }
         continue;
       }

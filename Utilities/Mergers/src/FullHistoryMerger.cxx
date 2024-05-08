@@ -90,6 +90,7 @@ void FullHistoryMerger::run(framework::ProcessingContext& ctx)
 
 void FullHistoryMerger::endOfStream(framework::EndOfStreamContext& eosContext)
 {
+  mergeCache();
   publish(eosContext.outputs());
 }
 

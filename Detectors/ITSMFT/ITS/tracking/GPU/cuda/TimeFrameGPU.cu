@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
+#include <cuda_runtime.h>
 #include <thrust/fill.h>
 #include <thrust/execution_policy.h>
 
@@ -499,20 +500,18 @@ void TimeFrameGPU<nLayers>::loadClustersDevice()
 template <int nLayers>
 void TimeFrameGPU<nLayers>::loadTrackingFrameInfoDevice(const int iteration)
 {
-  for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-    LOGP(debug, "gpu-transfer: loading {} tfinfo on layer {}, for {} MB.", mTrackingFrameInfo[iLayer].size(), iLayer, mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo) / MB);
-    allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDevice[iLayer]), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), nullptr, getExtAllocator());
-    // Register and move data
-    if (!iteration) {
-      checkGPUError(cudaHostRegister(mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaHostRegisterPortable));
-    }
-    checkGPUError(cudaMemcpyAsync(mTrackingFrameInfoDevice[iLayer], mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
-  }
-  allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDeviceArray), nLayers * sizeof(TrackingFrameInfo*), nullptr, getExtAllocator());
   if (!iteration) {
+    for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
+      LOGP(info, "gpu-transfer: loading {} tfinfo on layer {}, for {} MB.", mTrackingFrameInfo[iLayer].size(), iLayer, mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo) / MB);
+      allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDevice[iLayer]), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), nullptr, getExtAllocator());
+      // Register and move data
+      checkGPUError(cudaHostRegister(mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaHostRegisterPortable));
+      checkGPUError(cudaMemcpyAsync(mTrackingFrameInfoDevice[iLayer], mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
+    }
+    allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDeviceArray), nLayers * sizeof(TrackingFrameInfo*), nullptr, getExtAllocator());
     checkGPUError(cudaHostRegister(mTrackingFrameInfoDevice.data(), nLayers * sizeof(TrackingFrameInfo*), cudaHostRegisterPortable));
+    checkGPUError(cudaMemcpyAsync(mTrackingFrameInfoDeviceArray, mTrackingFrameInfoDevice.data(), nLayers * sizeof(TrackingFrameInfo*), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
   }
-  checkGPUError(cudaMemcpyAsync(mTrackingFrameInfoDeviceArray, mTrackingFrameInfoDevice.data(), nLayers * sizeof(TrackingFrameInfo*), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
 }
 
 template <int nLayers>
@@ -564,14 +563,25 @@ void TimeFrameGPU<nLayers>::loadTrackSeedsDevice(std::vector<CellSeed>& seeds)
 }
 
 template <int nLayers>
-void TimeFrameGPU<nLayers>::createTrackITSExtDevice(const unsigned int& nSeeds)
+void TimeFrameGPU<nLayers>::createCellNeighboursDevice(const unsigned int& layer, std::vector<std::pair<int, int>>& neighbours)
+{
+  mCellsNeighbours[layer].clear();
+  mCellsNeighbours[layer].resize(neighbours.size());
+  LOGP(debug, "gpu-allocation: reserving {} neighbours, for {} MB.", neighbours.size(), neighbours.size() * sizeof(gpuPair<int, int>) / MB);
+  allocMemAsync(reinterpret_cast<void**>(&mNeighboursDevice[layer]), neighbours.size() * sizeof(gpuPair<int, int>), &(mGpuStreams[0]), getExtAllocator());
+  checkGPUError(cudaMemsetAsync(mNeighboursDevice[layer], 0, neighbours.size() * sizeof(gpuPair<int, int>), mGpuStreams[0].get()));
+  checkGPUError(cudaHostRegister(neighbours.data(), neighbours.size() * sizeof(std::pair<int, int>), cudaHostRegisterPortable));
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::createTrackITSExtDevice(std::vector<CellSeed>& seeds)
 {
   mTrackITSExt.clear();
-  mTrackITSExt.resize(nSeeds);
-  LOGP(info, "gpu-allocation: reserving {} tracks, for {} MB.", nSeeds, nSeeds * sizeof(o2::its::TrackITSExt) / MB);
-  allocMemAsync(reinterpret_cast<void**>(&mTrackITSExtDevice), nSeeds * sizeof(o2::its::TrackITSExt), &(mGpuStreams[0]), getExtAllocator());
-  checkGPUError(cudaMemsetAsync(mTrackITSExtDevice, 0, nSeeds * sizeof(o2::its::TrackITSExt), mGpuStreams[0].get()));
-  checkGPUError(cudaHostRegister(mTrackITSExt.data(), nSeeds * sizeof(o2::its::TrackITSExt), cudaHostRegisterPortable));
+  mTrackITSExt.resize(seeds.size());
+  LOGP(debug, "gpu-allocation: reserving {} tracks, for {} MB.", seeds.size(), seeds.size() * sizeof(o2::its::TrackITSExt) / MB);
+  allocMemAsync(reinterpret_cast<void**>(&mTrackITSExtDevice), seeds.size() * sizeof(o2::its::TrackITSExt), &(mGpuStreams[0]), getExtAllocator());
+  checkGPUError(cudaMemsetAsync(mTrackITSExtDevice, 0, seeds.size() * sizeof(o2::its::TrackITSExt), mGpuStreams[0].get()));
+  checkGPUError(cudaHostRegister(mTrackITSExt.data(), seeds.size() * sizeof(o2::its::TrackITSExt), cudaHostRegisterPortable));
 }
 
 template <int nLayers>

@@ -32,7 +32,7 @@ struct ParameterDetector : public o2::conf::ConfigurableParamHelper<ParameterDet
   float TPCRecoWindowSim = 1.5f; ///< length of the reconstruction window in units of drift time of the TPC in simulation (Neutron capture process can extend up to 30-40 TPC drift time)
   float PadCapacitance = 0.1f; ///< Capacitance of a single pad [pF]
   TimeBin TmaxTriggered = 550; ///< Maximum time bin in case of triggered readout mode
-  float DriftTimeOffset = 0.;  ///< drift time offset in time bins
+  float DriftTimeOffset = 7.3; ///< drift time offset in time bins (we observe ~2.4\mus before October 2023 and ~1.45 \mus after)
 
   O2ParamDef(ParameterDetector, "TPCDetParam");
 };

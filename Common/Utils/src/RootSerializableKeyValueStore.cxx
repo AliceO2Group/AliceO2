@@ -14,11 +14,57 @@
 
 using namespace o2::utils;
 
-void RootSerializableKeyValueStore::print() const
+namespace
+{
+template <typename T>
+std::string stringFromType(char* buffer)
+{
+  T value;
+  std::memcpy(&value, buffer, sizeof(T));
+  return std::to_string(value);
+}
+} // namespace
+
+void RootSerializableKeyValueStore::print(bool includetypeinfo) const
 {
   for (auto& p : mStore) {
     const auto& key = p.first;
     const auto info = p.second;
-    std::cout << "key: " << key << " of-type: " << info.typeinfo_name << "\n";
+    auto tinfo = info.typeinfo_name;
+
+    std::string value("unknown-value");
+    // let's try to decode the value as a string if we can
+    if (tinfo == typeid(int).name()) {
+      value = stringFromType<int>(info.bufferptr);
+    }
+    // let's try to decode the value as a string if we can
+    else if (tinfo == typeid(unsigned int).name()) {
+      value = stringFromType<unsigned int>(info.bufferptr);
+    }
+    // let's try to decode the value as a string if we can
+    else if (tinfo == typeid(short).name()) {
+      value = stringFromType<short>(info.bufferptr);
+    }
+    // let's try to decode the value as a string if we can
+    else if (tinfo == typeid(unsigned short).name()) {
+      value = stringFromType<unsigned short>(info.bufferptr);
+    }
+    // let's try to decode the value as a string if we can
+    else if (tinfo == typeid(double).name()) {
+      value = stringFromType<double>(info.bufferptr);
+    }
+    // let's try to decode the value as a string if we can
+    else if (tinfo == typeid(float).name()) {
+      value = stringFromType<float>(info.bufferptr);
+    }
+    // let's try to decode the value as a string if we can
+    else if (tinfo == typeid(std::string).name()) {
+      value = *(get<std::string>(key));
+    }
+    std::cout << "key: " << key << " value: " << value;
+    if (includetypeinfo) {
+      std::cout << " type: " << info.typeinfo_name;
+    }
+    std::cout << "\n";
   }
 }

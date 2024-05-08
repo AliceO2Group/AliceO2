@@ -71,6 +71,7 @@ class HistosMergerTestGenerator
               "histo", "histo", histoBinsCount, histoMin, histoMax);
             histo.Fill(5);
             histo.Fill(producerIdx);
+            processingContext.services().get<ControlService>().endOfStream();
             processingContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
           })}});
     }
@@ -103,14 +104,19 @@ class HistosMergerTestGenerator
       Inputs{{"histo", origin, description, 0, Lifetime::Sporadic}},
       Outputs{},
       AlgorithmSpec{
-        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext&) {
+        AlgorithmSpec::InitCallback{[expectedResult = mExpectedResult](InitContext& initContext) {
+          auto success = std::make_shared<bool>(false);
+          mergers::test::registerCallbacksForTestFailure(initContext.services().get<CallbackService>(), success);
+
           // reason for this crude retry is that multiple layers are not synchronized between each other and publish on their own timers,
           // number of retries is chosen arbitrarily as we need to retry at least twice
-          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5](ProcessingContext& processingContext) mutable {
+          return AlgorithmSpec::ProcessCallback{[expectedResult, retryNumber = 1, retries = 5, success](ProcessingContext& processingContext) mutable {
             const auto histo = processingContext.inputs().get<TH1F*>("histo");
 
             LOG(info) << "RETRY: " << retryNumber << ": comparing: " << std::to_string(histo) << " to the expected: " << std::to_string(expectedResult);
             if (std::equal(expectedResult.begin(), expectedResult.end(), histo->GetArray(), histo->GetArray() + histo->GetSize())) {
+              LOG(info) << "Received the expected object, test successful";
+              *success = true;
               processingContext.services().get<ControlService>().readyToQuit(QuitRequest::All);
               return;
             }

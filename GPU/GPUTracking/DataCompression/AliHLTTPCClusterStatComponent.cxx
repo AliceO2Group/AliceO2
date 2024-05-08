@@ -467,7 +467,7 @@ int AliHLTTPCClusterStatComponent::DoEvent(const AliHLTComponentEventData& evtDa
 
         if (ip != 0) {
           int rowType = padrow < 64 ? 0 : (padrow < 128 ? 2 : 1);
-          prop.Update(xyz[1], xyz[2], rowType, *mSliceParam, 0, 0, nullptr, false);
+          prop.Update(xyz[1], xyz[2], rowType, *mSliceParam, 0, 0, nullptr, false, slice > 18, -1.f, 0.f, 0.f);
         }
       }
       if (hitsUsed) {

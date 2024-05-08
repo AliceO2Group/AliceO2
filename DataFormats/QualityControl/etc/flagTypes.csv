@@ -1,0 +1,15 @@
+"id","method","name","bad","obsolete"
+1,"UnknownQuality","Unknown Quality",1,0
+3,"NoDetectorData","No Detector Data",1,0
+4,"LimitedAcceptanceMCNotReproducible","Limited Acceptance MC Not Reproducible",1,0
+5,"LimitedAcceptanceMCReproducible","Limited Acceptance MC Reproducible",1,0
+6,"BadPID","Bad PID",1,0
+7,"BadTracking","Bad Tracking",1,0
+8,"BadHadronPID","Bad Hadron PID",1,0
+9,"Good","Good",0,0
+10,"Invalid","Invalid",1,0
+11,"BadElectronPID","Bad Electron PID",1,0
+12,"BadEMCalorimetry","Bad EM Calorimetry",1,0
+13,"BadPhotonCalorimetry","Bad Photon Calorimetry",1,0
+14,"Unknown","Unknown",1,0
+65501,"NotBadFlagExample","Not bad flag example",0,0

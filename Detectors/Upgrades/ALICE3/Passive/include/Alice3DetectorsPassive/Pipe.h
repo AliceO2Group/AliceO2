@@ -33,7 +33,7 @@ class Alice3Pipe : public Alice3PassiveBase
              const float a3ipLength = 0.f,
              const float vacuumVesselRIn = 0.f,
              const float vacuumVesselThickness = 0.f,
-             const float vacuumVesselLength = 0.f);
+             const float vacuumVesselASideLength = 0.f);
 
   void ConstructGeometry() override;
 
@@ -48,7 +48,7 @@ class Alice3Pipe : public Alice3PassiveBase
   float getVacuumVesselRIn() const { return mVacuumVesselRIn; }
   float getVacuumVesselRMax() const { return mVacuumVesselRIn + mVacuumVesselThick; }
   float getVacuumVesselWidth() const { return mVacuumVesselThick; }
-  float getVacuumVesselLength() const { return mVacuumVesselLength; }
+  float getVacuumVesselLength() const { return mVacuumVesselASideLength; }
 
   bool IsTRKActivated() const { return mIsTRKActivated; }
   bool IsFT3Activated() const { return mIsFT3Activated; }
@@ -64,7 +64,7 @@ class Alice3Pipe : public Alice3PassiveBase
 
   float mVacuumVesselRIn = 0.;    // inner diameter of the vacuum vessel
   float mVacuumVesselThick = 0.;  // outer beam pipe section thickness
-  float mVacuumVesselLength = 0.; // half length of the outer beampipe around the IP
+  float mVacuumVesselASideLength = 0.; // Length of the A Side of the vacuum vessel around the IP
 
   bool mIsTRKActivated = true; // If TRK is not active don't create TRK layers allocations in the vacuum volume
   bool mIsFT3Activated = true;

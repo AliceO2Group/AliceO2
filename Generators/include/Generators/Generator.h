@@ -71,8 +71,8 @@ class Generator : public FairGenerator
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) final;
 
   /** methods to override **/
-  virtual Bool_t generateEvent() = 0;
-  virtual Bool_t importParticles() = 0;
+  virtual Bool_t generateEvent() = 0;   // generates event (in structure internal to generator)
+  virtual Bool_t importParticles() = 0; // fills the mParticles vector (transfer from generator state)
 
   /** setters **/
   void setMomentumUnit(double val) { mMomentumUnit = val; };

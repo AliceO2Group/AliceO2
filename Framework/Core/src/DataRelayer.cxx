@@ -54,6 +54,8 @@ using DataHeader = o2::header::DataHeader;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
 using Verbosity = o2::monitoring::Verbosity;
 
+O2_DECLARE_DYNAMIC_LOG(data_relayer);
+
 namespace o2::framework
 {
 
@@ -369,6 +371,8 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
       }
       bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return m.size(); });
       if (anyDropped) {
+        O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
+        O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
         onDrop(slot, dropped, oldestPossibleTimeslice);
       }
     }
@@ -440,6 +444,8 @@ DataRelayer::RelayChoice
                      &nPayloads,
                      &cache = mCache,
                      numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot) {
+    O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
+    O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot", "saving %zu in slot %zu", timeslice.value, slot.index);
     auto cacheIdx = numInputTypes * slot.index + input;
     MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
@@ -573,8 +579,14 @@ DataRelayer::RelayChoice
     return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
   }
 
+  O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
   TimesliceIndex::ActionTaken action;
   std::tie(action, slot) = index.replaceLRUWith(pristineContext, timeslice);
+  uint64_t const* debugTimestamp = std::get_if<uint64_t>(&pristineContext.get(0));
+  if (action != TimesliceIndex::ActionTaken::Wait) {
+    O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot",
+                           "Slot %zu updated with %zu using action %d, %" PRIu64, slot.index, timeslice.value, (int)action, *debugTimestamp);
+  }
 
   updateStatistics(action);
 

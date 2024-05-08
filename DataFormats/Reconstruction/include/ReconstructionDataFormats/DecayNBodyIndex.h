@@ -59,8 +59,10 @@ class V0Index : public DecayNBodyIndex<2>
   V0Index(int v, GIndex p, GIndex n) : DecayNBodyIndex<2>(v, {p, n}) {}
   bool isStandaloneV0() const { return testBit(0); }
   bool isPhotonOnly() const { return testBit(1); }
+  bool isCollinear() const { return testBit(2); }
   void setStandaloneV0() { setBit(0); }
   void setPhotonOnly() { setBit(1); }
+  void setCollinear() { setBit(2); }
   ClassDefNV(V0Index, 1);
 };
 

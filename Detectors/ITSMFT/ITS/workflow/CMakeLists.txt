@@ -28,7 +28,8 @@ o2_add_library(ITSWorkflow
                        src/DCSAdaposParserWorkflow.cxx
                        src/DCSAdaposParserSpec.cxx
                        src/DCSDataGeneratorWorkflow.cxx
-           src/DCSGeneratorSpec.cxx
+                       src/DCSGeneratorSpec.cxx
+                       src/TrackWriterWorkflow.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                O2::SimConfig
                                O2::DetectorsDCS
@@ -37,7 +38,7 @@ o2_add_library(ITSWorkflow
                                O2::DataFormatsTRD
                                O2::DataFormatsGlobalTracking
                                O2::SimulationDataFormat
-                               O2::ITStracking
+                               O2::ITSTrackingInterface
                                O2::ITSReconstruction
                                O2::ITSMFTReconstruction
                                O2::ITSMFTWorkflow
@@ -55,6 +56,11 @@ o2_add_executable(reco-workflow
 
 o2_add_executable(cluster-writer-workflow
                   SOURCES src/its-cluster-writer-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(track-writer-workflow
+                  SOURCES src/its-track-writer-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 

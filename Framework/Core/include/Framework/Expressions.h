@@ -40,7 +40,6 @@ class Projector;
 #include <variant>
 #include <string>
 #include <memory>
-#include <typeinfo>
 #include <set>
 namespace gandiva
 {
@@ -452,7 +451,7 @@ using Operations = std::vector<ColumnOperationSpec>;
 Operations createOperations(Filter const& expression);
 
 /// Function to check compatibility of a given arrow schema with operation sequence
-bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs);
+bool isTableCompatible(std::set<uint32_t> const& hashes, Operations const& specs);
 /// Function to create gandiva expression tree from operation sequence
 gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
                                       gandiva::SchemaPtr const& Schema);
@@ -496,6 +495,8 @@ std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, std:
 
   return createProjectorHelper(sizeof...(C), projectors.data(), schema, fields);
 }
+
+void updateFilterInfo(ExpressionInfo& info, std::shared_ptr<arrow::Table>& table);
 } // namespace o2::framework::expressions
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_H_

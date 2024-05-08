@@ -95,6 +95,8 @@ class StepTHnT : public StepTHn
   StepTHnT(const char* name, const char* title, const int nSteps, const int nAxes, const int* nBins, const double* xmin, const double* xmax);
   ~StepTHnT() override = default;
 
+  Long64_t Merge(TCollection* list) override;
+
  protected:
   TArray* createArray(const TArray* src = nullptr) const override
   {
@@ -104,8 +106,6 @@ class StepTHnT : public StepTHn
       return new TemplateArray(*((TemplateArray*)src));
     }
   }
-
-  Long64_t Merge(TCollection* list) override;
 
   ClassDef(StepTHnT, 1) // THn like container
 };

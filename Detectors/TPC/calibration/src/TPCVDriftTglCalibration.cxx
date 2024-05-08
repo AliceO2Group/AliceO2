@@ -28,6 +28,7 @@ using Slot = o2::calibration::TimeSlot<TPCVDTglContainer>;
 using clbUtils = o2::calibration::Utils;
 
 float TPCVDTglContainer::driftVRef = 0.f;
+float TPCVDTglContainer::tOffsetRef = 0.f;
 
 //_____________________________________________
 void TPCVDriftTglCalibration::initOutput()
@@ -89,7 +90,8 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
                                                                std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
                                                                corrFact,
                                                                corrFactErr,
-                                                               float(cont->driftVFullMean)});
+                                                               float(cont->driftVFullMean),
+                                                               cont->tOffsetRef, 0.f});
     // at this stage the correction object is defined wrt average corrected drift used for the slot processing, we want to redefine it to run-constant reference vdrift
     vd.normalize(cont->driftVRef);
 

@@ -9,6 +9,7 @@ There is no module description yet.
 <!-- doxy
 This module contains the following submodules:
 
+* \subpage refDetectorsAOD
 * \subpage refDetectorsAlign
 * \subpage refDetectorsBase
 * \subpage refDetectorsBasetest
@@ -19,6 +20,7 @@ This module contains the following submodules:
 * \subpage refDetectorsRaw
 * \subpage refDetectorsVertexing
 * \subpage refDetectorsCPV
+* \subpage refDetectorsCTP
 * \subpage refDetectorsCTF
 * \subpage refDetectorsDCS
 * \subpage refDetectorsEMCAL

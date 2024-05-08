@@ -72,7 +72,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
 
   WriteToConstantMemory(RecoStep::TPCConversion, (char*)&processors()->tpcConverter - (char*)processors(), &convertShadow, sizeof(convertShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::TPCConversion, &convert, 0);
-  runKernel<GPUTPCConvertKernel>(GetGridBlk(NSLICES * GPUCA_ROW_COUNT, 0), krnlRunRangeNone, krnlEventNone);
+  runKernel<GPUTPCConvertKernel>(GetGridBlk(NSLICES * GPUCA_ROW_COUNT, 0));
   TransferMemoryResourcesToHost(RecoStep::TPCConversion, &convert, 0);
   SynchronizeStream(0);
 

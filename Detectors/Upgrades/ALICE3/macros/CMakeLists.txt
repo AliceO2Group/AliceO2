@@ -11,3 +11,6 @@
 
 o2_add_test_root_macro(scanXX0.C
                        LABELS alice3)
+
+o2_add_test_root_macro(plotHits.C
+                       LABELS alice3)

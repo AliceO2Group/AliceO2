@@ -99,7 +99,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       auto& sizes = processAttributes->sizes;
       auto& verbosity = processAttributes->verbosity;
 
-      processAttributes->config.configGRP.solenoidBz = 5.00668;
+      processAttributes->config.configGRP.solenoidBzNominalGPU = 5.00668;
       std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter = nullptr;
       if (processAttributes->globalConfig.zsOnTheFlyDigitsFilter) {
         digitsFilter = [processAttributes](std::vector<o2::tpc::Digit>& digits) {

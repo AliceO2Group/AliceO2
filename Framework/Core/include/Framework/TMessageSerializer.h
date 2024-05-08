@@ -18,9 +18,6 @@
 #include <TList.h>
 #include <TBufferFile.h>
 #include <TObjArray.h>
-#include <gsl/util>
-#include <gsl/span>
-#include <gsl/narrow>
 #include <memory>
 #include <mutex>
 #include <cstddef>
@@ -29,12 +26,6 @@ namespace o2::framework
 {
 class FairOutputTBuffer;
 class FairInputTBuffer;
-
-// utilities to produce a span over a byte buffer held by various message types
-// this is to avoid littering code with casts and conversions (span has a signed index type(!))
-gsl::span<std::byte> as_span(const FairInputTBuffer& msg);
-gsl::span<std::byte> as_span(const FairOutputTBuffer& msg);
-gsl::span<std::byte> as_span(const fair::mq::Message& msg);
 
 // A TBufferFile which we can use to serialise data to a FairMQ message.
 class FairOutputTBuffer : public TBufferFile
@@ -151,19 +142,6 @@ inline void TMessageSerializer::Deserialize(const fair::mq::Message& msg, std::u
   // so const_cast should be OK here(IMHO).
   FairInputTBuffer input(static_cast<char*>(msg.GetData()), static_cast<int>(msg.GetSize()));
   output = deserialize(input);
-}
-
-// gsl::narrow is used to do a runtime narrowing check, this might be a bit paranoid,
-// we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
-inline gsl::span<std::byte> as_span(const fair::mq::Message& msg)
-{
-  return gsl::span<std::byte>{static_cast<std::byte*>(msg.GetData()), gsl::narrow<gsl::span<std::byte>::size_type>(msg.GetSize())};
-}
-
-inline gsl::span<std::byte> as_span(const FairInputTBuffer& msg)
-{
-  return gsl::span<std::byte>{reinterpret_cast<std::byte*>(msg.Buffer()),
-                              gsl::narrow<gsl::span<std::byte>::size_type>(msg.BufferSize())};
 }
 
 } // namespace o2::framework

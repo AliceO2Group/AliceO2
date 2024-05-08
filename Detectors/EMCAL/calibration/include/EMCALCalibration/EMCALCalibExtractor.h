@@ -19,6 +19,7 @@
 #define EMCALCALIBEXTRACTOR_H_
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include "CCDB/BasicCCDBManager.h"
 #include "EMCALCalib/BadChannelMap.h"
@@ -28,9 +29,12 @@
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
+#include "EMCALCalib/Pedestal.h"
+#include "EMCALCalibration/PedestalProcessorData.h"
 #include <boost/histogram.hpp>
 
 #include <TRobustEstimator.h>
+#include <TProfile.h>
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
 #include <omp.h>
@@ -55,8 +59,12 @@ class EMCALCalibExtractor
   };
 
   struct BadChannelCalibTimeInfo {
-    std::array<double, 17664> sigmaCell; // sigma value of time distribution for single cells
-    double goodCellWindow;               // cut value for good cells
+    std::array<double, 17664> sigmaCell;         // sigma value of time distribution for single cells
+    double goodCellWindow;                       // cut value for good cells
+    std::array<double, 17664> fracHitsPreTrigg;  // fraction of hits before the main time peak (pre-trigger pile-up)
+    double goodCellWindowFracHitsPreTrigg;       // cut value for good cells for pre-trigger pile-up
+    std::array<double, 17664> fracHitsPostTrigg; // fraction of hits after the main time peak (post-trigger pile-up)
+    double goodCellWindowFracHitsPostTrigg;      // cut value for good cells for post-trigger pile-up
   };
 
  public:
@@ -94,6 +102,11 @@ class EMCALCalibExtractor
   {
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 39.0}}};
+
+    std::fill(std::begin(mBadCellFracSM), std::end(mBadCellFracSM), 0); // reset all fractions to 0
+    for (unsigned int i = 0; i < mBadCellFracFEC.size(); ++i) {
+      std::fill(std::begin(mBadCellFracFEC[i]), std::end(mBadCellFracFEC[i]), 0);
+    }
 
     auto histScaled = hist;
     if (mBCMScaleFactors) {
@@ -138,6 +151,8 @@ class EMCALCalibExtractor
       if (calibrationInformation.energyPerHitMap[0][cellID] == 0) {
         LOG(debug) << "Cell " << cellID << " is dead.";
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
+        mBadCellFracSM[mGeometry->GetSuperModuleNumber(cellID)] += 1;
+        mBadCellFracFEC[mGeometry->GetSuperModuleNumber(cellID)][getFECNumberInSM(cellID)] += 1;
       } else {
         bool failed = false;
         for (auto& [sliceIndex, slice] : slices) {
@@ -181,6 +196,12 @@ class EMCALCalibExtractor
             if (calibrationTimeInfo.sigmaCell[cellID] > calibrationTimeInfo.goodCellWindow) {
               LOG(debug) << "Cell " << cellID << " is flagged due to time distribution";
               failed = true;
+            } else if (calibrationTimeInfo.fracHitsPreTrigg[cellID] > calibrationTimeInfo.goodCellWindowFracHitsPreTrigg) {
+              LOG(debug) << "Cell " << cellID << " is flagged due to time distribution (pre-trigger)";
+              failed = true;
+            } else if (calibrationTimeInfo.fracHitsPostTrigg[cellID] > calibrationTimeInfo.goodCellWindowFracHitsPostTrigg) {
+              LOG(debug) << "Cell " << cellID << " is flagged due to time distribution (post-trigger)";
+              failed = true;
             }
           }
         }
@@ -188,12 +209,25 @@ class EMCALCalibExtractor
         if (failed) {
           LOG(debug) << "Cell " << cellID << " is bad.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+          mBadCellFracSM[mGeometry->GetSuperModuleNumber(cellID)] += 1;
+          mBadCellFracFEC[mGeometry->GetSuperModuleNumber(cellID)][getFECNumberInSM(cellID)] += 1;
         } else {
           LOG(debug) << "Cell " << cellID << " is good.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
         }
       }
     }
+
+    // Check if the fraction of bad+dead cells in a SM is above a certain threshold
+    // If yes, mask the whole SM
+    if (EMCALCalibParams::Instance().fracMaskSMFully_bc < 1) {
+      checkMaskSM(mOutputBCM);
+    }
+    // Same as above for FECs
+    if (EMCALCalibParams::Instance().fracMaskFECFully_bc < 1) {
+      checkMaskFEC(mOutputBCM);
+    }
+
     double time2 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     double diffTransfer = time2 - time1;
     LOG(info) << "Total time" << diffTransfer << " ns";
@@ -298,7 +332,7 @@ class EMCALCalibExtractor
   template <typename... axes>
   BadChannelCalibTimeInfo buildTimeMeanAndSigma(const boost::histogram::histogram<axes...>& histCellTime)
   {
-    std::array<double, 17664> meanSigma;
+    BadChannelCalibTimeInfo timeInfo;
     for (int i = 0; i < mNcells; ++i) {
       // calculate sigma per cell
       const int indexLow = histCellTime.axis(1).index(i);
@@ -310,23 +344,44 @@ class EMCALCalibExtractor
         maxElementIndex = 0;
       }
       float maxElementCenter = 0.5 * (boostHistCellSlice.axis(0).bin(maxElementIndex).upper() + boostHistCellSlice.axis(0).bin(maxElementIndex).lower());
-      meanSigma[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice, -999999, maxElementCenter - 50, maxElementCenter + 50));
+      timeInfo.sigmaCell[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice, -999999, maxElementCenter - 50, maxElementCenter + 50));
+
+      // get number of hits within mean+-25ns (trigger bunch), from -500ns to -25ns before trigger bunch (pre-trigger), and for 25ns to 500ns (post-trigger)
+      double sumTrigg = o2::utils::getIntegralBoostHist(boostHistCellSlice, maxElementCenter - 25, maxElementCenter + 25);
+      double sumPreTrigg = o2::utils::getIntegralBoostHist(boostHistCellSlice, maxElementCenter - 500, maxElementCenter - 25);
+      double sumPostTrigg = o2::utils::getIntegralBoostHist(boostHistCellSlice, maxElementCenter + 25, maxElementCenter + 500);
+
+      // calculate fraction of hits of post and pre-trigger to main trigger bunch
+      timeInfo.fracHitsPreTrigg[i] = sumTrigg == 0 ? 0. : sumPreTrigg / sumTrigg;
+      timeInfo.fracHitsPostTrigg[i] = sumTrigg == 0 ? 0. : sumPostTrigg / sumTrigg;
     }
 
     // get the mean sigma and the std. deviation of the sigma distribution
     // those will be the values we cut on
     double avMean = 0, avSigma = 0;
     TRobustEstimator robustEstimator;
-    robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0.5 * meanSigma.size());
+    robustEstimator.EvaluateUni(timeInfo.sigmaCell.size(), timeInfo.sigmaCell.data(), avMean, avSigma, 0.5 * timeInfo.sigmaCell.size());
     // protection for the following case: For low statistics cases, it can happen that more than half of the cells is in one bin
     // in that case the sigma will be close to zero. In that case, we take 95% of the data to calculate the truncated mean
     if (std::abs(avMean) < 0.001 && std::abs(avSigma) < 0.001) {
-      robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0.95 * meanSigma.size());
+      robustEstimator.EvaluateUni(timeInfo.sigmaCell.size(), timeInfo.sigmaCell.data(), avMean, avSigma, 0.95 * timeInfo.sigmaCell.size());
     }
-
-    BadChannelCalibTimeInfo timeInfo;
-    timeInfo.sigmaCell = meanSigma;
+    // timeInfo.sigmaCell = meanSigma;
     timeInfo.goodCellWindow = avMean + (avSigma * o2::emcal::EMCALCalibParams::Instance().sigmaTime_bc); // only upper limit needed
+
+    double avMeanPre = 0, avSigmaPre = 0;
+    robustEstimator.EvaluateUni(timeInfo.fracHitsPreTrigg.size(), timeInfo.fracHitsPreTrigg.data(), avMeanPre, avSigmaPre, 0.5 * timeInfo.fracHitsPreTrigg.size());
+    if (std::abs(avMeanPre) < 0.001 && std::abs(avSigmaPre) < 0.001) {
+      robustEstimator.EvaluateUni(timeInfo.fracHitsPreTrigg.size(), timeInfo.fracHitsPreTrigg.data(), avMeanPre, avSigmaPre, 0.95 * timeInfo.fracHitsPreTrigg.size());
+    }
+    timeInfo.goodCellWindowFracHitsPreTrigg = avMeanPre + (avSigmaPre * o2::emcal::EMCALCalibParams::Instance().sigmaTimePreTrigg_bc); // only upper limit needed
+
+    double avMeanPost = 0, avSigmaPost = 0;
+    robustEstimator.EvaluateUni(timeInfo.fracHitsPostTrigg.size(), timeInfo.fracHitsPostTrigg.data(), avMeanPost, avSigmaPost, 0.5 * timeInfo.fracHitsPostTrigg.size());
+    if (std::abs(avMeanPost) < 0.001 && std::abs(avSigmaPost) < 0.001) {
+      robustEstimator.EvaluateUni(timeInfo.fracHitsPostTrigg.size(), timeInfo.fracHitsPostTrigg.data(), avMeanPost, avSigmaPost, 0.95 * timeInfo.fracHitsPostTrigg.size());
+    }
+    timeInfo.goodCellWindowFracHitsPostTrigg = avMeanPost + (avSigmaPost * o2::emcal::EMCALCalibParams::Instance().sigmaTimePostTrigg_bc); // only upper limit needed
 
     return timeInfo;
   }
@@ -395,13 +450,80 @@ class EMCALCalibExtractor
     return TCP;
   }
 
- private:
-  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr; ///< Scale factors for nentries scaling in bad channel calibration
-  int mSigma = 5;                                       ///< number of sigma used in the calibration to define outliers
-  int mNThreads = 1;                                    ///< number of threads used for calibration
+  //____________________________________________
+  /// \brief Extract the pedestals from Stat Accumulators
+  /// \param obj PedestalProcessorData containing the data
+  /// \return Pedestal data
+  Pedestal extractPedestals(PedestalProcessorData& obj)
+  {
+    Pedestal pedestalData;
+    // loop over both low and high gain data as well as normal and LEDMON data
+    for (const auto& isLEDMON : {false, true}) {
+      auto maxChannels = isLEDMON ? mLEDMONs : mNcells;
+      for (const auto& isLG : {false, true}) {
+        for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
+          auto [mean, rms] = obj.getValue(iCell, isLG, isLEDMON); // get mean and rms for pedestals
+          if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
+            mean = mMaxPedestalVal;
+          }
+          pedestalData.addPedestalValue(iCell, std::round(mean), isLG, isLEDMON);
+        }
+      }
+    }
+    return pedestalData;
+  }
 
-  o2::emcal::Geometry* mGeometry = nullptr;
-  static constexpr int mNcells = 17664;
+  //____________________________________________
+  /// \brief Extract the pedestals from TProfile (for old data)
+  /// \param objHG TProfile containing the HG data
+  /// \param objLHG TProfile containing the LG data
+  /// \param isLEDMON if true, data is LED data
+  /// \return Pedestal data
+  Pedestal extractPedestals(TProfile* objHG = nullptr, TProfile* objLG = nullptr, bool isLEDMON = false)
+  {
+    Pedestal pedestalData;
+    auto maxChannels = isLEDMON ? mLEDMONs : mNcells;
+    // loop over both low and high gain data
+    for (const auto& isLG : {false, true}) {
+      auto obj = (isLG == true ? objLG : objHG);
+      if (!obj)
+        continue;
+      for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
+        short mean = static_cast<short>(std::round(obj->GetBinContent(iCell + 1)));
+        short rms = static_cast<short>(obj->GetBinError(iCell + 1) / obj->GetBinEntries(iCell + 1));
+        if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
+          mean = mMaxPedestalVal;
+        }
+        pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+      }
+    }
+    return pedestalData;
+  }
+
+ private:
+  //____________________________________________
+  /// \brief Check if a SM exceeds a certain fraction of dead+bad channels. If yes, mask the entire SM
+  /// \param bcm -- current bad channel map
+  void checkMaskSM(o2::emcal::BadChannelMap& bcm);
+
+  /// \brief Check if a FEC exceeds a certain fraction of dead+bad channels. If yes, mask the entire FEC
+  /// \param bcm -- current bad channel map
+  void checkMaskFEC(o2::emcal::BadChannelMap& bcm);
+
+  /// \brief Get the FEC ID in a SM (IDs are just for internal handling in this task itself)
+  /// \param absCellID -- cell ID
+  unsigned int getFECNumberInSM(int absCellID) const;
+
+  EMCALChannelScaleFactors* mBCMScaleFactors = nullptr;  ///< Scale factors for nentries scaling in bad channel calibration
+  int mSigma = 5;                                        ///< number of sigma used in the calibration to define outliers
+  int mNThreads = 1;                                     ///< number of threads used for calibration
+  std::array<float, 20> mBadCellFracSM;                  ///< Fraction of bad+dead channels per SM
+  std::array<std::array<float, 36>, 20> mBadCellFracFEC; ///< Fraction of bad+dead channels per FEC
+
+  o2::emcal::Geometry* mGeometry = nullptr;      ///< pointer to the emcal geometry class
+  static constexpr int mNcells = 17664;          ///< Number of total cells of EMCal + DCal
+  static constexpr int mLEDMONs = 480;           ///< Number of total LEDMONS of EMCal + DCal
+  static constexpr short mMaxPedestalVal = 1023; ///< Maximum value for pedestals
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };

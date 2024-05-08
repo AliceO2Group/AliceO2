@@ -448,7 +448,9 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
     mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
     mTPCRefitterShMap = recoData.clusterShMapTPC;
-    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
   }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
@@ -608,6 +610,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     fitterV0.setMaxDZIni(mSVParams->mTPCTrackMaxDZIni);
     fitterV0.setMaxDXYIni(mSVParams->mTPCTrackMaxDXYIni);
     fitterV0.setMaxChi2(mSVParams->mTPCTrackMaxChi2);
+    fitterV0.setCollinear(true);
   }
 
   // feed DCAFitter
@@ -617,7 +620,9 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     fitterV0.setMaxDZIni(mSVParams->maxDZIni);
     fitterV0.setMaxDXYIni(mSVParams->maxDXYIni);
     fitterV0.setMaxChi2(mSVParams->maxChi2);
+    fitterV0.setCollinear(false);
   }
+
   if (nCand == 0) { // discard this pair
     LOG(debug) << "RejDCAFitter";
     return false;
@@ -627,6 +632,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check closeness to the beam-line
   float dxv0 = v0XYZ[0] - mMeanVertex.getX(), dyv0 = v0XYZ[1] - mMeanVertex.getY(), r2v0 = dxv0 * dxv0 + dyv0 * dyv0;
   if (r2v0 < mMinR2ToMeanVertex) {
+    LOG(debug) << "RejMinR2ToMeanVertex";
     return false;
   }
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
@@ -860,6 +866,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     }
     if (photonOnly) {
       mV0sIdxTmp[ithread].back().setPhotonOnly();
+      mV0sIdxTmp[ithread].back().setCollinear();
     }
 
     if (mSVParams->createFullV0s) {
@@ -1321,7 +1328,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     // require minimum of tpc clusters
     bool dCls = trTPC.getNClusters() < mSVParams->mTPCTrackMinNClusters;
     // check track z cuts
-    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() - vtx.getZ()) > mSVParams->mTPCTrack2Beam;
+    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() + vtx.getZ()) > mSVParams->mTPCTrack2Beam;
     // check track transveres cuts
     float sna{0}, csa{0};
     o2::math_utils::CircleXYf_t trkCircle;

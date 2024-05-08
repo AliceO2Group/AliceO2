@@ -44,7 +44,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
     bool rejectTrk = CAMath::Abs(trk.GetParam().GetQPt() * processors.param.qptB5Scaler) > processors.param.rec.tpc.rejectQPtB5 || trk.MergedLooper();
     unsigned int nClustersStored = 0;
     CompressedClustersPtrs& GPUrestrict() c = compressor.mPtrs;
-    unsigned int lastRow = 0, lastSlice = 0; // BUG: These should be unsigned char, but then CUDA breaks
+    unsigned char lastRow = 0, lastSlice = 0;
     GPUTPCCompressionTrackModel track;
     float zOffset = 0;
     for (int k = trk.NClusters() - 1; k >= 0; k--) {
@@ -338,7 +338,6 @@ GPUdi() bool GPUTPCCompressionGatherKernels::isAlignedTo(const S* ptr)
   } else {
     return reinterpret_cast<size_t>(ptr) % alignof(T) == 0;
   }
-  return false; // BUG: Cuda complains about missing return value with constexpr if
 }
 
 template <>

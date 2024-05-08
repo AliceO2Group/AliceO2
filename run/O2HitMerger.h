@@ -75,6 +75,8 @@
 #include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
 #include <IOTOFSimulation/Detector.h>
 #include <RICHSimulation/Detector.h>
+#include <ECalSimulation/Detector.h>
+#include <MI3Simulation/Detector.h>
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
@@ -1003,6 +1005,14 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::RCH) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::rich::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::MI3) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::mi3::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::ECL) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::ecal::Detector>(true));
       counter++;
     }
 #endif

@@ -67,6 +67,7 @@ struct Binding {
 
 void accessingInvalidIndexFor(const char* getter);
 void dereferenceWithWrongType();
+void missingFilterDeclaration(int hash, int ai);
 
 template <typename... C>
 auto createFieldsFromColumns(framework::pack<C...>)
@@ -1006,7 +1007,7 @@ struct is_binding_compatible : std::conditional_t<is_binding_compatible_v<T, typ
 };
 
 template <typename T>
-static std::string getLabelFromType()
+static constexpr std::string getLabelFromType()
 {
   if constexpr (soa::is_index_table_v<std::decay_t<T>>) {
     using TT = typename std::decay_t<T>::first_t;
@@ -1039,19 +1040,19 @@ static std::string getLabelFromType()
 }
 
 template <typename... C>
-static auto hasColumnForKey(framework::pack<C...>, std::string const& key)
+static constexpr auto hasColumnForKey(framework::pack<C...>, std::string const& key)
 {
   return ((C::inherited_t::mLabel == key) || ...);
 }
 
 template <typename T>
-static std::pair<bool, std::string> hasKey(std::string const& key)
+static constexpr std::pair<bool, std::string> hasKey(std::string const& key)
 {
   return {hasColumnForKey(typename T::persistent_columns_t{}, key), getLabelFromType<T>()};
 }
 
 template <typename... C>
-static auto haveKey(framework::pack<C...>, std::string const& key)
+static constexpr auto haveKey(framework::pack<C...>, std::string const& key)
 {
   return std::vector{hasKey<C>(key)...};
 }
@@ -1060,7 +1061,7 @@ void notFoundColumn(const char* label, const char* key);
 void missingOptionalPreslice(const char* label, const char* key);
 
 template <typename T, bool OPT = false>
-static std::string getLabelFromTypeForKey(std::string const& key)
+static constexpr std::string getLabelFromTypeForKey(std::string const& key)
 {
   if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
     using Os = typename std::decay_t<T>::originals;
@@ -1188,6 +1189,20 @@ namespace o2::soa
 //! Helper to check if a type T is an iterator
 template <typename T>
 inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
+
+template <typename T>
+inline constexpr bool is_soa_filtered_iterator_v()
+{
+  if constexpr (!is_soa_iterator_v<T>) {
+    return false;
+  } else {
+    if constexpr (std::is_same_v<typename T::policy_t, soa::FilteredIndexPolicy>) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
 
 template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;

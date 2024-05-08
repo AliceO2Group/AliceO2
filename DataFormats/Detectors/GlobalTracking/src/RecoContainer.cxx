@@ -119,6 +119,7 @@ void DataRequest::requestTPCTracks(bool mc)
   addInput({"trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe});
   if (requestMap.find("clusTPC") != requestMap.end()) {
     addInput({"clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe});
+    addInput({"clusTPCoccmap", "TPC", "TPCOCCUPANCYMAP", 0, Lifetime::Timeframe});
   }
   if (mc) {
     addInput({"trackTPCMCTR", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe});
@@ -255,6 +256,7 @@ void DataRequest::requestTPCClusters(bool mc)
   }
   if (requestMap.find("trackTPC") != requestMap.end()) {
     addInput({"clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe});
+    addInput({"clusTPCoccmap", "TPC", "TPCOCCUPANCYMAP", 0, Lifetime::Timeframe});
   }
   if (mc) {
     addInput({"clusTPCMC", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}, Lifetime::Timeframe});
@@ -678,7 +680,8 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 
   req = reqMap.find("clusTPC");
   if (req != reqMap.end()) {
-    addTPCClusters(pc, req->second, reqMap.find("trackTPC") != reqMap.end());
+    auto tracksON = reqMap.find("trackTPC") != reqMap.end();
+    addTPCClusters(pc, req->second, tracksON, tracksON);
   }
 
   req = reqMap.find("trigTPC");
@@ -1060,11 +1063,14 @@ void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
-void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc, bool shmap)
+void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc, bool shmap, bool occmap)
 {
   inputsTPCclusters = o2::tpc::getWorkflowTPCInput(pc, 0, mc);
   if (shmap) {
     clusterShMapTPC = pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap");
+  }
+  if (occmap) {
+    occupancyMapTPC = pc.inputs().get<gsl::span<unsigned int>>("clusTPCoccmap");
   }
 }
 

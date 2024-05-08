@@ -48,13 +48,13 @@ size_t NeuralFastSimulation::getBatchSize() const
 void NeuralFastSimulation::setInputOutputData()
 {
   for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
-    mInputNames.push_back(mSession->GetInputName(i, mAllocator));
+    mInputNames.push_back(mSession->GetInputNameAllocated(i, mAllocator).get());
   }
   for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
     mInputShapes.emplace_back(mSession->GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
   }
   for (size_t i = 0; i < mSession->GetOutputCount(); ++i) {
-    mOutputNames.push_back(mSession->GetOutputName(i, mAllocator));
+    mOutputNames.push_back(mSession->GetOutputNameAllocated(i, mAllocator).get());
   }
 
   // Prevent negative values from being passed as tensor shape
@@ -96,11 +96,19 @@ bool ConditionalModelSimulation::setInput(std::vector<std::vector<float>>& input
 void ConditionalModelSimulation::run()
 {
   // Run simulation (single event) with default run options
+  std::vector<const char*> tmpInputs;
+  std::vector<const char*> tmpOutputs;
+  for (unsigned int i = 0; i < mInputNames.size(); i++) {
+    tmpInputs.emplace_back(mInputNames[i].c_str());
+  }
+  for (unsigned int i = 0; i < mOutputNames.size(); i++) {
+    tmpOutputs.emplace_back(mOutputNames[i].c_str());
+  }
   mModelOutput = mSession->Run(Ort::RunOptions{nullptr},
-                               mInputNames.data(),
+                               tmpInputs.data(),
                                mInputTensors.data(),
                                mInputTensors.size(),
-                               mOutputNames.data(),
+                               tmpOutputs.data(),
                                mOutputNames.size());
   mInputTensors.clear();
 }

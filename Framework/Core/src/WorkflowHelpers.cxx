@@ -21,7 +21,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpecHelpers.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
 

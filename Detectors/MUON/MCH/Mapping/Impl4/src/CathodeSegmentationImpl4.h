@@ -48,7 +48,7 @@ class CathodeSegmentation
                       std::vector<std::pair<float, float>> padSizes);
 
   /// Return the list of catPadIndices for the pads of the given dual sampa.
-  std::vector<int> getCatPadIndices(int dualSampaIds) const;
+  std::vector<int> getCatPadIndices(int dualSampaId) const;
 
   /// Return the list of catPadIndices for the pads contained in the box
   /// {xmin,ymin,xmax,ymax}.
@@ -104,6 +104,8 @@ class CathodeSegmentation
   const PadGroupType& padGroupType(int catPadIndex) const;
 
   double squaredDistance(int catPadIndex, double x, double y) const;
+
+  std::vector<int> catPadIndices(int dualSampaId) const;
 
  private:
   int mSegType;

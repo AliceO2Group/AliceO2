@@ -282,7 +282,7 @@ int SetupReconstruction()
       printf("Error reading event config file\n");
       return 1;
     }
-    printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetGRPSettings().solenoidBz, (int)rec->GetGRPSettings().homemadeEvents, (int)rec->GetGRPSettings().constBz, rec->GetGRPSettings().continuousMaxTimeBin);
+    printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetGRPSettings().solenoidBzNominalGPU, (int)rec->GetGRPSettings().homemadeEvents, (int)rec->GetGRPSettings().constBz, rec->GetGRPSettings().continuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(filename);
     }
@@ -297,15 +297,15 @@ int SetupReconstruction()
   GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
   GPUSettingsProcessing procSet;
-  memcpy((void*)&recSet, (void*)&configStandalone.rec, sizeof(GPUSettingsRec));
-  memcpy((void*)&procSet, (void*)&configStandalone.proc, sizeof(GPUSettingsProcessing));
+  recSet = configStandalone.rec;
+  procSet = configStandalone.proc;
   GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
     grp.homemadeEvents = true;
   }
-  if (configStandalone.solenoidBz != -1e6f) {
-    grp.solenoidBz = configStandalone.solenoidBz;
+  if (configStandalone.solenoidBzNominalGPU != -1e6f) {
+    grp.solenoidBzNominalGPU = configStandalone.solenoidBzNominalGPU;
   }
   if (configStandalone.constBz) {
     grp.constBz = true;
@@ -424,11 +424,6 @@ int SetupReconstruction()
     }
   }
 
-#ifdef GPUCA_HAVE_O2HEADERS
-  procSet.useInternalO2Propagator = true;
-  procSet.internalO2PropagatorGPUField = true;
-#endif
-
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&grp, &recSet, &procSet, &steps);
@@ -463,6 +458,22 @@ int SetupReconstruction()
       recPipeline->SetOutputControl(outputmemoryPipeline.get(), configStandalone.outputcontrolmem);
     }
   }
+
+#ifdef GPUCA_HAVE_O2HEADERS
+  o2::base::Propagator* prop = nullptr;
+  prop = o2::base::Propagator::Instance(true);
+  prop->setGPUField(&rec->GetParam().polynomialField);
+  prop->setNominalBz(rec->GetParam().bzkG);
+  prop->setMatLUT(chainTracking->GetMatLUT());
+  chainTracking->SetO2Propagator(prop);
+  if (chainTrackingAsync) {
+    chainTrackingAsync->SetO2Propagator(prop);
+  }
+  if (chainTrackingPipeline) {
+    chainTrackingPipeline->SetO2Propagator(prop);
+  }
+  procSet.o2PropagatorUseGPUField = true;
+#endif
 
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
@@ -852,7 +863,7 @@ int main(int argc, char** argv)
         }
         if (configStandalone.dumpEvents) {
           char fname[1024];
-          sprintf(fname, "event.%d.dump", nEventsProcessed);
+          snprintf(fname, 1024, "event.%d.dump", nEventsProcessed);
           chainTracking->DumpData(fname);
           if (nEventsProcessed == 0) {
             rec->DumpSettings();

@@ -103,9 +103,9 @@ class TrackerTraits
 
   int mNThreads = 1;
   bool mApplySmoothing = false;
-  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
 
  protected:
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   o2::gpu::GPUChainITS* mChain = nullptr;
   TimeFrame* mTimeFrame;
   std::vector<TrackingParameters> mTrkParams;

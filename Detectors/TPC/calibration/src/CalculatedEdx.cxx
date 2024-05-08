@@ -26,6 +26,7 @@
 #include "TPCCalibration/CalibPadGainTracksBase.h"
 #include "CalibdEdxTrackTopologyPol.h"
 #include "DataFormatsParameters/GRPMagField.h"
+#include "GPUO2InterfaceUtils.h"
 
 using namespace o2::tpc;
 
@@ -44,7 +45,7 @@ void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdx
 
 void CalculatedEdx::setRefit()
 {
-  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mField, mTPCTrackClIdxVecInput->data(), nullptr, mTracks);
+  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, nullptr, nullptr, -1, mTracks);
 }
 
 void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method)
@@ -477,9 +478,9 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp)
   // set the magnetic field
   auto magField = cm.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
   o2::base::Propagator::initFieldFromGRP(magField);
-  float bz = 5.00668f * magField->getL3Current() / 30000.;
+  float bz = GPUO2InterfaceUtils::getNominalGPUBz(*magField);
   LOGP(info, "Magnetic field: {}", bz);
-  setField(bz);
+  setFieldNominalGPUBz(bz);
 
   // set the propagator
   auto propagator = o2::base::Propagator::Instance();

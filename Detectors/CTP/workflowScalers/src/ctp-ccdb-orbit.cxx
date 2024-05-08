@@ -33,7 +33,10 @@
 #include <string>
 namespace bpo = boost::program_options;
 //
-// get object from ccdb  auto pp = ccdbMgr.getSpecific<std::vector<long>>("CTP/Calib/OrbitResetTest")
+// get object from ccdb
+// auto & cc = o2::ccdb::BasicCCDNManager::instance();
+// auto pp = ccdbMgr.getSpecific<std::vector<long>>("CTP/Calib/OrbitResetTest")
+// std::cout  << (*pp)[0] << std::endl;
 int main(int argc, char** argv)
 {
   const std::string testCCDB = "http://ccdb-test.cern.ch:8080";
@@ -76,18 +79,17 @@ int main(int argc, char** argv)
   std::vector<int64_t> vect;
   std::string ccdbPath;
   auto now = std::chrono::system_clock::now();
-  long tt = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  long tt = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  vect.push_back(tt);
   if (action == "sox") {
     // write to CTP/Calib/FirstRunOrbit
     std::cout << "===> FirsRunOrbit" << std::endl;
-    vect.push_back(tt);
     vect.push_back(vm["run-number"].as<int64_t>());
     vect.push_back(vm["sox-orbit"].as<int64_t>());
     ccdbPath = "CTP/Calib/FirstRunOrbit";
   } else {
     // write to CTP/Calib/OrbitReset
     std::cout << "===> ResetOrbit" << std::endl;
-    vect.push_back(tt);
     ccdbPath = "CTP/Calib/OrbitReset";
     if (vm["testReset"].as<bool>()) {
       ccdbPath += "Test";
@@ -108,7 +110,7 @@ int main(int argc, char** argv)
     o2::ccdb::CcdbApi api;
     api.init(ccdbAddress.c_str());
     std::map<std::string, std::string> metadata;
-    long tmin = tt;
+    long tmin = tt / 1000;
     long tmax = tmin + 381928219;
     if (action == "sox") {
       int64_t runnum = vm["run-number"].as<int64_t>();

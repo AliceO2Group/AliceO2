@@ -657,7 +657,7 @@ GPUd() void GPUTPCGMMerger::MergeSlicesPrepareStep2(int nBlocks, int nThreads, i
   //* prepare slice tracks for merging with next/previous/same sector
   //* each track transported to the border line
 
-  float fieldBz = Param().constBz;
+  float fieldBz = Param().bzCLight;
 
   float dAlpha = Param().par.dAlpha / 2;
   float x0 = 0;
@@ -829,9 +829,8 @@ struct MergeBorderTracks_compMin {
 };
 
 template <>
-void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeBorders, 3>(krnlSetup& _xyz, GPUTPCGMBorderRange* const& range, int const& N, int const& cmpMax)
+inline void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeBorders, 3>(const krnlSetupTime& _xyz, GPUTPCGMBorderRange* const& range, int const& N, int const& cmpMax)
 {
-  GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<GPUTPCGMBorderRange> p(range);
   ThrustVolatileAsyncAllocator alloc(this);
   if (cmpMax) {
@@ -1021,7 +1020,7 @@ GPUd() void GPUTPCGMMerger::MergeWithinSlicesPrepare(int nBlocks, int nThreads, 
     GPUTPCGMSliceTrack& track = mSliceTrackInfos[itr];
     int iSlice = track.Slice();
     GPUTPCGMBorderTrack b;
-    if (track.TransportToX(this, x0, Param().constBz, b, maxSin)) {
+    if (track.TransportToX(this, x0, Param().bzCLight, b, maxSin)) {
       b.SetTrackID(itr);
       CADEBUG(printf("WITHIN SLICE %d Track %d - ", iSlice, itr); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Par()[i]); } printf(" - "); for (int i = 0; i < 5; i++) { printf("%8.3f ", b.Cov()[i]); } printf("\n"));
       b.SetNClusters(track.NClusters());
@@ -1359,7 +1358,7 @@ GPUd() void GPUTPCGMMerger::MergeCEFill(const GPUTPCGMSliceTrack* track, const G
   for (int attempt = 0; attempt < 2; attempt++) {
     GPUTPCGMBorderTrack b;
     const float x0 = Param().tpcGeometry.Row2X(attempt == 0 ? 63 : cls.row);
-    if (track->TransportToX(this, x0, Param().constBz, b, GPUCA_MAX_SIN_PHI_LOW)) {
+    if (track->TransportToX(this, x0, Param().bzCLight, b, GPUCA_MAX_SIN_PHI_LOW)) {
       b.SetTrackID(itr);
       b.SetNClusters(mOutputTracks[itr].NClusters());
       if (CAMath::Abs(b.Cov()[4]) >= 0.5f) {
@@ -1847,7 +1846,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
 
     GPUTPCGMBorderTrack b;
     const float toX = Param().par.earlyTpcTransform ? clXYZ[0].x : Param().tpcGeometry.Row2X(cl[0].row);
-    if (p2.TransportToX(this, toX, Param().constBz, b, GPUCA_MAX_SIN_PHI, false)) {
+    if (p2.TransportToX(this, toX, Param().bzCLight, b, GPUCA_MAX_SIN_PHI, false)) {
       p1.X() = toX;
       p1.Y() = b.Par()[0];
       p1.Z() = b.Par()[1];
@@ -1933,9 +1932,8 @@ struct GPUTPCGMMergerSortTracks_comp {
 };
 
 template <>
-void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks, 0>(krnlSetup& _xyz)
+inline void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracks, 0>(const krnlSetupTime& _xyz)
 {
-  GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TrackOrderProcess());
   ThrustVolatileAsyncAllocator alloc(this);
   thrust::sort(GPUCA_THRUST_NAMESPACE::par(alloc).on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracks_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
@@ -1963,9 +1961,8 @@ struct GPUTPCGMMergerSortTracksQPt_comp {
 };
 
 template <>
-void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracksQPt, 0>(krnlSetup& _xyz)
+inline void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerSortTracksQPt, 0>(const krnlSetupTime& _xyz)
 {
-  GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<unsigned int> trackSort((unsigned int*)mProcessorsShadow->tpcMerger.TrackSort());
   ThrustVolatileAsyncAllocator alloc(this);
   thrust::sort(GPUCA_THRUST_NAMESPACE::par(alloc).on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracks(), GPUTPCGMMergerSortTracksQPt_comp(mProcessorsShadow->tpcMerger.OutputTracks()));
@@ -2189,9 +2186,8 @@ struct GPUTPCGMMergerMergeLoopers_comp {
 };
 
 template <>
-void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeLoopers, 1>(krnlSetup& _xyz)
+inline void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeLoopers, 1>(const krnlSetupTime& _xyz)
 {
-  GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
   thrust::device_ptr<MergeLooperParam> params(mProcessorsShadow->tpcMerger.LooperCandidates());
   ThrustVolatileAsyncAllocator alloc(this);
   thrust::sort(GPUCA_THRUST_NAMESPACE::par(alloc).on(mInternals->Streams[_xyz.x.stream]), params, params + processors()->tpcMerger.Memory()->nLooperMatchCandidates, GPUTPCGMMergerMergeLoopers_comp());

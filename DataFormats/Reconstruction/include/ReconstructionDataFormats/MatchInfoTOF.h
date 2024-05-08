@@ -38,7 +38,7 @@ class MatchInfoTOF
   int getTOFClIndex() const { return mIdxTOFCl; }
   int getTrackIndex() const { return mIdxTrack.getIndex(); }
 
-  void setChi2(int chi2) { mChi2 = chi2; }
+  void setChi2(float chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
 
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }

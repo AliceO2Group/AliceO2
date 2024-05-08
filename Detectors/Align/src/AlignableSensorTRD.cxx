@@ -19,6 +19,7 @@
 #include "Align/utils.h"
 #include "Framework/Logger.h"
 #include "Align/AlignmentPoint.h"
+#include "DetectorsBase/GeometryManager.h"
 
 namespace o2
 {
@@ -34,21 +35,70 @@ AlignableSensorTRD::AlignableSensorTRD(const char* name, int vid, int iid, int i
 }
 
 //____________________________________________
+void AlignableSensorTRD::prepareMatrixClAlg()
+{
+  // prepare alignment matrix in the pseudo-LOCAL frame of TRD (account that the chamber has extra X,Y rotations
+  TGeoHMatrix ma = getMatrixL2GIdeal().Inverse();
+  ma *= getMatrixL2G();
+  setMatrixClAlg(ma);
+  //
+}
+
+//____________________________________________
+void AlignableSensorTRD::prepareMatrixClAlgReco()
+{
+  // prepare alignment matrix in the pseudo-LOCAL frame of TRD (account that the chamber has extra X,Y rotations
+  TGeoHMatrix ma = getMatrixL2GIdeal().Inverse();
+  ma *= getMatrixL2G();
+  setMatrixClAlgReco(ma);
+  //
+}
+
+//____________________________________________
+void AlignableSensorTRD::prepareMatrixL2GIdeal()
+{
+  TGeoHMatrix Rxy;
+  Rxy.RotateX(-90);
+  Rxy.RotateY(-90);
+  TGeoHMatrix mtmp;
+  if (!base::GeometryManager::getOriginalMatrix(getSymName(), mtmp)) {
+    LOG(fatal) << "Failed to find ideal L2G matrix for " << getSymName();
+  }
+  mtmp *= Rxy;
+  setMatrixL2GIdeal(mtmp);
+}
+
+//____________________________________________
+void AlignableSensorTRD::prepareMatrixL2G(bool reco)
+{
+  TGeoHMatrix Rxy;
+  Rxy.RotateX(-90);
+  Rxy.RotateY(-90);
+  const char* path = getSymName();
+  const TGeoHMatrix* l2g = nullptr;
+  if (!gGeoManager->GetAlignableEntry(path) || !(l2g = base::GeometryManager::getMatrix(path))) {
+    LOGP(fatal, "Failed to find L2G matrix for {}alignable {} -> {}", gGeoManager->GetAlignableEntry(path) ? "" : "non-", path, (void*)l2g);
+  }
+  TGeoHMatrix mtmp = *l2g;
+  mtmp *= Rxy;
+  reco ? setMatrixL2GReco(mtmp) : setMatrixL2G(mtmp);
+}
+
+//____________________________________________
 void AlignableSensorTRD::prepareMatrixT2L()
 {
   // extract from geometry T2L matrix
   double alp = math_utils::detail::sector2Angle<float>(mSector);
   mAlp = alp;
-  double loc[3] = {0, 0, 0}, glo[3];
-  getMatrixL2GIdeal().LocalToMaster(loc, glo);
-  mX = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
-  TGeoHMatrix t2l;
-  //  t2l.SetDx(mX); // to remove when T2L will be clarified
-  t2l.RotateZ(alp * RadToDeg());
-  const TGeoHMatrix l2gi = getMatrixL2GIdeal().Inverse();
-  t2l.MultiplyLeft(&l2gi);
-
+  TGeoHMatrix Rs;
+  Rs.RotateZ(-alp * TMath::RadToDeg());
+  TGeoHMatrix m0 = getMatrixL2GIdeal();
+  m0.MultiplyLeft(Rs);
+  TGeoHMatrix t2l = m0.Inverse();
   setMatrixT2L(t2l);
+  double loc[3] = {0, 0, 0}, glo[3];
+  t2l.MasterToLocal(loc, glo);
+  mX = glo[0];
   //
 }
 

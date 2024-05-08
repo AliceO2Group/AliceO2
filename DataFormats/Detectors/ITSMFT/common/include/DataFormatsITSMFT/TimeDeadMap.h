@@ -73,8 +73,8 @@ class TimeDeadMap
     }
   }
 
-  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true)
-  { // for time-dependent and (optionally) static part
+  void decodeMap(unsigned long orbit, o2::itsmft::NoiseMap& noisemap, bool includeStaticMap = true, long orbitGapAllowed = 330000)
+  { // for time-dependent and (optionally) static part. Use orbitGapAllowed = -1 to ignore check on orbit difference
 
     if (mMAP_VERSION != "3" && mMAP_VERSION != "4") {
       LOG(error) << "Trying to decode time-dependent deadmap version " << mMAP_VERSION << ". Not implemented, doing nothing.";
@@ -84,13 +84,15 @@ class TimeDeadMap
     if (mEvolvingDeadMap.empty()) {
       LOG(warning) << "Time-dependent dead map is empty. Doing nothing.";
       return;
-    } else if (orbit > mEvolvingDeadMap.rbegin()->first + 11000 * 300 || orbit < mEvolvingDeadMap.begin()->first - 11000 * 300) {
-      // the map should not leave several minutes uncovered.
-      LOG(warning) << "Time-dependent dead map: the requested orbit " << orbit << " seems to be out of the range stored in the map.";
     }
 
     std::vector<uint16_t> closestVec;
     long dT = getMapAtOrbit(orbit, closestVec);
+
+    if (orbitGapAllowed >= 0 && std::abs(dT) > orbitGapAllowed) {
+      LOG(warning) << "Requested orbit " << orbit << ", found " << orbit - dT << ". Orbit gap is too high, skipping time-dependent map.";
+      closestVec.clear();
+    }
 
     // add static part if requested. something may be masked twice
     if (includeStaticMap && mMAP_VERSION != "3") {
@@ -125,18 +127,19 @@ class TimeDeadMap
   void getStaticMap(std::vector<uint16_t>& mmap) { mmap = mStaticDeadMap; };
 
   long getMapAtOrbit(unsigned long orbit, std::vector<uint16_t>& mmap)
-  { // fills mmap and returns orbit - lower_bound
+  { // fills mmap and returns requested_orbit - found_orbit. Found orbit is the highest key lower or equal to the requested one
     if (mEvolvingDeadMap.empty()) {
       LOG(warning) << "Requested orbit " << orbit << "from an empty time-dependent map. Doing nothing";
       return (long)orbit;
     }
-    auto closest = mEvolvingDeadMap.lower_bound(orbit);
-    if (closest != mEvolvingDeadMap.end()) {
+    auto closest = mEvolvingDeadMap.upper_bound(orbit);
+    if (closest != mEvolvingDeadMap.begin()) {
+      --closest;
       mmap = closest->second;
       return (long)orbit - closest->first;
     } else {
-      mmap = mEvolvingDeadMap.rbegin()->second;
-      return (long)(orbit)-mEvolvingDeadMap.rbegin()->first;
+      mmap = mEvolvingDeadMap.begin()->second;
+      return (long)(orbit)-mEvolvingDeadMap.begin()->first;
     }
   }
 

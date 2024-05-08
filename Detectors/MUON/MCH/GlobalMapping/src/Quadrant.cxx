@@ -90,7 +90,7 @@ Cathode lvAliasToCathode(std::string_view alias)
   }
 }
 
-std::set<int> solarAliasToDsIndices(std::string_view alias)
+std::set<DsIndex> solarAliasToDsIndices(std::string_view alias)
 {
   /** For St12, to get the solar alias to dual sampas relationship
    * we "just" have to convert the solar crate number to a LV

@@ -11,6 +11,7 @@ This module contains the documentation pages.
 * \subpage refdocCMakeInstructions
 * \subpage refdocModernCMakeMigration
 * \subpage refdocCodeOrganization
+* \subpage refdocDebugging
 * \subpage refdocDetectorSimulation
 * \subpage refdocDoxygenInstructions
 * \subpage refdocManPages

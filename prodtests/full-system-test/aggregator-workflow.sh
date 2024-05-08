@@ -76,6 +76,7 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CALIB_FT0_TIMEOFFSET = $CALIB_FT0_TIMEOFFSET" 1>&2
   echo "CALIB_ITS_DEADMAP_TIME = $CALIB_ITS_DEADMAP_TIME" 1>&2
   echo "CALIB_MFT_DEADMAP_TIME = $CALIB_MFT_DEADMAP_TIME" 1>&2
+  echo "CALIB_RCT_UPDATER = ${CALIB_RCT_UPDATER:-}" 1>&2
 fi
 
 # beamtype dependent settings
@@ -191,6 +192,10 @@ fi
 
 # calibrations for AGGREGATOR_TASKS == BARREL_TF
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
+  # RCT updater
+  if [[ ${CALIB_RCT_UPDATER:-} == 1 ]]; then
+    add_W o2-rct-updater-workflow "--ccdb-server $CCDB_POPULATOR_UPLOAD_PATH"
+  fi
   # PrimaryVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     : ${TFPERSLOTS_MEANVTX:=55000}
@@ -248,7 +253,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
     add_W o2-tpc-calibrator-dedx "--min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000"
   fi
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
-    add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000 --store-RMS-CCDB true"
+    add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 200000 --store-RMS-CCDB true"
   fi
   # TOF
   if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then

@@ -89,12 +89,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   auto tpcTBinMUSInv = 1. / mTPCTBinMUS;
   const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
   const auto& tpcClusShMap = data.clusterShMapTPC;
+  const auto& tpcClusOccMap = data.occupancyMapTPC;
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> tpcRefitter;
   if (data.inputsTPCclusters) {
     tpcRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(&data.inputsTPCclusters->clusterIndex,
                                                                  mTPCCorrMapsHelper, mBz,
-                                                                 tpcClusRefs.data(), tpcClusShMap.data(),
-                                                                 nullptr, o2::base::Propagator::Instance());
+                                                                 tpcClusRefs.data(), 0, tpcClusShMap.data(),
+                                                                 tpcClusOccMap.data(), tpcClusOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    tpcRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
   }
 
   const auto& itsClusters = prepareITSClusters(data);

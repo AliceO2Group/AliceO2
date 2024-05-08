@@ -173,7 +173,7 @@ struct GPUReconstructionOCLInternals {
 };
 
 template <typename K, typename... Args>
-int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Args&... args)
+inline int GPUReconstructionOCL::runKernelBackendInternal(const krnlSetupTime& _xyz, K& k, const Args&... args)
 {
   auto& x = _xyz.x;
   auto& y = _xyz.y;

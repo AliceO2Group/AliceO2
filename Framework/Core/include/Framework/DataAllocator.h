@@ -23,7 +23,6 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
-#include "Framework/CheckTypes.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/RouteState.h"
@@ -211,18 +210,14 @@ class DataAllocator
       auto* s = new std::string(args...);
       adopt(spec, s);
       return *s;
-    } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
-      return call_if_defined_forward<LifetimeHolder<struct TableBuilder>>([&](auto* p) {
-        auto tb = std::move(LifetimeHolder<TableBuilder>(new typename std::decay_t<decltype(*p)>::type(args...)));
-        adopt(spec, tb);
-        return std::move(tb);
-      });
-    } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
-      return call_if_defined_forward<LifetimeHolder<struct TreeToTable>>([&](auto* p) {
-        auto t2t = std::move(LifetimeHolder<TreeToTable>(new typename std::decay_t<decltype(*p)>::type(args...)));
-        adopt(spec, t2t);
-        return std::move(t2t);
-      });
+    } else if constexpr (requires { static_cast<struct TableBuilder>(std::declval<std::decay_t<T>>()); }) {
+      auto tb = std::move(LifetimeHolder<TableBuilder>(new std::decay_t<T>(args...)));
+      adopt(spec, tb);
+      return tb;
+    } else if constexpr (requires { static_cast<struct TreeToTable>(std::declval<std::decay_t<T>>()); }) {
+      auto t2t = std::move(LifetimeHolder<TreeToTable>(new std::decay_t<T>(args...)));
+      adopt(spec, t2t);
+      return t2t;
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());

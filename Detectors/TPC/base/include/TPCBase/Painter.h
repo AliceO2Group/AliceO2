@@ -184,6 +184,20 @@ struct painter {
   /// \return TCanvas containing CalDet content
   static std::vector<TCanvas*> makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true);
 
+  /// Create summary canvases from pad calibration tree dumped via CalibTreeDump
+  ///
+  /// 1 Canvas with 2D and 1D distributions for each side
+  /// 1 Canvas with 2D distributions for all ROCs
+  /// 1 Canvas with 1D distributions for all ROCs
+  /// \param tree input calibTree
+  /// \param draw draw string to use for the variable (1D)
+  /// \param cut cut string to use (default 1 = no cut)
+  /// \param nbins1D number of bins used for the 1D projections, if negative, exclude per ROC histograms
+  /// \param xMin1D minimum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+  /// \param xMax1D maximum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+  /// \return TCanvas containing CalDet content
+  static std::vector<TCanvas*> makeSummaryCanvases(TTree& tree, const std::string_view draw, std::string_view cut = "1", int nbins1D = 300, float xMin1D = 0, float xMax1D = 0);
+
   /// draw sector boundaris, side name and sector numbers
   static void drawSectorsXY(Side side, int sectorLineColor = 920, int sectorTextColor = 1);
 

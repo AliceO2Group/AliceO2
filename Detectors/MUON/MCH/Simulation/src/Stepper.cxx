@@ -59,6 +59,7 @@ void Stepper::process(const TVirtualMC& vmc)
   if (t.isEntering()) {
     float x, y, z;
     vmc.TrackPosition(x, y, z);
+    mTof = (float)vmc.TrackTime();
     mEntrancePoint.SetXYZ(x, y, z);
     resetStep();
   }
@@ -68,9 +69,11 @@ void Stepper::process(const TVirtualMC& vmc)
 
   if (t.isExiting() || t.isStopped()) {
     float x, y, z;
+    float etot;
     vmc.TrackPosition(x, y, z);
+    etot = (float)vmc.Etot();
     mHits->emplace_back(stack->GetCurrentTrackNumber(), detElemId, mEntrancePoint,
-                        math_utils::Point3D<float>{x, y, z}, mTrackEloss, mTrackLength);
+                        math_utils::Point3D<float>{x, y, z}, mTrackEloss, mTrackLength, mTof, etot);
     resetStep();
   }
 }

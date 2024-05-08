@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsMUONMCHStatus Status Map
+/doxy -->
+
 # MCH StatusMap
 
 The status map is an object that list all pads that are not perfect, for some reason. Each such pad gets ascribed a `uint32_t` integer mask, representing the source of information that was used to decide that pad is bad.

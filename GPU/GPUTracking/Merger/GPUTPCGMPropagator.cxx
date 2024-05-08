@@ -603,18 +603,21 @@ GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUre
   GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), mT->GetY(), iRow, clusterState, sector, time, avgCharge, charge, mSeedingErrors);
 }
 
-GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, float y, int iRow, short clusterState, char sector, float time, float avgCharge, float charge, bool seedingErrors)
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float trackX, float trackY, int iRow, short clusterState, char sector, float time, float avgCharge, float charge, bool seedingErrors)
 {
 #ifndef GPUCA_TPC_GEOMETRY_O2
   if (seedingErrors) {
-    param.GetClusterErrorsSeeding2(sector, iRow, posZ, snp, tgl, time, avgCharge, charge, err2Y, err2Z);
+    param.GetClusterErrorsSeeding2(sector, iRow, posZ, snp, tgl, time, err2Y, err2Z);
   } else
 #endif
   {
     param.GetClusterErrors2(sector, iRow, posZ, snp, tgl, time, avgCharge, charge, err2Y, err2Z);
   }
   param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
-  float statErr2 = param.GetSystematicClusterErrorIFC2(x, y, posZ, sector >= (GPUCA_NSLICES / 2));
+  float statErr2 = param.GetSystematicClusterErrorIFC2(trackX, trackY, posZ, sector >= (GPUCA_NSLICES / 2));
+  if (sector >= GPUCA_NSLICES / 2 + 1 && sector <= GPUCA_NSLICES / 2 + 2) {
+    statErr2 += param.GetSystematicClusterErrorC122(trackX, trackY, sector);
+  }
   err2Y += statErr2;
   err2Z += statErr2;
 }
@@ -657,14 +660,14 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState, sector, time, avgInvCharge, invCharge);
-  GPUCA_DEBUG_STREAMER_CHECK(debugVals->err2Y = err2Y; debugVals->err2Z = err2Z;);
+  GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->err2Y = err2Y; debugVals->err2Z = err2Z; });
 
   if (rejectChi2 >= rejectInterFill) {
     if (rejectChi2 == rejectInterReject && inter->errorY < (GPUCA_MERGER_INTERPOLATION_ERROR_TYPE)0) {
       rejectChi2 = rejectDirect;
     } else {
       int retVal = InterpolateReject(param, posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
-      GPUCA_DEBUG_STREAMER_CHECK(debugVals->retVal = retVal;);
+      GPUCA_DEBUG_STREAMER_CHECK(if (debugVals) { debugVals->retVal = retVal; });
       if (retVal) {
         return retVal;
       }

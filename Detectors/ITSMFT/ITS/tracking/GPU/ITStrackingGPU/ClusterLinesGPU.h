@@ -18,9 +18,6 @@
 #include "GPUCommonDef.h"
 #include <cstdint> /// Required to properly compile MathUtils
 #include "ITStracking/ClusterLines.h"
-#ifdef __HIPCC__
-#include <hip/hip_runtime.h>
-#endif
 
 namespace o2
 {

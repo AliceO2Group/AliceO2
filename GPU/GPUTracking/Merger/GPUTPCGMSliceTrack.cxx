@@ -118,7 +118,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
 
   const int N = 3;
 
-  float bz = -merger->Param().constBz;
+  float bz = -merger->Param().bzCLight;
 
   float k = mParam.mQPt * bz;
   float dx = (1.f / N) * (lastX - mParam.mX);
@@ -130,7 +130,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
     merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, mParam.mC0, mParam.mC2); // TODO: provide correct time and row
 #ifndef GPUCA_TPC_GEOMETRY_O2
     float C0a, C2a;
-    merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, C0a, C2a);
+    merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
     if (C0a > mParam.mC0) {
       mParam.mC0 = C0a;
     }
@@ -190,7 +190,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
         merger->Param().GetClusterErrors2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Provide correct time / row
 #ifndef GPUCA_TPC_GEOMETRY_O2
         float C0a, C2a;
-        merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, 0.f, 0.f, C0a, C2a);
+        merger->Param().GetClusterErrorsSeeding2(iSlice, 0, mParam.mZ, mParam.mSinPhi, mParam.mDzDs, -1.f, C0a, C2a);
         if (C0a > err2Y) {
           err2Y = C0a;
         }

@@ -35,7 +35,7 @@ namespace its
 class CookedTrackerDPL : public Task
 {
  public:
-  CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const std::string& trMode);
+  CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const TrackingMode& trMode);
   ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -51,7 +51,7 @@ class CookedTrackerDPL : public Task
   bool mUseMC = true;
   bool mRunVertexer = true;
   int mUseTriggers = 0;
-  std::string mMode = "async";
+  TrackingMode mMode = TrackingMode::Sync;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;

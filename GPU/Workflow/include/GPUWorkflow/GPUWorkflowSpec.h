@@ -58,9 +58,8 @@ class GeometryFlat;
 
 namespace its
 {
-class Tracker;
-class Vertexer;
 class TimeFrame;
+class ITSTrackingInterface;
 } // namespace its
 
 namespace itsmft
@@ -128,7 +127,6 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     int lumiScaleType = 0; // 0=off, 1=CTP, 2=TPC scalers
     bool outputErrorQA = false;
     bool runITSTracking = false;
-    int itsTrackingMode = 0; // 0=sync, 1=async, 2=cosmics
     bool itsOverrBeamEst = false;
     bool tpcTriggerHandling = false;
   };
@@ -211,8 +209,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUO2InterfaceQA> mQA;
   std::vector<int> mClusterOutputIds;
   std::vector<int> mTPCSectors;
-  std::unique_ptr<o2::its::Tracker> mITSTracker;
-  std::unique_ptr<o2::its::Vertexer> mITSVertexer;
+  std::unique_ptr<o2::its::ITSTrackingInterface> mITSTrackingInterface;
   std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflowSpec_PipelineInternals> mPipeline;
   o2::its::TimeFrame* mITSTimeFrame = nullptr;
   std::vector<fair::mq::RegionInfo> mRegionInfos;
@@ -235,8 +232,6 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mITSGeometryCreated = false;
   bool mTRDGeometryCreated = false;
   bool mPropagatorInstanceCreated = false;
-  bool mITSRunVertexer = false;
-  bool mITSCosmicsProcessing = false;
 };
 
 } // end namespace gpu

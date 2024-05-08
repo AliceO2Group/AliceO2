@@ -1111,7 +1111,7 @@ int CTPInputsConfiguration::getInputIndexFromName(std::string& name)
 {
   std::string namecorr = name;
   if ((name[0] == '0') || (name[0] == 'M') || (name[0] == '1')) {
-    namecorr.substr(1, namecorr.size() - 1);
+    namecorr = namecorr.substr(1, namecorr.size() - 1);
   } else {
     LOG(warn) << "Input name without level:" << name;
   }

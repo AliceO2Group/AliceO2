@@ -77,3 +77,39 @@ void GPUO2InterfaceUtils::GPUReconstructionZSDecoder::DecodePage(std::vector<o2:
   }
   mDecoders[hdr->version](outputBuffer, page, tfFirstOrbit, triggerBC);
 }
+
+std::unique_ptr<GPUParam> GPUO2InterfaceUtils::getFullParam(float solenoidBz, unsigned int nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
+{
+  std::unique_ptr<GPUParam> retVal = std::make_unique<GPUParam>();
+  std::unique_ptr<GPUO2InterfaceConfiguration> tmpConfig;
+  if (!pConfiguration) {
+    tmpConfig = std::make_unique<GPUO2InterfaceConfiguration>();
+    pConfiguration = &tmpConfig;
+  } else if (!*pConfiguration) {
+    *pConfiguration = std::make_unique<GPUO2InterfaceConfiguration>();
+  }
+  (*pConfiguration)->configGRP.solenoidBzNominalGPU = solenoidBz;
+  if (pO2Settings && *pO2Settings) {
+    **pO2Settings = (*pConfiguration)->ReadConfigurableParam();
+  } else if (pO2Settings) {
+    *pO2Settings = std::make_unique<GPUSettingsO2>((*pConfiguration)->ReadConfigurableParam());
+  } else {
+    (*pConfiguration)->ReadConfigurableParam();
+  }
+  if (nHbfPerTf == 0) {
+    nHbfPerTf = 256;
+  }
+  if (autoMaxTimeBin) {
+    *autoMaxTimeBin = (*pConfiguration)->configGRP.continuousMaxTimeBin == -1;
+  }
+  if ((*pConfiguration)->configGRP.continuousMaxTimeBin == -1) {
+    (*pConfiguration)->configGRP.continuousMaxTimeBin = (nHbfPerTf * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+  }
+  retVal->SetDefaults(&(*pConfiguration)->configGRP, &(*pConfiguration)->configReconstruction, &(*pConfiguration)->configProcessing, nullptr);
+  return retVal;
+}
+
+std::shared_ptr<GPUParam> GPUO2InterfaceUtils::getFullParamShared(float solenoidBz, unsigned int nHbfPerTf, std::unique_ptr<GPUO2InterfaceConfiguration>* pConfiguration, std::unique_ptr<GPUSettingsO2>* pO2Settings, bool* autoMaxTimeBin)
+{
+  return std::move(getFullParam(solenoidBz, nHbfPerTf, pConfiguration, pO2Settings, autoMaxTimeBin));
+}

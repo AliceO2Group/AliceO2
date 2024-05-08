@@ -28,7 +28,7 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/RootMessageContext.h"
 #include "Framework/DeviceSpec.h"
 
@@ -94,7 +94,7 @@ struct PartitionManager<Partition<T>> {
   static void doSetPartition(Partition<T>& partition, T2& table)
   {
     if constexpr (std::is_same_v<T, T2>) {
-      partition.setTable(table);
+      partition.bindTable(table);
     }
   }
 
@@ -465,8 +465,8 @@ struct ServiceManager<Service<T>> {
   {
     if constexpr (o2::framework::is_base_of_template_v<LoadableServicePlugin, T>) {
       T p = T{};
-      auto loadableServices = ServiceHelpers::parseServiceSpecString(p.loadSpec.c_str());
-      ServiceHelpers::loadFromPlugin(loadableServices, specs);
+      auto loadableServices = PluginManager::parsePluginSpecString(p.loadSpec.c_str());
+      PluginManager::loadFromPlugin<ServiceSpec, ServicePlugin>(loadableServices, specs);
     }
     return true;
   }
@@ -532,6 +532,15 @@ struct OptionManager {
   {
     /// Recurse, in case we are brace constructible
     if constexpr (std::is_base_of_v<ConfigurableGroup, ANY>) {
+      if constexpr (requires { x.prefix; }) {
+        homogeneous_apply_refs<true>([prefix = x.prefix]<typename C>(C& y) { // apend group prefix if set
+          if constexpr (requires { y.name; }) {
+            y.name = prefix + "." + y.name;
+          }
+          return true;
+        },
+                                     x);
+      }
       homogeneous_apply_refs<true>([&options](auto& y) { return OptionManager<std::decay_t<decltype(y)>>::appendOption(options, y); }, x);
       return true;
     } else {

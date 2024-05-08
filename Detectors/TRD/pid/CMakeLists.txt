@@ -22,10 +22,11 @@ o2_add_library(TRDPID
                                       fmt::fmt
               TARGETVARNAME libname)
 
-if(ONNXRuntime_FOUND)
-  target_compile_definitions(${libname} PRIVATE TRDPID_WITH_ONNX)
-  target_link_libraries(${libname} ONNXRuntime::ONNXRuntime)
-  target_sources(${libname} src/ML.cxx)
+# if(onnxruntime_FOUND) # ONNXRuntime code in TRD currently disabled since it is not tested
+if(0)
+  target_compile_definitions(${libname} PUBLIC TRDPID_WITH_ONNX)
+  target_link_libraries(${libname} PRIVATE onnxruntime::onnxruntime)
+  target_sources(${libname} PRIVATE src/ML.cxx)
   o2_target_root_dictionary(TRDPID
                             HEADERS include/TRDPID/PIDBase.h
                                     include/TRDPID/PIDParameters.h

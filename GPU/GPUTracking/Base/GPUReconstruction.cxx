@@ -1049,7 +1049,11 @@ int GPUReconstruction::EnqueuePipeline(bool terminate)
   if (q->retVal) {
     return q->retVal;
   }
-  return mChains[0]->FinalizePipelinedProcessing();
+  if (terminate) {
+    return 0;
+  } else {
+    return mChains[0]->FinalizePipelinedProcessing();
+  }
 }
 
 GPUChain* GPUReconstruction::GetNextChainInQueue()
@@ -1132,16 +1136,16 @@ int GPUReconstruction::ReadSettings(const char* dir)
   return 0;
 }
 
-void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow)
+void GPUReconstruction::SetSettings(float solenoidBzNominalGPU, const GPURecoStepConfiguration* workflow)
 {
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam_internal();
-  config.configGRP.solenoidBz = solenoidBz;
+  config.ReadConfigurableParam(config);
+  config.configGRP.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
   GPUSettingsGRP grp;
-  grp.solenoidBz = solenoidBz;
+  grp.solenoidBzNominalGPU = solenoidBzNominalGPU;
   SetSettings(&grp, nullptr, nullptr, workflow);
 #endif
 }

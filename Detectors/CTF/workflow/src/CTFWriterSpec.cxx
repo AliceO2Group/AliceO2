@@ -62,6 +62,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <regex>
+#include <numeric>
 
 using namespace o2::framework;
 
@@ -477,22 +478,24 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTForbit, mTimingInfo.tfCounter};
   size_t szCTF = 0;
   mSizeReport = "";
-  szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::tpc::CTF>(pc, DetID::TPC, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::trd::CTF>(pc, DetID::TRD, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::tof::CTF>(pc, DetID::TOF, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::phos::CTF>(pc, DetID::PHS, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::cpv::CTF>(pc, DetID::CPV, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::emcal::CTF>(pc, DetID::EMC, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::mch::CTF>(pc, DetID::MCH, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::mid::CTF>(pc, DetID::MID, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::ft0::CTF>(pc, DetID::FT0, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::fv0::CTF>(pc, DetID::FV0, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
+  std::array<size_t, DetID::CTP + 1> szCTFperDet{0}; // DetID::TST is between FDD and CTP and remains empty
+  szCTFperDet[DetID::ITS] = processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::TPC] = processDet<o2::tpc::CTF>(pc, DetID::TPC, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::TRD] = processDet<o2::trd::CTF>(pc, DetID::TRD, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::TOF] = processDet<o2::tof::CTF>(pc, DetID::TOF, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::PHS] = processDet<o2::phos::CTF>(pc, DetID::PHS, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::CPV] = processDet<o2::cpv::CTF>(pc, DetID::CPV, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::EMC] = processDet<o2::emcal::CTF>(pc, DetID::EMC, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::HMP] = processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::MFT] = processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::MCH] = processDet<o2::mch::CTF>(pc, DetID::MCH, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::MID] = processDet<o2::mid::CTF>(pc, DetID::MID, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::ZDC] = processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::FT0] = processDet<o2::ft0::CTF>(pc, DetID::FT0, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::FV0] = processDet<o2::fv0::CTF>(pc, DetID::FV0, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::FDD] = processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
+  szCTFperDet[DetID::CTP] = processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
+  szCTF = std::accumulate(szCTFperDet.begin(), szCTFperDet.end(), 0);
   if (mReportInterval > 0 && (mTimingInfo.tfCounter % mReportInterval) == 0) {
     LOGP(important, "CTF {} size report:{} - Total:{}", mTimingInfo.tfCounter, mSizeReport, fmt::group_digits(szCTF));
   }
@@ -530,6 +533,9 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   if (mCreateDict && mSaveDictAfter > 0 && (mNCTF % mSaveDictAfter) == 0) {
     storeDictionaries();
   }
+  int dummy = 0;
+  pc.outputs().snapshot({"ctfdone", 0}, dummy);
+  pc.outputs().snapshot(Output{"CTF", "SIZES", 0}, szCTFperDet);
 }
 
 //___________________________________________________________________
@@ -795,7 +801,8 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
   return DataProcessorSpec{
     "ctf-writer",
     inputs,
-    Outputs{},
+    Outputs{{OutputLabel{"ctfdone"}, "CTF", "DONE", 0, Lifetime::Timeframe},
+            {"CTF", "SIZES", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
     Options{                                                                               //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
             {"save-ctf-after", VariantType::Int64, 0ll, {"autosave CTF tree with multiple CTFs after every N CTFs if >0 or every -N MBytes if < 0"}},
