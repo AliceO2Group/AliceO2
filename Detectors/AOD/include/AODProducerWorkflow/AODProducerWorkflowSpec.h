@@ -338,6 +338,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mTrackSignal = 0xFFFFFF00;          // 15 bits
   uint32_t mTrackTime = 0xFFFFFFFF;            // use full float precision for time
   uint32_t mTrackTimeError = 0xFFFFFF00;       // 15 bits
+  uint32_t mTPCTrackTimeError = 0xFFFFFFFF;    // use full float precision for tpc-only tracks
   uint32_t mTrackPosEMCAL = 0xFFFFFF00;        // 15 bits
   uint32_t mTracklets = 0xFFFFFF00;            // 15 bits
   uint32_t mMcParticleW = 0xFFFFFFF0;          // 19 bits
@@ -389,6 +390,7 @@ class AODProducerWorkflowDPL : public Task
     float trackTimeRes = -999.f;
     int diffBCRef = 0; // offset of time reference BC from the start of the orbit
     int bcSlice[2] = {-1, -1};
+    bool isTPConly = false; // not to be written out
   };
 
   struct TrackQA {
