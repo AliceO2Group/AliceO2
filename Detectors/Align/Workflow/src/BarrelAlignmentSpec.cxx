@@ -390,7 +390,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
   if (!postprocess) {
     dataRequest->requestTracks(src, useMC);
     dataRequest->requestClusters(src, false, skipDetClusters);
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
     if (GTrackID::includesDet(DetID::TRD, srcMP)) {
       dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
     }

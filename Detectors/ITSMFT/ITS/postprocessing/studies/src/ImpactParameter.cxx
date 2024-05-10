@@ -537,7 +537,7 @@ DataProcessorSpec getImpactParameterStudy(mask_t srcTracksMask, mask_t srcCluste
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTracksMask, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true

@@ -95,7 +95,7 @@ void RecoCalibInfoWorkflow::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getRecoCalibInfoWorkflow(GID::mask_t src, bool useMC)
 {
   auto dataRequest = std::make_shared<DataRequest>();
-  dataRequest->requestPrimaryVertertices(false);
+  dataRequest->requestPrimaryVertices(false);
   dataRequest->requestFT0RecPoints(false);
 
   return DataProcessorSpec{
