@@ -47,7 +47,7 @@ InjectorFunction dcs2dpl()
 // InjectorFunction dcs2dpl()
 {
   return [](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) -> bool {
-    auto *device = services.get<RawDeviceService>().device();
+    auto* device = services.get<RawDeviceService>().device();
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
@@ -135,6 +135,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     // this is just default, can be overriden by --ctp-config-proxy '--channel-config..'
     chan.c_str(),
     dcs2dpl());
+  ctpProxy.labels.emplace_back(DataProcessorLabel{"input-proxy"});
   LOG(info) << "===> Proxy done";
   WorkflowSpec workflow;
   workflow.emplace_back(ctpProxy);
