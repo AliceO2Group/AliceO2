@@ -1737,7 +1737,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   GID::mask_t srcTracks = tpcOnly ? GID::getSourcesMask("TPC") : GID::getSourcesMask("TPC,ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   dataRequest->requestTracks(srcTracks, useMC);
   if (!tpcOnly) {
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
   }
 
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;

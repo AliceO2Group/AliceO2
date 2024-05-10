@@ -387,7 +387,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
   if (primaryVertexMode) {
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
     InputHelper::addInputSpecsPVertex(cfgc, specs, useMC);
   }
 

@@ -653,8 +653,8 @@ DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMa
   dataRequest->requestTracks(srcTracksMask, useMC);
   dataRequest->requestClusters(srcClustersMask, useMC);
   dataRequest->requestSecondaryVertices(useMC);
-  dataRequest->requestPrimaryVertertices(useMC); // NOTE: may be necessary to use requestPrimaryVerterticesTMP()...
-  // dataRequest->requestPrimaryVerterticesTMP(useMC);
+  dataRequest->requestPrimaryVertices(useMC); // NOTE: may be necessary to use requestPrimaryVerticesTMP()...
+  // dataRequest->requestPrimaryVerticesTMP(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true

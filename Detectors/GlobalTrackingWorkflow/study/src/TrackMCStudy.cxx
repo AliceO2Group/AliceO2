@@ -478,7 +478,7 @@ DataProcessorSpec getTrackMCStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask
   bool useMC = true;
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestClusters(srcClusters, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime

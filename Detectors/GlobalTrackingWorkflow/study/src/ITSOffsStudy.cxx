@@ -162,7 +162,7 @@ DataProcessorSpec getITSOffsStudy(GTrackID::mask_t srcTracks, GTrackID::mask_t s
   bool useMC = false;
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestClusters(srcClusters, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
 
   return DataProcessorSpec{
     "its-offset-study",

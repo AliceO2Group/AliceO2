@@ -249,7 +249,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     dataRequest->requestClusters(srcClus, useMC);
   }
   dataRequest->requestTracks(src, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
   dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                                                    // orbitResetTime
                                                               true,                                                                                                     // GRPECS=true
