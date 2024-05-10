@@ -241,8 +241,8 @@ struct DataRequest {
 
   void requestCoscmicTracks(bool mc);
 
-  void requestPrimaryVertertices(bool mc);
-  void requestPrimaryVerterticesTMP(bool mc);
+  void requestPrimaryVertices(bool mc);
+  void requestPrimaryVerticesTMP(bool mc);
   void requestSecondaryVertices(bool mc);
   void requestStrangeTracks(bool mc);
 

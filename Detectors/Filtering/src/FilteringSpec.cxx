@@ -327,7 +327,7 @@ DataProcessorSpec getDataFilteringSpec(GID::mask_t src, bool enableSV, bool useM
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
   if (src[GID::CTP]) {
     LOGF(info, "Requesting CTP digits");
     dataRequest->requestCTPDigits(useMC);
