@@ -382,6 +382,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 1L);
 
     CURLcode res = CURL_LAST;
 
