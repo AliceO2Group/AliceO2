@@ -376,6 +376,8 @@ class AODProducerWorkflowDPL : public Task
     int8_t tpcNClsFindableMinusCrossedRows = 0;
     uint8_t tpcNClsShared = 0;
     float tpcTime0 = 0.f;
+    float tpcTimeFwd = 0.f;
+    float tpcTimeBwd = 0.f;
     uint8_t trdPattern = 0;
     float itsChi2NCl = -999.f;
     float tpcChi2NCl = -999.f;

@@ -242,6 +242,8 @@ DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t)
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t); //! TPC Clusters: Findable - crossed rows
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);                                    //! Number of shared TPC clusters
 DECLARE_SOA_COLUMN(TPCTime0, tpcTime0, float);                                                //! TPC Track time0
+DECLARE_SOA_COLUMN(TPCTimeDeltaFwd, tpcTimeDeltaFwd, float);                                  //! TPC Track delta forward
+DECLARE_SOA_COLUMN(TPCTimeDeltaBwd, tpcTimeDeltaBwd, float);                                  //! TPC Track delta backward
 DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);                                          //! Contributor to the track on TRD layer in bits 0-5, starting from the innermost, bit 6 indicates a potentially split tracklet, bit 7 if the track crossed a padrow
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);                                            //! Chi2 / cluster for the ITS track segment
 DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);                                            //! Chi2 / cluster for the TPC track segment
@@ -497,8 +499,8 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_002, "TracksExtra", "AOD", "TRACKEXTRA", 2, // On disk version of TracksExtra, version 2
                                  track::TPCInnerParam, track::Flags, track::ITSClusterSizes,
                                  track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
-                                 track::TPCNClsShared, track::TPCTime0, track::TRDPattern, track::ITSChi2NCl,
-                                 track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
+                                 track::TPCNClsShared, track::TPCTime0, track::TPCTimeDeltaFwd, track::TPCTimeDeltaBwd,
+                                 track::TRDPattern, track::ITSChi2NCl, track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                                  track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                                  track::PIDForTracking<track::Flags>,
                                  track::IsPVContributor<track::Flags>,
@@ -520,8 +522,8 @@ DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA",
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_002, StoredTracksExtra_002, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::v001::DetectorMap);
 
-using StoredTracksExtra = StoredTracksExtra_001; // FS TODO change to _002 after PR merged in O2Physics
-using TracksExtra = TracksExtra_001;
+using StoredTracksExtra = StoredTracksExtra_002; // FS TODO change to _002 after PR merged in O2Physics
+using TracksExtra = TracksExtra_002;
 
 using Track = Tracks::iterator;
 using TrackIU = TracksIU::iterator;
