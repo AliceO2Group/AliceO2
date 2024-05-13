@@ -321,6 +321,13 @@ void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, Tr
 template <typename TracksExtraCursorType>
 void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder)
 {
+  // In case of TPC-only tracks, do not truncate the time error since we encapsulate there a special encoding of
+  // the deltaFwd/Bwd times
+  auto trackTimeRes = extraInfoHolder.trackTimeRes;
+  if (!extraInfoHolder.isTPConly) {
+    trackTimeRes = truncateFloatFraction(trackTimeRes, mTrackTimeError);
+  }
+
   // extra
   tracksExtraCursor(truncateFloatFraction(extraInfoHolder.tpcInnerParam, mTrack1Pt),
                     extraInfoHolder.flags,
@@ -341,7 +348,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.trackEtaEMCAL, mTrackPosEMCAL),
                     truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL),
                     truncateFloatFraction(extraInfoHolder.trackTime, mTrackTime),
-                    truncateFloatFraction(extraInfoHolder.trackTimeRes, (extraInfoHolder.isTPConly) ? mTPCTrackTimeError : mTrackTimeError));
+                    trackTimeRes);
 }
 
 template <typename TracksQACursorType>
