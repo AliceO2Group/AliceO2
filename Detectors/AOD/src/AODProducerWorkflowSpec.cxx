@@ -2441,14 +2441,16 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
     extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
     extraInfoHolder.tpcNClsShared = tpcClData.shared;
-    extraInfoHolder.tpcTime0 = tpcOrig.getTime0();
-    extraInfoHolder.tpcTimeFwd = tpcOrig.getDeltaTFwd();
-    extraInfoHolder.tpcTimeBwd = tpcOrig.getDeltaTBwd();
     if (src == GIndex::TPC) {                                                                                // standalone TPC track should set its time from their timebins range
       double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;                     // half-span of the interval
       double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
       LOG(debug) << "TPC tracks t0:" << tpcOrig.getTime0() << " tbwd: " << tpcOrig.getDeltaTBwd() << " tfwd: " << tpcOrig.getDeltaTFwd() << " t: " << t << " te: " << terr;
       setTrackTime(t, terr, false);
+      extraInfoHolder.tpcTime0 = tpcOrig.getTime0();
+      extraInfoHolder.tpcTimeFwd = tpcOrig.getDeltaTFwd();
+      extraInfoHolder.tpcTimeBwd = tpcOrig.getDeltaTBwd();
+      extraInfoHolder.trackTime = 0.f; // zero suppress the rest
+      extraInfoHolder.trackTimeRes = 0.f;
     } else if (src == GIndex::ITSTPC) { // its-tpc matched tracks have gaussian time error and the time was not set above
       const auto& trITSTPC = data.getTPCITSTrack(trackIndex);
       auto ts = trITSTPC.getTimeMUS();
