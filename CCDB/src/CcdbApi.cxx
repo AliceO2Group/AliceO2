@@ -224,7 +224,6 @@ void CcdbApi::init(std::string const& host)
     }
   } else { // set a default depending on the deployment mode
     o2::framework::DeploymentMode deploymentMode = o2::framework::DefaultsHelpers::deploymentMode();
-    LOG(info) << "deploymentMode : " << static_cast<std::underlying_type<o2::framework::DeploymentMode>::type>(deploymentMode);
     if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS ||
         deploymentMode == o2::framework::DeploymentMode::OnlineAUX ||
         deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
