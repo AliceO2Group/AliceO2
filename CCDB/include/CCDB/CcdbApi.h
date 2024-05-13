@@ -629,6 +629,7 @@ class CcdbApi //: public DatabaseInterface
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
   int mCurlRetries = 3;
   int mCurlDelayRetries = 100000; // in microseconds
+  size_t mCurlTimeout = 120; // in seconds, can be configured via ALICEO2_CCDB_CURL_TIMEOUT, updated according to the deployment mode
 
   ClassDefNV(CcdbApi, 1);
 };
