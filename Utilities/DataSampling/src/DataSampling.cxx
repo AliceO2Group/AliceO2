@@ -65,6 +65,9 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
     // We don't want the Dispatcher to exit due to one faulty Policy
     try {
       auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
+      if (!policy.isActive()) {
+        LOG(debug) << "The data sampling policy '" << policy.getName() << "' is inactive, skipping...";
+      }
       if (ids.count(policy.getName()) == 1) {
         LOG(error) << "A policy with the same id has already been encountered (" + policy.getName() + ")";
       }
