@@ -417,13 +417,12 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       res = CURL_perform(curl);
       /* Check for errors */
       if (res != CURLE_OK) {
-        if(res == CURLE_OPERATION_TIMEDOUT) {
+        if (res == CURLE_OPERATION_TIMEDOUT) {
           LOGP(alarm, "curl_easy_perform() timed out. Consider increasing the timeout using the env var `ALICEO2_CCDB_CURL_TIMEOUT` (seconds)");
         } else { // generic message
           LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
         returnValue = res;
-
       }
     }
 
