@@ -230,7 +230,7 @@ void CcdbApi::init(std::string const& host)
       mCurlTimeout = 5;
     } else if (deploymentMode == o2::framework::DeploymentMode::Grid ||
                deploymentMode == o2::framework::DeploymentMode::FST) {
-      mCurlTimeout = 120;
+      mCurlTimeout = 15;
     } else if (deploymentMode == o2::framework::DeploymentMode::Local) {
       mCurlTimeout = 1;
     }
