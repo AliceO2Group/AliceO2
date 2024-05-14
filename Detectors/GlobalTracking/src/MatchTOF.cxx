@@ -1047,6 +1047,8 @@ void MatchTOF::doMatching(int sec)
         LOG(debug) << "Propagated Track [" << itrk << "]: detId[" << iPropagation << "]  = " << detId[iPropagation][0] << ", " << detId[iPropagation][1] << ", " << detId[iPropagation][2] << ", " << detId[iPropagation][3] << ", " << detId[iPropagation][4];
         float resX = deltaPos[iPropagation][0] - (indices[4] - detId[iPropagation][4]) * Geo::XPAD + posCorr[0]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
         float resZ = deltaPos[iPropagation][2] - (indices[3] - detId[iPropagation][3]) * Geo::ZPAD + posCorr[2]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
+        float resXor = resX;
+        float resZor = resZ;
         float res = TMath::Sqrt(resX * resX + resZ * resZ);
 
         if (resX < -1.25) { // distance from closest border
@@ -1082,7 +1084,7 @@ void MatchTOF::doMatching(int sec)
           foundCluster = true;
           // set event indexes (to be checked)
           int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
-          mMatchedTracksPairsSec[sec].emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[sec][type][cacheTrk[itrk]], type, (trefTOF.getTime() - (minTrkTime + maxTrkTime - 100E3) * 0.5) * 1E-6, trefTOF.getZ(), resX, resZ); // subracting 100 ns to max track which was artificially added
+          mMatchedTracksPairsSec[sec].emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[sec][type][cacheTrk[itrk]], type, (trefTOF.getTime() - (minTrkTime + maxTrkTime - 100E3) * 0.5) * 1E-6, trefTOF.getZ(), resXor, resZor); // subracting 100 ns to max track which was artificially added
           mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setPt(pt);
           mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setResX(sqrt(1. / errXinv2));
           mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setResZ(sqrt(1. / errZinv2));
@@ -1438,6 +1440,8 @@ void MatchTOF::doMatchingForTPC(int sec)
           } else {
             resZ -= (bcClus - BCcand[ibc]) * vdriftInBC * side;
           }
+          float resXor = resX;
+          float resZor = resZ;
           float res = TMath::Sqrt(resX * resX + resZ * resZ);
 
           if (resX < -1.25) { // distance from closest border
@@ -1475,7 +1479,7 @@ void MatchTOF::doMatchingForTPC(int sec)
             // set event indexes (to be checked)
 
             int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
-            mMatchedTracksPairsSec[sec].emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[ibc][iPropagation], mTrackGid[sec][trkType::UNCONS][cacheTrk[itrk]], trkType::UNCONS, trefTOF.getTime() * 1E-6 - tpctime, trefTOF.getZ(), resX, resZ); // TODO: check if this is correct!
+            mMatchedTracksPairsSec[sec].emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[ibc][iPropagation], mTrackGid[sec][trkType::UNCONS][cacheTrk[itrk]], trkType::UNCONS, trefTOF.getTime() * 1E-6 - tpctime, trefTOF.getZ(), resXor, resZor); // TODO: check if this is correct!
             mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setPt(pt);
             mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setResX(sqrt(1. / errXinv2));
             mMatchedTracksPairsSec[sec][mMatchedTracksPairsSec[sec].size() - 1].setResZ(sqrt(1. / errZinv2));
