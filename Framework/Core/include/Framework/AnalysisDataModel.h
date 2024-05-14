@@ -253,7 +253,7 @@ DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                              //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
-DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                        //! Resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
+DECLARE_SOA_COLUMN_FULL(TrackTimeResInternal, trackTimeResInternal, float, "trackTimeRes");   //! Internal resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
 
 // expression columns changing between versions have to be declared in different namespaces
 
@@ -310,8 +310,8 @@ namespace extensions
 {
 using TPCTimeErrEncoding = o2::aod::track::extensions::TPCTimeErrEncoding;
 DECLARE_SOA_DYNAMIC_COLUMN(TPCDeltaTFwd, tpcDeltaTFwd, //! Delta Forward of track time in TPC time bis
-                           [](float timeErr, uint32_t trackType) -> float {
-                             if (!(trackType & TrackFlags::TrackTimeAsym)) {
+                           [](float timeErr, uint32_t flags) -> float {
+                             if (!(flags & TrackFlags::TrackTimeAsym)) {
                                return TPCTimeErrEncoding::invalidValue;
                              }
                              TPCTimeErrEncoding enc;
@@ -320,15 +320,27 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCDeltaTFwd, tpcDeltaTFwd, //! Delta Forward of trac
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TPCDeltaTBwd, tpcDeltaTBwd, //! Delta Backward of track time in TPC time bis
-                           [](float timeErr, uint32_t trackType) -> float {
-                             if (!(trackType & TrackFlags::TrackTimeAsym)) {
+                           [](float timeErr, uint32_t flags) -> float {
+                             if (!(flags & TrackFlags::TrackTimeAsym)) {
                                return TPCTimeErrEncoding::invalidValue;
                              }
-                             TPCTimeErrEncoding p;
-                             p.encoding.timeErr = timeErr;
-                             return p.getDeltaTBwd();
+                             TPCTimeErrEncoding enc;
+                             enc.encoding.timeErr = timeErr;
+                             return enc.getDeltaTBwd();
                            });
 } // namespace extensions
+
+// Implementation for the getter of the track time error
+DECLARE_SOA_DYNAMIC_COLUMN(TrackTimeRes, trackTimeRes, //! Getter for TrackTimeRes
+                           [](float timeErr, uint32_t flags) -> float {
+                             // Mirror previous behaviour for track error
+                             if (flags & TrackFlags::TrackTimeAsym) {
+                               o2::aod::track::extensions::TPCTimeErrEncoding enc;
+                               enc.encoding.timeErr = timeErr;
+                               return 0.5 * (enc.getDeltaTFwd() + enc.getDeltaTBwd());
+                             }
+                             return timeErr;
+                           });
 } // namespace v001
 
 DECLARE_SOA_DYNAMIC_COLUMN(HasITS, hasITS, //! Flag to check if track has a ITS match
@@ -495,12 +507,13 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                       track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
+                       track::TrackEtaEMCAL, track::TrackPhiEMCAL,
+                       track::TrackTime, track::TrackTimeResInternal, track::v001::TrackTimeRes<track::TrackTimeResInternal, track::Flags>);
 
 DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "TRACKEXTRA", 1, // On disk version of TracksExtra, version 1
                                  track::TPCInnerParam, track::Flags, track::ITSClusterSizes,
                                  track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
-                                 track::TPCNClsShared, track::v001::extensions::TPCDeltaTFwd<track::TrackTimeRes, track::Flags>, track::v001::extensions::TPCDeltaTBwd<track::TrackTimeRes, track::Flags>,
+                                 track::TPCNClsShared, track::v001::extensions::TPCDeltaTFwd<track::TrackTimeResInternal, track::Flags>, track::v001::extensions::TPCDeltaTBwd<track::TrackTimeResInternal, track::Flags>,
                                  track::TRDPattern, track::ITSChi2NCl, track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                                  track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                                  track::PIDForTracking<track::Flags>,
@@ -514,7 +527,8 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                                 track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
+                                 track::TrackEtaEMCAL, track::TrackPhiEMCAL,
+                                 track::TrackTime, track::TrackTimeResInternal, track::v001::TrackTimeRes<track::TrackTimeResInternal, track::Flags>);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::DetectorMap);
