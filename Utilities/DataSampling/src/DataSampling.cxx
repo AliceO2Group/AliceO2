@@ -67,6 +67,7 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
       auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
       if (!policy.isActive()) {
         LOG(debug) << "The data sampling policy '" << policy.getName() << "' is inactive, skipping...";
+        continue;
       }
       if (ids.count(policy.getName()) == 1) {
         LOG(error) << "A policy with the same id has already been encountered (" + policy.getName() + ")";
