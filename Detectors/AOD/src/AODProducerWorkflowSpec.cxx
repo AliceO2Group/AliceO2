@@ -2446,11 +2446,17 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
     extraInfoHolder.tpcNClsShared = tpcClData.shared;
     if (src == GIndex::TPC) { // standalone TPC track should set its time from their timebins range
+      if (needBCSlice) {
+        double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
+        double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;
+        double err = mTimeMarginTrackTime + terr;
+        bcOfTimeRef = fillBCSlice(extraInfoHolder.bcSlice, t - err, t + err, bcsMap);
+      }
       aod::track::extensions::TPCTimeErrEncoding p;
       p.setDeltaTFwd(tpcOrig.getDeltaTFwd());
       p.setDeltaTBwd(tpcOrig.getDeltaTBwd());
       extraInfoHolder.trackTimeRes = p.getTimeErr();
-      extraInfoHolder.trackTime = tpcOrig.getTime0();
+      extraInfoHolder.trackTime = tpcOrig.getTime0() * mTPCBinNS - bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS;
       extraInfoHolder.isTPConly = true; // no truncation
       extraInfoHolder.flags |= o2::aod::track::TrackTimeAsym;
     } else if (src == GIndex::ITSTPC) { // its-tpc matched tracks have gaussian time error and the time was not set above

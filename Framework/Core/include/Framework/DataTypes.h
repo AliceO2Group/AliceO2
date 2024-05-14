@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_DATATYPES_H_
 #define O2_FRAMEWORK_DATATYPES_H_
 
+#include "CommonConstants/LHCConstants.h"
+
 #include <cstdint>
 #include <limits>
 
@@ -84,10 +86,12 @@ struct TPCTimeErrEncoding {
 
   // Use all 16 bits of uint16_t to encode delta scale with max precision
   // e.g., TPCTrack::mDeltaFwd * timeScaler
-  // max range for the time deltas is 0 - <512 (1<<9) tpc time bins
+  // max range for the time deltas is 0 - <512 (1<<9) TPC time bins
   static constexpr float timeScaler{(1 << 16) / (1 << 9)};
   // bogus value to max incorrect usae immedately obvious
   static constexpr float invalidValue{std::numeric_limits<float>::min()};
+  // convert TPC time bins to ns
+  static constexpr float TPCBinNS = 8 * o2::constants::lhc::LHCBunchSpacingNS;
 
   void setDeltaTFwd(float fwd)
   {
@@ -100,11 +104,11 @@ struct TPCTimeErrEncoding {
 
   float getDeltaTFwd() const
   {
-    return static_cast<float>(encoding.deltas.timeForward) / timeScaler;
+    return static_cast<float>(encoding.deltas.timeForward) / timeScaler * TPCBinNS;
   }
   float getDeltaTBwd() const
   {
-    return static_cast<float>(encoding.deltas.timeBackward) / timeScaler;
+    return static_cast<float>(encoding.deltas.timeBackward) / timeScaler * TPCBinNS;
   }
 };
 } // namespace extensions
