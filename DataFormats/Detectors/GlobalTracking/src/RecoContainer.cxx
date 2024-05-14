@@ -1491,8 +1491,8 @@ void RecoContainer::getTrackTimeITSTPCTRDTOF(GTrackID gid, float& t, float& tErr
 {
   const auto& match = getITSTPCTRDTOFMatches()[gid];
   auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
-  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  //  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
   tErr = 0.010f;
 }
 
@@ -1501,8 +1501,8 @@ void RecoContainer::getTrackTimeTPCTRDTOF(GTrackID gid, float& t, float& tErr) c
 {
   const auto& match = getTPCTRDTOFMatches()[gid];
   auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
-  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  //  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
   tErr = 0.010f;
 }
 
@@ -1511,8 +1511,8 @@ void RecoContainer::getTrackTimeITSTPCTOF(GTrackID gid, float& t, float& tErr) c
 {
   const auto& match = getITSTPCTOFMatches()[gid];
   auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC track
-  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
-  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  //  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
   tErr = 0.010f;
 }
 
