@@ -253,7 +253,7 @@ DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                              //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
-DECLARE_SOA_COLUMN_FULL(TrackTimeResInternal, trackTimeResInternal, float, "trackTimeRes");   //! Internal resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
+DECLARE_SOA_COLUMN_FULL(TrackTimeResInternal, trackTimeResInternal, float, "fTrackTimeRes");   //! Internal resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
 
 // expression columns changing between versions have to be declared in different namespaces
 
