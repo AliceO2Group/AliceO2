@@ -45,6 +45,12 @@ void MeanVertexCalibDevice::init(InitContext& ic)
 void MeanVertexCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    mRunNumber = (tinfo.runNumber != -1 && tinfo.runNumber > 0) ? tinfo.runNumber : o2::base::GRPGeomHelper::instance().getGRPECS()->getRun();
+    mFillNumber = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getFillNumber();
+  }
+
   auto data = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("input");
   o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
   LOG(debug) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices";
@@ -82,13 +88,30 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
   auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector(); // use non-const version as we update it
   assert(payloadVec.size() == infoVec.size());
 
+  if (mDCSSubSpec && mDCSSubSpec < payloadVec.size()) {
+    LOGP(alarm, "Minimum subspec {} of messages for DCS CCDB is below the maximum subspec {} for production CCDB, increase the former", mDCSSubSpec, payloadVec.size());
+  }
+  static std::vector<char> dcsMVObj;
   for (uint32_t i = 0; i < payloadVec.size(); i++) {
-    auto& w = infoVec[i];
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
+    auto w = infoVec[i];
+    auto& mv = payloadVec[i];
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&mv, &w);
     LOG(info) << (MeanVertexParams::Instance().skipObjectSending ? "Skip " : "") << "sending object "
               << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
               << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
     if (!MeanVertexParams::Instance().skipObjectSending) {
+      if (mDCSSubSpec) { // create message for DCS CCDB
+        auto ts = (w.getStartValidityTimestamp() + w.getEndValidityTimestamp()) / 2;
+        o2::ccdb::CcdbObjectInfo dcsw("GLO/Calib/MeanVertexCSV", "csv", fmt::format("meanvertex_{}.csv", ts), {}, w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
+
+        std::string csvMeanVertex = fmt::format("timestamp={},fillNumber={},runNumber={},x={:+.4e},y={:+.4e},z={:+.4e},sigmax={:+.4e},sigmay={:+.4e},sigmaz={:+.4e}",
+                                                ts, mFillNumber, mRunNumber, mv.getX(), mv.getY(), mv.getZ(), mv.getSigmaX(), mv.getSigmaY(), mv.getSigmaZ());
+        dcsMVObj.clear();
+        std::copy(csvMeanVertex.begin(), csvMeanVertex.end(), std::back_inserter(dcsMVObj));
+        output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MEANVERTEX_DCS", mDCSSubSpec + i}, dcsMVObj);
+        output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MEANVERTEX_DCS", mDCSSubSpec + i}, dcsw);
+      }
+      w.setEndValidityTimestamp(w.getEndValidityTimestamp() + o2::ccdb::CcdbObjectInfo::MONTH);
       output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MEANVERTEX", i}, *image.get()); // vector<char>
       output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MEANVERTEX", i}, w);            // root-serialized
     }
@@ -102,7 +125,7 @@ void MeanVertexCalibDevice::sendOutput(DataAllocator& output)
 namespace framework
 {
 
-DataProcessorSpec getMeanVertexCalibDeviceSpec()
+DataProcessorSpec getMeanVertexCalibDeviceSpec(uint32_t dcsMVsubspec)
 {
 
   using device = o2::calibration::MeanVertexCalibDevice;
@@ -111,7 +134,7 @@ DataProcessorSpec getMeanVertexCalibDeviceSpec()
   inputs.emplace_back("input", "GLO", "PVTX");
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
-                                                                false,                          // GRPLHCIF
+                                                                true,                           // GRPLHCIF
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
@@ -120,12 +143,16 @@ DataProcessorSpec getMeanVertexCalibDeviceSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MEANVERTEX"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MEANVERTEX"}, Lifetime::Sporadic);
+  if (dcsMVsubspec) {
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MEANVERTEX_DCS"}, Lifetime::Sporadic);
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MEANVERTEX_DCS"}, Lifetime::Sporadic);
+  }
 
   return DataProcessorSpec{
     "mean-vertex-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, dcsMVsubspec)},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};
 }
 

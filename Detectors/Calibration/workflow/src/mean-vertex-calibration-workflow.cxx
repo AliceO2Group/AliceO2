@@ -20,6 +20,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
+    {"meanvertex-dcs-subspec", VariantType::Int, 0x7fff, {"If >0, send text version of MeanVertex to this subspec"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
@@ -32,6 +33,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  specs.emplace_back(getMeanVertexCalibDeviceSpec());
+  specs.emplace_back(getMeanVertexCalibDeviceSpec(configcontext.options().get<int>("meanvertex-dcs-subspec")));
   return specs;
 }
