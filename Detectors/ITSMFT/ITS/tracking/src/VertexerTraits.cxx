@@ -124,7 +124,7 @@ void trackletSelectionKernelHost(
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
         const auto& tracklet01{tracklets01[iTracklet01]};
         const auto& tracklet12{tracklets12[iTracklet12]};
-        if (tracklet01.getDeltaRof() != rofDist) {
+        if (tracklet01.getDeltaRof() != rofDist || o2::gpu::GPUCommonMath::Abs(tracklet01.rof[0] - tracklet12.rof[1]) > 1) {
           continue;
         }
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklet01.tanLambda - tracklets12[iTracklet12].tanLambda)};
@@ -345,7 +345,7 @@ void VertexerTraits::computeTrackletMatching(const int iteration)
         mTimeFrame->getLines(pivotRofId),
         mTimeFrame->getLabelsFoundTracklets(pivotRofId, 0),
         mTimeFrame->getLinesLabel(pivotRofId),
-        pivotRofId - targetRofId,
+        pivotRofId - targetRofId, // delta-rof
         mVrtParams.tanLambdaCut,
         mVrtParams.phiCut);
     }
@@ -451,7 +451,7 @@ void VertexerTraits::computeVertices(const int iteration)
       std::array<float, 3> vertex2{};
       for (int iCluster2{iCluster1 + 1}; iCluster2 < noClustersVec[rofId]; ++iCluster2) {
         vertex2 = mTimeFrame->getTrackletClusters(rofId)[iCluster2].getVertex();
-        if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
+        if (o2::gpu::GPUCommonMath::Abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
           float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
                          (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
                          (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
@@ -491,7 +491,7 @@ void VertexerTraits::computeVertices(const int iteration)
         }
       }
 
-      if (beamDistance2 < nsigmaCut && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed) {
+      if (beamDistance2 < nsigmaCut && o2::gpu::GPUCommonMath::Abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed) {
         atLeastOneFound = true;
         vertices.emplace_back(o2::math_utils::Point3D<float>(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
                                                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
@@ -501,8 +501,8 @@ void VertexerTraits::computeVertices(const int iteration)
                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),          // Contributors
                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2()); // In place of chi2
 
-        vertices.back().setTimeStamp(rofId);
-        vertices.back().setFlags(iteration + 1); // This can be interpreted as the UPC flag if it is > 0
+        vertices.back().setFlags(iteration + 1);
+        vertices.back().setTimeStamp(mTimeFrame->getTrackletClusters(rofId)[iCluster].getROF());
         if (mTimeFrame->hasMCinformation()) {
           std::vector<o2::MCCompLabel> labels;
           for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
@@ -629,7 +629,7 @@ void VertexerTraits::computeVerticesInRof(int rofId,
     std::array<float, 3> vertex2{};
     for (int iCluster2{iCluster1 + 1}; iCluster2 < nClusters; ++iCluster2) {
       vertex2 = clusterLines[iCluster2].getVertex();
-      if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
+      if (o2::gpu::GPUCommonMath::Abs(vertex1[2] - vertex2[2]) < mVrtParams[iteration].clusterCut) {
         float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
                        (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
                        (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
@@ -662,7 +662,7 @@ void VertexerTraits::computeVerticesInRof(int rofId,
         continue;
       }
     }
-    if (beamDistance2 < nsigmaCut && std::abs(clusterLines[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed) {
+    if (beamDistance2 < nsigmaCut && o2::gpu::GPUCommonMath::Abs(clusterLines[iCluster].getVertex()[2]) < mVrtParams[iteration].maxZPositionAllowed) {
       atLeastOneFound = true;
       ++foundVertices;
       vertices.emplace_back(o2::math_utils::Point3D<float>(clusterLines[iCluster].getVertex()[0],
@@ -672,7 +672,7 @@ void VertexerTraits::computeVerticesInRof(int rofId,
                                                                        // off-diagonal: square mean of projections on planes.
                             clusterLines[iCluster].getSize(),          // Contributors
                             clusterLines[iCluster].getAvgDistance2()); // In place of chi2
-      vertices.back().setTimeStamp(rofId);
+      vertices.back().setTimeStamp(clusterLines[iCluster].getROF());
       if (labels) {
         for (auto& index : clusterLines[iCluster].getLabels()) {
           labels->push_back(tf->getLinesLabel(rofId)[index]); // then we can use nContributors from vertices to get the labels
