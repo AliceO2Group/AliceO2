@@ -80,8 +80,13 @@ TimeFrame::TimeFrame(int nLayers)
 
 void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
 {
+  auto rofId = mROFramesPV.size() - 1;
   for (const auto& vertex : vertices) {
-    mPrimaryVertices.emplace_back(vertex);
+    if (vertex.getTimeStamp() != rofId) {
+      insertLateVertex(vertex);
+    } else {
+      mPrimaryVertices.emplace_back(vertex);
+    }
     if (!isBeamPositionOverridden) {
       const int w{vertex.getNContributors()};
       mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
@@ -94,7 +99,11 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
 
 void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
 {
+  auto rofId = mROFramesPV.size();
   for (const auto& vertex : vertices) {
+    if (vertex.getTimeStamp() != rofId) {
+      LOG(warning) << "Vertex timestamp mismatch: " << vertex.getTimeStamp() << " vs " << rofId;
+    }
     mPrimaryVertices.emplace_back(vertex);
     if (!isBeamPositionOverridden) {
       const int w{vertex.getNContributors()};

@@ -84,6 +84,9 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
                            const bool weight)
 
 {
+  updateROFPoll(firstLine);
+  updateROFPoll(secondLine);
+
   mLabels.push_back(firstLabel);
   if (secondLabel > 0) {
     mLabels.push_back(secondLabel); // don't add info in case of beamline used
@@ -188,7 +191,8 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
 
   std::array<float, 3> covarianceFirst{1., 1., 1.};
   std::array<float, 3> covarianceSecond{1., 1., 1.};
-
+  updateROFPoll(firstLine);
+  updateROFPoll(secondLine);
   for (int i{0}; i < 6; ++i) {
     mWeightMatrix[i] = firstLine.weightMatrix[i] + secondLine.weightMatrix[i];
   }
@@ -274,6 +278,7 @@ ClusterLines::ClusterLines(const Line& firstLine, const Line& secondLine)
 void ClusterLines::add(const int& lineLabel, const Line& line, const bool& weight)
 {
   mLabels.push_back(lineLabel);
+  updateROFPoll(line);
   std::array<float, 3> covariance{1., 1., 1.};
 
   for (int i{0}; i < 6; ++i) {
@@ -361,5 +366,21 @@ bool ClusterLines::operator==(const ClusterLines& rhs) const
   }
   return retval && this->mAvgDistance2 == rhs.mAvgDistance2;
 }
+
+GPUhdi() void ClusterLines::updateROFPoll(const Line& line)
+{
+  // Boyer-Moore voting for rof label
+  if (mROFWeight == 0) {
+    mROF = line.getMinROF();
+    mROFWeight = 1;
+  } else {
+    if (mROF == line.getMinROF()) {
+      mROFWeight++;
+    } else {
+      mROFWeight--;
+    }
+  }
+}
+
 } // namespace its
 } // namespace o2
