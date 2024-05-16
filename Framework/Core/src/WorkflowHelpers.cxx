@@ -292,7 +292,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                          static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
                          aodLifetime}},
     .algorithm = AlgorithmSpec::dummyAlgorithm(),
-    .options = {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
+    .options = {ConfigParamSpec{"aod-file-private", VariantType::String, ctx.options().get<std::string>("aod-file"), {"AOD file"}},
                 ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
                 ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
                 ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},

@@ -15,48 +15,54 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include <TH2F.h>
+#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-namespace o2::aod
-{
-namespace test
-{
-DECLARE_SOA_COLUMN(X, x, float);
-DECLARE_SOA_COLUMN(Y, y, float);
-DECLARE_SOA_COLUMN(Z, z, float);
-} // namespace test
-DECLARE_SOA_TABLE(Points, "AOD", "POINTS",
-                  test::X, test::Y, test::Z);
-} // namespace o2::aod
+struct EtaAndClsHistogramsSimple {
+  OutputObj<TH2F> etaClsH{TH2F("eta_vs_pt", "#eta vs pT", 102, -2.01, 2.01, 100, 0, 10)};
 
-struct EtaAndClsHistograms {
+  void process(aod::Tracks const& tracks)
+  {
+    LOGP(info, "Invoking the simple one");
+    for (auto& track : tracks) {
+      etaClsH->Fill(track.eta(), track.pt(), 0);
+    }
+  }
+};
+
+struct EtaAndClsHistogramsFull {
   OutputObj<TH3F> etaClsH{TH3F("eta_vs_cls_vs_sigmapT", "#eta vs N_{cls} vs sigma_{1/pT}", 102, -2.01, 2.01, 160, -0.5, 159.5, 100, 0, 10)};
-  Produces<aod::Points> points;
 
   void process(soa::Join<aod::FullTracks, aod::TracksCov> const& tracks)
   {
+    LOGP(info, "Invoking the run 3 one");
     for (auto& track : tracks) {
       etaClsH->Fill(track.eta(), track.tpcNClsFindable(), track.sigma1Pt());
-      points(1, 2, 3);
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  // For the sake of running without an option, we do not throw an exception
-  // in case the option is not present.
-  if (cfgc.options().hasOption("aod-metadata-Run") == false ||
-      cfgc.options().get<std::string>("aod-metadata-Run") == "2") {
+  std::string runType = "3";
+  if (cfgc.options().hasOption("aod-metadata-Run")) {
+    runType = cfgc.options().get<std::string>("aod-metadata-Run");
+  }
+  LOGP(info, "Runtype is {}", runType);
+  // Notice it's important for the tasks to use the same name, otherwise topology generation will be confused.
+  if (runType == "2") {
+    LOGP(info, "Using only tracks {}", runType);
     return WorkflowSpec{
-      adaptAnalysisTask<EtaAndClsHistograms>(cfgc),
+      adaptAnalysisTask<EtaAndClsHistogramsSimple>(cfgc, TaskName{"simple-histos"}),
     };
   } else {
-    throw std::runtime_error("Unsupported run type");
+    LOGP(info, "Using tracks extra {}", runType);
+    return WorkflowSpec{
+      adaptAnalysisTask<EtaAndClsHistogramsFull>(cfgc, TaskName{"simple-histos"}),
+    };
   }
 }

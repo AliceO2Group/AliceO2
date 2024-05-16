@@ -27,6 +27,15 @@ enum struct DplPluginKind : int {
   // A plugin which implements a custom Services. Needs to return
   // an object of the kind o2::framework::ServiceSpec
   CustomService,
+  // A plugin which implements a new way to discover extra configuration.
+  // parameters. E.g. it can be used to read metadata from a file or a service
+  // if a certain parameter is available.
+  ConfigDiscovery,
+  // A capability plugin is a plugin used to discover other viable plugins.
+  // For example, if you find out that you have the --aod-file option
+  // set, you might want to load metadata from it and attach it to the
+  // configuration.
+  Capability,
   // A plugin which was not initialised properly.
   Unknown
 };

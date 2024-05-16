@@ -125,6 +125,12 @@ class ConfigParamRegistry
     }
   }
 
+  // Load extra parameters discovered while we process data
+  void loadExtra(std::vector<ConfigParamSpec>& extras)
+  {
+    mStore->load(extras);
+  }
+
  private:
   std::unique_ptr<ConfigParamStore> mStore;
 };

@@ -54,6 +54,10 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
            // options for AOD rate limiting
            {"aod-memory-rate-limit", VariantType::Int64, 0LL, {"Rate limit AOD processing based on memory"}},
 
+           // options for the AOD reader
+           // aod-file needs to be available as workflow option, because we
+           // can configure the workflow based on the contents of the first file.
+           {"aod-file", VariantType::String, "", {"Input AOD file"}},
            // options for AOD writer
            {"aod-writer-json", VariantType::String, "", {"Name of the json configuration file"}},
            {"aod-writer-resdir", VariantType::String, "", {"Name of the output directory"}},
