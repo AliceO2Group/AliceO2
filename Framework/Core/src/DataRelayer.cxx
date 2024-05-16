@@ -445,7 +445,9 @@ DataRelayer::RelayChoice
                      &cache = mCache,
                      numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot) {
     O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
-    O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot", "saving %zu in slot %zu", timeslice.value, slot.index);
+    O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot", "saving %{public}s@%zu in slot %zu",
+                           fmt::format("{:x}", *o2::header::get<DataHeader*>(messages[0]->GetData())).c_str(),
+                           timeslice.value, slot.index);
     auto cacheIdx = numInputTypes * slot.index + input;
     MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
