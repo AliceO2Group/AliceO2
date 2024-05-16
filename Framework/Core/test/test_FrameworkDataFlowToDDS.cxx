@@ -153,7 +153,7 @@ TEST_CASE("TestDDS")
   DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
                                       driverConfig,
                                       dataProcessorInfos,
-                                      devices, executions, controls,
+                                      devices, executions, controls, {},
                                       "workflow-id");
   CommandInfo command{"foo"};
   DDSConfigHelpers::dumpDeviceSpec2DDS(ss, DriverMode::STANDALONE, "", workflow, dataProcessorInfos, devices, executions, command);
@@ -417,7 +417,7 @@ TEST_CASE("TestDDSExpendable")
   DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
                                       driverConfig,
                                       dataProcessorInfos,
-                                      devices, executions, controls,
+                                      devices, executions, controls, {},
                                       "workflow-id");
   CommandInfo command{"foo"};
   DDSConfigHelpers::dumpDeviceSpec2DDS(ss, DriverMode::STANDALONE, "", workflow, dataProcessorInfos, devices, executions, command);

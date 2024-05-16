@@ -47,6 +47,7 @@ o2_add_library(Framework
                        src/DefaultsHelpers.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
+                       src/ConfigParamDiscovery.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/ChannelParamSpec.cxx
@@ -109,6 +110,7 @@ o2_add_library(Framework
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
                        src/ProcessingContext.cxx
+                       src/Plugin.cxx
                        src/PluginManager.cxx
                        src/RateLimiter.cxx
                        src/ResourcesMonitoringHelper.cxx

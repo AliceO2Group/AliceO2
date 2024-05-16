@@ -322,11 +322,6 @@ struct ServicePlugin {
   virtual ServiceSpec* create() = 0;
 };
 
-struct LoadableService {
-  std::string name;
-  std::string library;
-};
-
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_SERVICESPEC_H_

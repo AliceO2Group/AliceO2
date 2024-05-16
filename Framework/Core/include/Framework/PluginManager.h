@@ -70,7 +70,7 @@ struct PluginManager {
 
     struct LoadedPlugin {
       std::string name;
-      ServicePlugin* factory;
+      PLUGIN* factory;
     };
     std::vector<LoadedDSO> loadedDSOs;
     std::vector<LoadedPlugin> loadedPlugins;
