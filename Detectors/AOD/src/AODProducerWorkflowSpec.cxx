@@ -2456,7 +2456,8 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
       p.setDeltaTFwd(tpcOrig.getDeltaTFwd());
       p.setDeltaTBwd(tpcOrig.getDeltaTBwd());
       extraInfoHolder.trackTimeRes = p.getTimeErr();
-      extraInfoHolder.trackTime = tpcOrig.getTime0() * mTPCBinNS - bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS;
+      extraInfoHolder.trackTime = float(tpcOrig.getTime0() * mTPCBinNS - bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS);
+      extraInfoHolder.diffBCRef = int(bcOfTimeRef);
       extraInfoHolder.isTPConly = true; // no truncation
       extraInfoHolder.flags |= o2::aod::track::TrackTimeAsym;
     } else if (src == GIndex::ITSTPC) { // its-tpc matched tracks have gaussian time error and the time was not set above
