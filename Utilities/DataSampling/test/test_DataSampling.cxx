@@ -64,6 +64,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
                        });
   BOOST_CHECK(input != disp->inputs.end());
 
+  // a policy which is switched off
+  input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                       [](const InputSpec& in) {
+                         return DataSpecUtils::match(in, DataOrigin("Y"), DataDescription("Z"), 0) && in.lifetime == Lifetime::Timeframe;
+                       });
+  BOOST_CHECK(input == disp->inputs.end());
+
   auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                              [](const OutputSpec& out) {
                                return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::QA;

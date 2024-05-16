@@ -17,4 +17,7 @@ endif()
 
 if (NOT ONNXRuntime::ONNXRuntime_FOUND)
   find_package(onnxruntime CONFIG)
+  if (onnxruntime_FOUND)
+    add_library(ONNXRuntime::ONNXRuntime ALIAS onnxruntime::onnxruntime)
+  endif()
 endif()

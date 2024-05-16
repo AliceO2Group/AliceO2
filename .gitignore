@@ -63,6 +63,7 @@ compile_commands.json
 .vscode
 .ycm_extra_conf.py
 Session.vim
+CMakeLists.txt.user
 
 # Datafiles
 gphysi.dat

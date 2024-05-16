@@ -11,6 +11,7 @@
 
 #include <string>
 #include <algorithm>
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <cmath>
 
@@ -22,6 +23,7 @@
 #include "TH2.h"
 #include "TH3.h"
 #include "TH2Poly.h"
+#include "TProfile2D.h"
 #include "TCanvas.h"
 #include "TLine.h"
 #include "TLatex.h"
@@ -303,16 +305,16 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   const int bufferSize = TH1::GetDefaultBufferSize();
   TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
 
-  auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{} (A-Side)", title).data(),
+  auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{0} (A-Side);{0}", title).data(),
                            nbins1D, xMin1D, xMax1D); // TODO: modify ranges
 
-  auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
+  auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{0} (C-Side);{0}", title).data(),
                            nbins1D, xMin1D, xMax1D); // TODO: modify ranges
 
-  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{{x}} (cm);#it{{y}} (cm)", title).data(),
+  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{0} (A-Side);#it{{x}} (cm);#it{{y}} (cm);{0}", title).data(),
                            330, -270, 270, 330, -270, 270);
 
-  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);#it{{x}} (cm);#it{{y}} (cm)", title).data(),
+  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{0} (C-Side);#it{{x}} (cm);#it{{y}} (cm);{0}", title).data(),
                            330, -270, 270, 330, -270, 270);
 
   for (ROC roc; !roc.looped(); ++roc) {
@@ -363,6 +365,7 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   hAside2D->SetStats(0);
   hAside2D->SetTitleOffset(1.05, "XY");
   hAside2D->SetTitleSize(0.05, "XY");
+  adjustPalette(hAside2D, 0.92);
   drawSectorsXY(Side::A);
 
   c->cd(2);
@@ -370,6 +373,7 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   hCside2D->SetStats(0);
   hCside2D->SetTitleOffset(1.05, "XY");
   hCside2D->SetTitleSize(0.05, "XY");
+  adjustPalette(hCside2D, 0.92);
   drawSectorsXY(Side::C);
 
   c->cd(3);
@@ -609,6 +613,153 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     h1D->SetBit(TObject::kCanDelete);
     h2D->SetBit(TObject::kCanDelete);
   }
+
+  return vecCanvases;
+}
+
+std::vector<TCanvas*> o2::tpc::painter::makeSummaryCanvases(TTree& tree, const std::string_view draw, std::string_view cut, int nbins1D, float xMin1D, float xMax1D)
+{
+  const Mapper& mapper = Mapper::instance();
+
+  std::vector<TCanvas*> vecCanvases;
+
+  // ===| name and title |======================================================
+  std::string title = draw.data();
+  std::string name = title;
+  std::replace(name.begin(), name.end(), ' ', '_');
+  std::replace(name.begin(), name.end(), '/', '_');
+  const std::string_view calName = name;
+
+  // ===| Per ROC histograms |===
+  if (nbins1D > 0) {
+    const size_t nROCs = 72;
+    auto cROCs1D = new TCanvas(fmt::format("c_ROCs_{}_1D", calName).data(), fmt::format("{} values for each ROC", calName).data(), 1400, 1000);
+    auto cROCs2D = new TCanvas(fmt::format("c_ROCs_{}_2D", calName).data(), fmt::format("{} values for each ROC", calName).data(), 1400, 1000);
+
+    cROCs1D->DivideSquare(nROCs);
+    cROCs2D->DivideSquare(nROCs);
+
+    vecCanvases.emplace_back(cROCs1D);
+    vecCanvases.emplace_back(cROCs2D);
+
+    // ===| produce plots for each ROC |===
+    size_t pad = 1;
+    for (size_t iroc = 0; iroc < nROCs; ++iroc) {
+
+      // ===| 1D histogram |===
+      auto h1D = new TH1F(fmt::format("h1_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});{}", calName, iroc, getROCTitle(iroc), draw).data(), nbins1D, xMin1D, xMax1D);
+      tree.Draw(fmt::format("{} >> {}", draw, h1D->GetName()).data(), fmt::format("(roc == {}) && ({})", iroc, cut).data(), "goff");
+
+      // ===| 2D histogram |===
+      const int nrows = mapper.getNumberOfPadRows(PadSubset::ROC, iroc);
+      const int npads = mapper.getNumberOfPadsInRow(PadSubset::ROC, iroc, nrows - 1) + 6;
+
+      // ===| create histogram |====================================================
+
+      const std::string rocTitle = title + fmt::format(" ({})", getROCTitle(iroc));
+
+      auto h2D = new TProfile2D(fmt::format("h_{}_ROC{}", name, iroc).data(),
+                                fmt::format("{};pad row;pad;{}", rocTitle, draw).data(),
+                                nrows, 0., nrows,
+                                npads, -npads / 2., npads / 2.);
+      tree.Draw(fmt::format("{} : cpad : row >> {}", draw, h2D->GetName()).data(), fmt::format("(roc == {}) && ({})", iroc, cut).data(), "profcolzgoff");
+
+      h2D->SetStats(0);
+      if (xMax1D > xMin1D) {
+        h2D->SetMinimum(xMin1D);
+        h2D->SetMaximum(xMax1D);
+      }
+      h2D->SetUniqueID(iroc);
+
+      cROCs1D->cd(pad);
+      h1D->Draw();
+
+      cROCs2D->cd(pad);
+      h2D->Draw("colz");
+
+      ++pad;
+
+      // associate histograms to canvas
+      h1D->SetBit(TObject::kCanDelete);
+      h2D->SetBit(TObject::kCanDelete);
+    }
+  }
+
+  // ===| Side histograms |=====================================================
+
+  // ---| define histograms |---------------------------------------------------
+  // TODO: auto scaling of ranges based on mean and variance?
+  //       for the moment use roots auto scaling
+
+  // set buffer size such that autoscaling uses the full range. This is about 2MB per histogram!
+  const int bufferSize = TH1::GetDefaultBufferSize();
+  TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
+
+  auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{0} (A-Side);{0}", title).data(),
+                           std::abs(nbins1D), xMin1D, xMax1D); // TODO: modify ranges
+
+  auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{0} (C-Side);{0}", title).data(),
+                           std::abs(nbins1D), xMin1D, xMax1D); // TODO: modify ranges
+
+  auto hAside2D = new TProfile2D(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{{x}} (cm);#it{{y}} (cm);{}", title, draw).data(),
+                                 330, -270, 270, 330, -270, 270);
+
+  auto hCside2D = new TProfile2D(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);#it{{x}} (cm);#it{{y}} (cm);{}", title, draw).data(),
+                                 330, -270, 270, 330, -270, 270);
+
+  tree.Draw(fmt::format("{} >> {}", draw, hAside1D->GetName()).data(), fmt::format("(A_Side) && ({})", cut).data(), "goff");
+  tree.Draw(fmt::format("{} >> {}", draw, hCside1D->GetName()).data(), fmt::format("(C_Side) && ({})", cut).data(), "goff");
+  tree.Draw(fmt::format("{} : gy : gx >> {}", draw, hAside2D->GetName()).data(), fmt::format("(A_Side) && ({})", cut).data(), "profcolzgoff");
+  tree.Draw(fmt::format("{} : gy : gx >> {}", draw, hCside2D->GetName()).data(), fmt::format("(C_Side) && ({})", cut).data(), "profcolzgoff");
+
+  if (xMax1D > xMin1D) {
+    hAside2D->SetMinimum(xMin1D);
+    hAside2D->SetMaximum(xMax1D);
+    hCside2D->SetMinimum(xMin1D);
+    hCside2D->SetMaximum(xMax1D);
+  }
+
+  // ===| Draw histograms |=====================================================
+  gStyle->SetOptStat("mr");
+  auto cSides = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
+  vecCanvases.emplace_back(cSides);
+
+  gStyle->SetStatX(1. - gPad->GetRightMargin());
+  gStyle->SetStatY(1. - gPad->GetTopMargin());
+
+  cSides->Clear();
+  cSides->Divide(2, 2);
+
+  cSides->cd(1);
+  hAside2D->Draw("colz");
+  hAside2D->SetStats(0);
+  hAside2D->SetTitleOffset(1.05, "XY");
+  hAside2D->SetTitleSize(0.05, "XY");
+  adjustPalette(hAside2D, 0.92);
+  drawSectorsXY(Side::A);
+
+  cSides->cd(2);
+  hCside2D->Draw("colz");
+  hCside2D->SetStats(0);
+  hCside2D->SetTitleOffset(1.05, "XY");
+  hCside2D->SetTitleSize(0.05, "XY");
+  adjustPalette(hCside2D, 0.92);
+  drawSectorsXY(Side::C);
+
+  cSides->cd(3);
+  hAside1D->Draw();
+
+  cSides->cd(4);
+  hCside1D->Draw();
+
+  // reset the buffer size
+  TH1::SetDefaultBufferSize(bufferSize);
+
+  // associate histograms to canvas
+  hAside1D->SetBit(TObject::kCanDelete);
+  hCside1D->SetBit(TObject::kCanDelete);
+  hAside2D->SetBit(TObject::kCanDelete);
+  hCside2D->SetBit(TObject::kCanDelete);
 
   return vecCanvases;
 }

@@ -423,9 +423,10 @@ class MatchTPCITS
 
 #ifdef _ALLOW_DEBUG_TREES_
   enum DebugFlagTypes : UInt_t {
-    MatchTreeAll = 0x1 << 1,     ///< produce matching candidates tree for all candidates
-    MatchTreeAccOnly = 0x1 << 2, ///< fill the matching candidates tree only once the cut is passed
-    WinnerMatchesTree = 0x1 << 3 ///< separate debug tree for winner matches
+    MatchTreeAll = 0x1 << 1,      ///< produce matching candidates tree for all candidates
+    MatchTreeAccOnly = 0x1 << 2,  ///< fill the matching candidates tree only once the cut is passed
+    WinnerMatchesTree = 0x1 << 3, ///< separate debug tree for winner matches
+    TPCOrigTree = 0x1 << 4        ///< original TPC tracks with some aux info
   };
   ///< check if partucular flags are set
   bool isDebugFlag(UInt_t flags) const { return mDBGFlags & flags; }
@@ -450,6 +451,7 @@ class MatchTPCITS
   ///< fill matching debug tree
   void fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2 = -1., float tCorr = 0.);
   void dumpWinnerMatches();
+  void dumpTPCOrig(bool acc, int tpcIndex);
 #endif
 
  private:
@@ -464,7 +466,7 @@ class MatchTPCITS
   bool prepareFITData();
   int prepareInteractionTimes();
   int prepareTPCTracksAfterBurner();
-  void addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
+  int addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
   int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
                             float trackY, float trackZ, float tolerY, float tolerZ) const;

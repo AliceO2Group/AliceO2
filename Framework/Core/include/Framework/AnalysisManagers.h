@@ -28,7 +28,7 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/RootMessageContext.h"
 #include "Framework/DeviceSpec.h"
 
@@ -465,8 +465,8 @@ struct ServiceManager<Service<T>> {
   {
     if constexpr (o2::framework::is_base_of_template_v<LoadableServicePlugin, T>) {
       T p = T{};
-      auto loadableServices = ServiceHelpers::parseServiceSpecString(p.loadSpec.c_str());
-      ServiceHelpers::loadFromPlugin(loadableServices, specs);
+      auto loadableServices = PluginManager::parsePluginSpecString(p.loadSpec.c_str());
+      PluginManager::loadFromPlugin<ServiceSpec, ServicePlugin>(loadableServices, specs);
     }
     return true;
   }

@@ -47,6 +47,7 @@ o2_add_library(Framework
                        src/DefaultsHelpers.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
+                       src/ConfigParamDiscovery.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/ChannelParamSpec.cxx
@@ -109,7 +110,8 @@ o2_add_library(Framework
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
                        src/ProcessingContext.cxx
-                       src/Plugins.cxx
+                       src/Plugin.cxx
+                       src/PluginManager.cxx
                        src/RateLimiter.cxx
                        src/ResourcesMonitoringHelper.cxx
                        src/ResourcePolicy.cxx
@@ -281,6 +283,11 @@ o2_add_test(O2DatabasePDG NAME test_Framework_test_O2DatabasePDG
             LABELS framework
             PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkPhysicsSupport)
 
+o2_add_executable(crashing-workflow
+            SOURCES test/test_CrashingWorkflow.cxx
+            COMPONENT_NAME Framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
+
 # All the tests which require ROOT to work
 add_executable(o2-test-framework-root
                test/test_Root2ArrowTable.cxx
@@ -290,6 +297,7 @@ target_link_libraries(o2-test-framework-root PRIVATE O2::Catch2)
 target_link_libraries(o2-test-framework-root PRIVATE ROOT::ROOTDataFrame)
 set_property(TARGET o2-test-framework-root PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 add_test(NAME framework:root COMMAND o2-test-framework-root --skip-benchmarks)
+add_test(NAME framework:crash COMMAND  sh -e -c "PATH=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}:$PATH ${CMAKE_CURRENT_LIST_DIR}/test/test_AllCrashTypes.sh")
 
 o2_add_test(InfoLogger NAME test_Framework_test_InfoLogger
             SOURCES test/test_InfoLogger.cxx

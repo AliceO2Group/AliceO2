@@ -7,7 +7,9 @@
 This is a top page for the MID detector documentation.
 
 <!-- doxy
+* \subpage refMUONMIDCalibrationExe
 * \subpage refMUONMIDClustering
+* \subpage refMUONMIDGlobalMappingExe
 * \subpage refMUONMIDQCExe
 * \subpage refMUONMIDRaw
 * \subpage refMUONMIDRawExe

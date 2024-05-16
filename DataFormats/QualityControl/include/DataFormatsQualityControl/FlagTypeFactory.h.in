@@ -9,23 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FlagReasonFactory.h
-/// \brief A class to create FlagReasons based on the predefined CSV list.
+/// \file FlagTypeFactory.h
+/// \brief A class to create FlagTypes based on the predefined CSV list.
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#ifndef O2_FLAGREASONFACTORY_H
-#define O2_FLAGREASONFACTORY_H
+#ifndef O2_FLAGTYPEFACTORY_H
+#define O2_FLAGTYPEFACTORY_H
 
-#include "DataFormatsQualityControl/FlagReasons.h"
+#include "DataFormatsQualityControl/FlagType.h"
 
 namespace o2::quality_control
 {
 
-class FlagReasonFactory {
+class FlagTypeFactory {
 public:
-FlagReasonFactory() = delete;
-@CSV_FLAG_REASONS@
+FlagTypeFactory() = delete;
+@CSV_FLAG_TYPES@
 };
 
 } // namespace o2::quality_control
-#endif // O2_FLAGREASONFACTORY_H
+#endif // O2_FLAGTYPEFACTORY_H

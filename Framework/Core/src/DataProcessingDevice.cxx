@@ -372,6 +372,9 @@ void DataProcessingDevice::Init()
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& context = ref.get<DataProcessorContext>();
   auto& spec = getRunningDevice(mRunningDevice, ref);
+
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+  O2_SIGNPOST_START(device, cid, "Init", "Entering Init callback.");
   context.statelessProcess = spec.algorithm.onProcess;
   context.statefulProcess = nullptr;
   context.error = spec.algorithm.onError;
@@ -412,8 +415,10 @@ void DataProcessingDevice::Init()
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& context = ref.get<DataProcessorContext>();
       auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Init", "Exception caught while in Init: %{public}s. Invoking errorCallback.", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
@@ -425,8 +430,10 @@ void DataProcessingDevice::Init()
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
-      LOGP(error, "Exception caught: {} ", err.what);
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& context = ref.get<DataProcessorContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Init", "Exception caught while in Init: %{public}s. Exiting with 1.", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
@@ -491,6 +498,7 @@ void DataProcessingDevice::Init()
     ServiceRegistry::Salt streamSalt = ServiceRegistry::streamSalt(si + 1, ServiceRegistry::globalDeviceSalt().dataProcessorId);
     mServiceRegistry.lateBindStreamServices(state, *options, streamSalt);
   }
+  O2_SIGNPOST_END(device, cid, "Init", "Exiting Init callback.");
 }
 
 void on_signal_callback(uv_signal_t* handle, int signum)
@@ -1079,7 +1087,9 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       ///        can access information which were stored in the stream.
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
+      auto& context = ref.get<DataProcessorContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Invoking callback.", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
@@ -1092,15 +1102,18 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
-      LOGP(error, "Exception caught: {} ", err.what);
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& context = ref.get<DataProcessorContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
+          O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Rethrowing.", err.what);
           throw e;
         default:
+          O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Skipping to next timeframe.", err.what);
           break;
       }
     };
@@ -1148,6 +1161,9 @@ void DataProcessingDevice::PreRun()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& state = ref.get<DeviceState>();
+
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, state.loop);
+  O2_SIGNPOST_START(device, cid, "PreRun", "Entering PreRun callback.");
   state.quitRequested = false;
   state.streaming = StreamingState::Streaming;
   for (auto& info : state.inputChannelInfos) {
@@ -1168,13 +1184,16 @@ void DataProcessingDevice::PreRun()
       context.preStartStreamCallbacks(streamRef);
     }
   } catch (std::exception& e) {
-    LOGP(error, "Exception caught: {} ", e.what());
+    O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "PreRun", "Exception of type std::exception caught in PreRun: %{public}s. Rethrowing.", e.what());
+    O2_SIGNPOST_END(device, cid, "PreRun", "Exiting PreRun due to exception thrown.");
     throw;
   } catch (o2::framework::RuntimeErrorRef& e) {
     auto& err = error_from_ref(e);
-    LOGP(error, "Exception caught: {} ", err.what);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "PreRun", "Exception of type o2::framework::RuntimeErrorRef caught in PreRun: %{public}s. Rethrowing.", err.what);
+    O2_SIGNPOST_END(device, cid, "PreRun", "Exiting PreRun due to exception thrown.");
     throw;
   } catch (...) {
+    O2_SIGNPOST_END(device, cid, "PreRun", "Unknown exception being thrown. Rethrowing.");
     throw;
   }
 
@@ -1189,6 +1208,7 @@ void DataProcessingDevice::PreRun()
 
   auto& monitoring = ref.get<Monitoring>();
   monitoring.send(Metric{(uint64_t)1, "device_state"}.addTag(Key::Subsystem, Value::DPL));
+  O2_SIGNPOST_END(device, cid, "PreRun", "Exiting PreRun callback.");
 }
 
 void DataProcessingDevice::PostRun()
@@ -2321,6 +2341,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
                        *context.registry};
     ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
+      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Invoking preProcessingCallbacks");
       // Notice this should be thread safe and reentrant
       // as it is called from many threads.
       streamContext.preProcessingCallbacks(processContext);

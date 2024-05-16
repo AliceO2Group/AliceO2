@@ -29,28 +29,28 @@ BOOST_AUTO_TEST_CASE(FlagTypes)
   static_assert(std::is_constructible<FlagType, uint16_t, const char*, bool>::value == false,
                 "FlagType should not be constructible outside of its static methods and the factory.");
 
-  FlagType rDefault;
-  BOOST_CHECK_EQUAL(rDefault, FlagTypeFactory::Invalid());
+  FlagType fDefault;
+  BOOST_CHECK_EQUAL(fDefault, FlagTypeFactory::Invalid());
 
-  auto r1 = FlagTypeFactory::Unknown();
-  BOOST_CHECK_EQUAL(r1.getID(), 1);
-  BOOST_CHECK_EQUAL(r1.getName(), "Unknown");
-  BOOST_CHECK_EQUAL(r1.getBad(), true);
+  auto f1 = FlagTypeFactory::Unknown();
+  BOOST_CHECK_EQUAL(f1.getID(), 14);
+  BOOST_CHECK_EQUAL(f1.getName(), "Unknown");
+  BOOST_CHECK_EQUAL(f1.getBad(), true);
 
-  std::cout << r1 << std::endl;
+  BOOST_CHECK_NO_THROW(std::cout << f1 << std::endl);
 
-  auto r2 = r1;
-  BOOST_CHECK_EQUAL(r2.getID(), 1);
-  BOOST_CHECK_EQUAL(r1.getName(), r2.getName());
-  BOOST_CHECK_EQUAL(r2.getName(), "Unknown");
-  BOOST_CHECK_EQUAL(r2.getBad(), true);
+  auto f2 = f1;
+  BOOST_CHECK_EQUAL(f2.getID(), 14);
+  BOOST_CHECK_EQUAL(f1.getName(), f2.getName());
+  BOOST_CHECK_EQUAL(f2.getName(), "Unknown");
+  BOOST_CHECK_EQUAL(f2.getBad(), true);
 
-  BOOST_CHECK_EQUAL(r1, r2);
-  BOOST_CHECK((r1 != r2) == false);
-  BOOST_CHECK(!(r1 < r2));
-  BOOST_CHECK(!(r1 > r2));
+  BOOST_CHECK_EQUAL(f1, f2);
+  BOOST_CHECK((f1 != f2) == false);
+  BOOST_CHECK(!(f1 < f2));
+  BOOST_CHECK(!(f1 > f2));
 
-  auto r3 = FlagTypeFactory::LimitedAcceptance();
-  BOOST_CHECK(r3 > r1);
-  BOOST_CHECK(!(r3 < r1));
+  auto f3 = FlagTypeFactory::LimitedAcceptanceMCNotReproducible();
+  BOOST_CHECK(f3 < f1);
+  BOOST_CHECK(!(f3 > f1));
 }

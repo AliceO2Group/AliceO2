@@ -389,6 +389,7 @@ class AODProducerWorkflowDPL : public Task
     float trackTimeRes = -999.f;
     int diffBCRef = 0; // offset of time reference BC from the start of the orbit
     int bcSlice[2] = {-1, -1};
+    bool isTPConly = false; // not to be written out
   };
 
   struct TrackQA {

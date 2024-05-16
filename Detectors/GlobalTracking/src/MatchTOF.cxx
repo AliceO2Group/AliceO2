@@ -553,7 +553,7 @@ void MatchTOF::propagateTPCTracks(int sec)
     }
 
     if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
-      if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT0) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
+      if (!propagateToRefXWithoutCov(trc, o2::constants::geom::XTPCOuterRef, 10, mBz) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagat>
         mNotPropagatedToTOF[trkType::UNCONS]++;
         continue;
       }
@@ -1690,7 +1690,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
 }
 
 //______________________________________________
-bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
+bool MatchTOF::propagateToRefXWithoutCov(const o2::track::TrackParCov& trc, float xRef, float stepInCm, float bzField)
 {
   // propagate track to matching reference X without using the covariance matrix
   // we create the copy of the track in a TrackPar object (no cov matrix)
@@ -1805,7 +1805,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
   if (mTPCClusterIdxStruct) { // refit was requested
     float chi2 = 0;
     mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCInnerRef);
-    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
+    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // inward refit after resetting cov.mat.
       LOGP(debug, "Inward Refit failed {}", trConstr.asString());
       return false;
     }

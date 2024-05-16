@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/Logger.h"
 #include <uv.h>
 #include <functional>
@@ -16,6 +16,55 @@
 
 namespace o2::framework
 {
+std::vector<LoadablePlugin> PluginManager::parsePluginSpecString(char const* str)
+{
+  std::vector<LoadablePlugin> loadablePlugins;
+  enum struct ParserState : int {
+    IN_LIBRARY,
+    IN_NAME,
+    IN_END,
+    IN_ERROR,
+  };
+  const char* cur = str;
+  const char* next = cur;
+  ParserState state = ParserState::IN_LIBRARY;
+  std::string_view library;
+  std::string_view name;
+  while (cur && *cur != '\0') {
+    ParserState previousState = state;
+    state = ParserState::IN_ERROR;
+    switch (previousState) {
+      case ParserState::IN_LIBRARY:
+        next = strchr(cur, ':');
+        if (next != nullptr) {
+          state = ParserState::IN_NAME;
+          library = std::string_view(cur, next - cur);
+        }
+        break;
+      case ParserState::IN_NAME:
+        next = strchr(cur, ',');
+        if (next == nullptr) {
+          state = ParserState::IN_END;
+          name = std::string_view(cur, strlen(cur));
+        } else {
+          name = std::string_view(cur, next - cur);
+          state = ParserState::IN_LIBRARY;
+        }
+        loadablePlugins.push_back({std::string(name), std::string(library)});
+        break;
+      case ParserState::IN_END:
+        break;
+      case ParserState::IN_ERROR:
+        LOG(error) << "Error while parsing DPL_LOAD_SERVICES";
+        break;
+    }
+    if (!next) {
+      break;
+    }
+    cur = next + 1;
+  };
+  return loadablePlugins;
+}
 
 void PluginManager::load(std::vector<PluginInfo>& libs, const char* dso, std::function<void(DPLPluginHandle*)>& onSuccess)
 {

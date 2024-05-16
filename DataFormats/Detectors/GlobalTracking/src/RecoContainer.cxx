@@ -380,7 +380,7 @@ void DataRequest::requestCoscmicTracks(bool mc)
   requestMap["Cosmics"] = mc;
 }
 
-void DataRequest::requestPrimaryVertertices(bool mc)
+void DataRequest::requestPrimaryVertices(bool mc)
 {
   addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
   addInput({"pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe});    // global ids of associated tracks
@@ -391,7 +391,7 @@ void DataRequest::requestPrimaryVertertices(bool mc)
   requestMap["PVertex"] = mc;
 }
 
-void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices before global vertex-track matching
+void DataRequest::requestPrimaryVerticesTMP(bool mc) // primary vertices before global vertex-track matching
 {
   addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
   addInput({"pvtx_cont", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe});        // global ids of contributors

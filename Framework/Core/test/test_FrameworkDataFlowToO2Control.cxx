@@ -560,7 +560,7 @@ TEST_CASE("TestO2ControlDump")
   DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
                                       driverConfig,
                                       dataProcessorInfos,
-                                      devices, executions, controls,
+                                      devices, executions, controls, {},
                                       "workflow-id");
 
   dumpWorkflow(ss, devices, executions, commandInfo, "testwf", "");

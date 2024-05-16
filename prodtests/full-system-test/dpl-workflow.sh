@@ -320,7 +320,7 @@ if has_detector_calib PHS && workflow_has_parameter CALIB; then
 fi
 
 [[ ${O2_GPU_DOUBLE_PIPELINE:-$EPNSYNCMODE} == 1 ]] && GPU_CONFIG+=" --enableDoublePipeline"
-[[ ${O2_GPU_RTC:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCcacheFolder=/tmp/o2_gpu_rtc_cache;"
+[[ ${O2_GPU_RTC:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
 
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
@@ -633,8 +633,8 @@ workflow_has_parameter AOD && [[ ! -z "$AOD_SOURCES" ]] && add_W o2-aod-producer
 # extra workflows in case we want to extra ITS/MFT info for dead channel maps to then go to CCDB for MC
 : ${ALIEN_JDL_PROCESSITSDEADMAP:=}
 : ${ALIEN_JDL_PROCESSMFTDEADMAP:=}
-[[ $ALIEN_JDL_PROCESSITSDEADMAP == 1 ]] && has_detector ITS && add_W o2-itsmft-deadmap-builder-workflow " --local-output --output-dir . --source clusters --tf-sampling 1000"
-[[ $ALIEN_JDL_PROCESSMFTDEADMAP == 1 ]] && has_detector MFT && add_W o2-itsmft-deadmap-builder-workflow " --runmft --local-output --output-dir . --source clusters --tf-sampling 1000"
+[[ $ALIEN_JDL_PROCESSITSDEADMAP == 1 ]] && has_detector ITS && add_W o2-itsmft-deadmap-builder-workflow " --local-output --output-dir . --source clusters --tf-sampling 350"
+[[ $ALIEN_JDL_PROCESSMFTDEADMAP == 1 ]] && has_detector MFT && add_W o2-itsmft-deadmap-builder-workflow " --runmft --local-output --output-dir . --source clusters --tf-sampling 350"
 
 
 # ---------------------------------------------------------------------------------------------------------------------

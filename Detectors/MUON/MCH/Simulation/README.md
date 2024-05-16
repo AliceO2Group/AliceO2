@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsMUONMCHSimulation MUON Simulation
+/doxy -->
+
 # How to make a simulation including MCH
 
 ## Only MCH
