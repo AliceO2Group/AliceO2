@@ -625,8 +625,8 @@ void VertexerTraitsGPU::computeTracklets(const int iteration)
         gpu::trackleterKernelMultipleRof<TrackletMode::Layer0Layer1><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),         // const Cluster* clustersNextLayer,    // 0 2
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),         // const Cluster* clustersCurrentLayer, // 1 1
-          mTimeFrameGPU->getDeviceROframesClusters(0),                   // const int* sizeNextLClusters,
-          mTimeFrameGPU->getDeviceROframesClusters(1),                   // const int* sizeCurrentLClusters,
+          mTimeFrameGPU->getDeviceROFramesClusters(0),                   // const int* sizeNextLClusters,
+          mTimeFrameGPU->getDeviceROFramesClusters(1),                   // const int* sizeCurrentLClusters,
           mTimeFrameGPU->getChunk(chunkId).getDeviceIndexTables(0),      // const int* nextIndexTables,
           mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(0),        // Tracklet* Tracklets,
           mTimeFrameGPU->getChunk(chunkId).getDeviceNTrackletCluster(0), // int* foundTracklets,
@@ -639,8 +639,8 @@ void VertexerTraitsGPU::computeTracklets(const int iteration)
         gpu::trackleterKernelMultipleRof<TrackletMode::Layer1Layer2><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(2),         // const Cluster* clustersNextLayer,    // 0 2
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),         // const Cluster* clustersCurrentLayer, // 1 1
-          mTimeFrameGPU->getDeviceROframesClusters(2),                   // const int* sizeNextLClusters,
-          mTimeFrameGPU->getDeviceROframesClusters(1),                   // const int* sizeCurrentLClusters,
+          mTimeFrameGPU->getDeviceROFramesClusters(2),                   // const int* sizeNextLClusters,
+          mTimeFrameGPU->getDeviceROFramesClusters(1),                   // const int* sizeCurrentLClusters,
           mTimeFrameGPU->getChunk(chunkId).getDeviceIndexTables(2),      // const int* nextIndexTables,
           mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(1),        // Tracklet* Tracklets,
           mTimeFrameGPU->getChunk(chunkId).getDeviceNTrackletCluster(1), // int* foundTracklets,
@@ -653,8 +653,8 @@ void VertexerTraitsGPU::computeTracklets(const int iteration)
         gpu::trackletSelectionKernelMultipleRof<true><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),            // const Cluster* clusters0,               // Clusters on layer 0
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),            // const Cluster* clusters1,               // Clusters on layer 1
-          mTimeFrameGPU->getDeviceROframesClusters(0),                      // const int* sizeClustersL0,              // Number of clusters on layer 0 per ROF
-          mTimeFrameGPU->getDeviceROframesClusters(1),                      // const int* sizeClustersL1,              // Number of clusters on layer 1 per ROF
+          mTimeFrameGPU->getDeviceROFramesClusters(0),                      // const int* sizeClustersL0,              // Number of clusters on layer 0 per ROF
+          mTimeFrameGPU->getDeviceROFramesClusters(1),                      // const int* sizeClustersL1,              // Number of clusters on layer 1 per ROF
           mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(0),           // Tracklet* tracklets01,                  // Tracklets on layer 0-1
           mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(1),           // Tracklet* tracklets12,                  // Tracklets on layer 1-2
           mTimeFrameGPU->getChunk(chunkId).getDeviceNTrackletCluster(0),    // const int* nFoundTracklets01,           // Number of tracklets found on layers 0-1
@@ -686,8 +686,8 @@ void VertexerTraitsGPU::computeTracklets(const int iteration)
         gpu::trackletSelectionKernelMultipleRof<false><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),            // const Cluster* clusters0,               // Clusters on layer 0
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),            // const Cluster* clusters1,               // Clusters on layer 1
-          mTimeFrameGPU->getDeviceROframesClusters(0),                      // const int* sizeClustersL0,              // Number of clusters on layer 0 per ROF
-          mTimeFrameGPU->getDeviceROframesClusters(1),                      // const int* sizeClustersL1,              // Number of clusters on layer 1 per ROF
+          mTimeFrameGPU->getDeviceROFramesClusters(0),                      // const int* sizeClustersL0,              // Number of clusters on layer 0 per ROF
+          mTimeFrameGPU->getDeviceROFramesClusters(1),                      // const int* sizeClustersL1,              // Number of clusters on layer 1 per ROF
           mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(0),           // Tracklet* tracklets01,                  // Tracklets on layer 0-1
           mTimeFrameGPU->getChunk(chunkId).getDeviceTracklets(1),           // Tracklet* tracklets12,                  // Tracklets on layer 1-2
           mTimeFrameGPU->getChunk(chunkId).getDeviceNTrackletCluster(0),    // const int* nFoundTracklets01,           // Number of tracklets found on layers 0-1
@@ -721,8 +721,8 @@ void VertexerTraitsGPU::computeTracklets(const int iteration)
         std::vector<bool> usedLines;
         for (int rofId{0}; rofId < rofs; ++rofId) {
           auto rof = offset + rofId;
-          auto clustersL1offsetRof = mTimeFrameGPU->getROframeClusters(1)[rof] - mTimeFrameGPU->getROframeClusters(1)[offset]; // starting cluster offset for this ROF
-          auto nClustersL1Rof = mTimeFrameGPU->getROframeClusters(1)[rof + 1] - mTimeFrameGPU->getROframeClusters(1)[rof];     // number of clusters for this ROF
+          auto clustersL1offsetRof = mTimeFrameGPU->getROFrameClusters(1)[rof] - mTimeFrameGPU->getROFrameClusters(1)[offset]; // starting cluster offset for this ROF
+          auto nClustersL1Rof = mTimeFrameGPU->getROFrameClusters(1)[rof + 1] - mTimeFrameGPU->getROFrameClusters(1)[rof];     // number of clusters for this ROF
           auto linesOffsetRof = exclusiveFoundLinesHost[clustersL1offsetRof];                                                  // starting line offset for this ROF
           auto nLinesRof = exclusiveFoundLinesHost[clustersL1offsetRof + nClustersL1Rof] - linesOffsetRof;
           gsl::span<const o2::its::Line> linesInRof(lines.data() + linesOffsetRof, static_cast<gsl::span<o2::its::Line>::size_type>(nLinesRof));
