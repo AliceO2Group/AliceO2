@@ -311,7 +311,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(IsITSAfterburner, isITSAfterburner, //! If the track 
                              return (detectorMap & o2::aod::track::ITS) && (itsChi2Ncl < 0.f);
                            });
 
-
 namespace extensions
 {
 using TPCTimeErrEncoding = o2::aod::track::extensions::TPCTimeErrEncoding;
