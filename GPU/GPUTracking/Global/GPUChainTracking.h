@@ -161,7 +161,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetQAFromForeignChain(GPUChainTracking* chain) { mQAFromForeignChain = chain; }
 
   // Processing functions
-  int RunTPCClusterizer(bool synchronizeOutput = true);
+  int RunTPCClusterizer(bool synchronizeOutput = true, bool applyNNclusterizer = false);
   int ForwardTPCDigits();
   int RunTPCTrackingSlices();
   int RunTPCTrackingMerger(bool synchronizeOutput = true);

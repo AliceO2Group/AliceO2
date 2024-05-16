@@ -566,7 +566,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
 #endif
 
 // TODO: Clusterizer not working with OCL1 (Clusterizer on CPU, Tracking on GPU)
-int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
+int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput, bool applyNNclusterizer)
 {
   if (param().rec.fwdTPCDigitsAsClusters) {
     return ForwardTPCDigits();
@@ -835,8 +835,14 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (clusterer.mPmemory->counters.nPeaks == 0) {
           continue;
         }
-        runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::noiseSuppression>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
-        runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::updatePeaks>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
+        if(!applyNNclusterizer){
+          runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::noiseSuppression>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
+          runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::updatePeaks>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
+        } else {
+          // FIXME: This needs to be removed when I actually apply the NN! For now its onyl to make the code work
+          runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::noiseSuppression>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
+          runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::updatePeaks>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
+        }
         DoDebugAndDump(RecoStep::TPCClusterFinding, 262144, clusterer, &GPUTPCClusterFinder::DumpSuppressedPeaks, *mDebugFile);
 
         RunTPCClusterizer_compactPeaks(clusterer, clustererShadow, 1, doGPU, lane);
@@ -870,7 +876,12 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           if (doGPU) {
             SynchronizeStream(lane);
           }
-          runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+          if(!applyNNclusterizer){
+            runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+          } else {
+            // FIXME: Here I need to apply the neural network
+            runKernel<GPUTPCNNClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+          }
         }
         if (GetProcessingSettings().debugLevel >= 3) {
           GPUInfo("Sector %02d Fragment %02d Lane %d: Found clusters: digits %u peaks %u clusters %u", iSlice, fragment.index, lane, (int)clusterer.mPmemory->counters.nPositions, (int)clusterer.mPmemory->counters.nPeaks, (int)clusterer.mPmemory->counters.nClusters);
