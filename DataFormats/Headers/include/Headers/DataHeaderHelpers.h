@@ -46,14 +46,14 @@ struct fmt::formatter<T, std::enable_if_t<o2::header::is_descriptor<T>::value, c
 
 template <>
 struct fmt::formatter<o2::header::DataHeader> {
-  // Presentation format: 'f' - fixed, 'e' - exponential.
   char presentation = 's';
 
-  // Parses format specifications of the form ['f' | 'e'].
   constexpr auto parse(format_parse_context& ctx)
   {
     auto it = ctx.begin(), end = ctx.end();
     if (it != end && (*it == 's')) {
+      presentation = *it++;
+    } else if (it != end && (*it == 'x')) {
       presentation = *it++;
     }
 
@@ -69,17 +69,25 @@ struct fmt::formatter<o2::header::DataHeader> {
   template <typename FormatContext>
   auto format(const o2::header::DataHeader& h, FormatContext& ctx)
   {
-    auto res = fmt::format("Data header version {}, flags: {}\n", h.headerVersion, h.flags) +
-               fmt::format("  origin       : {}\n", h.dataOrigin.str) +
-               fmt::format("  serialization: {}\n", h.payloadSerializationMethod.str) +
-               fmt::format("  description  : {}\n", h.dataDescription.str) +
-               fmt::format("  sub spec.    : {}\n", (long long unsigned int)h.subSpecification) +
-               fmt::format("  header size  : {}\n", h.headerSize) +
-               fmt::format("  payloadSize  : {}\n", (long long unsigned int)h.payloadSize) +
-               fmt::format("  firstTForbit : {}\n", h.firstTForbit) +
-               fmt::format("  tfCounter    : {}\n", h.tfCounter) +
-               fmt::format("  runNumber    : {}\n", h.runNumber);
-    return fmt::format_to(ctx.out(), "{}", res);
+    if (presentation == 's') {
+      auto res = fmt::format("Data header version {}, flags: {}\n", h.headerVersion, h.flags) +
+                 fmt::format("  origin       : {}\n", h.dataOrigin.str) +
+                 fmt::format("  serialization: {}\n", h.payloadSerializationMethod.str) +
+                 fmt::format("  description  : {}\n", h.dataDescription.str) +
+                 fmt::format("  sub spec.    : {}\n", (long long unsigned int)h.subSpecification) +
+                 fmt::format("  header size  : {}\n", h.headerSize) +
+                 fmt::format("  payloadSize  : {}\n", (long long unsigned int)h.payloadSize) +
+                 fmt::format("  firstTForbit : {}\n", h.firstTForbit) +
+                 fmt::format("  tfCounter    : {}\n", h.tfCounter) +
+                 fmt::format("  runNumber    : {}\n", h.runNumber);
+      return fmt::format_to(ctx.out(), "{}", res);
+    } else {
+      auto res = fmt::format("{}/{}/{}",
+                             h.dataOrigin.str,
+                             h.dataDescription.str,
+                             (long long unsigned int)h.subSpecification);
+      return fmt::format_to(ctx.out(), "{}", res);
+    }
   }
 };
 
