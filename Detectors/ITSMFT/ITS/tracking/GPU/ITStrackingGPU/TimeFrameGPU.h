@@ -210,7 +210,7 @@ class TimeFrameGPU : public TimeFrame
   /// interface
   int getNClustersInRofSpan(const int, const int, const int) const;
   IndexTableUtils* getDeviceIndexTableUtils() { return mIndexTableUtilsDevice; }
-  int* getDeviceROframesClusters(const int layer) { return mROframesClustersDevice[layer]; }
+  int* getDeviceROFramesClusters(const int layer) { return mROFramesClustersDevice[layer]; }
   std::vector<std::vector<Vertex>>& getVerticesInChunks() { return mVerticesInChunks; }
   std::vector<std::vector<int>>& getNVerticesInChunks() { return mNVerticesInChunks; }
   std::vector<o2::its::TrackITSExt>& getTrackITSExt() { return mTrackITSExt; }
@@ -218,7 +218,7 @@ class TimeFrameGPU : public TimeFrame
   int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
   StaticTrackingParameters<nLayers>* getDeviceTrackingParameters() { return mTrackingParamsDevice; }
   Vertex* getDeviceVertices() { return mVerticesDevice; }
-  int* getDeviceROframesPV() { return mROframesPVDevice; }
+  int* getDeviceROFramesPV() { return mROFramesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
   const o2::base::Propagator* getChainPropagator();
 
@@ -251,10 +251,10 @@ class TimeFrameGPU : public TimeFrame
   // Device pointers
   StaticTrackingParameters<nLayers>* mTrackingParamsDevice;
   IndexTableUtils* mIndexTableUtilsDevice;
-  std::array<int*, nLayers> mROframesClustersDevice;
+  std::array<int*, nLayers> mROFramesClustersDevice;
   std::array<unsigned char*, nLayers> mUsedClustersDevice;
   Vertex* mVerticesDevice;
-  int* mROframesPVDevice;
+  int* mROFramesPVDevice;
 
   // Hybrid pref
   std::array<Cluster*, nLayers> mClustersDevice;
@@ -314,7 +314,7 @@ size_t TimeFrameGPU<nLayers>::loadChunkData(const size_t chunk, const size_t off
 template <int nLayers>
 inline int TimeFrameGPU<nLayers>::getNClustersInRofSpan(const int rofIdstart, const int rofSpanSize, const int layerId) const
 {
-  return static_cast<int>(mROframesClusters[layerId][(rofIdstart + rofSpanSize) < mROframesClusters.size() ? rofIdstart + rofSpanSize : mROframesClusters.size() - 1] - mROframesClusters[layerId][rofIdstart]);
+  return static_cast<int>(mROFramesClusters[layerId][(rofIdstart + rofSpanSize) < mROFramesClusters.size() ? rofIdstart + rofSpanSize : mROFramesClusters.size() - 1] - mROFramesClusters[layerId][rofIdstart]);
 }
 } // namespace gpu
 } // namespace its

@@ -40,7 +40,7 @@ struct Line final {
   GPUhd() void print() const;
   bool operator==(const Line&) const;
   bool operator!=(const Line&) const;
-  const short getMinROF() const { return rof[0] < rof[1] ? rof[0] : rof[1]; }
+  short getMinROF() const { return rof[0] < rof[1] ? rof[0] : rof[1]; }
 
   float originPoint[3], cosinesDirector[3];
   float weightMatrix[6] = {1., 0., 0., 1., 0., 1.};

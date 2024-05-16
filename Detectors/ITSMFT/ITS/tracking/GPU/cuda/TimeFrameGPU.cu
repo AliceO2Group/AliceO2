@@ -443,21 +443,21 @@ void TimeFrameGPU<nLayers>::initDevice(const int chunks,
       mMemChunks[iChunk].allocate(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), mGpuStreams[iChunk]);
     }
     for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-      checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mROframesClustersDevice[iLayer]), mROframesClusters[iLayer].size() * sizeof(int)));
+      checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mROFramesClustersDevice[iLayer]), mROFramesClusters[iLayer].size() * sizeof(int)));
       checkGPUError(cudaMalloc(reinterpret_cast<void**>(&(mUsedClustersDevice[iLayer])), sizeof(unsigned char) * mGpuParams.clustersPerROfCapacity * mNrof));
     }
     checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mVerticesDevice), sizeof(Vertex) * mGpuParams.maxVerticesCapacity));
-    checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mROframesPVDevice), sizeof(int) * (mNrof + 1)));
+    checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mROFramesPVDevice), sizeof(int) * (mNrof + 1)));
 
     mFirstInit = false;
   }
   if (maxLayers < nLayers) { // Vertexer
     for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-      checkGPUError(cudaMemcpy(mROframesClustersDevice[iLayer], mROframesClusters[iLayer].data(), mROframesClusters[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice));
+      checkGPUError(cudaMemcpy(mROFramesClustersDevice[iLayer], mROFramesClusters[iLayer].data(), mROFramesClusters[iLayer].size() * sizeof(int), cudaMemcpyHostToDevice));
     }
   } else { // Tracker
     checkGPUError(cudaMemcpy(mVerticesDevice, mPrimaryVertices.data(), sizeof(Vertex) * mPrimaryVertices.size(), cudaMemcpyHostToDevice));
-    checkGPUError(cudaMemcpy(mROframesPVDevice, mROframesPV.data(), sizeof(int) * mROframesPV.size(), cudaMemcpyHostToDevice));
+    checkGPUError(cudaMemcpy(mROFramesPVDevice, mROFramesPV.data(), sizeof(int) * mROFramesPV.size(), cudaMemcpyHostToDevice));
     if (!iteration) {
       for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
         checkGPUError(cudaMemset(mUsedClustersDevice[iLayer], 0, sizeof(unsigned char) * mGpuParams.clustersPerROfCapacity * mNrof));
