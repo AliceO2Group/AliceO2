@@ -321,6 +321,13 @@ void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, Tr
 template <typename TracksExtraCursorType>
 void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder)
 {
+  // In case of TPC-only tracks, do not truncate the time error since we encapsulate there a special encoding of
+  // the deltaFwd/Bwd times
+  auto trackTimeRes = extraInfoHolder.trackTimeRes;
+  if (!extraInfoHolder.isTPConly) {
+    trackTimeRes = truncateFloatFraction(trackTimeRes, mTrackTimeError);
+  }
+
   // extra
   tracksExtraCursor(truncateFloatFraction(extraInfoHolder.tpcInnerParam, mTrack1Pt),
                     extraInfoHolder.flags,
@@ -341,7 +348,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.trackEtaEMCAL, mTrackPosEMCAL),
                     truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL),
                     truncateFloatFraction(extraInfoHolder.trackTime, mTrackTime),
-                    truncateFloatFraction(extraInfoHolder.trackTimeRes, mTrackTimeError));
+                    trackTimeRes);
 }
 
 template <typename TracksQACursorType>
@@ -486,7 +493,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             }
           }
 
-          if (extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
+          if (!extraInfoHolder.isTPConly && extraInfoHolder.trackTimeRes < 0.f) { // failed or rejected?
             LOG(warning) << "Barrel track " << trackIndex << " has no time set, rejection is not expected : time=" << extraInfoHolder.trackTime
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
             continue;
@@ -2438,11 +2445,21 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
     extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
     extraInfoHolder.tpcNClsShared = tpcClData.shared;
-    if (src == GIndex::TPC) {                                                                                // standalone TPC track should set its time from their timebins range
-      double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;                     // half-span of the interval
-      double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
-      LOG(debug) << "TPC tracks t0:" << tpcOrig.getTime0() << " tbwd: " << tpcOrig.getDeltaTBwd() << " tfwd: " << tpcOrig.getDeltaTFwd() << " t: " << t << " te: " << terr;
-      setTrackTime(t, terr, false);
+    if (src == GIndex::TPC) { // standalone TPC track should set its time from their timebins range
+      if (needBCSlice) {
+        double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value
+        double terr = 0.5 * (tpcOrig.getDeltaTFwd() + tpcOrig.getDeltaTBwd()) * mTPCBinNS;
+        double err = mTimeMarginTrackTime + terr;
+        bcOfTimeRef = fillBCSlice(extraInfoHolder.bcSlice, t - err, t + err, bcsMap);
+      }
+      aod::track::extensions::TPCTimeErrEncoding p;
+      p.setDeltaTFwd(tpcOrig.getDeltaTFwd());
+      p.setDeltaTBwd(tpcOrig.getDeltaTBwd());
+      extraInfoHolder.trackTimeRes = p.getTimeErr();
+      extraInfoHolder.trackTime = float(tpcOrig.getTime0() * mTPCBinNS - bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS);
+      extraInfoHolder.diffBCRef = int(bcOfTimeRef);
+      extraInfoHolder.isTPConly = true; // no truncation
+      extraInfoHolder.flags |= o2::aod::track::TrackTimeAsym;
     } else if (src == GIndex::ITSTPC) { // its-tpc matched tracks have gaussian time error and the time was not set above
       const auto& trITSTPC = data.getTPCITSTrack(trackIndex);
       auto ts = trITSTPC.getTimeMUS();
