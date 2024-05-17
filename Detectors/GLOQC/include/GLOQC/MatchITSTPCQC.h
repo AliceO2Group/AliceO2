@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file MatchTPCITS.h
-/// \brief Class to perform TPC ITS matching
-/// \author ruben.shahoyan@cern.ch
+/// \file MatchITSTPCQC.h
+/// \brief Class to perform QC for ITSTPC matching
+/// \author chiara.zampolli@cern.ch
 
-#ifndef ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
-#define ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
+#ifndef ALICEO2_GLOQC_MATCHITSTPC_QC_
+#define ALICEO2_GLOQC_MATCHITSTPC_QC_
 
 #include <TH1D.h>
 #include <TH1F.h>
@@ -27,6 +27,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "Steer/MCKinematicsReader.h"
 #include "ReconstructionDataFormats/PID.h"
+#include "DCAFitter/DCAFitterN.h"
 #include <unordered_map>
 #include <vector>
 #include <array>
@@ -35,7 +36,7 @@
 namespace o2
 {
 
-namespace globaltracking
+namespace gloqc
 {
 
 using GID = o2::dataformats::GlobalTrackID;
@@ -62,6 +63,8 @@ class MatchITSTPCQC
   void setDataRequest(const std::shared_ptr<o2::globaltracking::DataRequest>& dr) { mDataRequest = dr; }
   void finalize();
   void reset();
+  bool processV0(int iv, o2::globaltracking::RecoContainer& recoData);
+  bool refitV0(const o2::dataformats::V0Index& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData);
 
   TH1D* getHistoPtNum(matchType m) const { return mPtNum[m]; }
   TH1D* getHistoPtDen(matchType m) const { return mPtDen[m]; }
@@ -126,6 +129,8 @@ class MatchITSTPCQC
   TH1D* getHisto1OverPtPhysPrimNum(matchType m) const { return m1OverPtPhysPrimNum[m]; }
   TH1D* getHisto1OverPtPhysPrimDen(matchType m) const { return m1OverPtPhysPrimDen[m]; }
   TEfficiency* getFractionITSTPCmatchPhysPrim1OverPt(matchType m) const { return mFractionITSTPCmatchPhysPrim1OverPt[m]; }
+
+  TH1F* getHistoK0Mass() const { return mK0Mass; }
 
   void getHistos(TObjArray& objar);
 
@@ -222,6 +227,7 @@ class MatchITSTPCQC
     publisher->startPublishing(mDCArVsPtNum);
     publisher->startPublishing(mDCArVsPtDen);
     publisher->startPublishing(mFractionITSTPCmatchDCArVsPt);
+    publisher->startPublishing(mK0Mass);
   }
 
   void setSources(GID::mask_t src) { mSrc = src; }
@@ -231,6 +237,8 @@ class MatchITSTPCQC
   bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
   void setBz(float bz) { mBz = bz; }
+  void setDoK0QC(bool v) { mDoK0QC = v; }
+  bool getDoK0QC() const { return mDoK0QC; }
 
   // ITS track
   void setMinPtITSCut(float v) { mPtITSCut = v; };
@@ -255,11 +263,16 @@ class MatchITSTPCQC
   void setMaxPtCut(float v) { mPtMaxCut = v; }
   void setEtaCut(float v) { mEtaCut = v; } // TODO: define 2 different values for min and max (*)
 
+  // K0
+  void setMaxK0Eta(float v) { mMaxEtaK0 = v; }
+  void setRefitK0(bool v) { mRefit = v; }
+  void setCutK0Mass(bool v) { mCutK0Mass = v; }
+
  private:
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
   o2::globaltracking::RecoContainer mRecoCont;
   GID::mask_t mSrc = GID::getSourcesMask("ITS,TPC,ITS-TPC");
-  GID::mask_t mAllowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC");
+  GID::mask_t mAllowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   // TPC
   gsl::span<const o2::tpc::TrackTPC> mTPCTracks;
   // ITS
@@ -372,9 +385,18 @@ class MatchITSTPCQC
   float mEtaCut = 1e10f; // 1e10f as defaults of Detectors/GlobalTracking/include/GlobalTracking/TrackCuts.h
                          // TODO: define 2 different values for min and max (*)
 
-  ClassDefNV(MatchITSTPCQC, 2);
+  // for V0s
+  o2::vertexing::DCAFitterN<2> mFitterV0;
+  TH1F* mK0Mass = nullptr;
+  bool mDoK0QC = false;     // whether to fill the K0 QC plot(s)
+  float mCutK0Mass = 0.05;  // cut on the difference between the K0 mass and the PDG mass
+  bool mRefit = false;      // whether to refit or not
+  float mMaxEtaK0 = 0.8;    // cut on the K0 eta
+  long int mTimestamp = -1; // timestamp used to load the SVertexParam object: if differnt from -1, we don't load (it means we already did it)
+
+  ClassDefNV(MatchITSTPCQC, 3);
 };
-} // namespace globaltracking
+} // namespace gloqc
 } // namespace o2
 
 #endif

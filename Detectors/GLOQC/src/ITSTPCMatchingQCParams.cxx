@@ -12,5 +12,5 @@
 /// \file ITSTPCMatchingQCParams.h
 /// \brief Configurable params for ITSTPC matching QC
 
-#include "GlobalTracking/ITSTPCMatchingQCParams.h"
-O2ParamImpl(o2::globaltracking::ITSTPCMatchingQCParams);
+#include "GLOQC/ITSTPCMatchingQCParams.h"
+O2ParamImpl(o2::gloqc::ITSTPCMatchingQCParams);

@@ -21,6 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable use of MC information even if available"}},
+    {"disable-k0-qc", o2::framework::VariantType::Bool, false, {"disable K0 QC"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -37,8 +38,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2-itstpc-matching-qc.ini");
   LOG(info) << "ITSTPC matching QC: disable-mc = " << configcontext.options().get<std::string>("disable-mc");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  LOG(info) << "ITSTPC matching QC: disable-k0-qc = " << configcontext.options().get<std::string>("disable-k0-qc");
+  auto doK0QC = !configcontext.options().get<bool>("disable-k0-qc");
 
   WorkflowSpec specs;
-  specs.emplace_back(getITSTPCMatchingQCDevice(useMC));
+  specs.emplace_back(getITSTPCMatchingQCDevice(useMC, doK0QC));
   return specs;
 }

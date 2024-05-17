@@ -15,7 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflowQC/ITSTPCMatchingQCSpec.h"
-#include "GlobalTracking/ITSTPCMatchingQCParams.h"
+#include "GLOQC/ITSTPCMatchingQCParams.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsBase/Propagator.h"
 
@@ -31,9 +31,9 @@ namespace globaltracking
 
 void ITSTPCMatchingQCDevice::init(InitContext& /*ic*/)
 {
-  const o2::globaltracking::ITSTPCMatchingQCParams& params = o2::globaltracking::ITSTPCMatchingQCParams::Instance();
+  const o2::gloqc::ITSTPCMatchingQCParams& params = o2::gloqc::ITSTPCMatchingQCParams::Instance();
 
-  mMatchITSTPCQC = std::make_unique<o2::globaltracking::MatchITSTPCQC>();
+  mMatchITSTPCQC = std::make_unique<o2::gloqc::MatchITSTPCQC>();
   mMatchITSTPCQC->init();
   mMatchITSTPCQC->setDataRequest(mDataRequest);
   mMatchITSTPCQC->setPtCut(params.minPtCut);
@@ -41,9 +41,14 @@ void ITSTPCMatchingQCDevice::init(InitContext& /*ic*/)
   mMatchITSTPCQC->setMinNTPCClustersCut(params.minNTPCClustersCut);
   mMatchITSTPCQC->setMinDCAtoBeamPipeDistanceCut(params.minDCACut);
   mMatchITSTPCQC->setMinDCAtoBeamPipeYCut(params.minDCACutY);
+  mMatchITSTPCQC->setCutK0Mass(params.cutK0Mass);
+  mMatchITSTPCQC->setMaxK0Eta(params.maxEtaK0);
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   if (mUseMC) {
     mMatchITSTPCQC->setUseMC(mUseMC);
+  }
+  if (mDoK0QC) {
+    mMatchITSTPCQC->setDoK0QC(mDoK0QC);
   }
 }
 
@@ -94,7 +99,7 @@ namespace framework
 {
 using GID = o2::dataformats::GlobalTrackID;
 
-DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC)
+DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC, bool doK0QC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "ITSTPCMATCHQC", 0, Lifetime::Sporadic);
@@ -113,7 +118,7 @@ DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC)
     "itstpc-matching-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::globaltracking::ITSTPCMatchingQCDevice>(dataRequest, ccdbRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<o2::globaltracking::ITSTPCMatchingQCDevice>(dataRequest, ccdbRequest, useMC, doK0QC)},
     Options{{}}};
 }
 

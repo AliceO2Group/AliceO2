@@ -14,6 +14,7 @@ o2_add_library(GlobalTrackingWorkflowQC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsGlobalTracking
                         O2::GlobalTracking
                         ROOT::Core
+                        O2::GLOQC
   )
 
 o2_add_executable(match-qc

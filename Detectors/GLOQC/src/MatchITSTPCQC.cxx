@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "GlobalTracking/MatchITSTPCQC.h"
+#include "GLOQC/MatchITSTPCQC.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "Framework/InputSpec.h"
@@ -20,8 +20,14 @@
 #include "TGraphAsymmErrors.h"
 #include "GlobalTracking/TrackCuts.h"
 #include <DetectorsBase/GRPGeomHelper.h>
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/V0.h"
+// #include "GlobalTrackingStudy/V0Ext.h"
+#include "DetectorsVertexing/SVertexerParams.h"
+#include "Framework/InputRecord.h"
+#include "Framework/TimingInfo.h"
 
-using namespace o2::globaltracking;
+using namespace o2::gloqc;
 using namespace o2::mcutils;
 using MCTrack = o2::MCTrackT<float>;
 
@@ -118,6 +124,11 @@ void MatchITSTPCQC::deleteHistograms()
   delete mDCArVsPtNum;
   delete mDCArVsPtDen;
   delete mFractionITSTPCmatchDCArVsPt;
+
+  // K0
+  if (mDoK0QC) {
+    delete mK0Mass;
+  }
 }
 
 //__________________________________________________________
@@ -195,6 +206,11 @@ void MatchITSTPCQC::reset()
   mDCAr->Reset();
   mDCArVsPtNum->Reset();
   mDCArVsPtDen->Reset();
+
+  // K0
+  if (mDoK0QC) {
+    mK0Mass->Reset();
+  }
 }
 
 //__________________________________________________________
@@ -363,6 +379,11 @@ bool MatchITSTPCQC::init()
     }
   }
 
+  if (mDoK0QC) {
+    // V0s
+    mK0Mass = new TH1F("mK0Mass", "K0 invariant mass", 100, 0.3, 0.7);
+  }
+
   return true;
 }
 
@@ -373,6 +394,9 @@ void MatchITSTPCQC::initDataRequest()
 
   // initialize data request, if it was not already done
 
+  if (mDoK0QC) {
+    mSrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  }
   mSrc &= mAllowedSources;
 
   if (mSrc[GID::Source::ITSTPC] == 0 || mSrc[GID::Source::TPC] == 0 || mSrc[GID::Source::ITS] == 0) {
@@ -380,7 +404,13 @@ void MatchITSTPCQC::initDataRequest()
   }
 
   mDataRequest = std::make_shared<o2::globaltracking::DataRequest>();
+  LOG(info) << "Requesting tracks...";
   mDataRequest->requestTracks(mSrc, mUseMC);
+  LOG(info) << "... done requesting tracks";
+  if (mDoK0QC) {
+    mDataRequest->requestPrimaryVertices(mUseMC);
+    mDataRequest->requestSecondaryVertices(mUseMC);
+  }
 }
 
 //__________________________________________________________
@@ -388,8 +418,17 @@ void MatchITSTPCQC::initDataRequest()
 void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 {
 
+  LOG(info) << "Starting";
+
   // Getting the B field
   mBz = o2::base::Propagator::Instance()->getNominalBz();
+
+  // Getting the SVertexer config params
+  if (mTimestamp == -1 && mDoK0QC) {
+    // we have not yet initialized the SVertexer params; let's do it
+    ctx.inputs().get<o2::vertexing::SVertexerParams*>("SVParam");
+    mTimestamp = ctx.services().get<o2::framework::TimingInfo>().creation;
+  }
 
   static int evCount = 0;
   mRecoCont.collectData(ctx, *mDataRequest.get());
@@ -863,7 +902,110 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       }
     }
   }
+
+  if (mDoK0QC) {
+    // now doing K0S
+    const auto pvertices = ctx.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx");
+    LOG(info) << "Found " << pvertices.size() << " primary vertices";
+
+    auto v0IDs = mRecoCont.getV0sIdx();
+    auto nv0 = v0IDs.size();
+    if (nv0 > mRecoCont.getV0s().size()) {
+      mRefit = true;
+    }
+    LOG(info) << "Found " << mRecoCont.getV0s().size() << " V0s in reco container";
+    LOG(info) << "Found " << nv0 << " V0s ids";
+    // associating sec vtxs to prim vtx
+    std::map<int, std::vector<int>> pv2sv;
+    static int tfID = 0;
+    for (int iv = 0; iv < nv0; iv++) {
+      const auto v0id = v0IDs[iv];
+      pv2sv[v0id.getVertexID()].push_back(iv);
+    }
+    int nV0sOk = 0;
+    // processing every sec vtx for each prim vtx
+    for (auto it : pv2sv) {
+      int pvID = it.first;
+      auto& vv = it.second;
+      if (pvID < 0 || vv.size() == 0) {
+        continue;
+      }
+      for (int iv0 : vv) {
+        nV0sOk += processV0(iv0, mRecoCont) ? 1 : 0;
+      }
+    }
+
+    LOG(info) << "Processed " << nV0sOk << " V0s";
+  }
   evCount++;
+}
+
+//__________________________________________________________
+bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoData)
+{
+  o2::dataformats::V0 v0;
+  auto v0s = recoData.getV0s();
+  auto v0IDs = recoData.getV0sIdx();
+  static int tfID = 0;
+
+  const auto& v0id = v0IDs[iv];
+  if (mRefit && !refitV0(v0id, v0, recoData)) {
+    return false;
+  }
+  const auto& v0sel = mRefit ? v0 : v0s[iv];
+  if (mMaxEtaK0 < std::abs(v0sel.getEta())) {
+    return false;
+  }
+  if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass) {
+    return false;
+  }
+  mK0Mass->Fill(std::sqrt(v0sel.calcMass2AsK0()));
+  return true;
+}
+
+//__________________________________________________________
+bool MatchITSTPCQC::refitV0(const o2::dataformats::V0Index& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData)
+{
+  auto seedP = recoData.getTrackParam(id.getProngID(0));
+  auto seedN = recoData.getTrackParam(id.getProngID(1));
+  bool isTPConly = (id.getProngID(0).getSource() == o2::dataformats::GlobalTrackID::TPC) || (id.getProngID(1).getSource() == o2::dataformats::GlobalTrackID::TPC);
+  const auto& svparam = o2::vertexing::SVertexerParams::Instance();
+  if (svparam.mTPCTrackPhotonTune && isTPConly) {
+    mFitterV0.setMaxDZIni(svparam.mTPCTrackMaxDZIni);
+    mFitterV0.setMaxDXYIni(svparam.mTPCTrackMaxDXYIni);
+    mFitterV0.setMaxChi2(svparam.mTPCTrackMaxChi2);
+    mFitterV0.setCollinear(true);
+  }
+  int nCand = mFitterV0.process(seedP, seedN);
+  if (svparam.mTPCTrackPhotonTune && isTPConly) { // restore
+    // Reset immediately to the defaults
+    mFitterV0.setMaxDZIni(svparam.maxDZIni);
+    mFitterV0.setMaxDXYIni(svparam.maxDXYIni);
+    mFitterV0.setMaxChi2(svparam.maxChi2);
+    mFitterV0.setCollinear(false);
+  }
+  if (nCand == 0) { // discard this pair
+    return false;
+  }
+  const int cand = 0;
+  if (!mFitterV0.isPropagateTracksToVertexDone(cand) && !mFitterV0.propagateTracksToVertex(cand)) {
+    return false;
+  }
+  const auto& trPProp = mFitterV0.getTrack(0, cand);
+  const auto& trNProp = mFitterV0.getTrack(1, cand);
+  std::array<float, 3> pP{}, pN{};
+  trPProp.getPxPyPzGlo(pP);
+  trNProp.getPxPyPzGlo(pN);
+  std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
+  auto p2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1] + pV0[2] * pV0[2];
+  const auto& pv = recoData.getPrimaryVertex(id.getVertexID());
+  const auto v0XYZ = mFitterV0.getPCACandidatePos(cand);
+  float dx = v0XYZ[0] - pv.getX(), dy = v0XYZ[1] - pv.getY(), dz = v0XYZ[2] - pv.getZ(), prodXYZv0 = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
+  float cosPA = prodXYZv0 / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
+  new (&v0) o2::dataformats::V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(cand), trPProp, trNProp);
+  v0.setDCA(mFitterV0.getChi2AtPCACandidate(cand));
+  v0.setCosPA(cosPA);
+  return true;
 }
 
 //__________________________________________________________
@@ -1088,4 +1230,7 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mDCArVsPtNum);
   objar.Add(mDCArVsPtDen);
   objar.Add(mFractionITSTPCmatchDCArVsPt);
+
+  // V0
+  objar.Add(mK0Mass);
 }
