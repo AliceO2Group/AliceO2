@@ -394,6 +394,7 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
 DataRelayer::RelayChoice
   DataRelayer::relay(void const* rawHeader,
                      std::unique_ptr<fair::mq::Message>* messages,
+                     InputInfo const& info,
                      size_t nMessages,
                      size_t nPayloads,
                      std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo)> onDrop)
@@ -443,11 +444,13 @@ DataRelayer::RelayChoice
                      &nMessages,
                      &nPayloads,
                      &cache = mCache,
-                     numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot) {
+                     &services = mContext,
+                     numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot, InputInfo const& info) {
     O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
-    O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot", "saving %{public}s@%zu in slot %zu",
+    O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "saveInSlot", "saving %{public}s@%zu in slot %zu from %{public}s",
                            fmt::format("{:x}", *o2::header::get<DataHeader*>(messages[0]->GetData())).c_str(),
-                           timeslice.value, slot.index);
+                           timeslice.value, slot.index,
+                           info.index.value == ChannelIndex::INVALID ? "invalid" : services.get<FairMQDeviceProxy>().getInputChannel(info.index)->GetName().c_str());
     auto cacheIdx = numInputTypes * slot.index + input;
     MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
@@ -537,7 +540,7 @@ DataRelayer::RelayChoice
       this->pruneCache(slot, onDrop);
       mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
     }
-    saveInSlot(timeslice, input, slot);
+    saveInSlot(timeslice, input, slot, info);
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
     stats.updateStats({static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), DataProcessingStats::Op::Add, (int)1});
@@ -619,7 +622,7 @@ DataRelayer::RelayChoice
       // cache still holds the old data, so we prune it.
       this->pruneCache(slot, onDrop);
       mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
-      saveInSlot(timeslice, input, slot);
+      saveInSlot(timeslice, input, slot, info);
       index.publishSlot(slot);
       index.markAsDirty(slot, true);
       return RelayChoice{.type = RelayChoice::Type::WillRelay};
