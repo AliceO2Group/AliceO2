@@ -18,6 +18,7 @@
 #include "AODJAlienReaderHelpers.h"
 #include <TFile.h>
 #include <TMap.h>
+#include <TGrid.h>
 #include <TObjString.h>
 #include <TString.h>
 #include <fmt/format.h>
@@ -73,6 +74,10 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
         auto filename = registry.get<std::string>("aod-file");
         if (filename.empty()) {
           return {};
+        }
+        if (filename.rfind("alien://", 0) == 0) {
+          LOGP(debug, "AliEn file requested. Enabling support.");
+          TGrid::Connect("alien://");
         }
         LOGP(info, "Loading metadata from file {} in PID {}", filename, getpid());
         std::vector<ConfigParamSpec> results;
