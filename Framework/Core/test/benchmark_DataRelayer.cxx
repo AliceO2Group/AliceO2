@@ -86,8 +86,9 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   inflightMessages.emplace_back(transport->CreateMessage(1000));
   memcpy(inflightMessages[0]->GetData(), stack.data(), stack.size());
 
+  DataRelayer::InputInfo fakeInfo{0, inflightMessages.size(), DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
   for (auto _ : state) {
-    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), inflightMessages.size());
+    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), fakeInfo, inflightMessages.size());
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -144,7 +145,8 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     Stack stack{dh, DataProcessingHeader{timeslice++, 1}};
     memcpy(inflightMessages[0]->GetData(), stack.data(), stack.size());
 
-    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), inflightMessages.size());
+    DataRelayer::InputInfo fakeInfo{0, inflightMessages.size(), DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), fakeInfo, inflightMessages.size());
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -211,13 +213,15 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
   memcpy(inflightMessages[2]->GetData(), stack2.data(), stack2.size());
 
   for (auto _ : state) {
-    relayer.relay(inflightMessages[0]->GetData(), &inflightMessages[0], 2);
+    DataRelayer::InputInfo fakeInfo{0, inflightMessages.size(), DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+    relayer.relay(inflightMessages[0]->GetData(), &inflightMessages[0], fakeInfo, 2);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
-    relayer.relay(inflightMessages[2]->GetData(), &inflightMessages[2], 2);
+    DataRelayer::InputInfo fakeInfo2{0, inflightMessages.size(), DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
+    relayer.relay(inflightMessages[2]->GetData(), &inflightMessages[2], fakeInfo2, 2);
     ready.clear();
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -282,8 +286,9 @@ static void BM_RelaySplitParts(benchmark::State& state)
     inflightMessages.emplace_back(std::move(payload));
   }
 
+  DataRelayer::InputInfo fakeInfo{0, inflightMessages.size(), DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
   for (auto _ : state) {
-    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), inflightMessages.size());
+    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), fakeInfo, inflightMessages.size());
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -336,8 +341,9 @@ static void BM_RelayMultiplePayloads(benchmark::State& state)
     inflightMessages.emplace_back(transport->CreateMessage(dh.payloadSize));
   }
 
+  DataRelayer::InputInfo fakeInfo{0, inflightMessages.size(), DataRelayer::InputType::Data, {ChannelIndex::INVALID}};
   for (auto _ : state) {
-    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), inflightMessages.size(), nPayloads);
+    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), fakeInfo, inflightMessages.size(), nPayloads);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);

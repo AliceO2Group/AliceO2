@@ -1765,28 +1765,14 @@ struct WaitBackpressurePolicy {
 /// boilerplate which the user does not need to care about at top level.
 void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& info)
 {
+  using InputInfo = DataRelayer::InputInfo;
+  using InputType = DataRelayer::InputType;
+
   auto& context = ref.get<DataProcessorContext>();
   // This is the same id as the upper level function, so we get the events
   // associated with the same interval. We will simply use "handle_data" as
   // the category.
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
-
-  enum struct InputType : int {
-    Invalid = 0,
-    Data = 1,
-    SourceInfo = 2,
-    DomainInfo = 3
-  };
-
-  struct InputInfo {
-    InputInfo(size_t p, size_t s, InputType t)
-      : position(p), size(s), type(t)
-    {
-    }
-    size_t position;
-    size_t size;
-    InputType type;
-  };
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
@@ -1804,8 +1790,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     results.reserve(parts.Size() / 2);
     size_t nTotalPayloads = 0;
 
-    auto insertInputInfo = [&results, &nTotalPayloads](size_t position, size_t length, InputType type) {
-      results.emplace_back(position, length, type);
+    auto insertInputInfo = [&results, &nTotalPayloads](size_t position, size_t length, InputType type, ChannelIndex index) {
+      results.emplace_back(position, length, type, index);
       if (type != InputType::Invalid && length > 1) {
         nTotalPayloads += length - 1;
       }
@@ -1817,24 +1803,24 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       if (sih) {
         O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got SourceInfoHeader with state %d", (int)sih->state);
         info.state = sih->state;
-        insertInputInfo(pi, 2, InputType::SourceInfo);
+        insertInputInfo(pi, 2, InputType::SourceInfo, info.id);
         *context.wasActive = true;
         continue;
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
-        insertInputInfo(pi, 2, InputType::DomainInfo);
+        insertInputInfo(pi, 2, InputType::DomainInfo, info.id);
         *context.wasActive = true;
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(headerData);
       if (!dh) {
-        insertInputInfo(pi, 0, InputType::Invalid);
+        insertInputInfo(pi, 0, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header is not a DataHeader?");
         continue;
       }
       if (dh->payloadSize > parts.At(pi + 1)->GetSize()) {
-        insertInputInfo(pi, 0, InputType::Invalid);
+        insertInputInfo(pi, 0, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "DataHeader payloadSize mismatch");
         continue;
       }
@@ -1847,14 +1833,14 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
       }
       if (!dph) {
-        insertInputInfo(pi, 2, InputType::Invalid);
+        insertInputInfo(pi, 2, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header stack does not contain DataProcessingHeader");
         continue;
       }
       if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
         // this is indicating a sequence of payloads following the header
         // FIXME: we will probably also set the DataHeader version
-        insertInputInfo(pi, dh->splitPayloadParts + 1, InputType::Data);
+        insertInputInfo(pi, dh->splitPayloadParts + 1, InputType::Data, info.id);
         pi += dh->splitPayloadParts - 1;
       } else {
         // We can set the type for the next splitPayloadParts
@@ -1864,12 +1850,12 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         size_t finalSplitPayloadIndex = pi + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
         if (finalSplitPayloadIndex > parts.Size()) {
           O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "DataHeader::splitPayloadParts invalid");
-          insertInputInfo(pi, 0, InputType::Invalid);
+          insertInputInfo(pi, 0, InputType::Invalid, info.id);
           continue;
         }
-        insertInputInfo(pi, 2, InputType::Data);
+        insertInputInfo(pi, 2, InputType::Data, info.id);
         for (; pi + 2 < finalSplitPayloadIndex; pi += 2) {
-          insertInputInfo(pi + 2, 2, InputType::Data);
+          insertInputInfo(pi + 2, 2, InputType::Data, info.id);
         }
       }
     }
@@ -1941,6 +1927,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
           };
           auto relayed = relayer.relay(parts.At(headerIndex)->GetData(),
                                        &parts.At(headerIndex),
+                                       input,
                                        nMessages,
                                        nPayloadsPerHeader,
                                        onDrop);
