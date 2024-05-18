@@ -75,11 +75,6 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
         if (filename.empty()) {
           return {};
         }
-        if (filename.rfind("alien://", 0) == 0) {
-          LOGP(debug, "AliEn file requested. Enabling support.");
-          TGrid::Connect("alien://");
-        }
-        LOGP(info, "Loading metadata from file {} in PID {}", filename, getpid());
         std::vector<ConfigParamSpec> results;
         TFile* currentFile = nullptr;
         if (filename.at(0) == '@') {
@@ -91,10 +86,12 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
           }
           std::getline(file, filename);
           file.close();
-          currentFile = TFile::Open(filename.c_str());
-        } else {
-          currentFile = TFile::Open(filename.c_str());
         }
+        if (filename.rfind("alien://", 0) == 0) {
+          TGrid::Connect("alien://");
+        }
+        LOGP(info, "Loading metadata from file {} in PID {}", filename, getpid());
+        currentFile = TFile::Open(filename.c_str());
         if (!currentFile) {
           LOGP(fatal, "Couldn't open file \"{}\"!", filename);
         }
