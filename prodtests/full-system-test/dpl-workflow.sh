@@ -382,8 +382,8 @@ if [[ ! -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS} ]] || [[ ! -z ${WORKFL
   add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS $GLOBAL_READER_OPTIONS $DISABLE_MC $HBFINI_OPTIONS"
   has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --fv0-digit-infile o2_fv0digits.root"
   has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mid-digit-infile mid-digits-decoded.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchdigits.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mch-digit-infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mch-digit-infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-errors-reader-workflow "$HBFINI_OPTIONS" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "$HBFINI_OPTIONS" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "$HBFINI_OPTIONS" "" 0
