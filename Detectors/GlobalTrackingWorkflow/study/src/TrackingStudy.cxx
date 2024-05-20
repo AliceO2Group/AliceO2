@@ -26,6 +26,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -118,8 +119,12 @@ void TrackingStudySpec::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTPCCorrMapsLoader.init(ic);
-  mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("trackStudy.root", "recreate");
-  mDBGOutVtx = std::make_unique<o2::utils::TreeStreamRedirector>("trackStudyVtx.root", "recreate");
+  int lane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  int maxLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+  std::string dbgnm = maxLanes == 1 ? "trackStudy.root" : fmt::format("trackStudy_{}.root", lane);
+  mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(dbgnm.c_str(), "recreate");
+  dbgnm = maxLanes == 1 ? "trackStudyVtx.root" : fmt::format("trackStudyVtx_{}.root", lane);
+  mDBGOutVtx = std::make_unique<o2::utils::TreeStreamRedirector>(dbgnm.c_str(), "recreate");
   mStoreWithITSOnly = ic.options().get<bool>("with-its-only");
   mMaxVTTimeDiff = ic.options().get<float>("max-vtx-timediff");
   mMaxNeighbours = ic.options().get<int>("max-vtx-neighbours");
