@@ -283,7 +283,7 @@ class ITSThresholdCalibrator : public Task
 
   // To set min and max ITHR and VCASN in the tuning scans
   short int inMinVcasn = 30;
-  short int inMaxVcasn = 80;
+  short int inMaxVcasn = 100;
   short int inMinIthr = 30;
   short int inMaxIthr = 100;
 

@@ -789,7 +789,7 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
     }
 
     // Fill the ScTree tree
-    if (mScanType == 'T' || mScanType == 'I' || mScanType == 'V') { // TODO: store also for other scans?
+    if (mScanType == 'T') { // TODO: store also for other scans?
       for (int ichg = mMin; ichg <= mMax; ichg++) {
         for (short int col_i = 0; col_i < this->N_COL; col_i += mColStep) {
           vCharge[col_i] = ichg;
@@ -2023,7 +2023,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"enable-single-pix-tag", VariantType::Bool, false, {"Use to enable tagging of single noisy pix in digital and analogue scan"}},
             {"ccdb-mgr-url", VariantType::String, "", {"CCDB url to download confDBmap"}},
             {"min-vcasn", VariantType::Int, 30, {"Min value of VCASN in vcasn scan, default is 30"}},
-            {"max-vcasn", VariantType::Int, 80, {"Max value of VCASN in vcasn scan, default is 80"}},
+            {"max-vcasn", VariantType::Int, 100, {"Max value of VCASN in vcasn scan, default is 80"}},
             {"min-ithr", VariantType::Int, 30, {"Min value of ITHR in ithr scan, default is 30"}},
             {"max-ithr", VariantType::Int, 100, {"Max value of ITHR in ithr scan, default is 100"}},
             {"manual-mode", VariantType::Bool, false, {"Flag to activate the manual mode in case run type is not recognized"}},
