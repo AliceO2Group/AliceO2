@@ -882,17 +882,9 @@ TGeoVolume* Detector::constructFrameCGeometry()
   Double_t yPMT[NCellsC];
   Double_t zPMT[NCellsC];
 
-  Double_t aPMT[NCellsC];
-  Double_t bPMT[NCellsC];
-  Double_t gPMT[NCellsC];
-
   Double_t xQrad[NCellsC];
   Double_t yQrad[NCellsC];
   Double_t zQrad[NCellsC];
-
-  Double_t aQrad[NCellsC];
-  Double_t bQrad[NCellsC];
-  Double_t gQrad[NCellsC];
 
   Double_t rotC[NCellsC];
   Double_t comC[NCellsC];
@@ -903,31 +895,10 @@ TGeoVolume* Detector::constructFrameCGeometry()
     yPMT[i] = scalePMT * yc2[i];
     zPMT[i] = scalePMT * zc2[i];
 
-    aPMT[i] = TMath::ATan(yPMT[i] / xPMT[i]) - TMath::Pi() / 2 + 2 * TMath::Pi();
-    if (xPMT[i] < 0) {
-      bPMT[i] = TMath::ACos(zPMT[i] / crad);
-    } else {
-      bPMT[i] = -1 * TMath::ACos(zPMT[i] / crad);
-    }
-
-    aPMT[i] *= 180 / TMath::Pi();
-    bPMT[i] *= 180 / TMath::Pi();
-    gPMT[i] = -1 * aPMT[i];
-
     // Quartz radiator transformations
     xQrad[i] = scaleQrad * xc2[i];
     yQrad[i] = scaleQrad * yc2[i];
     zQrad[i] = scaleQrad * zc2[i];
-
-    aQrad[i] = TMath::ATan(yQrad[i] / xQrad[i]) - TMath::Pi() / 2 + 2 * TMath::Pi();
-    if (xQrad[i] < 0) {
-      bQrad[i] = TMath::ACos(zQrad[i] / crad);
-    } else {
-      bQrad[i] = -1 * TMath::ACos(zQrad[i] / crad);
-    }
-    aQrad[i] *= 180 / TMath::Pi();
-    bQrad[i] *= 180 / TMath::Pi();
-    gQrad[i] = -1 * aQrad[i];
   }
 
   TString nameRot;
