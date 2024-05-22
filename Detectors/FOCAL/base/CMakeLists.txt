@@ -10,13 +10,17 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FOCALBase
-    SOURCES src/EventReader.cxx
+    SOURCES src/Composition.cxx
+    src/EventReader.cxx
+    src/Geometry.cxx
     src/TestbeamAnalysis.cxx
     PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL ROOT::RIO ROOT::Tree ROOT::TreePlayer
     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
     FOCALBase
-    HEADERS include/FOCALBase/EventReader.h
+    HEADERS include/FOCALBase/Composition.h
+    include/FOCALBase/EventReader.h
+    include/FOCALBase/Geometry.h
     include/FOCALBase/TestbeamAnalysis.h
 )
