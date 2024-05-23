@@ -1062,7 +1062,7 @@ std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y
   //
   int col = -1, row = -1;
   auto [status, layer, segment] = getVirtualLayerSegment(z);
-  
+
   if (!status) {
     return {false, col, row, layer, segment};
   }
@@ -1078,7 +1078,7 @@ std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y
 
   if (getVirtualIsHCal(segment)) {
     float towerSize = getHCALTowerSize();
-    double beamPipeRadius = 3.0;                             // in cm   TODO check the number is OK (different hardcoded values are used elsewhere)
+    double beamPipeRadius = 3.0; // in cm   TODO check the number is OK (different hardcoded values are used elsewhere)
     double minRadius = beamPipeRadius + towerSize / 2.;
 
     double hCALsizeX = getHCALTowersInX() * towerSize;
