@@ -260,7 +260,8 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot, Da
 
   context.publish([](VariableContext const& variables, TimesliceSlot slot, void* context) {
     auto& states = *static_cast<DataProcessingStates*>(context);
-    std::string state = "";
+    static std::string state = "";
+    state.clear();
     for (size_t i = 0; i < MAX_MATCHING_VARIABLE; ++i) {
       auto var = variables.get(i);
       if (auto pval = std::get_if<uint64_t>(&var)) {
