@@ -28,7 +28,7 @@ class Composition
               float cx, float cy, float cz, float dx, float dy, float dz);
   Composition(Composition* comp);
   Composition(const Composition& comp) = default;
-  ~Composition();
+  ~Composition() = default;
 
   void setCompositionParameters(std::string material, int layer, int stack, int id,
                                 float cx, float cy, float cz, float dx, float dy, float dz)

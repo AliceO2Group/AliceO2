@@ -41,8 +41,3 @@ Composition::Composition(Composition* comp) : mMaterial(nullptr),
 {
   *this = comp;
 }
-
-Composition::~Composition()
-{
-  // Default destructor
-}
