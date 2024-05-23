@@ -197,7 +197,7 @@ class Geometry
   float mGlobal_TOWER_TOLX = 0.0;           // X - tolarance around tower
   float mGlobal_TOWER_TOLY = 0.0;           // Y - tolarance around tower
   float mGlobal_Middle_Tower_Offset = 0.0;  // if odd layers, the middle tower is offset due to the beampipe
-  std::string mGlobal_Gap_Material;         // gap filling material	NOTE: currently not used
+  std::string mGlobal_Gap_Material;         // gap filling material NOTE: currently not used
 
   float mGlobal_HCAL_Tower_Size = 0.0;
   int mGlobal_HCAL_Tower_NX = 0; // Number of HCAL towers on X
