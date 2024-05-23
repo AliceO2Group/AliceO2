@@ -29,12 +29,7 @@ class VirtualSegment
 {
 
  public:
-  VirtualSegment() : mMinLayer(-1),
-                     mMaxLayer(-1),
-                     mPadSize(-1),
-                     mRelativeSensitiveThickness(-1),
-                     mIsPixel(0),
-                     mPixelTreshold(-1)
+  VirtualSegment()
   {
   }
 
@@ -53,12 +48,12 @@ class VirtualSegment
 
   ~VirtualSegment() {}
 
-  int mMinLayer;
-  int mMaxLayer;
-  float mPadSize;
-  float mRelativeSensitiveThickness;
-  int mIsPixel; // 0: pad or strip; 1: pixel; 2: HCAL
-  float mPixelTreshold;
+  int mMinLayer = -1;
+  int mMaxLayer = -1;
+  float mPadSize = -1.0;
+  float mRelativeSensitiveThickness = -1.0;
+  int mIsPixel = 0; // 0: pad or strip; 1: pixel; 2: HCAL
+  float mPixelTreshold = -1.0;
 }; // class VirtualSegment
 
 class Geometry
@@ -66,9 +61,9 @@ class Geometry
  public:
   Geometry() = default;
   Geometry(Geometry* geo);
-  Geometry(const Geometry& geo);
-  Geometry& operator=(const Geometry& geo);
-  ~Geometry();
+  Geometry(const Geometry& geo) = default;
+  Geometry& operator=(const Geometry& geo) = default;
+  ~Geometry() = default;
 
   static Geometry* getInstance();
   static Geometry* getInstance(const std::string name);
@@ -170,66 +165,66 @@ class Geometry
   std::vector<Composition> mHCalCompositionBase;
 
   // PAD setup
-  float mGlobal_Pad_Size;   // pad size
-  int mGlobal_PAD_NX;       // number of X pads in wafer
-  int mGlobal_PAD_NY;       // number of Y pads in wafer
-  int mGlobal_PAD_NX_Tower; // number of X wafers in tower
-  int mGlobal_PAD_NY_Tower; // number of Y wafers in tower
-  float mGlobal_PPTOL;      // tolerance between the wafers
-  float mGlobal_PAD_SKIN;   // dead area (guard ring) on the wafer
-  float mWaferSizeX;        // Wafer X size
-  float mWaferSizeY;        // Wafer Y size
+  float mGlobal_Pad_Size = 0.0;   // pad size
+  int mGlobal_PAD_NX = 0;       // number of X pads in wafer
+  int mGlobal_PAD_NY = 0;       // number of Y pads in wafer
+  int mGlobal_PAD_NX_Tower = 0; // number of X wafers in tower
+  int mGlobal_PAD_NY_Tower = 0; // number of Y wafers in tower
+  float mGlobal_PPTOL = 0.0;      // tolerance between the wafers
+  float mGlobal_PAD_SKIN = 0.0;   // dead area (guard ring) on the wafer
+  float mWaferSizeX = 0.0;        // Wafer X size
+  float mWaferSizeY = 0.0;        // Wafer Y size
 
   // PIX setup
-  float mGlobal_Pixel_Size;  // pixel size
-  float mGlobal_PIX_SizeX;   // sensor size X
-  float mGlobal_PIX_SizeY;   // sensor size Y
-  float mGlobal_PIX_OffsetX; // offset for pixel layers in X
-  float mGlobal_PIX_OffsetY; // offset for pixel layers in Y
-  float mGlobal_PIX_SKIN;
-  int mGlobal_PIX_NX_Tower;   // number of sensors in X
-  int mGlobal_PIX_NY_Tower;   // number of sensors in Y
-  bool mGlobal_Pixel_Readout; // readout on
+  float mGlobal_Pixel_Size = 0.0;  // pixel size
+  float mGlobal_PIX_SizeX = 0.0;   // sensor size X
+  float mGlobal_PIX_SizeY = 0.0;   // sensor size Y
+  float mGlobal_PIX_OffsetX = 0.0; // offset for pixel layers in X
+  float mGlobal_PIX_OffsetY = 0.0; // offset for pixel layers in Y
+  float mGlobal_PIX_SKIN = 0.0;
+  int mGlobal_PIX_NX_Tower = 0;   // number of sensors in X
+  int mGlobal_PIX_NY_Tower = 0;   // number of sensors in Y
+  bool mGlobal_Pixel_Readout = false; // readout on
 
   // Tower setup
-  int mNPadLayers;                   // total number of pad layers
-  int mNPixelLayers;                 // number of pixel layers
-  int mPixelLayerLocations[20];      // location of the pixel layers
-  int mGlobal_Tower_NX;              // How many towers in X
-  int mGlobal_Tower_NY;              // How many towers in Y
-  float mTowerSizeX;                 // X size of tower
-  float mTowerSizeY;                 // Y size of tower
-  float mGlobal_TOWER_TOLX;          // X - tolarance around tower
-  float mGlobal_TOWER_TOLY;          // Y - tolarance around tower
-  float mGlobal_Middle_Tower_Offset; // if odd layers, the middle tower is offset due to the beampipe
+  int mNPadLayers = 0;                   // total number of pad layers
+  int mNPixelLayers = 0;                 // number of pixel layers
+  std::array<int, 20> mPixelLayerLocations;      // location of the pixel layers
+  int mGlobal_Tower_NX = 0;              // How many towers in X
+  int mGlobal_Tower_NY = 0;              // How many towers in Y
+  float mTowerSizeX = 0.0;                 // X size of tower
+  float mTowerSizeY = 0.0;                 // Y size of tower
+  float mGlobal_TOWER_TOLX = 0.0;          // X - tolarance around tower
+  float mGlobal_TOWER_TOLY = 0.0;          // Y - tolarance around tower
+  float mGlobal_Middle_Tower_Offset = 0.0; // if odd layers, the middle tower is offset due to the beampipe
   std::string mGlobal_Gap_Material;  // gap filling material	       // NOTE: currently not used
 
-  float mGlobal_HCAL_Tower_Size;
-  int mGlobal_HCAL_Tower_NX; // Number of HCAL towers on X
-  int mGlobal_HCAL_Tower_NY; // Number of HCAL towers on Y
-  bool mUseSandwichHCAL;
+  float mGlobal_HCAL_Tower_Size = 0.0;
+  int mGlobal_HCAL_Tower_NX = 0; // Number of HCAL towers on X
+  int mGlobal_HCAL_Tower_NY = 0; // Number of HCAL towers on Y
+  bool mUseSandwichHCAL = false;
 
-  float mGlobal_FOCAL_Z0;
+  float mGlobal_FOCAL_Z0 = 0.0;
 
-  bool mInsertFrontPadLayers;           // Have 2 pad layers in front of ECAL for charged particle veto
-  bool mInsertFrontHCalReadoutMaterial; // if true, insert an 1cm thick aluminium layer at 2cm behind HCal to simulate the material introduced by the readout
+  bool mInsertFrontPadLayers = false;           // Have 2 pad layers in front of ECAL for charged particle veto
+  bool mInsertFrontHCalReadoutMaterial = false; // if true, insert an 1cm thick aluminium layer at 2cm behind HCal to simulate the material introduced by the readout
 
-  int mLayerSeg;
-  int mNHCalLayers;                               // number of HCalLayers
+  int mLayerSeg = 0;
+  int mNHCalLayers = 0;                               // number of HCalLayers
   std::array<int, 100> mSegments;                 //  which layer belongs to which segment
   std::array<int, 100> mNumberOfLayersInSegments; // nymber of layers in each segment
-  int mNumberOfSegments;                          // number of long. segements
-  int mNFrontMatterCompositionBase;
+  int mNumberOfSegments = 0;                          // number of long. segements
+  int mNFrontMatterCompositionBase = 0;
   std::array<float, 100> mLocalLayerZ;    //// layer location in z
   std::array<float, 100> mLocalSegmentsZ; /// segment location in z
-  float mFrontMatterLayerThickness;
-  float mPadLayerThickness;
-  float mPixelLayerThickness;
-  float mHCalLayerThickness;
+  float mFrontMatterLayerThickness = 0.0;
+  float mPadLayerThickness = 0.0;
+  float mPixelLayerThickness = 0.0;
+  float mHCalLayerThickness = 0.0;
   std::array<float, 100> mLayerThickness; // thickenss of the layers
   std::list<int> mDisableTowers;
 
-  int mVirtualNSegments;
+  int mVirtualNSegments = 0;
   std::vector<VirtualSegment> mVirtualSegmentComposition;
 
  private:

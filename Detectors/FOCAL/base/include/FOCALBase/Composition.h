@@ -12,6 +12,8 @@
 #ifndef ALICEO2_FOCAL_COMPOSITION_H_
 #define ALICEO2_FOCAL_COMPOSITION_H_
 
+#include <string>
+
 namespace o2
 {
 
@@ -25,11 +27,10 @@ class Composition
   Composition(std::string material, int layer, int stack, int id,
               float cx, float cy, float cz, float dx, float dy, float dz);
   Composition(Composition* comp);
-  Composition(const Composition& comp);
-  Composition& operator=(const Composition& comp);
+  Composition(const Composition& comp) = default;
   ~Composition();
 
-  void SetCompositionParameters(std::string material, int layer, int stack, int id,
+  void setCompositionParameters(std::string material, int layer, int stack, int id,
                                 float cx, float cy, float cz, float dx, float dy, float dz)
   {
     mMaterial = material;
@@ -43,33 +44,33 @@ class Composition
     mSizeY = dy;
     mSizeZ = dz;
   };
-  void SetLayerNumber(int layer) { mLayer = layer; }
-  void SetId(int id) { mId = id; }
-  void SetCenterZ(float val) { mCenterZ = val; }
+  void setLayerNumber(int layer) { mLayer = layer; }
+  void setId(int id) { mId = id; }
+  void setCenterZ(float val) { mCenterZ = val; }
 
-  std::string Material() const { return mMaterial; }
-  int Layer() const { return mLayer; }
-  int Stack() const { return mStack; }
-  int Id() const { return mId; }
-  float CenterX() const { return mCenterX; }
-  float CenterY() const { return mCenterY; }
-  float CenterZ() const { return mCenterZ; }
-  float SizeX() const { return mSizeX; }
-  float SizeY() const { return mSizeY; }
-  float SizeZ() const { return mSizeZ; }
-  float GetThickness(void) const { return mSizeZ; }
+  std::string material() const { return mMaterial; }
+  int layer() const { return mLayer; }
+  int stack() const { return mStack; }
+  int id() const { return mId; }
+  float centerX() const { return mCenterX; }
+  float centerY() const { return mCenterY; }
+  float centerZ() const { return mCenterZ; }
+  float sizeX() const { return mSizeX; }
+  float sizeY() const { return mSizeY; }
+  float sizeZ() const { return mSizeZ; }
+  float getThickness(void) const { return mSizeZ; }
 
  private:
   std::string mMaterial;
-  int mLayer;
-  int mStack;
-  int mId;
-  float mCenterX;
-  float mCenterY;
-  float mCenterZ;
-  float mSizeX;
-  float mSizeY;
-  float mSizeZ;
+  int mLayer = 0;
+  int mStack = 0;
+  int mId = 0;
+  float mCenterX = 0.0;
+  float mCenterY = 0.0;
+  float mCenterZ = 0.0;
+  float mSizeX = 0.0;
+  float mSizeY = 0.0;
+  float mSizeZ = 0.0;
 };
 } // end namespace focal
 } // end namespace o2

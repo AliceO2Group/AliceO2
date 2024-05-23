@@ -28,7 +28,7 @@ Composition::Composition(std::string material, int layer, int stack, int id,
   // Default constructor
 }
 
-Composition::Composition(Composition* comp) : mMaterial(0),
+Composition::Composition(Composition* comp) : mMaterial(nullptr),
                                               mLayer(0),
                                               mStack(0),
                                               mId(0),
@@ -40,36 +40,6 @@ Composition::Composition(Composition* comp) : mMaterial(0),
                                               mSizeZ(0)
 {
   *this = comp;
-}
-
-Composition::Composition(const Composition& comp) : mMaterial(comp.mMaterial),
-                                                    mLayer(comp.mLayer),
-                                                    mStack(comp.mStack),
-                                                    mId(comp.mId),
-                                                    mCenterX(comp.mCenterX),
-                                                    mCenterY(comp.mCenterY),
-                                                    mCenterZ(comp.mCenterZ),
-                                                    mSizeX(comp.mSizeX),
-                                                    mSizeY(comp.mSizeY),
-                                                    mSizeZ(comp.mSizeZ)
-{
-}
-
-Composition& Composition::operator=(const Composition& comp)
-{
-  if (this != &comp) {
-    mMaterial = comp.mMaterial;
-    mLayer = comp.mLayer;
-    mStack = comp.mStack;
-    mId = comp.mId;
-    mCenterX = comp.mCenterX;
-    mCenterY = comp.mCenterY;
-    mCenterZ = comp.mCenterZ;
-    mSizeX = comp.mSizeX;
-    mSizeY = comp.mSizeY;
-    mSizeZ = comp.mSizeZ;
-  }
-  return *this;
 }
 
 Composition::~Composition()

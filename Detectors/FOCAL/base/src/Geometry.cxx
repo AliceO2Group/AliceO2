@@ -11,6 +11,7 @@
 
 // --- Standard library ---
 #include <fstream>
+#include <algorithm>
 
 // --- ROOT system ---
 
@@ -25,210 +26,15 @@ Geometry* Geometry::sGeom = nullptr;
 
 //_________________________________________________________________________
 Geometry::Geometry(Geometry* geo)
-  : mGeometryComposition(),
-    mFrontMatterCompositionBase(),
-    mPadCompositionBase(),
-    mPixelCompositionBase(),
-    mHCalCompositionBase(),
-    mGlobal_Pad_Size(0),
-    mGlobal_PAD_NX(0),
-    mGlobal_PAD_NY(0),
-    mGlobal_PAD_NX_Tower(0),
-    mGlobal_PAD_NY_Tower(0),
-    mGlobal_FOCAL_Z0(0),
-    mGlobal_PPTOL(0),
-    mGlobal_PAD_SKIN(0),
-    mWaferSizeX(0),
-    mWaferSizeY(0),
-    mGlobal_Pixel_Readout(false),
-    mGlobal_Pixel_Size(0),
-    mGlobal_PIX_SizeX(0),
-    mGlobal_PIX_SizeY(0),
-    mGlobal_PIX_OffsetX(0),
-    mGlobal_PIX_OffsetY(0),
-    mGlobal_PIX_SKIN(0),
-    mGlobal_PIX_NX_Tower(0),
-    mGlobal_PIX_NY_Tower(0),
-    mTowerSizeX(0),
-    mTowerSizeY(0),
-    mGlobal_Tower_NX(0),
-    mGlobal_Tower_NY(0),
-    mGlobal_TOWER_TOLX(0),
-    mGlobal_TOWER_TOLY(0),
-    mGlobal_Middle_Tower_Offset(0),
-    mGlobal_Gap_Material(),
-    mUseSandwichHCAL(true),
-    mGlobal_HCAL_Tower_Size(0),
-    mGlobal_HCAL_Tower_NX(0),
-    mGlobal_HCAL_Tower_NY(0),
-    mInsertFrontPadLayers(false),
-    mInsertFrontHCalReadoutMaterial(false),
-    mNPadLayers(0),
-    mNHCalLayers(0),
-    mNPixelLayers(0),
-    mNumberOfSegments(0),
-    mNFrontMatterCompositionBase(0),
-    mFrontMatterLayerThickness(0),
-    mPadLayerThickness(0),
-    mPixelLayerThickness(0),
-    mHCalLayerThickness(0),
-    mDisableTowers(0),
-    mVirtualNSegments(0),
-    mVirtualSegmentComposition()
 {
-  for (int i = 0; i < 20; i++) {
-    mPixelLayerLocations[i] = -1;
-  }
-  for (int i = 0; i < 100; i++) {
-    mSegments[i] = -100;
-    mNumberOfLayersInSegments[i] = -1;
-  }
-  for (int i = 0; i < 100; i++) {
-    mLocalLayerZ[i] = 0;
-    mLocalSegmentsZ[i] = 0;
-    mLayerThickness[i] = 0;
-  }
+  std::fill_n(mPixelLayerLocations.begin(), 20, -1);
+  std::fill_n(mSegments.begin(), 100, -100);
+  std::fill_n(mNumberOfLayersInSegments.begin(), 100, -1);
+  std::fill_n(mLocalLayerZ.begin(), 100, 0.0);
+  std::fill_n(mLocalSegmentsZ.begin(), 100, 0.0);
+  std::fill_n(mLayerThickness.begin(), 100, 0.0);
 
   *this = geo;
-}
-
-//_________________________________________________________________________
-Geometry::Geometry(const Geometry& geo) : mGeometryComposition(geo.mGeometryComposition),
-                                          mFrontMatterCompositionBase(geo.mFrontMatterCompositionBase),
-                                          mPadCompositionBase(geo.mPadCompositionBase),
-                                          mPixelCompositionBase(geo.mPixelCompositionBase),
-                                          mHCalCompositionBase(geo.mHCalCompositionBase),
-                                          mGlobal_Pad_Size(geo.mGlobal_Pad_Size),
-                                          mGlobal_PAD_NX(geo.mGlobal_PAD_NX),
-                                          mGlobal_PAD_NY(geo.mGlobal_PAD_NY),
-                                          mGlobal_PAD_NX_Tower(geo.mGlobal_PAD_NX_Tower),
-                                          mGlobal_PAD_NY_Tower(geo.mGlobal_PAD_NY_Tower),
-                                          mGlobal_FOCAL_Z0(geo.mGlobal_FOCAL_Z0),
-                                          mInsertFrontPadLayers(geo.mInsertFrontPadLayers),
-                                          mInsertFrontHCalReadoutMaterial(geo.mInsertFrontHCalReadoutMaterial),
-                                          mGlobal_PPTOL(geo.mGlobal_PPTOL),
-                                          mGlobal_PAD_SKIN(geo.mGlobal_PAD_SKIN),
-                                          mWaferSizeX(geo.mWaferSizeX),
-                                          mWaferSizeY(geo.mWaferSizeY),
-                                          mGlobal_Pixel_Readout(geo.mGlobal_Pixel_Readout),
-                                          mGlobal_Pixel_Size(geo.mGlobal_Pixel_Size),
-                                          mGlobal_PIX_SizeX(geo.mGlobal_PIX_SizeX),
-                                          mGlobal_PIX_SizeY(geo.mGlobal_PIX_SizeY),
-                                          mGlobal_PIX_OffsetX(geo.mGlobal_PIX_OffsetX),
-                                          mGlobal_PIX_OffsetY(geo.mGlobal_PIX_OffsetY),
-                                          mGlobal_PIX_SKIN(geo.mGlobal_PIX_SKIN),
-                                          mGlobal_PIX_NX_Tower(geo.mGlobal_PIX_NX_Tower),
-                                          mGlobal_PIX_NY_Tower(geo.mGlobal_PIX_NY_Tower),
-                                          mTowerSizeX(geo.mTowerSizeX),
-                                          mTowerSizeY(geo.mTowerSizeY),
-                                          mGlobal_Tower_NX(geo.mGlobal_Tower_NX),
-                                          mGlobal_Tower_NY(geo.mGlobal_Tower_NY),
-                                          mGlobal_TOWER_TOLX(geo.mGlobal_TOWER_TOLX),
-                                          mGlobal_TOWER_TOLY(geo.mGlobal_TOWER_TOLY),
-                                          mGlobal_Middle_Tower_Offset(geo.mGlobal_Middle_Tower_Offset),
-                                          mGlobal_Gap_Material(geo.mGlobal_Gap_Material),
-                                          mUseSandwichHCAL(geo.mUseSandwichHCAL),
-                                          mGlobal_HCAL_Tower_Size(geo.mGlobal_HCAL_Tower_Size),
-                                          mGlobal_HCAL_Tower_NX(geo.mGlobal_HCAL_Tower_NX),
-                                          mGlobal_HCAL_Tower_NY(geo.mGlobal_HCAL_Tower_NY),
-                                          mNPadLayers(geo.mNPadLayers),
-                                          mNHCalLayers(geo.mNHCalLayers),
-                                          mNPixelLayers(geo.mNPixelLayers),
-                                          mNumberOfSegments(geo.mNumberOfSegments),
-                                          mNFrontMatterCompositionBase(geo.mNFrontMatterCompositionBase),
-                                          mFrontMatterLayerThickness(geo.mFrontMatterLayerThickness),
-                                          mPadLayerThickness(geo.mPadLayerThickness),
-                                          mPixelLayerThickness(geo.mPixelLayerThickness),
-                                          mHCalLayerThickness(geo.mHCalLayerThickness),
-                                          mDisableTowers(geo.mDisableTowers),
-                                          mVirtualNSegments(geo.mVirtualNSegments),
-                                          mVirtualSegmentComposition(geo.mVirtualSegmentComposition)
-{
-  for (int i = 0; i < 20; i++) {
-    mPixelLayerLocations[i] = geo.mPixelLayerLocations[i];
-  }
-  for (int i = 0; i < 100; i++) {
-    mSegments[i] = geo.mSegments[i];
-    mNumberOfLayersInSegments[i] = geo.mNumberOfLayersInSegments[i];
-  }
-  for (int i = 0; i < 100; i++) {
-    mLocalLayerZ[i] = geo.mLocalLayerZ[i];
-    mLocalSegmentsZ[i] = geo.mLocalSegmentsZ[i];
-    mLayerThickness[i] = geo.mLayerThickness[i];
-  }
-}
-
-//_________________________________________________________________________
-Geometry& Geometry::operator=(const Geometry& geo)
-{
-  if (this == &geo) {
-    return *this;
-  }
-
-  mGeometryComposition = geo.mGeometryComposition;
-  mFrontMatterCompositionBase = geo.mFrontMatterCompositionBase;
-  mPadCompositionBase = geo.mPadCompositionBase;
-  mPixelCompositionBase = geo.mPixelCompositionBase;
-  mHCalCompositionBase = geo.mHCalCompositionBase;
-  mGlobal_Pad_Size = geo.mGlobal_Pad_Size;
-  mGlobal_PAD_NX = geo.mGlobal_PAD_NX;
-  mGlobal_PAD_NY = geo.mGlobal_PAD_NY;
-  mGlobal_PAD_NX_Tower = geo.mGlobal_PAD_NX_Tower;
-  mGlobal_PAD_NY_Tower = geo.mGlobal_PAD_NY_Tower;
-  mGlobal_FOCAL_Z0 = geo.mGlobal_FOCAL_Z0;
-  mInsertFrontPadLayers = geo.mInsertFrontPadLayers;
-  mInsertFrontHCalReadoutMaterial = geo.mInsertFrontHCalReadoutMaterial;
-  mGlobal_PPTOL = geo.mGlobal_PPTOL;
-  mGlobal_PAD_SKIN = geo.mGlobal_PAD_SKIN;
-  mWaferSizeX = geo.mWaferSizeX;
-  mWaferSizeY = geo.mWaferSizeY;
-  mGlobal_Pixel_Readout = geo.mGlobal_Pixel_Readout;
-  mGlobal_Pixel_Size = geo.mGlobal_Pixel_Size;
-  mGlobal_PIX_SizeX = geo.mGlobal_PIX_SizeX;
-  mGlobal_PIX_SizeY = geo.mGlobal_PIX_SizeY;
-  mGlobal_PIX_OffsetX = geo.mGlobal_PIX_OffsetX;
-  mGlobal_PIX_OffsetY = geo.mGlobal_PIX_OffsetY;
-  mGlobal_PIX_SKIN = geo.mGlobal_PIX_SKIN;
-  mGlobal_PIX_NX_Tower = geo.mGlobal_PIX_NX_Tower;
-  mGlobal_PIX_NY_Tower = geo.mGlobal_PIX_NY_Tower;
-  mTowerSizeX = geo.mTowerSizeX;
-  mTowerSizeY = geo.mTowerSizeY;
-  mGlobal_Tower_NX = geo.mGlobal_Tower_NX;
-  mGlobal_Tower_NY = geo.mGlobal_Tower_NY;
-  mGlobal_TOWER_TOLX = geo.mGlobal_TOWER_TOLX;
-  mGlobal_TOWER_TOLY = geo.mGlobal_TOWER_TOLY;
-  mGlobal_Middle_Tower_Offset = geo.mGlobal_Middle_Tower_Offset;
-  mGlobal_Gap_Material = geo.mGlobal_Gap_Material;
-  mUseSandwichHCAL = geo.mUseSandwichHCAL;
-  mGlobal_HCAL_Tower_Size = geo.mGlobal_HCAL_Tower_Size;
-  mGlobal_HCAL_Tower_NX = geo.mGlobal_HCAL_Tower_NX;
-  mGlobal_HCAL_Tower_NY = geo.mGlobal_HCAL_Tower_NY;
-  mNPadLayers = geo.mNPadLayers;
-  mNHCalLayers = geo.mNHCalLayers;
-  mNPixelLayers = geo.mNPixelLayers;
-  mNumberOfSegments = geo.mNumberOfSegments;
-  mNFrontMatterCompositionBase = geo.mNFrontMatterCompositionBase;
-  mFrontMatterLayerThickness = geo.mFrontMatterLayerThickness;
-  mPadLayerThickness = geo.mPadLayerThickness;
-  mPixelLayerThickness = geo.mPixelLayerThickness;
-  mHCalLayerThickness = geo.mHCalLayerThickness;
-  mDisableTowers = geo.mDisableTowers;
-  mVirtualNSegments = geo.mVirtualNSegments;
-  mVirtualSegmentComposition = geo.mVirtualSegmentComposition;
-
-  for (int i = 0; i < 20; i++) {
-    mPixelLayerLocations[i] = geo.mPixelLayerLocations[i];
-  }
-  for (int i = 0; i < 100; i++) {
-    mSegments[i] = geo.mSegments[i];
-    mNumberOfLayersInSegments[i] = geo.mNumberOfLayersInSegments[i];
-  }
-  for (int i = 0; i < 100; i++) {
-    mLocalLayerZ[i] = geo.mLocalLayerZ[i];
-    mLocalSegmentsZ[i] = geo.mLocalSegmentsZ[i];
-    mLayerThickness[i] = geo.mLayerThickness[i];
-  }
-  return *this;
 }
 
 //_________________________________________________________________________
@@ -265,24 +71,9 @@ Geometry* Geometry::getInstance(std::string filename)
 }
 
 //_________________________________________________________________________
-Geometry::~Geometry()
-{
-  if (this == sGeom) {
-    return;
-  }
-  mGeometryComposition.clear();
-  mPadCompositionBase.clear();
-  mHCalCompositionBase.clear();
-  mPixelCompositionBase.clear();
-  mFrontMatterCompositionBase.clear();
-
-  sInit = false;
-}
-
-//_________________________________________________________________________
 void Geometry::init(std::string filename)
 {
-  if (filename.compare("default")) {
+  if (filename != "default") {
     setParameters(filename);
   } else {
     setParameters();
@@ -323,14 +114,14 @@ void Geometry::buildComposition()
         // create pixel compositions
         LOG(debug) << "Adding pixel layer at layer " << i;
         for (auto& icomp : mPixelCompositionBase) {
-          icomp.SetLayerNumber(i);
+          icomp.setLayerNumber(i);
           mGeometryComposition.push_back(icomp);
         }
         mLayerThickness[i] = mPixelLayerThickness;
       } else {
         // create pad compositions
         for (auto& icomp : mPadCompositionBase) {
-          icomp.SetLayerNumber(i);
+          icomp.setLayerNumber(i);
           mGeometryComposition.push_back(icomp);
         }
         mLayerThickness[i] = mPadLayerThickness;
@@ -338,7 +129,7 @@ void Geometry::buildComposition()
     } else {
       // create hcal compositions
       for (auto& icomp : mHCalCompositionBase) {
-        icomp.SetLayerNumber(i);
+        icomp.setLayerNumber(i);
         mGeometryComposition.push_back(icomp);
       }
       mLayerThickness[i] = mHCalLayerThickness;
@@ -359,16 +150,16 @@ void Geometry::buildComposition()
 
   ////// add the front matter to the tower
   for (auto& icomp : mFrontMatterCompositionBase) {
-    icomp.SetLayerNumber(-1);
+    icomp.setLayerNumber(-1);
     mGeometryComposition.push_back(icomp);
   }
 
   //// re-iterate to set the longitudinal positions
   for (auto& icomp : mGeometryComposition) {
-    if (icomp.Layer() >= 0) {
-      icomp.SetCenterZ(mFrontMatterLayerThickness + mLocalLayerZ[icomp.Layer()] + icomp.CenterZ() + icomp.SizeZ() / 2); /// this is pad/strip layer
+    if (icomp.layer() >= 0) {
+      icomp.setCenterZ(mFrontMatterLayerThickness + mLocalLayerZ[icomp.layer()] + icomp.centerZ() + icomp.sizeZ() / 2); /// this is pad/strip layer
     } else {
-      icomp.SetCenterZ(icomp.CenterZ() + icomp.SizeZ() / 2); /// this is frontmatter
+      icomp.setCenterZ(icomp.centerZ() + icomp.sizeZ() / 2); /// this is frontmatter
     }
   }
 }
@@ -430,14 +221,10 @@ void Geometry::setParameters(std::string geometryfile)
     LOG(info) << "Using geometry file " << geometryfile;
   }
 
-  std::vector<Composition> padCompDummy;
-  padCompDummy.reserve(10);
-  std::vector<Composition> hCalCompDummy;
-  hCalCompDummy.reserve(10);
-  std::vector<Composition> pixelCompDummy;
-  pixelCompDummy.reserve(10);
-  std::vector<Composition> frontMatterCompDummy;
-  frontMatterCompDummy.reserve(10);
+  std::vector<Composition> padCompDummy(10);
+  std::vector<Composition> hCalCompDummy(10);
+  std::vector<Composition> pixelCompDummy(10);
+  std::vector<Composition> frontMatterCompDummy(10);
   int nPad = 0;
   int hHCal = 0;
   int nPixel = 0;
@@ -462,7 +249,7 @@ void Geometry::setParameters(std::string geometryfile)
     std::stringstream str(input);
     std::string tmpStr;
     while (getline(str, tmpStr, ' ')) {
-      if (tmpStr[0] == '\0') {
+      if (tmpStr.empty()) {
         continue;
       }
       tokens.push_back(tmpStr);
@@ -473,8 +260,6 @@ void Geometry::setParameters(std::string geometryfile)
 
     if (command.find("COMPOSITION") != std::string::npos) /// definition of the composition
     {
-      char* cdata = (char*)command.c_str();
-
       std::string material = tokens[1];
       float cx = std::stof(tokens[2]);
       float cy = std::stof(tokens[3]);
@@ -488,32 +273,28 @@ void Geometry::setParameters(std::string geometryfile)
 
       int stack;
       if (command.find("PAD") != std::string::npos) {
-        sscanf(cdata, "COMPOSITION_PAD_S%d", &stack);
-        padCompDummy.push_back(*(new Composition(material, stack, stack, 0, cx, cy, cz, dx, dy, dz)));
-        //(*(padCompDummy.end()-1)).SetCompositionParameters(material, stack, stack, 0, cx,cy,cz,dx,dy,dz);
+        sscanf(command.c_str(), "COMPOSITION_PAD_S%d", &stack);
+        padCompDummy.emplace_back(material, stack, stack, 0, cx, cy, cz, dx, dy, dz);
         nPad++;
       }
 
       if (command.find("HCAL") != std::string::npos) {
-        sscanf(cdata, "COMPOSITION_HCAL_S%d", &stack);
-        hCalCompDummy.push_back(*(new Composition(material, stack, stack, 0, cx, cy, cz, dx, dy, dz)));
-        //(*(hCalCompDummy.end()-1)).SetCompositionParameters(material, stack, stack, 0, cx,cy,cz,dx,dy,dz);
+        sscanf(command.c_str(), "COMPOSITION_HCAL_S%d", &stack);
+        hCalCompDummy.emplace_back(material, stack, stack, 0, cx, cy, cz, dx, dy, dz);
         hHCal++;
       }
 
       if (command.find("PIX") != std::string::npos) {
-        sscanf(cdata, "COMPOSITION_PIX_S%d", &stack);
-        pixelCompDummy.push_back(*(new Composition(material, stack, stack, 0, cx, cy, cz, dx, dy, dz)));
-        //(*(pixelCompDummy.end()-1)).SetCompositionParameters(material, stack, stack, 0, cx,cy,cz,dx,dy,dz);
+        sscanf(command.c_str(), "COMPOSITION_PIX_S%d", &stack);
+        pixelCompDummy.emplace_back(material, stack, stack, 0, cx, cy, cz, dx, dy, dz);
         mGlobal_PIX_SizeX = dx;
         mGlobal_PIX_SizeY = dy;
         nPixel++;
       }
 
       if (command.find("FM") != std::string::npos) {
-        sscanf(cdata, "COMPOSITION_FM_S%d", &stack);
-        frontMatterCompDummy.push_back(*(new Composition(material, stack, stack, 0, cx, cy, cz, dx, dy, dz)));
-        //(*(frontMatterCompDummy.end()-1)).SetCompositionParameters(material, stack, stack, 0, cx, cy, cz, dx, dy, dz);
+        sscanf(command.c_str(), "COMPOSITION_FM_S%d", &stack);
+        frontMatterCompDummy.emplace_back(material, stack, stack, 0, cx, cy, cz, dx, dy, dz);
         nFrontMatter++;
       }
     } // end if COMPOSITION
@@ -650,9 +431,8 @@ void Geometry::setParameters(std::string geometryfile)
         LOG(debug) << "Number of Segments " << mNumberOfSegments;
       }
 
-      char* cdata = (char*)command.c_str();
       if (command.find("INSERT_PIX") != std::string::npos) {
-        sscanf(cdata, "COMMAND_INSERT_PIX_AT_L%d", &pixl[npixlayers]);
+        sscanf(command.c_str(), "COMMAND_INSERT_PIX_AT_L%d", &pixl[npixlayers]);
         LOG(debug) << "Number of pixel layer " << npixlayers << " : location " << pixl[npixlayers];
         npixlayers++;
       }
@@ -679,8 +459,6 @@ void Geometry::setParameters(std::string geometryfile)
       int segment, minlayer, maxLayer, isPixel;
       float padSize, sensitiveThickness, pixelTreshold;
 
-      char* cdata = (char*)command.c_str();
-
       if (command.find("N_SEGMENTS") != std::string::npos) {
         mVirtualNSegments = std::stoi(tokens[1]);
         LOG(debug) << "Number of Virtual Segments is set to : " << mVirtualNSegments;
@@ -698,18 +476,18 @@ void Geometry::setParameters(std::string geometryfile)
           if (mVirtualNSegments <= 0) {
             LOG(debug) << "Making 20 segments";
             for (int seg = 0; seg < 20; seg++) {
-              mVirtualSegmentComposition.push_back(*(new VirtualSegment()));
+              mVirtualSegmentComposition.emplace_back();
             }
             mVirtualNSegments = 20;
           } else {
             LOG(debug) << "Making " << mVirtualNSegments << " segments";
             for (int seg = 0; seg < mVirtualNSegments; seg++) {
-              mVirtualSegmentComposition.push_back(*(new VirtualSegment()));
+              mVirtualSegmentComposition.emplace_back();
             }
           }
         }
 
-        sscanf(cdata, "VIRTUAL_SEGMENT_LAYOUT_N%d", &segment);
+        sscanf(command.c_str(), "VIRTUAL_SEGMENT_LAYOUT_N%d", &segment);
         if (segment > mVirtualNSegments) {
           continue;
         }
@@ -768,31 +546,29 @@ void Geometry::setParameters(std::string geometryfile)
   mFrontMatterCompositionBase.reserve(200);
 
   for (auto& tmpComp : padCompDummy) {
-    LOG(debug) << "Material(pad layer) " << tmpComp.Material();
-    LOG(debug) << "layer / stack / id :: " << tmpComp.Layer() << " / " << tmpComp.Stack() << " / " << tmpComp.Id();
-    LOG(debug) << "center x,y,dz :: " << tmpComp.SizeX() << " / " << tmpComp.SizeY() << " / " << tmpComp.SizeZ();
-    if (tmpComp.Material().compare("SiPad")) { // materials other than SiPad
-      mPadCompositionBase.push_back(*(new Composition(tmpComp.Material(),
-                                                      tmpComp.Layer(), tmpComp.Stack(), tmpComp.Id(),
-                                                      tmpComp.CenterX(), tmpComp.CenterY(), center_z,
-                                                      mTowerSizeX, mTowerSizeY, tmpComp.SizeZ())));
-      if (mTowerSizeX < tmpComp.SizeX()) {
-        mTowerSizeX = tmpComp.SizeX();
+    LOG(debug) << "Material(pad layer) " << tmpComp.material();
+    LOG(debug) << "layer / stack / id :: " << tmpComp.layer() << " / " << tmpComp.stack() << " / " << tmpComp.id();
+    LOG(debug) << "center x,y,dz :: " << tmpComp.sizeX() << " / " << tmpComp.sizeY() << " / " << tmpComp.sizeZ();
+    if (tmpComp.material().compare("SiPad")) { // materials other than SiPad
+      mPadCompositionBase.emplace_back(tmpComp.material(), tmpComp.layer(), tmpComp.stack(), tmpComp.id(),
+                                       tmpComp.centerX(), tmpComp.centerY(), center_z,
+                                       mTowerSizeX, mTowerSizeY, tmpComp.sizeZ());
+      if (mTowerSizeX < tmpComp.sizeX()) {
+        mTowerSizeX = tmpComp.sizeX();
       }
-      if (mTowerSizeY < tmpComp.SizeY()) {
-        mTowerSizeY = tmpComp.SizeY();
+      if (mTowerSizeY < tmpComp.sizeY()) {
+        mTowerSizeY = tmpComp.sizeY();
       }
     } else {
       for (int itowerX = 0; itowerX < mGlobal_PAD_NX_Tower; itowerX++) {
         for (int itowerY = 0; itowerY < mGlobal_PAD_NY_Tower; itowerY++) {
           for (int ix = 0; ix < mGlobal_PAD_NX; ix++) {
             for (int iy = 0; iy < mGlobal_PAD_NY; iy++) {
-              auto padCenter = getGeoPadCenterLocal(itowerX, itowerY, iy, ix);
-              mPadCompositionBase.push_back(*(new Composition("SiPad",
-                                                              tmpComp.Layer(), tmpComp.Stack(),
-                                                              ix + iy * mGlobal_PAD_NX + itowerX * mGlobal_PAD_NX * mGlobal_PAD_NY + itowerY * mGlobal_PAD_NX_Tower * mGlobal_PAD_NX * mGlobal_PAD_NY,
-                                                              std::get<0>(padCenter), std::get<1>(padCenter), center_z,
-                                                              mGlobal_Pad_Size, mGlobal_Pad_Size, tmpComp.SizeZ())));
+              auto [x, y] = getGeoPadCenterLocal(itowerX, itowerY, iy, ix);
+              mPadCompositionBase.emplace_back("SiPad", tmpComp.layer(), tmpComp.stack(),
+                                               ix + iy * mGlobal_PAD_NX + itowerX * mGlobal_PAD_NX * mGlobal_PAD_NY + itowerY * mGlobal_PAD_NX_Tower * mGlobal_PAD_NX * mGlobal_PAD_NY,
+                                               x, y, center_z,
+                                               mGlobal_Pad_Size, mGlobal_Pad_Size, tmpComp.sizeZ());
               if (mTowerSizeX < mGlobal_Pad_Size) {
                 mTowerSizeX = mGlobal_Pad_Size;
               }
@@ -804,7 +580,7 @@ void Geometry::setParameters(std::string geometryfile)
         } // end for itowerY
       }   // end for itowerX
     }     // end else
-    center_z += tmpComp.GetThickness();
+    center_z += tmpComp.getThickness();
   } // end loop over pad layer compositions
   LOG(debug) << "============ Created all pad layer compositions (" << mPadCompositionBase.size() << " volumes)";
 
@@ -814,25 +590,23 @@ void Geometry::setParameters(std::string geometryfile)
 
   center_z = 0;
   for (auto& tmpComp : pixelCompDummy) {
-    LOG(debug) << "Material (pixel layer) " << tmpComp.Material();
-    LOG(debug) << "layer / stack / id :: " << tmpComp.Layer() << " / " << tmpComp.Stack() << " / " << tmpComp.Id();
-    LOG(debug) << "center x,y,dz :: " << tmpComp.SizeX() << " / " << tmpComp.SizeY() << " / " << tmpComp.SizeZ();
-    if (tmpComp.Material().compare("SiPix")) {
-      mPixelCompositionBase.push_back(*(new Composition(tmpComp.Material(),
-                                                        mPixelLayerLocations[0], tmpComp.Stack(), tmpComp.Id(),
-                                                        tmpComp.CenterX(), tmpComp.CenterY(), center_z, mTowerSizeX, mTowerSizeY, tmpComp.SizeZ())));
+    LOG(debug) << "Material (pixel layer) " << tmpComp.material();
+    LOG(debug) << "layer / stack / id :: " << tmpComp.layer() << " / " << tmpComp.stack() << " / " << tmpComp.id();
+    LOG(debug) << "center x,y,dz :: " << tmpComp.sizeX() << " / " << tmpComp.sizeY() << " / " << tmpComp.sizeZ();
+    if (tmpComp.material().compare("SiPix")) {
+      mPixelCompositionBase.emplace_back(tmpComp.material(), mPixelLayerLocations[0], tmpComp.stack(), tmpComp.id(),
+                                         tmpComp.centerX(), tmpComp.centerY(), center_z, mTowerSizeX, mTowerSizeY, tmpComp.sizeZ());
     } else {
       for (int ix = 0; ix < mGlobal_PIX_NX_Tower; ix++) {
         for (int iy = 0; iy < mGlobal_PIX_NY_Tower; iy++) {
-          auto pixCenter = getGeoPixCenterLocal(iy, ix);
-          mPixelCompositionBase.push_back(*(new Composition("SiPix", tmpComp.Layer(), tmpComp.Stack(),
-                                                            ix + iy * mGlobal_PIX_NX_Tower,
-                                                            std::get<0>(pixCenter), std::get<1>(pixCenter), center_z,
-                                                            mGlobal_PIX_SizeX, mGlobal_PIX_SizeY, tmpComp.SizeZ())));
+          auto [pixX, pixY] = getGeoPixCenterLocal(iy, ix);
+          mPixelCompositionBase.emplace_back("SiPix", tmpComp.layer(), tmpComp.stack(), ix + iy * mGlobal_PIX_NX_Tower,
+                                             pixX, pixY, center_z,
+                                             mGlobal_PIX_SizeX, mGlobal_PIX_SizeY, tmpComp.sizeZ());
         }
       }
     }
-    center_z += tmpComp.GetThickness();
+    center_z += tmpComp.getThickness();
   }
   LOG(debug) << "============ Created all pixel layer compositions (" << mPixelCompositionBase.size() << " volumes)";
   mPixelLayerThickness = center_z;
@@ -840,17 +614,16 @@ void Geometry::setParameters(std::string geometryfile)
   // Add HCal Layers
   center_z = 0;
   for (auto& tmpComp : hCalCompDummy) {
-    LOG(debug) << "Material (hcal) " << tmpComp.Material();
-    LOG(debug) << "layer / stack / id :: " << tmpComp.Layer() << " / " << tmpComp.Stack() << " / " << tmpComp.Id();
-    LOG(debug) << "center x,y,dz :: " << tmpComp.SizeX() << " / " << tmpComp.SizeY() << " / " << tmpComp.SizeZ();
-    mHCalCompositionBase.push_back(*(new Composition(tmpComp.Material(), tmpComp.Layer(), tmpComp.Stack(),
-                                                     tmpComp.Id(),
-                                                     tmpComp.CenterX(), tmpComp.CenterY(), mNHCalLayers == 1 ? 0. : center_z, // if we decided to use the spagetti HCAL it will be only one layer with two compositions
-                                                     tmpComp.SizeX(), tmpComp.SizeY(), tmpComp.SizeZ())));
+    LOG(debug) << "Material (hcal) " << tmpComp.material();
+    LOG(debug) << "layer / stack / id :: " << tmpComp.layer() << " / " << tmpComp.stack() << " / " << tmpComp.id();
+    LOG(debug) << "center x,y,dz :: " << tmpComp.sizeX() << " / " << tmpComp.sizeY() << " / " << tmpComp.sizeZ();
+    mHCalCompositionBase.emplace_back(tmpComp.material(), tmpComp.layer(), tmpComp.stack(), tmpComp.id(),
+                                      tmpComp.centerX(), tmpComp.centerY(), mNHCalLayers == 1 ? 0. : center_z, // if we decided to use the spagetti HCAL it will be only one layer with two compositions
+                                      tmpComp.sizeX(), tmpComp.sizeY(), tmpComp.sizeZ());
     if (mNHCalLayers == 1) {
-      center_z = tmpComp.GetThickness();
+      center_z = tmpComp.getThickness();
     } else {
-      center_z += tmpComp.GetThickness();
+      center_z += tmpComp.getThickness();
     }
   }
   LOG(debug) << "============ Created all hcal compositions (" << mHCalCompositionBase.size() << " volumes)";
@@ -866,7 +639,7 @@ const Composition* Geometry::getComposition(int layer, int stack) const
 {
 
   for (auto& icomp : mGeometryComposition) {
-    if (icomp.Layer() == layer && icomp.Stack() == stack) {
+    if (icomp.layer() == layer && icomp.stack() == stack) {
       return &icomp;
     }
   }
@@ -886,16 +659,16 @@ std::tuple<double, double, double> Geometry::getGeoTowerCenter(int tower, int se
 
   double x = itowerx * dwx + 0.5 * dwx - 0.5 * getFOCALSizeX();
   double y = itowery * dwy + 0.5 * dwy - 0.5 * getFOCALSizeY();
-  if (itowerx == 0 && itowery == 5)
+  if (itowerx == 0 && itowery == 5) {
     x -= mGlobal_Middle_Tower_Offset;
-  if (itowerx == 1 && itowery == 5)
+  }
+  if (itowerx == 1 && itowery == 5) {
     x += mGlobal_Middle_Tower_Offset;
+  }
 
   // From here is HCal stuff
   if (getVirtualIsHCal(segment)) {
-    auto info = getVirtualNColRow(segment);
-    int nCols = std::get<1>(info);
-    int nRows = std::get<2>(info);
+    auto [status, nCols, nRows] = getVirtualNColRow(segment);
     int ix = id % nCols;
     int iy = id / nRows;
 
@@ -943,29 +716,29 @@ std::tuple<double, double, double> Geometry::getGeoTowerCenter(int tower, int se
 //_________________________________________________________________________
 std::tuple<double, double, double> Geometry::getGeoCompositionCenter(int tower, int layer, int stack) const
 {
-  auto segInfo = getVirtualSegmentFromLayer(layer);
-  auto towCenter = getGeoTowerCenter(tower, std::get<1>(segInfo));
-  double z = std::get<2>(towCenter);
+  auto [status, segment] = getVirtualSegmentFromLayer(layer);
+  auto [towX, towY, towZ] = getGeoTowerCenter(tower, segment);
+  double z = towZ;
 
   Composition* comp1 = (Composition*)getComposition(layer, stack);
   if (comp1 == nullptr) {
     z = z + mLocalLayerZ[layer] - getFOCALSizeZ() / 2;
   } else {
-    z = comp1->CenterZ() - getFOCALSizeZ() / 2 + getFOCALZ0();
+    z = comp1->centerZ() - getFOCALSizeZ() / 2 + getFOCALZ0();
   }
-  return {std::get<0>(towCenter), std::get<1>(towCenter), z};
+  return {towX, towY, z};
 }
 
 //_________________________________________________________________________
 /// this gives global position of the pad
 std::tuple<double, double, double> Geometry::getGeoPadCenter(int tower, int layer, int stack, int row, int col) const
 {
-  auto compCenter = getGeoCompositionCenter(tower, layer, stack);
+  auto [x, y, z] = getGeoCompositionCenter(tower, layer, stack);
   int itowerx = tower % mGlobal_PAD_NX_Tower;
   int itowery = tower / mGlobal_PAD_NX_Tower;
-  auto padCenter = getGeoPadCenterLocal(itowerx, itowery, row, col);
+  auto [padX, padY] = getGeoPadCenterLocal(itowerx, itowery, row, col);
 
-  return {std::get<0>(compCenter) + std::get<0>(padCenter), std::get<1>(compCenter) + std::get<1>(padCenter), std::get<2>(compCenter)};
+  return {x + padX, y + padY, z};
 }
 
 //_________________________________________________________________________
@@ -1100,7 +873,7 @@ std::tuple<int, int, int, int, int, int, int> Geometry::getPadPositionId2RowColS
 {
 
   ////  id contains loction of pads in the tower, pad stack, pad layer
-  /////  (fComp->Id()) + (fComp->Stack() << 12) + (fComp->Layer() << 16) +1 ;
+  /////  (fComp->id()) + (fComp->stack() << 12) + (fComp->layer() << 16) +1 ;
   /////
   int number = id - 1;
   int padid = (number & 0xfff);
@@ -1109,8 +882,7 @@ std::tuple<int, int, int, int, int, int, int> Geometry::getPadPositionId2RowColS
   int lay = (number >> 16) & 0x000f;
 
   // seg = fSegments[lay];
-  auto segInfo = getVirtualSegmentFromLayer(lay); // NOTE: to be checked since this overrides the initialization above
-  int seg = std::get<1>(segInfo);
+  auto [status, seg] = getVirtualSegmentFromLayer(lay); // NOTE: to be checked since this overrides the initialization above
   /*col = padid%mGlobal_PAD_NX;
   row = padid/mGlobal_PAD_NX;*/
   int waferx = 0;
@@ -1127,15 +899,13 @@ std::tuple<int, int, int, int, int, int, int> Geometry::getPadPositionId2RowColS
     int remainder = (padid - col) / mGlobal_PAD_NX;
     row = remainder % mGlobal_PAD_NY;
     remainder = (remainder - row) / mGlobal_PAD_NY;
-    int waferx = remainder % mGlobal_PAD_NX_Tower;
-    int wafery = remainder / mGlobal_PAD_NX_Tower;
+    waferx = remainder % mGlobal_PAD_NX_Tower;
+    wafery = remainder / mGlobal_PAD_NX_Tower;
   }
   /*cout << "FROM GEOMETRY  stack/lay/seg/waferx/wafery/col/row :: " << stack << " / " << lay << " / " << seg << " / "
        << waferx << " / " << wafery << " / " << col << " / " << row << endl;*/
   if (getVirtualIsHCal(seg)) {
-    auto info = getVirtualNColRow(seg);
-    int nCols = std::get<1>(info);
-    int nRows = std::get<2>(info);
+    auto [status, nCols, nRows] = getVirtualNColRow(seg);
     col = id % nCols;
     row = id / nRows;
   }
@@ -1207,7 +977,6 @@ void Geometry::setUpLayerSegmentMap()
 /// the pad is divided into the pixels with the size of mGlobal_ Pixel_Size
 int Geometry::getPixelNumber(int vol0, int vol1, int /*vol2*/, double x, double y) const
 {
-
   int ret = 0;
   if (mGlobal_Pixel_Readout == false) {
     ret = -1;
@@ -1217,19 +986,11 @@ int Geometry::getPixelNumber(int vol0, int vol1, int /*vol2*/, double x, double 
   // int tower = vol1;
   // int brick = vol2;  /// meaning 0 in the current design
 
-  auto info = getPadPositionId2RowColStackLayer(id);
-  int row = std::get<0>(info);
-  int col = std::get<1>(info);
-  int stack = std::get<2>(info);
-  int layer = std::get<3>(info);
-  int segment = std::get<4>(info);
-  int waferX = std::get<5>(info);
-  int waferY = std::get<6>(info);
+  auto [row, col, stack, layer, segment, waferX, waferY] = getPadPositionId2RowColStackLayer(id);
+  auto [pixX, pixY] = getGeoPixCenterLocal(row, col);
 
-  auto pixCenter = getGeoPixCenterLocal(row, col);
-
-  double x_loc = x - std::get<0>(pixCenter);
-  double y_loc = y - std::get<1>(pixCenter);
+  double x_loc = x - pixX;
+  double y_loc = y - pixY;
   double pixel_nbr_x = ((x_loc + 0.5 * getGlobalPixelWaferSizeX()) / (mGlobal_Pixel_Size));
   double pixel_nbr_y = ((y_loc + 0.5 * getGlobalPixelWaferSizeY()) / (mGlobal_Pixel_Size));
 
@@ -1274,23 +1035,14 @@ void Geometry::setUpTowerWaferSize()
 //_________________________________________________________________________
 bool Geometry::disabledTower(int tower)
 {
-
-  std::list<int>::iterator it = mDisableTowers.begin();
-  while (it != mDisableTowers.end()) {
-    int ch = *it;
-    if (ch == tower) {
-      return true;
-    }
-    ++it;
-  }
-  return false;
+  return std::find(mDisableTowers.begin(), mDisableTowers.end(), tower) != mDisableTowers.end();
 }
 
 //_________________________________________________________________________
 /// this gives global position of the pixel
 std::tuple<double, double, double> Geometry::getGeoPixelCenter(int pixel, int tower, int layer, int stack, int row, int col) const
 {
-  auto center0 = getGeoPadCenter(tower, layer, stack, row, col);
+  auto [x0, y0, z0] = getGeoPadCenter(tower, layer, stack, row, col);
 
   int pixel_y = pixel & 0xff;
   int pixel_x = (pixel >> 8) & 0xff;
@@ -1299,7 +1051,7 @@ std::tuple<double, double, double> Geometry::getGeoPixelCenter(int pixel, int to
   x1 = pixel_x * mGlobal_Pixel_Size + 0.5 * mGlobal_Pixel_Size - 0.5 * mGlobal_Pad_Size;
   y1 = pixel_y * mGlobal_Pixel_Size + 0.5 * mGlobal_Pixel_Size - 0.5 * mGlobal_Pad_Size;
 
-  return {x1 + std::get<0>(center0), y1 + std::get<1>(center0), std::get<2>(center0)};
+  return {x1 + x0, y1 + y0, z0};
 }
 
 std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y, double z) const
@@ -1308,11 +1060,10 @@ std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y
   // Calculate col, row, layer, (virtual) segment from x,y,z
   // returns false if outside volume
   //
-  int col, row;
-  auto info = getVirtualLayerSegment(z);
-  int layer = std::get<1>(info);
-  int segment = std::get<2>(info);
-  if (!std::get<0>(info)) {
+  int col = -1, row = -1;
+  auto [status, layer, segment] = getVirtualLayerSegment(z);
+  
+  if (!status) {
     return {false, col, row, layer, segment};
   }
   if (segment == -1) {
@@ -1328,7 +1079,6 @@ std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y
   if (getVirtualIsHCal(segment)) {
     float towerSize = getHCALTowerSize();
     double beamPipeRadius = 3.0;                             // in cm   TODO check the number is OK (different hardcoded values are used elsewhere)
-    double towerHalfDiag = std::sqrt(2.0) * 0.5 * towerSize; // tower half diagonal
     double minRadius = beamPipeRadius + towerSize / 2.;
 
     double hCALsizeX = getHCALTowersInX() * towerSize;
@@ -1360,7 +1110,7 @@ std::tuple<bool, int, int, int, int> Geometry::getVirtualInfo(double x, double y
 std::tuple<bool, double, double, double> Geometry::getXYZFromColRowSeg(int col, int row, int segment) const
 {
 
-  double x, y, z;
+  double x = 0.0, y = 0.0, z = 0.0;
   if (segment > mVirtualNSegments) {
     return {false, x, y, z};
   }
@@ -1401,7 +1151,7 @@ std::tuple<bool, int, int> Geometry::getVirtualNColRow(int segment) const
 {
 
   // ix + iy*mGlobal_PAD_NX + itowerX*mGlobal_PAD_NX*mGlobal_PAD_NY + itowerY*mGlobal_PAD_NX_Tower*mGlobal_PAD_NX*mGlobal_PAD_NY
-  int nCol, nRow;
+  int nCol = -1, nRow = -1;
   if (mVirtualSegmentComposition.size() == 0) {
     return {false, nCol, nRow};
   }
@@ -1487,8 +1237,8 @@ std::tuple<bool, int> Geometry::getVirtualSegmentFromLayer(int layer) const
 //_______________________________________________________________________
 int Geometry::getVirtualSegment(float z) const
 {
-  auto info = getVirtualLayerSegment(z);
-  return std::get<2>(info);
+  auto [status, layer, segment] = getVirtualLayerSegment(z);
+  return segment;
 }
 
 //_______________________________________________________________________
