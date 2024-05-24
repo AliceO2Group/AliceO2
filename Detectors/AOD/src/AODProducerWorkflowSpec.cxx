@@ -1923,9 +1923,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     mcCollisionsCursor.reserve(totalNParts);
 
     for (int iCol = 0; iCol < nMCCollisions; iCol++) {
-      auto time = mcRecords[iCol].getTimeNS();
-      auto globalBC = mcRecords[iCol].toLong();
-      auto item = bcsMap.find(globalBC);
+      const auto time = mcRecords[iCol].getTimeOffsetWrtBC();
+      const auto globalBC = mcRecords[iCol].toLong();
+      const auto item = bcsMap.find(globalBC);
       int bcID = -1;
       if (item != bcsMap.end()) {
         bcID = item->second;
@@ -1934,17 +1934,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                    << "for MC collision; BC = " << globalBC
                    << ", mc collision = " << iCol;
       }
-      auto& colParts = mcParts[iCol];
-      auto nParts = colParts.size();
-      for (auto colPart : colParts) {
-        auto eventID = colPart.entryID;
-        auto sourceID = colPart.sourceID;
+      const auto& colParts = mcParts[iCol];
+      const auto nParts = colParts.size();
+      for (const auto colPart : colParts) {
+        const auto eventID = colPart.entryID;
+        const auto sourceID = colPart.sourceID;
         // enable embedding: if several colParts exist, then they are
         // saved as one collision
         if (nParts == 1 || sourceID == 0) {
           // FIXME:
           // use generators' names for generatorIDs (?)
-          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          const auto& header = mcReader->getMCEventHeader(sourceID, eventID);
           updateMCHeader(mcCollisionsCursor.cursor,
                          hepmcXSectionsCursor.cursor,
                          hepmcPdfInfosCursor.cursor,
