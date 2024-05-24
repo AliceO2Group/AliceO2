@@ -1317,3 +1317,5 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 }
 
 ClassImp(o2::its::Detector);
+
+BOOST_DLL_ALIAS(o2::its::Detector::create, create_Detector_its)

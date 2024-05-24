@@ -12,6 +12,7 @@
 o2_add_library(SimConfig
                SOURCES src/SimConfig.cxx
                        src/SimParams.cxx
+                       src/SimDLLoader.cxx
                        src/SimUserDecay.cxx
                        src/DigiParams.cxx
                        src/G4Params.cxx
@@ -27,6 +28,7 @@ o2_add_library(SimConfig
 o2_target_root_dictionary(SimConfig
                           HEADERS include/SimConfig/SimConfig.h
                                   include/SimConfig/SimParams.h
+                                  include/SimConfig/SimDLLoader.h
                                   include/SimConfig/SimUserDecay.h
                                   include/SimConfig/InteractionDiamondParam.h
                                   include/SimConfig/DigiParams.h

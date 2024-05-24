@@ -27,6 +27,8 @@
 #include "TLorentzVector.h"                          // for TLorentzVector
 #include "TVector3.h"                                // for TVector3
 
+#include <boost/dll/alias.hpp> // for BOOST_DLL_ALIAS
+
 #ifdef ENABLE_UPGRADES
 #include "ITS3Simulation/DescriptorInnerBarrelITS3.h" // for Description of Inner Barrel (ITS3)
 #endif
@@ -78,6 +80,12 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Active: kTRUE for active detectors (ProcessHits() will be called)
   ///         kFALSE for inactive detectors
   Detector(Bool_t active, TString name = "ITS");
+
+  // Factory method
+  static o2::base::Detector* create(const char* name, bool active)
+  {
+    return new Detector(active, name);
+  }
 
   /// Default constructor
   Detector();
