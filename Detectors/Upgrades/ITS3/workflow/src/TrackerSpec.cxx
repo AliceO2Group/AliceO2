@@ -282,7 +282,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-        int nclf = 0;
+        int nclf = 0, ncl = (int)allClusIdx.size();
         for (int ic = TrackITSExt::MaxClusters; (ic--) != 0;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
           auto clid = trc.getClusterIndex(ic);
           if (clid >= 0) {
