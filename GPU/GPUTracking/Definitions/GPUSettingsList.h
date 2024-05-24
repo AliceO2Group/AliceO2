@@ -56,7 +56,7 @@ AddOptionRTC(sysClusErrorIFCCEZRegion, float, -5.f, "", 0, "Systematic cluster e
 AddOptionRTC(sysClusErrorslopeIFCCEZ, float, 1.f / 2.0f, "", 0, "Systematic cluster error parameterization IFCCE z Region Sigma Inverse")
 AddOptionRTC(sysClusErrorNormIFC, float, 0.5f, "", 0, "Systematic cluster error parameterization IFC normalization")
 AddOptionRTC(sysClusErrorSlopeIFC, float, 0.2f, "", 0, "Systematic cluster error parameterization IFC slope")
-AddOptionRTC(sysClusErrorMinDist, float, 2.f, "", 0, "Systematic cluster error parameterization IFC Minimum Distance")
+AddOptionRTC(sysClusErrorMinDist, float, 1.5f, "", 0, "Systematic cluster error parameterization IFC Minimum Distance")
 AddOptionRTC(sysClusErrorMaskError, float, 5.f, "", 0, "Systematic cluster error parameterization IFC Large Error for masking")
 AddOptionRTC(sysClusErrorC12Norm, float, 5.3333333e-06f, "", 0, "Systematic cluster for Sector C1/2 normalization")
 AddOptionRTC(sysClusErrorC12Box, float, 1.1e-05f, "", 0, "Systematic cluster for Sector C1/2 box size")
