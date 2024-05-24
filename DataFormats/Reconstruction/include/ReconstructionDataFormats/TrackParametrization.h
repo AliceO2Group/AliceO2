@@ -218,6 +218,8 @@ class TrackParametrization
   GPUd() value_t getSnpAt(value_t alpha, value_t xk, value_t b) const;
   GPUd() value_t getPhiAt(value_t xk, value_t b) const;
   GPUd() value_t getPhiPosAt(value_t xk, value_t b) const;
+  GPUd() value_t getDCAYtoMV(value_t b, value_t xmv = 0.f, value_t ymv = 0.f, value_t zmv = 0.f) const;
+  GPUd() value_t getDCAZtoMV(value_t b, value_t xmv = 0.f, value_t ymv = 0.f, value_t zmv = 0.f) const;
   GPUd() math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
