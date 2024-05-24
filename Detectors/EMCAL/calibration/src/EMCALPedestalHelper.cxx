@@ -84,7 +84,7 @@ std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
   std::stringstream fout;
 
   if (runNum > 0) {
-    fout << runNum << "\n";
+    fout << runNum << std::endl;
   }
 
   unsigned int lineValue = 0;
@@ -92,6 +92,8 @@ std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
   const unsigned int FECheaderCode = 0xC0000000;
   //  const unsigned int FECwordCode   = 0x80000000;
   const unsigned int FEClineCode = 0x40000000;
+
+  const unsigned int TrailerLineCode = 0xFFFFFFFF;
 
   short iSM = 0;
   short iRCU = 0;
@@ -181,7 +183,7 @@ std::vector<char> EMCALPedestalHelper::createInstructionString(const int runNum)
   }   // iSM
 
   if (runNum > 0) {
-    fout << 0xFFFFFFFF << std::endl;
+    fout << TrailerLineCode << std::endl;
   }
 
   const std::string instructionString(fout.str());

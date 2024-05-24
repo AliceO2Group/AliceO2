@@ -81,6 +81,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
+    float fr = ic.options().get<float>("rof-lenght-error-freq");
+    mROFErrRepIntervalMS = fr <= 0. ? -1 : long(fr * 1e3);
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
@@ -159,6 +161,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
     mDecoder->setDecodeNextAuto(false);
     o2::InteractionRecord lastIR{}, firstIR{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
+    int nTriggersProcessed = mDecoder->getNROFsProcessed();
+    static long lastErrReportTS = 0;
     while (mDecoder->decodeNextTrigger() >= 0) {
       if ((!lastIR.isDummy() && lastIR >= mDecoder->getInteractionRecord()) || firstIR > mDecoder->getInteractionRecord()) {
         const int MaxErrLog = 2;
@@ -166,22 +170,32 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         if (errLocCount++ < MaxErrLog) {
           LOGP(warn, "Impossible ROF IR {}, previous was {}, TF 1st IR was {}, discarding in decoding", mDecoder->getInteractionRecord().asString(), lastIR.asString(), firstIR.asString());
         }
+        nTriggersProcessed = 0x7fffffff; // to account for a problem with event
         continue;
       }
       lastIR = mDecoder->getInteractionRecord();
-      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
-        mDecoder->fillDecodedDigits(digVec, digROFVec, chipStatus); // lot of copying involved
+      mDecoder->fillChipsStatus(chipStatus);
+      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) {      // call before clusterization, since the latter will hide the digits
+        mDecoder->fillDecodedDigits(digVec, digROFVec);             // lot of copying involved
         if (mDoCalibData) {
           mDecoder->fillCalibData(calVec);
         }
-      } else {
-        mDecoder->fillChipsStatus(chipStatus);
       }
       if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
         mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
       }
     }
+    nTriggersProcessed = mDecoder->getNROFsProcessed() - nTriggersProcessed - 1;
 
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<Mapping::getDetID()>::Instance();
+    int expectedTFSize = static_cast<int>(o2::constants::lhc::LHCMaxBunches * o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() / alpParams.roFrameLengthInBC); // 3564*32 / ROF Length in BS = number of ROFs per TF
+    if ((expectedTFSize != nTriggersProcessed) && mROFErrRepIntervalMS > 0 && mTFCounter > 1 && nTriggersProcessed > 0) {
+      long currTS = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      if (currTS - lastErrReportTS > mROFErrRepIntervalMS) {
+        LOGP(error, "Inconsistent number of ROF per TF. From parameters: {} from readout: {} (muting further reporting for {} ms)", expectedTFSize, nTriggersProcessed, mROFErrRepIntervalMS);
+        lastErrReportTS = currTS;
+      }
+    }
     if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
       // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
       //  - Setup decoder for running on a batch of digits
@@ -406,6 +420,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
       {"accept-rof-rampup-data", VariantType::Bool, false, {"do not discard data during ROF ramp up"}},
+      {"rof-lenght-error-freq", VariantType::Float, 60.f, {"do not report ROF lenght error more frequently than this value, disable if negative"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 

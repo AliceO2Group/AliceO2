@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsCTP CTP Workflow Scalers
+/doxy -->
+
 How to generate c++ proto files ?
 On the computer where project
 https://gitlab.cern.ch/aliceCTP3/ctp3-ipbus/-/tree/master

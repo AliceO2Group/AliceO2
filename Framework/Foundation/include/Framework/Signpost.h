@@ -26,9 +26,8 @@ struct o2_log_handle_t {
 
 // Helper function which replaces engineering types with a printf
 // compatible format string.
-// FIXME: make this consteval when available in C++20
 template <auto N>
-constexpr auto remove_engineering_type(char const (&src)[N])
+consteval auto remove_engineering_type(char const (&src)[N])
 {
   std::array<char, N> res = {};
   // do whatever string manipulation you want in res.
@@ -501,7 +500,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   } else {                                                                                                          \
-    O2_LOG_MACRO_RAW(info, format, ##__VA_ARGS__);                                                                  \
+    O2_LOG_MACRO_RAW(info, remove_engineering_type(format).data(), ##__VA_ARGS__);                                  \
   }                                                                                                                 \
 })
 
@@ -512,7 +511,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
-  O2_LOG_MACRO_RAW(error, format, ##__VA_ARGS__);                                                                   \
+  O2_LOG_MACRO_RAW(error, remove_engineering_type(format).data(), ##__VA_ARGS__);                                   \
 })
 
 // Similar to the above, however it will also print a normal warning message regardless of the signpost being enabled or not.
@@ -522,7 +521,7 @@ void o2_debug_log_set_stacktrace(_o2_log_t* log, int stacktrace)
   } else if (O2_BUILTIN_UNLIKELY(private_o2_log_##log->stacktrace)) {                                               \
     _o2_signpost_event_emit(private_o2_log_##log, id, name, remove_engineering_type(format).data(), ##__VA_ARGS__); \
   }                                                                                                                 \
-  O2_RAW_LOG_RAW(warn, ##__VA_ARGS__);                                                                              \
+  O2_LOG_MACRO_RAW(warn, remove_engineering_type(format).data(), ##__VA_ARGS__);                                    \
 })
 
 #define O2_SIGNPOST_START(log, id, name, format, ...)                                                                   \

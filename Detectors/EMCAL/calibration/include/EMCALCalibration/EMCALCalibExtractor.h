@@ -19,6 +19,7 @@
 #define EMCALCALIBEXTRACTOR_H_
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include "CCDB/BasicCCDBManager.h"
 #include "EMCALCalib/BadChannelMap.h"
@@ -58,8 +59,12 @@ class EMCALCalibExtractor
   };
 
   struct BadChannelCalibTimeInfo {
-    std::array<double, 17664> sigmaCell; // sigma value of time distribution for single cells
-    double goodCellWindow;               // cut value for good cells
+    std::array<double, 17664> sigmaCell;         // sigma value of time distribution for single cells
+    double goodCellWindow;                       // cut value for good cells
+    std::array<double, 17664> fracHitsPreTrigg;  // fraction of hits before the main time peak (pre-trigger pile-up)
+    double goodCellWindowFracHitsPreTrigg;       // cut value for good cells for pre-trigger pile-up
+    std::array<double, 17664> fracHitsPostTrigg; // fraction of hits after the main time peak (post-trigger pile-up)
+    double goodCellWindowFracHitsPostTrigg;      // cut value for good cells for post-trigger pile-up
   };
 
  public:
@@ -191,6 +196,12 @@ class EMCALCalibExtractor
             if (calibrationTimeInfo.sigmaCell[cellID] > calibrationTimeInfo.goodCellWindow) {
               LOG(debug) << "Cell " << cellID << " is flagged due to time distribution";
               failed = true;
+            } else if (calibrationTimeInfo.fracHitsPreTrigg[cellID] > calibrationTimeInfo.goodCellWindowFracHitsPreTrigg) {
+              LOG(debug) << "Cell " << cellID << " is flagged due to time distribution (pre-trigger)";
+              failed = true;
+            } else if (calibrationTimeInfo.fracHitsPostTrigg[cellID] > calibrationTimeInfo.goodCellWindowFracHitsPostTrigg) {
+              LOG(debug) << "Cell " << cellID << " is flagged due to time distribution (post-trigger)";
+              failed = true;
             }
           }
         }
@@ -321,7 +332,7 @@ class EMCALCalibExtractor
   template <typename... axes>
   BadChannelCalibTimeInfo buildTimeMeanAndSigma(const boost::histogram::histogram<axes...>& histCellTime)
   {
-    std::array<double, 17664> meanSigma;
+    BadChannelCalibTimeInfo timeInfo;
     for (int i = 0; i < mNcells; ++i) {
       // calculate sigma per cell
       const int indexLow = histCellTime.axis(1).index(i);
@@ -333,23 +344,44 @@ class EMCALCalibExtractor
         maxElementIndex = 0;
       }
       float maxElementCenter = 0.5 * (boostHistCellSlice.axis(0).bin(maxElementIndex).upper() + boostHistCellSlice.axis(0).bin(maxElementIndex).lower());
-      meanSigma[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice, -999999, maxElementCenter - 50, maxElementCenter + 50));
+      timeInfo.sigmaCell[i] = std::sqrt(o2::utils::getVarianceBoost1D(boostHistCellSlice, -999999, maxElementCenter - 50, maxElementCenter + 50));
+
+      // get number of hits within mean+-25ns (trigger bunch), from -500ns to -25ns before trigger bunch (pre-trigger), and for 25ns to 500ns (post-trigger)
+      double sumTrigg = o2::utils::getIntegralBoostHist(boostHistCellSlice, maxElementCenter - 25, maxElementCenter + 25);
+      double sumPreTrigg = o2::utils::getIntegralBoostHist(boostHistCellSlice, maxElementCenter - 500, maxElementCenter - 25);
+      double sumPostTrigg = o2::utils::getIntegralBoostHist(boostHistCellSlice, maxElementCenter + 25, maxElementCenter + 500);
+
+      // calculate fraction of hits of post and pre-trigger to main trigger bunch
+      timeInfo.fracHitsPreTrigg[i] = sumTrigg == 0 ? 0. : sumPreTrigg / sumTrigg;
+      timeInfo.fracHitsPostTrigg[i] = sumTrigg == 0 ? 0. : sumPostTrigg / sumTrigg;
     }
 
     // get the mean sigma and the std. deviation of the sigma distribution
     // those will be the values we cut on
     double avMean = 0, avSigma = 0;
     TRobustEstimator robustEstimator;
-    robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0.5 * meanSigma.size());
+    robustEstimator.EvaluateUni(timeInfo.sigmaCell.size(), timeInfo.sigmaCell.data(), avMean, avSigma, 0.5 * timeInfo.sigmaCell.size());
     // protection for the following case: For low statistics cases, it can happen that more than half of the cells is in one bin
     // in that case the sigma will be close to zero. In that case, we take 95% of the data to calculate the truncated mean
     if (std::abs(avMean) < 0.001 && std::abs(avSigma) < 0.001) {
-      robustEstimator.EvaluateUni(meanSigma.size(), meanSigma.data(), avMean, avSigma, 0.95 * meanSigma.size());
+      robustEstimator.EvaluateUni(timeInfo.sigmaCell.size(), timeInfo.sigmaCell.data(), avMean, avSigma, 0.95 * timeInfo.sigmaCell.size());
     }
-
-    BadChannelCalibTimeInfo timeInfo;
-    timeInfo.sigmaCell = meanSigma;
+    // timeInfo.sigmaCell = meanSigma;
     timeInfo.goodCellWindow = avMean + (avSigma * o2::emcal::EMCALCalibParams::Instance().sigmaTime_bc); // only upper limit needed
+
+    double avMeanPre = 0, avSigmaPre = 0;
+    robustEstimator.EvaluateUni(timeInfo.fracHitsPreTrigg.size(), timeInfo.fracHitsPreTrigg.data(), avMeanPre, avSigmaPre, 0.5 * timeInfo.fracHitsPreTrigg.size());
+    if (std::abs(avMeanPre) < 0.001 && std::abs(avSigmaPre) < 0.001) {
+      robustEstimator.EvaluateUni(timeInfo.fracHitsPreTrigg.size(), timeInfo.fracHitsPreTrigg.data(), avMeanPre, avSigmaPre, 0.95 * timeInfo.fracHitsPreTrigg.size());
+    }
+    timeInfo.goodCellWindowFracHitsPreTrigg = avMeanPre + (avSigmaPre * o2::emcal::EMCALCalibParams::Instance().sigmaTimePreTrigg_bc); // only upper limit needed
+
+    double avMeanPost = 0, avSigmaPost = 0;
+    robustEstimator.EvaluateUni(timeInfo.fracHitsPostTrigg.size(), timeInfo.fracHitsPostTrigg.data(), avMeanPost, avSigmaPost, 0.5 * timeInfo.fracHitsPostTrigg.size());
+    if (std::abs(avMeanPost) < 0.001 && std::abs(avSigmaPost) < 0.001) {
+      robustEstimator.EvaluateUni(timeInfo.fracHitsPostTrigg.size(), timeInfo.fracHitsPostTrigg.data(), avMeanPost, avSigmaPost, 0.95 * timeInfo.fracHitsPostTrigg.size());
+    }
+    timeInfo.goodCellWindowFracHitsPostTrigg = avMeanPost + (avSigmaPost * o2::emcal::EMCALCalibParams::Instance().sigmaTimePostTrigg_bc); // only upper limit needed
 
     return timeInfo;
   }
@@ -434,7 +466,7 @@ class EMCALCalibExtractor
           if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
             mean = mMaxPedestalVal;
           }
-          pedestalData.addPedestalValue(iCell, mean, isLG, isLEDMON);
+          pedestalData.addPedestalValue(iCell, std::round(mean), isLG, isLEDMON);
         }
       }
     }
@@ -457,7 +489,7 @@ class EMCALCalibExtractor
       if (!obj)
         continue;
       for (unsigned short iCell = 0; iCell < maxChannels; ++iCell) {
-        short mean = static_cast<short>(obj->GetBinContent(iCell + 1));
+        short mean = static_cast<short>(std::round(obj->GetBinContent(iCell + 1)));
         short rms = static_cast<short>(obj->GetBinError(iCell + 1) / obj->GetBinEntries(iCell + 1));
         if (rms > EMCALCalibParams::Instance().maxPedestalRMS) {
           mean = mMaxPedestalVal;

@@ -360,12 +360,13 @@ void ImpactParameterStudy::process(o2::globaltracking::RecoContainer& recoData)
             auto pt = trc.getPt();
             o2::gpu::gpustd::array<float, 2> dcaInfo{-999., -999.};
             // LOGP(info, " ---> Bz={}", o2::base::Propagator::Instance()->getNominalBz());
-            if (o2::base::Propagator::Instance()->propagateToDCABxByBz({Pvtx_refitted.getX(), Pvtx_refitted.getY(), Pvtx_refitted.getZ()}, const_cast<o2::track::TrackParCov&>(trc), 2.f, matCorr, &dcaInfo)) {
+            o2::track::TrackPar trcTmp{trc};
+            if (o2::base::Propagator::Instance()->propagateToDCABxByBz({Pvtx_refitted.getX(), Pvtx_refitted.getY(), Pvtx_refitted.getZ()}, trcTmp, 2.f, matCorr, &dcaInfo)) {
               impParRPhi = dcaInfo[0] * toMicrometers;
               impParZ = dcaInfo[1] * toMicrometers;
               mHistoImpParXy->Fill(pt, impParRPhi);
               mHistoImpParZ->Fill(pt, impParZ);
-              double phi = trc.getPhi();
+              double phi = trcTmp.getPhi();
               mHistoImpParXyPhi->Fill(phi, impParRPhi);
               mHistoImpParZPhi->Fill(phi, impParZ);
               if (phi < TMath::Pi()) {
@@ -376,7 +377,7 @@ void ImpactParameterStudy::process(o2::globaltracking::RecoContainer& recoData)
                 mHistoImpParXyBottom->Fill(pt, impParRPhi);
                 mHistoImpParZBottom->Fill(pt, impParZ);
               }
-              double sign = trc.getSign();
+              double sign = trcTmp.getSign();
               if (sign < 0) {
                 mHistoImpParXyNegativeCharge->Fill(pt, impParRPhi);
                 mHistoImpParZNegativeCharge->Fill(pt, impParZ);
@@ -536,7 +537,7 @@ DataProcessorSpec getImpactParameterStudy(mask_t srcTracksMask, mask_t srcCluste
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTracksMask, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true

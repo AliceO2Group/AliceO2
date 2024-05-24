@@ -37,7 +37,6 @@ void GPURecoWorkflowSpec::initFunctionITS(o2::framework::InitContext& ic)
   o2::its::TrackerTraits* trkTraits = nullptr;
   mITSTrackingInterface = std::make_unique<o2::its::ITSTrackingInterface>(mSpecConfig.processMC,
                                                                           mSpecConfig.itsTriggerType,
-                                                                          static_cast<o2::its::TrackingMode>(mSpecConfig.itsTrackingMode),
                                                                           mSpecConfig.itsOverrBeamEst);
   mGPUReco->GetITSTraits(trkTraits, vtxTraits, mITSTimeFrame);
   mITSTrackingInterface->setTraitsFromProvider(vtxTraits, trkTraits, mITSTimeFrame);

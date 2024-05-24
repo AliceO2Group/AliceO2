@@ -22,6 +22,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 namespace o2
 {
@@ -33,9 +34,11 @@ void ITSTrackingInterface::initialise()
   mRunVertexer = true;
   mCosmicsProcessing = false;
   std::vector<TrackingParameters> trackParams;
-
+  if (mMode == TrackingMode::Unset) {
+    mMode = (TrackingMode)(o2::its::TrackerParamConfig::Instance().trackingMode);
+    LOGP(info, "Tracking mode not set, trying to fetch it from configurable params to: {}", asString(mMode));
+  }
   if (mMode == TrackingMode::Async) {
-
     trackParams.resize(3);
     for (auto& param : trackParams) {
       param.ZBins = 64;
@@ -49,7 +52,6 @@ void ITSTrackingInterface::initialise()
     trackParams[2].CellDeltaTanLambdaSigma *= 4.;
     trackParams[2].MinTrackLength = 4;
     LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
-
   } else if (mMode == TrackingMode::Sync) {
     trackParams.resize(1);
     trackParams[0].ZBins = 64;
@@ -195,10 +197,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                  iRof,
-                                  multEstConf.cutMultVtxLow,
-                                  multEstConf.cutMultVtxHigh);
+        LOGP(info, "ROF {} rejected by the vertex multiplicity selection [{},{}]", iRof, multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
         processingMask[iRof] = selROF;
         cutVertexMult++;
       }
@@ -325,7 +324,7 @@ void ITSTrackingInterface::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
-    LOGP(info, "mean vertex acquired");
+    LOGP(info, "Mean vertex acquired");
     setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
     return;
   }

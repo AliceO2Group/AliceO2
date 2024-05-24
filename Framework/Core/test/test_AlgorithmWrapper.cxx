@@ -14,7 +14,7 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include <Monitoring/Monitoring.h>
 
 using namespace o2::framework;

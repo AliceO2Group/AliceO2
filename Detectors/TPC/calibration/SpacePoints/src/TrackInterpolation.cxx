@@ -38,7 +38,7 @@ using namespace o2::tpc;
 using GTrackID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
 
-void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src)
+void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src, o2::dataformats::GlobalTrackID::mask_t srcMap)
 {
   // perform initialization
   LOG(info) << "Start initializing TrackInterpolation";
@@ -58,13 +58,16 @@ void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src)
   mParams = &SpacePointsCalibConfParam::Instance();
 
   mSourcesConfigured = src;
+  mSourcesConfiguredMap = srcMap;
+  mSingleSourcesConfigured = (mSourcesConfigured == mSourcesConfiguredMap);
   mTrackTypes.insert({GTrackID::ITSTPC, 0});
   mTrackTypes.insert({GTrackID::ITSTPCTRD, 1});
   mTrackTypes.insert({GTrackID::ITSTPCTOF, 2});
   mTrackTypes.insert({GTrackID::ITSTPCTRDTOF, 3});
 
   mInitDone = true;
-  LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}", GTrackID::getSourcesNames(mSourcesConfigured));
+  LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}. Track input specifically for map: {}",
+       GTrackID::getSourcesNames(mSourcesConfigured), mSingleSourcesConfigured ? "identical" : GTrackID::getSourcesNames(mSourcesConfiguredMap));
 }
 
 bool TrackInterpolation::isInputTrackAccepted(const GTrackID& gid, const o2::globaltracking::RecoContainer::GlobalIDSet& gidTable, const o2::dataformats::PrimaryVertex& pv) const
@@ -114,19 +117,19 @@ bool TrackInterpolation::isInputTrackAccepted(const GTrackID& gid, const o2::glo
   return true;
 }
 
-GTrackID::Source TrackInterpolation::findValidSource(GTrackID::Source src) const
+GTrackID::Source TrackInterpolation::findValidSource(const GTrackID::mask_t mask, const GTrackID::Source src) const
 {
-  LOGP(debug, "Trying to find valid source for {}", GTrackID::getSourcesNames(src));
+  LOGP(debug, "Trying to find valid source for {} in {}", GTrackID::getSourceName(src), GTrackID::getSourcesNames(mask));
   if (src == GTrackID::ITSTPCTRDTOF) {
-    if (mSourcesConfigured[GTrackID::ITSTPCTRD]) {
+    if (mask[GTrackID::ITSTPCTRD]) {
       return GTrackID::ITSTPCTRD;
-    } else if (mSourcesConfigured[GTrackID::ITSTPC]) {
+    } else if (mask[GTrackID::ITSTPC]) {
       return GTrackID::ITSTPC;
     } else {
       return GTrackID::NSources;
     }
   } else if (src == GTrackID::ITSTPCTRD || src == GTrackID::ITSTPCTOF) {
-    if (mSourcesConfigured[GTrackID::ITSTPC]) {
+    if (mask[GTrackID::ITSTPC]) {
       return GTrackID::ITSTPC;
     } else {
       return GTrackID::NSources;
@@ -146,12 +149,30 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
   auto vtxRefs = mRecoCont->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   int nv = vtxRefs.size() - 1;
   GTrackID::mask_t allowedSources = GTrackID::getSourcesMask("ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  constexpr std::array<int, 3> SrcFast = {int(GTrackID::ITSTPCTRD), int(GTrackID::ITSTPCTOF), int(GTrackID::ITSTPCTRDTOF)};
 
   for (int iv = 0; iv < nv; iv++) {
     LOGP(debug, "processing PV {} of {}", iv, nv);
 
     const auto& vtref = vtxRefs[iv];
     auto pv = pvvec[iv];
+    if (mParams->minTOFTRDPVContributors > 0) { // we want only PVs constrained by fast detectors
+      int nfound = 0;
+      bool usePV = false;
+      for (uint32_t is = 0; is < SrcFast.size() && !usePV; is++) {
+        int src = SrcFast[is], idMin = vtref.getFirstEntryOfSource(src), idMax = idMin + vtref.getEntriesOfSource(src);
+        for (int i = idMin; i < idMax; i++) {
+          if (trackIndex[i].isPVContributor() && (++nfound == mParams->minTOFTRDPVContributors)) {
+            usePV = true;
+            break;
+          }
+        }
+      }
+      if (!usePV) {
+        continue;
+      }
+    }
+
     for (int is = GTrackID::NSources; is >= 0; is--) {
       if (!allowedSources[is]) {
         continue;
@@ -169,9 +190,9 @@ void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoC
         }
         auto gidTable = mRecoCont->getSingleDetectorRefs(vid);
         if (!mSourcesConfigured[is]) {
-          auto src = findValidSource(static_cast<GTrackID::Source>(vid.getSource()));
+          auto src = findValidSource(mSourcesConfigured, static_cast<GTrackID::Source>(vid.getSource()));
           if (src == GTrackID::ITSTPCTRD || src == GTrackID::ITSTPC) {
-            LOGP(debug, "Found valid source {}", GTrackID::getSourcesNames(src));
+            LOGP(debug, "prepareInputTrackSample: Found valid source {}", GTrackID::getSourceName(src));
             vid = gidTable[src];
             gidTable = mRecoCont->getSingleDetectorRefs(vid);
           } else {
@@ -241,7 +262,7 @@ void TrackInterpolation::process()
   // in blocks.
   std::random_device rd;
   std::mt19937 g(rd());
-  std::vector<GTrackID> trackIndices; // here we keep the GIDs for all track types in a single vector to use in loop
+  std::vector<uint32_t> trackIndices; // here we keep the GIDs for all track types in a single vector to use in loop
   std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].end(), g);
   std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].end(), g);
   std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].end(), g);
@@ -252,17 +273,31 @@ void TrackInterpolation::process()
   trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].end());
 
   int nSeeds = mSeeds.size();
-  int maxOutputTracks = (mMaxTracksPerTF >= 0) ? mMaxTracksPerTF + mAddTracksITSTPC : nSeeds;
+  int maxOutputTracks = (mMaxTracksPerTF >= 0) ? mMaxTracksPerTF + mAddTracksForMapPerTF : nSeeds;
   mTrackData.reserve(maxOutputTracks);
   mClRes.reserve(maxOutputTracks * param::NPadRows);
   bool maxTracksReached = false;
   for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
-    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksITSTPC) {
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksForMapPerTF) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
       break;
     }
     int seedIndex = trackIndices[iSeed];
     if (mParams->enableTrackDownsampling && !isTrackSelected(mSeeds[seedIndex])) {
+      continue;
+    }
+    if (!mSingleSourcesConfigured && !mSourcesConfiguredMap[mGIDs[seedIndex].getSource()]) {
+      auto src = findValidSource(mSourcesConfiguredMap, static_cast<GTrackID::Source>(mGIDs[seedIndex].getSource()));
+      if (src == GTrackID::ITSTPCTRD || src == GTrackID::ITSTPC) {
+        LOGP(debug, "process: Found valid source {}", GTrackID::getSourceName(src));
+        mGIDs.push_back(mGIDtables[seedIndex][src]);
+        mGIDtables.push_back(mRecoCont->getSingleDetectorRefs(mGIDs.back()));
+        mTrackTimes.push_back(mTrackTimes[seedIndex]);
+        mSeeds.push_back(mSeeds[seedIndex]);
+      }
+    }
+    if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
+      LOG(debug) << "We already have reached mMaxTracksPerTF, but we continue to create seeds until mAddTracksForMapPerTF is also reached";
       continue;
     }
     if (mGIDs[seedIndex].includesDet(DetID::TRD) || mGIDs[seedIndex].includesDet(DetID::TOF)) {
@@ -283,8 +318,16 @@ void TrackInterpolation::process()
       extrapolateTrack(seedIndex);
     }
   }
+  if (mSeeds.size() > nSeeds) {
+    LOGP(info, "Up to {} tracks out of {} additional seeds will be processed", mAddTracksForMapPerTF, mSeeds.size() - nSeeds);
+  }
   for (int iSeed = nSeeds; iSeed < (int)mSeeds.size(); ++iSeed) {
+    if (!mProcessSeeds && mAddTracksForMapPerTF > 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksForMapPerTF) {
+      LOG(info) << "Maximum number of additional tracks per TF reached. Skipping the remaining " << mSeeds.size() - iSeed << " tracks.";
+      break;
+    }
     // this loop will only be entered in case mProcessSeeds is set
+    LOGP(debug, "Processing additional track {}", mGIDs[iSeed].asString());
     if (mGIDs[iSeed].includesDet(DetID::TRD) || mGIDs[iSeed].includesDet(DetID::TOF)) {
       interpolateTrack(iSeed);
     } else {

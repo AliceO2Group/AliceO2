@@ -79,7 +79,7 @@ void check(const std::vector<std::string>& arguments,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,
-                                      deviceControls,
+                                      deviceControls, {},
                                       "workflow-id");
 
   for (size_t index = 0; index < deviceSpecs.size(); index++) {

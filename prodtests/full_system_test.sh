@@ -50,7 +50,7 @@ GPUMEMSIZE=${GPUMEMSIZE:-6000000000} # Size of GPU memory to use in case ENABBLE
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 [[ -z ${NOMCLABELS+x} ]] && NOMCLABELS="--disable-mc"
-O2SIMSEED=${O2SIMSEED:--1}
+O2SIMSEED=${O2SIMSEED:-0}
 SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 NHBPERTF=${NHBPERTF:-128}
@@ -140,8 +140,8 @@ taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED
 if [[ $DO_EMBEDDING == 1 ]]; then
   taskwrapper embed.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} -j $NJOBS --run ${RUNNUMBER} -n $NEvents -g pythia8pp -e ${FST_MC_ENGINE} -o sig --configKeyValues ${FST_EMBEDDING_CONFIG} --embedIntoFile o2sim_Kine.root
 fi
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --sims ${SIM_SOURCES} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE
-[[ $SPLITTRDDIGI == "1" ]] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\""
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --sims ${SIM_SOURCES} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE --early-forward-policy always
+[[ $SPLITTRDDIGI == "1" ]] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\"" --early-forward-policy always
 touch digiTRD.log_done
 
 if [[ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]]; then

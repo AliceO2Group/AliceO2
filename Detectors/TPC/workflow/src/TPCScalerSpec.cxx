@@ -85,10 +85,12 @@ class TPCScalerSpec : public Task
     const auto orbitResetTimeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS();
     const auto firstTFOrbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
     const double timestamp = orbitResetTimeMS + firstTFOrbit * o2::constants::lhc::LHCOrbitMUS * 0.001;
-
+    int currRun = pc.services().get<o2::framework::TimingInfo>().runNumber;
     if (mEnableMShape) {
-      if ((mMShapeTPCScaler.getRun() != -1) && pc.services().get<o2::framework::TimingInfo>().runNumber != mMShapeTPCScaler.getRun()) {
-        LOGP(error, "Run number {} of processed data and run number {} of loaded TPC M-shape scaler doesnt match!", pc.services().get<o2::framework::TimingInfo>().runNumber, mMShapeTPCScaler.getRun());
+      static int runWarningMS = -1;
+      if ((mMShapeTPCScaler.getRun() != -1) && currRun != mMShapeTPCScaler.getRun() && runWarningMS != currRun) {
+        LOGP(alarm, "Run number {} of processed data and run number {} of loaded TPC M-shape scaler doesnt match!", pc.services().get<o2::framework::TimingInfo>().runNumber, mMShapeTPCScaler.getRun());
+        runWarningMS = currRun;
       }
 
       const auto& boundaryPotential = mMShapeTPCScaler.getBoundaryPotential(timestamp);
@@ -139,8 +141,10 @@ class TPCScalerSpec : public Task
     }
 
     if (mEnableIDCs) {
-      if (pc.services().get<o2::framework::TimingInfo>().runNumber != mTPCScaler.getRun()) {
-        LOGP(error, "Run number {} of processed data and run number {} of loaded TPC scaler doesnt match!", pc.services().get<o2::framework::TimingInfo>().runNumber, mTPCScaler.getRun());
+      static int runWarningIDC = -1;
+      if (pc.services().get<o2::framework::TimingInfo>().runNumber != mTPCScaler.getRun() && runWarningIDC != currRun) {
+        LOGP(alarm, "Run number {} of processed data and run number {} of loaded TPC scaler doesnt match!", pc.services().get<o2::framework::TimingInfo>().runNumber, mTPCScaler.getRun());
+        runWarningIDC = currRun;
       }
       float scalerA = mTPCScaler.getMeanScaler(timestamp, o2::tpc::Side::A);
       float scalerC = mTPCScaler.getMeanScaler(timestamp, o2::tpc::Side::C);

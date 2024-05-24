@@ -34,7 +34,8 @@ namespace its
 enum class TrackingMode {
   Sync,
   Async,
-  Cosmics
+  Cosmics,
+  Unset, // Special value to leave a default in case we want to override via Configurable Params
 };
 
 std::string asString(TrackingMode mode);
@@ -146,6 +147,7 @@ struct TimeFrameGPUParameters {
   size_t maxVerticesCapacity = 5e4;
   size_t nMaxROFs = 1e3;
   size_t nTimeFrameChunks = 3;
+  size_t nROFsPerChunk = 768; // pp defaults
   int maxGPUMemoryGB = -1;
 };
 

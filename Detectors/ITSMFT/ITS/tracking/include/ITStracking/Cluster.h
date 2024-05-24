@@ -54,7 +54,9 @@ struct Cluster final {
 
 GPUhdi() void Cluster::print() const
 {
+#if !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   printf("Cluster: %f %f %f %f %f %d %d\n", xCoordinate, yCoordinate, zCoordinate, phi, radius, clusterId, indexTableBinIndex);
+#endif
 }
 
 struct TrackingFrameInfo {
@@ -70,10 +72,12 @@ struct TrackingFrameInfo {
   o2::gpu::gpustd::array<float, 3> covarianceTrackingFrame = {999., 999., 999.};
   GPUdi() void print() const
   {
+#if !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
     printf("x: %f y: %f z: %f xTF: %f alphaTF: %f posTF: %f %f covTF: %f %f %f\n",
            xCoordinate, yCoordinate, zCoordinate, xTrackingFrame, alphaTrackingFrame,
            positionTrackingFrame[0], positionTrackingFrame[1],
            covarianceTrackingFrame[0], covarianceTrackingFrame[1], covarianceTrackingFrame[2]);
+#endif
   }
 
   ClassDefNV(TrackingFrameInfo, 1);

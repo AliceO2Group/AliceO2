@@ -15,6 +15,7 @@
 #include <sstream>
 #include <gsl/span>
 #include <TH1.h>
+#include <Framework/CallbackService.h>
 
 namespace o2::mergers::test
 {
@@ -22,6 +23,26 @@ inline auto to_span(const TH1F& histo)
 {
   return gsl::span(histo.GetArray(), histo.GetSize());
 }
+
+void registerCallbacksForTestFailure(framework::CallbackService& cb, std::shared_ptr<bool> success)
+{
+  cb.set<framework::CallbackService::Id::EndOfStream>([success](framework::EndOfStreamContext& ctx) {
+    if (*success == false) {
+      LOG(fatal) << "Received an EndOfStream without having received the expected object";
+    }
+  });
+  cb.set<framework::CallbackService::Id::Stop>([success]() {
+    if (*success == false) {
+      LOG(fatal) << "STOP transition without having received the expected object";
+    }
+  });
+  cb.set<framework::CallbackService::Id::ExitRequested>([success](framework::ServiceRegistryRef) {
+    if (*success == false) {
+      LOG(fatal) << "EXIT transition without having received the expected object";
+    }
+  });
+}
+
 } // namespace o2::mergers::test
 
 namespace std

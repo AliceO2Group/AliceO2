@@ -52,6 +52,7 @@ typedef struct DownloaderRequestData {
   HeaderObjectPair_t hoPair;
   std::map<std::string, std::string>* headers;
   std::string userAgent;
+  curl_slist* optionsList;
 
   std::function<bool(std::string)> localContentCallback;
 } DownloaderRequestData;
@@ -296,6 +297,7 @@ class CCDBDownloader
     int hostInd;
     int locInd;
     DownloaderRequestData* requestData;
+    curl_slist** options;
   } PerformData;
 #endif
 
@@ -421,6 +423,6 @@ typedef struct DataForClosingSocket {
   curl_socket_t socket;
 } DataForClosingSocket;
 
-} // namespace o2
+} // namespace o2::ccdb
 
 #endif // O2_CCDB_CCDBDOWNLOADER_H

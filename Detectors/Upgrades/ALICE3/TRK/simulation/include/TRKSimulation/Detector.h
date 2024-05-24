@@ -61,6 +61,7 @@ class Detector : public o2::base::DetImpl<Detector>
   }
 
   void configDefault();
+  void buildTRKNewVacuumVessel();
   void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
   void configToFile(std::string fileName = "alice3_TRK_layout.txt");
 

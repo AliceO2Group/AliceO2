@@ -17,6 +17,7 @@ ENABLE_UPGRADES=ON aliBuild build O2 --defaults o2
 Currently two sections are included:
 <!-- doxy
 * \subpage refDetectorsUpgradesIT3
+* \subpage refDetectorsUpgradesALICE3
 * \subpage refDetectorsUpgradesALICE3FT3
 * \subpage refDetectorsUpgradesALICE3FCT
 * \subpage refDetectorsUpgradesALICE3TRK

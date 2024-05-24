@@ -100,21 +100,22 @@ class EfficiencyTask
     auto midTracks = pc.inputs().get<gsl::span<mid::Track>>("midtracks");
     if (mSelectMatched) {
       auto matchTracks = pc.inputs().get<gsl::span<dataformats::TrackMCHMID>>("matchtracks");
-      std::vector<mid::Track> selectedTracks;
-      selectedTracks.reserve(midTracks.size());
+      mSelectedTracks.clear();
+      mSelectedTracks.reserve(midTracks.size());
       for (auto& matchTrack : matchTracks) {
         auto idx = matchTrack.getMIDRef().getIndex();
-        selectedTracks.emplace_back(midTracks[idx]);
+        mSelectedTracks.emplace_back(midTracks[idx]);
       }
-      midTracks = gsl::span<mid::Track>(selectedTracks);
+      midTracks = gsl::span<mid::Track>(mSelectedTracks);
     }
 
     mEfficiency.process(midTracks);
   }
 
  private:
-  Efficiency mEfficiency{}; /// Efficiency calculator
-  bool mSelectMatched;      /// Select matched tracks
+  Efficiency mEfficiency{};                  /// Efficiency calculator
+  bool mSelectMatched;                       /// Select matched tracks
+  std::vector<mid::Track> mSelectedTracks{}; // Vector with matched tracks
 };
 
 DataProcessorSpec getChamberEfficiencySpec(bool selectMatched)

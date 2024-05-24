@@ -136,7 +136,7 @@ class PropagatorImpl
   GPUd() void setNominalBz(value_type bz) { mNominalBz = bz; }
   GPUd() bool hasMagFieldSet() const { return mField != nullptr; }
 
-  GPUd() void estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const;
+  GPUd() value_type estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const;
   GPUd() float estimateLTIncrement(const o2::track::TrackParametrization<value_type>& trc, const o2::math_utils::Point3D<value_type>& postStart, const o2::math_utils::Point3D<value_type>& posEnd) const;
 
 #ifndef GPUCA_GPUCODE

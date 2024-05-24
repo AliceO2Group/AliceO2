@@ -37,6 +37,9 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
     case ErrorSource_t::GAIN_ERROR:
       typestring = "gain type error";
       break;
+    case ErrorSource_t::TRU_ERROR:
+      typestring = "STU decoder error";
+      break;
     case ErrorSource_t::STU_ERROR:
       typestring = "STU decoder error";
       break;
@@ -74,6 +77,8 @@ const char* ErrorTypeFEE::getErrorTypeName(unsigned int errorTypeID)
       return "Geometry";
     case ErrorSource_t::GAIN_ERROR:
       return "GainType";
+    case ErrorSource_t::TRU_ERROR:
+      return "TRUDecoding";
     case ErrorSource_t::STU_ERROR:
       return "STUDecoding";
     case ErrorSource_t::LINK_ERROR:
@@ -100,8 +105,10 @@ const char* ErrorTypeFEE::getErrorTypeTitle(unsigned int errorTypeID)
       return "Geometry";
     case ErrorSource_t::GAIN_ERROR:
       return "Gain";
+    case ErrorSource_t::TRU_ERROR:
+      return "TRU Decoding";
     case ErrorSource_t::STU_ERROR:
-      return "STUDecoding";
+      return "STU Decoding";
     case ErrorSource_t::LINK_ERROR:
       return "Link missing";
     case ErrorSource_t::UNDEFINED:
@@ -111,7 +118,7 @@ const char* ErrorTypeFEE::getErrorTypeTitle(unsigned int errorTypeID)
   };
 }
 
-std::ostream& operator<<(std::ostream& stream, const ErrorTypeFEE& error)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const ErrorTypeFEE& error)
 {
   error.PrintStream(stream);
   return stream;

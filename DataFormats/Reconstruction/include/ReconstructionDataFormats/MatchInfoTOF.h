@@ -38,7 +38,7 @@ class MatchInfoTOF
   int getTOFClIndex() const { return mIdxTOFCl; }
   int getTrackIndex() const { return mIdxTrack.getIndex(); }
 
-  void setChi2(int chi2) { mChi2 = chi2; }
+  void setChi2(float chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
 
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
@@ -58,6 +58,11 @@ class MatchInfoTOF
 
   int getIdLocal() const { return mIdLocal; }
 
+  float getVz() const { return mVz; }
+  void setVz(float val) { mVz = val; }
+  int getChannel() const { return mChannel; }
+  void setChannel(int val) { mChannel = val; }
+
  private:
   int mIdLocal;                      // track id in sector of the pair track-TOFcluster
   float mChi2;                       // chi2 of the pair track-TOFcluster
@@ -69,8 +74,10 @@ class MatchInfoTOF
   float mDZatTOF = 0.0;              ///< DZ position at  TOF
   float mDeltaT = 0.0;               ///< tTOF - TPC (microsec)
   double mSignal = 0.0;              ///< TOF time in ps
+  float mVz = 0.0;                   ///< Vz from TOF match
+  int mChannel = -1;                 ///< channel
 
-  ClassDefNV(MatchInfoTOF, 5);
+  ClassDefNV(MatchInfoTOF, 6);
 };
 } // namespace dataformats
 } // namespace o2

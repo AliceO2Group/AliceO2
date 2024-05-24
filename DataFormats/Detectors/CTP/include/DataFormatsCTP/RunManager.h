@@ -39,6 +39,7 @@ class CTPRunManager
   void printActiveRuns() const;
   int saveRunScalersToCCDB(int i);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
+  static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string, bool& ok);
   int loadScalerNames();

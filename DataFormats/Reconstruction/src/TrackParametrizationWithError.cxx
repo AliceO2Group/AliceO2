@@ -1214,7 +1214,7 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
-#else
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   TrackParametrization<value_T>::printParam();
   printf(
     "\nCov: [%+.3e] [%+.3e %+.3e] [%+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e %+.3e]",
@@ -1231,7 +1231,7 @@ GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asStringHexadecimal().c_str());
-#else
+#elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   TrackParametrization<value_T>::printParamHexadecimal();
   printf(
     "\nCov: [%x] [%x %x] [%x %x %x] [%x %x %x %x] [%x %x %x %x %x]",

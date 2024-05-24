@@ -33,6 +33,7 @@ class TrackletTransformer
   void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
   void setApplyXOR() { mApplyXOR = true; }
   void setApplyShift(bool f) { mApplyShift = f; }
+  bool isShiftApplied() const { return mApplyShift; }
 
   float calculateZ(int padrow, const PadPlane* padPlane) const;
 

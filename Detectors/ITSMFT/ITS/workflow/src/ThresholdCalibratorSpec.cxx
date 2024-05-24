@@ -67,6 +67,15 @@ void ITSThresholdCalibrator::init(InitContext& ic)
 {
   LOGF(info, "ITSThresholdCalibrator init...", mSelfName);
 
+  for (int i = 0; i < 24120; i++) {
+    mChipLastRow[i] = -1;
+  }
+
+  mColStep = ic.options().get<short int>("s-curve-col-step");
+  if (mColStep >= N_COL) {
+    LOG(warning) << "mColStep = " << mColStep << ": saving s-curves of only 1 pixel (pix 0) per row";
+  }
+
   std::string fittype = ic.options().get<std::string>("fittype");
   if (fittype == "derivative") {
     this->mFitType = DERIVATIVE;
@@ -359,41 +368,49 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
   // Initialize ROOT output file
   // to prevent premature external usage, use temporary name
   const char* option = recreate ? "RECREATE" : "UPDATE";
-  this->mRootOutfile = new TFile(filename.c_str(), option);
+  mRootOutfile = new TFile(filename.c_str(), option);
+
+  // Tree containing the s-curves points
+  mScTree = new TTree("s-curve-points", "s-curve-points");
+  mScTree->Branch("chipid", &vChipid, "vChipID[1024]/S");
+  mScTree->Branch("row", &vRow, "vRow[1024]/S");
 
   // Initialize output TTree branches
-  this->mThresholdTree = new TTree("ITS_calib_tree", "ITS_calib_tree");
-  this->mThresholdTree->Branch("chipid", &vChipid, "vChipID[1024]/S");
-  this->mThresholdTree->Branch("row", &vRow, "vRow[1024]/S");
-  if (this->mScanType == 'T') {
-    this->mThresholdTree->Branch("thr", &vThreshold, "vThreshold[1024]/S");
-    this->mThresholdTree->Branch("noise", &vNoise, "vNoise[1024]/F");
-    this->mThresholdTree->Branch("spoints", &vPoints, "vPoints[1024]/b");
-    this->mThresholdTree->Branch("success", &vSuccess, "vSuccess[1024]/O");
+  mThresholdTree = new TTree("ITS_calib_tree", "ITS_calib_tree");
+  mThresholdTree->Branch("chipid", &vChipid, "vChipID[1024]/S");
+  mThresholdTree->Branch("row", &vRow, "vRow[1024]/S");
+  if (mScanType == 'T') {
+    mThresholdTree->Branch("thr", &vThreshold, "vThreshold[1024]/S");
+    mThresholdTree->Branch("noise", &vNoise, "vNoise[1024]/F");
+    mThresholdTree->Branch("spoints", &vPoints, "vPoints[1024]/b");
+    mThresholdTree->Branch("success", &vSuccess, "vSuccess[1024]/O");
+
+    mScTree->Branch("chg", &vCharge, "vCharge[1024]/b");
+    mScTree->Branch("hits", &vHits, "vHits[1024]/b");
   } else if (mScanType == 'D' || mScanType == 'A') { // this->mScanType == 'D' and this->mScanType == 'A'
-    this->mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
+    mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
   } else if (mScanType == 'P') {
-    this->mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
-    this->mThresholdTree->Branch("strobedel", &vMixData, "vMixData[1024]/S");
+    mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
+    mThresholdTree->Branch("strobedel", &vMixData, "vMixData[1024]/S");
   } else if (mScanType == 'p') {
-    this->mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
-    this->mThresholdTree->Branch("strobedel", &vMixData, "vMixData[1024]/S");
-    this->mThresholdTree->Branch("charge", &vCharge, "vCharge[1024]/b");
+    mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
+    mThresholdTree->Branch("strobedel", &vMixData, "vMixData[1024]/S");
+    mThresholdTree->Branch("charge", &vCharge, "vCharge[1024]/b");
     if (doSlopeCalculation) {
-      this->mSlopeTree = new TTree("line_tree", "line_tree");
-      this->mSlopeTree->Branch("chipid", &vChipid, "vChipID[1024]/S");
-      this->mSlopeTree->Branch("row", &vRow, "vRow[1024]/S");
-      this->mSlopeTree->Branch("slope", &vSlope, "vSlope[1024]/F");
-      this->mSlopeTree->Branch("intercept", &vIntercept, "vIntercept[1024]/F");
+      mSlopeTree = new TTree("line_tree", "line_tree");
+      mSlopeTree->Branch("chipid", &vChipid, "vChipID[1024]/S");
+      mSlopeTree->Branch("row", &vRow, "vRow[1024]/S");
+      mSlopeTree->Branch("slope", &vSlope, "vSlope[1024]/F");
+      mSlopeTree->Branch("intercept", &vIntercept, "vIntercept[1024]/F");
     }
   } else if (mScanType == 'R') {
-    this->mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
-    this->mThresholdTree->Branch("vresetd", &vMixData, "vMixData[1024]/S");
+    mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
+    mThresholdTree->Branch("vresetd", &vMixData, "vMixData[1024]/S");
   } else if (mScanType == 'r') {
-    this->mThresholdTree->Branch("thr", &vThreshold, "vThreshold[1024]/S");
-    this->mThresholdTree->Branch("noise", &vNoise, "vNoise[1024]/F");
-    this->mThresholdTree->Branch("success", &vSuccess, "vSuccess[1024]/O");
-    this->mThresholdTree->Branch("vresetd", &vMixData, "vMixData[1024]/S");
+    mThresholdTree->Branch("thr", &vThreshold, "vThreshold[1024]/S");
+    mThresholdTree->Branch("noise", &vNoise, "vNoise[1024]/F");
+    mThresholdTree->Branch("success", &vSuccess, "vSuccess[1024]/O");
+    mThresholdTree->Branch("vresetd", &vMixData, "vMixData[1024]/S");
   }
 
   return;
@@ -770,7 +787,18 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
         this->saveThreshold(); // save before moving to the next vresetd
       }
     }
-  }
+
+    // Fill the ScTree tree
+    if (mScanType == 'T') { // TODO: store also for other scans?
+      for (int ichg = mMin; ichg <= mMax; ichg++) {
+        for (short int col_i = 0; col_i < this->N_COL; col_i += mColStep) {
+          vCharge[col_i] = ichg;
+          vHits[col_i] = mPixelHits[chipID][row][col_i][0][ichg - mMin];
+        }
+        mScTree->Fill();
+      }
+    }
+  } // end of the else
 
   // Saves threshold information to internal memory
   if (mScanType != 'P' && mScanType != 'p' && mScanType != 'R' && mScanType != 'r') {
@@ -823,20 +851,24 @@ void ITSThresholdCalibrator::saveThreshold()
 void ITSThresholdCalibrator::finalizeOutput()
 {
   // Check that objects actually exist in memory
-  if (!(this->mRootOutfile) || !(this->mThresholdTree) || (doSlopeCalculation && !(this->mSlopeTree))) {
+  if (!(mScTree) || !(this->mRootOutfile) || !(this->mThresholdTree) || (doSlopeCalculation && !(this->mSlopeTree))) {
     return;
   }
 
   // Ensure that everything has been written to the ROOT file
   this->mRootOutfile->cd();
   this->mThresholdTree->Write(nullptr, TObject::kOverwrite);
+  this->mScTree->Write(nullptr, TObject::kOverwrite);
+
   if (doSlopeCalculation) {
     this->mSlopeTree->Write(nullptr, TObject::kOverwrite);
   }
 
-  // Clean up the mThresholdTree and ROOT output file
+  // Clean up the mThresholdTree, mScTree and ROOT output file
   delete this->mThresholdTree;
   this->mThresholdTree = nullptr;
+  delete mScTree;
+  mScTree = nullptr;
   if (doSlopeCalculation) {
     delete this->mSlopeTree;
     this->mSlopeTree = nullptr;
@@ -1991,7 +2023,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"enable-single-pix-tag", VariantType::Bool, false, {"Use to enable tagging of single noisy pix in digital and analogue scan"}},
             {"ccdb-mgr-url", VariantType::String, "", {"CCDB url to download confDBmap"}},
             {"min-vcasn", VariantType::Int, 30, {"Min value of VCASN in vcasn scan, default is 30"}},
-            {"max-vcasn", VariantType::Int, 80, {"Max value of VCASN in vcasn scan, default is 80"}},
+            {"max-vcasn", VariantType::Int, 100, {"Max value of VCASN in vcasn scan, default is 80"}},
             {"min-ithr", VariantType::Int, 30, {"Min value of ITHR in ithr scan, default is 30"}},
             {"max-ithr", VariantType::Int, 100, {"Max value of ITHR in ithr scan, default is 100"}},
             {"manual-mode", VariantType::Bool, false, {"Flag to activate the manual mode in case run type is not recognized"}},
@@ -2015,7 +2047,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"finalize-at-eos", VariantType::Bool, false, {"Call the finalize() method at the end of stream: to be used in case end-of-run flags are not available so to force calculations at end of run"}},
             {"charge-a", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 1st point used for the slope calculation"}},
             {"charge-b", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 2nd point used for the slope calculation"}},
-            {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}}}};
+            {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}},
+            {"s-curve-col-step", VariantType::Int, 8, {"save s-curves points to tree every s-curve-col-step  pixels on 1 row"}}}};
 }
 } // namespace its
 } // namespace o2

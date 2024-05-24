@@ -147,6 +147,77 @@ const char* getGainErrorDescription(unsigned int errorcode)
   return getGainErrorDescription(getGainErrorFromErrorCode(errorcode));
 }
 
+TRUDecodingError_t getTRUDecodingErrorFromErrorCode(unsigned int errorcode)
+{
+  switch (errorcode) {
+    case 0:
+      return TRUDecodingError_t::TRU_INDEX_INVALID;
+    case 1:
+      return TRUDecodingError_t::PATCH_INDEX_INVALID;
+    case 2:
+      return TRUDecodingError_t::FASTOR_INDEX_INVALID;
+    default:
+      return TRUDecodingError_t::UNKNOWN_ERROR;
+  }
+}
+
+const char* getTRUDecodingErrorName(TRUDecodingError_t errortype)
+{
+  switch (errortype) {
+    case TRUDecodingError_t::TRU_INDEX_INVALID:
+      return "TRUIndexInvalid";
+    case TRUDecodingError_t::PATCH_INDEX_INVALID:
+      return "PatchIndexInvalid";
+    case TRUDecodingError_t::FASTOR_INDEX_INVALID:
+      return "FastORIndexInvalid";
+    default:
+      return "UnknownError";
+  }
+}
+
+const char* getTRUDecodingErrorName(unsigned int errorcode)
+{
+  return getTRUDecodingErrorName(getTRUDecodingErrorFromErrorCode(errorcode));
+}
+
+const char* getTRUDecodingErrorTitle(TRUDecodingError_t errortype)
+{
+  switch (errortype) {
+    case TRUDecodingError_t::TRU_INDEX_INVALID:
+      return "TRU index invalid";
+    case TRUDecodingError_t::PATCH_INDEX_INVALID:
+      return "Patch index invalid";
+    case TRUDecodingError_t::FASTOR_INDEX_INVALID:
+      return "FastOR index invalid";
+    default:
+      return "Unknown error";
+  }
+}
+
+const char* getTRUDecodingErrorTitle(unsigned int errortype)
+{
+  return getTRUDecodingErrorTitle(getTRUDecodingErrorFromErrorCode(errortype));
+}
+
+const char* getTRUDecodingErrorErrorDescription(TRUDecodingError_t errortype)
+{
+  switch (errortype) {
+    case TRUDecodingError_t::TRU_INDEX_INVALID:
+      return "TRU index is invalid";
+    case TRUDecodingError_t::PATCH_INDEX_INVALID:
+      return "Patch index is invalid";
+    case TRUDecodingError_t::FASTOR_INDEX_INVALID:
+      return "FastOR index is invalid";
+    default:
+      return "Unknown error";
+  }
+}
+
+const char* getTRUDecodingErrorErrorDescription(unsigned int errorcode)
+{
+  return getTRUDecodingErrorErrorDescription(getTRUDecodingErrorFromErrorCode(errorcode));
+}
+
 } // namespace reconstructionerrors
 
 } // namespace emcal

@@ -61,7 +61,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   } while (CAMath::Abs(tParam.Y()) > tracker.Row(rowIndex).MaxY());
 
   float err2Y, err2Z;
-  tracker.GetErrors2Seeding(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), -1.f, 0.f, 0.f, err2Y, err2Z); // TODO: Use correct time for multiplicity part of error estimation
+  tracker.GetErrors2Seeding(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), -1.f, err2Y, err2Z); // TODO: Use correct time for multiplicity part of error estimation
   if (tParam.GetCov(0) < err2Y) {
     tParam.SetCov(0, err2Y);
   }

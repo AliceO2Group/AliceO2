@@ -80,6 +80,7 @@ class GPUO2InterfaceRefit
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
   void updateCalib(const o2::gpu::CorrectionMapsHelper* trans, float bzNominalGPU);
+  auto getParam() const { return mParam.get(); }
 
   // To create shared cluster maps and occupancy maps.
   // param is an optional parameter to override the param object, by default a default object from --configKeyValues is used.

@@ -22,5 +22,11 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::tpc::ClusterNative + ;
+#pragma link C++ class o2::tpc::TrackTPC + ;
+#pragma link C++ class o2::track::TrackParametrization < float> + ;
+#pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
+#pragma link C++ class o2::dataformats::RangeReference < unsigned int, unsigned short> + ;
+#pragma link C++ class o2::tpc::dEdxInfo + ;
+#pragma link C++ class o2::track::PID + ;
 
 #endif

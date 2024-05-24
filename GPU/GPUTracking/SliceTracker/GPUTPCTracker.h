@@ -108,22 +108,22 @@ class GPUTPCTracker : public GPUProcessor
   }
 
   MEM_CLASS_PRE2()
-  GPUdi() static void GetErrors2Seeding(const MEM_CONSTANT(GPUParam) & param, char sector, int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float time, float avgCharge, float charge, float& ErrY2, float& ErrZ2)
+  GPUdi() static void GetErrors2Seeding(const MEM_CONSTANT(GPUParam) & param, char sector, int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float time, float& ErrY2, float& ErrZ2)
   {
-    // param.GetClusterErrors2(sector, iRow, param.GetContinuousTracking() != 0. ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, avgCharge, ErrY2, ErrZ2);
-    param.GetClusterErrorsSeeding2(sector, iRow, param.par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, avgCharge, charge, ErrY2, ErrZ2);
+    // param.GetClusterErrors2(sector, iRow, param.GetContinuousTracking() != 0. ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, 0.f, 0.f, ErrY2, ErrZ2);
+    param.GetClusterErrorsSeeding2(sector, iRow, param.par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, ErrY2, ErrZ2);
   }
 
   MEM_CLASS_PRE2()
-  GPUdi() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float time, float avgCharge, float charge, float& ErrY2, float& ErrZ2) const
+  GPUdi() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float time, float& ErrY2, float& ErrZ2) const
   {
-    // Param().GetClusterErrors2(mISlice, iRow, Param().GetContinuousTracking() != 0. ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, avgCharge, ErrY2, ErrZ2);
-    Param().GetClusterErrorsSeeding2(mISlice, iRow, Param().par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, avgCharge, charge, ErrY2, ErrZ2);
+    // Param().GetClusterErrors2(mISlice, iRow, Param().GetContinuousTracking() != 0. ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, 0.f, 0.f, ErrY2, ErrZ2);
+    Param().GetClusterErrorsSeeding2(mISlice, iRow, Param().par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), time, ErrY2, ErrZ2);
   }
-  GPUdi() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float time, float avgCharge, float charge, float& ErrY2, float& ErrZ2) const
+  GPUdi() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float time, float& ErrY2, float& ErrZ2) const
   {
-    // Param().GetClusterErrors2(mISlice, iRow, Param().GetContinuousTracking() != 0. ? 125.f : z, sinPhi, DzDs, time, avgCharge, ErrY2, ErrZ2);
-    Param().GetClusterErrorsSeeding2(mISlice, iRow, Param().par.continuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, time, avgCharge, charge, ErrY2, ErrZ2);
+    // Param().GetClusterErrors2(mISlice, iRow, Param().GetContinuousTracking() != 0. ? 125.f : z, sinPhi, DzDs, time, 0.f, 0.f, ErrY2, ErrZ2);
+    Param().GetClusterErrorsSeeding2(mISlice, iRow, Param().par.continuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, time, ErrY2, ErrZ2);
   }
 
   void SetupCommonMemory();

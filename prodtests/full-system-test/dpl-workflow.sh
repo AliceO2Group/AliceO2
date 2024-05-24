@@ -140,6 +140,8 @@ if [[ $SYNCMODE == 1 ]]; then
 else
   if [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
+  elif [[ $BEAMTYPE == "PbPb" ]]; then
+    ITS_CONFIG_KEY+="ITSVertexerParam.lowMultBeamDistCut=0;ITSCATrackerParam.nROFsPerIterations=12;ITSCATrackerParam.perPrimaryVertexProcessing=true;"
   fi
 fi
 [[ $CTFINPUT == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.tpcInputWithClusterRejection=1;"
@@ -318,6 +320,7 @@ if has_detector_calib PHS && workflow_has_parameter CALIB; then
 fi
 
 [[ ${O2_GPU_DOUBLE_PIPELINE:-$EPNSYNCMODE} == 1 ]] && GPU_CONFIG+=" --enableDoublePipeline"
+[[ ${O2_GPU_RTC:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
 
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
@@ -379,8 +382,8 @@ if [[ ! -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS} ]] || [[ ! -z ${WORKFL
   add_W o2-global-track-cluster-reader "--cluster-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_CLUSTERS --track-types $WORKFLOW_DETECTORS_USE_GLOBAL_READER_TRACKS $GLOBAL_READER_OPTIONS $DISABLE_MC $HBFINI_OPTIONS"
   has_detector FV0 && has_detector_from_global_reader FV0 && add_W o2-fv0-digit-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --fv0-digit-infile o2_fv0digits.root"
   has_detector MID && has_detector_from_global_reader MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mid-digit-infile mid-digits-decoded.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchdigits.root"
-  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mch-digit-infile mchdigits.root"
+  has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC $HBFINI_OPTIONS --mch-digit-infile mchfdigits.root --mch-output-digits-data-description F-DIGITS --mch-output-digitrofs-data-description TC-F-DIGITROFS"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-errors-reader-workflow "$HBFINI_OPTIONS" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "$HBFINI_OPTIONS" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "$HBFINI_OPTIONS" "" 0
@@ -630,8 +633,8 @@ workflow_has_parameter AOD && [[ ! -z "$AOD_SOURCES" ]] && add_W o2-aod-producer
 # extra workflows in case we want to extra ITS/MFT info for dead channel maps to then go to CCDB for MC
 : ${ALIEN_JDL_PROCESSITSDEADMAP:=}
 : ${ALIEN_JDL_PROCESSMFTDEADMAP:=}
-[[ $ALIEN_JDL_PROCESSITSDEADMAP == 1 ]] && has_detector ITS && add_W o2-itsmft-deadmap-builder-workflow " --local-output --output-dir . --source clusters --tf-sampling 1000"
-[[ $ALIEN_JDL_PROCESSMFTDEADMAP == 1 ]] && has_detector MFT && add_W o2-itsmft-deadmap-builder-workflow " --runmft --local-output --output-dir . --source clusters --tf-sampling 1000"
+[[ $ALIEN_JDL_PROCESSITSDEADMAP == 1 ]] && has_detector ITS && add_W o2-itsmft-deadmap-builder-workflow " --local-output --output-dir . --source clusters --tf-sampling 350"
+[[ $ALIEN_JDL_PROCESSMFTDEADMAP == 1 ]] && has_detector MFT && add_W o2-itsmft-deadmap-builder-workflow " --runmft --local-output --output-dir . --source clusters --tf-sampling 350"
 
 
 # ---------------------------------------------------------------------------------------------------------------------

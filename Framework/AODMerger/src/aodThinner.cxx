@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
   TStopwatch clock;
   clock.Start(kTRUE);
 
-  auto outputFile = TFile::Open(outputFileName.c_str(), (bOverwrite) ? "RECREATE" : "CREATE", "", 501);
+  auto outputFile = TFile::Open(outputFileName.c_str(), (bOverwrite) ? "RECREATE" : "CREATE", "", 505);
   if (outputFile == nullptr) {
     printf("Error: File %s exists or cannot be created!\n", outputFileName.c_str());
     return 1;

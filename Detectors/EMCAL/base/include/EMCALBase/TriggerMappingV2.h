@@ -49,6 +49,7 @@ class TriggerMappingV2
   static constexpr unsigned int FASTORSPHI = (5 * FASTORSPHISM) + (1 * FASTORSPHISM / 3)              /*EMCAL*/
                                              + (3 * FASTORSPHISM) + (1 * FASTORSPHISM / 3) /*DCAL */; ///< Number of FastOR/EMCALs in Phi
   static constexpr unsigned int ALLFASTORS = FASTORSETA * FASTORSPHI;                                 ///< Number of FastOR/EMCALs
+  static constexpr unsigned int PATCHESINTRU = 77;
 
   //********************************************
   // Index types

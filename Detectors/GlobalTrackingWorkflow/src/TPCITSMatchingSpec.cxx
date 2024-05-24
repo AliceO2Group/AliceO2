@@ -21,6 +21,7 @@
 #include "Framework/Task.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DeviceSpec.h"
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -94,6 +95,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+  int lane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  int maxLanes = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+  mMatching.setDebugTreeFileName(maxLanes == 1 ? "dbg_TPCITSmatch.root" : fmt::format("dbg_TPCITSmatch_{}.root", lane));
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
@@ -184,6 +188,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     mMatching.setITSTimeBiasInBC(alpParams.roFrameBiasInBC);
     mMatching.setSkipTPCOnly(mSkipTPCOnly);
     mMatching.setITSTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
+    mMatching.setNHBPerTF(o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF());
     mMatching.setMCTruthOn(mUseMC);
     mMatching.setUseFT0(mUseFT0);
     mMatching.setVDriftCalib(mCalibMode);

@@ -32,6 +32,7 @@
 #include "GPUCommonArray.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonAlgorithm.h"
+#include "GPUCommonLogger.h"
 
 namespace o2::math_utils
 {
@@ -980,7 +981,7 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
         // invert D(j:j+1,j:j+1)
         temp2 = *mjj * *(mjj + j + 1) - *(mjj + j) * *(mjj + j);
         if (temp2 == 0) {
-          printf("SymMatrix::bunch_invert: error in pivot choice");
+          LOGF(error, "SymMatrix::bunch_invert: error in pivot choice");
         }
         temp2 = 1. / temp2;
         // this quotient is guaranteed to exist by the choice
@@ -1070,7 +1071,7 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
     } else // 2x2 pivot, compute columns j and j-1 of the inverse
     {
       if (piv[j - 1] != 0) {
-        printf("error in piv %lf \n", static_cast<T>(piv[j - 1]));
+        LOGF(error, "error in piv %lf \n", static_cast<T>(piv[j - 1]));
       }
       s = 2;
       if (j < nrow) {

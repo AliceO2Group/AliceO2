@@ -26,6 +26,8 @@
 #include "TOFBase/Geo.h"
 #include "TPCFastTransform.h"
 #include "TRDBase/Geometry.h"
+#include "EMCALCalib/CellRecalibrator.h"
+#include "EMCALWorkflow/CalibLoader.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
@@ -76,6 +78,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"primary-vertex-mode", VariantType::Bool, false, {"produce jsons with individual primary vertices, not total time frame data"}},
     {"max-primary-vertices", VariantType::Int, 5, {"maximum number of primary vertices to draw per time frame"}},
     {"primary-vertex-triggers", VariantType::Bool, false, {"instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)"}},
+    {"no-calibrate-emcal", VariantType::Bool, false, {"Do not apply on-the-fly EMCAL calibration"}},
+    {"emcal-max-celltime", VariantType::Float, 100.f, {"Max. EMCAL cell time (in ns)"}},
+    {"emcal-min-cellenergy", VariantType::Float, 0.3f, {"Min. EMCAL cell energy (in GeV)"}},
     {"primary-vertex-min-z", VariantType::Float, -o2::constants::math::VeryBig, {"minimum z position for primary vertex"}},
     {"primary-vertex-max-z", VariantType::Float, o2::constants::math::VeryBig, {"maximum z position for primary vertex"}},
     {"primary-vertex-min-x", VariantType::Float, -o2::constants::math::VeryBig, {"minimum x position for primary vertex"}},
@@ -93,6 +98,9 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   LOGF(info, "------------------------    O2DPLDisplay::init version ", o2_eve_version, "    ------------------------------------");
   mData.mConfig.configProcessing.runMC = mUseMC;
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  if (mEMCALCalibLoader) {
+    mEMCALCalibrator = std::make_unique<o2::emcal::CellRecalibrator>();
+  }
 }
 
 void O2DPLDisplaySpec::run(ProcessingContext& pc)
@@ -114,6 +122,19 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   o2::globaltracking::RecoContainer recoCont;
   recoCont.collectData(pc, *mDataRequest);
   updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
+  if (mEMCALCalibLoader) {
+    mEMCALCalibLoader->checkUpdates(pc);
+    if (mEMCALCalibLoader->hasUpdateBadChannelMap()) {
+      mEMCALCalibrator->setBadChannelMap(mEMCALCalibLoader->getBadChannelMap());
+    }
+    if (mEMCALCalibLoader->hasUpdateTimeCalib()) {
+      mEMCALCalibrator->setTimeCalibration(mEMCALCalibLoader->getTimeCalibration());
+    }
+    if (mEMCALCalibLoader->hasUpdateGainCalib()) {
+      mEMCALCalibrator->setGainCalibration(mEMCALCalibLoader->getGainCalibration());
+    }
+  }
+
   EveWorkflowHelper::FilterSet enabledFilters;
 
   enabledFilters.set(EveWorkflowHelper::Filter::ITSROF, this->mFilterITSROF);
@@ -122,6 +143,12 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks, this->mNumberOfTracks != -1);
   EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket, this->mPrimaryVertexMode);
   helper.setRecoContainer(&recoCont);
+  if (mEMCALCalibrator) {
+    helper.setEMCALCellRecalibrator(mEMCALCalibrator.get());
+  }
+  helper.setMaxEMCALCellTime(mEMCALMaxCellTime);
+  helper.setMinEMCALCellEnergy(mEMCALMinCellEnergy);
+
   helper.setITSROFs();
   helper.selectTracks(&(mData.mConfig.configCalib), mClMask, mTrkMask, mTrkMask);
   helper.selectTowers();
@@ -238,6 +265,9 @@ void O2DPLDisplaySpec::updateTimeDependentParams(ProcessingContext& pc)
 void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (mEMCALCalibLoader && mEMCALCalibLoader->finalizeCCDB(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -357,7 +387,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
   if (primaryVertexMode) {
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
     InputHelper::addInputSpecsPVertex(cfgc, specs, useMC);
   }
 
@@ -372,6 +402,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto primaryVertexMaxX = cfgc.options().get<float>("primary-vertex-max-x");
   auto primaryVertexMinY = cfgc.options().get<float>("primary-vertex-min-y");
   auto primaryVertexMaxY = cfgc.options().get<float>("primary-vertex-max-y");
+  auto maxEMCALCellTime = cfgc.options().get<float>("emcal-max-celltime");
+  auto minEMCALCellEnergy = cfgc.options().get<float>("emcal-min-cellenergy");
 
   if (numberOfTracks == -1) {
     tracksSorting = false; // do not sort if all tracks are allowed
@@ -385,11 +417,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
 
+  std::shared_ptr<o2::emcal::CalibLoader> emcalCalibLoader;
+  if (!cfgc.options().get<bool>("no-calibrate-emcal")) {
+    emcalCalibLoader = std::make_shared<o2::emcal::CalibLoader>();
+    emcalCalibLoader->enableTimeCalib(true);
+    emcalCalibLoader->enableBadChannelMap(true);
+    emcalCalibLoader->enableGainCalib(true);
+    emcalCalibLoader->defineInputSpecs(dataRequest->inputs);
+  }
+
   specs.emplace_back(DataProcessorSpec{
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(disableWrite, useMC, srcTrk, srcCl, dataRequest, ggRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers, primaryVertexMinZ, primaryVertexMaxZ, primaryVertexMinX, primaryVertexMaxX, primaryVertexMinY, primaryVertexMaxY)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(disableWrite, useMC, srcTrk, srcCl, dataRequest, ggRequest, emcalCalibLoader, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers, primaryVertexMinZ, primaryVertexMaxZ, primaryVertexMinX, primaryVertexMaxX, primaryVertexMinY, primaryVertexMaxY, maxEMCALCellTime, minEMCALCellEnergy)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

@@ -312,6 +312,11 @@ void AltroDecoder::readTRUFlags(short hwAddress, int payloadSize)
       return;
     }
     int timeBin = mBunchwords[currentsample + 1] + 1; // +1 for further convenience
+    if (timeBin > 128) {                              // corrupted sample: add error and ignore the reast of bunchwords
+      // 1: wrong TRU header
+      mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(2)); // PAYLOAD_DECODING
+      return;
+    }
     int istart = currentsample + 2;
     int iend = istart + std::min(bunchlength, static_cast<int>(mBunchwords.size()) - currentsample - 2);
     currentsample += bunchlength + 2;

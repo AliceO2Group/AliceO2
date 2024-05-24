@@ -157,6 +157,9 @@ o2::dataformats::V0Ext SVStudySpec::processV0(int iv, o2::globaltracking::RecoCo
     invalidate();
     return v0ext;
   }
+  if (!mRefit) {
+    v0ext.v0 = v0sel;
+  }
   v0ext.v0ID = v0id;
   for (int ip = 0; ip < 2; ip++) {
     auto& prInfo = v0ext.prInfo[ip];
@@ -300,7 +303,7 @@ DataProcessorSpec getSVStudySpec(GTrackID::mask_t srcTracks, bool useMC)
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(srcTracks, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
   dataRequest->requestSecondaryVertices(useMC);
   dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime

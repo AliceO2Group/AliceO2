@@ -48,7 +48,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   else()
       set(RTC_CUDA_ARCH "750")
   endif()
-  separate_arguments(GPU_RTC_FLAGS)
+  set(GPU_RTC_FLAGS_SEPARATED "${GPU_RTC_FLAGS}")
+  separate_arguments(GPU_RTC_FLAGS_SEPARATED)
 
   # convenience variables
   if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -74,7 +75,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   add_custom_command(
       OUTPUT ${GPU_RTC_BIN}.command
-      COMMAND echo -n "${CMAKE_CUDA_COMPILER} ${GPU_RTC_FLAGS} ${GPU_RTC_DEFINES} -fatbin" > ${GPU_RTC_BIN}.command
+      COMMAND echo -n "${CMAKE_CUDA_COMPILER} ${GPU_RTC_FLAGS_SEPARATED} ${GPU_RTC_DEFINES} -fatbin" > ${GPU_RTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
       COMMENT "Preparing CUDA RTC command file ${GPU_RTC_BIN}.command"
@@ -196,7 +197,7 @@ if(NOT GPUCA_CUDA_COMPILE_MODE STREQUAL "rdc")
   set_target_properties(${targetName} PROPERTIES LINKER_LANGUAGE CXX)
 endif()
 
-if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
   add_library(GPUTrackingCUDAExternalProvider OBJECT GPUReconstructionCUDAExternalProvider.cu)
   add_library(O2::GPUTrackingCUDAExternalProvider ALIAS GPUTrackingCUDAExternalProvider)
   set_property(TARGET GPUTrackingCUDAExternalProvider PROPERTY CUDA_SEPARABLE_COMPILATION ON)

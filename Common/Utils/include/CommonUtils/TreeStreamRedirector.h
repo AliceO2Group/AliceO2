@@ -41,7 +41,7 @@ namespace utils
 class TreeStreamRedirector
 {
  public:
-  TreeStreamRedirector(const char* fname = "", const char* option = "update");
+  TreeStreamRedirector(const char* fname = "", const char* option = "recreate");
   virtual ~TreeStreamRedirector();
   void Close();
   TFile* GetFile() { return mDirectory->GetFile(); }

@@ -24,6 +24,8 @@
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include <TMath.h>
 #include <TGeoManager.h>
+#include "GPUO2Interface.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include "GPUParam.inc"
 
 namespace o2
@@ -134,7 +136,7 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
             break;
           }
         }
-        mController->getTPCCorrMaps()->Transform(sector, row, cl->getPad(), cl->getTime(), xTmp, yTmp, zTmp, tOffset);
+        mController->getTPCCorrMaps()->Transform(sector, row, clTmp->getPad(), clTmp->getTime(), xTmp, yTmp, zTmp, tOffset);
         if (algConf.discardSectorEdgeDepth > 0) {
           if (std::abs(yTmp) + algConf.discardSectorEdgeDepth > xTmp * TAN10) {
             if (i + direction != stop) {
@@ -215,6 +217,13 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
     gpu::gpustd::array<float, 2> p = {y, z};
     gpu::gpustd::array<float, 3> c = {0, 0, 0};
     mController->getTPCParam()->GetClusterErrors2(sector, currentRow, z, trkParam.getSnp(), trkParam.getTgl(), -1.f, 0.f, 0.f, c[0], c[2]); // TODO: Note this disables occupancy / charge components of the error estimation
+    mController->getTPCParam()->UpdateClusterError2ByState(clusterState, c[0], c[2]);
+    int nrComb = std::abs(row - currentRow) + 1;
+    if (nrComb > 1) {
+      float fact = 1. / std::sqrt(nrComb);
+      c[0] *= fact;
+      c[2] *= fact;
+    }
     if (sysE[0] > 0.f) {
       c[0] += sysE[0] * sysE[0];
     }
@@ -222,7 +231,6 @@ int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
       c[2] += sysE[1] * sysE[1];
     }
 
-    mController->getTPCParam()->UpdateClusterError2ByState(clusterState, c[0], c[2]);
     if (!trkParam.update(p, c)) {
       break;
     }

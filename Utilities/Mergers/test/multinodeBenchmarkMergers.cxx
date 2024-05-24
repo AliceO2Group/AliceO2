@@ -67,6 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     {{{"histo"}, {"TST", "HISTO"}}},
     inputChannelConfig.c_str(),
     dplModelAdaptor())));
+  specs.back().labels.emplace_back(DataProcessorLabel{"input-proxy"});
 
   MergerInfrastructureBuilder mergersBuilder;
   mergersBuilder.setInfrastructureName("histos");

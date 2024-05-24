@@ -122,8 +122,6 @@ void dcs2json()
 
 std::vector<DualSampaInfo> computeDualSampaInfos()
 {
-  uint16_t dsBin{0};
-
   auto elec2det = createElec2DetMapper<ElectronicMapperGenerated>();
   auto det2elec = createDet2ElecMapper<ElectronicMapperGenerated>();
   auto solar2FeeLink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
@@ -210,6 +208,8 @@ void solar2json(bool mchview)
         if (mchview) {
           writer.Key("dsbin");
           writer.Int(dsi.dsBinX);
+          writer.Key("dsIndex");
+          writer.Int(dsi.dsBin);
         } else {
           writer.Key("binX");
           writer.Int(dsi.dsBinX);

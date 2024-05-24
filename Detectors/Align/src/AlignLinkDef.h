@@ -8,7 +8,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 #ifdef __CLING__
 
 #pragma link off all globals;
@@ -21,7 +20,7 @@
 #pragma link C++ class o2::align::AlignableDetectorTOF + ;
 #pragma link C++ class o2::align::AlignableDetectorTPC + ;
 #pragma link C++ class o2::align::AlignableDetectorTRD + ;
-//#pragma link C++ class o2::align::AlignableDetectorHMPID + ;
+// #pragma link C++ class o2::align::AlignableDetectorHMPID + ;
 #pragma link C++ class o2::align::Millepede2Record + ;
 #pragma link C++ class o2::align::AlignmentPoint + ;
 #pragma link C++ class o2::align::AlignableSensor + ;
@@ -29,7 +28,7 @@
 #pragma link C++ class o2::align::AlignableSensorTOF + ;
 #pragma link C++ class o2::align::AlignableSensorTPC + ;
 #pragma link C++ class o2::align::AlignableSensorTRD + ;
-//#pragma link C++ class o2::align::AlignableSensorHMPID + ;
+// #pragma link C++ class o2::align::AlignableSensorHMPID + ;
 #pragma link C++ class o2::align::Controller + ;
 #pragma link C++ class o2::align::AlignmentTrack + ;
 #pragma link C++ class o2::align::AlignableVolume + ;
@@ -39,9 +38,16 @@
 #pragma link C++ class o2::align::GeometricalConstraint + ;
 #pragma link C++ class o2::align::utils;
 
+#pragma link C++ class o2::align::AlgPntDbg + ;
+#pragma link C++ class o2::align::AlgTrcDbg + ;
+#pragma link C++ class std::vector < o2::align::AlgPntDbg> + ;
+
 #pragma link C++ class o2::align::AlignConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::align::AlignConfig> + ;
 
 #pragma link C++ class std::vector < o2::track::TrackParametrization < double>> + ;
+
+#include "TVector3.h"
+#pragma link C++ class std::vector < TVector3> + ;
 
 #endif

@@ -55,7 +55,8 @@ class Geometry;
 namespace o2::emcal
 {
 class Geometry;
-}
+class CellRecalibrator;
+} // namespace o2::emcal
 
 namespace o2::event_visualisation
 {
@@ -207,6 +208,9 @@ class EveWorkflowHelper
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   const o2::globaltracking::RecoContainer* getRecoContainer() const { return mRecoCont; }
   void setRecoContainer(const o2::globaltracking::RecoContainer* rc) { mRecoCont = rc; }
+  void setEMCALCellRecalibrator(o2::emcal::CellRecalibrator* calibrator) { mEMCALCalib = calibrator; }
+  void setMaxEMCALCellTime(float maxtime) { mEMCALMaxCellTime = maxtime; }
+  void setMinEMCALCellEnergy(float minenergy) { mEMCALMinCellEnergy = minenergy; }
   TracksSet mTrackSet;
   o2::event_visualisation::VisualisationEvent mEvent;
   std::unordered_map<GID, std::size_t> mTotalDataTypes;
@@ -221,11 +225,14 @@ class EveWorkflowHelper
   o2::its::GeometryTGeo* mITSGeom;
   o2::phos::Geometry* mPHOSGeom;
   o2::emcal::Geometry* mEMCALGeom;
+  o2::emcal::CellRecalibrator* mEMCALCalib = nullptr;
 
   float mMUS2TPCTimeBins = 5.0098627;
   float mITSROFrameLengthMUS = 0; ///< ITS RO frame in mus
   float mMFTROFrameLengthMUS = 0; ///< MFT RO frame in mus
   float mTPCBin2MUS = 0;
+  float mEMCALMaxCellTime = 100.;  ///< EMCAL cell time cut (in ns)
+  float mEMCALMinCellEnergy = 0.3; ///< EMCAL cell energy cut (in GeV)
   static int BCDiffErrCount;
   const o2::vertexing::PVertexerParams* mPVParams = nullptr;
 };

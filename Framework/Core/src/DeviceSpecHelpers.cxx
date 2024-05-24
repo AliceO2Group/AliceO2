@@ -32,7 +32,7 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
-#include "Framework/Logger.h"
+#include "Framework/Signpost.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/RawDeviceService.h"
 #include "ProcessingPoliciesHelpers.h"
@@ -50,8 +50,7 @@
 
 #include <regex>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+O2_DECLARE_DYNAMIC_LOG(device_spec_helpers);
 
 namespace bpo = boost::program_options;
 
@@ -125,7 +124,9 @@ struct ExpirationHandlerHelpers {
       if (periods.empty()) {
         std::string defaultRateName = std::string{"period-"} + matcher.binding;
         auto defaultRate = std::chrono::milliseconds(options.get<int>(defaultRateName.c_str()));
-        LOGP(detail, "Using default rate of {} ms as specified by option period-{}", defaultRate.count(), matcher.binding);
+        O2_SIGNPOST_ID_GENERATE(tid, device_spec_helpers);
+        O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, tid, "timeDrivenCreation", "Using default rate of %" PRIi64 " ms as specified by option period-%{public}s", defaultRate.count(),
+                               matcher.binding.c_str());
         periods.emplace_back(defaultRate.count());
         durations.emplace_back(std::chrono::seconds((std::size_t)-1));
       } else {
@@ -1359,12 +1360,15 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
                                          std::vector<DeviceControl>& deviceControls,
+                                         std::vector<ConfigParamSpec> const& detectedOptions,
                                          std::string const& uniqueWorkflowId)
 {
   assert(deviceSpecs.size() == deviceExecutions.size());
   assert(deviceControls.size() == deviceExecutions.size());
   for (size_t si = 0; si < deviceSpecs.size(); ++si) {
     auto& spec = deviceSpecs[si];
+    O2_SIGNPOST_ID_GENERATE(poid, device_spec_helpers);
+    O2_SIGNPOST_START(device_spec_helpers, poid, "prepareArguments", "Preparing options for %{public}s", spec.id.c_str());
     auto& control = deviceControls[si];
     auto& execution = deviceExecutions[si];
 
@@ -1373,7 +1377,14 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
 
     int argc;
     char** argv;
-    std::vector<ConfigParamSpec> workflowOptions;
+    // We need to start with the detected options, so that they are not lost.
+    // Notice how detected options can be detected at any moment in the chain,
+    // so it's important that if you rely on them, they get passed on
+    // always.
+    std::vector<ConfigParamSpec> workflowOptions = detectedOptions;
+    for (auto& opt : detectedOptions) {
+      O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, poid, "prepareArguments", "Processor option %{public}s passed as previously detected", opt.name.c_str());
+    }
     /// Lookup the executable name in the metadata associated with the workflow.
     /// If we find it, we rewrite the command line arguments to be processed
     /// so that they look like the ones passed to the merged workflow.
@@ -1386,8 +1397,17 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       argv[ai + 1] = strdup(arg.data());
     }
     argv[argc] = nullptr;
-    workflowOptions = pi->workflowOptions;
+    for (auto& opt : pi->workflowOptions) {
+      O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, poid, "prepareArguments", "Processor option %{public}s found in process description", opt.name.c_str());
+      workflowOptions.push_back(opt);
+    }
+    std::sort(workflowOptions.begin(), workflowOptions.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto last = std::unique(workflowOptions.begin(), workflowOptions.end());
+    workflowOptions.erase(last, workflowOptions.end());
 
+    for (auto& opt : workflowOptions) {
+      O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, poid, "prepareArguments", "Final unique option %{public}s added to list of workflowOptions", opt.name.c_str());
+    }
     // We duplicate the list of options, filtering only those
     // which are actually relevant for the given device. The additional
     // four are to add
@@ -1662,7 +1682,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       assert(execution.args[ai]);
       str << " " << execution.args[ai];
     }
-    LOG(debug) << "The following options are being forwarded to " << spec.id << ":" << str.str();
+    O2_SIGNPOST_END(device_spec_helpers, poid, "prepareArguments", "The following options are being forwarded to %{public}s: %{public}s",
+                    spec.id.c_str(), str.str().c_str());
   }
 }
 

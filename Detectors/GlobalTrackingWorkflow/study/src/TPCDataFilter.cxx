@@ -297,7 +297,7 @@ DataProcessorSpec getTPCDataFilter(GTrackID::mask_t srcTracks, GTrackID::mask_t 
 
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestClusters(srcClusters, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
 
   return DataProcessorSpec{
     "tpc-data-filter",

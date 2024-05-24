@@ -133,12 +133,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, 0});
     stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, 0});
 
-    if (!options.isSet("aod-file")) {
+    if (!options.isSet("aod-file-private")) {
       LOGP(fatal, "No input file defined!");
       throw std::runtime_error("Processing is stopped!");
     }
 
-    auto filename = options.get<std::string>("aod-file");
+    auto filename = options.get<std::string>("aod-file-private");
 
     std::string parentFileReplacement;
     if (options.isSet("aod-parent-base-path-replacement")) {
@@ -306,7 +306,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           control.readyToQuit(QuitRequest::Me);
           return;
         }
-      } 
+      }
     });
   })};
 
