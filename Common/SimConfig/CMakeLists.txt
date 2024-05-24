@@ -13,7 +13,9 @@ o2_add_library(SimConfig
                SOURCES src/SimConfig.cxx
                        src/SimParams.cxx
                        src/SimUserDecay.cxx
-                       src/DigiParams.cxx src/G4Params.cxx
+                       src/DigiParams.cxx
+                       src/G4Params.cxx
+                       src/DetectorLists.cxx
                        src/MatMapParams.cxx
                        src/InteractionDiamondParam.cxx
                        src/GlobalProcessCutSimParam.cxx
@@ -27,8 +29,9 @@ o2_target_root_dictionary(SimConfig
                                   include/SimConfig/SimParams.h
                                   include/SimConfig/SimUserDecay.h
                                   include/SimConfig/InteractionDiamondParam.h
-		                  include/SimConfig/DigiParams.h
+                                  include/SimConfig/DigiParams.h
                                   include/SimConfig/G4Params.h
+                                  include/SimConfig/DetectorLists.h
                                   include/SimConfig/GlobalProcessCutSimParam.h
                                   include/SimConfig/MatMapParams.h)
 

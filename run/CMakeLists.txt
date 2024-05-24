@@ -148,6 +148,8 @@ o2_add_dpl_workflow(mctracks-to-aod-simple-task
 
 o2_data_file(COPY o2simtopology_template.json DESTINATION config)
 
+o2_data_file(COPY o2simdefaultdetectorlist.json DESTINATION config)
+
 # * # add a complex simulation as a unit test (if simulation was enabled)
 #   perform
 # * # some checks on kinematics and track references
