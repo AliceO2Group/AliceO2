@@ -1924,8 +1924,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
     for (int iCol = 0; iCol < nMCCollisions; iCol++) {
       const auto time = mcRecords[iCol].getTimeOffsetWrtBC();
-      const auto globalBC = mcRecords[iCol].toLong();
-      const auto item = bcsMap.find(globalBC);
+      auto globalBC = mcRecords[iCol].toLong();
+      auto item = bcsMap.find(globalBC);
       int bcID = -1;
       if (item != bcsMap.end()) {
         bcID = item->second;
@@ -1934,11 +1934,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                    << "for MC collision; BC = " << globalBC
                    << ", mc collision = " << iCol;
       }
-      const auto& colParts = mcParts[iCol];
-      const auto nParts = colParts.size();
+      auto& colParts = mcParts[iCol];
+      auto nParts = colParts.size();
       for (const auto colPart : colParts) {
-        const auto eventID = colPart.entryID;
-        const auto sourceID = colPart.sourceID;
+        auto eventID = colPart.entryID;
+        auto sourceID = colPart.sourceID;
         // enable embedding: if several colParts exist, then they are
         // saved as one collision
         if (nParts == 1 || sourceID == 0) {
