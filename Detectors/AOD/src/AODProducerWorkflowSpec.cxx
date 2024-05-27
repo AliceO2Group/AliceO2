@@ -1936,7 +1936,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       }
       auto& colParts = mcParts[iCol];
       auto nParts = colParts.size();
-      for (const auto colPart : colParts) {
+      for (auto colPart : colParts) {
         auto eventID = colPart.entryID;
         auto sourceID = colPart.sourceID;
         // enable embedding: if several colParts exist, then they are
@@ -1944,7 +1944,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         if (nParts == 1 || sourceID == 0) {
           // FIXME:
           // use generators' names for generatorIDs (?)
-          const auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
           updateMCHeader(mcCollisionsCursor.cursor,
                          hepmcXSectionsCursor.cursor,
                          hepmcPdfInfosCursor.cursor,
