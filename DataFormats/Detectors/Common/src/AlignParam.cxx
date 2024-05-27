@@ -328,8 +328,15 @@ bool AlignParam::applyToGeometry(bool usePW) const
   LOG(debug) << "Aligning volume " << symname;
 
   node->Align(ginv);
-  if (getDetFromSymName(getSymName()) == "ITS" && usePW) {
-    pw->AddNode(path);
+  std::string pathStr;
+  if (path) {
+    pathStr.append(path);
+    if (getDetFromSymName(getSymName()) == "ITS" && (pathStr.find("ITSUChip") != std::string::npos) && usePW) {
+      auto sensor = node->GetNode()->GetDaughter(1);
+      LOG(debug) << "adding " << path << "/" << sensor->GetName()  << " volume to the PW";
+      gGeoManager->MakePhysicalNode(Form("%s/%s", path, sensor->GetName()));
+      pw->AddNode(Form("%s/%s", path, sensor->GetName()));
+    }
   }
   return true;
 }
