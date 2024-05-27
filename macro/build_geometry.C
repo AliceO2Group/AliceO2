@@ -222,19 +222,19 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("TPC")) {
     // tpc
     addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2TPCSimulation", "create_Detector_tpc", isReadout("TPC")));
+      "O2TPCSimulation", "create_detector_tpc", isReadout("TPC")));
   }
 #ifdef ENABLE_UPGRADES
   if (isActivated("IT3")) {
     // IT3
     addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, const char*, bool>(
-      "O2ITSSimulation", "create_Detector_its", "IT3", isReadout("IT3")));
+      "O2ITSSimulation", "create_detector_its", "IT3", isReadout("IT3")));
   }
 
   if (isActivated("TRK")) {
     // ALICE 3 TRK
     addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2TRKSimulation", "create_Detector_trk", isReadout("TRK")));
+      "O2TRKSimulation", "create_detector_trk", isReadout("TRK")));
   }
 
   if (isActivated("FT3")) {
@@ -271,7 +271,7 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("ITS")) {
     // its
     addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, const char*, bool>(
-      "O2ITSSimulation", "create_Detector_its", "ITS", isReadout("ITS")));
+      "O2ITSSimulation", "create_detector_its", "ITS", isReadout("ITS")));
   }
 
   if (isActivated("MFT")) {

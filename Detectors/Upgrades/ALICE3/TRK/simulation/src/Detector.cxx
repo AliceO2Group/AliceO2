@@ -367,5 +367,10 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 
 ClassImp(o2::trk::Detector);
 
-#include <boost/dll/alias.hpp>
-BOOST_DLL_ALIAS(o2::trk::Detector::create, create_Detector_trk)
+// Define Factory method for calling from the outside
+extern "C" {
+o2::base::Detector* create_detector_trk(bool active)
+{
+  return o2::trk::Detector::create(active);
+}
+}

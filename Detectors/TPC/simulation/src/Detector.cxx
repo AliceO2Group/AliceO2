@@ -3217,5 +3217,10 @@ std::string Detector::getHitBranchNames(int probe) const
 
 ClassImp(o2::tpc::Detector);
 
-#include <boost/dll/alias.hpp>
-BOOST_DLL_ALIAS(o2::tpc::Detector::create, create_Detector_tpc)
+// Define Factory method for calling from the outside
+extern "C" {
+o2::base::Detector* create_detector_tpc(bool active)
+{
+  return o2::tpc::Detector::create(active);
+}
+}

@@ -1318,4 +1318,10 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 
 ClassImp(o2::its::Detector);
 
-BOOST_DLL_ALIAS(o2::its::Detector::create, create_Detector_its)
+// Define Factory method for calling from the outside
+extern "C" {
+o2::base::Detector* create_detector_its(const char* name, bool active)
+{
+  return o2::its::Detector::create(name, active);
+}
+}

@@ -14,20 +14,22 @@
 #ifndef DLLOADER_H_
 #define DLLOADER_H_
 
-#include "Framework/Logger.h"
-
-#include <boost/dll.hpp>
-#include <boost/function.hpp>
-#include <boost/core/demangle.hpp>
-
 #include <filesystem>
 #include <optional>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
 #include <cstdlib>
-#include <functional>
 #include <typeinfo>
+#include "dlfcn.h"
+
+#if defined(__APPLE__)
+#define DLLOADER_MAC_LINUX(mac, linux) mac
+#elif
+#define DLLOADER_MAC_LINUX(mac, linux) linux
+#endif
+
+#include "Framework/Logger.h"
 
 namespace o2::utils
 {
@@ -39,9 +41,30 @@ namespace o2::utils
 template <typename DerivedType>
 class DLLoaderBase
 {
-
  public:
-  using library_t = std::shared_ptr<boost::dll::shared_library>;
+  struct filename_decorations {
+    static constexpr const char* prefix = "lib"; // same prefix on mac and linux
+    static constexpr const char* suffix = DLLOADER_MAC_LINUX(".dylib", ".so");
+  };
+  enum Options {
+    none = 0,
+    global = RTLD_GLOBAL,
+    local = RTLD_LOCAL,
+    no_delete = RTLD_NODELETE,
+    no_load = RTLD_NOLOAD,
+    lazy = RTLD_LAZY,
+  };
+  using handle_t = void;
+  using handle_ptr_t = handle_t*;
+  struct HandleDeleter {
+    void operator()(handle_ptr_t p)
+    {
+      if (p != nullptr) {
+        dlclose(p);
+      }
+    }
+  };
+  using library_t = std::unique_ptr<handle_t, HandleDeleter>;
 
   // Returns the singleton instance of the manager. Any function should only be
   // accessed through an instance. This being a singleton serves two purposes:
@@ -72,15 +95,13 @@ class DLLoaderBase
     }
 
     auto path = getO2Path(library);
-    if (auto dpath{boost::dll::shared_library::decorate(path)}; !std::filesystem::exists(dpath.c_str())) {
-      LOGP(error, "Library under '{}' does not exist!", dpath.c_str());
+    if (!std::filesystem::exists(path)) {
+      LOGP(error, "Library under '{}' does not exist!", path);
       return false;
     }
 
     try {
-      auto lib = std::make_shared<boost::dll::shared_library>(path,
-                                                              boost::dll::load_mode::append_decorations |
-                                                                boost::dll::load_mode::rtld_lazy);
+      auto lib = std::unique_ptr<handle_t, HandleDeleter>(dlopen(path.c_str(), mLoadPolicy));
       if (lib == nullptr) {
         throw std::runtime_error("Library handle is nullptr!");
       }
@@ -88,10 +109,10 @@ class DLLoaderBase
       LOGP(info, "Loaded dynamic library '{}' from '{}'", library, path);
       return true;
     } catch (std::exception& e) {
-      LOGP(error, "Failed to load library (path='{}'), failed reason: '{}'", boost::dll::shared_library::decorate(path).c_str(), e.what());
+      LOGP(error, "Failed to load library (path='{}'), failed reason: '{}'", path, e.what());
       return false;
     } catch (...) {
-      LOGP(error, "Failed to load library (path='{}') for unknown reason!", boost::dll::shared_library::decorate(path).c_str());
+      LOGP(error, "Failed to load library (path='{}') for unknown reason!", path.c_str());
       return false;
     }
   }
@@ -135,14 +156,22 @@ class DLLoaderBase
       }
     }
 
+    dlerror(); // clear previous error
+
     // Checks if the symbol exists but does not load it.
-    return mLibraries[library]->has(symbol);
+    handle_ptr_t ptr = dlsym(mLibraries[library].get(), symbol.c_str());
+    if (auto err = dlerror(); err != nullptr) {
+      // LOGP(error, "Did not get {} from {}; error: {}", symbol, library, err);
+    }
+    return ptr != nullptr;
   }
 
-  // Gets a function alias from a loaded library.
-  template <typename ProtoType>
-  std::optional<boost::function<ProtoType>> getFunctionAlias(const std::string& library, const std::string& fname)
+  // Executes a function from a loaded library or return nullopt
+  template <typename Ret, typename... Args>
+  std::optional<Ret> executeFunction(const std::string& library, const std::string& fname, Args... args)
   {
+    using Func_t = Ret (*)(Args...);
+
     const std::lock_guard lock(mLock);
 
     if (fname.empty()) {
@@ -157,57 +186,39 @@ class DLLoaderBase
       }
     }
 
-    const auto& lib = *mLibraries[library];
-    if (!lib.has(fname)) {
+    const auto& lib = mLibraries[library].get();
+    if (!hasSymbol(library, fname)) {
       LOGP(error, "Library '{}' does not have a symbol '{}'", library, fname);
       return std::nullopt;
     }
 
-    boost::function<ProtoType> func = boost::dll::import_alias<ProtoType>(lib, fname);
-    if (func.empty()) {
-      LOGP(error, "Library '{}' does not have a symbol '{}' with {}", library, fname, getTypeName<ProtoType>());
+    dlerror(); // Clear previous error
+
+    auto func = (Func_t)dlsym(lib, fname.c_str());
+    if (auto err = dlerror(); err != nullptr) {
+      LOGP(error, "Did not get {} from {}; error: {}", fname, library, err);
       return std::nullopt;
     }
-    return func;
+
+    if (func == nullptr) {
+      LOGP(error, "Library '{}' does not have a symbol '{}' with {}", library, fname, getTypeName<Ret (*)(Args...)>());
+      return std::nullopt;
+    }
+
+    // Execute function an return its return value
+    return func(args...);
   }
 
-  // Immediatley executes a function alias from a loaded library.
+  // Wrapper for function execution which fatals if execution fails
   template <typename Ret, typename... Args>
   Ret executeFunctionAlias(const std::string& library, const std::string& fname, Args... args)
   {
-    const std::lock_guard lock(mLock);
-
-    using ProtoType = Ret(Args...);
-    if (auto func = getFunctionAlias<ProtoType>(library, fname)) {
-      return (*func)(args...);
+    if (auto opt = executeFunction<Ret, Args...>(library, fname, args...)) {
+      return *opt;
     }
 
-    // cannot execute function at all
-    throw std::runtime_error(fmt::format("Cannot get '{}' from '{}'", fname, library));
-  }
-
-  // Prints information about the loaded libraries and their symbols.
-  void print(bool verbose = false)
-  {
-    const std::lock_guard lock(mLock);
-
-    if (mO2Path.empty() || mLibraries.empty()) {
-      LOGP(info, "No libraries added!");
-    }
-
-    LOGP(info, "Printing loaded dynamic library information:");
-    for (int i{0}; const auto& [library, handle] : mLibraries) {
-      LOGP(info, " {: <3d}: {}", i++, library);
-      if (verbose) {
-        boost::dll::library_info libInfo{boost::dll::shared_library::decorate(getO2Path(library))};
-        for (int j{0}; const auto& sec : libInfo.sections()) {
-          LOGP(info, "         SECTION {: <3d}: {}", j++, sec);
-          for (int k{0}; const auto& symb : libInfo.symbols(sec)) {
-            LOGP(info, "                         SYMBOL {: <3d}: {}", k++, symb);
-          }
-        }
-      }
-    }
+    LOGP(fatal, "Execution of '{}' from '{}' failed spectaculary!", fname, library);
+    __builtin_unreachable(); // is this safe, AFACIT only gcc and clang are supported anyway
   }
 
   // Delete copy and move constructors to enforce singleton pattern.
@@ -225,19 +236,20 @@ class DLLoaderBase
   // Returns the full path to a O2 shared library..
   [[nodiscard]] std::string getO2Path(const std::string& library) const
   {
-    return mO2Path + "/lib/" + library;
+    return mO2Path + "/lib/" + filename_decorations::prefix + library + filename_decorations::suffix;
   }
 
   // Returns the demangled type name of a prototype, e.g., for pretty printing.
   template <typename ProtoType>
   [[nodiscard]] auto getTypeName() -> std::string
   {
-    return boost::core::demangle(typeid(ProtoType).name());
+    return typeid(ProtoType).name(); // TODO
   }
 
   std::unordered_map<std::string, library_t> mLibraries{}; // Pointers to loaded libraries, calls `unload()' for each library, e.g., correctly destroy this object
   std::recursive_mutex mLock{};                            // While a recursive mutex is more expansive it makes locking easier
   std::string mO2Path{};                                   // Holds the path O2 dynamic library determined by $O2_ROOT
+  Options mLoadPolicy{Options::lazy};                      // load resolution policy
 };
 
 } // namespace o2::utils
