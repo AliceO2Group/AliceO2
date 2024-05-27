@@ -15,7 +15,7 @@
 #ifndef ALICEO2_BASE_GEOMETRYMANAGER_H_
 #define ALICEO2_BASE_GEOMETRYMANAGER_H_
 
-#include <TGeoManager.h>      // for TGeoManager
+#include <TGeoManager.h> // for TGeoManager
 #include <TGeoMaterial.h>
 #include <TGeoPhysicalNode.h> // for TGeoPNEntry
 #include <TGeoShape.h>
@@ -136,7 +136,7 @@ class GeometryManager : public TObject
   /// sensitive volume identifier composed from (det_ID<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
   static constexpr UInt_t sSensorMask =
-    (0x1 << sDetOffset) - 1;               /// mask=max sensitive volumes allowed per detector (0xffff)
+    (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
   static std::mutex sTGMutex;
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment
