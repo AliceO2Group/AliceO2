@@ -25,7 +25,7 @@ namespace o2
 namespace align
 {
 
-class AlignableSensorTPC : public AlignableSensor
+class AlignableSensorTPC final : public AlignableSensor
 {
  public:
   AlignableSensorTPC() = default;

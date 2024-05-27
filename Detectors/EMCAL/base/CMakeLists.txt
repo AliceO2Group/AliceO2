@@ -42,6 +42,13 @@ o2_add_test(Mapper
         LABELS emcal
         ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
+o2_add_test(Geometry
+        SOURCES test/testGeometry.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALBase
+        COMPONENT_NAME emcal
+        LABELS emcal
+        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test(RCUTrailer
         SOURCES test/testRCUTrailer.cxx
         PUBLIC_LINK_LIBRARIES O2::EMCALBase

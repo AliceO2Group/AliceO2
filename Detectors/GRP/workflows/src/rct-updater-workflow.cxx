@@ -15,6 +15,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/Task.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsCalibration/Utils.h"
 
 using namespace o2::framework;
 
@@ -68,7 +69,7 @@ class RCTUpdaterSpec : public o2::framework::Task
       if (grp->getRunType() == o2::parameters::GRPECS::PHYSICS || grp->getRunType() == o2::parameters::GRPECS::COSMICS) {
         mEnabled = true;
       } else {
-        LOGP(warning, "Run {} type is {}, disabling RCT update", mRunNumber, o2::parameters::GRPECS::RunTypeNames[mRunNumber]);
+        LOGP(warning, "Run {} type is {}, disabling RCT update", mRunNumber, o2::parameters::GRPECS::RunTypeNames[grp->getRunType()]);
         mEnabled = false;
       }
       if (mEnabled) {
@@ -164,6 +165,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   std::vector<InputSpec> inputs{{"ctfdone", "CTF", "DONE", 0, Lifetime::Timeframe}};
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "RCTUPD_DUMMY"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RCTUPD_DUMMY"}, Lifetime::Sporadic);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                               true,                           // GRPECS=true
                                                               false,                          // GRPLHCIF
@@ -175,7 +179,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.push_back(DataProcessorSpec{
     "rct-updater",
     inputs,
-    {},
+    outputs,
     AlgorithmSpec{adaptFromTask<o2::rct::RCTUpdaterSpec>(ggRequest)},
     Options{
       {"update-interval", VariantType::Float, 1.f, {"update every ... seconds"}},

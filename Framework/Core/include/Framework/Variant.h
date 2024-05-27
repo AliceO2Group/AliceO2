@@ -41,16 +41,16 @@ enum class VariantType : int { Int = 0,
                                Array2DInt,
                                Array2DFloat,
                                Array2DDouble,
-                               LabeledArrayInt,
-                               LabeledArrayFloat,
-                               LabeledArrayDouble,
+                               LabeledArrayInt,    // 2D array
+                               LabeledArrayFloat,  // 2D array
+                               LabeledArrayDouble, // 2D array
                                UInt8,
                                UInt16,
                                UInt32,
                                UInt64,
                                Int8,
                                Int16,
-                               LabeledArrayString,
+                               LabeledArrayString, // 2D array
                                Empty,
                                Dict,
                                Unknown };
@@ -285,7 +285,7 @@ struct variant_helper<S, std::string_view> {
 
 template <typename S>
 struct variant_helper<S, std::string> {
-  static std::string get(const S* store) { return std::string(strdup(*reinterpret_cast<const char* const*>(store))); }
+  static std::string get(const S* store) { return std::string(*reinterpret_cast<const char* const*>(store)); }
 
   static void set(S* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
 };

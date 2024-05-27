@@ -97,19 +97,16 @@ fi
 
 FST_SLEEP0=0
 FST_SLEEP1=0
-FST_SLEEP2=45
+FST_SLEEP2=30
 if [[ -z $SHM_MANAGER_SHMID ]]; then
   rm -f /dev/shm/*fmq*
   if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
     echo "FMQ SHM files left which cannot be deleted, please clean up!"
     exit 1
   fi
-else
-  FST_SLEEP0=0
-  FST_SLEEP1=0
-  FST_SLEEP2=30
 fi
 [[ ! -z $FST_TMUX_DD_WAIT ]] && FST_SLEEP2=$FST_TMUX_DD_WAIT
+[[ ${O2_GPU_RTC:-0} == 1 ]] && FST_SLEEP2=60
 
 if workflow_has_parameter CALIB_PROXIES; then
   CALIB_COMMAND="$GEN_TOPO_MYDIR/aggregator-workflow.sh"

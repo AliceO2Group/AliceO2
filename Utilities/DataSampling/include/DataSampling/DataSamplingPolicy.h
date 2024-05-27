@@ -86,11 +86,13 @@ class DataSamplingPolicy
   std::string getFairMQOutputChannelName() const;
   uint32_t getTotalAcceptedMessages() const;
   uint32_t getTotalEvaluatedMessages() const;
+  bool isActive() const;
 
   static header::DataOrigin createPolicyDataOrigin();
   static header::DataDescription createPolicyDataDescription(std::string policyName, size_t id);
 
  private:
+  bool mActive = true;
   std::string mName;
   PathMap mPaths;
   std::vector<std::unique_ptr<DataSamplingCondition>> mConditions;

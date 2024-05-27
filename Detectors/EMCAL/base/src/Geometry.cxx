@@ -1026,7 +1026,7 @@ std::tuple<int, int, int, int> Geometry::CalculateCellIndex(Int_t absId) const
 
   Int_t nModule = tmp / mNCellsInModule;
   tmp = tmp % mNCellsInModule;
-  Int_t nIphi = tmp / mNPHIdiv, nIeta = tmp % mNPHIdiv;
+  Int_t nIphi = tmp / mNPHIdiv, nIeta = tmp % mNETAdiv;
   return std::make_tuple(nSupMod, nModule, nIphi, nIeta);
 }
 

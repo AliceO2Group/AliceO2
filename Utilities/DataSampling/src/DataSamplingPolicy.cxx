@@ -52,7 +52,9 @@ void DataSamplingPolicy::setFairMQOutputChannel(std::string channel)
 DataSamplingPolicy DataSamplingPolicy::fromConfiguration(const ptree& config)
 {
   auto name = config.get<std::string>("id");
+
   DataSamplingPolicy policy(name);
+  policy.mActive = config.get<bool>("active", "true");
 
   size_t outputId = 0;
   std::vector<InputSpec> inputSpecs = DataDescriptorQueryBuilder::parse(config.get<std::string>("query").c_str());
@@ -164,6 +166,11 @@ uint32_t DataSamplingPolicy::getTotalAcceptedMessages() const
 uint32_t DataSamplingPolicy::getTotalEvaluatedMessages() const
 {
   return mTotalEvaluatedMessages;
+}
+
+bool DataSamplingPolicy::isActive() const
+{
+  return mActive;
 }
 
 header::DataOrigin DataSamplingPolicy::createPolicyDataOrigin()

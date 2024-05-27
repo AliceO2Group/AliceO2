@@ -370,7 +370,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity - 10 * o2::ccdb::CcdbObjectInfo::SECOND, startValidity + o2::ccdb::CcdbObjectInfo::MONTH);
+  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity - 10 * o2::ccdb::CcdbObjectInfo::SECOND, startValidity + offset + 10 * o2::ccdb::CcdbObjectInfo::SECOND);
   mMeanVertexVector.emplace_back(mSMAMVobj);
   if (mVerbose) {
     LOG(info) << "Printing MeanVertex Object:";

@@ -15,8 +15,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::quality_control::FlagReason + ;
-#pragma link C++ class o2::quality_control::TimeRangeFlag + ;
-#pragma link C++ class o2::quality_control::TimeRangeFlagCollection + ;
+#pragma link C++ class o2::quality_control::FlagType + ;
+#pragma link C++ class o2::quality_control::QualityControlFlag + ;
+#pragma link C++ class o2::quality_control::QualityControlFlagCollection + ;
 
 #endif

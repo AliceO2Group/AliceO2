@@ -80,7 +80,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # build flags to use for RTC
   set(GPU_RTC_FLAGS "${CMAKE_HIP_FLAGS} ${CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -std=c++${CMAKE_HIP_STANDARD}")
-  separate_arguments(GPU_RTC_FLAGS)
+  set(GPU_RTC_FLAGS_SEPARATED "${GPU_RTC_FLAGS}")
+  separate_arguments(GPU_RTC_FLAGS_SEPARATED)
 
   # convenience variables
   if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
@@ -106,7 +107,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   add_custom_command(
       OUTPUT ${GPU_RTC_BIN}.command
-      COMMAND echo -n "${hip_HIPCC_EXECUTABLE} ${GPU_RTC_FLAGS} ${GPU_RTC_DEFINES} --genco" > ${GPU_RTC_BIN}.command
+      COMMAND echo -n "${hip_HIPCC_EXECUTABLE} ${GPU_RTC_FLAGS_SEPARATED} ${GPU_RTC_DEFINES} --genco" > ${GPU_RTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
       COMMENT "Preparing HIP RTC command file ${GPU_RTC_BIN}.command"
@@ -206,19 +207,23 @@ if(NOT DEFINED GPUCA_HIP_COMPILE_MODE)
   if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     set(GPUCA_HIP_COMPILE_MODE "onefile")
   else()
-    set(GPUCA_HIP_COMPILE_MODE "onefile")
+    set(GPUCA_HIP_COMPILE_MODE "perkernel")
   endif()
 endif()
 if(GPUCA_HIP_COMPILE_MODE STREQUAL "onefile")
   target_compile_definitions(${targetName} PRIVATE GPUCA_KERNEL_COMPILE_MODE=0)
 elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "perkernel")
-  add_library(GPUTrackingHIPKernels OBJECT $<JOIN:$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNEL_NAMES>,REPLACE,[^A-Za-z0-9]+,_>,PREPEND,${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_>,APPEND,.cu>, >)
-  set_property(TARGET GPUTrackingHIPKernels PROPERTY HIP_FATBIN_COMPILATION ON)
+  #add_library(GPUTrackingHIPKernels OBJECT $<JOIN:$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<LIST:TRANSFORM,$<TARGET_PROPERTY:O2_GPU_KERNELS,O2_GPU_KERNEL_NAMES>,REPLACE,[^A-Za-z0-9]+,_>,PREPEND,${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_>,APPEND,.cu>, >)
+  #set_property(TARGET GPUTrackingHIPKernels PROPERTY HIP_FATBIN_COMPILATION ON)
+  add_subdirectory(per_kernel)
   target_compile_options(GPUTrackingHIPKernels PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fno-gpu-rdc>)
   target_link_options(GPUTrackingHIPKernels PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fno-gpu-rdc>)
   target_compile_definitions(${targetName} PRIVATE GPUCA_KERNEL_COMPILE_MODE=1)
   target_compile_definitions(GPUTrackingHIPKernels PRIVATE $<TARGET_PROPERTY:${targetName},COMPILE_DEFINITIONS>)
   target_include_directories(GPUTrackingHIPKernels PRIVATE $<TARGET_PROPERTY:${targetName},INCLUDE_DIRECTORIES>)
+  if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
+    add_dependencies(GPUTrackingHIPKernels ${MODULE}_HIPIFIED)
+  endif()
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/hip_kernel_module_fatbin)
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUTrackingHIPKernelModules.o
@@ -239,7 +244,7 @@ elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "perkernel")
                               ${O2_GPU_KERNEL_WRAPPER_FOLDER}/krnl_GPUTPCDecompressionKernels_step1unattached.hip
                               TARGET_DIRECTORY ${targetName}
                               PROPERTIES
-                              COMPILE_FLAGS "${GPUCA_HIP_NO_FAST_MATH_FLAGS}"
+                              COMPILE_FLAGS "${GPUCA_CXX_NO_FAST_MATH_FLAGS}"
                               COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
 elseif(GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   message(FATAL_ERROR "HIP RDC compilation of GPUReconstruction ios not yet working!")
@@ -255,11 +260,14 @@ if(NOT GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   target_link_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fno-gpu-rdc>)
 endif()
 
-if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
   add_library(GPUTrackingHIPExternalProvider OBJECT ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPExternalProvider.hip)
   add_library(O2::GPUTrackingHIPExternalProvider ALIAS GPUTrackingHIPExternalProvider)
   target_compile_options(GPUTrackingHIPExternalProvider PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
   target_link_options(GPUTrackingHIPExternalProvider PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
   target_compile_definitions(GPUTrackingHIPExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},COMPILE_DEFINITIONS>)
   target_include_directories(GPUTrackingHIPExternalProvider PRIVATE $<TARGET_PROPERTY:${targetName},INCLUDE_DIRECTORIES>)
+  if(NOT DEFINED GPUCA_HIP_HIPIFY_FROM_CUDA OR "${GPUCA_HIP_HIPIFY_FROM_CUDA}")
+    add_dependencies(GPUTrackingHIPExternalProvider ${MODULE}_HIPIFIED)
+  endif()
 endif()

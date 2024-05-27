@@ -454,7 +454,7 @@ template <typename Container>
 void TimeSlotCalibration<Container>::print() const
 {
   for (int i = 0; i < getNSlots(); i++) {
-    LOG(info) << "Slot #" << i << " of " << getNSlots();
+    LOG(info) << "Slot #" << i + 1 << " of " << getNSlots();
     getSlot(i).print();
   }
 }

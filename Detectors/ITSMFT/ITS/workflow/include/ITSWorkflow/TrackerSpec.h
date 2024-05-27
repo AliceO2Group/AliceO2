@@ -23,12 +23,10 @@
 
 #include "ITStracking/TrackingInterface.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
-#include "CommonUtils/StringUtils.h"
-#include "TStopwatch.h"
+#include "GPUDataTypes.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+
+#include "TStopwatch.h"
 
 namespace o2
 {
@@ -41,9 +39,9 @@ class TrackerDPL : public framework::Task
   TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
              bool isMC,
              int trgType,
-             const TrackingMode& trMode,
+             const TrackingMode& trMode = TrackingMode::Unset,
              const bool overrBeamEst = false,
-             o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+             gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -60,7 +58,8 @@ class TrackerDPL : public framework::Task
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trModeS, const bool overrBeamEst, o2::gpu::GPUDataTypes::DeviceType dType);
+using o2::its::TrackingMode;
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trMode, const bool overrBeamEst = false, gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
 
 } // namespace its
 } // namespace o2

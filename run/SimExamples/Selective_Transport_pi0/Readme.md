@@ -1,3 +1,7 @@
+<!-- doxy
+\page refrunSimExamplesSelective_Transport_pi0 Example Selective Transport
+/doxy -->
+
 This is a simulation example showing how to run simulation and selectively
 transport particles through the detector geometry according to configurable settings and how
 to use the external event trigger mechanism on generators.

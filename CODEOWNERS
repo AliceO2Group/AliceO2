@@ -30,7 +30,7 @@
 /DataFormats/Detectors/CTP                     @lietava
 /DataFormats/Detectors/EMCAL                   @mfasDa @jokonig
 /DataFormats/Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
-/DataFormats/Detectors/FOCAL                   @maxrauch @mfasDa
+/DataFormats/Detectors/FOCAL                   @maxrauch @mfasDa @iarsene @matthiasrichter
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
@@ -49,7 +49,7 @@
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
 /DataFormats/Parameters        @shahor02
-/DataFormats/QualityControl    @knopers8 @Barthelemy @chiarazampolli
+/DataFormats/QualityControl    @knopers8 @Barthelemy @justonedev1 @chiarazampolli
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
@@ -60,7 +60,7 @@
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa @jokonig
 /Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
-/Detectors/FOCAL                   @maxrauch @mfasDa
+/Detectors/FOCAL                   @maxrauch @mfasDa @iarsene @matthiasrichter
 /Detectors/Geometry                @sawenzel @shahor02 @benedikt-voelkel
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
@@ -121,8 +121,8 @@
 /Testing
 
 /Utilities  @AliceO2Group/framework-admins
-/Utilities/Mergers @Barthelemy @knopers8
-/Utilities/DataSampling @Barthelemy @knopers8
+/Utilities/Mergers @Barthelemy @knopers8 @justonedev1
+/Utilities/DataSampling @Barthelemy @knopers8 @justonedev1
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger

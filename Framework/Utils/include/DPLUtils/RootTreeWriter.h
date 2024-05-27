@@ -309,7 +309,7 @@ class RootTreeWriter
   /// branch definition provided to the constructor.
   void init(const char* filename, const char* treename, const char* treetitle = nullptr)
   {
-    mFile = std::make_unique<TFile>(filename, "RECREATE");
+    mFile = std::make_unique<TFile>(filename, "RECREATE", "", 505);
     mTree = std::make_unique<TTree>(treename, treetitle != nullptr ? treetitle : treename);
     mTree->SetDirectory(mFile.get());
     mTreeStructure->setup(mBranchSpecs, mTree.get());

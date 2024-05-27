@@ -121,5 +121,7 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
 
   isPeakPredicate[idx] = peak;
 
-  peakMap[pos] = (uchar(charge > calib.tpc.cfInnerThreshold) << 1) | peak;
+  if (pos.valid()) {
+    peakMap[pos] = (uchar(charge > calib.tpc.cfInnerThreshold) << 1) | peak;
+  }
 }

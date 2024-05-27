@@ -39,6 +39,8 @@ struct ParameterGas : public o2::conf::ConfigurableParamHelper<ParameterGas> {
   float Nprim = 14.f;                                                                    ///< Number of primary electrons per MIP and cm [1/cm]
   float ScaleFactorG4 = 0.85f;                                                           ///< Scale factor to tune WION for GEANT4
   float FanoFactorG4 = 0.7f;                                                             ///< Parameter for smearing the number of ionizations (nel) using GEANT4
+  float Pressure = 1013.25f;                                                             ///< Pressure [mbar]
+  float Temperature = 20.0f;                                                             ///< Temperature [°C]
   float BetheBlochParam[5] = {0.820172e-1f, 9.94795f, 8.97292e-05f, 2.05873f, 1.65272f}; ///< Parametrization of Bethe-Bloch
 
   O2ParamDef(ParameterGas, "TPCGasParam");

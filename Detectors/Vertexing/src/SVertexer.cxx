@@ -450,6 +450,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     mTPCRefitterShMap = recoData.clusterShMapTPC;
     mTPCRefitterOccMap = mRecoCont->occupancyMapTPC;
     mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
   }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
@@ -1327,7 +1328,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     // require minimum of tpc clusters
     bool dCls = trTPC.getNClusters() < mSVParams->mTPCTrackMinNClusters;
     // check track z cuts
-    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() - vtx.getZ()) > mSVParams->mTPCTrack2Beam;
+    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() + vtx.getZ()) > mSVParams->mTPCTrack2Beam;
     // check track transveres cuts
     float sna{0}, csa{0};
     o2::math_utils::CircleXYf_t trkCircle;

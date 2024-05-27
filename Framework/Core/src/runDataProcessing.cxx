@@ -22,7 +22,7 @@
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
@@ -748,6 +748,9 @@ void spawnDevice(uv_loop_t* loop,
       putenv(strdup(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec).data()));
     }
     execvp(execution.args[0], execution.args.data());
+  } else {
+    O2_SIGNPOST_ID_GENERATE(sid, driver);
+    O2_SIGNPOST_EVENT_EMIT(driver, sid, "spawnDevice", "New child at %{pid}d", id);
   }
   close(childFds[ref.index].childstdin[0]);
   close(childFds[ref.index].childstdout[1]);
@@ -1359,6 +1362,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     DriverInfo& driverInfo,
                     DriverConfig& driverConfig,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
+                    std::vector<ConfigParamSpec> const& detectedParams,
                     boost::program_options::variables_map& varmap,
                     std::vector<ServiceSpec>& driverServices,
                     std::string frameworkId)
@@ -2048,6 +2052,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                               runningWorkflow.devices,
                                               deviceExecutions,
                                               controls,
+                                              detectedParams,
                                               driverInfo.uniqueWorkflowId);
         } catch (o2::framework::RuntimeErrorRef& ref) {
           auto& err = o2::framework::error_from_ref(ref);
@@ -2742,6 +2747,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<CallbacksPolicy> const& callbacksPolicies,
            std::vector<SendingPolicy> const& sendingPolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
+           std::vector<ConfigParamSpec> const& detectedParams,
            o2::framework::ConfigContext& configContext)
 {
   std::vector<std::string> currentArgs;
@@ -3173,6 +3179,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          driverInfo,
                          driverConfig,
                          gDeviceMetricsInfos,
+                         detectedParams,
                          varmap,
                          driverServices,
                          frameworkId);

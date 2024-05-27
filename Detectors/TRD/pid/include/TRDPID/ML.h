@@ -21,15 +21,17 @@
 #include "DataFormatsTRD/PID.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
 #include <onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>
+#else
+#include <onnxruntime_cxx_api.h>
+#endif
 #include <memory>
 #include <vector>
 #include <array>
 #include <string>
 
-namespace o2
-{
-namespace trd
+namespace o2::trd
 {
 
 /// This is the ML Base class which defines the interface all machine learning
@@ -68,10 +70,14 @@ class ML : public PIDBase
                 [](void* param, OrtLoggingLevel severity, const char* category, const char* logid, const char* code_location, const char* message) {
                   LOG(warn) << "Ort " << severity << ": [" << logid << "|" << category << "|" << code_location << "]: " << message << ((intptr_t)param == 3 ? " [valid]" : " [error]");
                 },
-                (void*)3};                              ///< ONNX enviroment
-  const OrtApi& mApi{Ort::GetApi()};                    ///< ONNX api
+                (void*)3};           ///< ONNX enviroment
+  const OrtApi& mApi{Ort::GetApi()}; ///< ONNX api
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
   std::unique_ptr<Ort::Experimental::Session> mSession; ///< ONNX session
-  Ort::SessionOptions mSessionOptions;                  ///< ONNX session options
+#else
+  std::unique_ptr<Ort::Session> mSession; ///< ONNX session
+#endif
+  Ort::SessionOptions mSessionOptions; ///< ONNX session options
   Ort::AllocatorWithDefaultOptions mAllocator;
 
   // Input/Output
@@ -123,7 +129,6 @@ class PY final : public ML
   ClassDefNV(PY, 1);
 };
 
-} // namespace trd
-} // namespace o2
+} // namespace o2::trd
 
 #endif

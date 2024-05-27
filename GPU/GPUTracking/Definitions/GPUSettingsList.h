@@ -42,8 +42,10 @@ AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road o
 AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, only used if searchWindowDZDR = 0")
 AddOptionRTC(clusterError2CorrectionY, float, 1.f, "", 0, "correction (multiplicative) for the squared cluster error during tracking")
 AddOptionRTC(clusterError2CorrectionZ, float, 1.f, "", 0, "correction (multiplicative) for the squared cluster error during tracking")
-AddOptionRTC(clusterError2AdditionalY, float, 0.f, "", 0, "correction (additive) for the squared cluster error during tracking")
-AddOptionRTC(clusterError2AdditionalZ, float, 0.f, "", 0, "correction (additive) for the squared cluster error during tracking")
+AddOptionRTC(clusterError2AdditionalY, float, 0.f, "", 0, "correction (additive) for the squared cluster error during track fitting")
+AddOptionRTC(clusterError2AdditionalZ, float, 0.f, "", 0, "correction (additive) for the squared cluster error during track fitting")
+AddOptionRTC(clusterError2AdditionalYSeeding, float, 0.1f, "", 0, "correction (additive) for the squared cluster error during track seeding")
+AddOptionRTC(clusterError2AdditionalZSeeding, float, 0.15f, "", 0, "correction (additive) for the squared cluster error during track seeding")
 AddOptionRTC(clusterRejectChi2TolleranceY, float, 1.f, "", 0, "Multiplicative factor multiplied onto chi2 in Y direction for cluster rejection check during track fit")
 AddOptionRTC(clusterRejectChi2TolleranceZ, float, 1.f, "", 0, "Multiplicative factor multiplied onto chi2 in Z direction for cluster rejection check during track fit")
 AddOptionRTC(clusterErrorOccupancyScaler, float, 9.95e-04f, "", 0, "Scaling factor applied to occupancy histogram bin in cluster error estimation")
@@ -189,6 +191,7 @@ AddSubConfig(GPUSettingsRecTRD, trd)
 AddHelp("help", 'h')
 EndConfig()
 
+#ifndef __OPENCL__
 // Settings steering the processing once the device was selected, only available on the host
 BeginSubConfig(GPUSettingsProcessingRTC, rtc, configStandalone.proc, "RTC", 0, "Processing settings", proc_rtc)
 AddOption(cacheOutput, bool, false, "", 0, "Cache RTC compilation results")
@@ -196,6 +199,8 @@ AddOption(optConstexpr, bool, true, "", 0, "Replace constant variables by static
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(runTest, int, 0, "", 0, "Do not run the actual benchmark, but just test RTC compilation (1 full test, 2 test only compilation)")
+AddOption(cacheMutex, bool, true, "", 0, "Use a file lock to serialize access to the cache folder")
+AddOption(ignoreCacheValid, bool, false, "", 0, "If set, allows to use RTC cached code files even if they are not valid for the current source code / parameters")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -274,11 +279,13 @@ AddOption(tpcSingleSector, int, -1, "", 0, "Restrict TPC processing to a single 
 AddOption(tpcDownscaledEdx, unsigned char, 0, "", 0, "If != 0, downscale dEdx processing (if enabled) to x %")
 AddOption(tpcMaxAttachedClustersPerSectorRow, unsigned int, 51000, "", 0, "Maximum number of TPC attached clusters which can be decoded per SectorRow")
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
+AddOption(RTCcacheFolder, std::string, "./rtccache/", "", 0, "Folder in which the cache file is stored")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddSubConfig(GPUSettingsProcessingParam, param)
 AddHelp("help", 'h')
 EndConfig()
+#endif // __OPENCL__
 
 #ifndef GPUCA_GPUCODE_DEVICE
 // Light settings concerning the event display (can be changed without rebuilding vertices)

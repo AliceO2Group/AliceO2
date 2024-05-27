@@ -787,7 +787,7 @@ void AlignmentTrack::Print(Option_t* opt) const
     for (int ip = 0; ip < getNPoints(); ip++) {
       printf("#%3d ", ip);
       auto* pnt = getPoint(ip);
-      pnt->print(0); // RS FIXME OPT
+      pnt->print(AlignmentPoint::kMeasurementBit); // RS FIXME OPT
       //
       if (res && pnt->containsMeasurement()) {
         printf("  Residuals  : %+.3e %+.3e -> Pulls: %+7.2f %+7.2f\n",
@@ -848,17 +848,17 @@ bool AlignmentTrack::iniFit()
 {
   // perform initial fit of the track
   //
-  trackParam_t trc(*(trackParam_t*)this);
-  //
+  const auto& algConf = AlignConfig::Instance();
   if (!getFieldON()) { // for field-off data impose nominal momentum
+    setQ2Pt(isCosmic() ? 1. / algConf.defPTB0Cosm : 1. / algConf.defPTB0Coll);
   }
+  trackParam_t trc(*(trackParam_t*)this);
   mChi2 = mChi2CosmUp = mChi2CosmDn = 0;
   //
   // the points are ranged from outer to inner for collision tracks,
   // and from outer point of lower leg to outer point of upper leg for the cosmic track
   //
   // the fit will always start from the outgoing track in inward direction
-  const auto& algConf = AlignConfig::Instance();
   if (!fitLeg(trc, 0, getInnerPointID(), mNeedInv[0])) {
     if (algConf.verbose > 2) {
       LOG(warn) << "Failed fitLeg 0";
@@ -922,6 +922,17 @@ bool AlignmentTrack::combineTracks(trackParam_t& trcL, const trackParam_t& trcU)
     return false;
   }
   //
+  LOGP(debug, "CosmDn: {}", trcL.asString());
+  LOGP(debug, "CosmUp: {}", trcU.asString());
+  float dsnp = trcL.getSnp() - trcU.getSnp(), dTgl = trcL.getTgl() - trcU.getTgl();
+  if (std::abs(dsnp) > algConf.cosmMaxDSnp || std::abs(dTgl) > algConf.cosmMaxDTgl) {
+    if (algConf.verbose > 2) {
+      LOGP(error, "Rejecting track with dSnp={} dTgl={}", dsnp, dTgl);
+      LOGP(error, "CosmDn: {}", trcL.asString());
+      LOGP(error, "CosmUp: {}", trcU.asString());
+    }
+    return false;
+  }
   //  const covMat_t& covU = trcU.getCov();
   //  const covMat_t& covL = trcL.getCov();
   //
@@ -968,7 +979,8 @@ bool AlignmentTrack::combineTracks(trackParam_t& trcL, const trackParam_t& trcU)
   }
   mChi2 += chi2;
   //
-  //  printf("Combined: Chi2Tot:%.2f ChiUp:%.2f ChiDn:%.2f ChiCmb:%.2f\n",mChi2,mChi2CosmUp,mChi2CosmDn, chi2);
+  LOGP(debug, "CosmCB: {}", trcL.asString());
+  LOGP(debug, "Combined: Chi2Tot:{} ChiUp:{} ChiDn:{} ChiCmb:{} DSnp:{} DTgl:{} Alp:{}", mChi2, mChi2CosmUp, mChi2CosmDn, chi2, dsnp, dTgl, trcL.getAlpha());
 
   return true;
 }

@@ -82,6 +82,7 @@ class STFDecoder : public Task
   int mDumpOnError = 0;
   int mNThreads = 1;
   int mVerbosity = 0;
+  long mROFErrRepIntervalMS = 0;
   size_t mTFCounter = 0;
   size_t mEstNDig = 0;
   size_t mEstNClus = 0;

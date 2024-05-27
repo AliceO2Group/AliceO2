@@ -26,7 +26,13 @@
 
 // inclusions and forward decl for fast sim
 #ifdef ZDC_FASTSIM_ONNX
+
+#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#else
+#include <onnxruntime_cxx_api.h>
+#endif
+
 namespace o2::zdc
 {
 namespace fastsim
@@ -42,9 +48,7 @@ class StandardScaler;
 
 class FairVolume;
 
-namespace o2
-{
-namespace zdc
+namespace o2::zdc
 {
 
 class Detector : public o2::base::DetImpl<Detector>
@@ -197,10 +201,10 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Container for hit data
   std::vector<o2::zdc::Hit>* mHits;
 
-  float mLumiLength = 0;         //TODO: make part of configurable params
-  float mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
-  float mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
-  float mVCollSideCCentreY = 0.; //TODO: make part of configurable params
+  float mLumiLength = 0;         // TODO: make part of configurable params
+  float mTCLIAAPERTURE = 3.5;    // TODO: make part of configurable params
+  float mTCLIAAPERTURENEG = 3.5; // TODO: make part of configurable params
+  float mVCollSideCCentreY = 0.; // TODO: make part of configurable params
 
   int mZNENVVolID = -1; // the volume id for the neutron det envelope volume
   int mZPENVVolID = -1; // the volume id for the proton det envelope volume
@@ -240,12 +244,12 @@ class Detector : public o2::base::DetImpl<Detector>
 
 // fastsim model wrapper
 #ifdef ZDC_FASTSIM_ONNX
-  fastsim::NeuralFastSimulation* mFastSimClassifier = nullptr; //! no ROOT serialization
+  fastsim::NeuralFastSimulation* mFastSimClassifier = nullptr;   //! no ROOT serialization
   fastsim::NeuralFastSimulation* mFastSimModelNeutron = nullptr; //!
   fastsim::NeuralFastSimulation* mFastSimModelProton = nullptr;  //!
 
   // Scalers for models inputs
-  fastsim::processors::StandardScaler* mClassifierScaler = nullptr; //!
+  fastsim::processors::StandardScaler* mClassifierScaler = nullptr;   //!
   fastsim::processors::StandardScaler* mModelScalerNeutron = nullptr; //!
   fastsim::processors::StandardScaler* mModelScalerProton = nullptr;  //!
 
@@ -273,8 +277,7 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-} // namespace zdc
-} // namespace o2
+} // namespace o2::zdc
 
 #ifdef USESHM
 namespace o2

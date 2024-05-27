@@ -104,12 +104,11 @@ class TrackCuts
       const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
       math_utils::Point3D<float> v{}; // vertex not defined?!
       std::array<float, 2> dca;
-      if (tpcTrk.getPt() < mPtTPCCut ||
-          std::abs(tpcTrk.getEta()) > mEtaTPCCut || // TODO: define 2 different values for min and max (***)
-          tpcTrk.getNClusters() < mNTPCClustersCut ||
-          (!(const_cast<o2::tpc::TrackTPC&>(tpcTrk).propagateParamToDCA(v, mBz, &dca, mDCATPCCut)) ||
-           std::abs(dca[0]) > mDCATPCCutY) ||
-          std::hypot(dca[0], dca[1]) > mDCATPCCut) {
+      if (tpcTrk.getPt() < mPtTPCCut || std::abs(tpcTrk.getEta()) > mEtaTPCCut || tpcTrk.getNClusters() < mNTPCClustersCut) { // TODO: define 2 different values for min and max (***)
+        return false;
+      }
+      o2::track::TrackPar trTmp(tpcTrk);
+      if (!trTmp.propagateParamToDCA(v, mBz, &dca, mDCATPCCut) || std::abs(dca[0]) > mDCATPCCutY || std::hypot(dca[0], dca[1]) > mDCATPCCut) {
         return false;
       }
     }

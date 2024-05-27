@@ -372,6 +372,8 @@ class MatchTPCITS
   ///< set Bunch filling and init helpers for validation by BCs
   void setBunchFilling(const o2::BunchFilling& bf);
 
+  void setNHBPerTF(int n) { mNHBPerTF = n; }
+
   ///< ITS readout mode
   void setITSTriggered(bool v) { mITSTriggered = v; }
   bool isITSTriggered() const { return mITSTriggered; }
@@ -421,9 +423,10 @@ class MatchTPCITS
 
 #ifdef _ALLOW_DEBUG_TREES_
   enum DebugFlagTypes : UInt_t {
-    MatchTreeAll = 0x1 << 1,     ///< produce matching candidates tree for all candidates
-    MatchTreeAccOnly = 0x1 << 2, ///< fill the matching candidates tree only once the cut is passed
-    WinnerMatchesTree = 0x1 << 3 ///< separate debug tree for winner matches
+    MatchTreeAll = 0x1 << 1,      ///< produce matching candidates tree for all candidates
+    MatchTreeAccOnly = 0x1 << 2,  ///< fill the matching candidates tree only once the cut is passed
+    WinnerMatchesTree = 0x1 << 3, ///< separate debug tree for winner matches
+    TPCOrigTree = 0x1 << 4        ///< original TPC tracks with some aux info
   };
   ///< check if partucular flags are set
   bool isDebugFlag(UInt_t flags) const { return mDBGFlags & flags; }
@@ -448,6 +451,7 @@ class MatchTPCITS
   ///< fill matching debug tree
   void fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2 = -1., float tCorr = 0.);
   void dumpWinnerMatches();
+  void dumpTPCOrig(bool acc, int tpcIndex);
 #endif
 
  private:
@@ -462,7 +466,7 @@ class MatchTPCITS
   bool prepareFITData();
   int prepareInteractionTimes();
   int prepareTPCTracksAfterBurner();
-  void addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
+  int addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
   int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
                             float trackY, float trackZ, float tolerY, float tolerZ) const;
@@ -563,6 +567,9 @@ class MatchTPCITS
   float mBz = 0;                        ///< nominal Bz
   int mTFCount = 0;                     ///< internal TF counter for debugger
   int mNThreads = 1;                    ///< number of OMP threads
+  int mNHBPerTF = 0;
+  int mNTPCOccBinLength = 0; ///< TPC occ. histo bin length in TBs
+  float mNTPCOccBinLengthInv;
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
@@ -668,7 +675,7 @@ class MatchTPCITS
   std::vector<o2::MCCompLabel> mTPCLblWork; ///< TPC track labels
   std::vector<o2::MCCompLabel> mITSLblWork; ///< ITS track labels
   std::vector<float> mWinnerChi2Refit; ///< vector of refitChi2 for winners
-
+  std::vector<float> mTBinClOcc;       ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
   // ------------------------------
   std::vector<TPCABSeed> mTPCABSeeds; ///< pool of primary TPC seeds for AB
   ///< indices of selected track entries in mTPCWork (for tracks selected by AfterBurner)

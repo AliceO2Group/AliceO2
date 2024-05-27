@@ -25,6 +25,8 @@
 #pragma link C++ class o2::emcal::CaloRawFitterStandard + ;
 #pragma link C++ class o2::emcal::CaloRawFitterGamma2 + ;
 #pragma link C++ class o2::emcal::StuDecoder + ;
+#pragma link C++ class o2::emcal::FastORTimeSeries + ;
+#pragma link C++ class o2::emcal::TRUDataHandler + ;
 
 #pragma link C++ class o2::emcal::RecoParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::emcal::RecoParam> + ;

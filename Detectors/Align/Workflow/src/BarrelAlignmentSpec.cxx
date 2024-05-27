@@ -107,6 +107,7 @@ class BarrelAlignmentSpec : public Task
   bool mIgnoreCCDBAlignment = false;
   bool mCosmic = false;
   bool mLoadTPCCalib = false;
+  int mLane = 0;
   int mPostProcessing = 0; // special mode of extracting alignment or constraints check
   GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
@@ -132,12 +133,11 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
 
-  int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
-  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mCosmic, mUseMC, inst);
+  int dbg = ic.options().get<int>("debug-output");
+  mLane = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mCosmic, mUseMC, mLane);
   if (dbg) {
-    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("mpDebug_{}.root", inst).c_str(), "recreate");
     mController->setDebugOutputLevel(dbg);
-    mController->setDebugStream(mDBGOut.get());
   }
 
   mConfMacro = ic.options().get<std::string>("config-macro");
@@ -192,6 +192,12 @@ void BarrelAlignmentSpec::init(InitContext& ic)
       if (ic.options().get<bool>("apply-xor")) {
         mTRDTransformer->setApplyXOR();
       }
+      auto prevShift = mTRDTransformer->isShiftApplied();
+      if (getenv("ALIEN_JDL_LPMPRODUCTIONTYPE") && std::strcmp(getenv("ALIEN_JDL_LPMPRODUCTIONTYPE"), "MC") == 0) {
+        // apply artificial pad shift in case non-ideal alignment is used to compensate for shift in current alignment from real data
+        mTRDTransformer->setApplyShift(false);
+      }
+      LOGP(info, "Old TRD shift : {} new : {}", prevShift, mTRDTransformer->isShiftApplied());
       mController->setTRDTransformer(mTRDTransformer.get());
     }
     mController->setAllowAfterburnerTracks(ic.options().get<bool>("allow-afterburner-tracks"));
@@ -207,7 +213,12 @@ void BarrelAlignmentSpec::init(InitContext& ic)
 void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  auto tinfo = pc.services().get<o2::framework::TimingInfo>();
   if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
+    if (mController->getDebugOutputLevel()) {
+      mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("mpDebug_{}_{:08d}_{:010d}.root", mLane, tinfo.runNumber, tinfo.tfCounter).c_str(), "recreate");
+      mController->setDebugStream(mDBGOut.get());
+    }
     if (!mIgnoreCCDBAlignment) {
       for (auto id = DetID::First; id <= DetID::Last; id++) {
         const auto* alg = o2::base::GRPGeomHelper::instance().getAlignment(id);
@@ -379,7 +390,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
   if (!postprocess) {
     dataRequest->requestTracks(src, useMC);
     dataRequest->requestClusters(src, false, skipDetClusters);
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
     if (GTrackID::includesDet(DetID::TRD, srcMP)) {
       dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
     }

@@ -41,7 +41,8 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
   mOutputLumiInfo.inp1 = inp1;
   mOutputLumiInfo.inp2 = inp2;
   mMaxInputSize = ctx.options().get<int>("max-input-size");
-  LOG(info) << "CTP reco init done. Inputs decoding here:" << decodeinps << " DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors << " Max input size:" << mMaxInputSize;
+  mMaxInputSizeFatal = ctx.options().get<bool>("max-input-size-fatal");
+  LOG(info) << "CTP reco init done. Inputs decoding here:" << decodeinps << " DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors << " Max input size:" << mMaxInputSize << " MaxInputSizeFatal:" << mMaxInputSizeFatal;
   // mOutputLumiInfo.printInputs();
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
@@ -118,7 +119,11 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       payloadSize += o2::framework::DataRefUtils::getPayloadSize(ref);
     }
     if (payloadSize > (size_t)mMaxInputSize) {
-      LOG(error) << "Input data size:" << payloadSize;
+      if (mMaxInputSizeFatal) {
+        LOG(fatal) << "Input data size:" << payloadSize;
+      } else {
+        LOG(error) << "Input data size:" << payloadSize;
+      }
       dummyOutput();
       return;
     }
@@ -203,5 +208,6 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
       {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
       {"max-input-size", o2::framework::VariantType::Int, 0, {"Do not process input if bigger than max size, 0 - do not check"}},
+      {"max-input-size-fatal", o2::framework::VariantType::Bool, false, {"If true issue fatal error otherwise error on;y"}},
       {"ctpinputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: true - raw decoder - has to be compatible with CTF decoder: allowed options: 10,01,00"}}}};
 }

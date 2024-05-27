@@ -150,8 +150,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
         const auto& match = matchesITSTPCTRDTOF[i];
         auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
         // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
-        const auto& tofCl = tofClusters[match.getTOFClIndex()];
-        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        //        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
         const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
         if (creator(tracksITSTPCTRD[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
           flagUsed(gidx); // flag used ITS-TPC-TRD tracks
@@ -170,9 +170,9 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
       }
       for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
         const auto& match = matchesTPCTRDTOF[i];
-        auto gidx = match.getTrackRef(); // this should be corresponding TPC-TRD track
-        const auto& tofCl = tofClusters[match.getTOFClIndex()];
-        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        auto gidx = match.getTrackRef();                                                                         // this should be corresponding TPC-TRD track
+                                                                                                                 //        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
         const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
         if (creator(tracksTPCTRD[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
           flagUsed(gidx); // flag used TPC-TRD tracks
@@ -223,8 +223,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
           continue;
         }
         // no need to check isUsed: by construction this ITS-TPC was not used elsewhere
-        const auto& tofCl = tofClusters[match.getTOFClIndex()];
-        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        //        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (match.getSignal() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
         const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
         if (creator(tracksTPCITS[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
           flagUsed(gidx); // flag used ITS-TPC tracks

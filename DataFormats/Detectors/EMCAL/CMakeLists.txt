@@ -22,6 +22,7 @@ o2_add_library(DataFormatsEMCAL
         src/ErrorTypeFEE.cxx
         src/CellLabel.cxx
         src/ClusterLabel.cxx
+        src/CompressedTriggerData.cxx
         PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
         O2::Headers
         O2::MathUtils

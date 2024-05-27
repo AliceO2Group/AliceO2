@@ -15,11 +15,14 @@
 * \subpage refrunSimExamplesHepMC
 * \subpage refrunSimExamplesHepMC_STARlight
 * \subpage refrunSimExamplesJet_Embedding_Pythia8
-* \subpage refrunSimExamplesStepMonitoringSimple1
+* \subpage refrunSimExamplesMcTracksToAOD
+* \subpage refrunSimExamplesMcTracksToAOD
+* \subpage refrunSimExamplesPythia
 * \subpage refrunSimExamplesForceDecay_Lambda_Neutron_Dalitz
 * \subpage refrunSimExamplesJustPrimaryKinematics
 * \subpage refrunSimExamplesSelective_Transport
 * \subpage refrunSimExamplesSelective_Transport_pi0
+* \subpage refrunSimExamplesStepMonitoringSimple1
 * \subpage refrunSimExamplesCustom_EventInfo
 * \subpage refrunSimExamplesMCTrackToDPL
 * \subpage refrunSimExamplesTParticle

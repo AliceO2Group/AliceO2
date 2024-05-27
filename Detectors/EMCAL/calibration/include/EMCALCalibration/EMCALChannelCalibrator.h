@@ -167,6 +167,11 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
   // Extract results for the single slot
   DataInput* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  // check if slot contains a minimum amount of data
+  if (c->getNEvents() < EMCALCalibParams::Instance().minNEventsSaveSlot) {
+    LOG(info) << "Slot only contains " << c->getNEvents() << " events. Not saving this slot. " << EMCALCalibParams::Instance().minNEventsSaveSlot << " required";
+    return;
+  }
 
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
     if (c->getNEvents() < EMCALCalibParams::Instance().minNEvents_bc) {
@@ -260,7 +265,7 @@ template <typename DataInput, typename DataOutput>
 bool EMCALChannelCalibrator<DataInput, DataOutput>::saveLastSlotData(TFile& fl)
 {
   LOG(info) << "EMC calib histos are saved in " << fl.GetName();
-  // does this work?
+  // we only have 1 slot
   auto& cont = o2::calibration::TimeSlotCalibration<DataInput>::getSlots();
   auto& slot = cont.at(0);
   DataInput* c = slot.getContainer();
@@ -279,7 +284,7 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::saveLastSlotData(TFile& fl)
     TH1I hGlobalProperties("hGlobalProperties", "hGlobalProperties", 3, -0.5, 2.5);
     hGlobalProperties.GetXaxis()->SetBinLabel(1, "Fill nr.");
     hGlobalProperties.GetXaxis()->SetBinLabel(2, "run type");
-    hGlobalProperties.GetXaxis()->SetBinLabel(2, "ts in hours");
+    hGlobalProperties.GetXaxis()->SetBinLabel(3, "ts in hours");
     hGlobalProperties.SetBinContent(1, mFillNr);
     hGlobalProperties.SetBinContent(2, mRunType);
     hGlobalProperties.SetBinContent(3, timeNow);
@@ -297,7 +302,7 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::saveLastSlotData(TFile& fl)
     TH1I hGlobalProperties("hGlobalProperties", "hGlobalProperties", 3, -0.5, 2.5);
     hGlobalProperties.GetXaxis()->SetBinLabel(1, "Fill nr.");
     hGlobalProperties.GetXaxis()->SetBinLabel(2, "run type");
-    hGlobalProperties.GetXaxis()->SetBinLabel(2, "ts in hours");
+    hGlobalProperties.GetXaxis()->SetBinLabel(3, "ts in hours");
     hGlobalProperties.SetBinContent(1, mFillNr);
     hGlobalProperties.SetBinContent(2, mRunType);
     hGlobalProperties.SetBinContent(3, timeNow);

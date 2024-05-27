@@ -77,6 +77,7 @@ class TPCTrackStudySpec : public Task
   int mTFEnd = 999999999;
   int mTFCount = -1;
   bool mUseR = false;
+  bool mRepRef = false;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutCl;
   float mITSROFrameLengthMUS = 0.;
@@ -99,6 +100,7 @@ void TPCTrackStudySpec::init(InitContext& ic)
   mXRef = ic.options().get<float>("target-x");
   mNMoves = std::max(2, ic.options().get<int>("n-moves"));
   mUseR = ic.options().get<bool>("use-r-as-x");
+  mRepRef = ic.options().get<bool>("repeat-ini-ref");
   mUseGPUModel = ic.options().get<bool>("use-gpu-fitter");
   mTFStart = ic.options().get<int>("tf-start");
   mTFEnd = ic.options().get<int>("tf-end");
@@ -184,7 +186,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   }
 
   mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
-
+  mTPCRefitter->setTrackReferenceX(900);                                                                                 // disable propagation after refit by setting reference to value > 500
   float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   std::vector<short> clSector, clRow;
@@ -378,7 +380,12 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                  << "counter=" << counter
                  << "copy=" << it
                  << "maxCopy=" << mnm
-                 << "movTrackRef=" << trfm
+                 << "movTrackRef=" << trfm;
+      if (mRepRef) {
+        (*mDBGOut) << "tpcMov"
+                   << "iniTrackRef=" << trf << "time=" << tr.getTime0();
+      }
+      (*mDBGOut) << "tpcMov"
                  << "imposedTB=" << tb
                  << "dz=" << dz
                  << "clX=" << clX
@@ -418,6 +425,7 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     {"tf-start", VariantType::Int, 0, {"1st TF to process"}},
     {"tf-end", VariantType::Int, 999999999, {"last TF to process"}},
     {"use-gpu-fitter", VariantType::Bool, false, {"use GPU track model for refit instead of TrackParCov"}},
+    {"repeat-ini-ref", VariantType::Bool, false, {"store ini-refit param with every moved track"}},
     {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 

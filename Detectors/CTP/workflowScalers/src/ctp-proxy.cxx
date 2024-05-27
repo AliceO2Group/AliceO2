@@ -110,6 +110,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     // this is just default, can be overriden by --ctp-config-proxy '--channel-config..'
     chan.c_str(),
     dcs2dpl(ccdbhost));
+  ctpProxy.labels.emplace_back(DataProcessorLabel{"input-proxy"});
   LOG(info) << "===> Proxy done";
   WorkflowSpec workflow;
   workflow.emplace_back(ctpProxy);

@@ -36,13 +36,14 @@
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "Framework/AsyncQueue.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/DataProcessingContext.h"
 #include "Framework/StreamContext.h"
 #include "Framework/DeviceState.h"
 #include "Framework/DeviceConfig.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/Signpost.h"
 
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
@@ -83,6 +84,7 @@ using Value = o2::monitoring::tags::Value;
 O2_DECLARE_DYNAMIC_LOG(data_processor_context);
 O2_DECLARE_DYNAMIC_LOG(stream_context);
 O2_DECLARE_DYNAMIC_LOG(async_queue);
+O2_DECLARE_DYNAMIC_LOG(policies);
 
 namespace o2::framework
 {
@@ -129,6 +131,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       } },
     .exit = [](ServiceRegistryRef registry, void* service) {
                        auto* monitoring = reinterpret_cast<Monitoring*>(service);
+                       monitoring->flushBuffer();
                        delete monitoring; },
     .kind = ServiceKind::Serial};
 }
@@ -676,17 +679,21 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
             }
           }
           decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
-          if (decongestion.orderedCompletionPolicyActive) {
-
+        },
+        TimesliceId{oldestPossibleTimeslice}, -1);
+      if (decongestion.orderedCompletionPolicyActive) {
+        AsyncQueueHelpers::post(
+          queue, decongestion.oldestPossibleTimesliceTask, [ref = services, oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex](size_t id) {
+            O2_SIGNPOST_ID_GENERATE(cid, async_queue);
             int64_t oldNextTimeslice = decongestion.nextTimeslice;
             decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
             if (oldNextTimeslice != decongestion.nextTimeslice) {
               O2_SIGNPOST_EVENT_EMIT_ERROR(async_queue, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
               timesliceIndex.rescan();
             }
-          }
         },
-        TimesliceId{oldestPossibleTimeslice}, -1); },
+        TimesliceId{oldestPossibleOutput.timeslice.value}, -1);
+      } },
     .kind = ServiceKind::Serial};
 }
 
@@ -845,6 +852,16 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX && deploymentMode != DeploymentMode::FST) {
         arrowAndResourceLimitingMetrics = true;
       }
+      // Input proxies should not report cpu_usage_fraction,
+      // because of the rate limiting which biases the measurement.
+      auto& spec = services.get<DeviceSpec const>();
+      bool enableCPUUsageFraction = true;
+      auto isProxy = [](DataProcessorLabel const& label) -> bool { return label == DataProcessorLabel{"input-proxy"}; };
+      if (std::find_if(spec.labels.begin(), spec.labels.end(), isProxy) != spec.labels.end()) {
+        O2_SIGNPOST_ID_GENERATE(mid, policies);
+        O2_SIGNPOST_EVENT_EMIT(policies, mid, "metrics", "Disabling cpu_usage_fraction metric for proxy %{public}s", spec.name.c_str());
+        enableCPUUsageFraction = false;
+      }
 
       std::vector<DataProcessingStats::MetricSpec> metrics = {
         MetricSpec{.name = "errors",
@@ -928,6 +945,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = onlineRefreshLatency,
                    .sendInitialValue = true},
         MetricSpec{.name = "cpu_usage_fraction",
+                   .enabled = enableCPUUsageFraction,
                    .metricId = (int)ProcessingStatsId::CPU_USAGE_FRACTION,
                    .kind = Kind::Rate,
                    .scope = Scope::Online,
@@ -1242,7 +1260,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
   }
   // Load plugins depending on the environment
-  std::vector<LoadableService> loadableServices = {};
+  std::vector<LoadablePlugin> loadablePlugins = {};
   char* loadableServicesEnv = getenv("DPL_LOAD_SERVICES");
   // String to define the services to load is:
   //
@@ -1253,8 +1271,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     }
     loadableServicesStr += loadableServicesEnv;
   }
-  loadableServices = ServiceHelpers::parseServiceSpecString(loadableServicesStr.c_str());
-  ServiceHelpers::loadFromPlugin(loadableServices, specs);
+  loadablePlugins = PluginManager::parsePluginSpecString(loadableServicesStr.c_str());
+  PluginManager::loadFromPlugin<ServiceSpec, ServicePlugin>(loadablePlugins, specs);
   // I should make it optional depending wether the GUI is there or not...
   specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {

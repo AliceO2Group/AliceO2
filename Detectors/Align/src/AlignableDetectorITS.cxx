@@ -156,8 +156,19 @@ int AlignableDetectorITS::processPoints(GIndex gid, int npntCut, bool inv)
     const auto& clusIdx = recoData->getITSTracksClusterRefs();
     // do we want to apply some cuts?
     int clEntry = track.getFirstClusterEntry();
+    int preevSensID = -1;
+    bool errReported = false;
     for (int icl = track.getNumberOfClusters(); icl--;) { // clusters refs are stored from outer to inner layers, we loop in inner -> outer direction
       const auto& clus = mITSClustersArray[(clusIDs[npoints] = clusIdx[clEntry + icl])];
+      if (clus.getSensorID() < preevSensID && !errReported) { // clusters are ordered from outer to inner layer, hence decreasing sensorID
+        std::string errstr{};
+        for (int ie = track.getNumberOfClusters(); ie--;) {
+          errstr += fmt::format(" {}", mITSClustersArray[clusIdx[clEntry + ie]].getSensorID());
+        }
+        LOGP(error, "wrong ITS clusters order? : chips {}", errstr);
+        errReported = true;
+      }
+      preevSensID = clus.getSensorID();
       if (clus.getBits()) { // overlapping clusters will have bit set
         if (clus.isBitSet(EdgeFlags::Biased)) {
           continue;

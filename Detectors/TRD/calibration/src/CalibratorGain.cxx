@@ -52,6 +52,7 @@ void CalibratorGain::initProcessing()
   if (mInitDone) {
     return;
   }
+  LOG(info) << "Initializing the processing";
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mdEdxhists[iDet] = std::make_unique<TH1F>(Form("hdEdx%d", iDet), "dEdx", NBINSGAINCALIB, 0., NBINSGAINCALIB);
   }
@@ -104,6 +105,7 @@ void CalibratorGain::retrievePrev(o2::framework::ProcessingContext& pc)
 void CalibratorGain::finalizeSlot(Slot& slot)
 {
   LOG(info) << "Finalizing gain calibration";
+  print(); // to see current number of slots and their entries
   // do actual calibration for the data provided in the given slot
   TStopwatch timer;
   timer.Start();
@@ -128,7 +130,7 @@ void CalibratorGain::finalizeSlot(Slot& slot)
 
     // Fitting histogram
     mFitFunction->SetParameter(0, mdEdxhists[iDet]->GetMean() / 1.25);
-    int fitStatus = mdEdxhists[iDet]->Fit("fitConvLandau", "LQB", "", 1, NBINSGAINCALIB - 4);
+    int fitStatus = mdEdxhists[iDet]->Fit("fitConvLandau", "LQB0", "", 1, NBINSGAINCALIB - 4);
 
     if (fitStatus != 0) {
       LOGF(warn, "Fit for chamber %i failed, nEntries: %d", iDet, nEntries);

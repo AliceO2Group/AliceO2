@@ -1,4 +1,8 @@
-#HMPID calibration
+<!-- doxy
+\page refHMPIDcalibration HMPID calibration
+/doxy -->
+
+# HMPID calibration
 
 For a local test, use
 

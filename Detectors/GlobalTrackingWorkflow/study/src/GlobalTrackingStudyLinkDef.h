@@ -17,6 +17,8 @@
 
 #pragma link C++ class o2::dataformats::ProngInfoExt + ;
 #pragma link C++ class o2::dataformats::V0Ext + ;
+#pragma link C++ class o2::dataformats::TrackInfoExt + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackInfoExt> + ;
 #pragma link C++ class std::vector < o2::dataformats::ProngInfoExt> + ;
 #pragma link C++ class std::vector < o2::dataformats::V0Ext> + ;
 

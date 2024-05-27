@@ -99,7 +99,7 @@ class TPCTimeSeries : public Task
     mXOuterMatching = ic.options().get<float>("refX-for-outer-ITS");
     mUseMinBiasTrigger = !ic.options().get<bool>("disable-min-bias-trigger");
 
-    if (mSampleTsallis) {
+    if (mUnbinnedWriter) {
       for (int iThread = 0; iThread < mNThreads; ++iThread) {
         mGenerator.emplace_back(std::mt19937(std::random_device{}()));
       }
@@ -1215,11 +1215,11 @@ class TPCTimeSeries : public Task
               o2::track::TrackPar trackITS(tracksITS[idxITSTrack]);
               const bool propITSOk = propagator->propagateTo(trackITS, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType);
               if (propITSOk) {
-                deltaP0 = track.getParam(0) - trackITSTPCTmp.getParam(0);
-                deltaP1 = track.getParam(1) - trackITSTPCTmp.getParam(1);
-                deltaP2 = track.getParam(2) - trackITSTPCTmp.getParam(2);
-                deltaP3 = track.getParam(3) - trackITSTPCTmp.getParam(3);
-                deltaP4 = track.getParam(4) - trackITSTPCTmp.getParam(4);
+                deltaP0 = track.getParam(0) - trackITS.getParam(0);
+                deltaP1 = track.getParam(1) - trackITS.getParam(1);
+                deltaP2 = track.getParam(2) - trackITS.getParam(2);
+                deltaP3 = track.getParam(3) - trackITS.getParam(3);
+                deltaP4 = track.getParam(4) - trackITS.getParam(4);
                 mBufferVals[iThread].front().setDeltaParam(deltaP2, deltaP3, deltaP4);
               }
             }
@@ -1304,6 +1304,48 @@ class TPCTimeSeries : public Task
         }
         const int triggerMask = 0x1 * minBiasOk + 0x2 * writeData;
 
+        float deltaP2ConstrVtx = -999;
+        float deltaP3ConstrVtx = -999;
+        float deltaP4ConstrVtx = -999;
+
+        // cov of TPC track constrained at vertex
+        float covTPCConstrVtxP2 = -999;
+        float covTPCConstrVtxP3 = -999;
+        float covTPCConstrVtxP4 = -999;
+
+        // cov of ITS-TPC track at vertex
+        float covITSTPCConstrVtxP2 = -999;
+        float covITSTPCConstrVtxP3 = -999;
+        float covITSTPCConstrVtxP4 = -999;
+
+        float covTPCAtVertex0 = -999;
+        float covTPCAtVertex1 = -999;
+
+        const bool contributeToVertex = (idxITSTPC.back() != -1);
+        if (hasITSTPC && contributeToVertex) {
+          o2::track::TrackParCov trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
+          o2::gpu::gpustd::array<float, 2> dcaITSTPCTmp{-1, -1};
+          if (propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp)) {
+            o2::track::TrackParCov trackTPC = tracksTPC[iTrk];
+            if (trackTPC.rotate(trackITSTPCTmp.getAlpha()) && propagator->propagateTo(trackTPC, trackITSTPCTmp.getX(), false, mMaxSnp, mFineStep, mMatType)) {
+              // store covariance of TPC track at vertex
+              covTPCAtVertex0 = trackTPC.getCovarElem(0, 0);
+              covTPCAtVertex1 = trackTPC.getCovarElem(1, 1);
+
+              trackTPC.update(vertex);
+              deltaP2ConstrVtx = trackTPC.getParam(2) - trackITSTPCTmp.getParam(2);
+              deltaP3ConstrVtx = trackTPC.getParam(3) - trackITSTPCTmp.getParam(3);
+              deltaP4ConstrVtx = trackTPC.getParam(4) - trackITSTPCTmp.getParam(4);
+              covTPCConstrVtxP2 = trackTPC.getCovarElem(2, 2);
+              covTPCConstrVtxP3 = trackTPC.getCovarElem(3, 3);
+              covTPCConstrVtxP4 = trackTPC.getCovarElem(4, 4);
+              covITSTPCConstrVtxP2 = trackITSTPCTmp.getCovarElem(2, 2);
+              covITSTPCConstrVtxP3 = trackITSTPCTmp.getCovarElem(3, 3);
+              covITSTPCConstrVtxP4 = trackITSTPCTmp.getCovarElem(4, 4);
+            }
+          }
+        }
+
         *mStreamer[iThread] << "treeTimeSeries"
                             // DCAs
                             << "triggerMask=" << triggerMask
@@ -1343,6 +1385,21 @@ class TPCTimeSeries : public Task
                             << "chi2ITS=" << chi2ITS
                             << "chi2match_ITSTPC=" << chi2match_ITSTPC
                             << "PID=" << trkOrig.getPID().getID()
+                            // TPC cov at vertex (without vertex constrained)
+                            << "covTPCAtVertex0=" << covTPCAtVertex0
+                            << "covTPCAtVertex1=" << covTPCAtVertex1
+                            // TPC cov at vertex (with vertex constrained)
+                            << "covTPCConstrVtxP2=" << covTPCConstrVtxP2
+                            << "covTPCConstrVtxP3=" << covTPCConstrVtxP3
+                            << "covTPCConstrVtxP4=" << covTPCConstrVtxP4
+                            // ITS-TPC cov at vertex (with vertex constrained)
+                            << "covITSTPCConstrVtxP2=" << covITSTPCConstrVtxP2
+                            << "covITSTPCConstrVtxP3=" << covITSTPCConstrVtxP3
+                            << "covITSTPCConstrVtxP4=" << covITSTPCConstrVtxP4
+                            // delta Parameter at vertex with TPC track constrained at vertex
+                            << "deltaP2ConstrVtx=" << deltaP2ConstrVtx
+                            << "deltaP3ConstrVtx=" << deltaP3ConstrVtx
+                            << "deltaP4ConstrVtx=" << deltaP4ConstrVtx
                             //
                             << "deltaPar0=" << deltaP0
                             << "deltaPar1=" << deltaP1
@@ -1680,7 +1737,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   GID::mask_t srcTracks = tpcOnly ? GID::getSourcesMask("TPC") : GID::getSourcesMask("TPC,ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   dataRequest->requestTracks(srcTracks, useMC);
   if (!tpcOnly) {
-    dataRequest->requestPrimaryVertertices(useMC);
+    dataRequest->requestPrimaryVertices(useMC);
   }
 
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;

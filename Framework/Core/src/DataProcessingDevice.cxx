@@ -122,7 +122,7 @@ void on_transition_requested_expired(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, handle);
-  O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "callback", "Exit transition timer expired. Exiting.");
+  O2_SIGNPOST_EVENT_EMIT_WARN(device, cid, "callback", "Exit transition timer expired. Exiting.");
   state->transitionHandling = TransitionHandlingState::Expired;
 }
 
@@ -372,6 +372,9 @@ void DataProcessingDevice::Init()
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& context = ref.get<DataProcessorContext>();
   auto& spec = getRunningDevice(mRunningDevice, ref);
+
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+  O2_SIGNPOST_START(device, cid, "Init", "Entering Init callback.");
   context.statelessProcess = spec.algorithm.onProcess;
   context.statefulProcess = nullptr;
   context.error = spec.algorithm.onError;
@@ -412,8 +415,10 @@ void DataProcessingDevice::Init()
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& context = ref.get<DataProcessorContext>();
       auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Init", "Exception caught while in Init: %{public}s. Invoking errorCallback.", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
@@ -425,8 +430,10 @@ void DataProcessingDevice::Init()
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
-      LOGP(error, "Exception caught: {} ", err.what);
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& context = ref.get<DataProcessorContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Init", "Exception caught while in Init: %{public}s. Exiting with 1.", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
@@ -491,6 +498,7 @@ void DataProcessingDevice::Init()
     ServiceRegistry::Salt streamSalt = ServiceRegistry::streamSalt(si + 1, ServiceRegistry::globalDeviceSalt().dataProcessorId);
     mServiceRegistry.lateBindStreamServices(state, *options, streamSalt);
   }
+  O2_SIGNPOST_END(device, cid, "Init", "Exiting Init callback.");
 }
 
 void on_signal_callback(uv_signal_t* handle, int signum)
@@ -1079,7 +1087,9 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       ///        can access information which were stored in the stream.
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
       auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
+      auto& context = ref.get<DataProcessorContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Invoking callback.", err.what);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
@@ -1092,15 +1102,18 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       auto& err = error_from_ref(e);
       /// FIXME: we should pass the salt in, so that the message
       ///        can access information which were stored in the stream.
-      LOGP(error, "Exception caught: {} ", err.what);
       ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& context = ref.get<DataProcessorContext>();
+      O2_SIGNPOST_ID_FROM_POINTER(cid, device, &context);
       demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       auto& stats = ref.get<DataProcessingStats>();
       stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
+          O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Rethrowing.", err.what);
           throw e;
         default:
+          O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "Run", "Exception while running: %{public}s. Skipping to next timeframe.", err.what);
           break;
       }
     };
@@ -1148,6 +1161,9 @@ void DataProcessingDevice::PreRun()
 {
   auto ref = ServiceRegistryRef{mServiceRegistry};
   auto& state = ref.get<DeviceState>();
+
+  O2_SIGNPOST_ID_FROM_POINTER(cid, device, state.loop);
+  O2_SIGNPOST_START(device, cid, "PreRun", "Entering PreRun callback.");
   state.quitRequested = false;
   state.streaming = StreamingState::Streaming;
   for (auto& info : state.inputChannelInfos) {
@@ -1168,13 +1184,16 @@ void DataProcessingDevice::PreRun()
       context.preStartStreamCallbacks(streamRef);
     }
   } catch (std::exception& e) {
-    LOGP(error, "Exception caught: {} ", e.what());
+    O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "PreRun", "Exception of type std::exception caught in PreRun: %{public}s. Rethrowing.", e.what());
+    O2_SIGNPOST_END(device, cid, "PreRun", "Exiting PreRun due to exception thrown.");
     throw;
   } catch (o2::framework::RuntimeErrorRef& e) {
     auto& err = error_from_ref(e);
-    LOGP(error, "Exception caught: {} ", err.what);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "PreRun", "Exception of type o2::framework::RuntimeErrorRef caught in PreRun: %{public}s. Rethrowing.", err.what);
+    O2_SIGNPOST_END(device, cid, "PreRun", "Exiting PreRun due to exception thrown.");
     throw;
   } catch (...) {
+    O2_SIGNPOST_END(device, cid, "PreRun", "Unknown exception being thrown. Rethrowing.");
     throw;
   }
 
@@ -1189,6 +1208,7 @@ void DataProcessingDevice::PreRun()
 
   auto& monitoring = ref.get<Monitoring>();
   monitoring.send(Metric{(uint64_t)1, "device_state"}.addTag(Key::Subsystem, Value::DPL));
+  O2_SIGNPOST_END(device, cid, "PreRun", "Exiting PreRun callback.");
 }
 
 void DataProcessingDevice::PostRun()
@@ -1745,28 +1765,14 @@ struct WaitBackpressurePolicy {
 /// boilerplate which the user does not need to care about at top level.
 void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& info)
 {
+  using InputInfo = DataRelayer::InputInfo;
+  using InputType = DataRelayer::InputType;
+
   auto& context = ref.get<DataProcessorContext>();
   // This is the same id as the upper level function, so we get the events
   // associated with the same interval. We will simply use "handle_data" as
   // the category.
   O2_SIGNPOST_ID_FROM_POINTER(cid, device, &info);
-
-  enum struct InputType : int {
-    Invalid = 0,
-    Data = 1,
-    SourceInfo = 2,
-    DomainInfo = 3
-  };
-
-  struct InputInfo {
-    InputInfo(size_t p, size_t s, InputType t)
-      : position(p), size(s), type(t)
-    {
-    }
-    size_t position;
-    size_t size;
-    InputType type;
-  };
 
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
@@ -1784,8 +1790,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     results.reserve(parts.Size() / 2);
     size_t nTotalPayloads = 0;
 
-    auto insertInputInfo = [&results, &nTotalPayloads](size_t position, size_t length, InputType type) {
-      results.emplace_back(position, length, type);
+    auto insertInputInfo = [&results, &nTotalPayloads](size_t position, size_t length, InputType type, ChannelIndex index) {
+      results.emplace_back(position, length, type, index);
       if (type != InputType::Invalid && length > 1) {
         nTotalPayloads += length - 1;
       }
@@ -1797,24 +1803,24 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       if (sih) {
         O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got SourceInfoHeader with state %d", (int)sih->state);
         info.state = sih->state;
-        insertInputInfo(pi, 2, InputType::SourceInfo);
+        insertInputInfo(pi, 2, InputType::SourceInfo, info.id);
         *context.wasActive = true;
         continue;
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
-        insertInputInfo(pi, 2, InputType::DomainInfo);
+        insertInputInfo(pi, 2, InputType::DomainInfo, info.id);
         *context.wasActive = true;
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(headerData);
       if (!dh) {
-        insertInputInfo(pi, 0, InputType::Invalid);
+        insertInputInfo(pi, 0, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header is not a DataHeader?");
         continue;
       }
       if (dh->payloadSize > parts.At(pi + 1)->GetSize()) {
-        insertInputInfo(pi, 0, InputType::Invalid);
+        insertInputInfo(pi, 0, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "DataHeader payloadSize mismatch");
         continue;
       }
@@ -1827,14 +1833,14 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
       }
       if (!dph) {
-        insertInputInfo(pi, 2, InputType::Invalid);
+        insertInputInfo(pi, 2, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header stack does not contain DataProcessingHeader");
         continue;
       }
       if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
         // this is indicating a sequence of payloads following the header
         // FIXME: we will probably also set the DataHeader version
-        insertInputInfo(pi, dh->splitPayloadParts + 1, InputType::Data);
+        insertInputInfo(pi, dh->splitPayloadParts + 1, InputType::Data, info.id);
         pi += dh->splitPayloadParts - 1;
       } else {
         // We can set the type for the next splitPayloadParts
@@ -1844,12 +1850,12 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         size_t finalSplitPayloadIndex = pi + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
         if (finalSplitPayloadIndex > parts.Size()) {
           O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "DataHeader::splitPayloadParts invalid");
-          insertInputInfo(pi, 0, InputType::Invalid);
+          insertInputInfo(pi, 0, InputType::Invalid, info.id);
           continue;
         }
-        insertInputInfo(pi, 2, InputType::Data);
+        insertInputInfo(pi, 2, InputType::Data, info.id);
         for (; pi + 2 < finalSplitPayloadIndex; pi += 2) {
-          insertInputInfo(pi + 2, 2, InputType::Data);
+          insertInputInfo(pi + 2, 2, InputType::Data, info.id);
         }
       }
     }
@@ -1921,6 +1927,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
           };
           auto relayed = relayer.relay(parts.At(headerIndex)->GetData(),
                                        &parts.At(headerIndex),
+                                       input,
                                        nMessages,
                                        nPayloadsPerHeader,
                                        onDrop);
@@ -2321,6 +2328,7 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
                        *context.registry};
     ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
+      O2_SIGNPOST_EVENT_EMIT(device, aid, "device", "Invoking preProcessingCallbacks");
       // Notice this should be thread safe and reentrant
       // as it is called from many threads.
       streamContext.preProcessingCallbacks(processContext);

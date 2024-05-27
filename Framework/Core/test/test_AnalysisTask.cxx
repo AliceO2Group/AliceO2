@@ -132,9 +132,11 @@ struct TestCCDBObject {
 
 struct KTask {
   struct : public ConfigurableGroup {
+    std::string prefix = "foo";
     Configurable<int> anInt{"someConfigurable", {}, "Some Configurable Object"};
     Configurable<int> anotherInt{"someOtherConfigurable", {}, "Some Configurable Object"};
   } foo;
+
   Configurable<int> anThirdInt{"someThirdConfigurable", {}, "Some Configurable Object"};
   struct : public ConditionGroup {
     Condition<TestCCDBObject> test{"path"};

@@ -161,11 +161,12 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOGP(info, "Found {} PVs, Time CPU/Real:{:.3f}/{:.3f} (DBScan: {:.4f}, Finder:{:.4f}, MADSel:{:.4f}, Rej.Debris:{:.4f}, Reattach:{:.4f}) | {} trials for {} TZ-clusters, max.trials: {}, Slowest TZ-cluster: {} ms of mult {}",
+  LOGP(info, "Found {} PVs, Time CPU/Real:{:.3f}/{:.3f} (DBScan: {:.4f}, Finder:{:.4f}, MADSel:{:.4f}, Rej.Debris:{:.4f}, Reattach:{:.4f}) | {} trials for {} TZ-clusters, max.trials: {}, Slowest TZ-cluster: {} ms of mult {} | NInitial:{}, Rejections: NoFilledBC:{}, NoIntCand:{}, Debris:{}, Quality:{}, ITSOnly:{}",
        vertices.size(), mTimer.CpuTime() - timeCPU0, mTimer.RealTime() - timeReal0,
-       mVertexer.getTimeDBScan().CpuTime(), mVertexer.getTimeVertexing().CpuTime(), mVertexer.getTimeMADSel().CpuTime(), mVertexer.getTimeDebris().CpuTime(), mVertexer.getTimeReAttach().CpuTime(),
-       mVertexer.getTotTrials(), mVertexer.getNTZClusters(), mVertexer.getMaxTrialsPerCluster(),
-       mVertexer.getLongestClusterTimeMS(), mVertexer.getLongestClusterMult());
+       mVertexer.getTimeDBScan().CpuTime(), mVertexer.getTimeVertexing().CpuTime(), mVertexer.getTimeMADSel().CpuTime(), mVertexer.getTimeDebris().CpuTime(),
+       mVertexer.getTimeReAttach().CpuTime(), mVertexer.getTotTrials(), mVertexer.getNTZClusters(), mVertexer.getMaxTrialsPerCluster(),
+       mVertexer.getLongestClusterTimeMS(), mVertexer.getLongestClusterMult(), mVertexer.getNIniFound(),
+       mVertexer.getNKilledBCValid(), mVertexer.getNKilledIntCand(), mVertexer.getNKilledDebris(), mVertexer.getNKilledQuality(), mVertexer.getNKilledITSOnly());
 }
 
 void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
