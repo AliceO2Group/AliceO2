@@ -25,7 +25,7 @@
 
 #if defined(__APPLE__)
 #define DLLOADER_MAC_LINUX(mac, linux) mac
-#elif
+#else
 #define DLLOADER_MAC_LINUX(mac, linux) linux
 #endif
 
