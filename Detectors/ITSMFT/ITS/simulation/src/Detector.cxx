@@ -314,7 +314,6 @@ void Detector::InitializeO2Detector()
 
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
-  LOGP(info, "======> QUI 1 <======");
   // This method is called from the MC stepping
   if (!(fMC->TrackCharge())) {
     return kFALSE;
