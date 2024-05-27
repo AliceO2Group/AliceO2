@@ -62,6 +62,7 @@ set(SRCS
     Merger/GPUTPCGlobalDebugSortKernels.cxx
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
+    ML/onnx_interface.cxx
     DataTypes/GPUTRDTrack.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
@@ -195,6 +196,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFPeakFinder.cxx
         TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
         TPCClusterFinder/GPUTPCCFClusterizer.cxx
+        TPCClusterFinder/GPUTPCNNClusterizer.cxx
         TPCClusterFinder/GPUTPCCFDeconvolution.cxx
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
@@ -306,6 +308,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::ReconstructionDataFormats
                                        O2::TPCFastTransformation
+                                       ONNXRuntime::ONNXRuntime
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
                  SOURCES ${SRCS_DATATYPE_HEADERS})
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)

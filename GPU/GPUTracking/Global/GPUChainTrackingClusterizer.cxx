@@ -18,6 +18,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
+#include "GPUTPCNNClusterizer.h"
 #include <fstream>
 
 #ifdef GPUCA_O2_LIB
@@ -880,7 +881,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput, bool applyNNclus
             runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
           } else {
             // FIXME: Here I need to apply the neural network
-            runKernel<GPUTPCNNClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+            // runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+            GPUCA_NAMESPACE::gpu::GPUTPCNNClusterizer nn_clus;
+            nn_clus.exec({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
           }
         }
         if (GetProcessingSettings().debugLevel >= 3) {
