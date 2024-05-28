@@ -482,8 +482,8 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
     tstart = o2::ccdb::getCurrentTimestamp();
     tend = tstart + 365L * 24 * 3600 * 1000;
   } else {
-    tstart = std::stol(headers["SOR"]);
-    tend = std::stol(headers["EOR"]);
+    tstart = std::stol(headers["STF"]);
+    tend = std::stol(headers["ETF"]);
   }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
@@ -497,8 +497,8 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   const char* filename = "dcs_config.root";
   long current_time = o2::ccdb::getCurrentTimestamp();
   std::string filename_deadMap = "o2-itsmft-NoiseMap_" + std::to_string(current_time) + ".root";
-  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
-  o2::ccdb::CcdbObjectInfo info_deadMap(path_deadMap, "noise_map", filename_deadMap, metadata, tstart - o2::ccdb::CcdbObjectInfo::MINUTE, tend + 5 * o2::ccdb::CcdbObjectInfo::MINUTE);
+  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart - 2 * o2::ccdb::CcdbObjectInfo::MINUTE, tend + 2 * o2::ccdb::CcdbObjectInfo::MINUTE);
+  o2::ccdb::CcdbObjectInfo info_deadMap(path_deadMap, "noise_map", filename_deadMap, metadata, tstart - 2 * o2::ccdb::CcdbObjectInfo::MINUTE, tend + 2 * o2::ccdb::CcdbObjectInfo::MINUTE);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
   auto image_deadMap = o2::ccdb::CcdbApi::createObjectImage(&mDeadMap, &info_deadMap);
   info.setFileName(filename);
