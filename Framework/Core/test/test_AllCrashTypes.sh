@@ -7,7 +7,7 @@ o2-framework-crashing-workflow --crash-type=framework-init --completion-policy=q
 printf "ok\nTesting framework-run..."
 o2-framework-crashing-workflow --crash-type=framework-run --completion-policy=quit -b --run | grep -q "Unhandled o2::framework::runtime_error reached the top of main of o2-framework-crashing-workflow, device shutting down. Reason: This is a o2::framework::runtime_error" || { printf "framework error not found" ; exit 1; }
 printf "ok\nTesting runtime-run..."
-o2-framework-crashing-workflow --crash-type=runtime-run --completion-policy=quit --run | grep -q "Unhandled o2::framework::runtime_error reached the top of main of o2-framework-crashing-workflow, device shutting down. Reason: This is a std::runtime_error" || { echo "runtime error not found" ; exit 1; }
+o2-framework-crashing-workflow --crash-type=runtime-run --completion-policy=quit --run | grep -q "Unhandled o2::framework::runtime_error reached the top of main of o2-framework-crashing-workflow, device shutting down. Reason: This is a std::runtime_error" || { echo "runtime error not found"; o2-framework-crashing-workflow --crash-type=runtime-run --completion-policy=quit --run ; exit 1; }
 printf "ok\n"
 
 export O2_NO_CATCHALL_EXCEPTIONS=1
