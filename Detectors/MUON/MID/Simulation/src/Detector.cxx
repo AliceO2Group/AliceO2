@@ -17,6 +17,7 @@
 #include "FairVolume.h"
 
 ClassImp(o2::mid::Detector);
+O2DetectorCreatorImpl(o2::mid::Detector::create, mid);
 
 namespace o2
 {

@@ -41,21 +41,6 @@
 
 #include "O2HitMerger.h"
 #include "O2SimDevice.h"
-#include <TPCSimulation/Detector.h>
-#include <ITSSimulation/Detector.h>
-#include <MFTSimulation/Detector.h>
-#include <EMCALSimulation/Detector.h>
-#include <TOFSimulation/Detector.h>
-#include <TRDSimulation/Detector.h>
-#include <FT0Simulation/Detector.h>
-#include <FV0Simulation/Detector.h>
-#include <FDDSimulation/Detector.h>
-#include <HMPIDSimulation/Detector.h>
-#include <PHOSSimulation/Detector.h>
-#include <CPVSimulation/Detector.h>
-#include <MCHSimulation/Detector.h>
-#include <MIDSimulation/Detector.h>
-#include <ZDCSimulation/Detector.h>
 
 #include "CommonUtils/ShmManager.h"
 #include <map>
@@ -67,18 +52,6 @@
 #include <functional>
 
 #include "SimPublishChannelHelper.h"
-
-#ifdef ENABLE_UPGRADES
-#include <TRKSimulation/Detector.h>
-#include <FT3Simulation/Detector.h>
-#include <FCTSimulation/Detector.h>
-#include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
-#include <IOTOFSimulation/Detector.h>
-#include <RICHSimulation/Detector.h>
-#include <ECalSimulation/Detector.h>
-#include <MI3Simulation/Detector.h>
-#endif
-
 #include <tbb/concurrent_unordered_map.h>
 
 namespace o2
@@ -923,96 +896,119 @@ void O2HitMerger::initDetInstances()
     }
 
     if (i == DetID::TPC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::tpc::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2TPCSimulation", "create_detector_tpc", true));
       counter++;
     }
     if (i == DetID::ITS) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, const char*, bool>(
+        "O2ITSSimulation", "create_detector_its", "ITS", true));
       counter++;
     }
     if (i == DetID::MFT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mft::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2MFTSimulation", "create_detector_mft", true));
       counter++;
     }
     if (i == DetID::TRD) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::trd::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2TRDSimulation", "create_detector_trd", true));
       counter++;
     }
     if (i == DetID::PHS) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::phos::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2PHOSSimulation", "create_detector_phs", true));
       counter++;
     }
     if (i == DetID::CPV) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::cpv::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2CPVSimulation", "create_detector_cpv", true));
       counter++;
     }
     if (i == DetID::EMC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::emcal::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2EMCALSimulation", "create_detector_emc", true));
       counter++;
     }
     if (i == DetID::HMP) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::hmpid::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2HMPIDSimulation", "create_detector_hmp", true));
       counter++;
     }
     if (i == DetID::TOF) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::tof::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2TOFSimulation", "create_detector_tof", true));
       counter++;
     }
     if (i == DetID::FT0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ft0::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2FT0Simulation", "create_detector_ft0", true));
       counter++;
     }
     if (i == DetID::FV0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fv0::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2FV0Simulation", "create_detector_fv0", true));
       counter++;
     }
     if (i == DetID::FDD) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fdd::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2FDDSimulation", "create_detector_fdd", true));
       counter++;
     }
     if (i == DetID::MCH) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mch::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2MCHSimulation", "create_detector_mch", true));
       counter++;
     }
     if (i == DetID::MID) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mid::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2MIDSimulation", "create_detector_mid", true));
       counter++;
     }
     if (i == DetID::ZDC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::zdc::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2ZDCSimulation", "create_detector_zdc", true));
       counter++;
     }
 #ifdef ENABLE_UPGRADES
     if (i == DetID::IT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its::Detector>(true, "IT3"));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, const char*, bool>(
+        "O2ITSSimulation", "create_detector_its", "IT3", true));
       counter++;
     }
     if (i == DetID::TRK) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::trk::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2TRKSimulation", "create_detector_trk", "TRK", true));
       counter++;
     }
     if (i == DetID::FT3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ft3::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2FT3Simulation", "create_detector_ft3", true));
       counter++;
     }
     if (i == DetID::FCT) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::fct::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2FCTSimulation", "create_detector_fct", true));
       counter++;
     }
     if (i == DetID::TF3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::iotof::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2IOTOFSimulation", "create_detector_tf3", true));
       counter++;
     }
     if (i == DetID::RCH) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::rich::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2RICHSimulation", "create_detector_rch", true));
       counter++;
     }
     if (i == DetID::MI3) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::mi3::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2MI3Simulation", "create_detector_mi3", true));
       counter++;
     }
     if (i == DetID::ECL) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ecal::Detector>(true));
+      mDetectorInstances[i].reset(o2::conf::SimDLLoader::Instance().executeFunctionAlias<o2::base::Detector*, bool>(
+        "O2ECalSimulation", "create_detector_ecl", true));
       counter++;
     }
 #endif

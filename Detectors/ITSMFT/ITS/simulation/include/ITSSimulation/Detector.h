@@ -79,12 +79,6 @@ class Detector : public o2::base::DetImpl<Detector>
   ///         kFALSE for inactive detectors
   Detector(Bool_t active, TString name = "ITS");
 
-  // Factory method
-  static o2::base::Detector* create(const char* name, bool active)
-  {
-    return new Detector(active, name);
-  }
-
   /// Default constructor
   Detector();
 

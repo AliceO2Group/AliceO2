@@ -38,6 +38,7 @@ using o2::itsmft::Hit;
 using namespace o2::mft;
 
 ClassImp(o2::mft::Detector);
+O2DetectorCreatorImpl(o2::mft::Detector::create, mft);
 
 //_____________________________________________________________________________
 Detector::Detector()

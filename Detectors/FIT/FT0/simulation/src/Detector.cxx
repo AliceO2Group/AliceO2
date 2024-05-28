@@ -42,6 +42,7 @@ using namespace o2::ft0;
 using o2::ft0::Geometry;
 
 ClassImp(Detector);
+O2DetectorCreatorImpl(o2::ft0::Detector::create, ft0);
 
 Detector::Detector(Bool_t Active)
   : o2::base::DetImpl<Detector>("FT0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>()), mTrackIdTop(-1), mTrackIdMCPtop(-1)

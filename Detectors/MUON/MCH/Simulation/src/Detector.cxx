@@ -20,6 +20,7 @@
 #include "TGeoManager.h"
 
 ClassImp(o2::mch::Detector);
+O2DetectorCreatorImpl(o2::mch::Detector::create, mch);
 
 namespace o2
 {

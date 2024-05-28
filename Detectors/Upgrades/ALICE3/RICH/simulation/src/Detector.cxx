@@ -429,3 +429,4 @@ void Detector::prepareLayout()
 } // namespace o2
 
 ClassImp(o2::rich::Detector);
+O2DetectorCreatorImpl(o2::rich::Detector::create, rch);

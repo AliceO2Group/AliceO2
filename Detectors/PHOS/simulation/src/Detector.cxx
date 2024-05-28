@@ -37,6 +37,7 @@
 using namespace o2::phos;
 
 ClassImp(Detector);
+O2DetectorCreatorImpl(o2::phos::Detector::create, phs);
 
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("PHS", active),

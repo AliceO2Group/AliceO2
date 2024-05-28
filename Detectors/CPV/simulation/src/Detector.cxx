@@ -37,6 +37,7 @@
 using namespace o2::cpv;
 
 ClassImp(Detector);
+O2DetectorCreatorImpl(o2::cpv::Detector::create, cpv);
 
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("CPV", active),

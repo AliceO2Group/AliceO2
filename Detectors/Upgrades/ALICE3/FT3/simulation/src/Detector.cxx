@@ -761,3 +761,4 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 }
 
 ClassImp(o2::ft3::Detector);
+O2DetectorCreatorImpl(o2::ft3::Detector::create, ft3);

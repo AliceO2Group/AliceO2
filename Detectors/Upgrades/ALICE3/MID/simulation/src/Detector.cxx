@@ -234,3 +234,4 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 }
 } // namespace o2::mi3
 ClassImp(o2::mi3::Detector);
+O2DetectorCreatorImpl(o2::mi3::Detector::create, mi3);
