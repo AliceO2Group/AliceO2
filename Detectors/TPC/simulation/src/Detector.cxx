@@ -3216,3 +3216,11 @@ std::string Detector::getHitBranchNames(int probe) const
 }
 
 ClassImp(o2::tpc::Detector);
+
+// Define Factory method for calling from the outside
+extern "C" {
+o2::base::Detector* create_detector_tpc(bool active)
+{
+  return o2::tpc::Detector::create(active);
+}
+}
