@@ -27,8 +27,6 @@
 #include "TLorentzVector.h"                          // for TLorentzVector
 #include "TVector3.h"                                // for TVector3
 
-#include <boost/dll/alias.hpp> // for BOOST_DLL_ALIAS
-
 #ifdef ENABLE_UPGRADES
 #include "ITS3Simulation/DescriptorInnerBarrelITS3.h" // for Description of Inner Barrel (ITS3)
 #endif

@@ -160,9 +160,10 @@ class DLLoaderBase
 
     // Checks if the symbol exists but does not load it.
     handle_ptr_t ptr = dlsym(mLibraries[library].get(), symbol.c_str());
-    if (auto err = dlerror(); err != nullptr) {
-      // LOGP(error, "Did not get {} from {}; error: {}", symbol, library, err);
+    if (const auto* err = dlerror(); err != nullptr) {
+      LOGP(error, "Did not get {} from {}; error: {}", symbol, library, err);
     }
+
     return ptr != nullptr;
   }
 
@@ -195,17 +196,17 @@ class DLLoaderBase
     dlerror(); // Clear previous error
 
     auto func = (Func_t)dlsym(lib, fname.c_str());
-    if (auto err = dlerror(); err != nullptr) {
+    if (const auto* err = dlerror(); err != nullptr) {
       LOGP(error, "Did not get {} from {}; error: {}", fname, library, err);
       return std::nullopt;
     }
 
     if (func == nullptr) {
-      LOGP(error, "Library '{}' does not have a symbol '{}' with {}", library, fname, getTypeName<Ret (*)(Args...)>());
+      LOGP(error, "Library '{}' does not have a symbol '{}' with {}", library, fname, getTypeName<Func_t>());
       return std::nullopt;
     }
 
-    // Execute function an return its return value
+    // Execute function and return its return value
     return func(args...);
   }
 
