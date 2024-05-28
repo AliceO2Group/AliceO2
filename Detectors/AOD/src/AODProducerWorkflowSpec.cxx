@@ -1788,15 +1788,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto fwdTracksCursor = createTableCursor<o2::aod::StoredFwdTracks>(pc);
   auto fwdTracksCovCursor = createTableCursor<o2::aod::StoredFwdTracksCov>(pc);
   auto fwdTrkClsCursor = createTableCursor<o2::aod::FwdTrkCls>(pc);
-  auto mcColLabelsCursor = createTableCursor<o2::aod::McCollisionLabels>(pc);
-  auto mcCollisionsCursor = createTableCursor<o2::aod::McCollisions>(pc);
-  auto hepmcXSectionsCursor = createTableCursor<o2::aod::HepMCXSections>(pc);
-  auto hepmcPdfInfosCursor = createTableCursor<o2::aod::HepMCPdfInfos>(pc);
-  auto hepmcHeavyIonsCursor = createTableCursor<o2::aod::HepMCHeavyIons>(pc);
-  auto mcMFTTrackLabelCursor = createTableCursor<o2::aod::McMFTTrackLabels>(pc);
-  auto mcFwdTrackLabelCursor = createTableCursor<o2::aod::McFwdTrackLabels>(pc);
-  auto mcParticlesCursor = createTableCursor<o2::aod::StoredMcParticles_001>(pc);
-  auto mcTrackLabelCursor = createTableCursor<o2::aod::McTrackLabels>(pc);
   auto mftTracksCursor = createTableCursor<o2::aod::StoredMFTTracks>(pc);
   auto tracksCursor = createTableCursor<o2::aod::StoredTracksIU>(pc);
   auto tracksCovCursor = createTableCursor<o2::aod::StoredTracksCovIU>(pc);
@@ -1810,9 +1801,32 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto hmpCursor = createTableCursor<o2::aod::HMPIDs>(pc);
   auto caloCellsCursor = createTableCursor<o2::aod::Calos>(pc);
   auto caloCellsTRGTableCursor = createTableCursor<o2::aod::CaloTriggers>(pc);
-  auto mcCaloLabelsCursor = createTableCursor<o2::aod::McCaloLabels_001>(pc);
   auto cpvClustersCursor = createTableCursor<o2::aod::CPVClusters>(pc);
   auto originCursor = createTableCursor<o2::aod::Origins>(pc);
+
+  // Declare MC cursors type without adding the output for a table
+  o2::framework::Produces<o2::aod::McCollisionLabels> mcColLabelsCursor;
+  o2::framework::Produces<o2::aod::McCollisions> mcCollisionsCursor;
+  o2::framework::Produces<o2::aod::HepMCXSections> hepmcXSectionsCursor;
+  o2::framework::Produces<o2::aod::HepMCPdfInfos> hepmcPdfInfosCursor;
+  o2::framework::Produces<o2::aod::HepMCHeavyIons> hepmcHeavyIonsCursor;
+  o2::framework::Produces<o2::aod::McMFTTrackLabels> mcMFTTrackLabelCursor;
+  o2::framework::Produces<o2::aod::McFwdTrackLabels> mcFwdTrackLabelCursor;
+  o2::framework::Produces<o2::aod::StoredMcParticles_001> mcParticlesCursor;
+  o2::framework::Produces<o2::aod::McTrackLabels> mcTrackLabelCursor;
+  o2::framework::Produces<o2::aod::McCaloLabels_001> mcCaloLabelsCursor;
+  if (mUseMC) { // This creates the actual writercursor
+    mcColLabelsCursor = createTableCursor<o2::aod::McCollisionLabels>(pc);
+    mcCollisionsCursor = createTableCursor<o2::aod::McCollisions>(pc);
+    hepmcXSectionsCursor = createTableCursor<o2::aod::HepMCXSections>(pc);
+    hepmcPdfInfosCursor = createTableCursor<o2::aod::HepMCPdfInfos>(pc);
+    hepmcHeavyIonsCursor = createTableCursor<o2::aod::HepMCHeavyIons>(pc);
+    mcMFTTrackLabelCursor = createTableCursor<o2::aod::McMFTTrackLabels>(pc);
+    mcFwdTrackLabelCursor = createTableCursor<o2::aod::McFwdTrackLabels>(pc);
+    mcParticlesCursor = createTableCursor<o2::aod::StoredMcParticles_001>(pc);
+    mcTrackLabelCursor = createTableCursor<o2::aod::McTrackLabels>(pc);
+    mcCaloLabelsCursor = createTableCursor<o2::aod::McCaloLabels_001>(pc);
+  }
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {
@@ -2926,14 +2940,6 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<FV0As>::spec(),
     OutputForTable<StoredFwdTracks>::spec(),
     OutputForTable<StoredFwdTracksCov>::spec(),
-    OutputForTable<McCollisions>::spec(),
-    OutputForTable<HepMCXSections>::spec(),
-    OutputForTable<HepMCPdfInfos>::spec(),
-    OutputForTable<HepMCHeavyIons>::spec(),
-    OutputForTable<McMFTTrackLabels>::spec(),
-    OutputForTable<McFwdTrackLabels>::spec(),
-    OutputForTable<StoredMcParticles_001>::spec(),
-    OutputForTable<McTrackLabels>::spec(),
     OutputForTable<StoredMFTTracks>::spec(),
     OutputForTable<StoredTracksIU>::spec(),
     OutputForTable<StoredTracksCovIU>::spec(),
@@ -2952,17 +2958,29 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<Calos>::spec(),
     OutputForTable<CaloTriggers>::spec(),
     OutputForTable<CPVClusters>::spec(),
-    OutputForTable<McCaloLabels_001>::spec(),
     OutputForTable<Origin>::spec(),
-    // todo: use addTableToOuput helper?
-    //  currently the description is MCCOLLISLABEL, so
-    //  the name in AO2D would be O2mccollislabel
-    // addTableToOutput<McCollisionLabels>(outputs);
-    {OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe},
     OutputSpec{"TFN", "TFNumber"},
     OutputSpec{"TFF", "TFFilename"},
     OutputSpec{"AMD", "AODMetadataKeys"},
     OutputSpec{"AMD", "AODMetadataVals"}};
+
+  if (useMC) {
+    outputs.insert(outputs.end(),
+                   {OutputForTable<McCollisions>::spec(),
+                    OutputForTable<HepMCXSections>::spec(),
+                    OutputForTable<HepMCPdfInfos>::spec(),
+                    OutputForTable<HepMCHeavyIons>::spec(),
+                    OutputForTable<McMFTTrackLabels>::spec(),
+                    OutputForTable<McFwdTrackLabels>::spec(),
+                    OutputForTable<StoredMcParticles_001>::spec(),
+                    OutputForTable<McTrackLabels>::spec(),
+                    OutputForTable<McCaloLabels_001>::spec(),
+                    // todo: use addTableToOuput helper?
+                    //  currently the description is MCCOLLISLABEL, so
+                    //  the name in AO2D would be O2mccollislabel
+                    // addTableToOutput<McCollisionLabels>(outputs);
+                    {OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe}});
+  }
 
   return DataProcessorSpec{
     "aod-producer-workflow",
