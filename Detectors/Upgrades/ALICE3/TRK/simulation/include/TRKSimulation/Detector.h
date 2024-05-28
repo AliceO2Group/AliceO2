@@ -34,12 +34,6 @@ class Detector : public o2::base::DetImpl<Detector>
   Detector();
   ~Detector();
 
-  // Factory method
-  static o2::base::Detector* create(bool active)
-  {
-    return new Detector(active);
-  }
-
   void ConstructGeometry() override;
 
   o2::itsmft::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,

@@ -41,6 +41,16 @@
 
 #include <fairmq/FwdDecls.h>
 
+// macro implementation helper to code unmanged "C" function
+// constructing a detector
+#define O2DetectorCreatorImpl(creatorfuncname, detname)      \
+  extern "C" {                                               \
+  o2::base::Detector* create_detector_##detname(bool active) \
+  {                                                          \
+    return creatorfuncname(active);                          \
+  }                                                          \
+  }
+
 namespace o2::base
 {
 
@@ -301,6 +311,19 @@ class DetImpl : public o2::base::Detector
  public:
   // offer same constructors as base
   using Detector::Detector;
+
+  /// automatic implementation of static Detector factory functions
+  template <typename... Args>
+  static o2::base::Detector* create(Args&&... args)
+  {
+    if constexpr (std::is_constructible_v<Det, Args...>) {
+      return new Det(std::forward<Args>(args)...);
+    } else {
+      static_assert(std::is_constructible_v<Det, Args...>,
+                    "No matching constructor found in Derived class.");
+      return nullptr;
+    }
+  }
 
   // default implementation for getHitBranchNames
   std::string getHitBranchNames(int probe) const override

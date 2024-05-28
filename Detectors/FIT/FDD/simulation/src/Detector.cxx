@@ -39,6 +39,7 @@ using o2::fdd::Geometry;
 using o2::fdd::Hit;
 
 ClassImp(o2::fdd::Detector);
+O2DetectorCreatorImpl(o2::fdd::Detector::create, fdd);
 
 //_____________________________________________________________________________
 Detector::Detector(Bool_t Active)

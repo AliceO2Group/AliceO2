@@ -38,6 +38,7 @@
 using namespace o2::emcal;
 
 ClassImp(Detector);
+O2DetectorCreatorImpl(o2::emcal::Detector::create, emc);
 
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("EMC", active),
