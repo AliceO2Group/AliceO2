@@ -20,7 +20,6 @@
 #include <cmath>
 #include <chrono>
 #include <regex>
-#include <algorithm>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
@@ -197,7 +196,11 @@ bool SimConfig::determineActiveModulesList(const std::string& version, std::vect
   // check if specified modules are in list
   if (inputargs.size() != 1 || inputargs[0] != "all") {
     std::vector<std::string> diff;
-    std::set_difference(inputargs.begin(), inputargs.end(), modules.begin(), modules.end(), std::back_inserter(diff));
+    for (const auto& in : inputargs) {
+      if (std::find(modules.begin(), modules.end(), in) == std::end(modules)) {
+        diff.emplace_back(in);
+      }
+    }
     if (!diff.empty()) {
       LOGP(error, "Modules specified that are not present in detector list {}", version);
       for (int j{0}; const auto& m : diff) {
@@ -423,7 +426,11 @@ bool SimConfig::filterSkippedElements(std::vector<std::string>& elements, std::v
         LOGP(error, " + {: <2}. {}", j++, m);
       }
       std::vector<std::string> diff;
-      std::set_difference(skipped.begin(), skipped.end(), elements.begin(), elements.end(), std::back_inserter(diff));
+      for (const auto& skip : skipped) {
+        if (std::find(elements.begin(), elements.end(), skip) == std::end(elements)) {
+          diff.emplace_back(skip);
+        }
+      }
       LOGP(error, "Specified skipped modules not present in built modules:");
       for (int j{0}; const auto& m : diff) {
         LOGP(error, " - {: <2}. {}", j++, m);
