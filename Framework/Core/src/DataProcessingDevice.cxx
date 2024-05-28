@@ -1828,10 +1828,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       // We only deal with the tracking of parts if the log is enabled.
       // This is because in principle we should track the size of each of
       // the parts and sum it up. Not for now.
-      if (O2_LOG_ENABLED(parts) == true) {
-        O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerData);
-        O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
-      }
+      O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerData);
+      O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
       if (!dph) {
         insertInputInfo(pi, 2, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header stack does not contain DataProcessingHeader");
