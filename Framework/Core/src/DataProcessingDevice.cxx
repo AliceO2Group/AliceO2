@@ -117,6 +117,16 @@ void on_idle_timer(uv_timer_t* handle)
   state->loopReason |= DeviceState::TIMER_EXPIRED;
 }
 
+bool hasOnlyTimers(DeviceSpec const& spec)
+{
+  return std::all_of(spec.inputs.cbegin(), spec.inputs.cend(), [](InputRoute const& route) -> bool { return route.matcher.lifetime == Lifetime::Timer; });
+}
+
+bool hasOnlyGenerated(DeviceSpec const& spec)
+{
+  return (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
+}
+
 void on_transition_requested_expired(uv_timer_t* handle)
 {
   auto* state = (DeviceState*)handle->data;
@@ -1281,15 +1291,8 @@ void DataProcessingDevice::Run()
         auto& deviceContext = ref.get<DeviceContext>();
         auto timeout = deviceContext.exitTransitionTimeout;
         // Check if we only have timers
-        bool onlyTimers = true;
         auto& spec = ref.get<DeviceSpec const>();
-        for (auto& route : spec.inputs) {
-          if (route.matcher.lifetime != Lifetime::Timer) {
-            onlyTimers = false;
-            break;
-          }
-        }
-        if (onlyTimers) {
+        if (hasOnlyTimers(spec)) {
           state.streaming = StreamingState::EndOfStreaming;
         }
         if (timeout != 0 && state.streaming != StreamingState::Idle) {
@@ -1689,9 +1692,11 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     // I guess we will see.
     /// Besides flushing the queues we must make sure we do not have only
     /// timers as they do not need to be further processed.
-    bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
     auto& relayer = ref.get<DataRelayer>();
-    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && hasOnlyGenerated == false) {
+
+    bool shouldProcess = hasOnlyGenerated(spec) == false;
+
+    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && shouldProcess) {
       relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
@@ -1710,11 +1715,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     // This is needed because the transport is deleted before the device.
     relayer.clear();
     switchState(StreamingState::Idle);
-    if (hasOnlyGenerated) {
-      *context.wasActive = false;
-    } else {
-      *context.wasActive = true;
-    }
+    *context.wasActive = shouldProcess;
     // On end of stream we shut down all output pollers.
     O2_SIGNPOST_EVENT_EMIT(device, dpid, "state", "Shutting down output pollers.");
     for (auto& poller : state.activeOutputPollers) {
