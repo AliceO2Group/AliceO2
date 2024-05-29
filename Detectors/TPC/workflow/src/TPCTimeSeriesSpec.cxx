@@ -1199,6 +1199,7 @@ class TPCTimeSeries : public Task
           if (contributeToVertex) {
             if (propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp)) {
               phiITSTPCAtVertex = trackITSTPCTmp.getPhi();
+              dcaITSTPC = dcaITSTPCTmp;
             }
 
             // propagate TPC track to vertex
@@ -1331,6 +1332,7 @@ class TPCTimeSeries : public Task
                             << "tpc_timebin=" << trkOrig.getTime0()
                             << "qpt=" << trkOrig.getParam(4)
                             << "ncl=" << trkOrig.getNClusters()
+                            << "ncl_shared=" << trkOrig.getNClusters()
                             << "tgl=" << trkOrig.getTgl()
                             << "side_type=" << typeSide
                             << "phi=" << trkOrig.getPhi()
