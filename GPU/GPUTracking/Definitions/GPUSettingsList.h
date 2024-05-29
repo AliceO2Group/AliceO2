@@ -39,7 +39,7 @@ BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Recon
 AddOptionRTC(rejectQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_REJECT_DEFAULT, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
 AddOptionRTC(hitPickUpFactor, float, 1.f, "", 0, "multiplier for the combined cluster+track error during track following")
 AddOptionRTC(hitSearchArea2, float, 2.f, "", 0, "square of maximum search road of hits during seeding")
-AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, only used if searchWindowDZDR = 0")
+AddOptionRTC(neighboursSearchArea, float, 3.f, "", 0, "area in cm for the search of neighbours, for z only used if searchWindowDZDR = 0")
 AddOptionRTC(clusterError2CorrectionY, float, 1.f, "", 0, "correction (multiplicative) for the squared cluster error during tracking")
 AddOptionRTC(clusterError2CorrectionZ, float, 1.f, "", 0, "correction (multiplicative) for the squared cluster error during tracking")
 AddOptionRTC(clusterError2AdditionalY, float, 0.f, "", 0, "correction (additive) for the squared cluster error during track fitting")
