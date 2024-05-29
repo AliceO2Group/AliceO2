@@ -482,8 +482,9 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
     tstart = o2::ccdb::getCurrentTimestamp();
     tend = tstart + 365L * 24 * 3600 * 1000;
   } else {
-    tstart = std::stol(headers["STF"]);
-    tend = std::stol(headers["ETF"]);
+    auto ts = o2::ccdb::BasicCCDBManager::instance().getRunDuration(mRunNumber);
+    tstart = ts.first;
+    tend = ts.second;
   }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
