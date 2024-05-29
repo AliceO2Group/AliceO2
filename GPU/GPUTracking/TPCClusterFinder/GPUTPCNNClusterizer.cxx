@@ -32,7 +32,7 @@ GPUdii() void GPUTPCNNClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlo
   CPU_ONLY(
     MCLabelAccumulator labelAcc(clusterer));
 
-  tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
+  tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow; // (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
   GPUTPCNNClusterizer::nn_clusterizer(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, 3, 3, 3, true, 0.16, true);
 
@@ -142,7 +142,7 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
     for(int p = -in_pad; p <= in_pad; p++){
       for(int t = -in_time; t <= in_time; t++){
         int offset = GPUTPCNNClusterizer::padOffset(row, row + r);
-        if(GPUTPCNNClusterizer::isBoundary(row + r, pad + p + offset, in_row)){
+        if(GPUTPCNNClusterizer::isBoundary(row + r, pad + p, in_row)){
           continue;
         } else {
           // unsigned int loc_idx = (row + r) * (2*in_pad + 1) * (2*in_time + 1) + (pad + p) * (2*in_time + 1) + (time + t);
@@ -151,18 +151,18 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
           write_idx++;
         }
       }
-      if(idx == 100){
-        LOG(info) << "[" << input_data[write_idx-7] << ", " << input_data[write_idx-6] << ", " << input_data[write_idx-5] << ", " << input_data[write_idx-4] << ", " << input_data[write_idx-3] << ", " << input_data[write_idx-2] << ", " << input_data[write_idx-1] << "]";
-      }
+      // if(idx == 100){
+      //   LOG(info) << "[" << input_data[write_idx-7] << ", " << input_data[write_idx-6] << ", " << input_data[write_idx-5] << ", " << input_data[write_idx-4] << ", " << input_data[write_idx-3] << ", " << input_data[write_idx-2] << ", " << input_data[write_idx-1] << "]";
+      // }
     }
   }
   if(add_index_data){
     input_data[input_data.size()-3] = 1;
     input_data[input_data.size()-2] = (float)peak.row() / 152.f;
     input_data[input_data.size()-1] = (float)peak.pad() / 138.f;
-    if(idx == 100){
-      LOG(info) << "[" << input_data[input_data.size()-3] << ", " << input_data[input_data.size()-2] << ", " << input_data[input_data.size()-1] << "]";
-    }
+    // if(idx == 100){
+    //   LOG(info) << "[" << input_data[input_data.size()-3] << ", " << input_data[input_data.size()-2] << ", " << input_data[input_data.size()-1] << "]";
+    // }
   }
 
   std::vector<float> out_class = clusterer.model_class.inference_vector(input_data, 1);
@@ -170,16 +170,17 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
   int num_outputs = clusterer.model_reg.getNumOutputNodes()[0][1];
 
   if(idx == 100){
-    LOG(info) << "Classification model: " << out_class[0];
+    LOG(info) << "Classification model: " << out_class[0] << " (>? " << classification_threshold << ")";
     LOG(info) << "Regression model: " << out_reg[0] << "; " << out_reg[1] << "; " << out_reg[2] << "; " << out_reg[3] << "; " << out_reg[4];
   }
 
   if(out_class[0] > classification_threshold){
     ClusterAccumulator pc;
-    pc.setFull(chargeMap[peak].unpack() * out_reg[4], peak.pad() + out_reg[0], out_reg[2], fragment.start + peak.time() + out_reg[1], out_reg[3], 0, 0);
+    pc.setFull(central_charge * out_reg[4], peak.pad() + out_reg[0], out_reg[2], fragment.start + peak.time() + out_reg[1], out_reg[3], 0, 0);
     tpc::ClusterNative myCluster;
-    bool rejectCluster = !pc.toNative(peak, chargeMap[peak].unpack(), myCluster, clusterer.Param());
+    bool rejectCluster = !pc.toNative(peak, central_charge, myCluster, clusterer.Param());
     if (rejectCluster) {
+      LOG(warning) << "Cluster rejected!";
       if (clusterPosInRow) {
         clusterPosInRow[idx] = maxClusterPerRow;
       }
