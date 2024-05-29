@@ -117,6 +117,7 @@ o2_gpu_add_kernel("GPUTPCCFNoiseSuppression, noiseSuppression"        "= TPCCLUS
 o2_gpu_add_kernel("GPUTPCCFNoiseSuppression, updatePeaks"             "= TPCCLUSTERFINDER"                                    LB      single)
 o2_gpu_add_kernel("GPUTPCCFDeconvolution"                             "= TPCCLUSTERFINDER"                                    LB      single)
 o2_gpu_add_kernel("GPUTPCCFClusterizer"                               "= TPCCLUSTERFINDER"                                    LB      single char onlyMC)
+o2_gpu_add_kernel("GPUTPCNNClusterizer"                               "= TPCCLUSTERFINDER"                                    LB      single char onlyMC)
 o2_gpu_add_kernel("GPUTPCCFMCLabelFlattener, setRowOffsets"           "= TPCCLUSTERFINDER"                                    NO      single)
 o2_gpu_add_kernel("GPUTPCCFMCLabelFlattener, flatten"                 "= TPCCLUSTERFINDER"                                    NO      single GPUTPCLinearLabels* out)
 o2_gpu_add_kernel("GPUTPCCFStreamCompaction, scanStart"               "= TPCCLUSTERFINDER"                                    LB      single int iBuf int stage)

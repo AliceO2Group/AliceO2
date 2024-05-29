@@ -12,8 +12,8 @@
 /// \file GPUTPCNNClusterizer.h
 /// \author Christian Sonnabend
 
-#ifndef O2_GPU_CLUSTERIZER_H
-#define O2_GPU_CLUSTERIZER_H
+#ifndef O2_GPU_NN_CLUSTERIZER_H
+#define O2_GPU_NN_CLUSTERIZER_H
 
 #include "clusterFinderDefs.h"
 #include "GPUGeneralKernels.h"
@@ -21,9 +21,6 @@
 #include "GPUTPCClusterFinder.h"
 #include "Array2D.h"
 #include "PackedCharge.h"
-#include "ML/onnx_interface.h"
-
-using namespace o2::ml;
 
 namespace o2::tpc
 {
@@ -39,7 +36,7 @@ class MCLabelAccumulator;
 class GPUTPCNNClusterizer : public GPUKernelTemplate
 {
  public:
-  static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFClusterizer);
+  static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCNNClusterizer);
   struct GPUSharedMemory {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_BUILD_N];
@@ -64,10 +61,10 @@ class GPUTPCNNClusterizer : public GPUKernelTemplate
 
   static GPUd() void computeClustersImpl(int, int, int, int, processorType&, const CfFragment&, GPUSharedMemory&, const Array2D<PackedCharge>&, const ChargePos*, const GPUSettingsRec&, MCLabelAccumulator*, uint, uint, uint*, tpc::ClusterNative*, uint*);
 
-  void exec(int, int, int, int, GPUSharedMemory&, processorType&, char);
-  int padOffset(int);
-  bool isBoundary(int, int, int);
-  static void nn_clusterizer(OnnxModel, OnnxModel,
+  static GPUd() void exec(int, int, int, int, GPUSharedMemory&, processorType&, char);
+  static int padOffset(int, int);
+  static bool isBoundary(int, int, int);
+  static GPUd() void nn_clusterizer(int, int, int, int,
                               processorType&,
                               const CfFragment&,
                               GPUSharedMemory&,
@@ -80,13 +77,10 @@ class GPUTPCNNClusterizer : public GPUKernelTemplate
                               uint*,
                               tpc::ClusterNative*,
                               uint*,
-                              int = 3, int = 3, int = 3, bool = true);
+                              int = 3, int = 3, int = 3, bool = 1, float = 0.16, bool = true);
 
  private:
   // ---------------------------------
-  std::vector<int> pad_row_max{
-  65, 65, 65, 67, 67, 67, 69, 69, 69, 71, 71, 71, 73, 73, 73, 73, 75, 75, 75, 75, 77, 77, 77, 79, 79, 79, 81, 81, 81, 83, 83, 83, 85, 85, 85, 87, 87, 87, 89, 89, 89, 89, 91, 91, 91, 93, 93, 93, 91, 91, 91, 93, 93, 93, 95, 95, 95, 97, 97, 97, 99, 99, 99, 75, 75, 75, 75, 77, 77, 77, 79, 79, 79, 79, 81, 81, 81, 83, 83, 83, 83, 85, 85, 85, 87, 87, 87, 89, 89, 89, 89, 91, 91, 91, 93, 93, 93, 93, 95, 95, 95, 97, 97, 97, 99, 99, 101, 101, 101, 103, 103, 103, 105, 109, 109, 111, 111, 111, 113, 113, 113, 115, 115, 115, 117, 117, 117, 117, 117, 119, 119, 121, 121, 123, 123, 123, 125, 125, 127, 127, 127, 129, 129, 131, 131, 131, 133, 133, 135, 135, 137, 137
-  };
 
   static GPUd() void updateClusterInner(const GPUSettingsRec&, ushort, ushort, const PackedCharge*, const ChargePos&, ClusterAccumulator*, MCLabelAccumulator*, uchar*);
 

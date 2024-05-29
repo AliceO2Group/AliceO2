@@ -19,6 +19,9 @@
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
 #include "CfFragment.h"
+#include "ML/onnx_interface.h"
+
+using namespace o2::ml;
 
 namespace o2
 {
@@ -140,6 +143,8 @@ class GPUTPCClusterFinder : public GPUProcessor
   short mZSId = -1;
   short mZSOffsetId = -1;
   short mOutputId = -1;
+
+  OnnxModel model_class, model_reg;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);

@@ -195,8 +195,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
         TPCClusterFinder/GPUTPCCFPeakFinder.cxx
         TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
-        TPCClusterFinder/GPUTPCCFClusterizer.cxx
         TPCClusterFinder/GPUTPCNNClusterizer.cxx
+        TPCClusterFinder/GPUTPCCFClusterizer.cxx
         TPCClusterFinder/GPUTPCCFDeconvolution.cxx
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
