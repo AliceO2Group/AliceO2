@@ -266,9 +266,10 @@ o2_add_test(Timers NAME test_Framework_test_Timers
             LABELS framework
             PUBLIC_LINK_LIBRARIES O2::Framework)
 
-# FIXME: make this a proper test, when it actually does not hang.
-o2_add_executable(test-framework-ConsumeWhenAllOrdered
+o2_add_test(ConsumeWhenAllOrdered NAME test_ConsumeWhenAllOrdered
             SOURCES test/test_ConsumeWhenAllOrdered.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
             PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_test(SuppressionGenerator NAME test_Framework_test_SuppressionGenerator
