@@ -60,6 +60,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsDCS/DCSConfigObject.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
