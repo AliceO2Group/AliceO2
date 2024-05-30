@@ -43,6 +43,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
   std::vector<CTPDigit> digits;
   for (auto const& hits : predigits) {
     std::bitset<CTP_NINPUTS> inpmaskcoll = 0;
+    auto currentIR = hits.first;
     for (auto const inp : hits.second) {
       switch (inp->detector) {
         case o2::detectors::DetID::FT0: {
@@ -90,7 +91,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
               }
             }
           // }
-          LOG(info) << "EMC input mask:" << inpmaskcoll;
+          LOG(info) << "EMC input mask:" << inpmaskcoll << " with IR = " << currentIR.bc << ", orbit = " << currentIR.orbit;
           break;
         }
         case o2::detectors::DetID::PHS: {
@@ -132,7 +133,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
       data.CTPInputMask = inpmaskcoll;
       data.CTPClassMask = classmask;
       digits.emplace_back(data);
-      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll;
+      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
     }
   }
   return std::move(digits);

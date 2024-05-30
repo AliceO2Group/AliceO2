@@ -397,8 +397,8 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
         nextdigit.inputsMask.set(i);
       } 
     }
-    LOG(info) << "EMCAL TRU simulation: assigning = " << std::get<1>(trg)     << " to nextdigit for CTP";
-    LOG(info) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP";
+    LOG(info) << "EMCAL TRU simulation: assigning = " << std::get<1>(trg)     << " to nextdigit for CTP, with IR = " << nextdigit.intRecord.bc << ", orbit = " << nextdigit.intRecord.orbit;
+    LOG(info) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP, with IR = " << nextdigit.intRecord.bc << ", orbit = " << nextdigit.intRecord.orbit;
     triggerinputs.push_back(nextdigit);
   }
   ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);
