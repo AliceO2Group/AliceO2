@@ -39,7 +39,6 @@
 using namespace o2::zdc;
 
 ClassImp(o2::zdc::Detector);
-O2DetectorCreatorImpl(o2::zdc::Detector::create, zdc);
 #define kRaddeg TMath::RadToDeg()
 
 //_____________________________________________________________________________

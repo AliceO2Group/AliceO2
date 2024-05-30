@@ -526,4 +526,3 @@ void Detector::addAlignableVolumes() const
 }
 
 ClassImp(Detector);
-O2DetectorCreatorImpl(o2::trd::Detector::create, trd)

@@ -26,7 +26,6 @@
 using namespace o2::tof;
 
 ClassImp(Detector);
-O2DetectorCreatorImpl(o2::tof::Detector::create, tof);
 
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("TOF", active), mEventNr(0), mTOFHoles(kTRUE), mHits(o2::utils::createSimVector<HitType>())

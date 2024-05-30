@@ -366,4 +366,11 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 } // namespace o2
 
 ClassImp(o2::trk::Detector);
-O2DetectorCreatorImpl(o2::trk::Detector::create, trk);
+
+// Define Factory method for calling from the outside
+extern "C" {
+o2::base::Detector* create_detector_trk(bool active)
+{
+  return o2::trk::Detector::create(active);
+}
+}
