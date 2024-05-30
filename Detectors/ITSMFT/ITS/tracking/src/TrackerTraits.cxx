@@ -1031,10 +1031,5 @@ void TrackerTraits::adoptTimeFrame(TimeFrame* tf)
   mTimeFrame = tf;
 }
 
-// bool TrackerTraits::checkTFMemory(const int iteration)
-// {
-//   return mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory);
-// }
-
 } // namespace its
 } // namespace o2
