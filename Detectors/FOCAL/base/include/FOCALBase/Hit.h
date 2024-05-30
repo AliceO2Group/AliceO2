@@ -128,7 +128,7 @@ std::ostream& operator<<(std::ostream& stream, const Hit& point);
 namespace std
 {
 template <>
-class allocator<o2::emcal::Hit> : public o2::utils::ShmAllocator<o2::focal::Hit>
+class allocator<o2::focal::Hit> : public o2::utils::ShmAllocator<o2::focal::Hit>
 {
 };
 } // namespace std
