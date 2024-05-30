@@ -534,7 +534,7 @@ GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<valu
   value_t snp = mP[kSnp] + x2r;
   value_t phi = 999.;
   if (gpu::CAMath::Abs(snp) < constants::math::Almost1) {
-    value_t phi = gpu::CAMath::ASin(snp) + getAlpha();
+    phi = gpu::CAMath::ASin(snp) + getAlpha();
     math_utils::detail::bringTo02Pi<value_t>(phi);
   }
   return phi;
