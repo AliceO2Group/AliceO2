@@ -94,6 +94,8 @@ O2_DECLARE_DYNAMIC_LOG(device);
 O2_DECLARE_DYNAMIC_LOG(parts);
 // Special log to track the async queue behavior
 O2_DECLARE_DYNAMIC_LOG(async_queue);
+// Special log to track the forwarding requests
+O2_DECLARE_DYNAMIC_LOG(forwarding);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -636,6 +638,9 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
   std::vector<fair::mq::Parts> forwardedParts;
   forwardedParts.resize(proxy.getNumForwards());
   std::vector<ChannelIndex> cachedForwardingChoices{};
+  O2_SIGNPOST_ID_GENERATE(sid, forwarding);
+  O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
+                    slot.index, oldestTimeslice.timeslice.value, copy ? "with copy" : "", copy && consume ? " and " : "", consume ? "with consume" : "");
 
   for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
     auto& messageSet = currentSetOfInputs[ii];
@@ -663,9 +668,14 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       if (cachedForwardingChoices.size() > 1) {
         copy = true;
       }
+      auto* dh = o2::header::get<DataHeader*>(header->GetData());
+      auto* dph = o2::header::get<DataProcessingHeader*>(header->GetData());
+
       if (copy) {
         for (auto& cachedForwardingChoice : cachedForwardingChoices) {
           auto&& newHeader = header->GetTransport()->CreateMessage();
+          O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding a copy of %{public}s to route %d.",
+                                 fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoice.value);
           newHeader->Copy(*header);
           forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newHeader));
 
@@ -676,6 +686,8 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
           }
         }
       } else {
+        O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %{public}s to route %d.",
+                               fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoices.back().value);
         forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.header(pi)));
         for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
           forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.payload(pi, payloadIndex)));
@@ -683,19 +695,18 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       }
     }
   }
-  LOG(debug) << "Forwarding " << forwardedParts.size() << " messages";
+  O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %zu messages", forwardedParts.size());
   for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
     if (forwardedParts[fi].Size() == 0) {
       continue;
     }
     ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
-    LOG(debug) << "Forwarding to " << info.name << " " << fi;
-    // in DPL we are using subchannel 0 only
     auto& parts = forwardedParts[fi];
     if (info.policy == nullptr) {
-      LOG(error) << "Forwarding to " << info.name << " " << fi << " has no policy";
+      O2_SIGNPOST_EVENT_EMIT_ERROR(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d has no policy.", info.name.c_str(), fi);
       continue;
     }
+    O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d", info.name.c_str(), fi);
     info.policy->forward(parts, ChannelIndex{fi}, registry);
   }
 
@@ -729,7 +740,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       }
     },
     oldestTimeslice.timeslice, -1);
-  LOG(debug) << "Forwarding done";
+  O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
 };
 extern volatile int region_read_global_dummy_variable;
 volatile int region_read_global_dummy_variable;
