@@ -541,8 +541,8 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto* decongestion = new DecongestionService();
       for (auto& input : services.get<DeviceSpec const>().inputs) {
-        if (input.matcher.lifetime == Lifetime::Timeframe) {
-          LOGP(detail, "Found a Timeframe input, we cannot update the oldest possible timeslice");
+        if (input.matcher.lifetime == Lifetime::Timeframe || input.matcher.lifetime == Lifetime::QA || input.matcher.lifetime == Lifetime::Sporadic || input.matcher.lifetime == Lifetime::Optional) {
+          LOGP(detail, "Found a real data input, we cannot update the oldest possible timeslice when sending messages");
           decongestion->isFirstInTopology = false;
           break;
         }
