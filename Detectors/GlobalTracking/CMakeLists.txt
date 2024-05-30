@@ -22,6 +22,8 @@ o2_add_library(GlobalTracking
                        src/MatchGlobalFwdAssessment.cxx
                        src/MatchGlobalFwdParam.cxx
                        src/MatchTOFParams.cxx
+                       src/MatchITSTPCQC.cxx
+                       src/ITSTPCMatchingQCParams.cxx
   PUBLIC_LINK_LIBRARIES O2::Framework
                         O2::DataFormatsTPC
                         O2::DataFormatsITSMFT
@@ -62,7 +64,9 @@ o2_target_root_dictionary(GlobalTracking
                                   include/GlobalTracking/MatchCosmics.h
                                   include/GlobalTracking/MatchCosmicsParams.h
                                   include/GlobalTracking/TrackMethods.h
-                                  include/GlobalTracking/TrackCuts.h)
+                                  include/GlobalTracking/TrackCuts.h
+                                  include/GlobalTracking/MatchITSTPCQC.h
+                                  include/GlobalTracking/ITSTPCMatchingQCParams.h)
 
 
 if (OpenMP_CXX_FOUND)

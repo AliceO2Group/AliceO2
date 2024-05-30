@@ -43,4 +43,6 @@
 
 #pragma link C++ class std::vector < std::tuple < float, float, float>> + ;
 
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::ITSTPCMatchingQCParams> + ;
+
 #endif
