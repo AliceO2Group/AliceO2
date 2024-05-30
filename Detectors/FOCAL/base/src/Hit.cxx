@@ -40,6 +40,7 @@ bool Hit::operator<(const Hit& other) const
 Hit& Hit::operator+=(const Hit& other)
 {
   SetEnergyLoss(GetEnergyLoss() + other.GetEnergyLoss());
+  return *this;
 }
 
 void Hit::printStream(std::ostream& stream) const
