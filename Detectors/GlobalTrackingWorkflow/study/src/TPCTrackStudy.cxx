@@ -263,7 +263,6 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       clY.clear();
       clZ.clear();
       int count = tr.getNClusters();
-      const auto* corrMap = this->mTPCCorrMapsLoader.getCorrMap();
       const o2::tpc::ClusterNative* cl = nullptr;
       for (int ic = count; ic--;) {
         uint8_t sector, row;
@@ -271,7 +270,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         clSector.push_back(sector);
         clRow.push_back(row);
         float x, y, z;
-        corrMap->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
+        mTPCCorrMapsLoader.Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
         clX.push_back(x);
         clY.push_back(y);
         clZ.push_back(z);
