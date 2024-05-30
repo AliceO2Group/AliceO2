@@ -21,7 +21,7 @@
 #include <filesystem>
 #include <optional>
 #include <set>
-#include <iomanip>
+#include <fmt/core.h>
 
 namespace bfs = std::filesystem;
 
@@ -304,9 +304,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
     // todo: check if '' are there already.
     dumpOut << indLevel << indScheme << R"(- ")" << option << "\"\n";
     if (value) {
-      std::ostringstream oss;
-      oss << std::quoted(value, '\'');
-      dumpOut << indLevel << indScheme << R"(- )" << std::quoted(oss.str(), '"') << "\n";
+      dumpOut << indLevel << indScheme << R"(- )" << fmt::format("{:?}", fmt::format("'{}'", value)) << "\n";
     }
   }
 }
