@@ -373,7 +373,7 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
       bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return m.size(); });
       if (anyDropped) {
         O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
-        O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
+        O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu with timeslice %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
         onDrop(slot, dropped, oldestPossibleTimeslice);
       }
     }
