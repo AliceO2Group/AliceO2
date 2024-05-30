@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Signpost.h"
+#include <fairmq/Channel.h>
 
 O2_DECLARE_DYNAMIC_LOG(timeslice_index);
 
@@ -162,11 +163,11 @@ TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(Timeslice
     }
   }
   if (changed && mOldestPossibleInput.timeslice.value != result.timeslice.value) {
-    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "Success: Oldest possible input is %zu due to channel %d",
-                           result.timeslice.value, result.channel.value);
+    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "Success (channel %d): Oldest possible input is %zu due to channel %d",
+                           channel.value, result.timeslice.value, result.channel.value);
   } else if (mOldestPossibleInput.timeslice.value != result.timeslice.value) {
-    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "Oldest possible input updated from timestamp: %zu --> %zu",
-                           mOldestPossibleInput.timeslice.value, result.timeslice.value);
+    O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "channel %d: Oldest possible input updated from timestamp: %zu --> %zu",
+                           channel.value, mOldestPossibleInput.timeslice.value, result.timeslice.value);
   } else {
     O2_SIGNPOST_EVENT_EMIT(timeslice_index, tid, "setOldestPossibleInput", "No change in oldest possible input");
   }
