@@ -242,4 +242,3 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 } // namespace o2
 
 ClassImp(o2::ecal::Detector);
-O2DetectorCreatorImpl(o2::ecal::Detector::create, ecl);

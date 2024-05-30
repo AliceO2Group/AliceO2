@@ -68,6 +68,12 @@ class Detector : public o2::base::DetImpl<Detector>
    */
   Detector(Bool_t Active);
 
+  // Factory method
+  static o2::base::Detector* create(bool active)
+  {
+    return new Detector(active);
+  }
+
   /**      default constructor    */
   Detector();
 
