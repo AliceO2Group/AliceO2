@@ -217,25 +217,48 @@ void CcdbApi::init(std::string const& host)
   mNeedAlienToken = (host.find("https://") != std::string::npos) || (host.find("alice-ccdb.cern.ch") != std::string::npos);
 
   // Set the curl timeout. It can be forced with an env var or it has different defaults based on the deployment mode.
-  if (getenv("ALICEO2_CCDB_CURL_TIMEOUT")) {
-    auto timeout = atoi(getenv("ALICEO2_CCDB_CURL_TIMEOUT"));
+  if (getenv("ALICEO2_CCDB_CURL_TIMEOUT_DOWNLOAD")) {
+    auto timeout = atoi(getenv("ALICEO2_CCDB_CURL_TIMEOUT_DOWNLOAD"));
     if (timeout >= 0) { // if valid int
-      mCurlTimeout = timeout;
+      mCurlTimeoutDownload = timeout;
     }
   } else { // set a default depending on the deployment mode
     o2::framework::DeploymentMode deploymentMode = o2::framework::DefaultsHelpers::deploymentMode();
     if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS ||
         deploymentMode == o2::framework::DeploymentMode::OnlineAUX ||
         deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
-      mCurlTimeout = 5;
+      mCurlTimeoutDownload = 5;
     } else if (deploymentMode == o2::framework::DeploymentMode::Grid ||
                deploymentMode == o2::framework::DeploymentMode::FST) {
-      mCurlTimeout = 15;
+      mCurlTimeoutDownload = 15;
     } else if (deploymentMode == o2::framework::DeploymentMode::Local) {
-      mCurlTimeout = 1;
+      mCurlTimeoutDownload = 1;
     }
   }
-  LOG(debug) << "Curl timeout set to " << mCurlTimeout << " seconds";
+
+  if (getenv("ALICEO2_CCDB_CURL_TIMEOUT_UPLOAD")) {
+    auto timeout = atoi(getenv("ALICEO2_CCDB_CURL_TIMEOUT_UPLOAD"));
+    if (timeout >= 0) { // if valid int
+      mCurlTimeoutUpload = timeout;
+    }
+  } else { // set a default depending on the deployment mode
+    o2::framework::DeploymentMode deploymentMode = o2::framework::DefaultsHelpers::deploymentMode();
+    if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS ||
+        deploymentMode == o2::framework::DeploymentMode::OnlineAUX ||
+        deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
+      mCurlTimeoutUpload = 3;
+    } else if (deploymentMode == o2::framework::DeploymentMode::Grid ||
+               deploymentMode == o2::framework::DeploymentMode::FST) {
+      mCurlTimeoutUpload = 20;
+    } else if (deploymentMode == o2::framework::DeploymentMode::Local) {
+      mCurlTimeoutUpload = 20;
+    }
+  }
+  if (mDownloader) {
+    mDownloader->setRequestTimeoutTime(mCurlTimeoutDownload * 1000L);
+  }
+
+  LOGP(debug, "Curl timeouts are set to: download={:2}, upload={:2} seconds", mCurlTimeoutDownload, mCurlTimeoutUpload);
 
   LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
@@ -403,7 +426,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, mCurlTimeout);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, mCurlTimeoutUpload);
 
     CURLcode res = CURL_LAST;
 
