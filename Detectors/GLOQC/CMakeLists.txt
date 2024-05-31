@@ -15,18 +15,7 @@ o2_add_library(GLOQC
                SOURCES src/MatchITSTPCQC.cxx
                        src/ITSTPCMatchingQCParams.cxx
 
-  PUBLIC_LINK_LIBRARIES O2::Framework
-                        O2::DataFormatsTPC
-                        O2::DataFormatsITS
-                        O2::SimConfig
-                        O2::DataFormatsGlobalTracking
-                        O2::MathUtils
-                        O2::SimulationDataFormat
-                        O2::ReconstructionDataFormats
-                        O2::Steer
-                        O2::GlobalTracking
-                        O2::DCAFitter
-                        O2::DetectorsVertexing)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing)
 
 o2_target_root_dictionary(GLOQC
                           HEADERS include/GLOQC/MatchITSTPCQC.h

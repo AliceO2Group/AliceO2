@@ -130,7 +130,7 @@ class MatchITSTPCQC
   TH1D* getHisto1OverPtPhysPrimDen(matchType m) const { return m1OverPtPhysPrimDen[m]; }
   TEfficiency* getFractionITSTPCmatchPhysPrim1OverPt(matchType m) const { return mFractionITSTPCmatchPhysPrim1OverPt[m]; }
 
-  TH1F* getHistoK0Mass() const { return mK0Mass; }
+  TH2F* getHistoK0MassVsPt() const { return mK0MassVsPt; }
 
   void getHistos(TObjArray& objar);
 
@@ -227,7 +227,9 @@ class MatchITSTPCQC
     publisher->startPublishing(mDCArVsPtNum);
     publisher->startPublishing(mDCArVsPtDen);
     publisher->startPublishing(mFractionITSTPCmatchDCArVsPt);
-    publisher->startPublishing(mK0Mass);
+    if (mDoK0QC) {
+      publisher->startPublishing(mK0MassVsPt);
+    }
   }
 
   void setSources(GID::mask_t src) { mSrc = src; }
@@ -387,7 +389,7 @@ class MatchITSTPCQC
 
   // for V0s
   o2::vertexing::DCAFitterN<2> mFitterV0;
-  TH1F* mK0Mass = nullptr;
+  TH2F* mK0MassVsPt = nullptr;
   bool mDoK0QC = false;     // whether to fill the K0 QC plot(s)
   float mCutK0Mass = 0.05;  // cut on the difference between the K0 mass and the PDG mass
   bool mRefit = false;      // whether to refit or not

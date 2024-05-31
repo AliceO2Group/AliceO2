@@ -86,21 +86,19 @@ void MatchITSTPCQC::deleteHistograms()
     delete mChi2VsPtDen[i];
     delete mFractionITSTPCmatchChi2VsPt[i];
 
-    if (mUseTrkPID) { // Vs Tracking PID hypothesis
-      for (int j = 0; j < o2::track::PID::NIDs; ++j) {
-        // Pt
-        delete mPtNumVsTrkPID[i][j];
-        delete mPtDenVsTrkPID[i][j];
-        delete mFractionITSTPCmatchPtVsTrkPID[i][j];
-        // Phi
-        delete mPhiNumVsTrkPID[i][j];
-        delete mPhiDenVsTrkPID[i][j];
-        delete mFractionITSTPCmatchPhiVsTrkPID[i][j];
-        // Eta
-        delete mEtaNumVsTrkPID[i][j];
-        delete mEtaDenVsTrkPID[i][j];
-        delete mFractionITSTPCmatchEtaVsTrkPID[i][j];
-      }
+    for (int j = 0; j < o2::track::PID::NIDs; ++j) {
+      // Pt
+      delete mPtNumVsTrkPID[i][j];
+      delete mPtDenVsTrkPID[i][j];
+      delete mFractionITSTPCmatchPtVsTrkPID[i][j];
+      // Phi
+      delete mPhiNumVsTrkPID[i][j];
+      delete mPhiDenVsTrkPID[i][j];
+      delete mFractionITSTPCmatchPhiVsTrkPID[i][j];
+      // Eta
+      delete mEtaNumVsTrkPID[i][j];
+      delete mEtaDenVsTrkPID[i][j];
+      delete mFractionITSTPCmatchEtaVsTrkPID[i][j];
     }
 
     // 1/Pt
@@ -126,9 +124,7 @@ void MatchITSTPCQC::deleteHistograms()
   delete mFractionITSTPCmatchDCArVsPt;
 
   // K0
-  if (mDoK0QC) {
-    delete mK0Mass;
-  }
+  delete mK0MassVsPt;
 }
 
 //__________________________________________________________
@@ -209,7 +205,7 @@ void MatchITSTPCQC::reset()
 
   // K0
   if (mDoK0QC) {
-    mK0Mass->Reset();
+    mK0MassVsPt->Reset();
   }
 }
 
@@ -381,7 +377,7 @@ bool MatchITSTPCQC::init()
 
   if (mDoK0QC) {
     // V0s
-    mK0Mass = new TH1F("mK0Mass", "K0 invariant mass", 100, 0.3, 0.7);
+    mK0MassVsPt = new TH2F("mK0MassVsPt", "K0 invariant mass vs Pt", 100, 0.3, 0.7, 100, 0.f, 20.f);
   }
 
   return true;
@@ -404,9 +400,7 @@ void MatchITSTPCQC::initDataRequest()
   }
 
   mDataRequest = std::make_shared<o2::globaltracking::DataRequest>();
-  LOG(info) << "Requesting tracks...";
   mDataRequest->requestTracks(mSrc, mUseMC);
-  LOG(info) << "... done requesting tracks";
   if (mDoK0QC) {
     mDataRequest->requestPrimaryVertices(mUseMC);
     mDataRequest->requestSecondaryVertices(mUseMC);
@@ -417,8 +411,6 @@ void MatchITSTPCQC::initDataRequest()
 
 void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 {
-
-  LOG(info) << "Starting";
 
   // Getting the B field
   mBz = o2::base::Propagator::Instance()->getNominalBz();
@@ -905,7 +897,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 
   if (mDoK0QC) {
     // now doing K0S
-    const auto pvertices = ctx.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx");
+    const auto pvertices = mRecoCont.getPrimaryVertices();
     LOG(info) << "Found " << pvertices.size() << " primary vertices";
 
     auto v0IDs = mRecoCont.getV0sIdx();
@@ -959,7 +951,7 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
   if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass) {
     return false;
   }
-  mK0Mass->Fill(std::sqrt(v0sel.calcMass2AsK0()));
+  mK0MassVsPt->Fill(std::sqrt(v0sel.calcMass2AsK0()), v0sel.getPt());
   return true;
 }
 
@@ -1232,5 +1224,5 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mFractionITSTPCmatchDCArVsPt);
 
   // V0
-  objar.Add(mK0Mass);
+  objar.Add(mK0MassVsPt);
 }
