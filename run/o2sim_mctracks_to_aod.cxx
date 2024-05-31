@@ -89,13 +89,13 @@ struct MctracksToAod {
     auto bcCounter = 0UL;
     size_t offset = 0;
     for (auto i = 0U; i < nParts; ++i) {
-      LOG(info) << "--- Loop over " << nParts << " parts ---";
+      LOG(debug) << "--- Loop over " << nParts << " parts ---";
 
       auto record = mSampler.generateCollisionTime();
       auto header = pc.inputs().get<McHeader*>("mcheader", i);
       auto tracks = pc.inputs().get<McTracks>("mctracks", i);
 
-      LOG(info) << "Updating collision table";
+      LOG(debug) << "Updating collision table";
       auto genID = updateMCCollisions(mCollisions.cursor,
                                       bcCounter,
                                       record.timeInBCNS * 1.e-3,
@@ -103,12 +103,12 @@ struct MctracksToAod {
                                       0,
                                       i);
 
-      LOG(info) << "Updating HepMC tables";
+      LOG(debug) << "Updating HepMC tables";
       updateHepMCXSection(mXSections.cursor, bcCounter, genID, *header);
       updateHepMCPdfInfo(mPdfInfos.cursor, bcCounter, genID, *header);
       updateHepMCHeavyIon(mHeavyIons.cursor, bcCounter, genID, *header);
 
-      LOG(info) << "Updating particles table";
+      LOG(debug) << "Updating particles table";
       TrackToIndex preselect;
       offset = updateParticles(mParticles.cursor,
                                bcCounter,
@@ -118,7 +118,7 @@ struct MctracksToAod {
                                mFilter,
                                false);
 
-      LOG(info) << "Increment BC counter";
+      LOG(debug) << "Increment BC counter";
       bcCounter++;
     }
     using o2::framework::Lifetime;
