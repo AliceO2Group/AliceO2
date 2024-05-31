@@ -27,8 +27,10 @@
 using namespace o2::framework;
 
 struct GeneratorTask {
+  // For readability to indicate where counting certain things (such as events or timeframes) should be of the same order of magnitude
+  typedef uint64_t GenCount;
   Configurable<std::string> generator{"generator", "boxgen", "Name of generator"};
-  Configurable<int> eventNum{"nEvents", 1, "Number of events"};
+  Configurable<GenCount> eventNum{"nEvents", 1, "Number of events"};
   Configurable<std::string> trigger{"trigger", "", "Trigger type"}; //
   Configurable<std::string> iniFile{"configFile", "", "INI file containing configurable parameters"};
   Configurable<std::string> params{"configKeyValues", "", "configurable params - configuring event generation internals"};
@@ -37,9 +39,9 @@ struct GeneratorTask {
   Configurable<std::string> vtxModeArg{"vertexMode", "kDiamondParam", "Where the beam-spot vertex should come from. Must be one of kNoVertex, kDiamondParam, kCCDB"};
   Configurable<int64_t> ttl{"time-limit", -1, "Maximum run time limit in seconds (default no limit)"};
   Configurable<std::string> outputPrefix{"output", "", "Optional prefix for kinematics files written on disc. If non-empty, files <prefix>_Kine.root + <prefix>_MCHeader.root will be created."};
-  int nEvents = 0;
-  int eventCounter = 0;
-  int tfCounter = 0;
+  GenCount nEvents = 0;
+  GenCount eventCounter = 0;
+  GenCount tfCounter = 0;
   std::unique_ptr<TFile> outfile{};
   std::unique_ptr<TTree> outtree{};
 
@@ -88,7 +90,7 @@ struct GeneratorTask {
       br->SetAddress(&mctrack_ptr);
     }
 
-    for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
+    for (auto i = 0; i < std::min((GenCount)aggregate, nEvents - eventCounter); ++i) {
       mctracks.clear();
       genservice->generateEvent_MCTracks(mctracks, mcheader);
       pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcheader);
