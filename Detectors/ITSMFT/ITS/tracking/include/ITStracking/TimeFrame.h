@@ -136,7 +136,8 @@ class TimeFrame
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
-  int getClusterSize(int clusterId);
+  int getClusterSize(int clusterId) const;
+  void setClusterSize(const std::vector<uint8_t>& v) { mClusterSize = v; };
 
   std::vector<MCCompLabel>& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
   std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
@@ -463,7 +464,7 @@ inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerI
   return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]);
 }
 
-inline int TimeFrame::getClusterSize(int clusterId)
+inline int TimeFrame::getClusterSize(int clusterId) const
 {
   return mClusterSize[clusterId];
 }
