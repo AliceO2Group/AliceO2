@@ -28,7 +28,6 @@ INHERIT_DOCS           = YES
 SEPARATE_MEMBER_PAGES  = NO
 TAB_SIZE               = 2
 ALIASES                =
-TCL_SUBST              =
 OPTIMIZE_OUTPUT_FOR_C  = NO
 OPTIMIZE_OUTPUT_JAVA   = NO
 OPTIMIZE_FOR_FORTRAN   = NO
@@ -116,8 +115,8 @@ EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       =
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             =
-INPUT_FILTER           = @CMAKE_SOURCE_DIR@/doc/scripts/filter_for_doxygen.sh
-FILTER_PATTERNS        = *.md
+INPUT_FILTER           =
+FILTER_PATTERNS        = *.md=@CMAKE_SOURCE_DIR@/doc/scripts/filter_for_doxygen.sh
 FILTER_SOURCE_FILES    = NO
 FILTER_SOURCE_PATTERNS =
 USE_MDFILE_AS_MAINPAGE = @CMAKE_SOURCE_DIR@/README.md
@@ -137,7 +136,6 @@ VERBATIM_HEADERS       = YES
 # Configuration options related to the alphabetical class index
 #---------------------------------------------------------------------------
 ALPHABETICAL_INDEX     = YES
-COLS_IN_ALPHA_INDEX    = 5
 IGNORE_PREFIX          = .git
 #---------------------------------------------------------------------------
 # Configuration options related to the HTML output
