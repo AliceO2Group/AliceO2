@@ -99,7 +99,8 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
         // Get the metadata, if any
         auto m = (TMap*)currentFile->Get("metaData");
         if (!m) {
-          LOGP(warning, "No metadata found in file \"{}\"", filename);
+          LOGP(info, "No metadata found in file \"{}\"", filename);
+          results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
           return results;
         }
         auto it = m->MakeIterator();
