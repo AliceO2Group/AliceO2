@@ -17,6 +17,7 @@
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 ///
 
+#include <string>
 #include <vector>
 #include <string_view>
 
@@ -68,6 +69,19 @@ void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNam
 /// \param treeName name of the tree in the chain
 /// \param treeTitle title of the tree
 TChain* buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle = "", bool checkSubDir = false);
+
+template <typename Iterator>
+std::string elementsToString(Iterator begin, Iterator end, const std::string separator = ", ")
+{
+  return std::accumulate(std::next(begin), end, std::to_string(*begin),
+                         [&separator](auto s, auto f) { return std::move(s) + separator + std::to_string(f); });
+}
+
+template <typename T>
+std::string elementsToString(const T& val, const std::string separator = ", ")
+{
+  return elementsToString(val.begin(), val.end(), separator);
+}
 
 } // namespace utils
 } // namespace o2::tpc

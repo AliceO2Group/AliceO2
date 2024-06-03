@@ -9,8 +9,8 @@ required arguments
 
 optional arguments:
 -o, --outputDir=          : set output directory for (default: ./)
--m, --minADC=             : minimal ADC value accepted for threshold (default: $minADC)
--s, --sigmaNoise=         : number of sigmas for the threshold (default: $sigmaNoise)
+-m, --minADC=             : minimal ADC value accepted for threshold, either one value for all ROC types,  or 'IROC,OROC' or 'IROC,OROC1,OROC2,OROC3'  (default: $minADC)
+-s, --sigmaNoise=         : number of sigmas for the threshold, either one value for all ROC types,  or 'IROC,OROC' or 'IROC,OROC1,OROC2,OROC3' (default: $sigmaNoise)
 -p, --pedestalOffset=     : pedestal offset value
 -f, --onlyFilled          : only write links which have data
 -k, --noMaskZero          : don't set pedetal value of missing pads to 1023
@@ -34,8 +34,8 @@ usageAndExit() {
 # ===| default variable values |================================================
 fileInfo=
 outputDir="./"
-minADC=2
-sigmaNoise=3
+minADC="2"
+sigmaNoise="3"
 pedestalOffset=0
 onlyFilled=0
 maskZero=1
@@ -76,6 +76,6 @@ if [[ -z "$inputFile" ]]; then
 fi
 
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/preparePedestalFiles.C+g'(\"$inputFile\",\"$outputDir\", $sigmaNoise, $minADC, $pedestalOffset, $onlyFilled, $maskZero, $noisyThreshold, $sigmaNoiseNoisy, $badChannelThreshold)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/preparePedestalFiles.C+g'(\"$inputFile\",\"$outputDir\", {$sigmaNoise}, {$minADC}, $pedestalOffset, $onlyFilled, $maskZero, $noisyThreshold, $sigmaNoiseNoisy, $badChannelThreshold)'"
 echo "running: $cmd"
 eval $cmd
