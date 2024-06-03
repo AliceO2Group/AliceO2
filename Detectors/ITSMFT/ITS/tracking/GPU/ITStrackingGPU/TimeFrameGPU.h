@@ -174,9 +174,9 @@ class GpuTimeFrameChunk
 template <int nLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
- public:
   friend class GpuTimeFrameChunk<nLayers>;
 
+ public:
   TimeFrameGPU();
   ~TimeFrameGPU();
 
@@ -185,7 +185,7 @@ class TimeFrameGPU : public TimeFrame
   void unregisterHostMemory(const int);
   void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initialiseHybrid(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
-  void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
+  void initDevice(IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceSAFitting();
   void loadTrackingFrameInfoDevice(const int);
   void loadUnsortedClustersDevice();

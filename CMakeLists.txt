@@ -18,7 +18,9 @@ cmake_minimum_required(VERSION 3.27.1 FATAL_ERROR)
 project(O2 LANGUAGES C CXX VERSION 1.2.0)
 
 include(CTest)
-
+add_definitions(-DGPUCA_NO_FAST_MATH=1)
+set(GPUCA_NO_FAST_MATH 1)
+set(GPUCA_NO_FAST_MATH_WHOLEO2 1)
 # Project wide setup
 
 # Would better fit inside GPU/CMakeLists.txt, but include GPU/Common directly
