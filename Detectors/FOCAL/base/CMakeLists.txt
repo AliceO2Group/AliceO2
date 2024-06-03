@@ -13,8 +13,9 @@ o2_add_library(FOCALBase
     SOURCES src/Composition.cxx
     src/EventReader.cxx
     src/Geometry.cxx
+    src/Hit.cxx
     src/TestbeamAnalysis.cxx
-    PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL ROOT::RIO ROOT::Tree ROOT::TreePlayer
+    PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL O2::SimulationDataFormat O2::CommonUtils ROOT::RIO ROOT::Tree ROOT::TreePlayer
     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
@@ -22,5 +23,6 @@ o2_target_root_dictionary(
     HEADERS include/FOCALBase/Composition.h
     include/FOCALBase/EventReader.h
     include/FOCALBase/Geometry.h
+    include/FOCALBase/Hit.h
     include/FOCALBase/TestbeamAnalysis.h
 )
