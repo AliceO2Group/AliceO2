@@ -99,6 +99,8 @@ AddOptionRTC(trackMergerFactor2K, float, 2.0f * 2.0f, "", 0, "factor2K for track
 AddOptionRTC(trackMergerFactor2General, float, 3.5f * 3.5f, "", 0, "General factor for track merging")
 AddOptionRTC(rejectEdgeClustersMargin, float, 0.f, "", 0, "Margin in cm of Y position when rejecting edge clusters based on uncorrected track Y")
 AddOptionRTC(rejectEdgeClustersSigmaMargin, float, 0.f, "", 0, "Margin factor for trackSigmaY when rejecting edge clusters based on uncorrected track Y")
+AddOptionRTC(trackletMaxSharedFraction, float, 0.1f, "", 0, "Max fraction of shared clusters for tracklet")
+AddOptionRTC(trackletMinSharedNormFactor, float, 0.f, "", 0, "Max shared defined as trackletMinSharedNormFactor*max(current_nhits,trackletMinSharedNormFactor*minHits,1)")
 AddOptionRTC(maxTimeBinAboveThresholdIn1000Bin, unsigned short, 500, "", 0, "Except pad from cluster finding if total number of charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(maxConsecTimeBinAboveThreshold, unsigned short, 200, "", 0, "Except pad from cluster finding if number of consecutive charges in a fragment is above this baseline (disable = 0)")
 AddOptionRTC(noisyPadSaturationThreshold, unsigned short, 700, "", 0, "Threshold where a timebin is considered saturated, disabling the noisy pad check for that pad")
