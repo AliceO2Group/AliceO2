@@ -560,7 +560,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "postForwardingCallbacks", "We are the first one in the topology, we need to update the oldest possible timeslice");
       auto& timesliceIndex = ctx.services().get<TimesliceIndex>();
       auto& relayer = ctx.services().get<DataRelayer>();
-      timesliceIndex.updateOldestPossibleOutput();
+      timesliceIndex.updateOldestPossibleOutput(decongestion->nextEnumerationTimesliceRewinded);
       auto& proxy = ctx.services().get<FairMQDeviceProxy>();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
       if (decongestion->nextEnumerationTimesliceRewinded && decongestion->nextEnumerationTimeslice < oldestPossibleOutput.timeslice.value) {
@@ -632,7 +632,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Received oldest possible timeframe %" PRIu64 " from channel %d",
                              (uint64_t)oldestPossibleTimeslice, channel.value);
       relayer.setOldestPossibleInput({oldestPossibleTimeslice}, channel);
-      timesliceIndex.updateOldestPossibleOutput();
+      timesliceIndex.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
 
       if (oldestPossibleOutput.timeslice.value == decongestion.lastTimeslice) {
