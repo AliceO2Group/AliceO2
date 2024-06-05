@@ -192,7 +192,7 @@ bool TimesliceIndex::validateSlot(TimesliceSlot slot, TimesliceId currentOldest)
   return true;
 }
 
-TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
+TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput(bool rewinded)
 {
   auto oldestInput = getOldestPossibleInput();
   OldestOutputInfo result{oldestInput.timeslice, oldestInput.channel};
@@ -223,7 +223,7 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
                              mOldestPossibleOutput.timeslice.value, result.timeslice.value);
     }
   }
-  if (mOldestPossibleOutput.timeslice.value > result.timeslice.value) {
+  if (rewinded == false && mOldestPossibleOutput.timeslice.value > result.timeslice.value) {
     LOG(error) << "DPL internal error - oldestPossibleOutput decreased from " << mOldestPossibleOutput.timeslice.value << " to " << result.timeslice.value;
   }
   mOldestPossibleOutput = result;

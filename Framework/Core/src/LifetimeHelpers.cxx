@@ -98,7 +98,7 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
         // associated with this.
         LOG(debug) << "Oldest possible input is " << decongestion.nextEnumerationTimeslice;
         [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
-        index.updateOldestPossibleOutput();
+        index.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
         return slot;
       }
     }
@@ -143,7 +143,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
     // Nothing to do if the time has not expired yet.
     if (timerHasFired == false) {
       [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
-      index.updateOldestPossibleOutput();
+      index.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
       return TimesliceSlot{TimesliceSlot::INVALID};
     }
     // Get the first time we were invoked.
@@ -168,7 +168,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
       auto& variables = index.getVariablesForSlot(slot);
       if (VariableContextHelpers::getTimeslice(variables).value == current) {
         [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
-        index.updateOldestPossibleOutput();
+        index.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
@@ -192,7 +192,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
     }
 
     auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
-    index.updateOldestPossibleOutput();
+    index.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
     return slot;
   };
 }
@@ -442,7 +442,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     *(counter_t*)payload->GetData() = *counter;
     ref.payload = std::move(payload);
     (*counter)++;
-
   };
 }
 

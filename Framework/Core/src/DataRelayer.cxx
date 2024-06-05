@@ -759,7 +759,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         break;
     }
   }
-  mTimesliceIndex.updateOldestPossibleOutput();
+  mTimesliceIndex.updateOldestPossibleOutput(false);
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",
        notDirty, countConsume, countConsumeExisting, countProcess,
        countDiscard, countWait);
