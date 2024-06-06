@@ -566,7 +566,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
 #endif
 
 // TODO: Clusterizer not working with OCL1 (Clusterizer on CPU, Tracking on GPU)
-int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput, bool applyNNclusterizer)
+int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 {
   if (param().rec.fwdTPCDigitsAsClusters) {
     return ForwardTPCDigits();
@@ -837,7 +837,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput, bool applyNNclus
         if (clusterer.mPmemory->counters.nPeaks == 0) {
           continue;
         }
-        if(!applyNNclusterizer){
+        if(!GetProcessingSettings().applyNNclusterizer){
           runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::noiseSuppression>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
           runKernel<GPUTPCCFNoiseSuppression, GPUTPCCFNoiseSuppression::updatePeaks>({GetGrid(clusterer.mPmemory->counters.nPeaks, lane), {iSlice}});
         } else {
@@ -877,25 +877,29 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput, bool applyNNclus
         if(doGPU){
           runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane), {iSlice}}, 0);
         } else {
-          std::string path_class = "/lustre/alice/users/csonnab/PhD/jobs/clusterization/NN/output/normalized_qCenter/o2sim_150324_50Ev_10000QED_PbPb_13t7p/classification/3D_FCNN_1cls_03_04_2024_10M_FP16_addIndex/network/net_onnx.onnx", path_reg = "/lustre/alice/users/csonnab/PhD/jobs/clusterization/NN/output/normalized_qCenter/o2sim_150324_50Ev_10000QED_PbPb_13t7p/regression/3D_FCNN_1cls_05_04_2024_10M_FP16_addIndex/network/net_onnx.onnx";
-          clusterer.model_class.init(path_class, 1, 1);
-          clusterer.model_reg.init(path_reg, 1, 1);
-
-          runKernel<GPUTPCNNClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+          if(GetProcessingSettings().applyNNclusterizer){
+            clusterer.model_class.init(GetProcessingSettings().nnClassificationPath, 1, 1);
+            clusterer.model_reg.init(GetProcessingSettings().nnRegressionPath, 1, 1);
+            clusterer.nnSizeInputRow = GetProcessingSettings().nnSizeInputRow;
+            clusterer.nnSizeInputPad = GetProcessingSettings().nnSizeInputPad;
+            clusterer.nnSizeInputTime = GetProcessingSettings().nnSizeInputTime;
+            clusterer.nnAddIndexData = GetProcessingSettings().nnAddIndexData;
+            clusterer.nnClassThreshold = GetProcessingSettings().nnClassThreshold;
+            clusterer.nnSigmoidTrafoThreshold = GetProcessingSettings().nnSigmoidTrafoThreshold;
+            runKernel<GPUTPCNNClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+          } else {
+            runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
+          }
         }
         if (doGPU && propagateMCLabels) {
           TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mScratchId, lane);
           if (doGPU) {
             SynchronizeStream(lane);
           }
-          if(!applyNNclusterizer){
+          if(!GetProcessingSettings().applyNNclusterizer){
             runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
           } else {
-            // FIXME: Here I need to apply the neural network
-            // runKernel<GPUTPCCFClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
             runKernel<GPUTPCNNClusterizer>({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
-            // GPUTPCNNClusterizer nn_clus;
-            // nn_clus.exec({GetGrid(clusterer.mPmemory->counters.nClusters, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}}, 1);
           }
         }
         if (GetProcessingSettings().debugLevel >= 3) {

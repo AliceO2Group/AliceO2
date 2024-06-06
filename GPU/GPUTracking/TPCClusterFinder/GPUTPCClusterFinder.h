@@ -144,6 +144,13 @@ class GPUTPCClusterFinder : public GPUProcessor
   short mZSOffsetId = -1;
   short mOutputId = -1;
 
+  int nnSizeInputRow = 3;
+  int nnSizeInputPad = 3;
+  int nnSizeInputTime = 3;
+  bool nnAddIndexData = true;
+  float nnClassThreshold = 0.16;
+  bool nnSigmoidTrafoThreshold = 1;
+
   OnnxModel model_class, model_reg;
 
 #ifndef GPUCA_GPUCODE
