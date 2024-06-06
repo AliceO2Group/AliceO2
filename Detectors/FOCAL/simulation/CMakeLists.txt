@@ -9,9 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calib)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(workflow)
+o2_add_library(FOCALSimulation
+    SOURCES src/Detector.cxx
+    PUBLIC_LINK_LIBRARIES ROOT::TreePlayer O2::FOCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DataFormatsFOCAL
+    AliceO2::InfoLogger
+    Microsoft.GSL::GSL)
+
+o2_target_root_dictionary(
+    FOCALSimulation
+    HEADERS include/FOCALSimulation/Detector.h
+)
