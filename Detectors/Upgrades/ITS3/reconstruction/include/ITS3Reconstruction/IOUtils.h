@@ -35,8 +35,8 @@ o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, i
   sig2y = (constants::detID::isDetITS3(c.getSensorID())) ? DefClusErrorRow : o2::its::ioutils::DefClusErrorRow;
   sig2z = (constants::detID::isDetITS3(c.getSensorID())) ? DefClusErrorCol : o2::its::ioutils::DefClusErrorCol;
   if (pattID != itsmft::CompCluster::InvalidPatternID) {
-    sig2y = dict->getErr2X(pattID);
-    sig2z = dict->getErr2Z(pattID);
+    sig2y = dict->getErr2X(pattID) * sig2y; // Error is given in detector coordinates
+    sig2z = dict->getErr2Z(pattID) * sig2z;
     if (!dict->isGroup(pattID)) {
       return dict->getClusterCoordinates<T>(c);
     } else {

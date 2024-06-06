@@ -44,6 +44,18 @@ o2_add_test_root_macro(CheckTracksITS3.C
                                              O2::DetectorsBase
                        LABELS its3 COMPILE_ONLY)
 
+o2_add_test_root_macro(CheckDCA.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSBase
+                                             O2::ITS3Base
+                                             O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
+                                             O2::ITS3Simulation
+                                             O2::ITS3Reconstruction
+                                             O2::MathUtils
+                                             O2::SimulationDataFormat
+                                             O2::DetectorsBase
+                       LABELS its3 COMPILE_ONLY)
+
 o2_add_test_root_macro(CreateDictionariesITS3.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
                                              O2::ITS3Base
