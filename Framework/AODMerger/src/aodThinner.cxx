@@ -214,7 +214,9 @@ int main(int argc, char* argv[])
     uint8_t tpcNClsFindable = 0;
     bool bTPClsFindable = false;
     uint8_t ITSClusterMap = 0;
+    UInt_t ITSClusterSizes = 0;
     bool bITSClusterMap = false;
+    bool bITSClusterSizes = false;
     uint8_t TRDPattern = 0;
     bool bTRDPattern = false;
     float_t TOFChi2 = 0;
@@ -231,6 +233,9 @@ int main(int argc, char* argv[])
       } else if (brName == "fITSClusterMap") {
         trackExtraTree->SetBranchAddress("fITSClusterMap", &ITSClusterMap);
         bITSClusterMap = true;
+      } else if (brName == "fITSClusterSizes") {
+        trackExtraTree->SetBranchAddress("fITSClusterSizes", &ITSClusterSizes);
+        bITSClusterSizes = true;
       } else if (brName == "fTRDPattern") {
         trackExtraTree->SetBranchAddress("fTRDPattern", &TRDPattern);
         bTRDPattern = true;
@@ -256,6 +261,7 @@ int main(int argc, char* argv[])
       // Remove TPC only tracks, if (opt.) they are not assoc. to a V0
       if ((!bTPClsFindable || tpcNClsFindable > 0.) &&
           (!bITSClusterMap || ITSClusterMap == 0) &&
+          (!bITSClusterSizes || ITSClusterSizes == 0) &&
           (!bTRDPattern || TRDPattern == 0) &&
           (!bTOFChi2 || TOFChi2 < -1.) &&
           (keepV0TPCs.find(i) == keepV0TPCs.end())) {
