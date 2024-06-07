@@ -50,7 +50,7 @@ struct Tracklet final {
   std::string asString() const
   {
     return "fClIdx: " + std::to_string(firstClusterIndex) + " sClIdx: " + std::to_string(secondClusterIndex) +
-           " rof1: " + std::to_string(rof[0]) + " rof2: " + std::to_string(rof[1]);
+           " rof1: " + std::to_string(rof[0]) + " rof2: " + std::to_string(rof[1]) + " delta: " + std::to_string(getDeltaRof());
   }
 #endif
 
