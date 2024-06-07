@@ -84,9 +84,9 @@ class TimeFrame
   gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int rofId) const;
   void fillPrimaryVerticesXandAlpha();
   int getPrimaryVerticesNum(int rofId = -1) const;
-  void addPrimaryVertices(const std::vector<Vertex>& vertices);
-  void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
-  void addPrimaryVertices(const std::vector<lightVertex>&);
+  void addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId);
+  void addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId);
+  // void addPrimaryVertices(const std::vector<lightVertex>&);
   void removePrimaryVerticesInROF(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
@@ -124,6 +124,8 @@ class TimeFrame
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
   gsl::span<const Cluster> getClustersPerROFrange(int rofMin, int range, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
+  gsl::span<unsigned char> getUsedClustersROF(int rofId, int layerId);
+  gsl::span<const unsigned char> getUsedClustersROF(int rofId, int layerId) const;
   gsl::span<const int> getROFramesClustersPerROFrange(int rofMin, int range, int layerId) const;
   gsl::span<const int> getROFrameClusters(int layerId) const;
   gsl::span<const int> getNClustersROFrange(int rofMin, int range, int layerId) const;
@@ -145,7 +147,8 @@ class TimeFrame
   void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7);
   void resetRofPV()
   {
-    mPrimaryVertices.clear();
+    // mPrimaryVertices.clear();
+    deepVectorClear(mPrimaryVertices);
     mROFramesPV.resize(1, 0);
   };
 
@@ -227,7 +230,7 @@ class TimeFrame
     }
   }
 
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
 
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
 
@@ -260,7 +263,7 @@ class TimeFrame
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROFramesClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
-  std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROF
+  std::array<std::vector<int>, 2> mNTrackletsPerCluster;
   std::array<std::vector<int>, 2> mNTrackletsPerClusterSum;
   std::vector<std::vector<int>> mNClustersPerROF;
   std::vector<std::vector<int>> mIndexTables;
@@ -401,6 +404,24 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
   }
   int startIdx{mROFramesClusters[layerId][rofId]};
   return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROFramesClusters[layerId][rofId + 1] - startIdx)};
+}
+
+inline gsl::span<unsigned char> TimeFrame::getUsedClustersROF(int rofId, int layerId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<unsigned char>();
+  }
+  int startIdx{mROFramesClusters[layerId][rofId]};
+  return {&mUsedClusters[layerId][startIdx], static_cast<gsl::span<unsigned char>::size_type>(mROFramesClusters[layerId][rofId + 1] - startIdx)};
+}
+
+inline gsl::span<const unsigned char> TimeFrame::getUsedClustersROF(int rofId, int layerId) const
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<const unsigned char>();
+  }
+  int startIdx{mROFramesClusters[layerId][rofId]};
+  return {&mUsedClusters[layerId][startIdx], static_cast<gsl::span<unsigned char>::size_type>(mROFramesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline gsl::span<const Cluster> TimeFrame::getClustersPerROFrange(int rofMin, int range, int layerId) const

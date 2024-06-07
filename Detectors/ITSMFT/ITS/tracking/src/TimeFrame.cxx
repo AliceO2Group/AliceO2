@@ -78,11 +78,10 @@ TimeFrame::TimeFrame(int nLayers)
   mTrackletsIndexROF.resize(2, {0});
 }
 
-void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
+void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId)
 {
-  auto rofId = mROFramesPV.size() - 1;
   for (const auto& vertex : vertices) {
-    if (vertex.getTimeStamp() != rofId) {
+    if (vertex.getTimeStamp().getTimeStamp() != rofId) {
       insertLateVertex(vertex);
     } else {
       mPrimaryVertices.emplace_back(vertex);
@@ -97,13 +96,10 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
   mROFramesPV.push_back(mPrimaryVertices.size());
 }
 
-void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
+void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId)
 {
-  auto rofId = mROFramesPV.size();
+  // auto rofId = mROFramesPV.size();
   for (const auto& vertex : vertices) {
-    if (vertex.getTimeStamp() != rofId) {
-      LOG(warning) << "Vertex timestamp mismatch: " << vertex.getTimeStamp() << " vs " << rofId;
-    }
     mPrimaryVertices.emplace_back(vertex);
     if (!isBeamPositionOverridden) {
       const int w{vertex.getNContributors()};
@@ -115,15 +111,15 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
   mROFramesPV.push_back(mPrimaryVertices.size());
 }
 
-void TimeFrame::addPrimaryVertices(const std::vector<lightVertex>& lVertices)
-{
-  std::vector<Vertex> vertices;
-  for (auto& vertex : lVertices) {
-    vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
-    vertices.back().setTimeStamp(vertex.mTimeStamp);
-  }
-  addPrimaryVertices(vertices);
-}
+// void TimeFrame::addPrimaryVertices(const std::vector<lightVertex>& lVertices)
+// {
+//   std::vector<Vertex> vertices;
+//   for (auto& vertex : lVertices) {
+//     vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
+//     vertices.back().setTimeStamp(vertex.mTimeStamp);
+//   }
+//   addPrimaryVertices(vertices);
+// }
 
 int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                                const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
@@ -177,6 +173,8 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
 
     if (iLayer < 2) {
       deepVectorClear(mTrackletsIndexROF[iLayer]);
+      deepVectorClear(mNTrackletsPerCluster[iLayer]);
+      deepVectorClear(mNTrackletsPerClusterSum[iLayer]);
     }
   }
 

@@ -43,8 +43,7 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
   TrackingParameters trkPars;
   trkPars.PhiBins = mTraits->getVertexingParameters().PhiBins;
   trkPars.ZBins = mTraits->getVertexingParameters().ZBins;
-  timeInit += evaluateTask(
-    &Vertexer::initialiseVertexer, "Vertexer initialisation", [](std::string) {}, trkPars);
+  timeInit += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", [](std::string) {}, trkPars);
   timeTracklet = evaluateTask(&Vertexer::findTracklets, "Vertexer tracklet finding", [](std::string) {});
   nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
   nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
