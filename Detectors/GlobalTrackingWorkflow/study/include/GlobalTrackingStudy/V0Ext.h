@@ -15,6 +15,7 @@
 #define ALICEO2_V0EXT_H
 
 #include "ReconstructionDataFormats/V0.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -27,7 +28,11 @@ struct ProngInfoExt {
   int nClITS = 0;
   int pattITS = 0;
   float chi2ITSTPC = 0.f;
-  ClassDefNV(ProngInfoExt, 1);
+  int8_t corrGlo = -1;
+  int8_t corrITSTPC = -1;
+  int8_t corrITS = -1;
+  int8_t corrTPC = -1;
+  ClassDefNV(ProngInfoExt, 2);
 };
 
 struct V0Ext {
