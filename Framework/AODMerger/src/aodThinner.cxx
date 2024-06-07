@@ -26,6 +26,7 @@
 #include "TGrid.h"
 #include "TMap.h"
 #include "TLeaf.h"
+#include "TError.h"
 
 #include "aodMerger.h"
 
@@ -245,6 +246,13 @@ int main(int argc, char* argv[])
       }
     }
 
+    // Sanity-Check
+    // If any (%ITSClusterMap or %ITSClusterSizes) of these are not found, continuation is not possible, hence fataling
+    if (!bTPClsFindable || !bTRDPattern || !bTOFChi2 ||
+        (!bITSClusterMap && !bITSClusterSizes)) {
+      Fatal("Sanity-Check", "Branch detection failed for trackextra.[(fITSClusterMap=%d,fITSClusterSizes=%d),fTPCNClsFindable=%d,fTRDPattern=%d,fTOFChi2=%d]", bITSClusterMap, bITSClusterSizes, bTPClsFindable, bTRDPattern, bTOFChi2);
+    }
+
     int fIndexCollisions = 0;
     track_iu->SetBranchAddress("fIndexCollisions", &fIndexCollisions);
 
@@ -258,12 +266,10 @@ int main(int argc, char* argv[])
       // Flag collisions
       hasCollision[i] = (fIndexCollisions >= 0);
 
-      // Remove TPC only tracks, if (opt.) they are not assoc. to a V0
-      if ((!bTPClsFindable || tpcNClsFindable > 0.) &&
+      // Remove TPC only tracks, if they are not assoc. to a V0
+      if (tpcNClsFindable > 0 && TRDPattern == 0 && TOFChi2 < -1. &&
           (!bITSClusterMap || ITSClusterMap == 0) &&
           (!bITSClusterSizes || ITSClusterSizes == 0) &&
-          (!bTRDPattern || TRDPattern == 0) &&
-          (!bTOFChi2 || TOFChi2 < -1.) &&
           (keepV0TPCs.find(i) == keepV0TPCs.end())) {
         counter++;
       } else {
