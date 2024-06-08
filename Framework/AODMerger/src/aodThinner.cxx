@@ -26,7 +26,6 @@
 #include "TGrid.h"
 #include "TMap.h"
 #include "TLeaf.h"
-#include "TError.h"
 
 #include "aodMerger.h"
 
@@ -250,7 +249,9 @@ int main(int argc, char* argv[])
     // If any (%ITSClusterMap or %ITSClusterSizes) of these are not found, continuation is not possible, hence fataling
     if (!bTPClsFindable || !bTRDPattern || !bTOFChi2 ||
         (!bITSClusterMap && !bITSClusterSizes)) {
-      Fatal("Sanity-Check", "Branch detection failed for trackextra.[(fITSClusterMap=%d,fITSClusterSizes=%d),fTPCNClsFindable=%d,fTRDPattern=%d,fTOFChi2=%d]", bITSClusterMap, bITSClusterSizes, bTPClsFindable, bTRDPattern, bTOFChi2);
+      printf("    *** FATAL *** Branch detection failed for trackextra.[(fITSClusterMap=%d,fITSClusterSizes=%d),fTPCNClsFindable=%d,fTRDPattern=%d,fTOFChi2=%d]", bITSClusterMap, bITSClusterSizes, bTPClsFindable, bTRDPattern, bTOFChi2);
+      exitCode = 10;
+      break;
     }
 
     int fIndexCollisions = 0;
