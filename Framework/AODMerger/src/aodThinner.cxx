@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
     // If any (%ITSClusterMap or %ITSClusterSizes) of these are not found, continuation is not possible, hence fataling
     if (!bTPClsFindable || !bTRDPattern || !bTOFChi2 ||
         (!bITSClusterMap && !bITSClusterSizes)) {
-      printf("    *** FATAL *** Branch detection failed for trackextra.[(fITSClusterMap=%d,fITSClusterSizes=%d),fTPCNClsFindable=%d,fTRDPattern=%d,fTOFChi2=%d]", bITSClusterMap, bITSClusterSizes, bTPClsFindable, bTRDPattern, bTOFChi2);
+      printf("    *** FATAL *** Branch detection failed in %s for trackextra.[(fITSClusterMap=%d,fITSClusterSizes=%d),fTPCNClsFindable=%d,fTRDPattern=%d,fTOFChi2=%d]\n", dfName, bITSClusterMap, bITSClusterSizes, bTPClsFindable, bTRDPattern, bTOFChi2);
       exitCode = 10;
       break;
     }
@@ -423,6 +423,7 @@ int main(int argc, char* argv[])
   if (exitCode != 0) {
     printf("Removing incomplete output file %s.\n", outputFile->GetName());
     gSystem->Unlink(outputFile->GetName());
+    return exitCode; // skip output below
   }
 
   clock.Stop();
