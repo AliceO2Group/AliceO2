@@ -214,7 +214,9 @@ int main(int argc, char* argv[])
     uint8_t tpcNClsFindable = 0;
     bool bTPClsFindable = false;
     uint8_t ITSClusterMap = 0;
+    UInt_t ITSClusterSizes = 0;
     bool bITSClusterMap = false;
+    bool bITSClusterSizes = false;
     uint8_t TRDPattern = 0;
     bool bTRDPattern = false;
     float_t TOFChi2 = 0;
@@ -231,6 +233,9 @@ int main(int argc, char* argv[])
       } else if (brName == "fITSClusterMap") {
         trackExtraTree->SetBranchAddress("fITSClusterMap", &ITSClusterMap);
         bITSClusterMap = true;
+      } else if (brName == "fITSClusterSizes") {
+        trackExtraTree->SetBranchAddress("fITSClusterSizes", &ITSClusterSizes);
+        bITSClusterSizes = true;
       } else if (brName == "fTRDPattern") {
         trackExtraTree->SetBranchAddress("fTRDPattern", &TRDPattern);
         bTRDPattern = true;
@@ -238,6 +243,15 @@ int main(int argc, char* argv[])
         trackExtraTree->SetBranchAddress("fTOFChi2", &TOFChi2);
         bTOFChi2 = true;
       }
+    }
+
+    // Sanity-Check
+    // If any (%ITSClusterMap or %ITSClusterSizes) of these are not found, continuation is not possible, hence fataling
+    if (!bTPClsFindable || !bTRDPattern || !bTOFChi2 ||
+        (!bITSClusterMap && !bITSClusterSizes)) {
+      printf("    *** FATAL *** Branch detection failed in %s for trackextra.[(fITSClusterMap=%d,fITSClusterSizes=%d),fTPCNClsFindable=%d,fTRDPattern=%d,fTOFChi2=%d]\n", dfName, bITSClusterMap, bITSClusterSizes, bTPClsFindable, bTRDPattern, bTOFChi2);
+      exitCode = 10;
+      break;
     }
 
     int fIndexCollisions = 0;
@@ -253,11 +267,10 @@ int main(int argc, char* argv[])
       // Flag collisions
       hasCollision[i] = (fIndexCollisions >= 0);
 
-      // Remove TPC only tracks, if (opt.) they are not assoc. to a V0
-      if ((!bTPClsFindable || tpcNClsFindable > 0.) &&
+      // Remove TPC only tracks, if they are not assoc. to a V0
+      if (tpcNClsFindable > 0 && TRDPattern == 0 && TOFChi2 < -1. &&
           (!bITSClusterMap || ITSClusterMap == 0) &&
-          (!bTRDPattern || TRDPattern == 0) &&
-          (!bTOFChi2 || TOFChi2 < -1.) &&
+          (!bITSClusterSizes || ITSClusterSizes == 0) &&
           (keepV0TPCs.find(i) == keepV0TPCs.end())) {
         counter++;
       } else {
@@ -410,6 +423,7 @@ int main(int argc, char* argv[])
   if (exitCode != 0) {
     printf("Removing incomplete output file %s.\n", outputFile->GetName());
     gSystem->Unlink(outputFile->GetName());
+    return exitCode; // skip output below
   }
 
   clock.Stop();
