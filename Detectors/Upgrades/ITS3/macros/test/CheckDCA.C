@@ -16,15 +16,13 @@
 #include <TROOT.h>
 #include <TStyle.h>
 #include <TCanvas.h>
-#include "TEfficiency.h"
-#include <TClonesArray.h>
 #include <TFile.h>
 #include <TF1.h>
 #include <TH2F.h>
 #include <TLegend.h>
 #include <TPad.h>
 #include <TTree.h>
-#include "TGeoGlobalMagField.h"
+#include <TSystem.h>
 
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -89,6 +87,7 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
   gErrorIgnoreLevel = 2001; // suppress warnings
+  ProcInfo_t procInfo;
 
   const int nPtBins = 35;
   const int nPtBinsEff = 39;
@@ -288,14 +287,19 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
   o2::dataformats::DCA impactParameter;
 
   const auto origWD{fs::current_path()};
-  for (const auto& tfDir : find_dirs(fs::current_path(), tf_matcher, tf_sorter)) {
-    LOGP(info, "Analysing {}", tfDir.c_str());
+  const auto tfDirs = find_dirs(fs::current_path(), tf_matcher, tf_sorter);
+  for (const auto& tfDir : tfDirs) {
+    LOGP(info, "Analysing {:?}", tfDir.c_str());
     fs::current_path(tfDir);
 
     // MC Information
-    o2::steer::MCKinematicsReader mcReader(collisioncontextFileName);
+    o2::steer::MCKinematicsReader mcReader;
+    if (!mcReader.initFromDigitContext(collisioncontextFileName)) {
+      LOGP(error, "Cannot init MC reader in {:?}", tfDir.c_str());
+      continue;
+    }
 
-    // Magnetic field and Propagator should not change over tfs
+    // Magnetic field and Propagator
     float bz{-999};
     static bool initOnce{false};
     if (!initOnce) {
@@ -304,27 +308,26 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
       bz = o2::base::Propagator::Instance()->getNominalBz();
     }
 
-    // ITS Tracks
-    std::unique_ptr<TFile> fITSTracks(TFile::Open(itsTracksFileName.c_str(), "READ"));
+    LOGP(info, "Loading ITS Tracks");
+    auto fITSTracks = TFile::Open(itsTracksFileName.c_str(), "READ");
     auto tITSTracks = fITSTracks->Get<TTree>("o2sim");
-    std::vector<o2::its::TrackITS> itsTracks, *itsTracksPtr{&itsTracks};
-    tITSTracks->SetBranchAddress("ITSTrack", &itsTracksPtr);
-    std::vector<o2::MCCompLabel> itsTrkLab, *itsTrkLabPtr{&itsTrkLab};
-    tITSTracks->SetBranchAddress("ITSTrackMCTruth", &itsTrkLabPtr);
+    std::vector<o2::its::TrackITS>* itsTracks{nullptr};
+    tITSTracks->SetBranchAddress("ITSTrack", &itsTracks);
+    std::vector<o2::MCCompLabel>* itsTrkLab{nullptr};
+    tITSTracks->SetBranchAddress("ITSTrackMCTruth", &itsTrkLab);
 
     for (Long64_t iEntry{0}; tITSTracks->LoadTree(iEntry) >= 0; ++iEntry) {
       tITSTracks->GetEntry(iEntry);
-      for (size_t iTrk{0}; iTrk < itsTracks.size(); ++iTrk) {
-        auto trk = itsTracks[iTrk];
-        const auto& lbl = itsTrkLab[iTrk];
+      for (size_t iTrk{0}; iTrk < itsTracks->size(); ++iTrk) {
+        auto trk = itsTracks->at(iTrk);
+        const auto& lbl = itsTrkLab->at(iTrk);
         if (!lbl.isValid()) {
           continue;
         }
 
         const auto& mcEvent = mcReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
         const auto& mcTrack = mcReader.getTrack(lbl);
-        const auto& pContainer = mcReader.getTracks(lbl.getSourceID(), lbl.getEventID());
-        if (!o2::mcutils::MCTrackNavigator::isPhysicalPrimary(*mcTrack, pContainer) || !(std::abs(mcTrack->GetEta()) < rapMax)) {
+        if (!mcTrack->isPrimary() || !(std::abs(mcTrack->GetEta()) < rapMax)) {
           continue;
         }
         auto pdg = std::abs(mcTrack->GetPdgCode());
@@ -362,40 +365,39 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
       }
     }
 
-    // ITS-TPC Tracks
-    std::unique_ptr<TFile> fITSTPCTracks(TFile::Open(itstpcTracksFileName.c_str(), "READ"));
+    LOGP(info, "Loading ITS-TPC Tracks");
+    auto fITSTPCTracks = TFile::Open(itstpcTracksFileName.c_str(), "READ");
     auto tITSTPCTracks = fITSTPCTracks->Get<TTree>("matchTPCITS");
-    std::vector<o2::dataformats::TrackTPCITS> itstpcTracks, *itstpcTracksPtr{&itstpcTracks};
-    tITSTPCTracks->SetBranchAddress("TPCITS", &itstpcTracksPtr);
-    std::vector<o2::MCCompLabel> itstpcTrkLab, *itstpcTrkLabPtr{&itstpcTrkLab};
-    tITSTPCTracks->SetBranchAddress("MatchMCTruth", &itstpcTrkLabPtr);
+    std::vector<o2::dataformats::TrackTPCITS>* itstpcTracks{nullptr};
+    tITSTPCTracks->SetBranchAddress("TPCITS", &itstpcTracks);
+    std::vector<o2::MCCompLabel>* itstpcTrkLab{nullptr};
+    tITSTPCTracks->SetBranchAddress("MatchMCTruth", &itstpcTrkLab);
     // TPC Tracks
-    std::unique_ptr<TFile> fTPCTracks(TFile::Open(tpcTracksFileName.c_str(), "READ"));
+    auto fTPCTracks = TFile::Open(tpcTracksFileName.c_str(), "READ");
     auto tTPCTracks = fTPCTracks->Get<TTree>("tpcrec");
-    std::vector<o2::tpc::TrackTPC> tpcTracks, *tpcTracksPtr{&tpcTracks};
-    tTPCTracks->SetBranchAddress("TPCTracks", &tpcTracksPtr);
-    std::vector<o2::MCCompLabel> tpcTrkLab, *tpcTrkLabPtr{&tpcTrkLab};
-    tTPCTracks->SetBranchAddress("TPCTracksMCTruth", &tpcTrkLabPtr);
+    std::vector<o2::tpc::TrackTPC>* tpcTracks{nullptr};
+    tTPCTracks->SetBranchAddress("TPCTracks", &tpcTracks);
+    std::vector<o2::MCCompLabel>* tpcTrkLab{nullptr};
+    tTPCTracks->SetBranchAddress("TPCTracksMCTruth", &tpcTrkLab);
     for (Long64_t iEntry{0}; tITSTPCTracks->LoadTree(iEntry) >= 0; ++iEntry) {
       tITSTPCTracks->GetEntry(iEntry);
       tITSTracks->GetEntry(iEntry);
       tTPCTracks->GetEntry(iEntry);
-      for (size_t iTrk{0}; iTrk < itstpcTracks.size(); ++iTrk) {
-        auto trk = itstpcTracks[iTrk];
-        const auto& lbl = itstpcTrkLab[iTrk];
+      for (size_t iTrk{0}; iTrk < itstpcTracks->size(); ++iTrk) {
+        auto trk = itstpcTracks->at(iTrk);
+        const auto& lbl = itstpcTrkLab->at(iTrk);
 
-        const auto& trkITS = itsTracks[trk.getRefITS().getIndex()];
-        const auto& trkITSLbl = itsTrkLab[trk.getRefITS().getIndex()];
-        const auto& trkTPC = tpcTracks[trk.getRefTPC().getIndex()];
-        const auto& trkTPCLbl = tpcTrkLab[trk.getRefTPC().getIndex()];
+        const auto& trkITS = itsTracks->at(trk.getRefITS().getIndex());
+        const auto& trkITSLbl = itsTrkLab->at(trk.getRefITS().getIndex());
+        const auto& trkTPC = tpcTracks->at(trk.getRefTPC().getIndex());
+        const auto& trkTPCLbl = tpcTrkLab->at(trk.getRefTPC().getIndex());
         if (!lbl.isValid() || trkITSLbl != trkTPCLbl) {
           continue;
         }
 
         const auto& mcEvent = mcReader.getMCEventHeader(lbl.getSourceID(), lbl.getEventID());
         const auto& mcTrack = mcReader.getTrack(lbl);
-        const auto& pContainer = mcReader.getTracks(lbl.getSourceID(), lbl.getEventID());
-        if (!o2::mcutils::MCTrackNavigator::isPhysicalPrimary(*mcTrack, pContainer) || !(std::abs(mcTrack->GetEta()) < rapMax)) {
+        if (!mcTrack->isPrimary() || !(std::abs(mcTrack->GetEta()) < rapMax)) {
           continue;
         }
 
@@ -433,10 +435,33 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
         }
       }
     }
+
+    delete itsTracks;
+    delete itsTrkLab;
+    delete tpcTracks;
+    delete tpcTrkLab;
+    delete itstpcTracks;
+    delete itstpcTrkLab;
+    delete tITSTracks;
+    delete tTPCTracks;
+    delete tITSTPCTracks;
+    delete fITSTracks;
+    delete fTPCTracks;
+    delete fITSTPCTracks;
+
+    gSystem->GetProcInfo(&procInfo);
+    LOGF(info, "MemVirtual (%ld), MemResident (%ld)", procInfo.fMemVirtual, procInfo.fMemResident);
+    LOGP(info, "Done with {:?}", tfDir.c_str());
+    if (procInfo.fMemResident > 200'000'000) {
+      LOGP(error, "Exceeding 200GBs stopping!");
+      break;
+    }
   }
+  LOGP(info, "Restoring original CWD to {:?}", origWD.c_str());
   fs::current_path(origWD); // restore original wd
 
-  TH1D* hProj;
+  LOGP(info, "Projecting Plots");
+  TH1* hProj;
   for (const auto& pdgCode : pdgCodes) {
     for (auto iPt{0}; iPt < nPtBins; ++iPt) {
       // ITS
@@ -522,6 +547,7 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
   }
 
   // Style
+  LOGP(info, "Styling Plots");
   for (const auto& pdgCode : pdgCodes) {
     // ITS
     hPtResAllLayersITS[pdgCode]->SetLineWidth(2);
@@ -597,6 +623,7 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
   }
 
   /// Output
+  LOGP(info, "Writing final output");
   // ITS
   auto canvPtDeltaITS = new TCanvas("canvPtDeltaITS", "", 1500, 500);
   canvPtDeltaITS->Divide(nSpecies, 1);
