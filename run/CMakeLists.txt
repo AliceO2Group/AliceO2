@@ -120,6 +120,12 @@ o2_add_executable(dpl-eventgen
                   SOURCES dpl_eventgen.cxx
                   PUBLIC_LINK_LIBRARIES O2::Generators O2::Framework O2::SimulationDataFormat)
 
+# standalone event generation (no DPL ... mainly for debugging)
+o2_add_executable(standalone-eventgen
+                  COMPONENT_NAME sim
+                  SOURCES standalone_eventgen.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Generators O2::SimulationDataFormat)
+
 o2_add_executable(hepmc-publisher
                   COMPONENT_NAME sim
                   SOURCES o2sim_hepmc_publisher.cxx
