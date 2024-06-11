@@ -390,9 +390,6 @@ void MatchITSTPCQC::initDataRequest()
 
   // initialize data request, if it was not already done
 
-  if (mDoK0QC) {
-    mSrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  }
   mSrc &= mAllowedSources;
 
   if (mSrc[GID::Source::ITSTPC] == 0 || mSrc[GID::Source::TPC] == 0 || mSrc[GID::Source::ITS] == 0) {
@@ -958,6 +955,9 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
 //__________________________________________________________
 bool MatchITSTPCQC::refitV0(const o2::dataformats::V0Index& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData)
 {
+  if (!recoData.isTrackSourceLoaded(id.getProngID(0).getSource()) || !recoData.isTrackSourceLoaded(id.getProngID(1).getSource())) {
+    return false;
+  }
   auto seedP = recoData.getTrackParam(id.getProngID(0));
   auto seedN = recoData.getTrackParam(id.getProngID(1));
   bool isTPConly = (id.getProngID(0).getSource() == o2::dataformats::GlobalTrackID::TPC) || (id.getProngID(1).getSource() == o2::dataformats::GlobalTrackID::TPC);

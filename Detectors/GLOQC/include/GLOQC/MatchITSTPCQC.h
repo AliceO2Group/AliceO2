@@ -232,7 +232,7 @@ class MatchITSTPCQC
     }
   }
 
-  void setSources(GID::mask_t src) { mSrc = src; }
+  void setTrkSources(GID::mask_t src) { mSrc = src; }
   void setUseTrkPID(bool b) { mUseTrkPID = b; }
   bool getUseTrkPID() const { return mUseTrkPID; }
   void setUseMC(bool b) { mUseMC = b; }
@@ -273,8 +273,9 @@ class MatchITSTPCQC
  private:
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
   o2::globaltracking::RecoContainer mRecoCont;
+  std::string mRequestedSources = "ITS,TPC,ITS-TPC";
   GID::mask_t mSrc = GID::getSourcesMask("ITS,TPC,ITS-TPC");
-  GID::mask_t mAllowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t mAllowedSources = GID::getSourcesMask("all");
   // TPC
   gsl::span<const o2::tpc::TrackTPC> mTPCTracks;
   // ITS
