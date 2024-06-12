@@ -8,17 +8,19 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+# add_compile_options(-O0 -g -fPIC)
 
-o2_add_library(GlobalTrackingWorkflowQC
-  SOURCES src/ITSTPCMatchingQCSpec.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsGlobalTracking
-                        O2::GlobalTracking
-                        ROOT::Core
-                        O2::GLOQC
-  )
+o2_add_library(GLOQC
+               TARGETVARNAME targetName
+               SOURCES src/MatchITSTPCQC.cxx
+                       src/ITSTPCMatchingQCParams.cxx
 
-o2_add_executable(matching-qc
-  COMPONENT_NAME itstpc
-  SOURCES src/itstpc-matching-qc-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflowQC
-  )
+  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing)
+
+o2_target_root_dictionary(GLOQC
+                          HEADERS include/GLOQC/MatchITSTPCQC.h
+                                  include/GLOQC/ITSTPCMatchingQCParams.h
+
+)
+
+
