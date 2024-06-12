@@ -24,6 +24,7 @@
 #include "EventVisualisationDataConverter/VisualisationCalo.h"
 #include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include "DataFormatsParameters/ECSDataAdapters.h"
+#include "Framework/DataProcessingHeader.h"
 #include <forward_list>
 #include <ctime>
 #include <gsl/span>
@@ -44,6 +45,7 @@ class VisualisationEvent
 {
   friend class VisualisationEventJSONSerializer;
   friend class VisualisationEventROOTSerializer;
+  friend class VisualisationEventOpenGLSerializer;
 
  public:
   struct GIDVisualisation {
@@ -66,7 +68,7 @@ class VisualisationEvent
     time_t collisionTime;
   };
   // Default constructor
-  VisualisationEvent(const VisualisationEventVO vo);
+  explicit VisualisationEvent(VisualisationEventVO vo);
 
   void appendAnotherEventCalo(const VisualisationEvent& another);
 
@@ -75,23 +77,23 @@ class VisualisationEvent
     mTracks.emplace_back(vo);
     return &mTracks.back();
   }
-  void remove_last_track() { mTracks.pop_back(); } // used to remove track assigned optimistically
 
-  // Adds visualisation cluster inside visualisation event
-  VisualisationCluster& addCluster(float XYZ[], float trackTime)
-  {
-    return mTracks.back().addCluster(XYZ);
-  }
-
-  VisualisationCluster& addCluster(float X, float Y, float Z, float trackTime)
+  VisualisationCluster& addCluster(float X, float Y, float Z)
   {
     float pos[] = {X, Y, Z};
     return mTracks.back().addCluster(pos);
   }
 
-  VisualisationCluster& addGlobalCluster(const TVector3& xyz)
+  void addGlobalCluster(float* xyz, float time, o2::dataformats::GlobalTrackID gid)
   {
-    return mClusters.emplace_back(xyz);
+    mClusters.emplace_back(xyz, time, gid);
+  }
+
+  void addGlobalCluster(const TVector3& xyz, o2::dataformats::GlobalTrackID gid, float time)
+  {
+    auto result = mClusters.emplace_back(xyz);
+    result.mBGID = gid;
+    result.mTime = time;
   }
 
   VisualisationCalo* addCalo(VisualisationCalo::VisualisationCaloVO vo)
@@ -172,12 +174,15 @@ class VisualisationEvent
 
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
-  void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
+  // void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
-  std::string getCollisionTime() const { return this->mCollisionTime; }
-  void setCollisionTime(std::string collisionTime) { this->mCollisionTime = collisionTime; }
+  // std::string getCollisionTime() const { return DateTime(this->mCreationTime); }
+  // void setCollisionTime(std::string collisionTime) { this->mCreationTime = this->parseDateTime(collisionTime.c_str()); }
 
-  void setEveVersion(std::string eveVersion) { this->mEveVersion = eveVersion; }
+  o2::framework::DataProcessingHeader::CreationTime getCreationTime() const { return this->mCreationTime; }
+  void setCreationTime(o2::framework::DataProcessingHeader::CreationTime creationTime) { this->mCreationTime = creationTime; }
+
+  void setEveVersion(int eveVersion) { this->mEveVersion = eveVersion; }
 
   float getMinTimeOfTracks() const { return this->mMinTimeOfTracks; }
   float getMaxTimeOfTracks() const { return this->mMaxTimeOfTracks; } /// maximum time of tracks in the event
@@ -199,12 +204,16 @@ class VisualisationEvent
   o2::header::DataHeader::TFCounterType getTfCounter() const { return this->mTfCounter; }
   void setTfCounter(o2::header::DataHeader::TFCounterType value) { this->mTfCounter = value; }
 
-  o2::header::DataHeader::TForbitType getFirstTForbit() const { return this->mFirstTForbit; }
+  [[nodiscard]] o2::header::DataHeader::TForbitType getFirstTForbit() const { return this->mFirstTForbit; }
   void setFirstTForbit(o2::header::DataHeader::TForbitType value) { this->mFirstTForbit = value; }
 
+  std::size_t getPrimaryVertex() const { return this->mPrimaryVertex; }
   void setPrimaryVertex(std::size_t pv) { this->mPrimaryVertex = pv; }
 
+  VisualisationEvent limit(std::size_t maximum_number_of_items);
+
  private:
+  o2::framework::DataProcessingHeader::CreationTime mCreationTime; /// creation time in binary format
   int mClMask;                                      /// clusters requested during aquisition
   int mTrkMask;                                     /// tracks requested during aquisition
   o2::header::DataHeader::RunNumberType mRunNumber; /// run number
@@ -215,13 +224,13 @@ class VisualisationEvent
 
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event
   float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
-  std::string mEveVersion;                          /// workflow version used to generate this Event
-  std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
+  int mEveVersion;                                  /// workflow version used to generate this Event (120 -> 1.20)
+  // std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
   int mEventNumber;                                 /// event number in file
   double mEnergy;                                   /// energy of the collision
   int mMultiplicity;                                /// number of particles reconstructed
   std::string mCollidingSystem;                     /// colliding system (e.g. proton-proton)
-  std::string mCollisionTime;                       /// collision timestamp
+  // std::string mCollisionTime;                       /// collision timestamp
   std::vector<VisualisationTrack> mTracks;          /// an array of visualisation tracks
   std::vector<VisualisationCluster> mClusters;      /// an array of visualisation clusters
   std::vector<VisualisationCalo> mCalo;             /// an array of visualisation calorimeters

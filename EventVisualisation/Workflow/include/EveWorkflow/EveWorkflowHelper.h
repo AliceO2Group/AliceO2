@@ -167,17 +167,17 @@ class EveWorkflowHelper
   void drawAODMFT(AODMFTTrack const& track, float trackTime);
   void drawAODFwd(AODForwardTrack const& track, float trackTime);
 
-  void drawMFTTrack(o2::track::TrackParFwd track, float trackTime);
-  void drawForwardTrack(mch::TrackParam track, const std::string& gidString, GID::Source source, float startZ, float endZ, float trackTime);
-  void drawITSClusters(GID gid, float trackTime);
-  void drawTPCClusters(GID gid, float trackTime);
-  void drawMFTClusters(GID gid, float trackTime);
-  void drawMCHClusters(GID gid, float trackTime);
-  void drawMIDClusters(GID gid, float trackTime);
-  void drawTRDClusters(const o2::trd::TrackTRD& trc, float trackTime);
-  void drawTOFClusters(GID gid, float trackTime);
-  void drawPoint(float x, float y, float z, float trackTime) { mEvent.addCluster(x, y, z, trackTime); }
-  void drawGlobalPoint(const TVector3& xyx) { mEvent.addGlobalCluster(xyx); }
+  void drawMFTTrack(GID gid, o2::track::TrackParFwd track, float trackTime);
+  void drawForwardTrack(GID gid, mch::TrackParam track, float startZ, float endZ, float trackTime);
+  void drawITSClusters(GID gid);
+  void drawTPCClusters(GID gid);
+  void drawMFTClusters(GID gid);
+  void drawMCHClusters(GID gid);
+  void drawMIDClusters(GID gid);
+  void drawTRDClusters(const o2::trd::TrackTRD& trc);
+  void drawTOFClusters(GID gid);
+  void drawPoint(float x, float y, float z) { mEvent.addCluster(x, y, z); }
+  void drawGlobalPoint(const TVector3& xyx, GID gid, float time) { mEvent.addGlobalCluster(xyx, gid, time); }
   void prepareITSClusters(const o2::itsmft::TopologyDictionary* dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict); // fills mMFTClustersArray
   void clear() { mEvent.clear(); }
@@ -192,13 +192,7 @@ class EveWorkflowHelper
   bool isInsideITSROF(float t);
   bool isInsideTimeBracket(float t);
 
-  void save(const std::string& jsonPath,
-            const std::string& ext,
-            int numberOfFiles,
-            o2::dataformats::GlobalTrackID::mask_t trkMask,
-            o2::dataformats::GlobalTrackID::mask_t clMask,
-            o2::header::DataHeader::RunNumberType runNumber,
-            o2::framework::DataProcessingHeader::CreationTime creationTime);
+  void save(const std::string& jsonPath, const std::string& ext, int numberOfFiles);
 
   FilterSet mEnabledFilters;
   std::size_t mMaxNTracks;

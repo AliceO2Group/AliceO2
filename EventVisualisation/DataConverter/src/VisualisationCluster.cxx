@@ -24,10 +24,11 @@ namespace o2
 namespace event_visualisation
 {
 
-VisualisationCluster::VisualisationCluster(float XYZ[], float time)
+VisualisationCluster::VisualisationCluster(float XYZ[], float time, o2::dataformats::GlobalTrackID gid)
 {
   setCoordinates(XYZ);
   this->mTime = time;
+  this->mBGID = gid;
 }
 
 void VisualisationCluster::setCoordinates(float xyz[3])

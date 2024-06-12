@@ -54,7 +54,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"jsons-folder", VariantType::String, "jsons", {"name of the folder to store json files"}},
-    {"use-json-format", VariantType::Bool, false, {"instead of root format (default) use json format"}},
+    {"use-json-format", VariantType::Bool, false, {"instead of eve format (default) use json format"}},
+    {"use-root-format", VariantType::Bool, false, {"instead of eve format (default) use root format"}},
     {"eve-hostname", VariantType::String, "", {"name of the host allowed to produce files (empty means no limit)"}},
     {"eve-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce files (-1 means no limit)"}},
     {"number-of_files", VariantType::Int, 150, {"maximum number of json files in folder"}},
@@ -200,7 +201,8 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
         helper.mEvent.setRunType(this->mRunType);
         helper.mEvent.setPrimaryVertex(pv);
-        helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
+        helper.mEvent.setCreationTime(tinfo.creation);
+        helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles);
         filesSaved++;
       }
 
@@ -289,10 +291,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec specs;
 
   auto jsonFolder = cfgc.options().get<std::string>("jsons-folder");
-  std::string ext = ".root"; // root files are default format
+  std::string ext = ".eve"; // root files are default format
   auto useJsonFormat = cfgc.options().get<bool>("use-json-format");
   if (useJsonFormat) {
     ext = ".json";
+  }
+  auto useROOTFormat = cfgc.options().get<bool>("use-root-format");
+  if (useROOTFormat) {
+    ext = ".root";
   }
   auto eveHostName = cfgc.options().get<std::string>("eve-hostname");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
