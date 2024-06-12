@@ -85,7 +85,7 @@ class RCTUpdaterSpec : public o2::framework::Task
       }
     }
     if (mEnabled) {
-      // make sure that the orbit makes sense, since sometimes at the EOR bogus TFs are sent
+      // make sure that the orbit makes sense, since sometimes at the EOR bogus TFs are sent.
       long ts = mOrbitReset + long(tinfo.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 1e-3);
       if (mTimeToleranceMS > 0 && std::abs(int64_t(tinfo.creation) - ts) < mTimeToleranceMS) {
         if (tinfo.firstTForbit < mMinOrbit) {
