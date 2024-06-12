@@ -48,6 +48,8 @@ class RCTUpdaterSpec : public o2::framework::Task
     } else {
       LOGP(warn, "No ccdb server provided, no RCT update will be done");
     }
+    mTimeToleranceMS = ic.options().get<int>("max-diff-orbit-creationtime");
+    mMaxWarnings = ic.options().get<int>("max-warn-tf-discard");
   }
 
   void run(ProcessingContext& pc) final
@@ -83,15 +85,25 @@ class RCTUpdaterSpec : public o2::framework::Task
       }
     }
     if (mEnabled) {
-      if (tinfo.firstTForbit < mMinOrbit) {
-        mMinOrbit = tinfo.firstTForbit;
-      }
-      if (tinfo.firstTForbit > mMaxOrbit) {
-        mMaxOrbit = tinfo.firstTForbit;
-      }
-      if (tinfo.tfCounter > mLastTFUpdate + mUpdateIntervalTF) { // need to update
-        mLastTFUpdate = tinfo.tfCounter;
-        updateRCT();
+      // make sure that the orbit makes sense, since sometimes at the EOR bogus TFs are sent
+      long ts = mOrbitReset + long(tinfo.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+      if (mTimeToleranceMS > 0 && std::abs(int64_t(tinfo.creation) - ts) < mTimeToleranceMS) {
+        if (tinfo.firstTForbit < mMinOrbit) {
+          mMinOrbit = tinfo.firstTForbit;
+        }
+        if (tinfo.firstTForbit > mMaxOrbit) {
+          mMaxOrbit = tinfo.firstTForbit;
+        }
+        if (tinfo.tfCounter > mLastTFUpdate + mUpdateIntervalTF) { // need to update
+          mLastTFUpdate = tinfo.tfCounter;
+          updateRCT();
+        }
+      } else {
+        static int nWarn = 0;
+        if (nWarn < mMaxWarnings) {
+          nWarn++;
+          LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} differs by >{} from the TF creation time {}, ignore TF {}", ts, tinfo.firstTForbit, mOrbitReset / 1000, mTimeToleranceMS, tinfo.creation, tinfo.tfCounter);
+        }
       }
     }
   }
@@ -148,9 +160,11 @@ class RCTUpdaterSpec : public o2::framework::Task
   uint32_t mMinOrbit = 0xffffffff;
   uint32_t mMaxOrbit = 0;
   uint32_t mLastTFUpdate = 0;
+  long mTimeToleranceMS = 5000;
   long mOrbitReset = 0;
   int mRunNumber = 0;
   int mNHBFPerTF = 32;
+  int mMaxWarnings = 0;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<o2::ccdb::CcdbApi> mCCDBApi;
 };
@@ -183,6 +197,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     AlgorithmSpec{adaptFromTask<o2::rct::RCTUpdaterSpec>(ggRequest)},
     Options{
       {"update-interval", VariantType::Float, 1.f, {"update every ... seconds"}},
+      {"max-diff-orbit-creationtime", VariantType::Int, -1, {"max difference between TF creation-time and orbit-time to discard TF, do not check if negative"}},
+      {"max-warn-tf-discard", VariantType::Int, 10, {"max N warnings about discarding bad TFs"}},
       {"ccdb-server", VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB to update"}}}});
   return specs;
 }
