@@ -1182,6 +1182,11 @@ int SVertexer::check3bodyDecays(const V0Index& v0Idx, const V0& v0, float rv0, s
       m3bodyTmp[ithread].push_back(candidate3B);
     }
     m3bodyIdxTmp[ithread].emplace_back(decay3bodyVtxID, v0Idx.getProngID(0), v0Idx.getProngID(1), bach.gid);
+    
+    Decay3BodyIndex decay3bodyIdx(decay3bodyVtxID, v0Idx.getProngID(0), v0Idx.getProngID(1), bach.gid);
+    if (mStrTracker) {
+      mStrTracker->process3Body(m3bodyIdxTmp[ithread].size()-1, candidate3B, decay3bodyIdx, ithread);
+    }
   }
   return m3bodyIdxTmp[ithread].size() - n3BodyIni;
 }
