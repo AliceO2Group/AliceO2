@@ -260,8 +260,8 @@ void CcdbApi::init(std::string const& host)
 
   LOGP(debug, "Curl timeouts are set to: download={:2}, upload={:2} seconds", mCurlTimeoutDownload, mCurlTimeoutUpload);
 
-  LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
-       mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
+  LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}, Curl timeouts: upload:{} download:{}", mUniqueAgentID, host,
+       mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str(), mCurlTimeoutUpload, mCurlTimeoutDownload);
 }
 
 void CcdbApi::runDownloaderLoop(bool noWait)
@@ -441,7 +441,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       /* Check for errors */
       if (res != CURLE_OK) {
         if (res == CURLE_OPERATION_TIMEDOUT) {
-          LOGP(alarm, "curl_easy_perform() timed out. Consider increasing the timeout using the env var `ALICEO2_CCDB_CURL_TIMEOUT` (seconds)");
+          LOGP(alarm, "curl_easy_perform() timed out. Consider increasing the timeout using the env var `ALICEO2_CCDB_CURL_TIMEOUT_UPLOAD` (seconds), current one is {}", mCurlTimeoutUpload);
         } else { // generic message
           LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
