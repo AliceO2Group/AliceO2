@@ -46,19 +46,18 @@ if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then add_W o2-tof-integrate-cluster-wor
 
 # for async calibrations
 if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1 --applyGainCalib"; fi
-: ${ARGS_EXTRA_PROCESS_o2_tpc_integrate_cluster_workflow:=""}
 if [[ $CALIB_ASYNC_EXTRACTTPCCURRENTS == 1 ]]; then
-  add_comma_separated ADD_EXTRA_WORKFLOW "o2-tpc-integrate-cluster-workflow"
+  CONFIG_CTPTPC=
   if [[ $CALIB_ASYNC_DISABLE3DCURRENTS != 1 ]]; then
-    export ARGS_EXTRA_PROCESS_o2_tpc_integrate_cluster_workflow="$ARGS_EXTRA_PROCESS_o2_tpc_integrate_cluster_workflow--process-3D-currents --nSlicesTF 1"
+    CONFIG_CTPTPC="--process-3D-currents --nSlicesTF 1"
   fi
+  add_W o2-tpc-integrate-cluster-workflow "${CONFIG_CTPTPC}"
 fi
 if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
-  : ${ARGS_EXTRA_PROCESS_o2_tpc_time_series_workflow:=""}
+  CONFIG_TPCTIMESERIES=
   : ${CALIB_ASYNC_SAMPLINGFACTORTIMESERIES:=0.001}
-  add_comma_separated ADD_EXTRA_WORKFLOW "o2-tpc-time-series-workflow"
   if [[ ! -z "$CALIB_ASYNC_ENABLEUNBINNEDTIMESERIES" ]]; then
-    export ARGS_EXTRA_PROCESS_o2_tpc_time_series_workflow="$ARGS_EXTRA_PROCESS_o2_tpc_time_series_workflow --enable-unbinned-root-output --sample-unbinned-tsallis --threads 1"
+    CONFIG_TPCTIMESERIES+=" --enable-unbinned-root-output --sample-unbinned-tsallis --threads 1"
   fi
   if [[ $ON_SKIMMED_DATA == 1 ]] || [[ ! -z "$CALIB_ASYNC_SAMPLINGFACTORTIMESERIES" ]]; then
     if [[ $ON_SKIMMED_DATA == 1 ]]; then
@@ -67,8 +66,9 @@ if [[ $CALIB_ASYNC_EXTRACTTIMESERIES == 1 ]] ; then
     if [[ ! -z "$CALIB_ASYNC_SAMPLINGFACTORTIMESERIES" ]]; then # this takes priority, even if we were on skimmed data
       SAMPLINGFACTORTIMESERIES=${CALIB_ASYNC_SAMPLINGFACTORTIMESERIES}
     fi
-    export ARGS_EXTRA_PROCESS_o2_tpc_time_series_workflow="$ARGS_EXTRA_PROCESS_o2_tpc_time_series_workflow --sampling-factor ${SAMPLINGFACTORTIMESERIES}"
+    CONFIG_TPCTIMESERIES+=" --sampling-factor ${SAMPLINGFACTORTIMESERIES}"
   fi
+  add_W o2-tpc-time-series-workflow "${CONFIG_TPCTIMESERIES}"
 fi
 
 # output-proxy for aggregator

@@ -139,4 +139,10 @@ void GPUO2InterfaceConfiguration::PrintParam_internal()
 {
   qConfigPrint(configProcessing, "proc.");
   qConfigPrint(configReconstruction, "rec.");
+  qConfigPrint(configQA, "QA.");
+  qConfigPrint(configDisplay, "display.");
+  std::cout << "\n\tGPUSettingsDeviceBackend:\n"
+            << "\tdeviceType = " << (int)configDeviceBackend.deviceType << "\n"
+            << "\tforceDeviceType = " << (configDeviceBackend.forceDeviceType ? "true" : "false") << "\n"
+            << "\tslave = " << (configDeviceBackend.master ? "true" : "false") << "\n";
 }

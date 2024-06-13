@@ -65,6 +65,25 @@ struct RunSummary : o2::framework::ServicePlugin {
   }
 };
 
+std::vector<std::string> getListOfTables(TFile* f)
+{
+  std::vector<std::string> r;
+  TList* keyList = f->GetListOfKeys();
+
+  for (auto key : *keyList) {
+    if (!std::string_view(key->GetName()).starts_with("DF_")) {
+      continue;
+    }
+    auto* d = (TDirectory*)f->Get(key->GetName());
+    TList* branchList = d->GetListOfKeys();
+    for (auto b : *branchList) {
+      r.emplace_back(b->GetName());
+    }
+    break;
+  }
+  return r;
+}
+
 struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
   ConfigDiscovery* create() override
   {
@@ -99,7 +118,8 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
         // Get the metadata, if any
         auto m = (TMap*)currentFile->Get("metaData");
         if (!m) {
-          LOGP(warning, "No metadata found in file \"{}\"", filename);
+          LOGP(info, "No metadata found in file \"{}\"", filename);
+          results.push_back(ConfigParamSpec{"aod-metadata-disable", VariantType::String, "1", {"Metadata not found in AOD"}});
           return results;
         }
         auto it = m->MakeIterator();
@@ -116,6 +136,11 @@ struct DiscoverMetadataInAOD : o2::framework::ConfigDiscoveryPlugin {
           std::string key = "aod-metadata-" + std::string(obj->GetName());
           char const* value = strdup(objString->String());
           results.push_back(ConfigParamSpec{key, VariantType::String, value, {"Metadata in AOD"}});
+        }
+
+        auto tables = getListOfTables(currentFile);
+        if (tables.empty() == false) {
+          results.push_back(ConfigParamSpec{"aod-metadata-tables", VariantType::ArrayString, tables, {"Tables in first AOD"}});
         }
         return results;
       }};

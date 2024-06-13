@@ -14,8 +14,6 @@
 #include "TString.h"
 #include "TSystem.h"
 
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "DetectorsBase/Detector.h"
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/Magnet.h"
 #include "DetectorsPassive/Dipole.h"
@@ -25,6 +23,19 @@
 #include "DetectorsPassive/Hall.h"
 #include "DetectorsPassive/Pipe.h"
 #include <Field/MagneticField.h>
+#include <MFTSimulation/Detector.h>
+#include <MCHSimulation/Detector.h>
+#include <MIDSimulation/Detector.h>
+#include <EMCALSimulation/Detector.h>
+#include <TOFSimulation/Detector.h>
+#include <TRDSimulation/Detector.h>
+#include <FT0Simulation/Detector.h>
+#include <FV0Simulation/Detector.h>
+#include <FDDSimulation/Detector.h>
+#include <HMPIDSimulation/Detector.h>
+#include <PHOSSimulation/Detector.h>
+#include <CPVSimulation/Detector.h>
+#include <ZDCSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -38,6 +49,12 @@
 #endif
 
 #ifdef ENABLE_UPGRADES
+#include <FT3Simulation/Detector.h>
+#include <FCTSimulation/Detector.h>
+#include <IOTOFSimulation/Detector.h>
+#include <RICHSimulation/Detector.h>
+#include <ECalSimulation/Detector.h>
+#include <MI3Simulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
 #include <Alice3DetectorsPassive/Absorber.h>
 #include <Alice3DetectorsPassive/Magnet.h>
@@ -194,14 +211,12 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("TOF")) {
     // TOF
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2TOFSimulation", "create_detector_tof", isReadout("TOF")));
+    addReadoutDetector(new o2::tof::Detector(isReadout("TOF")));
   }
 
   if (isActivated("TRD")) {
     // TRD
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2TRDSimulation", "create_detector_trd", isReadout("TRD")));
+    addReadoutDetector(new o2::trd::Detector(isReadout("TRD")));
   }
 
   if (isActivated("TPC")) {
@@ -224,38 +239,32 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("FT3")) {
     // ALICE 3 FT3
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2FT3Simulation", "create_detector_ft3", isReadout("FT3")));
+    addReadoutDetector(new o2::ft3::Detector(isReadout("FT3")));
   }
 
   if (isActivated("FCT")) {
     // ALICE 3 FCT
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2FCTSimulation", "create_detector_fct", isReadout("FCT")));
+    addReadoutDetector(new o2::fct::Detector(isReadout("FCT")));
   }
 
   if (isActivated("TF3")) {
     // ALICE 3 tofs
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2IOTOFSimulation", "create_detector_tf3", isReadout("TF3")));
+    addReadoutDetector(new o2::iotof::Detector(isReadout("TF3")));
   }
 
   if (isActivated("RCH")) {
     // ALICE 3 RICH
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2RICHSimulation", "create_detector_rch", isReadout("RCH")));
+    addReadoutDetector(new o2::rich::Detector(isReadout("RCH")));
   }
 
   if (isActivated("ECL")) {
     // ALICE 3 ECAL
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2ECalSimulation", "create_detector_ecl", isReadout("ECL")));
+    addReadoutDetector(new o2::ecal::Detector(isReadout("ECL")));
   }
 
   if (isActivated("MI3")) {
     // ALICE 3 MID
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2MI3Simulation", "create_detector_mi3", isReadout("MI3")));
+    addReadoutDetector(new o2::mi3::Detector(isReadout("MI3")));
   }
 #endif
 
@@ -267,68 +276,57 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("MFT")) {
     // mft
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2MFTSimulation", "create_detector_mft", isReadout("MFT")));
+    addReadoutDetector(new o2::mft::Detector(isReadout("MFT")));
   }
 
   if (isActivated("MCH")) {
     // mch
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2MCHSimulation", "create_detector_mch", isReadout("MCH")));
+    addReadoutDetector(new o2::mch::Detector(isReadout("MCH")));
   }
 
   if (isActivated("MID")) {
     // mid
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2MIDSimulation", "create_detector_mid", isReadout("MID")));
+    addReadoutDetector(new o2::mid::Detector(isReadout("MID")));
   }
 
   if (isActivated("EMC")) {
     // emcal
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2EMCALSimulation", "create_detector_emc", isReadout("EMC")));
+    addReadoutDetector(new o2::emcal::Detector(isReadout("EMC")));
   }
 
   if (isActivated("PHS")) {
     // phos
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2PHOSSimulation", "create_detector_phs", isReadout("PHS")));
+    addReadoutDetector(new o2::phos::Detector(isReadout("PHS")));
   }
 
   if (isActivated("CPV")) {
     // cpv
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2CPVSimulation", "create_detector_cpv", isReadout("CPV")));
+    addReadoutDetector(new o2::cpv::Detector(isReadout("CPV")));
   }
 
   if (isActivated("FT0")) {
     // FIT-T0
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2FT0Simulation", "create_detector_ft0", isReadout("FT0")));
+    addReadoutDetector(new o2::ft0::Detector(isReadout("FT0")));
   }
 
   if (isActivated("FV0")) {
     // FIT-V0
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2FV0Simulation", "create_detector_fv0", isReadout("FV0")));
+    addReadoutDetector(new o2::fv0::Detector(isReadout("FV0")));
   }
 
   if (isActivated("FDD")) {
     // FIT-FDD
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2FDDSimulation", "create_detector_fdd", isReadout("FDD")));
+    addReadoutDetector(new o2::fdd::Detector(isReadout("FDD")));
   }
 
   if (isActivated("HMP")) {
     // HMP
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2HMPIDSimulation", "create_detector_hmp", isReadout("HMP")));
+    addReadoutDetector(new o2::hmpid::Detector(isReadout("HMP")));
   }
 
   if (isActivated("ZDC")) {
     // ZDC
-    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
-      "O2ZDCSimulation", "create_detector_zdc", isReadout("ZDC")));
+    addReadoutDetector(new o2::zdc::Detector(isReadout("ZDC")));
   }
 
   if (geomonly) {

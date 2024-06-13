@@ -3068,7 +3068,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       auto* selectedName = (char const*)context;
       std::string prefix = "ch.cern.aliceo2.";
       if (strcmp(name, (prefix + selectedName).data()) == 0) {
-        LOGP(info, "Enabling signposts for {}", *selectedName);
+        LOGP(info, "Enabling signposts for stream \"ch.cern.aliceo2.{}\"", selectedName);
         _o2_log_set_stacktrace(log, 1);
         return false;
       } else {

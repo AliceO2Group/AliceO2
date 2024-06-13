@@ -63,6 +63,13 @@ void GeneratorFromFile::SetStartEvent(int start)
 
 bool GeneratorFromFile::rejectOrFixKinematics(TParticle& p)
 {
+  // avoid compute if the particle is not known in the PDG database
+  if (!p.GetPDG()) {
+    LOG(warn) << "Particle with pdg " << p.GetPdgCode() << " not known in DB (not fixing mass)";
+    // still returning true here ... primary will be flagged as non-trackable by primary event generator
+    return true;
+  }
+
   const auto nominalmass = p.GetMass();
   auto mom2 = p.Px() * p.Px() + p.Py() * p.Py() + p.Pz() * p.Pz();
   auto calculatedmass = p.Energy() * p.Energy() - mom2;

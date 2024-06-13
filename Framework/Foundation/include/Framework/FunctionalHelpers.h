@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_FUNCTIONALHELPERS_H_
 
 #include "Framework/Pack.h"
+#include <algorithm>
 #include <functional>
 
 namespace o2::framework

@@ -29,8 +29,6 @@
 #pragma link C++ class o2::globaltracking::MatchTOFParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchTOFParams> + ;
 
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::ITSTPCMatchingQCParams> + ;
-
 #pragma link C++ class o2::globaltracking::GloFwdAssessment + ;
 
 #pragma link C++ class o2::globaltracking::GlobalFwdMatchingParam + ;
@@ -44,5 +42,7 @@
 #pragma link C++ class std::vector < std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF>> + ;
 
 #pragma link C++ class std::vector < std::tuple < float, float, float>> + ;
+
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::ITSTPCMatchingQCParams> + ;
 
 #endif

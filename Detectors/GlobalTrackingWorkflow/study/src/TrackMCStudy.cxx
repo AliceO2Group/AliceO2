@@ -170,6 +170,29 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
     prepareITSData(recoData);
   }
 
+  auto getITSPatt = [&](GTrackID gid, uint8_t& ncl) {
+    int16_t patt = 0;
+    if (gid.getSource() == VTIndex::ITSAB) {
+      const auto& itsTrf = recoData.getITSABRefs()[gid];
+      ncl = itsTrf.getNClusters();
+      for (int il = 0; il < 7; il++) {
+        if (itsTrf.hasHitOnLayer(il)) {
+          patt |= 0x1 << il;
+        }
+      }
+      patt = -patt;
+    } else {
+      const auto& itsTr = recoData.getITSTrack(gid);
+      for (int il = 0; il < 7; il++) {
+        if (itsTr.hasHitOnLayer(il)) {
+          patt |= 0x1 << il;
+          ncl++;
+        }
+      }
+    }
+    return patt;
+  };
+
   auto getLowestPadrow = [&recoData](const o2::tpc::TrackTPC& trc) {
     if (recoData.inputsTPCclusters) {
       uint8_t clSect = 0, clRow = 0;
@@ -232,10 +255,18 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
   std::vector<VTIndex> recGIDs;
   std::vector<bool> recFakes;
   std::vector<int16_t> lowestPadrows;
-
+  std::vector<int16_t> itsPatterns;
+  std::vector<uint8_t> tpcNcls;
+  std::vector<uint8_t> itsNcls;
+  LOGP(info, "Recorded {} reconstructed tracks", MCTRMap.size());
+  size_t count = 0;
   for (auto ent : MCTRMap) {
+    count++;
     auto lbl = ent.first;
     if (lbl.getEventID() != prevLbl.getEventID() || lbl.getSourceID() != prevLbl.getSourceID()) {
+      if (mVerbose > 0) {
+        LOGP(info, "Loading MC Event={} / Src={}", lbl.getEventID(), lbl.getSourceID());
+      }
       mcTracks = &mcReader.getTracks(lbl.getSourceID(), lbl.getEventID());
       prevLbl = lbl;
     }
@@ -245,7 +276,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
     std::array<float, 3> pxyz{(float)mcPart.GetStartVertexMomentumX(), (float)mcPart.GetStartVertexMomentumY(), (float)mcPart.GetStartVertexMomentumZ()};
     TParticlePDG* pPDG = TDatabasePDG::Instance()->GetParticle(pdg);
     if (!pPDG) {
-      LOGP(error, "Unknown particle {}, skip", pdg);
+      LOGP(error, "Unknown particle {}, skip. Was at {} of {}", pdg, count, MCTRMap.size());
       continue;
     }
     o2::track::TrackPar mctrO2(xyz, pxyz, TMath::Nint(pPDG->Charge() / 3), false);
@@ -265,40 +296,55 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
     recGIDs.clear();
     recFakes.clear();
     lowestPadrows.clear();
+    itsPatterns.clear();
+    itsNcls.clear();
+    tpcNcls.clear();
     if (mVerbose > 1) {
       LOGP(info, "[{}] Lbl:{} PDG:{:+5d} (par: {:+5d}) | MC: {}", vgids.size(), lbl.asString(), pdg, pdgParent, mctrO2.asString());
     }
-    bool itstpcMatch = false;
     int entITS = -1, entTPC = -1, entITSTPC = -1;
     for (size_t i = 0; i < vgids.size(); i++) {
       auto vid = vgids[i].second;
       auto lbl = recoData.getTrackMCLabel(vid);
       const auto& trc = recoData.getTrackParam(vid);
+      int16_t itsPatt = 0;
+      uint8_t nclITS = 0;
+      uint8_t nclTPC = 0;
       if (mVerbose > 1) {
         LOGP(info, "       :{} {:22} | [{}] {}", lbl.asString(), vid.asString(), i, ((const o2::track::TrackPar&)trc).asString());
       }
       recTracks.push_back(trc);
       recGIDs.push_back(vid);
       recFakes.push_back(recoData.getTrackMCLabel(vid).isFake());
+      auto msk = vid.getSourceDetectorsMask();
       if (mCheckMatching) {
         lowestPadrows.push_back(-1);
-        auto msk = vid.getSourceDetectorsMask();
-        if (msk[DetID::TPC]) {
-          lowestPadrows.back() = getLowestPadrow(recoData.getTPCTrack(recoData.getTPCContributorGID(vid)));
+      }
+      if (msk[DetID::ITS]) {
+        auto gidITS = recoData.getITSContributorGID(vid);
+        itsPatt = getITSPatt(gidITS, nclITS);
+        if (vid.getSource() == VTIndex::ITS) {
+          entITS = i;
         }
-        if (msk[DetID::ITS] && msk[DetID::TPC]) {
-          itstpcMatch = true;
+        if (msk[DetID::TPC]) {
           entITSTPC = i;
-        } else {
-          if (vid.getSource() == VTIndex::ITS) {
-            entITS = i;
-          } else {
-            if (msk[DetID::TPC]) {
-              entTPC = i;
-            }
-          }
         }
       }
+      if (msk[DetID::TPC]) {
+        if (vid.getSource() == VTIndex::TPC) {
+          entTPC = i;
+        }
+        auto gidTPC = recoData.getTPCContributorGID(vid);
+        const auto& trtpc = recoData.getTPCTrack(gidTPC);
+        nclTPC = trtpc.getNClusters();
+        if (mCheckMatching) {
+          auto& lr = lowestPadrows.back();
+          lr = getLowestPadrow(recoData.getTPCTrack(recoData.getTPCContributorGID(vid)));
+        }
+      }
+      tpcNcls.push_back(nclTPC);
+      itsNcls.push_back(nclITS);
+      itsPatterns.push_back(itsPatt);
     }
     (*mDBGOut) << "tracks"
                << "lbl=" << lbl
@@ -307,7 +353,10 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
                << "pdgPar=" << pdgParent
                << "recTr=" << recTracks
                << "recGID=" << recGIDs
-               << "recFake=" << recFakes;
+               << "recFake=" << recFakes
+               << "itsPatt=" << itsPatterns
+               << "nClITS=" << itsNcls
+               << "nClTPC=" << tpcNcls;
     if (mCheckMatching) {
       (*mDBGOut) << "tracks"
                  << "lowestPadRow=" << lowestPadrows;
@@ -317,7 +366,7 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
 
     // special ITS-TPC matching failure output
     while (mCheckMatching) {
-      if (!itstpcMatch && entITS > -1 && entTPC > -1) { // ITS and TPC were found but matching failed
+      if (entITSTPC < 0 && entITS > -1 && entTPC > -1) { // ITS and TPC were found but matching failed
         auto vidITS = vgids[entITS].second;
         auto vidTPC = recoData.getTPCContributorGID(vgids[entTPC].second); // might be TPC match to outer detector, extract TPC
         auto trcTPC = recoData.getTrackParam(vidTPC);
@@ -345,9 +394,10 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
                    << "tpcRef=" << trcTPC
                    << "itsOrig=" << trcITSOrig
                    << "tpcOrig=" << trcTPCOrig
+                   << "itsPatt=" << itsPatterns[entITS]
                    << "tpcLowestRow=" << lowestTPCRow
                    << "\n";
-      } else if (itstpcMatch) { // match was found
+      } else if (entITSTPC > -1) { // match was found
         auto contribIDs = recoData.getSingleDetectorRefs(vgids[entITSTPC].second);
         auto vidMatch = contribIDs[VTIndex::ITSTPC];
         auto vidTPC = contribIDs[VTIndex::TPC];
@@ -376,7 +426,11 @@ void TrackMCStudy::process(o2::globaltracking::RecoContainer& recoData)
                    << "gidTPC=" << vidTPC
                    << "gidITS=" << vidITS
                    << "tpcOrig=" << trcTPCOrig
+                   << "nClITS=" << itsNcls[entITSTPC]
+                   << "itsPatt=" << itsPatterns[entITSTPC]
                    << "itstpc=" << ((o2::track::TrackParCov&)trackITSTPC)
+                   << "matchChi2=" << trackITSTPC.getChi2Match()
+                   << "refitChi2=" << trackITSTPC.getChi2Refit()
                    << "timeTB=" << timeTB
                    << "tpcLowestRow=" << lowestTPCRow
                    << "\n";

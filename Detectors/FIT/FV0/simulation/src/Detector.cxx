@@ -30,7 +30,6 @@ using namespace o2::fv0;
 using o2::fv0::Geometry;
 
 ClassImp(Detector);
-O2DetectorCreatorImpl(o2::fv0::Detector::create, fv0);
 
 Detector::Detector()
   : o2::base::DetImpl<Detector>("FV0", kTRUE),

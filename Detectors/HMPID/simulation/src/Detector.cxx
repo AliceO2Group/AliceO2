@@ -1379,4 +1379,3 @@ void Detector::defineOpticalProperties()
 } // end namespace o2
 
 ClassImp(o2::hmpid::Detector);
-O2DetectorCreatorImpl(o2::hmpid::Detector::create, hmp);
