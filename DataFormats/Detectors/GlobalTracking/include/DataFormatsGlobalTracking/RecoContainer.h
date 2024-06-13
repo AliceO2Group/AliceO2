@@ -247,6 +247,10 @@ struct DataRequest {
   void requestStrangeTracks(bool mc);
 
   void requestIRFramesITS();
+
+#ifdef ENABLE_UPGRADES
+  void requestIT3Clusters(bool mc);
+#endif
 };
 
 // Helper class to requested data.
@@ -401,6 +405,10 @@ struct RecoContainer {
   void addStrangeTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addIRFramesITS(o2::framework::ProcessingContext& pc);
+
+#ifdef ENABLE_UPGRADES
+  void addIT3Clusters(o2::framework::ProcessingContext& pc, bool mc);
+#endif
 
   // custom getters
 

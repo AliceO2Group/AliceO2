@@ -40,6 +40,10 @@
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/TopologyDictionary.h"
+#endif
+
 namespace o2
 {
 namespace trd
@@ -98,9 +102,12 @@ class TRDGlobalTracking : public o2::framework::Task
   gsl::span<const int> mITSTrackClusIdx;                              ///< input ITS track cluster indices span
   gsl::span<const int> mITSABTrackClusIdx;                            ///< input ITSAB track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
-  const o2::itsmft::TopologyDictionary* mITSDict = nullptr;           ///< cluster patterns dictionary
-  std::array<float, 5> mCovDiagInner{};                               ///< total cov.matrix extra diagonal error from TrackTuneParams
-  std::array<float, 5> mCovDiagOuter{};                               ///< total cov.matrix extra diagonal error from TrackTuneParams
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr;           ///< ITS cluster patterns dictionary
+#ifdef ENABLE_UPGRADES
+  const o2::its3::TopologyDictionary* mIT3Dict = nullptr; ///< IT3 cluster patterns dictionary
+#endif
+  std::array<float, 5> mCovDiagInner{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
+  std::array<float, 5> mCovDiagOuter{}; ///< total cov.matrix extra diagonal error from TrackTuneParams
   // PID
   PIDPolicy mPolicy{PIDPolicy::DEFAULT}; ///< Model to load an evaluate
   std::unique_ptr<PIDBase> mBase;        ///< PID engine
