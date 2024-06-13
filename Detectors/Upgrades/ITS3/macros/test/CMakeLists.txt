@@ -54,6 +54,7 @@ o2_add_test_root_macro(CheckDCA.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
+                                             O2::Steer
                        LABELS its3 COMPILE_ONLY)
 
 o2_add_test_root_macro(CreateDictionariesITS3.C
