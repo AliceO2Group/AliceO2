@@ -217,7 +217,7 @@ class ITSThresholdCalibrator : public Task
 
   int mTFCounter = 0;
   bool mVerboseOutput = false;
-  bool isFinalizeEos = false;
+  bool isForceEor = false;
   std::string mMetaType;
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
@@ -284,7 +284,7 @@ class ITSThresholdCalibrator : public Task
   // To set min and max ITHR and VCASN in the tuning scans
   short int inMinVcasn = 30;
   short int inMaxVcasn = 100;
-  short int inMinIthr = 30;
+  short int inMinIthr = 15;
   short int inMaxIthr = 100;
 
   // Flag to enable most-probable value calculation
