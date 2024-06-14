@@ -14,6 +14,7 @@
 #include "Framework/Logger.h"
 #include "Framework/Capability.h"
 #include "Framework/Signpost.h"
+#include "Framework/VariantJSONHelpers.h"
 #include <string_view>
 
 O2_DECLARE_DYNAMIC_LOG(capabilities);
@@ -86,7 +87,13 @@ struct DiscoverMetadataInCommandLine : o2::framework::ConfigDiscoveryPlugin {
           std::string value = argv[i + 1];
           O2_SIGNPOST_EVENT_EMIT(capabilities, sid, "DiscoverMetadataInCommandLine",
                                  "Found %{public}s with value %{public}s.", key.c_str(), value.c_str());
-          results.push_back(ConfigParamSpec{key, VariantType::String, value, {"Metadata in command line"}});
+          if (key == "aod-metadata-tables") {
+            std::stringstream is(value);
+            auto arrayValue = VariantJSONHelpers::read<VariantType::ArrayString>(is);
+            results.push_back(ConfigParamSpec{key, VariantType::ArrayString, arrayValue, {"Metadata in command line"}});
+          } else {
+            results.push_back(ConfigParamSpec{key, VariantType::String, value, {"Metadata in command line"}});
+          }
         }
         return results;
       }};
