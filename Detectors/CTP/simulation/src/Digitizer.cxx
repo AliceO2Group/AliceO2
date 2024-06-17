@@ -133,7 +133,8 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
       data.CTPInputMask = inpmaskcoll;
       data.CTPClassMask = classmask;
       digits.emplace_back(data);
-      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
+      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll       << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
+      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Class mask:" << data.CTPClassMask << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
     }
   }
   return std::move(digits);
