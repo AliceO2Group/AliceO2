@@ -1,0 +1,84 @@
+# Volume Name            Material     C-X   C-Y    X      Y       Z 
+  COMPOSITION_PAD_S0       Alloy       0     0     9.     8.      0.35
+  COMPOSITION_PAD_S1       G10         0     0     9.     8.      0.08
+  COMPOSITION_PAD_S2       SiPad       0     0     9.     8.      0.03
+  COMPOSITION_PAD_S3       G10         0     0     9.     8.      0.08
+  COMPOSITION_PAD_S4       Cu          0     0     9.     8.      0.014
+  COMPOSITION_PAD_S5       Air         0     0     9.     8.      0.296
+  # Replica of above pad layers to 50 layers
+  COMMAND_NUMBER_OF_PAD_LAYERS 18
+# HCAL layers
+# Volume Name              Material     C-X   C-Y     X       Y        Z 
+  COMPOSITION_HCAL_S1       Scint        0     0     0.1     0.1      110
+  COMPOSITION_HCAL_S0       CuHCAL       0     0     0.25    0.25     110
+  COMMAND_NUMBER_OF_HCAL_LAYERS 1
+  COMMAND_NUMBER_OF_SEGMENTS 21
+# Strip sectors 
+# Volume Name             Material    C-X   C-Y     X       Y         Z
+  COMPOSITION_PIX_S0       Alloy       0     0     3.0     2.74      0.35
+  COMPOSITION_PIX_S1       G10         0     0     3.0     2.74      0.1
+  COMPOSITION_PIX_S2       Si          0     0     3.0     2.74      0.047
+  COMPOSITION_PIX_S3       SiPix       0     0     3.0     2.74      0.003
+  COMPOSITION_PIX_S4       G10         0     0     3.0     2.74      0.1
+  COMPOSITION_PIX_S5       Cu          0     0     3.0     2.74      0.001
+  COMPOSITION_PIX_S6       Air         0     0     3.0     2.74      0.249  
+COMMAND_INSERT_PIX_AT_L4 
+COMMAND_INSERT_PIX_AT_L9 
+# COMMAND_INSERT_STR_AT_L4
+# COMMAND_INSERT_STR_AT_L6
+# COMMAND_INSERT_STR_AT_L8
+#Front Matter definition
+  COMPOSITION_FM_S0        G10         0     0     5.    5.      0.01
+  COMPOSITION_FM_S1        SiStripX    0     0     5.    5.      0.05
+  COMPOSITION_FM_S2        G10         0     0     5.    5.      0.05
+  COMPOSITION_FM_S3        Air         0     0     5.    5.      0.01
+  COMPOSITION_FM_S4        G10         0     0     5.    5.      0.01
+  COMPOSITION_FM_S5        SiStripY    0     0     5.    5.      0.05
+  COMPOSITION_FM_S6        G10         0     0     5.    5.      0.05
+# PIXEL readout
+  GLOBAL_PIX_NX                  15
+  GLOBAL_PIX_NY                  3
+  GLOBAL_PIX_OffsetX             1.2
+  GLOBAL_PIX_OffsetY             0.09
+  GLOBAL_PIX_SKIN                0.004
+#  pxel size in cm
+  COMMAND_PIXEL_READOUT_ON       0.005
+# Pad information
+  GLOBAL_PAD_SIZE_X_Y            1
+  GLOBAL_PAD_NX_NY               8
+  GLOBAL_PAD_NX                  9
+  GLOBAL_PAD_NY                  8
+  GLOBAL_PAD_PPTOL               0.
+  GLOBAL_PAD_SKIN                0.2
+# Global information (TOL:1cm of T-T space filled with "AIR")
+  GLOBAL_PAD_SUPERMODULE_X 5
+  GLOBAL_PAD_SUPERMODULE_Y 1
+  GLOBAL_SUPERMODULE_TOLX 0. Air
+  GLOBAL_SUPERMODULE_TOLY 0. Air
+  GLOBAL_TOWER_TOL        0.    Air
+  GLOBAL_TOWER_TOLX       0.02  Air
+  GLOBAL_TOWER_TOLY       0.8   Al
+  GLOBAL_FOCAL_Z          764.47
+  GLOBAL_Tower_NX      2
+  GLOBAL_Tower_NY      11
+  GLOBAL_MIDDLE_TOWER_OFFSET 5 
+  GLOBAL_NSTRIPS	        128
+  GLOBAL_STRIPSIZE_LONG   9.0
+  GLOBAL_STRIPSIZE_WIDTH  0.07
+  GLOBAL_HCAL_TOWER_SIZE  6.55
+  GLOBAL_HCAL_TOWER_NY  15
+  GLOBAL_HCAL_TOWER_NX  15
+# COMMAND_INSERT_FRONT_PAD_LAYERS
+# COMMAND_INSERT_HCAL_READOUT
+# New VIRTUAL settings
+  VIRTUAL_N_SEGMENTS      7
+  #                            N   Start End   PadSize  RelThickness  IsPixel    PixelTreshold [eV]
+  #                                Layer Layer
+  VIRTUAL_SEGMENT_LAYOUT_N0       0    3           1.0           1.0       0                  300000
+  VIRTUAL_SEGMENT_LAYOUT_N1       4    4           0.05          1.0       1                  4000
+  VIRTUAL_SEGMENT_LAYOUT_N2       5    8           1.0           1.0       0                  300000
+  VIRTUAL_SEGMENT_LAYOUT_N3       9    9           0.05          1.0       1                  4000
+  VIRTUAL_SEGMENT_LAYOUT_N4      10   14           1.0           1.0       0                  375000
+  VIRTUAL_SEGMENT_LAYOUT_N5      15   19           1.0           1.0       0                  375000
+  VIRTUAL_SEGMENT_LAYOUT_N6      20   20           0.25          1.0       2                  5000
+#EOF

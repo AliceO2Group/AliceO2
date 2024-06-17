@@ -139,6 +139,7 @@ o2_add_test_root_macro(build_geometry.C
                                              O2::PHOSSimulation
                                              O2::CPVSimulation
                                              O2::ZDCSimulation
+                                             O2::FOCALSimulation
                                              ${upgradeTargets})
 
 o2_add_test_root_macro(checkTOFMatching.C
