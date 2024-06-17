@@ -223,10 +223,11 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 
   for (size_t itr = 0; itr < mTPCTracksArray.size(); itr++) {
     auto tr = mTPCTracksArray[itr]; // create track copy
+    int side = 0;
     if (tr.hasBothSidesClusters()) {
       continue;
     }
-
+    side = tr.hasASideClustersOnly() ? 1 : -1;
     //=========================================================================
     // create refitted copy
     auto trackRefit = [itr, this](o2::track::TrackParCov& trc, float t) -> bool {
@@ -296,6 +297,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                << "counter=" << counter
                << "iniTrack=" << tr
                << "iniTrackRef=" << trf
+               << "side=" << side
                << "time=" << tr.getTime0()
                << "clSector=" << clSector
                << "clRow=" << clRow
@@ -347,6 +349,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                    << "counter=" << counter
                    << "movTrackRef=" << trfm
                    << "mcTrack=" << mctrO2
+                   << "side=" << side
                    << "imposedTB=" << bcTB
                    << "dz=" << dz
                    << "clX=" << clX
@@ -385,6 +388,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                    << "iniTrackRef=" << trf << "time=" << tr.getTime0();
       }
       (*mDBGOut) << "tpcMov"
+                 << "side=" << side
                  << "imposedTB=" << tb
                  << "dz=" << dz
                  << "clX=" << clX
