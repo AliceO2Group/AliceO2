@@ -578,8 +578,8 @@ void Geometry::setParameters(std::string geometryfile)
             }
           }
         } // end for itowerY
-      }   // end for itowerX
-    }     // end else
+      } // end for itowerX
+    } // end else
     center_z += tmpComp.getThickness();
   } // end loop over pad layer compositions
   LOG(debug) << "============ Created all pad layer compositions (" << mPadCompositionBase.size() << " volumes)";
@@ -644,6 +644,26 @@ const Composition* Geometry::getComposition(int layer, int stack) const
     }
   }
   return nullptr;
+}
+
+//_________________________________________________________________________
+std::vector<const Composition*> Geometry::getFOCALMicroModule(int layer) const
+{
+
+  std::vector<const Composition*> layerComposition;
+
+  if (layer == -1) {
+    for (auto& icomp : mGeometryComposition) {
+      layerComposition.push_back(&icomp);
+    }
+  } else {
+    for (auto& icomp : mGeometryComposition) {
+      if (icomp.layer() == layer) {
+        layerComposition.push_back(&icomp);
+      }
+    }
+  }
+  return layerComposition;
 }
 
 //_________________________________________________________________________

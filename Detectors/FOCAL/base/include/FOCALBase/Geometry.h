@@ -135,7 +135,7 @@ class Geometry
   bool getInsertFrontPadLayers() const { return mInsertFrontPadLayers; }
   bool getInsertHCalReadoutMaterial() const { return mInsertFrontHCalReadoutMaterial; }
 
-  // TObjArray* getFOCALMicroModule(int layer) const;   // NOTE: Check if needed, otherwise remove
+  std::vector<const Composition*> getFOCALMicroModule(int layer) const;
   const Composition* getComposition(int layer, int stack) const;
   std::string_view getTowerGapMaterial() const { return mGlobal_Gap_Material; }
 
