@@ -394,7 +394,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     {
       if(std::get<1>(trg)[i] != 0) {
         nextdigit.inputsMask.set(i);
-      } 
+      }
     }
     LOG(debug) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP, with IR = " << nextdigit.intRecord.bc << ", orbit = " << nextdigit.intRecord.orbit;
     triggerinputs.push_back(nextdigit);
@@ -478,7 +478,7 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool require
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader, requireCTPInput)},
     Options{
-      {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}, 
+      {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
       {"disable-dig-tru", VariantType::Bool, false, {"Disable TRU digitisation"}},
       {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}}}
     // I can't use VariantType::Bool as it seems to have a problem
