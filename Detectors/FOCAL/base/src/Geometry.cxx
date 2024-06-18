@@ -578,8 +578,8 @@ void Geometry::setParameters(std::string geometryfile)
             }
           }
         } // end for itowerY
-      } // end for itowerX
-    } // end else
+      }   // end for itowerX
+    }     // end else
     center_z += tmpComp.getThickness();
   } // end loop over pad layer compositions
   LOG(debug) << "============ Created all pad layer compositions (" << mPadCompositionBase.size() << " volumes)";

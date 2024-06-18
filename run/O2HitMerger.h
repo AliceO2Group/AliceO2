@@ -984,7 +984,7 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
     if (i == DetID::FOC) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::focal::Detector>(true, gSystem->ExpandPathName("$VMCWORKDIR/Detectors/Geometry/FOC/geometryFiles/geometry_Spaghetti.txt")));
+      mDetectorInstances[i] = std::move(std::make_unique<o2::focal::Detector>(true, gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Spaghetti.txt")));
       counter++;
     }
 #ifdef ENABLE_UPGRADES
