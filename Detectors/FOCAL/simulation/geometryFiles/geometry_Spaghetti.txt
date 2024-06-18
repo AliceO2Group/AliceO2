@@ -1,4 +1,4 @@
-# Volume Name            Material     C-X   C-Y    X      Y       Z 
+# Volume Name            Material     C-X   C-Y    X      Y       Z
   COMPOSITION_PAD_S0       Alloy       0     0     9.     8.      0.35
   COMPOSITION_PAD_S1       G10         0     0     9.     8.      0.08
   COMPOSITION_PAD_S2       SiPad       0     0     9.     8.      0.03
@@ -8,12 +8,12 @@
   # Replica of above pad layers to 50 layers
   COMMAND_NUMBER_OF_PAD_LAYERS 18
 # HCAL layers
-# Volume Name              Material     C-X   C-Y     X       Y        Z 
+# Volume Name              Material     C-X   C-Y     X       Y        Z
   COMPOSITION_HCAL_S1       Scint        0     0     0.1     0.1      110
   COMPOSITION_HCAL_S0       CuHCAL       0     0     0.25    0.25     110
   COMMAND_NUMBER_OF_HCAL_LAYERS 1
   COMMAND_NUMBER_OF_SEGMENTS 21
-# Strip sectors 
+# Strip sectors
 # Volume Name             Material    C-X   C-Y     X       Y         Z
   COMPOSITION_PIX_S0       Alloy       0     0     3.0     2.74      0.35
   COMPOSITION_PIX_S1       G10         0     0     3.0     2.74      0.1
@@ -21,9 +21,9 @@
   COMPOSITION_PIX_S3       SiPix       0     0     3.0     2.74      0.003
   COMPOSITION_PIX_S4       G10         0     0     3.0     2.74      0.1
   COMPOSITION_PIX_S5       Cu          0     0     3.0     2.74      0.001
-  COMPOSITION_PIX_S6       Air         0     0     3.0     2.74      0.249  
-COMMAND_INSERT_PIX_AT_L4 
-COMMAND_INSERT_PIX_AT_L9 
+  COMPOSITION_PIX_S6       Air         0     0     3.0     2.74      0.249
+COMMAND_INSERT_PIX_AT_L4
+COMMAND_INSERT_PIX_AT_L9
 # COMMAND_INSERT_STR_AT_L4
 # COMMAND_INSERT_STR_AT_L6
 # COMMAND_INSERT_STR_AT_L8
@@ -61,8 +61,8 @@ COMMAND_INSERT_PIX_AT_L9
   GLOBAL_FOCAL_Z          764.47
   GLOBAL_Tower_NX      2
   GLOBAL_Tower_NY      11
-  GLOBAL_MIDDLE_TOWER_OFFSET 5 
-  GLOBAL_NSTRIPS	        128
+  GLOBAL_MIDDLE_TOWER_OFFSET 5
+  GLOBAL_NSTRIPS          128
   GLOBAL_STRIPSIZE_LONG   9.0
   GLOBAL_STRIPSIZE_WIDTH  0.07
   GLOBAL_HCAL_TOWER_SIZE  6.55

@@ -86,13 +86,13 @@ void Detector::InitializeO2Detector()
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
-  int track = gMC->GetStack()->GetCurrentTrackNumber(),
-      directparent = gMC->GetStack()->GetCurrentParentTrackNumber();
+  int track = fMC->GetStack()->GetCurrentTrackNumber(),
+      directparent = fMC->GetStack()->GetCurrentParentTrackNumber();
   // Like other calorimeters FOCAL will create a huge amount of shower particles during tracking
   // Instead, the hits should be assigned to the incoming particle in FOCAL.
   // Implementation of the incoming particle search taken from implementation in EMCAL.
   if (track != mCurrentTrack) {
-    LOG(debug4) << "Doing new track " << track << " current (" << mCurrentTrack << "), direct parent (" << directparent << ")" << std::endl;
+    LOG(debug4) << "Doing new track " << track << " current (" << mCurrentTrack << "), direct parent (" << directparent << ")";
     // new current track - check parentage
     auto hasSuperParent = mSuperParentsIndices.find(directparent);
     if (hasSuperParent != mSuperParentsIndices.end()) {
@@ -106,39 +106,39 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         LOG(error) << "Attention: No superparent object found (parent " << mCurrentParentID << ")";
         mCurrentSuperparent = nullptr;
       }
-      LOG(debug4) << "Found superparent " << mCurrentParentID << std::endl;
+      LOG(debug4) << "Found superparent " << mCurrentParentID;
     } else {
       // start of new chain
       // for new incoming tracks the super parent index is equal to the track ID (for recursion)
       mSuperParentsIndices[track] = track;
-      mCurrentSuperparent = AddSuperparent(track, gMC->TrackPid(), gMC->Etot());
+      mCurrentSuperparent = AddSuperparent(track, fMC->TrackPid(), fMC->Etot());
       mCurrentParentID = track;
     }
     mCurrentTrack = track;
   }
 
   // Processing HCAL hits
-  if (gMC->CurrentMedium() == mMedSensHCal) {
-    LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << gMC->CurrentVolPath() << std::endl;
+  if (fMC->CurrentMedium() == mMedSensHCal) {
+    LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << fMC->CurrentVolPath();
 
-    double eloss = gMC->Edep() * 1e9; // energy in eV  (GeV->eV)
+    double eloss = fMC->Edep() * 1e9; // energy in eV  (GeV->eV)
     if (eloss < DBL_EPSILON) {
       return false; // only process hits which actually deposit some energy in the FOCAL
     }
 
     // In case of new parent track create new track reference
-    auto o2stack = static_cast<o2::data::Stack*>(gMC->GetStack());
+    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
     if (!mCurrentSuperparent->mHasTrackReference) {
       float x, y, z, px, py, pz, e;
-      gMC->TrackPosition(x, y, z);
-      gMC->TrackMomentum(px, py, pz, e);
-      o2::TrackReference trackref(x, y, z, px, py, pz, gMC->TrackLength(), gMC->TrackTime(), mCurrentParentID, GetDetId());
+      fMC->TrackPosition(x, y, z);
+      fMC->TrackMomentum(px, py, pz, e);
+      o2::TrackReference trackref(x, y, z, px, py, pz, fMC->TrackLength(), fMC->TrackTime(), mCurrentParentID, GetDetId());
       o2stack->addTrackReference(trackref);
       mCurrentSuperparent->mHasTrackReference = true;
     }
 
     float posX, posY, posZ;
-    gMC->TrackPosition(posX, posY, posZ);
+    fMC->TrackPosition(posX, posY, posZ);
 
     auto [indetector, col, row, layer, segment] = mGeometry->getVirtualInfo(posX, posY, posZ);
 
@@ -153,14 +153,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
       // - Processing different partent track (parent track must be produced outside FOCAL)
       // - Inside different cell
       // - First track of the event
-      Double_t time = gMC->TrackTime() * 1e9; // time in ns
-      LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment << std::endl;
+      Double_t time = fMC->TrackTime() * 1e9; // time in ns
+      LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment;
 
       /// check handling of primary particles
       AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, row * col + col, o2::focal::Hit::Subsystem_t::HCAL, math_utils::Point3D<float>(posX, posY, posZ), time, eloss);
       o2stack->addHit(GetDetId());
     } else {
-      LOG(debug3) << "Adding energy to the current hit" << std::endl;
+      LOG(debug3) << "Adding energy to the current hit";
       currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
     }
   }
@@ -311,10 +311,10 @@ float acer[2],zcer[2];
 char namate[21]="";
 float a,z,d,radl,absl,buf[1];
 Int_t nbuf;
-gMC->Gfmate((*fIdmate)[6], namate, a, z, d, radl, absl, buf, nbuf);
+fMC->Gfmate((*fIdmate)[6], namate, a, z, d, radl, absl, buf, nbuf);
 acer[0]=a;
 zcer[0]=z;
-gMC->Gfmate((*fIdmate)[7], namate, a, z, d, radl, absl, buf, nbuf);
+fMC->Gfmate((*fIdmate)[7], namate, a, z, d, radl, absl, buf, nbuf);
 acer[1]=a;
 zcer[1]=z;
 
@@ -410,7 +410,7 @@ void Detector::addAlignableVolumes() const
 //____________________________________________________________________________
 void Detector::addAlignableVolumesHCAL() const
 {
-  TString vpsector = "/cave_1/barrel_1/FOCAL_1/HCAL_1";
+  TString vpsector = "/cave_1/caveRB24_1/FOCAL_1/HCAL_1";
   TString snsector = "FOCAL/HCAL";
 
   if (!gGeoManager->SetAlignableEntry(snsector.Data(), vpsector.Data())) {
@@ -449,9 +449,9 @@ void Detector::ConstructGeometry()
   pars[3] = 0;
 
   LOG(info) << "Creating FOCAL with dimensions X: " << (mGeometry->getFOCALSizeX() + 2 * mGeometry->getMiddleTowerOffset()) << ", Y: "
-            << mGeometry->getFOCALSizeY() << ", Z: " << mGeometry->getFOCALSizeZ() + (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) + (mGeometry->getInsertHCalReadoutMaterial() ? 3.0 : 0.0) << std::endl;
+            << mGeometry->getFOCALSizeY() << ", Z: " << mGeometry->getFOCALSizeZ() + (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) + (mGeometry->getInsertHCalReadoutMaterial() ? 3.0 : 0.0);
 
-  gMC->Gsvolu("FOCAL", "BOX", getMediumID(ID_AIR), pars, 4);
+  TVirtualMC::GetMC()->Gsvolu("FOCAL", "BOX", getMediumID(ID_AIR), pars, 4);
   mSensitiveHCAL.push_back("FOCAL");
 
   if (mGeometry->getUseHCALSandwich()) {
@@ -459,8 +459,8 @@ void Detector::ConstructGeometry()
   } else {
     CreateHCALSpaghetti();
   }
-
-  gMC->Gspos("FOCAL", 1, "barrel", 0, 0, mGeometry->getFOCALZ0() - (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) + (mGeometry->getInsertHCalReadoutMaterial() ? 1.5 : 0.0), 0, "ONLY");
+  const float z0 = 1312.5; // center of caveRB24 mother volume
+  TVirtualMC::GetMC()->Gspos("FOCAL", 1, "caveRB24", 0, 0, mGeometry->getFOCALZ0() - (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) + (mGeometry->getInsertHCalReadoutMaterial() ? 1.5 : 0.0) - z0, 0, "ONLY");
 }
 
 void Detector::CreateHCALSpaghetti()
@@ -590,8 +590,8 @@ void Detector::CreateHCALSpaghetti()
     }
   }
 
-  std::cout << "Number of Towers is: " << (NumTowers - 1) << std::endl;
-  std::cout << "Number of tubes is: " << (NumTubes - 1) * (NumTowers - 1) << std::endl;
+  LOG(info) << "Number of Towers is: " << (NumTowers - 1);
+  LOG(info) << "Number of tubes is: " << (NumTubes - 1) * (NumTowers - 1);
 
   // Create Aluminium plate at the back of HCal to simulate the electronics readout material
   // Hardcoded thickness of 1cm and placement at 2 cm behind HCAL
@@ -599,18 +599,20 @@ void Detector::CreateHCALSpaghetti()
   TGeoVolume* volumeAlHcalBox = new TGeoVolume("volAlHcalBox", alHcalBox, gGeoManager->GetMedium(getMediumID(ID_ALUMINIUM)));
   volumeAlHcalBox->SetLineColor(kOrange);
   if (mGeometry->getInsertHCalReadoutMaterial()) {
-    gMC->Gspos("volAlHcalBox", 9999, "FOCAL", 0.0, 0.0, +1.0 * mGeometry->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("volAlHcalBox", 9999, "FOCAL", 0.0, 0.0, +1.0 * mGeometry->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
     mSensitiveHCAL.push_back("volAlHcalBox");
   }
   TGeoBBox* alUnderBox = new TGeoBBox("AlUnderBox", SizeXHCAL / 2.0, 0.5, mGeometry->getFOCALSizeZ() / 2.0 + 1.5);
   TGeoVolume* volumeAlUnderBox = new TGeoVolume("volAlUnderBox", alUnderBox, gGeoManager->GetMedium(getMediumID(ID_ALUMINIUM)));
   volumeAlUnderBox->SetLineColor(kOrange);
   if (mGeometry->getInsertHCalReadoutMaterial()) {
-    gMC->Gspos("volAlUnderBox", 9999, "FOCAL", 0.0, -1.0 * mGeometry->getFOCALSizeY() / 2 - 10.5, 0.0, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("volAlUnderBox", 9999, "FOCAL", 0.0, -1.0 * mGeometry->getFOCALSizeY() / 2 - 10.5, 0.0, 0, "ONLY");
     mSensitiveHCAL.push_back("volAlUnderBox");
   }
 
-  gMC->Gspos("HCAL", 1, "FOCAL", 0, 0, mGeometry->getHCALCenterZ() - mGeometry->getFOCALSizeZ() / 2 + 0.01 + (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) - (mGeometry->getInsertHCalReadoutMaterial() ? 1.5 : 0.0), 0, "ONLY");
+  volHCAL->SetVisibility();
+  volHCAL->SetVisDaughters();
+  TVirtualMC::GetMC()->Gspos("HCAL", 1, "FOCAL", 0, 0, mGeometry->getHCALCenterZ() - mGeometry->getFOCALSizeZ() / 2 + 0.01 + (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) - (mGeometry->getInsertHCalReadoutMaterial() ? 1.5 : 0.0), 0, "ONLY");
 }
 
 //_____________________________________________________________________________
@@ -711,7 +713,7 @@ void Detector::CreateHCALSandwich()
       NumTowers++;
     }
   }
-  std::cout << "Number of Towers is: " << (NumTowers - 1) << std::endl;
+  LOG(info) << "Number of Towers is: " << (NumTowers - 1);
 
   // Create an Aluminium plate at the back of HCal to simulate the electronics readout material
   // Hardcoded thickness of 1cm and placement at 2 cm behind HCAL
@@ -719,13 +721,13 @@ void Detector::CreateHCALSandwich()
   TGeoVolume* volumeAlHcalBox = new TGeoVolume("volAlHcalBox", alHcalBox, gGeoManager->GetMedium(getMediumID(ID_ALUMINIUM)));
   volumeAlHcalBox->SetLineColor(kOrange);
   if (mGeometry->getInsertHCalReadoutMaterial()) {
-    gMC->Gspos("volAlHcalBox", 9999, "FOCAL", 0.0, 0.0, +1.0 * mGeometry->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("volAlHcalBox", 9999, "FOCAL", 0.0, 0.0, +1.0 * mGeometry->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
   }
   TGeoBBox* alUnderBox = new TGeoBBox("AlUnderBox", SizeXHCAL / 2.0, 0.5, mGeometry->getFOCALSizeZ() / 2.0 + 1.5);
   TGeoVolume* volumeAlUnderBox = new TGeoVolume("volAlUnderBox", alUnderBox, gGeoManager->GetMedium(getMediumID(ID_ALUMINIUM)));
   volumeAlUnderBox->SetLineColor(kOrange);
   if (mGeometry->getInsertHCalReadoutMaterial()) {
-    gMC->Gspos("volAlUnderBox", 9999, "FOCAL", 0.0, -1.0 * mGeometry->getFOCALSizeY() / 2 - 10.5, 0.0, 0, "ONLY");
+    TVirtualMC::GetMC()->Gspos("volAlUnderBox", 9999, "FOCAL", 0.0, -1.0 * mGeometry->getFOCALSizeY() / 2 - 10.5, 0.0, 0, "ONLY");
   }
 
   TGeoVolume* volFOCAL = gGeoManager->GetVolume("FOCAL");
@@ -734,13 +736,13 @@ void Detector::CreateHCALSandwich()
 
 void Detector::BeginPrimary()
 {
-  mCurrentPrimaryID = gMC->GetStack()->GetCurrentTrackNumber();
-  LOG(debug) << "Starting primary " << mCurrentPrimaryID << " with energy " << gMC->GetStack()->GetCurrentTrack()->Energy();
+  mCurrentPrimaryID = fMC->GetStack()->GetCurrentTrackNumber();
+  LOG(debug) << "Starting primary " << mCurrentPrimaryID << " with energy " << fMC->GetStack()->GetCurrentTrack()->Energy();
 }
 
 void Detector::FinishPrimary()
 {
-  LOG(debug) << "Finishing primary " << mCurrentPrimaryID << std::endl;
+  LOG(debug) << "Finishing primary " << mCurrentPrimaryID;
   // Resetting primary and parent ID
   mCurrentPrimaryID = -1;
 }
