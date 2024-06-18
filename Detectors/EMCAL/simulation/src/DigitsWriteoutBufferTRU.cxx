@@ -56,7 +56,7 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     //   LZERO.updatePatchesADC(patches);
     //   LZERO.peakFinderOnAllPatches(patches);
     // }
-    LOG(info) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: LOW IR";
+    LOG(debug) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: LOW IR";
 
     mCurrentInteractionRecord = nextInteractionRecord;
     clear();
@@ -96,7 +96,7 @@ void DigitsWriteoutBufferTRU::fillOutputContainer(bool isEndOfTimeFrame, Interac
     }
     reserve(15);
 
-    LOG(info) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: HIGH IR";
+    LOG(debug) << "DIG TRU fillOutputContainer in DigitsWriteoutBufferTRU: HIGH IR";
   }
 }
 //________________________________________________________

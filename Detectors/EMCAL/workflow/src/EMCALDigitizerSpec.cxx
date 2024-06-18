@@ -129,7 +129,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       break;
     }
 
-    LOG(info) << "DIG TRU in SPEC: before mDigitizerTRU.setEventTime  collN = " << collisionN;
     collisionN++;
 
     mDigitizerTRU.setEventTime(timesview[collID]);
@@ -145,7 +144,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mHits.clear();
       context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
 
-      LOG(info) << "DIG TRU For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+      // LOG(info) << "DIG TRU For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
       // std::vector<o2::emcal::LabeledDigit> summedLabeledDigits = mSumDigitizerTRU.process(mHits);
       // std::vector<o2::emcal::Digit> summedDigits;
@@ -318,7 +317,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     }
     // Trigger sim: Prepare CTP input digit
     acceptedTriggers.push_back(std::make_tuple(timesview[collID], trigger));
-    LOG(info) << "EMCAL TRU simulation: Sending trg = " << trigger << " to CTP";
+    LOG(debug) << "EMCAL TRU simulation: Sending trg = " << trigger << " to CTP";
 
     mDigitizer.setEventTime(timesview[collID], trigger.any());
 
@@ -397,14 +396,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
         nextdigit.inputsMask.set(i);
       } 
     }
-    LOG(info) << "EMCAL TRU simulation: assigning = " << std::get<1>(trg)     << " to nextdigit for CTP, with IR = " << nextdigit.intRecord.bc << ", orbit = " << nextdigit.intRecord.orbit;
-    LOG(info) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP, with IR = " << nextdigit.intRecord.bc << ", orbit = " << nextdigit.intRecord.orbit;
+    LOG(debug) << "EMCAL TRU simulation: assigned  = " << nextdigit.inputsMask << " as nextdigit for CTP, with IR = " << nextdigit.intRecord.bc << ", orbit = " << nextdigit.intRecord.orbit;
     triggerinputs.push_back(nextdigit);
   }
   ctx.outputs().snapshot(Output{"EMC", "TRIGGERINPUT", 0}, triggerinputs);
-  for (auto& trg : triggerinputs) {
-    LOG(info) << "EMCAL TRU simulation: reading  = " << trg.inputsMask << " as nextdigit for CTP";
-  }
 
   timer.Stop();
   LOG(info) << "Digitization took " << timer.CpuTime() << "s";
