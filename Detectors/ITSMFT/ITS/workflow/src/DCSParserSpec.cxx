@@ -473,7 +473,7 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   auto& cdbman = o2::ccdb::BasicCCDBManager::instance();
   cdbman.setURL(mCcdbUrlRct);
   cdbman.setFatalWhenNull(false);
-  auto ts = o2::ccdb::BasicCCDBManager::instance().getRunDuration(mRunNumber);
+  auto ts = o2::ccdb::BasicCCDBManager::instance().getRunDuration(mRunNumber, false);
   if (ts.first < 0 || ts.second < 0) {
     LOGP(error, "Failed to retrieve headers from CCDB with run number {}, << this->mRunNumber, will default to using the current time for timestamp information", mRunNumber);
     tstart = o2::ccdb::getCurrentTimestamp();
