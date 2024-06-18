@@ -82,7 +82,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
             std::bitset<CTP_NINPUTS> emcMBaccept;
             emcMBaccept.set(CTP_NINPUTS - 1, 1);
             inpmaskcoll |= emcMBaccept;
-          } //else { // needs to be done always, remove else
+          } // else { // needs to be done always, remove else
             for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
               uint64_t mask = inpmaskdebug & detInputName2Mask[ctpinp.name];
               // uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
@@ -90,9 +90,9 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
                 inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
               }
             }
-          // }
-          // LOG(info) << "EMC input mask:" << inpmaskcoll << " with IR = " << currentIR.bc << ", orbit = " << currentIR.orbit;
-          break;
+            // }
+            // LOG(info) << "EMC input mask:" << inpmaskcoll << " with IR = " << currentIR.bc << ", orbit = " << currentIR.orbit;
+            break;
         }
         case o2::detectors::DetID::PHS: {
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::PHS]) {
@@ -133,7 +133,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
       data.CTPInputMask = inpmaskcoll;
       data.CTPClassMask = classmask;
       digits.emplace_back(data);
-      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll       << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
+      LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Input mask:" << inpmaskcoll << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
       // LOG(info) << "Trigger-Event " << data.intRecord.bc << " " << data.intRecord.orbit << " Class mask:" << data.CTPClassMask << " with IR = " << data.intRecord.bc << ", orbit = " << data.intRecord.orbit;
     }
   }
@@ -162,12 +162,12 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
             classmask |= tcl.classMask;
             LOG(info) << "adding MBA:" << tcl.name;
           }
-        } //else {
+        } // else {
           // EMCAL rare triggers - physical trigger input
           // class identification can be handled like in the case of the other
           // classes as EMCAL trigger input is required
           classmask |= tcl.classMask;
-        // }
+          // }
       }
     } else {
       if ((ctpinpmask.to_ullong() & tcl.descriptor->getInputsMask()) == tcl.descriptor->getInputsMask()) {
