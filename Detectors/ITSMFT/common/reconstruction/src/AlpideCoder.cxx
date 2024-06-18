@@ -53,7 +53,14 @@ int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData
     }
     buffer.addFast(makeChipHeader(chipInModule, bc)); // chip header
     for (int ir = 0; ir < NRegions; ir++) {
-      nfound += procRegion(buffer, ir);
+      // For each region, we encode a REGION HEADER flag immediately
+      // to ensure its uniqueness.
+      buffer.addFast(makeRegion(ir));
+      int nfoundInRegion = procRegion(buffer, ir);
+      nfound += nfoundInRegion;
+      // If the region was unpopulated, we remove REGION HEADER flag.
+      if (!nfoundInRegion)
+        buffer.erase(1);
     }
     buffer.addFast(makeChipTrailer(roflags));
     resetMap();
@@ -114,10 +121,6 @@ int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
   }
   //
   int ih = 0;
-  if (nHits) {
-    buffer.addFast(makeRegion(reg)); // flag region start
-  }
-
   while ((ih < nHits)) {
     short addrE, addrW = hits[ih++]; // address of the reference hit
     uint8_t mask = 0;
