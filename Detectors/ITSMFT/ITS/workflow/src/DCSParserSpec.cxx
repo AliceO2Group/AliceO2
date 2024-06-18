@@ -470,19 +470,15 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   // Timestamps for CCDB entry
   long tstart = 0, tend = 0;
   // retireve run start/stop times from CCDB
-  o2::ccdb::CcdbApi api;
-  api.init(mCcdbUrlRct);
-  // Initialize empty metadata object for search
-  std::map<std::string, std::string> metadata;
-  std::map<std::string, std::string> headers = api.retrieveHeaders(
-    "RCT/Info/RunInformation", metadata, this->mRunNumber);
-  if (headers.empty()) { // No CCDB entry is found
-    LOG(error) << "Failed to retrieve headers from CCDB with run number " << this->mRunNumber
-               << "\nWill default to using the current time for timestamp information";
+  auto& cdbman = o2::ccdb::BasicCCDBManager::instance();
+  cdbman.setURL(mCcdbUrlRct);
+  cdbman.setFatalWhenNull(false);
+  auto ts = o2::ccdb::BasicCCDBManager::instance().getRunDuration(mRunNumber);
+  if (ts.first < 0 || ts.second < 0) {
+    LOGP(error, "Failed to retrieve headers from CCDB with run number {}, << this->mRunNumber, will default to using the current time for timestamp information", mRunNumber);
     tstart = o2::ccdb::getCurrentTimestamp();
     tend = tstart + 365L * 24 * 3600 * 1000;
   } else {
-    auto ts = o2::ccdb::BasicCCDBManager::instance().getRunDuration(mRunNumber);
     tstart = ts.first;
     tend = ts.second;
   }
@@ -491,8 +487,7 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   auto class_name_deadMap = o2::utils::MemFileHelper::getClassName(mDeadMap);
 
   // Create metadata for database object
-  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}, {"runNumber", std::to_string(this->mRunNumber)}};
-
+  std::map<std::string, std::string> metadata{{"runtype", std::to_string(mRunType)}, {"confDBversion", std::to_string(mConfigVersion)}, {"runNumber", std::to_string(mRunNumber)}};
   std::string path("ITS/Calib/DCS_CONFIG");
   std::string path_deadMap("ITS/Calib/DeadMap");
   const char* filename = "dcs_config.root";
