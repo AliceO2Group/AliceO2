@@ -28,7 +28,7 @@ Detector::Detector(bool active, std::string geofilename)
     mHits(o2::utils::createSimVector<Hit>()),
     mGeometry(nullptr),
     mMedSensHCal(-1),
-    mGeoCompositions(0x0),
+    mGeoCompositions(),
     mSuperParentsIndices(),
     mSuperParents(),
     mCurrentSuperparent(nullptr),
@@ -380,11 +380,11 @@ AliMixture( 8, "Ceramic    $", acer, zcer, denscer, 2, wcer);
 
   /// Si plate  -> idtmed[3610];
   Medium(ID_SIINSENS, "Si insens$", 1, 0,
-         10.0, 0.1, 0.1, epsil, 0.001, 0, 0);
+         isxfld, sxmgmx, 10.0, 0.1, 0.1, epsil, 0.001, nullptr, 0);
 
   // Al for the cold plates
   Medium(ID_ALUMINIUM, "Aluminium$", 9, 0,
-         isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, 0, 0);
+         isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
 
   /// idtmed[3697]
   Medium(ID_VAC, "Vacuum  $", 98, 0,
@@ -487,7 +487,7 @@ void Detector::CreateHCALSpaghetti()
       volCuTube->SetLineWidth(2);
       volCuTube->SetLineColor(kRed);
       mSensitiveHCAL.push_back(volCuTube->GetName());
-      HcalTube->AddNode(volCuTube, 1, 0x0);
+      HcalTube->AddNode(volCuTube, 1, nullptr);
     }
     if (icomp->material() == "Scint") {
       RScint = icomp->sizeX() / 2;
@@ -497,7 +497,7 @@ void Detector::CreateHCALSpaghetti()
       volSciFi->SetLineWidth(2);
       volSciFi->SetLineColor(kBlue);
       mSensitiveHCAL.push_back(volSciFi->GetName());
-      HcalTube->AddNode(volSciFi, 1, 0x0);
+      HcalTube->AddNode(volSciFi, 1, nullptr);
     }
     if (icomp->material() == "CuHCAL") {
       Rout = icomp->sizeX() / 2;
@@ -506,7 +506,7 @@ void Detector::CreateHCALSpaghetti()
       volCuTube->SetLineWidth(2);
       volCuTube->SetLineColor(kRed);
       mSensitiveHCAL.push_back(volCuTube->GetName());
-      HcalTube->AddNode(volCuTube, 1, 0x0);
+      HcalTube->AddNode(volCuTube, 1, nullptr);
     }
   }
 
@@ -522,7 +522,7 @@ void Detector::CreateHCALSpaghetti()
   mSensitiveHCAL.push_back(volTower->GetName());
 
   TGeoVolumeAssembly* volTowerHCAL = new TGeoVolumeAssembly("volTowerHCAL");
-  volTowerHCAL->AddNode(volTower, 1, 0x0);
+  volTowerHCAL->AddNode(volTower, 1, nullptr);
 
   int Rows = 0;
   float RowPos = 0.;
