@@ -59,8 +59,9 @@ int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData
       int nfoundInRegion = procRegion(buffer, ir);
       nfound += nfoundInRegion;
       // If the region was unpopulated, we remove REGION HEADER flag.
-      if (!nfoundInRegion)
+      if (!nfoundInRegion) {
         buffer.erase(1);
+      }
     }
     buffer.addFast(makeChipTrailer(roflags));
     resetMap();
