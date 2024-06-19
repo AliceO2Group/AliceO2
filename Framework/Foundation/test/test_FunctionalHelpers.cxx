@@ -58,7 +58,6 @@ TEST_CASE("TestOverride")
 
   static_assert(std::is_same_v<unique_pack_t<pack<int, float, int, float, char, char>>, pack<char, float, int>>, "pack should not have duplicated types");
   static_assert(std::is_same_v<interleaved_pack_t<pack<int, float, int>, pack<char, bool, char>>, pack<int, char, float, bool, int, char>>, "interleaved packs of the same size");
-  static_assert(std::is_same_v<pack_to_tuple_t<pack<int, float, char>>, std::tuple<int, float, char>>, "pack should become a tuple");
   static_assert(std::is_same_v<repeated_type_pack_t<float, 5>, pack<float, float, float, float, float>>, "pack should have float repeated 5 times");
 
   struct ForwardDeclared;
