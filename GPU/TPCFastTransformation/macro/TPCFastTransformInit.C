@@ -21,8 +21,6 @@
 /// root -l TPCFastTransformInit.C'("debugVoxRes.root")'
 ///
 
-#include "Algorithm/RangeTokenizer.h"
-
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <filesystem>
@@ -40,6 +38,8 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 #endif
+
+#include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::tpc;
 using namespace o2::gpu;
@@ -99,8 +99,9 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   trackResiduals.setZ2XBinning(z2xBins);
   trackResiduals.init();
 
-  {
-    std::cout << "input track residuals: " << std::endl;
+  { // debug output
+
+    std::cout << " ===== input track residuals ==== " << std::endl;
     std::cout << "voxel tree y2xBins: " << y2xBins.size() << std::endl;
 
     for (auto y2x : y2xBins) {
@@ -127,6 +128,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     for (int i = 0; i < nZ2Xbins; i++) {
       std::cout << "getZ2X(bin) : " << trackResiduals.getZ2X(i) << std::endl;
     }
+    std::cout << " ==================================== " << std::endl;
   }
 
   std::cout << "create fast transformation ... " << std::endl;
@@ -310,6 +312,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
     geo.convUVtoLocal(iRoc, u + cu, v + cv, cy, cz);
     cy -= y;
     cz -= z;
+
     double d[3] = {cx - correctionX, cy - correctionY, cz - correctionZ};
     if (voxEntries >= 1.) {
       for (int i = 0; i < 3; i++) {
@@ -317,8 +320,8 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
           maxDiff[i] = d[i];
           maxDiffRoc[i] = iRoc;
           maxDiffRow[i] = iRow;
-          std::cout << " roc " << iRoc << " row " << iRow << " xyz " << i
-                    << " diff " << d[i] << " entries " << voxEntries << " y " << y2xBin << " z " << z2xBin << std::endl;
+          // std::cout << " roc " << iRoc << " row " << iRow << " xyz " << i
+          //  << " diff " << d[i] << " entries " << voxEntries << " y " << y2xBin << " z " << z2xBin << std::endl;
         }
         sumDiff[i] += d[i] * d[i];
       }
