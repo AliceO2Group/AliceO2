@@ -21,6 +21,7 @@
 #include "TPCFastTransformGeo.h"
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -61,15 +62,64 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   };
 
   struct SliceRowInfo {
-    float gridU0{0.f};           //< U coordinate of the U-grid start
-    float scaleUtoGrid{0.f};     //< scale U to U-grid coordinate
-    float gridV0{0.f};           ///< V coordinate of the V-grid start
-    float scaleVtoGrid{0.f};     //< scale V to V-grid coordinate
-    float gridCorrU0{0.f};       ///< U coordinate of the U-grid start for corrected U
-    float scaleCorrUtoGrid{0.f}; ///< scale corrected U to U-grid coordinate
-    float gridCorrV0{0.f};       ///< V coordinate of the V-grid start for corrected V
-    float scaleCorrVtoGrid{0.f}; ///< scale corrected V to V-grid coordinate
+    float gridU0{0.f};                        //< U coordinate of the U-grid start
+    float scaleUtoGrid{0.f};                  //< scale U to U-grid coordinate
+    float gridV0{0.f};                        ///< V coordinate of the V-grid start
+    float scaleVtoGrid{0.f};                  //< scale V to V-grid coordinate
+    float gridCorrU0{0.f};                    ///< U coordinate of the U-grid start for corrected U
+    float scaleCorrUtoGrid{0.f};              ///< scale corrected U to U-grid coordinate
+    float gridCorrV0{0.f};                    ///< V coordinate of the V-grid start for corrected V
+    float scaleCorrVtoGrid{0.f};              ///< scale corrected V to V-grid coordinate
+    float maxCorr[3]{10.f, 10.f, 10.f};       ///< max correction for dX, dU, dV
+    float minCorr[3]{-10.f, -10.f, -10.f};    ///< min correction for dX, dU, dV
+    float maxInvCorr[3]{10.f, 10.f, 10.f};    ///< max inverse correction for dX, dU, dV
+    float minInvCorr[3]{-10.f, -10.f, -10.f}; ///< min inverse correction for dX, dU, dV
     RowActiveArea activeArea;
+
+    void resetMaxValues()
+    {
+      maxCorr[0] = 1.f;
+      minCorr[0] = -1.f;
+      maxCorr[1] = 1.f;
+      minCorr[1] = -1.f;
+      maxCorr[2] = 1.f;
+      minCorr[2] = -1.f;
+    }
+
+    void updateMaxValues(float dx, float du, float dv)
+    {
+      maxCorr[0] = GPUCommonMath::Max(maxCorr[0], dx);
+      minCorr[0] = GPUCommonMath::Min(minCorr[0], dx);
+
+      maxCorr[1] = GPUCommonMath::Max(maxCorr[1], du);
+      minCorr[1] = GPUCommonMath::Min(minCorr[1], du);
+
+      maxCorr[2] = GPUCommonMath::Max(maxCorr[2], dv);
+      minCorr[2] = GPUCommonMath::Min(minCorr[2], dv);
+    }
+
+    void resetMaxValuesInv()
+    {
+      maxInvCorr[0] = 1.f;
+      minInvCorr[0] = -1.f;
+      maxInvCorr[1] = 1.f;
+      minInvCorr[1] = -1.f;
+      maxInvCorr[2] = 1.f;
+      minInvCorr[2] = -1.f;
+    }
+
+    void updateMaxValuesInv(float dx, float du, float dv)
+    {
+      maxInvCorr[0] = GPUCommonMath::Max(maxInvCorr[0], dx);
+      minInvCorr[0] = GPUCommonMath::Min(minInvCorr[0], dx);
+
+      maxInvCorr[1] = GPUCommonMath::Max(maxInvCorr[1], du);
+      minInvCorr[1] = GPUCommonMath::Min(minInvCorr[1], du);
+
+      maxInvCorr[2] = GPUCommonMath::Max(maxInvCorr[2], dv);
+      minInvCorr[2] = GPUCommonMath::Min(minInvCorr[2], dv);
+    }
+
 #ifndef GPUCA_ALIROOT_LIB
     ClassDefNV(SliceRowInfo, 2);
 #endif
@@ -406,9 +456,10 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
   convUVtoGrid(slice, row, u, v, gridU, gridV);
   float dxuv[3];
   spline.interpolateU(splineData, gridU, gridV, dxuv);
-  dx = dxuv[0];
-  du = dxuv[1];
-  dv = dxuv[2];
+  const auto& info = getSliceRowInfo(slice, row);
+  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], dxuv[0]));
+  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], dxuv[1]));
+  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], dxuv[2]));
   return 0;
 }
 
@@ -420,9 +471,10 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrectionOld(int slice, int row, f
   convUVtoGrid(slice, row, u, v, gridU, gridV);
   float dxuv[3];
   spline.interpolateUold(splineData, gridU, gridV, dxuv);
-  dx = dxuv[0];
-  du = dxuv[1];
-  dv = dxuv[2];
+  const auto& info = getSliceRowInfo(slice, row);
+  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], dxuv[0]));
+  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], dxuv[1]));
+  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], dxuv[2]));
   return 0;
 }
 
@@ -436,6 +488,8 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
   const float* splineData = getSplineData(slice, row, 1);
   float dx = 0;
   spline.interpolateU(splineData, gridU, gridV, &dx);
+  const auto& info = getSliceRowInfo(slice, row);
+  dx = GPUCommonMath::Max(info.minInvCorr[0], GPUCommonMath::Min(info.maxInvCorr[0], dx));
   x = mGeo.getRowInfo(row).x + dx;
 }
 
@@ -450,6 +504,9 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
 
   float duv[2];
   spline.interpolateU(splineData, gridU, gridV, duv);
+  const auto& info = getSliceRowInfo(slice, row);
+  duv[0] = GPUCommonMath::Max(info.minInvCorr[1], GPUCommonMath::Min(info.maxInvCorr[1], duv[0]));
+  duv[1] = GPUCommonMath::Max(info.minInvCorr[2], GPUCommonMath::Min(info.maxInvCorr[2], duv[1]));
   nomU = corrU - duv[0];
   nomV = corrV - duv[1];
 }
