@@ -144,6 +144,9 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
         float* splineParameters = correction.getSplineData(slice, row);
         const std::vector<o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint>& data = mCorrectionMap.getPoints(slice, row);
         int nDataPoints = data.size();
+        auto& info = correction.getSliceRowInfo(slice, row);
+        info.resetMaxValues();
+        info.resetMaxValuesInv();
         if (nDataPoints >= 4) {
           std::vector<double> pointSU(nDataPoints);
           std::vector<double> pointSV(nDataPoints);
@@ -156,6 +159,8 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
             pointCorr[3 * i + 0] = dx;
             pointCorr[3 * i + 1] = du;
             pointCorr[3 * i + 2] = dv;
+            info.updateMaxValues(2. * dx, 2. * du, 2. * dv);
+            info.updateMaxValuesInv(-2. * dx, -2. * du, -2. * dv);
           }
           helper.approximateDataPoints(spline, splineParameters, 0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax(), &pointSU[0],
                                        &pointSV[0], &pointCorr[0], nDataPoints);
@@ -767,9 +772,20 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
             double yStep = (yLast - yFirst) / 2;
 
+            double zFirst = z - dz / 2.;
+            double zLast = z + dz / 2.;
+            double zStep = (zLast - zFirst) / 2.;
+
+            if (0) { // no smoothing
+              yFirst = y;
+              yLast = y;
+              zFirst = z;
+              zLast = z;
+            }
+
             for (double py = yFirst; py <= yLast + yStep / 2.; py += yStep) {
 
-              for (double pz = z - dz / 2.; pz <= z + dz / 2. + 1.e-4; pz += dz / 2.) {
+              for (double pz = zFirst; pz <= zLast + zStep / 2.; pz += zStep) {
                 map.addCorrectionPoint(iRoc, iRow, py, pz, correctionX, correctionY,
                                        correctionZ);
               }
