@@ -110,6 +110,11 @@ class DigitizationContext
   /// Check collision parts for vertex consistency.
   bool checkVertexCompatibility(bool verbose = false) const;
 
+  /// retrieves collision context for a single timeframe-id (which may be needed by simulation)
+  /// (Only copies collision context without QED information. This can be added to the result with the fillQED method
+  ///  in a second step. As a pre-condition, one should have called finalizeTimeframeStructure)
+  DigitizationContext extractSingleTimeframe(int timeframeid, std::vector<int> const& sources_to_offset);
+
   /// function reading the hits from a chain (previously initialized with initSimChains
   /// The hits pointer will be initialized (what to we do about ownership??)
   template <typename T>
@@ -125,8 +130,9 @@ class DigitizationContext
   // apply collision number cuts and potential relabeling of eventID
   void applyMaxCollisionFilter(long startOrbit, long orbitsPerTF, int maxColl);
 
-  // finalize timeframe structure (fixes the indices in mTimeFrameStartIndex)
-  void finalizeTimeframeStructure(long startOrbit, long orbitsPerTF);
+  /// finalize timeframe structure (fixes the indices in mTimeFrameStartIndex)
+  // returns the number of timeframes
+  int finalizeTimeframeStructure(long startOrbit, long orbitsPerTF);
 
   // Sample and fix interaction vertices (according to some distribution). Makes sure that same event ids
   // have to have same vertex, as well as event ids associated to same collision.
@@ -167,7 +173,7 @@ class DigitizationContext
   // for each collision we may record/fix the interaction vertex (to be used in event generation)
   std::vector<math_utils::Point3D<float>> mInteractionVertices;
 
-  // the collision records _with_ QED interleaved;
+  // the collision records **with** QED interleaved;
   std::vector<o2::InteractionTimeRecord> mEventRecordsWithQED;
   std::vector<std::vector<o2::steer::EventPart>> mEventPartsWithQED;
 
