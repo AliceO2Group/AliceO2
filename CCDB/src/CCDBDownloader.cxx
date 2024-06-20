@@ -114,7 +114,7 @@ CCDBDownloader::~CCDBDownloader()
 
   if (!mExternalLoop) {
     // Schedule all handles to close. Execute loop to allow them to execute their destructors.
-    while (uv_loop_alive(mUVLoop) && uv_loop_close(mUVLoop) == UV_EBUSY) {
+    while (uv_loop_alive(mUVLoop) || (uv_loop_close(mUVLoop) == UV_EBUSY)) {
       uv_walk(mUVLoop, closeHandles, this);
       uv_run(mUVLoop, UV_RUN_ONCE);
     }
