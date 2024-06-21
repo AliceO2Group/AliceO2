@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(test_QualityControlFlagCollection_IO)
     qcfc1.insert({51, 77, FlagTypeFactory::Invalid()});
     qcfc1.insert({1234, 3434, FlagTypeFactory::LimitedAcceptanceMCNotReproducible()});
     qcfc1.insert({50, 77, FlagTypeFactory::LimitedAcceptanceMCNotReproducible()});
-    qcfc1.insert({43434, 63421, FlagTypeFactory::NotBadFlagExample()});
+    qcfc1.insert({43434, 63421, FlagTypeFactory::Good()});
 
     std::stringstream store;
     qcfc1.streamTo(store);
