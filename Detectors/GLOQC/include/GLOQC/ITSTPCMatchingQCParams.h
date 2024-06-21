@@ -25,11 +25,18 @@ namespace gloqc
 // There are configurable params for TPC-ITS matching
 struct ITSTPCMatchingQCParams : public o2::conf::ConfigurableParamHelper<ITSTPCMatchingQCParams> {
 
-  float minPtCut = 0.1f;
-  float etaCut = 1.4f;
+  float minPtITSCut = 0.f;
+  float etaITSCut = 1e10f;
+  int32_t minNITSClustersCut = 0;
+  int32_t maxChi2PerClusterITS = 100000;
+  float minPtTPCCut = 0.1f;
+  float etaTPCCut = 0.9f;
   int32_t minNTPCClustersCut = 60;
   float minDCACut = 100.f;
   float minDCACutY = 10.f;
+  float minPtCut = 0.f;
+  float maxPtCut = 1e10f;
+  float etaCut = 1.e10f;
   float cutK0Mass = 0.05f;
   float maxEtaK0 = 0.8f;
 
