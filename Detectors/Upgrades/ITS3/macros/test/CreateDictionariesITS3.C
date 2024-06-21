@@ -55,7 +55,7 @@
 void CreateDictionariesITS3(bool saveDeltas = false,
                             float probThreshold = 1e-6,
                             std::string clusDictFile = "",
-                            std::string clusfile = "o2clus_it3.root",
+                            std::string clusfile = "o2clus_its.root",
                             std::string hitfile = "o2sim_HitsIT3.root",
                             std::string collContextfile = "collisioncontext.root",
                             std::string inputGeom = "",
@@ -87,7 +87,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
     LOGP(info, "Loaded external cluster dictionary with {} entries from {}", clusDictOld.getSize(), clusDictFile);
   }
 
-  ULong_t cOk{0}, cOutliers{0};
+  ULong_t cOk{0}, cOutliers{0}, cFailedMC{0};
 
   TFile* fout = nullptr;
   TNtuple* nt = nullptr;
@@ -111,6 +111,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   TTree* hitTree = nullptr;
 
   if (!hitfile.empty() && !collContextfile.empty() && !gSystem->AccessPathName(hitfile.c_str()) && !gSystem->AccessPathName(collContextfile.c_str())) {
+    LOGP(info, "Loading MC information");
     fileH = TFile::Open(hitfile.data());
     hitTree = (TTree*)fileH->Get("o2sim");
     mc2hitVec.resize(hitTree->GetEntries());
@@ -144,23 +145,23 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   TFile* fileCl = TFile::Open(clusfile.data());
   TTree* clusTree = (TTree*)fileCl->Get("o2sim");
   std::vector<CompClusterExt>* clusArr = nullptr;
-  clusTree->SetBranchAddress("IT3ClusterComp", &clusArr);
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArr);
   std::vector<unsigned char>* patternsPtr = nullptr;
-  auto pattBranch = clusTree->GetBranch("IT3ClusterPatt");
+  auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
   if (pattBranch != nullptr) {
     pattBranch->SetAddress(&patternsPtr);
   }
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
-  clusTree->SetBranchAddress("IT3ClustersROF", &rofRecVecP);
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
   std::vector<MC2ROF> mc2rofVec, *mc2rofVecP = &mc2rofVec;
-  if (hitTree && clusTree->GetBranch("IT3ClusterMCTruth")) {
-    clusTree->SetBranchAddress("IT3ClusterMCTruth", &clusLabArr);
-    clusTree->SetBranchAddress("IT3ClustersMC2ROF", &mc2rofVecP);
+  if (hitTree && clusTree->GetBranch("ITSClusterMCTruth")) {
+    clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
+    clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
   }
   clusTree->GetEntry(0);
   if (clusTree->GetEntries() > 1 && !hitfile.empty()) {
@@ -208,7 +209,7 @@ void CreateDictionariesITS3(bool saveDeltas = false,
     for (int irof = 0; irof < nROFRec; irof++) {
       const auto& rofRec = rofRecVec[irof];
 
-      // rofRec.print();
+      /* rofRec.print(); */
 
       if (clusLabArr) { // >> read and map MC events contributing to this ROF
         for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
@@ -297,8 +298,9 @@ void CreateDictionariesITS3(bool saveDeltas = false,
                 }
               }
             } else {
-              LOGP(info, "  Failed to find MC hit entry for Tr: {} chipID: {}", trID, chipID);
-              lab.print();
+              /* LOGP(info, "  Failed to find MC hit entry for Tr: {} chipID: {}", trID, chipID); */
+              /* lab.print(); */
+              ++cFailedMC;
             }
             signalDictionary.accountTopology(topology, dX, dZ);
           } else {
@@ -321,10 +323,11 @@ void CreateDictionariesITS3(bool saveDeltas = false,
     }
   }
 
-  LOGP(info, "Clusters: {} okay {} outliers", cOk, cOutliers);
+  LOGP(info, "Clusters: {} okay (failed MCHit2Clus {}); outliers {}", cOk, cFailedMC, cOutliers);
 
   auto dID = o2::detectors::DetID::IT3;
 
+  LOGP(info, "Complete Dictionary:");
   completeDictionary.setThreshold(probThreshold);
   completeDictionary.groupRareTopologies();
   completeDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, ""));
@@ -341,35 +344,35 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   hComplete->Write();
   cComplete->Write();
 
-  TCanvas* cNoise = nullptr;
-  TCanvas* cSignal = nullptr;
-  TH1F* hNoise = nullptr;
-  TH1F* hSignal = nullptr;
-
   if (clusLabArr) {
+    LOGP(info, "Noise Dictionary:");
     noiseDictionary.setThreshold(0.0001);
     noiseDictionary.groupRareTopologies();
     noiseDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo"));
     noiseDictionary.printDictionary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "txt"));
     noiseDictionary.saveDictionaryRoot(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "noiseClusTopo", "root"));
+
+    LOGP(info, "Signal Dictionary:");
     signalDictionary.setThreshold(0.0001);
     signalDictionary.groupRareTopologies();
     signalDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "signal"));
     signalDictionary.printDictionary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "signal", "txt"));
     signalDictionary.saveDictionaryRoot(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "signal", "root"));
-    cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
+
+    LOGP(info, "Plotting Channels");
+    auto cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
     cNoise->cd();
     cNoise->SetLogy();
-    hNoise = noiseDictionary.getDictionary().getTopologyDistribution("hNoise");
+    auto hNoise = noiseDictionary.getDictionary().getTopologyDistribution("hNoise");
     hNoise->SetDirectory(nullptr);
     hNoise->Draw("hist");
     histogramOutput.cd();
     hNoise->Write();
     cNoise->Write();
-    cSignal = new TCanvas("cSignal", "cSignal");
+    auto cSignal = new TCanvas("cSignal", "cSignal");
     cSignal->cd();
     cSignal->SetLogy();
-    hSignal = signalDictionary.getDictionary().getTopologyDistribution("hSignal");
+    auto hSignal = signalDictionary.getDictionary().getTopologyDistribution("hSignal");
     hSignal->SetDirectory(nullptr);
     hSignal->Draw("hist");
     histogramOutput.cd();

@@ -32,8 +32,8 @@ o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, i
 {
   auto pattID = c.getPatternID();
   // Dummy COG errors (about half pixel size)
-  sig2y = (constants::detID::isDetITS3(c.getSensorID())) ? DefClusErrorRow : o2::its::ioutils::DefClusErrorRow;
-  sig2z = (constants::detID::isDetITS3(c.getSensorID())) ? DefClusErrorCol : o2::its::ioutils::DefClusErrorCol;
+  sig2y = (constants::detID::isDetITS3(c.getSensorID())) ? DefClusError2Row : o2::its::ioutils::DefClusError2Row;
+  sig2z = (constants::detID::isDetITS3(c.getSensorID())) ? DefClusError2Col : o2::its::ioutils::DefClusError2Col;
   if (pattID != itsmft::CompCluster::InvalidPatternID) {
     sig2y = dict->getErr2X(pattID) * sig2y; // Error is given in detector coordinates
     sig2z = dict->getErr2Z(pattID) * sig2z;

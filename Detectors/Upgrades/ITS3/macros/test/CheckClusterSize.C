@@ -68,7 +68,7 @@ inline auto hist_map(unsigned short id)
   return std::clamp(id, static_cast<unsigned short>(0), static_cast<unsigned short>(6)) / 2;
 }
 
-void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
+void CheckClusterSize(std::string clusFileName = "o2clus_its.root",
                       std::string kineFileName = "o2sim_Kine.root",
                       std::string dictFileName = "", bool batch = true)
 {
@@ -186,10 +186,10 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
   auto clusTree = clusFile->Get<TTree>("o2sim");
   std::vector<CompClusterExt> clusArr;
   std::vector<CompClusterExt>* clusArrP{&clusArr};
-  clusTree->SetBranchAddress("IT3ClusterComp", &clusArrP);
+  clusTree->SetBranchAddress("ITSClusterComp", &clusArrP);
   std::vector<unsigned char> patterns;
   std::vector<unsigned char>* patternsPtr{&patterns};
-  clusTree->SetBranchAddress("IT3ClusterPatt", &patternsPtr);
+  clusTree->SetBranchAddress("ITSClusterPatt", &patternsPtr);
 
   // MC tracks
   std::unique_ptr<TFile> kineFile(TFile::Open(kineFileName.data()));
@@ -207,7 +207,7 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
 
   // Cluster MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clusLabArr = nullptr;
-  clusTree->SetBranchAddress("IT3ClusterMCTruth", &clusLabArr);
+  clusTree->SetBranchAddress("ITSClusterMCTruth", &clusLabArr);
 
   std::cout << "** Filling particle table ... " << std::flush;
   int lastEventIDcl = -1;
@@ -233,7 +233,7 @@ void CheckClusterSize(std::string clusFileName = "o2clus_it3.root",
   // ROFrecords
   std::vector<ROFRec> rofRecVec;
   std::vector<ROFRec>* rofRecVecP{&rofRecVec};
-  clusTree->SetBranchAddress("IT3ClustersROF", &rofRecVecP);
+  clusTree->SetBranchAddress("ITSClustersROF", &rofRecVecP);
   clusTree->GetEntry(0);
   int nROFRec = (int)rofRecVec.size();
   auto pattIt = patternsPtr->cbegin();

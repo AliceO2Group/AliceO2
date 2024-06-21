@@ -79,7 +79,7 @@ root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckT
 Simulate all detectors but replacing ITS with IT3
 
 ```bash
-o2-sim -g pythia8pp -j10 -m PIPE IT3 --run 303901 -n10
+o2-sim -g pythia8pp -j10 --detectorList ALICE2.1 --run 303901 -n20 -m IT3
 ```
 
 ## Creating CCDB Objects
@@ -88,7 +88,7 @@ o2-sim -g pythia8pp -j10 -m PIPE IT3 --run 303901 -n10
 
 ```bash
 # Create Full Geometry
-o2-sim --withIT3 --run 303901 -n0 --field ccdb
+o2-sim -g pythia8pp -j10 --detectorList ALICE2.1 --run 303901 -n0
 cp o2sim_geometry.root ${ALICEO2_CCDB_LOCALCACHE}/GLO/Config/Geometry/snapshot.root
 o2-create-aligned-geometry-workflow -b --configKeyValues "HBFUtils.startTime=1547978230000" --condition-remap="file://${ALICEO2_CCDB_LOCALCACHE}=GLO/Config/Geometry"
 cp o2sim_geometry-aligned.root ${ALICEO2_CCDB_LOCALCACHE}/GLO/Config/GeometryAligned/snapshot.root
@@ -107,7 +107,7 @@ o2-its3-reco-workflow -b --tracking-mode off \
     --ignore-cluster-dictionary --run
 ```
 
-2. Creating the Topology Dictionary
+2. Creating the TopologyDictionary
 
 ```bash
 root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CreateDictionariesITS3.C++

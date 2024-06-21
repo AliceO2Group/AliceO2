@@ -309,9 +309,7 @@ void Clusterer::ClustererThread::finishChipSingleHitFast(uint32_t hit, ChipPixel
   // add to compact clusters, which must be always filled
   unsigned char patt[ClusterPattern::MaxPatternBytes]{0x1 << (7 - (0 % 8))}; // unrolled 1 hit version of full loop in finishChip
   uint16_t pattID = (parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(1, 1, patt);
-  LOGP(debug, "PattID: findGroupID(1,1,{})={}", patt[0], pattID);
   if ((pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) && patternsPtr) {
-    LOGP(debug, "ClustererThread: Invalid or Group?");
     patternsPtr->emplace_back(1); // rowspan
     patternsPtr->emplace_back(1); // colspan
     patternsPtr->insert(patternsPtr->end(), std::begin(patt), std::begin(patt) + 1);

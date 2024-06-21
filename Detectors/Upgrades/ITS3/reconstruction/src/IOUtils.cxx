@@ -20,6 +20,7 @@
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITS3Base/SpecsV2.h"
 #include "ITStracking/TrackingConfigParam.h"
+#include "Framework/Logger.h"
 
 namespace o2::its3::ioutils
 {
@@ -76,30 +77,18 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
       auto layer = geom->getLayer(sensorID);
 
       auto pattID = c.getPatternID();
-      o2::math_utils::Point3D<float> locXYZ;
-      float sigmaY2 = o2::its::ioutils::DefClusError2Row, sigmaZ2 = o2::its::ioutils::DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
-      float pitchRow = isITS3 ? SSAlpide::mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow;
-      float pitchCol = isITS3 ? SSAlpide::mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol;
+      float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
+      auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
+
       unsigned int clusterSize{0};
-      if (pattID != itsmft::CompCluster::InvalidPatternID) {
-        sigmaY2 = dict->getErr2X(pattID) * pitchRow * pitchRow;
-        sigmaZ2 = dict->getErr2Z(pattID) * pitchCol * pitchCol;
-        if (!dict->isGroup(pattID)) {
-          locXYZ = dict->getClusterCoordinates(c);
-          clusterSize = dict->getNpixels(pattID);
-        } else {
-          o2::itsmft::ClusterPattern patt(pattIt);
-          locXYZ = dict->getClusterCoordinates(c, patt);
-          sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
-          sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
-          clusterSize = patt.getNPixels();
-        }
+      if (pattID == itsmft::CompCluster::InvalidPatternID || dict->isGroup(pattID)) {
+        // TODO FIX
+        // o2::itsmft::ClusterPattern patt;
+        // patt.acquirePattern(pattIt);
+        // clusterSize = patt.getNPixels();
+        clusterSize = 0;
       } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
-        sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
-        sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
-        locXYZ = dict->getClusterCoordinates(c, patt, false);
-        clusterSize = patt.getNPixels();
+        clusterSize = dict->getNpixels(pattID);
       }
       clusterSizeVec.push_back(std::clamp(clusterSize, 0u, 255u));
 

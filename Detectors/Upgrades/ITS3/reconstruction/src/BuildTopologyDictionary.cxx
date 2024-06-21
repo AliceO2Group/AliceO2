@@ -43,8 +43,8 @@ void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& clu
       topInf.mZmean = dZ;
       topoStat.countsWithBias = 1;
     } else { // assign expected sigmas from the pixel X, Z sizes
-      topInf.mXsigma2 = SegmentationSuperAlpide::mPitchRow * SegmentationSuperAlpide::mPitchRow / 12.f / (float)std::min(10, topInf.mSizeX);
-      topInf.mZsigma2 = SegmentationSuperAlpide::mPitchCol * SegmentationSuperAlpide::mPitchCol / 12.f / (float)std::min(10, topInf.mSizeZ);
+      topInf.mXsigma2 = 1.f / 12.f / (float)std::min(10, topInf.mSizeX);
+      topInf.mZsigma2 = 1.f / 12.f / (float)std::min(10, topInf.mSizeZ);
     }
     mMapInfo.emplace(cluster.getHash(), topInf);
   } else {
