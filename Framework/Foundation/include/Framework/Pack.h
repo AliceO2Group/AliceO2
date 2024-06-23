@@ -99,17 +99,43 @@ constexpr auto interleave_pack(pack<Args1...>, pack<Args2...>)
 template <typename P1, typename P2>
 using interleaved_pack_t = decltype(interleave_pack(P1{}, P2{}));
 
+/// Marks as void the types that do not satisfy the condition
+template <template <typename...> typename Condition, typename... Ts>
+using with_condition_pack = pack<std::conditional_t<Condition<Ts>::value, Ts, void>...>;
+
+template <typename... Ts>
+consteval auto count_non_void_pack(pack<Ts...> const&)
+{
+  return ((std::is_void_v<Ts> ? 0 : 1) + ...);
+}
+
+template <typename Result>
+consteval auto prune_voids_pack(Result result, pack<>)
+{
+  return result;
+}
+
+template <typename... Rs, typename T, typename... Ts>
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T, Ts...>)
+{
+  if constexpr (std::is_void_v<T> == false) {
+    return prune_voids_pack(pack<Rs..., T>{}, pack<Ts...>{});
+  } else {
+    return prune_voids_pack(pack<Rs...>{}, pack<Ts...>{});
+  }
+}
+
 /// Selects from the pack types that satisfy the Condition
 /// Multicondition takes the type to check as first template parameter
 /// and any helper types as the following parameters
 template <template <typename...> typename Condition, typename Result, typename... Cs>
-constexpr auto select_pack(Result result, pack<>, pack<Cs...>)
+consteval auto select_pack(Result result, pack<>, pack<Cs...>)
 {
   return result;
 }
 
 template <template <typename...> typename Condition, typename Result, typename T, typename... Cs, typename... Ts>
-constexpr auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
+consteval auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
 {
   if constexpr (Condition<T, Cs...>()) {
     return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{}, condPack);
@@ -119,7 +145,7 @@ constexpr auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
 }
 
 template <template <typename...> typename Condition, typename... Types>
-using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}, pack<>{}))>;
+using selected_pack = std::decay_t<decltype(prune_voids_pack(pack<>{}, with_condition_pack<Condition, Types...>{}))>;
 template <template <typename...> typename Condition, typename CondPack, typename Pack>
 using selected_pack_multicondition = std::decay_t<decltype(select_pack<Condition>(pack<>{}, Pack{}, CondPack{}))>;
 
