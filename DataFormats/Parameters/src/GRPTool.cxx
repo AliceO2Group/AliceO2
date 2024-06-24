@@ -57,7 +57,7 @@ struct Options {
   std::string outprefix = "";
   std::string fieldstring = "";
   std::string bcPatternFile = "";
-  bool print = false; // whether to print outcome of GRP operation
+  bool print = false;         // whether to print outcome of GRP operation
   bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
   std::string ccdbhost = "http://alice-ccdb.cern.ch";
@@ -65,6 +65,7 @@ struct Options {
   std::string vertex = "ccdb";
   std::string configKeyValues = "";
   uint64_t timestamp = 0;
+  std::string detectorList; // detector layout
 };
 
 namespace
@@ -314,7 +315,9 @@ bool create_GRPs(Options const& opts)
     grp.setTimeEnd(runStart + 3600000);
     grp.setNHBFPerTF(opts.orbitsPerTF);
     std::vector<std::string> modules{};
-    o2::conf::SimConfig::determineActiveModules(opts.readout, std::vector<std::string>(), modules, opts.isRun5);
+    if (!o2::conf::SimConfig::determineActiveModulesList(opts.detectorList, opts.readout, std::vector<std::string>(), modules)) {
+      return false;
+    }
     std::vector<std::string> readout{};
     o2::conf::SimConfig::determineReadoutDetectors(modules, std::vector<std::string>(), opts.skipreadout, readout);
     for (auto& detstr : readout) {
@@ -560,6 +563,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
 
     // ls command has the following options:
     bpo::options_description desc("create options");
+    desc.add_options()("detectorList", bpo::value<std::string>(&optvalues.detectorList)->default_value("ALICE2"), "Pick a specific version of ALICE, for specifics check the o2-sim description");
     desc.add_options()("readoutDets", bpo::value<std::vector<std::string>>(&optvalues.readout)->multitoken()->default_value(std::vector<std::string>({"all"}), "all Run3 detectors"), "Detector list to be readout/active");
     desc.add_options()("skipReadout", bpo::value<std::vector<std::string>>(&optvalues.skipreadout)->multitoken()->default_value(std::vector<std::string>(), "nothing skipped"), "list of inactive detectors (precendence over --readout)");
     desc.add_options()("run", bpo::value<int>(&optvalues.run)->default_value(-1), "Run number");
@@ -570,7 +574,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("lhcif-CCDB", "take GRPLHCIF directly from CCDB");
     desc.add_options()("print", "print resulting GRPs");
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
-    desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration.");
+    desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration. (deprecated, use detectorList option)");
     desc.add_options()("vertex", bpo::value<std::string>(&optvalues.vertex)->default_value("ccdb"), "How the vertex is to be initialized. Default is CCDB. Alternative is \"Diamond\" which is constructing the mean vertex from the Diamond param via the configKeyValues path");
     desc.add_options()("timestamp", bpo::value<uint64_t>(&optvalues.timestamp)->default_value(0), "Force timestamp to be used (useful when anchoring)");
     desc.add_options()("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
