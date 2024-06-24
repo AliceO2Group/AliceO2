@@ -23,8 +23,6 @@
 #include "DetectorsPassive/Hall.h"
 #include "DetectorsPassive/Pipe.h"
 #include <Field/MagneticField.h>
-#include <TPCSimulation/Detector.h>
-#include <ITSSimulation/Detector.h>
 #include <MFTSimulation/Detector.h>
 #include <MCHSimulation/Detector.h>
 #include <MIDSimulation/Detector.h>
@@ -38,6 +36,7 @@
 #include <PHOSSimulation/Detector.h>
 #include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
+#include <FOCALSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -47,10 +46,10 @@
 #include <algorithm>
 #include "DetectorsCommonDataFormats/UpgradesStatus.h"
 #include <DetectorsBase/SimFieldUtils.h>
+#include <SimConfig/SimDLLoader.h>
 #endif
 
 #ifdef ENABLE_UPGRADES
-#include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <IOTOFSimulation/Detector.h>
@@ -61,6 +60,8 @@
 #include <Alice3DetectorsPassive/Absorber.h>
 #include <Alice3DetectorsPassive/Magnet.h>
 #endif
+
+using Return = o2::base::Detector*;
 
 void finalize_geometry(FairRunSim* run);
 
@@ -221,17 +222,20 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("TPC")) {
     // tpc
-    addReadoutDetector(new o2::tpc::Detector(isReadout("TPC")));
+    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
+      "O2TPCSimulation", "create_detector_tpc", isReadout("TPC")));
   }
 #ifdef ENABLE_UPGRADES
   if (isActivated("IT3")) {
     // IT3
-    addReadoutDetector(new o2::its::Detector(isReadout("IT3"), "IT3"));
+    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, const char*, bool>(
+      "O2ITSSimulation", "create_detector_its", "IT3", isReadout("IT3")));
   }
 
   if (isActivated("TRK")) {
     // ALICE 3 TRK
-    addReadoutDetector(new o2::trk::Detector(isReadout("TRK")));
+    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, bool>(
+      "O2TRKSimulation", "create_detector_trk", isReadout("TRK")));
   }
 
   if (isActivated("FT3")) {
@@ -267,7 +271,8 @@ void build_geometry(FairRunSim* run = nullptr)
 
   if (isActivated("ITS")) {
     // its
-    addReadoutDetector(new o2::its::Detector(isReadout("ITS")));
+    addReadoutDetector(o2::conf::SimDLLoader::Instance().executeFunctionAlias<Return, const char*, bool>(
+      "O2ITSSimulation", "create_detector_its", "ITS", isReadout("ITS")));
   }
 
   if (isActivated("MFT")) {
@@ -323,6 +328,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("ZDC")) {
     // ZDC
     addReadoutDetector(new o2::zdc::Detector(isReadout("ZDC")));
+  }
+
+  if (isActivated("FOC")) {
+    // FOCAL
+    addReadoutDetector(new o2::focal::Detector(isReadout("FOC"), gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Spaghetti.txt")));
   }
 
   if (geomonly) {

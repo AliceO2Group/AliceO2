@@ -32,7 +32,7 @@ Bool_t Hit::operator<(const Hit& rhs) const
 
 Bool_t Hit::operator==(const Hit& rhs) const
 {
-  return (GetDetectorID() == GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
+  return (GetDetectorID() == rhs.GetDetectorID()) && (GetTrackID() == rhs.GetTrackID());
 }
 
 Hit& Hit::operator+=(const Hit& rhs)
@@ -41,14 +41,14 @@ Hit& Hit::operator+=(const Hit& rhs)
   return *this;
 }
 
-Hit Hit::operator+(const Hit& rhs) const
+Hit o2::emcal::operator+(const Hit& lhs, const Hit& rhs)
 {
-  Hit result(*this);
+  Hit result(lhs);
   result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
-  return *this;
+  return result;
 }
 
-std::ostream& operator<<(std::ostream& stream, const Hit& p)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const Hit& p)
 {
   p.PrintStream(stream);
   return stream;

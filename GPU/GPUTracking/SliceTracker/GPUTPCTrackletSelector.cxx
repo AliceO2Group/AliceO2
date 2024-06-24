@@ -34,12 +34,12 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
   GPUbarrier();
 
   GPUTPCHitId trackHits[GPUCA_ROW_COUNT - GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE];
+  const float maxSharedFrac = tracker.Param().rec.tpc.trackletMaxSharedFraction;
 
   for (int itr = s.mItr0 + iThread; itr < s.mNTracklets; itr += s.mNThreadsTotal) {
     GPUbarrierWarp();
 
     GPUglobalref() MEM_GLOBAL(GPUTPCTracklet) & GPUrestrict() tracklet = tracker.Tracklets()[itr];
-    const float kMaxShared = .1f;
 
     int firstRow = tracklet.FirstRow();
     int lastRow = tracklet.LastRow();
@@ -52,6 +52,8 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
     int nShared = 0;
     int nHits = 0;
     const int minHits = tracker.Param().rec.tpc.minNClustersTrackSeed == -1 ? GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracklet.Param().QPt() * tracker.Param().qptB5Scaler) : tracker.Param().rec.tpc.minNClustersTrackSeed;
+    const int sharingMinNorm = minHits * tracker.Param().rec.tpc.trackletMinSharedNormFactor;
+    float maxShared = maxSharedFrac * sharingMinNorm;
 
     GPUCA_UNROLL(, U(1))
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {
@@ -62,7 +64,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
       if (ih != CALINK_INVAL && ih != CALINK_DEAD_CHANNEL) {
         GPUglobalref() const MEM_GLOBAL(GPUTPCRow)& row = tracker.Row(irow);
         bool own = (tracker.HitWeight(row, ih) <= w);
-        bool sharedOK = ((nShared < nHits * kMaxShared));
+        bool sharedOK = nShared <= (nHits < sharingMinNorm ? maxShared : nHits * maxSharedFrac);
         if (own || sharedOK) { // SG!!!
           gap = 0;
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0

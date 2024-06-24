@@ -205,7 +205,7 @@ void ITSThresholdCalibrator::init(InitContext& ic)
   nInjScaled = nInj;
 
   // Flag to enable the call of the finalize() method at end of stream
-  isFinalizeEos = ic.options().get<bool>("finalize-at-eos");
+  isForceEor = ic.options().get<bool>("force-calculation-eor");
 
   // flag to set the url ccdb mgr
   this->mCcdbMgrUrl = ic.options().get<std::string>("ccdb-mgr-url");
@@ -1564,9 +1564,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
   }
 
   if (!(this->mRunTypeUp)) {
-    if (!isFinalizeEos) {
-      finalize();
-    }
+    finalize();
     LOG(info) << "Shipping all outputs to aggregator (before endOfStream arrival!)";
     pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
     pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
@@ -1582,9 +1580,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
   } else if (pc.transitionState() == TransitionHandlingState::Requested) {
     LOG(info) << "Run stop requested during the scan, sending output to aggregator and then stopping to process new data";
     mRunStopRequested = true;
-    if (!isFinalizeEos) {
-      finalize(); // calculating average thresholds based on what's collected up to this moment
-    }
+    finalize();
     pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning); // dummy here
     pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
     pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
@@ -1812,7 +1808,22 @@ void ITSThresholdCalibrator::finalize()
     name = "VCASN";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!isFinalizeEos && (!mRunStopRequested && this->mRunTypeChip[it->first] < nInj)) {
+      int iRU = 0;
+      std::vector<short int> linkChips;
+      bool extractChip = false;
+      if (isForceEor && mRunTypeChip[it->first] < nInj) {
+        iRU = getRUID(it->first);
+        linkChips = getChipBoundariesFromRu(iRU, mActiveLinks[iRU]);
+        // check whether at least one chip on the same link reached the end of the scan
+        for (size_t i = 0; i < linkChips.size(); i++) {
+          if (mRunTypeChip[linkChips[i]] > nInj && linkChips[i] != it->first) {
+            extractChip = true;
+            break;
+          }
+        }
+      }
+
+      if (!extractChip && (!mRunStopRequested && this->mRunTypeChip[it->first] < nInj)) {
         ++it;
         continue;
       }
@@ -1835,7 +1846,21 @@ void ITSThresholdCalibrator::finalize()
     name = "ITHR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!isFinalizeEos && (!mRunStopRequested && this->mRunTypeChip[it->first] < nInj)) {
+      int iRU = 0;
+      std::vector<short int> linkChips;
+      bool extractChip = false;
+      if (isForceEor && mRunTypeChip[it->first] < nInj) {
+        iRU = getRUID(it->first);
+        linkChips = getChipBoundariesFromRu(iRU, mActiveLinks[iRU]);
+        // check whether at least one chip on the same link reached the end of the scan
+        for (size_t i = 0; i < linkChips.size(); i++) {
+          if (mRunTypeChip[linkChips[i]] > nInj && linkChips[i] != it->first) {
+            extractChip = true;
+            break;
+          }
+        }
+      }
+      if (!extractChip && (!mRunStopRequested && this->mRunTypeChip[it->first] < nInj)) {
         ++it;
         continue;
       }
@@ -1858,7 +1883,21 @@ void ITSThresholdCalibrator::finalize()
     name = "THR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!isFinalizeEos && (!mRunStopRequested && this->mRunTypeChip[it->first] < nInj)) {
+      int iRU = 0;
+      std::vector<short int> linkChips;
+      bool extractChip = false;
+      if (isForceEor && mRunTypeChip[it->first] < nInj) {
+        iRU = getRUID(it->first);
+        linkChips = getChipBoundariesFromRu(iRU, mActiveLinks[iRU]);
+        // check whether at least one chip on the same link reached the end of the scan
+        for (size_t i = 0; i < linkChips.size(); i++) {
+          if (mRunTypeChip[linkChips[i]] > nInj && linkChips[i] != it->first) {
+            extractChip = true;
+            break;
+          }
+        }
+      }
+      if (!extractChip && (!mRunStopRequested && this->mRunTypeChip[it->first] < nInj)) {
         ++it;
         continue;
       }
@@ -1881,7 +1920,21 @@ void ITSThresholdCalibrator::finalize()
     // Extract hits from the full matrix
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != this->mPixelHits.cend()) { // loop over chips collected
-      if (!isFinalizeEos && (!mRunStopRequested && this->mRunTypeChip[itchip->first] < nInj)) {
+      int iRU = 0;
+      std::vector<short int> linkChips;
+      bool extractChip = false;
+      if (isForceEor && mRunTypeChip[itchip->first] < nInj) {
+        iRU = getRUID(itchip->first);
+        linkChips = getChipBoundariesFromRu(iRU, mActiveLinks[iRU]);
+        // check whether at least one chip on the same link reached the end of the scan
+        for (size_t i = 0; i < linkChips.size(); i++) {
+          if (mRunTypeChip[linkChips[i]] > nInj && linkChips[i] != itchip->first) {
+            extractChip = true;
+            break;
+          }
+        }
+      }
+      if (!extractChip && (!mRunStopRequested && this->mRunTypeChip[itchip->first] < nInj)) {
         ++itchip;
         continue;
       }
@@ -1929,7 +1982,7 @@ void ITSThresholdCalibrator::finalize()
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != mPixelHits.cend()) {
       int iRU = getRUID(itchip->first);
-      if (!isFinalizeEos && (!mRunStopRequested && mRunTypeRU[iRU] < nInj * getActiveLinks(mActiveLinks[iRU]))) {
+      if (!mRunStopRequested && mRunTypeRU[iRU] < nInj * getActiveLinks(mActiveLinks[iRU])) {
         ++itchip;
         continue;
       }
@@ -1964,9 +2017,6 @@ void ITSThresholdCalibrator::endOfStream(EndOfStreamContext& ec)
 {
   if (!isEnded && !mRunStopRequested) {
     LOGF(info, "endOfStream report:", mSelfName);
-    if (isFinalizeEos) {
-      finalize();
-    }
     this->finalizeOutput();
     isEnded = true;
   }
@@ -1979,9 +2029,6 @@ void ITSThresholdCalibrator::stop()
 {
   if (!isEnded) {
     LOGF(info, "stop() report:", mSelfName);
-    if (isFinalizeEos) {
-      finalize();
-    }
     this->finalizeOutput();
     isEnded = true;
   }
@@ -2024,7 +2071,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"ccdb-mgr-url", VariantType::String, "", {"CCDB url to download confDBmap"}},
             {"min-vcasn", VariantType::Int, 30, {"Min value of VCASN in vcasn scan, default is 30"}},
             {"max-vcasn", VariantType::Int, 100, {"Max value of VCASN in vcasn scan, default is 80"}},
-            {"min-ithr", VariantType::Int, 30, {"Min value of ITHR in ithr scan, default is 30"}},
+            {"min-ithr", VariantType::Int, 15, {"Min value of ITHR in ithr scan, default is 15"}},
             {"max-ithr", VariantType::Int, 100, {"Max value of ITHR in ithr scan, default is 100"}},
             {"manual-mode", VariantType::Bool, false, {"Flag to activate the manual mode in case run type is not recognized"}},
             {"manual-min", VariantType::Int, 0, {"Min value of the variable used for the scan: use only in manual mode"}},
@@ -2044,7 +2091,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"max-dump", VariantType::Int, -1, {"Maximum number of s-curves to dump in ROOT file per chip. Works with fit option and dump-scurves flag enabled. Default: dump all"}},
             {"chip-dump", VariantType::String, "", {"Dump s-curves only for these Chip IDs (0 to 24119). If multiple IDs, write them separated by comma. Default is empty string: dump all"}},
             {"calculate-slope", VariantType::Bool, false, {"For Pulse Shape 2D: if enabled it calculate the slope of the charge vs strobe delay trend for each pixel and fill it in the output tree"}},
-            {"finalize-at-eos", VariantType::Bool, false, {"Call the finalize() method at the end of stream: to be used in case end-of-run flags are not available so to force calculations at end of run"}},
+            {"force-calculation-eor", VariantType::Bool, false, {"Calculate the avg quantities (thr, noise, vcasn, etc) at EOR ignoring the number of EOR flags from ITSComm"}},
             {"charge-a", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 1st point used for the slope calculation"}},
             {"charge-b", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 2nd point used for the slope calculation"}},
             {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}},

@@ -161,22 +161,35 @@ o2::dataformats::V0Ext SVStudySpec::processV0(int iv, o2::globaltracking::RecoCo
     v0ext.v0 = v0sel;
   }
   v0ext.v0ID = v0id;
+  o2::MCCompLabel lb;
   for (int ip = 0; ip < 2; ip++) {
     auto& prInfo = v0ext.prInfo[ip];
     auto gid = v0ext.v0ID.getProngID(ip);
     auto gidset = recoData.getSingleDetectorRefs(gid);
+    lb = recoData.getTrackMCLabel(gid);
+    if (lb.isValid()) {
+      prInfo.corrGlo = !lb.isFake();
+    }
     // get TPC tracks, if any
     if (gidset[GTrackID::TPC].isSourceSet()) {
       const auto& tpcTr = recoData.getTPCTrack(gidset[GTrackID::TPC]);
       prInfo.trackTPC = tpcTr;
       prInfo.nClTPC = tpcTr.getNClusters();
+      lb = recoData.getTrackMCLabel(gidset[GTrackID::TPC]);
+      if (lb.isValid()) {
+        prInfo.corrTPC = !lb.isFake();
+      }
     }
     // get ITS tracks, if any
     if (gid.includesDet(DetID::ITS)) {
       auto gidITS = recoData.getITSContributorGID(gid);
       if (gidset[GTrackID::ITS].isSourceSet()) {
-        const auto& itsTr = recoData.getITSTrack(recoData.getITSContributorGID(gid));
+        const auto& itsTr = recoData.getITSTrack(gidset[GTrackID::ITS]);
         prInfo.nClITS = itsTr.getNClusters();
+        lb = recoData.getTrackMCLabel(gidset[GTrackID::ITS]);
+        if (lb.isValid()) {
+          prInfo.corrITS = !lb.isFake();
+        }
         for (int il = 0; il < 7; il++) {
           if (itsTr.hasHitOnLayer(il)) {
             prInfo.pattITS |= 0x1 << il;
@@ -185,6 +198,10 @@ o2::dataformats::V0Ext SVStudySpec::processV0(int iv, o2::globaltracking::RecoCo
       } else {
         const auto& itsTrf = recoData.getITSABRefs()[gidset[GTrackID::ITSAB]];
         prInfo.nClITS = itsTrf.getNClusters();
+        lb = recoData.getTrackMCLabel(gidset[GTrackID::ITSAB]);
+        if (lb.isValid()) {
+          prInfo.corrITS = !lb.isFake();
+        }
         for (int il = 0; il < 7; il++) {
           if (itsTrf.hasHitOnLayer(il)) {
             prInfo.pattITS |= 0x1 << il;
@@ -194,7 +211,11 @@ o2::dataformats::V0Ext SVStudySpec::processV0(int iv, o2::globaltracking::RecoCo
       }
       if (gidset[GTrackID::ITSTPC].isSourceSet()) {
         auto mtc = recoData.getTPCITSTrack(gidset[GTrackID::ITSTPC]);
+        lb = recoData.getTrackMCLabel(gidset[GTrackID::ITSTPC]);
         prInfo.chi2ITSTPC = mtc.getChi2Match();
+        if (lb.isValid()) {
+          prInfo.corrITSTPC = !lb.isFake();
+        }
       }
     }
   }

@@ -313,7 +313,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     if (nbins > 1) {
       // dont take bins with 0 entries or bins with nan into account
       // if y-value (*iter) is 1, log(*iter) will be 0. Exclude these cases
-      if (isnan(*axisiter) || isinf(*axisiter) || *iter <= 0 || *iter == 1) {
+      if (std::isnan(*axisiter) || std::isinf(*axisiter) || *iter <= 0 || *iter == 1) {
         continue;
       }
       double x = *axisiter;

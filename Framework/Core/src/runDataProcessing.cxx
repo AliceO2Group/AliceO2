@@ -2722,11 +2722,7 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   for (auto& d : specs) {
     out << "- " << d.name << std::endl;
   }
-  out << "digraph G {\n";
-  for (auto& e : edges) {
-    out << fmt::format("  \"{}\" -> \"{}\"\n", specs[e.first].name, specs[e.second].name);
-  }
-  out << "}\n";
+  GraphvizHelpers::dumpDataProcessorSpec2Graphviz(out, specs, edges);
   return out.str();
 }
 
@@ -3068,7 +3064,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       auto* selectedName = (char const*)context;
       std::string prefix = "ch.cern.aliceo2.";
       if (strcmp(name, (prefix + selectedName).data()) == 0) {
-        LOGP(info, "Enabling signposts for {}", *selectedName);
+        LOGP(info, "Enabling signposts for stream \"ch.cern.aliceo2.{}\"", selectedName);
         _o2_log_set_stacktrace(log, 1);
         return false;
       } else {

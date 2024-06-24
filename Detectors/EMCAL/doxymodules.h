@@ -35,8 +35,13 @@
  * EMCAL calibration objects for
  * - Bad channel map
  * - Time calibration
+ * - Time slewing parameters
  * - Gain calibration
  * - Temperature calibration
+ * - FEE DCS parameters
+ * - Pedestal data
+ * In addition providing an interface convenient CCDB access and methods
+ * to recalibrate add cell level.
  */
 
 /**
@@ -44,8 +49,10 @@
  * @brief EMCAL bad channel calibration
  * @ingroup DetectorEMCAL
  *
- * Performs the EMCal bad channel calibration.
- *
+ * EMCAL calibrator performing
+ * - Bad channel calibration
+ * - Time calibration
+ * and corresponding workflows for calibration tasks.
  */
 
 /**

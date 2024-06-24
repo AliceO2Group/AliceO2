@@ -2831,9 +2831,22 @@ void MatchTPCITS::dumpTPCOrig(bool acc, int tpcIndex)
   ///< fill debug tree for TPC original tracks (passing pT cut)
   mTimer[SWDBG].Start(false);
   const auto& tpcOrig = mTPCTracksArray[tpcIndex];
-  uint8_t clSect = 0, clRow = 0;
+  uint8_t clSect = 0, clRow = 0, prevRow = 0xff;
   uint32_t clIdx = 0;
-  tpcOrig.getClusterReference(mTPCTrackClusIdx, tpcOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
+  int nshared = 0;
+  std::array<bool, 152> shMap{};
+  bool prevRawShared = false;
+  for (int i = 0; i < tpcOrig.getNClusterReferences(); i++) {
+    tpcOrig.getClusterReference(mTPCTrackClusIdx, i, clSect, clRow, clIdx);
+    unsigned int absoluteIndex = mTPCClusterIdxStruct->clusterOffset[clSect][clRow] + clIdx;
+    if (mTPCRefitterShMap[absoluteIndex] & GPUCA_NAMESPACE::gpu::GPUTPCGMMergedTrackHit::flagShared) {
+      if (!(prevRow == clRow && prevRawShared)) {
+        nshared++;
+      }
+      prevRow = clRow;
+      prevRawShared = true;
+    }
+  }
   int tb = tpcOrig.getTime0() * mNTPCOccBinLengthInv;
   float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
   (*mDBGOut) << "tpcOrig"
@@ -2842,6 +2855,7 @@ void MatchTPCITS::dumpTPCOrig(bool acc, int tpcIndex)
              << "acc=" << acc
              << "chi2TPC=" << tpcOrig.getChi2()
              << "nClus=" << tpcOrig.getNClusters()
+             << "nShared=" << nshared
              << "time0=" << tpcOrig.getTime0()
              << "trc=" << ((o2::track::TrackParCov&)tpcOrig)
              << "minRow=" << clRow

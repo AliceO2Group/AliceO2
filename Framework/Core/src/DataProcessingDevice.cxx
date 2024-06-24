@@ -94,6 +94,8 @@ O2_DECLARE_DYNAMIC_LOG(device);
 O2_DECLARE_DYNAMIC_LOG(parts);
 // Special log to track the async queue behavior
 O2_DECLARE_DYNAMIC_LOG(async_queue);
+// Special log to track the forwarding requests
+O2_DECLARE_DYNAMIC_LOG(forwarding);
 
 using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
@@ -115,6 +117,16 @@ void on_idle_timer(uv_timer_t* handle)
 {
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
+}
+
+bool hasOnlyTimers(DeviceSpec const& spec)
+{
+  return std::all_of(spec.inputs.cbegin(), spec.inputs.cend(), [](InputRoute const& route) -> bool { return route.matcher.lifetime == Lifetime::Timer; });
+}
+
+bool hasOnlyGenerated(DeviceSpec const& spec)
+{
+  return (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
 }
 
 void on_transition_requested_expired(uv_timer_t* handle)
@@ -626,6 +638,9 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
   std::vector<fair::mq::Parts> forwardedParts;
   forwardedParts.resize(proxy.getNumForwards());
   std::vector<ChannelIndex> cachedForwardingChoices{};
+  O2_SIGNPOST_ID_GENERATE(sid, forwarding);
+  O2_SIGNPOST_START(forwarding, sid, "forwardInputs", "Starting forwarding for slot %zu with oldestTimeslice %zu %{public}s%{public}s%{public}s",
+                    slot.index, oldestTimeslice.timeslice.value, copy ? "with copy" : "", copy && consume ? " and " : "", consume ? "with consume" : "");
 
   for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
     auto& messageSet = currentSetOfInputs[ii];
@@ -653,9 +668,14 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       if (cachedForwardingChoices.size() > 1) {
         copy = true;
       }
+      auto* dh = o2::header::get<DataHeader*>(header->GetData());
+      auto* dph = o2::header::get<DataProcessingHeader*>(header->GetData());
+
       if (copy) {
         for (auto& cachedForwardingChoice : cachedForwardingChoices) {
           auto&& newHeader = header->GetTransport()->CreateMessage();
+          O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding a copy of %{public}s to route %d.",
+                                 fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoice.value);
           newHeader->Copy(*header);
           forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newHeader));
 
@@ -666,6 +686,8 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
           }
         }
       } else {
+        O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %{public}s to route %d.",
+                               fmt::format("{}/{}/{}@timeslice:{} tfCounter:{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dph->startTime, dh->tfCounter).c_str(), cachedForwardingChoices.back().value);
         forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.header(pi)));
         for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
           forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.payload(pi, payloadIndex)));
@@ -673,19 +695,18 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       }
     }
   }
-  LOG(debug) << "Forwarding " << forwardedParts.size() << " messages";
+  O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding %zu messages", forwardedParts.size());
   for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
     if (forwardedParts[fi].Size() == 0) {
       continue;
     }
     ForwardChannelInfo info = proxy.getForwardChannelInfo(ChannelIndex{fi});
-    LOG(debug) << "Forwarding to " << info.name << " " << fi;
-    // in DPL we are using subchannel 0 only
     auto& parts = forwardedParts[fi];
     if (info.policy == nullptr) {
-      LOG(error) << "Forwarding to " << info.name << " " << fi << " has no policy";
+      O2_SIGNPOST_EVENT_EMIT_ERROR(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d has no policy.", info.name.c_str(), fi);
       continue;
     }
+    O2_SIGNPOST_EVENT_EMIT(forwarding, sid, "forwardInputs", "Forwarding to %{public}s %d", info.name.c_str(), fi);
     info.policy->forward(parts, ChannelIndex{fi}, registry);
   }
 
@@ -719,7 +740,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       }
     },
     oldestTimeslice.timeslice, -1);
-  LOG(debug) << "Forwarding done";
+  O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
 };
 extern volatile int region_read_global_dummy_variable;
 volatile int region_read_global_dummy_variable;
@@ -1281,15 +1302,8 @@ void DataProcessingDevice::Run()
         auto& deviceContext = ref.get<DeviceContext>();
         auto timeout = deviceContext.exitTransitionTimeout;
         // Check if we only have timers
-        bool onlyTimers = true;
         auto& spec = ref.get<DeviceSpec const>();
-        for (auto& route : spec.inputs) {
-          if (route.matcher.lifetime != Lifetime::Timer) {
-            onlyTimers = false;
-            break;
-          }
-        }
-        if (onlyTimers) {
+        if (hasOnlyTimers(spec)) {
           state.streaming = StreamingState::EndOfStreaming;
         }
         if (timeout != 0 && state.streaming != StreamingState::Idle) {
@@ -1689,9 +1703,11 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     // I guess we will see.
     /// Besides flushing the queues we must make sure we do not have only
     /// timers as they do not need to be further processed.
-    bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
     auto& relayer = ref.get<DataRelayer>();
-    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && hasOnlyGenerated == false) {
+
+    bool shouldProcess = hasOnlyGenerated(spec) == false;
+
+    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && shouldProcess) {
       relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
@@ -1710,11 +1726,7 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     // This is needed because the transport is deleted before the device.
     relayer.clear();
     switchState(StreamingState::Idle);
-    if (hasOnlyGenerated) {
-      *context.wasActive = false;
-    } else {
-      *context.wasActive = true;
-    }
+    *context.wasActive = shouldProcess;
     // On end of stream we shut down all output pollers.
     O2_SIGNPOST_EVENT_EMIT(device, dpid, "state", "Shutting down output pollers.");
     for (auto& poller : state.activeOutputPollers) {
@@ -1828,10 +1840,8 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       // We only deal with the tracking of parts if the log is enabled.
       // This is because in principle we should track the size of each of
       // the parts and sum it up. Not for now.
-      if (O2_LOG_ENABLED(parts) == true) {
-        O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerData);
-        O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
-      }
+      O2_SIGNPOST_ID_FROM_POINTER(pid, parts, headerData);
+      O2_SIGNPOST_START(parts, pid, "parts", "Processing DataHeader with splitPayloadParts %d and splitPayloadIndex %d", dh->splitPayloadParts, dh->splitPayloadIndex);
       if (!dph) {
         insertInputInfo(pi, 2, InputType::Invalid, info.id);
         O2_SIGNPOST_EVENT_EMIT_ERROR(device, cid, "handle_data", "Header stack does not contain DataProcessingHeader");
