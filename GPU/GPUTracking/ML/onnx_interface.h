@@ -21,7 +21,11 @@
 #define GPU_ML_ONNX_INTERFACE_H
 
 // C++ and system includes
-#include <onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>
+#if __has_include(<onnxruntime/core/session/onnxruntime_cxx_api.h>)
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#else
+#include <onnxruntime_cxx_api.h>
+#endif
 #include <vector>
 #include <string>
 #include <memory>
