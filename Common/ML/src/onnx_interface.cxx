@@ -43,6 +43,11 @@ void OnnxModel::init(std::string localPath, bool enableOptimizations, int thread
   modelPath = localPath;
   activeThreads = threads;
 
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
+#else
+  mMemoryInfo = Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
+#endif
+
   /// Enableing optimizations
   if(threads != 0){
     // sessionOptions.SetInterOpNumThreads(1);
@@ -63,12 +68,28 @@ void OnnxModel::init(std::string localPath, bool enableOptimizations, int thread
   }
 
   mEnv = std::make_shared<Ort::Env>(ORT_LOGGING_LEVEL_WARNING, "onnx-model");
-  mSession = std::make_shared<Ort::Experimental::Session>(*mEnv, modelPath, sessionOptions);
-
-  mInputNames = mSession->GetInputNames();
-  mInputShapes = mSession->GetInputShapes();
-  mOutputNames = mSession->GetOutputNames();
-  mOutputShapes = mSession->GetOutputShapes();
+  #if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
+    mSession = std::make_shared<Ort::Experimental::Session>(*mEnv, modelPath, sessionOptions);
+    mInputNames = mSession->GetInputNames();
+    mInputShapes = mSession->GetInputShapes();
+    mOutputNames = mSession->GetOutputNames();
+    mOutputShapes = mSession->GetOutputShapes();
+  #else
+    mSession = std::make_shared<Ort::Session>(*mEnv, modelPath.c_str(), sessionOptions);
+    Ort::AllocatorWithDefaultOptions tmpAllocator;
+    for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
+      mInputNames.push_back(mSession->GetInputNameAllocated(i, tmpAllocator).get());
+    }
+    for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
+      mInputShapes.emplace_back(mSession->GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
+    }
+    for (size_t i = 0; i < mSession->GetOutputCount(); ++i) {
+      mOutputNames.push_back(mSession->GetOutputNameAllocated(i, tmpAllocator).get());
+    }
+    for (size_t i = 0; i < mSession->GetOutputCount(); ++i) {
+      mOutputShapes.emplace_back(mSession->GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
+    }
+  #endif
 
   LOG(info) << "Input Nodes:";
   for (size_t i = 0; i < mInputNames.size(); i++) {
@@ -121,7 +142,6 @@ void OnnxModel::init(std::string localPath, bool enableOptimizations, int thread
 template<class T>
 float* OnnxModel::inference(T input, unsigned int size)
 {
-
   std::vector<int64_t> inputShape = mInputShapes[0];
   inputShape[0] = size;
   std::vector<Ort::Value> inputTensors;
@@ -129,22 +149,36 @@ float* OnnxModel::inference(T input, unsigned int size)
   for(auto elem : inputShape){
     mem_size*=elem;
   }
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
   inputTensors.emplace_back(Ort::Experimental::Value::CreateTensor<float>(input.data(), mem_size, inputShape));
-  // LOG(info) << "Input tensors created, memory size: " << mem_size*sizeof(float)/1e6 << "MB";
   try {
-    auto outputTensors = mSession->Run(mInputNames, inputTensors, mOutputNames);
-    float* outputValues = outputTensors[0].GetTensorMutableData<float>();
-    return outputValues;
-  } catch (const Ort::Exception& exception) {
-    LOG(error) << "Error running model inference: " << exception.what();
-  }
+      auto outputTensors = mSession->Run(mInputNames, inputTensors, mOutputNames);
+      inputTensors.clear();
+      float* outputValues = outputTensors[0].GetTensorMutableData<float>();
+      return outputValues;
+    } catch (const Ort::Exception& exception) {
+      LOG(error) << "Error running model inference: " << exception.what();
+    }
+#else
+  std::vector<const char*> tmpInputs;
+  std::vector<const char*> tmpOutputs;
+  inputTensors.emplace_back(Ort::Value::CreateTensor<float>(mMemoryInfo, input.data(), input.size(), inputShape.data(), 1));
+  try {
+      auto outputTensors = mSession->Run(Ort::RunOptions{nullptr}, tmpInputs.data(), inputTensors.data(), inputTensors.size(), tmpOutputs.data(), mOutputNames.size());
+      inputTensors.clear();
+      float* outputValues = outputTensors[0].GetTensorMutableData<float>();
+      return outputValues;
+    } catch (const Ort::Exception& exception) {
+      LOG(error) << "Error running model inference: " << exception.what();
+    }
+#endif
+  // LOG(info) << "Input tensors created, memory size: " << mem_size*sizeof(float)/1e6 << "MB";
   return nullptr;
 }
 
 template<class T>
 std::vector<float> OnnxModel::inference_vector(T input, unsigned int size)
 {
-
   std::vector<int64_t> inputShape = mInputShapes[0];
   inputShape[0] = size;
   std::vector<Ort::Value> inputTensors;
@@ -153,21 +187,29 @@ std::vector<float> OnnxModel::inference_vector(T input, unsigned int size)
   for(auto elem : inputShape){
     mem_size*=elem;
   }
+#if __has_include(<onnxruntime/core/session/experimental_onnxruntime_cxx_api.h>)
   inputTensors.emplace_back(Ort::Experimental::Value::CreateTensor<float>(input.data(), mem_size, inputShape));
-  // LOG(info) << "Input tensors created, memory size: " << mem_size*sizeof(float)/1e6 << "MB";
   try {
-    auto outputTensors = mSession->Run(mInputNames, inputTensors, mOutputNames);
-    float* outputValues = outputTensors[0].GetTensorMutableData<float>();
-    std::vector<float> outputVector{outputValues, outputValues + size * mOutputShapes[0][1]};
-    // for(int s = 0; s < size; s++){
-    //   for(int o = 0; o < mOutputShapes[0][1]; o++){
-    //     outputValues.push_back(tmp_output_values[s*(int)mOutputShapes[0][1] + o]);
-    //   }
-    // }
-    return outputVector;
-  } catch (const Ort::Exception& exception) {
-    LOG(error) << "Error running model inference: " << exception.what();
-  }
+      auto outputTensors = mSession->Run(mInputNames, inputTensors, mOutputNames);
+      inputTensors.clear();
+      float* outputValues = outputTensors[0].GetTensorMutableData<float>();
+      return std::vector<float>{outputValues, outputValues + size * mOutputShapes[0][1]};
+    } catch (const Ort::Exception& exception) {
+      LOG(error) << "Error running model inference: " << exception.what();
+    }
+#else
+  std::vector<const char*> tmpInputs;
+  std::vector<const char*> tmpOutputs;
+  inputTensors.emplace_back(Ort::Value::CreateTensor<float>(mMemoryInfo, input.data(), input.size(), inputShape.data(), 1));
+  try {
+      auto outputTensors = mSession->Run(Ort::RunOptions{nullptr}, tmpInputs.data(), inputTensors.data(), inputTensors.size(), tmpOutputs.data(), mOutputNames.size());
+      inputTensors.clear();
+      float* outputValues = outputTensors[0].GetTensorMutableData<float>();
+      return std::vector<float>{outputValues, outputValues + size * mOutputShapes[0][1]};
+    } catch (const Ort::Exception& exception) {
+      LOG(error) << "Error running model inference: " << exception.what();
+    }
+#endif
   return std::vector<float>{};
 }
 
