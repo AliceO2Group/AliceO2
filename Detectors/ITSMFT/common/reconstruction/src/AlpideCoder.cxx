@@ -76,7 +76,7 @@ int AlpideCoder::encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData
 int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
 {
   // process double column: encoding
-  short hits[2 * NRows];
+  std::array<short, 2 * NRows> hits;
   int nHits = 0, nData = 0;
   //
   int nr = mFirstInRow.size();
@@ -84,8 +84,11 @@ int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
   int prevRow = -1;
   for (int ir = 0; ir < nr; ir++) {
     int linkID = mFirstInRow[ir];
-    if (linkID == -1 || mPix2Encode[linkID].col > col1) { // no pixels left on this row or higher column IDs
+    if (linkID == -1) { // no pixels left on this row
       continue;
+    }
+    if (mPix2Encode[linkID].col > col1) { // all following hits will have higher columns
+      break;
     }
     short rowID = mPix2Encode[linkID].row;
     // process fired pixels
@@ -122,6 +125,9 @@ int AlpideCoder::procDoubleCol(PayLoadCont& buffer, short reg, short dcol)
   }
   //
   int ih = 0;
+  if (nHits > 1) {
+    std::sort(hits.begin(), hits.begin() + nHits);
+  }
   while ((ih < nHits)) {
     short addrE, addrW = hits[ih++]; // address of the reference hit
     uint8_t mask = 0;
