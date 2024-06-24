@@ -42,8 +42,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "\nALICE2.1: The future configuration for Run 4"
     "\nALICE3  : The far-future configuration for Run 5-6"
     "\nAdditionally one can provide their own custom list of modules which should be included in the geometry."
-    "\nBy specifiying LIST:JSONFILE where LIST is a list present in JSONFILE."
-    "\nOne limitation is that LIST cannot have ':' in their name!")(
+    "\nBy specifiying LIST:JSONFILE where LIST is a list present in JSONFILE.")(
     "nEvents,n", bpo::value<unsigned int>()->default_value(0), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
@@ -274,14 +273,9 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mReadoutDetectors.clear();
   mConfigData.mActiveModules.clear();
 
-  if (vm["detectorList"].defaulted()) {
-    // get final set of active Modules
-    determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, mConfigData.mIsUpgrade);
-  } else {
-    // Check for a specific detector version
-    if (!determineActiveModulesList(vm["detectorList"].as<std::string>(), vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules)) {
-      return false;
-    }
+  // Get final set of active Modules
+  if (!determineActiveModulesList(vm["detectorList"].as<std::string>(), vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules)) {
+    return false;
   }
 
   if (mConfigData.mNoGeant) {
