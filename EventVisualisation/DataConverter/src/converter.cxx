@@ -124,7 +124,8 @@ void my_handler(int s)
 
 int main(int argc, char** argv)
 {
-  struct sigaction sigIntHandler{};
+  struct sigaction sigIntHandler {
+  };
   sigIntHandler.sa_handler = my_handler;
   sigemptyset(&sigIntHandler.sa_mask);
   sigIntHandler.sa_flags = 0;
@@ -133,7 +134,7 @@ int main(int argc, char** argv)
   LOGF(info, "Welcome in O2 event conversion tool");
 
   if (argc == 3) {
-    singleFileConversion(argv[1], argv[2]);         // std::quick_exit(...
+    singleFileConversion(argv[1], argv[2]); // std::quick_exit(...
     return 0;
   }
   if (argc == 4 and std::string(argv[1]) == std::string("-l")) {
@@ -141,7 +142,7 @@ int main(int argc, char** argv)
     return 0;
   }
   if (argc == 4 and std::string(argv[1]) == std::string("-f")) {
-    folderConversion(argv[2], argv[3]);    // std::quick_exit(...
+    folderConversion(argv[2], argv[3]); // std::quick_exit(...
     return 0;
   }
   if (argc == 4 and std::string(argv[1]) == std::string("-c")) {
