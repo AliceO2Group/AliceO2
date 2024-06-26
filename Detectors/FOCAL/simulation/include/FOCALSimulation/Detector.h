@@ -23,6 +23,7 @@ class FairVolume;
 namespace o2::focal
 {
 
+class Hit;
 class Geometry;
 
 /// \struct Parent
@@ -39,6 +40,16 @@ struct Parent {
 /// \ingroup FOCALsimulation
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 /// \since June 6, 2024
+/// \author Adam Matyja <adam.tomasz.matyja@cern.ch>, Institute of Nuclear Physics, PAN, Cracov, Poland
+/// \since June 24, 2024
+/// class based on AliFOCALv2.h in aliroot
+/// It builds the ECAL (Adam) and HCAL (Hadi) seperately
+/// For the ECAL: it builds it tower by tower
+/// For the HCAL:
+///
+/// The detector class handles the implementation of the FOCAL detector
+/// within the virtual Monte-Carlo framework and the simulation of the
+/// FOCAL detector up to hit generation
 class Detector : public o2::base::DetImpl<Detector>
 {
  public:
@@ -139,11 +150,15 @@ class Detector : public o2::base::DetImpl<Detector>
 
   virtual void addAlignableVolumes() const override;
   void addAlignableVolumesHCAL() const;
+  void addAlignableVolumesECAL() const;
 
   void ConstructGeometry() override;
 
   virtual void CreateHCALSpaghetti();
   virtual void CreateHCALSandwich();
+
+  /// \brief Generate ECAL geometry
+  void CreateECALGeometry();
 
   /// \brief Add new superparent to the container
   /// \param trackID Track ID of the superparent
@@ -158,6 +173,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Geometry* mGeometry; //!<! Geometry pointer
 
   int mMedSensHCal = 0; //!<! Sensitive Medium for HCal
+  int mMedSensECal = 0; //!<! Sensitive Medium for ECal
 
   std::vector<const Composition*> mGeoCompositions; //!<! list of FOCAL compositions
 
@@ -173,6 +189,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mCurrentParentID;  //!<! ID of the current parent
 
   std::vector<std::string> mSensitiveHCAL; //!<! List of sensitive volumes
+  std::vector<std::string> mSensitiveECAL; //!<! List of sensitive volumes
   int mVolumeIDScintillator = -1;          //!<! Volume ID of the scintillator volume
 
   template <typename Det>
