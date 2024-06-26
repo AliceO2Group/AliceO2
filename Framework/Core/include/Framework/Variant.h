@@ -254,75 +254,85 @@ DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(std::string, LabeledArrayString);
 template <VariantType V>
 using variant_array_element_type_t = typename variant_array_element_type<V>::type;
 
-template <typename S, typename T>
+template <typename T>
 struct variant_helper {
-  static void set(S* store, T value)
+  static void set(void* store, T value)
   {
     new (reinterpret_cast<T*>(store)) T{};
     *(reinterpret_cast<T*>(store)) = value;
   }
-  static void set(S* store, T values, size_t size)
+  static void set(void* store, T values, size_t size)
   {
     *reinterpret_cast<T*>(store) = reinterpret_cast<T>(std::memcpy(std::malloc(size * sizeof(std::remove_pointer_t<T>)), reinterpret_cast<void*>(values), size * sizeof(std::remove_pointer_t<T>)));
   }
 
-  static T get(const S* store) { return *(reinterpret_cast<const T*>(store)); }
+  static T get(const void* store) { return *(reinterpret_cast<const T*>(store)); }
 };
 
-template <typename S>
-struct variant_helper<S, const char*> {
-  static const char* get(const S* store) { return *reinterpret_cast<const char* const*>(store); }
+template <>
+struct variant_helper<std::vector<std::string>> {
+  // Allocates a new store and copies into it.
+  static void set(void* store, std::vector<std::string> value)
+  {
+    new (reinterpret_cast<std::vector<std::string>*>(store)) std::vector<std::string>{};
+    *(reinterpret_cast<std::vector<std::string>*>(store)) = value;
+  }
 
-  static void set(S* store, const char* value) { *reinterpret_cast<char**>(store) = strdup(value); }
+  static std::vector<std::string> const& get(const void* store) { return *(reinterpret_cast<std::vector<std::string> const*>(store)); }
 };
 
-template <typename S>
-struct variant_helper<S, std::string_view> {
-  static std::string_view get(const S* store) { return std::string_view(*reinterpret_cast<const char* const*>(store)); }
+template <>
+struct variant_helper<const char*> {
+  static const char* get(const void* store) { return *reinterpret_cast<const char* const*>(store); }
 
-  static void set(S* store, std::string_view value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
+  static void set(void* store, const char* value) { *reinterpret_cast<char**>(store) = strdup(value); }
 };
 
-template <typename S>
-struct variant_helper<S, std::string> {
-  static std::string get(const S* store) { return std::string(*reinterpret_cast<const char* const*>(store)); }
+template <>
+struct variant_helper<std::string_view> {
+  static std::string_view get(const void* store) { return std::string_view(*reinterpret_cast<const char* const*>(store)); }
 
-  static void set(S* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
+  static void set(void* store, std::string_view value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
+};
+
+template <>
+struct variant_helper<std::string> {
+  static std::string get(const void* store) { return std::string(*reinterpret_cast<const char* const*>(store)); }
+
+  static void set(void* store, std::string value) { *reinterpret_cast<char**>(store) = strdup(value.data()); }
 };
 
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int8_t, int16_t, int64_t,
-                                       uint8_t, uint16_t, uint32_t, uint64_t,
-                                       const char*, float, double, bool,
-                                       int*, float*, double*, bool*, std::string*,
-                                       Array2D<int>, Array2D<float>, Array2D<double>, Array2D<std::string>,
-                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>, LabeledArray<std::string>>::type;
-
  public:
-  Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}
+  Variant(VariantType type = VariantType::Unknown) : mType{type} {}
 
   template <typename T>
-  Variant(T value) : mType{variant_trait_v<T>}, mSize{1}
+  Variant(T value) : mType{variant_trait_v<T>}
   {
-    variant_helper<storage_t, decltype(value)>::set(&mStore, value);
+    variant_helper<decltype(value)>::set(&mStore, value);
   }
 
   template <typename T>
   Variant(T values, size_t size) : mType{variant_trait_v<T>}, mSize{size}
   {
-    variant_helper<storage_t, T>::set(&mStore, values, mSize);
+    variant_helper<T>::set(&mStore, values, mSize);
   }
 
   template <typename T>
   Variant(std::vector<T>& values) : mType{variant_trait_v<T*>}, mSize{values.size()}
   {
-    variant_helper<storage_t, T*>::set(&mStore, values.data(), mSize);
+    variant_helper<T*>::set(&mStore, values.data(), mSize);
+  }
+
+  Variant(std::vector<std::string>& values) : mType{VariantType::ArrayString}, mSize{values.size()}
+  {
+    variant_helper<std::vector<std::string>>::set(&mStore, values);
   }
 
   template <typename T>
-  Variant(std::initializer_list<T>) : mType{VariantType::Unknown}, mSize{1}
+  Variant(std::initializer_list<T>)
   {
     static_assert(sizeof(T) == 0,
                   "brace-enclosed initializer list forbidden for Variant"
@@ -347,36 +357,50 @@ class Variant
     if (mType != variant_trait_v<T>) {
       throw runtime_error("Mismatch between types");
     }
-    return variant_helper<storage_t, T>::get(&mStore);
+    return variant_helper<T>::get(&mStore);
   }
 
   template <typename T>
   void set(T value)
   {
-    return variant_helper<storage_t, T>::set(&mStore, value);
+    return variant_helper<T>::set(&mStore, value);
   }
 
   template <typename T>
   void set(T value, size_t size)
   {
     mSize = size;
-    return variant_helper<storage_t, T>::set(&mStore, value, mSize);
+    return variant_helper<T>::set(&mStore, value, mSize);
   }
 
   template <typename T>
   void set(std::vector<T>& values)
+    requires(std::is_pod_v<T>)
   {
-    return variant_helper<storage_t, T*>::set(&mStore, values.data(), values.size());
+    return variant_helper<T*>::set(&mStore, values.data(), values.size());
   }
 
-  VariantType type() const { return mType; }
-  size_t size() const { return mSize; }
-  std::string asString() const;
+  template <typename T>
+  void set(std::vector<T>& values)
+    requires(std::is_same_v<T, std::string>)
+  {
+    return variant_helper<T*>::set(&mStore, values);
+  }
+
+  [[nodiscard]] VariantType type() const { return mType; }
+  [[nodiscard]] size_t size() const { return mSize; }
+  [[nodiscard]] std::string asString() const;
 
  private:
   friend std::ostream& operator<<(std::ostream& oss, Variant const& val);
+  using storage_t = std::aligned_union<8, int, int8_t, int16_t, int64_t,
+                                       uint8_t, uint16_t, uint32_t, uint64_t,
+                                       const char*, float, double, bool,
+                                       int*, float*, double*, bool*, std::string*,
+                                       Array2D<int>, Array2D<float>, Array2D<double>, Array2D<std::string>,
+                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>, LabeledArray<std::string>>::type;
   storage_t mStore;
-  VariantType mType;
+  VariantType mType = VariantType::Unknown;
   size_t mSize = 1;
 };
 
