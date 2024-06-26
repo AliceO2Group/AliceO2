@@ -72,6 +72,7 @@ class AlpideCoder
   static constexpr uint32_t ExpectRegion = 0x1 << 3;
   static constexpr uint32_t ExpectData = 0x1 << 4;
   static constexpr uint32_t ExpectBUSY = 0x1 << 5;
+  static constexpr uint32_t ExpectNextChip = ExpectChipHeader | ExpectChipEmpty;
   static constexpr int NRows = 512;
   static constexpr int RowMask = NRows - 1;
   static constexpr int NCols = 1024;
@@ -154,7 +155,7 @@ class AlpideCoder
     std::uint16_t rightColHits[NRows]; // buffer for the accumulation of hits in the right column
     std::uint16_t colDPrev = 0xffff;   // previously processed double column (to dected change of the double column)
 
-    uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
+    uint32_t expectInp = ExpectNextChip; // data must always start with chip header or chip empty flag
 
     chipData.clear();
     bool dataSeen = false;
@@ -200,7 +201,7 @@ class AlpideCoder
         }
         seenChips.push_back(chipIDGlo);
         chipData.resetChipID();
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
+        expectInp = ExpectNextChip;
         continue;
       }
 
@@ -235,6 +236,7 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
+        expectInp = ExpectNextChip;
         chipData.setROFlags(dataC & MaskROFlags);
 #ifdef ALPIDE_DECODING_STAT
         uint8_t roErr = dataC & MaskROFlags;
@@ -382,7 +384,7 @@ class AlpideCoder
       }
 
       if (!dataC) {
-        if (expectInp == (ExpectChipHeader | ExpectChipEmpty)) {
+        if (expectInp == ExpectNextChip) {
           continue;
         }
         chipData.setError(ChipStat::TruncatedBuffer);
@@ -391,7 +393,7 @@ class AlpideCoder
 
       // in case of BUSY VIOLATION the Trailer may come directly after the Header
       if ((expectInp & ExpectRegion) && (dataCM == CHIPTRAILER) && (dataC & MaskROFlags)) {
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
+        expectInp = ExpectNextChip;
         chipData.setROFlags(dataC & MaskROFlags);
         roErrHandler(dataC & MaskROFlags);
         break;
@@ -423,6 +425,13 @@ class AlpideCoder
       chipData.setNBytesInRawBuff(offsBack + offsAfter);
 #endif
       return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // abandon cable data
+    }
+
+    if (!(expectInp & ExpectNextChip)) {
+#ifdef ALPIDE_DECODING_STAT
+      chipData.setError(ChipStat::TruncatedRegion);
+#endif
+      return unexpectedEOF("Missing CHIP_TRAILER"); // abandon cable data
     }
 
     if (needSorting && chipData.getData().size()) { // d.columns were in a wrong order, need to sort the data, RS: effectively disabled
