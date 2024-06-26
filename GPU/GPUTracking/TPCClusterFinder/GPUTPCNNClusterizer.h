@@ -77,7 +77,7 @@ class GPUTPCNNClusterizer : public GPUKernelTemplate
                               uint*,
                               tpc::ClusterNative*,
                               uint*,
-                              int = 3, int = 3, int = 3, bool = 1, float = 0.16, bool = true);
+                              int = 3, int = 3, int = 3, bool = 1, float = 0.16, bool = true, int = 1);
 
  private:
   // ---------------------------------

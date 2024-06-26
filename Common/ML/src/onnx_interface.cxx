@@ -200,9 +200,9 @@ std::vector<float> OnnxModel::inference_vector(T input, unsigned int size)
 #else
   std::vector<const char*> tmpInputs;
   std::vector<const char*> tmpOutputs;
-  inputTensors.emplace_back(Ort::Value::CreateTensor<float>(mMemoryInfo, input.data(), input.size(), inputShape.data(), 1));
+  inputTensors.emplace_back(Ort::Value::CreateTensor<float>(input.data(), mem_size, inputShape));
   try {
-      auto outputTensors = mSession->Run(Ort::RunOptions{nullptr}, tmpInputs.data(), inputTensors.data(), inputTensors.size(), tmpOutputs.data(), mOutputNames.size());
+      auto outputTensors = mSession->Run(mInputNames, inputTensors, mOutputNames);
       inputTensors.clear();
       float* outputValues = outputTensors[0].GetTensorMutableData<float>();
       return std::vector<float>{outputValues, outputValues + size * mOutputShapes[0][1]};

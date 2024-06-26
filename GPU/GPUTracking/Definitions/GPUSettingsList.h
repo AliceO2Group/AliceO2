@@ -283,6 +283,7 @@ AddOption(tpcMaxAttachedClustersPerSectorRow, unsigned int, 51000, "", 0, "Maxim
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
 AddOption(RTCcacheFolder, std::string, "./rtccache/", "", 0, "Folder in which the cache file is stored")
 AddOption(applyNNclusterizer, int, 0, "", 0, "(Bool, default = 0), if the neural network clsuterizer should be used.")
+AddOption(nnClusterizerVerbosity, int, 1, "", 0, "0: No messages; 1: Warnings; 2: Warnings + major debugs; >3: All debugs")
 AddOption(nnClassificationPath, std::string, "network_class.onnx", "", 0, "The classification network path")
 AddOption(nnRegressionPath, std::string, "./network_reg.onnx", "", 0, "The regression network path")
 AddOption(nnClassThreshold, float, 0.16, "", 0, "The cutoff at which clusters will be accepted / rejected.")

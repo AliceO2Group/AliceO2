@@ -49,7 +49,7 @@ class OnnxModel
   virtual ~OnnxModel() = default;
 
   // Inferencing
-  void init(std::string, bool = false, int = 0);
+  void init(std::string, bool = false, int = 0, int = 0);
   // float* inference(std::vector<Ort::Value>, int = 0);
   // float* inference(std::vector<float>, int = 0);
   template<class T> float* inference(T input, unsigned int size);

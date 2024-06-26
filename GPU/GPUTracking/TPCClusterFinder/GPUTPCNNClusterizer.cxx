@@ -34,28 +34,28 @@ GPUdii() void GPUTPCNNClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlo
 
   tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow; // (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
-  GPUTPCNNClusterizer::nn_clusterizer(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, clusterer.nnSizeInputRow, clusterer.nnSizeInputPad, clusterer.nnSizeInputTime, clusterer.nnAddIndexData, clusterer.nnClassThreshold, clusterer.nnSigmoidTrafoThreshold);
+  GPUTPCNNClusterizer::nn_clusterizer(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, clusterer.nnSizeInputRow, clusterer.nnSizeInputPad, clusterer.nnSizeInputTime, clusterer.nnAddIndexData, clusterer.nnClassThreshold, clusterer.nnSigmoidTrafoThreshold, clusterer.nnClusterizerVerbosity);
 
   // tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 // 
   // GPUTPCNNClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
 }
 
-GPUd() void GPUTPCNNClusterizer::exec(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, char onlyMC)
-{
-  Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  CPU_ONLY(
-    MCLabelAccumulator labelAcc(clusterer));
-
-  tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
-
-  std::string path_class = "", path_reg = "";
-
-  clusterer.model_class.init(path_class, 1, 0);
-  clusterer.model_reg.init(path_reg, 1, 0);
-
-  GPUTPCNNClusterizer::nn_clusterizer(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, 3, 3, 3, true, 0.16, true);
-}
+// GPUd() void GPUTPCNNClusterizer::exec(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, char onlyMC)
+// {
+//   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
+//   CPU_ONLY(
+//     MCLabelAccumulator labelAcc(clusterer));
+// 
+//   tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
+// 
+//   std::string path_class = "", path_reg = "";
+// 
+//   clusterer.model_class.init(path_class, 1, 0);
+//   clusterer.model_reg.init(path_reg, 1, 0);
+// 
+//   GPUTPCNNClusterizer::nn_clusterizer(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, 3, 3, 3, true, 0.16, true);
+// }
 
 int GPUTPCNNClusterizer::padOffset(int row_ref, int row_current)
 {
@@ -117,7 +117,7 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
                                           uint* clusterInRow,
                                           tpc::ClusterNative* clusterByRow,
                                           uint* clusterPosInRow,
-                                          int in_row, int in_pad, int in_time, bool add_index_data, float class_threshold, bool sigmoid_transform){
+                                          int in_row, int in_pad, int in_time, bool add_index_data, float class_threshold, bool sigmoid_transform, int verbosity){
 
   std::vector<float> input_data(((2*in_row + 1) * (2*in_pad + 1) * (2*in_time + 1) + (add_index_data ? 3 : 0)), -1.f);
   float classification_threshold = class_threshold;
@@ -169,7 +169,7 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
   std::vector<float> out_reg = clusterer.model_reg.inference_vector(input_data, 1);
   int num_outputs = clusterer.model_reg.getNumOutputNodes()[0][1];
 
-  if(idx == 100){
+  if((verbosity > 4) && idx == 100){
     LOG(info) << "Classification model: " << out_class[0] << " (>? " << classification_threshold << ")";
     LOG(info) << "Regression model: " << out_reg[0] << "; " << out_reg[1] << "; " << out_reg[2] << "; " << out_reg[3] << "; " << out_reg[4];
   }
@@ -179,7 +179,7 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
     pc.setFull(central_charge * out_reg[4], peak.pad() + out_reg[0], out_reg[2], fragment.start + peak.time() + out_reg[1], out_reg[3], 0, 0);
     tpc::ClusterNative myCluster;
     bool rejectCluster = !pc.toNative(peak, central_charge, myCluster, clusterer.Param());
-    if (rejectCluster) {
+    if ((verbosity > 0) && rejectCluster) {
       LOG(warning) << "Cluster rejected!";
       if (clusterPosInRow) {
         clusterPosInRow[idx] = maxClusterPerRow;

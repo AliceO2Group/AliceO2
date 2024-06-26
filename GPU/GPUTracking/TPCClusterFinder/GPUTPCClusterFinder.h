@@ -150,6 +150,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   bool nnAddIndexData = true;
   float nnClassThreshold = 0.16;
   bool nnSigmoidTrafoThreshold = 1;
+  int nnClusterizerVerbosity = 1;
 
   OnnxModel model_class, model_reg;
 
