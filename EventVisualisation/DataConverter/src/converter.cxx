@@ -16,7 +16,6 @@
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include "EventVisualisationView/Initializer.h"
 #include "EventVisualisationView/Options.h"
-#include <EventVisualisationDataConverter/VisualisationEvent.h>
 #include <EventVisualisationDataConverter/VisualisationEventJSONSerializer.h>
 #include <EventVisualisationDataConverter/VisualisationEventROOTSerializer.h>
 #include <EventVisualisationDataConverter/VisualisationEventOpenGLSerializer.h>
@@ -35,7 +34,6 @@ using namespace std::chrono_literals;
 // source file name, destination (not existing) file name, if limit > 0 then limit EACH type of data
 int singleFileConversion(const std::string& src, const std::string& dst, const int limit = -1)
 {
-
   LOGF(info, "Translate: %s -> %s", src, dst);
   o2::event_visualisation::VisualisationEvent vEvent;
 
@@ -126,7 +124,7 @@ void my_handler(int s)
 
 int main(int argc, char** argv)
 {
-  struct sigaction sigIntHandler;
+  struct sigaction sigIntHandler{};
   sigIntHandler.sa_handler = my_handler;
   sigemptyset(&sigIntHandler.sa_mask);
   sigIntHandler.sa_flags = 0;
@@ -135,19 +133,23 @@ int main(int argc, char** argv)
   LOGF(info, "Welcome in O2 event conversion tool");
 
   if (argc == 3) {
-    std::quick_exit(singleFileConversion(argv[1], argv[2]));
+    singleFileConversion(argv[1], argv[2]);         // std::quick_exit(...
+    return 0;
   }
   if (argc == 4 and std::string(argv[1]) == std::string("-l")) {
-    std::quick_exit(singleFileConversion(argv[2], argv[3], 3));
+    singleFileConversion(argv[2], argv[3], 3); // std::quick_exit(...
+    return 0;
   }
   if (argc == 4 and std::string(argv[1]) == std::string("-f")) {
-    std::quick_exit(folderConversion(argv[2], argv[3]));
+    folderConversion(argv[2], argv[3]);    // std::quick_exit(...
+    return 0;
   }
   if (argc == 4 and std::string(argv[1]) == std::string("-c")) {
     while (true) {
       std::this_thread::sleep_for(2000ms);
       folderConversion(argv[2], argv[3]);
     }
+    return 0;
   }
   LOGF(error, "two filename required, second should point to not existent file");
   std::quick_exit(-1);

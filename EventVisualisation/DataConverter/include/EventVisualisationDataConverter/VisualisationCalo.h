@@ -55,9 +55,9 @@ class VisualisationCalo
  private:
   float mTime;   /// time
   float mEnergy; /// Energy of the particle
-  int mPID;         /// PDG code of the particle
-  float mEta; /// An angle from Z-axis to the radius vector pointing to the particle
-  float mPhi; /// An angle from X-axis to the radius vector pointing to the particle
+  int mPID;      /// PDG code of the particle
+  float mEta;    /// An angle from Z-axis to the radius vector pointing to the particle
+  float mPhi;    /// An angle from X-axis to the radius vector pointing to the particle
   o2::dataformats::GlobalTrackID mBGID;
 };
 
