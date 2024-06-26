@@ -1045,33 +1045,6 @@ void Detector::CreateECALGeometry()
     }
   } // end of loop over ECAL towers (TowersInX x TowersInY)
 
-  //  for (int i = 0; i < geom->getNumberOfTowersInX(); i++)
-  //    {
-  //      for (int j = 0; j < geom->getNumberOfTowersInY(); j++)
-  //        {
-  //	  int number = i + j * geom->getNumberOfTowersInX();
-  //	  if (geom->getGeoTowerCenter(number, xp, yp, zp) == true)
-  //            {
-  //	      if(i == 0) {
-  //		TVirtualMC::GetMC()->Gspos("EMSC1", number + 1, "ECAL", xp, yp, 0, 0, "ONLY");
-  //		// Add the SiPad front volumes directly under the FOCAL volume
-  //		if (geom->getInsertFrontPadLayers()) {
-  //		  TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (number + 1), "FOCAL", xp, yp, -1.0 * geom->getFOCALSizeZ() / 2.0, 0, "ONLY");
-  //		  TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (geom->getNumberOfTowersInX() * geom->getNumberOfTowersInY() + number + 1), "FOCAL", xp - 0.5, yp + 0.5, -1.0 * geom->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
-  //		}
-  //	      }
-  //	      if(i == 1) {
-  //		TVirtualMC::GetMC()->Gspos("EMSC2", number + 1, "ECAL", xp, yp, 0, 0, "ONLY");
-  //		// Add the SiPad front volumes directly under the FOCAL volume
-  //		if (geom->getInsertFrontPadLayers()) {
-  //		  TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (number + 1), "FOCAL", xp, yp, -1.0 * geom->getFOCALSizeZ() / 2.0, 0, "ONLY");
-  //		  TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (geom->getNumberOfTowersInX() * geom->getNumberOfTowersInY() + number + 1), "FOCAL", xp + 0.5, yp + 0.5, -1.0 * geom->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
-  //		}
-  //	      }
-  //            }
-  //        } // end of loop towers in Y
-  //    } // end of loop towers in X
-
   TVirtualMC::GetMC()->Gspos("ECAL", 1, "FOCAL", 0, 0, geom->getECALCenterZ() - geom->getFOCALSizeZ() / 2.0 + (geom->getInsertFrontPadLayers() ? 2.0 : 0.0) - (geom->getInsertHCalReadoutMaterial() ? 1.5 : 0.0), 0, "ONLY");
 }
 
