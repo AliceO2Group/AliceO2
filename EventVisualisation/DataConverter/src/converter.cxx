@@ -153,5 +153,5 @@ int main(int argc, char** argv)
     return 0;
   }
   LOGF(error, "two filename required, second should point to not existent file");
-  return -1; //std::quick_exit(-1);
+  return -1; // std::quick_exit(-1);
 }
