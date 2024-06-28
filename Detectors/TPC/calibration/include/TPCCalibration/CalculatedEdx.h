@@ -24,7 +24,7 @@
 #include "CalibdEdxContainer.h"
 #include "CorrectionMapsHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-
+#include "TRandom.h"
 #include <vector>
 
 namespace o2::tpc
@@ -46,9 +46,10 @@ namespace o2::tpc
 /// c.setMembers(tpcTrackClIdxVecInput, clusterIndex, tpcTracks); // set the member variables: TrackTPC, TPCClRefElem, o2::tpc::ClusterNativeAccess
 /// c.setRefit(); // set the refit pointer to perform refitting of tracks, otherwise setPropagateTrack to true
 /// start looping over the tracks
-/// c.calculatedEdx(track, output, 0.01, 0.6, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will fill the dEdxInfo output for given track
+/// c.calculatedEdx(track, output, 0.015, 0.60, CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags::ExcludeEdgeCl) // this will fill the dEdxInfo output for given track
 
 enum class CorrectionFlags : unsigned short {
+  None = 0,
   TopologySimple = 1 << 0, ///< flag for simple analytical topology correction
   TopologyPol = 1 << 1,    ///< flag for topology correction from polynomials
   GainFull = 1 << 2,       ///< flag for full gain map from calibration container
@@ -56,9 +57,22 @@ enum class CorrectionFlags : unsigned short {
   dEdxResidual = 1 << 4,   ///< flag for residual dEdx correction
 };
 
+enum class ClusterFlags : unsigned short {
+  None = 0,
+  ExcludeSingleCl = 1 << 0,         ///< flag to exclude single clusters in dEdx calculation
+  ExcludeSplitCl = 1 << 1,          ///< flag to exclude split clusters in dEdx calculation
+  ExcludeEdgeCl = 1 << 2,           ///< flag to exclude sector edge clusters in dEdx calculation
+  ExcludeSubthresholdCl = 1 << 3,   ///< flag to exclude subthreshold clusters in dEdx calculation
+  ExcludeSectorBoundaries = 1 << 4, ///< flag to exclude sector boundary clusters in subthreshold cluster treatment
+};
+
 inline CorrectionFlags operator&(CorrectionFlags a, CorrectionFlags b) { return static_cast<CorrectionFlags>(static_cast<unsigned short>(a) & static_cast<unsigned short>(b)); }
 inline CorrectionFlags operator~(CorrectionFlags a) { return static_cast<CorrectionFlags>(~static_cast<unsigned short>(a)); }
 inline CorrectionFlags operator|(CorrectionFlags a, CorrectionFlags b) { return static_cast<CorrectionFlags>(static_cast<unsigned short>(a) | static_cast<unsigned short>(b)); }
+
+inline ClusterFlags operator&(ClusterFlags a, ClusterFlags b) { return static_cast<ClusterFlags>(static_cast<unsigned short>(a) & static_cast<unsigned short>(b)); }
+inline ClusterFlags operator~(ClusterFlags a) { return static_cast<ClusterFlags>(~static_cast<unsigned short>(a)); }
+inline ClusterFlags operator|(ClusterFlags a, ClusterFlags b) { return static_cast<ClusterFlags>(static_cast<unsigned short>(a) | static_cast<unsigned short>(b)); }
 
 class CalculatedEdx
 {
@@ -89,7 +103,7 @@ class CalculatedEdx
   void setMaxMissingCl(int maxMissingCl) { mMaxMissingCl = maxMissingCl; }
 
   /// set the debug streamer
-  void setStreamer() { mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>("dEdxDebug.root", "recreate"); };
+  void setStreamer(const char* debugRootFile) { mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>(debugRootFile, "recreate"); };
 
   /// \return returns magnetic field in kG
   float getFieldNominalGPUBz() { return mFieldNominalGPUBz; }
@@ -97,7 +111,7 @@ class CalculatedEdx
   /// \return returns maxMissingCl for subthreshold cluster treatment
   int getMaxMissingCl() { return mMaxMissingCl; }
 
-  /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1)
+  /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1) or Landau (method=2)
   void fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method);
 
   /// get the truncated mean for the input track with the truncation range, charge type, region and corrections
@@ -108,11 +122,11 @@ class CalculatedEdx
   /// \param high higher cluster cut
   /// \param mask to apply different corrections: TopologySimple = simple analytical topology correction, TopologyPol = topology correction from polynomials, GainFull = full gain map from calibration container,
   ///                                                      GainResidual = residuals gain map from calibration container, dEdxResidual = residual dEdx correction
-  void calculatedEdx(TrackTPC& track, dEdxInfo& output, float low = 0.05f, float high = 0.6f, CorrectionFlags mask = CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual);
+  void calculatedEdx(TrackTPC& track, dEdxInfo& output, float low = 0.015f, float high = 0.6f, CorrectionFlags correctionMask = CorrectionFlags::TopologyPol | CorrectionFlags::dEdxResidual, ClusterFlags clusterMask = ClusterFlags::None, int subthresholdMethod = 0, const char* debugRootFile = "dEdxDebug.root");
 
   /// get the truncated mean for the input charge vector and the truncation range low*nCl<nCl<high*nCl
   /// \param charge input vector
-  /// \param low lower cluster cut (e.g. 0.05)
+  /// \param low lower cluster cut (e.g. 0.015)
   /// \param high higher cluster cut (e.g. 0.6)
   float getTruncMean(std::vector<float>& charge, float low, float high) const;
 
@@ -137,13 +151,15 @@ class CalculatedEdx
   void loadCalibsFromCCDB(long runNumberOrTimeStamp);
 
  private:
-  std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed.
+  std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed
   std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};    ///< input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};    ///< needed to access clusternative with tpctracks
-  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;              ///< cluster corrections map helper
+  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;              ///< cluster correction maps helper
+  std::vector<unsigned char> mTPCRefitterShMap;                  ///< externally set TPC clusters sharing map
+  std::vector<unsigned int> mTPCRefitterOccMap;                  ///< externally set TPC clusters occupancy map
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
-  int mMaxMissingCl{2};                                                ///< maximum number of missing clusters for subthreshold check
+  int mMaxMissingCl{1};                                                ///< maximum number of missing clusters for subthreshold check
   float mFieldNominalGPUBz{5};                                         ///< magnetic field in kG, used for track propagation
   bool mPropagateTrack{false};                                         ///< propagating the track instead of performing a refit
   bool mDebug{false};                                                  ///< use the debug streamer

@@ -45,7 +45,9 @@ void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdx
 
 void CalculatedEdx::setRefit()
 {
-  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, nullptr, nullptr, -1, mTracks);
+  mTPCRefitterShMap.reserve(mClusterIndex->nClustersTotal);
+  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mTPCRefitterShMap.data(), mTPCRefitterOccMap.data());
+  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
 }
 
 void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method)
@@ -67,23 +69,43 @@ void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeT
   else if (method == 1) {
     for (int roc = 0; roc < 4; roc++) {
       for (int i = 0; i < missingClusters[roc]; i++) {
-        mChargeTotROC[roc].emplace_back(minChargeTot / 2);
-        mChargeTotROC[4].emplace_back(minChargeTot / 2);
+        mChargeTotROC[roc].emplace_back(minChargeTot / 2.f);
+        mChargeTotROC[4].emplace_back(minChargeTot / 2.f);
 
-        mChargeMaxROC[roc].emplace_back(minChargeMax / 2);
-        mChargeMaxROC[4].emplace_back(minChargeMax / 2);
+        mChargeMaxROC[roc].emplace_back(minChargeMax / 2.f);
+        mChargeMaxROC[4].emplace_back(minChargeMax / 2.f);
+      }
+    }
+  }
+
+  // adding the exponential rise of Landau distrbution between [0, minimum charge]
+  else if (method == 2) {
+    // set a Landau function
+    auto fLandau = new TF1("fLandau", "TMath::Landau(x, 50, 10)", 0, 200);
+    // set random seed
+    gRandom->SetSeed(0);
+    for (int roc = 0; roc < 4; roc++) {
+      for (int i = 0; i < missingClusters[roc]; i++) {
+        const float chargeTot = fLandau->GetRandom(0, minChargeTot);
+        const float chargeMax = fLandau->GetRandom(0, minChargeMax);
+
+        mChargeTotROC[roc].emplace_back(chargeTot);
+        mChargeTotROC[4].emplace_back(chargeTot);
+
+        mChargeMaxROC[roc].emplace_back(chargeMax);
+        mChargeMaxROC[4].emplace_back(chargeMax);
       }
     }
   }
 }
 
-void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, float low, float high, CorrectionFlags mask)
+void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, float low, float high, CorrectionFlags correctionMask, ClusterFlags clusterMask, int subthresholdMethod, const char* debugRootFile)
 {
   // get number of clusters
   const int nClusters = track.getNClusterReferences();
 
-  int nClsROC[4] = {0};
-  int nClsSubThreshROC[4] = {0};
+  int nClsROC[4] = {0, 0, 0, 0};
+  int nClsSubThreshROC[4] = {0, 0, 0, 0};
 
   mChargeTotROC[0].clear();
   mChargeTotROC[1].clear();
@@ -98,11 +120,15 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   mChargeMaxROC[4].clear();
 
   // debug vectors
+  std::vector<int> excludeClVector;
   std::vector<int> regionVector;
   std::vector<unsigned char> rowIndexVector;
   std::vector<unsigned char> padVector;
-  std::vector<int> stackVector;
   std::vector<unsigned char> sectorVector;
+  std::vector<int> stackVector;
+  std::vector<float> localXVector;
+  std::vector<float> localYVector;
+  std::vector<float> offsPadVector;
 
   std::vector<float> topologyCorrVector;
   std::vector<float> topologyCorrTotVector;
@@ -112,19 +138,19 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   std::vector<float> residualCorrTotVector;
   std::vector<float> residualCorrMaxVector;
 
-  std::vector<float> xPositionVector;
-  std::vector<float> localYVector;
-  std::vector<float> offsPadVector;
-
   std::vector<o2::tpc::TrackTPC> trackVector;
   std::vector<o2::tpc::ClusterNative> clVector;
 
   if (mDebug) {
+    excludeClVector.reserve(nClusters);
     regionVector.reserve(nClusters);
     rowIndexVector.reserve(nClusters);
     padVector.reserve(nClusters);
     stackVector.reserve(nClusters);
     sectorVector.reserve(nClusters);
+    localXVector.reserve(nClusters);
+    localYVector.reserve(nClusters);
+    offsPadVector.reserve(nClusters);
     topologyCorrVector.reserve(nClusters);
     topologyCorrTotVector.reserve(nClusters);
     topologyCorrMaxVector.reserve(nClusters);
@@ -132,9 +158,6 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     gainResidualVector.reserve(nClusters);
     residualCorrTotVector.reserve(nClusters);
     residualCorrMaxVector.reserve(nClusters);
-    xPositionVector.reserve(nClusters);
-    localYVector.reserve(nClusters);
-    offsPadVector.reserve(nClusters);
     trackVector.reserve(nClusters);
     clVector.reserve(nClusters);
   }
@@ -157,6 +180,110 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     // set sectorIndex, rowIndex, clusterIndexNumb
     track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
 
+    // get region, pad, stack and stack ID
+    const int region = Mapper::REGION[rowIndex];
+    const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
+    const CRU cru(Sector(sectorIndex), region);
+    const auto stack = cru.gemStack();
+    StackID stackID{sectorIndex, stack};
+
+    // get local coordinates, offset and flags
+    const float localX = o2::tpc::Mapper::instance().getPadCentre(PadPos(rowIndex, pad)).X();
+    const float localY = Mapper::instance().getPadCentre(PadPos(rowIndex, pad)).Y();
+    const float offsPad = (cl.getPad() - pad) * o2::tpc::Mapper::instance().getPadRegionInfo(Mapper::REGION[rowIndex]).getPadWidth();
+    const auto flagsCl = cl.getFlags();
+
+    // mapping for the stack info
+    std::map<o2::tpc::GEMstack, int> map;
+    map[GEMstack::IROCgem] = 0;
+    map[GEMstack::OROC1gem] = 1;
+    map[GEMstack::OROC2gem] = 2;
+    map[GEMstack::OROC3gem] = 3;
+
+    if (((clusterMask & ClusterFlags::ExcludeSingleCl) == ClusterFlags::ExcludeSingleCl) && (flagsCl & ClusterNative::flagSingle) == ClusterNative::flagSingle) {
+      // for debugging
+      if (mDebug) {
+        excludeClVector.emplace_back(0);
+        regionVector.emplace_back(region);
+        rowIndexVector.emplace_back(rowIndex);
+        padVector.emplace_back(pad);
+        sectorVector.emplace_back(sectorIndex);
+        stackVector.emplace_back(map[stack]);
+        localXVector.emplace_back(localX);
+        localYVector.emplace_back(localY);
+        offsPadVector.emplace_back(offsPad);
+        trackVector.emplace_back(track);
+        clVector.emplace_back(cl);
+
+        topologyCorrVector.emplace_back(-999.f);
+        topologyCorrTotVector.emplace_back(-999.f);
+        topologyCorrMaxVector.emplace_back(-999.f);
+        gainVector.emplace_back(-999.f);
+        gainResidualVector.emplace_back(-999.f);
+        residualCorrTotVector.emplace_back(-999.f);
+        residualCorrMaxVector.emplace_back(-999.f);
+      };
+      rowIndexOld = rowIndex;
+      sectorIndexOld = sectorIndex;
+      continue;
+    }
+
+    if (((clusterMask & ClusterFlags::ExcludeSplitCl) == ClusterFlags::ExcludeSplitCl) && (((flagsCl & ClusterNative::flagSplitPad) == ClusterNative::flagSplitPad) || ((flagsCl & ClusterNative::flagSplitTime) == ClusterNative::flagSplitTime))) {
+      // for debugging
+      if (mDebug) {
+        excludeClVector.emplace_back(1);
+        regionVector.emplace_back(region);
+        rowIndexVector.emplace_back(rowIndex);
+        padVector.emplace_back(pad);
+        sectorVector.emplace_back(sectorIndex);
+        stackVector.emplace_back(map[stack]);
+        localXVector.emplace_back(localX);
+        localYVector.emplace_back(localY);
+        offsPadVector.emplace_back(offsPad);
+        trackVector.emplace_back(track);
+        clVector.emplace_back(cl);
+
+        topologyCorrVector.emplace_back(-999.f);
+        topologyCorrTotVector.emplace_back(-999.f);
+        topologyCorrMaxVector.emplace_back(-999.f);
+        gainVector.emplace_back(-999.f);
+        gainResidualVector.emplace_back(-999.f);
+        residualCorrTotVector.emplace_back(-999.f);
+        residualCorrMaxVector.emplace_back(-999.f);
+      };
+      rowIndexOld = rowIndex;
+      sectorIndexOld = sectorIndex;
+      continue;
+    }
+
+    if (((clusterMask & ClusterFlags::ExcludeEdgeCl) == ClusterFlags::ExcludeEdgeCl) && ((flagsCl & ClusterNative::flagEdge) == ClusterNative::flagEdge)) {
+      // for debugging
+      if (mDebug) {
+        excludeClVector.emplace_back(2);
+        regionVector.emplace_back(region);
+        rowIndexVector.emplace_back(rowIndex);
+        padVector.emplace_back(pad);
+        sectorVector.emplace_back(sectorIndex);
+        stackVector.emplace_back(map[stack]);
+        localXVector.emplace_back(localX);
+        localYVector.emplace_back(localY);
+        offsPadVector.emplace_back(offsPad);
+        trackVector.emplace_back(track);
+        clVector.emplace_back(cl);
+
+        topologyCorrVector.emplace_back(-999.f);
+        topologyCorrTotVector.emplace_back(-999.f);
+        topologyCorrMaxVector.emplace_back(-999.f);
+        gainVector.emplace_back(-999.f);
+        gainResidualVector.emplace_back(-999.f);
+        residualCorrTotVector.emplace_back(-999.f);
+        residualCorrMaxVector.emplace_back(-999.f);
+      };
+      rowIndexOld = rowIndex;
+      sectorIndexOld = sectorIndex;
+      continue;
+    }
+
     // get x position of the track
     const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
 
@@ -170,44 +297,77 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     } else {
       // propagate this track to the plane X=xk (cm) in the field "b" (kG)
       track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
-      check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT);
+      check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.999f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT);
     }
 
     if (!check || std::isnan(track.getParam(1))) {
+      // for debugging
+      if (mDebug) {
+        excludeClVector.emplace_back(3);
+        regionVector.emplace_back(region);
+        rowIndexVector.emplace_back(rowIndex);
+        padVector.emplace_back(pad);
+        sectorVector.emplace_back(sectorIndex);
+        stackVector.emplace_back(map[stack]);
+        localXVector.emplace_back(localX);
+        localYVector.emplace_back(localY);
+        offsPadVector.emplace_back(offsPad);
+        trackVector.emplace_back(track);
+        clVector.emplace_back(cl);
+
+        topologyCorrVector.emplace_back(-999.f);
+        topologyCorrTotVector.emplace_back(-999.f);
+        topologyCorrMaxVector.emplace_back(-999.f);
+        gainVector.emplace_back(-999.f);
+        gainResidualVector.emplace_back(-999.f);
+        residualCorrTotVector.emplace_back(-999.f);
+        residualCorrMaxVector.emplace_back(-999.f);
+      };
       rowIndexOld = rowIndex;
       sectorIndexOld = sectorIndex;
       continue;
     }
 
-    // get region and charge value
-    const int region = Mapper::REGION[rowIndex];
+    // get charge values
     float chargeTot = cl.qTot;
     float chargeMax = cl.qMax;
 
-    // get pad and threshold
-    const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
+    // get threshold
     const float threshold = mCalibCont.getZeroSupressionThreshold(sectorIndex, rowIndex, pad);
-
-    // get stack and stack ID
-    const CRU cru(Sector(sectorIndex), region);
-    const auto stack = cru.gemStack();
-    StackID stackID{sectorIndex, stack};
 
     // find missing clusters
     int missingClusters = rowIndexOld - rowIndex - 1;
-    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && (sectorIndexOld == sectorIndex)) {
-      if (stack == GEMstack::IROCgem) {
-        nClsSubThreshROC[0] += missingClusters;
-        nClsROC[0] += missingClusters;
-      } else if (stack == GEMstack::OROC1gem) {
-        nClsSubThreshROC[1] += missingClusters;
-        nClsROC[1] += missingClusters;
-      } else if (stack == GEMstack::OROC2gem) {
-        nClsSubThreshROC[2] += missingClusters;
-        nClsROC[2] += missingClusters;
-      } else if (stack == GEMstack::OROC3gem) {
-        nClsSubThreshROC[3] += missingClusters;
-        nClsROC[3] += missingClusters;
+    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl)) {
+      if ((clusterMask & ClusterFlags::ExcludeSectorBoundaries) == ClusterFlags::ExcludeSectorBoundaries) {
+        if (sectorIndexOld == sectorIndex) {
+          if (stack == GEMstack::IROCgem) {
+            nClsSubThreshROC[0] += missingClusters;
+            nClsROC[0] += missingClusters;
+          } else if (stack == GEMstack::OROC1gem) {
+            nClsSubThreshROC[1] += missingClusters;
+            nClsROC[1] += missingClusters;
+          } else if (stack == GEMstack::OROC2gem) {
+            nClsSubThreshROC[2] += missingClusters;
+            nClsROC[2] += missingClusters;
+          } else if (stack == GEMstack::OROC3gem) {
+            nClsSubThreshROC[3] += missingClusters;
+            nClsROC[3] += missingClusters;
+          }
+        }
+      } else {
+        if (stack == GEMstack::IROCgem) {
+          nClsSubThreshROC[0] += missingClusters;
+          nClsROC[0] += missingClusters;
+        } else if (stack == GEMstack::OROC1gem) {
+          nClsSubThreshROC[1] += missingClusters;
+          nClsROC[1] += missingClusters;
+        } else if (stack == GEMstack::OROC2gem) {
+          nClsSubThreshROC[2] += missingClusters;
+          nClsROC[2] += missingClusters;
+        } else if (stack == GEMstack::OROC3gem) {
+          nClsSubThreshROC[3] += missingClusters;
+          nClsROC[3] += missingClusters;
+        }
       }
     };
     rowIndexOld = rowIndex;
@@ -217,12 +377,12 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     float effectiveLength = 1.0f;
     float effectiveLengthTot = 1.0f;
     float effectiveLengthMax = 1.0f;
-    if ((mask & CorrectionFlags::TopologySimple) == CorrectionFlags::TopologySimple) {
+    if ((correctionMask & CorrectionFlags::TopologySimple) == CorrectionFlags::TopologySimple) {
       effectiveLength = getTrackTopologyCorrection(track, region);
       chargeTot /= effectiveLength;
       chargeMax /= effectiveLength;
     };
-    if ((mask & CorrectionFlags::TopologyPol) == CorrectionFlags::TopologyPol) {
+    if ((correctionMask & CorrectionFlags::TopologyPol) == CorrectionFlags::TopologyPol) {
       effectiveLengthTot = getTrackTopologyCorrectionPol(track, cl, region, chargeTot, ChargeType::Tot, threshold);
       effectiveLengthMax = getTrackTopologyCorrectionPol(track, cl, region, chargeMax, ChargeType::Max, threshold);
       chargeTot /= effectiveLengthTot;
@@ -232,10 +392,10 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     // get gain
     float gain = 1.0f;
     float gainResidual = 1.0f;
-    if ((mask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull) {
+    if ((correctionMask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull) {
       gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
     };
-    if ((mask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
+    if ((correctionMask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
       gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
     };
     chargeTot /= gain * gainResidual;
@@ -244,7 +404,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     // get dEdx correction on tgl and sector plane
     float corrTot = 1.0f;
     float corrMax = 1.0f;
-    if ((mask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
+    if ((correctionMask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
       corrTot = mCalibCont.getResidualCorrection(stackID, ChargeType::Tot, track.getTgl(), track.getSnp());
       corrMax = mCalibCont.getResidualCorrection(stackID, ChargeType::Max, track.getTgl(), track.getSnp());
       if (corrTot > 0) {
@@ -287,22 +447,17 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
 
     // for debugging
     if (mDebug) {
-      // mapping for the stack info
-      std::map<o2::tpc::GEMstack, int> map;
-      map[GEMstack::IROCgem] = 0;
-      map[GEMstack::OROC1gem] = 1;
-      map[GEMstack::OROC2gem] = 2;
-      map[GEMstack::OROC3gem] = 3;
-
-      const float localY = o2::tpc::Mapper::instance().getPadCentre(o2::tpc::PadPos(rowIndex, pad)).Y();
-      const float offsPad = (cl.getPad() - pad) * o2::tpc::Mapper::instance().getPadRegionInfo(Mapper::REGION[rowIndex]).getPadWidth();
-
-      // filling debug vectors
+      excludeClVector.emplace_back(-1);
       regionVector.emplace_back(region);
       rowIndexVector.emplace_back(rowIndex);
       padVector.emplace_back(pad);
-      stackVector.emplace_back(map[stack]);
       sectorVector.emplace_back(sectorIndex);
+      stackVector.emplace_back(map[stack]);
+      localXVector.emplace_back(localX);
+      localYVector.emplace_back(localY);
+      offsPadVector.emplace_back(offsPad);
+      trackVector.emplace_back(track);
+      clVector.emplace_back(cl);
 
       topologyCorrVector.emplace_back(effectiveLength);
       topologyCorrTotVector.emplace_back(effectiveLengthTot);
@@ -311,13 +466,6 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
       gainResidualVector.emplace_back(gainResidual);
       residualCorrTotVector.emplace_back(corrTot);
       residualCorrMaxVector.emplace_back(corrMax);
-
-      xPositionVector.emplace_back(xPosition);
-      localYVector.emplace_back(localY);
-      offsPadVector.emplace_back(offsPad);
-
-      trackVector.emplace_back(track);
-      clVector.emplace_back(cl);
     };
   }
 
@@ -333,10 +481,9 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   output.NHitsSubThresholdOROC3 = nClsROC[3];
 
   // fill subthreshold clusters
-  fillMissingClusters(nClsSubThreshROC, minChargeTot, minChargeMax, 0);
-
-  auto chargeTotVector = mChargeTotROC[4];
-  auto chargeMaxVector = mChargeMaxROC[4];
+  if ((clusterMask & ClusterFlags::ExcludeSubthresholdCl) == ClusterFlags::None) {
+    fillMissingClusters(nClsSubThreshROC, minChargeTot, minChargeMax, subthresholdMethod);
+  }
 
   // calculate dEdx
   output.dEdxTotIROC = getTruncMean(mChargeTotROC[0], low, high);
@@ -354,15 +501,17 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   // for debugging
   if (mDebug) {
     if (mStreamer == nullptr) {
-      setStreamer();
+      setStreamer(debugRootFile);
     }
 
     (*mStreamer) << "dEdxDebug"
+                 << "Ncl=" << nClusters
+                 << "excludeClVector=" << excludeClVector
                  << "regionVector=" << regionVector
                  << "rowIndexVector=" << rowIndexVector
                  << "padVector=" << padVector
-                 << "stackVector=" << stackVector
                  << "sectorVector=" << sectorVector
+                 << "stackVector=" << stackVector
                  << "topologyCorrVector=" << topologyCorrVector
                  << "topologyCorrTotVector=" << topologyCorrTotVector
                  << "topologyCorrMaxVector=" << topologyCorrMaxVector
@@ -370,13 +519,11 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
                  << "gainResidualVector=" << gainResidualVector
                  << "residualCorrTotVector=" << residualCorrTotVector
                  << "residualCorrMaxVector=" << residualCorrMaxVector
-                 << "xPositionVector=" << xPositionVector
+                 << "localXVector=" << localXVector
                  << "localYVector=" << localYVector
                  << "offsPadVector=" << offsPadVector
                  << "trackVector=" << trackVector
                  << "clVector=" << clVector
-                 << "chargeTotVector=" << chargeTotVector
-                 << "chargeMaxVector=" << chargeMaxVector
                  << "minChargeTot=" << minChargeTot
                  << "minChargeMax=" << minChargeMax
                  << "output=" << output
