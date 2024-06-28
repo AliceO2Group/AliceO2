@@ -202,6 +202,13 @@ inline constexpr BitPtr pack(const input_T* __restrict inputBegin, size_t extent
   assert(outputBegin != nullptr);
 
   switch (packingWidth) {
+    case 0:
+      if (extent > 0) {
+        throw PackingError("Cannot pack data into 0 Bit wide blocks");
+      } else {
+        return BitPtr(outputBegin);
+      }
+      break;
     case 1:
       return packStreamImpl<input_T, output_T, 1>(inputBegin, extent, outputBegin, offset);
       break;
@@ -341,6 +348,15 @@ inline void unpack(const input_T* __restrict inputBegin, size_t extent, output_I
   using namespace internal;
   using namespace utils;
   using dst_type = typename std::iterator_traits<output_IT>::value_type;
+
+  // cannot unpack into 0 bits
+  if (packingWidth == 0) {
+    if (extent == 0) {
+      return;
+    } else {
+      throw PackingError("Cannot unpack into 0 Bit wide data");
+    }
+  }
 
   auto unpackImpl = [&](auto packer) {
     output_IT outputIt = outputBegin;
