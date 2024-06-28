@@ -284,8 +284,10 @@ struct Block {
   // resize block and free up unused buffer space.
   void realignBlock()
   {
-    size_t sz = estimateSize(getNStored());
-    registry->offsFreeStart = (reinterpret_cast<char*>(payload) - registry->head) + sz;
+    if (payload) {
+      size_t sz = estimateSize(getNStored());
+      registry->offsFreeStart = (reinterpret_cast<char*>(payload) - registry->head) + sz;
+    }
   }
 
   /// store binary blob data (buffer filled from head to tail)
@@ -608,13 +610,17 @@ class EncodedBlocks
     using source_type = typename std::iterator_traits<input_IT>::value_type;
 
     rans::Metrics<source_type> metrics{};
+    metrics.getDatasetProperties().numSamples = std::distance(srcBegin, srcEnd);
 
-    const auto [minIter, maxIter] = std::minmax_element(srcBegin, srcEnd);
-    if (minIter != maxIter) {
+    if (metrics.getDatasetProperties().numSamples != 0) {
+      const auto [minIter, maxIter] = std::minmax_element(srcBegin, srcEnd);
       metrics.getDatasetProperties().min = *minIter;
       metrics.getDatasetProperties().max = *maxIter;
-      metrics.getDatasetProperties().alphabetRangeBits = rans::utils::getRangeBits(metrics.getDatasetProperties().min,
-                                                                                   metrics.getDatasetProperties().max);
+
+      // special case: if min === max, the range is 0 and the data can be reconstructed just via the metadata.
+      metrics.getDatasetProperties().alphabetRangeBits =
+        rans::utils::getRangeBits(metrics.getDatasetProperties().min,
+                                  metrics.getDatasetProperties().max);
     }
 
     return pack(srcBegin, srcEnd, slot, metrics, buffer);
@@ -638,7 +644,7 @@ class EncodedBlocks
   CTFIOSize decodeCopyImpl(dst_IT dest, int slot) const;
 
   ClassDefNV(EncodedBlocks, 3);
-};
+}; // namespace ctf
 
 ///_____________________________________________________________________________
 /// read from tree to non-flat object
@@ -877,7 +883,6 @@ inline auto EncodedBlocks<H, N, W>::create(VD& v)
 template <typename H, int N, typename W>
 void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) const
 {
-  verbosity = 5;
   if (verbosity > 0) {
     LOG(info) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
     for (int i = 0; i < N; i++) {
@@ -922,22 +927,26 @@ CTFIOSize EncodedBlocks<H, N, W>::decode(D_IT dest,                        // it
   const auto& ansVersion = getANSHeader();
   const auto& block = mBlocks[slot];
   const auto& md = mMetadata[slot];
-
-  if (!block.getNStored()) {
-    return {0, md.getUncompressedSize(), md.getCompressedSize()};
-  }
+  LOGP(debug, "Slot{} | NStored={} Ndict={} nData={}, MD: messageLength:{} opt:{} min:{} max:{} offs:{} width:{} ", slot, block.getNStored(), block.getNDict(), block.getNData(), md.messageLength, (int)md.opt, md.min, md.max, md.literalsPackingOffset, md.literalsPackingWidth);
 
   if (ansVersion == ANSVersionCompat) {
+    if (!block.getNStored()) {
+      return {0, md.getUncompressedSize(), md.getCompressedSize()};
+    }
     if (md.opt == Metadata::OptStore::EENCODE) {
       return decodeCompatImpl(dest, slot, decoderExt);
     } else {
       return decodeCopyImpl(dest, slot);
     }
   } else if (ansVersion == ANSVersion1) {
+    if (md.opt == Metadata::OptStore::PACK) {
+      return decodeUnpackImpl(dest, slot);
+    }
+    if (!block.getNStored()) {
+      return {0, md.getUncompressedSize(), md.getCompressedSize()};
+    }
     if (md.opt == Metadata::OptStore::EENCODE) {
       return decodeRansV1Impl(dest, slot, decoderExt);
-    } else if (md.opt == Metadata::OptStore::PACK) {
-      return decodeUnpackImpl(dest, slot);
     } else {
       return decodeCopyImpl(dest, slot);
     }
@@ -1048,9 +1057,26 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeUnpackImpl(dst_IT dest, int slot) const
   const auto& block = mBlocks[slot];
   const auto& md = mMetadata[slot];
 
+  const size_t messageLength = md.messageLength;
   const size_t packingWidth = md.probabilityBits;
   const dest_t offset = md.min;
-  rans::unpack(block.getData(), md.messageLength, dest, packingWidth, offset);
+  const auto* srcIt = block.getData();
+  // we have a vector of one and the same value. All information is in the metadata
+  if (packingWidth == 0) {
+    const dest_t value = [&]() {
+      // Bugfix: We tried packing values with a width of 0 Bits;
+      if (md.nDataWords > 0) {
+        return static_cast<dest_t>(*srcIt);
+      }
+      // normal case:
+      return offset;
+    }();
+    for (size_t i = 0; i < messageLength; ++i) {
+      *dest++ = value;
+    }
+  } else {
+    rans::unpack(srcIt, messageLength, dest, packingWidth, offset);
+  }
   return {0, md.getUncompressedSize(), md.getCompressedSize()};
 };
 
@@ -1440,20 +1466,29 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::pack(const input_IT srcBegin, const i
   using storageBuffer_t = W;
   using input_t = typename std::iterator_traits<input_IT>::value_type;
 
-  const size_t messageLength = std::distance(srcBegin, srcEnd);
+  const size_t messageLength = metrics.getDatasetProperties().numSamples;
+  const auto alphabetRangeBits = metrics.getDatasetProperties().alphabetRangeBits;
 
-  internal::Packer<input_t> packer{metrics};
-  size_t packingBufferWords = packer.template getPackingBufferSize<storageBuffer_t>(messageLength);
-  auto [thisBlock, thisMetadata] = expandStorage(slot, packingBufferWords, buffer);
+  auto* thisBlock = &mBlocks[slot];
+  auto* thisMetadata = &mMetadata[slot];
+  size_t packedSize = 0;
 
-  auto packedMessageEnd = packer.pack(srcBegin, srcEnd, thisBlock->getCreateData(), thisBlock->getEndOfBlock());
-  const size_t packeSize = std::distance(thisBlock->getCreateData(), packedMessageEnd);
-  thisBlock->setNData(packeSize);
-  thisBlock->realignBlock();
+  if (messageLength == 0) {
+    *thisMetadata = detail::makeMetadataPack<input_t>(0, 0, 0, 0);
+  } else if (metrics.getDatasetProperties().alphabetRangeBits == 0) {
+    *thisMetadata = detail::makeMetadataPack<input_t>(messageLength, 0, *srcBegin, 0);
+  } else {
+    internal::Packer<input_t> packer{metrics};
+    size_t packingBufferWords = packer.template getPackingBufferSize<storageBuffer_t>(messageLength);
+    std::tie(thisBlock, thisMetadata) = expandStorage(slot, packingBufferWords, buffer);
+    auto packedMessageEnd = packer.pack(srcBegin, srcEnd, thisBlock->getCreateData(), thisBlock->getEndOfBlock());
+    packedSize = std::distance(thisBlock->getCreateData(), packedMessageEnd);
+    *thisMetadata = detail::makeMetadataPack<input_t>(messageLength, packer.getPackingWidth(), packer.getOffset(), packedSize);
+    thisBlock->setNData(packedSize);
+    thisBlock->realignBlock();
+  }
 
-  LOGP(info, "StoreData {} bytes, offs: {}:{}", packeSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + packeSize * sizeof(storageBuffer_t));
-
-  *thisMetadata = detail::makeMetadataPack<input_t>(messageLength, packer.getPackingWidth(), packer.getOffset(), packeSize);
+  LOGP(info, "StoreData {} bytes, offs: {}:{}", packedSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + packedSize * sizeof(storageBuffer_t));
   return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
 };
 
