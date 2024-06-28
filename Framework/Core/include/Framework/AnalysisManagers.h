@@ -50,7 +50,7 @@ struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
     if constexpr (std::is_same_v<G, TG>) {
-      static_assert(std::conjunction_v<framework::has_type<As, pack<T2s...>>...>, "You didn't subscribed to all tables requested for mixing");
+      static_assert((framework::has_type<As>(pack<T2s...>{}) && ...), "You didn't subscribed to all tables requested for mixing");
       comb.setTables(grouping, associated);
     }
   }
