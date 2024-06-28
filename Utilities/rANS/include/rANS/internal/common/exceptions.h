@@ -92,6 +92,11 @@ class DecodingError : public CodingError
   using CodingError::CodingError;
 };
 
+class PackingError : public CodingError
+{
+  using CodingError::CodingError;
+};
+
 } // namespace o2::rans
 
 #endif /* RANS_INTERNAL_COMMON_EXCEPTIONS_ */
