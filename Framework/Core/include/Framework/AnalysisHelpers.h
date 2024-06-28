@@ -90,7 +90,7 @@ struct WritingCursor<soa::Table<PC...>> {
     if constexpr (soa::is_soa_iterator_v<T>) {
       return arg.globalIndex();
     } else {
-      static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
+      static_assert(!framework::has_type<T>(framework::pack<PC...>{}), "Argument type mismatch");
       return arg;
     }
   }

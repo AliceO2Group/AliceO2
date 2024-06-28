@@ -175,16 +175,14 @@ void print_pack()
 template <template <typename> typename Condition, typename... Types>
 using filtered_pack = std::decay_t<decltype(filter_pack<Condition>(pack<>{}, pack<Types...>{}))>;
 
-/// Check if a given pack Pack has a type T inside.
-template <typename T, typename Pack>
-struct has_type;
-
 template <typename T, typename... Us>
-struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
-};
+bool consteval has_type(framework::pack<Us...>)
+{
+  return (std::is_same_v<T, Us> || ...);
+}
 
-template <typename T, typename... Us>
-inline constexpr bool has_type_v = has_type<T, Us...>::value;
+template <typename T, typename P>
+inline constexpr bool has_type_v = has_type<T>(P{});
 
 template <template <typename, typename> typename Condition, typename T, typename Pack>
 struct has_type_conditional;
@@ -207,7 +205,7 @@ constexpr size_t has_type_at(pack<T1, Ts...> const&)
 {
   if constexpr (std::is_same_v<T, T1>) {
     return 0;
-  } else if constexpr (has_type_v<T, pack<Ts...>>) {
+  } else if constexpr (has_type<T>(pack<Ts...>{})) {
     return 1 + has_type_at<T>(pack<Ts...>{});
   }
   return sizeof...(Ts) + 2;
@@ -274,7 +272,7 @@ struct intersect_pack {
   {
     return filtered_pack<std::is_void,
                          std::conditional_t<
-                           has_type_v<pack_element_t<Indices, S1>, S2>,
+                           has_type<pack_element_t<Indices, S1>>(S2{}),
                            pack_element_t<Indices, S1>, void>...>{};
   }
   using type = decltype(make_intersection(std::make_index_sequence<pack_size(S1{})>{}));
@@ -306,7 +304,7 @@ struct subtract_pack {
   {
     return filtered_pack<std::is_void,
                          std::conditional_t<
-                           !has_type_v<pack_element_t<Indices, S1>, S2>,
+                           !has_type<pack_element_t<Indices, S1>>(S2{}),
                            pack_element_t<Indices, S1>, void>...>{};
   }
   using type = decltype(make_subtraction(std::make_index_sequence<pack_size(S1{})>{}));

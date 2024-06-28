@@ -1466,7 +1466,7 @@ class Table
     auto getId() const
     {
       using decayed = std::decay_t<TI>;
-      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) { // index to another table
+      if constexpr (framework::has_type<decayed>(bindings_pack_t{})) { // index to another table
         constexpr auto idx = framework::has_type_at_v<decayed>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
       } else if constexpr (std::is_same_v<decayed, Parent>) { // self index
@@ -2777,12 +2777,12 @@ struct Join : TableWrap<Ts...>::table_t {
   }
 
   template <typename T>
-  static constexpr bool contains()
+  static consteval bool contains()
   {
     if constexpr (is_type_with_originals_v<T>) {
       return contains(typename T::originals{});
     } else {
-      return framework::has_type_v<T, originals>;
+      return framework::has_type<T>(originals{});
     }
   }
 
