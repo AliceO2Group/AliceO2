@@ -27,19 +27,21 @@
 using namespace o2::framework;
 
 struct GeneratorTask {
+  // common type for counting (to large numbers)
+  typedef uint64_t Counts;
   Configurable<std::string> generator{"generator", "boxgen", "Name of generator"};
-  Configurable<int> eventNum{"nEvents", 1, "Number of events"};
+  Configurable<Counts> eventNum{"nEvents", 1, "Number of events"};
   Configurable<std::string> trigger{"trigger", "", "Trigger type"}; //
   Configurable<std::string> iniFile{"configFile", "", "INI file containing configurable parameters"};
   Configurable<std::string> params{"configKeyValues", "", "configurable params - configuring event generation internals"};
   Configurable<long> seed{"seed", 0, "(TRandom) Seed"};
-  Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
+  Configurable<Counts> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
   Configurable<std::string> vtxModeArg{"vertexMode", "kDiamondParam", "Where the beam-spot vertex should come from. Must be one of kNoVertex, kDiamondParam, kCCDB"};
   Configurable<int64_t> ttl{"time-limit", -1, "Maximum run time limit in seconds (default no limit)"};
   Configurable<std::string> outputPrefix{"output", "", "Optional prefix for kinematics files written on disc. If non-empty, files <prefix>_Kine.root + <prefix>_MCHeader.root will be created."};
-  int nEvents = 0;
-  int eventCounter = 0;
-  int tfCounter = 0;
+  Counts nEvents = 0;
+  Counts eventCounter = 0;
+  Counts tfCounter = 0;
   std::unique_ptr<TFile> outfile{};
   std::unique_ptr<TTree> outtree{};
 
@@ -88,7 +90,7 @@ struct GeneratorTask {
       br->SetAddress(&mctrack_ptr);
     }
 
-    for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
+    for (auto i = 0; i < std::min((Counts)aggregate, nEvents - eventCounter); ++i) {
       mctracks.clear();
       genservice->generateEvent_MCTracks(mctracks, mcheader);
       pc.outputs().snapshot(Output{"MC", "MCHEADER", 0}, mcheader);
@@ -102,7 +104,7 @@ struct GeneratorTask {
 
     // report number of TFs injected for the rate limiter to work
     ++tfCounter;
-    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
     bool time_expired = false;
     if (ttl > 0) {
       timer.Stop();

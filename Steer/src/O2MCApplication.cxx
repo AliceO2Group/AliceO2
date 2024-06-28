@@ -98,6 +98,11 @@ void O2MCApplicationBase::Stepping()
     }
   }
 
+  if (!mKeepTrackFcn(fMC)) {
+    fMC->StopTrack();
+    return;
+  }
+
   if (mCutParams.stepTrackRefHook) {
     mTrackRefFcn(fMC);
   }
@@ -158,6 +163,22 @@ void O2MCApplicationBase::InitGeometry()
   std::ofstream sensvolfile("MCStepLoggerSenVol.dat");
   for (auto e : mSensitiveVolumes) {
     sensvolfile << e.first << ":" << e.second << "\n";
+  }
+  
+  // load function to have additional conditions under which a track should be further transported ot stopped
+  auto const keepTrackMacroPath = o2::utils::expandShellVarsInFileName(mCutParams.keepTrackMacroPath);
+  if (keepTrackMacroPath.empty()) {
+    mKeepTrackFcn = [](TVirtualMC const*) { return true; };
+    return;
+  }
+
+  if (std::filesystem::exists(keepTrackMacroPath)) {
+    // if this file exists we will compile the hook on the fly
+    mKeepTrackFcn = o2::conf::GetFromMacro<KeepTrackFcn>(keepTrackMacroPath, "keepTrack()", "o2::steer::O2MCApplicationBase::KeepTrackFcn", "o2mc_keep_tracks");
+    LOG(info) << "KeepTrack function initialized from file " << keepTrackMacroPath;
+  } else {
+    LOG(error) << "Did not find macro " << keepTrackMacroPath << " for additional conditions on keeping tracks. Will transport all tracks without additional constraints.";
+    mKeepTrackFcn = [](TVirtualMC const*) { return true; }; // always return true
   }
 }
 

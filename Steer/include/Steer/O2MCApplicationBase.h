@@ -57,6 +57,7 @@ class O2MCApplicationBase : public FairMCApplication
   double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
   typedef std::function<void(TVirtualMC const*)> TrackRefFcn;
+  typedef std::function<bool(TVirtualMC const*)> KeepTrackFcn;
 
  protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
@@ -69,9 +70,10 @@ class O2MCApplicationBase : public FairMCApplication
   /// some common parts of finishEvent
   void finishEventCommon();
   TrackRefFcn mTrackRefFcn; // a function hook that gets (optionally) called during Stepping
+  KeepTrackFcn mKeepTrackFcn; // a function to ask whether a track should be kept in transport or whether it should be stopped
   void initTrackRefHook();
 
-  ClassDefOverride(O2MCApplicationBase, 1);
+  ClassDefOverride(O2MCApplicationBase, 2);
 };
 
 } // end namespace steer
