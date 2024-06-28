@@ -178,6 +178,17 @@ o2_target_root_dictionary(Framework
                           include/Framework/StepTHn.h
                           LINKDEF test/FrameworkCoreTestLinkDef.h)
 
+add_executable(o2-test-framework-core-sanitized
+               test/test_Variants.cxx
+               src/Array2D.cxx
+               src/Variant.cxx
+               )
+
+target_link_libraries(o2-test-framework-core-sanitized PRIVATE O2::Catch2 O2::FrameworkFoundation Boost::boost RapidJSON::RapidJSON)
+target_include_directories(o2-test-framework-core-sanitized PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include O2::FrameworkFoundation)
+target_compile_options(o2-test-framework-core-sanitized PRIVATE -fsanitize=address)
+target_link_options(o2-test-framework-core-sanitized PRIVATE -fsanitize=address)
+
 add_executable(o2-test-framework-core
               test/test_AlgorithmSpec.cxx
               test/test_AnalysisTask.cxx
@@ -251,8 +262,10 @@ target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
 
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
 set_property(TARGET o2-test-framework-core PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+set_property(TARGET o2-test-framework-core-sanitized PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
 add_test(NAME framework:core COMMAND o2-test-framework-core --skip-benchmarks)
+add_test(NAME framework:sanitized COMMAND o2-test-framework-core-sanitized --skip-benchmarks)
 
 o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper
             SOURCES test/test_AlgorithmWrapper.cxx
