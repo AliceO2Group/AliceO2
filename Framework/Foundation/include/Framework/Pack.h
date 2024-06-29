@@ -115,14 +115,45 @@ consteval auto prune_voids_pack(Result result, pack<>)
   return result;
 }
 
+// The first one is non void, but one of the others is void
 template <typename... Rs, typename T, typename... Ts>
+  requires(!std::is_void_v<T>)
 consteval auto prune_voids_pack(pack<Rs...> result, pack<T, Ts...>)
 {
-  if constexpr (std::is_void_v<T> == false) {
-    return prune_voids_pack(pack<Rs..., T>{}, pack<Ts...>{});
-  } else {
-    return prune_voids_pack(pack<Rs...>{}, pack<Ts...>{});
-  }
+  return prune_voids_pack(pack<Rs..., T>{}, pack<Ts...>{});
+}
+
+// The first one is void
+template <typename... Rs, typename V, typename... Ts>
+  requires(std::is_void_v<V>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<V, Ts...>)
+{
+  return prune_voids_pack(pack<Rs...>{}, pack<Ts...>{});
+}
+
+// The first one is non void, but one of the others is void
+template <typename... Rs, typename T1, typename T2, typename... Ts>
+  requires(!std::is_void_v<T1> && !std::is_void_v<T2>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T1, T2, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T1, T2>{}, pack<Ts...>{});
+}
+
+// Eats 4 types at the time
+template <typename... Rs, typename T1, typename T2, typename T3, typename T4, typename... Ts>
+  requires(!std::is_void_v<T1> && !std::is_void_v<T2> && !std::is_void_v<T3> && !std::is_void_v<T4>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T1, T2, T3, T4, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T1, T2, T3, T4>{}, pack<Ts...>{});
+}
+
+// Eats 8 types at the time
+template <typename... Rs, typename T1, typename T2, typename T3, typename T4,
+          typename T5, typename T6, typename T7, typename T8, typename... Ts>
+  requires(!std::is_void_v<T1> && !std::is_void_v<T2> && !std::is_void_v<T3> && !std::is_void_v<T4> && !std::is_void_v<T5> && !std::is_void_v<T6> && !std::is_void_v<T7> && !std::is_void_v<T8>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T1, T2, T3, T4, T5, T6, T7, T8, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T1, T2, T3, T4, T5, T6, T7, T8>{}, pack<Ts...>{});
 }
 
 /// Selects from the pack types that satisfy the Condition
