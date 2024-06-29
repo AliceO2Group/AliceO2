@@ -184,15 +184,14 @@ bool consteval has_type(framework::pack<Us...>)
 template <typename T, typename P>
 inline constexpr bool has_type_v = has_type<T>(P{});
 
-template <template <typename, typename> typename Condition, typename T, typename Pack>
-struct has_type_conditional;
-
 template <template <typename, typename> typename Condition, typename T, typename... Us>
-struct has_type_conditional<Condition, T, pack<Us...>> : std::disjunction<Condition<T, Us>...> {
-};
+bool consteval has_type_conditional(framework::pack<Us...>)
+{
+  return (Condition<T, Us>::value || ...);
+}
 
-template <template <typename, typename> typename Condition, typename T, typename... Us>
-inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T, Us...>::value;
+template <template <typename, typename> typename Condition, typename T, typename P>
+inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T>(P{});
 
 template <typename T>
 constexpr size_t has_type_at(pack<> const&)
