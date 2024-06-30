@@ -1221,7 +1221,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSCompat(const input_IT 
 
   if (!view.empty()) {
     thisBlock->storeDict(view.size(), view.data());
-    LOGP(info, "StoreDict {} bytes, offs: {}:{}", view.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + view.size() * sizeof(W));
+    LOGP(debug, "StoreDict {} bytes, offs: {}:{}", view.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + view.size() * sizeof(W));
   }
   // vector of incompressible literal symbols
   std::vector<input_t> literals;
@@ -1233,7 +1233,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSCompat(const input_IT 
   dataSize = encodedMessageEnd - thisBlock->getDataPointer();
   thisBlock->setNData(dataSize);
   thisBlock->realignBlock();
-  LOGP(info, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(W), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(W));
+  LOGP(debug, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(W), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(W));
   // update the size claimed by encode message directly inside the block
 
   // store incompressible symbols if any
@@ -1248,13 +1248,13 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSCompat(const input_IT 
       const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
       std::tie(thisBlock, thisMetadata) = expandStorage(slot, nLiteralStorageElems, buffer);
       thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
-      LOGP(info, "StoreLiterals {} bytes, offs: {}:{}", nLiteralStorageElems * sizeof(W), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + nLiteralStorageElems * sizeof(W));
+      LOGP(debug, "StoreLiterals {} bytes, offs: {}:{}", nLiteralStorageElems * sizeof(W), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + nLiteralStorageElems * sizeof(W));
       return nLiteralStorageElems;
     }
     return size_t(0);
   }();
 
-  LOGP(info, "Min, {} Max, {}, size, {}, nSamples {}", view.getMin(), view.getMax(), view.size(), frequencyTable.getNumSamples());
+  LOGP(debug, "Min, {} Max, {}, size, {}, nSamples {}", view.getMin(), view.getMax(), view.size(), frequencyTable.getNumSamples());
 
   *thisMetadata = detail::makeMetadataRansCompat<input_t, ransState_t, ransStream_t>(encoder.getNStreams(),
                                                                                      messageLength,
@@ -1317,7 +1317,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
   const size_t dataSize = std::distance(thisBlock->getCreateData(), encodedMessageEnd);
   thisBlock->setNData(dataSize);
   thisBlock->realignBlock();
-  LOGP(info, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(storageBuffer_t));
+  LOGP(debug, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(storageBuffer_t));
   // update the size claimed by encoded message directly inside the block
 
   // encode literals
@@ -1329,7 +1329,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
     literalsSize = std::distance(thisBlock->getCreateLiterals(), literalsEnd);
     thisBlock->setNLiterals(literalsSize);
     thisBlock->realignBlock();
-    LOGP(info, "StoreLiterals {} bytes, offs: {}:{}", literalsSize * sizeof(storageBuffer_t), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + literalsSize * sizeof(storageBuffer_t));
+    LOGP(debug, "StoreLiterals {} bytes, offs: {}:{}", literalsSize * sizeof(storageBuffer_t), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + literalsSize * sizeof(storageBuffer_t));
   }
 
   // write metadata
@@ -1389,12 +1389,12 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   }
 
   const rans::Metrics<input_t>& metrics = encoder.getMetrics();
-
+  /*
   if constexpr (sizeof(input_t) > 2) {
     const auto& dp = metrics.getDatasetProperties();
     LOGP(info, "Metrics:{{slot: {}, numSamples: {}, min: {}, max: {}, alphabetRangeBits: {}, nUsedAlphabetSymbols: {}, preferPacking: {}}}", slot, dp.numSamples, dp.min, dp.max, dp.alphabetRangeBits, dp.nUsedAlphabetSymbols, metrics.getSizeEstimate().preferPacking());
   }
-
+  */
   if (detail::mayPack(opt) && metrics.getSizeEstimate().preferPacking()) {
     if (proxy.isCached()) {
       return pack(proxy.beginCache(), proxy.endCache(), slot, metrics, buffer);
@@ -1417,7 +1417,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   const size_t dictSize = std::distance(thisBlock->getCreateDict(), encodedDictEnd);
   thisBlock->setNDict(dictSize);
   thisBlock->realignBlock();
-  LOGP(info, "StoreDict {} bytes, offs: {}:{}", dictSize * sizeof(storageBuffer_t), thisBlock->getOffsDict(), thisBlock->getOffsDict() + dictSize * sizeof(storageBuffer_t));
+  LOGP(debug, "StoreDict {} bytes, offs: {}:{}", dictSize * sizeof(storageBuffer_t), thisBlock->getOffsDict(), thisBlock->getOffsDict() + dictSize * sizeof(storageBuffer_t));
 
   // encode payload
   auto encodedMessageEnd = thisBlock->getCreateData();
@@ -1429,7 +1429,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   const size_t dataSize = std::distance(thisBlock->getCreateData(), encodedMessageEnd);
   thisBlock->setNData(dataSize);
   thisBlock->realignBlock();
-  LOGP(info, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(storageBuffer_t));
+  LOGP(debug, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(storageBuffer_t));
   // update the size claimed by encoded message directly inside the block
 
   // encode literals
@@ -1439,7 +1439,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
     literalsSize = std::distance(thisBlock->getCreateLiterals(), literalsEnd);
     thisBlock->setNLiterals(literalsSize);
     thisBlock->realignBlock();
-    LOGP(info, "StoreLiterals {} bytes, offs: {}:{}", literalsSize * sizeof(storageBuffer_t), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + literalsSize * sizeof(storageBuffer_t));
+    LOGP(debug, "StoreLiterals {} bytes, offs: {}:{}", literalsSize * sizeof(storageBuffer_t), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + literalsSize * sizeof(storageBuffer_t));
   }
 
   // write metadata
@@ -1488,7 +1488,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::pack(const input_IT srcBegin, const i
     thisBlock->realignBlock();
   }
 
-  LOGP(info, "StoreData {} bytes, offs: {}:{}", packedSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + packedSize * sizeof(storageBuffer_t));
+  LOGP(debug, "StoreData {} bytes, offs: {}:{}", packedSize * sizeof(storageBuffer_t), thisBlock->getOffsData(), thisBlock->getOffsData() + packedSize * sizeof(storageBuffer_t));
   return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
 };
 

@@ -84,6 +84,6 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
   sz += estimateBufferSize(static_cast<int>(CTF::BLC_cfdTime), cd.cfdTime);
   sz += estimateBufferSize(static_cast<int>(CTF::BLC_qtcAmpl), cd.qtcAmpl);
 
-  LOG(info) << "Estimated output size is " << sz << " bytes";
+  LOG(debug) << "Estimated output size is " << sz << " bytes";
   return sz;
 };
