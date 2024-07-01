@@ -131,6 +131,17 @@ template <template <typename...> class T, typename... C>
 struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
 };
 
+/// Use this to group together produces. Useful to separate them logically
+/// or simply to stay within the 100 elements per Task limit.
+/// Use as:
+///
+/// struct MySetOfProduces : ProducesGroup {
+/// } products;
+///
+/// Notice the label MySetOfProduces is just a mnemonic and can be omitted.
+struct ProducesGroup {
+};
+
 /// Helper template for table transformations
 template <typename METADATA>
 struct TableTransform {
