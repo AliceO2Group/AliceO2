@@ -198,30 +198,46 @@ struct ConditionManager<Condition<OBJ>> {
   }
 };
 
-/// SFINAE placeholder
+/// SFINAE placeholder, also handles recursion in ProcessGroup
 template <typename T>
 struct OutputManager {
   template <typename ANY>
-  static bool appendOutput(std::vector<OutputSpec>&, ANY&, uint32_t)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY& what, uint32_t v)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&outputs, v](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::appendOutput(outputs, p, v); }, what);
+      return true;
+    }
     return false;
   }
 
   template <typename ANY>
-  static bool prepare(ProcessingContext&, ANY&)
+  static bool prepare(ProcessingContext& context, ANY& what)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&context](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::prepare(context, p); }, what);
+      return true;
+    }
     return false;
   }
 
   template <typename ANY>
-  static bool postRun(EndOfStreamContext&, ANY&)
+  static bool postRun(EndOfStreamContext& context, ANY& what)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&context](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::postRun(context, p); }, what);
+      return true;
+    }
     return true;
   }
 
   template <typename ANY>
-  static bool finalize(ProcessingContext&, ANY&)
+  static bool finalize(ProcessingContext& context, ANY& what)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&context](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::finalize(context, p); }, what);
+      return true;
+    }
     return true;
   }
 };
