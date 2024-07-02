@@ -57,7 +57,7 @@ void RUDecodeData::fillChipStatistics(int icab, const ChipPixelData* chipData)
   cableLinkPtr[icab]->chipStat.nHits += chipData->getData().size();
   uint32_t action = 0;
   if (chipData->getErrorFlags()) {
-    cableLinkPtr[icab]->chipStat.addErrors(*chipData, verbosity);
+    action = cableLinkPtr[icab]->chipStat.addErrors(*chipData, verbosity);
     auto compid = ChipError::composeID(cableLinkPtr[icab]->feeID, chipData->getChipID());
     auto& chErr = chipErrorsTF[compid];
     chErr.first++;
