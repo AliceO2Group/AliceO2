@@ -180,10 +180,7 @@ class AlpideCoder
         continue;
       }
 
-      // ---------- chip info ?
-      uint8_t dataCM = dataC & (~MaskChipID);
-      //
-      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
+      if ((expectInp & ExpectChipEmpty) && isChipEmpty(dataC)) { // empty chip was expected
         uint16_t chipIDGlo = cidGetter(dataC & MaskChipID);
         if (chipIDGlo == 0xffff) {
           chipData.setChipID(chipIDGlo);
@@ -207,7 +204,7 @@ class AlpideCoder
         continue;
       }
 
-      if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
+      if ((expectInp & ExpectChipHeader) && isChipHeader(dataC)) { // chip header was expected
         uint16_t chipIDGlo = cidGetter(dataC & MaskChipID);
         if (chipIDGlo == 0xffff) {
           chipData.setChipID(chipIDGlo);
@@ -237,7 +234,7 @@ class AlpideCoder
         continue;
       }
 
-      if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
+      if ((expectInp & ExpectChipTrailer) && isChipTrailer(dataC)) { // chip trailer was expected
         expectInp = ExpectNextChip;
         chipData.setROFlags(dataC & MaskROFlags);
 #ifdef ALPIDE_DECODING_STAT
@@ -396,7 +393,7 @@ class AlpideCoder
       }
 
       // in case of BUSY VIOLATION the Trailer may come directly after the Header
-      if ((expectInp & ExpectRegion) && (dataCM == CHIPTRAILER) && (dataC & MaskROFlags)) {
+      if ((expectInp & ExpectRegion) && isChipTrailer(dataC) && (dataC & MaskROFlags)) {
         expectInp = ExpectNextChip;
         chipData.setROFlags(dataC & MaskROFlags);
         roErrHandler(dataC & MaskROFlags);
@@ -552,8 +549,7 @@ class AlpideCoder
       reconstructedData.current(dataRec);
       buffer.current(dataRaw);
       if (dataRaw == dataRec) {
-        if ((dataRaw & (~MaskChipID)) == CHIPHEADER ||
-            (dataRaw & (~MaskChipID)) == CHIPEMPTY) {
+        if (isChipHeaderOrEmpty(dataRaw)) {
           // If the data correspond to the CHIPHEADER or CHIPEMPTY data words,
           // skip the next byte that represent bunch counters.
           buffer.next(dataRaw);
@@ -576,7 +572,7 @@ class AlpideCoder
         return false;
       }
 
-      if ((dataRaw & (~MaskChipID)) == CHIPHEADER) {
+      if (isChipHeader(dataRaw)) {
         // If we encounter a mismatch when the raw data is at the beginning
         // of the next chip, it might indicate the fact that an error occured
         // during the decoding of this chip. In this case, we cannot continue
@@ -606,11 +602,14 @@ class AlpideCoder
     return true;
   }
 
+  static bool isChipEmpty(uint8_t v) { return (v & (~MaskChipID)) == CHIPEMPTY; }
+  static bool isChipHeader(uint8_t v) { return (v & (~MaskChipID)) == CHIPHEADER; }
+  static bool isChipTrailer(uint8_t v) { return (v & (~MaskChipID)) == CHIPTRAILER; }
+
   /// check if the byte corresponds to chip_header or chip_empty flag
   static bool isChipHeaderOrEmpty(uint8_t v)
   {
-    v &= (~MaskChipID);
-    return (v == CHIPEMPTY) || (v == CHIPHEADER);
+    return isChipHeader(v) || isChipEmpty(v);
   }
   // methods to use for data encoding
 
