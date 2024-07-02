@@ -140,8 +140,8 @@ void Trap2CRU::sortDataToLinks()
       // hcid/2 = detector, detector implies stack and layer, and hcid odd/even gives side.
       std::stable_sort(std::begin(mTracklets) + trig.getFirstTracklet(), std::begin(mTracklets) + trig.getNumberOfTracklets() + trig.getFirstTracklet(),
                        [this](auto&& t1, auto&& t2) {
-                         int link1 = HelperMethods::getLinkIDfromHCID(t1.getHCID());
-                         int link2 = HelperMethods::getLinkIDfromHCID(t2.getHCID());
+                         int link1 = (!mLinkMap) ? HelperMethods::getLinkIDfromHCID(t1.getHCID()) : mLinkMap->getLink(t1.getHCID());
+                         int link2 = (!mLinkMap) ? HelperMethods::getLinkIDfromHCID(t2.getHCID()) : mLinkMap->getLink(t2.getHCID());
                          if (link1 != link2) {
                            return link1 < link2;
                          }
@@ -179,7 +179,10 @@ void Trap2CRU::sortDataToLinks()
         int firsttracklet = trig.getFirstTracklet();
         int numtracklets = trig.getNumberOfTracklets();
         for (int trackletcount = firsttracklet; trackletcount < firsttracklet + numtracklets; ++trackletcount) {
-          LOG(info) << "Tracklet : " << trackletcount << " details : supermodule:" << std::dec << mTracklets[trackletcount].getHCID() << std::hex << " tracklet:" << mTracklets[trackletcount];
+          LOG(info) << "Tracklet : " << trackletcount << " details : tracklethcid :" << std::dec
+                    << mTracklets[trackletcount].getHCID() << "  linkid:" << HelperMethods::getLinkIDfromHCID(mTracklets[trackletcount].getHCID())
+                    << " linkid by map : " << ((!mLinkMap) ? -1 : (int)mLinkMap->getLink(mTracklets[trackletcount].getHCID()))
+                    << " tracklet:" << mTracklets[trackletcount] << std::endl;
         }
       } else {
         LOG(info) << "No Tracklets for this trigger";
@@ -359,7 +362,7 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
       digitwordswritten++;
     }
     if (mVerbosity) {
-      LOG(info) << "DDDD " << d->getDetector() << ":" << d->getROB() << ":" << d->getMCM() << ":" << d->getChannel() << ":" << d->getADCsum() << ":" << d->getADC()[0] << ":" << d->getADC()[1] << ":" << d->getADC()[2] << "::" << d->getADC()[27] << ":" << d->getADC()[28] << ":" << d->getADC()[29];
+      LOG(info) << "Det " << d->getDetector() << ":" << d->getROB() << ":" << d->getMCM() << ":" << d->getChannel() << ":" << d->getADCsum() << ":" << d->getADC()[0] << ":" << d->getADC()[1] << ":" << d->getADC()[2] << "::" << d->getADC()[27] << ":" << d->getADC()[28] << ":" << d->getADC()[29];
     }
     digitswritten++;
   }
@@ -578,7 +581,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     for (int halfcrulink = 0; halfcrulink < constants::NLINKSPERHALFCRU; halfcrulink++) {
       //links run from 0 to 14, so linkid offset is halfcru*15;
       int linkid = halfcrulink + halfcru * constants::NLINKSPERHALFCRU;
-      int hcid = mLinkMap->getHCID(linkid);
+      int hcid = (!mLinkMap) ? HelperMethods::getHCIDFromLinkID(linkid) : mLinkMap->getHCID(linkid);
       int linkwordswritten = 0; // number of 32 bit words for this link
       int errors = 0;           // put no errors in for now.
       uint32_t crudatasize = 0; // in 256 bit words.
