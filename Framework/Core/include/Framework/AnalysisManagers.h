@@ -551,7 +551,8 @@ struct OptionManager {
       if constexpr (requires { x.prefix; }) {
         homogeneous_apply_refs<true>([prefix = x.prefix]<typename C>(C& y) { // apend group prefix if set
           if constexpr (requires { y.name; }) {
-            y.name = prefix + "." + y.name;
+            y.name.insert(0, 1, '.');
+            y.name.insert(0, prefix);
           }
           return true;
         },
