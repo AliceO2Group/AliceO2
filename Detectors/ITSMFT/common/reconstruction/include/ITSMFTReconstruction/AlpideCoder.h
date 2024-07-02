@@ -585,7 +585,7 @@ class AlpideCoder
         if (seenChips.count(ID) && seenChips[ID]->isErrorSet()) {
           LOG(warning) << "Chip " << ID
                        << " could not be verified due to set errors: "
-                       << ChipStat::reportErrors(*seenChips[ID]);
+                       << seenChips[ID]->reportErrors();
           // TODO: Instead of returning, we can skip the part of the buffer
           // that describes this chip and continue with the verification of
           // the next one.

@@ -24,30 +24,11 @@ constexpr std::array<std::string_view, ChipStat::NErrorsDefined> ChipStat::ErrNa
 uint32_t ChipStat::getNErrors() const
 {
   uint32_t nerr = 0;
-  for (int i = NErrorsDefined; i--;) {
-    nerr += errorCounts[i];
-  }
+  auto inner = [&](int errIdx) {
+    nerr += errorCounts[errIdx];
+  };
+  ChipStat::forEachError(inner);
   return nerr;
-}
-
-///_________________________________________________________________
-/// print link decoding statistics
-uint32_t ChipStat::addErrors(uint32_t mask, uint16_t chID, int verbosity)
-{
-  uint32_t res = 0;
-  if (mask) {
-    for (int i = NErrorsDefined; i--;) {
-      if (mask & (0x1 << i)) {
-        res |= ErrActions[i] & ErrActPropagate;
-        if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(info, "New error registered on the FEEID:{:#04x}: chip#{}: {}", feeID, chID, ErrNames[i]);
-          res |= ErrActions[i] & ErrActDump;
-        }
-        errorCounts[i]++;
-      }
-    }
-  }
-  return res;
 }
 
 ///_________________________________________________________________
@@ -56,18 +37,20 @@ uint32_t ChipStat::addErrors(const ChipPixelData& d, int verbosity)
 {
   uint32_t res = 0;
   if (d.getErrorFlags()) {
-    for (int i = NErrorsDefined; i--;) {
-      if (d.getErrorFlags() & (0x1UL << i)) {
-        res |= ErrActions[i] & ErrActPropagate;
-        if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(info, "New error registered at bc/orbit {}/{} on the FEEID:{:#04x} chip#{}: {}{}",
-               d.getInteractionRecord().bc, d.getInteractionRecord().orbit,
-               feeID, int16_t(d.getChipID()), ErrNames[i], d.getErrorDetails(i));
-          res |= ErrActions[i] & ErrActDump;
-        }
-        errorCounts[i]++;
+    auto inner = [&](int errIdx) {
+      res |= ErrActions[errIdx] & ErrActPropagate;
+      if (verbosity > -1 && (!errorCounts[errIdx] || verbosity > 1)) {
+        LOGP(info,
+             "New error registered at bc/orbit {}/{} on the FEEID:{:#04x} "
+             "chip#{}: {}{}",
+             d.getInteractionRecord().bc, d.getInteractionRecord().orbit, feeID,
+             int16_t(d.getChipID()), ErrNames[errIdx],
+             d.getErrorDetails(errIdx));
+        res |= ErrActions[errIdx] & ErrActDump;
       }
-    }
+      errorCounts[errIdx]++;
+    };
+    d.forEachSetError(inner);
   }
   return res;
 }
@@ -89,20 +72,6 @@ void ChipStat::print(bool skipNoErr, const std::string& pref) const
     }
     LOG(info) << rep;
   }
-}
-
-///_________________________________________________________________
-/// print chip decoding statistics
-std::string ChipStat::reportErrors(const ChipPixelData& d)
-{
-  std::string res;
-  for (int i = NErrorsDefined; i--;) {
-    if (d.getErrorFlags() & (0x1UL << i)) {
-      res += ErrNames[i];
-      res += " ";
-    }
-  }
-  return res;
 }
 
 ///_________________________________________________________________
