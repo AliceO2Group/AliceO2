@@ -170,15 +170,15 @@ struct DataProcessingStats {
 
   void flushChangedMetrics(std::function<void(MetricSpec const&, int64_t, int64_t)> const& callback);
 
-  std::atomic<size_t> statesSize;
+  std::atomic<size_t> statesSize = 0;
 
   std::array<Command, MAX_CMDS> cmds = {};
   std::array<int64_t, MAX_METRICS> metrics = {};
   std::array<bool, MAX_METRICS> updated = {};
-  std::array<std::string, MAX_METRICS> metricsNames;
-  std::array<UpdateInfo, MAX_METRICS> updateInfos;
-  std::array<MetricSpec, MAX_METRICS> metricSpecs;
-  std::array<int64_t, MAX_METRICS> lastPublishedMetrics;
+  std::array<std::string, MAX_METRICS> metricsNames = {};
+  std::array<UpdateInfo, MAX_METRICS> updateInfos = {};
+  std::array<MetricSpec, MAX_METRICS> metricSpecs = {};
+  std::array<int64_t, MAX_METRICS> lastPublishedMetrics = {};
   std::vector<int> availableMetrics;
   // How many commands have been committed to the queue.
   std::atomic<int> insertedCmds = 0;
