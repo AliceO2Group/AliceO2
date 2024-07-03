@@ -520,7 +520,7 @@ class MatchTPCITS
   int time2ITSROFrameTrig(float t, int start) const
   {
     t -= mITSTimeBiasMUS;
-    while (start < mITSROFTimes.size()) {
+    while (start < int(mITSROFTimes.size())) {
       if (mITSROFTimes[start].getMax() > t) {
         return start;
       }
