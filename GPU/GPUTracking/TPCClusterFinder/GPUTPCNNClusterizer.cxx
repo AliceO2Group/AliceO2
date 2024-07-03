@@ -202,8 +202,12 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
     } else if (clusterPosInRow) {
       rowIndex = clusterPosInRow[idx];
     }
-
     CPU_ONLY(labelAcc->commit(peak.row(), rowIndex, maxClusterPerRow));
+  } else {
+    if (clusterPosInRow) {
+      clusterPosInRow[idx] = maxClusterPerRow;
+    }
+    return;
   }
 
 }
