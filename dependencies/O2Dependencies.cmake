@@ -111,6 +111,12 @@ set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 find_package(TBB)
 set_package_properties(TBB PROPERTIES TYPE REQUIRED)
 
+# The Ifdef is to avoid merging at the same time alidist and AliceO2 PRs.
+if (ALICE_GRID_UTILS_INCLUDE_DIR)
+find_package(AliceGridUtils MODULE)
+set_package_properties(AliceGridUtils PROPERTIES TYPE RECOMMENDED)
+endif()
+
 find_package(JAliEnROOT MODULE)
 set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)
 

@@ -131,6 +131,22 @@ TEST_CASE("TestTreeParsing")
   REQUIRE(ptfilterspecs[0].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
   REQUIRE(ptfilterspecs[0].right == (DatumSpec{LiteralNode::var_t{0.5f}, atype::FLOAT}));
   REQUIRE(ptfilterspecs[0].result == (DatumSpec{0u, atype::BOOL}));
+
+  struct : ConfigurableGroup {
+    std::string prefix = "prefix";
+    Configurable<float> pTCut{"pTCut", 1.0f, "Lower pT limit"};
+  } group;
+  Filter ptfilter2 = o2::aod::track::pt > group.pTCut;
+  group.pTCut.name.insert(0, 1, '.');
+  group.pTCut.name.insert(0, group.prefix);
+  REQUIRE(ptfilter2.node->self.index() == 2);
+  REQUIRE(ptfilter2.node->left->self.index() == 1);
+  REQUIRE(ptfilter2.node->right->self.index() == 3);
+  REQUIRE(std::get<PlaceholderNode>(ptfilter2.node->right->self).name == "prefix.pTCut");
+  auto ptfilterspecs2 = createOperations(ptfilter2);
+  REQUIRE(ptfilterspecs2[0].left == (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
+  REQUIRE(ptfilterspecs2[0].right == (DatumSpec{LiteralNode::var_t{1.0f}, atype::FLOAT}));
+  REQUIRE(ptfilterspecs2[0].result == (DatumSpec{0u, atype::BOOL}));
 }
 
 TEST_CASE("TestGandivaTreeCreation")

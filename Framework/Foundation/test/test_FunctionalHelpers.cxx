@@ -28,8 +28,11 @@ struct TestStruct {
 TEST_CASE("TestOverride")
 {
   static_assert(pack_size(pack<int, float>{}) == 2, "Bad size for the pack");
+  static_assert(has_type<int>(pack<int, float>{}) == true, "int should be in the pack");
+  static_assert(has_type<double>(pack<int, float>{}) == false, "double should not be in the pack");
   static_assert(has_type_v<int, pack<int, float>> == true, "int should be in the pack");
   static_assert(has_type_v<double, pack<int, float>> == false, "double should not be in the pack");
+  static_assert(std::is_same_v<decltype(prune_voids_pack({}, pack<int, int, int, int, int, int, int, int, void>{})), pack<int, int, int, int, int, int, int, int>>, "prune last void");
   static_assert(has_type_conditional_v<std::is_same, int, pack<int, float>> == true, "int should be in the pack");
   static_assert(has_type_conditional_v<std::is_same, double, pack<int, float>> == false, "double should not be in the pack");
 
@@ -40,10 +43,12 @@ TEST_CASE("TestOverride")
   static_assert(has_type_at_conditional<std::is_same, bool>(pack<int, float, double>()) == 3 + 1, "bool is not in the pack so the function returns size + 1");
 
   static_assert(std::is_same_v<selected_pack<is_int_t, int, float, char>, pack<int>>, "selector should select int");
+  static_assert(std::is_same_v<selected_pack<is_int_t, int, int, float, char>, pack<int, int>>, "selector should select int");
+  static_assert(std::is_same_v<selected_pack<is_int_t, float, int, int, float, char>, pack<int, int>>, "selector should select int");
   static_assert(std::is_same_v<selected_pack_multicondition<is_same_as_second_t, pack<int>, pack<int, float, char>>, pack<int>>, "multiselector should select int");
   static_assert(std::is_same_v<filtered_pack<is_int_t, int, float, char>, pack<float, char>>, "filter should remove int");
   static_assert(std::is_same_v<intersected_pack_t<pack<int, float, char>, pack<float, double>>, pack<float>>, "filter intersect two packs");
-  static_assert(has_type_v<pack_element_t<0, pack<int>>, pack<int>> == true, "foo");
+  static_assert(has_type<pack_element_t<0, pack<int>>>(pack<int>{}) == true, "foo");
   print_pack<intersected_pack_t<pack<int>, pack<int>>>();
   print_pack<intersected_pack_t<pack<TestStruct<0, -1>, int>, pack<TestStruct<0, -1>, float>>>();
   static_assert(std::is_same_v<intersected_pack_t<pack<TestStruct<0, -1>, int>, pack<TestStruct<0, -1>, float>>, pack<TestStruct<0, -1>>>, "filter intersect two packs");
