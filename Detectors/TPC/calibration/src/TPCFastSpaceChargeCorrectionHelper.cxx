@@ -411,10 +411,14 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   int nY2Xbins = trackResiduals.getNY2XBins();
   int nZ2Xbins = trackResiduals.getNZ2XBins();
 
+  double marginY2X = trackResiduals.getY2X(0, 2) - trackResiduals.getY2X(0, 0);
+  double marginZ2X = trackResiduals.getZ2X(1) - trackResiduals.getZ2X(0);
+
   std::vector<int> yBinsInt;
   {
     std::vector<double> yBins;
-    yBins.reserve(nY2Xbins);
+    yBins.reserve(nY2Xbins + 2);
+    yBins.push_back(trackResiduals.getY2X(0, 0) - marginY2X);
     for (int i = 0, j = nY2Xbins - 1; i <= j; i += 2, j -= 2) {
       if (i == j) {
         yBins.push_back(trackResiduals.getY2X(0, i));
@@ -425,6 +429,8 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
         yBins.push_back(trackResiduals.getY2X(0, j));
       }
     }
+    yBins.push_back(trackResiduals.getY2X(0, nY2Xbins - 1) + marginY2X);
+
     std::sort(yBins.begin(), yBins.end());
     double dy = yBins[1] - yBins[0];
     for (int i = 1; i < yBins.size(); i++) {
@@ -452,10 +458,13 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   std::vector<int> zBinsInt;
   {
     std::vector<double> zBins;
-    zBins.reserve(nZ2Xbins);
+    zBins.reserve(nZ2Xbins + 2);
+    zBins.push_back(-(trackResiduals.getZ2X(0) - marginZ2X));
     for (int i = 0; i < nZ2Xbins; i += 2) {
       zBins.push_back(-trackResiduals.getZ2X(i));
     }
+    zBins.push_back(-(trackResiduals.getZ2X(nZ2Xbins - 1) + 2. * marginZ2X));
+
     std::sort(zBins.begin(), zBins.end());
     double dz = zBins[1] - zBins[0];
     for (int i = 1; i < zBins.size(); i++) {
@@ -465,7 +474,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     }
     zBinsInt.reserve(zBins.size());
     // spline knots must be positioned on the grid with an integer internal coordinate
-    // lets copy the knot positions with the accuracy of 0.1*dz
+    // lets copy the knot positions with the accuracy of 0.01*dz
     dz = dz / 10.;
     double z0 = zBins[0];
     double z1 = zBins[zBins.size() - 1];
@@ -525,10 +534,10 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       const auto& rowInfo = geo.getRowInfo(iRow);
       auto& info = correction.getSliceRowInfo(iRoc, iRow);
       const auto& spline = correction.getSpline(iRoc, iRow);
-      double yMin = rowInfo.x * trackResiduals.getY2X(iRow, 0);
-      double yMax = rowInfo.x * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
-      double zMin = rowInfo.x * trackResiduals.getZ2X(0);
-      double zMax = rowInfo.x * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
+      double yMin = rowInfo.x * (trackResiduals.getY2X(iRow, 0) - marginY2X);
+      double yMax = rowInfo.x * (trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1) + marginY2X);
+      double zMin = rowInfo.x * (trackResiduals.getZ2X(0) - marginZ2X);
+      double zMax = rowInfo.x * (trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1) + 2. * marginZ2X);
       double uMin = yMin;
       double uMax = yMax;
       double vMin = geo.getTPCzLength(iRoc) - zMax;
@@ -585,6 +594,12 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
         vox.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
         vox.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
         vox.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
+        if (0 && vox.mNentries < 1) {
+          vox.mCx = 0.;
+          vox.mCy = 0.;
+          vox.mCz = 0.;
+          vox.mNentries = 1;
+        }
       }
     };
     processor.Process(myThread);
@@ -711,29 +726,27 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
         // feed the row data to the helper
 
-        double yMin = 0., yMax = 0.;
+        double yMin = 0., yMax = 0., zMin = 0.;
+
+        auto& info = correction.getSliceRowInfo(iRoc, iRow);
+        const auto& spline = correction.getSpline(iRoc, iRow);
 
         {
-          float u, v;
+          float u0, u1, v0, v1;
+          correction.convGridToUV(iRoc, iRow, 0., 0., u0, v0);
+          correction.convGridToUV(iRoc, iRow,
+                                  spline.getGridX1().getUmax(), spline.getGridX2().getUmax(), u1, v1);
+          float y0, y1, z0, z1;
+          geo.convUVtoLocal(iRoc, u0, v0, y0, z0);
+          geo.convUVtoLocal(iRoc, u1, v1, y1, z1);
           if (iRoc < geo.getNumberOfSlicesA()) {
-            geo.convScaledUVtoUV(iRoc, iRow, 0., 0., u, v);
+            yMin = y0;
+            yMax = y1;
           } else {
-            geo.convScaledUVtoUV(iRoc, iRow, 1., 0., u, v);
+            yMin = y1;
+            yMax = y0;
           }
-          float py, pz;
-          geo.convUVtoLocal(iRoc, u, v, py, pz);
-          yMin = py;
-        }
-        {
-          float u, v;
-          if (iRoc < geo.getNumberOfSlicesA()) {
-            geo.convScaledUVtoUV(iRoc, iRow, 1., 0., u, v);
-          } else {
-            geo.convScaledUVtoUV(iRoc, iRow, 0., 0., u, v);
-          }
-          float py, pz;
-          geo.convUVtoLocal(iRoc, u, v, py, pz);
-          yMax = py;
+          zMin = z1;
         }
 
         double zEdge = 0.;
@@ -759,28 +772,22 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
             double correctionY = data.mCy;
             double correctionZ = data.mCz;
 
-            double yFirst = y - dy / 2.;
-            double yLast = y + dy / 2.;
+            double yStep = dy / 2.;
+            double zStep = dz / 2.;
+
+            double yFirst = y;
+            double yLast = y;
+            double zFirst = z;
+            double zLast = z;
 
             if (iy == 0) { // extend value of the first Y bin to the row edge
               yFirst = yMin;
+              yStep = (yLast - yFirst) / 2.;
             }
 
             if (iy == nY2Xbins - 1) { // extend value of the last Y bin to the row edge
               yLast = yMax;
-            }
-
-            double yStep = (yLast - yFirst) / 2;
-
-            double zFirst = z - dz / 2.;
-            double zLast = z + dz / 2.;
-            double zStep = (zLast - zFirst) / 2.;
-
-            if (0) { // no smoothing
-              yFirst = y;
-              yLast = y;
-              zFirst = z;
-              zLast = z;
+              yStep = (yLast - yFirst) / 2.;
             }
 
             for (double py = yFirst; py <= yLast + yStep / 2.; py += yStep) {
@@ -790,9 +797,19 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
                                        correctionZ);
               }
 
+              if (iz == 0) { // extend value of the first Z bin to Z=0.
+                int nZsteps = 2;
+                for (int is = 0; is < nZsteps; is++) {
+                  double pz = z + (zMin - z) * (is + 1.) / nZsteps;
+                  double s = 1.; //(nZsteps - 1. - is) / nZsteps;
+                  map.addCorrectionPoint(iRoc, iRow, py, pz, s * correctionX,
+                                         s * correctionY, s * correctionZ);
+                }
+              }
+
               if (iz == nZ2Xbins - 1) {
-                // extend value of the first Z bin to the readout, linear decrease of all values to 0.
-                int nZsteps = 3;
+                // extend value of the last Z bin to the readout, linear decrease of all values to 0.
+                int nZsteps = 2;
                 for (int is = 0; is < nZsteps; is++) {
                   double pz = z + (zEdge - z) * (is + 1.) / nZsteps;
                   double s = (nZsteps - 1. - is) / nZsteps;
@@ -803,9 +820,8 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
             }
           } // iz
         }   // iy
-
-      } // iRow
-    };  // myThread
+      }     // iRow
+    };      // myThread
 
     // run n threads
 
