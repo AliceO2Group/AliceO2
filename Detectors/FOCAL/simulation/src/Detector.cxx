@@ -137,102 +137,18 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
 
   // Processing HCAL hits
+  bool flagHCAL = true;
   if (fMC->CurrentMedium() == mMedSensHCal) {
-    LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << fMC->CurrentVolPath();
-
-    double eloss = fMC->Edep() * 1e9; // energy in eV  (GeV->eV)
-    if (eloss < DBL_EPSILON) {
-      return false; // only process hits which actually deposit some energy in the FOCAL
-    }
-
-    // In case of new parent track create new track reference
-    auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
-    if (!mCurrentSuperparent->mHasTrackReference) {
-      float x, y, z, px, py, pz, e;
-      fMC->TrackPosition(x, y, z);
-      fMC->TrackMomentum(px, py, pz, e);
-      o2::TrackReference trackref(x, y, z, px, py, pz, fMC->TrackLength(), fMC->TrackTime(), mCurrentParentID, GetDetId());
-      o2stack->addTrackReference(trackref);
-      mCurrentSuperparent->mHasTrackReference = true;
-    }
-
-    float posX, posY, posZ;
-    fMC->TrackPosition(posX, posY, posZ);
-
-    auto [indetector, col, row, layer, segment] = mGeometry->getVirtualInfo(posX, posY, posZ);
-
-    if (!indetector) {
-      // particle outside the detector
-      return true;
-    }
-
-    auto currenthit = FindHit(mCurrentParentID, col, row, layer);
-    if (!currenthit) {
-      // Condition for new hit:
-      // - Processing different partent track (parent track must be produced outside FOCAL)
-      // - Inside different cell
-      // - First track of the event
-      Double_t time = fMC->TrackTime() * 1e9; // time in ns
-      LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment;
-
-      /// check handling of primary particles
-      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, row * col + col, o2::focal::Hit::Subsystem_t::HCAL, math_utils::Point3D<float>(posX, posY, posZ), time, eloss);
-      o2stack->addHit(GetDetId());
-    } else {
-      LOG(debug3) << "Adding energy to the current hit";
-      currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
-    }
+    flagHCAL = ProcessHitsHCAL(v);
   }
 
   // Processing ECAL hits
+  bool flagECAL = true;
   if (TVirtualMC::GetMC()->CurrentMedium() == mMedSensECal) {
-    LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << TVirtualMC::GetMC()->CurrentVolPath();
-
-    double eloss = TVirtualMC::GetMC()->Edep() * 1e9; // energy in eV  (GeV->eV)
-    if (eloss < DBL_EPSILON) {
-      return false; // only process hits which actually deposit some energy in the FOCAL
-    }
-
-    // In case of new parent track create new track reference
-    auto o2stack = static_cast<o2::data::Stack*>(TVirtualMC::GetMC()->GetStack());
-    if (!mCurrentSuperparent->mHasTrackReference) {
-      float x, y, z, px, py, pz, e;
-      TVirtualMC::GetMC()->TrackPosition(x, y, z);
-      TVirtualMC::GetMC()->TrackMomentum(px, py, pz, e);
-      o2::TrackReference trackref(x, y, z, px, py, pz, TVirtualMC::GetMC()->TrackLength(), TVirtualMC::GetMC()->TrackTime(), mCurrentParentID, GetDetId());
-      o2stack->addTrackReference(trackref);
-      mCurrentSuperparent->mHasTrackReference = true;
-    }
-
-    float posX, posY, posZ;
-    TVirtualMC::GetMC()->TrackPosition(posX, posY, posZ);
-
-    auto [indetector, col, row, layer, segment] = mGeometry->getVirtualInfo(posX, posY, posZ);
-
-    if (!indetector) {
-      // particle outside the detector
-      return true;
-    }
-
-    auto currenthit = FindHit(mCurrentParentID, col, row, layer);
-    if (!currenthit) {
-      // Condition for new hit:
-      // - Processing different partent track (parent track must be produced outside FOCAL)
-      // - Inside different cell
-      // - First track of the event
-      Double_t time = TVirtualMC::GetMC()->TrackTime() * 1e9; // time in ns
-      LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment;
-
-      /// check handling of primary particles
-      AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, row * col + col, o2::focal::Hit::Subsystem_t::EPADS, math_utils::Point3D<float>(posX, posY, posZ), time, eloss);
-      o2stack->addHit(GetDetId());
-    } else {
-      LOG(debug3) << "Adding energy to the current hit";
-      currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
-    }
+    flagECAL = ProcessHitsECAL(v);
   }
-
-  return true;
+  return (flagHCAL || flagECAL);
+  // return true;
 }
 
 Hit* Detector::AddHit(int trackID, int primary, double initialEnergy, int detID, o2::focal::Hit::Subsystem_t subsystem,
@@ -1059,4 +975,102 @@ void Detector::FinishPrimary()
   LOG(debug) << "Finishing primary " << mCurrentPrimaryID;
   // Resetting primary and parent ID
   mCurrentPrimaryID = -1;
+}
+
+bool Detector::ProcessHitsECAL(FairVolume* v)
+{
+  LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << TVirtualMC::GetMC()->CurrentVolPath();
+
+  double eloss = TVirtualMC::GetMC()->Edep() * 1e9; // energy in eV  (GeV->eV)
+  if (eloss < DBL_EPSILON) {
+    return false; // only process hits which actually deposit some energy in the FOCAL
+  }
+
+  // In case of new parent track create new track reference
+  auto o2stack = static_cast<o2::data::Stack*>(TVirtualMC::GetMC()->GetStack());
+  if (!mCurrentSuperparent->mHasTrackReference) {
+    float x, y, z, px, py, pz, e;
+    TVirtualMC::GetMC()->TrackPosition(x, y, z);
+    TVirtualMC::GetMC()->TrackMomentum(px, py, pz, e);
+    o2::TrackReference trackref(x, y, z, px, py, pz, TVirtualMC::GetMC()->TrackLength(), TVirtualMC::GetMC()->TrackTime(), mCurrentParentID, GetDetId());
+    o2stack->addTrackReference(trackref);
+    mCurrentSuperparent->mHasTrackReference = true;
+  }
+
+  float posX, posY, posZ;
+  TVirtualMC::GetMC()->TrackPosition(posX, posY, posZ);
+
+  auto [indetector, col, row, layer, segment] = mGeometry->getVirtualInfo(posX, posY, posZ);
+
+  if (!indetector) {
+    // particle outside the detector
+    return true;
+  }
+
+  auto currenthit = FindHit(mCurrentParentID, col, row, layer);
+  if (!currenthit) {
+    // Condition for new hit:
+    // - Processing different partent track (parent track must be produced outside FOCAL)
+    // - Inside different cell
+    // - First track of the event
+    Double_t time = TVirtualMC::GetMC()->TrackTime() * 1e9; // time in ns
+    LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment;
+
+    /// check handling of primary particles
+    AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, row * col + col, o2::focal::Hit::Subsystem_t::EPADS, math_utils::Point3D<float>(posX, posY, posZ), time, eloss);
+    o2stack->addHit(GetDetId());
+  } else {
+    LOG(debug3) << "Adding energy to the current hit";
+    currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
+  }
+  return true;
+}
+
+bool Detector::ProcessHitsHCAL(FairVolume* v)
+{
+  LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << fMC->CurrentVolPath();
+
+  double eloss = fMC->Edep() * 1e9; // energy in eV  (GeV->eV)
+  if (eloss < DBL_EPSILON) {
+    return false; // only process hits which actually deposit some energy in the FOCAL
+  }
+
+  // In case of new parent track create new track reference
+  auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+  if (!mCurrentSuperparent->mHasTrackReference) {
+    float x, y, z, px, py, pz, e;
+    fMC->TrackPosition(x, y, z);
+    fMC->TrackMomentum(px, py, pz, e);
+    o2::TrackReference trackref(x, y, z, px, py, pz, fMC->TrackLength(), fMC->TrackTime(), mCurrentParentID, GetDetId());
+    o2stack->addTrackReference(trackref);
+    mCurrentSuperparent->mHasTrackReference = true;
+  }
+
+  float posX, posY, posZ;
+  fMC->TrackPosition(posX, posY, posZ);
+
+  auto [indetector, col, row, layer, segment] = mGeometry->getVirtualInfo(posX, posY, posZ);
+
+  if (!indetector) {
+    // particle outside the detector
+    return true;
+  }
+
+  auto currenthit = FindHit(mCurrentParentID, col, row, layer);
+  if (!currenthit) {
+    // Condition for new hit:
+    // - Processing different partent track (parent track must be produced outside FOCAL)
+    // - Inside different cell
+    // - First track of the event
+    Double_t time = fMC->TrackTime() * 1e9; // time in ns
+    LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment;
+
+    /// check handling of primary particles
+    AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, row * col + col, o2::focal::Hit::Subsystem_t::HCAL, math_utils::Point3D<float>(posX, posY, posZ), time, eloss);
+    o2stack->addHit(GetDetId());
+  } else {
+    LOG(debug3) << "Adding energy to the current hit";
+    currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
+  }
+  return true;
 }
