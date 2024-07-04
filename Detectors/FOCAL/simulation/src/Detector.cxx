@@ -977,7 +977,7 @@ void Detector::CreateECALGeometry()
 
   // Add the coldplates to each of the left and right towers
   TGeoBBox* coldPlateBox = new TGeoBBox("ColdPlateBox", geom->getTowerSizeX() / 2.0, geom->getTowerGapSizeY() / 2.0, geom->getECALSizeZ() / 2.0);
-  TGeoVolume* volumeColdPlate = 0x0;
+  TGeoVolume* volumeColdPlate = nullptr;
 
   if (geom->getTowerGapMaterial() == "Cu") { // Copper
     // if (contains(geom->getTowerGapMaterial(), "Cu")) { // Copper
