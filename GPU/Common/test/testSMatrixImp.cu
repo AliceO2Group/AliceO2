@@ -355,7 +355,7 @@ BOOST_FIXTURE_TEST_CASE(TestMatrixMultiplication, GPUSMatrixImplFixture)
 
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(resultSym_h(i, j) == resultSym_cpu(i, j), boost::test_tools::tolerance(0.00001f));
+      BOOST_TEST(resultSym_h(i, j) == resultSym_cpu(i, j));
     }
   }
 
@@ -420,7 +420,7 @@ BOOST_FIXTURE_TEST_CASE(TestMatrixCopyingAndComparison, GPUSMatrixImplFixture)
 
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(SMatrixSym3D_h(i, j) == copiedSymMatrix_h(i, j), boost::test_tools::tolerance(0.00001f));
+      BOOST_TEST(SMatrixSym3D_h(i, j) == copiedSymMatrix_h(i, j));
     }
   }
 
@@ -435,7 +435,7 @@ BOOST_FIXTURE_TEST_CASE(TestMatrixCopyingAndComparison, GPUSMatrixImplFixture)
 
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(SMatrix3D_h(i, j) == copiedMatrix_h(i, j), boost::test_tools::tolerance(0.00001f));
+      BOOST_TEST(SMatrix3D_h(i, j) == copiedMatrix_h(i, j));
     }
   }
 }
