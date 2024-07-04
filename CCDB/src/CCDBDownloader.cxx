@@ -80,7 +80,7 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
   }
 
   // Preparing timer to be used by curl
-  mTimeoutTimer = new uv_timer_t();
+  mTimeoutTimer = (uv_timer_t*)malloc(sizeof(*mTimeoutTimer));
   mTimeoutTimer->data = this;
   uvErrorCheck(uv_timer_init(mUVLoop, mTimeoutTimer));
   mHandleMap[(uv_handle_t*)mTimeoutTimer] = true;
@@ -136,54 +136,7 @@ void closeHandles(uv_handle_t* handle, void* arg)
 void onUVClose(uv_handle_t* handle)
 {
   if (handle != nullptr) {
-    // libuv handlers use c-style polymorphism, so deleting uv_handle_t* pointing to a derived class will in fact delete wrong number of bytes.
-    // As ugly as it is, it seems we have to check for all the possible types here.
-    switch (handle->type) {
-      case UV_NAMED_PIPE:
-        delete (uv_pipe_t*)handle;
-        break;
-      case UV_TTY:
-        delete (uv_stream_t*)handle;
-        break;
-      case UV_TCP:
-        delete (uv_tcp_t*)handle;
-        break;
-      case UV_UDP:
-        delete (uv_udp_t*)handle;
-        break;
-      case UV_PREPARE:
-        delete (uv_prepare_t*)handle;
-        break;
-      case UV_CHECK:
-        delete (uv_check_t*)handle;
-        break;
-      case UV_IDLE:
-        delete (uv_idle_t*)handle;
-        break;
-      case UV_ASYNC:
-        delete (uv_async_t*)handle;
-        break;
-      case UV_TIMER:
-        delete (uv_timer_t*)handle;
-        break;
-      case UV_PROCESS:
-        delete (uv_process_t*)handle;
-        break;
-      case UV_FS_EVENT:
-        delete (uv_fs_event_t*)handle;
-        break;
-      case UV_POLL:
-        delete (uv_poll_t*)handle;
-        break;
-      case UV_FS_POLL:
-        delete (uv_fs_poll_t*)handle;
-        return;
-      case UV_SIGNAL:
-        delete (uv_signal_t*)handle;
-        break;
-      default:
-        delete handle;
-    }
+    free(handle);
   }
 }
 
@@ -221,7 +174,7 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
   }
 
   if (CD->mExternalLoop) {
-    CD->mSocketTimerMap[sock] = new uv_timer_t();
+    CD->mSocketTimerMap[sock] = (uv_timer_t*)malloc(sizeof(*CD->mSocketTimerMap[sock]));
     uvErrorCheck(uv_timer_init(CD->mUVLoop, CD->mSocketTimerMap[sock]));
     CD->mHandleMap[(uv_handle_t*)CD->mSocketTimerMap[sock]] = true;
 
@@ -370,7 +323,7 @@ CCDBDownloader::curl_context_t* CCDBDownloader::createCurlContext(curl_socket_t 
   context = (curl_context_t*)malloc(sizeof(*context));
   context->CD = this;
   context->sockfd = sockfd;
-  context->poll_handle = new uv_poll_t();
+  context->poll_handle = (uv_poll_t*)malloc(sizeof(*context->poll_handle));
 
   uvErrorCheck(uv_poll_init_socket(mUVLoop, context->poll_handle, sockfd));
   mHandleMap[(uv_handle_t*)(context->poll_handle)] = true;
@@ -382,7 +335,7 @@ CCDBDownloader::curl_context_t* CCDBDownloader::createCurlContext(curl_socket_t 
 void CCDBDownloader::curlCloseCB(uv_handle_t* handle)
 {
   auto* context = (curl_context_t*)handle->data;
-  delete context->poll_handle;
+  free(context->poll_handle);
   free(context);
 }
 

@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(test_with_break)
 void onUVClose(uv_handle_t* handle)
 {
   if (handle != nullptr) {
-    delete handle;
+    free(handle);
   }
 }
 
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(external_loop_test)
   uv_loop_init(uvLoop);
 
   // Prepare test timer. It will be used to check whether the downloader affects external handles.
-  auto testTimer = new uv_timer_t();
+  auto testTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
   uv_timer_init(uvLoop, testTimer);
   uv_timer_start(testTimer, testTimerCB, 10, 10);
 
@@ -358,7 +358,7 @@ BOOST_AUTO_TEST_CASE(external_loop_test)
   // The reason for that are the uv_poll handles attached to the curl multi handle.
   // The multi handle must be cleaned (via destuctor) before poll handles attached to them are removed (via walking and closing).
   delete downloader;
-  while (uv_loop_alive(uvLoop) && uv_loop_close(uvLoop) == UV_EBUSY) {
+  while (uv_loop_alive(uvLoop) || uv_loop_close(uvLoop) == UV_EBUSY) {
     uv_walk(uvLoop, closeAllHandles, nullptr);
     uv_run(uvLoop, UV_RUN_ONCE);
   }
