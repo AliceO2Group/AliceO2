@@ -32,7 +32,7 @@ GPUdii() void GPUTPCNNClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlo
   CPU_ONLY(
     MCLabelAccumulator labelAcc(clusterer));
 
-  tpc::ClusterNative* clusterOut = clusterer.mPclusterByRow; // (onlyMC) ? nullptr : clusterer.mPclusterByRow;
+  tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
   GPUTPCNNClusterizer::nn_clusterizer(nBlocks, nThreads, iBlock, iThread, clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow, clusterer.nnSizeInputRow, clusterer.nnSizeInputPad, clusterer.nnSizeInputTime, clusterer.nnAddIndexData, clusterer.nnClassThreshold, clusterer.nnSigmoidTrafoThreshold, clusterer.nnClusterizerVerbosity);
 
@@ -208,6 +208,10 @@ GPUd() void GPUTPCNNClusterizer::nn_clusterizer(int nBlocks, int nThreads, int i
       clusterPosInRow[idx] = maxClusterPerRow;
     }
     return;
+  }
+
+  if((verbosity > 4) && idx == 100){
+    LOG(info) << "Clusterization done!";
   }
 
 }
