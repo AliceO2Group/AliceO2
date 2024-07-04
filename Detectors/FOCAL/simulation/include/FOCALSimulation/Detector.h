@@ -166,6 +166,14 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param energy Energy of the superparent
   Parent* AddSuperparent(int trackID, int pdg, double energy);
 
+  /// \brief Processing hit creation in the ECAL sensitive volume
+  /// \param v Current sensitive volume
+  bool ProcessHitsECAL(FairVolume* v = nullptr);
+
+  /// \brief Processing hit creation in the HCAL sensitive volume
+  /// \param v Current sensitive volume
+  bool ProcessHitsHCAL(FairVolume* v = nullptr);
+
  private:
   /// \brief Copy constructor (used in MT)
   Detector(const Detector& rhs);
