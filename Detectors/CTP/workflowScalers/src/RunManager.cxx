@@ -39,8 +39,8 @@ int CTPActiveRun::send2BK(std::unique_ptr<BkpClient>& BKClient, size_t ts, bool 
 {
   int runNumber = cfg.getRunNumber();
   // LOG(info) << "BK Filling run:" << runNumber;
-  //int runOri = runNumber;
-  //runNumber = 123;
+  // int runOri = runNumber;
+  // runNumber = 123;
   if (start) {
     for (auto const& cls : cntslast) {
       for (int i = 0; i < 6; i++) {
@@ -58,7 +58,7 @@ int CTPActiveRun::send2BK(std::unique_ptr<BkpClient>& BKClient, size_t ts, bool 
       cntsbk[i] = (uint64_t)cls.second[i] + 0xffffffffull * overflows[cls.first][i] - (uint64_t)cnts0[cls.first][i];
     }
     std::string clsname = cfg.getClassNameFromHWIndex(cls.first);
-    //clsname = std::to_string(runOri) + "_" + clsname;
+    // clsname = std::to_string(runOri) + "_" + clsname;
     try {
       BKClient->triggerCounters()->createOrUpdateForRun(runNumber, clsname, ts, cntsbk[0], cntsbk[1], cntsbk[2], cntsbk[3], cntsbk[4], cntsbk[5]);
     } catch (std::runtime_error& error) {
