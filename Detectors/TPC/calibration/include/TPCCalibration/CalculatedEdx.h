@@ -25,6 +25,7 @@
 #include "CorrectionMapsHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TRandom.h"
+#include "TString.h"
 #include <vector>
 
 namespace o2::tpc
@@ -149,6 +150,10 @@ class CalculatedEdx
   /// load calibration objects from CCDB
   /// \param runNumberOrTimeStamp run number or time stamp
   void loadCalibsFromCCDB(long runNumberOrTimeStamp);
+
+  /// load calibration objects from local CCDB folder
+  /// \param localCCDBFolder local CCDB folder
+  void loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder);
 
  private:
   std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed

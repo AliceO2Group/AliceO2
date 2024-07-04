@@ -634,3 +634,65 @@ void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp)
   const o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile(cm.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT"));
   propagator->setMatLUT(matLut);
 }
+
+void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder)
+{
+  // set the track topology correction
+  o2::tpc::CalibdEdxTrackTopologyPol calibTrackTopology;
+  calibTrackTopology.loadFromFile(TString::Format("%s/TPC/Calib/TopologyGainPiecewise/snapshot.root", localCCDBFolder), "ccdb_object");
+  mCalibCont.setPolTopologyCorrection(calibTrackTopology);
+
+  // set the gain map
+  TFile* gainMapFile = TFile::Open(TString::Format("%s/TPC/Calib/PadGainFull/snapshot.root", localCCDBFolder));
+  if (!gainMapFile->IsZombie()) {
+    std::cout << "Using file: " << gainMapFile->GetName() << std::endl;
+    o2::tpc::CalDet<float>* gainMap = (o2::tpc::CalDet<float>*)gainMapFile->Get("ccdb_object");
+    const float minGain = 0;
+    const float maxGain = 2;
+    mCalibCont.setGainMap(*gainMap, minGain, maxGain);
+  }
+
+  // set residual gain map
+  TFile* gainMapResidualFile = TFile::Open(TString::Format("%s/TPC/Calib/PadGainResidual/snapshot.root", localCCDBFolder));
+  if (!gainMapResidualFile->IsZombie()) {
+    std::cout << "Using file: " << gainMapResidualFile->GetName() << std::endl;
+    o2::tpc::CalDet<float>* gainMapResidual = (o2::tpc::CalDet<float>*)gainMapResidualFile->Get("ccdb_object");
+    mCalibCont.setGainMapResidual(*gainMapResidual);
+  }
+
+  // set the residual dEdx correction
+  TFile* calibdEdxResidualFile = TFile::Open(TString::Format("%s/TPC/Calib/TimeGain/snapshot.root", localCCDBFolder));
+  if (!calibdEdxResidualFile->IsZombie()) {
+    std::cout << "Using file: " << calibdEdxResidualFile->GetName() << std::endl;
+    o2::tpc::CalibdEdxCorrection* calibdEdxResidual = (o2::tpc::CalibdEdxCorrection*)calibdEdxResidualFile->Get("ccdb_object");
+    mCalibCont.setResidualCorrection(*calibdEdxResidual);
+  }
+
+  // set the zero suppression threshold map
+  TFile* zeroSuppressionFile = TFile::Open(TString::Format("%s/TPC/Config/FEEPad/snapshot.root", localCCDBFolder));
+  if (!zeroSuppressionFile->IsZombie()) {
+    std::cout << "Using file: " << zeroSuppressionFile->GetName() << std::endl;
+    std::unordered_map<string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = (std::unordered_map<string, o2::tpc::CalDet<float>>*)zeroSuppressionFile->Get("ccdb_object");
+    mCalibCont.setZeroSupresssionThreshold(zeroSupressionThresholdMap->at("ThresholdMap"));
+  }
+
+  // set magnetic field
+  TFile* magFile = TFile::Open(TString::Format("%s/GLO/Config/GRPMagField/snapshot.root", localCCDBFolder));
+  if (!magFile->IsZombie()) {
+    std::cout << "Using file: " << magFile->GetName() << std::endl;
+    o2::parameters::GRPMagField* magField = (o2::parameters::GRPMagField*)magFile->Get("ccdb_object");
+    o2::base::Propagator::initFieldFromGRP(magField);
+    float bz = GPUO2InterfaceUtils::getNominalGPUBz(*magField);
+    LOGP(info, "Magnetic field: {}", bz);
+    setFieldNominalGPUBz(bz);
+  }
+
+  // set the propagator
+  auto propagator = o2::base::Propagator::Instance();
+  TFile* matLutFile = TFile::Open(TString::Format("%s/GLO/Param/MatLUT/snapshot.root", localCCDBFolder));
+  if (!matLutFile->IsZombie()) {
+    std::cout << "Using file: " << matLutFile->GetName() << std::endl;
+    o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile((o2::base::MatLayerCylSet*)matLutFile->Get("ccdb_object"));
+    propagator->setMatLUT(matLut);
+  }
+}
