@@ -36,6 +36,7 @@ add_subdirectory(FOCAL)
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
 add_subdirectory(Vertexing)
+add_subdirectory(GLOQC)
 
 if(BUILD_ANALYSIS)
   add_subdirectory(AOD)

@@ -30,11 +30,7 @@ include(FeatureSummary)
 include(FindThreads)
 
 find_package(Arrow CONFIG)
-if(${Arrow_VERSION} VERSION_LESS 11)
-find_package(Gandiva CONFIG PATHS ${Arrow_DIR} QUIET)
-else()
 find_package(Gandiva CONFIG)
-endif()
 set_package_properties(Arrow PROPERTIES TYPE REQUIRED)
 set_package_properties(Gandiva PROPERTIES TYPE REQUIRED)
 
@@ -114,6 +110,12 @@ set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 
 find_package(TBB)
 set_package_properties(TBB PROPERTIES TYPE REQUIRED)
+
+# The Ifdef is to avoid merging at the same time alidist and AliceO2 PRs.
+if (ALICE_GRID_UTILS_INCLUDE_DIR)
+find_package(AliceGridUtils MODULE)
+set_package_properties(AliceGridUtils PROPERTIES TYPE RECOMMENDED)
+endif()
 
 find_package(JAliEnROOT MODULE)
 set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)

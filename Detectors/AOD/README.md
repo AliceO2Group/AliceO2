@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsAOD AOD producers
+/doxy -->
+
 # AOD producers
 
 The code in this directory is meant to produce `AO2D.root` output

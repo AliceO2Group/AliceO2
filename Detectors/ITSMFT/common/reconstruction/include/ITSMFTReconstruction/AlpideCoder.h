@@ -21,6 +21,7 @@
 #include "PayLoadCont.h"
 #include <map>
 #include <fmt/format.h>
+#include <iomanip>
 
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/DecodingStat.h"
@@ -72,6 +73,7 @@ class AlpideCoder
   static constexpr uint32_t ExpectRegion = 0x1 << 3;
   static constexpr uint32_t ExpectData = 0x1 << 4;
   static constexpr uint32_t ExpectBUSY = 0x1 << 5;
+  static constexpr uint32_t ExpectNextChip = ExpectChipHeader | ExpectChipEmpty;
   static constexpr int NRows = 512;
   static constexpr int RowMask = NRows - 1;
   static constexpr int NCols = 1024;
@@ -105,6 +107,7 @@ class AlpideCoder
   static constexpr uint32_t DATASHORT = 0x4000; // flag for DATASHORT
   static constexpr uint32_t BUSYOFF = 0xf0;     // flag for BUSY_OFF
   static constexpr uint32_t BUSYON = 0xf1;      // flag for BUSY_ON
+  static constexpr uint32_t ERROR_MASK = 0xf0;  // flag for all error triggers
 
   // true if corresponds to DATALONG or DATASHORT: highest bit must be 0
   static bool isData(uint16_t v) { return (v & (0x1 << 15)) == 0; }
@@ -154,7 +157,7 @@ class AlpideCoder
     std::uint16_t rightColHits[NRows]; // buffer for the accumulation of hits in the right column
     std::uint16_t colDPrev = 0xffff;   // previously processed double column (to dected change of the double column)
 
-    uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
+    uint32_t expectInp = ExpectNextChip; // data must always start with chip header or chip empty flag
 
     chipData.clear();
     bool dataSeen = false;
@@ -177,10 +180,7 @@ class AlpideCoder
         continue;
       }
 
-      // ---------- chip info ?
-      uint8_t dataCM = dataC & (~MaskChipID);
-      //
-      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
+      if ((expectInp & ExpectChipEmpty) && isChipEmpty(dataC)) { // empty chip was expected
         uint16_t chipIDGlo = cidGetter(dataC & MaskChipID);
         if (chipIDGlo == 0xffff) {
           chipData.setChipID(chipIDGlo);
@@ -200,11 +200,11 @@ class AlpideCoder
         }
         seenChips.push_back(chipIDGlo);
         chipData.resetChipID();
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
+        expectInp = ExpectNextChip;
         continue;
       }
 
-      if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
+      if ((expectInp & ExpectChipHeader) && isChipHeader(dataC)) { // chip header was expected
         uint16_t chipIDGlo = cidGetter(dataC & MaskChipID);
         if (chipIDGlo == 0xffff) {
           chipData.setChipID(chipIDGlo);
@@ -234,7 +234,8 @@ class AlpideCoder
         continue;
       }
 
-      if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
+      if ((expectInp & ExpectChipTrailer) && isChipTrailer(dataC)) { // chip trailer was expected
+        expectInp = ExpectNextChip;
         chipData.setROFlags(dataC & MaskROFlags);
 #ifdef ALPIDE_DECODING_STAT
         uint8_t roErr = dataC & MaskROFlags;
@@ -283,8 +284,33 @@ class AlpideCoder
           // abs id of left column in double column
           uint16_t colD = (region * NDColInReg + dColID) << 1; // TODO consider <<4 instead of *NDColInReg?
           bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
-          // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
-          if (colD != colDPrev) {
+
+          if (row == rowPrev && colD == colDPrev) {
+            // this is a special test to exclude repeated data of the same pixel fired
+#ifdef ALPIDE_DECODING_STAT
+            chipData.setError(ChipStat::RepeatingPixel);
+            chipData.addErrorInfo((uint64_t(colD + rightC) << 16) | uint64_t(row));
+#endif
+            if ((dataS & (~MaskDColID)) == DATALONG) { // skip pattern w/o decoding
+              uint8_t hitsPattern = 0;
+              if (!buffer.next(hitsPattern)) {
+#ifdef ALPIDE_DECODING_STAT
+                chipData.setError(ChipStat::TruncatedLondData);
+#endif
+                return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
+              }
+              if (hitsPattern & (~MaskHitMap)) {
+#ifdef ALPIDE_DECODING_STAT
+                chipData.setError(ChipStat::WrongDataLongPattern);
+#endif
+                return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
+              }
+              LOGP(debug, "hitsPattern: {:#b} expect {:#b}", int(hitsPattern), int(expectInp));
+            }
+            expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
+            continue; // end of DATA(SHORT or LONG) processing
+          } else if (colD != colDPrev) {
+            // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
             if (colD < colDPrev && colDPrev != 0xffff) {
 #ifdef ALPIDE_DECODING_STAT
               chipData.setError(ChipStat::WrongDColOrder); // abandon cable data
@@ -296,33 +322,10 @@ class AlpideCoder
             for (int ihr = 0; ihr < nRightCHits; ihr++) {
               addHit(chipData, rightColHits[ihr], colDPrev);
             }
-            colDPrev = colD;
             nRightCHits = 0; // reset the buffer
-#ifdef ALPIDE_DECODING_STAT
-            rowPrev = 0xffff;
           }
-          // this is a special test to exclude repeated data of the same pixel fired
-          else if (row == rowPrev) { // same row/column fired repeatedly, hope this check is temporary
-            chipData.setError(ChipStat::RepeatingPixel);
-            chipData.addErrorInfo((uint64_t(colD + rightC) << 16) | uint64_t(row));
-            if ((dataS & (~MaskDColID)) == DATALONG) { // skip pattern w/o decoding
-              uint8_t hitsPattern = 0;
-              if (!buffer.next(hitsPattern)) {
-                chipData.setError(ChipStat::TruncatedLondData);
-                return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
-              }
-              if (hitsPattern & (~MaskHitMap)) {
-                chipData.setError(ChipStat::WrongDataLongPattern);
-                return unexpectedEOF("CHIP_DATA_LONG:Pattern"); // abandon cable data
-              }
-              LOGP(debug, "hitsPattern: {:#b} expect {:#b}", int(hitsPattern), int(expectInp));
-            }
-            expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
-            continue; // end of DATA(SHORT or LONG) processing
-          } else {
-            rowPrev = row;
-#endif
-          }
+          rowPrev = row;
+          colDPrev = colD;
 
           // we want to have hits sorted in column/row, so the hits in right column of given double column
           // are first collected in the temporary buffer
@@ -382,7 +385,7 @@ class AlpideCoder
       }
 
       if (!dataC) {
-        if (expectInp == (ExpectChipHeader | ExpectChipEmpty)) {
+        if (expectInp == ExpectNextChip) {
           continue;
         }
         chipData.setError(ChipStat::TruncatedBuffer);
@@ -390,8 +393,8 @@ class AlpideCoder
       }
 
       // in case of BUSY VIOLATION the Trailer may come directly after the Header
-      if ((expectInp & ExpectRegion) && (dataCM == CHIPTRAILER) && (dataC & MaskROFlags)) {
-        expectInp = ExpectChipHeader | ExpectChipEmpty;
+      if ((expectInp & ExpectRegion) && isChipTrailer(dataC) && (dataC & MaskROFlags)) {
+        expectInp = ExpectNextChip;
         chipData.setROFlags(dataC & MaskROFlags);
         roErrHandler(dataC & MaskROFlags);
         break;
@@ -425,6 +428,13 @@ class AlpideCoder
       return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // abandon cable data
     }
 
+    if (!(expectInp & ExpectNextChip)) {
+#ifdef ALPIDE_DECODING_STAT
+      chipData.setError(ChipStat::TruncatedRegion);
+#endif
+      return unexpectedEOF("Missing CHIP_TRAILER"); // abandon cable data
+    }
+
     if (needSorting && chipData.getData().size()) { // d.columns were in a wrong order, need to sort the data, RS: effectively disabled
       LOGP(error, "This code path should have been disabled");
       auto& pixData = chipData.getData();
@@ -445,11 +455,161 @@ class AlpideCoder
     return chipData.getData().size();
   }
 
+  /// Verifies the decoder by comparing the contents a cable by re-encoding seen
+  /// chips back into the ALPIDE format.
+  template <typename LG, typename CG>
+  static bool verifyDecodedCable(
+    std::map<int, ChipPixelData*>& seenChips, PayLoadCont& buffer,
+    std::vector<uint16_t>& seenChipIDs, LG lidGetter, CG cidGetter)
+  {
+    PayLoadCont reconstructedData;
+
+    // Ensure the length of the reconstructed buffer.
+    int bufferLength = 0;
+    for (auto it = seenChips.begin(); it != seenChips.end(); ++it) {
+      bufferLength += it->second->getData().size();
+    }
+    bufferLength += seenChipIDs.size() * 2;
+    reconstructedData.ensureFreeCapacity(40 * bufferLength);
+
+    // Encode the seen chips in the order they were decoded.
+    for (int ID : seenChipIDs) {
+      ChipPixelData currentChip;
+      int localID = lidGetter(ID);
+      if (seenChips.count(ID)) {
+        if (seenChips[ID]->isErrorSet()) {
+          continue;
+        }
+        currentChip = *seenChips[ID];
+      }
+      AlpideCoder encoder;
+      encoder.encodeChip(reconstructedData, currentChip, localID,
+                         /*dummy bc*/ 0, currentChip.getROFlags());
+    }
+
+    // Pad the end of the reconstructed buffer with the zero bytes.
+    if (buffer.getSize() > reconstructedData.getSize())
+      reconstructedData.fill(0x00,
+                             buffer.getSize() - reconstructedData.getSize());
+
+    auto reportError = [&](std::string message) {
+      LOG(error) << "Error during decoder verification: " << message;
+      LOG(debug) << "Raw Data:";
+      buffer.rewind();
+      uint8_t dataC = 0;
+      int index = 1;
+      while (buffer.next(dataC)) {
+        LOG(debug) << index << ". 0x" << std::setfill('0') << std::setw(2)
+                   << std::hex << std::uppercase << (0xFF & dataC);
+        ++index;
+      }
+      LOG(debug) << "Reconstructed Data:";
+      reconstructedData.rewind();
+      index = 1;
+      while (reconstructedData.next(dataC)) {
+        LOG(debug) << index << ". 0x" << std::setfill('0') << std::setw(2)
+                   << std::hex << std::uppercase << (0xFF & dataC);
+        ++index;
+      }
+    };
+
+    // The reconstructed buffer is very similar to the original data flow
+    // with the exception to several pieces of information that get lost
+    // during the decoding:
+    // 1. Error trigger words: these are absent in the reconstructed buffer.
+    //    In case of BUSYON/BUSYOFF words, the verification is allowed to
+    //    continue.
+    // 2. Bunch counter for frame: the reconstructed buffer does contain the
+    //    corresponding words, but has a dummy value.
+
+    buffer.rewind();
+    while (true) {
+      uint8_t dataRec = 0;
+      uint8_t dataRaw = 0;
+
+      if (reconstructedData.isEmpty() || buffer.isEmpty()) {
+        // If either buffer is empty, verify that both buffers reached the end.
+        // If one of the streams is non-empty, then verify that the remaining
+        // bytes are zeroes.
+        if (reconstructedData.isEmpty() && buffer.isEmpty()) {
+          break;
+        }
+        PayLoadCont& nonEmptyBuffer =
+          !buffer.isEmpty() ? buffer : reconstructedData;
+        uint8_t dataC = 0;
+        while (nonEmptyBuffer.next(dataC)) {
+          if (dataC != 0x00) {
+            reportError("Buffer sizes mismatch.");
+            return false;
+          }
+        }
+        break;
+      }
+
+      reconstructedData.current(dataRec);
+      buffer.current(dataRaw);
+      if (dataRaw == dataRec) {
+        if (isChipHeaderOrEmpty(dataRaw)) {
+          // If the data correspond to the CHIPHEADER or CHIPEMPTY data words,
+          // skip the next byte that represent bunch counters.
+          buffer.next(dataRaw);
+          reconstructedData.next(dataRec);
+        }
+        buffer.next(dataRaw);
+        reconstructedData.next(dataRec);
+        continue;
+      }
+
+      if (dataRaw == BUSYON || dataRaw == BUSYOFF) {
+        // Placement of BUSYON and BUSYOFF triggers is arbitrary, just ignore
+        // the byte in the raw stream and move forward.
+        buffer.next(dataRaw);
+        continue;
+      }
+      if ((dataRaw & ERROR_MASK) == ERROR_MASK) {
+        // Placement of error triggers is arbitrary and we cannot guarantee
+        // the decoder to have processed the rest of the stream.
+        return false;
+      }
+
+      if (isChipHeader(dataRaw)) {
+        // If we encounter a mismatch when the raw data is at the beginning
+        // of the next chip, it might indicate the fact that an error occured
+        // during the decoding of this chip. In this case, we cannot continue
+        // the byte stream verification after this point.
+        uint16_t ID = cidGetter(dataRaw & MaskChipID);
+        if (seenChips.count(ID) && seenChips[ID]->isErrorSet()) {
+          LOG(warning) << "Chip " << ID
+                       << " could not be verified due to set errors: "
+                       << seenChips[ID]->reportErrors();
+          // TODO: Instead of returning, we can skip the part of the buffer
+          // that describes this chip and continue with the verification of
+          // the next one.
+          return true;
+        }
+      }
+
+      // If the read bytes is not related to the special cases, report error.
+      std::stringstream errorStream;
+      errorStream << "Unexpected byte mismatch during decoder verification. "
+                     "Expected: 0x"
+                  << std::hex << std::uppercase << std::setfill('0')
+                  << std::setw(2) << (0xFF & dataRaw) << ", Reconstructed: 0x"
+                  << std::setfill('0') << std::setw(2) << (0xFF & dataRec);
+      reportError(errorStream.str());
+      return false;
+    }
+    return true;
+  }
+
+  static bool isChipEmpty(uint8_t v) { return (v & (~MaskChipID)) == CHIPEMPTY; }
+  static bool isChipHeader(uint8_t v) { return (v & (~MaskChipID)) == CHIPHEADER; }
+  static bool isChipTrailer(uint8_t v) { return (v & (~MaskChipID)) == CHIPTRAILER; }
+
   /// check if the byte corresponds to chip_header or chip_empty flag
   static bool isChipHeaderOrEmpty(uint8_t v)
   {
-    v &= (~MaskChipID);
-    return (v == CHIPEMPTY) || (v == CHIPHEADER);
+    return isChipHeader(v) || isChipEmpty(v);
   }
   // methods to use for data encoding
 

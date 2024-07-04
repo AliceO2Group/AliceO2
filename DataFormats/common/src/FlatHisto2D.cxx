@@ -43,9 +43,10 @@ FlatHisto2D<T>& FlatHisto2D<T>::operator=(const FlatHisto2D<T>& rhs)
   if (this == &rhs) {
     return *this;
   }
-  if (!rhs.canFill()) {
+  if (!rhs.canFill() && rhs.getNBins()) { // was initialized
     throw std::runtime_error("trying to copy read-only histogram");
-  } else {
+  }
+  if (rhs.getNBins()) {
     mContainer = rhs.mContainer;
     init(gsl::span<const T>(mContainer.data(), mContainer.size()));
   }

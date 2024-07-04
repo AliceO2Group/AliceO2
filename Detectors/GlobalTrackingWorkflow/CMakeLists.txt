@@ -49,6 +49,7 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::SimulationDataFormat
                                      O2::DetectorsVertexing
                                      O2::StrangenessTracking)
+
 o2_add_executable(driver-workflow
                   COMPONENT_NAME reader
                   SOURCES src/reader-driver-workflow.cxx

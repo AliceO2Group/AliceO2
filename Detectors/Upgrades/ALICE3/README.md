@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsUpgradesALICE3 ALICE3 Full Simulation
+/doxy -->
+
 # ALICE 3 full simulation
 
 ## Simulation

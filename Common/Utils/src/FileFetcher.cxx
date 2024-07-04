@@ -84,14 +84,12 @@ void FileFetcher::processInput(const std::vector<std::string>& input)
 {
   for (auto inp : input) {
     o2::utils::Str::trim(inp);
-
     if (fs::is_directory(inp)) {
       processDirectory(inp);
     } else if (mSelRegex && !std::regex_match(inp, *mSelRegex.get())) { // provided selector does not match, treat as a txt file with list
       // Avoid reading a multigiB data file as a list of inputs
       // bringing down the system.
       std::filesystem::path p(inp);
-
       if (std::filesystem::file_size(p) > 10000000) {
         LOGP(error, "file list {} larger than 10MB. Is this a data file?", inp);
         continue;
@@ -106,7 +104,7 @@ void FileFetcher::processInput(const std::vector<std::string>& input)
       std::vector<std::string> newInput;
       while (getline(listFile, line)) {
         o2::utils::Str::trim(line);
-        if (line[0] == '#') { // ignore commented file
+        if (line[0] == '#' || line.empty()) { // ignore commented file or empty line
           continue;
         }
         newInput.push_back(line);

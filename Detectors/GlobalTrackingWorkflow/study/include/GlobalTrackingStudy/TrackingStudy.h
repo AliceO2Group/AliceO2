@@ -18,11 +18,12 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "MathUtils/detail/Bracket.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
 
 namespace o2::trackstudy
 {
 /// create a processor spec
-o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC);
+o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts);
 
 } // namespace o2::trackstudy
 

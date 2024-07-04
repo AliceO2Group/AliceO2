@@ -175,9 +175,16 @@ struct ChipStat {
     return APE_STRIP_START + c - 0xf2;
   }
   uint32_t getNErrors() const;
-  uint32_t addErrors(uint32_t mask, uint16_t chID, int verbosity);
   uint32_t addErrors(const ChipPixelData& d, int verbosity);
   void print(bool skipNoErr = true, const std::string& pref = "FEEID") const;
+
+  template <typename Func>
+  static void forEachError(Func f)
+  {
+    for (int errIdx = 0; errIdx < NErrorsDefined; ++errIdx) {
+      f(errIdx);
+    }
+  }
 
   ClassDefNV(ChipStat, 1);
 };

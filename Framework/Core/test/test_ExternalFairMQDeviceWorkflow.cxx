@@ -441,6 +441,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       channelConfig.c_str(),
       o2::framework::dplModelAdaptor(filterSpecs, true)));
   }
+  workflow.back().labels.emplace_back(DataProcessorLabel{"input-proxy"});
 
   return workflow;
 }

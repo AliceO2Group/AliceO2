@@ -40,7 +40,7 @@ void algDump(const std::string& geom = "", const std::string& outname = "algdump
   auto store = [&outstream, &det, &pos, &pos0](int lr, int sid, int sidLr) {
     outstream << "gm"
               << "det=" << det.getID() << "lr=" << lr << "sid=" << sid << "sidlr=" << sidLr << "pos0=" << pos0 << "pos=" << pos << "\n";
-    //    printf("xx %d %d %d %f %f %f\n", det.getID(), lr, sid, pos0[0], pos0[1], pos0[1]);
+    printf("xx %d %d %d %f %f %f\n", det.getID(), lr, sid, pos0[0], pos0[1], pos0[1]);
   };
 
   det = DetID("ITS");

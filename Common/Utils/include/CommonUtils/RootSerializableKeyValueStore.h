@@ -21,6 +21,7 @@
 #include <TBufferFile.h>
 #include <type_traits>
 #include <cstring>
+#include <memory>
 
 namespace o2
 {
@@ -39,14 +40,19 @@ class RootSerializableKeyValueStore
   /// Structure encapsulating the stored information: raw buffers and attached type information (combination of type_index_hash and TClass information)
   struct SerializedInfo {
     SerializedInfo() = default;
-    SerializedInfo(void* o, int N, char* b, TClass* cl, std::string const& s) : objptr(o), N(N), bufferptr(b), cl(cl), typeinfo_name(s) {}
+    SerializedInfo(int N,
+                   std::unique_ptr<char> buffer, TClass const* cl, std::string const& s) : N(N), cl(cl), typeinfo_name(s)
+    {
+      bufferptr = buffer.get();
+      buffer.release();
+    }
     SerializedInfo(SerializedInfo const& other)
     {
       // we do a deep copy
       N = other.N;
       bufferptr = new char[N];
+
       std::memcpy(bufferptr, other.bufferptr, sizeof(char) * N);
-      objptr = nullptr;
       cl = other.cl;
       typeinfo_name = other.typeinfo_name;
     }
@@ -56,13 +62,18 @@ class RootSerializableKeyValueStore
       std::swap(*this, temp);
       return *this;
     }
+    ~SerializedInfo()
+    {
+      // we are the owner of this ... so delete it
+      delete bufferptr;
+    }
 
-    void* objptr = nullptr; //! pointer to existing object in memory
+    void* objptr = nullptr; //! pointer for "caching"
     Int_t N = 0;
     char* bufferptr = nullptr; //[N]  pointer to serialized buffer
 
     // we use the TClass and/or the type_index_hash for type idendification
-    TClass* cl = nullptr;
+    TClass const* cl = nullptr;
     std::string typeinfo_name; // typeinfo name that can be used to store type if TClass not available (for PODs!)
     ClassDefNV(SerializedInfo, 1);
   };
@@ -160,21 +171,21 @@ class RootSerializableKeyValueStore
   {
     // make sure we have a TClass for this
     // if there is a TClass, we'll use ROOT serialization to encode into the buffer
-    auto ptr = new T(value);
+    auto ptr = std::make_unique<T>(T{value});
     auto cl = TClass::GetClass(typeid(value));
     if (!cl) {
       state = GetState::kNOTCLASS;
       return;
     }
-    char* bufferptr = nullptr;
+    std::unique_ptr<char> bufferptr(nullptr);
     TBufferFile buff(TBuffer::kWrite);
-    buff.WriteObjectAny(ptr, cl);
+    buff.WriteObjectAny(ptr.get(), cl);
     int N = buff.Length();
-    bufferptr = new char[N];
-    memcpy(bufferptr, buff.Buffer(), sizeof(char) * N);
+    bufferptr.reset(new char[N]);
+    memcpy(bufferptr.get(), buff.Buffer(), sizeof(char) * N);
 
     auto name = std::type_index(typeid(value)).name();
-    mStore.insert(std::pair<std::string, SerializedInfo>(key, SerializedInfo((void*)ptr, N, (char*)bufferptr, cl, name)));
+    mStore.insert(std::pair<std::string, SerializedInfo>(key, SerializedInfo(N, std::move(bufferptr), cl, name)));
   }
 
   // implementation for put for trivial types
@@ -184,13 +195,13 @@ class RootSerializableKeyValueStore
     // we forbid pointers
     static_assert(!std::is_pointer<T>::value);
     // serialization of trivial types is easy (not based on ROOT)
-    auto ptr = new T(value);
+    auto ptr = std::make_unique<T>(T{value});
     int N = sizeof(T);
-    auto bufferptr = new char[N];
-    memcpy(bufferptr, (char*)ptr, sizeof(char) * N);
+    std::unique_ptr<char> bufferptr(new char[N]);
+    memcpy(bufferptr.get(), (char*)ptr.get(), sizeof(char) * N);
 
     auto name = std::type_index(typeid(value)).name();
-    mStore.insert(std::pair<std::string, SerializedInfo>(key, SerializedInfo((void*)ptr, N, (char*)bufferptr, nullptr, name)));
+    mStore.insert(std::pair<std::string, SerializedInfo>(key, SerializedInfo(N, std::move(bufferptr), nullptr, name)));
   }
 
   // generic implementation for get relying on TClass

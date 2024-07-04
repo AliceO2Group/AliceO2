@@ -534,7 +534,7 @@ GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<valu
   value_t snp = mP[kSnp] + x2r;
   value_t phi = 999.;
   if (gpu::CAMath::Abs(snp) < constants::math::Almost1) {
-    value_t phi = gpu::CAMath::ASin(snp) + getAlpha();
+    phi = gpu::CAMath::ASin(snp) + getAlpha();
     math_utils::detail::bringTo02Pi<value_t>(phi);
   }
   return phi;
@@ -934,6 +934,24 @@ GPUd() typename o2::track::TrackParametrization<value_T>::yzerr_t TrackParametri
   value_t dsxysncs = 2. * v.getSigmaXY() * sncs;
   return {{/*v.getX()*cs-v.getY()*sn,*/ v.getX() * sn + v.getY() * cs, v.getZ()},
           {v.getSigmaX2() * sn2 + dsxysncs + v.getSigmaY2() * cs2, (sn + cs) * v.getSigmaYZ(), v.getSigmaZ2()}};
+}
+
+//______________________________________________
+template <typename value_T>
+GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getDCAYtoMV(value_t b, value_t xmv, value_t ymv, value_t zmv) const
+{
+  auto ttmp = *this;
+  dim2_t dca;
+  return ttmp.propagateParamToDCA({xmv, ymv, zmv}, b, &dca) ? dca[0] : -9999.;
+}
+
+//______________________________________________
+template <typename value_T>
+GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getDCAZtoMV(value_t b, value_t xmv, value_t ymv, value_t zmv) const
+{
+  auto ttmp = *this;
+  dim2_t dca;
+  return ttmp.propagateParamToDCA({xmv, ymv, zmv}, b, &dca) ? dca[1] : -9999.;
 }
 
 namespace o2::track

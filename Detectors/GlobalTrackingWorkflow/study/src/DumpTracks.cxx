@@ -297,7 +297,7 @@ DataProcessorSpec getDumpTracksSpec(GTrackID::mask_t srcTracks, GTrackID::mask_t
 
   dataRequest->requestTracks(srcTracks, useMC);
   dataRequest->requestClusters(srcClusters, useMC);
-  dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestPrimaryVertices(useMC);
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                               true,                           // GRPECS=true
                                                               false,                          // GRPLHCIF

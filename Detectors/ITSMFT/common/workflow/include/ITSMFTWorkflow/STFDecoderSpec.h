@@ -46,6 +46,7 @@ struct STFDecoderInp {
   bool doSquashing = false;
   bool askSTFDist = true;
   bool allowReporting = true;
+  bool verifyDecoder = false;
   o2::header::DataOrigin origin{"NIL"};
   std::string deviceName{};
   std::string inputSpec{};
@@ -79,6 +80,7 @@ class STFDecoder : public Task
   bool mAllowReporting = true;
   bool mApplyNoiseMap = true;
   bool mUseClusterDictionary = true;
+  bool mVerifyDecoder = false;
   int mDumpOnError = 0;
   int mNThreads = 1;
   int mVerbosity = 0;

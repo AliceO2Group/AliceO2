@@ -223,10 +223,11 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 
   for (size_t itr = 0; itr < mTPCTracksArray.size(); itr++) {
     auto tr = mTPCTracksArray[itr]; // create track copy
+    int side = 0;
     if (tr.hasBothSidesClusters()) {
       continue;
     }
-
+    side = tr.hasASideClustersOnly() ? 1 : -1;
     //=========================================================================
     // create refitted copy
     auto trackRefit = [itr, this](o2::track::TrackParCov& trc, float t) -> bool {
@@ -263,7 +264,6 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       clY.clear();
       clZ.clear();
       int count = tr.getNClusters();
-      const auto* corrMap = this->mTPCCorrMapsLoader.getCorrMap();
       const o2::tpc::ClusterNative* cl = nullptr;
       for (int ic = count; ic--;) {
         uint8_t sector, row;
@@ -271,7 +271,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         clSector.push_back(sector);
         clRow.push_back(row);
         float x, y, z;
-        corrMap->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
+        mTPCCorrMapsLoader.Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, t); // nominal time of the track
         clX.push_back(x);
         clY.push_back(y);
         clZ.push_back(z);
@@ -297,6 +297,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                << "counter=" << counter
                << "iniTrack=" << tr
                << "iniTrackRef=" << trf
+               << "side=" << side
                << "time=" << tr.getTime0()
                << "clSector=" << clSector
                << "clRow=" << clRow
@@ -348,6 +349,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                    << "counter=" << counter
                    << "movTrackRef=" << trfm
                    << "mcTrack=" << mctrO2
+                   << "side=" << side
                    << "imposedTB=" << bcTB
                    << "dz=" << dz
                    << "clX=" << clX
@@ -386,6 +388,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
                    << "iniTrackRef=" << trf << "time=" << tr.getTime0();
       }
       (*mDBGOut) << "tpcMov"
+                 << "side=" << side
                  << "imposedTB=" << tb
                  << "dz=" << dz
                  << "clX=" << clX

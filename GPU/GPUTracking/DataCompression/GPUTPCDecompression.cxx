@@ -80,6 +80,7 @@ void* GPUTPCDecompression::SetPointersTmpNativeBuffersOutput(void* mem)
 void* GPUTPCDecompression::SetPointersTmpNativeBuffersInput(void* mem)
 {
   computePointerWithAlignment(mem, mUnattachedClustersOffsets, NSLICES * GPUCA_ROW_COUNT);
+  computePointerWithAlignment(mem, mAttachedClustersOffsets, mInputGPU.nTracks);
   return mem;
 }
 

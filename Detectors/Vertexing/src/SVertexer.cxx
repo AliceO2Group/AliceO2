@@ -1182,6 +1182,11 @@ int SVertexer::check3bodyDecays(const V0Index& v0Idx, const V0& v0, float rv0, s
       m3bodyTmp[ithread].push_back(candidate3B);
     }
     m3bodyIdxTmp[ithread].emplace_back(decay3bodyVtxID, v0Idx.getProngID(0), v0Idx.getProngID(1), bach.gid);
+
+    Decay3BodyIndex decay3bodyIdx(decay3bodyVtxID, v0Idx.getProngID(0), v0Idx.getProngID(1), bach.gid);
+    if (mStrTracker) {
+      mStrTracker->process3Body(m3bodyIdxTmp[ithread].size() - 1, candidate3B, decay3bodyIdx, ithread);
+    }
   }
   return m3bodyIdxTmp[ithread].size() - n3BodyIni;
 }
@@ -1328,7 +1333,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
     // require minimum of tpc clusters
     bool dCls = trTPC.getNClusters() < mSVParams->mTPCTrackMinNClusters;
     // check track z cuts
-    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() - vtx.getZ()) > mSVParams->mTPCTrack2Beam;
+    bool dDPV = std::abs(trLoc.getX() * trLoc.getTgl() - trLoc.getZ() + vtx.getZ()) > mSVParams->mTPCTrack2Beam;
     // check track transveres cuts
     float sna{0}, csa{0};
     o2::math_utils::CircleXYf_t trkCircle;

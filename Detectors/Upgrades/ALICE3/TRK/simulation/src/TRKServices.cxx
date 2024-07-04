@@ -316,7 +316,7 @@ void TRKServices::createMiddleServices(TGeoVolume* motherVolume)
     motherVolume->AddNode(middleBarrelCoolingH2OVolume, 1, combiTrans);
   }
   // Middle barrel connection disks
-  const float rMinMiddleBarrelDisk = 3.78f;
+  const float rMinMiddleBarrelDisk = 5.68f;
   const float rMaxMiddleBarrelDisk = 35.f;
   const float zLengthMiddleBarrel = 62.f;
   for (auto& orientation : {Orientation::kASide, Orientation::kCSide}) {

@@ -103,6 +103,8 @@ class Pdg(Enum):
     kLambdaB0 = 5122
     kLambdaCPlus = 4122
     kOmegaC0 = 4332
+    kK0Star892 = 313
+    kKPlusStar892 = 323
     kPhi = 333
     kSigmaC0 = 4112
     kSigmaCPlusPlus = 4222

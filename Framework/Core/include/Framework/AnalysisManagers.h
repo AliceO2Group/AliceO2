@@ -28,7 +28,7 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
-#include "Framework/Plugins.h"
+#include "Framework/PluginManager.h"
 #include "Framework/RootMessageContext.h"
 #include "Framework/DeviceSpec.h"
 
@@ -50,7 +50,7 @@ struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
     if constexpr (std::is_same_v<G, TG>) {
-      static_assert(std::conjunction_v<framework::has_type<As, pack<T2s...>>...>, "You didn't subscribed to all tables requested for mixing");
+      static_assert((framework::has_type<As>(pack<T2s...>{}) && ...), "You didn't subscribed to all tables requested for mixing");
       comb.setTables(grouping, associated);
     }
   }
@@ -198,30 +198,46 @@ struct ConditionManager<Condition<OBJ>> {
   }
 };
 
-/// SFINAE placeholder
+/// SFINAE placeholder, also handles recursion in ProcessGroup
 template <typename T>
 struct OutputManager {
   template <typename ANY>
-  static bool appendOutput(std::vector<OutputSpec>&, ANY&, uint32_t)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, ANY& what, uint32_t v)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&outputs, v](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::appendOutput(outputs, p, v); }, what);
+      return true;
+    }
     return false;
   }
 
   template <typename ANY>
-  static bool prepare(ProcessingContext&, ANY&)
+  static bool prepare(ProcessingContext& context, ANY& what)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&context](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::prepare(context, p); }, what);
+      return true;
+    }
     return false;
   }
 
   template <typename ANY>
-  static bool postRun(EndOfStreamContext&, ANY&)
+  static bool postRun(EndOfStreamContext& context, ANY& what)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&context](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::postRun(context, p); }, what);
+      return true;
+    }
     return true;
   }
 
   template <typename ANY>
-  static bool finalize(ProcessingContext&, ANY&)
+  static bool finalize(ProcessingContext& context, ANY& what)
   {
+    if constexpr (std::is_base_of_v<ProducesGroup, ANY>) {
+      homogeneous_apply_refs<true>([&context](auto& p) { return OutputManager<std::decay_t<decltype(p)>>::finalize(context, p); }, what);
+      return true;
+    }
     return true;
   }
 };
@@ -465,8 +481,8 @@ struct ServiceManager<Service<T>> {
   {
     if constexpr (o2::framework::is_base_of_template_v<LoadableServicePlugin, T>) {
       T p = T{};
-      auto loadableServices = ServiceHelpers::parseServiceSpecString(p.loadSpec.c_str());
-      ServiceHelpers::loadFromPlugin(loadableServices, specs);
+      auto loadableServices = PluginManager::parsePluginSpecString(p.loadSpec.c_str());
+      PluginManager::loadFromPlugin<ServiceSpec, ServicePlugin>(loadableServices, specs);
     }
     return true;
   }
@@ -535,7 +551,8 @@ struct OptionManager {
       if constexpr (requires { x.prefix; }) {
         homogeneous_apply_refs<true>([prefix = x.prefix]<typename C>(C& y) { // apend group prefix if set
           if constexpr (requires { y.name; }) {
-            y.name = prefix + "." + y.name;
+            y.name.insert(0, 1, '.');
+            y.name.insert(0, prefix);
           }
           return true;
         },

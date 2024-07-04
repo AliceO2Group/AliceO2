@@ -477,7 +477,7 @@ void TrackCheckStudy::process()
         }
         int trackID, evID, srcID;
         bool fake;
-        const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
+        lab.get(trackID, evID, srcID, fake);
         auto& cluster = mClusters[iCluster];
         auto layer = mGeometry->getLayer(cluster.getSensorID());
         mParticleInfo[srcID][evID][trackID].clusters |= (1 << layer);
@@ -510,7 +510,7 @@ void TrackCheckStudy::process()
     }
     int trackID, evID, srcID;
     bool fake;
-    const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
+    lab.get(trackID, evID, srcID, fake);
 
     if (srcID == 99) { // skip QED
       unaccounted++;
@@ -723,7 +723,7 @@ void TrackCheckStudy::process()
                     }
 
                     bool fakec;
-                    const_cast<o2::MCCompLabel&>(lab).get(TrackID, EvID, SrcID, fakec);
+                    lab.get(TrackID, EvID, SrcID, fakec);
                     double intHisto = 0;
                     for (int hg = 0; hg < 7; hg++) {
                       if (mParticleInfo[SrcID][EvID][TrackID].pdg == PdgcodeClusterFake[hg] || mParticleInfo[SrcID][EvID][TrackID].pdg == -1 * (PdgcodeClusterFake[hg])) {
@@ -819,7 +819,7 @@ void TrackCheckStudy::process()
     }
     int trackID, evID, srcID;
     bool fake;
-    const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
+    lab.get(trackID, evID, srcID, fake);
     if (srcID == 99) {
       continue; // skip QED
     }

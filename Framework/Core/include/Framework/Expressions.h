@@ -146,7 +146,7 @@ struct PlaceholderNode : LiteralNode {
   PlaceholderNode(Configurable<T> const& v) : LiteralNode{v.value}, name{v.name}
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      retrieve = [](InitContext& context, std::string const& name) { return LiteralNode::var_t{context.options().get<T>(name.c_str())}; };
+      retrieve = [](InitContext& context, char const* name) { return LiteralNode::var_t{context.options().get<T>(name)}; };
     } else {
       runtime_error("Unknown parameter used in expression.");
     }
@@ -154,11 +154,11 @@ struct PlaceholderNode : LiteralNode {
 
   void reset(InitContext& context)
   {
-    value = retrieve(context, name);
+    value = retrieve(context, name.data());
   }
 
-  std::string name;
-  LiteralNode::var_t (*retrieve)(InitContext&, std::string const& name);
+  std::string const& name;
+  LiteralNode::var_t (*retrieve)(InitContext&, char const*);
 };
 
 /// A conditional node
@@ -215,26 +215,26 @@ struct Node {
 
 #define BINARY_OP_NODES(_operator_, _operation_)                                        \
   template <typename T>                                                                 \
-  inline Node operator _operator_(Node left, T right)                                   \
+  inline Node operator _operator_(Node&& left, T right)                                 \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, std::move(left), LiteralNode{right}};     \
   }                                                                                     \
   template <typename T>                                                                 \
-  inline Node operator _operator_(T left, Node right)                                   \
+  inline Node operator _operator_(T left, Node&& right)                                 \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, LiteralNode{left}, std::move(right)};     \
   }                                                                                     \
   template <typename T>                                                                 \
-  inline Node operator _operator_(Node left, Configurable<T> right)                     \
+  inline Node operator _operator_(Node&& left, Configurable<T> const& right)            \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, std::move(left), PlaceholderNode{right}}; \
   }                                                                                     \
   template <typename T>                                                                 \
-  inline Node operator _operator_(Configurable<T> left, Node right)                     \
+  inline Node operator _operator_(Configurable<T> const& left, Node&& right)            \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, std::move(right)}; \
   }                                                                                     \
-  inline Node operator _operator_(Node left, Node right)                                \
+  inline Node operator _operator_(Node&& left, Node&& right)                            \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, std::move(left), std::move(right)};       \
   }                                                                                     \
@@ -243,23 +243,23 @@ struct Node {
     return Node{OpNode{BasicOp::_operation_}, left, right};                             \
   }                                                                                     \
   template <>                                                                           \
-  inline Node operator _operator_(BindingNode left, Node right)                         \
+  inline Node operator _operator_(BindingNode left, Node&& right)                       \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, left, std::move(right)};                  \
   }                                                                                     \
   template <>                                                                           \
-  inline Node operator _operator_(Node left, BindingNode right)                         \
+  inline Node operator _operator_(Node&& left, BindingNode right)                       \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, std::move(left), right};                  \
   }                                                                                     \
                                                                                         \
   template <typename T>                                                                 \
-  inline Node operator _operator_(Configurable<T> left, BindingNode right)              \
+  inline Node operator _operator_(Configurable<T> const& left, BindingNode right)       \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, right};            \
   }                                                                                     \
   template <typename T>                                                                 \
-  inline Node operator _operator_(BindingNode left, Configurable<T> right)              \
+  inline Node operator _operator_(BindingNode left, Configurable<T> const& right)       \
   {                                                                                     \
     return Node{OpNode{BasicOp::_operation_}, left, PlaceholderNode{right}};            \
   }

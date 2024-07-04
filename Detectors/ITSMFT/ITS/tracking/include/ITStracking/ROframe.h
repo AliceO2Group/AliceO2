@@ -58,8 +58,8 @@ class ROframe final
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterFirstLabel(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterFirstLabel(int layerId, const int clId) const;
-  gsl::span<o2::MCCompLabel> getClusterLabels(int layerId, const int clId) const;
-  gsl::span<o2::MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
+  const gsl::span<const o2::MCCompLabel> getClusterLabels(int layerId, const int clId) const;
+  const gsl::span<const o2::MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
   std::vector<int> getTracksId(const int layerId, const std::vector<Cluster>& cl);
 
@@ -75,7 +75,7 @@ class ROframe final
 
  private:
   const int mROframeId;
-  o2::dataformats::MCTruthContainer<MCCompLabel>* mMClabels = nullptr;
+  const o2::dataformats::MCTruthContainer<MCCompLabel>* mMClabels = nullptr;
   std::vector<float3> mPrimaryVertices;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
@@ -115,12 +115,12 @@ inline const MCCompLabel& ROframe::getClusterFirstLabel(int layerId, const int c
   return *(mMClabels->getLabels(getClusterExternalIndex(layerId, clId)).begin());
 }
 
-inline gsl::span<o2::MCCompLabel> ROframe::getClusterLabels(int layerId, const int clId) const
+inline const gsl::span<const o2::MCCompLabel> ROframe::getClusterLabels(int layerId, const int clId) const
 {
   return mMClabels->getLabels(getClusterExternalIndex(layerId, clId));
 }
 
-inline gsl::span<o2::MCCompLabel> ROframe::getClusterLabels(int layerId, const Cluster& cl) const
+inline const gsl::span<const o2::MCCompLabel> ROframe::getClusterLabels(int layerId, const Cluster& cl) const
 {
   return getClusterLabels(layerId, cl.clusterId);
 }
@@ -153,7 +153,7 @@ void ROframe::addTrackingFrameInfoToLayer(int layer, T&&... values)
 
 inline void ROframe::setMClabelsContainer(const dataformats::MCTruthContainer<MCCompLabel>* ptr)
 {
-  mMClabels = const_cast<dataformats::MCTruthContainer<MCCompLabel>*>(ptr);
+  mMClabels = ptr;
 }
 
 inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx)

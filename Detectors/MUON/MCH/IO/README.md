@@ -14,6 +14,8 @@
 * [Cluster writer](#cluster-writer)
 * [Track reader](#track-reader)
 * [Track writer](#track-writer)
+* [StatusMap reader](#statusmap-reader)
+* [StatusMap writer](#statusmap-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -125,4 +127,22 @@ Does the same kind of work as the [track sink](#track-sink) but the output is in
 Option `--digits` allows to also write the associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) from the input message with the data description "TRACKDIGITS".
 
 Option `--enable-mc` allows to also write the track MC labels from the input message with the data description "TRACKLABELS".
+
+## StatusMap reader
+
+```shell
+o2-mch-statusmaps-reader-workflow --infile mchstatusmaps.root
+```
+
+Send the status map ([StatusMap](../Status/include/MCHStatus/StatusMap.h)) of the current time frame, with the data description "STATUSMAP".
+
+Option `--input-dir` allows to set the name of the directory containing the input file (default = current directory).
+
+## StatusMap writer
+
+```shell
+o2-mch-statusmaps-writer-workflow
+```
+
+Take as input the status map ([StatusMap](../Status/include/MCHStatus/StatusMap.h)) of the current time frame, with the data description "STATUSMAP", and write it in the root file "mchstatusmaps.root".
 

@@ -34,12 +34,14 @@ class ConfigParamStore
   /// the configuration.
   void preload();
 
+  void load(std::vector<ConfigParamSpec>& specs);
+
   /// Get the store
   boost::property_tree::ptree& store() { return *mStore; };
   boost::property_tree::ptree& provenanceTree() { return *mProvenance; };
 
   /// Get the specs
-  std::vector<ConfigParamSpec> const& specs() const
+  [[nodiscard]] std::vector<ConfigParamSpec> const& specs() const
   {
     return mSpecs;
   }

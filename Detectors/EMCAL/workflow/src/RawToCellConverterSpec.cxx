@@ -32,6 +32,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
+#include "EMCALBase/TriggerMappingErrors.h"
 #include "EMCALCalib/FeeDCS.h"
 #include "EMCALReconstruction/CaloFitResults.h"
 #include "EMCALReconstruction/Bunch.h"
@@ -495,64 +496,80 @@ void RawToCellConverterSpec::addFEEChannelToEvent(o2::emcal::EventContainer& cur
 
 void RawToCellConverterSpec::addTRUChannelToEvent(o2::emcal::EventContainer& currentEvent, const o2::emcal::Channel& currentchannel, const LocalPosition& position)
 {
-  auto tru = mTriggerMapping->getTRUIndexFromOnlineHardareAddree(currentchannel.getHardwareAddress(), position.mFeeID, position.mSupermoduleID);
-  if (position.mColumn >= 96 && position.mColumn <= 105) {
-    auto& trudata = currentEvent.getTRUData(tru);
-    // Trigger patch information encoded columns 95-105
-    for (auto& bunch : currentchannel.getBunches()) {
-      LOG(debug) << "Found bunch of length " << static_cast<int>(bunch.getBunchLength()) << " with start time " << static_cast<int>(bunch.getStartTime()) << " (column " << static_cast<int>(position.mColumn) << ")";
-      auto l0time = bunch.getStartTime();
-      int isample = 0;
-      for (auto& adc : bunch.getADC()) {
-        // patch word might be in any of the samples, need to check all of them
-        // in case of colum 105 the first 6 bits are the patch word, the remaining 4 bits are the header word
-        if (adc == 0) {
+  try {
+    auto tru = mTriggerMapping->getTRUIndexFromOnlineHardareAddree(currentchannel.getHardwareAddress(), position.mFeeID, position.mSupermoduleID);
+    if (position.mColumn >= 96 && position.mColumn <= 105) {
+      auto& trudata = currentEvent.getTRUData(tru);
+      // Trigger patch information encoded columns 95-105
+      for (auto& bunch : currentchannel.getBunches()) {
+        LOG(debug) << "Found bunch of length " << static_cast<int>(bunch.getBunchLength()) << " with start time " << static_cast<int>(bunch.getStartTime()) << " (column " << static_cast<int>(position.mColumn) << ")";
+        auto l0time = bunch.getStartTime();
+        int isample = 0;
+        for (auto& adc : bunch.getADC()) {
+          // patch word might be in any of the samples, need to check all of them
+          // in case of colum 105 the first 6 bits are the patch word, the remaining 4 bits are the header word
+          if (adc == 0) {
+            isample++;
+            continue;
+          }
+          if (position.mColumn == 105) {
+            std::bitset<6> patchBits(adc & 0x3F);
+            std::bitset<4> headerbits((adc >> 6) & 0xF);
+            for (auto localindex = 0; localindex < patchBits.size(); localindex++) {
+              if (patchBits.test(localindex)) {
+                auto globalindex = (position.mColumn - 96) * 10 + localindex;
+                LOG(debug) << "Found patch with index " << globalindex << " in sample " << isample;
+                // std::cout << "Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
+                try {
+                  trudata.setPatch(globalindex, bunch.getStartTime() - isample);
+                } catch (TRUDataHandler::PatchIndexException& e) {
+                  handlePatchError(e, position.mFeeID, tru);
+                }
+              }
+            }
+            if (headerbits.test(2)) {
+              LOG(debug) << "TRU " << tru << ": Found TRU fired (" << tru << ") in sample " << isample;
+              // std::cout << "TRU " << tru << ": Found TRU fired (" << tru << ") in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
+              trudata.setFired(true);
+              trudata.setL0time(bunch.getStartTime() - isample);
+            }
+          } else {
+            std::bitset<10> patchBits(adc & 0x3FF);
+            for (auto localindex = 0; localindex < patchBits.size(); localindex++) {
+              if (patchBits.test(localindex)) {
+                auto globalindex = (position.mColumn - 96) * 10 + localindex;
+                LOG(debug) << "TRU " << tru << ": Found patch with index " << globalindex << " in sample " << isample;
+                // std::cout << "TRU " << tru << ": Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
+                try {
+                  trudata.setPatch(globalindex, bunch.getStartTime() - isample);
+                } catch (TRUDataHandler::PatchIndexException& e) {
+                  handlePatchError(e, position.mFeeID, tru);
+                }
+              }
+            }
+          }
           isample++;
-          continue;
         }
-        if (position.mColumn == 105) {
-          std::bitset<6> patchBits(adc & 0x3F);
-          std::bitset<4> headerbits((adc >> 6) & 0xF);
-          for (auto localindex = 0; localindex < patchBits.size(); localindex++) {
-            if (patchBits.test(localindex)) {
-              auto globalindex = (position.mColumn - 96) * 10 + localindex;
-              LOG(debug) << "Found patch with index " << globalindex << " in sample " << isample;
-              // std::cout << "Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
-              trudata.setPatch(globalindex, bunch.getStartTime() - isample);
-            }
-          }
-          if (headerbits.test(2)) {
-            LOG(debug) << "TRU " << tru << ": Found TRU fired (" << tru << ") in sample " << isample;
-            // std::cout << "TRU " << tru << ": Found TRU fired (" << tru << ") in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
-            trudata.setFired(true);
-            trudata.setL0time(bunch.getStartTime() - isample);
-          }
-        } else {
-          std::bitset<10> patchBits(adc & 0x3FF);
-          for (auto localindex = 0; localindex < patchBits.size(); localindex++) {
-            if (patchBits.test(localindex)) {
-              auto globalindex = (position.mColumn - 96) * 10 + localindex;
-              LOG(debug) << "TRU " << tru << ": Found patch with index " << globalindex << " in sample " << isample;
-              // std::cout << "TRU " << tru << ": Found patch with index " << globalindex << " in sample " << isample << " (" << (bunch.getStartTime() - isample) << ")" << std::endl;
-              trudata.setPatch(globalindex, bunch.getStartTime() - isample);
-            }
-          }
+      }
+    } else {
+      try {
+        auto absFastOR = mTriggerMapping->getAbsFastORIndexFromIndexInTRU(tru, position.mColumn);
+        for (auto& bunch : currentchannel.getBunches()) {
+          // FastOR data reversed internally (positive in time direction)
+          // -> Start time marks the first timebin, consequently it must be also reversed.
+          // std::cout << "Adding non-reversed FastOR time series for FastOR " << absFastOR << " (TRU " << tru << ", index " << static_cast<int>(position.mColumn) << ") with start time " << static_cast<int>(bunch.getStartTime()) << " (reversed " << bunch.getStartTime() + 1 - bunch.getADC().size() << "): ";
+          // for (auto adc : bunch.getADC()) {
+          //  std::cout << adc << ", ";
+          //}
+          // std::cout << std::endl;
+          currentEvent.setFastOR(absFastOR, bunch.getStartTime(), bunch.getADC());
         }
-        isample++;
+      } catch (FastORIndexException& e) {
+        handleFastORErrors(e, position.mFeeID, tru);
       }
     }
-  } else {
-    auto absFastOR = mTriggerMapping->getAbsFastORIndexFromIndexInTRU(tru, position.mColumn);
-    for (auto& bunch : currentchannel.getBunches()) {
-      // FastOR data reversed internally (positive in time direction)
-      // -> Start time marks the first timebin, consequently it must be also reversed.
-      // std::cout << "Adding non-reversed FastOR time series for FastOR " << absFastOR << " (TRU " << tru << ", index " << static_cast<int>(position.mColumn) << ") with start time " << static_cast<int>(bunch.getStartTime()) << " (reversed " << bunch.getStartTime() + 1 - bunch.getADC().size() << "): ";
-      // for (auto adc : bunch.getADC()) {
-      //  std::cout << adc << ", ";
-      //}
-      // std::cout << std::endl;
-      currentEvent.setFastOR(absFastOR, bunch.getStartTime(), bunch.getADC());
-    }
+  } catch (TRUIndexException& e) {
+    handleTRUIndexError(e, position.mFeeID, currentchannel.getHardwareAddress());
   }
 }
 
@@ -899,6 +916,54 @@ void RawToCellConverterSpec::handleMinorPageError(const RawReaderMemory::MinorEr
   }
   if (mNumErrorMessages < mMaxErrorMessages) {
     LOG(warning) << " Page decoding: " << RawDecodingError::getErrorCodeDescription(e.getErrorType()) << " in FEE ID " << e.getFEEID();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+}
+
+void RawToCellConverterSpec::handleFastORErrors(const FastORIndexException& e, unsigned int linkID, unsigned int indexTRU)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(linkID, ErrorTypeFEE::ErrorSource_t::TRU_ERROR, reconstructionerrors::getErrorCodeFromTRUDecodingError(reconstructionerrors::TRUDecodingError_t::TRU_INDEX_INVALID), indexTRU, -1);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " TRU decoding: " << e.what() << " in FEE ID " << linkID << ", TRU " << indexTRU;
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+}
+
+void RawToCellConverterSpec::handlePatchError(const TRUDataHandler::PatchIndexException& e, unsigned int linkID, unsigned int indexTRU)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(linkID, ErrorTypeFEE::ErrorSource_t::TRU_ERROR, reconstructionerrors::getErrorCodeFromTRUDecodingError(reconstructionerrors::TRUDecodingError_t::PATCH_INDEX_INVALID), indexTRU, -1);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " TRU decoding: " << e.what() << " in FEE ID " << linkID << ", TRU " << indexTRU;
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+}
+
+void RawToCellConverterSpec::handleTRUIndexError(const TRUIndexException& e, unsigned int linkID, unsigned int hwaddress)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(linkID, ErrorTypeFEE::ErrorSource_t::TRU_ERROR, reconstructionerrors::getErrorCodeFromTRUDecodingError(reconstructionerrors::TRUDecodingError_t::PATCH_INDEX_INVALID), e.getTRUIndex(), hwaddress);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " TRU decoding: " << e.what() << " in FEE ID " << linkID << ", TRU " << e.getTRUIndex() << "(hardware address: " << hwaddress << ")";
     mNumErrorMessages++;
     if (mNumErrorMessages == mMaxErrorMessages) {
       LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";

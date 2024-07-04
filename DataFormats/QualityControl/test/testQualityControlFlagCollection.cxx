@@ -46,8 +46,8 @@ BOOST_AUTO_TEST_CASE(test_QualityControlFlagCollection_Methods)
   QualityControlFlagCollection qcfc2{"Reco checks", "TOF"};
   qcfc2.insert({50, 77, FlagTypeFactory::Invalid()}); // this is a duplicate to an entry in qcfc1
   qcfc2.insert({51, 77, FlagTypeFactory::Invalid()});
-  qcfc2.insert({1234, 3434, FlagTypeFactory::LimitedAcceptance()});
-  qcfc2.insert({50, 77, FlagTypeFactory::LimitedAcceptance()});
+  qcfc2.insert({1234, 3434, FlagTypeFactory::LimitedAcceptanceMCNotReproducible()});
+  qcfc2.insert({50, 77, FlagTypeFactory::LimitedAcceptanceMCNotReproducible()});
   BOOST_CHECK_EQUAL(qcfc2.size(), 4);
 
   // Try merging. Duplicate entries should be left in the 'other' objects.
@@ -97,9 +97,9 @@ BOOST_AUTO_TEST_CASE(test_QualityControlFlagCollection_IO)
     QualityControlFlagCollection qcfc1{"xyz", "TST"};
     qcfc1.insert({50, 77, FlagTypeFactory::Invalid(), "a comment", "a source"});
     qcfc1.insert({51, 77, FlagTypeFactory::Invalid()});
-    qcfc1.insert({1234, 3434, FlagTypeFactory::LimitedAcceptance()});
-    qcfc1.insert({50, 77, FlagTypeFactory::LimitedAcceptance()});
-    qcfc1.insert({43434, 63421, FlagTypeFactory::NotBadFlagExample()});
+    qcfc1.insert({1234, 3434, FlagTypeFactory::LimitedAcceptanceMCNotReproducible()});
+    qcfc1.insert({50, 77, FlagTypeFactory::LimitedAcceptanceMCNotReproducible()});
+    qcfc1.insert({43434, 63421, FlagTypeFactory::Good()});
 
     std::stringstream store;
     qcfc1.streamTo(store);

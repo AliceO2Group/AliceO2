@@ -132,7 +132,7 @@ DataProcessorSpec getRecoQCworkflow(GID::mask_t src)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   LOG(info) << "@@ request primary vertex";
-  dataRequest->requestPrimaryVertertices(false);
+  dataRequest->requestPrimaryVertices(false);
   dataRequest->requestFT0RecPoints(false);
   LOG(info) << "@@@ requested T0";
   std::vector<OutputSpec> outputs; // empty
