@@ -22,6 +22,7 @@
 #include <TLegend.h>
 #include <TPad.h>
 #include <TTree.h>
+#include <TList.h>
 #include <TSystem.h>
 
 #include "DataFormatsITS/TrackITS.h"
@@ -462,6 +463,20 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
 
   LOGP(info, "Projecting Plots");
   TH1* hProj;
+  const char* fitOpt{"QWMER"};
+  /* const char* fitOpt{"Q"}; */
+  std::map<int, TList*> lProjITS = {
+    {11, new TList()},
+    {211, new TList()},
+    {321, new TList()},
+    {2212, new TList()},
+  };
+  std::map<int, TList*> lProjITSTPC = {
+    {11, new TList()},
+    {211, new TList()},
+    {321, new TList()},
+    {2212, new TList()},
+  };
   for (const auto& pdgCode : pdgCodes) {
     for (auto iPt{0}; iPt < nPtBins; ++iPt) {
       // ITS
@@ -469,44 +484,52 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
       float minFit = (ptMin < 1.) ? -200. : -50.;
       float maxFit = (ptMin < 1.) ? 200. : 50.;
 
-      hProj = hDeltaPtVsPtAllLayersITS[pdgCode]->ProjectionY(Form("hProjDeltaPt%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0");
+      hProj = hDeltaPtVsPtAllLayersITS[pdgCode]->ProjectionY(Form("hProjDeltaPtAll%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt);
+      lProjITS[pdgCode]->Add(hProj);
       hPtResAllLayersITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hPtResAllLayersITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcaxyVsPtAllLayersITS[pdgCode]->ProjectionY(Form("hProjDcaxy%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcaxyVsPtAllLayersITS[pdgCode]->ProjectionY(Form("hProjDcaxyAll%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITS[pdgCode]->Add(hProj);
       hDcaxyResAllLayersITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcaxyResAllLayersITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcazVsPtAllLayersITS[pdgCode]->ProjectionY(Form("hProjDcaz%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcazVsPtAllLayersITS[pdgCode]->ProjectionY(Form("hProjDcazAll%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITS[pdgCode]->Add(hProj);
       hDcazResAllLayersITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcazResAllLayersITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcaxyVsPtNoFirstLayerITS[pdgCode]->ProjectionY(Form("hProjDcaxy%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcaxyVsPtNoFirstLayerITS[pdgCode]->ProjectionY(Form("hProjDcaxyNoFirst%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITS[pdgCode]->Add(hProj);
       hDcaxyResNoFirstLayerITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcaxyResNoFirstLayerITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcazVsPtNoFirstLayerITS[pdgCode]->ProjectionY(Form("hProjDcaz%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcazVsPtNoFirstLayerITS[pdgCode]->ProjectionY(Form("hProjDcazNoFirst%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITS[pdgCode]->Add(hProj);
       hDcazResNoFirstLayerITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcazResNoFirstLayerITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcaxyVsPtkAnyITS[pdgCode]->ProjectionY(Form("hProjDcaxy%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcaxyVsPtkAnyITS[pdgCode]->ProjectionY(Form("hProjDcaxyAny%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITS[pdgCode]->Add(hProj);
       hDcaxyReskAnyITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcaxyReskAnyITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcazVsPtkAnyITS[pdgCode]->ProjectionY(Form("hProjDcaz%d%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcazVsPtkAnyITS[pdgCode]->ProjectionY(Form("hProjDcazAny%d__%dITS", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITS[pdgCode]->Add(hProj);
       hDcazReskAnyITS[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcazReskAnyITS[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
       // ITS-TPC
-      hProj = hDeltaPtVsPtAllLayersITSTPC[pdgCode]->ProjectionY(Form("hProjDeltaPt%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0");
+      hProj = hDeltaPtVsPtAllLayersITSTPC[pdgCode]->ProjectionY(Form("hProjDeltaPtAll%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hPtResAllLayersITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hPtResAllLayersITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
@@ -514,33 +537,39 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
       minFit = (ptMin < 1.) ? -200. : -50.;
       maxFit = (ptMin < 1.) ? 200. : 50.;
 
-      hProj = hDcaxyVsPtAllLayersITSTPC[pdgCode]->ProjectionY(Form("hProjDcaxy%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcaxyVsPtAllLayersITSTPC[pdgCode]->ProjectionY(Form("hProjDcaxyAll%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hDcaxyResAllLayersITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcaxyResAllLayersITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcazVsPtAllLayersITSTPC[pdgCode]->ProjectionY(Form("hProjDcaz%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcazVsPtAllLayersITSTPC[pdgCode]->ProjectionY(Form("hProjDcazAll%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hDcazResAllLayersITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcazResAllLayersITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcaxyVsPtNoFirstLayerITSTPC[pdgCode]->ProjectionY(Form("hProjDcaxy%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcaxyVsPtNoFirstLayerITSTPC[pdgCode]->ProjectionY(Form("hProjDcaxyNoFirst%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hDcaxyResNoFirstLayerITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcaxyResNoFirstLayerITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcazVsPtNoFirstLayerITSTPC[pdgCode]->ProjectionY(Form("hProjDcaz%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcazVsPtNoFirstLayerITSTPC[pdgCode]->ProjectionY(Form("hProjDcazNoFirst%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hDcazResNoFirstLayerITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcazResNoFirstLayerITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcaxyVsPtkAnyITSTPC[pdgCode]->ProjectionY(Form("hProjDcaxy%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcaxyVsPtkAnyITSTPC[pdgCode]->ProjectionY(Form("hProjDcaxAnty%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hDcaxyReskAnyITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcaxyReskAnyITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
 
-      hProj = hDcazVsPtkAnyITSTPC[pdgCode]->ProjectionY(Form("hProjDcaz%d%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
-      hProj->Fit("fGaus", "Q0", "", minFit, maxFit);
+      hProj = hDcazVsPtkAnyITSTPC[pdgCode]->ProjectionY(Form("hProjDcazAny%d__%dITSTPC", pdgCode, iPt), iPt + 1, iPt + 1);
+      hProj->Fit("fGaus", fitOpt, "", minFit, maxFit);
+      lProjITSTPC[pdgCode]->Add(hProj);
       hDcazReskAnyITSTPC[pdgCode]->SetBinContent(iPt + 1, fGaus->GetParameter(2));
       hDcazReskAnyITSTPC[pdgCode]->SetBinError(iPt + 1, fGaus->GetParError(2));
     }
@@ -907,6 +936,11 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
     gDirectory->WriteTObject(hDcaxyResNoFirstLayerITS[pdgCode]);
     gDirectory->WriteTObject(hDcaxyVsPhiAllLayersITS[pdgCode]);
     gDirectory->WriteTObject(hDcazVsPhiAllLayersITS[pdgCode]);
+    gDirectory->mkdir("projections");
+    gDirectory->cd("projections");
+    for (TObject* obj : *lProjITS[pdgCode]) {
+      obj->Write();
+    }
 
     dir->cd();
     gDirectory->mkdir("ITS-TPC");
@@ -922,5 +956,10 @@ void CheckDCA(const std::string& collisioncontextFileName = "collisioncontext.ro
     gDirectory->WriteTObject(hDcaxyResNoFirstLayerITSTPC[pdgCode]);
     gDirectory->WriteTObject(hDcaxyVsPhiAllLayersITSTPC[pdgCode]);
     gDirectory->WriteTObject(hDcazVsPhiAllLayersITSTPC[pdgCode]);
+    gDirectory->mkdir("projections");
+    gDirectory->cd("projections");
+    for (TObject* obj : *lProjITSTPC[pdgCode]) {
+      obj->Write();
+    }
   }
 }
