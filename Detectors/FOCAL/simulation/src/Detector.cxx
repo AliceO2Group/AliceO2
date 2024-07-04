@@ -477,22 +477,22 @@ void Detector::addAlignableVolumes() const
 //____________________________________________________________________________
 void Detector::addAlignableVolumesHCAL() const
 {
-  TString vpsector = "/cave_1/caveRB24_1/FOCAL_1/HCAL_1";
-  TString snsector = "FOCAL/HCAL";
+  std::string vpsector = "/cave_1/caveRB24_1/FOCAL_1/HCAL_1";
+  std::string snsector = "FOCAL/HCAL";
 
-  if (!gGeoManager->SetAlignableEntry(snsector.Data(), vpsector.Data())) {
-    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector.Data(), vpsector.Data()));
+  if (!gGeoManager->SetAlignableEntry(snsector.c_str(), vpsector.c_str())) {
+    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector.c_str(), vpsector.c_str()));
   }
 }
 
 //____________________________________________________________________________
 void Detector::addAlignableVolumesECAL() const
 {
-  TString vpsector = "/cave_1/caveRB24_1/FOCAL_1/ECAL_1";
-  TString snsector = "FOCAL/ECAL";
+  std::string vpsector = "/cave_1/caveRB24_1/FOCAL_1/ECAL_1";
+  std::string snsector = "FOCAL/ECAL";
 
-  if (!gGeoManager->SetAlignableEntry(snsector.Data(), vpsector.Data())) {
-    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector.Data(), vpsector.Data()));
+  if (!gGeoManager->SetAlignableEntry(snsector.c_str(), vpsector.c_str())) {
+    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector.c_str(), vpsector.c_str()));
   }
 }
 
