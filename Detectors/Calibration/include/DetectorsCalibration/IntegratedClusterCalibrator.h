@@ -338,6 +338,7 @@ struct TimeSeriesITSTPC {
   ITSTPC_Matching mITSTPCAfterburner; ///< ITS-TPC matchin efficiency  fir ITS afterburner
   TimeSeriesdEdx mdEdxQTot;           ///< time series for dE/dx qTot monitoring
   TimeSeriesdEdx mdEdxQMax;           ///< time series for dE/dx qMax monitoring
+  std::vector<int> mOccupancyMapTPC;  ///< cluster occupancy map
 
   std::vector<float> nPrimVertices;                  ///< number of primary vertices
   std::vector<float> nPrimVertices_ITS;              ///< number of primary vertices selected with ITS cut 0.2<nContributorsITS/nContributors<0.8
@@ -498,7 +499,7 @@ struct TimeSeriesITSTPC {
     nVertexContributors_Quantiles.resize(nTotalQ);
   }
 
-  ClassDefNV(TimeSeriesITSTPC, 4);
+  ClassDefNV(TimeSeriesITSTPC, 5);
 };
 
 } // end namespace tpc

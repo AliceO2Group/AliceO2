@@ -180,6 +180,9 @@ class TPCTimeSeries : public Task
     auto primMatchedTracks = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackIndex>() : recoData.getPrimaryVertexMatchedTracks();     // Global ID's for associated tracks
     auto primMatchedTracksRef = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackRef>() : recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
+    // get occupancy map
+    mBufferDCA.mOccupancyMapTPC = std::vector<int>(recoData.occupancyMapTPC.begin(), recoData.occupancyMapTPC.end());
+
     // TOF clusters
     const auto& tofClusters = mTPCOnly ? gsl::span<o2::tof::Cluster>() : recoData.getTOFClusters();
 
@@ -1738,6 +1741,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   bool useMC = false;
   GID::mask_t srcTracks = tpcOnly ? GID::getSourcesMask("TPC") : GID::getSourcesMask("TPC,ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   dataRequest->requestTracks(srcTracks, useMC);
+  dataRequest->requestClusters(GID::getSourcesMask("TPC"), useMC);
   if (!tpcOnly) {
     dataRequest->requestPrimaryVertices(useMC);
   }
