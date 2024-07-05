@@ -160,7 +160,6 @@ class AlpideCoder
     uint32_t expectInp = ExpectNextChip; // data must always start with chip header or chip empty flag
 
     chipData.clear();
-    bool dataSeen = false;
     LOG(debug) << "NewEntry";
     while (buffer.next(dataC)) {
       //
@@ -223,7 +222,6 @@ class AlpideCoder
           return unexpectedEOF("CHIP_HEADER"); // abandon cable data
         }
         expectInp = ExpectRegion; // now expect region info
-        dataSeen = false;
         continue;
       }
 
@@ -250,19 +248,11 @@ class AlpideCoder
             addHit(chipData, rightColHits[ihr], colDPrev);
           }
         }
-
-        if (!dataSeen && !chipData.isErrorSet()) {
-#ifdef ALPIDE_DECODING_STAT
-          chipData.setError(ChipStat::TrailerAfterHeader);
-#endif
-          return unexpectedEOF("Trailer after header"); // abandon cable data
-        }
         break;
       }
 
       // hit info ?
       if ((expectInp & ExpectData)) {
-        dataSeen = true;
         if (isData(dataC)) { // region header was seen, expect data
                              // note that here we are checking on the byte rather than the short, need complete to ushort
           dataS = dataC << 8;
@@ -392,12 +382,19 @@ class AlpideCoder
         return unexpectedEOF("Abandon on 0-padding"); // abandon cable data
       }
 
-      // in case of BUSY VIOLATION the Trailer may come directly after the Header
-      if ((expectInp & ExpectRegion) && isChipTrailer(dataC) && (dataC & MaskROFlags)) {
-        expectInp = ExpectNextChip;
-        chipData.setROFlags(dataC & MaskROFlags);
-        roErrHandler(dataC & MaskROFlags);
-        break;
+      if ((expectInp & ExpectRegion) && isChipTrailer(dataC)) {
+        if (dataC & MaskROFlags) {
+          // in case of BUSY VIOLATION the Trailer may come directly after the Header
+          expectInp = ExpectNextChip;
+          chipData.setROFlags(dataC & MaskROFlags);
+          roErrHandler(dataC & MaskROFlags);
+          break;
+        } else {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::TrailerAfterHeader);
+#endif
+          return unexpectedEOF("Trailer after header"); // abandon cable data
+        }
       }
 
       // check for APE errors, see https://alice.its.cern.ch/jira/browse/O2-1717?focusedCommentId=274714&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-274714
