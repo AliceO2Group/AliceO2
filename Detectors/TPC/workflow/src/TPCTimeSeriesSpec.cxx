@@ -181,7 +181,7 @@ class TPCTimeSeries : public Task
     auto primMatchedTracksRef = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackRef>() : recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
     // get occupancy map
-    mBufferDCA.mOccupancyMapTPC = std::vector<int>(recoData.occupancyMapTPC.begin(), recoData.occupancyMapTPC.end());
+    mBufferDCA.mOccupancyMapTPC = std::vector<unsigned int>(recoData.occupancyMapTPC.begin(), recoData.occupancyMapTPC.end());
 
     // TOF clusters
     const auto& tofClusters = mTPCOnly ? gsl::span<o2::tof::Cluster>() : recoData.getTOFClusters();
