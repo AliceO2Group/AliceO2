@@ -17,6 +17,10 @@
 #include <filesystem>
 #include <algorithm>
 #include <climits>
+#include <map>
+#include <iostream>
+#include <forward_list>
+#include <regex>
 #include <fairlogger/Logger.h>
 
 using namespace std;
@@ -39,6 +43,47 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
   return result;
 }
 
+bool DirectoryLoader::canCreateNextFile(const std::vector<std::string>& paths, const std::string& marker, const std::vector<std::string>& ext, long long millisec, long capacityAllowed)
+{
+  deque<string> result;
+  std::map<std::string, std::string> fullPath;
+  for (const auto& path : paths) {
+    try {
+      for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        if (std::find(ext.begin(), ext.end(), entry.path().extension()) != ext.end()) {
+          result.push_back(entry.path().filename());
+          fullPath[entry.path().filename()] = entry.path();
+        }
+      }
+    } catch (std::filesystem::filesystem_error const& ex) {
+      LOGF(info, "filesystem problem: %s", ex.what());
+    }
+  }
+
+  // comparison with safety if marker not in the filename (-1+1 gives 0)
+  std::ranges::sort(result.begin(), result.end(),
+                    [marker](const std::string& a, const std::string& b) {
+                      return a.substr(a.find_first_of(marker) + 1) > b.substr(b.find_first_of(marker) + 1);
+                    });
+  unsigned long accumulatedSize = 0L;
+  const std::regex delimiter{"_"};
+  for (auto const& file : result) {
+    std::vector<std::string> c(std::sregex_token_iterator(file.begin(), file.end(), delimiter, -1), {});
+    if (std::stoll(c[1]) < millisec) {
+      break;
+    }
+    try {
+      accumulatedSize += filesystem::file_size(fullPath[file]);
+    } catch (std::filesystem::filesystem_error const& ex) {
+      LOGF(info, "problem scanning folder: %s", ex.what());
+    }
+    if (accumulatedSize > capacityAllowed) {
+      return false;
+    }
+  }
+  return true;
+}
+
 deque<string> DirectoryLoader::load(const std::vector<std::string>& paths, const std::string& marker, const std::vector<std::string>& ext)
 {
   deque<string> result;
@@ -51,11 +96,21 @@ deque<string> DirectoryLoader::load(const std::vector<std::string>& paths, const
   }
   // comparison with safety if marker not in the filename (-1+1 gives 0)
   std::sort(result.begin(), result.end(),
-            [marker](std::string a, std::string b) {
+            [marker](const std::string& a, const std::string& b) {
               return a.substr(a.find_first_of(marker) + 1) < b.substr(b.find_first_of(marker) + 1);
             });
 
   return result;
+}
+
+std::vector<std::string> DirectoryLoader::allFolders(const std::string& location)
+{
+  auto const pos = location.find_last_of('_');
+  std::vector<std::string> folders;
+  folders.push_back(location.substr(0, pos) + "_PHYSICS");
+  folders.push_back(location.substr(0, pos) + "_COSMICS");
+  folders.push_back(location.substr(0, pos) + "_SYNTHETIC");
+  return folders;
 }
 
 void DirectoryLoader::reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder)
@@ -107,7 +162,7 @@ std::string DirectoryLoader::getLatestFile(std::string& path, std::vector<std::s
 void DirectoryLoader::removeOldestFiles(std::string& path, std::vector<std::string>& ext, const int remaining)
 {
   while (getNumberOfFiles(path, ext) > remaining) {
-    LOGF(info, "removing oldest file in folder: ", path, " : ", getLatestFile(path, ext));
+    LOGF(info, "removing oldest file in folder: %s : %s", path, getLatestFile(path, ext));
     filesystem::remove(path + "/" + getLatestFile(path, ext));
   }
 }
