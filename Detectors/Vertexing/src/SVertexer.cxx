@@ -690,40 +690,6 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     }
   }
 
-  // apply loose Armenteros-Podolanski cut to photons and K0
-  // the AP space and mass space correlated very well, and should in theory already be detected above but every bit helps
-  if (mSVParams->checkV0Hypothesis && mSVParams->checkV0AP &&
-      (hypCheckStatus[HypV0::Photon] || hypCheckStatus[HypV0::K0] || goodLamForCascade || goodALamForCascade)) {
-    float pV0Abs = std::sqrt(p2V0);
-    float pPos = std::sqrt(p2Pos);
-    float p1 = (pV0[0] * pP[0] + pV0[1] * pP[1] + pV0[2] * pP[2]) /
-               (pV0Abs * pPos);
-    float p2 = (pV0[0] * pN[0] + pV0[1] * pN[1] + pV0[2] * pN[2]) /
-               (pV0Abs * seedN.getP());
-    float pL1 = p1 * seedP.getP();
-    float pL2 = p2 * seedN.getP();
-    float alpha = (pL1 - pL2) / (pL1 + pL2);
-    float pT1 = pPos * std::sqrt(1 - p1);
-    if (hypCheckStatus[HypV0::Photon] && pT1 > mSVParams->pidCutsPhotonAP_qT) {
-      hypCheckStatus[HypV0::Photon] = false;
-    }
-    if (hypCheckStatus[HypV0::K0] && pT1 < mSVParams->pidCutsK0AP_qT) {
-      hypCheckStatus[HypV0::K0] = false;
-    }
-    if ((goodLamForCascade || goodALamForCascade) && std::abs(alpha) > mSVParams->pidCutsLambdaAP_a && pT1 > mSVParams->pidCutsLambdaAP_qT) {
-      goodLamForCascade = false;
-      goodALamForCascade = false;
-    }
-    // Check if any good hypothesis remains
-    goodHyp = false;
-    for (int ipid = 0; ipid < nPID; ipid++) {
-      if (hypCheckStatus[ipid]) {
-        goodHyp = true;
-        break;
-      }
-    }
-  }
-
   // apply mass selections for 3-body decay
   bool good3bodyV0Hyp = false;
   for (int ipid = 2; ipid < 4; ipid++) {
