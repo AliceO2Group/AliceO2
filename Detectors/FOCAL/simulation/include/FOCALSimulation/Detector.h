@@ -166,9 +166,13 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param energy Energy of the superparent
   Parent* AddSuperparent(int trackID, int pdg, double energy);
 
-  /// \brief Processing hit creation in the ECAL sensitive volume
+  /// \brief Processing hit creation in the ECAL Pad sensitive volume
   /// \param v Current sensitive volume
-  bool ProcessHitsECAL(FairVolume* v = nullptr);
+  bool ProcessHitsEPad(FairVolume* v = nullptr);
+
+  /// \brief Processing hit creation in the ECAL Pixel sensitive volume
+  /// \param v Current sensitive volume
+  bool ProcessHitsEPix(FairVolume* v = nullptr);
 
   /// \brief Processing hit creation in the HCAL sensitive volume
   /// \param v Current sensitive volume
@@ -181,7 +185,8 @@ class Detector : public o2::base::DetImpl<Detector>
   Geometry* mGeometry; //!<! Geometry pointer
 
   int mMedSensHCal = 0; //!<! Sensitive Medium for HCal
-  int mMedSensECal = 0; //!<! Sensitive Medium for ECal
+  int mMedSensECalPad = 0; //!<! Sensitive Medium for ECal Pads
+  int mMedSensECalPix = 0; //!<! Sensitive Medium for ECal Pixels
 
   std::vector<const Composition*> mGeoCompositions; //!<! list of FOCAL compositions
 
@@ -197,7 +202,8 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mCurrentParentID;  //!<! ID of the current parent
 
   std::vector<std::string> mSensitiveHCAL; //!<! List of sensitive volumes
-  std::vector<std::string> mSensitiveECAL; //!<! List of sensitive volumes
+  std::vector<std::string> mSensitiveECALPad; //!<! List of sensitive volumes
+  std::vector<std::string> mSensitiveECALPix; //!<! List of sensitive volumes
   int mVolumeIDScintillator = -1;          //!<! Volume ID of the scintillator volume
 
   template <typename Det>
