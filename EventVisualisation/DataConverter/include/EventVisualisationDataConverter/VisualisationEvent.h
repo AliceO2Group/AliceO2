@@ -78,9 +78,9 @@ class VisualisationEvent
     return &mTracks.back();
   }
 
-  VisualisationCluster& addCluster(const float *xyz)
+  VisualisationCluster& addCluster(const float* xyz)
   {
-    //float pos[] = {X, Y, Z};
+    // float pos[] = {X, Y, Z};
     return mTracks.back().addCluster(xyz);
   }
 

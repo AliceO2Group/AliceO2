@@ -951,7 +951,7 @@ void EveWorkflowHelper::drawTPCClusters(GID gid) // , float trackTimeTB
     std::array<float, 3> xyz;
     this->mTPCFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), xyz[0], xyz[1], xyz[2], trc.getTime0()); // in sector coordinate
     o2::math_utils::rotateZ(xyz, o2::math_utils::sector2Angle(sector % o2::tpc::SECTORSPERSIDE));                                  // lab coordinate (global)
-    mEvent.addCluster(xyz.data());                                                                                     // trackTimeTB / mMUS2TPCTimeBins
+    mEvent.addCluster(xyz.data());                                                                                                 // trackTimeTB / mMUS2TPCTimeBins
   }
 }
 
