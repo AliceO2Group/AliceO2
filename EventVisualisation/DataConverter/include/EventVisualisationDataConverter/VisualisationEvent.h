@@ -68,7 +68,7 @@ class VisualisationEvent
     time_t collisionTime;
   };
   // Default constructor
-  explicit VisualisationEvent(VisualisationEventVO vo);
+  explicit VisualisationEvent(const VisualisationEventVO vo);
 
   void appendAnotherEventCalo(const VisualisationEvent& another);
 
@@ -78,10 +78,10 @@ class VisualisationEvent
     return &mTracks.back();
   }
 
-  VisualisationCluster& addCluster(float X, float Y, float Z)
+  VisualisationCluster& addCluster(const float *xyz)
   {
-    float pos[] = {X, Y, Z};
-    return mTracks.back().addCluster(pos);
+    //float pos[] = {X, Y, Z};
+    return mTracks.back().addCluster(xyz);
   }
 
   void addGlobalCluster(float* xyz, float time, o2::dataformats::GlobalTrackID gid)
@@ -109,7 +109,7 @@ class VisualisationEvent
   }
 
   // Returns track with index i
-  const VisualisationTrack& getTrack(int i) const
+  [[nodiscard]] const VisualisationTrack& getTrack(int i) const
   {
     return mTracks[i];
   };

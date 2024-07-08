@@ -42,7 +42,7 @@ class VisualisationCluster
 
  public:
   // Default constructor
-  VisualisationCluster(float XYZ[], float time, o2::dataformats::GlobalTrackID gid);
+  VisualisationCluster(const float XYZ[], float time, o2::dataformats::GlobalTrackID gid);
   VisualisationCluster(TVector3 xyz)
   {
     mTime = 0;
@@ -58,7 +58,7 @@ class VisualisationCluster
   float Time() const { return mTime; }
 
  private:
-  void setCoordinates(float xyz[3]);
+  void setCoordinates(const float xyz[3]);
   float mCoordinates[3]; /// Vector of cluster's coordinates
   float mTime;           /// time asociated with cluster
   o2::dataformats::GlobalTrackID mBGID;

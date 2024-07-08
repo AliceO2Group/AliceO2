@@ -96,7 +96,7 @@ class VisualisationTrack
   size_t getPointCount() const { return mPolyX.size(); }
   std::array<float, 3> getPoint(size_t i) const { return std::array<float, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
 
-  VisualisationCluster& addCluster(float pos[]);
+  VisualisationCluster& addCluster(const float pos[]);
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
   gsl::span<const VisualisationCluster> getClustersSpan() const

@@ -77,7 +77,7 @@ void VisualisationTrack::addPolyPoint(const float p[])
   mPolyZ.push_back(p[2]);
 }
 
-VisualisationCluster& VisualisationTrack::addCluster(float pos[])
+VisualisationCluster& VisualisationTrack::addCluster(const float pos[])
 {
   mClusters.emplace_back(pos, this->mTime, this->mBGID);
   return mClusters.back();

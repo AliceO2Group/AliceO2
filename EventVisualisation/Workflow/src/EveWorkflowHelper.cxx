@@ -902,10 +902,11 @@ void EveWorkflowHelper::drawTOFClusters(GID gid)
 
   // rotation
   float alpha = o2::math_utils::sector2Angle(sector);
-  float xGlb = x * cos(alpha) - y * sin(alpha);
-  float yGlb = y * cos(alpha) + x * sin(alpha);
-  float zGlb = z;
-  drawPoint(xGlb, yGlb, zGlb);
+  float xyzGlb[3];
+  xyzGlb[0] = x * cos(alpha) - y * sin(alpha);
+  xyzGlb[1] = y * cos(alpha) + x * sin(alpha);
+  xyzGlb[2] = z;
+  drawPoint(xyzGlb);
 }
 
 void EveWorkflowHelper::drawITSClusters(GID gid) // float trackTime
@@ -918,7 +919,8 @@ void EveWorkflowHelper::drawITSClusters(GID gid) // float trackTime
     for (int icl = 0; icl < ncl; icl++) {
       const auto& pnt = mITSClustersArray[refs[icl + offset]];
       const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) * pnt.getXYZ();
-      drawPoint(glo.X(), glo.Y(), glo.Z()); // trackTime;
+      float xyz[] = {glo.X(), glo.Y(), glo.Z()};
+      drawPoint(xyz); // trackTime;
     }
   } else if (gid.getSource() == GID::ITSAB) { // this is for ITS tracklets from ITS-TPC afterburner
     const auto& trc = mRecoCont->getITSABRef(gid);
@@ -928,7 +930,8 @@ void EveWorkflowHelper::drawITSClusters(GID gid) // float trackTime
     for (int icl = 0; icl < ncl; icl++) {
       const auto& pnt = mITSClustersArray[refs[icl + offset]];
       const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) * pnt.getXYZ();
-      drawPoint(glo.X(), glo.Y(), glo.Z()); //, trackTime
+      float xyz[] = {glo.X(), glo.Y(), glo.Z()};
+      drawPoint(xyz); //, trackTime
     }
   }
 }
@@ -948,7 +951,7 @@ void EveWorkflowHelper::drawTPCClusters(GID gid) // , float trackTimeTB
     std::array<float, 3> xyz;
     this->mTPCFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), xyz[0], xyz[1], xyz[2], trc.getTime0()); // in sector coordinate
     o2::math_utils::rotateZ(xyz, o2::math_utils::sector2Angle(sector % o2::tpc::SECTORSPERSIDE));                                  // lab coordinate (global)
-    mEvent.addCluster(xyz[0], xyz[1], xyz[2]);                                                                                     // trackTimeTB / mMUS2TPCTimeBins
+    mEvent.addCluster(xyz.data());                                                                                     // trackTimeTB / mMUS2TPCTimeBins
   }
 }
 
@@ -960,7 +963,8 @@ void EveWorkflowHelper::drawMFTClusters(GID gid) // float trackTime
   auto refs = mRecoCont->getMFTTracksClusterRefs();       // list of references to clusters, offset:offset+no
   for (int icl = noOfClusters - 1; icl > -1; --icl) {
     const auto& thisCluster = mMFTClustersArray[refs[offset + icl]];
-    drawPoint(thisCluster.getX(), thisCluster.getY(), thisCluster.getZ()); // tracktime
+    float xyz[] = {thisCluster.getX(), thisCluster.getY(), thisCluster.getZ()};
+    drawPoint(xyz); // tracktime
   }
 }
 
@@ -1015,7 +1019,8 @@ void EveWorkflowHelper::drawMCHClusters(GID gid) // trackTime
   const auto& mchClusters = mRecoCont->getMCHTrackClusters(); // list of references to clusters, offset:offset+no
   for (int icl = noOfClusters - 1; icl > -1; --icl) {
     const auto& cluster = mchClusters[offset + icl];
-    drawPoint(cluster.x, cluster.y, cluster.z); // tracktime
+    float glo[] = {cluster.x, cluster.y, cluster.z};
+    drawPoint(glo); // tracktime
   }
 }
 
@@ -1053,7 +1058,8 @@ void EveWorkflowHelper::drawMIDClusters(GID gid) // , float trackTime
     auto icl = midTrack.getClusterMatched(ich);
     if (icl >= 0) {
       auto& cluster = midClusters[icl];
-      drawPoint(cluster.xCoor, cluster.yCoor, cluster.zCoor); // tracktime
+      float glo[] = {cluster.xCoor, cluster.yCoor, cluster.zCoor};
+      drawPoint(glo); // tracktime
     }
   }
 }
@@ -1080,10 +1086,11 @@ void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack) //
       int sector = iChamber / 30;
       float alpha = o2::math_utils::sector2Angle(sector);
       // now the rotation is simply
-      float xGlb = x * cos(alpha) - y * sin(alpha);
-      float yGlb = y * cos(alpha) + x * sin(alpha);
-      float zGlb = z;
-      drawPoint(xGlb, yGlb, zGlb); // tracktime
+      float glo[3];
+      glo[0] = x * cos(alpha) - y * sin(alpha);
+      glo[1] = y * cos(alpha) + x * sin(alpha);
+      glo[2] = z;
+      drawPoint(glo); // tracktime
     }
   }
 }

@@ -95,7 +95,7 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
 }();
 
 /// Ctor -- set the minimalistic event up
-VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
+VisualisationEvent::VisualisationEvent(const VisualisationEventVO vo)
 {
   this->mEventNumber = vo.eventNumber;
   this->mRunNumber = vo.runNumber;
@@ -105,6 +105,9 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
   this->mCreationTime = vo.collisionTime;
   this->mMinTimeOfTracks = numeric_limits<float>::max();
   this->mMaxTimeOfTracks = numeric_limits<float>::min();
+  this->mClMask = 0;
+  this->mTrkMask = 0;
+  this->mTfCounter = 0;
 }
 
 void VisualisationEvent::appendAnotherEventCalo(const VisualisationEvent& another)
