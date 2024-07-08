@@ -71,6 +71,46 @@ GeneratorPythia8::GeneratorPythia8(const Char_t* name, const Char_t* title) : Ge
   mInterfaceName = "pythia8";
 }
 
+bool GeneratorPythia8::setInitialSeed(long seed)
+{
+  // check first of all if Init not yet called and seed not <0
+  if (mIsInitialized) {
+    return false;
+  }
+  if (seed < 0) {
+    return false;
+  }
+  // sets the initial seed and applies the correct Pythia
+  // range
+  mInitialRNGSeed = seed % (MAX_SEED + 1);
+  LOG(info) << "GeneratorPythia8: Setting initial seed to " << mInitialRNGSeed;
+  return true;
+}
+
+/*****************************************************************/
+void GeneratorPythia8::seedGenerator()
+{
+  /// Function is seeding the Pythia random numbers.
+  /// In case a completely different logic is required by users,
+  /// we could make this function virtual or allow to set/execute
+  /// a user-given lambda function instead.
+
+  /// Note that this function is executed **before** the Pythia8
+  /// user config file is read. So the config file should either not contain seeding information ... or can be used to override seeding logic.
+
+  auto seed = mInitialRNGSeed;
+  if (seed == -1) {
+    // Will use the mInitialRNGSeed if it was set.
+    // Otherwise will seed the generator with the state of
+    // TRandom::GetSeed. This is the seed that is influenced from
+    // SimConfig --seed command line options options.
+    seed = (gRandom->TRandom::GetSeed() % (MAX_SEED + 1));
+    LOG(info) << "GeneratorPythia8: Using random seed from gRandom % 900000001: " << seed;
+  }
+  mPythia.readString("Random:setSeed on");
+  mPythia.readString("Random:seed " + std::to_string(seed));
+}
+
 /*****************************************************************/
 
 Bool_t GeneratorPythia8::Init()
@@ -79,6 +119,12 @@ Bool_t GeneratorPythia8::Init()
 
   /** init base class **/
   Generator::Init();
+
+  /** Seed the Pythia random number state.
+      The user may override this seeding by providing separate
+      Random:setSeed configurations in the configuration file.
+  **/
+  seedGenerator();
 
   /** read configuration **/
   if (!mConfig.empty()) {
@@ -146,6 +192,8 @@ Bool_t GeneratorPythia8::Init()
   }
 
   initUserFilterCallback();
+
+  mIsInitialized = true;
 
   /** success **/
   return true;
