@@ -201,9 +201,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mCurrentPrimaryID; //!<! ID of the current primary
   Int_t mCurrentParentID;  //!<! ID of the current parent
 
-  std::vector<std::string> mSensitiveHCAL; //!<! List of sensitive volumes
-  std::vector<std::string> mSensitiveECALPad; //!<! List of sensitive volumes
-  std::vector<std::string> mSensitiveECALPix; //!<! List of sensitive volumes
+  std::vector<std::string> mSensitive; //!<! List of sensitive volumes
   int mVolumeIDScintillator = -1;          //!<! Volume ID of the scintillator volume
 
   template <typename Det>
