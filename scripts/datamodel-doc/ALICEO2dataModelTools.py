@@ -80,10 +80,10 @@ class define:
         vars[-1] += vtmp[cnt]
       else:
         vars.append(vtmp[cnt])
-      
+
       cnt += 1
       goon = cnt < len(vtmp)
-    
+
     return vars
 
   def expandLine(self, line):
@@ -128,7 +128,7 @@ class define:
                 if self.vars[ind1].strip() in words[ind2]:
                   words[ind2] = re.sub(self.vars[ind1].strip(), vars[ind1].strip(), words[ind2])
             expandedLine += block(words)
-            
+
             # last added character of line
             if i < len(inds)-1:
               i1 = inds[i+1]-1
@@ -144,14 +144,14 @@ class define:
               print("ATTENTION")
               print("Substitution error 2!")
               print('>> ', line)
-           
+
             expandedLine += line[lastc:i1]
             lastc = i1
-       
+
         # add rest of the line
         if lastc < len(line):
           expandedLine += line[lastc:]
-       
+
       # remove ##, which connects two strings
       expandedLine = block(split(expandedLine.replace(" # # ", "")))
 
