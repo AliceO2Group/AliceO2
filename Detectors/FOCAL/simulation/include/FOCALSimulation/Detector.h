@@ -202,7 +202,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t mCurrentParentID;  //!<! ID of the current parent
 
   std::vector<std::string> mSensitive; //!<! List of sensitive volumes
-  int mVolumeIDScintillator = -1;          //!<! Volume ID of the scintillator volume
+  int mVolumeIDScintillator = -1;      //!<! Volume ID of the scintillator volume
 
   template <typename Det>
   friend class o2::base::DetImpl;
