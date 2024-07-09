@@ -282,7 +282,7 @@ BINARY_OP_NODES(||, LogicalOr);
 
 /// functions
 template <typename T>
-inline Node npow(Node left, T right)
+inline Node npow(Node&& left, T right)
 {
   return Node{OpNode{BasicOp::Power}, std::move(left), LiteralNode{right}};
 }
@@ -290,54 +290,51 @@ inline Node npow(Node left, T right)
 #define BINARY_FUNC_NODES(_func_, _node_)                                          \
   template <typename L, typename R>                                                \
   inline Node _node_(L left, R right)                                              \
+    requires(!std::is_same_v<L, Node> && !std::is_same_v<R, Node>)                 \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, LiteralNode{left}, LiteralNode{right}};   \
   }                                                                                \
                                                                                    \
-  template <>                                                                      \
-  inline Node _node_(Node left, Node right)                                        \
+  inline Node _node_(Node&& left, Node&& right)                                    \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, std::move(left), std::move(right)};       \
   }                                                                                \
                                                                                    \
-  template <>                                                                      \
-  inline Node _node_(Node left, BindingNode right)                                 \
+  inline Node _node_(Node&& left, BindingNode right)                               \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, std::move(left), right};                  \
   }                                                                                \
                                                                                    \
-  template <>                                                                      \
   inline Node _node_(BindingNode left, BindingNode right)                          \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, left, right};                             \
   }                                                                                \
                                                                                    \
-  template <>                                                                      \
-  inline Node _node_(BindingNode left, Node right)                                 \
+  inline Node _node_(BindingNode left, Node&& right)                               \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, left, std::move(right)};                  \
   }                                                                                \
                                                                                    \
   template <typename T>                                                            \
-  inline Node _node_(Node left, Configurable<T> right)                             \
+  inline Node _node_(Node&& left, Configurable<T> const& right)                    \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, std::move(left), PlaceholderNode{right}}; \
   }                                                                                \
                                                                                    \
   template <typename T>                                                            \
-  inline Node _node_(Configurable<T> left, Node right)                             \
+  inline Node _node_(Configurable<T> const& left, Node&& right)                    \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, PlaceholderNode{left}, std::move(right)}; \
   }                                                                                \
                                                                                    \
   template <typename T>                                                            \
-  inline Node _node_(BindingNode left, Configurable<T> right)                      \
+  inline Node _node_(BindingNode left, Configurable<T> const& right)               \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, left, PlaceholderNode{right}};            \
   }                                                                                \
                                                                                    \
   template <typename T>                                                            \
-  inline Node _node_(Configurable<T> left, BindingNode right)                      \
+  inline Node _node_(Configurable<T> const& left, BindingNode right)               \
   {                                                                                \
     return Node{OpNode{BasicOp::_func_}, PlaceholderNode{left}, right};            \
   }
@@ -347,7 +344,7 @@ BINARY_FUNC_NODES(Atan2, natan2);
 
 /// unary functions on nodes
 #define UNARY_FUNC_NODES(_func_, _node_)                  \
-  inline Node _node_(Node arg)                            \
+  inline Node _node_(Node&& arg)                          \
   {                                                       \
     return Node{OpNode{BasicOp::_func_}, std::move(arg)}; \
   }
@@ -374,49 +371,52 @@ inline Node ifnode(C condition_, T then_, E else_)
 }
 
 template <>
-inline Node ifnode(Node condition_, Node then_, Node else_)
+inline Node ifnode(Node&& condition_, Node&& then_, Node&& else_)
 {
   return Node{ConditionalNode{}, std::move(then_), std::move(else_), std::move(condition_)};
 }
 
-template <typename L, std::enable_if_t<std::is_integral<L>::value || std::is_floating_point<L>::value, bool> = true>
-inline Node ifnode(Node condition_, Node then_, L else_)
+template <typename L>
+inline Node ifnode(Node&& condition_, Node&& then_, L else_)
+  requires(std::is_integral<L>::value || std::is_floating_point<L>::value)
 {
   return Node{ConditionalNode{}, std::move(then_), LiteralNode{else_}, std::move(condition_)};
 }
 
-template <typename L, std::enable_if_t<std::is_integral<L>::value || std::is_floating_point<L>::value, bool> = true>
-inline Node ifnode(Node condition_, L then_, Node else_)
+template <typename L>
+inline Node ifnode(Node&& condition_, L then_, Node&& else_)
+  requires(std::is_integral<L>::value || std::is_floating_point<L>::value)
 {
   return Node{ConditionalNode{}, LiteralNode{then_}, std::move(else_), std::move(condition_)};
 }
 
-template <typename L1, typename L2, std::enable_if_t<(std::is_integral<L1>::value || std::is_floating_point<L1>::value) && (std::is_integral<L2>::value || std::is_floating_point<L2>::value), bool> = true>
-inline Node ifnode(Node condition_, L1 then_, L2 else_)
+template <typename L1, typename L2>
+inline Node ifnode(Node&& condition_, L1 then_, L2 else_)
+  requires((std::is_integral<L1>::value || std::is_floating_point<L1>::value) && (std::is_integral<L2>::value || std::is_floating_point<L2>::value))
 {
   return Node{ConditionalNode{}, LiteralNode{then_}, LiteralNode{else_}, std::move(condition_)};
 }
 
 template <typename T>
-inline Node ifnode(Configurable<T> condition_, Node then_, Node else_)
+inline Node ifnode(Configurable<T> const& condition_, Node&& then_, Node&& else_)
 {
   return Node{ConditionalNode{}, std::move(then_), std::move(else_), PlaceholderNode{condition_}};
 }
 
 template <typename L>
-inline Node ifnode(Node condition_, Node then_, Configurable<L> else_)
+inline Node ifnode(Node&& condition_, Node&& then_, Configurable<L> const& else_)
 {
   return Node{ConditionalNode{}, std::move(then_), PlaceholderNode{else_}, std::move(condition_)};
 }
 
 template <typename L>
-inline Node ifnode(Node condition_, Configurable<L> then_, Node else_)
+inline Node ifnode(Node&& condition_, Configurable<L> const& then_, Node&& else_)
 {
   return Node{ConditionalNode{}, PlaceholderNode{then_}, std::move(else_), std::move(condition_)};
 }
 
 template <typename L1, typename L2>
-inline Node ifnode(Node condition_, Configurable<L1> then_, Configurable<L2> else_)
+inline Node ifnode(Node&& condition_, Configurable<L1> const& then_, Configurable<L2> const& else_)
 {
   return Node{ConditionalNode{}, PlaceholderNode{then_}, PlaceholderNode{else_}, std::move(condition_)};
 }
