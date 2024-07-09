@@ -156,6 +156,7 @@ def setProducers(O2Physicsdir, cerelations, dm, subDM, todo=0):
 
     CErelation = cerelations.getExecutable(codefile)
     if (len(CErelation) != 5):
+      print("Problem with CE relation for codeFile: ", codefile)
       continue
     codeFile = O2CF.codeFile(codefile)
     for tableName in codeFile.tableNames:
