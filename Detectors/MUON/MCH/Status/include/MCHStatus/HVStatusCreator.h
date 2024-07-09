@@ -47,20 +47,25 @@ class StatusMap;
 class HVStatusCreator
 {
  public:
-  using DPID = dcs::DataPointIdentifier;
-  using DPVAL = dcs::DataPointValue;
+  using DPID = o2::dcs::DataPointIdentifier;
+  using DPVAL = o2::dcs::DataPointValue;
   using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
-  /// @brief internal structure to define a time range
+  /// Internal structure to define a time range
   struct TimeRange {
     uint64_t begin = 0; ///< beginning of time range
     uint64_t end = 0;   ///< end of time range
 
-    TimeRange(uint64_t begin, uint64_t end) : begin(begin), end(end){}; // default constructor
+    /**
+     * Constructor of time range
+     * @param begin beginning of time range (ms)
+     * @param end end of time range (ms)
+     */
+    TimeRange(uint64_t begin, uint64_t end) : begin(begin), end(end){};
 
     /**
-     * @brief check if the time range contains the given time stamp
-     * @param timestamp time stamp of interest
+     * Check if the time range contains the given time stamp
+     * @param timestamp time stamp of interest (ms)
      * @return true if the time stamp is in the time range
      */
     bool contains(uint64_t timestamp) const { return timestamp >= begin && timestamp < end; }
@@ -69,9 +74,10 @@ class HVStatusCreator
   using BADHVMAP = std::unordered_map<std::string, std::vector<TimeRange>>;
 
   /**
-   * getter for the internal map of bad HV channels
+   * Getter for the internal map of HV issues
+   * @return map of bad HV channels with the time ranges concerned
    */
-  BADHVMAP getHVIssuesList();
+  const BADHVMAP& getBadHVs() const { return mBadHVTimeRanges; }
 
   /**
    * Find all HV issues and their time ranges
@@ -90,11 +96,9 @@ class HVStatusCreator
    * Add channels affected by current HV issues to the status map
    * @param statusMap statusMap to update
    */
-  void updateStatusMap(StatusMap& statusMap);
+  void updateStatusMap(StatusMap& statusMap) const;
 
-  /**
-   * clear the internal lists of HV issues
-   */
+  /// Clear the internal lists of HV issues
   void clear()
   {
     mBadHVTimeRanges.clear();

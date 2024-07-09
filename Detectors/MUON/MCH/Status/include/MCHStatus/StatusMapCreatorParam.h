@@ -24,11 +24,15 @@ namespace o2::mch
  */
 struct StatusMapCreatorParam : public o2::conf::ConfigurableParamHelper<StatusMapCreatorParam> {
 
-  bool useBadChannels = true;                                                                   ///< reject bad channels (obtained during pedestal calibration runs)
-  bool useRejectList = true;                                                                    ///< use extra rejection list (relative to other bad channels sources)
-  bool useHV = false;                                                                           ///< reject channels connected to bad HV sectors
-  double hvLimits[10] = {1550., 1550., 1600., 1600., 1600., 1600., 1600., 1600., 1600., 1600.}; ///< chambers HV thresholds for detecting issues
-  uint64_t minDuration = 10 * 1000;                                                             ///< minimum duration of HV issues in ms
+  bool useBadChannels = true; ///< reject bad channels (obtained during pedestal calibration runs)
+  bool useRejectList = true;  ///< use extra rejection list (relative to other bad channels sources)
+  bool useHV = true;          ///< reject channels connected to bad HV sectors
+
+  /// chambers HV thresholds for detecting issues
+  double hvLimits[10] = {1550., 1550., 1600., 1600., 1600., 1600., 1600., 1600., 1600., 1600.};
+  uint64_t hvMinDuration = 10000; ///< minimum duration of HV issues in ms
+
+  uint64_t timeMargin = 2000; ///< time margin for comparing DCS and TF timestamps in ms
 
   bool isActive() const { return useBadChannels || useRejectList || useHV; }
 
