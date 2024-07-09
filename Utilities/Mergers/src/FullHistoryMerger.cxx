@@ -145,6 +145,11 @@ void FullHistoryMerger::mergeCache()
 {
   LOG(debug) << "Merging " << mCache.size() + 1 << " objects.";
 
+  if (mFirstObjectSerialized.second.payload == nullptr) {
+    // no objects arrived to the Merger yet, nothing to use.
+    return;
+  }
+
   mMergedObject = object_store_helpers::extractObjectFrom(mFirstObjectSerialized.second);
   assert(!std::holds_alternative<std::monostate>(mMergedObject));
   mObjectsMerged++;
