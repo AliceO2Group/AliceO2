@@ -54,9 +54,10 @@ Detector::Detector(const Detector& rhs)
   mMedSensHCal = rhs.mMedSensHCal;
   mMedSensECalPad = rhs.mMedSensECalPad;
   mMedSensECalPix = rhs.mMedSensECalPix;
-  mSensitiveHCAL = rhs.mSensitiveHCAL;
-  mSensitiveECALPad = rhs.mSensitiveECALPad;
-  mSensitiveECALPix = rhs.mSensitiveECALPix;
+  mSensitive = rhs.mSensitive;
+  //  mSensitiveHCAL = rhs.mSensitiveHCAL;
+  //  mSensitiveECALPad = rhs.mSensitiveECALPad;
+  //  mSensitiveECALPix = rhs.mSensitiveECALPix;
   mVolumeIDScintillator = rhs.mVolumeIDScintillator;
 }
 
@@ -83,27 +84,22 @@ void Detector::InitializeO2Detector()
 
   // All FOCAL volumes must be declared as sensitive, otherwise
   // the decay chains are broken by volumes not processed in ProceeHits
-  for (const auto& child : mSensitiveHCAL) {
+  for (const auto& child : mSensitive) {
     LOG(debug1) << "Adding sensitive volume " << child;
     auto svolID = registerSensitiveVolumeAndGetVolID(child);
+    // HCAL
     if (child == "ScintFiber" || child == "HScint") {
       LOG(debug1) << "Adding ScintFiber/HScint volume as sensitive volume with ID " << svolID;
       mVolumeIDScintillator = svolID;
     }
-  }
-
-  mMedSensHCal = getMediumID(ID_SC);
-
-  // ECAL Pads
-  for (const auto& child : mSensitiveECALPad) {
-    LOG(debug1) << "Adding sensitive volume " << child;
-    auto svolID = registerSensitiveVolumeAndGetVolID(child);
-    if (child == "EMSC1" || child == "EMSC2") {
+    // ECAL Pads
+    else if (child == "EMSC1" || child == "EMSC2") {
       LOG(debug1) << "Adding EMC SILICON volume as sensitive volume with ID " << svolID;
       mVolumeIDScintillator = svolID;
     }
   }
 
+  mMedSensHCal = getMediumID(ID_SC);
   mMedSensECalPad = getMediumID(ID_SILICON);
 
   //
@@ -470,9 +466,10 @@ void Detector::ConstructGeometry()
             << mGeometry->getFOCALSizeY() << ", Z: " << mGeometry->getFOCALSizeZ() + (mGeometry->getInsertFrontPadLayers() ? 2.0 : 0.0) + (mGeometry->getInsertHCalReadoutMaterial() ? 3.0 : 0.0);
 
   TVirtualMC::GetMC()->Gsvolu("FOCAL", "BOX", getMediumID(ID_AIR), pars, 4);
-  mSensitiveHCAL.push_back("FOCAL");
-  mSensitiveECALPad.push_back("FOCAL");
-  mSensitiveECALPix.push_back("FOCAL");
+  mSensitive.push_back("FOCAL");
+  //  mSensitiveHCAL.push_back("FOCAL");
+  //  mSensitiveECALPad.push_back("FOCAL");
+  //  mSensitiveECALPix.push_back("FOCAL");
 
   // ECAL part
   LOG(debug2) << "ECAL geometry : " << GetTitle();
@@ -511,7 +508,8 @@ void Detector::CreateHCALSpaghetti()
       volCuTube = gGeoManager->MakeTube("Tube", medium, Rin, Rout, Length); // The Scintillator must be first in order in vector for Rin to be set
       volCuTube->SetLineWidth(2);
       volCuTube->SetLineColor(kRed);
-      mSensitiveHCAL.push_back(volCuTube->GetName());
+      mSensitive.push_back(volCuTube->GetName());
+      // mSensitiveHCAL.push_back(volCuTube->GetName());
       HcalTube->AddNode(volCuTube, 1, nullptr);
     }
     if (icomp->material() == "Scint") {
@@ -521,7 +519,8 @@ void Detector::CreateHCALSpaghetti()
       volSciFi = gGeoManager->MakeTube("ScintFiber", medium, 0., RScint, Length);
       volSciFi->SetLineWidth(2);
       volSciFi->SetLineColor(kBlue);
-      mSensitiveHCAL.push_back(volSciFi->GetName());
+      // mSensitiveHCAL.push_back(volSciFi->GetName());
+      mSensitive.push_back(volSciFi->GetName());
       HcalTube->AddNode(volSciFi, 1, nullptr);
     }
     if (icomp->material() == "CuHCAL") {
@@ -530,7 +529,8 @@ void Detector::CreateHCALSpaghetti()
       volCuTube = gGeoManager->MakeTube("Tube", medium, Rin, Rout, Length); // The Scintillator must be first in order in vector for Rin to be set
       volCuTube->SetLineWidth(2);
       volCuTube->SetLineColor(kRed);
-      mSensitiveHCAL.push_back(volCuTube->GetName());
+      // mSensitiveHCAL.push_back(volCuTube->GetName());
+      mSensitive.push_back(volCuTube->GetName());
       HcalTube->AddNode(volCuTube, 1, nullptr);
     }
   }
@@ -544,7 +544,8 @@ void Detector::CreateHCALSpaghetti()
   TGeoVolume* volTower = new TGeoVolume("volTower", TowerHCAL, gGeoManager->GetMedium(getMediumID(ID_COPPER)));
   volTower->SetLineWidth(2);
   volTower->SetLineColor(42);
-  mSensitiveHCAL.push_back(volTower->GetName());
+  // mSensitiveHCAL.push_back(volTower->GetName());
+  mSensitive.push_back(volTower->GetName());
 
   TGeoVolumeAssembly* volTowerHCAL = new TGeoVolumeAssembly("volTowerHCAL");
   volTowerHCAL->AddNode(volTower, 1, nullptr);
@@ -625,14 +626,16 @@ void Detector::CreateHCALSpaghetti()
   volumeAlHcalBox->SetLineColor(kOrange);
   if (mGeometry->getInsertHCalReadoutMaterial()) {
     TVirtualMC::GetMC()->Gspos("volAlHcalBox", 9999, "FOCAL", 0.0, 0.0, +1.0 * mGeometry->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
-    mSensitiveHCAL.push_back("volAlHcalBox");
+    // mSensitiveHCAL.push_back("volAlHcalBox");
+    mSensitive.push_back("volAlHcalBox");
   }
   TGeoBBox* alUnderBox = new TGeoBBox("AlUnderBox", SizeXHCAL / 2.0, 0.5, mGeometry->getFOCALSizeZ() / 2.0 + 1.5);
   TGeoVolume* volumeAlUnderBox = new TGeoVolume("volAlUnderBox", alUnderBox, gGeoManager->GetMedium(getMediumID(ID_ALUMINIUM)));
   volumeAlUnderBox->SetLineColor(kOrange);
   if (mGeometry->getInsertHCalReadoutMaterial()) {
     TVirtualMC::GetMC()->Gspos("volAlUnderBox", 9999, "FOCAL", 0.0, -1.0 * mGeometry->getFOCALSizeY() / 2 - 10.5, 0.0, 0, "ONLY");
-    mSensitiveHCAL.push_back("volAlUnderBox");
+    // mSensitiveHCAL.push_back("volAlUnderBox");
+    mSensitive.push_back("volAlUnderBox");
   }
 
   volHCAL->SetVisibility();
@@ -672,7 +675,8 @@ void Detector::CreateHCALSandwich()
       const TGeoBBox* HPadBox = new TGeoBBox("HPadBox", pars[0], pars[1], pars[2]);
       TGeoVolume* HPad = new TGeoVolume("HPad", HPadBox, medium);
       HPad->SetLineColor(kGray);
-      mSensitiveHCAL.push_back(HPad->GetName());
+      // mSensitiveHCAL.push_back(HPad->GetName());
+      mSensitive.push_back(HPad->GetName());
       TGeoTranslation* trans = new TGeoTranslation(icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset);
       volTower->AddNode(HPad, iCu, trans);
     }
@@ -682,7 +686,8 @@ void Detector::CreateHCALSandwich()
       const TGeoBBox* HScintBox = new TGeoBBox("HScintBox", pars[0], pars[1], pars[2]);
       TGeoVolume* HScint = new TGeoVolume("HScint", HScintBox, medium);
       HScint->SetLineColor(kBlue);
-      mSensitiveHCAL.push_back(HScint->GetName());
+      // mSensitiveHCAL.push_back(HScint->GetName());
+      mSensitive.push_back(HScint->GetName());
       TGeoTranslation* trans = new TGeoTranslation(icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset);
       volTower->AddNode(HScint, iScint, trans);
     }
@@ -692,7 +697,8 @@ void Detector::CreateHCALSandwich()
       const TGeoBBox* HPadBox = new TGeoBBox("HPadBox", pars[0], pars[1], pars[2]);
       TGeoVolume* HPad = new TGeoVolume("HPad", HPadBox, medium);
       HPad->SetLineColor(kRed);
-      mSensitiveHCAL.push_back(HPad->GetName());
+      // mSensitiveHCAL.push_back(HPad->GetName());
+      mSensitive.push_back(HPad->GetName());
       TGeoTranslation* trans = new TGeoTranslation(icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset);
       volTower->AddNode(HPad, iCu, trans);
     }
@@ -787,8 +793,10 @@ void Detector::CreateECALGeometry()
 
   TVirtualMC::GetMC()->Gsvolu("EMSC1", "BOX", ID_AIR, pars, 4); // Left towers (pixels shifted right)
   TVirtualMC::GetMC()->Gsvolu("EMSC2", "BOX", ID_AIR, pars, 4); // Right towers (pixels shifted left)
-  mSensitiveECALPad.push_back("EMSC1");
-  mSensitiveECALPad.push_back("EMSC2");
+  // mSensitiveECALPad.push_back("EMSC1");
+  // mSensitiveECALPad.push_back("EMSC2");
+  mSensitive.push_back("EMSC1");
+  mSensitive.push_back("EMSC2");
 
   // const Composition *icomp = new Composition(); //to be removed
   // for(int i = 0; i < 20; i++){ // old
@@ -805,7 +813,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "PureW") {
       // TVirtualMC::GetMC()->Gsvolu("EW1", "BOX", idtmed[3599], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EW1", "BOX", ID_TUNGSTEN, pars, 4);
-      mSensitiveECALPad.push_back("EW1");
+      // mSensitiveECALPad.push_back("EW1");
+      mSensitive.push_back("EW1");
       gGeoManager->GetVolume("EW1")->SetLineColor(kBlue);
       TVirtualMC::GetMC()->Gspos("EW1", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
@@ -815,7 +824,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "Alloy") {
       // TVirtualMC::GetMC()->Gsvolu("EW1", "BOX", idtmed[3604], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EW1", "BOX", ID_ALLOY, pars, 4);
-      mSensitiveECALPad.push_back("EW1");
+      // mSensitiveECALPad.push_back("EW1");
+      mSensitive.push_back("EW1");
       TVirtualMC::GetMC()->Gspos("EW1", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
       TVirtualMC::GetMC()->Gspos("EW1", icomp->id() + 1, "EMSC2",
@@ -825,7 +835,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "G10") {
       // TVirtualMC::GetMC()->Gsvolu("G10RO1", "BOX", idtmed[3601], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("G10RO1", "BOX", ID_G10, pars, 4);
-      mSensitiveECALPad.push_back("G10RO1");
+      // mSensitiveECALPad.push_back("G10RO1");
+      mSensitive.push_back("G10RO1");
       gGeoManager->GetVolume("G10RO1")->SetLineColor(kGreen);
       TVirtualMC::GetMC()->Gspos("G10RO1", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
@@ -836,7 +847,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "Cu") {
       // TVirtualMC::GetMC()->Gsvolu("EWCU", "BOX", idtmed[3602], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EWCU", "BOX", ID_COPPER, pars, 4);
-      mSensitiveECALPad.push_back("EWCU");
+      // mSensitiveECALPad.push_back("EWCU");
+      mSensitive.push_back("EWCU");
       gGeoManager->GetVolume("EWCU")->SetLineColor(kViolet);
       TVirtualMC::GetMC()->Gspos("EWCU", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
@@ -847,7 +859,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "Air") {
       // TVirtualMC::GetMC()->Gsvolu("EWAIR1", "BOX", idtmed[3698], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EWAIR1", "BOX", ID_AIR, pars, 4);
-      mSensitiveECALPad.push_back("EWAIR1");
+      // mSensitiveECALPad.push_back("EWAIR1");
+      mSensitive.push_back("EWAIR1");
       gGeoManager->GetVolume("EWAIR1")->SetLineColor(kGray);
       TVirtualMC::GetMC()->Gspos("EWAIR1", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
@@ -858,7 +871,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "Ceramic") {
       // TVirtualMC::GetMC()->Gsvolu("EWAIR1", "BOX", idtmed[3607], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EWAIR1", "BOX", ID_CERAMIC, pars, 4);
-      mSensitiveECALPad.push_back("EWAIR1");
+      // mSensitiveECALPad.push_back("EWAIR1");
+      mSensitive.push_back("EWAIR1");
       TVirtualMC::GetMC()->Gspos("EWAIR1", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
       TVirtualMC::GetMC()->Gspos("EWAIR1", icomp->id() + 1, "EMSC2",
@@ -868,7 +882,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "SiPad") {
       // TVirtualMC::GetMC()->Gsvolu("EWSIPAD1", "BOX", idtmed[3600], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EWSIPAD1", "BOX", ID_SILICON, pars, 4);
-      mSensitiveECALPad.push_back("EWSIPAD1");
+      // mSensitiveECALPad.push_back("EWSIPAD1");
+      mSensitive.push_back("EWSIPAD1");
       gGeoManager->GetVolume("EWSIPAD1")->SetLineColor(kOrange - 7);
       int number = (icomp->id()) + (icomp->stack() << 12) + (icomp->layer() << 16);
       // cout<<" pad : "<< icomp->material()<<" "<<number<<" x: "<< pars[0] << " y: " << pars[1] <<" Z coord: " << icomp->centerZ()-offset <<endl;
@@ -882,7 +897,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "SiPix") {
       // TVirtualMC::GetMC()->Gsvolu("EWSIPIX1", "BOX", idtmed[3600], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EWSIPIX1", "BOX", ID_SILICON, pars, 4);
-      mSensitiveECALPix.push_back("EWSIPIX1");
+      // mSensitiveECALPix.push_back("EWSIPIX1");
+      mSensitive.push_back("EWSIPIX1");
       gGeoManager->GetVolume("EWSIPIX1")->SetLineColor(kPink);
 
       int number = (icomp->id()) + (icomp->stack() << 12) + (icomp->layer() << 16);
@@ -896,7 +912,8 @@ void Detector::CreateECALGeometry()
     if (icomp->material() == "Si") {
       // TVirtualMC::GetMC()->Gsvolu("EWSI1", "BOX", idtmed[3610], pars, 4);
       TVirtualMC::GetMC()->Gsvolu("EWSI1", "BOX", ID_SIINSENS, pars, 4);
-      mSensitiveECALPix.push_back("EWSI1");
+      // mSensitiveECALPix.push_back("EWSI1");
+      mSensitive.push_back("EWSI1");
       gGeoManager->GetVolume("EWSI1")->SetLineColor(kPink);
       TVirtualMC::GetMC()->Gspos("EWSI1", icomp->id() + 1, "EMSC1",
                                  icomp->centerX(), icomp->centerY(), icomp->centerZ() - offset, 0, "ONLY");
@@ -918,7 +935,8 @@ void Detector::CreateECALGeometry()
   } else {
     volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium("FOCAL_AirGaps$"));
   }
-  mSensitiveECALPad.push_back(volumeColdPlate->GetName());
+  // mSensitiveECALPad.push_back(volumeColdPlate->GetName());
+  mSensitive.push_back(volumeColdPlate->GetName());
   volumeColdPlate->SetLineColor(kOrange);
   TVirtualMC::GetMC()->Gspos("volColdPlate", 1, "EMSC1", 0.0, geom->getTowerSizeY() / 2.0 + geom->getTowerGapSizeY() / 2.0, 0.0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("volColdPlate", 1, "EMSC2", 0.0, geom->getTowerSizeY() / 2.0 + geom->getTowerGapSizeY() / 2.0, 0.0, 0, "ONLY");
@@ -933,14 +951,16 @@ void Detector::CreateECALGeometry()
 
   // TVirtualMC::GetMC()->Gsvolu("ECAL", "BOX", idtmed[3698], fcal_pars, 4);
   TVirtualMC::GetMC()->Gsvolu("ECAL", "BOX", ID_AIR, fcal_pars, 4);
-  mSensitiveECALPad.push_back("ECAL");
+  // mSensitiveECALPad.push_back("ECAL");
+  mSensitive.push_back("ECAL");
 
   // Create SiPad box for the two sensitive layers to be placed in front of ECAL
   TGeoBBox* siPadBox = new TGeoBBox("SiPadBox", geom->getTowerSizeX() / 2. + geom->getTowerGapSizeX() / 2.,
                                     geom->getTowerSizeY() / 2. + geom->getTowerGapSizeY() / 2., 0.03 / 2.0);
   TGeoVolume* volumeSiPad = new TGeoVolume("volSiPad", siPadBox, gGeoManager->GetMedium("FOCAL_SiSens$"));
   volumeSiPad->SetLineColor(kOrange + 7);
-  mSensitiveECALPad.push_back(volumeSiPad->GetName());
+  // mSensitiveECALPad.push_back(volumeSiPad->GetName());
+  mSensitive.push_back(volumeSiPad->GetName());
 
   double xp, yp, zp;
   int itowerx, itowery;
@@ -958,9 +978,11 @@ void Detector::CreateECALGeometry()
       // Add the SiPad front volumes directly under the FOCAL volume
       if (geom->getInsertFrontPadLayers()) {
         TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (number + 1), "FOCAL", xp, yp, -1.0 * geom->getFOCALSizeZ() / 2.0, 0, "ONLY");
-        mSensitiveECALPad.push_back("volSiPad");
+        // mSensitiveECALPad.push_back("volSiPad");
+        mSensitive.push_back("volSiPad");
         TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (geom->getNumberOfTowersInX() * geom->getNumberOfTowersInY() + number + 1), "FOCAL", xp - 0.5, yp + 0.5, -1.0 * geom->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
-        mSensitiveECALPad.push_back("volSiPad");
+        // mSensitiveECALPad.push_back("volSiPad");
+        mSensitive.push_back("volSiPad");
       }
     }
     if (itowerx == 1) {
@@ -968,9 +990,11 @@ void Detector::CreateECALGeometry()
       // Add the SiPad front volumes directly under the FOCAL volume
       if (geom->getInsertFrontPadLayers()) {
         TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (number + 1), "FOCAL", xp, yp, -1.0 * geom->getFOCALSizeZ() / 2.0, 0, "ONLY");
-        mSensitiveECALPad.push_back("volSiPad");
+        // mSensitiveECALPad.push_back("volSiPad");
+        mSensitive.push_back("volSiPad");
         TVirtualMC::GetMC()->Gspos("volSiPad", -1 * (geom->getNumberOfTowersInX() * geom->getNumberOfTowersInY() + number + 1), "FOCAL", xp + 0.5, yp + 0.5, -1.0 * geom->getFOCALSizeZ() / 2.0 + 1.0, 0, "ONLY");
-        mSensitiveECALPad.push_back("volSiPad");
+        // mSensitiveECALPad.push_back("volSiPad");
+        mSensitive.push_back("volSiPad");
       }
     }
   } // end of loop over ECAL towers (TowersInX x TowersInY)
