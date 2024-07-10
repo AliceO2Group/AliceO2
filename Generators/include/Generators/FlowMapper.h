@@ -24,46 +24,47 @@ namespace eventgen
 /*****************************************************************/
 /*****************************************************************/
 
-// this class implements a mapper that introduces a synthetic v2 
-// into an otherwise uniform initial distribution of phis. It can 
+// this class implements a mapper that introduces a synthetic v2
+// into an otherwise uniform initial distribution of phis. It can
 // be used, for instance, to create artificial flow of realistic
-// intensity in PYTHIA simulations. 
+// intensity in PYTHIA simulations.
 
-// The input histograms are to be read from the CCDB and can 
+// The input histograms are to be read from the CCDB and can
 // be customized if necessary. Multiple copies of this mapper
-// could be used in case different species should have different 
-// additional flow. 
+// could be used in case different species should have different
+// additional flow.
 
-// N.B.: the main advantages of this mapper is that: 
-//       1) it preserves total number of particles 
-//       2) it retains a (distorted) event structure from 
+// N.B.: the main advantages of this mapper is that:
+//       1) it preserves total number of particles
+//       2) it retains a (distorted) event structure from
 //          an original event generator (e.g. PYTHIA)
 
-class FlowMapper {
-public:
-  //Constructor
+class FlowMapper
+{
+ public:
+  // Constructor
   FlowMapper();
-  
-  void Setv2VsPt(TH1D *hv2VsPtProvided);
-  void SetEccVsB(TH1D *hEccVsBProvided);
-  
-  void CreateLUT(); //to be called if all is set
-  TH3D *GetLUT();
 
-  Double_t MapPhi(Double_t lPhiInput, TH3D *hLUT, Double_t b, Double_t pt);
-  
-  long binsPhi; // number of phi bins to use
-  double precision = 1e-6; // could be studied
+  void Setv2VsPt(TH1D* hv2VsPtProvided);
+  void SetEccVsB(TH1D* hEccVsBProvided);
+
+  void CreateLUT(); // to be called if all is set
+  TH3D* GetLUT();
+
+  Double_t MapPhi(Double_t lPhiInput, TH3D* hLUT, Double_t b, Double_t pt);
+
+  long binsPhi;             // number of phi bins to use
+  double precision = 1e-6;  // could be studied
   double derivative = 1e-4; // could be studied
-  
-  TH1D *hv2vsPt; // input v2 vs pT from measurement
-  TH1D *hEccVsB; // ecc vs B (from Glauber MC or elsewhere)
-  
+
+  TH1D* hv2vsPt; // input v2 vs pT from measurement
+  TH1D* hEccVsB; // ecc vs B (from Glauber MC or elsewhere)
+
   // Cumulative function to be inverted
-  TF1 *fCumulative;
-  
+  TF1* fCumulative;
+
   // the look-up table
-  TH3D *hLUT;
+  TH3D* hLUT;
 
   ClassDef(FlowMapper, 1);
 };
