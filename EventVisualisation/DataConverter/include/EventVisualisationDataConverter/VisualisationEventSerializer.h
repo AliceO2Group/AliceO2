@@ -32,11 +32,21 @@ class VisualisationEventSerializer
  protected:
   VisualisationEventSerializer() = default;
   static std::string fileNameIndexed(const std::string fileName, const int index);
+  static o2::dataformats::GlobalTrackID deserialize(unsigned seralizedValue);
+
+  static unsigned serialize(o2::dataformats::GlobalTrackID gidValue);
+
+  static time_t parseDateTime(const char* datetimeString);
+  static std::string DateTime(time_t time);
+  static std::string bits(unsigned number);
 
  public:
+  static o2::dataformats::GlobalTrackID gidFromString(const std::string& gid);
+  static o2::dataformats::GlobalTrackID deserialize(unsigned source, unsigned index, unsigned flags);
   static VisualisationEventSerializer* getInstance(std::string ext) { return instances[ext]; }
   virtual bool fromFile(VisualisationEvent& event, std::string fileName) = 0;
   virtual void toFile(const VisualisationEvent& event, std::string fileName) = 0;
+  virtual const std::string serializerName() const = 0;
   virtual ~VisualisationEventSerializer() = default;
 };
 

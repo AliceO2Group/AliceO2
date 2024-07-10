@@ -29,7 +29,10 @@ namespace event_visualisation
 class VisualisationEventJSONSerializer : public VisualisationEventSerializer
 {
  public:
+  const std::string serializerName() const override { return std::string("VisualisationEventJSONSerializer"); }
   static int getIntOrDefault(rapidjson::Value& tree, const char* key, int defaultValue = 0);
+  static uint64_t getUIntOrDefault(rapidjson::Value& tree, const char* key, uint64_t defaultValue = 0);
+
   static float getFloatOrDefault(rapidjson::Value& tree, const char* key, float defaultValue = 0.0f);
   static std::string getStringOrDefault(rapidjson::Value& tree, const char* key, const char* defaultValue = "");
 
@@ -43,8 +46,8 @@ class VisualisationEventJSONSerializer : public VisualisationEventSerializer
   rapidjson::Value jsonTree(const VisualisationCalo& calo, rapidjson::Document::AllocatorType& allocator) const;
 
   // create cluster from their JSON representation
-  VisualisationCluster clusterFromJSON(rapidjson::Value& tree);
-  rapidjson::Value jsonTree(const VisualisationCluster& cluster, rapidjson::Document::AllocatorType& allocator) const;
+  VisualisationCluster clusterFromJSON(rapidjson::Value& tree, const VisualisationTrack* track);
+  rapidjson::Value jsonTree(const VisualisationCluster& cluster, rapidjson::Document::AllocatorType& allocator, const VisualisationTrack* track) const;
 
   // create track from their JSON representation
   VisualisationTrack trackFromJSON(rapidjson::Value& tree);

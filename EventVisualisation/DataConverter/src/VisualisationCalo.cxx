@@ -24,23 +24,24 @@ VisualisationCalo::VisualisationCalo() = default;
 
 VisualisationCalo::VisualisationCalo(const VisualisationCaloVO& vo)
 {
-  this->mSource = vo.source;
+  // this->mSource = vo.source;
   this->mTime = vo.time;
   this->mEnergy = vo.energy;
   this->mEta = vo.eta;
   this->mPhi = vo.phi;
-  this->mGID = vo.gid;
+
   this->mPID = vo.PID;
+  this->mBGID = vo.gid;
 }
 
 VisualisationCalo::VisualisationCalo(const VisualisationCalo& src)
 {
-  this->mSource = src.mSource;
+  // this->mSource = src.mSource;
   this->mTime = src.mTime;
   this->mEnergy = src.mEnergy;
   this->mEta = src.mEta;
   this->mPhi = src.mPhi;
-  this->mGID = src.mGID;
+  this->mBGID = src.mBGID;
   this->mPID = src.mPID;
 }
 
