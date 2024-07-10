@@ -44,24 +44,24 @@ class FlowMapper
  public:
   // Constructor
   FlowMapper();
-  
+
   void Setv2VsPt(TH1D hv2VsPtProvided);
   void SetEccVsB(TH1D hEccVsBProvided);
-  
-  void CreateLUT(); //to be called if all is set
+
+  void CreateLUT(); // to be called if all is set
 
   Double_t MapPhi(Double_t lPhiInput, TH3D* hLUT, Double_t b, Double_t pt);
 
   long binsPhi;             // number of phi bins to use
   double precision = 1e-6;  // could be studied
   double derivative = 1e-4; // could be studied
-  
+
   std::unique_ptr<TH1D> hv2vsPt; // input v2 vs pT from measurement
   std::unique_ptr<TH1D> hEccVsB; // ecc vs B (from Glauber MC or elsewhere)
-  
+
   // Cumulative function to be inverted
   std::unique_ptr<TF1> fCumulative;
-  
+
   // the look-up table
   std::unique_ptr<TH3D> hLUT;
 
