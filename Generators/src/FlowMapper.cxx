@@ -110,8 +110,9 @@ Double_t FlowMapper::MapPhi(Double_t lPhiInput, TH3D* hLUT, Double_t b, Double_t
   // Avoid interpolation problems in dimension: pT
   Double_t lMaxPt = hLUT->GetYaxis()->GetBinCenter(hLUT->GetYaxis()->GetNbins());
   Double_t lMinPt = hLUT->GetYaxis()->GetBinCenter(1);
-  if (pt > lMaxPt)
+  if (pt > lMaxPt){
     pt = lMaxPt; // avoid interpolation problems at edge
+  }
 
   Double_t phiWidth = hLUT->GetZaxis()->GetBinWidth(1); // any bin, assume constant
 
