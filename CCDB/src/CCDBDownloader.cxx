@@ -80,7 +80,7 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
   }
 
   // Preparing timer to be used by curl
-  mTimeoutTimer = new uv_timer_t();
+  mTimeoutTimer = (uv_timer_t*)malloc(sizeof(*mTimeoutTimer));
   mTimeoutTimer->data = this;
   uvErrorCheck(uv_timer_init(mUVLoop, mTimeoutTimer));
   mHandleMap[(uv_handle_t*)mTimeoutTimer] = true;
@@ -136,7 +136,7 @@ void closeHandles(uv_handle_t* handle, void* arg)
 void onUVClose(uv_handle_t* handle)
 {
   if (handle != nullptr) {
-    delete handle;
+    free(handle);
   }
 }
 
@@ -174,7 +174,7 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
   }
 
   if (CD->mExternalLoop) {
-    CD->mSocketTimerMap[sock] = new uv_timer_t();
+    CD->mSocketTimerMap[sock] = (uv_timer_t*)malloc(sizeof(*CD->mSocketTimerMap[sock]));
     uvErrorCheck(uv_timer_init(CD->mUVLoop, CD->mSocketTimerMap[sock]));
     CD->mHandleMap[(uv_handle_t*)CD->mSocketTimerMap[sock]] = true;
 
@@ -323,7 +323,7 @@ CCDBDownloader::curl_context_t* CCDBDownloader::createCurlContext(curl_socket_t 
   context = (curl_context_t*)malloc(sizeof(*context));
   context->CD = this;
   context->sockfd = sockfd;
-  context->poll_handle = new uv_poll_t();
+  context->poll_handle = (uv_poll_t*)malloc(sizeof(*context->poll_handle));
 
   uvErrorCheck(uv_poll_init_socket(mUVLoop, context->poll_handle, sockfd));
   mHandleMap[(uv_handle_t*)(context->poll_handle)] = true;
@@ -335,7 +335,7 @@ CCDBDownloader::curl_context_t* CCDBDownloader::createCurlContext(curl_socket_t 
 void CCDBDownloader::curlCloseCB(uv_handle_t* handle)
 {
   auto* context = (curl_context_t*)handle->data;
-  delete context->poll_handle;
+  free(context->poll_handle);
   free(context);
 }
 
