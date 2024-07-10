@@ -26,23 +26,17 @@ namespace eventgen
 FlowMapper::FlowMapper()
 {
   // base constructor. Creates cumulative function only so that's already in place but not much else.
-  fCumulative = new TF1("fCumulative", "x+[0]*TMath::Sin(2*x)", 0, 2 * TMath::Pi());
-  hv2vsPt = 0x0;
-  hEccVsB = 0x0;
-  hLUT = 0x0;
-
+  fCumulative = std::make_unique<TF1>("fCumulative","x+[0]*TMath::Sin(2*x)", 0,2*TMath::Pi());
   binsPhi = 4000; // a first guess
 }
 
-void FlowMapper::Setv2VsPt(TH1D* hv2VsPtProvided)
-{
+void FlowMapper::Setv2VsPt(TH1D hv2VsPtProvided) {
   // Sets the v2 vs pT to be used.
-  hv2vsPt = hv2VsPtProvided;
+  hv2vsPt = std::make_unique<TH1D>(hv2VsPtProvided);
 }
-void FlowMapper::SetEccVsB(TH1D* hEccVsBProvided)
-{
+void FlowMapper::SetEccVsB(TH1D hEccVsBProvided) {
   // Sets the v2 vs pT to be used.
-  hEccVsB = hEccVsBProvided;
+  hEccVsB = std::make_unique<TH1D>(hEccVsBProvided);
 }
 void FlowMapper::CreateLUT()
 {
@@ -58,17 +52,24 @@ void FlowMapper::CreateLUT()
   const Long_t nbinsB = hEccVsB->GetNbinsX();
   const Long_t nbinsPt = hv2vsPt->GetNbinsX();
   const Long_t nbinsPhi = binsPhi; // constant in this context necessary
-  Double_t binsB[nbinsB + 1], binsPt[nbinsPt + 1], binsPhi[nbinsPhi + 1];
+  std::vector<double> binsB(nbinsB+1,0);
+  std::vector<double> binsPt(nbinsPt+1,0);
+  std::vector<double> binsPhi(nbinsPhi+1,0);
+  
+  for(int ii=0; ii<nbinsB+1; ii++){
+    binsB[ii] = hEccVsB->GetBinLowEdge(ii+1);
+  }
+  for(int ii=0; ii<nbinsPt+1; ii++){
+    binsPt[ii] = hv2vsPt->GetBinLowEdge(ii+1);
+  }
+  for(int ii=0; ii<nbinsPhi+1; ii++){
+    binsPhi[ii] = static_cast<Double_t>(ii)*2*TMath::Pi()/static_cast<Double_t>(nbinsPhi);
+  }
 
-  for (int ii = 0; ii < nbinsB + 1; ii++)
-    binsB[ii] = hEccVsB->GetBinLowEdge(ii + 1);
-  for (int ii = 0; ii < nbinsPt + 1; ii++)
-    binsPt[ii] = hv2vsPt->GetBinLowEdge(ii + 1);
-  for (int ii = 0; ii < nbinsPhi + 1; ii++)
-    binsPhi[ii] = static_cast<Double_t>(ii) * 2 * TMath::Pi() / static_cast<Double_t>(nbinsPhi);
-
-  hLUT = new TH3D("hLUT", "", nbinsB, binsB, nbinsPt, binsPt, nbinsPhi, binsPhi);
-
+  //std::make_unique<TH1F>("hSign", "Sign of electric charge;charge sign", 3, -1.5, 1.5);
+  
+  hLUT = std::make_unique<TH3D>("hLUT", "", nbinsB, binsB.data(), nbinsPt, binsPt.data(), nbinsPhi, binsPhi.data());
+  
   // loop over each centrality (b) bin
   for (int ic = 0; ic < nbinsB; ic++) {
     // loop over each pt bin
@@ -98,19 +99,9 @@ void FlowMapper::CreateLUT()
   }
 }
 
-TH3D* FlowMapper::GetLUT()
-{
-  if (!hLUT) {
-    LOG(info) << "LUT was not created! Returning null pointer, beware";
-    return 0x0;
-  }
-  return hLUT;
-}
-
-Double_t FlowMapper::MapPhi(Double_t lPhiInput, TH3D* hLUT, Double_t b, Double_t pt)
-{
-  Int_t lLowestPeriod = TMath::Floor(lPhiInput / (2 * TMath::Pi()));
-  Double_t lPhiOld = lPhiInput - 2 * lLowestPeriod * TMath::Pi();
+Double_t FlowMapper::MapPhi(Double_t lPhiInput, TH3D *hLUT, Double_t b, Double_t pt){
+  Int_t lLowestPeriod = TMath::Floor( lPhiInput/(2*TMath::Pi()) );
+  Double_t lPhiOld = lPhiInput - 2*lLowestPeriod*TMath::Pi();
   Double_t lPhiNew = lPhiOld;
 
   // Avoid interpolation problems in dimension: pT
