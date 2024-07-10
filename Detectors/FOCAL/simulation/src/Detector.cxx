@@ -1119,4 +1119,5 @@ bool Detector::ProcessHitsEPix(FairVolume* v)
   //
   // TODO: to be filled with body
   //
+  return true;
 }
