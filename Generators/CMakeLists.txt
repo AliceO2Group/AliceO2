@@ -40,6 +40,7 @@ o2_add_library(Generators
                        src/GeneratorTParticle.cxx
                        src/GeneratorTParticleParam.cxx
                        src/GeneratorService.cxx
+                       src/FlowMapper.cxx
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8Param.cxx>
@@ -82,6 +83,7 @@ set(headers
     include/Generators/GeneratorTParticleParam.h
     include/Generators/GeneratorService.h
     include/Generators/BoxGenerator.h
+    include/Generators/FlowMapper.h
     )
 
 if(pythia_FOUND)
