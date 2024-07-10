@@ -406,7 +406,7 @@ void Detector::addAlignableVolumesHCAL() const
   const std::string snsector = "FOCAL/HCAL";
 
   if (!gGeoManager->SetAlignableEntry(snsector.c_str(), vpsector.c_str())) {
-    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector, vpsector));
+    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector.c_str(), vpsector.c_str()));
   }
 }
 
@@ -417,7 +417,7 @@ void Detector::addAlignableVolumesECAL() const
   const std::string snsector = "FOCAL/ECAL";
 
   if (!gGeoManager->SetAlignableEntry(snsector.c_str(), vpsector.c_str())) {
-    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector, vpsector));
+    LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", snsector.c_str(), vpsector.c_str()));
   }
 }
 
