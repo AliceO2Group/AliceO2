@@ -163,12 +163,6 @@ class GeneratorPythia8 : public Generator
 
   typedef std::function<bool(const Pythia8::Particle&)> UserFilterFcn;
 
-  /// A function allowing to set the initial value used in seeding Pythia.
-  /// The function needs to be called before GeneratorPythia8::Init is invoked.
-  /// The function value will be true upon success, or false if either Init has already been called or if the see is smaller than 0.
-  /// For values of seed >= 0, a truncation to the range [0:90000000] will automatically take place via a modulus operation.
-  bool setInitialSeed(long seed);
-
  protected:
   /** copy constructor **/
   GeneratorPythia8(const GeneratorPythia8&);
@@ -259,6 +253,12 @@ class GeneratorPythia8 : public Generator
 
   /// performs seeding of the random state of Pythia (called from Init)
   void seedGenerator();
+
+  /// A function allowing to set the initial value used in seeding Pythia.
+  /// The function needs to be called before GeneratorPythia8::Init is invoked.
+  /// The function value will be true upon success, or false if either Init has already been called or if the see is smaller than 0.
+  /// For values of seed >= 0, a truncation to the range [0:90000000] will automatically take place via a modulus operation.
+  bool setInitialSeed(long seed);
 
   /** Pythia8 **/
   Pythia8::Pythia mPythia; //!
