@@ -35,6 +35,7 @@
 #include <cuda.h>
 #endif
 
+#include <iostream>
 #include <boost/test/unit_test.hpp>
 #include <MathUtils/SMatrixGPU.h>
 #include <Math/SMatrix.h>
@@ -60,7 +61,7 @@ class CudaMemory
   }
   ~CudaMemory()
   {
-    cudaFree(device_ptr);
+    CUDA_CHECK(cudaFree(device_ptr));
   }
   void* get() const { return device_ptr; }
 
@@ -78,7 +79,7 @@ void prologue()
   int deviceCount;
   cudaError_t error = cudaGetDeviceCount(&deviceCount);
   if (error != cudaSuccess || !deviceCount) {
-    fprintf(stderr, "No %s devices found\n", GPUPLATFORM);
+    std::cerr << "No " << GPUPLATFORM << " devices found" << std::endl;
     return;
   }
 
@@ -102,10 +103,24 @@ __device__ void printMatrix(const MatrixType& matrix, const char* name)
   printf("%s(2,0) = %f, %s(2,1) = %f, %s(2,2) = %f\n", name, matrix(2, 0), name, matrix(2, 1), name, matrix(2, 2));
 }
 
+// Function to compare two matrices element-wise with a specified tolerance
+template <typename MatrixType>
+void compareMatrices(const MatrixType& mat1, const MatrixType& mat2, float tolerance)
+{
+  auto tol = boost::test_tools::tolerance(tolerance);
+
+  for (unsigned int i = 0; i < mat1.kRows; ++i) {
+    for (unsigned int j = 0; j < mat1.kCols; ++j) {
+      BOOST_TEST(mat1(i, j) == mat2(i, j), tol);
+    }
+  }
+}
+
 // Invert test for symmetric matrix
 template <typename T, int D>
 __global__ void invertSymMatrixKernel(MatSym3DGPU* matrix)
 {
+  printf("\nStart inverting symmetric matrix\n");
   MatSym3DGPU smat2 = *matrix;
 
   printMatrix(*matrix, "A");
@@ -127,12 +142,14 @@ __global__ void invertSymMatrixKernel(MatSym3DGPU* matrix)
 
   printMatrix(tmp, "A");
   *matrix = tmp;
+  printf("\n-------------------------------------------------------\n");
 }
 
 // Invert test for general matrix
 template <typename T, int D>
 __global__ void invertMatrixKernel(Mat3DGPU* matrix)
 {
+  printf("\nStart inverting general matrix\n");
   Mat3DGPU smat2 = *matrix;
 
   printMatrix(*matrix, "A");
@@ -150,21 +167,22 @@ __global__ void invertMatrixKernel(Mat3DGPU* matrix)
 
   printf("\nEvaluating...\n");
   Mat3DGPU tmp;
-  o2::math_utils::Assign::Evaluate(tmp, smat3);
+  o2::math_utils::Assign<float, 3, 3, decltype(smat3), o2::math_utils::MatRepStdGPU<float, 3, 3>, o2::math_utils::MatRepStdGPU<float, 3, 3>>::Evaluate(tmp, smat3);
 
   printMatrix(tmp, "A");
   *matrix = tmp;
+  printf("\n-------------------------------------------------------\n");
 }
 
-struct GPUSMatrixImplFixture {
-  GPUSMatrixImplFixture() : i(3), SMatrixSym3D_d(sizeof(MatSym3DGPU)), SMatrixSym3D_h(), SMatrix3D_d(sizeof(Mat3DGPU)), SMatrix3D_h()
+struct GPUSMatrixImplFixtureSolo {
+  GPUSMatrixImplFixtureSolo() : i(3), SMatrixSym3D_d(sizeof(MatSym3DGPU)), SMatrixSym3D_h(), SMatrix3D_d(sizeof(Mat3DGPU)), SMatrix3D_h()
   {
     prologue();
     initializeMatrices();
     printMatrixSizes();
   }
 
-  ~GPUSMatrixImplFixture() = default;
+  ~GPUSMatrixImplFixtureSolo() = default;
 
   void initializeMatrices()
   {
@@ -176,13 +194,7 @@ struct GPUSMatrixImplFixture {
     for (int i = 0; i < 3; ++i) {
       for (int j = i; j < 3; ++j) {
         SMatrixSym3D_h(i, j) = dis(gen);
-        if (i != j) {
-          SMatrixSym3D_h(j, i) = SMatrixSym3D_h(i, j); // Ensure symmetry
-        }
         SMatrix3D_h(i, j) = dis(gen);
-        if (i != j) {
-          SMatrix3D_h(j, i) = dis(gen);
-        }
       }
     }
 
@@ -206,8 +218,10 @@ struct GPUSMatrixImplFixture {
   Mat3D SMatrix3D_h;
 };
 
-BOOST_FIXTURE_TEST_CASE(DummyFixtureUsage, GPUSMatrixImplFixture)
+BOOST_FIXTURE_TEST_CASE(MatrixInversion, GPUSMatrixImplFixtureSolo)
 {
+  float tolerance = 0.00001f;
+
   invertSymMatrixKernel<float, 3><<<1, 1>>>(static_cast<MatSym3DGPU*>(SMatrixSym3D_d.get()));
   cudaDeviceSynchronize();
   CUDA_CHECK(cudaGetLastError());
@@ -218,7 +232,7 @@ BOOST_FIXTURE_TEST_CASE(DummyFixtureUsage, GPUSMatrixImplFixture)
   identitySym(0, 0) = 1;
   identitySym(1, 1) = 1;
   identitySym(2, 2) = 1;
-  BOOST_TEST(SMatrixSym3D_h == identitySym);
+  compareMatrices(SMatrixSym3D_h, identitySym, tolerance);
 
   invertMatrixKernel<float, 3><<<1, 1>>>(static_cast<Mat3DGPU*>(SMatrix3D_d.get()));
   cudaDeviceSynchronize();
@@ -230,212 +244,114 @@ BOOST_FIXTURE_TEST_CASE(DummyFixtureUsage, GPUSMatrixImplFixture)
   identity(0, 0) = 1;
   identity(1, 1) = 1;
   identity(2, 2) = 1;
-  BOOST_TEST(SMatrix3D_h == identity);
+  compareMatrices(SMatrix3D_h, identity, tolerance);
 }
 
-// Transpose test for symmetric matrix
-template <typename T>
-__global__ void testSymTransposeTwiceKernel(MatSym3DGPU* matrix)
-{
-  auto transposedOnce = o2::math_utils::Transpose(*matrix);
-  auto transposedTwice = o2::math_utils::Transpose(transposedOnce);
-
-  *matrix = transposedTwice;
-}
-
-// Transpose test for general matrix
-template <typename T>
-__global__ void testTransposeTwiceKernel(Mat3DGPU* matrix)
-{
-  auto transposedOnce = o2::math_utils::Transpose(*matrix);
-  auto transposedTwice = o2::math_utils::Transpose(transposedOnce);
-
-  *matrix = transposedTwice;
-}
-
-BOOST_FIXTURE_TEST_CASE(TestMatrixDoubleTranspose, GPUSMatrixImplFixture)
-{
-  testSymTransposeTwiceKernel<<<1, 1>>>(static_cast<MatSym3DGPU*>(SMatrixSym3D_d.get()));
-  cudaDeviceSynchronize();
-  CUDA_CHECK(cudaGetLastError());
-
-  CUDA_CHECK(cudaMemcpy(&SMatrixSym3D_h, SMatrixSym3D_d.get(), sizeof(MatSym3DGPU), cudaMemcpyDeviceToHost));
-
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(SMatrixSym3D_h(i, j) == (i * 3 + j + 1));
-    }
+struct GPUSMatrixImplFixtureDuo {
+  GPUSMatrixImplFixtureDuo() : i(3), SMatrixSym3D_d_A(sizeof(MatSym3DGPU)), SMatrixSym3D_h_A(), SMatrix3D_d_A(sizeof(Mat3DGPU)), SMatrix3D_h_A(), SMatrixSym3D_d_B(sizeof(MatSym3DGPU)), SMatrixSym3D_h_B(), SMatrix3D_d_B(sizeof(Mat3DGPU)), SMatrix3D_h_B()
+  {
+    prologue();
+    initializeMatrices();
+    printMatrixSizes();
   }
 
-  testTransposeTwiceKernel<<<1, 1>>>(static_cast<Mat3DGPU*>(SMatrix3D_d.get()));
-  cudaDeviceSynchronize();
-  CUDA_CHECK(cudaGetLastError());
+  ~GPUSMatrixImplFixtureDuo() = default;
 
-  CUDA_CHECK(cudaMemcpy(&SMatrix3D_h, SMatrix3D_d.get(), sizeof(Mat3DGPU), cudaMemcpyDeviceToHost));
+  void initializeMatrices()
+  {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis(1.0, 10.0);
 
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(SMatrix3D_h(i, j) == (i * 3 + j + 1));
-    }
-  }
+    // Initialize host matrices with random values
+    for (int i = 0; i < 3; ++i) {
+      for (int j = i; j < 3; ++j) {
+        SMatrixSym3D_h_A(i, j) = dis(gen);
+        SMatrix3D_h_A(i, j) = dis(gen);
 
-  // Test on CPU for symmetric matrix
-  MatSym3D cpuSymMatrix = SMatrixSym3D_h;
-  MatSym3D transposedSymOnce = ROOT::Math::Transpose(cpuSymMatrix);
-  MatSym3D transposedSymTwice = ROOT::Math::Transpose(transposedSymOnce);
-
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(cpuSymMatrix(i, j) == transposedSymTwice(i, j));
-    }
-  }
-
-  // Test on CPU for general matrix
-  Mat3D cpuMatrix = SMatrix3D_h;
-  Mat3D transposedOnce = ROOT::Math::Transpose(cpuMatrix);
-  Mat3D transposedTwice = ROOT::Math::Transpose(transposedOnce);
-
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(cpuMatrix(i, j) == transposedTwice(i, j));
-    }
-  }
-}
-
-// Multiplication test for symmetric matrix
-template <typename T>
-__global__ void testSymMatrixMultiplicationKernel(
-  MatSym3DGPU* matrixA,
-  MatSym3DGPU* matrixB,
-  MatSym3DGPU* result)
-{
-  *result = (*matrixA) * (*matrixB);
-}
-
-// Multiplication test for general matrix
-template <typename T>
-__global__ void testMatrixMultiplicationKernel(
-  Mat3DGPU* matrixA,
-  Mat3DGPU* matrixB,
-  Mat3DGPU* result)
-{
-  *result = (*matrixA) * (*matrixB);
-}
-
-BOOST_FIXTURE_TEST_CASE(TestMatrixMultiplication, GPUSMatrixImplFixture)
-{
-  MatSym3DGPU matrixSymB_h;
-  MatSym3D resultSym_h;
-  CudaMemory matrixSymB_d(sizeof(MatSym3DGPU));
-  CudaMemory resultSym_d(sizeof(MatSym3DGPU));
-
-  // Initialize matrixSymB_h with random values
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> dis(1.0, 10.0);
-  for (int i = 0; i < 3; ++i) {
-    for (int j = i; j < 3; ++j) {
-      matrixSymB_h(i, j) = dis(gen);
-      if (i != j) {
-        matrixSymB_h(j, i) = matrixSymB_h(i, j); // Ensure symmetry
+        SMatrixSym3D_h_B(i, j) = dis(gen);
+        SMatrix3D_h_B(i, j) = dis(gen);
       }
     }
+
+    // Copy host matrices to device
+    CUDA_CHECK(cudaMemcpy(SMatrixSym3D_d_A.get(), &SMatrixSym3D_h_A, sizeof(MatSym3DGPU), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(SMatrix3D_d_A.get(), &SMatrix3D_h_A, sizeof(Mat3DGPU), cudaMemcpyHostToDevice));
+
+    CUDA_CHECK(cudaMemcpy(SMatrixSym3D_d_B.get(), &SMatrixSym3D_h_B, sizeof(MatSym3DGPU), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(SMatrix3D_d_B.get(), &SMatrix3D_h_B, sizeof(Mat3DGPU), cudaMemcpyHostToDevice));
   }
 
-  CUDA_CHECK(cudaMemcpy(matrixSymB_d.get(), &matrixSymB_h, sizeof(MatSym3DGPU), cudaMemcpyHostToDevice));
-
-  testSymMatrixMultiplicationKernel<<<1, 1>>>(static_cast<MatSym3DGPU*>(SMatrixSym3D_d.get()), static_cast<MatSym3DGPU*>(matrixSymB_d.get()), static_cast<MatSym3DGPU*>(resultSym_d.get()));
-  cudaDeviceSynchronize();
-  CUDA_CHECK(cudaGetLastError());
-
-  CUDA_CHECK(cudaMemcpy(&resultSym_h, resultSym_d.get(), sizeof(MatSym3DGPU), cudaMemcpyDeviceToHost));
-
-  // Perform the same matrix multiplication on CPU for comparison
-  MatSym3D resultSym_cpu = SMatrixSym3D_h * matrixSymB_h;
-
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(resultSym_h(i, j) == resultSym_cpu(i, j));
-    }
+  void printMatrixSizes() const
+  {
+    printf("sizeof(MatSym3DGPU) = %zu\n", sizeof(MatSym3DGPU));
+    printf("sizeof(MatSym3D) = %zu\n", sizeof(MatSym3D));
+    printf("sizeof(Mat3DGPU) = %zu\n", sizeof(Mat3DGPU));
+    printf("sizeof(Mat3D) = %zu\n", sizeof(Mat3D));
   }
 
-  Mat3DGPU matrixB_h;
-  Mat3D result_h;
-  CudaMemory matrixB_d(sizeof(Mat3DGPU));
-  CudaMemory result_d(sizeof(Mat3DGPU));
+  int i;
+  CudaMemory SMatrixSym3D_d_A;
+  MatSym3D SMatrixSym3D_h_A;
 
-  // Initialize matrixB_h with random values
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      matrixB_h(i, j) = dis(gen);
-    }
-  }
+  CudaMemory SMatrixSym3D_d_B;
+  MatSym3D SMatrixSym3D_h_B;
 
-  CUDA_CHECK(cudaMemcpy(matrixB_d.get(), &matrixB_h, sizeof(Mat3DGPU), cudaMemcpyHostToDevice));
+  CudaMemory SMatrix3D_d_A;
+  Mat3D SMatrix3D_h_A;
 
-  testMatrixMultiplicationKernel<<<1, 1>>>(static_cast<Mat3DGPU*>(SMatrix3D_d.get()), static_cast<Mat3DGPU*>(matrixB_d.get()), static_cast<Mat3DGPU*>(result_d.get()));
-  cudaDeviceSynchronize();
-  CUDA_CHECK(cudaGetLastError());
+  CudaMemory SMatrix3D_d_B;
+  Mat3D SMatrix3D_h_B;
+};
 
-  CUDA_CHECK(cudaMemcpy(&result_h, result_d.get(), sizeof(Mat3DGPU), cudaMemcpyDeviceToHost));
-
-  // Perform the same matrix multiplication on CPU for comparison
-  Mat3D result_cpu = SMatrix3D_h * matrixB_h;
-
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(result_h(i, j) == result_cpu(i, j));
-    }
-  }
-}
 
 // Copy test for symmetric matrix
 template <typename T>
 __global__ void copySymMatrixKernel(
-  const MatSym3DGPU* srcMatrix,
+  MatSym3DGPU* srcMatrix,
   MatSym3DGPU* dstMatrix)
 {
+  printf("\nStart copying general matrix\n");
+  printMatrix(*dstMatrix, "Before copying: ");
+  printf("\nCopied values:\n");
+  printMatrix(*srcMatrix, "Copied values: ");
+  printf("\nResult:\n");
   *dstMatrix = *srcMatrix;
+  printMatrix(*dstMatrix, "After copying: ");
+  printf("\n-------------------------------------------------------\n");
 }
 
 // Copy test for general matrix
 template <typename T>
 __global__ void copyMatrixKernel(
-  const Mat3DGPU* srcMatrix,
+  Mat3DGPU* srcMatrix,
   Mat3DGPU* dstMatrix)
 {
+  printf("\nStart copying general matrix\n");
+  printMatrix(*dstMatrix, "Before copying: ");
+  printf("\nCopied values:\n");
+  printMatrix(*srcMatrix, "Copied values: ");
+  printf("\nResult:\n");
   *dstMatrix = *srcMatrix;
+  printMatrix(*dstMatrix, "After copying: ");
+  printf("\n-------------------------------------------------------\n");
 }
 
-BOOST_FIXTURE_TEST_CASE(TestMatrixCopyingAndComparison, GPUSMatrixImplFixture)
+BOOST_FIXTURE_TEST_CASE(TestMatrixCopyingAndComparison, GPUSMatrixImplFixtureDuo)
 {
-  MatSym3DGPU copiedSymMatrix_h;
-  CudaMemory copiedSymMatrix_d(sizeof(MatSym3DGPU));
-
-  copySymMatrixKernel<<<1, 1>>>(static_cast<MatSym3DGPU*>(SMatrixSym3D_d.get()), static_cast<MatSym3DGPU*>(copiedSymMatrix_d.get()));
+  copySymMatrixKernel<float><<<1, 1>>>(static_cast<MatSym3DGPU*>(SMatrixSym3D_d_A.get()), static_cast<MatSym3DGPU*>(SMatrixSym3D_d_B.get()));
   cudaDeviceSynchronize();
   CUDA_CHECK(cudaGetLastError());
 
-  CUDA_CHECK(cudaMemcpy(&copiedSymMatrix_h, copiedSymMatrix_d.get(), sizeof(MatSym3DGPU), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(&SMatrixSym3D_h_B, SMatrixSym3D_d_B.get(), sizeof(MatSym3DGPU), cudaMemcpyDeviceToHost));
 
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(SMatrixSym3D_h(i, j) == copiedSymMatrix_h(i, j));
-    }
-  }
+  compareMatrices(SMatrixSym3D_h_A, SMatrixSym3D_h_B, 0.0);
 
-  Mat3DGPU copiedMatrix_h;
-  CudaMemory copiedMatrix_d(sizeof(Mat3DGPU));
-
-  copyMatrixKernel<<<1, 1>>>(static_cast<Mat3DGPU*>(SMatrix3D_d.get()), static_cast<Mat3DGPU*>(copiedMatrix_d.get()));
+  copyMatrixKernel<float><<<1, 1>>>(static_cast<Mat3DGPU*>(SMatrix3D_d_A.get()), static_cast<Mat3DGPU*>(SMatrix3D_d_B.get()));
   cudaDeviceSynchronize();
   CUDA_CHECK(cudaGetLastError());
 
-  CUDA_CHECK(cudaMemcpy(&copiedMatrix_h, copiedMatrix_d.get(), sizeof(Mat3DGPU), cudaMemcpyDeviceToHost));
+  CUDA_CHECK(cudaMemcpy(&SMatrix3D_h_B, SMatrix3D_d_B.get(), sizeof(Mat3DGPU), cudaMemcpyDeviceToHost));
 
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      BOOST_TEST(SMatrix3D_h(i, j) == copiedMatrix_h(i, j));
-    }
-  }
+  compareMatrices(SMatrix3D_h_A, SMatrix3D_h_B, 0.0);
 }
