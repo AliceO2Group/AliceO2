@@ -2113,7 +2113,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     o2::soa::Binding mBinding;                                                                           \
   };
 
-#define DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Name_ "s", _Suffix_)
+#define DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 #define DECLARE_SOA_SLICE_INDEX_COLUMN_CUSTOM(_Name_, _Getter_, _Label_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, int32_t, _Name_##s, _Label_, "")
 
@@ -2267,7 +2267,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     o2::soa::Binding mBinding;                                                                           \
   };
 
-#define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Name_ "s", _Suffix_)
+#define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN_CUSTOM(_Name_, _Getter_, _Label_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, int32_t, _Name_##s, _Label_, "")
 
@@ -2348,7 +2348,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" #_Table_ _Suffix_, o2::framework::TypeIdHelpers::uniqueId<_Name_##Id>(), \
                                                                                            o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Name_ "s", _Suffix_)
+#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 #define DECLARE_SOA_INDEX_COLUMN_CUSTOM(_Name_, _Getter_, _Label_) DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, int32_t, _Name_##s, _Label_, "")
 
