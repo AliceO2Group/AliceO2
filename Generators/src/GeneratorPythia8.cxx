@@ -705,6 +705,8 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     /** set impact parameter **/
     eventHeader->SetB(hiinfo->b());
     eventHeader->putInfo<double>(Key::impactParameter, hiinfo->b());
+    /** set event plane angle **/
+    eventHeader->putInfo<double>(Key::planeAngle, hiinfo->phi());
     auto bImp = hiinfo->b();
     /** set Ncoll, Npart and Nremn **/
     int nColl, nPart;

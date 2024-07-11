@@ -86,7 +86,7 @@ void fillMCollisionTable(o2::steer::MCKinematicsReader const& mcreader)
     //                  mccollision::PosX, mccollision::PosY, mccollision::PosZ, mccollision::T, mccollision::Weight,
     //                 mccollision::ImpactParameter);
 
-    mcCollCursor(0, 0 /*bcID*/, 0 /*genID*/, header.GetX(), header.GetY(), header.GetZ(), time, 1. /*weight*/, header.GetB());
+    mcCollCursor(0, 0 /*bcID*/, 0 /*genID*/, header.GetX(), header.GetY(), header.GetZ(), time, 1. /*weight*/, header.GetB() /*, 0.0*/);
 
     index++;
   }

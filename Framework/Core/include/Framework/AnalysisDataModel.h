@@ -1549,6 +1549,7 @@ DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex positi
 DECLARE_SOA_COLUMN(T, t, float);                             //! Collision time relative to given bc in ns
 DECLARE_SOA_COLUMN(Weight, weight, float);                   //! MC weight
 DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float); //! Impact parameter for A-A
+DECLARE_SOA_COLUMN(EventPlaneAngle, eventPlaneAngle, float); //! Event plane angle for A-A
 DECLARE_SOA_DYNAMIC_COLUMN(GetGeneratorId, getGeneratorId,   //! The global generator ID which might have been assigned by the user
                            [](short generatorsID) -> int { return o2::mcgenid::getGeneratorId(generatorsID); });
 DECLARE_SOA_DYNAMIC_COLUMN(GetSubGeneratorId, getSubGeneratorId, //! A specific sub-generator ID in case the generator has some sub-generator logic
@@ -1558,7 +1559,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(GetSourceId, getSourceId, //! The source ID to differ
 
 } // namespace mccollision
 
-DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table
+DECLARE_SOA_TABLE(McCollisions_000, "AOD", "MCCOLLISION", //! MC collision table
                   o2::soa::Index<>, mccollision::BCId,
                   mccollision::GeneratorsID,
                   mccollision::PosX, mccollision::PosY, mccollision::PosZ,
@@ -1567,7 +1568,18 @@ DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table
                   mccollision::GetGeneratorId<mccollision::GeneratorsID>,
                   mccollision::GetSubGeneratorId<mccollision::GeneratorsID>,
                   mccollision::GetSourceId<mccollision::GeneratorsID>);
+DECLARE_SOA_TABLE_VERSIONED(McCollisions_001, "AOD", "MCCOLLISION", 1, //! MC collision table with event plane
+                            o2::soa::Index<>, mccollision::BCId,
+                            mccollision::GeneratorsID,
+                            mccollision::PosX, mccollision::PosY, mccollision::PosZ,
+                            mccollision::T, mccollision::Weight,
+                            mccollision::ImpactParameter,
+                            mccollision::EventPlaneAngle,
+                            mccollision::GetGeneratorId<mccollision::GeneratorsID>,
+                            mccollision::GetSubGeneratorId<mccollision::GeneratorsID>,
+                            mccollision::GetSourceId<mccollision::GeneratorsID>);
 
+using McCollisions = McCollisions_000;
 using McCollision = McCollisions::iterator;
 
 namespace mcparticle
