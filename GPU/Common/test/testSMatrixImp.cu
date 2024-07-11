@@ -304,7 +304,6 @@ struct GPUSMatrixImplFixtureDuo {
   Mat3D SMatrix3D_h_B;
 };
 
-
 // Copy test for symmetric matrix
 template <typename T>
 __global__ void copySymMatrixKernel(
