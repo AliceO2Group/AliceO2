@@ -116,17 +116,30 @@ void TimeFrame::addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCComp
 
 void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
 {
-  // auto rofId = mROFramesPV.size();
+  std::vector<Vertex> futureVertices;
   for (const auto& vertex : vertices) {
-    mPrimaryVertices.emplace_back(vertex);
-    if (!isBeamPositionOverridden) {
+    if (vertex.getTimeStamp().getTimeStamp() < rofId) { // put a copy in the past
+      insertLateVertex(vertex);
+    } else {
+      if (vertex.getTimeStamp().getTimeStamp() > rofId) { // or put a copy in the future
+        futureVertices.emplace_back(vertex);
+      }
+    }
+    mPrimaryVertices.emplace_back(vertex); // put a copy in the present
+    if (!isBeamPositionOverridden) {       // beam position is updated only at first occurrence of the vertex. A bit sketchy if we have past/future vertices, it should not impact too much.
       const int w{vertex.getNContributors()};
       mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
       mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
       mBeamPosWeight += w;
     }
+    mROFramesPV.push_back(mPrimaryVertices.size()); // current rof must have number of vertices up to present
+
+    if (futureVertices.size() > 0) { // append future vertices. In the last rofId we cannot have ones from the next, so we are never here.
+      for (auto& vertex : futureVertices) {
+        mPrimaryVertices.emplace_back(vertex);
+      }
+    }
   }
-  mROFramesPV.push_back(mPrimaryVertices.size());
 }
 
 // void TimeFrame::addPrimaryVertices(const std::vector<lightVertex>& lVertices)
