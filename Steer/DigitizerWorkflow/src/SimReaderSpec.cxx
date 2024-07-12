@@ -45,6 +45,7 @@ namespace steer
 {
 
 std::vector<o2::ctp::CTPDigit>* ctptrigger = nullptr;
+float gIntRate = -1.;
 
 DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors, bool withTrigger)
 {
@@ -55,7 +56,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
 
   auto doit = [range, tpcsectors, activeSectors, withTrigger](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
-    const auto& context = mgr.getDigitizationContext();
+    auto& context = mgr.getDigitizationContext();
     auto eventrecords = context.getEventRecords();
 
     if (withTrigger) {
@@ -63,6 +64,9 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       LOG(info) << "Setting CTP trigger object to " << ctptrigger;
       context.setCTPDigits(ctptrigger);
     }
+
+    // inject the global interaction rate information
+    context.setDigitizerInteractionRate(gIntRate);
 
     for (auto const& sector : tpcsectors) {
       // Note: the TPC sector header was serving the sector to lane mapping before
@@ -128,6 +132,10 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       }
     }
 
+    gIntRate = ctx.options().get<float>("interactionRate"); // is interaction rate requested?
+    if (gIntRate < 1.f) {
+      gIntRate = 1.f;
+    }
     // do we start from an existing context
     auto incontextstring = ctx.options().get<std::string>("incontext");
     LOG(info) << "INCONTEXTSTRING " << incontextstring;
@@ -137,13 +145,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
         LOG(fatal) << "Could not read collision context from " << incontextstring;
       }
     } else {
-
-      auto intRate = ctx.options().get<float>("interactionRate"); // is interaction rate requested?
-      if (intRate < 1.f) {
-        intRate = 1.f;
-      }
-      LOG(info) << "Imposing hadronic interaction rate " << intRate << "Hz";
-      mgr.getInteractionSampler().setInteractionRate(intRate);
+      LOG(info) << "Imposing hadronic interaction rate " << gIntRate << "Hz";
+      mgr.getInteractionSampler().setInteractionRate(gIntRate);
       o2::raw::HBFUtils::Instance().print();
       o2::raw::HBFUtils::Instance().checkConsistency();
       mgr.getInteractionSampler().setFirstIR({0, o2::raw::HBFUtils::Instance().orbitFirstSampled});

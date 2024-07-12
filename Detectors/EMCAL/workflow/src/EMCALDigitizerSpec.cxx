@@ -82,6 +82,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+
+  // get interaction rate ... so that it can be used in digitization
+  auto intRate = context->getDigitizerInteractionRate();
   context->initSimChains(o2::detectors::DetID::EMC, mSimChains);
   auto& timesview = context->getEventRecords();
   LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
