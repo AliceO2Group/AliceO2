@@ -38,6 +38,8 @@ namespace gpu
 ///
 class TPCFastSpaceChargeCorrection : public FlatObject
 {
+  friend class TPCFastTransformPOD;
+
  public:
   ///
   /// \brief The struct contains necessary info for TPC padrow
