@@ -23,7 +23,6 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
-#include "TPCCalibration/CalibPadGainTracksBase.h"
 #include "CalibdEdxTrackTopologyPol.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "GPUO2InterfaceUtils.h"
@@ -52,49 +51,21 @@ void CalculatedEdx::setRefit()
 
 void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method)
 {
-  // adding minimum charge
-  if (method == 0) {
-    for (int roc = 0; roc < 4; roc++) {
-      for (int i = 0; i < missingClusters[roc]; i++) {
-        mChargeTotROC[roc].emplace_back(minChargeTot);
-        mChargeTotROC[4].emplace_back(minChargeTot);
-
-        mChargeMaxROC[roc].emplace_back(minChargeMax);
-        mChargeMaxROC[4].emplace_back(minChargeMax);
-      }
-    }
+  if (method != 0 && method != 1) {
+    LOGP(info, "Unrecognized subthreshold cluster treatment. Not adding virtual charges to the track!");
+    return;
   }
 
-  // adding minimum charge/2
-  else if (method == 1) {
-    for (int roc = 0; roc < 4; roc++) {
-      for (int i = 0; i < missingClusters[roc]; i++) {
-        mChargeTotROC[roc].emplace_back(minChargeTot / 2.f);
-        mChargeTotROC[4].emplace_back(minChargeTot / 2.f);
+  for (int roc = 0; roc < 4; roc++) {
+    for (int i = 0; i < missingClusters[roc]; i++) {
+      float chargeTot = (method == 1) ? minChargeTot / 2.f : minChargeTot;
+      float chargeMax = (method == 1) ? minChargeMax / 2.f : minChargeMax;
 
-        mChargeMaxROC[roc].emplace_back(minChargeMax / 2.f);
-        mChargeMaxROC[4].emplace_back(minChargeMax / 2.f);
-      }
-    }
-  }
+      mChargeTotROC[roc].emplace_back(chargeTot);
+      mChargeTotROC[4].emplace_back(chargeTot);
 
-  // adding the exponential rise of Landau distrbution between [0, minimum charge]
-  else if (method == 2) {
-    // set a Landau function
-    auto fLandau = new TF1("fLandau", "TMath::Landau(x, 50, 10)", 0, 200);
-    // set random seed
-    gRandom->SetSeed(0);
-    for (int roc = 0; roc < 4; roc++) {
-      for (int i = 0; i < missingClusters[roc]; i++) {
-        const float chargeTot = fLandau->GetRandom(0, minChargeTot);
-        const float chargeMax = fLandau->GetRandom(0, minChargeMax);
-
-        mChargeTotROC[roc].emplace_back(chargeTot);
-        mChargeTotROC[4].emplace_back(chargeTot);
-
-        mChargeMaxROC[roc].emplace_back(chargeMax);
-        mChargeMaxROC[4].emplace_back(chargeMax);
-      }
+      mChargeMaxROC[roc].emplace_back(chargeMax);
+      mChargeMaxROC[4].emplace_back(chargeMax);
     }
   }
 }
@@ -186,6 +157,8 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     const CRU cru(Sector(sectorIndex), region);
     const auto stack = cru.gemStack();
     StackID stackID{sectorIndex, stack};
+    // the stack number for debugging
+    const int stackNumber = static_cast<int>(stack);
 
     // get local coordinates, offset and flags
     const float localX = o2::tpc::Mapper::instance().getPadCentre(PadPos(rowIndex, pad)).X();
@@ -193,98 +166,18 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     const float offsPad = (cl.getPad() - pad) * o2::tpc::Mapper::instance().getPadRegionInfo(Mapper::REGION[rowIndex]).getPadWidth();
     const auto flagsCl = cl.getFlags();
 
-    // mapping for the stack info
-    std::map<o2::tpc::GEMstack, int> map;
-    map[GEMstack::IROCgem] = 0;
-    map[GEMstack::OROC1gem] = 1;
-    map[GEMstack::OROC2gem] = 2;
-    map[GEMstack::OROC3gem] = 3;
-
-    if (((clusterMask & ClusterFlags::ExcludeSingleCl) == ClusterFlags::ExcludeSingleCl) && (flagsCl & ClusterNative::flagSingle) == ClusterNative::flagSingle) {
-      // for debugging
-      if (mDebug) {
-        excludeClVector.emplace_back(0);
-        regionVector.emplace_back(region);
-        rowIndexVector.emplace_back(rowIndex);
-        padVector.emplace_back(pad);
-        sectorVector.emplace_back(sectorIndex);
-        stackVector.emplace_back(map[stack]);
-        localXVector.emplace_back(localX);
-        localYVector.emplace_back(localY);
-        offsPadVector.emplace_back(offsPad);
-        trackVector.emplace_back(track);
-        clVector.emplace_back(cl);
-
-        topologyCorrVector.emplace_back(-999.f);
-        topologyCorrTotVector.emplace_back(-999.f);
-        topologyCorrMaxVector.emplace_back(-999.f);
-        gainVector.emplace_back(-999.f);
-        gainResidualVector.emplace_back(-999.f);
-        residualCorrTotVector.emplace_back(-999.f);
-        residualCorrMaxVector.emplace_back(-999.f);
-      };
-      rowIndexOld = rowIndex;
-      sectorIndexOld = sectorIndex;
-      continue;
+    int excludeCl = 0; // works as a bit mask
+    if (((clusterMask & ClusterFlags::ExcludeSingleCl) == ClusterFlags::ExcludeSingleCl) && ((flagsCl & ClusterNative::flagSingle) == ClusterNative::flagSingle)) {
+      excludeCl += 0b001; // 1 for single cluster
     }
-
     if (((clusterMask & ClusterFlags::ExcludeSplitCl) == ClusterFlags::ExcludeSplitCl) && (((flagsCl & ClusterNative::flagSplitPad) == ClusterNative::flagSplitPad) || ((flagsCl & ClusterNative::flagSplitTime) == ClusterNative::flagSplitTime))) {
-      // for debugging
-      if (mDebug) {
-        excludeClVector.emplace_back(1);
-        regionVector.emplace_back(region);
-        rowIndexVector.emplace_back(rowIndex);
-        padVector.emplace_back(pad);
-        sectorVector.emplace_back(sectorIndex);
-        stackVector.emplace_back(map[stack]);
-        localXVector.emplace_back(localX);
-        localYVector.emplace_back(localY);
-        offsPadVector.emplace_back(offsPad);
-        trackVector.emplace_back(track);
-        clVector.emplace_back(cl);
-
-        topologyCorrVector.emplace_back(-999.f);
-        topologyCorrTotVector.emplace_back(-999.f);
-        topologyCorrMaxVector.emplace_back(-999.f);
-        gainVector.emplace_back(-999.f);
-        gainResidualVector.emplace_back(-999.f);
-        residualCorrTotVector.emplace_back(-999.f);
-        residualCorrMaxVector.emplace_back(-999.f);
-      };
-      rowIndexOld = rowIndex;
-      sectorIndexOld = sectorIndex;
-      continue;
+      excludeCl += 0b010; // 2 for split cluster
     }
-
     if (((clusterMask & ClusterFlags::ExcludeEdgeCl) == ClusterFlags::ExcludeEdgeCl) && ((flagsCl & ClusterNative::flagEdge) == ClusterNative::flagEdge)) {
-      // for debugging
-      if (mDebug) {
-        excludeClVector.emplace_back(2);
-        regionVector.emplace_back(region);
-        rowIndexVector.emplace_back(rowIndex);
-        padVector.emplace_back(pad);
-        sectorVector.emplace_back(sectorIndex);
-        stackVector.emplace_back(map[stack]);
-        localXVector.emplace_back(localX);
-        localYVector.emplace_back(localY);
-        offsPadVector.emplace_back(offsPad);
-        trackVector.emplace_back(track);
-        clVector.emplace_back(cl);
-
-        topologyCorrVector.emplace_back(-999.f);
-        topologyCorrTotVector.emplace_back(-999.f);
-        topologyCorrMaxVector.emplace_back(-999.f);
-        gainVector.emplace_back(-999.f);
-        gainResidualVector.emplace_back(-999.f);
-        residualCorrTotVector.emplace_back(-999.f);
-        residualCorrMaxVector.emplace_back(-999.f);
-      };
-      rowIndexOld = rowIndex;
-      sectorIndexOld = sectorIndex;
-      continue;
+      excludeCl += 0b100; // 4 for edge cluster
     }
 
-    // get x position of the track
+    // get the x position of the track
     const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
 
     bool check = true;
@@ -301,14 +194,18 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     }
 
     if (!check || std::isnan(track.getParam(1))) {
+      excludeCl += 0b1000; // 8 for failure of track propagation or refit
+    }
+
+    if (excludeCl != 0) {
       // for debugging
       if (mDebug) {
-        excludeClVector.emplace_back(3);
+        excludeClVector.emplace_back(excludeCl);
         regionVector.emplace_back(region);
         rowIndexVector.emplace_back(rowIndex);
         padVector.emplace_back(pad);
         sectorVector.emplace_back(sectorIndex);
-        stackVector.emplace_back(map[stack]);
+        stackVector.emplace_back(stackNumber);
         localXVector.emplace_back(localX);
         localYVector.emplace_back(localY);
         offsPadVector.emplace_back(offsPad);
@@ -322,7 +219,8 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
         gainResidualVector.emplace_back(-999.f);
         residualCorrTotVector.emplace_back(-999.f);
         residualCorrMaxVector.emplace_back(-999.f);
-      };
+      }
+      // to avoid counting the skipped cluster as a subthreshold cluster
       rowIndexOld = rowIndex;
       sectorIndexOld = sectorIndex;
       continue;
@@ -447,12 +345,12 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
 
     // for debugging
     if (mDebug) {
-      excludeClVector.emplace_back(-1);
+      excludeClVector.emplace_back(0); // cl is successfully processed
       regionVector.emplace_back(region);
       rowIndexVector.emplace_back(rowIndex);
       padVector.emplace_back(pad);
       sectorVector.emplace_back(sectorIndex);
-      stackVector.emplace_back(map[stack]);
+      stackVector.emplace_back(stackNumber);
       localXVector.emplace_back(localX);
       localYVector.emplace_back(localY);
       offsPadVector.emplace_back(offsPad);
@@ -481,7 +379,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   output.NHitsSubThresholdOROC3 = nClsROC[3];
 
   // fill subthreshold clusters
-  if ((clusterMask & ClusterFlags::ExcludeSubthresholdCl) == ClusterFlags::None) {
+  if (((clusterMask & ClusterFlags::ExcludeSubthresholdCl) == ClusterFlags::None) && (minChargeTot <= mMinChargeTotThreshold && minChargeMax <= mMinChargeMaxThreshold)) {
     fillMissingClusters(nClsSubThreshROC, minChargeTot, minChargeMax, subthresholdMethod);
   }
 
@@ -643,9 +541,9 @@ void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder)
   mCalibCont.setPolTopologyCorrection(calibTrackTopology);
 
   // set the gain map
-  TFile* gainMapFile = TFile::Open(TString::Format("%s/TPC/Calib/PadGainFull/snapshot.root", localCCDBFolder));
+  std::unique_ptr<TFile> gainMapFile(TFile::Open(fmt::format("{}/TPC/Calib/PadGainFull/snapshot.root", localCCDBFolder).data()));
   if (!gainMapFile->IsZombie()) {
-    std::cout << "Using file: " << gainMapFile->GetName() << std::endl;
+    LOGP(info, "Using file: {}", gainMapFile->GetName());
     o2::tpc::CalDet<float>* gainMap = (o2::tpc::CalDet<float>*)gainMapFile->Get("ccdb_object");
     const float minGain = 0;
     const float maxGain = 2;
@@ -653,33 +551,33 @@ void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder)
   }
 
   // set residual gain map
-  TFile* gainMapResidualFile = TFile::Open(TString::Format("%s/TPC/Calib/PadGainResidual/snapshot.root", localCCDBFolder));
+  std::unique_ptr<TFile> gainMapResidualFile(TFile::Open(fmt::format("{}/TPC/Calib/PadGainResidual/snapshot.root", localCCDBFolder).data()));
   if (!gainMapResidualFile->IsZombie()) {
-    std::cout << "Using file: " << gainMapResidualFile->GetName() << std::endl;
-    o2::tpc::CalDet<float>* gainMapResidual = (o2::tpc::CalDet<float>*)gainMapResidualFile->Get("ccdb_object");
-    mCalibCont.setGainMapResidual(*gainMapResidual);
+    LOGP(info, "Using file: {}", gainMapResidualFile->GetName());
+    std::unordered_map<string, o2::tpc::CalDet<float>>* gainMapResidual = (std::unordered_map<string, o2::tpc::CalDet<float>>*)gainMapResidualFile->Get("ccdb_object");
+    mCalibCont.setGainMapResidual(gainMapResidual->at("GainMap"));
   }
 
   // set the residual dEdx correction
-  TFile* calibdEdxResidualFile = TFile::Open(TString::Format("%s/TPC/Calib/TimeGain/snapshot.root", localCCDBFolder));
+  std::unique_ptr<TFile> calibdEdxResidualFile(TFile::Open(fmt::format("{}/TPC/Calib/TimeGain/snapshot.root", localCCDBFolder).data()));
   if (!calibdEdxResidualFile->IsZombie()) {
-    std::cout << "Using file: " << calibdEdxResidualFile->GetName() << std::endl;
+    LOGP(info, "Using file: {}", calibdEdxResidualFile->GetName());
     o2::tpc::CalibdEdxCorrection* calibdEdxResidual = (o2::tpc::CalibdEdxCorrection*)calibdEdxResidualFile->Get("ccdb_object");
     mCalibCont.setResidualCorrection(*calibdEdxResidual);
   }
 
   // set the zero suppression threshold map
-  TFile* zeroSuppressionFile = TFile::Open(TString::Format("%s/TPC/Config/FEEPad/snapshot.root", localCCDBFolder));
+  std::unique_ptr<TFile> zeroSuppressionFile(TFile::Open(fmt::format("{}/TPC/Config/FEEPad/snapshot.root", localCCDBFolder).data()));
   if (!zeroSuppressionFile->IsZombie()) {
-    std::cout << "Using file: " << zeroSuppressionFile->GetName() << std::endl;
+    LOGP(info, "Using file: {}", zeroSuppressionFile->GetName());
     std::unordered_map<string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = (std::unordered_map<string, o2::tpc::CalDet<float>>*)zeroSuppressionFile->Get("ccdb_object");
     mCalibCont.setZeroSupresssionThreshold(zeroSupressionThresholdMap->at("ThresholdMap"));
   }
 
   // set magnetic field
-  TFile* magFile = TFile::Open(TString::Format("%s/GLO/Config/GRPMagField/snapshot.root", localCCDBFolder));
+  std::unique_ptr<TFile> magFile(TFile::Open(fmt::format("{}/GLO/Config/GRPMagField/snapshot.root", localCCDBFolder).data()));
   if (!magFile->IsZombie()) {
-    std::cout << "Using file: " << magFile->GetName() << std::endl;
+    LOGP(info, "Using file: {}", magFile->GetName());
     o2::parameters::GRPMagField* magField = (o2::parameters::GRPMagField*)magFile->Get("ccdb_object");
     o2::base::Propagator::initFieldFromGRP(magField);
     float bz = GPUO2InterfaceUtils::getNominalGPUBz(*magField);
@@ -689,9 +587,9 @@ void CalculatedEdx::loadCalibsFromLocalCCDBFolder(const char* localCCDBFolder)
 
   // set the propagator
   auto propagator = o2::base::Propagator::Instance();
-  TFile* matLutFile = TFile::Open(TString::Format("%s/GLO/Param/MatLUT/snapshot.root", localCCDBFolder));
+  std::unique_ptr<TFile> matLutFile(TFile::Open(fmt::format("{}/GLO/Param/MatLUT/snapshot.root", localCCDBFolder).data()));
   if (!matLutFile->IsZombie()) {
-    std::cout << "Using file: " << matLutFile->GetName() << std::endl;
+    LOGP(info, "Using file: {}", matLutFile->GetName());
     o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile((o2::base::MatLayerCylSet*)matLutFile->Get("ccdb_object"));
     propagator->setMatLUT(matLut);
   }

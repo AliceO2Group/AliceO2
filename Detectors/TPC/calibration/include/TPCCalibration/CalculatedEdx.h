@@ -24,8 +24,6 @@
 #include "CalibdEdxContainer.h"
 #include "CorrectionMapsHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "TRandom.h"
-#include "TString.h"
 #include <vector>
 
 namespace o2::tpc
@@ -103,6 +101,12 @@ class CalculatedEdx
   /// \param maxMissingCl maximum number of missing clusters for subthreshold check
   void setMaxMissingCl(int maxMissingCl) { mMaxMissingCl = maxMissingCl; }
 
+  /// \param minChargeTotThreshold upper limit for the possible minimum charge tot in subthreshold treatment
+  void setMinChargeTotThreshold(float minChargeTotThreshold) { mMinChargeTotThreshold = minChargeTotThreshold; }
+
+  /// \param minChargeMaxThreshold upper limit for the possible minimum charge max in subthreshold treatment
+  void setMinChargeMaxThreshold(float minChargeMaxThreshold) { mMinChargeMaxThreshold = minChargeMaxThreshold; }
+
   /// set the debug streamer
   void setStreamer(const char* debugRootFile) { mStreamer = std::make_unique<o2::utils::TreeStreamRedirector>(debugRootFile, "recreate"); };
 
@@ -111,6 +115,12 @@ class CalculatedEdx
 
   /// \return returns maxMissingCl for subthreshold cluster treatment
   int getMaxMissingCl() { return mMaxMissingCl; }
+
+  /// \return returns the upper limit for the possible minimum charge tot in subthreshold treatment
+  float getMinChargeTotThreshold() { return mMinChargeTotThreshold; }
+
+  /// \return returns the upper limit for the possible minimum charge max in subthreshold treatment
+  float getMinChargeMaxThreshold() { return mMinChargeMaxThreshold; }
 
   /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1) or Landau (method=2)
   void fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method);
@@ -165,6 +175,8 @@ class CalculatedEdx
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{1};                                                ///< maximum number of missing clusters for subthreshold check
+  float mMinChargeTotThreshold{50};                                    ///< upper limit for minimum charge tot value in subthreshold treatment, i.e for a high dEdx track adding a minimum value of 500 to track as a virtual charge doesn't make sense
+  float mMinChargeMaxThreshold{50};                                    ///< upper limit for minimum charge max value in subthreshold treatment, i.e for a high dEdx track adding a minimum value of 500 to track as a virtual charge doesn't make sense
   float mFieldNominalGPUBz{5};                                         ///< magnetic field in kG, used for track propagation
   bool mPropagateTrack{false};                                         ///< propagating the track instead of performing a refit
   bool mDebug{false};                                                  ///< use the debug streamer
