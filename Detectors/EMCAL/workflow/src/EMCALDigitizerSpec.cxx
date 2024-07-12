@@ -32,6 +32,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFV0/Digit.h"
+#include <Steer/MCKinematicsReader.h>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -83,6 +84,12 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // read collision context from input
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
   context->initSimChains(o2::detectors::DetID::EMC, mSimChains);
+
+  // init the MCKinematicsReader from the digitization context
+  if (mcReader == nullptr) {
+    mcReader = new o2::steer::MCKinematicsReader(context.get());
+  }
+
   auto& timesview = context->getEventRecords();
   LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
@@ -191,6 +198,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       mSumDigitizer.setCurrEvID(part.entryID);
       mSumDigitizer.setCurrSrcID(part.sourceID);
+
+      // retrieve information about the MC collision via the MCEventHeader
+      auto& mcEventHeader = mcReader->getMCEventHeader(part.sourceID, part.entryID);
+      mcEventHeader.print();
 
       // get the hits for this event and this source
       mHits.clear();
