@@ -184,13 +184,14 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Geometry* mGeometry; //!<! Geometry pointer
 
-  int mMedSensHCal = 0; //!<! Sensitive Medium for HCal
+  int mMedSensHCal = 0;    //!<! Sensitive Medium for HCal
   int mMedSensECalPad = 0; //!<! Sensitive Medium for ECal Pads
   int mMedSensECalPix = 0; //!<! Sensitive Medium for ECal Pixels
 
   std::vector<const Composition*> mGeoCompositions; //!<! list of FOCAL compositions
 
-  std::vector<o2::focal::Hit>* mHits; ///< Container with hits
+  std::vector<o2::focal::Hit>* mHits;                                              ///< Container with hits
+  std::unordered_map<Hit::HitID, unsigned int, Hit::HitIDHasher> mHitIndexMapping; ///< Mapping the hits to a cell in the detector
 
   std::unordered_map<int, int> mSuperParentsIndices; //!<! Super parent indices (track index - superparent index)
   std::unordered_map<int, Parent> mSuperParents;     //!<! Super parent kine info (superparent index - superparent object)
