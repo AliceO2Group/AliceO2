@@ -106,6 +106,8 @@ inline int TrackingParameters::CellMinimumLevel()
 }
 
 struct VertexingParameters {
+  bool nIterations = 1;        // Number of vertexing passes to perform
+  int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
   bool allowSingleContribClusters = false;
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};

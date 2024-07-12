@@ -42,11 +42,11 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
   ~VertexerTraitsGPU() override;
-  void initialise(const TrackingParameters&) override;
+  void initialise(const TrackingParameters&, const int& iteration = 0) override;
   void adoptTimeFrame(TimeFrame*) override;
-  void computeTracklets() override;
-  void computeTrackletMatching() override;
-  void computeVertices() override;
+  void computeTracklets(const int& iteration = 0) override;
+  void computeTrackletMatching(const int& iteration = 0) override;
+  void computeVertices(const int& iteration = 0) override;
 
   // Hybrid
   void initialiseHybrid(const TrackingParameters& pars) override { VertexerTraits::initialise(pars); }
@@ -55,7 +55,7 @@ class VertexerTraitsGPU : public VertexerTraits
   void computeTrackletMatchingHybrid() override { VertexerTraits::computeTrackletMatching(); }
   void computeVerticesHybrid() override { VertexerTraits::computeVertices(); }
 
-  void updateVertexingParameters(const VertexingParameters&, const TimeFrameGPUParameters&) override;
+  void updateVertexingParameters(const std::vector<VertexingParameters>&, const TimeFrameGPUParameters&) override;
 
   void computeVerticesHist();
 

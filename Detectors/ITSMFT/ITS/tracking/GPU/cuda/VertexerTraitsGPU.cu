@@ -95,7 +95,7 @@ VertexerTraitsGPU::~VertexerTraitsGPU()
 {
 }
 
-void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
+void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams, const int& iteration)
 {
   mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils, &mTfGPUParams);
 }
@@ -595,17 +595,19 @@ GPUg() void computeVertexKernel(
 }
 } // namespace gpu
 
-void VertexerTraitsGPU::updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& tfPar)
+void VertexerTraitsGPU::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
   mTfGPUParams = tfPar;
-  mIndexTableUtils.setTrackingParameters(vrtPar);
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
-                                                  constants::math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
+  mVrtParams = vrtPar;
+  mIndexTableUtils.setTrackingParameters(vrtPar[0]);
+  for (auto& par : mVrtParams) {
+    par.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * par.phiCut / constants::math::TwoPi));
+    par.zSpan = static_cast<int>(std::ceil(par.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
+  }
 }
 
-void VertexerTraitsGPU::computeTracklets()
+void VertexerTraitsGPU::computeTracklets(const int& iteration)
 {
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
@@ -635,8 +637,8 @@ void VertexerTraitsGPU::computeTracklets()
           mTimeFrameGPU->getDeviceIndexTableUtils(),                     // const IndexTableUtils* utils,
           offset,                                                        // const unsigned int startRofId,
           rofs,                                                          // const unsigned int rofSize,
-          mVrtParams.phiCut,                                             // const float phiCut,
-          mVrtParams.maxTrackletsPerCluster);                            // const size_t maxTrackletsPerCluster = 1e2
+          mVrtParams[iteration].phiCut,                                  // const float phiCut,
+          mVrtParams[iteration].maxTrackletsPerCluster);                 // const size_t maxTrackletsPerCluster = 1e2
 
         gpu::trackleterKernelMultipleRof<TrackletMode::Layer1Layer2><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(2),         // const Cluster* clustersNextLayer,    // 0 2
@@ -649,8 +651,8 @@ void VertexerTraitsGPU::computeTracklets()
           mTimeFrameGPU->getDeviceIndexTableUtils(),                     // const IndexTableUtils* utils,
           offset,                                                        // const unsigned int startRofId,
           rofs,                                                          // const unsigned int rofSize,
-          mVrtParams.phiCut,                                             // const float phiCut,
-          mVrtParams.maxTrackletsPerCluster);                            // const size_t maxTrackletsPerCluster = 1e2
+          mVrtParams[iteration].phiCut,                                  // const float phiCut,
+          mVrtParams[iteration].maxTrackletsPerCluster);                 // const size_t maxTrackletsPerCluster = 1e2
 
         gpu::trackletSelectionKernelMultipleRof<true><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),            // const Cluster* clusters0,               // Clusters on layer 0
@@ -667,9 +669,9 @@ void VertexerTraitsGPU::computeTracklets()
           mTimeFrameGPU->getChunk(chunkId).getDeviceNExclusiveFoundLines(), // int* nExclusiveFoundLines,              // Number of found lines exclusive scan
           offset,                                                           // const unsigned int startRofId,          // Starting ROF ID
           rofs,                                                             // const unsigned int rofSize,             // Number of ROFs to consider
-          mVrtParams.maxTrackletsPerCluster,                                // const int maxTrackletsPerCluster = 1e2, // Maximum number of tracklets per cluster
-          mVrtParams.tanLambdaCut,                                          // const float tanLambdaCut = 0.025f,      // Cut on tan lambda
-          mVrtParams.phiCut);                                               // const float phiCut = 0.002f)            // Cut on phi
+          mVrtParams[iteration].maxTrackletsPerCluster,                     // const int maxTrackletsPerCluster = 1e2, // Maximum number of tracklets per cluster
+          mVrtParams[iteration].tanLambdaCut,                               // const float tanLambdaCut = 0.025f,      // Cut on tan lambda
+          mVrtParams[iteration].phiCut);                                    // const float phiCut = 0.002f)            // Cut on phi
 
         discardResult(cub::DeviceScan::ExclusiveSum(mTimeFrameGPU->getChunk(chunkId).getDeviceCUBTmpBuffer(),
                                                     mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->tmpCUBBufferSize,
@@ -681,7 +683,7 @@ void VertexerTraitsGPU::computeTracklets()
         // Reset used tracklets
         checkGPUError(cudaMemsetAsync(mTimeFrameGPU->getChunk(chunkId).getDeviceUsedTracklets(),
                                       false,
-                                      sizeof(unsigned char) * mVrtParams.maxTrackletsPerCluster * mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1),
+                                      sizeof(unsigned char) * mVrtParams[iteration].maxTrackletsPerCluster * mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1),
                                       mTimeFrameGPU->getStream(chunkId).get()),
                       __FILE__, __LINE__);
 
@@ -700,9 +702,9 @@ void VertexerTraitsGPU::computeTracklets()
           mTimeFrameGPU->getChunk(chunkId).getDeviceNExclusiveFoundLines(), // int* nExclusiveFoundLines,              // Number of found lines exclusive scan
           offset,                                                           // const unsigned int startRofId,          // Starting ROF ID
           rofs,                                                             // const unsigned int rofSize,             // Number of ROFs to consider
-          mVrtParams.maxTrackletsPerCluster,                                // const int maxTrackletsPerCluster = 1e2, // Maximum number of tracklets per cluster
-          mVrtParams.tanLambdaCut,                                          // const float tanLambdaCut = 0.025f,      // Cut on tan lambda
-          mVrtParams.phiCut);                                               // const float phiCut = 0.002f)            // Cut on phi
+          mVrtParams[iteration].maxTrackletsPerCluster,                     // const int maxTrackletsPerCluster = 1e2, // Maximum number of tracklets per cluster
+          mVrtParams[iteration].tanLambdaCut,                               // const float tanLambdaCut = 0.025f,      // Cut on tan lambda
+          mVrtParams[iteration].phiCut);                                    // const float phiCut = 0.002f)            // Cut on phi
 
         int nClusters = mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1);
         int lastFoundLines;
@@ -767,11 +769,11 @@ void VertexerTraitsGPU::computeTracklets()
   mTimeFrameGPU->wipe(3);
 }
 
-void VertexerTraitsGPU::computeTrackletMatching()
+void VertexerTraitsGPU::computeTrackletMatching(const int& iteration)
 {
 }
 
-void VertexerTraitsGPU::computeVertices()
+void VertexerTraitsGPU::computeVertices(const int& iteration)
 {
 }
 

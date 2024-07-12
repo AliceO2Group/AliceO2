@@ -251,6 +251,7 @@ int TimeFrame::getTotalClusters() const
 void TimeFrame::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers)
 {
   if (iteration == 0) {
+    mNoVertexROF = 0;
     if (maxLayers < trkParam.NLayers) {
       resetRofPV();
     }

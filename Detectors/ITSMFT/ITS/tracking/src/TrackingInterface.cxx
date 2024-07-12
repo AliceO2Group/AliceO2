@@ -33,6 +33,7 @@ void ITSTrackingInterface::initialise()
 {
   mRunVertexer = true;
   mCosmicsProcessing = false;
+  std::vector<VertexingParameters> vertParams;
   std::vector<TrackingParameters> trackParams;
   if (mMode == TrackingMode::Unset) {
     mMode = (TrackingMode)(o2::its::TrackerParamConfig::Instance().trackingMode);
@@ -51,13 +52,19 @@ void ITSTrackingInterface::initialise()
     trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].CellDeltaTanLambdaSigma *= 4.;
     trackParams[2].MinTrackLength = 4;
-    LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
+    LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes", trackParams.size());
+    vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
+    vertParams[1].phiCut = 0.015f;
+    vertParams[1].tanLambdaCut = 0.015f;
+    vertParams[1].vertPerRofThreshold = 0;
+
   } else if (mMode == TrackingMode::Sync) {
     trackParams.resize(1);
     trackParams[0].ZBins = 64;
     trackParams[0].PhiBins = 32;
     trackParams[0].MinTrackLength = 4;
-    LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+    LOGP(info, "Initializing tracker in sync. phase reconstruction with {} passes", trackParams.size());
+    vertParams.resize(1);
   } else if (mMode == TrackingMode::Cosmics) {
     mCosmicsProcessing = true;
     mRunVertexer = false;
@@ -71,7 +78,7 @@ void ITSTrackingInterface::initialise()
     trackParams[0].MaxChi2NDF = 40.;
     trackParams[0].TrackletsPerClusterLimit = 100.;
     trackParams[0].CellsPerClusterLimit = 100.;
-    LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
+    LOGP(info, "Initializing tracker in reconstruction for cosmics with {} passes", trackParams.size());
 
   } else {
     throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", asString(mMode)));
@@ -81,6 +88,7 @@ void ITSTrackingInterface::initialise()
     params.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   }
   mTracker->setParameters(trackParams);
+  mVertexer->setParameters(vertParams);
 }
 
 template <bool isGPU>
@@ -212,7 +220,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
-  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, mTimeFrame->getPrimaryVerticesNum(), rofspan.size());
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {}/{} ROFs", vertexerElapsedTime, mTimeFrame->getPrimaryVerticesNum(), rofspan.size() - mTimeFrame->getNoVertexROF(), rofspan.size());
 
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());

@@ -62,12 +62,12 @@ class VertexerTraits
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
-  virtual void initialise(const TrackingParameters& trackingParams);
-  virtual void computeTracklets();
-  virtual void computeTrackletMatching();
-  virtual void computeVertices();
+  virtual void initialise(const TrackingParameters& trackingParams, const int& iteration = 0);
+  virtual void computeTracklets(const int& iteration = 0);
+  virtual void computeTrackletMatching(const int& iteration = 0);
+  virtual void computeVertices(const int& iteration = 0);
   virtual void adoptTimeFrame(TimeFrame* tf);
-  virtual void updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
+  virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
   // Hybrid
   virtual void initialiseHybrid(const TrackingParameters& trackingParams) { initialise(trackingParams); };
   virtual void computeTrackletsHybrid() { computeTracklets(); };
@@ -83,16 +83,18 @@ class VertexerTraits
                             std::vector<Vertex>&,
                             std::vector<int>&,
                             TimeFrame*,
-                            std::vector<o2::MCCompLabel>*);
+                            std::vector<o2::MCCompLabel>*,
+                            const int& iteration = 0);
 
   static const std::vector<std::pair<int, int>> selectClusters(const int* indexTable,
                                                                const std::array<int, 4>& selectedBinsRect,
                                                                const IndexTableUtils& utils);
 
   // utils
-  VertexingParameters& getVertexingParameters() { return mVrtParams; }
-  VertexingParameters getVertexingParameters() const { return mVrtParams; }
+  std::vector<VertexingParameters>& getVertexingParameters() { return mVrtParams; }
+  std::vector<VertexingParameters> getVertexingParameters() const { return mVrtParams; }
   void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
+  void setVertexingParameters(std::vector<VertexingParameters>& vertParams) { mVrtParams = vertParams; }
   unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();
   void setNThreads(int n);
@@ -102,7 +104,7 @@ class VertexerTraits
   unsigned char mIsGPU;
   int mNThreads = 1;
 
-  VertexingParameters mVrtParams;
+  std::vector<VertexingParameters> mVrtParams;
   IndexTableUtils mIndexTableUtils;
   std::vector<lightVertex> mVertices;
 
@@ -110,7 +112,7 @@ class VertexerTraits
   TimeFrame* mTimeFrame = nullptr;
 };
 
-inline void VertexerTraits::initialise(const TrackingParameters& trackingParams)
+inline void VertexerTraits::initialise(const TrackingParameters& trackingParams, const int& iteration)
 {
   mTimeFrame->initialise(0, trackingParams, 3);
   setIsGPU(false);

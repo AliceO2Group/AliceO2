@@ -195,6 +195,7 @@ class TimeFrame
   uint32_t getTotalTrackletsTF(const int iLayer) { return mTotalTracklets[iLayer]; }
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
+  unsigned int& getNoVertexROF() { return mNoVertexROF; }
   // \Vertexer
 
   void initialiseRoadLabels();
@@ -220,7 +221,7 @@ class TimeFrame
     }
   }
 
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
 
   template <typename... T>
@@ -233,6 +234,7 @@ class TimeFrame
 
   void setExtAllocator(bool ext) { mExtAllocator = ext; }
   bool getExtAllocator() const { return mExtAllocator; }
+
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -283,6 +285,8 @@ class TimeFrame
 
  private:
   float mBz = 5.;
+  unsigned int mNTotalLowPtVertices = 0;
+  unsigned int mNoVertexROF = 0;
   int mBeamPosWeight = 0;
   std::array<float, 2> mBeamPos = {0.f, 0.f};
   bool isBeamPositionOverridden = false;
