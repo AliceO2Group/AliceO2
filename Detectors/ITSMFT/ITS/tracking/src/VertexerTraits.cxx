@@ -161,16 +161,12 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
 void VertexerTraits::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
-  LOGP(info, "here1");
   mIndexTableUtils.setTrackingParameters(vrtPar[0]);
-  LOGP(info, "here2");
   for (auto& par : mVrtParams) {
     par.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * par.phiCut / constants::math::TwoPi));
     par.zSpan = static_cast<int>(std::ceil(par.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
   }
-  LOGP(info, "here3");
   setNThreads(vrtPar[0].nThreads);
-  LOGP(info, "here4");
 }
 
 void VertexerTraits::computeTracklets(const int& iteration)

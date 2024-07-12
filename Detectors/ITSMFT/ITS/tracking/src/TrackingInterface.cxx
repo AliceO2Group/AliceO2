@@ -41,6 +41,7 @@ void ITSTrackingInterface::initialise()
   }
   if (mMode == TrackingMode::Async) {
     trackParams.resize(3);
+    vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
     for (auto& param : trackParams) {
       param.ZBins = 64;
       param.PhiBins = 32;
@@ -52,12 +53,10 @@ void ITSTrackingInterface::initialise()
     trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].CellDeltaTanLambdaSigma *= 4.;
     trackParams[2].MinTrackLength = 4;
-    LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes", trackParams.size());
-    vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
+    LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes for tracking and {}/{} for vertexing", trackParams.size(), vertParams[0].nIterations, vertParams.size());
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
     vertParams[1].vertPerRofThreshold = 0;
-
   } else if (mMode == TrackingMode::Sync) {
     trackParams.resize(1);
     trackParams[0].ZBins = 64;

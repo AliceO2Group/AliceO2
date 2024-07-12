@@ -41,7 +41,10 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
 {
   float total{0.f};
   TrackingParameters trkPars;
-  for (int iteration = 0; iteration < (int)mVertParams.size(); ++iteration) {
+  TimeFrameGPUParameters tfGPUpar;
+  mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
+  for (int iteration = 0; iteration < std::min(mVertParams[0].nIterations, (int)mVertParams.size()); ++iteration) {
+    logger(fmt::format("ITS Seeding vertexer iteration {} summary:", iteration));
     trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
     trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
     total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, trkPars, iteration);
@@ -72,7 +75,6 @@ void Vertexer::getGlobalConfiguration()
   auto& vc = o2::its::VertexerParamConfig::Instance();
   vc.printKeyValues(true, true);
   auto& grc = o2::its::GpuRecoParamConfig::Instance();
-  LOGP(info, "size of mVertParams: {}", mVertParams.size());
   for (auto& verPar : mVertParams) {
     verPar.allowSingleContribClusters = vc.allowSingleContribClusters;
     verPar.zCut = vc.zCut;
@@ -93,8 +95,6 @@ void Vertexer::getGlobalConfiguration()
     verPar.ZBins = vc.ZBins;
     verPar.PhiBins = vc.PhiBins;
   }
-  TimeFrameGPUParameters tfGPUpar;
-  mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
 }
 
 void Vertexer::adoptTimeFrame(TimeFrame& tf)

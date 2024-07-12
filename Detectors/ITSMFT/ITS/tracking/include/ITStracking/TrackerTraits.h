@@ -120,6 +120,7 @@ inline float TrackerTraits::getBz() const
 inline void TrackerTraits::UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
 {
   mTrkParams = trkPars;
+  LOGP(info, "TrackerTraits::updateTrackingParameters size of pars is {}", mTrkParams.size());
 }
 
 inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi, float z, float maxdeltaz)

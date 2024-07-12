@@ -121,7 +121,7 @@ inline std::vector<VertexingParameters>& Vertexer::getVertParameters() const
 
 inline void Vertexer::setParameters(std::vector<VertexingParameters>& vertParams)
 {
-  mTraits->setVertexingParameters(vertParams);
+  mVertParams = vertParams;
 }
 
 inline void Vertexer::dumpTraits()
