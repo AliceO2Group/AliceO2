@@ -369,15 +369,24 @@ bool ClusterLines::operator==(const ClusterLines& rhs) const
 
 GPUhdi() void ClusterLines::updateROFPoll(const Line& line)
 {
-  // Boyer-Moore voting for rof label
-  if (mROFWeight == 0) {
+  // option 1: Boyer-Moore voting for rof label
+  // if (mROFWeight == 0) {
+  //   mROF = line.getMinROF();
+  //   mROFWeight = 1;
+  // } else {
+  //   if (mROF == line.getMinROF()) {
+  //     mROFWeight++;
+  //   } else {
+  //     mROFWeight--;
+  //   }
+  // }
+
+  // option 2
+  if (mROF == -1) {
     mROF = line.getMinROF();
-    mROFWeight = 1;
   } else {
-    if (mROF == line.getMinROF()) {
-      mROFWeight++;
-    } else {
-      mROFWeight--;
+    if (line.getMinROF() < mROF) {
+      mROF = line.getMinROF();
     }
   }
 }
