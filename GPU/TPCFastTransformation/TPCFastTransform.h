@@ -250,6 +250,9 @@ class TPCFastTransform : public FlatObject
   /// Return TOF correction (vdrift / C)
   GPUd() float getTOFCorr() const { return mLdriftCorr; }
 
+  /// Return nominal PV Z position correction (vdrift / C)
+  GPUd() float getPrimVtxZ() const { return mPrimVtxZ; }
+
   /// Return map lumi
   GPUd() float getLumi() const { return mLumi; }
 
