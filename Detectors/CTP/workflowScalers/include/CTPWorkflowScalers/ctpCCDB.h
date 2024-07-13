@@ -29,7 +29,7 @@ class ctpCCDB
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string, bool& ok);
-  void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
+  void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path; };
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
   static void setCCDBHost(std::string host) { mCCDBHost = host; };
 
