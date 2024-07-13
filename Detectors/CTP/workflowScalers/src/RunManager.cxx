@@ -135,7 +135,7 @@ int CTPRunManager::stopRun(uint32_t irun, long timeStamp)
   // const auto now = std::chrono::system_clock::now();
   // const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   mActiveRuns[irun]->timeStop = timeStamp * 1000.;
-  saveRunScalersToCCDB(mActiveRuns[irun]->scalers,mActiveRuns[irun]->timeStart,mActiveRuns[irun]->timeStop);
+  saveRunScalersToCCDB(mActiveRuns[irun]->scalers, mActiveRuns[irun]->timeStart, mActiveRuns[irun]->timeStop);
   delete mActiveRuns[irun];
   mActiveRuns[irun] = nullptr;
   return 0;

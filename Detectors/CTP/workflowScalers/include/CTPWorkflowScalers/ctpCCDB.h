@@ -24,7 +24,7 @@ class ctpCCDB
 {
  public:
   ctpCCDB() = default;
-  int saveRunScalersToCCDB(CTPRunScalers& scalers,long timeStart,long timeStop);
+  int saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);

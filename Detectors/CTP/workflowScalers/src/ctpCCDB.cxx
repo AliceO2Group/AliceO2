@@ -23,14 +23,14 @@
 using namespace o2::ctp;
 std::string ctpCCDB::mCCDBHost = "http://o2-ccdb.internal";
 //
-int ctpCCDB::saveRunScalersToCCDB(CTPRunScalers& scalers,long timeStart,long timeStop)
+int ctpCCDB::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop)
 {
   // data base
   if (mCCDBHost == "none") {
     LOG(info) << "Scalers not written to CCDB none";
     return 0;
   }
-  //CTPActiveRun* run = mActiveRuns[i];
+  // CTPActiveRun* run = mActiveRuns[i];
   using namespace std::chrono_literals;
   std::chrono::seconds days3 = 259200s;
   std::chrono::seconds min10 = 600s;
