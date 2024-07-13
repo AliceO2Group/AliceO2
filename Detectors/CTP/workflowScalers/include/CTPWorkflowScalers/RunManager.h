@@ -14,7 +14,7 @@
 /// \author Roman Lietava
 #ifndef _CTP_RUNMANAGER_H_
 #define _CTP_RUNMANAGER_H_
-#include "CTPWorkflowScalers/ctpCCDB.h"
+#include "CTPWorkflowScalers/ctpCCDBManager.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "BookkeepingApi/BkpClientFactory.h"
 #include "BookkeepingApi/BkpClient.h"
@@ -39,7 +39,7 @@ struct CTPActiveRun {
   counters_t cntslast;  // last read counters
   counters64_t overflows;
 };
-class CTPRunManager : public ctpCCDB
+class CTPRunManager : public ctpCCDBManager
 {
  public:
   CTPRunManager() = default;

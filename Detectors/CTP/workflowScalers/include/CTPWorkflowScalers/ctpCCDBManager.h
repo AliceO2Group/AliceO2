@@ -20,10 +20,10 @@ namespace o2
 {
 namespace ctp
 {
-class ctpCCDB
+class ctpCCDBManager
 {
  public:
-  ctpCCDB() = default;
+  ctpCCDBManager() = default;
   int saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
@@ -40,7 +40,7 @@ class ctpCCDB
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
 
-  ClassDefNV(ctpCCDB, 0);
+  ClassDefNV(ctpCCDBManager, 0);
 };
 } // namespace ctp
 } // namespace o2

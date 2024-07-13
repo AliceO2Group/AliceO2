@@ -9,9 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ctpCCDB.cxx
+/// \file ctpCCDBManager.cxx
 /// \author Roman Lietava
-#include "CTPWorkflowScalers/ctpCCDB.h"
+#include "CTPWorkflowScalers/ctpCCDBManager.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -20,9 +20,9 @@
 #include "CommonUtils/StringUtils.h"
 #include <fairlogger/Logger.h>
 using namespace o2::ctp;
-std::string ctpCCDB::mCCDBHost = "http://o2-ccdb.internal";
+std::string ctpCCDBManager::mCCDBHost = "http://o2-ccdb.internal";
 //
-int ctpCCDB::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop)
+int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop)
 {
   // data base
   if (mCCDBHost == "none") {
@@ -46,7 +46,7 @@ int ctpCCDB::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long t
   LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return ret;
 }
-int ctpCCDB::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
+int ctpCCDBManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
 {
   // data base
   if (mCCDBHost == "none") {
@@ -69,7 +69,7 @@ int ctpCCDB::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return ret;
 }
-CTPConfiguration ctpCCDB::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
+CTPConfiguration ctpCCDBManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
@@ -86,7 +86,7 @@ CTPConfiguration ctpCCDB::getConfigFromCCDB(long timestamp, std::string run, boo
   }
   return *ctpconfigdb;
 }
-CTPConfiguration ctpCCDB::getConfigFromCCDB(long timestamp, std::string run)
+CTPConfiguration ctpCCDBManager::getConfigFromCCDB(long timestamp, std::string run)
 {
   bool ok;
   auto ctpconfig = getConfigFromCCDB(timestamp, run, ok);
@@ -96,7 +96,7 @@ CTPConfiguration ctpCCDB::getConfigFromCCDB(long timestamp, std::string run)
   }
   return ctpconfig;
 }
-CTPRunScalers ctpCCDB::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
+CTPRunScalers ctpCCDBManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBHost);
