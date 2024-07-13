@@ -12,16 +12,13 @@
 /// \file RunManager.cxx
 /// \author Roman Lietava
 
-#include "DataFormatsCTP/Configuration.h"
 #include "CTPWorkflowScalers/RunManager.h"
-#include "CCDB/CcdbApi.h"
-#include "CCDB/BasicCCDBManager.h"
+#include <iostream>
 #include <sstream>
 #include <regex>
 #include "CommonUtils/StringUtils.h"
 #include <fairlogger/Logger.h>
 using namespace o2::ctp;
-std::string CTPRunManager::mCCDBHost = "http://o2-ccdb.internal";
 ///
 /// Active run to keep cfg and saclers of active runs
 /// Also used for Bookkeeping counters managment;
@@ -138,7 +135,7 @@ int CTPRunManager::stopRun(uint32_t irun, long timeStamp)
   // const auto now = std::chrono::system_clock::now();
   // const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   mActiveRuns[irun]->timeStop = timeStamp * 1000.;
-  saveRunScalersToCCDB(irun);
+  saveRunScalersToCCDB(mActiveRuns[irun]->scalers,mActiveRuns[irun]->timeStart,mActiveRuns[irun]->timeStop);
   delete mActiveRuns[irun];
   mActiveRuns[irun] = nullptr;
   return 0;
@@ -316,96 +313,6 @@ void CTPRunManager::printActiveRuns() const
     std::cout << " " << lrun.second->cfg.getRunNumber();
   }
   std::cout << std::endl;
-}
-int CTPRunManager::saveRunScalersToCCDB(int i)
-{
-  // data base
-  if (mCCDBHost == "none") {
-    LOG(info) << "Scalers not written to CCDB none";
-    return 0;
-  }
-  CTPActiveRun* run = mActiveRuns[i];
-  using namespace std::chrono_literals;
-  std::chrono::seconds days3 = 259200s;
-  std::chrono::seconds min10 = 600s;
-  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
-  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
-  long tmin = run->timeStart - time10min;
-  long tmax = run->timeStop + time3days;
-  o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = std::to_string(run->cfg.getRunNumber());
-  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
-  // store abitrary user object in strongly typed manner
-  int ret = api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
-  LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
-  return ret;
-}
-int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
-{
-  // data base
-  if (mCCDBHost == "none") {
-    LOG(info) << "CTP config not written to CCDB none";
-    return 0;
-  }
-  using namespace std::chrono_literals;
-  std::chrono::seconds days3 = 259200s;
-  std::chrono::seconds min10 = 600s;
-  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
-  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
-  long tmin = timeStart - time10min;
-  long tmax = timeStart + time3days;
-  o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = std::to_string(cfg->getRunNumber());
-  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
-  // store abitrary user object in strongly typed manner
-  int ret = api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
-  LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
-  return ret;
-}
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
-{
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCCDBHost);
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = run;
-  auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
-  if (ctpconfigdb == nullptr) {
-    LOG(info) << "CTP config not in database, timestamp:" << timestamp;
-    ok = 0;
-  } else {
-    // ctpconfigdb->printStream(std::cout);
-    LOG(info) << "CTP config found. Run:" << run;
-    ok = 1;
-  }
-  return *ctpconfigdb;
-}
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
-{
-  bool ok;
-  auto ctpconfig = getConfigFromCCDB(timestamp, run, ok);
-  if (ok == 0) {
-    LOG(error) << "CTP config not in CCDB";
-    return CTPConfiguration();
-  }
-  return ctpconfig;
-}
-CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
-{
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCCDBHost);
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = run;
-  auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
-  if (ctpscalers == nullptr) {
-    LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
-    ok = 0;
-  } else {
-    // ctpscalers->printStream(std::cout);
-    ok = 1;
-  }
-  return *ctpscalers;
 }
 int CTPRunManager::loadScalerNames()
 {

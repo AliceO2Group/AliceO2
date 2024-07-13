@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 find_package(BookkeepingApi REQUIRED)
 o2_add_library(CTPWorkflowScalers
+               SOURCES src/ctpCCDB.cxx
                SOURCES src/RunManager.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsCTP

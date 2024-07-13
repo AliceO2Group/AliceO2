@@ -12,6 +12,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <CCDB/BasicCCDBManager.h>
 #include <DataFormatsCTP/Configuration.h>
+#include "CTPWorkflowScalers/ctpCCDB.h"
 #endif
 using namespace o2::ctp;
 
@@ -22,9 +23,9 @@ void TestConfig(bool test = 0)
   }
   uint64_t timestamp = 1660196771632;
   std::string run = "523148";
-  o2::ctp::CTPRunManager::setCCDBHost("https://alice-ccdb.cern.ch");
+  o2::ctp::ctpCCDB::setCCDBHost("https://alice-ccdb.cern.ch");
   bool ok;
-  auto ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(timestamp, run, ok);
+  auto ctpcfg = o2::ctp::ctpCCDB::getConfigFromCCDB(timestamp, run, ok);
   if (ok == 0) {
     std::cout << "Can not get config for run:" << run << std::endl;
   }

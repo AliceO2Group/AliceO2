@@ -19,6 +19,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsCTP/Scalers.h"
 #include "DataFormatsCTP/Configuration.h"
+#include "CTPWorkflowScalers/ctpCCDB.h"
 #include "TFile.h"
 #include "TString.h"
 #include <string>
@@ -36,7 +37,7 @@ void GetAndSave(std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
   // std::vector<string> runs = {"518543"};
   // std::vector<long> timestamps = {1655118513690};
   int i = 0;
-  CTPRunManager mng;
+  ctpCCDB mng;
   // mng.setCCDBHost(ccdbHost);
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(ccdbHost);
