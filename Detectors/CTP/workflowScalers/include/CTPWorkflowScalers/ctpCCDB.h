@@ -29,7 +29,7 @@ class ctpCCDB
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string, bool& ok);
-  // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
+  void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
   static void setCCDBHost(std::string host) { mCCDBHost = host; };
 
@@ -38,6 +38,8 @@ class ctpCCDB
   // std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
   static std::string mCCDBHost;
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
+  std::string mCCDBPathCTPConfig = "CTP/Config/Config";
+
   ClassDefNV(ctpCCDB, 0);
 };
 } // namespace ctp

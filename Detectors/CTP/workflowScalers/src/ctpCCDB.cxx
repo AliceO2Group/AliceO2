@@ -11,9 +11,8 @@
 
 /// \file ctpCCDB.cxx
 /// \author Roman Lietava
-
+#include "CTPWorkflowScalers/ctpCCDB.h"
 #include "DataFormatsCTP/Configuration.h"
-#include "CTPWorkflowScalers/RunManager.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
 #include <sstream>
