@@ -114,7 +114,7 @@ void StrangenessTrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
-    mTracker.setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    mTracker.setClusterDictionaryITS((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
@@ -122,6 +122,13 @@ void StrangenessTrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
+#ifdef ENABLE_UPGRADES
+  if (matcher == ConcreteDataMatcher("IT3", "CLUSDICT", 0)) {
+    LOG(info) << "it3 cluster dictionary updated";
+    mTracker.setClusterDictionaryIT3((const o2::its3::TopologyDictionary*)obj);
+    return;
+  }
+#endif
 }
 
 void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)

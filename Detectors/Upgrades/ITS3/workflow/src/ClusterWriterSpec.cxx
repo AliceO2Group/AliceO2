@@ -48,22 +48,22 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
     LOG(info) << "ITS3ClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("its3-cluster-writer",
-                                "o2clus_it3.root",
+                                "o2clus_its.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with ITS clusters"},
-                                BranchDefinition<CompClusType>{InputSpec{"compclus", "IT3", "COMPCLUSTERS", 0},
-                                                               "IT3ClusterComp",
+                                BranchDefinition<CompClusType>{InputSpec{"compclus", "ITS", "COMPCLUSTERS", 0},
+                                                               "ITSClusterComp",
                                                                compClustersSizeGetter},
-                                BranchDefinition<PatternsType>{InputSpec{"patterns", "IT3", "PATTERNS", 0},
-                                                               "IT3ClusterPatt"},
-                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "IT3", "CLUSTERSROF", 0},
-                                                               "IT3ClustersROF",
+                                BranchDefinition<PatternsType>{InputSpec{"patterns", "ITS", "PATTERNS", 0},
+                                                               "ITSClusterPatt"},
+                                BranchDefinition<ROFrameRType>{InputSpec{"ROframes", "ITS", "CLUSTERSROF", 0},
+                                                               "ITSClustersROF",
                                                                logger},
-                                BranchDefinition<LabelsType>{InputSpec{"labels", "IT3", "CLUSTERSMCTR", 0},
-                                                             "IT3ClusterMCTruth",
+                                BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "CLUSTERSMCTR", 0},
+                                                             "ITSClusterMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "IT3", "CLUSTERSMC2ROF", 0},
-                                                             "IT3ClustersMC2ROF",
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0},
+                                                             "ITSClustersMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();
 }

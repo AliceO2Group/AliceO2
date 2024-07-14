@@ -87,5 +87,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the reco workflow
   o2::conf::ConfigurableParam::writeINI("o2its3recoflow_configuration.ini");
 
-  return std::move(wf);
+  return wf;
 }

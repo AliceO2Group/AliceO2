@@ -46,31 +46,31 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
   auto logger = [tracksSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
     LOG(info) << "ITS3TrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
   };
-  return MakeRootTreeWriterSpec("its3-track-writer",
-                                "o2trac_its3.root",
+  return MakeRootTreeWriterSpec("its-track-writer",
+                                "o2trac_its.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with IT3 tracks"},
-                                BranchDefinition<std::vector<o2::its::TrackITS>>{InputSpec{"tracks", "IT3", "TRACKS", 0},
-                                                                                 "IT3Track",
+                                BranchDefinition<std::vector<o2::its::TrackITS>>{InputSpec{"tracks", "ITS", "TRACKS", 0},
+                                                                                 "ITSTrack",
                                                                                  tracksSizeGetter},
-                                BranchDefinition<std::vector<int>>{InputSpec{"trackClIdx", "IT3", "TRACKCLSID", 0},
-                                                                   "IT3TrackClusIdx"},
-                                BranchDefinition<std::vector<Vertex>>{InputSpec{"vertices", "IT3", "VERTICES", 0},
+                                BranchDefinition<std::vector<int>>{InputSpec{"trackClIdx", "ITS", "TRACKCLSID", 0},
+                                                                   "ITSTrackClusIdx"},
+                                BranchDefinition<std::vector<Vertex>>{InputSpec{"vertices", "ITS", "VERTICES", 0},
                                                                       "Vertices"},
-                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"vtxROF", "IT3", "VERTICESROF", 0},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"vtxROF", "ITS", "VERTICESROF", 0},
                                                                                      "VerticesROF"},
-                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "IT3", "IT3TrackROF", 0},
-                                                                                     "IT3TracksROF",
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "ITS", "ITSTrackROF", 0},
+                                                                                     "ITSTracksROF",
                                                                                      logger},
-                                BranchDefinition<LabelsType>{InputSpec{"labels", "IT3", "TRACKSMCTR", 0},
-                                                             "IT3TrackMCTruth",
+                                BranchDefinition<LabelsType>{InputSpec{"labels", "ITS", "TRACKSMCTR", 0},
+                                                             "ITSTrackMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<LabelsType>{InputSpec{"labelsVertices", "IT3", "VERTICESMCTR", 0},
-                                                             "IT3VertexMCTruth",
+                                BranchDefinition<LabelsType>{InputSpec{"labelsVertices", "ITS", "VERTICESMCTR", 0},
+                                                             "ITSVertexMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "IT3", "IT3TrackMC2ROF", 0},
-                                                             "IT3TracksMC2ROF",
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "ITSTrackMC2ROF", 0},
+                                                             "ITSTracksMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();
 }
