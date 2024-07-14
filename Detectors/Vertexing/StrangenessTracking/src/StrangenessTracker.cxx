@@ -14,6 +14,11 @@
 #include <numeric>
 #include "StrangenessTracking/StrangenessTracker.h"
 #include "ITStracking/IOUtils.h"
+#include "DetectorsBase/GlobalParams.h"
+
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/IOUtils.h"
+#endif
 
 namespace o2
 {
@@ -40,11 +45,21 @@ bool StrangenessTracker::loadData(const o2::globaltracking::RecoContainer& recoD
   auto compClus = recoData.getITSClusters();
   auto clusPatt = recoData.getITSClustersPatterns();
   auto pattIt = clusPatt.begin();
+  auto pattIt2 = clusPatt.begin();
   mInputITSclusters.reserve(compClus.size());
   mInputClusterSizes.resize(compClus.size());
-  o2::its::ioutils::convertCompactClusters(compClus, pattIt, mInputITSclusters, mDict);
-  auto pattIt2 = clusPatt.begin();
-  getClusterSizes(mInputClusterSizes, compClus, pattIt2, mDict);
+#ifdef ENABLE_UPGRADES
+  if (o2::GlobalParams::Instance().withITS3) {
+    o2::its3::ioutils::convertCompactClusters(compClus, pattIt, mInputITSclusters, mIT3Dict);
+    getClusterSizesIT3(mInputClusterSizes, compClus, pattIt2, mIT3Dict);
+  } else {
+    o2::its::ioutils::convertCompactClusters(compClus, pattIt, mInputITSclusters, mITSDict);
+    getClusterSizesITS(mInputClusterSizes, compClus, pattIt2, mITSDict);
+  }
+#else
+  o2::its::ioutils::convertCompactClusters(compClus, pattIt, mInputITSclusters, mITSDict);
+  getClusterSizesITS(mInputClusterSizes, compClus, pattIt2, mITSDict);
+#endif
 
   mITSvtxBrackets.resize(mInputITStracks.size());
   for (int i = 0; i < mInputITStracks.size(); i++) {

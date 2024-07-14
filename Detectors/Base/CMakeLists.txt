@@ -26,6 +26,7 @@ o2_add_library(DetectorsBase
                        src/GRPGeomHelper.cxx
                        src/Stack.cxx
                        src/VMCSeederService.cxx
+                       src/GlobalParams.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -57,7 +58,8 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/MatLayerCylSet.h
                                   include/DetectorsBase/Aligner.h
                                   include/DetectorsBase/Stack.h
-                                  include/DetectorsBase/SimFieldUtils.h)
+                                  include/DetectorsBase/SimFieldUtils.h
+                                  include/DetectorsBase/GlobalParams.h)
 
 if(BUILD_SIMULATION)
   if (NOT APPLE)

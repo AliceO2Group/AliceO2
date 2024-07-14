@@ -156,10 +156,11 @@ void TrackerDPL::run(ProcessingContext& pc)
   // we therefore need a copy of the vector rather than an object created directly on the input data,
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
+  auto orig = o2::header::gDataOriginITS;
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "IT3TrackROF", 0}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{orig, "ITSTrackROF", 0}, rofsinput.begin(), rofsinput.end());
 
-  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"IT3", "IRFRAMES", 0});
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{orig, "IRFRAMES", 0});
 
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
@@ -175,15 +176,15 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
-  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"IT3", "TRACKCLSID", 0});
+  auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{orig, "TRACKCLSID", 0});
   std::vector<o2::MCCompLabel> trackLabels;
   std::vector<MCCompLabel> verticesLabels;
-  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"IT3", "TRACKS", 0});
+  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{orig, "TRACKS", 0});
   std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::MCCompLabel> allVerticesLabels;
 
-  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"IT3", "VERTICESROF", 0});
-  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"IT3", "VERTICES", 0});
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{orig, "VERTICESROF", 0});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{orig, "VERTICES", 0});
 
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   timeFrame->resizeVectors(7);
@@ -211,7 +212,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
+  for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
@@ -219,7 +220,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
-      for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
+      for (size_t iV{0}; iV < vtxSpan.size(); ++iV) {
         auto& v = vtxSpan[iV];
         if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
           continue; // skip vertex of unwanted multiplicity
@@ -270,7 +271,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       trackLabels = timeFrame->getTracksLabel(iROF);
       auto number{tracks.size()};
       auto first{allTracks.size()};
-      int offset = -rof.getFirstEntry(); // cluster entry!!!
       rof.setFirstEntry(first);
       rof.setNEntries(number);
       if (processingMask[iROF]) {
@@ -282,10 +282,11 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
         trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-        int ncl = trc.getNumberOfClusters(), nclf = 0;
-        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+        int nclf = 0, ncl = (int)allClusIdx.size();
+        for (int ic = TrackITSExt::MaxClusters; (ic--) != 0;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
           auto clid = trc.getClusterIndex(ic);
           if (clid >= 0) {
+            trc.setClusterSize(ic, timeFrame->getClusterSize(clid));
             allClusIdx.push_back(clid);
             nclf++;
           }
@@ -300,9 +301,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       LOGP(info, "ITS3Tracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITS3Tracker pushed {} vertex labels", allVerticesLabels.size());
 
-      pc.outputs().snapshot(Output{"IT3", "TRACKSMCTR", 0}, allTrackLabels);
-      pc.outputs().snapshot(Output{"IT3", "VERTICESMCTR", 0}, allVerticesLabels);
-      pc.outputs().snapshot(Output{"IT3", "IT3TrackMC2ROF", 0}, mc2rofs);
+      pc.outputs().snapshot(Output{orig, "TRACKSMCTR", 0}, allTrackLabels);
+      pc.outputs().snapshot(Output{orig, "VERTICESMCTR", 0}, allVerticesLabels);
+      pc.outputs().snapshot(Output{orig, "ITSTrackMC2ROF", 0}, mc2rofs);
     }
   }
   mTimer.Stop();
@@ -341,7 +342,7 @@ void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "GEOMTGEO", 0)) {
-    LOG(info) << "IT3 GeomtetryTGeo loaded from ccdb";
+    LOG(info) << "IT3 GeometryTGeo loaded from ccdb";
     o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
@@ -363,11 +364,11 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, const int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("compClusters", "IT3", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("patterns", "IT3", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "IT3", "CLUSTERSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (trgType == 1) {
-    inputs.emplace_back("phystrig", "IT3", "PHYSTRIG", 0, Lifetime::Timeframe);
+    inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
   } else if (trgType == 2) {
     inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   }
@@ -382,24 +383,24 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, const int trgType, co
                                                               inputs,
                                                               true);
 
-  if (!useGeom) {
+  if (!useGeom) { // load light-weight geometry
     inputs.emplace_back("itsTGeo", "ITS", "GEOMTGEO", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/Geometry"));
   }
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("IT3", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "TRACKCLSID", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "IT3TrackROF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "VERTICES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "VERTICESROF", 0, Lifetime::Timeframe);
-  outputs.emplace_back("IT3", "IRFRAMES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("labels", "IT3", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "IT3", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "VERTICESMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("IT3", "IT3TrackMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

@@ -28,6 +28,7 @@
 #include "DetectorsVertexing/SVertexer.h"
 #include "StrangenessTracking/StrangenessTracker.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DetectorsBase/GlobalParams.h"
 #include "TStopwatch.h"
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
@@ -147,7 +148,7 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
-    mStrTracker.setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    mStrTracker.setClusterDictionaryITS((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
   if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
@@ -164,6 +165,13 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     o2::its::GeometryTGeo::adopt((o2::its::GeometryTGeo*)obj);
     return;
   }
+#ifdef ENABLE_UPGRADES
+  if (matcher == ConcreteDataMatcher("IT3", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mStrTracker.setClusterDictionaryIT3((const o2::its3::TopologyDictionary*)obj);
+    return;
+  }
+#endif
 }
 
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -192,6 +200,12 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
       o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
       geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     }
+
+#ifdef ENABLE_UPGRADES
+    if (o2::GlobalParams::Instance().withITS3) { // hack to trigger loading dictionary
+      pc.inputs().get<o2::its3::TopologyDictionary*>("cldict");
+    }
+#endif
   }
   // we may have other params which need to be queried regularly
   if (mSrc[GTrackID::TPC]) {
@@ -248,6 +262,11 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   if (srcClus.any()) {
     dataRequest->requestClusters(srcClus, useMC);
   }
+#ifdef ENABLE_UPGRADES
+  if (o2::GlobalParams::Instance().withITS3) { // hack to trigger loading dictionary
+    dataRequest->inputs.emplace_back("cldict", "IT3", "CLUSDICT", Lifetime::Condition, ccdbParamSpec("IT3/Calib/ClusterDictionary"));
+  }
+#endif
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
   dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
