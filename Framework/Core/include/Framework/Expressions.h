@@ -360,13 +360,6 @@ UNARY_FUNC_NODES(Atan, natan);
 UNARY_FUNC_NODES(BitwiseNot, nbitwise_not);
 
 /// conditionals
-template <typename C, typename T, typename E>
-inline Node ifnode(C&& condition_, T&& then_, E&& else_)
-{
-  return Node{ConditionalNode{}, std::forward<T>(then_), std::forward<E>(else_), std::forward<C>(condition_)};
-}
-
-template <>
 inline Node ifnode(Node&& condition_, Node&& then_, Node&& else_)
 {
   return Node{ConditionalNode{}, std::forward<Node>(then_), std::forward<Node>(else_), std::forward<Node>(condition_)};
