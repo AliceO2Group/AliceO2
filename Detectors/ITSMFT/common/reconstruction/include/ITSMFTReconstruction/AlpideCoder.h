@@ -680,8 +680,9 @@ class AlpideCoder
           if (isChipHeader(dataRaw) && isChipEmpty(dataRec)) {
             // This error can be verified by skipping a bunch counter byte and
             // checking that the following byte corresponds to the chip trailer
-            buffer.next(dataRaw);
-            buffer.next(dataRaw);
+            buffer.next(dataRaw); // Skipping chip header
+            buffer.next(dataRaw); // Skipping bunch counter
+            buffer.current(dataRaw);
             if (isChipTrailer(dataRaw)) {
               res = VerifierMismatchResult::EXPECTED_MISMATCH;
             }
