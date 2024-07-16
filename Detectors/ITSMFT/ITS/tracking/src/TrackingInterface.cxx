@@ -53,7 +53,7 @@ void ITSTrackingInterface::initialise()
     trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].CellDeltaTanLambdaSigma *= 4.;
     trackParams[2].MinTrackLength = 4;
-    LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes for tracking and {}/{} for vertexing", trackParams.size(), vertParams[0].nIterations, vertParams.size());
+    LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes for tracking and {}/{} for vertexing", trackParams.size(), o2::its::VertexerParamConfig::Instance().nIterations, vertParams.size());
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
     vertParams[1].vertPerRofThreshold = 0;
