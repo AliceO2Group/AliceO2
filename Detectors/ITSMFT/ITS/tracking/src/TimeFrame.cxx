@@ -269,9 +269,9 @@ int TimeFrame::getTotalClusters() const
 void TimeFrame::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers, bool resetVertices)
 {
   if (iteration == 0) {
-    mNoVertexROF = 0;
     if (maxLayers < trkParam.NLayers && resetVertices) {
       resetRofPV();
+      deepVectorClear(mTotVertPerIteration);
     }
     deepVectorClear(mTracks);
     deepVectorClear(mTracksLabel);
@@ -386,7 +386,8 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       }
     }
   }
-
+  mTotVertPerIteration.resize(1 + iteration);
+  mNoVertexROF = 0;
   deepVectorClear(mRoads);
   deepVectorClear(mRoadLabels);
 

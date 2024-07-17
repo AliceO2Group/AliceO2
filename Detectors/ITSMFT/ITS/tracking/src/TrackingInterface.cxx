@@ -224,7 +224,13 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
-  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {}/{} ROFs", vertexerElapsedTime, mTimeFrame->getPrimaryVerticesNum(), rofspan.size() - mTimeFrame->getNoVertexROF(), rofspan.size());
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
+                           vertexerElapsedTime,
+                           mTimeFrame->getPrimaryVerticesNum(),
+                           mTimeFrame->getTotVertIteration()[0],
+                           o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
+                           rofspan.size() - mTimeFrame->getNoVertexROF(),
+                           rofspan.size());
 
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());

@@ -351,7 +351,6 @@ void VertexerTraits::computeTrackletMatching(const int& iteration)
 
 void VertexerTraits::computeVertices(const int& iteration)
 {
-
   auto nsigmaCut{std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f)};
   std::vector<Vertex> vertices;
   std::vector<std::pair<o2::MCCompLabel, float>> polls;
@@ -436,7 +435,6 @@ void VertexerTraits::computeVertices(const int& iteration)
       }
     }
   }
-  int tmpTotVerts{0};
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     vertices.clear();
     std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
@@ -491,12 +489,11 @@ void VertexerTraits::computeVertices(const int& iteration)
         mTimeFrame->addPrimaryVerticesLabelsInROF(polls, rofId);
       }
     }
-    tmpTotVerts += vertices.size();
-    if (!vertices.size() && !iteration) {
+    mTimeFrame->getTotVertIteration()[iteration] += vertices.size();
+    if (!vertices.size() && !(iteration && (int)mTimeFrame->getPrimaryVertices(rofId).size() > mVrtParams[iteration].vertPerRofThreshold)) {
       mTimeFrame->getNoVertexROF()++;
     }
   }
-  LOGP(info, "=> Total vertices found in iteration {}: {}", iteration, tmpTotVerts);
 #ifdef VTX_DEBUG
   TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
   TTree* ln_clus_lines_tree = new TTree("clusterlines", "tf");

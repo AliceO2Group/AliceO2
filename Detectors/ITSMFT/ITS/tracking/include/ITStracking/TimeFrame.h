@@ -101,6 +101,7 @@ class TimeFrame
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
   int getTotalClusters() const;
+  std::vector<int>& getTotVertIteration() { return mTotVertPerIteration; }
   bool empty() const;
   bool isGPU() const { return mIsGPU; }
   int getSortedIndex(int rof, int layer, int i) const;
@@ -289,7 +290,6 @@ class TimeFrame
  private:
   float mBz = 5.;
   unsigned int mNTotalLowPtVertices = 0;
-  unsigned int mNoVertexROF = 0;
   int mBeamPosWeight = 0;
   std::array<float, 2> mBeamPos = {0.f, 0.f};
   bool isBeamPositionOverridden = false;
@@ -320,6 +320,8 @@ class TimeFrame
   std::vector<std::vector<MCCompLabel>> mLinesLabels;
   std::vector<std::pair<MCCompLabel, float>> mVerticesMCRecInfo;
   std::array<uint32_t, 2> mTotalTracklets = {0, 0};
+  unsigned int mNoVertexROF = 0;
+  std::vector<int> mTotVertPerIteration;
   // \Vertexer
 };
 
