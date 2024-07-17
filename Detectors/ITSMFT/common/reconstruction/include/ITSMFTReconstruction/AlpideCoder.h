@@ -659,6 +659,7 @@ class AlpideCoder
         case ChipStat::UnknownWord:
         case ChipStat::RepeatingPixel:
         case ChipStat::WrongRow:
+          break;
         case ChipStat::APE_STRIP_START:
         case ChipStat::APE_ILLEGAL_CHIPID:
         case ChipStat::APE_DET_TIMEOUT:
@@ -669,7 +670,24 @@ class AlpideCoder
         case ChipStat::APE_PENDING_DETECTOR_EVENT_LIMIT:
         case ChipStat::APE_PENDING_LANE_EVENT_LIMIT:
         case ChipStat::APE_O2N_ERROR:
-        case ChipStat::APE_RATE_MISSING_TRG_ERROR:
+        case ChipStat::APE_RATE_MISSING_TRG_ERROR: {
+          uint8_t errorByte = ChipStat::getAPEByte((ChipStat::DecErrors)errIdx);
+          if (dataRaw == errorByte) {
+            buffer.next(dataRaw); // Skipping error byte
+            // If we encountered the byte corresponding to the APE error,
+            // check that the rest of the raw stream consists of only
+            // padding.
+            while (buffer.next(dataRaw)) {
+              if (dataRaw != 0x00) {
+                break;
+              }
+            }
+            if (buffer.isEmpty()) {
+              res = VerifierMismatchResult::EXPECTED_MISMATCH;
+            }
+          }
+          break;
+        }
         case ChipStat::APE_PE_DATA_MISSING:
         case ChipStat::APE_OOT_DATA_MISSING:
         case ChipStat::WrongDColOrder:
