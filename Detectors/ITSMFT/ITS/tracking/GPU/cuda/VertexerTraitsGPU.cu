@@ -95,7 +95,7 @@ VertexerTraitsGPU::~VertexerTraitsGPU()
 {
 }
 
-void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams, const int& iteration)
+void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams, const int iteration)
 {
   mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils, &mTfGPUParams);
 }
@@ -607,7 +607,7 @@ void VertexerTraitsGPU::updateVertexingParameters(const std::vector<VertexingPar
   }
 }
 
-void VertexerTraitsGPU::computeTracklets(const int& iteration)
+void VertexerTraitsGPU::computeTracklets(const int iteration)
 {
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
@@ -769,11 +769,11 @@ void VertexerTraitsGPU::computeTracklets(const int& iteration)
   mTimeFrameGPU->wipe(3);
 }
 
-void VertexerTraitsGPU::computeTrackletMatching(const int& iteration)
+void VertexerTraitsGPU::computeTrackletMatching(const int iteration)
 {
 }
 
-void VertexerTraitsGPU::computeVertices(const int& iteration)
+void VertexerTraitsGPU::computeVertices(const int iteration)
 {
 }
 

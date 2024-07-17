@@ -88,8 +88,8 @@ class TimeFrame
   void addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
   void addPrimaryVertices(const std::vector<lightVertex>&);
-  void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int& rofId);
-  void addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int& rofId);
+  void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId);
+  void addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int rofId);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
@@ -225,7 +225,7 @@ class TimeFrame
     }
   }
 
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*) {};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
 
   template <typename... T>

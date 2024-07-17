@@ -213,14 +213,14 @@ void TrackerDPL::run(ProcessingContext& pc)
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-    gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
+  gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
   for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
-            if (mIsMC) {
+      if (mIsMC) {
         vMCRecInfo = timeFrame->getPrimaryVerticesMCRecInfo(iRof);
       }
       vtxROF.setNEntries(vtxSpan.size());

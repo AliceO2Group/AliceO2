@@ -97,7 +97,7 @@ void TimeFrame::addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, floa
   mVerticesMCRecInfo.insert(mVerticesMCRecInfo.end(), labels.begin(), labels.end());
 }
 
-void TimeFrame::addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int& rofId)
+void TimeFrame::addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId)
 {
   mPrimaryVertices.insert(mPrimaryVertices.begin() + mROframesPV[rofId], vertices.begin(), vertices.end());
   for (int i = rofId + 1; i < mROframesPV.size(); ++i) {
@@ -105,7 +105,7 @@ void TimeFrame::addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, con
   }
 }
 
-void TimeFrame::addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int& rofId)
+void TimeFrame::addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int rofId)
 {
   mVerticesMCRecInfo.insert(mVerticesMCRecInfo.begin() + mROframesPV[rofId], labels.begin(), labels.end());
 }

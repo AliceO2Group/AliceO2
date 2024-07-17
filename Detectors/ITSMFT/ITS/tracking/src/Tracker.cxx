@@ -477,6 +477,7 @@ void Tracker::getGlobalConfiguration()
       }
     }
     params.DeltaROF = tc.deltaRof;
+    params.skipSecondIterationVerticesInDeltaRof = tc.skipSecondIterationVerticesInDeltaRof;
     params.MaxChi2ClusterAttachment = tc.maxChi2ClusterAttachment > 0 ? tc.maxChi2ClusterAttachment : params.MaxChi2ClusterAttachment;
     params.MaxChi2NDF = tc.maxChi2NDF > 0 ? tc.maxChi2NDF : params.MaxChi2NDF;
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;

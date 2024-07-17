@@ -170,7 +170,7 @@ void VertexerTraits::updateVertexingParameters(const std::vector<VertexingParame
 }
 
 // Main functions
-void VertexerTraits::computeTracklets(const int& iteration)
+void VertexerTraits::computeTracklets(const int iteration)
 {
 #pragma omp parallel num_threads(mNThreads)
   {
@@ -296,7 +296,7 @@ void VertexerTraits::computeTracklets(const int& iteration)
 #endif
 } // namespace its
 
-void VertexerTraits::computeTrackletMatching(const int& iteration)
+void VertexerTraits::computeTrackletMatching(const int iteration)
 {
 #pragma omp parallel for num_threads(mNThreads) schedule(dynamic)
   for (int rofId = 0; rofId < mTimeFrame->getNrof(); ++rofId) {
@@ -349,7 +349,7 @@ void VertexerTraits::computeTrackletMatching(const int& iteration)
 #endif
 }
 
-void VertexerTraits::computeVertices(const int& iteration)
+void VertexerTraits::computeVertices(const int iteration)
 {
   auto nsigmaCut{std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f)};
   std::vector<Vertex> vertices;
@@ -538,7 +538,7 @@ void VertexerTraits::computeVerticesInRof(int rofId,
                                           std::vector<int>& verticesInRof,
                                           TimeFrame* tf,
                                           std::vector<o2::MCCompLabel>* labels,
-                                          const int& iteration)
+                                          const int iteration)
 {
   int foundVertices{0};
   auto nsigmaCut{std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f)};

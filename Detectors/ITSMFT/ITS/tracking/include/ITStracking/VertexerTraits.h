@@ -62,10 +62,10 @@ class VertexerTraits
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
-  virtual void initialise(const TrackingParameters& trackingParams, const int& iteration = 0);
-  virtual void computeTracklets(const int& iteration = 0);
-  virtual void computeTrackletMatching(const int& iteration = 0);
-  virtual void computeVertices(const int& iteration = 0);
+  virtual void initialise(const TrackingParameters& trackingParams, const int iteration = 0);
+  virtual void computeTracklets(const int iteration = 0);
+  virtual void computeTrackletMatching(const int iteration = 0);
+  virtual void computeVertices(const int iteration = 0);
   virtual void adoptTimeFrame(TimeFrame* tf);
   virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
   // Hybrid
@@ -84,7 +84,7 @@ class VertexerTraits
                             std::vector<int>&,
                             TimeFrame*,
                             std::vector<o2::MCCompLabel>*,
-                            const int& iteration = 0);
+                            const int iteration = 0);
 
   static const std::vector<std::pair<int, int>> selectClusters(const int* indexTable,
                                                                const std::array<int, 4>& selectedBinsRect,
@@ -127,7 +127,7 @@ class VertexerTraits
   TimeFrame* mTimeFrame = nullptr;
 };
 
-inline void VertexerTraits::initialise(const TrackingParameters& trackingParams, const int& iteration)
+inline void VertexerTraits::initialise(const TrackingParameters& trackingParams, const int iteration)
 {
   mTimeFrame->initialise(0, trackingParams, 3, (bool)(!iteration)); // iteration for initialisation must be 0 for correctly resetting the frame, we need to pass the non-reset flag for vertices as well, tho.
   setIsGPU(false);
