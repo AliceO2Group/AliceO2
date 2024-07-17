@@ -87,6 +87,7 @@ class TimeFrame
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
   void addPrimaryVertices(const std::vector<lightVertex>&);
+  void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int& rofId);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
@@ -143,7 +144,7 @@ class TimeFrame
   std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
 
   bool hasMCinformation() const;
-  void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7);
+  void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7, bool resetVertices = true);
   void resetRofPV()
   {
     mPrimaryVertices.clear();

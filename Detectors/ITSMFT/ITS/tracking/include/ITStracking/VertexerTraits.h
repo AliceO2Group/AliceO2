@@ -114,7 +114,7 @@ class VertexerTraits
 
 inline void VertexerTraits::initialise(const TrackingParameters& trackingParams, const int& iteration)
 {
-  mTimeFrame->initialise(0, trackingParams, 3);
+  mTimeFrame->initialise(0, trackingParams, 3, (bool)(!iteration)); // iteration for initialisation must be 0 for correctly resetting the frame, we need to pass the non-reset flag for vertices as well, tho.
   setIsGPU(false);
 }
 

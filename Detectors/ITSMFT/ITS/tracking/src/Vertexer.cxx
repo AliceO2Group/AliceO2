@@ -43,7 +43,6 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
   TrackingParameters trkPars;
   TimeFrameGPUParameters tfGPUpar;
   mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
-  LOGP(info, "[1].phiCut {} [1].tanLambdaCut {}", mVertParams[1].phiCut, mVertParams[1].tanLambdaCut);
   for (int iteration = 0; iteration < std::min(mVertParams[0].nIterations, (int)mVertParams.size()); ++iteration) {
     logger(fmt::format("ITS Seeding vertexer iteration {} summary:", iteration));
     trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;

@@ -175,9 +175,10 @@ void VertexerTraits::computeTracklets(const int& iteration)
   {
 #pragma omp for schedule(dynamic)
     for (int rofId = 0; rofId < mTimeFrame->getNrof(); ++rofId) {
+      bool skipROF = iteration && (int)mTimeFrame->getPrimaryVertices(rofId).size() > mVrtParams[iteration].vertPerRofThreshold;
       trackleterKernelHost<TrackletMode::Layer0Layer1, true>(
-        mTimeFrame->getClustersOnLayer(rofId, 0),
-        mTimeFrame->getClustersOnLayer(rofId, 1),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 0) : gsl::span<Cluster>(),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 1) : gsl::span<Cluster>(),
         mTimeFrame->getIndexTable(rofId, 0).data(),
         mVrtParams[iteration].phiCut,
         mTimeFrame->getTracklets()[0],
@@ -187,8 +188,8 @@ void VertexerTraits::computeTracklets(const int& iteration)
         0,
         mVrtParams[iteration].maxTrackletsPerCluster);
       trackleterKernelHost<TrackletMode::Layer1Layer2, true>(
-        mTimeFrame->getClustersOnLayer(rofId, 2),
-        mTimeFrame->getClustersOnLayer(rofId, 1),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 2) : gsl::span<Cluster>(),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 1) : gsl::span<Cluster>(),
         mTimeFrame->getIndexTable(rofId, 2).data(),
         mVrtParams[iteration].phiCut,
         mTimeFrame->getTracklets()[1],
@@ -209,9 +210,10 @@ void VertexerTraits::computeTracklets(const int& iteration)
 
 #pragma omp for schedule(dynamic)
     for (int rofId = 0; rofId < mTimeFrame->getNrof(); ++rofId) {
+      bool skipROF = iteration && (int)mTimeFrame->getPrimaryVertices(rofId).size() > mVrtParams[iteration].vertPerRofThreshold;
       trackleterKernelHost<TrackletMode::Layer0Layer1, false>(
-        mTimeFrame->getClustersOnLayer(rofId, 0),
-        mTimeFrame->getClustersOnLayer(rofId, 1),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 0) : gsl::span<Cluster>(),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 1) : gsl::span<Cluster>(),
         mTimeFrame->getIndexTable(rofId, 0).data(),
         mVrtParams[iteration].phiCut,
         mTimeFrame->getTracklets()[0],
@@ -221,8 +223,8 @@ void VertexerTraits::computeTracklets(const int& iteration)
         mTimeFrame->getNTrackletsROf(rofId, 0),
         mVrtParams[iteration].maxTrackletsPerCluster);
       trackleterKernelHost<TrackletMode::Layer1Layer2, false>(
-        mTimeFrame->getClustersOnLayer(rofId, 2),
-        mTimeFrame->getClustersOnLayer(rofId, 1),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 2) : gsl::span<Cluster>(),
+        !skipROF ? mTimeFrame->getClustersOnLayer(rofId, 1) : gsl::span<Cluster>(),
         mTimeFrame->getIndexTable(rofId, 2).data(),
         mVrtParams[iteration].phiCut,
         mTimeFrame->getTracklets()[1],
@@ -297,6 +299,9 @@ void VertexerTraits::computeTrackletMatching(const int& iteration)
 {
 #pragma omp parallel for num_threads(mNThreads) schedule(dynamic)
   for (int rofId = 0; rofId < mTimeFrame->getNrof(); ++rofId) {
+    if (iteration && (int)mTimeFrame->getPrimaryVertices(rofId).size() > mVrtParams[iteration].vertPerRofThreshold) {
+      continue;
+    }
     mTimeFrame->getLines(rofId).reserve(mTimeFrame->getNTrackletsCluster(rofId, 0).size());
     trackletSelectionKernelHost(
       mTimeFrame->getClustersOnLayer(rofId, 0),
@@ -353,6 +358,9 @@ void VertexerTraits::computeVertices(const int& iteration)
 #endif
   std::vector<int> noClustersVec(mTimeFrame->getNrof(), 0);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    if (iteration && (int)mTimeFrame->getPrimaryVertices(rofId).size() > mVrtParams[iteration].vertPerRofThreshold) {
+      continue;
+    }
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
 
     std::vector<bool> usedTracklets(numTracklets, false);
@@ -426,6 +434,7 @@ void VertexerTraits::computeVertices(const int& iteration)
       }
     }
   }
+  int tmpTotVerts{0};
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     vertices.clear();
     std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
@@ -468,11 +477,17 @@ void VertexerTraits::computeVertices(const int& iteration)
         }
       }
     }
-    mTimeFrame->addPrimaryVertices(vertices);
-    if (!vertices.size()) {
+    if (!iteration) {
+      mTimeFrame->addPrimaryVertices(vertices);
+    } else {
+      mTimeFrame->addPrimaryVerticesInROF(vertices, rofId);
+    }
+    tmpTotVerts += vertices.size();
+    if (!vertices.size() && !iteration) {
       mTimeFrame->getNoVertexROF()++;
     }
   }
+  LOGP(info, "=> Total vertices found in iteration {}: {}", iteration, tmpTotVerts);
 #ifdef VTX_DEBUG
   TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
   TTree* ln_clus_lines_tree = new TTree("clusterlines", "tf");
