@@ -184,9 +184,11 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     intRecs = digCont->getEventRecords();
     mTPCTrkLabels = recoData.getTPCTracksMCLabels();
   }
-
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
-  mTPCRefitter->setTrackReferenceX(900);                                                                                 // disable propagation after refit by setting reference to value > 500
+  if (mTPCTracksArray.size()) {
+    LOGP(info, "Found {} TPC tracks", mTPCTracksArray.size());
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, &mTPCCorrMapsLoader, prop->getNominalBz(), mTPCTrackClusIdx.data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size(), nullptr, o2::base::Propagator::Instance());
+    mTPCRefitter->setTrackReferenceX(900); // disable propagation after refit by setting reference to value > 500
+  }
   float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   std::vector<short> clSector, clRow;
