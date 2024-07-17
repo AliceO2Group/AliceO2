@@ -137,8 +137,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   // MC
   static pmr::vector<o2::MCCompLabel> dummyMCLabTracks, dummyMCLabVerts;
+  static pmr::vector<float> dummyMCPurVerts;
   auto& allTrackLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "TRACKSMCTR", 0}) : dummyMCLabTracks;
   auto& allVerticesLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0}) : dummyMCLabVerts;
+  auto& allVerticesPurities = mIsMC ? pc.outputs().make<std::vector<float>>(Output{"ITS", "VERTICESMCPUR", 0}) : dummyMCPurVerts;
 
   std::uint32_t roFrame = 0;
 
@@ -182,12 +184,16 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     mTimeFrame->resetRofPV();
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
       auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
+      if (mIsMC) {
+        vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
+      }
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
       for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
@@ -198,9 +204,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         selROF = true;
         vertices.push_back(v);
         if (mIsMC) {
-          auto vLabels = mTimeFrame->getPrimaryVerticesLabels(iRof)[iV];
-          allVerticesLabels.reserve(allVerticesLabels.size() + vLabels.size());
-          std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
+          allVerticesLabels.push_back(vMCRecInfo[iV].first);
+          allVerticesPurities.push_back(vMCRecInfo[iV].second);
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
@@ -288,6 +293,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     if (mIsMC) {
       LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
+      LOGP(info, "ITSTracker pushed {} vertex purities", allVerticesPurities.size());
     }
   }
 }

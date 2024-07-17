@@ -100,6 +100,21 @@ class VertexerTraits
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
 
+  template <typename T = o2::MCCompLabel>
+  static std::pair<T, float> computeMain(const std::vector<T>& elements)
+  {
+    T elem;
+    size_t maxCount = 0;
+    for (auto& element : elements) {
+      size_t count = std::count(elements.begin(), elements.end(), element);
+      if (count > maxCount) {
+        maxCount = count;
+        elem = element;
+      }
+    }
+    return std::make_pair(elem, static_cast<float>(maxCount) / elements.size());
+  }
+
  protected:
   unsigned char mIsGPU;
   int mNThreads = 1;

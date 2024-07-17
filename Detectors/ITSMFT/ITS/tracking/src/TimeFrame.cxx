@@ -92,12 +92,22 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
   mROframesPV.push_back(mPrimaryVertices.size());
 }
 
+void TimeFrame::addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels)
+{
+  mVerticesMCRecInfo.insert(mVerticesMCRecInfo.end(), labels.begin(), labels.end());
+}
+
 void TimeFrame::addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int& rofId)
 {
   mPrimaryVertices.insert(mPrimaryVertices.begin() + mROframesPV[rofId], vertices.begin(), vertices.end());
   for (int i = rofId + 1; i < mROframesPV.size(); ++i) {
     mROframesPV[i] += vertices.size();
   }
+}
+
+void TimeFrame::addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int& rofId)
+{
+  mVerticesMCRecInfo.insert(mVerticesMCRecInfo.begin() + mROframesPV[rofId], labels.begin(), labels.end());
 }
 
 void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
@@ -267,7 +277,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     deepVectorClear(mTracksLabel);
     deepVectorClear(mLinesLabels);
     if (resetVertices) {
-      deepVectorClear(mVerticesLabels);
+      deepVectorClear(mVerticesMCRecInfo);
     }
     mTracks.resize(mNrof);
     mTracksLabel.resize(mNrof);

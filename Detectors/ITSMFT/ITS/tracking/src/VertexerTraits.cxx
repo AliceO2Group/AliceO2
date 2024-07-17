@@ -169,6 +169,7 @@ void VertexerTraits::updateVertexingParameters(const std::vector<VertexingParame
   setNThreads(vrtPar[0].nThreads);
 }
 
+// Main functions
 void VertexerTraits::computeTracklets(const int& iteration)
 {
 #pragma omp parallel num_threads(mNThreads)
@@ -353,6 +354,7 @@ void VertexerTraits::computeVertices(const int& iteration)
 
   auto nsigmaCut{std::min(mVrtParams[iteration].vertNsigmaCut * mVrtParams[iteration].vertNsigmaCut * (mVrtParams[iteration].vertRadiusSigma * mVrtParams[iteration].vertRadiusSigma + mVrtParams[iteration].trackletSigma * mVrtParams[iteration].trackletSigma), 1.98f)};
   std::vector<Vertex> vertices;
+  std::vector<std::pair<o2::MCCompLabel, float>> polls;
 #ifdef VTX_DEBUG
   std::vector<std::vector<ClusterLines>> dbg_clusLines(mTimeFrame->getNrof());
 #endif
@@ -470,17 +472,24 @@ void VertexerTraits::computeVertices(const int& iteration)
 
         vertices.back().setTimeStamp(rofId);
         if (mTimeFrame->hasMCinformation()) {
-          mTimeFrame->getVerticesLabels().emplace_back();
+          std::vector<o2::MCCompLabel> labels;
           for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
-            mTimeFrame->getVerticesLabels().back().push_back(mTimeFrame->getLinesLabel(rofId)[index]); // then we can use nContributors from vertices to get the labels
+            labels.push_back(mTimeFrame->getLinesLabel(rofId)[index]); // then we can use nContributors from vertices to get the labels
           }
+          polls.push_back(computeMain(labels));
         }
       }
     }
     if (!iteration) {
       mTimeFrame->addPrimaryVertices(vertices);
+      if (mTimeFrame->hasMCinformation()) {
+        mTimeFrame->addPrimaryVerticesLabels(polls);
+      }
     } else {
       mTimeFrame->addPrimaryVerticesInROF(vertices, rofId);
+      if (mTimeFrame->hasMCinformation()) {
+        mTimeFrame->addPrimaryVerticesLabelsInROF(polls, rofId);
+      }
     }
     tmpTotVerts += vertices.size();
     if (!vertices.size() && !iteration) {

@@ -760,7 +760,7 @@ void VertexerTraitsGPU::computeTracklets(const int& iteration)
       gsl::span<const Vertex> rofVerts{mTimeFrameGPU->getVerticesInChunks()[chunkId].data() + start, static_cast<gsl::span<Vertex>::size_type>(mTimeFrameGPU->getNVerticesInChunks()[chunkId][rofId])};
       mTimeFrameGPU->addPrimaryVertices(rofVerts);
       if (mTimeFrameGPU->hasMCinformation()) {
-        mTimeFrameGPU->getVerticesLabels().emplace_back();
+        // mTimeFrameGPU->getVerticesLabels().emplace_back();
         // TODO: add MC labels
       }
       start += mTimeFrameGPU->getNVerticesInChunks()[chunkId][rofId];
