@@ -469,6 +469,7 @@ void VertexerTraits::computeVertices(const int& iteration)
                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2()); // In place of chi2
 
         vertices.back().setTimeStamp(rofId);
+        vertices.back().setFlags(iteration);
         if (mTimeFrame->hasMCinformation()) {
           std::vector<o2::MCCompLabel> labels;
           for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
