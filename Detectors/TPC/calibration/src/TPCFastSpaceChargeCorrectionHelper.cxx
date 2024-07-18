@@ -159,8 +159,8 @@ void TPCFastSpaceChargeCorrectionHelper::fillSpaceChargeCorrectionFromMap(TPCFas
             pointCorr[3 * i + 0] = dx;
             pointCorr[3 * i + 1] = du;
             pointCorr[3 * i + 2] = dv;
-            info.updateMaxValues(2. * dx, 2. * du, 2. * dv);
-            info.updateMaxValuesInv(-2. * dx, -2. * du, -2. * dv);
+            info.updateMaxValues(20. * dx, 20. * du, 20. * dv);
+            info.updateMaxValuesInv(-20. * dx, -20. * du, -20. * dv);
           }
           helper.approximateDataPoints(spline, splineParameters, 0., spline.getGridX1().getUmax(), 0., spline.getGridX2().getUmax(), &pointSU[0],
                                        &pointSV[0], &pointCorr[0], nDataPoints);
@@ -411,95 +411,69 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
   int nY2Xbins = trackResiduals.getNY2XBins();
   int nZ2Xbins = trackResiduals.getNZ2XBins();
 
-  double marginY2X = trackResiduals.getY2X(0, 2) - trackResiduals.getY2X(0, 0);
-  double marginZ2X = trackResiduals.getZ2X(1) - trackResiduals.getZ2X(0);
+  std::vector<double> uvBinsDouble[2];
 
-  std::vector<int> yBinsInt;
-  {
-    std::vector<double> yBins;
-    yBins.reserve(nY2Xbins + 2);
-    yBins.push_back(trackResiduals.getY2X(0, 0) - marginY2X);
-    for (int i = 0, j = nY2Xbins - 1; i <= j; i += 2, j -= 2) {
-      if (i == j) {
-        yBins.push_back(trackResiduals.getY2X(0, i));
-      } else if (i + 1 == j) {
-        yBins.push_back(trackResiduals.getY2X(0, i));
-      } else {
-        yBins.push_back(trackResiduals.getY2X(0, i));
-        yBins.push_back(trackResiduals.getY2X(0, j));
+  uvBinsDouble[0].reserve(nY2Xbins);
+  uvBinsDouble[1].reserve(nZ2Xbins);
+
+  for (int i = 0, j = nY2Xbins - 1; i <= j; i += 2, j -= 2) {
+    uvBinsDouble[0].push_back(trackResiduals.getY2X(0, i));
+    if (j >= i + 1) {
+      uvBinsDouble[0].push_back(trackResiduals.getY2X(0, j));
+    }
+  }
+
+  for (int i = 0, j = nZ2Xbins - 1; i <= j; i += 2, j -= 2) {
+    uvBinsDouble[1].push_back(-trackResiduals.getZ2X(i));
+    if (j >= i + 1) {
+      uvBinsDouble[1].push_back(-trackResiduals.getZ2X(j));
+    }
+  }
+
+  std::vector<int> uvBinsInt[2];
+
+  for (int iuv = 0; iuv < 2; iuv++) {
+    auto& bins = uvBinsDouble[iuv];
+    std::sort(bins.begin(), bins.end());
+
+    auto& binsInt = uvBinsInt[iuv];
+    binsInt.reserve(bins.size());
+
+    double dy = bins[1] - bins[0];
+    for (int i = 2; i < bins.size(); i++) {
+      double dd = bins[i] - bins[i - 1];
+      if (dd < dy) {
+        dy = dd;
       }
     }
-    yBins.push_back(trackResiduals.getY2X(0, nY2Xbins - 1) + marginY2X);
-
-    std::sort(yBins.begin(), yBins.end());
-    double dy = yBins[1] - yBins[0];
-    for (int i = 1; i < yBins.size(); i++) {
-      if (yBins[i] - yBins[i - 1] < dy) {
-        dy = yBins[i] - yBins[i - 1];
-      }
-    }
-    yBinsInt.reserve(yBins.size());
     // spline knots must be positioned on the grid with integer internal coordinate
     // take the knot position accuracy of 0.1*dy
     dy = dy / 10.;
-    double y0 = yBins[0];
-    double y1 = yBins[yBins.size() - 1];
-    for (auto& y : yBins) {
+    double y0 = bins[0];
+    double y1 = bins[bins.size() - 1];
+    for (auto& y : bins) {
       y -= y0;
       int iy = int(y / dy + 0.5);
-      yBinsInt.push_back(iy);
+      binsInt.push_back(iy);
       double yold = y / (y1 - y0) * 2 - 1.;
       y = iy * dy;
       y = y / (y1 - y0) * 2 - 1.;
-      LOG(info) << "convert y bin: " << yold << " -> " << y << " -> " << iy;
-    }
-  }
-
-  std::vector<int> zBinsInt;
-  {
-    std::vector<double> zBins;
-    zBins.reserve(nZ2Xbins + 2);
-    zBins.push_back(-(trackResiduals.getZ2X(0) - marginZ2X));
-    for (int i = 0; i < nZ2Xbins; i += 2) {
-      zBins.push_back(-trackResiduals.getZ2X(i));
-    }
-    zBins.push_back(-(trackResiduals.getZ2X(nZ2Xbins - 1) + 2. * marginZ2X));
-
-    std::sort(zBins.begin(), zBins.end());
-    double dz = zBins[1] - zBins[0];
-    for (int i = 1; i < zBins.size(); i++) {
-      if (zBins[i] - zBins[i - 1] < dz) {
-        dz = zBins[i] - zBins[i - 1];
+      if (iuv == 0) {
+        LOG(info) << "convert y bin: " << yold << " -> " << y << " -> " << iy;
+      } else {
+        LOG(info) << "convert z bin: " << yold << " -> " << y << " -> " << iy;
       }
     }
-    zBinsInt.reserve(zBins.size());
-    // spline knots must be positioned on the grid with an integer internal coordinate
-    // lets copy the knot positions with the accuracy of 0.01*dz
-    dz = dz / 10.;
-    double z0 = zBins[0];
-    double z1 = zBins[zBins.size() - 1];
-    for (auto& z : zBins) {
-      z -= z0;
-      int iz = int(z / dz + 0.5);
-      zBinsInt.push_back(iz);
-      double zold = z / (z1 - z0);
-      z = iz * dz;
-      z = z / (z1 - z0);
-      LOG(info) << "convert z bin: " << zold << " -> " << z << " -> " << iz;
+
+    if (binsInt.size() < 2) {
+      binsInt.clear();
+      binsInt.push_back(0);
+      binsInt.push_back(1);
     }
   }
 
-  if (yBinsInt.size() < 2) {
-    yBinsInt.clear();
-    yBinsInt.push_back(0);
-    yBinsInt.push_back(1);
-  }
-
-  if (zBinsInt.size() < 2) {
-    zBinsInt.clear();
-    zBinsInt.push_back(0);
-    zBinsInt.push_back(1);
-  }
+  auto& yBinsInt = uvBinsInt[0];
+  auto& zBinsInt = uvBinsInt[1];
 
   int nKnotsY = yBinsInt.size();
   int nKnotsZ = zBinsInt.size();
@@ -534,10 +508,10 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       const auto& rowInfo = geo.getRowInfo(iRow);
       auto& info = correction.getSliceRowInfo(iRoc, iRow);
       const auto& spline = correction.getSpline(iRoc, iRow);
-      double yMin = rowInfo.x * (trackResiduals.getY2X(iRow, 0) - marginY2X);
-      double yMax = rowInfo.x * (trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1) + marginY2X);
-      double zMin = rowInfo.x * (trackResiduals.getZ2X(0) - marginZ2X);
-      double zMax = rowInfo.x * (trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1) + 2. * marginZ2X);
+      double yMin = rowInfo.x * trackResiduals.getY2X(iRow, 0);
+      double yMax = rowInfo.x * trackResiduals.getY2X(iRow, trackResiduals.getNY2XBins() - 1);
+      double zMin = rowInfo.x * trackResiduals.getZ2X(0);
+      double zMax = rowInfo.x * trackResiduals.getZ2X(trackResiduals.getNZ2XBins() - 1);
       double uMin = yMin;
       double uMax = yMax;
       double vMin = geo.getTPCzLength(iRoc) - zMax;
@@ -563,6 +537,7 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
   struct VoxelData {
     int mNentries{0};    // number of entries
+    float mX, mY, mZ;    // mean position in the local coordinates
     float mCx, mCy, mCz; // corrections to the local coordinates
   };
 
@@ -589,16 +564,19 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
         }
         int iy = v->bvox[o2::tpc::TrackResiduals::VoxF]; // bin number in y/x 0..14
         int iz = v->bvox[o2::tpc::TrackResiduals::VoxZ]; // bin number in z/x 0..4
-        auto& vox = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
-        vox.mNentries = (int)v->stat[o2::tpc::TrackResiduals::VoxV];
-        vox.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
-        vox.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
-        vox.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
-        if (0 && vox.mNentries < 1) {
-          vox.mCx = 0.;
-          vox.mCy = 0.;
-          vox.mCz = 0.;
-          vox.mNentries = 1;
+        auto& data = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
+        data.mNentries = (int)v->stat[o2::tpc::TrackResiduals::VoxV];
+        data.mX = v->stat[o2::tpc::TrackResiduals::VoxX];
+        data.mY = v->stat[o2::tpc::TrackResiduals::VoxF];
+        data.mZ = v->stat[o2::tpc::TrackResiduals::VoxZ];
+        data.mCx = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResX] : v->D[o2::tpc::TrackResiduals::ResX];
+        data.mCy = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResY] : v->D[o2::tpc::TrackResiduals::ResY];
+        data.mCz = useSmoothed ? v->DS[o2::tpc::TrackResiduals::ResZ] : v->D[o2::tpc::TrackResiduals::ResZ];
+        if (0 && data.mNentries < 1) {
+          data.mCx = 0.;
+          data.mCy = 0.;
+          data.mCz = 0.;
+          data.mNentries = 1;
         }
       }
     };
@@ -642,10 +620,27 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
               if (iRoc >= geo.getNumberOfSlicesA()) {
                 vox.mZ = -vox.mZ;
               }
+              data.mY *= x;
+              data.mZ *= x;
+              /*
+              if ( fabs(x - data.mX) > 0.01 || fabs(vox.mY - data.mY) > 5. || fabs(vox.mZ - data.mZ) > 5.) {
+                std::cout
+                  << " roc " << iRoc << " row " << iRow
+                  << " voxel x " << x << " y " << vox.mY << " z " << vox.mZ
+                  << " data x " << data.mX << " y " << data.mY << " z " << data.mZ
+                  << std::endl;
+              }
+              */
+              if (1) { // always use voxel center instead of the mean position
+                data.mY = vox.mY;
+                data.mZ = vox.mZ;
+              }
               if (data.mNentries < 1) { // no data
                 data.mCx = 0.;
                 data.mCy = 0.;
                 data.mCz = 0.;
+                data.mY = vox.mY;
+                data.mZ = vox.mZ;
                 vox.mSmoothingStep = 100;
               } else { // voxel contains data
                 if (invertSigns) {
@@ -726,102 +721,59 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
 
         // feed the row data to the helper
 
-        double yMin = 0., yMax = 0., zMin = 0.;
-
         auto& info = correction.getSliceRowInfo(iRoc, iRow);
         const auto& spline = correction.getSpline(iRoc, iRow);
 
-        {
-          float u0, u1, v0, v1;
-          correction.convGridToUV(iRoc, iRow, 0., 0., u0, v0);
-          correction.convGridToUV(iRoc, iRow,
-                                  spline.getGridX1().getUmax(), spline.getGridX2().getUmax(), u1, v1);
-          float y0, y1, z0, z1;
-          geo.convUVtoLocal(iRoc, u0, v0, y0, z0);
-          geo.convUVtoLocal(iRoc, u1, v1, y1, z1);
-          if (iRoc < geo.getNumberOfSlicesA()) {
-            yMin = y0;
-            yMax = y1;
-          } else {
-            yMin = y1;
-            yMax = y0;
+        auto addEdge = [&](int iy1, int iz1, int iy2, int iz2, int nSteps) {
+          auto& data1 = vRocData[iRoc * nRows + iRow][iy1 * nZ2Xbins + iz1];
+          auto& vox1 = vRowVoxels[iy1 * nZ2Xbins + iz1];
+          auto& data2 = vRocData[iRoc * nRows + iRow][iy2 * nZ2Xbins + iz2];
+          auto& vox2 = vRowVoxels[iy2 * nZ2Xbins + iz2];
+          if (vox1.mSmoothingStep > 2) {
+            LOG(fatal) << "empty voxel is not repared: y " << iy1 << " z " << iz1;
           }
-          zMin = z1;
-        }
+          if (vox2.mSmoothingStep > 2) {
+            LOG(fatal) << "empty voxel is not repared: y " << iy2 << " z " << iz2;
+          }
+          double y1 = vox1.mY;
+          double z1 = vox1.mZ;
+          double cx1 = data1.mCx;
+          double cy1 = data1.mCy;
+          double cz1 = data1.mCz;
+          double y2 = vox2.mY;
+          double z2 = vox2.mZ;
+          double cx2 = data2.mCx;
+          double cy2 = data2.mCy;
+          double cz2 = data2.mCz;
 
-        double zEdge = 0.;
-        if (iRoc < geo.getNumberOfSlicesA()) {
-          zEdge = geo.getTPCzLengthA();
-        } else {
-          zEdge = -geo.getTPCzLengthC();
-        }
+          for (int is = 0; is < nSteps; is++) {
+            double s2 = is / (double)nSteps;
+            double s1 = 1. - s2;
+            double y = s1 * y1 + s2 * y2;
+            double z = s1 * z1 + s2 * z2;
+            double cx = s1 * cx1 + s2 * cx2;
+            double cy = s1 * cy1 + s2 * cy2;
+            double cz = s1 * cz1 + s2 * cz2;
+            map.addCorrectionPoint(iRoc, iRow, y, z, cx, cy, cz);
+          }
+        };
 
         for (int iy = 0; iy < nY2Xbins; iy++) {
-          for (int iz = 0; iz < nZ2Xbins; iz++) {
-            auto& data = vRocData[iRoc * nRows + iRow][iy * nZ2Xbins + iz];
-            auto& vox = vRowVoxels[iy * nZ2Xbins + iz];
-            if (vox.mSmoothingStep > 2) {
-              LOG(fatal) << "empty voxel is not repared";
-            }
+          for (int iz = 0; iz < nZ2Xbins - 1; iz++) {
+            addEdge(iy, iz, iy, iz + 1, 3);
+          }
+          addEdge(iy, nZ2Xbins - 1, iy, nZ2Xbins - 1, 1);
+        }
 
-            double y = vox.mY;
-            double z = vox.mZ;
-            double dy = vox.mDy;
-            double dz = vox.mDz;
-            double correctionX = data.mCx;
-            double correctionY = data.mCy;
-            double correctionZ = data.mCz;
+        for (int iz = 0; iz < nZ2Xbins; iz++) {
+          for (int iy = 0; iy < nY2Xbins - 1; iy++) {
+            addEdge(iy, iz, iy + 1, iz, 3);
+          }
+          addEdge(nY2Xbins - 1, iz, nY2Xbins - 1, iz, 1);
+        } // iy
 
-            double yStep = dy / 2.;
-            double zStep = dz / 2.;
-
-            double yFirst = y;
-            double yLast = y;
-            double zFirst = z;
-            double zLast = z;
-
-            if (iy == 0) { // extend value of the first Y bin to the row edge
-              yFirst = yMin;
-              yStep = (yLast - yFirst) / 2.;
-            }
-
-            if (iy == nY2Xbins - 1) { // extend value of the last Y bin to the row edge
-              yLast = yMax;
-              yStep = (yLast - yFirst) / 2.;
-            }
-
-            for (double py = yFirst; py <= yLast + yStep / 2.; py += yStep) {
-
-              for (double pz = zFirst; pz <= zLast + zStep / 2.; pz += zStep) {
-                map.addCorrectionPoint(iRoc, iRow, py, pz, correctionX, correctionY,
-                                       correctionZ);
-              }
-
-              if (iz == 0) { // extend value of the first Z bin to Z=0.
-                int nZsteps = 2;
-                for (int is = 0; is < nZsteps; is++) {
-                  double pz = z + (zMin - z) * (is + 1.) / nZsteps;
-                  double s = 1.; //(nZsteps - 1. - is) / nZsteps;
-                  map.addCorrectionPoint(iRoc, iRow, py, pz, s * correctionX,
-                                         s * correctionY, s * correctionZ);
-                }
-              }
-
-              if (iz == nZ2Xbins - 1) {
-                // extend value of the last Z bin to the readout, linear decrease of all values to 0.
-                int nZsteps = 2;
-                for (int is = 0; is < nZsteps; is++) {
-                  double pz = z + (zEdge - z) * (is + 1.) / nZsteps;
-                  double s = (nZsteps - 1. - is) / nZsteps;
-                  map.addCorrectionPoint(iRoc, iRow, py, pz, s * correctionX,
-                                         s * correctionY, s * correctionZ);
-                }
-              }
-            }
-          } // iz
-        }   // iy
-      }     // iRow
-    };      // myThread
+      } // iRow
+    };  // myThread
 
     // run n threads
 

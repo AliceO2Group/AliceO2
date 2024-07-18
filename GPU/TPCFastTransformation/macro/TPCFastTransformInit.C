@@ -138,6 +138,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   o2::tpc::TPCFastSpaceChargeCorrectionHelper* corrHelper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
 
   corrHelper->setNthreadsToMaximum();
+  // corrHelper->setNthreads(1);
 
   auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree, useSmoothed, invertSigns);
 
@@ -304,6 +305,11 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
       correctionX *= -1.;
       correctionY *= -1.;
       correctionZ *= -1.;
+    }
+
+    if (voxEntries > 0.) { // use mean statistical positions instead of the bin centers:
+      y = x * v->stat[o2::tpc::TrackResiduals::VoxF];
+      z = x * v->stat[o2::tpc::TrackResiduals::VoxZ];
     }
 
     float u, v, cx, cu, cv, cy, cz;

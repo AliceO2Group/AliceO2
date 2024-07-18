@@ -315,6 +315,14 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
   {
     const auto nYdimTmp = SplineUtil::getNdim<YdimT>(inpYdim);
     const auto nYdim = nYdimTmp.get();
+
+    if (u < (DataT)0) {
+      u = (DataT)0;
+    }
+    if (u > (DataT)TBase::getUmax()) {
+      u = (DataT)TBase::getUmax();
+    }
+
     T uu = T(u - knotL.u);
     T li = T(knotL.Li);
     T v = uu * li; // scaled u
@@ -339,11 +347,19 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
   }
 
   template <typename T>
-  GPUd() static void getUderivatives(const Knot& knotL, DataT u,
-                                     T& dSl, T& dDl, T& dSr, T& dDr)
+  GPUd() void getUderivatives(const Knot& knotL, DataT u,
+                              T& dSl, T& dDl, T& dSr, T& dDr) const
   {
     /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
     /// over the spline values Sl, Sr and the slopes Dl, Dr
+
+    if (u < (DataT)0) {
+      u = (DataT)0;
+    }
+    if (u > (DataT)TBase::getUmax()) {
+      u = (DataT)TBase::getUmax();
+    }
+
     u = u - knotL.u;
     T v = u * T(knotL.Li); // scaled u
     T vm1 = v - 1.;
