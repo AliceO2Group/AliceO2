@@ -266,6 +266,73 @@ int TimeFrame::getTotalClusters() const
   return int(totalClusters);
 }
 
+void TimeFrame::prepareClusters(const TrackingParameters& trkParam, const int maxLayers)
+{
+  std::vector<ClusterHelper> cHelper;
+  std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
+  for (int rof{0}; rof < mNrof; ++rof) {
+    if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
+      continue;
+    }
+    for (int iLayer{0}; iLayer < std::min(trkParam.NLayers, maxLayers); ++iLayer) {
+      std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
+      const auto unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
+      const int clustersNum{static_cast<int>(unsortedClusters.size())};
+
+      deepVectorClear(cHelper);
+      cHelper.resize(clustersNum);
+
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+
+        const Cluster& c = unsortedClusters[iCluster];
+        ClusterHelper& h = cHelper[iCluster];
+        float x = c.xCoordinate - mBeamPos[0];
+        float y = c.yCoordinate - mBeamPos[1];
+        const float& z = c.zCoordinate;
+        float phi = math_utils::computePhi(x, y);
+        int zBin{mIndexTableUtils.getZBinIndex(iLayer, z)};
+        if (zBin < 0) {
+          zBin = 0;
+          mBogusClusters[iLayer]++;
+        } else if (zBin >= trkParam.ZBins) {
+          zBin = trkParam.ZBins - 1;
+          mBogusClusters[iLayer]++;
+        }
+        int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
+        h.phi = phi;
+        h.r = math_utils::hypot(x, y);
+        mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
+        mMaxR[iLayer] = o2::gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
+        h.bin = bin;
+        h.ind = clsPerBin[bin]++;
+      }
+      std::vector<int> lutPerBin(clsPerBin.size());
+      lutPerBin[0] = 0;
+      for (unsigned int iB{1}; iB < lutPerBin.size(); ++iB) {
+        lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
+      }
+
+      auto clusters2beSorted{getClustersOnLayer(rof, iLayer)};
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+        const ClusterHelper& h = cHelper[iCluster];
+
+        Cluster& c = clusters2beSorted[lutPerBin[h.bin] + h.ind];
+        c = unsortedClusters[iCluster];
+        c.phi = h.phi;
+        c.radius = h.r;
+        c.indexTableBinIndex = h.bin;
+      }
+
+      for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
+        mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = lutPerBin[iB];
+      }
+      for (auto iB{clsPerBin.size()}; iB < (trkParam.ZBins * trkParam.PhiBins + 1); iB++) {
+        mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = clustersNum;
+      }
+    }
+  }
+}
+
 void TimeFrame::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers, bool resetVertices)
 {
   if (iteration == 0) {
@@ -311,9 +378,6 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       v = std::vector<int>(mNrof + 1, 0);
     }
 
-    std::vector<ClusterHelper> cHelper;
-    std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
-
     for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
       if (trkParam.SystErrorY2[iLayer] > 0.f || trkParam.SystErrorZ2[iLayer] > 0.f) {
         for (auto& tfInfo : mTrackingFrameInfo[iLayer]) {
@@ -323,69 +387,11 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
         }
       }
     }
-
-    for (int rof{0}; rof < mNrof; ++rof) {
-      if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
-        continue;
-      }
-      for (int iLayer{0}; iLayer < std::min(trkParam.NLayers, maxLayers); ++iLayer) {
-        std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
-        const auto unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
-        const int clustersNum{static_cast<int>(unsortedClusters.size())};
-
-        deepVectorClear(cHelper);
-        cHelper.resize(clustersNum);
-
-        for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-
-          const Cluster& c = unsortedClusters[iCluster];
-          ClusterHelper& h = cHelper[iCluster];
-          float x = c.xCoordinate - mBeamPos[0];
-          float y = c.yCoordinate - mBeamPos[1];
-          const float& z = c.zCoordinate;
-          float phi = math_utils::computePhi(x, y);
-          int zBin{mIndexTableUtils.getZBinIndex(iLayer, z)};
-          if (zBin < 0) {
-            zBin = 0;
-            mBogusClusters[iLayer]++;
-          } else if (zBin >= trkParam.ZBins) {
-            zBin = trkParam.ZBins - 1;
-            mBogusClusters[iLayer]++;
-          }
-          int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
-          h.phi = phi;
-          h.r = math_utils::hypot(x, y);
-          mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
-          mMaxR[iLayer] = o2::gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
-          h.bin = bin;
-          h.ind = clsPerBin[bin]++;
-        }
-        std::vector<int> lutPerBin(clsPerBin.size());
-        lutPerBin[0] = 0;
-        for (unsigned int iB{1}; iB < lutPerBin.size(); ++iB) {
-          lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
-        }
-
-        auto clusters2beSorted{getClustersOnLayer(rof, iLayer)};
-        for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-          const ClusterHelper& h = cHelper[iCluster];
-
-          Cluster& c = clusters2beSorted[lutPerBin[h.bin] + h.ind];
-          c = unsortedClusters[iCluster];
-          c.phi = h.phi;
-          c.radius = h.r;
-          c.indexTableBinIndex = h.bin;
-        }
-
-        for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
-          mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = lutPerBin[iB];
-        }
-        for (auto iB{clsPerBin.size()}; iB < (trkParam.ZBins * trkParam.PhiBins + 1); iB++) {
-          mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = clustersNum;
-        }
-      }
-    }
   }
+  if (iteration == 0 || iteration == 3) {
+    prepareClusters(trkParam, maxLayers);
+  }
+
   mTotVertPerIteration.resize(1 + iteration);
   mNoVertexROF = 0;
   deepVectorClear(mRoads);

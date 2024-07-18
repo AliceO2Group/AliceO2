@@ -57,7 +57,9 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   }
 
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
-
+    if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
+      mTimeFrame->flipMultiplicityCutMask();
+    }
     logger(fmt::format("ITS Tracking iteration {} summary:", iteration));
     double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
     int nTracklets{0}, nCells{0}, nNeighbours{0}, nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};

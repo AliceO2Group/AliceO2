@@ -40,19 +40,25 @@ void ITSTrackingInterface::initialise()
     LOGP(info, "Tracking mode not set, trying to fetch it from configurable params to: {}", asString(mMode));
   }
   if (mMode == TrackingMode::Async) {
-    trackParams.resize(3);
+    trackParams.resize(o2::its::TrackerParamConfig::Instance().doUPCIteration ? 4 : 3);
     vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
+    trackParams[1].TrackletMinPt = 0.2f;
+    trackParams[1].CellDeltaTanLambdaSigma *= 2.;
+    trackParams[2].TrackletMinPt = 0.1f;
+    trackParams[2].CellDeltaTanLambdaSigma *= 4.;
+    trackParams[2].MinTrackLength = 4;
+    if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
+      trackParams[3].TrackletMinPt = 0.1f;
+      trackParams[3].CellDeltaTanLambdaSigma *= 4.;
+      trackParams[3].MinTrackLength = 4;
+      trackParams[3].DeltaROF = 0; // UPC specific setting
+    }
     for (auto& param : trackParams) {
       param.ZBins = 64;
       param.PhiBins = 32;
       param.CellsPerClusterLimit = 1.e3f;
       param.TrackletsPerClusterLimit = 1.e3f;
     }
-    trackParams[1].TrackletMinPt = 0.2f;
-    trackParams[1].CellDeltaTanLambdaSigma *= 2.;
-    trackParams[2].TrackletMinPt = 0.1f;
-    trackParams[2].CellDeltaTanLambdaSigma *= 4.;
-    trackParams[2].MinTrackLength = 4;
     LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes for tracking and {}/{} for vertexing", trackParams.size(), o2::its::VertexerParamConfig::Instance().nIterations, vertParams.size());
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
@@ -169,7 +175,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   FastMultEst multEst; // mult estimator
   std::vector<bool> processingMask;
-  int cutVertexMult{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
   mTimeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
@@ -193,6 +199,11 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
       if (mIsMC) {
         vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
+      }
+      if (o2::its::TrackerParamConfig::Instance().doUPCIteration && (vtxSpan.size() && vtxSpan[0].getFlags() == 1)) { // at least one vertex in this ROF and it is from second vertex iteration
+        LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
+        processingMask[iRof] = false;
+        cutUPCVertex++;
       }
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
@@ -223,7 +234,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       mTimeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-  LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
+  LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}, upc.sel:{}", cutRandomMult + cutVertexMult + cutUPCVertex, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult, cutUPCVertex);
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
                            vertexerElapsedTime,
                            mTimeFrame->getPrimaryVerticesNum(),

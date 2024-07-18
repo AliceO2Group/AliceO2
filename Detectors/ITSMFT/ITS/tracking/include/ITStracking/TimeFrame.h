@@ -208,6 +208,7 @@ class TimeFrame
   bool isRoadFake(int i) const;
 
   void setMultiplicityCutMask(const std::vector<bool>& cutMask) { mMultiplicityCutMask = cutMask; }
+  void flipMultiplicityCutMask() { mMultiplicityCutMask.flip(); }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 
@@ -225,7 +226,10 @@ class TimeFrame
     }
   }
 
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*)
+  {
+    return;
+  };
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
 
   template <typename... T>
@@ -288,6 +292,7 @@ class TimeFrame
   }
 
  private:
+  void prepareClusters(const TrackingParameters& trkParam, const int maxLayers);
   float mBz = 5.;
   unsigned int mNTotalLowPtVertices = 0;
   int mBeamPosWeight = 0;
