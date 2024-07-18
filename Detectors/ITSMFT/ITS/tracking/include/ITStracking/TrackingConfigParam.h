@@ -22,6 +22,8 @@ namespace its
 
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
+  int nIterations = 1;         // Number of vertexing passes to perform
+  int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
   bool allowSingleContribClusters = false;
 
   // geometrical cuts
@@ -80,6 +82,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool saveTimeBenchmarks = false;
   bool overrideBeamEstimation = false; // used by gpuwf only
   int trackingMode = -1;               // -1: unset, 0=sync, 1=async, 2=cosmics used by gpuwf only
+  bool doUPCIteration = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

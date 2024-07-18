@@ -33,31 +33,43 @@ void ITSTrackingInterface::initialise()
 {
   mRunVertexer = true;
   mCosmicsProcessing = false;
+  std::vector<VertexingParameters> vertParams;
   std::vector<TrackingParameters> trackParams;
   if (mMode == TrackingMode::Unset) {
     mMode = (TrackingMode)(o2::its::TrackerParamConfig::Instance().trackingMode);
     LOGP(info, "Tracking mode not set, trying to fetch it from configurable params to: {}", asString(mMode));
   }
   if (mMode == TrackingMode::Async) {
-    trackParams.resize(3);
+    trackParams.resize(o2::its::TrackerParamConfig::Instance().doUPCIteration ? 4 : 3);
+    vertParams.resize(2); // The number of actual iterations will be set as a configKeyVal to allow for pp/PbPb choice
+    trackParams[1].TrackletMinPt = 0.2f;
+    trackParams[1].CellDeltaTanLambdaSigma *= 2.;
+    trackParams[2].TrackletMinPt = 0.1f;
+    trackParams[2].CellDeltaTanLambdaSigma *= 4.;
+    trackParams[2].MinTrackLength = 4;
+    if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
+      trackParams[3].TrackletMinPt = 0.1f;
+      trackParams[3].CellDeltaTanLambdaSigma *= 4.;
+      trackParams[3].MinTrackLength = 4;
+      trackParams[3].DeltaROF = 0; // UPC specific setting
+    }
     for (auto& param : trackParams) {
       param.ZBins = 64;
       param.PhiBins = 32;
       param.CellsPerClusterLimit = 1.e3f;
       param.TrackletsPerClusterLimit = 1.e3f;
     }
-    trackParams[1].TrackletMinPt = 0.2f;
-    trackParams[1].CellDeltaTanLambdaSigma *= 2.;
-    trackParams[2].TrackletMinPt = 0.1f;
-    trackParams[2].CellDeltaTanLambdaSigma *= 4.;
-    trackParams[2].MinTrackLength = 4;
-    LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
+    LOGP(info, "Initializing tracker in async. phase reconstruction with {} passes for tracking and {}/{} for vertexing", trackParams.size(), o2::its::VertexerParamConfig::Instance().nIterations, vertParams.size());
+    vertParams[1].phiCut = 0.015f;
+    vertParams[1].tanLambdaCut = 0.015f;
+    vertParams[1].vertPerRofThreshold = 0;
   } else if (mMode == TrackingMode::Sync) {
     trackParams.resize(1);
     trackParams[0].ZBins = 64;
     trackParams[0].PhiBins = 32;
     trackParams[0].MinTrackLength = 4;
-    LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+    LOGP(info, "Initializing tracker in sync. phase reconstruction with {} passes", trackParams.size());
+    vertParams.resize(1);
   } else if (mMode == TrackingMode::Cosmics) {
     mCosmicsProcessing = true;
     mRunVertexer = false;
@@ -71,7 +83,7 @@ void ITSTrackingInterface::initialise()
     trackParams[0].MaxChi2NDF = 40.;
     trackParams[0].TrackletsPerClusterLimit = 100.;
     trackParams[0].CellsPerClusterLimit = 100.;
-    LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
+    LOGP(info, "Initializing tracker in reconstruction for cosmics with {} passes", trackParams.size());
 
   } else {
     throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", asString(mMode)));
@@ -81,6 +93,7 @@ void ITSTrackingInterface::initialise()
     params.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   }
   mTracker->setParameters(trackParams);
+  mVertexer->setParameters(vertParams);
 }
 
 template <bool isGPU>
@@ -130,8 +143,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   // MC
   static pmr::vector<o2::MCCompLabel> dummyMCLabTracks, dummyMCLabVerts;
+  static pmr::vector<float> dummyMCPurVerts;
   auto& allTrackLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "TRACKSMCTR", 0}) : dummyMCLabTracks;
   auto& allVerticesLabels = mIsMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0}) : dummyMCLabVerts;
+  auto& allVerticesPurities = mIsMC ? pc.outputs().make<std::vector<float>>(Output{"ITS", "VERTICESMCPUR", 0}) : dummyMCPurVerts;
 
   std::uint32_t roFrame = 0;
 
@@ -159,8 +174,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
 
   FastMultEst multEst; // mult estimator
-  std::vector<bool> processingMask;
-  int cutVertexMult{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  std::vector<bool> processingMask, processUPCMask;
+  int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  processUPCMask.resize(processingMask.size(), false);
   mTimeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
@@ -175,12 +191,21 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     mTimeFrame->resetRofPV();
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
       auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
+      if (mIsMC) {
+        vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
+      }
+      if (o2::its::TrackerParamConfig::Instance().doUPCIteration && (vtxSpan.size() && vtxSpan[0].getFlags() == 1)) { // at least one vertex in this ROF and it is from second vertex iteration
+        LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
+        processUPCMask[iRof] = true;
+        cutUPCVertex++;
+      }
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
       for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
@@ -191,9 +216,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         selROF = true;
         vertices.push_back(v);
         if (mIsMC) {
-          auto vLabels = mTimeFrame->getPrimaryVerticesLabels(iRof)[iV];
-          allVerticesLabels.reserve(allVerticesLabels.size() + vLabels.size());
-          std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
+          allVerticesLabels.push_back(vMCRecInfo[iV].first);
+          allVerticesPurities.push_back(vMCRecInfo[iV].second);
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
@@ -211,8 +235,14 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       mTimeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-  LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
-  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, mTimeFrame->getPrimaryVerticesNum(), rofspan.size());
+  LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}, upc.sel:{}", cutRandomMult + cutVertexMult + cutUPCVertex, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult, cutUPCVertex);
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
+                           vertexerElapsedTime,
+                           mTimeFrame->getPrimaryVerticesNum(),
+                           mTimeFrame->getTotVertIteration()[0],
+                           o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
+                           rofspan.size() - mTimeFrame->getNoVertexROF(),
+                           rofspan.size());
 
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
@@ -224,6 +254,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   } else {
 
     mTimeFrame->setMultiplicityCutMask(processingMask);
+    mTimeFrame->setROFMask(processUPCMask);
     // Run CA tracker
     if constexpr (isGPU) {
       if (mMode == o2::its::TrackingMode::Async) {
@@ -281,6 +312,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     if (mIsMC) {
       LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
+      LOGP(info, "ITSTracker pushed {} vertex purities", allVerticesPurities.size());
     }
   }
 }
