@@ -208,7 +208,8 @@ class TimeFrame
   bool isRoadFake(int i) const;
 
   void setMultiplicityCutMask(const std::vector<bool>& cutMask) { mMultiplicityCutMask = cutMask; }
-  void flipMultiplicityCutMask() { mMultiplicityCutMask.flip(); }
+  void setROFMask(const std::vector<bool>& rofMask) { mROFMask = rofMask; }
+  void swapMasks() { mMultiplicityCutMask.swap(mROFMask); }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 
@@ -305,6 +306,7 @@ class TimeFrame
   std::vector<float> mPositionResolution;
   std::vector<uint8_t> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
+  std::vector<bool> mROFMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;

@@ -98,11 +98,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, in
 
         for (int iV{startVtx}; iV < endVtx; ++iV) {
           auto& primaryVertex{primaryVertices[iV]};
-          if (mTrkParams[iteration].SkipDeltaRofIfsecondIterationVtx) {
-            if (primaryVertex.isFlagSet(1)) {
-              minRof = std::max(startROF, rof0); // same logic but setting like deltaRof=0
-              maxRof = std::min(endROF - 1, rof0);
-            }
+          if (primaryVertex.isFlagSet(1) && iteration != 3) {
+            continue;
           }
           const float resolution = o2::gpu::CAMath::Sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 

@@ -82,7 +82,6 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool saveTimeBenchmarks = false;
   bool overrideBeamEstimation = false; // used by gpuwf only
   int trackingMode = -1;               // -1: unset, 0=sync, 1=async, 2=cosmics used by gpuwf only
-  bool skipDeltaRofIfsecondIterationVtx = false;
   bool doUPCIteration = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");

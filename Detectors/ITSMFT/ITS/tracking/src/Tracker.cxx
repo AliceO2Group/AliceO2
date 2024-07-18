@@ -58,7 +58,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
 
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
     if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
-      mTimeFrame->flipMultiplicityCutMask();
+      mTimeFrame->swapMasks();
     }
     logger(fmt::format("ITS Tracking iteration {} summary:", iteration));
     double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
@@ -479,7 +479,6 @@ void Tracker::getGlobalConfiguration()
       }
     }
     params.DeltaROF = tc.deltaRof;
-    params.SkipDeltaRofIfsecondIterationVtx = tc.skipDeltaRofIfsecondIterationVtx;
     params.DoUPCIteration = tc.doUPCIteration;
     params.MaxChi2ClusterAttachment = tc.maxChi2ClusterAttachment > 0 ? tc.maxChi2ClusterAttachment : params.MaxChi2ClusterAttachment;
     params.MaxChi2NDF = tc.maxChi2NDF > 0 ? tc.maxChi2NDF : params.MaxChi2NDF;

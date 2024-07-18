@@ -174,8 +174,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
 
   FastMultEst multEst; // mult estimator
-  std::vector<bool> processingMask;
+  std::vector<bool> processingMask, processUPCMask;
   int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  processUPCMask.resize(processingMask.size(), false);
   mTimeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
@@ -202,7 +203,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       }
       if (o2::its::TrackerParamConfig::Instance().doUPCIteration && (vtxSpan.size() && vtxSpan[0].getFlags() == 1)) { // at least one vertex in this ROF and it is from second vertex iteration
         LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
-        processingMask[iRof] = false;
+        processUPCMask[iRof] = true;
         cutUPCVertex++;
       }
       vtxROF.setNEntries(vtxSpan.size());
@@ -253,6 +254,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   } else {
 
     mTimeFrame->setMultiplicityCutMask(processingMask);
+    mTimeFrame->setROFMask(processUPCMask);
     // Run CA tracker
     if constexpr (isGPU) {
       if (mMode == o2::its::TrackingMode::Async) {

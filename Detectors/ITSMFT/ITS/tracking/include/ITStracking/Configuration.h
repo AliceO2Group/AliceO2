@@ -98,7 +98,6 @@ struct TrackingParameters {
   bool FindShortTracks = false;
   bool PerPrimaryVertexProcessing = false;
   bool SaveTimeBenchmarks = false;
-  bool SkipDeltaRofIfsecondIterationVtx = false;
   bool DoUPCIteration = false;
 };
 
