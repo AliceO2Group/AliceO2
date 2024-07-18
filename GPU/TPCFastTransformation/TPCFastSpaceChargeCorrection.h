@@ -251,7 +251,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   GPUd() float getInterpolationSafetyMargin() const { return fInterpolationSafetyMargin; }
 
   /// Gives TPC row info
-  GPUd() const RowInfo& getRowInfo(int row) const { return mRowInfos[row]; }
+  GPUd() const RowInfo& getRowInfo(int32_t row) const { return mRowInfos[row]; }
 
   /// Gives TPC slice info
   GPUd() const SliceInfo& getSliceInfo(int32_t slice) const
@@ -321,7 +321,7 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Class version. It is used to read older versions from disc.
   /// The default version 3 is the one before this field was introduced.
   /// The actual version must be set in startConstruction().
-  int mClassVersion{3};
+  int32_t mClassVersion{3};
 
   RowInfo mRowInfos[TPCFastTransformGeo::getMaxNumberOfRows()]; ///< RowInfo array
 
@@ -447,9 +447,17 @@ GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrection(int32_t slice, int32
   float dxuv[3];
   spline.interpolateU(splineData, gridU, gridV, dxuv);
   const auto& info = getSliceRowInfo(slice, row);
-  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], dxuv[0]));
-  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], dxuv[1]));
-  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], dxuv[2]));
+  float s = v / info.gridV0;
+  if (s < 0.) {
+    s = 0.;
+  }
+  if (s > 1.) {
+    s = 1.;
+  }
+
+  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], s * dxuv[0]));
+  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], s * dxuv[1]));
+  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], s * dxuv[2]));
   return 0;
 }
 
@@ -462,9 +470,16 @@ GPUdi() int32_t TPCFastSpaceChargeCorrection::getCorrectionOld(int32_t slice, in
   float dxuv[3];
   spline.interpolateUold(splineData, gridU, gridV, dxuv);
   const auto& info = getSliceRowInfo(slice, row);
-  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], dxuv[0]));
-  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], dxuv[1]));
-  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], dxuv[2]));
+  float s = v / info.gridV0;
+  if (s < 0.) {
+    s = 0.;
+  }
+  if (s > 1.) {
+    s = 1.;
+  }
+  dx = GPUCommonMath::Max(info.minCorr[0], GPUCommonMath::Min(info.maxCorr[0], s * dxuv[0]));
+  du = GPUCommonMath::Max(info.minCorr[1], GPUCommonMath::Min(info.maxCorr[1], s * dxuv[1]));
+  dv = GPUCommonMath::Max(info.minCorr[2], GPUCommonMath::Min(info.maxCorr[2], s * dxuv[2]));
   return 0;
 }
 
