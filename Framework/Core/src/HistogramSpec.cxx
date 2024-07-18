@@ -79,7 +79,7 @@ T* generateHist(const std::string& name, const std::string& title, const std::si
 template <typename T, typename BASE>
 static std::unique_ptr<BASE> createHistFull(const HistogramSpec& histSpec)
 {
-  constexpr std::size_t MAX_DIM{10};
+  constexpr std::size_t MAX_DIM{20};
   const std::size_t nAxes{histSpec.config.axes.size()};
   if (nAxes == 0 || nAxes > MAX_DIM) {
     LOGF(fatal, "The histogram specification contains no (or too many) axes.");
