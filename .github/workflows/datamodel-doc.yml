@@ -72,7 +72,7 @@ jobs:
           # confused when multiple repos are checked out.
           GH_TOKEN=${{ secrets.GITHUB_TOKEN }} gh pr create -B \
           AliceO2Group:master -H alibuild:auto-datamodel-doc \
-          --no-maintainer-edit -t 'Automatic data model update' -b 'This update \
+          --no-maintainer-edit -t 'Automatic data model update' -b "This update \
           to the data model documentation was automatically created from \
-          tonight's O2 dev branch.' || true
+          tonight's O2 dev branch." || true
           # If the PR already exists, hub fails, but we've just force-pushed, so we don't need a new PR.
