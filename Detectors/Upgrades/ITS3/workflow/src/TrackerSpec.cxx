@@ -182,6 +182,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{orig, "TRACKS", 0});
   std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::MCCompLabel> allVerticesLabels;
+  std::vector<float> allVerticesPurities;
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{orig, "VERTICESROF", 0});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{orig, "VERTICES", 0});
@@ -212,12 +213,16 @@ void TrackerDPL::run(ProcessingContext& pc)
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
   for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
     auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
+      if (mIsMC) {
+        vMCRecInfo = timeFrame->getPrimaryVerticesMCRecInfo(iRof);
+      }
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
       for (size_t iV{0}; iV < vtxSpan.size(); ++iV) {
@@ -228,8 +233,8 @@ void TrackerDPL::run(ProcessingContext& pc)
         selROF = true;
         vertices.push_back(v);
         if (mIsMC) {
-          auto vLabels = timeFrame->getPrimaryVerticesLabels(iRof)[iV];
-          std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
+          allVerticesLabels.push_back(vMCRecInfo[iV].first);
+          allVerticesPurities.push_back(vMCRecInfo[iV].second);
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
@@ -303,6 +308,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
       pc.outputs().snapshot(Output{orig, "TRACKSMCTR", 0}, allTrackLabels);
       pc.outputs().snapshot(Output{orig, "VERTICESMCTR", 0}, allVerticesLabels);
+      pc.outputs().snapshot(Output{orig, "VERTICESMCPUR", 0}, allVerticesPurities);
       pc.outputs().snapshot(Output{orig, "ITSTrackMC2ROF", 0}, mc2rofs);
     }
   }

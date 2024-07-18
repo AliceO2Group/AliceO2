@@ -69,6 +69,8 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                              "ITSVertexMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
+                                BranchDefinition<std::vector<float>>{InputSpec{"purityVertices", "ITS", "VERTICESMCPUR", 0},
+                                                                     "ITSVertexMCPurity", (useMC ? 1 : 0), ""},
                                 BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "ITSTrackMC2ROF", 0},
                                                              "ITSTracksMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled

@@ -114,6 +114,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int trgType, const st
     inputs.emplace_back("itsmclabels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("ITSMC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "VERTICESMCPUR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }
