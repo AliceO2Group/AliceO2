@@ -162,6 +162,7 @@ class TPCFastTransform : public FlatObject
 
   /// Set Lumi info
   void setLumi(float l) { mLumi = l; }
+  void setLumiIDC(float l) { mLumiIDC = l; }
   void setLumiError(float e) { mLumiError = e; }
   void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
 
@@ -256,6 +257,9 @@ class TPCFastTransform : public FlatObject
   /// Return map lumi
   GPUd() float getLumi() const { return mLumi; }
 
+  /// Return map lumiIDC
+  GPUd() float getLumiIDC() const { return mLumiIDC; }
+
   /// Return map lumi error
   GPUd() float getLumiError() const { return mLumiError; }
 
@@ -335,6 +339,7 @@ class TPCFastTransform : public FlatObject
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
 
+  float mLumiIDC;         ///< luminosity estimator in IDC units
   float mLumi;            ///< luminosity estimator
   float mLumiError;       ///< error on luminosity
   float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
@@ -345,7 +350,7 @@ class TPCFastTransform : public FlatObject
   GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, const TPCFastTransform* ref2, float scale, float scale2, int scaleMode) const;
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 3);
+  ClassDefNV(TPCFastTransform, 4);
 #endif
 };
 
