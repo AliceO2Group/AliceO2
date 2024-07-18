@@ -98,7 +98,8 @@ struct TrackingParameters {
   bool FindShortTracks = false;
   bool PerPrimaryVertexProcessing = false;
   bool SaveTimeBenchmarks = false;
-  bool skipSecondIterationVerticesInDeltaRof = false;
+  bool SkipDeltaRofIfsecondIterationVtx = false;
+  bool DoUPCIteration = false;
 };
 
 inline int TrackingParameters::CellMinimumLevel()
