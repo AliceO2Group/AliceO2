@@ -15,6 +15,8 @@
 #include <TGeoManager.h>
 #include <Rtypes.h>
 
+#include "TRKBase/TRKBaseParam.h"
+
 namespace o2
 {
 namespace trk
@@ -26,6 +28,8 @@ class TRKLayer
   TRKLayer(int layerNumber, std::string layerName, float rInn, float rOut, float zLength, float layerX2X0);
   TRKLayer(int layerNumber, std::string layerName, float rInn, float zLength, float thick);
   ~TRKLayer() = default;
+
+  void setLayout(eLayout layout) { this->mLayout = layout; };
 
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
@@ -45,8 +49,10 @@ class TRKLayer
   float mZ;
   float mX2X0;
   float mChipThickness;
+  float mModuleWidth; // u.m. = cm
+  eLayout mLayout;
 
-  ClassDef(TRKLayer, 0);
+  ClassDef(TRKLayer, 1);
 };
 
 } // namespace trk
