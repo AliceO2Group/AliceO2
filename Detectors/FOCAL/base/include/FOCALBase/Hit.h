@@ -14,6 +14,7 @@
 #include <iosfwd>
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
+#include <boost/container_hash/hash.hpp>
 
 namespace o2::focal
 {
@@ -33,6 +34,39 @@ class Hit : public o2::BasicXYZEHit<float>
     EPIXELS, ///< ECAL pixels
     HCAL,    ///< HCAL
     UNKNOWN  ///< Undefined
+  };
+
+  /// \struct HitID
+  /// \brief Mapped information of a channel
+  struct HitID {
+    int mParentID;   ///< parentID of the track creating this hit
+    uint8_t mRow;    ///< Row of the hit in the calorimeter
+    uint8_t mColumn; ///< Column of the hit in the calorimeter
+    uint8_t mLayer;  ///< Layer the was hit
+
+    bool operator==(const HitID& other) const
+    {
+      return mParentID == other.mParentID && mRow == other.mRow && mColumn == other.mColumn && mLayer == other.mLayer;
+    }
+    friend std::ostream& operator<<(std::ostream& stream, const Hit::HitID& channel);
+  };
+
+  /// \struct HitIDHasher
+  /// \brief Hash functor for hit ID
+  struct HitIDHasher {
+
+    /// \brief Functor implementation
+    /// \param s Hit for which to determine a hash value
+    /// \return hash value for channel ID
+    size_t operator()(const HitID& s) const
+    {
+      std::size_t seed = 0;
+      boost::hash_combine(seed, s.mParentID);
+      boost::hash_combine(seed, s.mRow);
+      boost::hash_combine(seed, s.mColumn);
+      boost::hash_combine(seed, s.mLayer);
+      return seed;
+    }
   };
 
   /// \brief Dummy constructor

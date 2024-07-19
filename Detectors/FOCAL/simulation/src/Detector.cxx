@@ -28,6 +28,7 @@ using namespace o2::focal;
 Detector::Detector(bool active, std::string geofilename)
   : o2::base::DetImpl<Detector>("FOC", active),
     mHits(o2::utils::createSimVector<Hit>()),
+    mHitIndexMapping(),
     mGeometry(nullptr),
     mMedSensHCal(-1),
     mMedSensECalPad(-1),
@@ -166,23 +167,23 @@ Hit* Detector::AddHit(int trackID, int primary, double initialEnergy, int detID,
   LOG(debug3) << "Adding hit for track " << trackID << " with position (" << pos.X() << ", "
               << pos.Y() << ", " << pos.Z() << ")  with energy " << initialEnergy << " loosing " << eLoss;
   mHits->emplace_back(primary, trackID, detID, subsystem, initialEnergy, pos, time, eLoss);
+
+  auto [isin, col, row, layer, segment] = mGeometry->getVirtualInfo(pos.X(), pos.Y(), pos.Z());
+  mHitIndexMapping.insert(std::pair<Hit::HitID, unsigned int>({trackID, uint8_t(row), uint8_t(col), uint8_t(layer)}, static_cast<unsigned int>(mHits->size() - 1)));
+
   return &(mHits->back());
 }
 
 Hit* Detector::FindHit(int parentID, int col, int row, int layer)
 {
+  Hit::HitID hitToFind{parentID, uint8_t(row), uint8_t(col), uint8_t(layer)};
+  auto found = mHitIndexMapping.find(hitToFind);
 
-  auto HitComparison = [&](const Hit& hit) {
-    auto information = mGeometry->getVirtualInfo(hit.GetX(), hit.GetY(), hit.GetZ());
-    // FIXME Should we compare segments instead of layers ???
-    return hit.GetTrackID() == parentID && col == std::get<1>(information) && row == std::get<2>(information) && layer == std::get<3>(information);
-  };
-
-  auto result = std::find_if(mHits->begin(), mHits->end(), HitComparison);
-  if (result == mHits->end()) {
+  if (found == mHitIndexMapping.end()) {
     return nullptr;
   }
-  return &(*result);
+
+  return &((*mHits)[found->second]);
 }
 
 Parent* Detector::AddSuperparent(int trackID, int pdg, double energy)
@@ -205,6 +206,7 @@ void Detector::Reset()
   if (!o2::utils::ShmManager::Instance().isOperational()) {
     mHits->clear();
   }
+  mHitIndexMapping.clear();
 
   mSuperParentsIndices.clear();
   mSuperParents.clear();
@@ -928,12 +930,12 @@ void Detector::CreateECALGeometry()
 
   if (geom->getTowerGapMaterial() == "Cu") { // Copper
     // if (contains(geom->getTowerGapMaterial(), "Cu")) { // Copper
-    volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium("FOCAL_Cu$"));
+    volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium(getMediumID(ID_COPPER)));
   } else if (geom->getTowerGapMaterial() == "Al") { // Aluminium
     // else if (contains(geom->getTowerGapMaterial(), "Al")) {   // Aluminium
-    volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium("FOCAL_AlPlate"));
+    volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium(getMediumID(ID_ALUMINIUM)));
   } else {
-    volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium("FOCAL_AirGaps$"));
+    volumeColdPlate = new TGeoVolume("volColdPlate", coldPlateBox, gGeoManager->GetMedium(getMediumID(ID_AIR)));
   }
   // mSensitiveECALPad.push_back(volumeColdPlate->GetName());
   mSensitive.push_back(volumeColdPlate->GetName());
@@ -957,7 +959,7 @@ void Detector::CreateECALGeometry()
   // Create SiPad box for the two sensitive layers to be placed in front of ECAL
   TGeoBBox* siPadBox = new TGeoBBox("SiPadBox", geom->getTowerSizeX() / 2. + geom->getTowerGapSizeX() / 2.,
                                     geom->getTowerSizeY() / 2. + geom->getTowerGapSizeY() / 2., 0.03 / 2.0);
-  TGeoVolume* volumeSiPad = new TGeoVolume("volSiPad", siPadBox, gGeoManager->GetMedium("FOCAL_SiSens$"));
+  TGeoVolume* volumeSiPad = new TGeoVolume("volSiPad", siPadBox, gGeoManager->GetMedium(getMediumID(ID_SILICON)));
   volumeSiPad->SetLineColor(kOrange + 7);
   // mSensitiveECALPad.push_back(volumeSiPad->GetName());
   mSensitive.push_back(volumeSiPad->GetName());
