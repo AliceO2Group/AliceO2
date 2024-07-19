@@ -20,6 +20,7 @@ std::unique_ptr<o2::trk::GeometryTGeo> GeometryTGeo::sInstance;
 
 // Names
 std::string GeometryTGeo::sVolumeName = "TRKV";
+std::string GeometryTGeo::sStaveName = "TRKStave";
 std::string GeometryTGeo::sLayerName = "TRKLayer";
 std::string GeometryTGeo::sChipName = "TRKChip";
 std::string GeometryTGeo::sSensorName = "TRKSensor";
@@ -65,9 +66,14 @@ const char* GeometryTGeo::composeSymNameLayer(int d, int lr)
   return Form("%s/%s%d", composeSymNameTRK(d), getTRKLayerPattern(), lr);
 }
 
+const char* GeometryTGeo::composeSymNameStave(int d, int lr)
+{
+  return Form("%s/%s%d", composeSymNameLayer(d, lr), getTRKStavePattern(), lr);
+}
+
 const char* GeometryTGeo::composeSymNameChip(int d, int lr)
 {
-  return Form("%s/%s%d", composeSymNameLayer(d, lr), getTRKChipPattern(), lr);
+  return Form("%s/%s%d", composeSymNameStave(d, lr), getTRKChipPattern(), lr);
 }
 
 const char* GeometryTGeo::composeSymNameSensor(int d, int lr)

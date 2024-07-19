@@ -40,11 +40,13 @@ TRKLayer::TRKLayer(int layerNumber, std::string layerName, float rInn, float zLe
 
 void TRKLayer::createLayer(TGeoVolume* motherVolume)
 {
-  std::string chipName = o2::trk::GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber),
+  std::string staveName = o2::trk::GeometryTGeo::getTRKStavePattern() + std::to_string(mLayerNumber),
+              chipName = o2::trk::GeometryTGeo::getTRKChipPattern() + std::to_string(mLayerNumber),
               sensName = Form("%s%d", GeometryTGeo::getTRKSensorPattern(), mLayerNumber);
 
   TGeoTube* sensor = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
   TGeoTube* chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
+  TGeoTube* stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
   TGeoTube* layer = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
 
   TGeoMedium* medSi = gGeoManager->GetMedium("TRK_SILICON$");
@@ -54,14 +56,19 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   sensVol->SetLineColor(kYellow);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   chipVol->SetLineColor(kYellow);
+  TGeoVolume* staveVol = new TGeoVolume(staveName.c_str(), stave, medSi);
+  staveVol->SetLineColor(kYellow);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
 
-  LOGP(info, "Inserting {} in {} ", chipVol->GetName(), layerVol->GetName());
-  layerVol->AddNode(chipVol, 1, nullptr);
+  LOGP(info, "Inserting {} in {} ", chipVol->GetName(), staveVol->GetName());
+  staveVol->AddNode(chipVol, 1, nullptr);
+
+  LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
+  layerVol->AddNode(staveVol, 1, nullptr);
 
   LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
   motherVolume->AddNode(layerVol, 1, nullptr);

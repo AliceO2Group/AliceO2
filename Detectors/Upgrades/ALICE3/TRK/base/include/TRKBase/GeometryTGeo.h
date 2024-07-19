@@ -29,6 +29,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   static const char* getTRKVolPattern() { return sVolumeName.c_str(); }
   static const char* getTRKLayerPattern() { return sLayerName.c_str(); }
+  static const char* getTRKStavePattern() { return sStaveName.c_str(); }
   static const char* getTRKChipPattern() { return sChipName.c_str(); }
   static const char* getTRKSensorPattern() { return sSensorName.c_str(); }
 
@@ -37,12 +38,14 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TRK).getName(), d);
   }
   static const char* composeSymNameLayer(int d, int layer);
+  static const char* composeSymNameStave(int d, int layer);
   static const char* composeSymNameChip(int d, int lr);
   static const char* composeSymNameSensor(int d, int layer);
 
  protected:
   static std::string sVolumeName;
   static std::string sLayerName;
+  static std::string sStaveName;
   static std::string sChipName;
   static std::string sSensorName;
 
