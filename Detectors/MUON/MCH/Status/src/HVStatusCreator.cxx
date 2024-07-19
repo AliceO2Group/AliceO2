@@ -14,6 +14,7 @@
 
 #include "MCHStatus/HVStatusCreator.h"
 
+#include "MCHConditions/DCSAliases.h"
 #include "MCHConditions/DetectionElement.h"
 #include "MCHGlobalMapping/Mapper.h"
 #include "MCHStatus/StatusMap.h"
@@ -42,7 +43,7 @@ DPMAP2 decodeDPMAP(const o2::mch::HVStatusCreator::DPMAP& dpMap)
   for (const auto& [dpId, dpsHV] : dpMap) {
     std::string alias = dpId.get_alias();
 
-    if (alias.find("vMon") != std::string::npos) {
+    if (alias.find("vMon") != std::string::npos && o2::mch::dcs::isValid(alias)) {
       auto& dps2 = dpsMapPerAlias[alias];
 
       // copy first point to the beginning of time + margin (will be subtracted later on)
