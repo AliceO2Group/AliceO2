@@ -103,7 +103,7 @@ void uploadBadChannels(const char* ccdbUrl, long timestamp, const std::string pa
   if (timestamp == 1 && channels.empty()) {
     // This is the default
     md["default"] = "true";
-    md["Created"] = "1"
+    md["Created"] = "1";
   }
   std::cout << "Storing MID problematic channels (valid from " << timestamp << ") to " << path << "\n";
 
@@ -233,30 +233,68 @@ void ccdbUtils(const char* what, long timestamp = 0, const char* inFilename = "m
     timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   }
 
-  std::vector<std::string> whats = {"querybad", "uploadbad", "queryfake", "uploadfake", "querymasks", "writemasks", "uploadbadfrommasks"};
-
   const std::string fakeDeadChannelCCDBPath = "MID/Calib/FakeDeadChannels";
+  const std::string rejectListCCDBPath = "MID/Calib/RejectList";
 
-  if (what == whats[0]) {
+  std::vector<std::string> whats;
+  whats.emplace_back("querybad");
+  if (what == whats.back()) {
     queryBadChannels(ccdbUrl, timestamp, verbose, BadChannelCCDBPath);
-  } else if (what == whats[1]) {
-    uploadBadChannels(ccdbUrl, timestamp, BadChannelCCDBPath);
-  } else if (what == whats[2]) {
-    queryBadChannels(ccdbUrl, timestamp, verbose, fakeDeadChannelCCDBPath);
-  } else if (what == whats[3]) {
-    uploadBadChannels(ccdbUrl, timestamp, fakeDeadChannelCCDBPath);
-  } else if (what == whats[4]) {
-    queryDCSMasks(ccdbUrl, timestamp, verbose);
-  } else if (what == whats[5]) {
-    writeDCSMasks(ccdbUrl, timestamp);
-  } else if (what == whats[6]) {
-    uploadBadChannelsFromDCSMask(inFilename, timestamp, ccdbUrl, verbose);
-  } else {
-    std::cout << "Unimplemented option chosen " << what << std::endl;
-    std::cout << "Available:\n";
-    for (auto& str : whats) {
-      std::cout << str << " ";
-    }
-    std::cout << std::endl;
+    return;
   }
+
+  whats.emplace_back("uploadbad");
+  if (what == whats.back()) {
+    uploadBadChannels(ccdbUrl, timestamp, BadChannelCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("queryrejectlist");
+  if (what == whats.back()) {
+    queryBadChannels(ccdbUrl, timestamp, verbose, rejectListCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("uploadrejectlist");
+  if (what == whats.back()) {
+    uploadBadChannels(ccdbUrl, timestamp, rejectListCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("queryfake");
+  if (what == whats.back()) {
+    queryBadChannels(ccdbUrl, timestamp, verbose, fakeDeadChannelCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("uploadfake");
+  if (what == whats.back()) {
+    uploadBadChannels(ccdbUrl, timestamp, fakeDeadChannelCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("querymasks");
+  if (what == whats.back()) {
+    queryDCSMasks(ccdbUrl, timestamp, verbose);
+    return;
+  }
+
+  whats.emplace_back("writemasks");
+  if (what == whats.back()) {
+    writeDCSMasks(ccdbUrl, timestamp);
+    return;
+  }
+
+  whats.emplace_back("uploadbadfrommasks");
+  if (what == whats.back()) {
+    uploadBadChannelsFromDCSMask(inFilename, timestamp, ccdbUrl, verbose);
+    return;
+  }
+
+  std::cout << "Unimplemented option chosen " << what << std::endl;
+  std::cout << "Available:\n";
+  for (auto& str : whats) {
+    std::cout << str << " ";
+  }
+  std::cout << std::endl;
 }
