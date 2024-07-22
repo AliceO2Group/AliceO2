@@ -93,13 +93,18 @@ void writeDCSMasks(const char* ccdbUrl, long timestamp, const char* outFilename 
 /// @brief Uploads the list of channels provided
 /// @param ccdbUrl CCDB url
 /// @param timestamp Timestamp
-/// @param badChannels List of bad channels. Default is no bad channel
 /// @param path Calibration object path
+/// @param channels List of bad channels. Default is no bad channel
 void uploadBadChannels(const char* ccdbUrl, long timestamp, const std::string path, std::vector<o2::mid::ColumnData> channels = {})
 {
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
+  if (timestamp == 1 && channels.empty()) {
+    // This is the default
+    md["default"] = "true";
+    md["Created"] = "1"
+  }
   std::cout << "Storing MID problematic channels (valid from " << timestamp << ") to " << path << "\n";
 
   api.storeAsTFileAny(&channels, path, md, timestamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
