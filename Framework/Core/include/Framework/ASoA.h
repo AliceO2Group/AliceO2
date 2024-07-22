@@ -1291,7 +1291,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, OPT, SORTED> const
 template <typename T>
 auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
 {
-  if (offset >= table->tableSize()) {
+  if (offset >= static_cast<uint64_t>(table->tableSize())) {
     if constexpr (soa::is_soa_filtered_v<T>) {
       Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
       table->copyIndexBindings(fresult);
