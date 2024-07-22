@@ -99,6 +99,9 @@ set_package_properties(Configuration PROPERTIES TYPE REQUIRED)
 find_package(Monitoring CONFIG)
 set_package_properties(Monitoring PROPERTIES TYPE REQUIRED)
 
+find_package(BookkeepingApi CONFIG)
+set_package_properties(BookeepingApi PROPERTIES TYPE REQUIRED)
+
 find_package(Common CONFIG)
 set_package_properties(Common PROPERTIES TYPE REQUIRED)
 
