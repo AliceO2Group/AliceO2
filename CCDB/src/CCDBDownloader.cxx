@@ -12,6 +12,7 @@
 #include <CCDB/CCDBDownloader.h>
 #include "CommonUtils/StringUtils.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "Framework/Signpost.h"
 
 #include <curl/curl.h>
 #include <unordered_map>
@@ -29,6 +30,8 @@
 #include <fairlogger/Logger.h>
 #include <boost/asio/ip/host_name.hpp>
 
+O2_DECLARE_DYNAMIC_STACKTRACE_LOG(ccdb_downloader);
+
 namespace o2::ccdb
 {
 
@@ -37,21 +40,24 @@ void uvErrorCheck(int code)
   if (code != 0) {
     char buf[1000];
     uv_strerror_r(code, buf, 1000);
-    LOG(error) << "CCDBDownloader: UV error - " << buf;
+    O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "UV error - %{public}s", buf);
   }
 }
 
 void curlEasyErrorCheck(CURLcode code)
 {
   if (code != CURLE_OK) {
-    LOG(error) << "CCDBDownloader: CURL error - " << curl_easy_strerror(code);
+    O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "CURL error - %{public}s", curl_easy_strerror(code));
   }
 }
 
 void curlMultiErrorCheck(CURLMcode code)
 {
   if (code != CURLM_OK) {
-    LOG(error) << "CCDBDownloader: CURL error - " << curl_multi_strerror(code);
+    O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "CURL error - %{public}s", curl_multi_strerror(code));
   }
 }
 namespace
@@ -155,12 +161,14 @@ void CCDBDownloader::closesocketCallback(void* clientp, curl_socket_t item)
       }
       CD->mSocketTimerMap.erase(item);
       if (close(item) == -1) {
-        LOG(error) << "CCDBDownloader: Socket failed to close";
+        O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+        O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "CCDBDownloader: Socket failed to close");
       }
     }
   } else {
     if (close(item) == -1) {
-      LOG(error) << "CCDBDownloader: Socket failed to close";
+      O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "CCDBDownloader: Socket failed to close");
     }
   }
 }
@@ -170,7 +178,8 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
   auto CD = (CCDBDownloader*)clientp;
   auto sock = socket(address->family, address->socktype, address->protocol);
   if (sock == -1) {
-    LOG(error) << "CCDBDownloader: Socket failed to open";
+    O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+    O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "CCDBDownloader: Socket failed to open");
   }
 
   if (CD->mExternalLoop) {
@@ -197,7 +206,8 @@ void CCDBDownloader::closeSocketByTimer(uv_timer_t* handle)
     uvErrorCheck(uv_timer_stop(CD->mSocketTimerMap[sock]));
     CD->mSocketTimerMap.erase(sock);
     if (close(sock) == -1) {
-      LOG(error) << "CCDBDownloader: Socket failed to close";
+      O2_SIGNPOST_ID_GENERATE(sid, ccdb_downloader);
+      O2_SIGNPOST_EVENT_EMIT_ERROR(ccdb_downloader, sid, "CCDBDownloader", "CCDBDownloader: Socket failed to close");
     }
     delete data;
   }
