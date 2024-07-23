@@ -62,6 +62,13 @@ struct CompletionPolicy {
     Retry,
   };
 
+  /// Order in which the completed slots must be consumed
+  enum struct CompletionOrder {
+    Any,
+    Timeslice,
+    Slot
+  };
+
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
   using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&, ServiceRegistryRef&)>;
@@ -90,6 +97,8 @@ struct CompletionPolicy {
   /// not needed if the policy always happens to consume / discard
   /// data.
   bool balanceChannels = true;
+
+  CompletionOrder order = CompletionOrder::Any;
 
   /// Helper to create the default configuration.
   static std::vector<CompletionPolicy> createDefaultPolicies();

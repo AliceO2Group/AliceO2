@@ -2307,6 +2307,17 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   using namespace o2::framework;
   stats.updateStats({(int)ProcessingStatsId::PENDING_INPUTS, DataProcessingStats::Op::Set, static_cast<int64_t>(relayer.getParallelTimeslices() - completed.size())});
   stats.updateStats({(int)ProcessingStatsId::INCOMPLETE_INPUTS, DataProcessingStats::Op::Set, completed.empty() ? 1 : 0});
+  switch (spec.completionPolicy.order) {
+    case CompletionPolicy::CompletionOrder::Timeslice:
+      std::sort(completed.begin(), completed.end(), [](auto const& a, auto const& b) { return a.timeslice.value < b.timeslice.value; });
+      break;
+    case CompletionPolicy::CompletionOrder::Slot:
+      std::sort(completed.begin(), completed.end(), [](auto const& a, auto const& b) { return a.slot.index < b.slot.index; });
+      break;
+    case CompletionPolicy::CompletionOrder::Any:
+    default:
+      break;
+  }
 
   for (auto action : completed) {
     O2_SIGNPOST_ID_GENERATE(aid, device);
