@@ -8,6 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+if (NOT APPLE)
 o2_add_library(CTPWorkflowScalers
                SOURCES src/ctpCCDBManager.cxx
                SOURCES src/RunManager.cxx
