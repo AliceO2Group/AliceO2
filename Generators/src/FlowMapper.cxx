@@ -30,7 +30,7 @@ FlowMapper::FlowMapper()
   mBinsPhi = 4000; // a first guess
 }
 
-void FlowMapper::CreateLUT(TH1D *mhv2vsPt, TH1D *mhEccVsB)
+void FlowMapper::CreateLUT(TH1D* mhv2vsPt, TH1D* mhEccVsB)
 {
   if (!mhv2vsPt) {
     LOG(fatal) << "You did not specify a valid v2 vs pT histogram!";

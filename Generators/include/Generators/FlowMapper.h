@@ -49,7 +49,7 @@ class FlowMapper
   void SetPrecision(long mPrecisionProvided) { mPrecision = mPrecisionProvided; };
   void SetDerivative(long mDerivativeProvided) { mDerivative = mDerivativeProvided; };
 
-  void CreateLUT(TH1D *mhv2vsPt, TH1D *mhEccVsB);
+  void CreateLUT(TH1D* mhv2vsPt, TH1D* mhEccVsB);
 
   Double_t MapPhi(Double_t lPhiInput, Double_t b, Double_t pt);
 
