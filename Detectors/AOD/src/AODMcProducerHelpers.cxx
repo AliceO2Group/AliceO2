@@ -66,8 +66,7 @@ short updateMCCollisions(const CollisionCursor& cursor,
          truncateFloatFraction(time, mask),
          truncateFloatFraction(weight, mask),
          header.GetB(),
-         getEventInfo(header, Key::planeAngle, header.GetRotZ())
-  );
+         getEventInfo(header, Key::planeAngle, header.GetRotZ()));
   return encodedGeneratorId;
 }
 //--------------------------------------------------------------------
