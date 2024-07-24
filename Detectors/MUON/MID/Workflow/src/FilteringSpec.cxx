@@ -71,10 +71,20 @@ class FilteringDeviceDPL
 
   void finaliseCCDB(of::ConcreteDataMatcher matcher, void* obj)
   {
+    bool rebuildMasks = false;
     if (matcher == of::ConcreteDataMatcher(header::gDataOriginMID, "BAD_CHANNELS", 0)) {
       LOG(info) << "Update MID_BAD_CHANNELS";
-      auto* badChannels = static_cast<std::vector<ColumnData>*>(obj);
-      mMasksHandler.switchOffChannels(*badChannels);
+      mBadChannels = *static_cast<std::vector<ColumnData>*>(obj);
+      rebuildMasks = true;
+    } else if (matcher == of::ConcreteDataMatcher(header::gDataOriginMID, "REJECTLIST", 0)) {
+      LOG(info) << "Update MID_REJECTLIST";
+      mRejectList = *static_cast<std::vector<ColumnData>*>(obj);
+      rebuildMasks = true;
+    }
+    if (rebuildMasks) {
+      mMasksHandler.clear();
+      mMasksHandler.switchOffChannels(mBadChannels);
+      mMasksHandler.switchOffChannels(mRejectList);
     }
   }
 
@@ -82,6 +92,7 @@ class FilteringDeviceDPL
   {
     // Triggers finalizeCCDB
     pc.inputs().get<std::vector<ColumnData>*>("mid_bad_channels");
+    pc.inputs().get<std::vector<ColumnData>*>("mid_rejectlist");
 
     auto data = specs::getData(pc, "mid_filter_in", EventType::Standard);
     auto inROFRecords = specs::getRofs(pc, "mid_filter_in", EventType::Standard);
@@ -125,6 +136,8 @@ class FilteringDeviceDPL
   bool mUseMC{false};
   std::vector<of::Output> mOutputs;
   std::function<void(size_t, size_t, const o2::dataformats::MCTruthContainer<MCLabel>*, o2::dataformats::MCTruthContainer<MCLabel>&, const ColumnData& col)> mFillLabels{[](size_t, size_t, const o2::dataformats::MCTruthContainer<MCLabel>*, o2::dataformats::MCTruthContainer<MCLabel>&, const ColumnData&) {}};
+  std::vector<ColumnData> mBadChannels{};
+  std::vector<ColumnData> mRejectList{};
 };
 
 of::DataProcessorSpec getFilteringSpec(bool useMC, std::string_view inDesc, std::string_view outDesc)
@@ -132,6 +145,7 @@ of::DataProcessorSpec getFilteringSpec(bool useMC, std::string_view inDesc, std:
 
   auto inputSpecs = specs::buildInputSpecs("mid_filter_in", inDesc, useMC);
   inputSpecs.emplace_back("mid_bad_channels", header::gDataOriginMID, "BAD_CHANNELS", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/BadChannels"));
+  inputSpecs.emplace_back("mid_rejectlist", header::gDataOriginMID, "REJECTLIST", 0, of::Lifetime::Condition, of::ccdbParamSpec("MID/Calib/RejectList"));
 
   auto outputSpecs = specs::buildStandardOutputSpecs("mid_filter_out", outDesc, useMC);
 
