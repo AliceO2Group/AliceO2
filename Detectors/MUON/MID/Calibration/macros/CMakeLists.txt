@@ -11,5 +11,10 @@
 
 o2_add_test_root_macro(
   ccdbUtils.C
-  PUBLIC_LINK_LIBRARIES O2::MIDCalibration O2::MathUtils
+  PUBLIC_LINK_LIBRARIES O2::MIDFiltering O2::DataFormatsMID O2::CCDB
+  LABELS muon mid)
+
+o2_add_test_root_macro(
+  build_rejectlist.C
+  PUBLIC_LINK_LIBRARIES O2::MIDFiltering O2::MIDGlobalMapping O2::DataFormatsMID O2::CCDB O2::CommonUtils
   LABELS muon mid)
