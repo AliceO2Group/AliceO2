@@ -86,8 +86,8 @@ class TimeFrame
   int getPrimaryVerticesNum(int rofId = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels);
-  void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
-  void addPrimaryVertices(const std::vector<lightVertex>&);
+  void addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId);
+  void addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId);
   void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId);
   void addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int rofId);
   void removePrimaryVerticesInROf(const int rofId);
@@ -358,7 +358,7 @@ inline gsl::span<const std::pair<MCCompLabel, float>> TimeFrame::getPrimaryVerti
 {
   const int start = mROFramesPV[rofId];
   const int stop_idx = rofId >= mNrof - 1 ? mNrof : rofId + 1;
-  int delta = mMultiplicityCutMask[rofId] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  int delta = mMultiplicityCutMask[rofId] ? mROFramesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
   return {&(mVerticesMCRecInfo[start]), static_cast<gsl::span<const std::pair<MCCompLabel, float>>::size_type>(delta)};
 }
 

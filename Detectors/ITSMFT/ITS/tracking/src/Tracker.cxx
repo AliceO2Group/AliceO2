@@ -456,7 +456,6 @@ void Tracker::rectifyClusterIndices()
 
 void Tracker::getGlobalConfiguration()
 {
-  LOGP(info, "tracker::getGlobalConfiguration size of pars is {}", mTrkParams.size());
   auto& tc = o2::its::TrackerParamConfig::Instance();
   tc.printKeyValues(true, true);
   if (tc.useMatCorrTGeo) {
