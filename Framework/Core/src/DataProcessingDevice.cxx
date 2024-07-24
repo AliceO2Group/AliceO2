@@ -1710,6 +1710,12 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && shouldProcess) {
       relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
+
+    auto& timingInfo = ref.get<TimingInfo>();
+    // We should keep the data generated at end of stream only for those
+    // which are not sources.
+    timingInfo.keepAtEndOfStream = shouldProcess;
+
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
 
     context.preEOSCallbacks(eosContext);
