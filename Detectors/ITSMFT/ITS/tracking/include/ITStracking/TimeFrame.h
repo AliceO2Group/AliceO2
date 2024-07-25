@@ -210,7 +210,7 @@ class TimeFrame
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
   unsigned int& getNoVertexROF() { return mNoVertexROF; }
-  void insertLateVertex(const Vertex& vertex);
+  void insertPastVertex(const Vertex& vertex);
   // \Vertexer
 
   void initialiseRoadLabels();
@@ -732,10 +732,10 @@ inline size_t TimeFrame::getNumberOfUsedClusters() const
   return nClusters;
 }
 
-inline void TimeFrame::insertLateVertex(const Vertex& vertex)
+inline void TimeFrame::insertPastVertex(const Vertex& vertex)
 {
   int rofId = vertex.getTimeStamp().getTimeStamp();
-  mPrimaryVertices.insert(mPrimaryVertices.begin() + mROFramesPV[rofId + 1], vertex); // inserted at the end of sequence of vertices belonging to rofId
+  mPrimaryVertices.insert(mPrimaryVertices.begin() + mROFramesPV[rofId], vertex);
   for (int i = rofId + 1; i < mROFramesPV.size(); ++i) {
     mROFramesPV[i] += 1;
   }

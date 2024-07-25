@@ -135,8 +135,8 @@ void trackletSelectionKernelHost(
         if (tracklet01.rof[0] != targetRofId || tracklet12.rof[1] != targetRofId) {
           continue;
         }
-        const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklet01.tanLambda - tracklets12[iTracklet12].tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(tracklet01.phi, tracklets12[iTracklet12].phi))};
+        const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklet01.tanLambda - tracklet12.tanLambda)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(tracklet01.phi, tracklet12.phi))};
         if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           usedClusters0[tracklet01.firstClusterIndex] = true;
           usedClusters2[tracklet12.secondClusterIndex] = true;
@@ -530,7 +530,7 @@ void VertexerTraits::computeVertices(const int iteration)
       }
     }
     if (!iteration) {
-      mTimeFrame->addPrimaryVertices(vertices);
+      mTimeFrame->addPrimaryVertices(vertices, rofId);
       if (mTimeFrame->hasMCinformation()) {
         mTimeFrame->addPrimaryVerticesLabels(polls);
       }

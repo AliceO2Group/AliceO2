@@ -42,7 +42,7 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
   TrackingParameters trkPars;
   TimeFrameGPUParameters tfGPUpar;
   mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
-  float timeTracklet, timeSelection, timeVertexing, timeInit;
+  float timeTracklet{0.f}, timeSelection{0.f}, timeVertexing{0.f}, timeInit{0.f};
   for (int iteration = 0; iteration < std::min(mVertParams[0].nIterations, (int)mVertParams.size()); ++iteration) {
     unsigned int nTracklets01, nTracklets12;
     logger(fmt::format("ITS Seeding vertexer iteration {} summary:", iteration));
@@ -53,7 +53,7 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
     auto timeTrackletIteration = evaluateTask(&Vertexer::findTracklets, "Vertexer tracklet finding", [](std::string) {}, iteration);
     nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
     nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
-    auto timeSelectionIteration = evaluateTask(&Vertexer::validateTracklets, "Vertexer adjacent tracklets validation", [](std::string) {}, iteration);
+    auto timeSelectionIteration = evaluateTask(&Vertexer::validateTracklets, "Vertexer tracklets validation", [](std::string) {}, iteration);
     auto timeVertexingIteration = evaluateTask(&Vertexer::findVertices, "Vertexer vertex finding", [](std::string) {}, iteration);
     printEpilog(logger, false, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration()[iteration], timeInitIteration, timeTrackletIteration, timeSelectionIteration, timeVertexingIteration);
     timeInit += timeInitIteration;

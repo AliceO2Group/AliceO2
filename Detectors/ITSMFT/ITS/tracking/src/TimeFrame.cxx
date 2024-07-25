@@ -94,20 +94,7 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
 
 void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId)
 {
-  for (const auto& vertex : vertices) {
-    if (vertex.getTimeStamp().getTimeStamp() != rofId) {
-      insertLateVertex(vertex);
-    } else {
-      mPrimaryVertices.emplace_back(vertex);
-    }
-    if (!isBeamPositionOverridden) {
-      const int w{vertex.getNContributors()};
-      mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
-      mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
-      mBeamPosWeight += w;
-    }
-  }
-  mROFramesPV.push_back(mPrimaryVertices.size());
+  addPrimaryVertices(gsl::span<const Vertex>(vertices), rofId);
 }
 
 void TimeFrame::addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels)
@@ -133,7 +120,7 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices, cons
   std::vector<Vertex> futureVertices;
   for (const auto& vertex : vertices) {
     if (vertex.getTimeStamp().getTimeStamp() < rofId) { // put a copy in the past
-      insertLateVertex(vertex);
+      insertPastVertex(vertex);
     } else {
       if (vertex.getTimeStamp().getTimeStamp() > rofId) { // or put a copy in the future
         futureVertices.emplace_back(vertex);
@@ -146,12 +133,11 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices, cons
       mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
       mBeamPosWeight += w;
     }
-    mROFramesPV.push_back(mPrimaryVertices.size()); // current rof must have number of vertices up to present
-
-    if (futureVertices.size() > 0) { // append future vertices. In the last rofId we cannot have ones from the next, so we are never here.
-      for (auto& vertex : futureVertices) {
-        mPrimaryVertices.emplace_back(vertex);
-      }
+  }
+  mROFramesPV.push_back(mPrimaryVertices.size()); // current rof must have number of vertices up to present
+  if (futureVertices.size()) {                    // append future vertices. In the last rofId we cannot have ones from the next, so we are never here.
+    for (auto& vertex : futureVertices) {
+      mPrimaryVertices.emplace_back(vertex);
     }
   }
 }
