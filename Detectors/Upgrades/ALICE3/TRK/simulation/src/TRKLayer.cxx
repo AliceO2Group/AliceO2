@@ -55,8 +55,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kYellow);
 
-  if (mLayout == eLayout::kCylinder)
-  {
+  if (mLayout == eLayout::kCylinder) {
     TGeoTube* stave = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
     TGeoTube* chip = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
     TGeoTube* sensor = new TGeoTube(mInnerRadius, mInnerRadius + mChipThickness, mZ / 2);
@@ -76,20 +75,18 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
 
     LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
     layerVol->AddNode(staveVol, 1, nullptr);
-  }
-  else if (mLayout == eLayout::kTurboStaves)
-  {
+  } else if (mLayout == eLayout::kTurboStaves) {
     // Compute the number of staves
     double width = mModuleWidth * 2; // Each stave has two modules (based on the LOI design)
-    int nStaves = (int) std::ceil(mInnerRadius * 2 * TMath::Pi() / width);
-    nStaves += nStaves%2; // Require an even number of staves
+    int nStaves = (int)std::ceil(mInnerRadius * 2 * TMath::Pi() / width);
+    nStaves += nStaves % 2; // Require an even number of staves
 
     // Compute the size of the overlap region
     double theta = 2 * TMath::Pi() / nStaves;
     double theta1 = std::atan(width / 2 / mInnerRadius);
     double st = std::sin(theta);
     double ct = std::cos(theta);
-    double theta2 = std::atan((mInnerRadius * st - width / 2 * ct)/(mInnerRadius * ct + width / 2 * st));
+    double theta2 = std::atan((mInnerRadius * st - width / 2 * ct) / (mInnerRadius * ct + width / 2 * st));
     double overlap = (theta1 - theta2) * mInnerRadius;
     LOGP(info, "Creating a layer with {} staves and {} mm overlap", nStaves, overlap * 10);
 
@@ -106,9 +103,9 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       staveVol->SetLineColor(kYellow);
 
       // Put the staves in the correct position and orientation
-      TGeoCombiTrans *trans = new TGeoCombiTrans();
+      TGeoCombiTrans* trans = new TGeoCombiTrans();
       double theta = 360. * iStave / nStaves;
-      TGeoRotation *rot = new TGeoRotation("rot", theta + 90 + 2, 0, 0);
+      TGeoRotation* rot = new TGeoRotation("rot", theta + 90 + 2, 0, 0);
       trans->SetRotation(rot);
       trans->SetTranslation(mInnerRadius * std::cos(2. * TMath::Pi() * iStave / nStaves), mInnerRadius * std::sin(2 * TMath::Pi() * iStave / nStaves), 0);
 
@@ -121,9 +118,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
       LOGP(info, "Inserting {} in {} ", staveVol->GetName(), layerVol->GetName());
       layerVol->AddNode(staveVol, iStave, trans);
     }
-  }
-  else
-  {
+  } else {
     LOGP(fatal, "Layout not implemented");
   }
   LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
