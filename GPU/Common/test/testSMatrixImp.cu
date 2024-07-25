@@ -81,12 +81,35 @@ using MatSym3D = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepSym<float, 3
 using Mat3DGPU = o2::math_utils::SMatrixGPU<float, 3, 3, o2::math_utils::MatRepStdGPU<float, 3, 3>>;
 using Mat3D = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepStd<float, 3, 3>>;
 
+__device__ void floatToBinaryString(float number, char* buffer) {
+    unsigned char *bytePointer = reinterpret_cast<unsigned char*>(&number);
+    for (int byteIndex = 3; byteIndex >= 0; --byteIndex) {
+        unsigned char byte = bytePointer[byteIndex];
+        for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
+            buffer[(3 - byteIndex) * 8 + (7 - bitIndex)] = (byte & (1 << bitIndex)) ? '1' : '0';
+        }
+    }
+    buffer[32] = '\0'; // Null terminator
+}
+
 template <typename MatrixType>
-__device__ void printMatrix(const MatrixType& matrix, const char* name)
+__device__ void printMatrix(const MatrixType& matrix, const char* name, const bool IsBinary)
 {
-  printf("%s(0,0) = %f, %s(0,1) = %f, %s(0,2) = %f\n", name, matrix(0, 0), name, matrix(0, 1), name, matrix(0, 2));
-  printf("%s(1,0) = %f, %s(1,1) = %f, %s(1,2) = %f\n", name, matrix(1, 0), name, matrix(1, 1), name, matrix(1, 2));
-  printf("%s(2,0) = %f, %s(2,1) = %f, %s(2,2) = %f\n", name, matrix(2, 0), name, matrix(2, 1), name, matrix(2, 2));
+    char buffer[33];
+    if (IsBinary) {
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                floatToBinaryString(matrix(i, j), buffer);
+                printf("%s(%d,%d) = %s\n", name, i, j, buffer);
+            }
+        }
+    } else {
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                printf("%s(%i,%i) = %f\n", name, i, j, matrix(i, j));
+            }
+        }
+    }
 }
 
 // Function to compare two matrices element-wise with a specified tolerance
@@ -106,27 +129,28 @@ void compareMatrices(const MatrixType& mat1, const MatrixType& mat2, float toler
 template <typename T, int D>
 __global__ void invertSymMatrixKernel(MatSym3DGPU* matrix)
 {
+  const bool IsBinary = true;
   printf("\nStart inverting symmetric matrix\n");
   MatSym3DGPU smat2 = *matrix;
 
-  printMatrix(*matrix, "A");
-  printMatrix(smat2, "B");
+  printMatrix(*matrix, "A", IsBinary);
+  printMatrix(smat2, "B", IsBinary);
 
   printf("\nInverting A...\n");
   matrix->Invert();
 
-  printMatrix(*matrix, "A");
+  printMatrix(*matrix, "A", IsBinary);
 
   printf("\nC = (A^-1) * B...\n");
   auto smat3 = (*matrix) * smat2;
 
-  printMatrix(smat3, "C");
+  printMatrix(smat3, "C", IsBinary);
 
   printf("\nEvaluating...\n");
   MatSym3DGPU tmp;
   o2::math_utils::AssignSym::Evaluate(tmp, smat3);
 
-  printMatrix(tmp, "A");
+  printMatrix(tmp, "A", IsBinary);
   *matrix = tmp;
   printf("\n-------------------------------------------------------\n");
 }
@@ -135,27 +159,28 @@ __global__ void invertSymMatrixKernel(MatSym3DGPU* matrix)
 template <typename T, int D>
 __global__ void invertMatrixKernel(Mat3DGPU* matrix)
 {
+  const bool IsBinary = true;
   printf("\nStart inverting general matrix\n");
   Mat3DGPU smat2 = *matrix;
 
-  printMatrix(*matrix, "A");
-  printMatrix(smat2, "B");
+  printMatrix(*matrix, "A", IsBinary);
+  printMatrix(smat2, "B", IsBinary);
 
   printf("\nInverting A...\n");
   matrix->Invert();
 
-  printMatrix(*matrix, "A");
+  printMatrix(*matrix, "A", IsBinary);
 
   printf("\nC = (A^-1) * B...\n");
   auto smat3 = (*matrix) * smat2;
 
-  printMatrix(smat3, "C");
+  printMatrix(smat3, "C", IsBinary);
 
   printf("\nEvaluating...\n");
   Mat3DGPU tmp;
   o2::math_utils::Assign<float, 3, 3, decltype(smat3), o2::math_utils::MatRepStdGPU<float, 3, 3>, o2::math_utils::MatRepStdGPU<float, 3, 3>>::Evaluate(tmp, smat3);
 
-  printMatrix(tmp, "A");
+  printMatrix(tmp, "A", IsBinary);
   *matrix = tmp;
   printf("\n-------------------------------------------------------\n");
 }
@@ -296,13 +321,14 @@ __global__ void copySymMatrixKernel(
   MatSym3DGPU* srcMatrix,
   MatSym3DGPU* dstMatrix)
 {
+  const bool IsBinary = true;
   printf("\nStart copying general matrix\n");
-  printMatrix(*dstMatrix, "Before copying: ");
+  printMatrix(*dstMatrix, "Before copying: ", IsBinary);
   printf("\nCopied values:\n");
-  printMatrix(*srcMatrix, "Copied values: ");
+  printMatrix(*srcMatrix, "Copied values: ", IsBinary);
   printf("\nResult:\n");
   *dstMatrix = *srcMatrix;
-  printMatrix(*dstMatrix, "After copying: ");
+  printMatrix(*dstMatrix, "After copying: ", IsBinary);
   printf("\n-------------------------------------------------------\n");
 }
 
@@ -312,13 +338,14 @@ __global__ void copyMatrixKernel(
   Mat3DGPU* srcMatrix,
   Mat3DGPU* dstMatrix)
 {
+  const bool IsBinary = true;
   printf("\nStart copying general matrix\n");
-  printMatrix(*dstMatrix, "Before copying: ");
+  printMatrix(*dstMatrix, "Before copying: ", IsBinary);
   printf("\nCopied values:\n");
-  printMatrix(*srcMatrix, "Copied values: ");
+  printMatrix(*srcMatrix, "Copied values: ", IsBinary);
   printf("\nResult:\n");
   *dstMatrix = *srcMatrix;
-  printMatrix(*dstMatrix, "After copying: ");
+  printMatrix(*dstMatrix, "After copying: ", IsBinary);
   printf("\n-------------------------------------------------------\n");
 }
 
