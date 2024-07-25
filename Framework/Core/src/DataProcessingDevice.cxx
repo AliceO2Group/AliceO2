@@ -1264,6 +1264,12 @@ void DataProcessingDevice::Run()
   bool firstLoop = true;
   O2_SIGNPOST_ID_FROM_POINTER(lid, device, state.loop);
   O2_SIGNPOST_START(device, lid, "device_state", "First iteration of the device loop");
+
+  bool dplEnableMultithreding = getenv("DPL_THREADPOOL_SIZE") != nullptr;
+  if (dplEnableMultithreding) {
+    setenv("UV_THREADPOOL_SIZE", "1", 1);
+  }
+
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
       (void)this->ChangeState(state.nextFairMQState.back());
@@ -1448,13 +1454,13 @@ void DataProcessingDevice::Run()
         stream.id = streamRef;
         stream.running = true;
         stream.registry = &mServiceRegistry;
-#ifdef DPL_ENABLE_THREADING
-        stream.task.data = &handle;
-        uv_queue_work(state.loop, &stream.task, run_callback, run_completion);
-#else
-        run_callback(&handle);
-        run_completion(&handle, 0);
-#endif
+        if (dplEnableMultithreding) [[unlikely]] {
+          stream.task = &handle;
+          uv_queue_work(state.loop, stream.task, run_callback, run_completion);
+        } else {
+          run_callback(&handle);
+          run_completion(&handle, 0);
+        }
       } else {
         auto ref = ServiceRegistryRef{mServiceRegistry};
         ref.get<ComputingQuotaEvaluator>().handleExpired(reportExpiredOffer);
