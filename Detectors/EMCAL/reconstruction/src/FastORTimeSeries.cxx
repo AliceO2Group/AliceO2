@@ -12,12 +12,15 @@
 #include <algorithm>
 #include <iostream>
 #include "EMCALReconstruction/FastORTimeSeries.h"
+#include "EMCALBase/TRUDecodingErrors.h"
 
 using namespace o2::emcal;
 
 void FastORTimeSeries::fillReversed(const gsl::span<const uint16_t> samples, uint8_t starttime)
 {
-
+  if (starttime >= 14) {
+    throw FastOrStartTimeInvalidException(starttime);
+  }
   for (std::size_t isample = 0; isample < samples.size(); isample++) {
     mTimeSamples[starttime - isample] = samples[isample];
   }
