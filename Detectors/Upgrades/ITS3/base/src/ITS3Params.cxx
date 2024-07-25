@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,14 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
-
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::its3::SegmentationSuperAlpide + ;
-#pragma link C++ class o2::its3::ITS3Params + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its3::ITS3Params> + ;
-
-#endif
+#include "ITS3Base/ITS3Params.h"
+O2ParamImpl(o2::its3::ITS3Params)

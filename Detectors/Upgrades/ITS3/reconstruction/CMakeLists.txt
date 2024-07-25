@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 #
 
-#add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
+# add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
 
 o2_add_library(ITS3Reconstruction
                TARGETVARNAME targetName

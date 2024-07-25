@@ -86,7 +86,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         // o2::itsmft::ClusterPattern patt;
         // patt.acquirePattern(pattIt);
         // clusterSize = patt.getNPixels();
-        clusterSize = 0;
+        clusterSize = 255;
       } else {
         clusterSize = dict->getNpixels(pattID);
       }

@@ -17,7 +17,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
-#include "Steer/HitProcessingManager.h" // for DigitizationContext
+#include "Steer/HitProcessingManager.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
@@ -29,8 +29,12 @@
 #include "ITSMFTSimulation/DPLDigitizerParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITS3Base/ITS3Params.h"
+#include "ITS3Align/MisalignmentManager.h"
+
 #include <TChain.h>
 #include <TStopwatch.h>
+
 #include <string>
 
 using namespace o2::framework;
@@ -73,6 +77,12 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
       return;
     }
     updateTimeDependentParams(pc);
+
+    if (ITS3Params::Instance().applyMisalignmentHits) {
+      LOGP(info, "Applying misalignment to ITS3 Hits");
+      o2::its3::align::MisalignmentManager::misalignHits();
+    }
+
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(mID, mSimChains);
@@ -233,6 +243,10 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
                 << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
                 << " RO mode";
 
+      if (o2::its3::ITS3Params::Instance().useDeadChannelMap) {
+        pc.inputs().get<o2::itsmft::NoiseMap*>("IT3_dead"); // trigger final ccdb update
+      }
+
       // init digitizer
       mDigitizer.init();
     }
@@ -247,6 +261,11 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
       par.printKeyValues();
       return;
     }
+    if (matcher == ConcreteDataMatcher(mOrigin, "DEADMAP", 0)) {
+      LOG(info) << mID.getName() << " static dead map updated";
+      mDigitizer.setDeadChannelsMap((o2::itsmft::NoiseMap*)obj);
+      return;
+    }
   }
 
  private:
@@ -254,13 +273,13 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
   bool mFinished{false};
   bool mDisableQED{false};
   const o2::detectors::DetID mID{o2::detectors::DetID::IT3};
-  o2::header::DataOrigin mOrigin{o2::header::gDataOriginIT3};
+  const o2::header::DataOrigin mOrigin{o2::header::gDataOriginIT3};
   o2::its3::Digitizer mDigitizer{};
   std::vector<o2::itsmft::Digit> mDigits{};
   std::vector<o2::itsmft::ROFRecord> mROFRecords{};
   std::vector<o2::itsmft::ROFRecord> mROFRecordsAccum{};
   std::vector<o2::itsmft::Hit> mHits{};
-  std::vector<o2::itsmft::Hit>* mHitsP = &mHits;
+  std::vector<o2::itsmft::Hit>* mHitsP{&mHits};
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels{};
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabelsAccum{};
   std::vector<o2::itsmft::MC2ROFRecord> mMC2ROFRecordsAccum{};
@@ -277,12 +296,14 @@ DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  if (o2::its3::ITS3Params::Instance().useDeadChannelMap) {
+    inputs.emplace_back("IT3_dead", "IT3", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("IT3/Calib/DeadMap"));
+  }
 
   return DataProcessorSpec{detStr + "Digitizer",
                            inputs, makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<ITS3DPLDigitizerTask>(mctruth)},
-                           Options{
-                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
+                           Options{{"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 
 } // namespace o2::its3

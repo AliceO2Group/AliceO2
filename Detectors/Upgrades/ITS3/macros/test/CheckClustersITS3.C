@@ -39,8 +39,8 @@
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
-void CheckClustersITS3(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsIT3.root",
-                       std::string inputGeom = "o2sim_geometry.root", std::string dictfile = "ccdb/IT3/Calib/ClusterDictionary/snapshot.root", bool batch = false)
+void CheckClustersITS3(const std::string& clusfile = "o2clus_its.root", const std::string& hitfile = "o2sim_HitsIT3.root",
+                       const std::string& inputGeom = "o2sim_geometry.root", std::string dictfile = "ccdb/IT3/Calib/ClusterDictionary/snapshot.root", bool batch = false)
 {
   gROOT->SetBatch(batch);
 

@@ -47,7 +47,7 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   // wrapper volume properties
   double mWrapperMinRadiusITS3{1.8};
   double mWrapperMaxRadiusITS3{4.};
-  double mWrapperZSpanITS3{50};
+  double mWrapperZSpanITS3{20.};
 
  private:
   std::array<std::unique_ptr<ITS3Layer>, constants::nLayers> mIBLayers;
