@@ -81,35 +81,36 @@ using MatSym3D = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepSym<float, 3
 using Mat3DGPU = o2::math_utils::SMatrixGPU<float, 3, 3, o2::math_utils::MatRepStdGPU<float, 3, 3>>;
 using Mat3D = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepStd<float, 3, 3>>;
 
-__device__ void floatToBinaryString(float number, char* buffer) {
-    unsigned char *bytePointer = reinterpret_cast<unsigned char*>(&number);
-    for (int byteIndex = 3; byteIndex >= 0; --byteIndex) {
-        unsigned char byte = bytePointer[byteIndex];
-        for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
-            buffer[(3 - byteIndex) * 8 + (7 - bitIndex)] = (byte & (1 << bitIndex)) ? '1' : '0';
-        }
+__device__ void floatToBinaryString(float number, char* buffer)
+{
+  unsigned char* bytePointer = reinterpret_cast<unsigned char*>(&number);
+  for (int byteIndex = 3; byteIndex >= 0; --byteIndex) {
+    unsigned char byte = bytePointer[byteIndex];
+    for (int bitIndex = 7; bitIndex >= 0; --bitIndex) {
+      buffer[(3 - byteIndex) * 8 + (7 - bitIndex)] = (byte & (1 << bitIndex)) ? '1' : '0';
     }
-    buffer[32] = '\0'; // Null terminator
+  }
+  buffer[32] = '\0'; // Null terminator
 }
 
 template <typename MatrixType>
 __device__ void printMatrix(const MatrixType& matrix, const char* name, const bool IsBinary)
 {
-    char buffer[33];
-    if (IsBinary) {
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                floatToBinaryString(matrix(i, j), buffer);
-                printf("%s(%d,%d) = %s\n", name, i, j, buffer);
-            }
-        }
-    } else {
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 3; ++j) {
-                printf("%s(%i,%i) = %f\n", name, i, j, matrix(i, j));
-            }
-        }
+  char buffer[33];
+  if (IsBinary) {
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        floatToBinaryString(matrix(i, j), buffer);
+        printf("%s(%d,%d) = %s\n", name, i, j, buffer);
+      }
     }
+  } else {
+    for (int i = 0; i < 3; ++i) {
+      for (int j = 0; j < 3; ++j) {
+        printf("%s(%i,%i) = %f\n", name, i, j, matrix(i, j));
+      }
+    }
+  }
 }
 
 // Function to compare two matrices element-wise with a specified tolerance
