@@ -8,12 +8,22 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+if (NOT APPLE)
+o2_add_library(CTPWorkflowScalers
+               SOURCES src/ctpCCDBManager.cxx
+               SOURCES src/RunManager.cxx
+               PUBLIC_LINK_LIBRARIES O2::Framework
+                                     O2::DataFormatsCTP
+                                    AliceO2::BookkeepingApi)
+o2_target_root_dictionary(CTPWorkflowScalers HEADERS
+  include/CTPWorkflowScalers/ctpCCDBManager.h)
 o2_add_executable(
                   proxy
                   COMPONENT_NAME ctp
                   SOURCES src/ctp-proxy.cxx
                   PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow
-                  O2::DataFormatsCTP)
+                  O2::CTPWorkflowScalers)
+endif()
 o2_add_executable(
                   qc-proxy
                   COMPONENT_NAME ctp

@@ -19,6 +19,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsCTP/Configuration.h"
+#include "CTPWorkflowScalers/ctpCCDBManager.h"
 #include <string>
 #include <map>
 #include <iostream>
@@ -79,7 +80,7 @@ ferst 1 \n\
   std::cout << "CTP config done" << std::endl;
   ctpcfg.checkConfigConsistency();
   if (0) {
-    CTPRunManager* man = new CTPRunManager;
+    o2::ctp::ctpCCDBManager* man = new ctpCCDBManager;
     man->setCCDBHost("http://ccdb-test.cern.ch:8080");
     man->saveRunConfigToCCDB(&ctpcfg, 1665784953);
     // uint64_t classmask = ctpcfg.getClassMaskForInputMask(0x4);

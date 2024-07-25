@@ -40,18 +40,19 @@
 #include <fairmq/Device.h>
 #include <fairmq/Parts.h>
 #include "CommonUtils/StringUtils.h"
-#include "DataFormatsCTP/RunManager.h"
+#include "CTPWorkflowScalers/RunManager.h"
 #include <vector>
 #include <string>
-
+#include "BookkeepingApi/BkpClient.h"
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
-InjectorFunction dcs2dpl(std::string& ccdbhost)
-// InjectorFunction dcs2dpl()
+InjectorFunction dcs2dpl(std::string& ccdbhost, std::string& bkhost)
 {
   auto runMgr = std::make_shared<o2::ctp::CTPRunManager>();
   runMgr->setCCDBHost(ccdbhost);
+  runMgr->setBKHost(bkhost);
   runMgr->init();
+  // runMgr->setClient(client);
   return [runMgr](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) -> bool {
     // FIXME: Why isn't this function using the timeslice index?
     // make sure just 2 messages received
@@ -73,6 +74,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=10,transport=zeromq", {"channel subscribe to"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-host", VariantType::String, "http://o2-ccdb.internal:8080", {"ccdb host"}});
+  workflowOptions.push_back(ConfigParamSpec{"bk-host", VariantType::String, "none", {"bk host"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -95,6 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const std::string devName = "ctp-proxy";
   auto chan = config.options().get<std::string>("subscribe-to");
   std::string ccdbhost = config.options().get<std::string>("ccdb-host");
+  std::string bkhost = config.options().get<std::string>("bk-host");
   if (chan.empty()) {
     throw std::runtime_error("input channel is not provided");
   }
@@ -109,7 +112,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::move(ctpCountersOutputs),
     // this is just default, can be overriden by --ctp-config-proxy '--channel-config..'
     chan.c_str(),
-    dcs2dpl(ccdbhost));
+    dcs2dpl(ccdbhost, bkhost));
   ctpProxy.labels.emplace_back(DataProcessorLabel{"input-proxy"});
   LOG(info) << "===> Proxy done";
   WorkflowSpec workflow;

@@ -12,16 +12,60 @@
 /// \file RunManager.cxx
 /// \author Roman Lietava
 
-#include "DataFormatsCTP/Configuration.h"
-#include "DataFormatsCTP/RunManager.h"
-#include "CCDB/CcdbApi.h"
-#include "CCDB/BasicCCDBManager.h"
+#include "CTPWorkflowScalers/RunManager.h"
+#include <iostream>
 #include <sstream>
 #include <regex>
 #include "CommonUtils/StringUtils.h"
 #include <fairlogger/Logger.h>
 using namespace o2::ctp;
-std::string CTPRunManager::mCCDBHost = "http://o2-ccdb.internal";
+///
+/// Active run to keep cfg and saclers of active runs
+/// Also used for Bookkeeping counters managment;
+///
+void CTPActiveRun::initBK()
+{
+  std::vector<int> clslist = cfg.getTriggerClassList();
+  for (auto const& cls : clslist) {
+    cntslast[cls] = {0, 0, 0, 0, 0, 0};
+    cntslast0[cls] = {0, 0, 0, 0, 0, 0};
+    overflows[cls] = {0, 0, 0, 0, 0, 0};
+  }
+}
+int CTPActiveRun::send2BK(std::unique_ptr<BkpClient>& BKClient, size_t ts, bool start)
+{
+  int runNumber = cfg.getRunNumber();
+  // LOG(info) << "BK Filling run:" << runNumber;
+  // int runOri = runNumber;
+  // runNumber = 123;
+  if (start) {
+    for (auto const& cls : cntslast) {
+      for (int i = 0; i < 6; i++) {
+        cnts0[cls.first][i] = cls.second[i];
+      }
+    }
+  }
+  std::array<uint64_t, 6> cntsbk{0};
+  for (auto const& cls : cntslast) {
+    for (int i = 0; i < 6; i++) {
+      if (cls.second[i] < cntslast0[cls.first][i]) {
+        overflows[cls.first][i]++;
+      }
+      cntslast0[cls.first][i] = cls.second[i];
+      cntsbk[i] = (uint64_t)cls.second[i] + 0xffffffffull * overflows[cls.first][i] - (uint64_t)cnts0[cls.first][i];
+    }
+    std::string clsname = cfg.getClassNameFromHWIndex(cls.first);
+    // clsname = std::to_string(runOri) + "_" + clsname;
+    try {
+      BKClient->triggerCounters()->createOrUpdateForRun(runNumber, clsname, ts, cntsbk[0], cntsbk[1], cntsbk[2], cntsbk[3], cntsbk[4], cntsbk[5]);
+    } catch (std::runtime_error& error) {
+      std::cerr << "An error occurred: " << error.what() << std::endl;
+      return 1;
+    }
+    LOG(debug) << "Run BK:" << runNumber << " class:" << clsname << " cls.first" << cls.first << " ts:" << ts << "  cnts:" << cntsbk[0] << " " << cntsbk[1] << " " << cntsbk[2] << " " << cntsbk[3] << " " << cntsbk[4] << " " << cntsbk[5];
+  }
+  return 0;
+}
 ///
 /// Run Manager to manage Config and Scalers
 ///
@@ -31,6 +75,12 @@ void CTPRunManager::init()
     mActiveRuns[i] = nullptr;
   }
   loadScalerNames();
+  if (mBKHost != "none") {
+    mBKClient = BkpClientFactory::create(mBKHost);
+    LOG(info) << "BK Client created with:" << mBKHost;
+  } else {
+    LOG(info) << "BK not sent";
+  }
   LOG(info) << "CCDB host:" << mCCDBHost;
   LOG(info) << "CTP vNew:" << mNew;
   LOG(info) << "CTPRunManager initialised.";
@@ -68,6 +118,7 @@ int CTPRunManager::loadRun(const std::string& cfg)
   //
   mRunsLoaded[runnumber] = activerun;
   saveRunConfigToCCDB(&activerun->cfg, timeStamp);
+
   return 0;
 }
 int CTPRunManager::startRun(const std::string& cfg)
@@ -84,12 +135,12 @@ int CTPRunManager::stopRun(uint32_t irun, long timeStamp)
   // const auto now = std::chrono::system_clock::now();
   // const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   mActiveRuns[irun]->timeStop = timeStamp * 1000.;
-  saveRunScalersToCCDB(irun);
+  saveRunScalersToCCDB(mActiveRuns[irun]->scalers, mActiveRuns[irun]->timeStart, mActiveRuns[irun]->timeStop);
   delete mActiveRuns[irun];
   mActiveRuns[irun] = nullptr;
   return 0;
 }
-int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
+int CTPRunManager::addScalers(uint32_t irun, std::time_t time, bool start)
 {
   if (mActiveRuns[irun] == nullptr) {
     LOG(error) << "No config for run index:" << irun;
@@ -109,7 +160,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     std::string c1a = "cla1a" + std::to_string(cls + 1);
     CTPScalerRaw scalraw;
     scalraw.classIndex = (uint32_t)cls;
-    // std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
+    std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
     scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
     scalraw.lmAfter = mCounters[mScalerName2Position[cma]];
     scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
@@ -119,23 +170,19 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     // std::cout << "positions:" << cmb << " " <<  mScalerName2Position[cmb] << std::endl;
     // std::cout << "positions:" << cma << " " <<  mScalerName2Position[cma] << std::endl;
     scalrec.scalers.push_back(scalraw);
-  }
-  // detectors
-  // std::vector<std::string> detlist = mActiveRuns[irun]->cfg.getDetectorList();
-  /*
-  o2::detectors::DetID::mask_t detmask = mActiveRuns[irun]->cfg.getDetectorMask();
-  for (uint32_t i = 0; i < 32; i++) {
-    o2::detectors::DetID::mask_t deti = 1ul << i;
-    bool detin = (detmask & deti).count();
-    if (detin) {
-      std::string detname(o2::detectors::DetID::getName(i));
-      std::string countername = "ltg" + CTPConfiguration::detName2LTG.at(detname) + "_PH";
-      uint32_t detcount = mCounters[mScalerName2Position[countername]];
-      scalrec.scalersDets.push_back(detcount);
-      // LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
+    // BK scalers to be corrected for overflow
+    if (mBKClient) {
+      CTPActiveRun* ar = mActiveRuns[irun];
+      ar->cntslast[cls][0] = scalraw.lmBefore;
+      ar->cntslast[cls][1] = scalraw.lmAfter;
+      ar->cntslast[cls][2] = scalraw.l0Before;
+      ar->cntslast[cls][3] = scalraw.l0After;
+      ar->cntslast[cls][4] = scalraw.l1Before;
+      ar->cntslast[cls][5] = scalraw.l1After;
     }
   }
-  */
+  mActiveRuns[irun]->send2BK(mBKClient, time, start);
+  //
   uint32_t NINPS = 48;
   int offset = 599;
   for (uint32_t i = 0; i < NINPS; i++) {
@@ -236,7 +283,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
         mActiveRunNumbers[i] = mCounters[i];
         mActiveRuns[i] = run->second;
         mRunsLoaded.erase(run);
-        addScalers(i, tt);
+        addScalers(i, tt, 1);
       } else {
         LOG(error) << "Trying to start run which is not loaded:" << mCounters[i];
       }
@@ -267,88 +314,6 @@ void CTPRunManager::printActiveRuns() const
   }
   std::cout << std::endl;
 }
-int CTPRunManager::saveRunScalersToCCDB(int i)
-{
-  // data base
-  CTPActiveRun* run = mActiveRuns[i];
-  using namespace std::chrono_literals;
-  std::chrono::seconds days3 = 259200s;
-  std::chrono::seconds min10 = 600s;
-  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
-  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
-  long tmin = run->timeStart - time10min;
-  long tmax = run->timeStop + time3days;
-  o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = std::to_string(run->cfg.getRunNumber());
-  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
-  // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
-  LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
-  return 0;
-}
-int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
-{
-  // data base
-  using namespace std::chrono_literals;
-  std::chrono::seconds days3 = 259200s;
-  std::chrono::seconds min10 = 600s;
-  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
-  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
-  long tmin = timeStart - time10min;
-  long tmax = timeStart + time3days;
-  o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = std::to_string(cfg->getRunNumber());
-  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
-  // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
-  LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
-  return 0;
-}
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
-{
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCCDBHost);
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = run;
-  auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
-  if (ctpconfigdb == nullptr) {
-    LOG(info) << "CTP config not in database, timestamp:" << timestamp;
-    ok = 0;
-  } else {
-    // ctpconfigdb->printStream(std::cout);
-    LOG(info) << "CTP config found. Run:" << run;
-    ok = 1;
-  }
-  return *ctpconfigdb;
-}
-CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
-{
-  bool ok;
-  auto ctpconfig = getConfigFromCCDB(timestamp, run, ok);
-  if (ok == 0) {
-    LOG(error) << "CTP config not in CCDB";
-    return CTPConfiguration();
-  }
-  return ctpconfig;
-}
-CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run, bool& ok)
-{
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCCDBHost);
-  map<string, string> metadata; // can be empty
-  metadata["runNumber"] = run;
-  auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
-  if (ctpscalers == nullptr) {
-    LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
-    ok = 0;
-  } else {
-    // ctpscalers->printStream(std::cout);
-    ok = 1;
-  }
-  return *ctpscalers;
-}
 int CTPRunManager::loadScalerNames()
 {
   if (CTPRunScalers::NCOUNTERS != CTPRunScalers::scalerNames.size()) {
@@ -360,6 +325,16 @@ int CTPRunManager::loadScalerNames()
     mScalerName2Position[CTPRunScalers::scalerNames[i]] = i;
   }
   return 0;
+}
+int CTPRunManager::getNRuns()
+{
+  int n = 0;
+  for (int i = 0; i < NRUNS; i++) {
+    if (mActiveRuns[i] != nullptr) {
+      n++;
+    }
+  }
+  return n;
 }
 void CTPRunManager::printCounters()
 {
