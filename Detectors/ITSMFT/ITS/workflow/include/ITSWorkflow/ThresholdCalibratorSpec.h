@@ -197,7 +197,6 @@ class ITSThresholdCalibrator : public Task
   bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int&, int);
   bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int&, int);
   bool findThresholdHitcounting(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, int);
-  bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);
   void saveThreshold();
 
@@ -207,9 +206,9 @@ class ITSThresholdCalibrator : public Task
   // Utils
   std::vector<short int> getIntegerVect(std::string&);
   short int getRUID(short int chipID);
-  std::vector<short int> getChipBoundariesFromRu(short int, bool*);
+  std::vector<short int> getChipListFromRu(short int, bool*);
   short int getLinkID(short int, short int);
-  short int getActiveLinks(bool*);
+  short int getNumberOfActiveLinks(bool*);
 
   std::string mSelfName;
   std::string mDictName;
@@ -217,7 +216,6 @@ class ITSThresholdCalibrator : public Task
 
   int mTFCounter = 0;
   bool mVerboseOutput = false;
-  bool isForceEor = false;
   std::string mMetaType;
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
@@ -233,12 +231,10 @@ class ITSThresholdCalibrator : public Task
   short int mRunType = -1;
   short int mRunTypeUp = -1;
   short int mRunTypeRU[N_RU] = {0};
-  short int mRunTypeChip[24120] = {0};
-  short int mChipLastRow[24120] = {0};
+  short int mCdwCntRU[N_RU] = {0};
+  short int mRowRU[N_RU] = {0};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
-  short int mRu = 0;
-  bool mIsChipDone[24120] = {false};
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
   char mScanType = '\0';
   short int mMin = -1, mMax = -1, mMin2 = 0, mMax2 = 0;
@@ -266,9 +262,6 @@ class ITSThresholdCalibrator : public Task
   // Flag to avoid that endOfStream and stop are both done
   bool isEnded = false;
 
-  // Flag to enable cw counter check
-  bool mCheckCw = false;
-
   // Flag to tag single noisy pix in digital scan
   bool mTagSinglePix = false;
 
@@ -284,7 +277,7 @@ class ITSThresholdCalibrator : public Task
   // To set min and max ITHR and VCASN in the tuning scans
   short int inMinVcasn = 30;
   short int inMaxVcasn = 100;
-  short int inMinIthr = 15;
+  short int inMinIthr = 25;
   short int inMaxIthr = 100;
 
   // Flag to enable most-probable value calculation
