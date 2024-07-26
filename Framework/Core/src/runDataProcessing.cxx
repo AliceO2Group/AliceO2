@@ -721,8 +721,11 @@ void spawnDevice(uv_loop_t* loop,
     struct rlimit rlim;
     getrlimit(RLIMIT_NOFILE, &rlim);
     // We close all FD, but the one which are actually
-    // used to communicate with the driver.
-    int rlim_cur = rlim.rlim_cur;
+    // used to communicate with the driver. This is a bad
+    // idea in the first place, because rlim_cur could be huge
+    // FIXME: I should understand which one is really to be closed and use
+    // CLOEXEC on it.
+    int rlim_cur = std::min((int)rlim.rlim_cur, 10000);
     for (int i = 0; i < rlim_cur; ++i) {
       if (childFds[ref.index].childstdin[0] == i) {
         continue;
