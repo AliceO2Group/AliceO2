@@ -39,6 +39,10 @@
 #include "DCAFitter/DCAFitterN.h"
 #include "DetectorsBase/Propagator.h"
 
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/TopologyDictionary.h"
+#endif
+
 namespace o2
 {
 namespace strangeness_tracking
@@ -95,11 +99,18 @@ class StrangenessTracker
 
   float getBz() const { return mBz; }
   void setBz(float d) { mBz = d; }
-  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
+  void setClusterDictionaryITS(const o2::itsmft::TopologyDictionary* d) { mITSDict = d; }
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
   void setConfigParams(const StrangenessTrackingParamConfig* params) { mStrParams = params; }
   void setMCTruthOn(bool v) { mMCTruthON = v; }
   bool getMCTruthOn() const { return mMCTruthON; }
+
+#ifdef ENABLE_UPGRADES
+  void setClusterDictionaryIT3(const o2::its3::TopologyDictionary* d)
+  {
+    mIT3Dict = d;
+  }
+#endif
 
   void clear()
   {
@@ -241,7 +252,7 @@ class StrangenessTracker
     return outVec;
   };
 
-  void getClusterSizes(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
+  void getClusterSizesITS(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::itsmft::TopologyDictionary* mdict)
   {
     for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
       auto& clus = ITSclus[iClus];
@@ -261,6 +272,29 @@ class StrangenessTracker
     }
     // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
   }
+
+#ifdef ENABLE_UPGRADES
+  void getClusterSizesIT3(std::vector<int>& clusSizeVec, const gsl::span<const o2::itsmft::CompClusterExt> ITSclus, gsl::span<const unsigned char>::iterator& pattIt, const o2::its3::TopologyDictionary* mdict)
+  {
+    for (unsigned int iClus{0}; iClus < ITSclus.size(); ++iClus) {
+      auto& clus = ITSclus[iClus];
+      auto pattID = clus.getPatternID();
+      int npix;
+      o2::itsmft::ClusterPattern patt;
+
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mdict->isGroup(pattID)) {
+        patt.acquirePattern(pattIt);
+        npix = patt.getNPixels();
+      } else {
+
+        npix = mdict->getNpixels(pattID);
+        patt = mdict->getPattern(pattID);
+      }
+      clusSizeVec[iClus] = npix;
+    }
+    // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
+  }
+#endif
 
   float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS& itsTrack)
   {
@@ -312,7 +346,10 @@ class StrangenessTracker
 
   const StrangenessTrackingParamConfig* mStrParams = nullptr;
   float mBz = -5; // Magnetic field
-  const o2::itsmft::TopologyDictionary* mDict = nullptr;
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
+#ifdef ENABLE_UPGRADES
+  const o2::its3::TopologyDictionary* mIT3Dict = nullptr;
+#endif
 
   std::vector<DCAFitter2> mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis (per thread)
   std::vector<DCAFitter3> mFitter3Body; // optional DCA Fitter for final 3 Body refit (per thread)

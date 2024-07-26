@@ -132,6 +132,13 @@ class ChipMappingMFT
   ///< convert cable iterator ID to its position on the ActiveLanes word in the GBT.header for given RU type
   uint8_t cablePos(uint8_t ruType, uint8_t id) const { return mCablePos[ruType][id]; }
 
+  ///< get chipID on module from chip global SW ID, cable SW ID and stave (RU) info
+  uint16_t getLocalChipID(uint16_t globalID, int cableHW, const RUInfo& ruInfo) const
+  {
+    /// TODO
+    return 0xffff;
+  }
+
   ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU) info
   uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
   {

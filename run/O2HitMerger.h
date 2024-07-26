@@ -56,6 +56,7 @@
 #include <MCHSimulation/Detector.h>
 #include <MIDSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
+#include <FOCALSimulation/Detector.h>
 
 #include "CommonUtils/ShmManager.h"
 #include <map>
@@ -837,8 +838,8 @@ class O2HitMerger : public fair::mq::Device
   std::string mOutFileName;                    //!
 
   // structures for the final flush
-  TFile* mOutFile; //! outfile for kinematics
-  TTree* mOutTree; //! tree (kinematics) associated to mOutFile
+  TFile* mOutFile;             //! outfile for kinematics
+  TTree* mOutTree;             //! tree (kinematics) associated to mOutFile
   TFile* mMCHeaderOnlyOutFile; //! outfile for header only information
   TTree* mMCHeaderTree;        //! tree to hold MCHeader branch in mMCHeaderOnlyOutFile;
 
@@ -980,6 +981,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::ZDC) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::zdc::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::FOC) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::focal::Detector>(true, gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Spaghetti.txt")));
       counter++;
     }
 #ifdef ENABLE_UPGRADES

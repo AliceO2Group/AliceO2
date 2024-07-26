@@ -70,8 +70,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, in
 
   const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
-  int startROF{mTrkParams[iteration].nROFsPerIterations > 0 ? std::max(iROFslice * mTrkParams[iteration].nROFsPerIterations - mTrkParams[iteration].DeltaROF, 0) : 0};
-  int endROF{mTrkParams[iteration].nROFsPerIterations > 0 ? std::min((iROFslice + 1) * mTrkParams[iteration].nROFsPerIterations + mTrkParams[iteration].DeltaROF, tf->getNrof()) : tf->getNrof()};
+  int startROF{mTrkParams[iteration].nROFsPerIterations > 0 ? iROFslice * mTrkParams[iteration].nROFsPerIterations : 0};
+  int endROF{mTrkParams[iteration].nROFsPerIterations > 0 ? (iROFslice + 1) * mTrkParams[iteration].nROFsPerIterations + mTrkParams[iteration].DeltaROF : tf->getNrof()};
   for (int rof0{startROF}; rof0 < endROF; ++rof0) {
     gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
     const int startVtx{iVertex >= 0 ? iVertex : 0};
@@ -98,6 +98,9 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, in
 
         for (int iV{startVtx}; iV < endVtx; ++iV) {
           auto& primaryVertex{primaryVertices[iV]};
+          if (primaryVertex.isFlagSet(1) && iteration != 3) {
+            continue;
+          }
           const float resolution = o2::gpu::CAMath::Sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 
           const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};

@@ -47,7 +47,7 @@ using namespace o2::framework;
 ///_______________________________________
 template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mVerifyDecoder(inp.verifyDecoder), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -98,6 +98,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder->setAllowEmptyROFs(ic.options().get<bool>("allow-empty-rofs"));
     mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
+    mDecoder->setVerifyDecoder(mVerifyDecoder);
     bool ignoreRampUp = !ic.options().get<bool>("accept-rof-rampup-data");
     mDecoder->setSkipRampUpData(ignoreRampUp);
   } catch (const std::exception& e) {

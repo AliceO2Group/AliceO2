@@ -35,6 +35,7 @@ class DataSource
   DataReader* mDataReader = nullptr;
   float mTimeFrameMinTrackTime = 0;
   float mTimeFrameMaxTrackTime = 0;
+  framework::DataProcessingHeader::CreationTime mCreationTime;
 
  public:
   float getTimeFrameMinTrackTime() const
@@ -76,8 +77,9 @@ class DataSource
   virtual std::string getEventAbsoluteFilePath() { return ""; };
   virtual int getFirstTForbit() const { return 0; }
   virtual void setFirstTForbit(int) {}
-  virtual std::string getCollisionTime() const { return "not specified"; }
-  virtual void setCollisionTime(std::string) {}
+  void setCreationTime(framework::DataProcessingHeader::CreationTime mCreationTime) { this->mCreationTime = mCreationTime; }
+  framework::DataProcessingHeader::CreationTime getCreationTime() const { return mCreationTime; }
+  std::string getCreationTimeAsString() const;
   virtual std::string getFileTime() const { return "not specified"; }
   virtual void setFileTime(std::string) {}
   virtual int getTrackMask() const { return 0; }

@@ -38,10 +38,6 @@ class O2DatabasePDG
     auto db = TDatabasePDG::Instance();
     if (!initialized) {
       addALICEParticles(db);
-      if (const char* o2Root = std::getenv("O2_ROOT")) {
-        auto inputExtraPDGs = std::string(o2Root) + "/share/Detectors/gconfig/data/extra_ions_pdg_table.dat";
-        db->ReadPDGTable(inputExtraPDGs.c_str());
-      }
       initialized = true;
     }
     return db;
@@ -49,6 +45,7 @@ class O2DatabasePDG
 
   // adds ALICE particles to a given TDatabasePDG instance
   static void addALICEParticles(TDatabasePDG* db = TDatabasePDG::Instance());
+  static void addParticlesFromExternalFile(TDatabasePDG* db);
 
   // get particle's (if any) mass
   static Double_t MassImpl(TParticlePDG* particle, bool& success)
@@ -654,6 +651,26 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
 
   if (!db->GetParticle(-ionCode)) {
     db->AddParticle("AntiSexaquark", "AntiSexaquark", 2.0, kTRUE, 0.0, 0, "Special", -ionCode);
+  }
+
+  // lastly, add particle from the the extra text file
+  addParticlesFromExternalFile(db);
+}
+
+inline void O2DatabasePDG::addParticlesFromExternalFile(TDatabasePDG* db)
+{
+  static bool initialized = false;
+  if (!initialized) {
+    // allow user to specify custom file
+    if (const char* custom = std::getenv("O2_SIM_CUSTOM_PDG")) {
+      // TODO: make sure this is a file
+      db->ReadPDGTable(custom);
+    } else if (const char* o2Root = std::getenv("O2_ROOT")) {
+      // take the maintained file from O2
+      auto inputExtraPDGs = std::string(o2Root) + "/share/Detectors/gconfig/data/extra_ions_pdg_table.dat";
+      db->ReadPDGTable(inputExtraPDGs.c_str());
+    }
+    initialized = true;
   }
 }
 

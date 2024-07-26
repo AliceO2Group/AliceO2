@@ -11,6 +11,7 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
+#include "Framework/BacktraceHelpers.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
@@ -656,7 +657,7 @@ void handle_crash(int sig)
     auto retVal = write(STDERR_FILENO, buffer, strlen(buffer));
     (void)retVal;
   }
-  demangled_backtrace_symbols(array, size, STDERR_FILENO);
+  BacktraceHelpers::demangled_backtrace_symbols(array, size, STDERR_FILENO);
   {
     char const* msg = "Backtrace complete.\n";
     int len = strlen(msg); /* the byte length of the string */
@@ -982,7 +983,7 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
          " Reason: {}"
          "\n Backtrace follow: \n",
          processName, err.what);
-    demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
@@ -1928,7 +1929,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         } catch (o2::framework::RuntimeErrorRef ref) {
           auto& err = o2::framework::error_from_ref(ref);
 #ifdef DPL_ENABLE_BACKTRACE
-          demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+          BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
           LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], err.what);
           return 1;
@@ -2059,7 +2060,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           LOGP(error, "unable to merge configurations in {}: {}", driverInfo.argv[0], err.what);
 #ifdef DPL_ENABLE_BACKTRACE
           std::cerr << "\nStacktrace follows:\n\n";
-          demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+          BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
           return 1;
         }
@@ -2722,11 +2723,7 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   for (auto& d : specs) {
     out << "- " << d.name << std::endl;
   }
-  out << "digraph G {\n";
-  for (auto& e : edges) {
-    out << fmt::format("  \"{}\" -> \"{}\"\n", specs[e.first].name, specs[e.second].name);
-  }
-  out << "}\n";
+  GraphvizHelpers::dumpDataProcessorSpec2Graphviz(out, specs, edges);
   return out.str();
 }
 

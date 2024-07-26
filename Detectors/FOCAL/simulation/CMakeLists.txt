@@ -19,3 +19,6 @@ o2_target_root_dictionary(
     FOCALSimulation
     HEADERS include/FOCALSimulation/Detector.h
 )
+
+o2_data_file(COPY geometryFiles  DESTINATION Detectors/Geometry/FOC/)
+o2_data_file(COPY data DESTINATION Detectors/FOC/simulation)

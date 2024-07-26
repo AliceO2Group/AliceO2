@@ -21,6 +21,7 @@
 #include "Framework/ArrowTypes.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/SliceCache.h"
+#include "Framework/VariantHelpers.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/config.h>
@@ -559,6 +560,9 @@ template <typename T>
 constexpr auto is_persistent_v = is_persistent_t<T>::value;
 
 template <typename T>
+constexpr auto is_dynamic_v = is_dynamic_t<T>::value;
+
+template <typename T>
 using is_external_index_t = typename std::conditional<is_index_column_v<T>, std::true_type, std::false_type>::type;
 
 template <typename T>
@@ -777,6 +781,11 @@ struct ColumnDataHolder {
   arrow::ChunkedArray* second;
 };
 
+template <typename T, typename B>
+concept CanBind = requires(T&& t) {
+  { t.B::mColumnIterator };
+};
+
 template <typename IP, typename... C>
 struct RowViewCore : public IP, C... {
  public:
@@ -784,7 +793,6 @@ struct RowViewCore : public IP, C... {
   using table_t = o2::soa::Table<C...>;
   using all_columns = framework::pack<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
-  using dynamic_columns_t = framework::selected_pack<is_dynamic_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
   constexpr inline static bool has_index_v = framework::pack_size(index_columns_t{}) > 0;
   using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
@@ -794,8 +802,7 @@ struct RowViewCore : public IP, C... {
     : IP{policy},
       C(columnData[framework::has_type_at_v<C>(all_columns{})])...
   {
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
+    bind();
     // In case we have an index column might need to constrain the actual
     // number of rows in the view to the range provided by the index.
     // FIXME: we should really understand what happens to an index when we
@@ -810,16 +817,14 @@ struct RowViewCore : public IP, C... {
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
+    bind();
   }
 
   RowViewCore& operator=(RowViewCore other)
   {
     IP::operator=(static_cast<IP const&>(other));
     (void(static_cast<C&>(*this) = static_cast<C>(other)), ...);
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
+    bind();
     return *this;
   }
 
@@ -827,8 +832,7 @@ struct RowViewCore : public IP, C... {
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
-    bindIterators(persistent_columns_t{});
-    bindAllDynamicColumns(dynamic_columns_t{});
+    bind();
   }
 
   RowViewCore& operator++()
@@ -947,18 +951,15 @@ struct RowViewCore : public IP, C... {
 
   /// Helper which binds all the ColumnIterators to the
   /// index of a the associated RowView
-  template <typename... PC>
-  auto bindIterators(framework::pack<PC...>)
+  void bind()
   {
     using namespace o2::soa;
-    (void(PC::mColumnIterator.mCurrentPos = &this->mRowIndex), ...);
-  }
-
-  template <typename... DC>
-  auto bindAllDynamicColumns(framework::pack<DC...>)
-  {
-    using namespace o2::soa;
-    (bindDynamicColumn<DC>(typename DC::bindings_t{}), ...);
+    auto f = framework::overloaded  {
+      [this]<typename T>(T*) -> void requires is_persistent_v<T> { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
+      [this]<typename T>(T*) -> void requires is_dynamic_v<T> { bindDynamicColumn<T>(typename T::bindings_t{});},
+      [this]<typename T>(T*) -> void {},
+    };
+    (f(static_cast<C*>(nullptr)), ...);
     if constexpr (has_index_v) {
       this->setIndices(this->getIndices());
       this->setOffsets(this->getOffsets());
@@ -968,7 +969,27 @@ struct RowViewCore : public IP, C... {
   template <typename DC, typename... B>
   auto bindDynamicColumn(framework::pack<B...>)
   {
-    DC::boundIterators = std::make_tuple(&(B::mColumnIterator)...);
+    DC::boundIterators = std::make_tuple(getDynamicBinding<B>()...);
+  }
+
+  // Sometimes dynamic columns are defined for tables in
+  // the hope that it will be joined / extended with another one which provides
+  // the full set of bindings. This is to avoid a compilation
+  // error if constructor for the table or any other thing involving a missing
+  // binding is preinstanciated.
+  template <typename B>
+    requires(CanBind<typename table_t::iterator, B>)
+  decltype(auto) getDynamicBinding()
+  {
+    static_assert(std::is_same_v<decltype(&(static_cast<B*>(this)->mColumnIterator)), std::decay_t<decltype(B::mColumnIterator)>*>, "foo");
+    return &(static_cast<B*>(this)->mColumnIterator);
+    //return static_cast<std::decay_t<decltype(B::mColumnIterator)>*>(nullptr);
+  }
+
+  template <typename B>
+  decltype(auto) getDynamicBinding()
+  {
+    return static_cast<std::decay_t<decltype(B::mColumnIterator)>*>(nullptr);
   }
 };
 
@@ -1085,25 +1106,25 @@ static constexpr std::string getLabelFromTypeForKey(std::string const& key)
 }
 
 template <typename B, typename... C>
-constexpr static bool hasIndexTo(framework::pack<C...>&&)
+consteval static bool hasIndexTo(framework::pack<C...>&&)
 {
   return (o2::soa::is_binding_compatible_v<B, typename C::binding_t>() || ...);
 }
 
 template <typename B, typename... C>
-constexpr static bool hasSortedIndexTo(framework::pack<C...>&&)
+consteval static bool hasSortedIndexTo(framework::pack<C...>&&)
 {
   return ((C::sorted && o2::soa::is_binding_compatible_v<B, typename C::binding_t>()) || ...);
 }
 
 template <typename B, typename Z>
-constexpr static bool relatedByIndex()
+consteval static bool relatedByIndex()
 {
   return hasIndexTo<B>(typename Z::table_t::external_index_columns_t{});
 }
 
 template <typename B, typename Z>
-constexpr static bool relatedBySortedIndex()
+consteval static bool relatedBySortedIndex()
 {
   return hasSortedIndexTo<B>(typename Z::table_t::external_index_columns_t{});
 }
@@ -1191,7 +1212,7 @@ template <typename T>
 inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
 
 template <typename T>
-inline constexpr bool is_soa_filtered_iterator_v()
+inline consteval bool is_soa_filtered_iterator_v()
 {
   if constexpr (!is_soa_iterator_v<T>) {
     return false;
@@ -1220,7 +1241,7 @@ inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::
 
 /// Helper function to extract bound indices
 template <typename... Is>
-static constexpr auto extractBindings(framework::pack<Is...>)
+static consteval auto extractBindings(framework::pack<Is...>)
 {
   return framework::pack<typename Is::binding_t...>{};
 }
@@ -1270,7 +1291,7 @@ auto doSliceBy(T const* table, o2::framework::PresliceBase<C, OPT, SORTED> const
 template <typename T>
 auto prepareFilteredSlice(T const* table, std::shared_ptr<arrow::Table> slice, uint64_t offset)
 {
-  if (offset >= table->tableSize()) {
+  if (offset >= static_cast<uint64_t>(table->tableSize())) {
     if constexpr (soa::is_soa_filtered_v<T>) {
       Filtered<typename T::base_t> fresult{{{slice}}, SelectionVector{}, 0};
       table->copyIndexBindings(fresult);
@@ -1470,7 +1491,7 @@ class Table
     auto getId() const
     {
       using decayed = std::decay_t<TI>;
-      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) { // index to another table
+      if constexpr (framework::has_type<decayed>(bindings_pack_t{})) { // index to another table
         constexpr auto idx = framework::has_type_at_v<decayed>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
       } else if constexpr (std::is_same_v<decayed, Parent>) { // self index
@@ -1571,7 +1592,7 @@ class Table
   template <typename Key>
   inline arrow::ChunkedArray* getIndexToKey()
   {
-    if constexpr (framework::has_type_conditional_v<is_binding_compatible, Key, external_index_columns_t>) {
+    if constexpr (framework::has_type_conditional<is_binding_compatible, Key>(external_index_columns_t{})) {
       using IC = framework::pack_element_t<framework::has_type_at_conditional<is_binding_compatible, Key>(external_index_columns_t{}), external_index_columns_t>;
       return mColumnChunks[framework::has_type_at<IC>(persistent_columns_t{})];
     } else if constexpr (std::is_same_v<table_t, Key>) {
@@ -2012,246 +2033,250 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 /// Array  index: return an array of iterators, defined by values in its elements
 
 /// SLICE
-#define DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)    \
-  struct _Name_##IdSlice : o2::soa::Column<_Type_[2], _Name_##IdSlice> {                    \
-    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");               \
-    static_assert((*_Suffix_ == '\0') || (*_Suffix_ == '_'), "Suffix has to begin with _"); \
-    static constexpr const char* mLabel = "fIndexSlice" #_Table_ _Suffix_;                  \
-    using base = o2::soa::Column<_Type_[2], _Name_##IdSlice>;                               \
-    using type = _Type_[2];                                                                 \
-    using column_t = _Name_##IdSlice;                                                       \
-    using binding_t = _Table_;                                                              \
-    _Name_##IdSlice(arrow::ChunkedArray const* column)                                      \
-      : o2::soa::Column<_Type_[2], _Name_##IdSlice>(o2::soa::ColumnIterator<type>(column))  \
-    {                                                                                       \
-    }                                                                                       \
-                                                                                            \
-    _Name_##IdSlice() = default;                                                            \
-    _Name_##IdSlice(_Name_##IdSlice const& other) = default;                                \
-    _Name_##IdSlice& operator=(_Name_##IdSlice const& other) = default;                     \
-    std::array<_Type_, 2> inline getIds() const                                             \
-    {                                                                                       \
-      return _Getter_##Ids();                                                               \
-    }                                                                                       \
-                                                                                            \
-    bool has_##_Getter_() const                                                             \
-    {                                                                                       \
-      auto a = *mColumnIterator;                                                            \
-      return a[0] >= 0 && a[1] >= 0;                                                        \
-    }                                                                                       \
-                                                                                            \
-    std::array<_Type_, 2> _Getter_##Ids() const                                             \
-    {                                                                                       \
-      auto a = *mColumnIterator;                                                            \
-      return std::array{a[0], a[1]};                                                        \
-    }                                                                                       \
-                                                                                            \
-    template <typename T>                                                                   \
-    auto _Getter_##_as() const                                                              \
-    {                                                                                       \
-      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                   \
-        o2::soa::notBoundTable(#_Table_);                                                   \
-      }                                                                                     \
-      auto t = mBinding.get<T>();                                                           \
-      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                              \
-        o2::soa::dereferenceWithWrongType();                                                \
-      }                                                                                     \
-      if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                         \
-        return t->emptySlice();                                                             \
-      }                                                                                     \
-      auto a = *mColumnIterator;                                                            \
-      auto r = t->rawSlice(a[0], a[1]);                                                     \
-      t->copyIndexBindings(r);                                                              \
-      r.bindInternalIndicesTo(t);                                                           \
-      return r;                                                                             \
-    }                                                                                       \
-                                                                                            \
-    auto _Getter_() const                                                                   \
-    {                                                                                       \
-      return _Getter_##_as<binding_t>();                                                    \
-    }                                                                                       \
-                                                                                            \
-    template <typename T>                                                                   \
-    bool setCurrent(T const* current)                                                       \
-    {                                                                                       \
-      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                     \
-        assert(current != nullptr);                                                         \
-        this->mBinding.bind(current);                                                       \
-        return true;                                                                        \
-      }                                                                                     \
-      return false;                                                                         \
-    }                                                                                       \
-                                                                                            \
-    bool setCurrentRaw(o2::soa::Binding current)                                            \
-    {                                                                                       \
-      this->mBinding = current;                                                             \
-      return true;                                                                          \
-    }                                                                                       \
-    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }               \
-    o2::soa::Binding getCurrentRaw() const { return mBinding; }                             \
-    o2::soa::Binding mBinding;                                                              \
+#define DECLARE_SOA_SLICE_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, _Label_, _Suffix_) \
+  struct _Name_##IdSlice : o2::soa::Column<_Type_[2], _Name_##IdSlice> {                                 \
+    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                            \
+    static_assert((*_Suffix_ == '\0') || (*_Suffix_ == '_'), "Suffix has to begin with _");              \
+    static constexpr const char* mLabel = "fIndexSlice" _Label_ _Suffix_;                                \
+    using base = o2::soa::Column<_Type_[2], _Name_##IdSlice>;                                            \
+    using type = _Type_[2];                                                                              \
+    using column_t = _Name_##IdSlice;                                                                    \
+    using binding_t = _Table_;                                                                           \
+    _Name_##IdSlice(arrow::ChunkedArray const* column)                                                   \
+      : o2::soa::Column<_Type_[2], _Name_##IdSlice>(o2::soa::ColumnIterator<type>(column))               \
+    {                                                                                                    \
+    }                                                                                                    \
+                                                                                                         \
+    _Name_##IdSlice() = default;                                                                         \
+    _Name_##IdSlice(_Name_##IdSlice const& other) = default;                                             \
+    _Name_##IdSlice& operator=(_Name_##IdSlice const& other) = default;                                  \
+    std::array<_Type_, 2> inline getIds() const                                                          \
+    {                                                                                                    \
+      return _Getter_##Ids();                                                                            \
+    }                                                                                                    \
+                                                                                                         \
+    bool has_##_Getter_() const                                                                          \
+    {                                                                                                    \
+      auto a = *mColumnIterator;                                                                         \
+      return a[0] >= 0 && a[1] >= 0;                                                                     \
+    }                                                                                                    \
+                                                                                                         \
+    std::array<_Type_, 2> _Getter_##Ids() const                                                          \
+    {                                                                                                    \
+      auto a = *mColumnIterator;                                                                         \
+      return std::array{a[0], a[1]};                                                                     \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto _Getter_##_as() const                                                                           \
+    {                                                                                                    \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
+        o2::soa::notBoundTable(#_Table_);                                                                \
+      }                                                                                                  \
+      auto t = mBinding.get<T>();                                                                        \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
+        o2::soa::dereferenceWithWrongType();                                                             \
+      }                                                                                                  \
+      if (O2_BUILTIN_UNLIKELY(!has_##_Getter_())) {                                                      \
+        return t->emptySlice();                                                                          \
+      }                                                                                                  \
+      auto a = *mColumnIterator;                                                                         \
+      auto r = t->rawSlice(a[0], a[1]);                                                                  \
+      t->copyIndexBindings(r);                                                                           \
+      r.bindInternalIndicesTo(t);                                                                        \
+      return r;                                                                                          \
+    }                                                                                                    \
+                                                                                                         \
+    auto _Getter_() const                                                                                \
+    {                                                                                                    \
+      return _Getter_##_as<binding_t>();                                                                 \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    bool setCurrent(T const* current)                                                                    \
+    {                                                                                                    \
+      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                                  \
+        assert(current != nullptr);                                                                      \
+        this->mBinding.bind(current);                                                                    \
+        return true;                                                                                     \
+      }                                                                                                  \
+      return false;                                                                                      \
+    }                                                                                                    \
+                                                                                                         \
+    bool setCurrentRaw(o2::soa::Binding current)                                                         \
+    {                                                                                                    \
+      this->mBinding = current;                                                                          \
+      return true;                                                                                       \
+    }                                                                                                    \
+    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }                            \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                          \
+    o2::soa::Binding mBinding;                                                                           \
   };
 
+#define DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_SLICE_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
+#define DECLARE_SOA_SLICE_INDEX_COLUMN_CUSTOM(_Name_, _Getter_, _Label_) DECLARE_SOA_SLICE_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, int32_t, _Name_##s, _Label_, "")
 
 /// ARRAY
-#define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)         \
-  struct _Name_##Ids : o2::soa::Column<std::vector<_Type_>, _Name_##Ids> {                       \
-    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                    \
-    static_assert((*_Suffix_ == '\0') || (*_Suffix_ == '_'), "Suffix has to begin with _");      \
-    static constexpr const char* mLabel = "fIndexArray" #_Table_ _Suffix_;                       \
-    using base = o2::soa::Column<std::vector<_Type_>, _Name_##Ids>;                              \
-    using type = std::vector<_Type_>;                                                            \
-    using column_t = _Name_##Ids;                                                                \
-    using binding_t = _Table_;                                                                   \
-    _Name_##Ids(arrow::ChunkedArray const* column)                                               \
-      : o2::soa::Column<std::vector<_Type_>, _Name_##Ids>(o2::soa::ColumnIterator<type>(column)) \
-    {                                                                                            \
-    }                                                                                            \
-                                                                                                 \
-    _Name_##Ids() = default;                                                                     \
-    _Name_##Ids(_Name_##Ids const& other) = default;                                             \
-    _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                  \
-                                                                                                 \
-    gsl::span<const _Type_> inline getIds() const                                                \
-    {                                                                                            \
-      return _Getter_##Ids();                                                                    \
-    }                                                                                            \
-                                                                                                 \
-    gsl::span<const _Type_> _Getter_##Ids() const                                                \
-    {                                                                                            \
-      return *mColumnIterator;                                                                   \
-    }                                                                                            \
-                                                                                                 \
-    bool has_##_Getter_() const                                                                  \
-    {                                                                                            \
-      return !(*mColumnIterator).empty();                                                        \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    auto _Getter_##_as() const                                                                   \
-    {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
-        o2::soa::notBoundTable(#_Table_);                                                        \
-      }                                                                                          \
-      auto t = mBinding.get<T>();                                                                \
-      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
-        o2::soa::dereferenceWithWrongType();                                                     \
-      }                                                                                          \
-      return getIterators<T>();                                                                  \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    auto filtered_##_Getter_##_as() const                                                        \
-    {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
-        o2::soa::notBoundTable(#_Table_);                                                        \
-      }                                                                                          \
-      auto t = mBinding.get<T>();                                                                \
-      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
-        o2::soa::dereferenceWithWrongType();                                                     \
-      }                                                                                          \
-      return getFilteredIterators<T>();                                                          \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    auto getIterators() const                                                                    \
-    {                                                                                            \
-      auto result = std::vector<typename T::unfiltered_iterator>();                              \
-      for (auto& i : *mColumnIterator) {                                                         \
-        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                   \
-      }                                                                                          \
-      return result;                                                                             \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    std::vector<typename T::iterator> getFilteredIterators() const                               \
-    {                                                                                            \
-      if constexpr (o2::soa::is_soa_filtered_v<T>) {                                             \
-        auto result = std::vector<typename T::iterator>();                                       \
-        for (auto const& i : *mColumnIterator) {                                                 \
-          auto pos = mBinding.get<T>()->isInSelectedRows(i);                                     \
-          if (pos > 0) {                                                                         \
-            result.push_back(mBinding.get<T>()->iteratorAt(pos));                                \
-          }                                                                                      \
-        }                                                                                        \
-        return result;                                                                           \
-      } else {                                                                                   \
-        static_assert(o2::framework::always_static_assert_v<T>, "T is not a Filtered type");     \
-      }                                                                                          \
-      return {};                                                                                 \
-    }                                                                                            \
-                                                                                                 \
-    auto _Getter_() const                                                                        \
-    {                                                                                            \
-      return _Getter_##_as<binding_t>();                                                         \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    auto _Getter_##_first_as() const                                                             \
-    {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
-        o2::soa::notBoundTable(#_Table_);                                                        \
-      }                                                                                          \
-      auto t = mBinding.get<T>();                                                                \
-      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
-        o2::soa::dereferenceWithWrongType();                                                     \
-      }                                                                                          \
-      return t->rawIteratorAt((*mColumnIterator)[0]);                                            \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    auto _Getter_##_last_as() const                                                              \
-    {                                                                                            \
-      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                        \
-        o2::soa::notBoundTable(#_Table_);                                                        \
-      }                                                                                          \
-      auto t = mBinding.get<T>();                                                                \
-      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                   \
-        o2::soa::dereferenceWithWrongType();                                                     \
-      }                                                                                          \
-      return t->rawIteratorAt((*mColumnIterator).back());                                        \
-    }                                                                                            \
-                                                                                                 \
-    auto _Getter_first() const                                                                   \
-    {                                                                                            \
-      return _Getter_##_first_as<binding_t>();                                                   \
-    }                                                                                            \
-                                                                                                 \
-    auto _Getter_last() const                                                                    \
-    {                                                                                            \
-      return _Getter_##_last_as<binding_t>();                                                    \
-    }                                                                                            \
-                                                                                                 \
-    template <typename T>                                                                        \
-    bool setCurrent(T const* current)                                                            \
-    {                                                                                            \
-      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                          \
-        assert(current != nullptr);                                                              \
-        this->mBinding.bind(current);                                                            \
-        return true;                                                                             \
-      }                                                                                          \
-      return false;                                                                              \
-    }                                                                                            \
-                                                                                                 \
-    bool setCurrentRaw(o2::soa::Binding current)                                                 \
-    {                                                                                            \
-      this->mBinding = current;                                                                  \
-      return true;                                                                               \
-    }                                                                                            \
-    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }                    \
-    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                  \
-    o2::soa::Binding mBinding;                                                                   \
+#define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, _Label_, _Suffix_) \
+  struct _Name_##Ids : o2::soa::Column<std::vector<_Type_>, _Name_##Ids> {                               \
+    static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                            \
+    static_assert((*_Suffix_ == '\0') || (*_Suffix_ == '_'), "Suffix has to begin with _");              \
+    static constexpr const char* mLabel = "fIndexArray" _Label_ _Suffix_;                                \
+    using base = o2::soa::Column<std::vector<_Type_>, _Name_##Ids>;                                      \
+    using type = std::vector<_Type_>;                                                                    \
+    using column_t = _Name_##Ids;                                                                        \
+    using binding_t = _Table_;                                                                           \
+    _Name_##Ids(arrow::ChunkedArray const* column)                                                       \
+      : o2::soa::Column<std::vector<_Type_>, _Name_##Ids>(o2::soa::ColumnIterator<type>(column))         \
+    {                                                                                                    \
+    }                                                                                                    \
+                                                                                                         \
+    _Name_##Ids() = default;                                                                             \
+    _Name_##Ids(_Name_##Ids const& other) = default;                                                     \
+    _Name_##Ids& operator=(_Name_##Ids const& other) = default;                                          \
+                                                                                                         \
+    gsl::span<const _Type_> inline getIds() const                                                        \
+    {                                                                                                    \
+      return _Getter_##Ids();                                                                            \
+    }                                                                                                    \
+                                                                                                         \
+    gsl::span<const _Type_> _Getter_##Ids() const                                                        \
+    {                                                                                                    \
+      return *mColumnIterator;                                                                           \
+    }                                                                                                    \
+                                                                                                         \
+    bool has_##_Getter_() const                                                                          \
+    {                                                                                                    \
+      return !(*mColumnIterator).empty();                                                                \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto _Getter_##_as() const                                                                           \
+    {                                                                                                    \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
+        o2::soa::notBoundTable(#_Table_);                                                                \
+      }                                                                                                  \
+      auto t = mBinding.get<T>();                                                                        \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
+        o2::soa::dereferenceWithWrongType();                                                             \
+      }                                                                                                  \
+      return getIterators<T>();                                                                          \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto filtered_##_Getter_##_as() const                                                                \
+    {                                                                                                    \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
+        o2::soa::notBoundTable(#_Table_);                                                                \
+      }                                                                                                  \
+      auto t = mBinding.get<T>();                                                                        \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
+        o2::soa::dereferenceWithWrongType();                                                             \
+      }                                                                                                  \
+      return getFilteredIterators<T>();                                                                  \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto getIterators() const                                                                            \
+    {                                                                                                    \
+      auto result = std::vector<typename T::unfiltered_iterator>();                                      \
+      for (auto& i : *mColumnIterator) {                                                                 \
+        result.push_back(mBinding.get<T>()->rawIteratorAt(i));                                           \
+      }                                                                                                  \
+      return result;                                                                                     \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    std::vector<typename T::iterator> getFilteredIterators() const                                       \
+    {                                                                                                    \
+      if constexpr (o2::soa::is_soa_filtered_v<T>) {                                                     \
+        auto result = std::vector<typename T::iterator>();                                               \
+        for (auto const& i : *mColumnIterator) {                                                         \
+          auto pos = mBinding.get<T>()->isInSelectedRows(i);                                             \
+          if (pos > 0) {                                                                                 \
+            result.push_back(mBinding.get<T>()->iteratorAt(pos));                                        \
+          }                                                                                              \
+        }                                                                                                \
+        return result;                                                                                   \
+      } else {                                                                                           \
+        static_assert(o2::framework::always_static_assert_v<T>, "T is not a Filtered type");             \
+      }                                                                                                  \
+      return {};                                                                                         \
+    }                                                                                                    \
+                                                                                                         \
+    auto _Getter_() const                                                                                \
+    {                                                                                                    \
+      return _Getter_##_as<binding_t>();                                                                 \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto _Getter_##_first_as() const                                                                     \
+    {                                                                                                    \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
+        o2::soa::notBoundTable(#_Table_);                                                                \
+      }                                                                                                  \
+      auto t = mBinding.get<T>();                                                                        \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
+        o2::soa::dereferenceWithWrongType();                                                             \
+      }                                                                                                  \
+      return t->rawIteratorAt((*mColumnIterator)[0]);                                                    \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    auto _Getter_##_last_as() const                                                                      \
+    {                                                                                                    \
+      if (O2_BUILTIN_UNLIKELY(mBinding.ptr == nullptr)) {                                                \
+        o2::soa::notBoundTable(#_Table_);                                                                \
+      }                                                                                                  \
+      auto t = mBinding.get<T>();                                                                        \
+      if (O2_BUILTIN_UNLIKELY(t == nullptr)) {                                                           \
+        o2::soa::dereferenceWithWrongType();                                                             \
+      }                                                                                                  \
+      return t->rawIteratorAt((*mColumnIterator).back());                                                \
+    }                                                                                                    \
+                                                                                                         \
+    auto _Getter_first() const                                                                           \
+    {                                                                                                    \
+      return _Getter_##_first_as<binding_t>();                                                           \
+    }                                                                                                    \
+                                                                                                         \
+    auto _Getter_last() const                                                                            \
+    {                                                                                                    \
+      return _Getter_##_last_as<binding_t>();                                                            \
+    }                                                                                                    \
+                                                                                                         \
+    template <typename T>                                                                                \
+    bool setCurrent(T const* current)                                                                    \
+    {                                                                                                    \
+      if constexpr (o2::soa::is_binding_compatible_v<T, binding_t>()) {                                  \
+        assert(current != nullptr);                                                                      \
+        this->mBinding.bind(current);                                                                    \
+        return true;                                                                                     \
+      }                                                                                                  \
+      return false;                                                                                      \
+    }                                                                                                    \
+                                                                                                         \
+    bool setCurrentRaw(o2::soa::Binding current)                                                         \
+    {                                                                                                    \
+      this->mBinding = current;                                                                          \
+      return true;                                                                                       \
+    }                                                                                                    \
+    binding_t const* getCurrent() const { return mBinding.get<binding_t>(); }                            \
+    o2::soa::Binding getCurrentRaw() const { return mBinding; }                                          \
+    o2::soa::Binding mBinding;                                                                           \
   };
 
+#define DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
+#define DECLARE_SOA_ARRAY_INDEX_COLUMN_CUSTOM(_Name_, _Getter_, _Label_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, int32_t, _Name_##s, _Label_, "")
 
 /// NORMAL
-#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)                                                                                           \
+#define DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, _Label_, _Suffix_)                                                                           \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                                                                                                                  \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                                                                                                \
     static_assert((*_Suffix_ == '\0') || (*_Suffix_ == '_'), "Suffix has to begin with _");                                                                                  \
-    static constexpr const char* mLabel = "fIndex" #_Table_ _Suffix_;                                                                                                        \
+    static constexpr const char* mLabel = "fIndex" _Label_ _Suffix_;                                                                                                         \
     using base = o2::soa::Column<_Type_, _Name_##Id>;                                                                                                                        \
     using type = _Type_;                                                                                                                                                     \
     using column_t = _Name_##Id;                                                                                                                                             \
@@ -2323,7 +2348,9 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
   [[maybe_unused]] static constexpr o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" #_Table_ _Suffix_, o2::framework::TypeIdHelpers::uniqueId<_Name_##Id>(), \
                                                                                            o2::framework::expressions::selectArrowType<_Type_>() }
 
+#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, _Type_, _Table_, #_Table_, _Suffix_)
 #define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
+#define DECLARE_SOA_INDEX_COLUMN_CUSTOM(_Name_, _Getter_, _Label_) DECLARE_SOA_INDEX_COLUMN_FULL_CUSTOM(_Name_, _Getter_, int32_t, _Name_##s, _Label_, "")
 
 /// SELF
 #define DECLARE_SOA_SELF_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                                                                      \
@@ -2781,12 +2808,12 @@ struct Join : TableWrap<Ts...>::table_t {
   }
 
   template <typename T>
-  static constexpr bool contains()
+  static consteval bool contains()
   {
     if constexpr (is_type_with_originals_v<T>) {
       return contains(typename T::originals{});
     } else {
-      return framework::has_type_v<T, originals>;
+      return framework::has_type<T>(originals{});
     }
   }
 

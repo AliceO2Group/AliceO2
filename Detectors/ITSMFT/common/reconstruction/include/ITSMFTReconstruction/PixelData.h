@@ -243,6 +243,32 @@ class ChipPixelData
     }
   }
 
+  template <typename Func>
+  void forEachSetError(Func f) const
+  {
+    auto outer = [&](int errIdx) {
+      if (getErrorFlags() && (getErrorFlags() & (0x1UL << errIdx))) {
+        f(errIdx);
+      }
+    };
+    ChipStat::forEachError(outer);
+  }
+
+  std::string reportErrors() const
+  {
+    std::string res;
+    bool first = true;
+    auto inner = [&](int errIdx) {
+      if (!first) {
+        res += ", ";
+      }
+      res += ChipStat::ErrNames[errIdx];
+      first = false;
+    };
+    forEachSetError(inner);
+    return res;
+  }
+
   void print() const;
   std::vector<uint32_t>& getPixIds() { return mPixIds; }
   std::vector<int>& getPixelsOrder() { return mPixelsOrder; }

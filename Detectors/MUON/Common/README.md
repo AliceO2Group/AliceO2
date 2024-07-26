@@ -78,7 +78,17 @@ o2-mid-dcs-ccdb --put-datapoint-config --ccdb http://localhost:8080
 
 ### Default CCDB object
 
-The default object in the CCDB can be produced with:
+The default objects in the CCDB can be produced as follow:
+
+#### MCH/Calib/HV
+
+```shell
+o2-mch-dcs-ccdb --ccdb http://localhost:8080 --upload-default-values -t 1546300800000
+```
+
+One DCS data point is created for each channel with the timestamp provided with the `-t` option. The validity range of the object is set from 1 to 9999999999999 and its creation time is set to 1.
+
+#### MID/Calib/HV
 
 ```shell
 o2-mid-dcs-ccdb --ccdb http://localhost:8080 --upload-default-values -t 1662532507890

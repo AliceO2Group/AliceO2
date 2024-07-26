@@ -268,7 +268,25 @@ class MatchITSTPCQC
   // K0
   void setMaxK0Eta(float v) { mMaxEtaK0 = v; }
   void setRefitK0(bool v) { mRefit = v; }
-  void setCutK0Mass(bool v) { mCutK0Mass = v; }
+  void setCutK0Mass(float v) { mCutK0Mass = v; }
+
+  void printParams()
+  {
+    LOG(info) << "minPtITSCut          = " << mPtITSCut;
+    LOG(info) << "etaITSCut            = " << mEtaITSCut;
+    LOG(info) << "minNITSClustersCut   = " << mMinNClustersITS;
+    LOG(info) << "maxChi2PerClusterITS = " << mMaxChi2PerClusterITS;
+    LOG(info) << "minPtTPCCut          = " << mPtTPCCut;
+    LOG(info) << "etaTPCCut            = " << mEtaTPCCut;
+    LOG(info) << "minNTPCClustersCut   = " << mNTPCClustersCut;
+    LOG(info) << "minDCACut            = " << mDCATPCCut;
+    LOG(info) << "minDCACutY           = " << mDCATPCCutY;
+    LOG(info) << "minPtCut             = " << mPtCut;
+    LOG(info) << "maxPtCut             = " << mPtMaxCut;
+    LOG(info) << "etaCut               = " << mEtaCut;
+    LOG(info) << "cutK0Mass            = " << mCutK0Mass;
+    LOG(info) << "maxEtaK0             = " << mMaxEtaK0;
+  }
 
  private:
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;

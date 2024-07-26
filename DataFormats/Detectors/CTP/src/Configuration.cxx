@@ -773,6 +773,16 @@ int CTPConfiguration::getInputIndex(const std::string& name) const
   LOG(info) << "input:" << name << " index:" << index;
   return index;
 }
+std::string CTPConfiguration::getClassNameFromHWIndex(int index)
+{
+  for (auto& cls : mCTPClasses) {
+    if (cls.classMask == (1ull << index)) {
+      return cls.name;
+    }
+  }
+  std::string ret = "not found";
+  return ret;
+}
 bool CTPConfiguration::isMaskInInputs(const uint64_t& mask) const
 {
   for (auto const& inp : mInputs) {
@@ -877,6 +887,7 @@ uint64_t CTPConfiguration::getTriggerClassMask() const
   }
   return clsmask;
 }
+// Hardware positions of classes
 std::vector<int> CTPConfiguration::getTriggerClassList() const
 {
   uint64_t clsmask = getTriggerClassMask();

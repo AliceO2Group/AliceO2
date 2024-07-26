@@ -365,6 +365,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   if (ImGui::CollapsingHeader("Policies")) {
     ImGui::Text("Completion: %s", spec.completionPolicy.name.c_str());
     ImGui::Text("Sending: %s", spec.sendingPolicy.name.c_str());
+    ImGui::Text("Dispatching: %s", spec.dispatchPolicy.name.c_str());
   }
 
   if (ImGui::CollapsingHeader("Signals", ImGuiTreeNodeFlags_DefaultOpen)) {

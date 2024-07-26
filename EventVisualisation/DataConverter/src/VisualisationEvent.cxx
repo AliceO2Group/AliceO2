@@ -21,6 +21,7 @@
 #include <string>
 #include <limits>
 #include <algorithm>
+#include <map>
 
 using namespace std;
 using namespace rapidjson;
@@ -94,16 +95,19 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
 }();
 
 /// Ctor -- set the minimalistic event up
-VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
+VisualisationEvent::VisualisationEvent(const VisualisationEventVO vo)
 {
   this->mEventNumber = vo.eventNumber;
   this->mRunNumber = vo.runNumber;
   this->mEnergy = vo.energy;
   this->mMultiplicity = vo.multiplicity;
   this->mCollidingSystem = vo.collidingSystem;
-  this->mCollisionTime = vo.collisionTime;
+  this->mCreationTime = vo.collisionTime;
   this->mMinTimeOfTracks = numeric_limits<float>::max();
   this->mMaxTimeOfTracks = numeric_limits<float>::min();
+  this->mClMask = 0;
+  this->mTrkMask = 0;
+  this->mTfCounter = 0;
 }
 
 void VisualisationEvent::appendAnotherEventCalo(const VisualisationEvent& another)
@@ -116,18 +120,18 @@ void VisualisationEvent::appendAnotherEventCalo(const VisualisationEvent& anothe
 VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime)
 {
   for (auto it = source.mTracks.begin(); it != source.mTracks.end(); ++it) {
-    if (it->getTime() < minTime) {
-      continue;
-    }
-    if (it->getTime() > maxTime) {
-      continue;
-    }
+    // if (it->getTime() < minTime) {
+    //   continue;
+    // }
+    // if (it->getTime() > maxTime) {
+    //   continue;
+    // }
     if (VisualisationEvent::mVis.contains[it->getSource()][filter]) {
       this->mTracks.push_back(*it);
     }
   }
   for (auto it = source.mClusters.begin(); it != source.mClusters.end(); ++it) {
-    if (VisualisationEvent::mVis.contains[it->getSource()][filter]) {
+    if (VisualisationEvent::mVis.contains[o2::dataformats::GlobalTrackID::HMP][filter]) { // only HMP can be standalone clusters
       this->mClusters.push_back(*it);
     }
   }
@@ -140,7 +144,9 @@ VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisual
 
 VisualisationEvent::VisualisationEvent()
 {
-  this->mCollisionTime = ""; // collision time not set
+  this->mRunNumber = 0;
+  this->mClMask = 0;
+  this->mTracks.clear();
 }
 
 void VisualisationEvent::afterLoading()
@@ -151,6 +157,27 @@ void VisualisationEvent::afterLoading()
     this->mMinTimeOfTracks = std::min(this->mMinTimeOfTracks, v.getTime());
     this->mMaxTimeOfTracks = std::max(this->mMaxTimeOfTracks, v.getTime());
   }
+}
+
+VisualisationEvent VisualisationEvent::limit(std::size_t maximum_number_of_items)
+{
+  VisualisationEvent result = *this;
+  result.mTracks.clear();
+  result.mCalo.clear();
+  result.mClusters.clear();
+  size_t count = 0;
+  do {
+    if (count < mTracks.size()) {
+      result.mTracks.push_back(mTracks[count]);
+    }
+    if (count < mClusters.size()) {
+      result.mClusters.push_back(mClusters[count]);
+    }
+    if (count < mCalo.size()) {
+      result.mCalo.push_back(mCalo[count]);
+    }
+  } while (count++ < maximum_number_of_items);
+  return result;
 }
 
 } // namespace o2

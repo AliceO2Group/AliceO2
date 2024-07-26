@@ -37,11 +37,18 @@ void ITSTPCMatchingQCDevice::init(InitContext& /*ic*/)
   mMatchITSTPCQC = std::make_unique<o2::gloqc::MatchITSTPCQC>();
   mMatchITSTPCQC->setDataRequest(mDataRequest);
   mMatchITSTPCQC->setTrkSources(o2::dataformats::GlobalTrackID::getSourcesMask(mTrkSources));
-  mMatchITSTPCQC->setPtCut(params.minPtCut);
-  mMatchITSTPCQC->setEtaCut(params.etaCut);
+  mMatchITSTPCQC->setMinPtITSCut(params.minPtITSCut);
+  mMatchITSTPCQC->setEtaITSCut(params.etaITSCut);
+  mMatchITSTPCQC->setMinNClustersITS(params.minNITSClustersCut);
+  mMatchITSTPCQC->setMaxChi2PerClusterITS(params.maxChi2PerClusterITS);
+  mMatchITSTPCQC->setMinPtTPCCut(params.minPtTPCCut);
+  mMatchITSTPCQC->setEtaTPCCut(params.etaTPCCut);
   mMatchITSTPCQC->setMinNTPCClustersCut(params.minNTPCClustersCut);
   mMatchITSTPCQC->setMinDCAtoBeamPipeDistanceCut(params.minDCACut);
   mMatchITSTPCQC->setMinDCAtoBeamPipeYCut(params.minDCACutY);
+  mMatchITSTPCQC->setPtCut(params.minPtCut);
+  mMatchITSTPCQC->setMaxPtCut(params.maxPtCut);
+  mMatchITSTPCQC->setEtaCut(params.etaCut);
   mMatchITSTPCQC->setCutK0Mass(params.cutK0Mass);
   mMatchITSTPCQC->setMaxK0Eta(params.maxEtaK0);
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
@@ -100,7 +107,6 @@ void ITSTPCMatchingQCDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     return;
   }
   if (matcher == ConcreteDataMatcher("GLO", "SVPARAM", 0)) {
-    LOG(info) << "SVertexer Params updated from ccdb - but it should not happen... PLEASE CHECK";
     return;
   }
 }

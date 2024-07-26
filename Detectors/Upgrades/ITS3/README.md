@@ -30,15 +30,24 @@ This just caches the ccdb object to reduce calls in case we are testing.
 
 ```bash
 export IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE=1
-export ALICEO2_CCDB_LOCALCACHE=$PWD/ccdb
+export ALICEO2_CCDB_LOCALCACHE=${PWD}/ccdb
 ```
+
+Simulate diamond
+
+``` bash
+# append to o2-sim
+--configKeyValues="Diamond.width[2]=6.;""
+```
+
+### Local Tracking
 
 1. Simulate
 
 Simulate PIPE and ITS3
 
 ```bash
-o2-sim -g pythia8pp -j10 -m PIPE IT3 --run 303901 -n1000 #--configKeyValues "Diamond.width[2]=6.;"
+o2-sim -g pythia8pp -j10 -m PIPE IT3 --run 303901 -n1000
 ```
 
 In the previous command:
@@ -51,7 +60,7 @@ In the previous command:
 2. Digitization
 
 ```bash
-o2-sim-digitizer-workflow -b --interactionRate 50000 --run --configKeyValues="HBFUtils.runNumber=303901;"
+o2-sim-digitizer-workflow -b --interactionRate 50000 --run --configKeyValues="HBFUtils.runNumber=303901;" --onlyDet IT3
 root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckDigitsITS3.C++
 ```
 
@@ -59,19 +68,31 @@ root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckD
 
 ```bash
 o2-its3-reco-workflow -b --run --tracking-mode async --configKeyValues "HBFUtils.runNumber=303901;"
-root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckTracksITS3.C++("o2trac_its3.root", "o2clus_it3.root", "o2sim_Kine.root", "o2sim_grp.root", "o2sim_geometry-aligned.root", false)'
+root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckClustersITS3.C++
+root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckTracksITS3.C++
+```
+
+### Global Tracking
+
+1. Simulate
+
+Simulate all detectors but replacing ITS with IT3
+
+```bash
+o2-sim -g pythia8pp -j10 --detectorList ALICE2.1 --run 303901 -n20 -m IT3
 ```
 
 ## Creating CCDB Objects
 
-### Create Full geometry + Aligned + GeometryTGeo
+### !TODO! Create Full geometry + Aligned + GeometryTGeo
 
 ```bash
 # Create Full Geometry
-o2-sim -m PIPE IT3 TPC TRD TOF PHS CPV EMC HMP MFT MCH MID ZDC FT0 FV0 FDD CTP FOC TST --run 303901 -n0
+o2-sim -g pythia8pp -j10 --detectorList ALICE2.1 --run 303901 -n0
 cp o2sim_geometry.root ${ALICEO2_CCDB_LOCALCACHE}/GLO/Config/Geometry/snapshot.root
 o2-create-aligned-geometry-workflow -b --configKeyValues "HBFUtils.startTime=1547978230000" --condition-remap="file://${ALICEO2_CCDB_LOCALCACHE}=GLO/Config/Geometry"
 cp o2sim_geometry-aligned.root ${ALICEO2_CCDB_LOCALCACHE}/GLO/Config/GeometryAligned/snapshot.root
+cp its_GeometryTGeo.root ${ALICEO2_CCDB_LOCALCACHE}/ITS/Config/Geometry/snapshot.root
 ```
 
 ### Regenerating the TopologyDictionary
@@ -86,7 +107,7 @@ o2-its3-reco-workflow -b --tracking-mode off \
     --ignore-cluster-dictionary --run
 ```
 
-2. Creating the Topology Dictionary
+2. Creating the TopologyDictionary
 
 ```bash
 root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CreateDictionariesITS3.C++
@@ -105,9 +126,9 @@ o2-its3-reco-workflow -b --tracking-mode off \
 4. Check Clusters
 
 ```bash
-root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckClustersITS3.C++("o2clus_it3.root", "o2sim_HitsIT3.root", "o2sim_geometry-aligned.root", "IT3dictionary.root")'
-root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CompareClustersAndDigits.C++("o2clus_it3.root", "it3digits.root","IT3dictionary.root", "o2sim_HitsIT3.root", "o2sim_geometry-aligned.root")'
-root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckClusterSize.C++("o2clus_it3.root", "o2sim_Kine.root", "IT3dictionary.root", false)'
+root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckClustersITS3.C++("o2clus_its.root", "o2sim_HitsIT3.root", "o2sim_geometry-aligned.root", "IT3dictionary.root")'
+root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CompareClustersAndDigits.C++("o2clus_its.root", "it3digits.root","IT3dictionary.root", "o2sim_HitsIT3.root", "o2sim_geometry-aligned.root")'
+root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckClusterSize.C++("o2clus_its.root", "o2sim_Kine.root", "IT3dictionary.root", false)'
 ```
 
 ### Using external generators based on AliRoot

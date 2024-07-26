@@ -377,8 +377,11 @@ bool MatchITSTPCQC::init()
 
   if (mDoK0QC) {
     // V0s
-    mK0MassVsPt = new TH2F("mK0MassVsPt", "K0 invariant mass vs Pt", 100, 0.3, 0.7, 100, 0.f, 20.f);
+    mK0MassVsPt = new TH2F("mK0MassVsPt", "K0 invariant mass vs Pt; Pt [GeV/c]; K0s mass [GeV/c^2]", 100, 0.f, 20.f, 100, 0.3, 0.7);
   }
+
+  LOG(info) << "Printing configuration cuts";
+  printParams();
 
   return true;
 }
@@ -945,10 +948,11 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
   if (mMaxEtaK0 < std::abs(v0sel.getEta())) {
     return false;
   }
+  LOG(info) << "Find K0 with mass " << std::sqrt(v0sel.calcMass2AsK0());
   if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass) {
     return false;
   }
-  mK0MassVsPt->Fill(std::sqrt(v0sel.calcMass2AsK0()), v0sel.getPt());
+  mK0MassVsPt->Fill(v0sel.getPt(), std::sqrt(v0sel.calcMass2AsK0()));
   return true;
 }
 

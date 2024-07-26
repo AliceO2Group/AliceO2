@@ -80,13 +80,16 @@ class TimeFrame
   const Vertex& getPrimaryVertex(const int) const;
   gsl::span<const Vertex> getPrimaryVertices(int tf) const;
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
-  gsl::span<const std::vector<MCCompLabel>> getPrimaryVerticesLabels(const int rof) const;
+  gsl::span<const std::pair<MCCompLabel, float>> getPrimaryVerticesMCRecInfo(const int rof) const;
   gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int tf) const;
   void fillPrimaryVerticesXandAlpha();
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
+  void addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
   void addPrimaryVertices(const std::vector<lightVertex>&);
+  void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId);
+  void addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int rofId);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
@@ -98,6 +101,7 @@ class TimeFrame
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
   int getTotalClusters() const;
+  std::vector<int>& getTotVertIteration() { return mTotVertPerIteration; }
   bool empty() const;
   bool isGPU() const { return mIsGPU; }
   int getSortedIndex(int rof, int layer, int i) const;
@@ -136,13 +140,14 @@ class TimeFrame
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
-  int getClusterSize(int clusterId);
+  int getClusterSize(int clusterId) const;
+  void setClusterSize(const std::vector<uint8_t>& v) { mClusterSize = v; };
 
   std::vector<MCCompLabel>& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
   std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
 
   bool hasMCinformation() const;
-  void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7);
+  void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7, bool resetVertices = true);
   void resetRofPV()
   {
     mPrimaryVertices.clear();
@@ -167,7 +172,7 @@ class TimeFrame
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(const int rof) { return mTracksLabel[rof]; }
   std::vector<MCCompLabel>& getLinesLabel(const int rof) { return mLinesLabels[rof]; }
-  std::vector<std::vector<MCCompLabel>>& getVerticesLabels() { return mVerticesLabels; }
+  std::vector<std::pair<MCCompLabel, float>>& getVerticesMCRecInfo() { return mVerticesMCRecInfo; }
 
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
@@ -194,6 +199,7 @@ class TimeFrame
   uint32_t getTotalTrackletsTF(const int iLayer) { return mTotalTracklets[iLayer]; }
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
+  unsigned int& getNoVertexROF() { return mNoVertexROF; }
   // \Vertexer
 
   void initialiseRoadLabels();
@@ -202,6 +208,8 @@ class TimeFrame
   bool isRoadFake(int i) const;
 
   void setMultiplicityCutMask(const std::vector<bool>& cutMask) { mMultiplicityCutMask = cutMask; }
+  void setROFMask(const std::vector<bool>& rofMask) { mROFMask = rofMask; }
+  void swapMasks() { mMultiplicityCutMask.swap(mROFMask); }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 
@@ -219,7 +227,10 @@ class TimeFrame
     }
   }
 
-  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*)
+  {
+    return;
+  };
   const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
 
   template <typename... T>
@@ -232,6 +243,7 @@ class TimeFrame
 
   void setExtAllocator(bool ext) { mExtAllocator = ext; }
   bool getExtAllocator() const { return mExtAllocator; }
+
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -281,7 +293,9 @@ class TimeFrame
   }
 
  private:
+  void prepareClusters(const TrackingParameters& trkParam, const int maxLayers);
   float mBz = 5.;
+  unsigned int mNTotalLowPtVertices = 0;
   int mBeamPosWeight = 0;
   std::array<float, 2> mBeamPos = {0.f, 0.f};
   bool isBeamPositionOverridden = false;
@@ -292,6 +306,7 @@ class TimeFrame
   std::vector<float> mPositionResolution;
   std::vector<uint8_t> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
+  std::vector<bool> mROFMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
@@ -310,8 +325,10 @@ class TimeFrame
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
   std::vector<std::vector<int>> mTrackletsIndexROf;
   std::vector<std::vector<MCCompLabel>> mLinesLabels;
-  std::vector<std::vector<MCCompLabel>> mVerticesLabels;
+  std::vector<std::pair<MCCompLabel, float>> mVerticesMCRecInfo;
   std::array<uint32_t, 2> mTotalTracklets = {0, 0};
+  unsigned int mNoVertexROF = 0;
+  std::vector<int> mTotVertPerIteration;
   // \Vertexer
 };
 
@@ -325,12 +342,12 @@ inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int rof) const
   return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
 }
 
-inline gsl::span<const std::vector<MCCompLabel>> TimeFrame::getPrimaryVerticesLabels(const int rof) const
+inline gsl::span<const std::pair<MCCompLabel, float>> TimeFrame::getPrimaryVerticesMCRecInfo(const int rof) const
 {
   const int start = mROframesPV[rof];
   const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
   int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
-  return {&mVerticesLabels[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
+  return {&(mVerticesMCRecInfo[start]), static_cast<gsl::span<const std::pair<MCCompLabel, float>>::size_type>(delta)};
 }
 
 inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int romin, int romax) const
@@ -463,7 +480,7 @@ inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerI
   return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]);
 }
 
-inline int TimeFrame::getClusterSize(int clusterId)
+inline int TimeFrame::getClusterSize(int clusterId) const
 {
   return mClusterSize[clusterId];
 }

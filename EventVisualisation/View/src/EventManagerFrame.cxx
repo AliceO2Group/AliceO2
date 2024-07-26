@@ -360,7 +360,7 @@ void EventManagerFrame::DoScreenshot()
                                                        this->mEventManager->getDataSource()->getDetectorsMask(),
                                                        this->mEventManager->getDataSource()->getRunNumber(),
                                                        this->mEventManager->getDataSource()->getFirstTForbit(),
-                                                       this->mEventManager->getDataSource()->getCollisionTime());
+                                                       this->mEventManager->getDataSource()->getCreationTimeAsString());
   fileName.replace_extension(
     std::filesystem::path(mEventManager->getDataSource()->getEventAbsoluteFilePath()).extension());
   std::error_code ec;
@@ -416,7 +416,7 @@ void EventManagerFrame::createOutreachScreenshot()
       Screenshot::perform("outreach", fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),
                           this->mEventManager->getDataSource()->getFirstTForbit(),
-                          this->mEventManager->getDataSource()->getCollisionTime());
+                          this->mEventManager->getDataSource()->getCreationTimeAsString());
     }
     skipCounter = (int)ConfigurationManager::getOutreachFrequencyInRefreshRates();
   }

@@ -167,7 +167,10 @@ namespace tpc
 {
 class HitGroup;
 }
-
+namespace focal
+{
+class Hit;
+}
 namespace detectors
 {
 
@@ -230,6 +233,10 @@ struct DetIDToHitTypes<o2::detectors::DetID::HMP> {
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TPC> {
   using HitType = o2::tpc::HitGroup;
+};
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::FOC> {
+  using HitType = o2::focal::Hit;
 };
 #ifdef ENABLE_UPGRADES
 template <>

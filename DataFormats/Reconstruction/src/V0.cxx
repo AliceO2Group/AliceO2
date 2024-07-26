@@ -35,3 +35,36 @@ float V0::calcMass2(float massPos2, float massNeg2) const
   auto energy = std::sqrt(massPos2 + p2pos) + std::sqrt(massNeg2 + p2neg);
   return energy * energy - p2;
 }
+
+float V0::calcAPAlpha() const
+{
+  // calculate Armenteros-Podolanski alpha
+  std::array<float, 3> pP, pN, pV0;
+  float alp = 0.f, pV0tot2 = 0.f;
+  getProng(0).getPxPyPzGlo(pP);
+  getProng(1).getPxPyPzGlo(pN);
+  for (int i = 0; i < 3; i++) {
+    pV0[i] = pP[i] + pN[i];
+    alp += pV0[i] * (pP[i] - pN[i]);
+    pV0tot2 += pV0[i] * pV0[i];
+  }
+  alp /= pV0tot2;
+  return alp;
+}
+
+float V0::calcAPQt() const
+{
+  // calculate Armenteros-Podolanski qt
+  std::array<float, 3> pP, pN, pV0;
+  float pPtot2 = 0.f, pV0tot2 = 0.f, cross = 0.f;
+  getProng(0).getPxPyPzGlo(pP);
+  getProng(1).getPxPyPzGlo(pN);
+  for (int i = 0; i < 3; i++) {
+    pV0[i] = pP[i] + pN[i];
+    pPtot2 += pP[i] * pP[i];
+    pV0tot2 += pV0[i] * pV0[i];
+    cross += pV0[i] * pP[i]; // -> pP * pV0 * cos
+  }
+  float qt = pPtot2 - (cross * cross) / pV0tot2;
+  return qt > 0 ? std::sqrt(qt) : 0;
+}

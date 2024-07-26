@@ -36,6 +36,8 @@ struct RUDecodeData {
 
   std::array<PayLoadCont, MaxCablesPerRU> cableData{};                        // cable data in compressed ALPIDE format
   std::vector<o2::itsmft::ChipPixelData> chipsData{};                         // fully decoded data in 1st nChipsFired chips
+  std::map<int, ChipPixelData*> seenChips{};                                  // Map that records chip data by global ID
+  std::vector<uint16_t> seenChipIDsInCable{};                                 // IDs of chips seen in the current cable
   std::vector<uint16_t> seenChipIDs{};                                        // IDs of all chips seen during ROF decoding, including empty ones
   std::array<int, MaxLinksPerRU> links{};                                     // link entry RSTODO: consider removing this and using pointer
   std::array<uint8_t, MaxCablesPerRU> cableHWID{};                            // HW ID of cable whose data is in the corresponding slot of cableData
@@ -65,7 +67,7 @@ struct RUDecodeData {
   }
   void setROFInfo(ChipPixelData* chipData, const GBTLink* lnk);
   template <class Mapping>
-  int decodeROF(const Mapping& mp, const o2::InteractionRecord ir);
+  int decodeROF(const Mapping& mp, const o2::InteractionRecord ir, bool verifyDecoder);
   void fillChipStatistics(int icab, const ChipPixelData* chipData);
   void dumpcabledata(int icab);
   bool checkLinkInSync(int icab, const o2::InteractionRecord ir);
@@ -75,7 +77,7 @@ struct RUDecodeData {
 ///_________________________________________________________________
 /// decode single readout frame, the cable's data must be filled in advance via GBTLink::collectROFCableData
 template <class Mapping>
-int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
+int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir, bool verifyDecoder)
 {
   nChipsFired = 0;
   lastChipChecked = 0;
@@ -98,11 +100,31 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
       auto chip = mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
       return chip;
     };
+    auto localChipIdGetter = [this, &mp, cabHW](int gid) {
+      auto localID = mp.getLocalChipID(gid, cabHW, *this->ruInfo);
+      return localID;
+    };
+
     int ret = 0;
     // dumpcabledata(icab);
 
-    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], seenChipIDs, chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+    std::vector<uint16_t>* seenChipIDsPtr = &seenChipIDs;
+    if (verifyDecoder) {
+      seenChipIDsInCable.clear();
+      seenChipIDsPtr = &seenChipIDsInCable;
+      seenChips.clear();
+    }
+    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], *seenChipIDsPtr, chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
+      if (verifyDecoder) {
+        auto ID = chipData->getChipID();
+        // Since the errored chips are not recorded, we need to add them
+        // separately
+        if (seenChipIDsInCable.empty() || seenChipIDsInCable.back() != ID) {
+          seenChipIDsInCable.push_back(ID);
+        }
+        seenChips[ID] = chipData;
+      }
       auto nhits = chipData->getData().size();
       if (nhits && doneChips[chipData->getChipID()]) {
         if (chipData->getChipID() == chipsData[nChipsFired - 1].getChipID()) {
@@ -131,6 +153,12 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
       if (ret < 0) {
         break; // negative code was returned by decoder: abandon cable data
       }
+    }
+    if (verifyDecoder) {
+      AlpideCoder::verifyDecodedCable(seenChips, cableData[icab],
+                                      seenChipIDsInCable, localChipIdGetter,
+                                      chIdGetter);
+      seenChipIDs.insert(seenChipIDs.end(), seenChipIDsInCable.begin(), seenChipIDsInCable.end());
     }
     cableData[icab].clear();
   }

@@ -48,6 +48,8 @@ enum Pdg {
   kLambdaB0 = 5122,
   kLambdaCPlus = 4122,
   kOmegaC0 = 4332,
+  kK0Star892 = 313,
+  kKPlusStar892 = 323,
   kPhi = 333,
   kSigmaC0 = 4112,
   kSigmaCPlusPlus = 4222,
@@ -84,6 +86,8 @@ constexpr double MassJPsi = 3.0969;
 constexpr double MassLambdaB0 = 5.6196;
 constexpr double MassLambdaCPlus = 2.28646;
 constexpr double MassOmegaC0 = 2.6952;
+constexpr double MassK0Star892 = 0.89555;
+constexpr double MassKPlusStar892 = 0.89167;
 constexpr double MassPhi = 1.019461;
 constexpr double MassSigmaC0 = 2.45375;
 constexpr double MassSigmaCPlusPlus = 2.45397;

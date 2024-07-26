@@ -36,6 +36,7 @@
 #include <PHOSSimulation/Detector.h>
 #include <CPVSimulation/Detector.h>
 #include <ZDCSimulation/Detector.h>
+#include <FOCALSimulation/Detector.h>
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
@@ -327,6 +328,11 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("ZDC")) {
     // ZDC
     addReadoutDetector(new o2::zdc::Detector(isReadout("ZDC")));
+  }
+
+  if (isActivated("FOC")) {
+    // FOCAL
+    addReadoutDetector(new o2::focal::Detector(isReadout("FOC"), gSystem->ExpandPathName("$O2_ROOT/share/Detectors/Geometry/FOC/geometryFiles/geometry_Spaghetti.txt")));
   }
 
   if (geomonly) {

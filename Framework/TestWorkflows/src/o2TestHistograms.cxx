@@ -34,6 +34,18 @@ struct EtaAndClsHistogramsSimple {
   }
 };
 
+struct EtaAndClsHistogramsIUSimple {
+  OutputObj<TH2F> etaClsH{TH2F("eta_vs_pt", "#eta vs pT", 102, -2.01, 2.01, 100, 0, 10)};
+
+  void process(aod::TracksIU const& tracks)
+  {
+    LOGP(info, "Invoking the simple one");
+    for (auto& track : tracks) {
+      etaClsH->Fill(track.eta(), track.pt(), 0);
+    }
+  }
+};
+
 struct EtaAndClsHistogramsFull {
   OutputObj<TH3F> etaClsH{TH3F("eta_vs_cls_vs_sigmapT", "#eta vs N_{cls} vs sigma_{1/pT}", 102, -2.01, 2.01, 160, -0.5, 159.5, 100, 0, 10)};
 
@@ -58,20 +70,34 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   LOGP(info, "Runtype is {}", runType);
   bool hasTrackCov = false;
+  bool hasTrackIU = false;
   for (auto& table : tables) {
-    if (table.starts_with("O2trackcov")) {
+    if (table == "O2trackcov") {
       hasTrackCov = true;
+    }
+    if (table.starts_with("O2track_iu")) {
+      hasTrackIU = true;
     }
     LOGP(info, "- {} present.", table);
   }
   // Notice it's important for the tasks to use the same name, otherwise topology generation will be confused.
   if (runType == "2" || !hasTrackCov) {
     LOGP(info, "Using only tracks {}", runType);
+    if (hasTrackIU) {
+      return WorkflowSpec{
+        adaptAnalysisTask<EtaAndClsHistogramsIUSimple>(cfgc, TaskName{"simple-histos"}),
+      };
+    }
     return WorkflowSpec{
       adaptAnalysisTask<EtaAndClsHistogramsSimple>(cfgc, TaskName{"simple-histos"}),
     };
   } else {
     LOGP(info, "Using tracks extra {}", runType);
+    if (hasTrackIU) {
+      return WorkflowSpec{
+        adaptAnalysisTask<EtaAndClsHistogramsIUSimple>(cfgc, TaskName{"simple-histos"}),
+      };
+    }
     return WorkflowSpec{
       adaptAnalysisTask<EtaAndClsHistogramsFull>(cfgc, TaskName{"simple-histos"}),
     };

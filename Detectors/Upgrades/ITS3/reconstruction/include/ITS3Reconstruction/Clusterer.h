@@ -121,8 +121,8 @@ class Clusterer
   };
 
   struct ClustererThread {
-    int id = -1;
     Clusterer* parent = nullptr; // parent clusterer
+    int id = -1;
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
     int* column1 = nullptr;

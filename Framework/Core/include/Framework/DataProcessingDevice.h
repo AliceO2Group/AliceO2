@@ -63,7 +63,7 @@ struct TaskStreamInfo {
   /// The registry associated to the task being run
   ServiceRegistry* registry;
   /// The libuv task handle
-  uv_work_t task;
+  uv_work_t* task;
   /// Wether or not this task is running
   bool running = false;
 };

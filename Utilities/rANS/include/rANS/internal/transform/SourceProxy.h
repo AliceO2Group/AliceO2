@@ -105,11 +105,11 @@ class SourceProxy
     if (functor(begin, end)) {
       mProxy.template emplace<0>(begin, end);
       mIsCached = true;
-      LOGP(info, "Caching enabled");
+      LOGP(debug, "Caching enabled");
     } else {
       mProxy.template emplace<1>(begin, end);
       mIsCached = false;
-      LOGP(info, "Caching disabled");
+      LOGP(debug, "Caching disabled");
     }
   }
 

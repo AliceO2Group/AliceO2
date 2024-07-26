@@ -15,6 +15,7 @@
 #include "TRDBase/Geometry.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/GlobalParams.h"
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTRD/Tracklet64.h"
@@ -50,6 +51,10 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDInterfaces.h"
 #include "GPUTRDGeometry.h"
+
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/IOUtils.h"
+#endif
 
 #include <regex>
 #include <algorithm>
@@ -186,6 +191,13 @@ void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
     return;
   }
+#ifdef ENABLE_UPGRADES
+  if (matcher == ConcreteDataMatcher("IT3", "CLUSDICT", 0)) {
+    LOG(info) << "it3 cluster dictionary updated";
+    mIT3Dict = (const o2::its3::TopologyDictionary*)obj;
+    return;
+  }
+#endif
 }
 
 void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const
@@ -293,7 +305,15 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     auto pattIt = patterns.begin();
     mITSClustersArray.clear();
     mITSClustersArray.reserve(clusITS.size());
+#ifdef ENABLE_UPGRADES
+    if (o2::GlobalParams::Instance().withITS3) {
+      o2::its3::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mIT3Dict);
+    } else {
+      o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+    }
+#else
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+#endif
   }
 
   LOGF(info, "There are %i tracklets in total from %i trigger records", mChainTracking->mIOPtrs.nTRDTracklets, mChainTracking->mIOPtrs.nTRDTriggerRecords);
@@ -668,8 +688,8 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
   outerParam = trk;
   float chi2Out = 0, timeZErr = 0.;
-  bool pileUpOn = trk.hasPileUpInfo();                                                                                                                                                           // distance to farthest collision within the pileup integration time is set
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false);                      // outward refit
+  bool pileUpOn = trk.hasPileUpInfo();                                                                                                                                      // distance to farthest collision within the pileup integration time is set
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
@@ -833,7 +853,15 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
   dataRequest->requestTPCClusters(false); // only needed for refit, don't care about labels
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     // ITS clusters are only needed if we match to ITS-TPC tracks
+#ifdef ENABLE_UPGRADES
+    if (o2::GlobalParams::Instance().withITS3) {
+      dataRequest->requestIT3Clusters(false); // only needed for refit, don't care about labels
+    } else {
+      dataRequest->requestITSClusters(false); // only needed for refit, don't care about labels
+    }
+#else
     dataRequest->requestITSClusters(false); // only needed for refit, don't care about labels
+#endif
     trkSrc |= GTrackID::getSourcesMask("ITS");
   }
   dataRequest->requestTracks(trkSrc, useMC);

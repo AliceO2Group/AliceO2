@@ -211,6 +211,6 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& ccl)
   sz += estimateBufferSize(CTF::BLCnSliceRowClusters, ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows);
 
   sz *= 2. / 3; // if needed, will be autoexpanded
-  LOG(info) << "Estimated output size is " << sz << " bytes";
+  LOG(debug) << "Estimated output size is " << sz << " bytes";
   return sz;
 }

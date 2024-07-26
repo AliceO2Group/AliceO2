@@ -15,7 +15,6 @@
 #include <cmath>
 #include <limits>
 
-#include "DetectorsRaw/HBFUtils.h"
 #include "MCHSimulation/DigitizerParam.h"
 #include <TGeoGlobalMagField.h>
 #include "Field/MagneticField.h"
@@ -45,6 +44,7 @@ DEDigitizer::DEDigitizer(int deId, math_utils::Transform3D transformation, std::
     mNofNoisyPadsDist{DigitizerParam::Instance().noiseOnlyProba * mSegmentation.nofPads()},
     mPadIdDist{0, mSegmentation.nofPads() - 1},
     mBCDist{0, 3},
+    mFirstTFOrbit{0},
     mSignals(mSegmentation.nofPads())
 {
 }
@@ -281,7 +281,7 @@ DEDigitizer::DigitsAndLabels* DEDigitizer::addNewDigit(std::map<InteractionRecor
                                                        int padid, const Signal& signal, uint32_t nSamples) const
 {
   uint32_t adc = std::round(signal.charge);
-  auto time = signal.rofIR.differenceInBC({0, raw::HBFUtils::Instance().orbitFirst});
+  auto time = signal.rofIR.differenceInBC({0, mFirstTFOrbit});
   nSamples = std::min(nSamples, 0x3FFU); // the number of samples must fit within 10 bits
   bool saturated = false;
   // the charge sum must fit within 20 bits

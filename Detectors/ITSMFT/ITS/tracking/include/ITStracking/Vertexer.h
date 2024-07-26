@@ -53,7 +53,8 @@ class Vertexer
   Vertexer& operator=(const Vertexer&) = delete;
 
   void adoptTimeFrame(TimeFrame& tf);
-  VertexingParameters& getVertParameters() const;
+  std::vector<VertexingParameters>& getVertParameters() const;
+  void setParameters(std::vector<VertexingParameters>& vertParams);
   void getGlobalConfiguration();
 
   std::vector<Vertex> exportVertices();
@@ -62,8 +63,6 @@ class Vertexer
   float clustersToVertices(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   float clustersToVerticesHybrid(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
-  void validateTracklets();
-  void validateTrackletsHybrid();
 
   template <typename... T>
   void findTracklets(T&&... args);
@@ -71,7 +70,11 @@ class Vertexer
   void findTrackletsHybrid(T&&... args);
 
   void findTrivialMCTracklets();
-  void findVertices();
+  template <typename... T>
+  void validateTracklets(T&&... args);
+  void validateTrackletsHybrid();
+  template <typename... T>
+  void findVertices(T&&... args);
   void findVerticesHybrid();
   void findHistVertices();
 
@@ -95,6 +98,8 @@ class Vertexer
 
   VertexerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
   TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
+
+  std::vector<VertexingParameters> mVertParams;
 };
 
 template <typename... T>
@@ -109,9 +114,14 @@ void Vertexer::findTracklets(T&&... args)
   mTraits->computeTracklets(std::forward<T>(args)...);
 }
 
-inline VertexingParameters& Vertexer::getVertParameters() const
+inline std::vector<VertexingParameters>& Vertexer::getVertParameters() const
 {
   return mTraits->getVertexingParameters();
+}
+
+inline void Vertexer::setParameters(std::vector<VertexingParameters>& vertParams)
+{
+  mVertParams = vertParams;
 }
 
 inline void Vertexer::dumpTraits()
@@ -119,14 +129,16 @@ inline void Vertexer::dumpTraits()
   mTraits->dumpVertexerTraits();
 }
 
-inline void Vertexer::validateTracklets()
+template <typename... T>
+inline void Vertexer::validateTracklets(T&&... args)
 {
-  mTraits->computeTrackletMatching();
+  mTraits->computeTrackletMatching(std::forward<T>(args)...);
 }
 
-inline void Vertexer::findVertices()
+template <typename... T>
+inline void Vertexer::findVertices(T&&... args)
 {
-  mTraits->computeVertices();
+  mTraits->computeVertices(std::forward<T>(args)...);
 }
 
 template <typename... T>
