@@ -691,8 +691,6 @@ void spawnDevice(uv_loop_t* loop,
   auto& spec = specs[ref.index];
   auto& execution = executions[ref.index];
 
-  driverInfo.tracyPort++;
-
   for (auto& service : spec.services) {
     if (service.preFork != nullptr) {
       service.preFork(serviceRegistry, DeviceConfig{varmap});
@@ -738,8 +736,6 @@ void spawnDevice(uv_loop_t* loop,
     dup2(childFds[ref.index].childstdout[1], STDOUT_FILENO);
     dup2(childFds[ref.index].childstdout[1], STDERR_FILENO);
 
-    auto portS = std::to_string(driverInfo.tracyPort);
-    setenv("TRACY_PORT", portS.c_str(), 1);
     for (auto& service : spec.services) {
       if (service.postForkChild != nullptr) {
         service.postForkChild(serviceRegistry);
@@ -792,7 +788,6 @@ void spawnDevice(uv_loop_t* loop,
                          .readyToQuit = false,
                          .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
                          .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
-                         .tracyPort = driverInfo.tracyPort,
                          .lastSignal = uv_hrtime() - 10000000});
   // create the offset using uv_hrtime
   timespec now;
