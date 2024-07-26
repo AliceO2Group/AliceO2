@@ -11,9 +11,13 @@
 
 #include "Framework/DataProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/EndOfStreamContext.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/Signpost.h"
 
 O2_DECLARE_DYNAMIC_LOG(data_processor_context);
+O2_DECLARE_DYNAMIC_LOG(calibration);
+
 namespace o2::framework
 {
 
