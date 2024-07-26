@@ -79,7 +79,6 @@ void trackleterKernelHost(
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
           if (usedClustersNextLayer[iNextLayerClusterIndex]) {
-            LOGP(warning, "skipping used cluster");
             continue;
           }
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
@@ -530,17 +529,16 @@ void VertexerTraits::computeVertices(const int iteration)
       }
     }
     if (!iteration) {
-      mTimeFrame->addPrimaryVertices(vertices, rofId);
+      mTimeFrame->addPrimaryVertices(vertices, rofId, iteration);
       if (mTimeFrame->hasMCinformation()) {
         mTimeFrame->addPrimaryVerticesLabels(polls);
       }
     } else {
-      mTimeFrame->addPrimaryVerticesInROF(vertices, rofId);
+      mTimeFrame->addPrimaryVerticesInROF(vertices, rofId, iteration);
       if (mTimeFrame->hasMCinformation()) {
         mTimeFrame->addPrimaryVerticesLabelsInROF(polls, rofId);
       }
     }
-    mTimeFrame->getTotVertIteration()[iteration] += vertices.size();
     if (!vertices.size() && !(iteration && (int)mTimeFrame->getPrimaryVertices(rofId).size() > mVrtParams[iteration].vertPerRofThreshold)) {
       mTimeFrame->getNoVertexROF()++;
     }

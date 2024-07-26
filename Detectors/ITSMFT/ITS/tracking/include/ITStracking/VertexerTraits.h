@@ -121,7 +121,6 @@ class VertexerTraits
 
   std::vector<VertexingParameters> mVrtParams;
   IndexTableUtils mIndexTableUtils;
-  std::vector<lightVertex> mVertices;
 
   // Frame related quantities
   TimeFrame* mTimeFrame = nullptr;

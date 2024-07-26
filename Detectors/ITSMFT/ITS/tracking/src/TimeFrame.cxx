@@ -55,10 +55,6 @@ namespace o2
 namespace its
 {
 
-lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}
-{
-}
-
 constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
@@ -92,9 +88,9 @@ void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)
   mROFramesPV.push_back(mPrimaryVertices.size());
 }
 
-void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId)
+void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId, const int iteration)
 {
-  addPrimaryVertices(gsl::span<const Vertex>(vertices), rofId);
+  addPrimaryVertices(gsl::span<const Vertex>(vertices), rofId, iteration);
 }
 
 void TimeFrame::addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels)
@@ -102,12 +98,13 @@ void TimeFrame::addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, floa
   mVerticesMCRecInfo.insert(mVerticesMCRecInfo.end(), labels.begin(), labels.end());
 }
 
-void TimeFrame::addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId)
+void TimeFrame::addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId, const int iteration)
 {
   mPrimaryVertices.insert(mPrimaryVertices.begin() + mROFramesPV[rofId], vertices.begin(), vertices.end());
   for (int i = rofId + 1; i < mROFramesPV.size(); ++i) {
     mROFramesPV[i] += vertices.size();
   }
+  mTotVertPerIteration[iteration] += vertices.size();
 }
 
 void TimeFrame::addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int rofId)
@@ -115,19 +112,20 @@ void TimeFrame::addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCComp
   mVerticesMCRecInfo.insert(mVerticesMCRecInfo.begin() + mROFramesPV[rofId], labels.begin(), labels.end());
 }
 
-void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId)
+void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId, const int iteration)
 {
   std::vector<Vertex> futureVertices;
   for (const auto& vertex : vertices) {
     if (vertex.getTimeStamp().getTimeStamp() < rofId) { // put a copy in the past
-      insertPastVertex(vertex);
+      insertPastVertex(vertex, iteration);
     } else {
       if (vertex.getTimeStamp().getTimeStamp() > rofId) { // or put a copy in the future
         futureVertices.emplace_back(vertex);
       }
     }
     mPrimaryVertices.emplace_back(vertex); // put a copy in the present
-    if (!isBeamPositionOverridden) {       // beam position is updated only at first occurrence of the vertex. A bit sketchy if we have past/future vertices, it should not impact too much.
+    mTotVertPerIteration[iteration]++;
+    if (!isBeamPositionOverridden) { // beam position is updated only at first occurrence of the vertex. A bit sketchy if we have past/future vertices, it should not impact too much.
       const int w{vertex.getNContributors()};
       mBeamPos[0] = (mBeamPos[0] * mBeamPosWeight + vertex.getX() * w) / (mBeamPosWeight + w);
       mBeamPos[1] = (mBeamPos[1] * mBeamPosWeight + vertex.getY() * w) / (mBeamPosWeight + w);
@@ -138,6 +136,7 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices, cons
   if (futureVertices.size()) {                    // append future vertices. In the last rofId we cannot have ones from the next, so we are never here.
     for (auto& vertex : futureVertices) {
       mPrimaryVertices.emplace_back(vertex);
+      mTotVertPerIteration[iteration]++;
     }
   }
 }
@@ -251,7 +250,6 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
-      // mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROFramesClusters[iL].back());
       mROFramesClusters[iL].push_back(mUnsortedClusters[iL].size());
     }
     mNrof++;
@@ -384,10 +382,6 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
-    mNTrackletsPerROF.resize(2);
-    for (auto& v : mNTrackletsPerROF) {
-      v = std::vector<int>(mNrof + 1, 0);
-    }
 
     for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
       if (trkParam.SystErrorY2[iLayer] > 0.f || trkParam.SystErrorZ2[iLayer] > 0.f) {
@@ -399,9 +393,14 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
       }
     }
   }
+  mNTrackletsPerROF.resize(2);
+  for (auto& v : mNTrackletsPerROF) {
+    v = std::vector<int>(mNrof + 1, 0);
+  }
   if (iteration == 0 || iteration == 3) {
     prepareClusters(trkParam, maxLayers);
   }
+  mTotalTracklets = {0, 0};
   if (maxLayers < trkParam.NLayers) { // Vertexer only, but in both iterations
     for (size_t iLayer{0}; iLayer < maxLayers; ++iLayer) {
       deepVectorClear(mUsedClusters[iLayer]);
@@ -481,7 +480,11 @@ void TimeFrame::fillPrimaryVerticesXandAlpha()
 void TimeFrame::computeTrackletsPerROFScans()
 {
   for (ushort iLayer = 0; iLayer < 2; ++iLayer) {
-    mTotalTracklets[iLayer] = std::accumulate(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), 0);
+    for (unsigned int iRof{0}; iRof < mNrof; ++iRof) {
+      if (mMultiplicityCutMask[iRof]) {
+        mTotalTracklets[iLayer] += mNTrackletsPerROF[iLayer][iRof];
+      }
+    }
     std::exclusive_scan(mNTrackletsPerROF[iLayer].begin(), mNTrackletsPerROF[iLayer].end(), mNTrackletsPerROF[iLayer].begin(), 0);
     std::exclusive_scan(mNTrackletsPerCluster[iLayer].begin(), mNTrackletsPerCluster[iLayer].end(), mNTrackletsPerClusterSum[iLayer].begin(), 0);
   }

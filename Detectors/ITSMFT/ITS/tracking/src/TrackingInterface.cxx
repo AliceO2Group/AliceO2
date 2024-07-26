@@ -237,7 +237,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
-      mTimeFrame->addPrimaryVertices(vtxVecLoc, iRof);
+      mTimeFrame->addPrimaryVertices(vtxVecLoc, iRof, 0);
     }
   }
   if (mRunVertexer) {

@@ -252,7 +252,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
-      timeFrame->addPrimaryVertices(vtxVecLoc, iRof);
+      timeFrame->addPrimaryVertices(vtxVecLoc, iRof, 0);
     }
   }
   // LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);

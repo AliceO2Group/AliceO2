@@ -61,17 +61,6 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-struct lightVertex {
-  lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
-  float mX;
-  float mY;
-  float mZ;
-  std::array<float, 6> mRMS2;
-  float mAvgDistance2;
-  int mContributors;
-  int mTimeStamp;
-};
-
 class TimeFrame
 {
  public:
@@ -86,9 +75,9 @@ class TimeFrame
   int getPrimaryVerticesNum(int rofId = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVerticesLabels(std::vector<std::pair<MCCompLabel, float>>& labels);
-  void addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId);
-  void addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId);
-  void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId);
+  void addPrimaryVertices(const std::vector<Vertex>& vertices, const int rofId, const int iteration);
+  void addPrimaryVertices(const gsl::span<const Vertex>& vertices, const int rofId, const int iteration);
+  void addPrimaryVerticesInROF(const std::vector<Vertex>& vertices, const int rofId, const int iteration);
   void addPrimaryVerticesLabelsInROF(const std::vector<std::pair<MCCompLabel, float>>& labels, const int rofId);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
@@ -152,7 +141,6 @@ class TimeFrame
   void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7, bool resetVertices = true);
   void resetRofPV()
   {
-    // mPrimaryVertices.clear();
     deepVectorClear(mPrimaryVertices);
     mROFramesPV.resize(1, 0);
   };
@@ -176,7 +164,7 @@ class TimeFrame
   std::vector<TrackITSExt>& getTracks(int rofId) { return mTracks[rofId]; }
   std::vector<MCCompLabel>& getTracksLabel(const int rofId) { return mTracksLabel[rofId]; }
   std::vector<MCCompLabel>& getLinesLabel(const int rofId) { return mLinesLabels[rofId]; }
-    std::vector<std::pair<MCCompLabel, float>>& getVerticesMCRecInfo() { return mVerticesMCRecInfo; }
+  std::vector<std::pair<MCCompLabel, float>>& getVerticesMCRecInfo() { return mVerticesMCRecInfo; }
 
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
@@ -210,7 +198,7 @@ class TimeFrame
   int getTotalClustersPerROFrange(int rofMin, int range, int layerId) const;
   std::array<float, 2>& getBeamXY() { return mBeamPos; }
   unsigned int& getNoVertexROF() { return mNoVertexROF; }
-  void insertPastVertex(const Vertex& vertex);
+  void insertPastVertex(const Vertex& vertex, const int refROFId);
   // \Vertexer
 
   void initialiseRoadLabels();
@@ -732,16 +720,17 @@ inline size_t TimeFrame::getNumberOfUsedClusters() const
   return nClusters;
 }
 
-inline void TimeFrame::insertPastVertex(const Vertex& vertex)
+inline void TimeFrame::insertPastVertex(const Vertex& vertex, const int iteration)
 {
   int rofId = vertex.getTimeStamp().getTimeStamp();
   mPrimaryVertices.insert(mPrimaryVertices.begin() + mROFramesPV[rofId], vertex);
   for (int i = rofId + 1; i < mROFramesPV.size(); ++i) {
-    mROFramesPV[i] += 1;
+    mROFramesPV[i]++;
   }
+  mTotVertPerIteration[iteration]++;
 }
 
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITSU_INCLUDE_TimeFrame_H_ */
+#endif

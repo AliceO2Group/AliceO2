@@ -50,11 +50,14 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
     trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
     auto timeInitIteration = evaluateTask(
       &Vertexer::initialiseVertexer, "Vertexer initialisation", [](std::string) {}, trkPars, iteration);
-    auto timeTrackletIteration = evaluateTask(&Vertexer::findTracklets, "Vertexer tracklet finding", [](std::string) {}, iteration);
+    auto timeTrackletIteration = evaluateTask(
+      &Vertexer::findTracklets, "Vertexer tracklet finding", [](std::string) {}, iteration);
     nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
     nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
-    auto timeSelectionIteration = evaluateTask(&Vertexer::validateTracklets, "Vertexer tracklets validation", [](std::string) {}, iteration);
-    auto timeVertexingIteration = evaluateTask(&Vertexer::findVertices, "Vertexer vertex finding", [](std::string) {}, iteration);
+    auto timeSelectionIteration = evaluateTask(
+      &Vertexer::validateTracklets, "Vertexer tracklets validation", [](std::string) {}, iteration);
+    auto timeVertexingIteration = evaluateTask(
+      &Vertexer::findVertices, "Vertexer vertex finding", [](std::string) {}, iteration);
     printEpilog(logger, false, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration()[iteration], timeInitIteration, timeTrackletIteration, timeSelectionIteration, timeVertexingIteration);
     timeInit += timeInitIteration;
     timeTracklet += timeTrackletIteration;
@@ -89,6 +92,8 @@ float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logg
     timeSelection += timeSelectionIteration;
     timeVertexing += timeVertexingIteration;
   }
+
+  return timeInit + timeTracklet + timeSelection + timeVertexing;
 }
 
 void Vertexer::getGlobalConfiguration()
