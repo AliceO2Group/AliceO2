@@ -11,6 +11,7 @@
 
 #include <catch_amalgamated.hpp>
 #include "Framework/RuntimeError.h"
+#include "Framework/BacktraceHelpers.h"
 #include <unistd.h>
 #include <execinfo.h>
 
@@ -33,7 +34,7 @@ TEST_CASE("TestRuntimeError")
     REQUIRE(strncmp(err.what, "foo", 3) == 0);
 #ifdef DPL_ENABLE_BACKTRACE
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-    o2::framework::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    o2::framework::BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
   }
 }
