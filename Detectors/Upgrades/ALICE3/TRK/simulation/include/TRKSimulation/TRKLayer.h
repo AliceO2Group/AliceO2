@@ -29,7 +29,7 @@ class TRKLayer
   TRKLayer(int layerNumber, std::string layerName, float rInn, float zLength, float thick);
   ~TRKLayer() = default;
 
-  void setLayout(eLayout layout) { this->mLayout = layout; };
+  void setLayout(eLayout layout) { mLayout = layout; };
 
   auto getInnerRadius() const { return mInnerRadius; }
   auto getOuterRadius() const { return mOuterRadius; }
