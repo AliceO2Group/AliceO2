@@ -61,7 +61,7 @@ void FlowMapper::CreateLUT(TH1D* mhv2vsPt, TH1D* mhEccVsB)
   // std::make_unique<TH1F>("hSign", "Sign of electric charge;charge sign", 3, -1.5, 1.5);
 
   mhLUT = std::make_unique<TH3D>("mhLUT", "", nbinsB, binsB.data(), nbinsPt, binsPt.data(), nbinsPhi, binsPhi.data());
-  mhLUT->SetDirectory(0); // just in case context is incorrect
+  mhLUT->SetDirectory(nullptr); // just in case context is incorrect
 
   // loop over each centrality (b) bin
   for (int ic = 0; ic < nbinsB; ic++) {
