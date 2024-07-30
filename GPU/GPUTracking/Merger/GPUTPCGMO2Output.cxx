@@ -217,12 +217,11 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
         bool lastSide = trackClusters[tracks[i].FirstClusterRef()].slice < MAXSECTOR / 2;
         float delta = 0.f;
         for (unsigned int iCl = 1; iCl < tracks[i].NClusters(); iCl++) {
-          if (lastSide ^ (trackClusters[tracks[i].FirstClusterRef() + iCl].slice < MAXSECTOR / 2)) {
-            auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
-            auto& cacl2 = trackClusters[tracks[i].FirstClusterRef() + iCl - 1];
+          auto& cacl1 = trackClusters[tracks[i].FirstClusterRef() + iCl];
+          if (lastSide ^ (cacl1.slice < MAXSECTOR / 2)) {
             auto& cl1 = clusters->clustersLinear[cacl1.num];
-            auto& cl2 = clusters->clustersLinear[cacl2.num];
-            delta = fabs(cl1.getTime() - cl2.getTime()) * 0.5f;
+            auto& cl2 = clusters->clustersLinear[trackClusters[tracks[i].FirstClusterRef() + iCl - 1].num];
+            delta = CAMath::Abs(cl1.getTime() - cl2.getTime()) * 0.5f;
             if (delta < MinDelta) {
               delta = MinDelta;
             }
