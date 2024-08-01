@@ -154,7 +154,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   filterSkippedElements(activeModules, skippedModules);
 }
 
-bool SimConfig::determineActiveModulesList(const std::string& version, std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules)
+bool SimConfig::determineActiveModulesList(const std::string& version, std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool print)
 {
   DetectorList_t modules;
   DetectorMap_t map;
@@ -171,7 +171,7 @@ bool SimConfig::determineActiveModulesList(const std::string& version, std::vect
       return false;
     }
     modules = map[pversion];
-    LOGP(info, "Running with version {} from custom detector list '{}'", pversion, ppath);
+    LOG_IF(info, print) << "Running with list '" << pversion << "' from custom detector list '" << ppath << "'";
   } else {
     // Otherwise check 'official' versions which provided in config
     auto o2env = std::getenv("O2_ROOT");
@@ -185,12 +185,12 @@ bool SimConfig::determineActiveModulesList(const std::string& version, std::vect
       return false;
     }
     if (map.find(version) == map.end()) {
-      LOGP(error, "List {} is not defined in 'official' JSON file!", version);
+      LOGP(error, "List {} is not defined in 'official' JSON file (located at '{}')!", version, rootpath);
       printDetMap(map);
       return false;
     }
     modules = map[version];
-    LOGP(info, "Running with official detector version '{}'", version);
+    LOG_IF(info, print) << "Running with official detector list '" << version << "'";
   }
   // check if specified modules are in list
   if (inputargs.size() != 1 || inputargs[0] != "all") {
@@ -263,7 +263,7 @@ void SimConfig::determineReadoutDetectors(std::vector<std::string> const& active
   }
 }
 
-bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm, bool hasDefaulted)
 {
   using o2::detectors::DetID;
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
@@ -274,7 +274,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mActiveModules.clear();
 
   // Get final set of active Modules
-  if (!determineActiveModulesList(vm["detectorList"].as<std::string>(), vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules)) {
+  if (!determineActiveModulesList(vm["detectorList"].as<std::string>(), vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, !hasDefaulted)) {
     return false;
   }
 
@@ -510,7 +510,7 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
     return false;
   }
 
-  return resetFromParsedMap(vm);
+  return resetFromParsedMap(vm, argc == 1);
 }
 
 namespace o2::conf

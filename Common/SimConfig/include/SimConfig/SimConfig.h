@@ -124,7 +124,7 @@ class SimConfig
   bool resetFromArguments(int argc, char* argv[]);
 
   // initializes from existing parsed map
-  bool resetFromParsedMap(boost::program_options::variables_map const&);
+  bool resetFromParsedMap(boost::program_options::variables_map const&, bool hasDefaulted = false);
 
   void resetFromConfigData(SimConfigData const& data) { mConfigData = data; }
   SimConfigData const& getConfigData() const { return mConfigData; }
@@ -139,7 +139,7 @@ class SimConfig
   // static helper functions to determine list of active / readout modules
   // can also be used from outside
   static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active, bool isUpgrade = false);
-  static bool determineActiveModulesList(const std::string& version, std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active);
+  static bool determineActiveModulesList(const std::string& version, std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active, bool print = true);
   static void determineReadoutDetectors(std::vector<std::string> const& active, std::vector<std::string> const& enabledRO, std::vector<std::string> const& skippedRO, std::vector<std::string>& finalRO);
 
   // helper to parse field option
