@@ -24,7 +24,7 @@ namespace o2::event_visualisation
 std::string DataSource::getCreationTimeAsString() const
 {
   char buffer[90];
-  time_t time = this->mCreationTime;
+  time_t time = this->mCreationTime / 1000;
   const char* format = "%a %b %-d %H:%M:%S %Y";
   struct tm* timeinfo = localtime(&time);
   strftime(buffer, sizeof(buffer), format, timeinfo);

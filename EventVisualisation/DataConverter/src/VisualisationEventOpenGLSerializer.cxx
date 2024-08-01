@@ -21,15 +21,13 @@
 #include <fstream>
 #include <filesystem>
 
-namespace o2
-{
-namespace event_visualisation
+namespace o2::event_visualisation
 {
 
 enum Header : uint8_t {
   version,
   runNumber,
-  creationTime,
+  creationTimeUnused,
   firstTForbit,
   runType,
   trkMask,
@@ -40,6 +38,8 @@ enum Header : uint8_t {
   emcCount,
   primaryVertex,
   tfCounter,
+  creationTimeLow,
+  creationTimeHigh,
   last // number of fields
 };
 
@@ -89,7 +89,7 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
     "TPC-TOF", "TPC-TRD", "MFT-MCH", "ITS-TPC-TRD", "ITS-TPC-TOF", "TPC-TRD-TOF", "MFT-MCH-MID", "ITS-TPC-TRD-TOF", "ITS-AB", "CTP",
     "MCH-MID"};
   std::ostringstream buf;
-  const auto SIGSIZE = 512;
+  constexpr auto SIGSIZE = 512;
   unsigned char data[SIGSIZE];
   std::ofstream out(fileName, std::ios::out | std::ios::binary);
   // head --bytes 512 fileName.eve
@@ -126,7 +126,10 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
     const auto head = asUnsigned(chunkHEAD);
     head[Header::version] = event.mEveVersion;
     head[Header::runNumber] = event.getRunNumber();
-    head[Header::creationTime] = event.getCreationTime();
+    unsigned long creationTime = event.getCreationTime();
+    head[Header::creationTimeLow] = creationTime;
+    head[Header::creationTimeHigh] = creationTime / (1L << 32);
+    ;
     head[Header::firstTForbit] = event.getFirstTForbit();
     head[Header::runType] = event.getRunType();
     head[Header::trkMask] = event.getTrkMask();
@@ -137,7 +140,7 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
     head[Header::emcCount] = emcCount;
     head[Header::primaryVertex] = event.getPrimaryVertex();
     head[Header::tfCounter] = event.getTfCounter();
-    out.write((char*)chunkHEAD, chunkSize(chunkHEAD)); // <----1 HEAD
+    out.write(static_cast<char*>(chunkHEAD), chunkSize(chunkHEAD)); // <----1 HEAD
     free(chunkHEAD);
   }
 
@@ -168,15 +171,15 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
       celm[index] = track.getClusterCount();
       index++;
     }
-    out.write((char*)chunkTTYP, chunkSize(chunkTTYP)); // <----2 TTYP
+    out.write(static_cast<char*>(chunkTTYP), chunkSize(chunkTTYP)); // <----2 TTYP
     free(chunkTTYP);
-    out.write((char*)chunkTELM, chunkSize(chunkTELM)); // <----3 TELM
+    out.write(static_cast<char*>(chunkTELM), chunkSize(chunkTELM)); // <----3 TELM
     free(chunkTELM);
-    out.write((char*)chunkCELM, chunkSize(chunkCELM)); // <----3 CELM
+    out.write(static_cast<char*>(chunkCELM), chunkSize(chunkCELM)); // <----3 CELM
     free(chunkCELM);
-    out.write((char*)chunkTGID, chunkSize(chunkTGID)); // <----3 GIND
+    out.write(static_cast<char*>(chunkTGID), chunkSize(chunkTGID)); // <----3 GIND
     free(chunkTGID);
-    out.write((char*)chunkTPID, chunkSize(chunkTPID)); // <----3 TPID (tracks pid)
+    out.write(static_cast<char*>(chunkTPID), chunkSize(chunkTPID)); // <----3 TPID (tracks pid)
     free(chunkTPID);
   }
 
@@ -206,7 +209,7 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
 
     for (const auto& track : event.getTracksSpan()) {
       time[tno] = track.getTime();
-      crge[tno] = track.getCharge();
+      crge[tno] = static_cast<signed char>(track.getCharge());
       tno++;
       sxyz[sxyzidx++] = track.getStartCoordinates()[0];
       sxyz[sxyzidx++] = track.getStartCoordinates()[1];
@@ -227,17 +230,17 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
         cxyz[cidx++] = track.getClustersSpan()[i].Z();
       }
     }
-    out.write((char*)chunkTXYZ, chunkSize(chunkTXYZ)); // <----4 TXYZ
+    out.write(static_cast<char*>(chunkTXYZ), chunkSize(chunkTXYZ)); // <----4 TXYZ
     free(chunkTXYZ);
-    out.write((char*)chunkCXYZ, chunkSize(chunkCXYZ)); // <----4 CXYZ
+    out.write(static_cast<char*>(chunkCXYZ), chunkSize(chunkCXYZ)); // <----4 CXYZ
     free(chunkCXYZ);
-    out.write((char*)chunkTIME, chunkSize(chunkTIME)); // <----4 TIME
+    out.write(static_cast<char*>(chunkTIME), chunkSize(chunkTIME)); // <----4 TIME
     free(chunkTIME);
-    out.write((char*)chunkSXYZ, chunkSize(chunkSXYZ)); // <----4 SXYZ
+    out.write(static_cast<char*>(chunkSXYZ), chunkSize(chunkSXYZ)); // <----4 SXYZ
     free(chunkSXYZ);
-    out.write((char*)chunkCRGE, chunkSize(chunkCRGE)); // <----4 CRGE
+    out.write(static_cast<char*>(chunkCRGE), chunkSize(chunkCRGE)); // <----4 CRGE
     free(chunkCRGE);
-    out.write((char*)chunkATPE, chunkSize(chunkATPE)); // <----4 CRGE
+    out.write(static_cast<char*>(chunkATPE), chunkSize(chunkATPE)); // <----4 CRGE
     free(chunkATPE);
   }
 
@@ -257,11 +260,11 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
       uxyz[idx++] = c.Y();
       uxyz[idx++] = c.Z();
     }
-    out.write((char*)chunkUGID, chunkSize(chunkUGID)); //
+    out.write(static_cast<char*>(chunkUGID), chunkSize(chunkUGID)); //
     free(chunkUGID);
-    out.write((char*)chunkUTIM, chunkSize(chunkUTIM)); //
+    out.write(static_cast<char*>(chunkUTIM), chunkSize(chunkUTIM)); //
     free(chunkUTIM);
-    out.write((char*)chunkUXYZ, chunkSize(chunkUXYZ)); //
+    out.write(static_cast<char*>(chunkUXYZ), chunkSize(chunkUXYZ)); //
     free(chunkUXYZ);
   }
 
@@ -309,7 +312,7 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
 
   {
     const auto chunkFINE = createChunk(FINE, 0);
-    out.write((char*)chunkFINE, chunkSize(chunkFINE)); // <----5 FINE
+    out.write(static_cast<char*>(chunkFINE), chunkSize(chunkFINE)); // <----5 FINE
     free(chunkFINE);
   }
   out.close();
@@ -317,25 +320,40 @@ void VisualisationEventOpenGLSerializer::toFile(const VisualisationEvent& event,
 
 void* VisualisationEventOpenGLSerializer::createChunk(const char* lbl, unsigned size)
 {
-  auto result = (unsigned char*)calloc(4 * ((size + 3) / 4) + 8, 1);
+  const auto result = static_cast<unsigned char*>(calloc(4 * ((size + 3) / 4) + 8, 1));
   result[0] = lbl[0];
   result[1] = lbl[1];
   result[2] = lbl[2];
   result[3] = lbl[3];
-  auto uResult = (unsigned*)&result[4];
+  const auto uResult = (unsigned*)&result[4];
   *uResult = 4 * ((size + 3) / 4);
   return result;
 }
 
 unsigned VisualisationEventOpenGLSerializer::chunkSize(void* chunk)
 {
-  auto uResult = (unsigned*)((char*)chunk + 4);
+  const auto uResult = (unsigned*)((char*)chunk + 4);
   return *uResult + 8;
+}
+
+long timestamp_from_filename(const std::string& s)
+{
+  const auto pos1 = s.find("tracks_");
+  if (pos1 == std::string::npos) {
+    return 0;
+  }
+  const auto pos2 = s.find('_', pos1 + 7);
+  if (pos2 == std::string::npos) {
+    return 0;
+  }
+  std::string::size_type sz; // alias of size_t
+  const auto str_dec = s.substr(pos1 + 7, pos2 - pos1 - 7);
+  const long li_dec = std::strtol(str_dec.c_str(), nullptr, 10);
+  return li_dec;
 }
 
 bool VisualisationEventOpenGLSerializer::fromFile(VisualisationEvent& event, std::string fileName)
 {
-
   std::filesystem::path inputFilePath{fileName};
   auto length = (long)std::filesystem::file_size(inputFilePath);
   if (length == 0) {
@@ -389,7 +407,8 @@ bool VisualisationEventOpenGLSerializer::fromFile(VisualisationEvent& event, std
       auto head = words;
       event.mEveVersion = head[Header::version];
       event.setRunNumber(head[Header::runNumber]);
-      event.setCreationTime(head[Header::creationTime]);
+      // event.setCreationTime(head[Header::creationTimeLow]+head[Header::creationTimeHigh]*(1L<<32));
+      event.setCreationTime(timestamp_from_filename(fileName));
       event.setFirstTForbit(head[Header::firstTForbit]);
       event.setRunType((parameters::GRPECS::RunType)head[Header::runType]);
       event.setTrkMask((int)head[Header::trkMask]);
@@ -513,5 +532,4 @@ bool VisualisationEventOpenGLSerializer::fromFile(VisualisationEvent& event, std
   return false;
 }
 
-} // namespace event_visualisation
-} // namespace o2
+} // namespace o2::event_visualisation

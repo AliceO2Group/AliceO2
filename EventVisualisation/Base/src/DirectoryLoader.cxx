@@ -36,7 +36,7 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
   }
   // comparison with safety if marker not in the filename (-1+1 gives 0)
   std::sort(result.begin(), result.end(),
-            [marker](std::string a, std::string b) {
+            [marker](const std::string& a, const std::string& b) {
               return a.substr(a.find_first_of(marker) + 1) < b.substr(b.find_first_of(marker) + 1);
             });
 
@@ -118,7 +118,7 @@ void DirectoryLoader::reduceNumberOfFiles(const std::string& path, const std::de
   if (filesInFolder == -1) {
     return; // do not reduce
   }
-  int items = files.size() - std::min(files.size(), filesInFolder);
+  const auto items = files.size() - std::min(files.size(), filesInFolder);
   for (int i = 0; i < items; i++) {
     std::remove((path + "/" + files[i]).c_str()); // delete file
   }
@@ -132,7 +132,7 @@ std::time_t to_time_t(TP tp)
   return system_clock::to_time_t(sctp);
 }
 
-int DirectoryLoader::getNumberOfFiles(std::string& path, std::vector<std::string>& ext)
+int DirectoryLoader::getNumberOfFiles(const std::string& path, std::vector<std::string>& ext)
 {
   int res = 0;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
@@ -142,24 +142,23 @@ int DirectoryLoader::getNumberOfFiles(std::string& path, std::vector<std::string
   }
   return res;
 }
-std::string DirectoryLoader::getLatestFile(std::string& path, std::vector<std::string>& ext)
+std::string DirectoryLoader::getLatestFile(const std::string& path, std::vector<std::string>& ext)
 {
   std::string oldest_file_name = "";
   std::time_t oldest_file_time = LONG_MAX;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
     if (std::find(ext.begin(), ext.end(), entry.path().extension()) != ext.end()) {
-      auto file_time = entry.last_write_time();
-      std::time_t tt = to_time_t(file_time);
-      if (tt < oldest_file_time) {
+      const auto file_time = entry.last_write_time();
+      if (const std::time_t tt = to_time_t(file_time); tt < oldest_file_time) {
         oldest_file_time = tt;
-        oldest_file_name = entry.path().filename();
+        oldest_file_name = entry.path().filename().string();
       }
     }
   }
   return oldest_file_name;
 }
 
-void DirectoryLoader::removeOldestFiles(std::string& path, std::vector<std::string>& ext, const int remaining)
+void DirectoryLoader::removeOldestFiles(const std::string& path, std::vector<std::string>& ext, const int remaining)
 {
   while (getNumberOfFiles(path, ext) > remaining) {
     LOGF(info, "removing oldest file in folder: %s : %s", path, getLatestFile(path, ext));
