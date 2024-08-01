@@ -87,10 +87,17 @@ o2::dataformats::GlobalTrackID VisualisationEventSerializer::gidFromString(const
     {"ITSAB", 24},           // ITS AfterBurner tracklets
     {"CTP", 25}};
   const auto first = gid.find('/');
-  const auto second = gid.find('/', first + 1);
-  auto source = sources[gid.substr(1, first - 1)];
-  auto index = std::stoi(gid.substr(first + 1, second - 1));
-  auto flags = std::stoi(gid.substr(second + 1, gid.size() - 1));
+  int source = 0;
+  int index = 0;
+  int flags = 0;
+  if (first == -1) {
+    source = sources[gid];
+  } else {
+    const auto second = gid.find('/', first + 1);
+    source = sources[gid.substr(1, first - 1)];
+    index = std::stoi(gid.substr(first + 1, second - 1));
+    flags = std::stoi(gid.substr(second + 1, gid.size() - 1));
+  }
   return index + source * (1 << 25) + flags * (1 << 30);
 }
 

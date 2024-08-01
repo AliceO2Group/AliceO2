@@ -33,7 +33,7 @@ class VisualisationEventOpenGLSerializer : public VisualisationEventSerializer
   static float* asFloat(void* chunk) { return (float*)((char*)chunk + 8); }
   static unsigned char* asByte(void* chunk) { return (unsigned char*)((char*)chunk + 8); }
   static signed char* asSignedByte(void* chunk) { return (signed char*)((char*)chunk + 8); }
-  unsigned chunkSize(void* chunk);
+  static unsigned chunkSize(void* chunk);
 
  public:
   const std::string serializerName() const override { return std::string("VisualisationEventOpenGLSerializer"); }
