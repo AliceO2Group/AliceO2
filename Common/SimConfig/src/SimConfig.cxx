@@ -154,26 +154,26 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   filterSkippedElements(activeModules, skippedModules);
 }
 
-bool SimConfig::determineActiveModulesList(const std::string& version, std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool print)
+bool SimConfig::determineActiveModulesList(const std::string& list, std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool print)
 {
   DetectorList_t modules;
   DetectorMap_t map;
-  if (auto pos = version.find(':'); pos != std::string::npos) {
-    auto pversion = version.substr(0, pos);
-    auto ppath = version.substr(pos + 1);
+  if (auto pos = list.find(':'); pos != std::string::npos) {
+    auto plist = list.substr(0, pos);
+    auto ppath = list.substr(pos + 1);
     if (!parseDetectorMapfromJSON(ppath, map)) {
       LOGP(error, "Could not parse {}; check errors above!", ppath);
       return false;
     }
-    if (map.find(pversion) == map.end()) {
-      LOGP(error, "List {} is not defined in custom JSON file!", pversion);
+    if (map.find(plist) == map.end()) {
+      LOGP(error, "List {} is not defined in custom JSON file!", plist);
       printDetMap(map);
       return false;
     }
-    modules = map[pversion];
-    LOG_IF(info, print) << "Running with list '" << pversion << "' from custom detector list '" << ppath << "'";
+    modules = map[plist];
+    LOG_IF(info, print) << "Running with list '" << plist << "' from custom detector list '" << ppath << "'";
   } else {
-    // Otherwise check 'official' versions which provided in config
+    // Otherwise check 'official' list which provided in config
     auto o2env = std::getenv("O2_ROOT");
     if (!o2env) {
       LOGP(error, "O2_ROOT environment not defined");
@@ -184,13 +184,13 @@ bool SimConfig::determineActiveModulesList(const std::string& version, std::vect
       LOGP(error, "Could not parse {} -> check errors above!", rootpath);
       return false;
     }
-    if (map.find(version) == map.end()) {
-      LOGP(error, "List {} is not defined in 'official' JSON file (located at '{}')!", version, rootpath);
+    if (map.find(list) == map.end()) {
+      LOGP(error, "List {} is not defined in 'official' JSON file (located at '{}')!", list, rootpath);
       printDetMap(map);
       return false;
     }
-    modules = map[version];
-    LOG_IF(info, print) << "Running with official detector list '" << version << "'";
+    modules = map[list];
+    LOG_IF(info, print) << "Running with official detector list '" << list << "'";
   }
   // check if specified modules are in list
   if (inputargs.size() != 1 || inputargs[0] != "all") {
@@ -201,11 +201,11 @@ bool SimConfig::determineActiveModulesList(const std::string& version, std::vect
       }
     }
     if (!diff.empty()) {
-      LOGP(error, "Modules specified that are not present in detector list {}", version);
+      LOGP(error, "Modules specified that are not present in detector list {}", list);
       for (int j{0}; const auto& m : diff) {
         LOGP(info, " - {: <2}. {}", j++, m);
       }
-      printDetMap(map, version);
+      printDetMap(map, list);
       return false;
     }
   }

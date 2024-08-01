@@ -41,13 +41,13 @@ bool parseDetectorMapfromJSON(const std::string& path, DetectorMap_t& map)
   map.clear();
   try {
     for (auto verItr = doc.MemberBegin(); verItr != doc.MemberEnd(); ++verItr) {
-      const auto& version = verItr->name.GetString();
-      DetectorList_t list;
-      const auto& elements = doc[version];
+      const auto& list = verItr->name.GetString();
+      DetectorList_t modules;
+      const auto& elements = doc[list];
       for (const auto& ele : elements.GetArray()) {
-        list.emplace_back(ele.GetString());
+        modules.emplace_back(ele.GetString());
       }
-      map.emplace(version, list);
+      map.emplace(list, modules);
     }
   } catch (const std::exception& e) {
     LOGP(error, "Failed to build detector map from file '{}' with '{}'", path, e.what());
@@ -60,15 +60,15 @@ bool parseDetectorMapfromJSON(const std::string& path, DetectorMap_t& map)
 void printDetMap(const DetectorMap_t& map, const std::string& list)
 {
   if (list.empty()) {
-    LOGP(error, "List of all available versions including their detectors:");
-    for (int i{0}; const auto& [version, elements] : map) {
-      LOGP(error, " - {: >2d}. {}:", i++, version);
-      for (int j{0}; const auto& element : elements) {
+    LOGP(error, "Printing all available lists including their modules:");
+    for (int i{0}; const auto& [list, modules] : map) {
+      LOGP(error, " - {: >2d}. {}:", i++, list);
+      for (int j{0}; const auto& element : modules) {
         LOGP(error, "\t\t* {: >2d}.\t{}", j++, element);
       }
     }
   } else {
-    LOGP(error, "List of available modules for version {}:", list);
+    LOGP(error, "List of available modules for list {}:", list);
     for (int j{0}; const auto& element : map.at(list)) {
       LOGP(error, "\t* {: >2d}.\t{}", j++, element);
     }
