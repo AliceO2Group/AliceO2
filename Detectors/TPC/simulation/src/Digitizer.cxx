@@ -83,7 +83,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
       if (mDistortionScaleType == 1) {
         mSpaceCharge->distortElectron(posEle);
       } else if (mDistortionScaleType == 2) {
-        mSpaceCharge->distortElectron(posEle, mSpaceChargeDer.get(), mLumiScaleFactor);
+        mSpaceCharge->distortElectron(posEle, (mUseScaledDistortions ? nullptr : mSpaceChargeDer.get()), mLumiScaleFactor);
       }
 
       /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
@@ -236,4 +236,34 @@ void Digitizer::setMeanLumiDistortions(float meanLumi)
 void Digitizer::setMeanLumiDistortionsDerivative(float meanLumi)
 {
   mSpaceChargeDer->setMeanLumi(meanLumi);
+}
+
+void Digitizer::recalculateDistortions()
+{
+  if (!mSpaceCharge || !mSpaceCharge) {
+    LOGP(info, "Average or derivative distortions not set");
+    return;
+  }
+
+  // recalculate distortions only in case the inst lumi differs from the avg lumi
+  if (mSpaceCharge->getMeanLumi() != CorrMapParam::Instance().lumiInst) {
+    for (int iside = 0; iside < 2; ++iside) {
+      const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
+      // this needs to be done only once
+      LOGP(info, "Calculating corrections for average distortions");
+      mSpaceCharge->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
+
+      LOGP(info, "Calculating corrections for derivative distortions");
+      mSpaceChargeDer->calcGlobalCorrWithGlobalDistIterative(side, nullptr, 0);
+
+      LOGP(info, "Calculating scaled distortions with scaling factor {}", mLumiScaleFactor);
+      mSpaceCharge->calcGlobalDistWithGlobalCorrIterative(side, mSpaceChargeDer.get(), mLumiScaleFactor);
+    }
+    // set new lumi of avg map
+    mSpaceCharge->setMeanLumi(CorrMapParam::Instance().lumiInst);
+  } else {
+    LOGP(info, "Inst. lumi {} is same as mean lumi {}. Skip recalculation of distortions", CorrMapParam::Instance().lumiInst, mSpaceCharge->getMeanLumi());
+  }
+
+  mUseScaledDistortions = true;
 }

@@ -697,12 +697,59 @@ void SpaceCharge<DataT>::calcEField(const Side side)
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
+void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale)
+{
+  calcGlobalDistCorrIterative(globCorr, maxIter, approachZ, approachR, approachPhi, diffCorr, scSCale, scale, Type::Distortions);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const Side side, const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
+{
+  calcGlobalDistCorrIterative(getGlobalCorrInterpolator(side), maxIter, approachZ, approachR, approachPhi, diffCorr, scSCale, scale, Type::Distortions);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
+{
+#pragma omp parallel for num_threads(sNThreads)
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
+    calcGlobalDistWithGlobalCorrIterative(side, scSCale, scale, maxIter, approachZ, approachR, approachPhi, diffCorr);
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterative(const Side side, const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
+{
+  calcGlobalDistCorrIterative(getGlobalDistInterpolator(side), maxIter, approachZ, approachR, approachPhi, diffCorr, scSCale, scale, Type::Corrections);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::calcGlobalCorrWithGlobalDistIterative(const SpaceCharge<DataT>* scSCale, float scale, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr)
+{
+#pragma omp parallel for num_threads(sNThreads)
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
+    calcGlobalCorrWithGlobalDistIterative(side, scSCale, scale, maxIter, approachZ, approachR, approachPhi, diffCorr);
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale, const Type type)
 {
   const Side side = globCorr.getSide();
-  initContainer(mGlobalDistdR[side], true);
-  initContainer(mGlobalDistdZ[side], true);
-  initContainer(mGlobalDistdRPhi[side], true);
+  if (type == Type::Distortions) {
+    initContainer(mGlobalDistdR[side], true);
+    initContainer(mGlobalDistdZ[side], true);
+    initContainer(mGlobalDistdRPhi[side], true);
+  } else {
+    initContainer(mGlobalCorrdR[side], true);
+    initContainer(mGlobalCorrdZ[side], true);
+    initContainer(mGlobalCorrdRPhi[side], true);
+  }
+
+  const auto& scScale = (type == Type::Distortions) ? scSCale->mInterpolatorGlobalCorr[side] : scSCale->mInterpolatorGlobalDist[side];
+
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const DataT phi = getPhiVertex(iPhi, side);
@@ -754,13 +801,25 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
 
           // interpolate global correction at new point and calculate position of global correction
           corrdR = globCorr.evaldR(zCurrPos, rCurrPos, phiCurrPos);
+          if (scSCale && scale != 0) {
+            corrdR += scale * scScale.evaldR(zCurrPos, rCurrPos, phiCurrPos);
+          }
           const DataT rNewPos = rCurrPos + corrdR;
 
-          const DataT corrPhi = globCorr.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos) / rCurrPos;
+          DataT corrPhi = 0;
+          if (scSCale && scale != 0) {
+            corrPhi = scale * scScale.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
+          }
+          corrPhi += globCorr.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
+          corrPhi /= rCurrPos;
+
           corrdRPhi = corrPhi * rNewPos; // normalize to new r coordinate
           const DataT phiNewPos = phiCurrPos + corrPhi;
 
           corrdZ = globCorr.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
+          if (scSCale && scale != 0) {
+            corrdZ += scale * scScale.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
+          }
           const DataT zNewPos = zCurrPos + corrdZ;
 
           // approach desired coordinate
@@ -783,15 +842,27 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
           lastCorrdRPhi = corrdRPhi;
         }
         // set global distortions if algorithm converged or iterations exceed max numbers of iterations
-        mGlobalDistdR[side](iZ, iR, iPhi) = -corrdR;
-        mGlobalDistdRPhi[side](iZ, iR, iPhi) = -corrdRPhi;
-        mGlobalDistdZ[side](iZ, iR, iPhi) = -corrdZ;
+        if (type == Type::Distortions) {
+          mGlobalDistdR[side](iZ, iR, iPhi) = -corrdR;
+          mGlobalDistdRPhi[side](iZ, iR, iPhi) = -corrdRPhi;
+          mGlobalDistdZ[side](iZ, iR, iPhi) = -corrdZ;
+        } else {
+          mGlobalCorrdR[side](iZ, iR, iPhi) = -corrdR;
+          mGlobalCorrdRPhi[side](iZ, iR, iPhi) = -corrdRPhi;
+          mGlobalCorrdZ[side](iZ, iR, iPhi) = -corrdZ;
+        }
       }
     }
     for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
-      mGlobalDistdR[side](0, iR, iPhi) = 3 * (mGlobalDistdR[side](1, iR, iPhi) - mGlobalDistdR[side](2, iR, iPhi)) + mGlobalDistdR[side](3, iR, iPhi);
-      mGlobalDistdRPhi[side](0, iR, iPhi) = 3 * (mGlobalDistdRPhi[side](1, iR, iPhi) - mGlobalDistdRPhi[side](2, iR, iPhi)) + mGlobalDistdRPhi[side](3, iR, iPhi);
-      mGlobalDistdZ[side](0, iR, iPhi) = 3 * (mGlobalDistdZ[side](1, iR, iPhi) - mGlobalDistdZ[side](2, iR, iPhi)) + mGlobalDistdZ[side](3, iR, iPhi);
+      if (type == Type::Distortions) {
+        mGlobalDistdR[side](0, iR, iPhi) = 3 * (mGlobalDistdR[side](1, iR, iPhi) - mGlobalDistdR[side](2, iR, iPhi)) + mGlobalDistdR[side](3, iR, iPhi);
+        mGlobalDistdRPhi[side](0, iR, iPhi) = 3 * (mGlobalDistdRPhi[side](1, iR, iPhi) - mGlobalDistdRPhi[side](2, iR, iPhi)) + mGlobalDistdRPhi[side](3, iR, iPhi);
+        mGlobalDistdZ[side](0, iR, iPhi) = 3 * (mGlobalDistdZ[side](1, iR, iPhi) - mGlobalDistdZ[side](2, iR, iPhi)) + mGlobalDistdZ[side](3, iR, iPhi);
+      } else {
+        mGlobalCorrdR[side](0, iR, iPhi) = 3 * (mGlobalCorrdR[side](1, iR, iPhi) - mGlobalCorrdR[side](2, iR, iPhi)) + mGlobalCorrdR[side](3, iR, iPhi);
+        mGlobalCorrdRPhi[side](0, iR, iPhi) = 3 * (mGlobalCorrdRPhi[side](1, iR, iPhi) - mGlobalCorrdRPhi[side](2, iR, iPhi)) + mGlobalCorrdRPhi[side](3, iR, iPhi);
+        mGlobalCorrdZ[side](0, iR, iPhi) = 3 * (mGlobalCorrdZ[side](1, iR, iPhi) - mGlobalCorrdZ[side](2, iR, iPhi)) + mGlobalCorrdZ[side](3, iR, iPhi);
+      }
     }
   }
 }
@@ -1535,7 +1606,7 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point, const SpaceCha
 
   // scale distortions if requested
   if (scSCale && scale != 0) {
-    scSCale->getDistortions(point.X(), point.Y(), point.Z(), side, distXTmp, distYTmp, distZTmp);
+    scSCale->getDistortions(point.X() + distX, point.Y() + distY, point.Z() + distZ, side, distXTmp, distYTmp, distZTmp);
     distX += distXTmp * scale;
     distY += distYTmp * scale;
     distZ += distZTmp * scale;
