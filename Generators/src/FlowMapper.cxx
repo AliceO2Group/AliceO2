@@ -30,24 +30,14 @@ FlowMapper::FlowMapper()
   mBinsPhi = 4000; // a first guess
 }
 
-void FlowMapper::Setv2VsPt(TH1D hv2VsPtProvided)
-{
-  // Sets the v2 vs pT to be used.
-  mhv2vsPt = std::make_unique<TH1D>(hv2VsPtProvided);
-}
-void FlowMapper::SetEccVsB(TH1D hEccVsBProvided)
-{
-  // Sets the v2 vs pT to be used.
-  mhEccVsB = std::make_unique<TH1D>(hEccVsBProvided);
-}
-void FlowMapper::CreateLUT()
+void FlowMapper::CreateLUT(TH1D* mhv2vsPt, TH1D* mhEccVsB)
 {
   if (!mhv2vsPt) {
-    LOG(fatal) << "You did not specify a v2 vs pT histogram!";
+    LOG(fatal) << "You did not specify a valid v2 vs pT histogram!";
     return;
   }
   if (!mhEccVsB) {
-    LOG(fatal) << "You did not specify an ecc vs B histogram!";
+    LOG(fatal) << "You did not specify a valid ecc vs B histogram!";
     return;
   }
   LOG(info) << "Proceeding to creating a look-up table...";
@@ -71,6 +61,7 @@ void FlowMapper::CreateLUT()
   // std::make_unique<TH1F>("hSign", "Sign of electric charge;charge sign", 3, -1.5, 1.5);
 
   mhLUT = std::make_unique<TH3D>("mhLUT", "", nbinsB, binsB.data(), nbinsPt, binsPt.data(), nbinsPhi, binsPhi.data());
+  mhLUT->SetDirectory(nullptr); // just in case context is incorrect
 
   // loop over each centrality (b) bin
   for (int ic = 0; ic < nbinsB; ic++) {
