@@ -61,7 +61,6 @@ struct Options {
   bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
   std::string ccdbhost = "http://alice-ccdb.cern.ch";
-  bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
   std::string vertex = "ccdb";
   std::string configKeyValues = "";
   uint64_t timestamp = 0;
@@ -574,7 +573,6 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("lhcif-CCDB", "take GRPLHCIF directly from CCDB");
     desc.add_options()("print", "print resulting GRPs");
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
-    desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration. (deprecated, use detectorList option)");
     desc.add_options()("vertex", bpo::value<std::string>(&optvalues.vertex)->default_value("ccdb"), "How the vertex is to be initialized. Default is CCDB. Alternative is \"Diamond\" which is constructing the mean vertex from the Diamond param via the configKeyValues path");
     desc.add_options()("timestamp", bpo::value<uint64_t>(&optvalues.timestamp)->default_value(0), "Force timestamp to be used (useful when anchoring)");
     desc.add_options()("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");

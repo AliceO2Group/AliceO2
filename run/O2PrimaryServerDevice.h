@@ -261,9 +261,6 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // init sim config
     auto& vm = GetConfig()->GetVarMap();
     auto& conf = o2::conf::SimConfig::Instance();
-    if (vm.count("isRun5")) {
-      conf.setRun5();
-    }
     conf.resetFromParsedMap(vm);
 
     // update the parameters from an INI/JSON file, if given (overrides code-based version)

@@ -19,9 +19,6 @@ int main(int argc, char* argv[])
   TStopwatch timer;
   timer.Start();
   auto& conf = o2::conf::SimConfig::Instance();
-#ifdef SIM_RUN5
-  conf.setRun5();
-#endif
   if (!conf.resetFromArguments(argc, argv)) {
     return 1;
   }

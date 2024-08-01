@@ -21,9 +21,6 @@ int main(int argc, char* argv[])
   timer.Start();
 
   auto& conf = o2::conf::SimConfig::Instance();
-#ifdef SIM_RUN5
-  conf.setRun5();
-#endif
   auto& matmapP = o2::conf::MatMapParams::Instance();
   if (!conf.resetFromArguments(argc, argv)) {
     return 1;

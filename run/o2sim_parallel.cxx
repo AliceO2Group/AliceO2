@@ -393,9 +393,6 @@ std::vector<char*> checkArgs(int argc, char* argv[])
 {
   auto conf = o2::conf::SimConfig::make();
   std::vector<std::string> modifiedArgs;
-#ifdef SIM_RUN5
-  conf.setRun5();
-#endif
   if (conf.resetFromArguments(argc, argv)) {
     for (int i = 0; i < argc; ++i) {
       modifiedArgs.push_back(argv[i]);
@@ -483,9 +480,6 @@ int main(int argc, char* argv[])
   }
 
   auto& conf = o2::conf::SimConfig::Instance();
-#ifdef SIM_RUN5
-  conf.setRun5();
-#endif
   if (!conf.resetFromArguments(finalArgs.size(), &finalArgs[0])) {
     return 1;
   }
@@ -494,11 +488,7 @@ int main(int argc, char* argv[])
   if (conf.getNEvents() <= 0 && !conf.asService()) {
     LOG(info) << "No events to be simulated; Switching to non-distributed mode";
     const int Nargs = finalArgs.size() + 1;
-#ifdef SIM_RUN5
-    std::string name("o2-sim-serial-run5");
-#else
     std::string name("o2-sim-serial");
-#endif
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     for (int i = 1; i < finalArgs.size(); ++i) {
@@ -554,11 +544,7 @@ int main(int argc, char* argv[])
     const std::string config = localconfig;
 
     // copy all arguments into a common vector
-#ifdef SIM_RUN5
-    const int addNArgs = 12;
-#else
     const int addNArgs = 11;
-#endif
     const int Nargs = finalArgs.size() + addNArgs;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
@@ -572,9 +558,6 @@ int main(int argc, char* argv[])
     arguments[8] = "debug";
     arguments[9] = "--color";
     arguments[10] = "false"; // switch off colored output
-#ifdef SIM_RUN5
-    arguments[11] = "--isRun5";
-#endif
     for (int i = 1; i < finalArgs.size(); ++i) {
       arguments[addNArgs - 1 + i] = finalArgs[i];
     }
