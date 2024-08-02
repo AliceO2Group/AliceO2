@@ -16,6 +16,7 @@
 #include <tuple>
 #include <TRandom.h>
 #include <EMCALReconstruction/FastORTimeSeries.h>
+#include "EMCALBase/TRUDecodingErrors.h"
 
 namespace o2
 {
@@ -139,6 +140,12 @@ BOOST_AUTO_TEST_CASE(FastORTimeSeries_test)
     BOOST_CHECK_EQUAL_COLLECTIONS(adcs.begin(), adcs.end(), reference.begin(), reference.end());
     BOOST_CHECK_EQUAL(testcase.calculateL1TimeSum(8), calculateTimesum(reference, 8));
   }
+
+  // test case where a normal FEC channel is identified as TRU channel. FEC channel can have lenght of 15 and would therefore cause an overflow in the FEC channel (max lenght 14)
+  auto starttime = 14;
+  auto bunch = generateSmallBunch(14);
+  BOOST_CHECK_EXCEPTION(FastORTimeSeries(14, bunch, starttime), FastOrStartTimeInvalidException, [starttime](const FastOrStartTimeInvalidException& e) { return e.getStartTime() == starttime; });
+
   return;
 
   // test adding 2 bunches
