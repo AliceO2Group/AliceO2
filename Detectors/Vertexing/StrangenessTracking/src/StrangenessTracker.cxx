@@ -351,7 +351,6 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR, StrangeTrack& strang
   auto nMinClusMother = trackClusters.size() < 4 ? 2 : mStrParams->mMinMotherClus;
 
   std::vector<ITSCluster> motherClusters;
-  std::vector<int> motherClusSizes;
   std::array<unsigned int, 7> nAttachments;
   nAttachments.fill(-1); // fill arr with -1
 
@@ -365,14 +364,15 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR, StrangeTrack& strang
     double clusRad = sqrt(clus.getX() * clus.getX() - clus.getY() * clus.getY());
     auto diffR = decayR - clusRad;
     auto relDiffR = diffR / decayR;
+    auto lay = geom->getLayer(clus.getSensorID());
     // Look for the Mother if the Decay radius allows for it, within a tolerance
     LOG(debug) << "decayR: " << decayR << ", diffR: " << diffR << ", clus rad: " << clusRad << ", radTol: " << radTol;
     if (relDiffR > -radTol) {
-      LOG(debug) << "Try to attach cluster to Mother, layer: " << geom->getLayer(clus.getSensorID());
+      LOG(debug) << "Try to attach cluster to Mother, layer: " << lay;
       if (updateTrack(clus, strangeTrack.mMother)) {
         motherClusters.push_back(clus);
-        motherClusSizes.push_back(compClus);
-        nAttachments[geom->getLayer(clus.getSensorID())] = 0;
+        strangeTrack.setClusterSize(lay, compClus);
+        nAttachments[lay] = 0;
         isMotherUpdated = true;
         nUpdates++;
         LOG(debug) << "Cluster attached to Mother";
@@ -383,11 +383,11 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR, StrangeTrack& strang
     // if Mother is not found, check for V0 daughters compatibility
     if (relDiffR < radTol && !isMotherUpdated) {
       bool isDauUpdated = false;
-      LOG(debug) << "Try to attach cluster to Daughters, layer: " << geom->getLayer(clus.getSensorID());
+      LOG(debug) << "Try to attach cluster to Daughters, layer: " << lay;
       for (int iDau{0}; iDau < daughterTracks.size(); iDau++) {
         auto& dauTrack = daughterTracks[iDau];
         if (updateTrack(clus, dauTrack)) {
-          nAttachments[geom->getLayer(clus.getSensorID())] = iDau + 1;
+          nAttachments[lay] = iDau + 1;
           isDauUpdated = true;
           break;
         }
@@ -418,9 +418,6 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR, StrangeTrack& strang
       break;
     }
   }
-
-  // compute mother average cluster size
-  strangeTrack.mITSClusSize = float(std::accumulate(motherClusSizes.begin(), motherClusSizes.end(), 0)) / motherClusSizes.size();
 
   LOG(debug) << "Inward-outward refit finished, starting final topology refit";
   // final Topology refit
