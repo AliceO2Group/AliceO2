@@ -78,6 +78,9 @@ class LZEROElectronics
   /// Sets geometry for trigger mapping
   void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
+  /// Sets the masked fastOrs from the CCDB in the LZERO 
+  void setMaskedFastOrs(std::vector<int> maskedfastors) { mMaskedFastOrs = maskedfastors; }
+
   /// Set Threshold for LZERO algorithm
   /// \param threshold LZERO algorithm threshold
   void setThreshold(double threshold) { mThreshold = threshold; }
@@ -133,6 +136,7 @@ class LZEROElectronics
   // const SimParam* mSimParam = nullptr;                 ///< SimParam object
   std::vector<EMCALTriggerInputs> mTriggers;           ///< Triggers to be sent out
   std::vector<EMCALTriggerInputsPatch> mTriggersPatch; ///< Triggers to be sent out
+  std::vector<int> mMaskedFastOrs;                     ///< Masked fastOrs from CCDB
   bool mSimulateNoiseDigits = true;                    ///< simulate noise digits
   // TriggerMappingV2* mTriggerMap = nullptr;             ///< Trigger map to properly assign an absolute FastOr to TRU FastOr
   Geometry* mGeometry = nullptr; ///< EMCAL geometry

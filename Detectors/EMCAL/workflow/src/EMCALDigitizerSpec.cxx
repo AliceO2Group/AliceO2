@@ -113,6 +113,19 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   auto& eventParts = context->getEventParts();
 
+
+
+  // ------------------------------
+  // For the TRIGGER Simulation
+  // ------------------------------
+  // Load the masked fastOr
+  // This impact the acceptance 
+  // of the detector, and thus the
+  // overall efficiency of the L0 
+  if (mCalibHandler) {
+    mDigitizerTRU.setFEE(mCalibHandler->getFEEDCS());
+  }
+
   // ------------------------------
   // TRIGGER Simulation
   // ------------------------------
@@ -463,6 +476,7 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool require
   if (useccdb) {
     calibloader = std::make_shared<CalibLoader>();
     calibloader->enableSimParams(true);
+    calibloader->enableFEEDCS(true);
     calibloader->defineInputSpecs(inputs);
   }
   if (requireCTPInput) {

@@ -152,7 +152,10 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
       auto whichFastOr = std::get<1>(mTriggerMap.convertFastORIndexTRUtoSTU(whichTRU, whichFastOrTRU));
       auto& patchTRU = patchesFromAllTRUs[whichTRU];
       auto& fastOrPatchTRU = patchTRU.mFastOrs[whichFastOr];
-      fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      // fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      if (std::find(mMaskedFastOrs.begin(), mMaskedFastOrs.end(), fastor) != mMaskedFastOrs.end()) {
+        fastOrPatchTRU.updateADC(summedDigit.getAmplitudeADC());
+      }
 
       digIndex++;
     }

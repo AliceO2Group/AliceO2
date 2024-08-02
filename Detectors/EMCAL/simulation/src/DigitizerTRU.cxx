@@ -12,6 +12,7 @@
 #include "EMCALSimulation/DigitizerTRU.h"
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/DigitsWriteoutBuffer.h"
+#include "EMCALCalib/FeeDCS.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Hit.h"
 #include "MathUtils/Cartesian.h"
@@ -436,4 +437,65 @@ void DigitizerTRU::finish()
   if (isDebugMode() == true) {
     endDebugStream();
   }
+}
+//______________________________________________________________________
+int DigitizerTRU::GetTRUIndexFromSTUIndex(Int_t id, Int_t detector)
+{
+  Int_t kEMCAL = 0;
+  Int_t kDCAL = 1;
+
+  if ((id > 31 && detector == kEMCAL) || (id > 13 && detector == kDCAL) || id < 0) {
+    return -1; // Error Condition
+  }
+
+  if (detector == kEMCAL) {
+    return id;
+  } else if (detector == kDCAL) {
+    return 32 + ((int)(id / 4) * 6) + ((id % 4 < 2) ? (id % 4) : (id % 4 + 2));
+  }
+  return -1;
+}
+//______________________________________________________________________
+int DigitizerTRU::GetChannelForMaskRun2(int mask, int bitnumber, bool onethirdsm)
+{
+  if (onethirdsm)
+    return mask * 16 + bitnumber;
+  const int kChannelMap[6][16] = { { 8, 9, 10, 11, 20, 21, 22, 23, 32, 33, 34, 35, 44, 45, 46, 47 },     // Channels in mask0
+                                   { 56, 57, 58, 59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95 },   // Channels in mask1
+                                   { 4, 5, 6, 7, 16, 17, 18, 19, 28, 29, 30, 31, 40, 41, 42, 43 },       // Channels in mask2
+                                   { 52, 53, 54, 55, 64, 65, 66, 67, 76, 77, 78, 79, 88, 89, 90, 91 },   // Channels in mask3
+                                   { 0, 1, 2, 3, 12, 13, 14, 15, 24, 25, 26, 27, 36, 37, 38, 39 },       // Channels in mask4
+                                   { 48, 49, 50, 51, 60, 61, 62, 63, 72, 73, 74, 75, 84, 85, 86, 87 } }; // Channels in mask5
+  return kChannelMap[mask][bitnumber];
+}
+//______________________________________________________________________
+std::vector<int> DigitizerTRU::GetAbsFastORIndexFromMask()
+{
+  TriggerMappingV2 mTriggerMap(mGeometry);
+  std::vector<int> maskedfastors;
+  int itru = 0;
+  for (Int_t i = 0; i < 46; i++) {
+    int localtru = itru % 32, detector = itru >= 32 ? 1 : 0,
+        globaltru = GetTRUIndexFromSTUIndex(localtru, detector);
+    bool onethirdsm = ((globaltru >= 30 && globaltru < 32) || (globaltru >= 50 && globaltru < 52));
+    for (int ipos = 0; ipos < 6; ipos++) {
+      auto regmask = mFeeDCS->getTRUDCS(i).getMaskReg(ipos);
+      std::bitset<16> bitsregmask(regmask);
+      for (int ibit = 0; ibit < 16; ibit++) {
+        if (bitsregmask.test(ibit)) {
+          auto channel = GetChannelForMaskRun2(ipos, ibit, onethirdsm);
+          int absfastor = mTriggerMap.getAbsFastORIndexFromIndexInTRU(globaltru, channel);
+          maskedfastors.push_back(absfastor);
+        }
+      }
+    }
+    itru++;
+  }
+  return maskedfastors;
+}
+//______________________________________________________________________
+void DigitizerTRU::setMaskedFastOrsInLZERO()
+{
+  auto maskedFastOrs = GetAbsFastORIndexFromMask();
+
 }
