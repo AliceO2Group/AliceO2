@@ -545,6 +545,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     auto& sTrk = sTracks[collStrTrk.second];
     TrackExtraInfo extraInfo;
     extraInfo.itsChi2NCl = sTrk.mTopoChi2; // TODO: this is the total chi2 of adding the ITS clusters, the topology chi2 meaning might change in the future
+    extraInfo.itsClusterSizes = sTrk.getClusterSizes();
     addToTracksTable(tracksCursor, tracksCovCursor, sTrk.mMother, collisionID, aod::track::StrangeTrack);
     addToTracksExtraTable(tracksExtraCursor, extraInfo);
     mStrTrkIndices[collStrTrk.second] = mTableTrID;
@@ -1378,7 +1379,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
              sTrk.mMasses[1],
              sTrk.mMatchChi2,
              sTrk.mTopoChi2,
-             sTrk.mITSClusSize);
+             sTrk.getAverageClusterSize());
     } else if (sTrk.mPartType == dataformats::kStrkCascade) {
       cascCurs(mStrTrkIndices[sTrkID++],
                itsTableIdx,
@@ -1390,7 +1391,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
                sTrk.mMasses[1],
                sTrk.mMatchChi2,
                sTrk.mTopoChi2,
-               sTrk.mITSClusSize);
+               sTrk.getAverageClusterSize());
     } else {
       d3BodyCurs(mStrTrkIndices[sTrkID++],
                  itsTableIdx,
@@ -1402,7 +1403,7 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
                  sTrk.mMasses[1],
                  sTrk.mMatchChi2,
                  sTrk.mTopoChi2,
-                 sTrk.mITSClusSize);
+                 sTrk.getAverageClusterSize());
     }
   }
 }
