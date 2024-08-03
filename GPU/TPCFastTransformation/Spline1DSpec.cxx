@@ -18,6 +18,7 @@
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
+#include <algorithm>
 #endif
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
