@@ -47,7 +47,6 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   LOG(info) << "ITSMFTDeadMapBuilder init... " << mSelfName;
 
   mTFSampling = ic.options().get<int>("tf-sampling");
-  mSamplingMode = ic.options().get<std::string>("sampling-mode");
   mTFLength = ic.options().get<int>("tf-length");
   mDoLocalOutput = ic.options().get<bool>("local-output");
   mObjectName = ic.options().get<std::string>("outfile");
@@ -151,16 +150,14 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     mFirstOrbitRun = mFirstOrbitTF;
   }
 
-  long sampled_orbit = mFirstOrbitTF;
-  if (mSamplingMode == "first-orbit-run") {
-    sampled_orbit = sampled_orbit - mFirstOrbitRun;
-  }
+  long sampled_orbit = mFirstOrbitTF - mFirstOrbitRun;
 
-  if ((sampled_orbit / mTFLength) % mTFSampling != 0) {
+  if ((sampled_orbit / mTFLength) % mTFSampling != 0 && sampled_orbit <= mLastSampledOrbit + mTFLength * mTFSampling) {
     return;
   }
 
   mStepCounter++;
+  mLastSampledOrbit = sampled_orbit;
   LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
 
   mDeadMapTF.clear();
@@ -270,7 +267,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
   if (ec != nullptr) {
 
     LOG(important) << "Sending object " << info.getPath() << "/" << info.getFileName()
-                   << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
+                   << " to ccdb-populator, of size " << image->size() << " bytes, valid for "
                    << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     if (mRunMFT) {
@@ -332,7 +329,7 @@ void ITSMFTDeadMapBuilder::stop()
     finalizeOutput();
     if (!mCCDBUrl.empty()) {
       std::string detname = mRunMFT ? "MFT" : "ITS";
-      LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << "deadmap builder workflow.";
+      LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << " deadmap builder workflow.";
       PrepareOutputCcdb(nullptr, mCCDBUrl);
     } else {
       LOG(alarm) << "endOfStream not processed. Nothing forwarded as output.";
@@ -379,7 +376,6 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     outputs,
     AlgorithmSpec{adaptFromTask<ITSMFTDeadMapBuilder>(datasource, doMFT)},
     Options{{"tf-sampling", VariantType::Int, 350, {"Process every Nth TF. Selection according to first TF orbit."}},
-            {"sampling-mode", VariantType::String, "first-orbit-run", {"Use absolute orbit value or offset from first processed orbit."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
             {"skip-static-map", VariantType::Bool, false, {"Do not fill static part of the map."}},
             {"ccdb-url", VariantType::String, "", {"CCDB url. Ignored if endOfStream is processed."}},
