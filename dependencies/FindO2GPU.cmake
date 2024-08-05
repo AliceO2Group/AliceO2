@@ -130,6 +130,9 @@ if(ENABLE_CUDA)
     if(CMAKE_CXX_FLAGS MATCHES "(^| )-Werror( |$)")
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror=cross-execution-space-call")
     endif()
+    if(GPUCA_CUDA_GCCBIN)
+      list(FILTER CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES EXCLUDE REGEX "^/usr/lib.*/gcc/") # Workaround, since CMake adds old GCC lib paths implicitly if we request that gcc for CUDA
+    endif()
 
     set(CUDA_ENABLED ON)
     message(STATUS "CUDA found (Version ${CMAKE_CUDA_COMPILER_VERSION})")
