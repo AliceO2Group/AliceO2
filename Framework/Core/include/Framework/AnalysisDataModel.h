@@ -1579,7 +1579,7 @@ DECLARE_SOA_TABLE_VERSIONED(McCollisions_001, "AOD", "MCCOLLISION", 1, //! MC co
                             mccollision::GetSubGeneratorId<mccollision::GeneratorsID>,
                             mccollision::GetSourceId<mccollision::GeneratorsID>);
 
-using McCollisions = McCollisions_000;
+using McCollisions = McCollisions_001;
 using McCollision = McCollisions::iterator;
 
 namespace mcparticle
