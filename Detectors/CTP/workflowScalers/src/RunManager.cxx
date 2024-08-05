@@ -164,7 +164,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time, bool start)
     std::string c1a = "cla1a" + std::to_string(cls + 1);
     CTPScalerRaw scalraw;
     scalraw.classIndex = (uint32_t)cls;
-    //std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
+    // std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
     scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
     scalraw.lmAfter = mCounters[mScalerName2Position[cma]];
     scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
@@ -280,9 +280,9 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       // active , do scalers
       LOG(info) << "Run continue:" << mCounters[i];
       addScalers(i, tt);
-      //LOG(info) << " QC period:" << mActiveRunNumbers[i] << " " << mActiveRuns[i]->qcwpcount << " " << mQCWritePeriod;
-      if(mActiveRuns[i]->qcwpcount > mQCWritePeriod) {
-        saveRunScalersToQCDB(mActiveRuns[i]->scalers, tt*1000, tt*1000);
+      // LOG(info) << " QC period:" << mActiveRunNumbers[i] << " " << mActiveRuns[i]->qcwpcount << " " << mQCWritePeriod;
+      if (mActiveRuns[i]->qcwpcount > mQCWritePeriod) {
+        saveRunScalersToQCDB(mActiveRuns[i]->scalers, tt * 1000, tt * 1000);
         mActiveRuns[i]->qcwpcount = 0;
       }
       mActiveRuns[i]->qcwpcount++;
@@ -294,7 +294,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
         mActiveRuns[i] = run->second;
         mRunsLoaded.erase(run);
         addScalers(i, tt, 1);
-        saveRunScalersToQCDB(mActiveRuns[i]->scalers, tt*1000, tt*1000);
+        saveRunScalersToQCDB(mActiveRuns[i]->scalers, tt * 1000, tt * 1000);
       } else {
         LOG(error) << "Trying to start run which is not loaded:" << mCounters[i];
       }

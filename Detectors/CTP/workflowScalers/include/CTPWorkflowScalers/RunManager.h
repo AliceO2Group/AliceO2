@@ -55,7 +55,7 @@ class CTPRunManager : public ctpCCDBManager
   int loadScalerNames();
   int getNRuns();
   void setBKHost(std::string host) { mBKHost = host; };
-  void setQCWritePeriod(int period) { mQCWritePeriod = period;};
+  void setQCWritePeriod(int period) { mQCWritePeriod = period; };
   uint64_t checkOverflow(uint32_t lcnt0, uint32_t lcnt1, uint64_t lcntcor);
   void printCounters();
 
@@ -70,7 +70,7 @@ class CTPRunManager : public ctpCCDBManager
   std::unique_ptr<BkpClient> mBKClient;
   int mEOX = 0; // redundancy check
   int mNew = 1; // 1 - no CCDB: used for QC
-  int mQCWritePeriod = 3; // Time in 10secs between two writes to QCCD 
+  int mQCWritePeriod = 3; // Time in 10secs between two writes to QCCD
   ClassDefNV(CTPRunManager, 7);
 };
 } // namespace ctp

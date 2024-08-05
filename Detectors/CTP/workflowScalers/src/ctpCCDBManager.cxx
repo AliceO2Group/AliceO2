@@ -22,7 +22,7 @@
 using namespace o2::ctp;
 std::string ctpCCDBManager::mCCDBHost = "http://o2-ccdb.internal";
 std::string ctpCCDBManager::mQCDBHost = "http://ali-qcdb.cern.ch:8083";
-//std::string ctpCCDBManager::mQCDBHost = "none";
+// std::string ctpCCDBManager::mQCDBHost = "none";
 //
 int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop)
 {
@@ -45,7 +45,7 @@ int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart,
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   int ret = api.storeAsTFileAny(&(scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
-  if(ret == 0) {
+  if (ret == 0) {
     LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   } else {
     LOG(FATAL) << "Problem writing to database ret:" << ret;
@@ -73,7 +73,7 @@ int ctpCCDBManager::saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart,
   api.init(mQCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   int ret = api.storeAsTFileAny(&(scalers), mQCDBPathCTPScalers, metadata, tmin, tmax);
-  if(ret == 0) {
+  if (ret == 0) {
     LOG(info) << "CTP scalers saved in qcdb:" << mQCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   } else {
     LOG(FATAL) << "CTP scalers Problem writing to database qcdb ret:" << ret;
@@ -100,7 +100,7 @@ int ctpCCDBManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   int ret = api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
-  if(ret == 0) {
+  if (ret == 0) {
     LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   } else {
     LOG(FATAL) << "CTPConfig: Problem writing to database ret:" << ret;
