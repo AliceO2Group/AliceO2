@@ -16,6 +16,8 @@
 
 #include <string>
 
+#include "CCDB/CcdbApi.h"
+
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
@@ -48,8 +50,10 @@ class NoiseCalibratorSpec : public Task
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  o2::ccdb::CcdbApi api;
   void updateTimeDependentParams(ProcessingContext& pc);
   void sendOutputCcdb(DataAllocator& output);
+  void sendOutputCcdbMerge(DataAllocator& output);
   void sendOutputCcdbDcs(DataAllocator& output);
   void sendOutputDcs(DataAllocator& output);
   void setOutputDcs(const o2::itsmft::NoiseMap& payload);
@@ -57,10 +61,12 @@ class NoiseCalibratorSpec : public Task
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::string mPath;
+  std::string mPathMerge;
   std::string mMeta;
 
   std::vector<std::array<int, 3>> mNoiseMapForDcs;
   std::string mPathDcs;
+  std::string mPathDcsMerge;
   std::string mOutputType;
 
   double mThresh;

@@ -85,14 +85,14 @@ class NoiseMap
     while (chipID--) {
       const auto& map = mNoisyPixels[chipID];
       for (const auto& pair : map) {
-        if (pair.second <= t) {
+       if (pair.second <= t) {
           continue;
-        }
+	  }
         n++;
         auto key = pair.first;
         auto row = key2Row(key);
         auto col = key2Col(key);
-        std::cout << "chip, row, col, noise: " << chipID << ' ' << row << ' ' << col << ' ' << pair.second << '\n';
+        std::cout << "chip, row, col, noise: " << chipID << ' ' << row << ' ' << col << ' '  << pair.second << '\n';
       }
     }
     return n;
@@ -169,7 +169,6 @@ class NoiseMap
   // Methods required by the calibration framework
   void print();
   void fill(const gsl::span<const CompClusterExt> data);
-  void merge(const NoiseMap* prev) {}
 
   const std::map<int, int>* getChipMap(int chip) const { return chip < (int)mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
 
@@ -203,6 +202,29 @@ class NoiseMap
     return std::ceil((1. + 1. / t) / (relErr * relErr));
   }
 
+  NoiseMap merge(NoiseMap* prev){
+    int incre=0;
+    for (size_t i = 0; i < 920; ++i) { //920 is the total number of chips in MFT
+      for (const auto& prev_np : prev->mNoisyPixels[i]) { //only enters this for loop if the "i" chip exists. 
+	bool existsInCurrentMap = false;
+	for (const auto& current_np : mNoisyPixels[i]) {
+	  if(prev_np.first==current_np.first)
+	    {
+	      existsInCurrentMap = true;
+	      break;
+	    }
+	}//end of for loop on elements of previous noise map
+
+	if (!existsInCurrentMap) {
+	  incre++;
+	  mNoisyPixels[i][prev_np.first] = prev_np.second;
+	}
+      }//end of for loop on elements of previous noise map
+    }//end of for loop on i (chip ID)
+    return(mNoisyPixels);
+  }//end of void merge
+
+  
   size_t size() const { return mNoisyPixels.size(); }
   void setNumOfStrobes(long n) { mNumOfStrobes = n; }
   void addStrobes(long n) { mNumOfStrobes += n; }
