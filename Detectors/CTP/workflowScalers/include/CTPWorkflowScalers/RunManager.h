@@ -38,6 +38,8 @@ struct CTPActiveRun {
   counters_t cntslast0; // last minus one read counters needed for overflow correction
   counters_t cntslast;  // last read counters
   counters64_t overflows;
+  // QC
+  int qcwpcount = 0;
 };
 class CTPRunManager : public ctpCCDBManager
 {
@@ -53,6 +55,7 @@ class CTPRunManager : public ctpCCDBManager
   int loadScalerNames();
   int getNRuns();
   void setBKHost(std::string host) { mBKHost = host; };
+  void setQCWritePeriod(int period) { mQCWritePeriod = period;};
   uint64_t checkOverflow(uint32_t lcnt0, uint32_t lcnt1, uint64_t lcntcor);
   void printCounters();
 
@@ -67,8 +70,8 @@ class CTPRunManager : public ctpCCDBManager
   std::unique_ptr<BkpClient> mBKClient;
   int mEOX = 0; // redundancy check
   int mNew = 1; // 1 - no CCDB: used for QC
-
-  ClassDefNV(CTPRunManager, 6);
+  int mQCWritePeriod = 3; // Time in 10secs between two writes to QCCD 
+  ClassDefNV(CTPRunManager, 7);
 };
 } // namespace ctp
 } // namespace o2

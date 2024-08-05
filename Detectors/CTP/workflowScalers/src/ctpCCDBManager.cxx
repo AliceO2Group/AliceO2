@@ -21,6 +21,8 @@
 #include <fairlogger/Logger.h>
 using namespace o2::ctp;
 std::string ctpCCDBManager::mCCDBHost = "http://o2-ccdb.internal";
+std::string ctpCCDBManager::mQCDBHost = "http://ali-qcdb.cern.ch:8083";
+//std::string ctpCCDBManager::mQCDBHost = "none";
 //
 int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop)
 {
@@ -43,7 +45,39 @@ int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart,
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   int ret = api.storeAsTFileAny(&(scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
-  LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  if(ret == 0) {
+    LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  } else {
+    LOG(FATAL) << "Problem writing to database ret:" << ret;
+  }
+  return ret;
+}
+int ctpCCDBManager::saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart, long timeStop)
+{
+  // data base
+  if (mQCDBHost == "none") {
+    LOG(info) << "Scalers not written to QCDB none";
+    return 0;
+  }
+  // CTPActiveRun* run = mActiveRuns[i];q
+  using namespace std::chrono_literals;
+  std::chrono::seconds days3 = 259200s;
+  std::chrono::seconds min10 = 600s;
+  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
+  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
+  long tmin = timeStart - time10min;
+  long tmax = timeStop + time3days;
+  o2::ccdb::CcdbApi api;
+  map<string, string> metadata; // can be empty
+  metadata["runNumber"] = std::to_string(scalers.getRunNumber());
+  api.init(mQCDBHost.c_str()); // or http://localhost:8080 for a local installation
+  // store abitrary user object in strongly typed manner
+  int ret = api.storeAsTFileAny(&(scalers), mQCDBPathCTPScalers, metadata, tmin, tmax);
+  if(ret == 0) {
+    LOG(info) << "CTP scalers saved in qcdb:" << mQCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  } else {
+    LOG(FATAL) << "CTP scalers Problem writing to database qcdb ret:" << ret;
+  }
   return ret;
 }
 int ctpCCDBManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
@@ -66,7 +100,11 @@ int ctpCCDBManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   int ret = api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
-  LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  if(ret == 0) {
+    LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  } else {
+    LOG(FATAL) << "CTPConfig: Problem writing to database ret:" << ret;
+  }
   return ret;
 }
 CTPConfiguration ctpCCDBManager::getConfigFromCCDB(long timestamp, std::string run, bool& ok)
