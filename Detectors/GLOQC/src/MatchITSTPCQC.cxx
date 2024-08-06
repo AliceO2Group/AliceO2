@@ -26,6 +26,11 @@
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "Framework/InputRecord.h"
 #include "Framework/TimingInfo.h"
+#include "GPUO2InterfaceUtils.h"
+#include "CommonConstants/LHCConstants.h"
+#include "DataFormatsTPC/Constants.h"
+
+#include "GPUO2InterfaceRefit.h"
 
 using namespace o2::gloqc;
 using namespace o2::mcutils;
@@ -42,6 +47,7 @@ MatchITSTPCQC::~MatchITSTPCQC()
 void MatchITSTPCQC::deleteHistograms()
 {
 
+  LOG(info) << "Deleting histos...";
   for (int i = 0; i < matchType::SIZE; ++i) {
     // Pt
     delete mPtNum[i];
@@ -124,7 +130,7 @@ void MatchITSTPCQC::deleteHistograms()
   delete mFractionITSTPCmatchDCArVsPt;
 
   // K0
-  delete mK0MassVsPt;
+  delete mK0MassVsPtVsOcc;
 }
 
 //__________________________________________________________
@@ -205,7 +211,7 @@ void MatchITSTPCQC::reset()
 
   // K0
   if (mDoK0QC) {
-    mK0MassVsPt->Reset();
+    mK0MassVsPtVsOcc->Reset();
   }
 }
 
@@ -375,9 +381,39 @@ bool MatchITSTPCQC::init()
     }
   }
 
+  // log binning for pT for K0s
+  const Int_t nbinsPtK0 = 10;
+  const Double_t xminPtK0 = 0.01;
+  const Double_t xmaxPtK0 = 20;
+  Double_t* xbinsPtK0 = new Double_t[nbinsPtK0 + 1];
+  Double_t xlogminPtK0 = TMath::Log10(xminPtK0);
+  Double_t xlogmaxPtK0 = TMath::Log10(xmaxPtK0);
+  Double_t dlogxPtK0 = (xlogmaxPtK0 - xlogminPtK0) / nbinsPtK0;
+  for (int i = 0; i <= nbinsPtK0; i++) {
+    Double_t xlogPtK0 = xlogminPtK0 + i * dlogxPtK0;
+    xbinsPtK0[i] = TMath::Exp(TMath::Log(10) * xlogPtK0);
+  }
+  // the other bins
+  const Int_t nbinsMassK0 = 100;
+  Double_t* ybinsMassK0 = new Double_t[nbinsMassK0 + 1];
+  Double_t yminMassK0 = 0.4;
+  Double_t ymaxMassK0 = 0.6;
+  Double_t dyMassK0 = (ymaxMassK0 - yminMassK0) / nbinsMassK0;
+  for (int i = 0; i <= nbinsMassK0; i++) {
+    ybinsMassK0[i] = yminMassK0 + i * dyMassK0;
+  }
+  const Int_t nbinsMultK0 = 5;
+  Double_t* zbinsMultK0 = new Double_t[nbinsMultK0 + 1];
+  Double_t zminMultK0 = 100000.;
+  Double_t zmaxMultK0 = 1000000.;
+  Double_t dzMultK0 = (zmaxMultK0 - zminMultK0) / nbinsMultK0;
+  for (int i = 0; i <= nbinsMultK0; i++) {
+    zbinsMultK0[i] = zminMultK0 + i * dzMultK0;
+  }
+
   if (mDoK0QC) {
     // V0s
-    mK0MassVsPt = new TH2F("mK0MassVsPt", "K0 invariant mass vs Pt; Pt [GeV/c]; K0s mass [GeV/c^2]", 100, 0.f, 20.f, 100, 0.3, 0.7);
+    mK0MassVsPtVsOcc = new TH3F("mK0MassVsPt", "K0 invariant mass vs Pt; Pt [GeV/c]; K0s mass [GeV/c^2]", nbinsPtK0, xbinsPtK0, nbinsMassK0, ybinsMassK0, nbinsMultK0, zbinsMultK0);
   }
 
   LOG(info) << "Printing configuration cuts";
@@ -404,6 +440,7 @@ void MatchITSTPCQC::initDataRequest()
   if (mDoK0QC) {
     mDataRequest->requestPrimaryVertices(mUseMC);
     mDataRequest->requestSecondaryVertices(mUseMC);
+    mDataRequest->requestTPCClusters(false);
   }
 }
 
@@ -900,13 +937,74 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     const auto pvertices = mRecoCont.getPrimaryVertices();
     LOG(info) << "Found " << pvertices.size() << " primary vertices";
 
+    // getting occupancy estimator
+    mNHBPerTF = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+    if (!mParam) {
+      // for occupancy estimator
+      mParam = o2::gpu::GPUO2InterfaceUtils::getFullParamShared(0.f, mNHBPerTF);
+    }
+    size_t occupancyMapSizeBytes = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(mNHBPerTF, mParam.get());
+    LOG(debug) << "occupancyMapSizeBytes = " << occupancyMapSizeBytes;
+    mTPCRefitterOccMap = mRecoCont.occupancyMapTPC;
+    o2::gpu::GPUO2InterfaceUtils::paramUseExternalOccupancyMap(mParam.get(), mNHBPerTF, mTPCRefitterOccMap.data(), occupancyMapSizeBytes);
+
+    std::vector<float> mTBinClOcc; ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i * mNTPCOccBinLength
+    mTBinClOcc.clear();
+    int mNTPCOccBinLength = mParam->rec.tpc.occupancyMapTimeBins;
+    mNTPCOccBinLengthInv = 1. / mNTPCOccBinLength;
+    if (mNTPCOccBinLength > 1 && mTPCRefitterOccMap.size()) {
+      int nTPCBinsInTF = mNHBPerTF * o2::constants::lhc::LHCMaxBunches / 8; // number of TPC time bins in 1 TF, considering that 1 TPC time bin is 8 bunches
+      int ninteg = 0;
+      int nTPCOccBinsInTF = nTPCBinsInTF * mNTPCOccBinLengthInv;                                    // how many occupancy bins in 1 TF; mNTPCOccBinLengthInv is the inverse of the length of an occupancy bin
+      int sumBins = std::max(1, int(o2::constants::lhc::LHCMaxBunches / 8 * mNTPCOccBinLengthInv)); // we will integrate occupancy at max for this number of bins: the max between 1 and the number of occupancy bins in 1 orbit
+      LOG(debug) << "number of TPC TB in 1 TF = nTPCBinsInTF = " << nTPCBinsInTF << " ; number of occupancy bins in 1 TF = nTPCOccBinsInTF = " << nTPCOccBinsInTF;
+      LOG(debug) << "bins to integrate = sumBins = " << sumBins;
+      mTBinClOcc.resize(nTPCOccBinsInTF);
+      std::vector<float> mltHistTB(nTPCOccBinsInTF);
+      float sm = 0., tb = 0.5 * mNTPCOccBinLength;
+      bool foundNotZero = false;
+      for (int i = 0; i < nTPCOccBinsInTF; i++) { // for every occupancy bin in the TF
+        mltHistTB[i] = mParam->GetUnscaledMult(tb);
+        if (mParam->GetUnscaledMult(tb) != 0) {
+          LOG(debug) << "i = " << i << " tb = " << tb << " mltHistTB[" << i << "] = " << mltHistTB[i];
+          foundNotZero = true;
+        }
+        tb += mNTPCOccBinLength;
+      }
+      if (!foundNotZero) {
+        LOG(debug) << "No mult bin was found different from 0!";
+      }
+      foundNotZero = false;
+      // now we fill the occupancy map; we integrate the sumBins after the current one, but when we are at the last 27 bins of the TF, where we integrate what we have left till the end of the TF; for practical reasons, we start from the end, adding all the time, and then also removing the last bin, when we have enough, so that we always add together sumBins bins (except, as said, for the last part of the TF)
+      for (int i = nTPCOccBinsInTF; i--;) {
+        if (mltHistTB[i] != 0) {
+          foundNotZero = true;
+        }
+        LOG(debug) << "i = " << i << " sm before = " << sm;
+        sm += mltHistTB[i];
+        LOG(debug) << "i = " << i << " sm after = " << sm;
+        if (i + sumBins < nTPCOccBinsInTF) {
+          LOG(debug) << "i = " << i << " sumBins = " << sumBins << " nTPCOccBinsInTF = " << nTPCOccBinsInTF << " we have to decrease sm by = " << mltHistTB[i + sumBins];
+          sm -= mltHistTB[i + sumBins];
+          LOG(debug) << "i = " << i << " sm after 2 = " << sm;
+        }
+        mTBinClOcc[i] = sm;
+        LOG(debug) << "i = " << i << " mTBinClOcc[" << i << "] = " << mTBinClOcc[i];
+      }
+      if (!foundNotZero) {
+        LOG(debug) << "No mult bin was found different from 0! sm = " << sm;
+      }
+    } else {
+      mTBinClOcc.resize(1);
+    }
+
     auto v0IDs = mRecoCont.getV0sIdx();
     auto nv0 = v0IDs.size();
     if (nv0 > mRecoCont.getV0s().size()) {
       mRefit = true;
     }
-    LOG(info) << "Found " << mRecoCont.getV0s().size() << " V0s in reco container";
-    LOG(info) << "Found " << nv0 << " V0s ids";
+    LOG(debug) << "Found " << mRecoCont.getV0s().size() << " V0s in reco container";
+    LOG(debug) << "Found " << nv0 << " V0s ids";
     // associating sec vtxs to prim vtx
     std::map<int, std::vector<int>> pv2sv;
     static int tfID = 0;
@@ -922,18 +1020,20 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       if (pvID < 0 || vv.size() == 0) {
         continue;
       }
+      const auto& pv = mRecoCont.getPrimaryVertex(pvID);
+      float pvTime = pv.getTimeStamp().getTimeStamp(); // in \mus
       for (int iv0 : vv) {
-        nV0sOk += processV0(iv0, mRecoCont) ? 1 : 0;
+        nV0sOk += processV0(iv0, mRecoCont, mTBinClOcc, pvTime) ? 1 : 0;
       }
     }
 
-    LOG(info) << "Processed " << nV0sOk << " V0s";
+    LOG(debug) << "Processed " << nV0sOk << " V0s";
   }
   evCount++;
 }
 
 //__________________________________________________________
-bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoData)
+bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoData, std::vector<float>& mTBinClOcc, float pvTime)
 {
   o2::dataformats::V0 v0;
   auto v0s = recoData.getV0s();
@@ -948,11 +1048,15 @@ bool MatchITSTPCQC::processV0(int iv, o2::globaltracking::RecoContainer& recoDat
   if (mMaxEtaK0 < std::abs(v0sel.getEta())) {
     return false;
   }
-  LOG(info) << "Find K0 with mass " << std::sqrt(v0sel.calcMass2AsK0());
   if (mCutK0Mass > 0 && std::abs(std::sqrt(v0sel.calcMass2AsK0()) - 0.497) > mCutK0Mass) {
     return false;
   }
-  mK0MassVsPt->Fill(v0sel.getPt(), std::sqrt(v0sel.calcMass2AsK0()));
+  // get the corresponding PV
+  int tb = pvTime / (8 * o2::constants::lhc::LHCBunchSpacingMUS) * mNTPCOccBinLengthInv; // V0 time in TPC time bins
+  LOG(debug) << "pvTime = " << pvTime << " tb = " << tb;
+  float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
+  LOG(debug) << "Filling plot with pt = " << v0sel.getPt() << " mass = " << std::sqrt(v0sel.calcMass2AsK0()) << " mult TPC = " << mltTPC;
+  mK0MassVsPtVsOcc->Fill(v0sel.getPt(), std::sqrt(v0sel.calcMass2AsK0()), mltTPC);
   return true;
 }
 
@@ -1228,5 +1332,5 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mFractionITSTPCmatchDCArVsPt);
 
   // V0
-  objar.Add(mK0MassVsPt);
+  objar.Add(mK0MassVsPtVsOcc);
 }

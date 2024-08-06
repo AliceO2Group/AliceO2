@@ -166,6 +166,7 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDTrackletLabels.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackPoint.h
+    DataTypes/GPUTPCGMPolynomialField.h
 )
 
 # Sources for O2 and for Standalone if requested in config file

@@ -19,6 +19,7 @@
 #include <TH1D.h>
 #include <TH1F.h>
 #include <TH2F.h>
+#include <TH3F.h>
 #include <TEfficiency.h>
 #include <TObjArray.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -28,6 +29,11 @@
 #include "Steer/MCKinematicsReader.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "DCAFitter/DCAFitterN.h"
+#include "GPUO2InterfaceConfiguration.h"
+// #include "GPUSettingsO2.h"
+#include "GPUParam.h"
+#include "GPUParam.inc"
+
 #include <unordered_map>
 #include <vector>
 #include <array>
@@ -63,7 +69,7 @@ class MatchITSTPCQC
   void setDataRequest(const std::shared_ptr<o2::globaltracking::DataRequest>& dr) { mDataRequest = dr; }
   void finalize();
   void reset();
-  bool processV0(int iv, o2::globaltracking::RecoContainer& recoData);
+  bool processV0(int iv, o2::globaltracking::RecoContainer& recoData, std::vector<float>& mTBinClOcc, float pvTime);
   bool refitV0(const o2::dataformats::V0Index& id, o2::dataformats::V0& v0, o2::globaltracking::RecoContainer& recoData);
 
   TH1D* getHistoPtNum(matchType m) const { return mPtNum[m]; }
@@ -130,7 +136,7 @@ class MatchITSTPCQC
   TH1D* getHisto1OverPtPhysPrimDen(matchType m) const { return m1OverPtPhysPrimDen[m]; }
   TEfficiency* getFractionITSTPCmatchPhysPrim1OverPt(matchType m) const { return mFractionITSTPCmatchPhysPrim1OverPt[m]; }
 
-  TH2F* getHistoK0MassVsPt() const { return mK0MassVsPt; }
+  TH3F* getHistoK0MassVsPtVsOcc() const { return mK0MassVsPtVsOcc; }
 
   void getHistos(TObjArray& objar);
 
@@ -228,7 +234,7 @@ class MatchITSTPCQC
     publisher->startPublishing(mDCArVsPtDen);
     publisher->startPublishing(mFractionITSTPCmatchDCArVsPt);
     if (mDoK0QC) {
-      publisher->startPublishing(mK0MassVsPt);
+      publisher->startPublishing(mK0MassVsPtVsOcc);
     }
   }
 
@@ -408,12 +414,21 @@ class MatchITSTPCQC
 
   // for V0s
   o2::vertexing::DCAFitterN<2> mFitterV0;
-  TH2F* mK0MassVsPt = nullptr;
+  TH3F* mK0MassVsPtVsOcc = nullptr;
   bool mDoK0QC = false;     // whether to fill the K0 QC plot(s)
   float mCutK0Mass = 0.05;  // cut on the difference between the K0 mass and the PDG mass
   bool mRefit = false;      // whether to refit or not
   float mMaxEtaK0 = 0.8;    // cut on the K0 eta
   long int mTimestamp = -1; // timestamp used to load the SVertexParam object: if differnt from -1, we don't load (it means we already did it)
+  std::unique_ptr<o2::gpu::GPUO2InterfaceConfiguration> mConfig;
+  std::unique_ptr<o2::gpu::GPUSettingsO2> mConfParam;
+  // std::unique_ptr<o2::gpu::GPUParam> mParam;
+  std::shared_ptr<o2::gpu::GPUParam> mParam = nullptr;
+  int mNHBPerTF = 0;
+  int mNTPCOccBinLength = 0; ///< TPC occ. histo bin length in TBs
+  float mNTPCOccBinLengthInv;
+  std::vector<float> mTBinClOcc;                    ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
+  gsl::span<const unsigned int> mTPCRefitterOccMap; ///< externally set TPC clusters occupancy map
 
   ClassDefNV(MatchITSTPCQC, 3);
 };
