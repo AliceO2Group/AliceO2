@@ -25,22 +25,27 @@ class ctpCCDBManager
  public:
   ctpCCDBManager() = default;
   int saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart, long timeStop);
+  int saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart, long timeStop);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run, bool& ok);
   static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string, bool& ok);
   void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path; };
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
+  void setQCDBPathScalers(std::string path) { mQCDBPathCTPScalers = path; };
   static void setCCDBHost(std::string host) { mCCDBHost = host; };
+  static void setQCDBHost(std::string host) { mQCDBHost = host; };
 
  protected:
   /// Database constants
   // std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
+  // std::string mQCDBHost = "http://ali-qcdb.cern.ch:8083";
   static std::string mCCDBHost;
+  static std::string mQCDBHost;
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
-
-  ClassDefNV(ctpCCDBManager, 0);
+  std::string mQCDBPathCTPScalers = "qc/CTP/Scalers";
+  ClassDefNV(ctpCCDBManager, 1);
 };
 } // namespace ctp
 } // namespace o2

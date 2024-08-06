@@ -510,8 +510,8 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
 }
 int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex)
 {
-  LOG(info) << "Processing line";
-  LOG(info) << "line:" << line << " lev:" << level;
+  LOG(debug) << "Processing line";
+  LOG(debug) << "line:" << line << " lev:" << level;
   //
   std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
   size_t ntokens = tokens.size();
@@ -557,7 +557,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       level = UNKNOWN;
     }
   }
-  LOG(info) << "Level:" << level;
+  LOG(debug) << "Level:" << level;
   switch (level) {
     case VERSION: {
       break;
@@ -585,7 +585,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       uint32_t index = std::stoul(tokens[2]);
       ctpinp.inputMask = (1ull << (index - 1));
       mInputs.push_back(ctpinp);
-      LOG(info) << "Input:" << ctpinp.name << " index:" << index;
+      LOG(debug) << "Input:" << ctpinp.name << " index:" << index;
       break;
     }
     case MASKS: {
@@ -596,7 +596,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       }
       bcmask.setBCmask(tokens);
       mBCMasks.push_back(bcmask);
-      LOG(info) << "BC mask added:" << bcmask.name;
+      LOG(debug) << "BC mask added:" << bcmask.name;
       break;
     }
     case GENS: {
@@ -604,7 +604,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       gen.name = tokens[0];
       gen.frequency = tokens[1];
       mGenerators.push_back(gen);
-      LOG(info) << "Gen added:" << line;
+      LOG(debug) << "Gen added:" << line;
       break;
     }
     case DESCRIPTORS: {
@@ -630,9 +630,9 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       o2::detectors::DetID det(detname.c_str());
       if (isDetector(det)) {
         ctpdet.detID = det.getID();
-        LOG(info) << "Detector found:" << det.getID() << " " << detname;
+        LOG(debug) << "Detector found:" << det.getID() << " " << detname;
       } else {
-        LOG(info) << "Unknown detectors:" << line;
+        LOG(error) << "Unknown detectors:" << line;
       }
       mDetectors.push_back(ctpdet);
       level = LTGitems;
@@ -642,7 +642,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       if (ntokens == 1) {
         mDetectors.back().mode = tokens[0];
       }
-      LOG(info) << "LTGitem:" << line;
+      LOG(debug) << "LTGitem:" << line;
       break;
     }
     case CLUSTER: {
@@ -650,10 +650,10 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       try {
         cluster.hwMask = std::stoull(tokens[0]);
       } catch (...) {
-        LOG(info) << "Cluster syntax error:" << line;
+        LOG(error) << "Cluster syntax error:" << line;
         return level;
       }
-      LOG(info) << "Cluster:" << line;
+      LOG(debug) << "Cluster:" << line;
       cluster.name = tokens[2];
       o2::detectors::DetID::mask_t mask;
       for (uint32_t item = 3; item < ntokens; item++) {
@@ -680,10 +680,10 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       try {
         index = std::stoull(tokens[1]);
       } catch (...) {
-        LOG(info) << "Class syntax error:" << line;
+        LOG(error) << "Class syntax error:" << line;
         return level;
       }
-      LOG(info) << "Class:" << line;
+      LOG(debug) << "Class:" << line;
       CTPClass cls;
       cls.classMask = 1ull << index;
       cls.name = tokens[0];
@@ -716,7 +716,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       break;
     }
     default: {
-      LOG(info) << "unknown line:" << line;
+      LOG(warning) << "unknown line:" << line;
     }
   }
   return 0;
