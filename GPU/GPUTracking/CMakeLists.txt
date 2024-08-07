@@ -68,7 +68,7 @@ set(SRCS
     TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
 
-set(SRCS_DATATYPES DataTypes/GPUDataTypes.cxx)
+set(SRCS_DATATYPES DataTypes/GPUDataTypes.cxx DataTypes/GPUConfigDump.cxx)
 set(SRCS_DATATYPE_HEADERS DataTypes/GPUTPCGMPolynomialField.cxx)
 
 set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSliceTrack.h Merger/GPUTPCGMBorderTrack.h)

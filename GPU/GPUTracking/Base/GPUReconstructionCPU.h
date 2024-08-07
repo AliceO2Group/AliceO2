@@ -198,7 +198,7 @@ inline int GPUReconstructionCPU::runKernel(krnlSetup&& setup, Args&&... args)
   if (myStep == GPUCA_RECO_STEP::NoRecoStep) {
     throw std::runtime_error("Failure running general kernel without defining RecoStep");
   }
-  int cpuFallback = IsGPU() ? (setup.x.device == krnlDeviceType::CPU ? 2 : (mRecoStepsGPU & myStep) != myStep) : 0;
+  int cpuFallback = IsGPU() ? (setup.x.device == krnlDeviceType::CPU ? 2 : (mRecoSteps.stepsGPUMask & myStep) != myStep) : 0;
   unsigned int& nThreads = setup.x.nThreads;
   unsigned int& nBlocks = setup.x.nBlocks;
   const unsigned int stream = setup.x.stream;

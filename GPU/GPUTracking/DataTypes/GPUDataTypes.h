@@ -17,7 +17,7 @@
 
 #include "GPUCommonDef.h"
 
-// These are basic and non-comprex data types, which will also be visible on the GPU.
+// These are basic and non-complex data types, which will also be visible on the GPU.
 // Please add complex data types required on the host but not GPU to GPUHostDataTypes.h and forward-declare!
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>

@@ -40,6 +40,8 @@
 #include "GPUReconstruction.h"
 #include "GPUReconstructionIncludes.h"
 #include "GPUROOTDumpCore.h"
+#include "GPUConfigDump.h"
+#include "GPUChainTracking.h"
 
 #include "GPUMemoryResource.h"
 #include "GPUChain.h"
@@ -212,18 +214,30 @@ int GPUReconstruction::Init()
 
 int GPUReconstruction::InitPhaseBeforeDevice()
 {
+  if (mProcessingSettings.printSettings) {
+    if (mSlaves.size() || mMaster) {
+      printf("\nConfig Dump %s\n", mMaster ? "Slave" : "Master");
+    }
+    const GPUChainTracking* chTrk;
+    for (unsigned int i = 0; i < mChains.size(); i++) {
+      if ((chTrk = dynamic_cast<GPUChainTracking*>(mChains[i].get()))) {
+        break;
+      }
+    }
+    GPUConfigDump::dumpConfig(&param().rec, &mProcessingSettings, chTrk ? chTrk->GetQAConfig() : nullptr, chTrk ? chTrk->GetEventDisplayConfig() : nullptr, &mDeviceBackendSettings, &mRecoSteps);
+  }
 #ifndef GPUCA_HAVE_O2HEADERS
-  mRecoSteps.setBits(RecoStep::ITSTracking, false);
-  mRecoSteps.setBits(RecoStep::TRDTracking, false);
-  mRecoSteps.setBits(RecoStep::TPCConversion, false);
-  mRecoSteps.setBits(RecoStep::TPCCompression, false);
-  mRecoSteps.setBits(RecoStep::TPCdEdx, false);
+  mRecoSteps.steps.setBits(RecoStep::ITSTracking, false);
+  mRecoSteps.steps.setBits(RecoStep::TRDTracking, false);
+  mRecoSteps.steps.setBits(RecoStep::TPCConversion, false);
+  mRecoSteps.steps.setBits(RecoStep::TPCCompression, false);
+  mRecoSteps.steps.setBits(RecoStep::TPCdEdx, false);
   mProcessingSettings.createO2Output = false;
 #endif
-  mRecoStepsGPU &= mRecoSteps;
-  mRecoStepsGPU &= AvailableRecoSteps();
+  mRecoSteps.stepsGPUMask &= mRecoSteps.steps;
+  mRecoSteps.stepsGPUMask &= AvailableGPURecoSteps();
   if (!IsGPU()) {
-    mRecoStepsGPU.set((unsigned char)0);
+    mRecoSteps.stepsGPUMask.set((unsigned char)0);
   }
 
   if (mProcessingSettings.forceMemoryPoolSize >= 1024 || mProcessingSettings.forceHostMemoryPoolSize >= 1024) {
@@ -286,7 +300,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!mProcessingSettings.createO2Output || !IsGPU()) {
     mProcessingSettings.clearO2OutputFromGPU = false;
   }
-  if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
+  if (!(mRecoSteps.stepsGPUMask & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
   }
   if (!IsGPU()) {
@@ -296,7 +310,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (param().rec.nonConsecutiveIDs) {
     param().rec.tpc.disableRefitAttachment = 0xFF;
   }
-  if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.tpc.mergerReadFromTrackerDirectly) {
+  if (!(mRecoSteps.stepsGPUMask & RecoStep::TPCMerging) || !param().rec.tpc.mergerReadFromTrackerDirectly) {
     mProcessingSettings.fullMergerOnGPU = false;
   }
   if (mProcessingSettings.debugLevel > 3 || !mProcessingSettings.fullMergerOnGPU || mProcessingSettings.deterministicGPUReconstruction) {
@@ -1113,7 +1127,7 @@ void GPUReconstruction::UpdateSettings(const GPUSettingsGRP* g, const GPUSetting
     mProcessingSettings.debugLevel = p->debugLevel;
     mProcessingSettings.resetTimers = p->resetTimers;
   }
-  GPURecoStepConfiguration w = {mRecoSteps, mRecoStepsGPU, mRecoStepsInputs, mRecoStepsOutputs};
+  GPURecoStepConfiguration w = mRecoSteps;
   param().UpdateSettings(g, p, &w);
   if (mInitialized) {
     WriteConstantParams();
@@ -1161,10 +1175,10 @@ void GPUReconstruction::SetSettings(const GPUSettingsGRP* grp, const GPUSettings
     mProcessingSettings = *proc;
   }
   if (workflow) {
-    mRecoSteps = workflow->steps;
-    mRecoStepsGPU &= workflow->stepsGPUMask;
-    mRecoStepsInputs = workflow->inputs;
-    mRecoStepsOutputs = workflow->outputs;
+    mRecoSteps.steps = workflow->steps;
+    mRecoSteps.stepsGPUMask &= workflow->stepsGPUMask;
+    mRecoSteps.inputs = workflow->inputs;
+    mRecoSteps.outputs = workflow->outputs;
   }
   param().SetDefaults(&mGRPSettings, rec, proc, workflow);
 }
