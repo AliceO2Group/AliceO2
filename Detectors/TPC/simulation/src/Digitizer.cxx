@@ -240,7 +240,7 @@ void Digitizer::setMeanLumiDistortionsDerivative(float meanLumi)
 
 void Digitizer::recalculateDistortions()
 {
-  if (!mSpaceCharge || !mSpaceCharge) {
+  if (!mSpaceCharge || !mSpaceChargeDer) {
     LOGP(info, "Average or derivative distortions not set");
     return;
   }

@@ -748,7 +748,7 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<
     initContainer(mGlobalCorrdRPhi[side], true);
   }
 
-  const auto& scScale = (type == Type::Distortions) ? scSCale->mInterpolatorGlobalCorr[side] : scSCale->mInterpolatorGlobalDist[side];
+  const auto& scSCaleInterpolator = (type == Type::Distortions) ? scSCale->mInterpolatorGlobalCorr[side] : scSCale->mInterpolatorGlobalDist[side];
 
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
@@ -802,13 +802,13 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<
           // interpolate global correction at new point and calculate position of global correction
           corrdR = globCorr.evaldR(zCurrPos, rCurrPos, phiCurrPos);
           if (scSCale && scale != 0) {
-            corrdR += scale * scScale.evaldR(zCurrPos, rCurrPos, phiCurrPos);
+            corrdR += scale * scSCaleInterpolator.evaldR(zCurrPos, rCurrPos, phiCurrPos);
           }
           const DataT rNewPos = rCurrPos + corrdR;
 
           DataT corrPhi = 0;
           if (scSCale && scale != 0) {
-            corrPhi = scale * scScale.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
+            corrPhi = scale * scSCaleInterpolator.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
           }
           corrPhi += globCorr.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos);
           corrPhi /= rCurrPos;
@@ -818,7 +818,7 @@ void SpaceCharge<DataT>::calcGlobalDistCorrIterative(const DistCorrInterpolator<
 
           corrdZ = globCorr.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
           if (scSCale && scale != 0) {
-            corrdZ += scale * scScale.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
+            corrdZ += scale * scSCaleInterpolator.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
           }
           const DataT zNewPos = zCurrPos + corrdZ;
 
