@@ -39,6 +39,7 @@ void BacktraceHelpers::demangled_backtrace_symbols(void** stackTrace, unsigned i
   }
 #endif
 
+  // We skip the level 0, which is the actual logging function.
   for (size_t i = 1; i < stackDepth; i++) {
 
     size_t sz = 64000; // 64K ought to be enough for our templates...
@@ -67,17 +68,20 @@ void BacktraceHelpers::demangled_backtrace_symbols(void** stackTrace, unsigned i
     bool tryAddr2Line = true;
 #endif
     if (begin && end) {
+      // The first byte is a ' ' which we need to skip.
       *begin++ = '\0';
       *end = '\0';
       // found our mangled name, now in [begin, end)
 
       int status;
       char* ret = abi::__cxa_demangle(begin, function, &sz, &status);
-      if (ret) {
+      if (status == 0) {
         // return value may be a realloc() of the input
         function = ret;
         dprintf(fd, "    %s: %s\n", stackStrings[i], function);
         tryAddr2Line = false;
+      } else {
+        tryAddr2Line = true;
       }
     }
     if (tryAddr2Line) {
@@ -88,12 +92,12 @@ void BacktraceHelpers::demangled_backtrace_symbols(void** stackTrace, unsigned i
 
         // Find c++filt from the environment
         // This is needed for platforms where we still need c++filt -r
-        char const* cxxfilt = getenv("CXXFILT");
+        static char const* cxxfilt = getenv("CXXFILT");
         if (cxxfilt == nullptr) {
           cxxfilt = "c++filt";
         }
         // Do the same for addr2line, just in case we wanted to pass some options
-        char const* addr2line = getenv("ADDR2LINE");
+        static char const* addr2line = getenv("ADDR2LINE");
         if (addr2line == nullptr) {
           addr2line = "addr2line";
         }
@@ -104,7 +108,10 @@ void BacktraceHelpers::demangled_backtrace_symbols(void** stackTrace, unsigned i
 
         fp = popen(syscom, "r");
         if (fp == nullptr) {
-          dprintf(fd, "-- no source could be retrieved --\n");
+          // We could not run addr2line, print whatever we have.
+          // Also free function, which is allocated at the beginning of the loop.
+          dprintf(fd, "%s\n", begin);
+          free(function);
           continue;
         }
 
@@ -114,7 +121,7 @@ void BacktraceHelpers::demangled_backtrace_symbols(void** stackTrace, unsigned i
 
         pclose(fp);
       } else {
-        dprintf(fd, "-- no source avaliable --\n");
+        dprintf(fd, "%s\n", begin);
       }
     }
     free(function);
