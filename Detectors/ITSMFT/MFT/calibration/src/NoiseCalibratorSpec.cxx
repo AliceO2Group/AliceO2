@@ -60,8 +60,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   mOutputType = ic.options().get<std::string>("send-to-server");
   mNoiseMapForDcs.clear();
   api.init("http://alice-ccdb.cern.ch");
-  //api.init("http://localhost:8080");
-}
+  }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
@@ -449,9 +448,9 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
       {"prob-rel-err", VariantType::Float, 0.2f, {"Relative error on channel noise to apply the threshold"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
-      {"path-CCDB", VariantType::String,"/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
-      {"path-CCDB-merge", VariantType::String,"/MFT/Calib/NoiseMapMerged", {"Path to write merged file to in CCDB"}},
-      {"path-DCS", VariantType::String, "/MFT/Config/NoiseMap", {"Path to write to in DCS"}},
+      {"path-CCDB", VariantType::String,"/MFT/test_Calib/NoiseMap", {"Path to write to in CCDB"}},
+      {"path-CCDB-merge", VariantType::String,"/MFT/test_Calib/NoiseMapMerged", {"Path to write merged file to in CCDB"}},
+      {"path-DCS", VariantType::String, "/MFT/test_Config/NoiseMap", {"Path to write to in DCS"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}},
       {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}},
       {"stop-me-only", VariantType::Bool, false, {"At sufficient statistics stop only this device, otherwise whole workflow"}}}};
