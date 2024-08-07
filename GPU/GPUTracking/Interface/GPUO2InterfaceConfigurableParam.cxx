@@ -15,6 +15,7 @@
 #include "GPUO2InterfaceConfigurableParam.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUDataTypes.h"
+#include "GPUConfigDump.h"
 
 using namespace o2::gpu;
 #define BeginNamespace(name)
@@ -124,25 +125,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
   return global;
 }
 
-#include "utils/qconfig_helpers.h"
-
-namespace
-{
-GPUSettingsStandalone configStandalone;
-std::vector<std::function<void()>> qprint_global;
-#define QCONFIG_PRINT
-#include "utils/qconfig.h"
-#undef QCONFIG_PRINT
-} // namepsace
-
 void GPUO2InterfaceConfiguration::PrintParam_internal()
 {
-  qConfigPrint(configProcessing, "proc.");
-  qConfigPrint(configReconstruction, "rec.");
-  qConfigPrint(configQA, "QA.");
-  qConfigPrint(configDisplay, "display.");
-  std::cout << "\n\tGPUSettingsDeviceBackend:\n"
-            << "\tdeviceType = " << (int)configDeviceBackend.deviceType << "\n"
-            << "\tforceDeviceType = " << (configDeviceBackend.forceDeviceType ? "true" : "false") << "\n"
-            << "\tslave = " << (configDeviceBackend.master ? "true" : "false") << "\n";
+  GPUConfigDump::dumpConfig(&configReconstruction, &configProcessing, &configQA, &configDisplay, &configDeviceBackend, &configWorkflow);
 }

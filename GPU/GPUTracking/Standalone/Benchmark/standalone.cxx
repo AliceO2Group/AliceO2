@@ -114,6 +114,7 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.printSettings > 1) {
+    printf("Config Dump before ReadConfiguration\n");
     qConfigPrint();
   }
   if (configStandalone.proc.debugLevel < 0) {
@@ -270,6 +271,10 @@ int ReadConfiguration(int argc, char** argv)
   }
 
   if (configStandalone.printSettings) {
+    configStandalone.proc.printSettings = true;
+  }
+  if (configStandalone.printSettings > 1) {
+    printf("Config Dump after ReadConfiguration\n");
     qConfigPrint();
   }
 
@@ -731,14 +736,19 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  recUnique.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType.c_str() : GPUDataTypes::DEVICE_TYPE_NAMES[GPUDataTypes::DeviceType::CPU], configStandalone.runGPUforce));
+  GPUSettingsDeviceBackend deviceSet;
+  deviceSet.deviceType = configStandalone.runGPU ? GPUDataTypes::GetDeviceType(configStandalone.gpuType.c_str()) : GPUDataTypes::DeviceType::CPU;
+  deviceSet.forceDeviceType = configStandalone.runGPUforce;
+  deviceSet.master = nullptr;
+  recUnique.reset(GPUReconstruction::CreateInstance(deviceSet));
   rec = recUnique.get();
+  deviceSet.master = rec;
   if (configStandalone.testSyncAsync) {
-    recUniqueAsync.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType.c_str() : GPUDataTypes::DEVICE_TYPE_NAMES[GPUDataTypes::DeviceType::CPU], configStandalone.runGPUforce, rec));
+    recUniqueAsync.reset(GPUReconstruction::CreateInstance(deviceSet));
     recAsync = recUniqueAsync.get();
   }
   if (configStandalone.proc.doublePipeline) {
-    recUniquePipeline.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType.c_str() : GPUDataTypes::DEVICE_TYPE_NAMES[GPUDataTypes::DeviceType::CPU], configStandalone.runGPUforce, rec));
+    recUniquePipeline.reset(GPUReconstruction::CreateInstance(deviceSet));
     recPipeline = recUniquePipeline.get();
   }
   if (rec == nullptr || (configStandalone.testSyncAsync && recAsync == nullptr)) {

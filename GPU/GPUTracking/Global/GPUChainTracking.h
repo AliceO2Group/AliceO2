@@ -159,6 +159,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   GPUQA* GetQA() { return mQAFromForeignChain ? mQAFromForeignChain->mQA.get() : mQA.get(); }
   int ForceInitQA();
   void SetQAFromForeignChain(GPUChainTracking* chain) { mQAFromForeignChain = chain; }
+  const GPUSettingsDisplay* GetEventDisplayConfig() const { return mConfigDisplay; }
+  const GPUSettingsQA* GetQAConfig() const { return mConfigQA; }
 
   // Processing functions
   int RunTPCClusterizer(bool synchronizeOutput = true);

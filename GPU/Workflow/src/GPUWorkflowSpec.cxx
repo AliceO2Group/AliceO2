@@ -275,7 +275,10 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
     if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {
-      mConfig->PrintParam();
+      mConfig->configProcessing.printSettings = true;
+      if (mConfParam->printSettings > 1) {
+        mConfig->PrintParam();
+      }
     }
 
     // Configuration is prepared, initialize the tracker.
