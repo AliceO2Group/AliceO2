@@ -115,13 +115,12 @@ int GPUChainTracking::RunTPCCompression()
         getKernelTimer<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::buffered128>(RecoStep::TPCCompression, 0, outputSize);
         break;
       case 4:
-
         static_assert((nBlocksMulti & 1) && nBlocksMulti >= 3);
         runKernel<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::multiBlock>(GetGridBlkStep(nBlocksMulti, outputStream, RecoStep::TPCCompression));
         getKernelTimer<GPUTPCCompressionGatherKernels, GPUTPCCompressionGatherKernels::multiBlock>(RecoStep::TPCCompression, 0, outputSize);
         break;
       default:
-        GPUError("Invalid compression kernel selected.");
+        GPUError("Invalid compression kernel %d selected.", (int)ProcessingSettings().tpcCompressionGatherModeKernel);
         return 1;
     }
     if (ProcessingSettings().tpcCompressionGatherMode == 3) {
