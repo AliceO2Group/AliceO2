@@ -104,11 +104,16 @@ class ITSMFTDeadMapBuilder : public Task
 
   unsigned long mFirstOrbitTF = 0x0;
   unsigned long mFirstOrbitRun = 0x0;
-  long mLastSampledOrbit = 0x0;
 
   std::string mDataSource = "chipsstatus";
 
   int mTFSampling = 350;
+
+  // utils for an improved sampling algorithm
+  std::unordered_set<long> mSampledTFs{};
+  std::deque<long> mSampledHistory{};
+  int mTFSamplingTolerance = 20;
+  int mSampledSlidingWindowSize = 1000; // units: mTFSampling
 
   o2::itsmft::TimeDeadMap mMapObject;
 
@@ -118,6 +123,7 @@ class ITSMFTDeadMapBuilder : public Task
   // Utils
 
   std::vector<uint16_t> getChipIDsOnSameCable(uint16_t);
+  bool acceptTF(long);
 
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
