@@ -32,15 +32,15 @@
 #include <gsl/span>
 #include <limits>
 
-#define DECLARE_SOA_METADATA()                                                                     \
-  template <typename T>                                                                            \
-  struct MetadataTrait {                                                                           \
-    using metadata = std::void_t<T>;                                                               \
-  };                                                                                               \
-                                                                                                   \
-  template <typename IT> requires(std::declval<IT::parent_t>())                                    \
-  struct MetadataTrait<IT> {                                                                       \
-    using metadata = typename MetadataTrait<typename IT::parent_t>::metadata;                      \
+#define DECLARE_SOA_METADATA()                                                \
+  template <typename T>                                                       \
+  struct MetadataTrait {                                                      \
+    using metadata = std::void_t<T>;                                          \
+  };                                                                          \
+                                                                              \
+  template <typename IT>                                                      \
+  requires(std::declval<IT::parent_t>()) struct MetadataTrait<IT> {           \
+    using metadata = typename MetadataTrait<typename IT::parent_t>::metadata; \
   };
 
 namespace o2::aod
@@ -197,7 +197,7 @@ consteval decltype(auto) make_originals_from_type(framework::pack<T...> p)
   if constexpr (sizeof...(T) == 0) {
     return framework::pack<>{};
   } else {
-    return []<typename H, typename... Ta>(framework::pack<H, Ta...>){
+    return []<typename H, typename... Ta>(framework::pack<H, Ta...>) {
       return make_originals_from_type<H, Ta...>();
     }(p);
   }
