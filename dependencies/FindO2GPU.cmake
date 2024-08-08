@@ -268,7 +268,7 @@ if(ENABLE_HIP)
     set_target_properties(roc::rocthrust PROPERTIES IMPORTED_GLOBAL TRUE)
     message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE} version ${hip_VERSION})")
     set(O2_HIP_CMAKE_CXX_FLAGS "-fgpu-defer-diag -mllvm -amdgpu-enable-lower-module-lds=false -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field -Wno-pass-failed")
-    if(hip_VERSION VERSION_GREATER_EQUAL "6.0")
+    if(hip_VERSION VERSION_GREATER_EQUAL "6.0" AND NOT hip_VERSION VERSION_GREATER_EQUAL "6.2")
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -mllvm -amdgpu-legacy-sgpr-spill-lowering=true") # TODO: Cleanup
     endif()
     set(O2_HIP_CMAKE_LINK_FLAGS "-Wno-pass-failed")
