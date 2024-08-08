@@ -48,7 +48,7 @@ int ctpCCDBManager::saveRunScalersToCCDB(CTPRunScalers& scalers, long timeStart,
   if (ret == 0) {
     LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   } else {
-    LOG(FATAL) << "Problem writing to database ret:" << ret;
+    LOG(fatal) << "Problem writing to database ret:" << ret;
   }
   return ret;
 }
@@ -76,7 +76,7 @@ int ctpCCDBManager::saveRunScalersToQCDB(CTPRunScalers& scalers, long timeStart,
   if (ret == 0) {
     LOG(info) << "CTP scalers saved in qcdb:" << mQCDBHost << " run:" << scalers.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   } else {
-    LOG(FATAL) << "CTP scalers Problem writing to database qcdb ret:" << ret;
+    LOG(fatal) << "CTP scalers Problem writing to database qcdb ret:" << ret;
   }
   return ret;
 }
@@ -103,7 +103,7 @@ int ctpCCDBManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   if (ret == 0) {
     LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   } else {
-    LOG(FATAL) << "CTPConfig: Problem writing to database ret:" << ret;
+    LOG(fatal) << "CTPConfig: Problem writing to database ret:" << ret;
   }
   return ret;
 }
