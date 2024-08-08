@@ -32,15 +32,15 @@
 #include <gsl/span>
 #include <limits>
 
-#define DECLARE_SOA_METADATA()                                                                     \
-  template <typename T>                                                                            \
-  struct MetadataTrait {                                                                           \
-    using metadata = std::void_t<T>;                                                               \
-  };                                                                                               \
-                                                                                                   \
-  template <typename IT> requires(std::declval<IT::parent_t>())                                    \
-  struct MetadataTrait<IT> {                                                                       \
-    using metadata = typename MetadataTrait<typename IT::parent_t>::metadata;                      \
+#define DECLARE_SOA_METADATA()                                                \
+  template <typename T>                                                       \
+  struct MetadataTrait {                                                      \
+    using metadata = std::void_t<T>;                                          \
+  };                                                                          \
+                                                                              \
+  template <typename IT>                                                      \
+  requires(std::declval<IT::parent_t>()) struct MetadataTrait<IT> {           \
+    using metadata = typename MetadataTrait<typename IT::parent_t>::metadata; \
   };
 
 namespace o2::aod
@@ -197,7 +197,7 @@ consteval decltype(auto) make_originals_from_type(framework::pack<T...> p)
   if constexpr (sizeof...(T) == 0) {
     return framework::pack<>{};
   } else {
-    return []<typename H, typename... Ta>(framework::pack<H, Ta...>){
+    return []<typename H, typename... Ta>(framework::pack<H, Ta...>) {
       return make_originals_from_type<H, Ta...>();
     }(p);
   }
@@ -970,7 +970,7 @@ struct RowViewCore : public IP, C... {
       [this]<typename T>(T*) -> void requires is_persistent_v<T> { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
       [this]<typename T>(T*) -> void requires is_dynamic_v<T> { bindDynamicColumn<T>(typename T::bindings_t{});},
       [this]<typename T>(T*) -> void {},
-    };
+};
     (f(static_cast<C*>(nullptr)), ...);
     if constexpr (has_index_v) {
       this->setIndices(this->getIndices());
