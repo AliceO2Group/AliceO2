@@ -97,7 +97,7 @@ static void BM_ASoAHelpersNaiveSimplePairs(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
   int64_t count = 0;
 
@@ -131,7 +131,7 @@ static void BM_ASoAHelpersNaiveSimpleFives(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
   int64_t count = 0;
 
@@ -323,7 +323,7 @@ static void BM_ASoAHelpersCombGenSimplePairs(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
 
   int64_t count = 0;
@@ -354,7 +354,7 @@ static void BM_ASoAHelpersCombGenSimpleFives(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
 
   int64_t count = 0;
@@ -520,8 +520,8 @@ static void BM_ASoAHelpersCombGenSimpleFivesMultipleChunks(benchmark::State& sta
   }
   auto tableB = builderB.finalize();
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
-  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
+  using TestB = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X>;
   using ConcatTest = Concat<TestA, TestB>;
 
   ConcatTest tests{tableA, tableB};
@@ -596,7 +596,7 @@ static void BM_ASoAHelpersCombGenSimplePairsSameCategories(benchmark::State& sta
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
   NoBinningPolicy<test::X> noBinning;
 
@@ -629,7 +629,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesSameCategories(benchmark::State& sta
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
   NoBinningPolicy<test::X> noBinning;
 
@@ -662,7 +662,7 @@ static void BM_ASoAHelpersCombGenSimplePairsCategories(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
   NoBinningPolicy<test::X> noBinning;
 
@@ -695,7 +695,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesCategories(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<test::X>;
+  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
   Test tests{table};
   NoBinningPolicy<test::X> noBinning;
 
