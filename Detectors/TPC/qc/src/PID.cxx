@@ -131,8 +131,8 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
 {
   // ===| variables required for cutting and filling |===
   const auto& dEdx = track.getdEdx();
-  const auto magCharge = track.getAbsCharge();
-  const auto pTPC = track.getP() * magCharge; // charge magnitude is divided getP() via getPtInv therefore magCharge is required to be multiplied [fix for He3]
+  const auto absCharge = track.getAbsCharge();
+  const auto pTPC = (absCharge > 0) ? (track.getP() / absCharge) : track.getP(); // charge magnitude is divided getP() via getPtInv for pTPC/Z [fix for He3]
   const auto tgl = track.getTgl();
   const auto snp = track.getSnp();
   const auto phi = track.getPhi();
