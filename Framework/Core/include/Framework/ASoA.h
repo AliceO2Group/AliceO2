@@ -2696,7 +2696,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
   DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, #_Name_, _Origin_, _Description_, _Version_, __VA_ARGS__);
 
 #define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                                      \
-  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"DYN"}>                                                                  \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{_Origin_}>                                                               \
   struct _Name_##ExtensionFrom : o2::soa::Table<ORIGIN, __VA_ARGS__> {                                                                      \
     using base_t = o2::soa::Table<ORIGIN, __VA_ARGS__>;                                                                                     \
     _Name_##ExtensionFrom(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::Table<ORIGIN, __VA_ARGS__>(table, offset){}; \
@@ -2706,12 +2706,12 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     using iterator = typename base_t::template RowView<_Name_##ExtensionFrom<ORIGIN>, _Name_##ExtensionFrom<ORIGIN>>;                       \
     using const_iterator = iterator;                                                                                                        \
   };                                                                                                                                        \
-  using _Name_##Extension = _Name_##ExtensionFrom<o2::header::DataOrigin{"DYN"}>;                                                           \
+  using _Name_##Extension = _Name_##ExtensionFrom<o2::header::DataOrigin{_Origin_}>;                                                        \
   template <o2::header::DataOrigin ORIGIN>                                                                                                  \
   using _Name_##From = o2::soa::Join<_Name_##ExtensionFrom<ORIGIN>, _Table_>;                                                               \
-  using _Name_ = _Name_##From<o2::header::DataOrigin{"DYN"}>;                                                                               \
+  using _Name_ = _Name_##From<o2::header::DataOrigin{_Origin_}>;                                                                            \
                                                                                                                                             \
-  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"DYN"}>                                                                  \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{_Origin_}>                                                               \
   struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata<ORIGIN>> {                                            \
     using table_t = _Name_##ExtensionFrom<ORIGIN>;                                                                                          \
     using base_table_t = _Table_;                                                                                                           \
@@ -2735,7 +2735,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
   DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
 #define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, _Exclusive_, ...)                                                 \
-  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"IDX"}>                                                                     \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{_Origin_}>                                                                  \
   struct _Name_##From : o2::soa::IndexTable<ORIGIN, _Key_, __VA_ARGS__> {                                                                      \
     using base_t = o2::soa::IndexTable<ORIGIN, _Key_, __VA_ARGS__>;                                                                            \
     _Name_##From(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::IndexTable<ORIGIN, _Key_, __VA_ARGS__>(table, offset){}; \
@@ -2744,9 +2744,9 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     using iterator = typename base_t::template RowView<_Name_##From<ORIGIN>, _Name_##From<ORIGIN>>;                                            \
     using const_iterator = iterator;                                                                                                           \
   };                                                                                                                                           \
-  using _Name_ = _Name_##From<o2::header::DataOrigin{"IDX"}>;                                                                                  \
+  using _Name_ = _Name_##From<o2::header::DataOrigin{_Origin_}>;                                                                               \
                                                                                                                                                \
-  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"IDX"}>                                                                     \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{_Origin_}>                                                                  \
   struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata<ORIGIN>> {                                                                 \
     using table_t = _Name_##From<ORIGIN>;                                                                                                      \
     using Key = _Key_;                                                                                                                         \
