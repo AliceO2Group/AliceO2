@@ -354,7 +354,20 @@ class SpaceCharge
   /// \param approachR when the difference between the desired r coordinate and the position of the global correction is deltaR, approach the desired r coordinate by deltaR * \p approachR.
   /// \param approachPhi when the difference between the desired phi coordinate and the position of the global correction is deltaPhi, approach the desired phi coordinate by deltaPhi * \p approachPhi.
   /// \param diffCorr if the absolute differences from the interpolated values for the global corrections from the last iteration compared to the current iteration is smaller than this value, set converged to true for current global distortion
-  void calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter = 100, const DataT approachZ = 0.5, const DataT approachR = 0.5, const DataT approachPhi = 0.5, const DataT diffCorr = 1e-6);
+  /// \param type whether to calculate distortions or corrections
+  void calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0);
+
+  /// step 5: calculate global distortions using the global corrections (FAST)
+  /// \param scSCale possible second sc object
+  /// \param scale scaling for second sc object
+  void calcGlobalDistWithGlobalCorrIterative(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6);
+  void calcGlobalDistWithGlobalCorrIterative(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6);
+
+  /// calculate global corrections from global distortions
+  /// \param scSCale possible second sc object
+  /// \param scale scaling for second sc object
+  void calcGlobalCorrWithGlobalDistIterative(const Side side, const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6);
+  void calcGlobalCorrWithGlobalDistIterative(const SpaceCharge<DataT>* scSCale = nullptr, float scale = 0, const int maxIter = 100, const DataT approachZ = 1, const DataT approachR = 1, const DataT approachPhi = 1, const DataT diffCorr = 50e-6);
 
   /// \return returns number of vertices in z direction
   unsigned short getNZVertices() const { return mParamGrid.NZVertices; }
@@ -1358,6 +1371,8 @@ class SpaceCharge
 
   /// set potentialsdue to ROD misalignment
   void initRodAlignmentVoltages(const MisalignmentType misalignmentType, const FCType fcType, const int sector, const Side side, const float deltaPot);
+
+  void calcGlobalDistCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter, const DataT approachZ, const DataT approachR, const DataT approachPhi, const DataT diffCorr, const SpaceCharge<DataT>* scSCale, float scale, const Type type);
 
   ClassDefNV(SpaceCharge, 6);
 };

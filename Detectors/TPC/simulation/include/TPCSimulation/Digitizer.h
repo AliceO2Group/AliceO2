@@ -138,6 +138,9 @@ class Digitizer
   void setMeanLumiDistortions(float meanLumi);
   void setMeanLumiDistortionsDerivative(float meanLumi);
 
+  /// in case of scaled distortions, the distortions can be recalculated to ensure consistent distortions and corrections
+  void recalculateDistortions();
+
  private:
   DigitContainer mDigitContainer;      ///< Container for the Digits
   std::unique_ptr<SC> mSpaceCharge;    ///< Handler of full distortions (static + IR dependant)
@@ -151,7 +154,8 @@ class Digitizer
   bool mUseSCDistortions = false;      ///< Flag to switch on the use of space-charge distortions
   int mDistortionScaleType = 0;        ///< type=0: no scaling of distortions, type=1 distortions without any scaling, type=2 distortions scaling with lumi
   float mLumiScaleFactor = 0;          ///< value used to scale the derivative map
-  ClassDefNV(Digitizer, 2);
+  bool mUseScaledDistortions = false;  ///< whether the distortions are already scaled
+  ClassDefNV(Digitizer, 3);
 };
 } // namespace tpc
 } // namespace o2
