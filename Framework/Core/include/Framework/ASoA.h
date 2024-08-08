@@ -15,6 +15,7 @@
 #include "Framework/Pack.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
@@ -31,10 +32,15 @@
 #include <gsl/span>
 #include <limits>
 
-#define DECLARE_SOA_METADATA()       \
-  template <typename T>              \
-  struct MetadataTrait {             \
-    using metadata = std::void_t<T>; \
+#define DECLARE_SOA_METADATA()                                                                     \
+  template <typename T>                                                                            \
+  struct MetadataTrait {                                                                           \
+    using metadata = std::void_t<T>;                                                               \
+  };                                                                                               \
+                                                                                                   \
+  template <typename IT> requires(std::declval<IT::parent_t>())                                    \
+  struct MetadataTrait<IT> {                                                                       \
+    using metadata = typename MetadataTrait<typename IT::parent_t>::metadata;                      \
   };
 
 namespace o2::aod
@@ -163,7 +169,7 @@ void call_if_has_not_originals(TLambda&& lambda)
 }
 
 template <typename H, typename... T>
-constexpr auto make_originals_from_type()
+consteval decltype(auto) make_originals_from_type()
 {
   using decayed = std::decay_t<H>;
   if constexpr (sizeof...(T) == 0) {
@@ -186,9 +192,15 @@ constexpr auto make_originals_from_type()
 }
 
 template <typename... T>
-constexpr auto make_originals_from_type(framework::pack<T...>)
+consteval decltype(auto) make_originals_from_type(framework::pack<T...> p)
 {
-  return make_originals_from_type<T...>();
+  if constexpr (sizeof...(T) == 0) {
+    return framework::pack<>{};
+  } else {
+    return []<typename H, typename... Ta>(framework::pack<H, Ta...>){
+      return make_originals_from_type<H, Ta...>();
+    }(p);
+  }
 }
 
 /// Policy class for columns which are chunked. This
@@ -770,7 +782,7 @@ struct DefaultIndexPolicy : IndexPolicyBase {
   int64_t mMaxRow = 0;
 };
 
-template <typename... C>
+template <o2::header::DataOrigin ORIGIN, typename... C>
 class Table;
 
 /// Similar to a pair but not a pair, to avoid
@@ -786,11 +798,11 @@ concept CanBind = requires(T&& t) {
   { t.B::mColumnIterator };
 };
 
-template <typename IP, typename... C>
+template <o2::header::DataOrigin ORIGIN, typename IP, typename... C>
 struct RowViewCore : public IP, C... {
  public:
   using policy_t = IP;
-  using table_t = o2::soa::Table<C...>;
+  using table_t = o2::soa::Table<ORIGIN, C...>;
   using all_columns = framework::pack<C...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
   using index_columns_t = framework::selected_pack<is_index_t, C...>;
@@ -813,7 +825,7 @@ struct RowViewCore : public IP, C... {
   }
 
   RowViewCore() = default;
-  RowViewCore(RowViewCore<IP, C...> const& other)
+  RowViewCore(RowViewCore<ORIGIN, IP, C...> const& other)
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
@@ -828,7 +840,7 @@ struct RowViewCore : public IP, C... {
     return *this;
   }
 
-  RowViewCore(RowViewCore<FilteredIndexPolicy, C...> const& other) requires std::is_same_v<IP, DefaultIndexPolicy>
+  RowViewCore(RowViewCore<ORIGIN, FilteredIndexPolicy, C...> const& other) requires std::is_same_v<IP, DefaultIndexPolicy>
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
@@ -843,7 +855,7 @@ struct RowViewCore : public IP, C... {
 
   RowViewCore operator++(int)
   {
-    RowViewCore<IP, C...> copy = *this;
+    RowViewCore<ORIGIN, IP, C...> copy = *this;
     this->operator++();
     return copy;
   }
@@ -856,7 +868,7 @@ struct RowViewCore : public IP, C... {
 
   RowViewCore operator--(int)
   {
-    RowViewCore<IP, C...> copy = *this;
+    RowViewCore<ORIGIN, IP, C...> copy = *this;
     this->operator--();
     return copy;
   }
@@ -1005,7 +1017,7 @@ struct ArrowHelpers {
 };
 
 template <typename... T>
-using originals_pack_t = decltype(make_originals_from_type<T...>());
+using originals_pack_t = decltype(make_originals_from_type(framework::pack<T...>{}));
 
 template <typename T, typename... Os>
 constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
@@ -1207,9 +1219,35 @@ using PresliceOptional = PresliceBase<T, true, true>;
 
 namespace o2::soa
 {
+/// special case for the template with origin
+template <typename T, template <o2::header::DataOrigin, typename...> class Ref>
+struct is_specialization_origin : std::false_type {
+};
+
+template <template <o2::header::DataOrigin, typename...> class Ref, o2::header::DataOrigin ORIGIN, typename... Args>
+struct is_specialization_origin<Ref<ORIGIN, Args...>, Ref> : std::true_type {
+};
+
+template <typename T, template <o2::header::DataOrigin, typename...> class Ref>
+inline constexpr bool is_specialization_origin_v = is_specialization_origin<T, Ref>::value;
+
+template <template <o2::header::DataOrigin, typename...> class base, typename derived>
+struct is_base_of_template_origin_impl {
+  template <o2::header::DataOrigin ORIGIN, typename... Ts>
+  static constexpr std::true_type test(const base<ORIGIN, Ts...>*);
+  static constexpr std::false_type test(...);
+  using type = decltype(test(std::declval<derived*>()));
+};
+
+template <template <o2::header::DataOrigin, typename...> class base, typename derived>
+using is_base_of_template_origin = typename is_base_of_template_origin_impl<base, derived>::type;
+
+template <template <o2::header::DataOrigin, typename...> class base, typename derived>
+inline constexpr bool is_base_of_template_origin_v = is_base_of_template_origin<base, derived>::value;
+
 //! Helper to check if a type T is an iterator
 template <typename T>
-inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
+inline constexpr bool is_soa_iterator_v = soa::is_base_of_template_origin_v<RowViewCore, T> || soa::is_specialization_origin_v<T, RowViewCore>;
 
 template <typename T>
 inline consteval bool is_soa_filtered_iterator_v()
@@ -1226,10 +1264,10 @@ inline consteval bool is_soa_filtered_iterator_v()
 }
 
 template <typename T>
-using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
+using is_soa_table_t = typename soa::is_specialization_origin<T, soa::Table>;
 
 template <typename T>
-inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
+inline constexpr bool is_soa_table_like_v = soa::is_base_of_template_origin_v<soa::Table, T>;
 
 template <typename T>
 class FilteredBase;
@@ -1385,12 +1423,13 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
 
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
-template <typename... C>
+template <o2::header::DataOrigin ORIGIN, typename... C>
 class Table
 {
  public:
-  using self_t = Table<C...>;
-  using table_t = Table<C...>;
+  static constexpr o2::header::DataOrigin mOrigin{ORIGIN};
+  using self_t = Table<ORIGIN, C...>;
+  using table_t = Table<ORIGIN, C...>;
   using columns = framework::pack<C...>;
   using column_types = framework::pack<typename C::type...>;
   using persistent_columns_t = framework::selected_pack<is_persistent_t, C...>;
@@ -1403,7 +1442,7 @@ class Table
   }
 
   template <typename IP, typename Parent, typename... T>
-  struct RowViewBase : public RowViewCore<IP, C...> {
+  struct RowViewBase : public RowViewCore<ORIGIN, IP, C...> {
 
     using external_index_columns_t = framework::selected_pack<is_external_index_t, C...>;
     using bindings_pack_t = decltype(extractBindings(external_index_columns_t{}));
@@ -1414,28 +1453,28 @@ class Table
     RowViewBase() = default;
 
     RowViewBase(arrow::ChunkedArray* columnData[sizeof...(C)], IP&& policy)
-      : RowViewCore<IP, C...>(columnData, std::forward<decltype(policy)>(policy))
+      : RowViewCore<ORIGIN, IP, C...>(columnData, std::forward<decltype(policy)>(policy))
     {
     }
 
     template <typename P, typename... O>
     RowViewBase& operator=(RowViewBase<IP, P, O...> other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
-      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<IP, C...>>(other);
+      static_cast<RowViewCore<ORIGIN, IP, C...>&>(*this) = static_cast<RowViewCore<ORIGIN, IP, C...>>(other);
       return *this;
     }
 
     template <typename P>
     RowViewBase& operator=(RowViewBase<IP, P, T...> other)
     {
-      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<IP, C...>>(other);
+      static_cast<RowViewCore<ORIGIN, IP, C...>&>(*this) = static_cast<RowViewCore<ORIGIN, IP, C...>>(other);
       return *this;
     }
 
     template <typename P>
     RowViewBase& operator=(RowViewBase<FilteredIndexPolicy, P, T...> other) requires std::is_same_v<IP, DefaultIndexPolicy>
     {
-      static_cast<RowViewCore<IP, C...>&>(*this) = static_cast<RowViewCore<FilteredIndexPolicy, C...>>(other);
+      static_cast<RowViewCore<ORIGIN, IP, C...>&>(*this) = static_cast<RowViewCore<ORIGIN, FilteredIndexPolicy, C...>>(other);
       return *this;
     }
 
@@ -1528,7 +1567,7 @@ class Table
 
     using IP::size;
 
-    using RowViewCore<IP, C...>::operator++;
+    using RowViewCore<ORIGIN, IP, C...>::operator++;
 
     /// Allow incrementing by more than one the iterator
     RowViewBase operator+(int64_t inc) const
@@ -1773,26 +1812,26 @@ class Table
   RowViewSentinel mEnd;
 };
 
-template <typename T>
+template <o2::header::DataOrigin, typename T>
 struct PackToTable {
   static_assert(framework::always_static_assert_v<T>, "Not a pack");
 };
 
-template <typename... C>
-struct PackToTable<framework::pack<C...>> {
-  using table = o2::soa::Table<C...>;
+template <o2::header::DataOrigin ORIGIN, typename... C>
+struct PackToTable<ORIGIN, framework::pack<C...>> {
+  using table = o2::soa::Table<ORIGIN, C...>;
 };
 
-template <typename... T>
+template <o2::header::DataOrigin ORIGIN, typename... T>
 struct TableWrap {
   using all_columns = framework::concatenated_pack_unique_t<typename T::columns...>;
-  using table_t = typename PackToTable<all_columns>::table;
+  using table_t = typename PackToTable<ORIGIN, all_columns>::table;
 };
 
-template <typename... T>
+template <o2::header::DataOrigin ORIGIN, typename... T>
 struct TableIntersect {
   using all_columns = framework::full_intersected_pack_t<typename T::columns...>;
-  using table_t = typename PackToTable<all_columns>::table;
+  using table_t = typename PackToTable<ORIGIN, all_columns>::table;
 };
 
 /// Template trait which allows to map a given
@@ -1802,27 +1841,28 @@ class TableMetadata
 {
  public:
   static constexpr char const* tableLabel() { return INHERIT::mLabel; }
-  static constexpr char const (&origin())[5] { return INHERIT::mOrigin; }
+  // static constexpr char const (&origin())[5] { return INHERIT::table_t::mOrigin; }
+  static consteval auto origin() { return INHERIT::table_t::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
   static constexpr o2::header::DataHeader::SubSpecificationType version() { return INHERIT::mVersion; }
-  static std::string sourceSpec() { return fmt::format("{}/{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription, INHERIT::mVersion); };
+  static std::string sourceSpec() { return fmt::format("{}/{:s}/{}/{}", INHERIT::mLabel, INHERIT::table_t::mOrigin, INHERIT::mDescription, INHERIT::mVersion); };
 };
 
 /// Helper templates to define universal join and concat
-template <typename... T>
+template <o2::header::DataOrigin ORIGIN, typename... T>
 constexpr auto join(T const&... t)
 {
-  return typename o2::soa::TableWrap<T...>::table_t(ArrowHelpers::joinTables({t.asArrowTable()...}));
+  return typename o2::soa::TableWrap<ORIGIN, T...>::table_t(ArrowHelpers::joinTables({t.asArrowTable()...}));
 }
 
-template <typename... T>
+template <o2::header::DataOrigin ORIGIN, typename... T>
 constexpr auto concat(T const&... t)
 {
-  return typename o2::soa::TableIntersect<T...>::table_t(ArrowHelpers::concatTables({t.asArrowTable()...}));
+  return typename o2::soa::TableIntersect<ORIGIN, T...>::table_t(ArrowHelpers::concatTables({t.asArrowTable()...}));
 }
 
 template <typename T1, typename T2>
-using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
+using ConcatBase = decltype(concat<o2::header::DataOrigin{"CONC"}>(std::declval<T1>(), std::declval<T2>()));
 
 void notBoundTable(const char* tableName);
 
@@ -1896,7 +1936,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 
 #define DECLARE_SOA_VERSIONING()                                                                    \
   template <typename T>                                                                             \
-  constexpr int getVersion()                                                                        \
+  consteval int getVersion()                                                                        \
   {                                                                                                 \
     if constexpr (o2::soa::is_type_with_metadata_v<MetadataTrait<T>>) {                             \
       return MetadataTrait<T>::metadata::version();                                                 \
@@ -2626,24 +2666,26 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
   }
 
 #define DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, _Label_, _Origin_, _Description_, _Version_, ...) \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                                      \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"AOD"}>                         \
+  using _Name_##from = o2::soa::Table<ORIGIN, __VA_ARGS__>;                                        \
+  using _Name_ = _Name_##from<o2::header::DataOrigin{"AOD"}>;                                      \
                                                                                                    \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                             \
-    using table_t = _Name_;                                                                        \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"AOD"}>                         \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata<ORIGIN>> {                     \
+    using table_t = _Name_##from<ORIGIN>;                                                          \
     static constexpr o2::header::DataHeader::SubSpecificationType mVersion = _Version_;            \
     static constexpr char const* mLabel = _Label_;                                                 \
-    static constexpr char const mOrigin[5] = _Origin_;                                             \
     static constexpr char const mDescription[16] = _Description_;                                  \
+  };                                                                                               \
+                                                                                                   \
+  template <o2::header::DataOrigin ORIGIN>                                                         \
+  struct MetadataTrait<_Name_##from<ORIGIN>> {                                                     \
+    using metadata = _Name_##Metadata<ORIGIN>;                                                     \
   };                                                                                               \
                                                                                                    \
   template <>                                                                                      \
   struct MetadataTrait<_Name_> {                                                                   \
-    using metadata = _Name_##Metadata;                                                             \
-  };                                                                                               \
-                                                                                                   \
-  template <>                                                                                      \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                              \
-    using metadata = _Name_##Metadata;                                                             \
+    using metadata = _Name_##Metadata<o2::header::DataOrigin{"AOD"}>;                              \
   };
 
 #define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
@@ -2653,33 +2695,37 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 #define DECLARE_SOA_TABLE_VERSIONED(_Name_, _Origin_, _Description_, _Version_, ...) \
   DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, #_Name_, _Origin_, _Description_, _Version_, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                          \
-  struct _Name_##Extension : o2::soa::Table<__VA_ARGS__> {                                                                      \
-    using base_t = o2::soa::Table<__VA_ARGS__>;                                                                                 \
-    _Name_##Extension(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::Table<__VA_ARGS__>(table, offset){}; \
-    _Name_##Extension(_Name_##Extension const&) = default;                                                                      \
-    _Name_##Extension(_Name_##Extension&&) = default;                                                                           \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
-    using iterator = typename base_t::template RowView<_Name_##Extension, _Name_##Extension>;                                   \
-    using const_iterator = iterator;                                                                                            \
-  };                                                                                                                            \
-  using _Name_ = o2::soa::Join<_Name_##Extension, _Table_>;                                                                     \
-                                                                                                                                \
-  struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> {                                        \
-    using table_t = _Name_##Extension;                                                                                          \
-    using base_table_t = _Table_;                                                                                               \
-    using expression_pack_t = typename _Name_##Extension::expression_pack_t;                                                    \
-    using originals = soa::originals_pack_t<_Table_>;                                                                           \
-    using sources = originals;                                                                                                  \
-    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = getVersion<_Table_>();                             \
-    static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \
-    static constexpr char const mOrigin[5] = _Origin_;                                                                          \
-    static constexpr char const mDescription[16] = _Description_;                                                               \
-  };                                                                                                                            \
-                                                                                                                                \
-  template <>                                                                                                                   \
-  struct MetadataTrait<_Name_##Extension> {                                                                                     \
-    using metadata = _Name_##ExtensionMetadata;                                                                                 \
+#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                                      \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"DYN"}>                                                                  \
+  struct _Name_##ExtensionFrom : o2::soa::Table<ORIGIN, __VA_ARGS__> {                                                                      \
+    using base_t = o2::soa::Table<ORIGIN, __VA_ARGS__>;                                                                                     \
+    _Name_##ExtensionFrom(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::Table<ORIGIN, __VA_ARGS__>(table, offset){}; \
+    _Name_##ExtensionFrom(_Name_##ExtensionFrom const&) = default;                                                                          \
+    _Name_##ExtensionFrom(_Name_##ExtensionFrom&&) = default;                                                                               \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                                 \
+    using iterator = typename base_t::template RowView<_Name_##ExtensionFrom<ORIGIN>, _Name_##ExtensionFrom<ORIGIN>>;                       \
+    using const_iterator = iterator;                                                                                                        \
+  };                                                                                                                                        \
+  using _Name_##Extension = _Name_##ExtensionFrom<o2::header::DataOrigin{"DYN"}>;                                                           \
+  template <o2::header::DataOrigin ORIGIN>                                                                                                  \
+  using _Name_##From = o2::soa::Join<_Name_##ExtensionFrom<ORIGIN>, _Table_>;                                                               \
+  using _Name_ = _Name_##From<o2::header::DataOrigin{"DYN"}>;                                                                               \
+                                                                                                                                            \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"DYN"}>                                                                  \
+  struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata<ORIGIN>> {                                            \
+    using table_t = _Name_##ExtensionFrom<ORIGIN>;                                                                                          \
+    using base_table_t = _Table_;                                                                                                           \
+    using expression_pack_t = typename _Name_##ExtensionFrom<ORIGIN>::expression_pack_t;                                                    \
+    using originals = soa::originals_pack_t<_Table_>;                                                                                       \
+    using sources = originals;                                                                                                              \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = getVersion<_Table_>();                                         \
+    static constexpr char const* mLabel = #_Name_ "Extension";                                                                              \
+    static constexpr char const mDescription[16] = _Description_;                                                                           \
+  };                                                                                                                                        \
+                                                                                                                                            \
+  template <>                                                                                                                               \
+  struct MetadataTrait<_Name_##Extension> {                                                                                                 \
+    using metadata = _Name_##ExtensionMetadata<o2::header::DataOrigin{"DYN"}>;                                                              \
   };
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
@@ -2688,35 +2734,34 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 #define DECLARE_SOA_EXTENDED_TABLE_USER(_Name_, _Table_, _Description_, ...) \
   DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, "AOD", _Description_, __VA_ARGS__)
 
-#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, _Exclusive_, ...)                                   \
-  struct _Name_ : o2::soa::IndexTable<_Key_, __VA_ARGS__> {                                                                      \
-    _Name_(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::IndexTable<_Key_, __VA_ARGS__>(table, offset){}; \
-    _Name_(_Name_ const&) = default;                                                                                             \
-    _Name_(_Name_&&) = default;                                                                                                  \
-    using iterator = typename base_t::template RowView<_Name_, _Name_>;                                                          \
-    using const_iterator = iterator;                                                                                             \
-  };                                                                                                                             \
-                                                                                                                                 \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                                                           \
-    using Key = _Key_;                                                                                                           \
-    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                           \
-    using originals = decltype(soa::extractBindings(index_pack_t{}));                                                            \
-    using sources = typename _Name_::sources_t;                                                                                  \
-    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = 0;                                                  \
-    static constexpr char const* mLabel = #_Name_;                                                                               \
-    static constexpr char const mOrigin[5] = _Origin_;                                                                           \
-    static constexpr char const mDescription[16] = _Description_;                                                                \
-    static constexpr bool exclusive = _Exclusive_;                                                                               \
-  };                                                                                                                             \
-                                                                                                                                 \
-  template <>                                                                                                                    \
-  struct MetadataTrait<_Name_> {                                                                                                 \
-    using metadata = _Name_##Metadata;                                                                                           \
-  };                                                                                                                             \
-                                                                                                                                 \
-  template <>                                                                                                                    \
-  struct MetadataTrait<_Name_::iterator> {                                                                                       \
-    using metadata = _Name_##Metadata;                                                                                           \
+#define DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, _Origin_, _Description_, _Exclusive_, ...)                                                 \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"IDX"}>                                                                     \
+  struct _Name_##From : o2::soa::IndexTable<ORIGIN, _Key_, __VA_ARGS__> {                                                                      \
+    using base_t = o2::soa::IndexTable<ORIGIN, _Key_, __VA_ARGS__>;                                                                            \
+    _Name_##From(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::IndexTable<ORIGIN, _Key_, __VA_ARGS__>(table, offset){}; \
+    _Name_##From(_Name_##From const&) = default;                                                                                               \
+    _Name_##From(_Name_##From&&) = default;                                                                                                    \
+    using iterator = typename base_t::template RowView<_Name_##From<ORIGIN>, _Name_##From<ORIGIN>>;                                            \
+    using const_iterator = iterator;                                                                                                           \
+  };                                                                                                                                           \
+  using _Name_ = _Name_##From<o2::header::DataOrigin{"IDX"}>;                                                                                  \
+                                                                                                                                               \
+  template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{"IDX"}>                                                                     \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata<ORIGIN>> {                                                                 \
+    using table_t = _Name_##From<ORIGIN>;                                                                                                      \
+    using Key = _Key_;                                                                                                                         \
+    using index_pack_t = framework::pack<__VA_ARGS__>;                                                                                         \
+    using originals = decltype(soa::extractBindings(index_pack_t{}));                                                                          \
+    using sources = typename _Name_##From<ORIGIN>::sources_t;                                                                                  \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = 0;                                                                \
+    static constexpr char const* mLabel = #_Name_;                                                                                             \
+    static constexpr char const mDescription[16] = _Description_;                                                                              \
+    static constexpr bool exclusive = _Exclusive_;                                                                                             \
+  };                                                                                                                                           \
+                                                                                                                                               \
+  template <o2::header::DataOrigin ORIGIN>                                                                                                     \
+  struct MetadataTrait<_Name_##From<ORIGIN>> {                                                                                                 \
+    using metadata = _Name_##Metadata<ORIGIN>;                                                                                                 \
   };
 
 #define DECLARE_SOA_INDEX_TABLE(_Name_, _Key_, _Description_, ...) \
@@ -2737,8 +2782,8 @@ template <typename T>
 class FilteredBase;
 
 template <typename... Ts>
-struct Join : TableWrap<Ts...>::table_t {
-  using base = typename TableWrap<Ts...>::table_t;
+struct Join : TableWrap<o2::header::DataOrigin{"JOIN"}, Ts...>::table_t {
+  using base = typename TableWrap<o2::header::DataOrigin{"JOIN"}, Ts...>::table_t;
   using originals = originals_pack_t<Ts...>;
 
   Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
@@ -3464,11 +3509,11 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 /// First argument is the key table (BCs for the Collisions+ZDCs case), the rest
 /// are index columns defined for the required tables.
 /// First index will be used by process() as the grouping
-template <typename Key, typename H, typename... Ts>
-struct IndexTable : Table<soa::Index<>, H, Ts...> {
-  using base_t = Table<soa::Index<>, H, Ts...>;
+template <o2::header::DataOrigin ORIGIN, typename Key, typename H, typename... Ts>
+struct IndexTable : Table<ORIGIN, soa::Index<>, H, Ts...> {
+  using base_t = Table<ORIGIN, soa::Index<>, H, Ts...>;
   using table_t = base_t;
-  using safe_base_t = Table<H, Ts...>;
+  using safe_base_t = Table<ORIGIN, H, Ts...>;
   using indexing_t = Key;
   using first_t = typename H::binding_t;
   using rest_t = framework::pack<typename Ts::binding_t...>;
@@ -3484,12 +3529,12 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
   IndexTable& operator=(IndexTable const&) = default;
   IndexTable& operator=(IndexTable&&) = default;
 
-  using iterator = typename base_t::template RowView<IndexTable<Key, H, Ts...>, IndexTable<Key, H, Ts...>>;
+  using iterator = typename base_t::template RowView<IndexTable<ORIGIN, Key, H, Ts...>, IndexTable<ORIGIN, Key, H, Ts...>>;
   using const_iterator = iterator;
 };
 
 template <typename T>
-inline constexpr bool is_soa_index_table_v = framework::is_base_of_template_v<soa::IndexTable, T>;
+inline constexpr bool is_soa_index_table_v = soa::is_base_of_template_origin_v<soa::IndexTable, T>;
 
 template <typename T, bool APPLY>
 struct SmallGroupsBase : public Filtered<T> {
