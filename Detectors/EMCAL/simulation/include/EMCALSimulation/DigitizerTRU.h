@@ -87,6 +87,7 @@ class DigitizerTRU
 
   /// Sets the masked fastOrs from the CCDB in the LZERO 
   void setMaskedFastOrsInLZERO();
+  void printMaskedFastOrsInLZERO();
 
   void setWindowStartTime(int time) { mTimeWindowStart = time; }
   void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }

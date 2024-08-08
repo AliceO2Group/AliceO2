@@ -239,3 +239,14 @@ void LZEROElectronics::fill(const std::deque<o2::emcal::DigitTimebinTRU>& digitl
     }
   }
 }
+//________________________________________________________
+void LZEROElectronics::printMaskedFastOrs()
+{
+  LOG(info) << "===============================";
+  LOG(info) << "== PRINT MASK SAVED IN LZERO ==";
+  int counter = 0;
+  for(auto fastOr : mMaskedFastOrs) {
+    LOG(info) << "fastOr masked (number, ID) = (" << counter << ", " << fastOr;
+    counter += 1; 
+  }
+}

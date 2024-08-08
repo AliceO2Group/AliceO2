@@ -497,5 +497,17 @@ std::vector<int> DigitizerTRU::GetAbsFastORIndexFromMask()
 void DigitizerTRU::setMaskedFastOrsInLZERO()
 {
   auto maskedFastOrs = GetAbsFastORIndexFromMask();
-
+  LOG(info) << "======================================";
+  LOG(info) << "== PRINT MASK COMPUTED IN DIGITIZER ==";
+  int counter = 0;
+  for(auto fastOr : maskedFastOrs) {
+    LOG(info) << "fastOr masked (number, ID) = (" << counter << ", " << fastOr;
+    counter += 1; 
+  }
+  LZERO.setMaskedFastOrs(maskedFastOrs);
+}
+//______________________________________________________________________
+void DigitizerTRU::printMaskedFastOrsInLZERO()
+{
+  LZERO.printMaskedFastOrs();
 }

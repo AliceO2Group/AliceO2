@@ -80,6 +80,7 @@ class LZEROElectronics
 
   /// Sets the masked fastOrs from the CCDB in the LZERO 
   void setMaskedFastOrs(std::vector<int> maskedfastors) { mMaskedFastOrs = maskedfastors; }
+  void printMaskedFastOrs();
 
   /// Set Threshold for LZERO algorithm
   /// \param threshold LZERO algorithm threshold

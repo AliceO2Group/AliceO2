@@ -124,6 +124,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // overall efficiency of the L0 
   if (mCalibHandler) {
     mDigitizerTRU.setFEE(mCalibHandler->getFEEDCS());
+    mDigitizerTRU.setMaskedFastOrsInLZERO();
   }
 
   // ------------------------------
@@ -182,6 +183,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mDigitizerTRU.process(summedDigits);
     }
   }
+  mDigitizerTRU.printMaskedFastOrsInLZERO();
   mDigitizerTRU.finish();
   // Result of the trigger simulation
   // -> Set of BCs with triggering patches
