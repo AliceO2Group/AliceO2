@@ -1468,5 +1468,5 @@ GPUdi() SMatrixGPU<T, D1, D1, MatRepSymGPU<T, D1>> Similarity(const SMatrixGPU<T
   AssignSym::Evaluate(mret, tmp * Transpose(lhs));
   return mret;
 }
-}; // namespace o2::math_utils
+} // namespace o2::math_utils
 #endif
