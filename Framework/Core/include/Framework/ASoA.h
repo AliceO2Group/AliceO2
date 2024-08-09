@@ -2673,19 +2673,19 @@ DECLARE_SOA_ITERATOR_METADATA();
 
 #define DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, _Label_, _Origin_, _Description_, _Version_, ...) \
   template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{_Origin_}>                      \
-  using _Name_##from = o2::soa::Table<ORIGIN, __VA_ARGS__>;                                        \
-  using _Name_ = _Name_##from<o2::header::DataOrigin{_Origin_}>;                                   \
+  using _Name_##From = o2::soa::Table<ORIGIN, __VA_ARGS__>;                                        \
+  using _Name_ = _Name_##From<o2::header::DataOrigin{_Origin_}>;                                   \
                                                                                                    \
   template <o2::header::DataOrigin ORIGIN = o2::header::DataOrigin{_Origin_}>                      \
   struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata<ORIGIN>> {                     \
-    using table_t = _Name_##from<ORIGIN>;                                                          \
+    using table_t = _Name_##From<ORIGIN>;                                                          \
     static constexpr o2::header::DataHeader::SubSpecificationType mVersion = _Version_;            \
     static constexpr char const* mLabel = _Label_;                                                 \
     static constexpr char const mDescription[16] = _Description_;                                  \
   };                                                                                               \
                                                                                                    \
   template <o2::header::DataOrigin ORIGIN>                                                         \
-  struct MetadataTrait<_Name_##from<ORIGIN>> {                                                     \
+  struct MetadataTrait<_Name_##From<ORIGIN>> {                                                     \
     using metadata = _Name_##Metadata<ORIGIN>;                                                     \
   };                                                                                               \
                                                                                                    \
