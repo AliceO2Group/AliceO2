@@ -32,10 +32,10 @@
 #include <gsl/span>
 #include <limits>
 
-#define DECLARE_SOA_METADATA()                                                \
-  template <typename T>                                                       \
-  struct MetadataTrait {                                                      \
-    using metadata = std::void_t<T>;                                          \
+#define DECLARE_SOA_METADATA()       \
+  template <typename T>              \
+  struct MetadataTrait {             \
+    using metadata = std::void_t<T>; \
   };
 
 #define DECLARE_SOA_ITERATOR_METADATA()                                       \
@@ -1935,7 +1935,8 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 } // namespace row_helpers
 } // namespace o2::soa
 
-namespace o2::aod {
+namespace o2::aod
+{
 DECLARE_SOA_ITERATOR_METADATA();
 }
 

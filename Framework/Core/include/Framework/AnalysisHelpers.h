@@ -123,8 +123,8 @@ struct OutputForTable {
 /// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
-template <typename T> requires (!std::is_same_v<void, typename aod::MetadataTrait<T>::metadata>)
-struct Produces : WritingCursor<typename soa::PackToTable<aod::MetadataTrait<T>::metadata::origin(), typename T::table_t::persistent_columns_t>::table> {
+template <typename T>
+requires(!std::is_same_v<void, typename aod::MetadataTrait<T>::metadata>) struct Produces : WritingCursor<typename soa::PackToTable<aod::MetadataTrait<T>::metadata::origin(), typename T::table_t::persistent_columns_t>::table> {
 };
 
 template <template <o2::header::DataOrigin, typename...> class T, o2::header::DataOrigin ORIGIN, typename... C>
