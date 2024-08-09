@@ -36,10 +36,11 @@
   template <typename T>                                                       \
   struct MetadataTrait {                                                      \
     using metadata = std::void_t<T>;                                          \
-  };                                                                          \
-                                                                              \
+  };
+
+#define DECLARE_SOA_ITERATOR_METADATA()                                       \
   template <typename IT>                                                      \
-  requires(std::declval<IT::parent_t>()) struct MetadataTrait<IT> {           \
+  requires(o2::soa::is_soa_iterator_v<IT>) struct MetadataTrait<IT> {         \
     using metadata = typename MetadataTrait<typename IT::parent_t>::metadata; \
   };
 
@@ -1933,6 +1934,10 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 }
 } // namespace row_helpers
 } // namespace o2::soa
+
+namespace o2::aod {
+DECLARE_SOA_ITERATOR_METADATA();
+}
 
 #define DECLARE_SOA_VERSIONING()                                                                    \
   template <typename T>                                                                             \
