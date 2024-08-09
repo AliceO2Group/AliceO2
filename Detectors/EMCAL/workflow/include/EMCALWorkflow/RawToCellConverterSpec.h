@@ -30,6 +30,7 @@
 #include "EMCALReconstruction/RawReaderMemory.h"
 #include "EMCALReconstruction/RecoContainer.h"
 #include "EMCALReconstruction/ReconstructionErrors.h"
+#include "EMCALReconstruction/TRUDecodingErrors.h"
 #include "EMCALWorkflow/CalibLoader.h"
 
 namespace o2
@@ -44,6 +45,7 @@ class MinorAltroDecodingError;
 class RawDecodingError;
 class FastORIndexException;
 class TRUIndexException;
+class FastOrStartTimeInvalidException;
 
 namespace reco_workflow
 {
@@ -465,6 +467,17 @@ class RawToCellConverterSpec : public framework::Task
   /// is activated an error object with additional information is
   /// produced.
   void handleFastORErrors(const FastORIndexException& error, unsigned int linkID, unsigned int indexTRU);
+
+  /// \brief Handler function for FastOR start time errors
+  /// \param error FastOR index error
+  /// \param linkID DDL raising the exception
+  /// \param indexTRU TRU raising the exception
+  ///
+  /// Errors are printed to the infoLogger until a user-defiened
+  /// threshold is reached. In case the export of decoder errors
+  /// is activated an error object with additional information is
+  /// produced.
+  void handleFastORStartTimeErrors(const FastOrStartTimeInvalidException& e, unsigned int linkID, unsigned int indexTRU);
 
   /// \brief Handler function patch index exception
   /// \param error Patch index error
