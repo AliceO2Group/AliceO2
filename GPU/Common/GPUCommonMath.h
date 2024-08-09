@@ -87,6 +87,9 @@ class GPUCommonMath
   GPUhdni() static float Hypot(float x, float y, float z);
   GPUhdni() static float Hypot(float x, float y, float z, float w);
 
+  template <typename T>
+  GPUhd() static void Swap(T& a, T& b);
+
   template <class T>
   GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
@@ -173,7 +176,7 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
-// CHOICE Syntax: CHOISE(Host, CUDA&HIP, OpenCL)
+// CHOICE Syntax: CHOICE(Host, CUDA&HIP, OpenCL)
 #if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__)) // clang-format off
     #define CHOICE(c1, c2, c3) (c2) // Select second option for CUDA and HIP
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
@@ -319,6 +322,20 @@ GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z)
 GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z, float w)
 {
   return Sqrt(x * x + y * y + z * z + w * w);
+}
+
+template <typename T>
+void _swap(T& a, T& b)
+{
+  T tmp = a;
+  a = b;
+  b = tmp;
+}
+
+template <typename T>
+GPUhdi() void GPUCommonMath::Swap(T& a, T& b)
+{
+  CHOICE(std::swap(a, b), _swap<T>(a, b), _swap<T>(a, b));
 }
 
 template <class T>

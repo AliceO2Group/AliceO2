@@ -40,3 +40,5 @@ o2_add_test(
   LABELS vertexing
   ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
   VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+
+add_subdirectory(GPU)
