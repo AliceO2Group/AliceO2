@@ -15,10 +15,13 @@
 
 O2_DECLARE_DYNAMIC_LOG(async_queue);
 
+std::mutex gAsyncQueueMutex;
+
 namespace o2::framework
 {
 auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTaskId
 {
+  std::lock_guard<std::mutex> guard(gAsyncQueueMutex);
   AsyncTaskId id;
   id.value = queue.prototypes.size();
   queue.prototypes.push_back(spec);
@@ -32,11 +35,14 @@ auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTaskId id, AsyncCallback ta
   taskToPost.id = id;
   taskToPost.timeslice = timeslice;
   taskToPost.debounce = debounce;
+
+  std::lock_guard<std::mutex> guard(gAsyncQueueMutex);
   queue.tasks.push_back(taskToPost);
 }
 
 auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> void
 {
+  std::lock_guard<std::mutex> guard(gAsyncQueueMutex);
   if (queue.tasks.empty()) {
     return;
   }
@@ -126,6 +132,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
 
 auto AsyncQueueHelpers::reset(AsyncQueue& queue) -> void
 {
+  std::lock_guard<std::mutex> guard(gAsyncQueueMutex);
   queue.tasks.clear();
   queue.iteration = 0;
 }
