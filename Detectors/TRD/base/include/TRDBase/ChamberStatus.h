@@ -46,7 +46,7 @@ class ChamberStatus
   ChamberStatus() = default;
   ~ChamberStatus() = default;
   //
-  char getStatus(int det) const { return mStatus[det]; }
+  int8_t getStatus(int det) const { return mStatus[det]; }
   void setStatus(int det, char bit);
   void setRawStatus(int det, char status) { mStatus[det] = status; };
   bool isGood(int det) const { return (mStatus[det] & Good); }
@@ -61,7 +61,7 @@ class ChamberStatus
   TH2D* plotBadCalibrated(int sm, int rphi); // Plot calibration status for sm and halfchamberside
   TH2D* plot(int sm);                        // Plot mStatus for sm
  private:
-  std::array<char, constants::MAXCHAMBER> mStatus{};
+  std::array<int8_t, constants::MAXCHAMBER> mStatus{};
   ClassDefNV(ChamberStatus, 1);
 };
 } // namespace trd

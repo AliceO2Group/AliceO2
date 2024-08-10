@@ -235,7 +235,7 @@ void Clusterer::makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std:
     return;
   }
 
-  char nMax = getNumberOfLocalMax(clu, cluelements);
+  int8_t nMax = getNumberOfLocalMax(clu, cluelements);
   if (nMax > 1) {
     unfoldOneCluster(clu, nMax, clusters, cluelements);
   } else {
@@ -250,7 +250,7 @@ void Clusterer::makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std:
   }
 }
 //____________________________________________________________________________
-void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements)
+void Clusterer::unfoldOneCluster(Cluster& iniClu, int8_t nMax, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements)
 {
   // Performs the unfolding of a cluster with nMax overlapping showers
   // Parameters: iniClu cluster to be unfolded
@@ -668,8 +668,8 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
           }
         }
       } // if areneighbours
-    }   // digit j
-  }     // digit i
+    } // digit j
+  } // digit i
 
   int iDigitN = 0;
   for (std::size_t i = 0; i < mIsLocalMax.size(); i++) {

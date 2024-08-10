@@ -399,20 +399,20 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
  protected:
   static constexpr int MAXLAYERS = 15; ///< max number of active layers
 
-  Int_t mNumberOfLayers;                        ///< number of layers
-  Int_t mNumberOfHalfBarrels;                   ///< number of halfbarrels
-  std::vector<int> mNumberOfStaves;             ///< number of staves/layer(layer)
-  std::vector<int> mNumberOfHalfStaves;         ///< the number of substaves/stave(layer)
-  std::vector<int> mNumberOfModules;            ///< number of modules/substave(layer)
-  std::vector<int> mNumberOfChipsPerModule;     ///< number of chips per module (group of chips on substaves)
-  std::vector<int> mNumberOfChipRowsPerModule;  ///< number of chips rows per module (relevant for OB modules)
-  std::vector<int> mNumberOfChipsPerHalfStave;  ///< number of chips per substave
-  std::vector<int> mNumberOfChipsPerStave;      ///< number of chips per stave
-  std::vector<int> mNumberOfChipsPerHalfBarrel; ///< number of chips per halfbarrel
-  std::vector<int> mNumberOfChipsPerLayer;      ///< number of chips per stave
-  std::vector<int> mLastChipIndex;              ///< max ID of the detctor in the layer
-  std::array<bool, MAXLAYERS> mIsLayerITS3;     ///< flag with the information of the ITS version (ITS2 or ITS3)
-  std::array<char, MAXLAYERS> mLayerToWrapper;  ///< Layer to wrapper correspondence
+  Int_t mNumberOfLayers;                         ///< number of layers
+  Int_t mNumberOfHalfBarrels;                    ///< number of halfbarrels
+  std::vector<int> mNumberOfStaves;              ///< number of staves/layer(layer)
+  std::vector<int> mNumberOfHalfStaves;          ///< the number of substaves/stave(layer)
+  std::vector<int> mNumberOfModules;             ///< number of modules/substave(layer)
+  std::vector<int> mNumberOfChipsPerModule;      ///< number of chips per module (group of chips on substaves)
+  std::vector<int> mNumberOfChipRowsPerModule;   ///< number of chips rows per module (relevant for OB modules)
+  std::vector<int> mNumberOfChipsPerHalfStave;   ///< number of chips per substave
+  std::vector<int> mNumberOfChipsPerStave;       ///< number of chips per stave
+  std::vector<int> mNumberOfChipsPerHalfBarrel;  ///< number of chips per halfbarrel
+  std::vector<int> mNumberOfChipsPerLayer;       ///< number of chips per stave
+  std::vector<int> mLastChipIndex;               ///< max ID of the detctor in the layer
+  std::array<bool, MAXLAYERS> mIsLayerITS3;      ///< flag with the information of the ITS version (ITS2 or ITS3)
+  std::array<int8_t, MAXLAYERS> mLayerToWrapper; ///< Layer to wrapper correspondence
 
   std::vector<float> mCacheRefX;     ///< sensors tracking plane reference X
   std::vector<float> mCacheRefAlpha; ///< sensors tracking plane reference alpha
