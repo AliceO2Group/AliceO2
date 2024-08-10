@@ -783,8 +783,13 @@ O2_DECLARE_DYNAMIC_LOG(monitoring_service);
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
+  // Flushing metrics should only happen on main thread to avoid
+  // having to have a mutex for the communication with the driver.
   O2_SIGNPOST_ID_GENERATE(sid, monitoring_service);
   O2_SIGNPOST_START(monitoring_service, sid, "flush", "flushing metrics");
+  if (registry.isMainThread() == false) {
+    LOGP(fatal, "Flushing metrics should only happen on the main thread.");
+  }
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
 
@@ -1071,13 +1076,9 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
-    .preProcessing = [](ProcessingContext& context, void* service) {
-      auto* stats = (DataProcessingStats*)service;
-      flushMetrics(context.services(), *stats); },
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
-      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1});
-      flushMetrics(context.services(), *stats); },
+      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); },
     .preDangling = [](DanglingContext& context, void* service) {
        auto* stats = (DataProcessingStats*)service;
        sendRelayerMetrics(context.services(), *stats);
@@ -1089,9 +1090,6 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .preEOS = [](EndOfStreamContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
-    .postDispatching = [](ProcessingContext& context, void* service) {
-      auto* stats = (DataProcessingStats*)service;
       flushMetrics(context.services(), *stats); },
     .preLoop = [](ServiceRegistryRef ref, void* service) {
       auto* stats = (DataProcessingStats*)service;
