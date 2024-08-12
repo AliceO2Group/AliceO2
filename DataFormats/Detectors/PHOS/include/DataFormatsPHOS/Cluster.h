@@ -86,17 +86,17 @@ class Cluster
   int getMultiplicity() const { return mLastCluElement - mFirstCluElement; } // gets the number of digits making this cluster
 
   // 0: was no unfolging, -1: unfolding failed
-  void setNExMax(char nmax = 1) { mNExMax = nmax; }
-  char getNExMax() const { return mNExMax; }  // Number of maxima found in cluster in unfolding:
+  void setNExMax(int8_t nmax = 1) { mNExMax = nmax; }
+  int8_t getNExMax() const { return mNExMax; }  // Number of maxima found in cluster in unfolding:
                                               // 0: was no unfolging, -1: unfolding failed
-  char module() const { return mModule; }     // PHOS module of a current cluster
-  void setModule(char mod) { mModule = mod; } // set PHOS module of a current cluster
+  int8_t module() const { return mModule; }     // PHOS module of a current cluster
+  void setModule(int8_t mod) { mModule = mod; } // set PHOS module of a current cluster
 
   float getTime() const { return mTime; }
   void setTime(float t) { mTime = t; }
 
-  char firedTrigger() const { return mFiredTrigger; }
-  void setFiredTrigger(char t) { mFiredTrigger = t; }
+  int8_t firedTrigger() const { return mFiredTrigger; }
+  void setFiredTrigger(int8_t t) { mFiredTrigger = t; }
 
   /// \brief Method to add digit to a cluster
   void addDigit() { mLastCluElement++; }
@@ -110,9 +110,9 @@ class Cluster
   // std::vector<Digit>::const_iterator BinarySearch(const std::vector<Digit>* container, Digit& element);
 
  protected:
-  char mModule = 0;               ///< Module number
-  char mNExMax = -1;              ///< number of (Ex-)maxima before unfolding
-  char mFiredTrigger = 0;         ///< matched with PHOS trigger: 0 no match, bit 1 with 2x2, bit 2 with 4x4
+  int8_t mModule = 0;               ///< Module number
+  int8_t mNExMax = -1;              ///< number of (Ex-)maxima before unfolding
+  int8_t mFiredTrigger = 0;         ///< matched with PHOS trigger: 0 no match, bit 1 with 2x2, bit 2 with 4x4
   uint32_t mFirstCluElement = -1; ///< index of the first contributing CluElement in a list
   uint32_t mLastCluElement = -1;  ///< index of the last contributing CluElement in a list
   float mLocalPosX = 0.;          ///< Center of gravity position in local module coordunates (phi direction)

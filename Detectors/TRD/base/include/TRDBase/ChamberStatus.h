@@ -47,8 +47,8 @@ class ChamberStatus
   ~ChamberStatus() = default;
   //
   int8_t getStatus(int det) const { return mStatus[det]; }
-  void setStatus(int det, char bit);
-  void setRawStatus(int det, char status) { mStatus[det] = status; };
+  void setStatus(int det, int8_t bit);
+  void setRawStatus(int det, int8_t status) { mStatus[det] = status; };
   bool isGood(int det) const { return (mStatus[det] & Good); }
   bool isNoData(int det) const { return (mStatus[det] & NoData); }
   bool isNoDataSideA(int det) const { return (mStatus[det] & NoDataHalfChamberSideA); }

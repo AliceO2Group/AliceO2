@@ -233,7 +233,7 @@ class AlignableVolume : public DOFSet
   bool mIsDummy = false;    // placeholder (e.g. inactive), used to have the numbering corresponding to position in the container
   bool mIsDummyEnvelope = false; // some volumes are dummy envelopes for their children
   //
-  char mNDOFGeomFree = 0;   // number of free geom degrees of freedom
+  int8_t mNDOFGeomFree = 0;   // number of free geom degrees of freedom
   uint8_t mConstrChild = 0; // bitpattern for constraints on children corrections
   //
   AlignableVolume* mParent = nullptr; // parent volume

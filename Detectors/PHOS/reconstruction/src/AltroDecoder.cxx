@@ -400,7 +400,7 @@ bool AltroDecoder::matchTruDigits(const Cell& cTruFlag, float& sumAmp)
     }
   }
   if (cTruFlag.getType() == TRU4x4) { // direct match of channel ID
-    char relid[3];
+    int8_t relid[3];
     Geometry::truAbsToRelNumbering(cTruFlag.getTRUId(), 1, relid); // 1 for 4x4 trigger
     bool found = false;
     sumAmp = 0.;

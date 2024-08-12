@@ -95,7 +95,7 @@ float TriggerMap::L0triggerProbability(float e, short ddl) const
 }
 bool TriggerMap::isFiredMC2x2(float a, short module, short ix, short iz) const
 {
-  char truRelId[3] = {char(module), char(ix), char(iz)};
+  int8_t truRelId[3] = {int8_t(module), int8_t(ix), int8_t(iz)};
   short tileId = Geometry::truRelToAbsNumbering(truRelId, 0); // 0 for 2x2 TriggerMap
   short iTRU = module * 4 + ix / 16 - 6;
   return isGood2x2(tileId) && try2x2(a, iTRU);
@@ -103,7 +103,7 @@ bool TriggerMap::isFiredMC2x2(float a, short module, short ix, short iz) const
 
 bool TriggerMap::isFiredMC4x4(float a, short module, short ix, short iz) const
 {
-  char truRelId[3] = {char(module), char(ix), char(iz)};
+  int8_t truRelId[3] = {int8_t(module), int8_t(ix), int8_t(iz)};
   short tileId = Geometry::truRelToAbsNumbering(truRelId, 1);
   short iTRU = module * 4 + ix / 16 - 6;
   return isGood4x4(tileId) && try4x4(a, iTRU);

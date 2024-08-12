@@ -22,8 +22,8 @@ bool Cluster::operator<(const Cluster& other) const
 {
   // Compares two Clusters according to their position in the CPV modules
 
-  char cpvmod1 = getModule();
-  char cpvmod2 = other.getModule();
+  int8_t cpvmod1 = getModule();
+  int8_t cpvmod2 = other.getModule();
   if (cpvmod1 != cpvmod2) {
     return cpvmod1 < cpvmod2;
   }

@@ -188,7 +188,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     short xmin = (module == 1) ? 33 : 1;
     for (short ix = xmin; ix < 64; ix++) {
       for (short iz = 1; iz < 56; iz++) {
-        char relId[3] = {char(module), char(ix), char(iz)};
+        int8_t relId[3] = {int8_t(module), int8_t(ix), int8_t(iz)};
         short tileId = Geometry::truRelToAbsNumbering(relId, 0);
         if (!mTrigUtils->isGood2x2(tileId)) {
           continue;
@@ -247,7 +247,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     if (mTrig4x4) {
       for (short ix = xmin; ix < 62; ix++) {
         for (short iz = 1; iz < 54; iz++) {
-          char relId[3] = {char(module), char(ix), char(iz)};
+          int8_t relId[3] = {int8_t(module), int8_t(ix), int8_t(iz)};
           short tileId = Geometry::truRelToAbsNumbering(relId, 1); // 1 for 4x4 trigger
           if (!mTrigUtils->isGood4x4(tileId)) {
             continue;

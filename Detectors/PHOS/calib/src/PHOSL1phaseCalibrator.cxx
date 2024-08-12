@@ -84,7 +84,7 @@ void PHOSL1phaseSlot::fill(const gsl::span<const Cell>& cells, const gsl::span<c
         t = c.getTime() - mCalibParams->getLGTimeCalib(absId);
       }
       if (e > mEmin && t > mTimeMin && t < mTimeMax) {
-        char relid[3];
+        int8_t relid[3];
         o2::phos::Geometry::absToRelNumbering(absId, relid);
         int ddl = (relid[0] - 1) * 4 + (relid[1] - 1) / 16 - 2;
         for (int b = 0; b < 4; b++) {

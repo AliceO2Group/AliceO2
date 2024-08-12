@@ -65,26 +65,26 @@ class Cluster
     posX = mLocalPosX;
     posZ = mLocalPosZ;
   }
-  unsigned char getMultiplicity() const { return mMulDigit; } // gets the number of digits making this recpoint
+  [[nodiscard]] uint8_t getMultiplicity() const { return mMulDigit; } // gets the number of digits making this recpoint
                                                               // 0: was no unfolging, -1: unfolding failed
-  char getModule() const { return mModule; }                  // CPV module of a current cluster
+  [[nodiscard]] int8_t getModule() const { return mModule; }                  // CPV module of a current cluster
 
   // 0: was no unfolging, -1: unfolding failed
-  void setNExMax(char nmax = 1) { mNExMax = nmax; }
-  char getNExMax() const { return mNExMax; } // Number of maxima found in cluster in unfolding:
+  void setNExMax(int8_t nmax = 1) { mNExMax = nmax; }
+  [[nodiscard]] int8_t getNExMax() const { return mNExMax; } // Number of maxima found in cluster in unfolding:
                                              // 0: was no unfolging, -1: unfolding failed
 
   // raw access for CTF encoding
-  uint16_t getPackedPosX() const { return uint16_t((mLocalPosX - kMinX) / kStepX); }
+  [[nodiscard]] uint16_t getPackedPosX() const { return uint16_t((mLocalPosX - kMinX) / kStepX); }
   void setPackedPosX(uint16_t v) { mLocalPosX = kMinX + kStepX * v; }
 
-  uint16_t getPackedPosZ() const { return uint16_t((mLocalPosZ - kMinZ) / kStepZ); }
+  [[nodiscard]] uint16_t getPackedPosZ() const { return uint16_t((mLocalPosZ - kMinZ) / kStepZ); }
   void setPackedPosZ(uint16_t v) { mLocalPosZ = kMinZ + kStepZ * v; }
 
-  uint8_t getPackedEnergy() const { return uint8_t(std::min(255, int((mEnergy > 100.) ? (log(mEnergy - 63.) / kStepE) : mEnergy))); }
+  [[nodiscard]] uint8_t getPackedEnergy() const { return uint8_t(std::min(255, int((mEnergy > 100.) ? (log(mEnergy - 63.) / kStepE) : mEnergy))); }
   void setPackedEnergy(uint8_t v) { mEnergy = ((v > 100) ? (exp(kStepE * v) + 63.) : (v * 1.)); }
 
-  uint8_t getPackedClusterStatus() const
+  [[nodiscard]] uint8_t getPackedClusterStatus() const
   {
     CluStatus s = {0};
     s.multiplicity = std::min(mMulDigit, static_cast<unsigned char>(31)); // 5 bits available
@@ -110,8 +110,8 @@ class Cluster
 
  protected:
   unsigned char mMulDigit = 0; ///< Digit nultiplicity
-  char mModule = 0;            ///< Module number
-  char mNExMax = -1;           ///< number of (Ex-)maxima before unfolding
+  int8_t mModule = 0;            ///< Module number
+  int8_t mNExMax = -1;           ///< number of (Ex-)maxima before unfolding
   float mLocalPosX = 0.;       ///< Center of gravity position in local module coordunates (phi direction)
   float mLocalPosZ = 0.;       ///< Center of gravity position in local module coordunates (z direction)
   float mEnergy = 0.;          ///< full energy of a cluster

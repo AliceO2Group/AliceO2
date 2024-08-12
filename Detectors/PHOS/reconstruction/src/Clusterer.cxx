@@ -610,11 +610,11 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
   clu.setElipsAxis(lambdaShort, lambdaLong);
 
   // Test trigger
-  char relId[3];
+  int8_t relId[3];
   Geometry::relPosToRelId(clu.module(), localPosX, localPosZ, relId);
 
   for (auto& trd : mTrigger) {
-    char trurelid[3];
+    int8_t trurelid[3];
     short trtype = trd.is2x2Tile() ? 0 : 1;
     Geometry::truAbsToRelNumbering(trd.getAbsId(), trtype, trurelid);
 
@@ -635,7 +635,7 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
   }
 }
 //____________________________________________________________________________
-char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel)
+int8_t Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel)
 {
   // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
   // energy difference between maximum and surrounding digits

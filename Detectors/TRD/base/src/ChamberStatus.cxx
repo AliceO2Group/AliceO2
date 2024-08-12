@@ -21,7 +21,7 @@
 
 using namespace o2::trd;
 
-void ChamberStatus::setStatus(int det, char bit)
+void ChamberStatus::setStatus(int det, int8_t bit)
 {
 
   //

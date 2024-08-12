@@ -376,8 +376,8 @@ class Mapper
   /// Convert sector, row, pad to global pad row in sector and pad number
   const PadPos getGlobalPadPos(const PadROCPos& padROC) const
   {
-    const char globalRow = padROC.getRow() + (padROC.getROCType() == RocType::OROC) * mNumberOfPadRowsIROC;
-    const char pad = padROC.getPad();
+    const int8_t globalRow = padROC.getRow() + (padROC.getROCType() == RocType::OROC) * mNumberOfPadRowsIROC;
+    const int8_t pad = padROC.getPad();
     return PadPos(globalRow, pad);
   }
 

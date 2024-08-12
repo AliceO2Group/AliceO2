@@ -149,7 +149,7 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
     if (ce.isHG) {
       if (ce.energy > mEminHGTime) {
         mHistos->fill(ETCalibHistos::kTimeHGPerCell, absId, ce.time);
-        char relid[3];
+        int8_t relid[3];
         Geometry::absToRelNumbering(absId, relid);
         int ddl = (relid[0] - 1) * 4 + (relid[1] - 1) / 16 - 2;
         mHistos->fill(ETCalibHistos::kTimeDDL, int(ddl * 4 + mEvBC % 4), ce.time);
