@@ -70,7 +70,7 @@ class Clusterer
     // L1phase correction
     float shift = 0;
     if (!mSkipL1phase) {
-      char relid[3];
+      int8_t relid[3];
       o2::phos::Geometry::absToRelNumbering(absId, relid);
       int ddl = (relid[0] - 1) * 4 + (relid[1] - 1) / 16 - 2;
       int l1 = (mL1phase >> (ddl * 2)) & 3; // extract 2 bits corresponding to this ddl
@@ -90,7 +90,7 @@ class Clusterer
   // Test Bad map
   inline bool isBadChannel(short absId) { return (!mBadMap->isChannelGood(absId)); }
 
-  char getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel);
+  int8_t getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel);
   void evalAll(Cluster& clu, std::vector<CluElement>& cluel) const;
   void evalLabels(std::vector<Cluster>& clusters, std::vector<CluElement>& cluel,
                   const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
@@ -99,7 +99,7 @@ class Clusterer
   double showerShape(double r2, double& deriv); // Parameterization of EM shower
 
   void makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std::vector<o2::phos::CluElement>& cluel); // unfold cluster with few local maxima
-  void unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements);
+  void unfoldOneCluster(Cluster& iniClu, int8_t nMax, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements);
 
  protected:
   static constexpr short NLOCMAX = 30; // Maximal number of local maxima in cluster

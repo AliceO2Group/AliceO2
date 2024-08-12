@@ -195,7 +195,7 @@ Mapping::ErrorStatus Mapping::setMapping()
 
         short absId;
         if (caloFlag < 2) { // readout channels
-          char relid[3] = {static_cast<char>(m + 1), static_cast<char>(row + 1), static_cast<char>(col + 1)};
+          int8_t relid[3] = {static_cast<int8_t>(m + 1), static_cast<int8_t>(row + 1), static_cast<int8_t>(col + 1)};
           Geometry::relToAbsNumbering(relid, absId);
         } else { // TRU channels: internal storage of TRU channesl absId-NCHANNELS
           if (isTRUReadoutchannel(hwAddress)) {

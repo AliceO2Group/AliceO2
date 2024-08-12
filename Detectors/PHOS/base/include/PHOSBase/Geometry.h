@@ -22,9 +22,7 @@
 #include <TMath.h>
 #include <array>
 
-namespace o2
-{
-namespace phos
+namespace o2::phos
 {
 class Geometry
 {
@@ -97,27 +95,27 @@ class Geometry
   /// \param moduleNumber: module number
   /// \param strip: strip number
   //  \param cell: cell in strip number
-  static short relToAbsId(char moduleNumber, int strip, int cell);
+  static short relToAbsId(int8_t moduleNumber, int strip, int cell);
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:module
   //  relid[1] = Row number inside a PHOS module (Phi coordinate)
   //  relid[2] = Column number inside a PHOS module (Z coordinate)
-  static bool absToRelNumbering(short absId, char* relid);
-  static char absIdToModule(short absId);
+  static bool absToRelNumbering(short absId, int8_t * relid);
+  static int8_t absIdToModule(short absId);
   static void absIdToRelPosInModule(short absId, float& x, float& z);
-  static void relPosToRelId(short module, float x, float z, char* relId);
-  static bool relToAbsNumbering(const char* RelId, short& AbsId);
+  static void relPosToRelId(short module, float x, float z, int8_t* relId);
+  static bool relToAbsNumbering(const int8_t* RelId, short& AbsId);
 
   // Converters for TRU tiles
-  static bool truAbsToRelNumbering(short truId, short trigType, char* relid);
-  static short truRelToAbsNumbering(const char* relId, short trigType);
-  static short relPosToTruId(char mod, float x, float z, short trigType);
+  static bool truAbsToRelNumbering(short truId, short trigType, int8_t* relid);
+  static short truRelToAbsNumbering(const int8_t* relId, short trigType);
+  static short relPosToTruId(int8_t mod, float x, float z, short trigType);
 
   // local position to absId
-  static void relPosToAbsId(char module, float x, float z, short& absId);
+  static void relPosToAbsId(int8_t module, float x, float z, short& absId);
 
   // convert local position in module to global position in ALICE
-  void local2Global(char module, float x, float z, TVector3& globaPos) const;
+  void local2Global(int8_t module, float x, float z, TVector3& globaPos) const;
 
   // calculate impact position on PHOS
   bool impactOnPHOS(const TVector3& vtx, const TVector3& p,
@@ -129,9 +127,9 @@ class Geometry
     return absId >= 0 && absId <= getTotalNCells();
   } // TODO: evaluate from real geometry
 
-  const std::string& GetName() const { return mGeoName; }
+  [[nodiscard]] const std::string& GetName() const { return mGeoName; }
 
-  const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
+  [[nodiscard]] const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
 
  private:
   static constexpr float CELLSTEP = 2.25;
@@ -143,6 +141,5 @@ class Geometry
 
   ClassDefNV(Geometry, 1);
 };
-} // namespace phos
 } // namespace o2
 #endif

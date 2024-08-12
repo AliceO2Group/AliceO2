@@ -29,10 +29,10 @@ CalibParams::CalibParams(int /*dummy*/)
   mLGTimeCalib.fill(0.);
 }
 
-bool CalibParams::setGain(TH2* h, char module)
+bool CalibParams::setGain(TH2* h, int8_t module)
 {
-  const char MAXX = 64,
-             MAXZ = 56;
+  const int8_t MAXX = 64,
+               MAXZ = 56;
   if (module < 1 || module > 4) {
     LOG(error) << "module " << module << "does not exist";
     return false;
@@ -48,7 +48,7 @@ bool CalibParams::setGain(TH2* h, char module)
     return false;
   }
 
-  char relid[3] = {module, 1, 1};
+  int8_t relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
@@ -66,9 +66,9 @@ bool CalibParams::setGain(TH2* h, char module)
   return true;
 }
 
-bool CalibParams::setHGLGRatio(TH2* h, char module)
+bool CalibParams::setHGLGRatio(TH2* h, int8_t module)
 {
-  const char MAXX = 64,
+  const int8_t MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
     LOG(error) << "module " << module << "does not exist";
@@ -84,11 +84,11 @@ bool CalibParams::setHGLGRatio(TH2* h, char module)
     return false;
   }
 
-  char relid[3] = {module, 1, 1};
+  int8_t relid[3] = {module, 1, 1};
   short absId;
-  for (char ix = 1; ix <= MAXX; ix++) {
+  for (int8_t ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (char iz = 1; iz <= MAXZ; iz++) {
+    for (int8_t iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
@@ -102,9 +102,9 @@ bool CalibParams::setHGLGRatio(TH2* h, char module)
   return true;
 }
 
-bool CalibParams::setHGTimeCalib(TH2* h, char module)
+bool CalibParams::setHGTimeCalib(TH2* h, int8_t module)
 {
-  const char MAXX = 64,
+  const int8_t MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
     LOG(error) << "module " << module << "does not exist";
@@ -120,11 +120,11 @@ bool CalibParams::setHGTimeCalib(TH2* h, char module)
     return false;
   }
 
-  char relid[3] = {module, 1, 1};
+  int8_t relid[3] = {module, 1, 1};
   short absId;
-  for (char ix = 1; ix <= MAXX; ix++) {
+  for (int8_t ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (char iz = 1; iz <= MAXZ; iz++) {
+    for (int8_t iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
@@ -138,10 +138,10 @@ bool CalibParams::setHGTimeCalib(TH2* h, char module)
   return true;
 }
 
-bool CalibParams::setLGTimeCalib(TH2* h, char module)
+bool CalibParams::setLGTimeCalib(TH2* h, int8_t module)
 {
-  const char MAXX = 64,
-             MAXZ = 56;
+  const int8_t MAXX = 64,
+               MAXZ = 56;
   if (module < 1 || module > 4) {
     LOG(error) << "module " << module << "does not exist";
     return false;
@@ -156,11 +156,11 @@ bool CalibParams::setLGTimeCalib(TH2* h, char module)
     return false;
   }
 
-  char relid[3] = {module, 1, 1};
+  int8_t relid[3] = {module, 1, 1};
   short absId;
-  for (char ix = 1; ix <= MAXX; ix++) {
+  for (int8_t ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (char iz = 1; iz <= MAXZ; iz++) {
+    for (int8_t iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
       if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {

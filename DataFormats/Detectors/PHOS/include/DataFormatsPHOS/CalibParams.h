@@ -61,12 +61,12 @@ class CalibParams
   /// \param 2D(64,56) histogram with calibration coefficients
   /// \param module number
   /// \return Is successful
-  bool setGain(TH2* h, char module);
+  bool setGain(TH2* h, int8_t module);
 
   /// \brief Get High Gain to Low Gain ratio calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return High Gain to Low Gain ratio of the cell
-  float getHGLGRatio(short cellID) const { return mHGLGRatio.at(cellID - OFFSET); }
+  [[nodiscard]] float getHGLGRatio(short cellID) const { return mHGLGRatio.at(cellID - OFFSET); }
 
   /// \brief Set High Gain to Low Gain ratio
   /// \param cellID Absolute ID of cell
@@ -77,12 +77,12 @@ class CalibParams
   /// \param 2D(64,56) histogram with High Gain to Low Gain ratio
   /// \param module number
   /// \return Is successful
-  bool setHGLGRatio(TH2* h, char module);
+  bool setHGLGRatio(TH2* h, int8_t module);
 
   /// \brief Get High Gain time calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain time calibration coefficient of the cell
-  float getHGTimeCalib(short cellID) const { return mHGTimeCalib.at(cellID - OFFSET); }
+  [[nodiscard]] float getHGTimeCalib(short cellID) const { return mHGTimeCalib.at(cellID - OFFSET); }
 
   /// \brief Set High Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
@@ -93,12 +93,12 @@ class CalibParams
   /// \param 2D(64,56) histogram with calibration coefficients
   /// \param module number
   /// \return Is successful
-  bool setHGTimeCalib(TH2* h, char module);
+  bool setHGTimeCalib(TH2* h, int8_t module);
 
   /// \brief Get Low Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \return low gain time calibration coefficient of the cell
-  float getLGTimeCalib(short cellID) const { return mLGTimeCalib.at(cellID - OFFSET); }
+  [[nodiscard]] float getLGTimeCalib(short cellID) const { return mLGTimeCalib.at(cellID - OFFSET); }
 
   /// \brief Set time calibration coefficient
   /// \param cellID Absolute ID of cell
@@ -109,7 +109,7 @@ class CalibParams
   /// \param 2D(64,56) histogram with calibration coefficients
   /// \param module number
   /// \return Is successful
-  bool setLGTimeCalib(TH2* h, char module);
+  bool setLGTimeCalib(TH2* h, int8_t module);
 
  private:
   static constexpr short NCHANNELS = 12544;  ///< Number of channels = 14336-1792

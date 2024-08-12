@@ -46,7 +46,7 @@ Geometry::Geometry(const std::string_view name) : mGeoName(name)
   fin.Close();
 }
 
-short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
+short Geometry::relToAbsId(int8_t moduleNumber, int strip, int cell)
 {
   // calculates absolute cell Id from moduleNumber, strip (number) and cell (number)
   // PHOS layout parameters:
@@ -62,7 +62,7 @@ short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
          (cell & 1 ? 1 : 0);
 }
 
-bool Geometry::absToRelNumbering(short absId, char* relid)
+bool Geometry::absToRelNumbering(short absId, int8_t* relid)
 {
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:fNModules
@@ -80,7 +80,7 @@ bool Geometry::absToRelNumbering(short absId, char* relid)
 
   return true;
 }
-bool Geometry::truAbsToRelNumbering(short truId, short trigType, char* relid)
+bool Geometry::truAbsToRelNumbering(short truId, short trigType, int8_t* relid)
 {
   // convert trigger cell Id 1..224*14 to relId (same relId schema as for readout channels)
   // short trigType=0 for 2x2, short trigType=1 for 4x4 trigger
@@ -115,7 +115,7 @@ bool Geometry::truAbsToRelNumbering(short truId, short trigType, char* relid)
   }
   return true;
 }
-short Geometry::truRelToAbsNumbering(const char* relId, short trigType)
+short Geometry::truRelToAbsNumbering(const int8_t* relId, short trigType)
 {
   // Convert position in PHOS module to TRU id for 4x4 or 2x2 tiles
 
@@ -141,14 +141,14 @@ short Geometry::truRelToAbsNumbering(const char* relId, short trigType)
     return getTotalNCells() + absId + 1;
   }
 }
-short Geometry::relPosToTruId(char mod, float x, float z, short trigType)
+short Geometry::relPosToTruId(int8_t mod, float x, float z, short trigType)
 {
   // tranform local cluster coordinates to truId
-  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.499)), static_cast<char>(ceil(z / CELLSTEP + 28.499))};
+  int8_t relid[3] = {mod, static_cast<int8_t>(ceil(x / CELLSTEP + 32.499)), static_cast<int8_t>(ceil(z / CELLSTEP + 28.499))};
   return truRelToAbsNumbering(relid, trigType);
 }
 
-char Geometry::absIdToModule(short absId)
+int8_t Geometry::absIdToModule(short absId)
 {
   const short nZ = 56;
   const short nPhi = 64;
@@ -168,15 +168,15 @@ int Geometry::areNeighbours(short absId1, short absId2)
   // The order of d1 and d2 is important: first (d1) should be a digit already in a cluster
   //                                      which is compared to a digit (d2)  not yet in a cluster
 
-  char relid1[3];
+  int8_t relid1[3];
   absToRelNumbering(absId1, relid1);
 
-  char relid2[3];
+  int8_t relid2[3];
   absToRelNumbering(absId2, relid2);
 
   if (relid1[0] == relid2[0]) { // inside the same PHOS module
-    char rowdiff = TMath::Abs(relid1[1] - relid2[1]);
-    char coldiff = TMath::Abs(relid1[2] - relid2[2]);
+    int8_t rowdiff = TMath::Abs(relid1[1] - relid2[1]);
+    int8_t coldiff = TMath::Abs(relid1[2] - relid2[2]);
 
     if (coldiff + rowdiff <= 1) { // Common side
       return 1;
@@ -198,13 +198,13 @@ int Geometry::areNeighbours(short absId1, short absId2)
 void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
 
-  char relid[3];
+  int8_t relid[3];
   absToRelNumbering(absId, relid);
 
   x = (relid[1] - 32 - 0.5) * CELLSTEP;
   z = (relid[2] - 28 - 0.5) * CELLSTEP;
 }
-bool Geometry::relToAbsNumbering(const char* relId, short& absId)
+bool Geometry::relToAbsNumbering(const int8_t* relId, short& absId)
 {
   const short nZ = 56;   // nStripZ * nCellsZInStrip
   const short nPhi = 64; // nStripZ * nCellsZInStrip
@@ -217,21 +217,21 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
   return true;
 }
 // local position to absId
-void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
+void Geometry::relPosToAbsId(int8_t module, float x, float z, short& absId)
 {
   // adding 32.5 instead of 32.499 leads to (rare) rounding errors before ceil()
-  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.499)), static_cast<char>(ceil(z / CELLSTEP + 28.499))};
+  int8_t relid[3] = {module, static_cast<int8_t>(ceil(x / CELLSTEP + 32.499)), static_cast<int8_t>(ceil(z / CELLSTEP + 28.499))};
   relToAbsNumbering(relid, absId);
 }
-void Geometry::relPosToRelId(short module, float x, float z, char* relId)
+void Geometry::relPosToRelId(short module, float x, float z, int8_t* relId)
 {
   relId[0] = module;
-  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.499));
-  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.499));
+  relId[1] = static_cast<int8_t>(ceil(x / CELLSTEP + 32.499));
+  relId[2] = static_cast<int8_t>(ceil(z / CELLSTEP + 28.499));
 }
 
 // convert local position in module to global position in ALICE
-void Geometry::local2Global(char module, float x, float z, TVector3& globaPos) const
+void Geometry::local2Global(int8_t module, float x, float z, TVector3& globaPos) const
 {
   // constexpr float shiftY=-10.76; Run2
   constexpr float shiftY = -1.26; // Depth-optimized

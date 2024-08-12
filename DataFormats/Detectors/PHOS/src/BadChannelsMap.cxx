@@ -62,15 +62,15 @@ void BadChannelsMap::getHistogramRepresentation(char module, TH2* h) const
   }
 
   h->Reset();
-  char relid[3] = {module, 1, 1};
+  int8_t relid[3] = {module, 1, 1};
   short absId;
-  char xmin = 1;
+  int8_t xmin = 1;
   if (module == 1) {
     xmin = 33;
   }
-  for (char ix = xmin; ix <= MAXX; ix++) {
+  for (int8_t ix = xmin; ix <= MAXX; ix++) {
     relid[1] = ix;
-    for (char iz = 1; iz <= MAXZ; iz++) {
+    for (int8_t iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
       if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
         if (!isChannelGood(absId)) {
