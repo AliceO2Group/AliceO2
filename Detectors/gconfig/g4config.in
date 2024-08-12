@@ -43,6 +43,9 @@
 /mcPhysics/emModel/setRegions  EMC_Lead$ EMC_Scintillator$
 /mcPhysics/emModel/setParticles  e- e+
 
+# combined transportation + Msc mode is currently broken for ALICE (Geant 10.2.0)
+/process/em/transportationWithMsc Disabled
+
 #
 # Adding extra lines for fixing tracking bias
 #
