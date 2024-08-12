@@ -435,15 +435,6 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 }
 
 //__________________________________________________________________________
-float GeometryTGeo::getAlphaFromGlobalITS3(const o2::math_utils::Point3D<float>& gloXYZ)
-{
-  // since ITS3 is cylindrical alpha = phi in global
-  auto alpha = std::atan2(gloXYZ.Y(), gloXYZ.X());
-  o2::math_utils::bringTo02Pi(alpha);
-  return alpha;
-}
-
-//__________________________________________________________________________
 const o2::math_utils::Transform3D GeometryTGeo::getT2LMatrixITS3(int isn, float alpha)
 {
   // create for sensor isn the TGeo matrix for Tracking to Local frame transformations
@@ -893,11 +884,20 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
 
 #ifdef ENABLE_UPGRADES
   if (mIsLayerITS3[iLayer]) {
-    // in this case we need the line tangent to the circumference
-    double radius = 0.;
-    radius = o2::its3::constants::radii[iLayer];
-    locA[1] = radius;
-    locB[1] = radius;
+    // We need to calcualte the line tangent at the mid-point in the geometry
+    const auto radius = o2::its3::constants::radii[iLayer];
+    const auto phi1 = o2::its3::constants::tile::width / radius;
+    const auto phi2 = o2::its3::constants::pixelarray::width / radius + phi1;
+    const auto phi3 = (phi2 - phi1) / 2.; // mid-point in phi
+    const auto x = radius * std::cos(phi3);
+    const auto y = radius * std::sin(phi3);
+    // For the tangent we make the parametric line equation y = m * x - c
+    const auto m = x / y;
+    const auto c = y - m * x;
+    // Now we can given any x calulate points along this line, we pick points far away,
+    // the calculation of the normal should work then below.
+    locA[1] = m * locA[0] + c;
+    locB[1] = m * locB[0] + c;
   }
 #endif
 

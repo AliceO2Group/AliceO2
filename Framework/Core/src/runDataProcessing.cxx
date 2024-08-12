@@ -11,6 +11,7 @@
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
+#include "Framework/BacktraceHelpers.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
@@ -656,7 +657,7 @@ void handle_crash(int sig)
     auto retVal = write(STDERR_FILENO, buffer, strlen(buffer));
     (void)retVal;
   }
-  demangled_backtrace_symbols(array, size, STDERR_FILENO);
+  BacktraceHelpers::demangled_backtrace_symbols(array, size, STDERR_FILENO);
   {
     char const* msg = "Backtrace complete.\n";
     int len = strlen(msg); /* the byte length of the string */
@@ -690,8 +691,6 @@ void spawnDevice(uv_loop_t* loop,
   auto& spec = specs[ref.index];
   auto& execution = executions[ref.index];
 
-  driverInfo.tracyPort++;
-
   for (auto& service : spec.services) {
     if (service.preFork != nullptr) {
       service.preFork(serviceRegistry, DeviceConfig{varmap});
@@ -722,8 +721,11 @@ void spawnDevice(uv_loop_t* loop,
     struct rlimit rlim;
     getrlimit(RLIMIT_NOFILE, &rlim);
     // We close all FD, but the one which are actually
-    // used to communicate with the driver.
-    int rlim_cur = rlim.rlim_cur;
+    // used to communicate with the driver. This is a bad
+    // idea in the first place, because rlim_cur could be huge
+    // FIXME: I should understand which one is really to be closed and use
+    // CLOEXEC on it.
+    int rlim_cur = std::min((int)rlim.rlim_cur, 10000);
     for (int i = 0; i < rlim_cur; ++i) {
       if (childFds[ref.index].childstdin[0] == i) {
         continue;
@@ -737,8 +739,6 @@ void spawnDevice(uv_loop_t* loop,
     dup2(childFds[ref.index].childstdout[1], STDOUT_FILENO);
     dup2(childFds[ref.index].childstdout[1], STDERR_FILENO);
 
-    auto portS = std::to_string(driverInfo.tracyPort);
-    setenv("TRACY_PORT", portS.c_str(), 1);
     for (auto& service : spec.services) {
       if (service.postForkChild != nullptr) {
         service.postForkChild(serviceRegistry);
@@ -791,7 +791,6 @@ void spawnDevice(uv_loop_t* loop,
                          .readyToQuit = false,
                          .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
                          .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
-                         .tracyPort = driverInfo.tracyPort,
                          .lastSignal = uv_hrtime() - 10000000});
   // create the offset using uv_hrtime
   timespec now;
@@ -982,7 +981,7 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
          " Reason: {}"
          "\n Backtrace follow: \n",
          processName, err.what);
-    demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOGP(fatal,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
@@ -1928,7 +1927,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         } catch (o2::framework::RuntimeErrorRef ref) {
           auto& err = o2::framework::error_from_ref(ref);
 #ifdef DPL_ENABLE_BACKTRACE
-          demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+          BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
           LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], err.what);
           return 1;
@@ -2059,7 +2058,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           LOGP(error, "unable to merge configurations in {}: {}", driverInfo.argv[0], err.what);
 #ifdef DPL_ENABLE_BACKTRACE
           std::cerr << "\nStacktrace follows:\n\n";
-          demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+          BacktraceHelpers::demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
           return 1;
         }
@@ -2722,11 +2721,7 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   for (auto& d : specs) {
     out << "- " << d.name << std::endl;
   }
-  out << "digraph G {\n";
-  for (auto& e : edges) {
-    out << fmt::format("  \"{}\" -> \"{}\"\n", specs[e.first].name, specs[e.second].name);
-  }
-  out << "}\n";
+  GraphvizHelpers::dumpDataProcessorSpec2Graphviz(out, specs, edges);
   return out.str();
 }
 
@@ -3068,7 +3063,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       auto* selectedName = (char const*)context;
       std::string prefix = "ch.cern.aliceo2.";
       if (strcmp(name, (prefix + selectedName).data()) == 0) {
-        LOGP(info, "Enabling signposts for {}", *selectedName);
+        LOGP(info, "Enabling signposts for stream \"ch.cern.aliceo2.{}\"", selectedName);
         _o2_log_set_stacktrace(log, 1);
         return false;
       } else {

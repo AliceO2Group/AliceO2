@@ -925,8 +925,9 @@ def extractTables(nslevel, content):
         O2DMT.list_in([")"], words[icol:])) if x == True]
     if len(iend) == 0:
       if len(iend1) == 0:
-        print(iend1)
-        print(lines)
+        #print("nslevel: ", nslevel)
+        #print("iend: ", iend1)
+        #print("lines: ", lines)
         sys.exit('Ending ); not found in table declaration! EXIT -->')
       else:
         iend = iend1
@@ -1143,8 +1144,7 @@ class CERelations:
   def getExecutable(self, codeFile):
     # find the executable corresponding to codeFile
     CErelation = ["", "", ""]
-    ice = [ind for ind, x in enumerate(
-        self.relations) if x[0]+x[1] == codeFile]
+    ice = [ind for ind, x in enumerate(self.relations) if x[0]+x[1] == codeFile]
     if len(ice) > 0:
       CErelation = self.relations[ice[0]]
     return CErelation

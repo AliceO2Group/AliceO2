@@ -274,7 +274,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
-    if (mConfParam->printSettings) {
+    if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {
       mConfig->PrintParam();
     }
 

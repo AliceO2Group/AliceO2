@@ -76,6 +76,8 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       return;
     }
 
+    mDigitizer->setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
+
     auto tStart = std::chrono::high_resolution_clock::now();
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::MCH, mSimChains);

@@ -25,7 +25,7 @@ namespace o2
 namespace event_visualisation
 {
 /// Version of the software
-const static std::string o2_eve_version = "1.70";
+const static int o2_eve_version = 172;
 
 /// Configuration Manager allows an easy access to the config file.
 ///

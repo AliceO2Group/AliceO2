@@ -14,10 +14,11 @@
 const char* removeVersionSuffix(const char* treeName)
 {
   // remove version suffix, e.g. O2v0_001 becomes O2v0
+  // it is also intended that O2track_iu becomes O2track
   static TString tmp;
   tmp = treeName;
-  if (tmp.First("_") >= 0) {
-    tmp.Remove(tmp.First("_"));
+  if (auto pos = tmp.First('_'); pos >= 0) {
+    tmp.Remove(pos);
   }
   return tmp;
 }

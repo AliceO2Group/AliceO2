@@ -17,6 +17,7 @@ o2_add_library(EventVisualisationDataConverter
                        src/VisualisationEventSerializer.cxx
                        src/VisualisationEventJSONSerializer.cxx
                        src/VisualisationEventROOTSerializer.cxx
+                       src/VisualisationEventOpenGLSerializer.cxx
                PUBLIC_LINK_LIBRARIES RapidJSON::RapidJSON
                         O2::ReconstructionDataFormats
                         O2::DataFormatsParameters
@@ -28,6 +29,7 @@ o2_add_executable(eve-convert
                 src/VisualisationEventSerializer.cxx
                 src/VisualisationEventJSONSerializer.cxx
                 src/VisualisationEventROOTSerializer.cxx
+                src/VisualisationEventOpenGLSerializer.cxx
                 src/VisualisationTrack.cxx
                 src/VisualisationCluster.cxx
                 src/VisualisationCalo.cxx

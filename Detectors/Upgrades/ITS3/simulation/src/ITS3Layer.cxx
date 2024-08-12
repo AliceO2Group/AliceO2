@@ -215,7 +215,7 @@ void ITS3Layer::createSegment()
   mSegment = new TGeoVolumeAssembly(its3TGeo::getITS3SegmentPattern(mNLayer));
   mSegment->VisibleDaughters();
 
-  for (int i{0}; i < nRSUs; ++i) {
+  for (size_t i{0}; i < nRSUs; ++i) {
     auto zMove = new TGeoTranslation(0, 0, +i * constants::rsu::length + constants::rsu::databackbone::length + constants::pixelarray::length / 2.);
     mSegment->AddNode(mRSU, i, zMove);
   }
@@ -249,7 +249,7 @@ void ITS3Layer::createChip()
   mChip = new TGeoVolumeAssembly(its3TGeo::getITS3ChipPattern(mNLayer));
   mChip->VisibleDaughters();
 
-  for (int i{0}; i < constants::nSegments[mNLayer]; ++i) {
+  for (unsigned int i{0}; i < constants::nSegments[mNLayer]; ++i) {
     double phiOffset = constants::segment::width / mR * o2m::Rad2Deg;
     auto rot = new TGeoRotation("", 0, 0, phiOffset * i);
     mChip->AddNode(mSegment, i, rot);
@@ -285,8 +285,8 @@ void ITS3Layer::createCarbonForm()
   auto zMoveHringA = new TGeoTranslation(0, 0, -constants::segment::lec::length + HringLength / 2. + constants::segment::length - HringLength);
 
   // Longerons are made by same material
-  auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiSta, phiSta + phiLongeronsCover);
-  auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiEnd - phiLongeronsCover, phiEnd);
+  [[maybe_unused]] auto longeronR = new TGeoTubeSeg(Form("longeronR%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiSta, phiSta + phiLongeronsCover);
+  [[maybe_unused]] auto longeronL = new TGeoTubeSeg(Form("longeronL%d", mNLayer), mRmax, mRmax + dRadius, longeronsLength / 2, phiEnd - phiLongeronsCover, phiEnd);
   TString nameLongerons = Form("longeronR%d + longeronL%d", mNLayer, mNLayer);
   auto longerons = new TGeoCompositeShape(nameLongerons);
   auto longeronsVol = new TGeoVolume(Form("longerons%d", mNLayer), longerons, mCarbon);
@@ -311,7 +311,7 @@ TGeoCompositeShape* ITS3Layer::getHringShape(TGeoTubeSeg* Hring)
   for (int iHoles = 0; iHoles < nHoles[mNLayer]; iHoles++) {
     double phiHole = phiHolesSta + stepPhiHoles * iHoles;
     TString nameHole = Form("hole_%d_%d", iHoles, mNLayer);
-    auto hole = new TGeoTube(nameHole, 0, radiusHoles[mNLayer], 3 * Hring->GetDz());
+    [[maybe_unused]] auto hole = new TGeoTube(nameHole, 0, radiusHoles[mNLayer], 3 * Hring->GetDz());
     // move hole to the hring radius
     auto zMoveHole = new TGeoTranslation(Form("zMoveHole_%d_%d", iHoles, mNLayer), radiusHring * cos(phiHole * o2m::Deg2Rad), radiusHring * sin(phiHole * o2m::Deg2Rad), 0);
     zMoveHole->RegisterYourself();

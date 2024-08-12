@@ -114,6 +114,11 @@ void Detector::buildTRKNewVacuumVessel()
   mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 258.f, 100.e-3);
   mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 258.f, 100.e-3);
   mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 258.f, 100.e-3);
+
+  auto& trkPars = TRKBaseParam::Instance();
+  mLayers[8].setLayout(trkPars.layout);
+  mLayers[9].setLayout(trkPars.layout);
+  mLayers[10].setLayout(trkPars.layout);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -366,3 +371,11 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
 } // namespace o2
 
 ClassImp(o2::trk::Detector);
+
+// Define Factory method for calling from the outside
+extern "C" {
+o2::base::Detector* create_detector_trk(bool active)
+{
+  return o2::trk::Detector::create(active);
+}
+}

@@ -151,7 +151,7 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
       if (clustername == "emc") {
         tvxMBemc |= tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
       }
-      if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
+      if (tvxMBemc || (ctpinpmask.to_ullong() & tcl.descriptor->getInputsMask()) == tcl.descriptor->getInputsMask()) {
         // require real physics input in any case
         if (tvxMBemc) {
           // if the class is a min. bias class accept it only if the MB-accept bit is set in addition
@@ -168,7 +168,7 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
         }
       }
     } else {
-      if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
+      if ((ctpinpmask.to_ullong() & tcl.descriptor->getInputsMask()) == tcl.descriptor->getInputsMask()) {
         classmask |= tcl.classMask;
       }
     }

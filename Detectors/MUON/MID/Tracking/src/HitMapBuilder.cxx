@@ -23,9 +23,11 @@ namespace mid
 
 HitMapBuilder::HitMapBuilder(const GeometryTransformer& geoTrans) : mMapping(), mHitFinder(geoTrans) {}
 
-void HitMapBuilder::setMaskedChannels(const std::vector<ColumnData>& maskedChannels)
+void HitMapBuilder::setMaskedChannels(const std::vector<ColumnData>& maskedChannels, bool clear)
 {
-  mMaskedChannels.clear();
+  if (clear) {
+    mMaskedChannels.clear();
+  }
   std::array<int, 2> nLines{4, 1};
   for (auto& mask : maskedChannels) {
     for (int icath = 0; icath < 2; ++icath) {

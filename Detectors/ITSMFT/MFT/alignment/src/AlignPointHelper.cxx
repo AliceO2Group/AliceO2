@@ -348,7 +348,7 @@ void AlignPointHelper::setGlobalRecoPosition(o2::mft::TrackMFT& mftTrack)
        mftTrack.getX(), mftTrack.getY(), mftTrack.getZ());
   mGlobalRecoPosition.SetXYZ(mftTrack.getX(), mftTrack.getY(), mftTrack.getZ());
   mIsAlignPointSet = true;
-  if (isnan(mGlobalRecoPosition.X()) || isnan(mGlobalRecoPosition.Y()) || isnan(mGlobalRecoPosition.Z())) {
+  if (std::isnan(mGlobalRecoPosition.X()) || std::isnan(mGlobalRecoPosition.Y()) || std::isnan(mGlobalRecoPosition.Z())) {
     LOGF(error,
          "AlignPointHelper::setGlobalRecoPosition() - track x = %.3e, y = %.3e, z = %.3e, point x = %.3e, y = %.3e, z = %.3e",
          mftTrack.getX(), mftTrack.getY(), mftTrack.getZ(),
@@ -367,7 +367,7 @@ void AlignPointHelper::setMeasuredPosition(const o2::BaseCluster<double>& localC
 
   mLocalMeasuredPosition.SetXYZ(
     localCluster.getX(), localCluster.getY(), localCluster.getZ());
-  if (isnan(mLocalMeasuredPosition.X()) || isnan(mLocalMeasuredPosition.Y()) || isnan(mLocalMeasuredPosition.Z())) {
+  if (std::isnan(mLocalMeasuredPosition.X()) || std::isnan(mLocalMeasuredPosition.Y()) || std::isnan(mLocalMeasuredPosition.Z())) {
     LOGF(error,
          "AlignPointHelper::setMeasuredPosition() - sr %4d local x = %.3e, y = %.3e, z = %.3e",
          chipID,
@@ -378,7 +378,7 @@ void AlignPointHelper::setMeasuredPosition(const o2::BaseCluster<double>& localC
 
   mGlobalMeasuredPosition.SetXYZ(
     globalCluster.getX(), globalCluster.getY(), globalCluster.getZ());
-  if (isnan(mGlobalMeasuredPosition.X()) || isnan(mGlobalMeasuredPosition.Y()) || isnan(mGlobalMeasuredPosition.Z())) {
+  if (std::isnan(mGlobalMeasuredPosition.X()) || std::isnan(mGlobalMeasuredPosition.Y()) || std::isnan(mGlobalMeasuredPosition.Z())) {
     LOGF(error,
          "AlignPointHelper::setMeasuredPosition() - sr %4d global x = %.3e, y = %.3e, z = %.3e",
          chipID,

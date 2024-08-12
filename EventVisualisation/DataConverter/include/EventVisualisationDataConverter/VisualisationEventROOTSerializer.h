@@ -21,6 +21,7 @@
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
 #include <string>
 #include <TFile.h>
+#include <TNtuple.h>
 
 namespace o2
 {
@@ -29,12 +30,19 @@ namespace event_visualisation
 
 class VisualisationEventROOTSerializer : public VisualisationEventSerializer
 {
-  static void save(const char* name, int value);
+  static void saveInt(const char* name, int value);
+  static void saveUInt64(const char* name, uint64_t value);
   static int readInt(TFile& f, const char* name);
+  static uint64_t readUInt64(TFile& f, const char* name);
+  static bool existUInt64(TFile& f, const char* name);
   static void save(const char* name, const std::string& value);
   static std::string readString(TFile& f, const char* name);
 
+  bool readClusters(VisualisationEvent& event, TFile& f, TNtuple* xyz);
+  bool readCalo(VisualisationEvent& event, TFile& f);
+
  public:
+  [[nodiscard]] const std::string serializerName() const override { return std::string("VisualisationEventROOTSerializer"); }
   bool fromFile(VisualisationEvent& event, std::string fileName) override;
   void toFile(const VisualisationEvent& event, std::string fileName) override;
   ~VisualisationEventROOTSerializer() override = default;

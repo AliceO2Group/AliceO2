@@ -119,7 +119,7 @@ TEST_CASE("TestOldestPossibleTimeslice")
       bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
       INFO("Slot " << i << " valid: " << invalidated);
     }
-    index.updateOldestPossibleOutput();
+    index.updateOldestPossibleOutput(false);
     REQUIRE(slot.index == 1);
     REQUIRE(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
@@ -142,21 +142,21 @@ TEST_CASE("TestOldestPossibleTimeslice")
   for (size_t i = 0; i < 3; ++i) {
     bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
   }
-  index.updateOldestPossibleOutput();
+  index.updateOldestPossibleOutput(false);
   REQUIRE(index.getOldestPossibleInput().timeslice.value == 10);
   REQUIRE(index.getOldestPossibleOutput().timeslice.value == 9);
   oldest = index.setOldestPossibleInput({11}, {1});
   for (size_t i = 0; i < 3; ++i) {
     bool invalidated = index.validateSlot(TimesliceSlot{i}, oldest.timeslice);
   }
-  index.updateOldestPossibleOutput();
+  index.updateOldestPossibleOutput(false);
   REQUIRE(index.getOldestPossibleInput().timeslice.value == 10);
   REQUIRE(index.getOldestPossibleOutput().timeslice.value == 9);
   // We fake the fact that we have processed the slot 0;
   index.markAsDirty({1}, false);
-  index.updateOldestPossibleOutput();
+  index.updateOldestPossibleOutput(false);
   REQUIRE(index.getOldestPossibleOutput().timeslice.value == 9);
   index.markAsInvalid({1});
-  index.updateOldestPossibleOutput();
+  index.updateOldestPossibleOutput(false);
   REQUIRE(index.getOldestPossibleOutput().timeslice.value == 10);
 }

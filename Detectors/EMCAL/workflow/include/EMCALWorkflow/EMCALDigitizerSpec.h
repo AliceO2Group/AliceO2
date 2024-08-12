@@ -29,6 +29,11 @@ class TChain;
 namespace o2
 {
 
+namespace steer
+{
+class MCKinematicsReader;
+}
+
 namespace ctp
 {
 class CTPConfiguration;
@@ -84,6 +89,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   std::vector<Hit> mHits;                     ///< Vector with input hits
   std::vector<TChain*> mSimChains;
   o2::ctp::CTPConfiguration* mCTPConfig; ///< CTP configuration
+  o2::steer::MCKinematicsReader* mcReader; ///< reader to access MC collision information
 };
 
 /// \brief Create new digitizer spec

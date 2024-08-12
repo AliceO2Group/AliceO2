@@ -541,8 +541,8 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto* decongestion = new DecongestionService();
       for (auto& input : services.get<DeviceSpec const>().inputs) {
-        if (input.matcher.lifetime == Lifetime::Timeframe) {
-          LOGP(detail, "Found a Timeframe input, we cannot update the oldest possible timeslice");
+        if (input.matcher.lifetime == Lifetime::Timeframe || input.matcher.lifetime == Lifetime::QA || input.matcher.lifetime == Lifetime::Sporadic || input.matcher.lifetime == Lifetime::Optional) {
+          LOGP(detail, "Found a real data input, we cannot update the oldest possible timeslice when sending messages");
           decongestion->isFirstInTopology = false;
           break;
         }
@@ -560,7 +560,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "postForwardingCallbacks", "We are the first one in the topology, we need to update the oldest possible timeslice");
       auto& timesliceIndex = ctx.services().get<TimesliceIndex>();
       auto& relayer = ctx.services().get<DataRelayer>();
-      timesliceIndex.updateOldestPossibleOutput();
+      timesliceIndex.updateOldestPossibleOutput(decongestion->nextEnumerationTimesliceRewinded);
       auto& proxy = ctx.services().get<FairMQDeviceProxy>();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
       if (decongestion->nextEnumerationTimesliceRewinded && decongestion->nextEnumerationTimeslice < oldestPossibleOutput.timeslice.value) {
@@ -632,7 +632,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Received oldest possible timeframe %" PRIu64 " from channel %d",
                              (uint64_t)oldestPossibleTimeslice, channel.value);
       relayer.setOldestPossibleInput({oldestPossibleTimeslice}, channel);
-      timesliceIndex.updateOldestPossibleOutput();
+      timesliceIndex.updateOldestPossibleOutput(decongestion.nextEnumerationTimesliceRewinded);
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
 
       if (oldestPossibleOutput.timeslice.value == decongestion.lastTimeslice) {
@@ -783,8 +783,13 @@ O2_DECLARE_DYNAMIC_LOG(monitoring_service);
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
+  // Flushing metrics should only happen on main thread to avoid
+  // having to have a mutex for the communication with the driver.
   O2_SIGNPOST_ID_GENERATE(sid, monitoring_service);
   O2_SIGNPOST_START(monitoring_service, sid, "flush", "flushing metrics");
+  if (registry.isMainThread() == false) {
+    LOGP(fatal, "Flushing metrics should only happen on the main thread.");
+  }
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
 
@@ -848,8 +853,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       bool enableDebugMetrics = true;
 #endif
       bool arrowAndResourceLimitingMetrics = false;
-      DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
-      if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX && deploymentMode != DeploymentMode::FST) {
+      if (!DefaultsHelpers::onlineDeploymentMode() && DefaultsHelpers::deploymentMode() != DeploymentMode::FST) {
         arrowAndResourceLimitingMetrics = true;
       }
       // Input proxies should not report cpu_usage_fraction,
@@ -1072,13 +1076,9 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
-    .preProcessing = [](ProcessingContext& context, void* service) {
-      auto* stats = (DataProcessingStats*)service;
-      flushMetrics(context.services(), *stats); },
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
-      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1});
-      flushMetrics(context.services(), *stats); },
+      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); },
     .preDangling = [](DanglingContext& context, void* service) {
        auto* stats = (DataProcessingStats*)service;
        sendRelayerMetrics(context.services(), *stats);
@@ -1090,9 +1090,6 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .preEOS = [](EndOfStreamContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
-    .postDispatching = [](ProcessingContext& context, void* service) {
-      auto* stats = (DataProcessingStats*)service;
       flushMetrics(context.services(), *stats); },
     .preLoop = [](ServiceRegistryRef ref, void* service) {
       auto* stats = (DataProcessingStats*)service;
@@ -1243,8 +1240,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     objectCache(),
     ccdbSupportSpec()};
 
-  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
-  if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX && deploymentMode != DeploymentMode::FST) {
+  if (!DefaultsHelpers::onlineDeploymentMode() && DefaultsHelpers::deploymentMode() != DeploymentMode::FST) {
     specs.push_back(ArrowSupport::arrowBackendSpec());
   }
   specs.push_back(CommonMessageBackends::fairMQBackendSpec());
@@ -1253,7 +1249,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
 
   std::string loadableServicesStr = extraPlugins;
   // Do not load InfoLogger by default if we are not at P2.
-  if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::OnlineAUX) {
+  if (DefaultsHelpers::onlineDeploymentMode()) {
     if (loadableServicesStr.empty() == false) {
       loadableServicesStr += ",";
     }

@@ -57,7 +57,9 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   }
 
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
-
+    if (iteration == 3 && mTrkParams[0].DoUPCIteration) {
+      mTimeFrame->swapMasks();
+    }
     logger(fmt::format("ITS Tracking iteration {} summary:", iteration));
     double timeTracklets{0.}, timeCells{0.}, timeNeighbours{0.}, timeRoads{0.};
     int nTracklets{0}, nCells{0}, nNeighbours{0}, nTracks{-static_cast<int>(mTimeFrame->getNumberOfTracks())};
@@ -454,6 +456,7 @@ void Tracker::rectifyClusterIndices()
 
 void Tracker::getGlobalConfiguration()
 {
+  LOGP(info, "tracker::getGlobalConfiguration size of pars is {}", mTrkParams.size());
   auto& tc = o2::its::TrackerParamConfig::Instance();
   tc.printKeyValues(true, true);
   if (tc.useMatCorrTGeo) {
@@ -476,6 +479,7 @@ void Tracker::getGlobalConfiguration()
       }
     }
     params.DeltaROF = tc.deltaRof;
+    params.DoUPCIteration = tc.doUPCIteration;
     params.MaxChi2ClusterAttachment = tc.maxChi2ClusterAttachment > 0 ? tc.maxChi2ClusterAttachment : params.MaxChi2ClusterAttachment;
     params.MaxChi2NDF = tc.maxChi2NDF > 0 ? tc.maxChi2NDF : params.MaxChi2NDF;
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;

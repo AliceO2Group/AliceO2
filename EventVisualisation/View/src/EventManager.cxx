@@ -125,10 +125,11 @@ void EventManager::displayCurrentEvent()
 
     if (dataSource->getRunNumber() != -1) {
       if (this->mShowDate) {
+        std::string creationTime = dataSource->getCreationTimeAsString();
         multiView->getAnnotationTop()->SetText(
           TString::Format("Run %d %s\n%s", dataSource->getRunNumber(),
                           std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(),
-                          dataSource->getFileTime().c_str()));
+                          creationTime.c_str()));
       } else {
         multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
       }
@@ -426,7 +427,8 @@ void EventManager::saveVisualisationSettings()
 
       return arr;
     };
-    d.AddMember("version", rapidjson::Value().SetString(o2_eve_version.c_str(), o2_eve_version.length()), allocator);
+    std::string version = std::to_string(o2_eve_version / 100.0);
+    d.AddMember("version", rapidjson::Value().SetString(version.c_str(), version.length()), allocator); // obsolete
     d.AddMember("trackVisibility", jsonArray(vizSettings.trackVisibility, allocator), allocator);
     d.AddMember("trackColor", jsonArray(vizSettings.trackColor, allocator), allocator);
     d.AddMember("trackStyle", jsonArray(vizSettings.trackStyle, allocator), allocator);
@@ -477,7 +479,8 @@ void EventManager::restoreVisualisationSettings()
     Document d;
     d.Parse(json.c_str());
 
-    if (VisualisationEventJSONSerializer::getStringOrDefault(d, "version", "0.0") != o2_eve_version) {
+    std::string version = std::to_string(o2_eve_version / 100.0);
+    if (VisualisationEventJSONSerializer::getStringOrDefault(d, "version", "0.0") != version) {
       LOGF(info, "visualisation settings has wrong version and was not restored");
       return;
     }

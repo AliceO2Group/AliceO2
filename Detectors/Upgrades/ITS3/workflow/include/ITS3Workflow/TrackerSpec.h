@@ -49,14 +49,14 @@ class TrackerDPL : public framework::Task
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest{};
   bool mIsMC{false};
-  bool mRunVertexer{true};
-  bool mCosmicsProcessing{false};
   int mUseTriggers{0};
   std::string mMode{"sync"};
-  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest{};
-  o2::its3::TopologyDictionary* mDict{};
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain{};
+  bool mRunVertexer{true};
+  bool mCosmicsProcessing{false};
+  o2::its3::TopologyDictionary* mDict{};
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS{};
   std::unique_ptr<its::Tracker> mTracker{};
   std::unique_ptr<its::Vertexer> mVertexer{};

@@ -86,13 +86,11 @@ Bool_t
     }
 
     if (mSubGeneratorsIdToDesc.empty() && mSubGeneratorId > -1) {
-      LOG(error) << "ReadEvent failed because no SubGenerator description given";
-      return kFALSE;
+      LOG(fatal) << "ReadEvent failed because no SubGenerator description given";
     }
 
     if (!mSubGeneratorsIdToDesc.empty() && mSubGeneratorId < 0) {
-      LOG(error) << "ReadEvent failed because SubGenerator description given but sub-generator not set";
-      return kFALSE;
+      LOG(fatal) << "ReadEvent failed because SubGenerator description given but sub-generator not set";
     }
 
     /** trigger event **/

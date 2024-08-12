@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(TRUDataHandler_test)
   }
 
   // test error handling
-  for (int8_t index = o2::emcal::TriggerMappingV2::PATCHESINTRU; index < CHAR_MAX; index++) {
+  for (int8_t index = o2::emcal::TriggerMappingV2::PATCHESINTRU; index < INT8_MAX; index++) {
     BOOST_CHECK_EXCEPTION(testhandler.hasPatch(index), o2::emcal::TRUDataHandler::PatchIndexException, [index](const o2::emcal::TRUDataHandler::PatchIndexException& e) { return e.getIndex() == index; });
     BOOST_CHECK_EXCEPTION(testhandler.setPatch(index, 8), o2::emcal::TRUDataHandler::PatchIndexException, [index](const o2::emcal::TRUDataHandler::PatchIndexException& e) { return e.getIndex() == index; });
   }

@@ -48,7 +48,7 @@ void ClusterReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
+  LOG(info) << mDetNameReal << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
             << mClusterCompArray.size() << " compact clusters at entry " << ent;
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
@@ -114,7 +114,7 @@ DataProcessorSpec getITS3ClusterReaderSpec(bool useMC, bool usePatterns)
     outputSpec,
     AlgorithmSpec{adaptFromTask<ClusterReader>(useMC, usePatterns)},
     Options{
-      {"its3-cluster-infile", VariantType::String, "o2clus_it3.root", {"Name of the input cluster file"}},
+      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

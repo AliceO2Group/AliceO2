@@ -141,7 +141,7 @@ class Vertex : public VertexBase
   GPUd() ushort getFlags() const { return mBits; }
   GPUd() bool isFlagSet(uint f) const { return mBits & (FlagsMask & f); }
   GPUd() void setFlags(ushort f) { mBits |= FlagsMask & f; }
-  GPUd() void resetFrags(ushort f = FlagsMask) { mBits &= ~(FlagsMask & f); }
+  GPUd() void resetFlags(ushort f = FlagsMask) { mBits &= ~(FlagsMask & f); }
 
   GPUd() void setChi2(float v) { mChi2 = v; }
   GPUd() float getChi2() const { return mChi2; }

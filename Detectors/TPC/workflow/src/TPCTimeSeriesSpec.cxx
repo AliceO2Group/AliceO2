@@ -98,6 +98,7 @@ class TPCTimeSeries : public Task
     mSampleTsallis = ic.options().get<bool>("sample-unbinned-tsallis");
     mXOuterMatching = ic.options().get<float>("refX-for-outer-ITS");
     mUseMinBiasTrigger = !ic.options().get<bool>("disable-min-bias-trigger");
+    mMaxOccupancyHistBins = ic.options().get<int>("max-occupancy-bins");
 
     if (mUnbinnedWriter) {
       for (int iThread = 0; iThread < mNThreads; ++iThread) {
@@ -179,6 +180,12 @@ class TPCTimeSeries : public Task
     auto vertices = mTPCOnly ? gsl::span<o2::dataformats::PrimaryVertex>() : recoData.getPrimaryVertices();
     auto primMatchedTracks = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackIndex>() : recoData.getPrimaryVertexMatchedTracks();     // Global ID's for associated tracks
     auto primMatchedTracksRef = mTPCOnly ? gsl::span<o2::dataformats::VtxTrackRef>() : recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+
+    // get occupancy map
+    mBufferDCA.mOccupancyMapTPC = std::vector<unsigned int>(recoData.occupancyMapTPC.begin(), recoData.occupancyMapTPC.end());
+    if (mBufferDCA.mOccupancyMapTPC.size() > mMaxOccupancyHistBins) {
+      mBufferDCA.mOccupancyMapTPC.resize(mMaxOccupancyHistBins);
+    }
 
     // TOF clusters
     const auto& tofClusters = mTPCOnly ? gsl::span<o2::tof::Cluster>() : recoData.getTOFClusters();
@@ -1031,6 +1038,7 @@ class TPCTimeSeries : public Task
   bool mUseMinBiasTrigger{false};                                          ///< use minimum bias trigger for skimmed data (accept fraction of tracks with nCl < 80)
   long mTimeMS{};                                                          ///< time in MS of current TF
   int mRun{};                                                              ///< run number
+  int mMaxOccupancyHistBins{912};                                          ///< maximum number of occupancy bins
 
   /// check if track passes coarse cuts
   bool acceptTrack(const TrackTPC& track) const { return std::abs(track.getTgl()) < mMaxTgl; }
@@ -1199,6 +1207,7 @@ class TPCTimeSeries : public Task
           if (contributeToVertex) {
             if (propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp)) {
               phiITSTPCAtVertex = trackITSTPCTmp.getPhi();
+              dcaITSTPC = dcaITSTPCTmp;
             }
 
             // propagate TPC track to vertex
@@ -1373,6 +1382,7 @@ class TPCTimeSeries : public Task
                             << "tpc_timebin=" << trkOrig.getTime0()
                             << "qpt=" << trkOrig.getParam(4)
                             << "ncl=" << trkOrig.getNClusters()
+                            << "ncl_shared=" << trkOrig.getNClusters()
                             << "tgl=" << trkOrig.getTgl()
                             << "side_type=" << typeSide
                             << "phi=" << trkOrig.getPhi()
@@ -1736,6 +1746,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   bool useMC = false;
   GID::mask_t srcTracks = tpcOnly ? GID::getSourcesMask("TPC") : GID::getSourcesMask("TPC,ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   dataRequest->requestTracks(srcTracks, useMC);
+  dataRequest->requestClusters(GID::getSourcesMask("TPC"), useMC);
   if (!tpcOnly) {
     dataRequest->requestPrimaryVertices(useMC);
   }
@@ -1778,10 +1789,10 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"refX-for-sector", VariantType::Float, 108.475f, {"Reference local x position for the sector information (default centre of IROC)"}},
       {"refX-for-outer-ITS", VariantType::Float, 60.f, {"Reference local x position for matching at outer ITS"}},
       {"tgl-bins", VariantType::Int, 30, {"Number of tgl bins for time series variables"}},
-      {"phi-bins", VariantType::Int, 18, {"Number of phi bins for time series variables"}},
+      {"phi-bins", VariantType::Int, 54, {"Number of phi bins for time series variables"}},
       {"qPt-bins", VariantType::Int, 18, {"Number of qPt bins for time series variables"}},
-      {"mult-bins", VariantType::Int, 20, {"Number of multiplicity bins for time series variables"}},
-      {"mult-max", VariantType::Int, 80000, {"MAximum multiplicity bin"}},
+      {"mult-bins", VariantType::Int, 25, {"Number of multiplicity bins for time series variables"}},
+      {"mult-max", VariantType::Int, 50000, {"MAximum multiplicity bin"}},
       {"threads", VariantType::Int, 4, {"Number of parallel threads"}},
       {"max-ITS-TPC-DCAr", VariantType::Float, 0.2f, {"Maximum absolut DCAr value for ITS-TPC tracks"}},
       {"max-ITS-TPC-DCAz", VariantType::Float, 10.f, {"Maximum absolut DCAz value for ITS-TPC tracks - larger due to vertex spread"}},
@@ -1796,7 +1807,8 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"sample-unbinned-tsallis", VariantType::Bool, false, {"Perform sampling of unbinned data based on Tsallis function"}},
       {"sampling-factor", VariantType::Float, 0.001f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
       {"disable-min-bias-trigger", VariantType::Bool, false, {"Disable the minimum bias trigger for skimmed data"}},
-      {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}}}};
+      {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}},
+      {"max-occupancy-bins", VariantType::Int, 912, {"Maximum number of occupancy bins"}}}};
 }
 
 } // namespace tpc

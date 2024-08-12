@@ -470,35 +470,31 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   // Timestamps for CCDB entry
   long tstart = 0, tend = 0;
   // retireve run start/stop times from CCDB
-  o2::ccdb::CcdbApi api;
-  api.init(mCcdbUrlRct);
-  // Initialize empty metadata object for search
-  std::map<std::string, std::string> metadata;
-  std::map<std::string, std::string> headers = api.retrieveHeaders(
-    "RCT/Info/RunInformation", metadata, this->mRunNumber);
-  if (headers.empty()) { // No CCDB entry is found
-    LOG(error) << "Failed to retrieve headers from CCDB with run number " << this->mRunNumber
-               << "\nWill default to using the current time for timestamp information";
+  auto& cdbman = o2::ccdb::BasicCCDBManager::instance();
+  cdbman.setURL(mCcdbUrlRct);
+  cdbman.setFatalWhenNull(false);
+  auto ts = o2::ccdb::BasicCCDBManager::instance().getRunDuration(mRunNumber, false);
+  if (ts.first < 0 || ts.second < 0) {
+    LOGP(error, "Failed to retrieve headers from CCDB with run number {}, << this->mRunNumber, will default to using the current time for timestamp information", mRunNumber);
     tstart = o2::ccdb::getCurrentTimestamp();
     tend = tstart + 365L * 24 * 3600 * 1000;
   } else {
-    tstart = std::stol(headers["SOR"]);
-    tend = std::stol(headers["EOR"]);
+    tstart = ts.first;
+    tend = ts.second;
   }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
   auto class_name_deadMap = o2::utils::MemFileHelper::getClassName(mDeadMap);
 
   // Create metadata for database object
-  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}, {"runNumber", std::to_string(this->mRunNumber)}};
-
+  std::map<std::string, std::string> metadata{{"runtype", std::to_string(mRunType)}, {"confDBversion", std::to_string(mConfigVersion)}, {"runNumber", std::to_string(mRunNumber)}};
   std::string path("ITS/Calib/DCS_CONFIG");
   std::string path_deadMap("ITS/Calib/DeadMap");
   const char* filename = "dcs_config.root";
   long current_time = o2::ccdb::getCurrentTimestamp();
   std::string filename_deadMap = "o2-itsmft-NoiseMap_" + std::to_string(current_time) + ".root";
-  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
-  o2::ccdb::CcdbObjectInfo info_deadMap(path_deadMap, "noise_map", filename_deadMap, metadata, tstart - o2::ccdb::CcdbObjectInfo::MINUTE, tend + 5 * o2::ccdb::CcdbObjectInfo::MINUTE);
+  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart - 2 * o2::ccdb::CcdbObjectInfo::MINUTE, tend + 2 * o2::ccdb::CcdbObjectInfo::MINUTE);
+  o2::ccdb::CcdbObjectInfo info_deadMap(path_deadMap, "noise_map", filename_deadMap, metadata, tstart - 2 * o2::ccdb::CcdbObjectInfo::MINUTE, tend + 2 * o2::ccdb::CcdbObjectInfo::MINUTE);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
   auto image_deadMap = o2::ccdb::CcdbApi::createObjectImage(&mDeadMap, &info_deadMap);
   info.setFileName(filename);

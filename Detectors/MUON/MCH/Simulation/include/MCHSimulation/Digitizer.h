@@ -40,6 +40,9 @@ class Digitizer
    */
   Digitizer(geo::TransformationCreator transformationCreator);
 
+  /// @see DEDigitizer::setFirstTFOrbit
+  void setFirstTFOrbit(uint32_t firstTFOrbit);
+
   /// @see DEDigitizer::processHit
   void processHits(gsl::span<const Hit> hits, const InteractionRecord& collisionTime, int evID, int srcID);
 

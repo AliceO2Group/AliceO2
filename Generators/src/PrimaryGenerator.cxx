@@ -140,7 +140,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
 
   // check the status encoding
   if (!mcgenstatus::isEncoded(generatorStatus) && proc == TMCProcess::kPPrimary) {
-    LOG(fatal) << "Generatror status " << generatorStatus << " of particle is not encoded properly.";
+    LOG(fatal) << "Generator status " << generatorStatus << " of particle is not encoded properly.";
   }
 
   /** add event vertex to track vertex **/
@@ -151,7 +151,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   /** check if particle to be tracked exists in PDG database **/
   auto particlePDG = TDatabasePDG::Instance()->GetParticle(pdgid);
   if (wanttracking && !particlePDG) {
-    LOG(warn) << "Particle to be tracked is not defined in PDG: pdg = " << pdgid;
+    LOG(warn) << "Particle to be tracked is not defined in PDG: pdg = " << pdgid << " (disabling tracking)";
     wanttracking = false;
   }
 

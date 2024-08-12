@@ -19,4 +19,5 @@
 #pragma link C++ class o2::focal::TestbeamAnalysis + ;
 #pragma link C++ class o2::focal::Geometry + ;
 #pragma link C++ class o2::focal::Composition + ;
+#pragma link C++ class o2::focal::Hit + ;
 #endif

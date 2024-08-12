@@ -34,8 +34,13 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
+#include <EventVisualisationBase/DirectoryLoader.h>
 #include "DataFormatsMCH/Cluster.h"
 #include <unistd.h>
+
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::system_clock;
 
 using namespace o2::event_visualisation;
 using namespace o2::framework;
@@ -54,11 +59,13 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"jsons-folder", VariantType::String, "jsons", {"name of the folder to store json files"}},
-    {"use-json-format", VariantType::Bool, false, {"instead of root format (default) use json format"}},
+    {"use-json-format", VariantType::Bool, false, {"instead of eve format (default) use json format"}},
+    {"use-root-format", VariantType::Bool, false, {"instead of eve format (default) use root format"}},
     {"eve-hostname", VariantType::String, "", {"name of the host allowed to produce files (empty means no limit)"}},
     {"eve-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce files (-1 means no limit)"}},
     {"number-of_files", VariantType::Int, 150, {"maximum number of json files in folder"}},
     {"number-of_tracks", VariantType::Int, -1, {"maximum number of track stored in json file (-1 means no limit)"}},
+    {"number-of_bytes", VariantType::Int, 3000000, {"number of bytes stored in time interval which stops producing new data file (-1 means no limit)"}},
     {"time-interval", VariantType::Int, 5000, {"time interval in milliseconds between stored files"}},
     {"disable-mc", VariantType::Bool, false, {"disable visualization of MC data"}},
     {"disable-write", VariantType::Bool, false, {"disable writing output files"}},
@@ -118,7 +125,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (elapsed < this->mTimeInterval) {
     return; // skip this run - it is too often
   }
-  this->mTimeStamp = currentTime;
+  this->mTimeStamp = currentTime; // next run AFTER period counted from last run, even if there will be not any save
   o2::globaltracking::RecoContainer recoCont;
   recoCont.collectData(pc, *mDataRequest);
   updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
@@ -158,12 +165,24 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
   std::size_t filesSaved = 0;
+  const std::vector<std::string> dirs = o2::event_visualisation::DirectoryLoader::allFolders(this->mJsonPath);
+  const std::string marker = "_";
+  const std::vector<std::string> exts = {
+    ".json", ".root", ".eve"};
   auto processData = [&](const auto& dataMap) {
     for (const auto& keyVal : dataMap) {
       if (filesSaved >= mMaxPrimaryVertices) {
         break;
       }
-
+      if (this->mNumberOfBytes != -1) {
+        auto periodStart =
+          duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count() - this->mTimeInterval.count();
+        if (!DirectoryLoader::canCreateNextFile(
+              dirs, marker, exts, periodStart, this->mNumberOfBytes)) {
+          LOGF(info, "Already too much data (> %d) to transfer in this period - event will not be not saved ...", this->mNumberOfBytes);
+          break;
+        }
+      }
       const auto pv = keyVal.first;
       bool save = false;
       if (mPrimaryVertexMode) {
@@ -200,8 +219,11 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
         helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
         helper.mEvent.setRunType(this->mRunType);
         helper.mEvent.setPrimaryVertex(pv);
-        helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
+        helper.mEvent.setCreationTime(tinfo.creation);
+        helper.save(this->mJsonPath, this->mExt, this->mNumberOfFiles);
         filesSaved++;
+        currentTime = std::chrono::high_resolution_clock::now(); // time AFTER save
+        this->mTimeStamp = currentTime;                          // next run AFTER period counted from last save
       }
 
       helper.clear();
@@ -289,10 +311,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec specs;
 
   auto jsonFolder = cfgc.options().get<std::string>("jsons-folder");
-  std::string ext = ".root"; // root files are default format
+  std::string ext = ".eve"; // root files are default format
   auto useJsonFormat = cfgc.options().get<bool>("use-json-format");
   if (useJsonFormat) {
     ext = ".json";
+  }
+  auto useROOTFormat = cfgc.options().get<bool>("use-root-format");
+  if (useROOTFormat) {
+    ext = ".root";
   }
   auto eveHostName = cfgc.options().get<std::string>("eve-hostname");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
@@ -318,6 +344,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::chrono::milliseconds timeInterval(cfgc.options().get<int>("time-interval"));
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
   int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
+  int numberOfBytes = cfgc.options().get<int>("number-of_bytes");
 
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
@@ -430,7 +457,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(disableWrite, useMC, srcTrk, srcCl, dataRequest, ggRequest, emcalCalibLoader, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers, primaryVertexMinZ, primaryVertexMaxZ, primaryVertexMinX, primaryVertexMaxX, primaryVertexMinY, primaryVertexMaxY, maxEMCALCellTime, minEMCALCellEnergy)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(disableWrite, useMC, srcTrk, srcCl, dataRequest, ggRequest, emcalCalibLoader, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, numberOfBytes, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers, primaryVertexMinZ, primaryVertexMaxZ, primaryVertexMinX, primaryVertexMaxX, primaryVertexMinY, primaryVertexMaxY, maxEMCALCellTime, minEMCALCellEnergy)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

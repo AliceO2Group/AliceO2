@@ -647,6 +647,26 @@ const Composition* Geometry::getComposition(int layer, int stack) const
 }
 
 //_________________________________________________________________________
+std::vector<const Composition*> Geometry::getFOCALMicroModule(int layer) const
+{
+
+  std::vector<const Composition*> layerComposition;
+
+  if (layer == -1) {
+    for (auto& icomp : mGeometryComposition) {
+      layerComposition.push_back(&icomp);
+    }
+  } else {
+    for (auto& icomp : mGeometryComposition) {
+      if (icomp.layer() == layer) {
+        layerComposition.push_back(&icomp);
+      }
+    }
+  }
+  return layerComposition;
+}
+
+//_________________________________________________________________________
 /// this gives global position of the center of tower
 std::tuple<double, double, double> Geometry::getGeoTowerCenter(int tower, int segment) const
 {

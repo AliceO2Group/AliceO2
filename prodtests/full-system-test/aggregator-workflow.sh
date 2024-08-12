@@ -220,7 +220,8 @@ fi
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # RCT updater
   if [[ ${CALIB_RCT_UPDATER:-} == 1 ]]; then
-    add_W o2-rct-updater-workflow "--ccdb-server $CCDB_POPULATOR_UPLOAD_PATH"
+    [[ -z ${TDIFFCHECK:-} ]] && [[ $EPNSYNCMODE == 1 ]] && TDIFFCHECK=15000
+    add_W o2-rct-updater-workflow "--ccdb-server $CCDB_POPULATOR_UPLOAD_PATH --max-diff-orbit-creationtime ${TDIFFCHECK:--1}"
   fi
   # PrimaryVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then

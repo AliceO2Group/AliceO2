@@ -20,6 +20,8 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsCTP/Scalers.h"
 #include "DataFormatsCTP/Configuration.h"
+// #include "BookkeepingApi/BkpClientFactory.h"
+#include "CTPWorkflowScalers/ctpCCDBManager.h"
 #include <string>
 #include <map>
 #include <iostream>
@@ -34,7 +36,7 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   // std::cout << stol(hd["SOR"]) << "\n";
   CTPConfiguration ctpcfg;
   CTPRunScalers scl;
-  CTPRunManager mng;
+  o2::ctp::ctpCCDBManager mng;
   mng.setCCDBHost(ccdbHost);
   bool ok;
   // ctpcfg = mng.getConfigFromCCDB(time, srun);

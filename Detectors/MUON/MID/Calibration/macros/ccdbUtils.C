@@ -93,13 +93,18 @@ void writeDCSMasks(const char* ccdbUrl, long timestamp, const char* outFilename 
 /// @brief Uploads the list of channels provided
 /// @param ccdbUrl CCDB url
 /// @param timestamp Timestamp
-/// @param badChannels List of bad channels. Default is no bad channel
 /// @param path Calibration object path
+/// @param channels List of bad channels. Default is no bad channel
 void uploadBadChannels(const char* ccdbUrl, long timestamp, const std::string path, std::vector<o2::mid::ColumnData> channels = {})
 {
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
+  if (timestamp == 1 && channels.empty()) {
+    // This is the default
+    md["default"] = "true";
+    md["Created"] = "1";
+  }
   std::cout << "Storing MID problematic channels (valid from " << timestamp << ") to " << path << "\n";
 
   api.storeAsTFileAny(&channels, path, md, timestamp, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
@@ -185,12 +190,12 @@ std::vector<o2::mid::ColumnData> makeFakeDeadChannels()
   // - expected refers to the expected fake dead channels obtained by Baptiste
   //   by comparing the masked channels with the default masks.
   std::vector<o2::mid::ColumnData> fakeDeads;
-  // fakeDeads.push_back({0, 3, 0x81, 0x0, 0x0, 0x0, 0x0}); // 40; X1; expected: 0x0; data 10/2023
+  fakeDeads.push_back({0, 3, 0x81, 0x0, 0x0, 0x0, 0x1});    // 40; X1; expected: 0x0; data 10/2023; data 06/2024; data 06/2024
   fakeDeads.push_back({6, 5, 0x0, 0x2a00, 0x0, 0x0, 0x0});  // 6c; X1; expected: 0x0; data 12/2023: 0x2e00
   fakeDeads.push_back({7, 5, 0x0, 0x6bff, 0x0, 0x0, 0x0});  // 6e; X1; expected: 0x0; data 10/2023: 0x28ff
   fakeDeads.push_back({9, 5, 0x0, 0x0, 0x0, 0x0, 0x2});     // 60; Y2; expected: 0x0
   fakeDeads.push_back({10, 2, 0x0, 0x0, 0x0, 0x0, 0xe0});   // 31; Y2;
-  fakeDeads.push_back({10, 4, 0x805f, 0x0, 0x0, 0x0, 0x0}); // 51; X2; expected: 0x905e; data 12/2023: 0x5f
+  fakeDeads.push_back({10, 4, 0x905f, 0x0, 0x0, 0x0, 0x0}); // 51; X2; expected: 0x905e; data 12/2023: 0x5f; data 06/2024
   fakeDeads.push_back({14, 5, 0x0, 0x0, 0x0, 0x0, 0x80});   // 69; Y2;
   fakeDeads.push_back({16, 2, 0x0, 0x0, 0x0, 0x0, 0xe0});   // 2c; Y2; expected: 0x80; data 10/2023: 0xa0
   fakeDeads.push_back({16, 3, 0x0, 0xf00, 0x0, 0x0, 0x0});  // 4e; X2; expected: 0x0; data 10/2023: 0x300
@@ -203,14 +208,14 @@ std::vector<o2::mid::ColumnData> makeFakeDeadChannels()
   fakeDeads.push_back({44, 5, 0x2000, 0x0, 0x0, 0x0, 0x0}); // ef; X1; expected: 0x0
   fakeDeads.push_back({44, 6, 0x0, 0x0, 0x0, 0x0, 0xf});    // f8; Y1; expected: 0x0; data 10/2023: 0x7
   fakeDeads.push_back({46, 1, 0x0, 0x0, 0x0, 0x0, 0xc0});   // 91; Y2; expected: 0xc0; data 12/2023: 0x40
-  fakeDeads.push_back({46, 2, 0x0, 0x0, 0x0, 0x0, 0xc0});   // b1; Y2; expected: 0xe0; data 10/2023: 0xe0
+  fakeDeads.push_back({46, 2, 0x0, 0x0, 0x0, 0x0, 0xe0});   // b1; Y2; expected: 0xe0; data 10/2023: 0xe0; data 06/2024
   fakeDeads.push_back({46, 3, 0x0, 0x0, 0x0, 0x0, 0xc0});   // c1; Y2;
-  fakeDeads.push_back({46, 4, 0x0, 0x0, 0x0, 0x0, 0x58});   // d1; Y2; expected: 0xe8; data 10/2023: 0x60
+  fakeDeads.push_back({46, 4, 0x0, 0x0, 0x0, 0x0, 0xf8});   // d1; Y2; expected: 0xe8; data 10/2023: 0x60; data 06/2024
   fakeDeads.push_back({46, 5, 0x0, 0x0, 0x0, 0x0, 0x60});   // e1; Y2;
-  fakeDeads.push_back({47, 3, 0x1, 0x0, 0x0, 0x0, 0x0});    // c3; X2; expected: 0x9d; data 10/2023: 0x15
-  // fakeDeads.push_back({47, 5, 0x1, 0x0, 0x0, 0x0, 0x0});  // e3; X2;  0 (expected only)
-  fakeDeads.push_back({52, 2, 0x0, 0x0, 0x0, 0x0, 0xf8}); // ac; Y2; expected: 0xb0; data 10/2023: 0xf0
-  fakeDeads.push_back({52, 3, 0x0, 0x0, 0x0, 0x0, 0x80}); // cd; Y2; expected: 0x0
+  fakeDeads.push_back({47, 3, 0x5d, 0x0, 0x0, 0x0, 0x0});   // c3; X2; expected: 0x9d; data 10/2023: 0x15; data 06/2024
+  fakeDeads.push_back({47, 5, 0x1, 0x0, 0x0, 0x0, 0x0});    // e3; data 06/2023; data 06/2024
+  fakeDeads.push_back({52, 2, 0x0, 0x0, 0x0, 0x0, 0xf8});   // ac; Y2; expected: 0xb0; data 10/2023: 0xf0
+  fakeDeads.push_back({52, 3, 0x0, 0x0, 0x0, 0x0, 0x80});   // cd; Y2; expected: 0x0
   // fakeDeads.push_back({64, 4, 0x0, 0x0, 0x0, 0x0, 0x40}); // d1; Y4; expected: 0x0; data 12/2023
   fakeDeads.push_back({68, 5, 0x0, 0x0, 0x0, 0x0, 0xe2}); // e9; Y4; expected: 0x0; data 10/2023: 0xe0
 
@@ -228,30 +233,68 @@ void ccdbUtils(const char* what, long timestamp = 0, const char* inFilename = "m
     timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   }
 
-  std::vector<std::string> whats = {"querybad", "uploadbad", "queryfake", "uploadfake", "querymasks", "writemasks", "uploadbadfrommasks"};
-
   const std::string fakeDeadChannelCCDBPath = "MID/Calib/FakeDeadChannels";
+  const std::string rejectListCCDBPath = "MID/Calib/RejectList";
 
-  if (what == whats[0]) {
+  std::vector<std::string> whats;
+  whats.emplace_back("querybad");
+  if (what == whats.back()) {
     queryBadChannels(ccdbUrl, timestamp, verbose, BadChannelCCDBPath);
-  } else if (what == whats[1]) {
-    uploadBadChannels(ccdbUrl, timestamp, BadChannelCCDBPath);
-  } else if (what == whats[2]) {
-    queryBadChannels(ccdbUrl, timestamp, verbose, fakeDeadChannelCCDBPath);
-  } else if (what == whats[3]) {
-    uploadBadChannels(ccdbUrl, timestamp, fakeDeadChannelCCDBPath);
-  } else if (what == whats[4]) {
-    queryDCSMasks(ccdbUrl, timestamp, verbose);
-  } else if (what == whats[5]) {
-    writeDCSMasks(ccdbUrl, timestamp);
-  } else if (what == whats[6]) {
-    uploadBadChannelsFromDCSMask(inFilename, timestamp, ccdbUrl, verbose);
-  } else {
-    std::cout << "Unimplemented option chosen " << what << std::endl;
-    std::cout << "Available:\n";
-    for (auto& str : whats) {
-      std::cout << str << " ";
-    }
-    std::cout << std::endl;
+    return;
   }
+
+  whats.emplace_back("uploadbad");
+  if (what == whats.back()) {
+    uploadBadChannels(ccdbUrl, timestamp, BadChannelCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("queryrejectlist");
+  if (what == whats.back()) {
+    queryBadChannels(ccdbUrl, timestamp, verbose, rejectListCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("uploadrejectlist");
+  if (what == whats.back()) {
+    uploadBadChannels(ccdbUrl, timestamp, rejectListCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("queryfake");
+  if (what == whats.back()) {
+    queryBadChannels(ccdbUrl, timestamp, verbose, fakeDeadChannelCCDBPath);
+    return;
+  }
+
+  whats.emplace_back("uploadfake");
+  if (what == whats.back()) {
+    uploadBadChannels(ccdbUrl, timestamp, fakeDeadChannelCCDBPath, makeFakeDeadChannels());
+    return;
+  }
+
+  whats.emplace_back("querymasks");
+  if (what == whats.back()) {
+    queryDCSMasks(ccdbUrl, timestamp, verbose);
+    return;
+  }
+
+  whats.emplace_back("writemasks");
+  if (what == whats.back()) {
+    writeDCSMasks(ccdbUrl, timestamp);
+    return;
+  }
+
+  whats.emplace_back("uploadbadfrommasks");
+  if (what == whats.back()) {
+    uploadBadChannelsFromDCSMask(inFilename, timestamp, ccdbUrl, verbose);
+    return;
+  }
+
+  std::cout << "Unimplemented option chosen " << what << std::endl;
+  std::cout << "Available:\n";
+  for (auto& str : whats) {
+    std::cout << str << " ";
+  }
+  std::cout << std::endl;
 }

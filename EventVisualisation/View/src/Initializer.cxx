@@ -83,7 +83,8 @@ void Initializer::setup()
 
   // Setup windows size, fullscreen and focus
   TEveBrowser* browser = gEve->GetBrowser();
-  std::string title = std::string("o2-eve v:") + o2_eve_version;
+  std::string title = std::string("o2-eve version:") + std::to_string(o2_eve_version / 100.0);
+  title = title.substr(0, title.find('.') + 3);
   browser->SetWindowName(title.c_str());
   browser->GetTabRight()->SetTab(1);
   browser->MoveResize(0, 0, gClient->GetDisplayWidth(), gClient->GetDisplayHeight() - 32);

@@ -307,7 +307,12 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
           didDrop = true;
-          LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          auto& state = mContext.get<DeviceState>();
+          if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
+            LOGP(warning, "Stop transition requested. Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it will never be completed.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          } else {
+            LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          }
         } else {
           LOGP(debug,
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
@@ -326,7 +331,12 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
         }
         auto& element = mCache[si * mInputs.size() + mi];
         if (element.size() == 0) {
-          LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          auto& state = mContext.get<DeviceState>();
+          if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
+            LOGP(warning, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          } else {
+            LOGP(error, "Missing {} (lifetime:{}) while dropping incomplete data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          }
         }
       }
     }
@@ -373,7 +383,7 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
       bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return m.size(); });
       if (anyDropped) {
         O2_SIGNPOST_ID_GENERATE(aid, data_relayer);
-        O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
+        O2_SIGNPOST_EVENT_EMIT(data_relayer, aid, "pruneCache", "Dropping stuff from slot %zu with timeslice %zu", slot.index, oldestPossibleTimeslice.timeslice.value);
         onDrop(slot, dropped, oldestPossibleTimeslice);
       }
     }
@@ -759,7 +769,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         break;
     }
   }
-  mTimesliceIndex.updateOldestPossibleOutput();
+  mTimesliceIndex.updateOldestPossibleOutput(false);
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",
        notDirty, countConsume, countConsumeExisting, countProcess,
        countDiscard, countWait);

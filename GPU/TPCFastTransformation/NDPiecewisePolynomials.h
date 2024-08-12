@@ -71,7 +71,7 @@ struct NDPiecewisePolynomialContainer {
 ///
 /// For usage see: testMultivarPolynomials.cxx
 ///
-/// TODO: add possibillity to perform the fits on scattered data points (+add weighting of points)
+/// TODO: add possibillity to perform the fits with weighting of points
 ///
 /// \tparam Dim number of dimensions
 /// \tparam Degree degree of the polynomials
@@ -183,6 +183,11 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param func function which returns for every input x on the defined grid the true value
   /// \param nAuxiliaryPoints number of points which will be used for the fits (should be at least 2)
   void performFits(const std::function<double(const double x[/* Dim */])>& func, const unsigned int nAuxiliaryPoints[/* Dim */]);
+
+  /// perform the polynomial fits on scatter points
+  /// \param x scatter points used to make the fits of size 'y.size() * Dim' as in TLinearFitter
+  /// \param y response values
+  void performFits(const std::vector<float>& x, const std::vector<float>& y);
 
   /// load parameters from input file (which were written using the writeToFile method)
   /// \param inpf input file
@@ -537,7 +542,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
     const bool debug = !(++counter % printDebugForNFits);
     if (debug) {
 #ifndef GPUCA_ALIROOT_LIB
-      LOGP(info, "Peforming fit {} out of {}", counter, nTotalFits);
+      LOGP(info, "Performing fit {} out of {}", counter, nTotalFits);
 #endif
     }
 
@@ -551,6 +556,95 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std
     response.clear();
     fitInnerGrid(func, nAuxiliaryPoints, pos, fitter, xCords, response);
     ++pos[0];
+  }
+}
+
+template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::performFits(const std::vector<float>& x, const std::vector<float>& y)
+{
+  const int nTotalFits = getNPolynomials();
+#ifndef GPUCA_ALIROOT_LIB
+  LOGP(info, "Perform fitting of {}D-Polynomials of degree {} for a total of {} fits.", Dim, Degree, nTotalFits);
+#endif
+
+  // approximate number of points
+  unsigned int nPoints = 2 * y.size() / nTotalFits;
+
+  // polynomial index -> indices to datapoints
+  std::unordered_map<int, std::vector<size_t>> dataPointsIndices;
+  for (int i = 0; i < nTotalFits; ++i) {
+    dataPointsIndices[i].reserve(nPoints);
+  }
+
+  // check for each data point which polynomial to use
+  for (size_t i = 0; i < y.size(); ++i) {
+    std::array<int, Dim> index;
+    float xVal[Dim];
+    std::copy(x.begin() + i * Dim, x.begin() + i * Dim + Dim, xVal);
+    setIndex<Dim - 1>(xVal, index.data());
+
+    std::array<int, Dim> indexClamped{index};
+    clamp<Dim - 1>(xVal, indexClamped.data());
+
+    // check if data points are in the grid
+    if (index == indexClamped) {
+      // index of the polyniomial
+      const unsigned int idx = getDataIndex(index.data()) / MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly);
+
+      // store index to data point
+      dataPointsIndices[idx].emplace_back(i);
+    }
+  }
+
+  // for fitting
+  MultivariatePolynomialHelper<0, 0, false> pol(Dim, Degree, InteractionOnly);
+  TLinearFitter fitter = pol.getTLinearFitter();
+
+  unsigned int counter = 0;
+  const int printDebugForNFits = int(nTotalFits / 20) + 1;
+
+  // temp storage for x and y values for fitting
+  std::vector<double> xCords;
+  std::vector<double> response;
+
+  for (int i = 0; i < nTotalFits; ++i) {
+    const bool debug = !(++counter % printDebugForNFits);
+    if (debug) {
+#ifndef GPUCA_ALIROOT_LIB
+      LOGP(info, "Performing fit {} out of {}", counter, nTotalFits);
+#endif
+    }
+
+    // store values for fitting
+    if (dataPointsIndices[i].empty()) {
+#ifndef GPUCA_ALIROOT_LIB
+      LOGP(info, "No data points to fit");
+#endif
+      continue;
+    }
+
+    const auto nP = dataPointsIndices[i].size();
+    xCords.reserve(Dim * nP);
+    response.reserve(nP);
+    xCords.clear();
+    response.clear();
+
+    // add datapoints to fit
+    for (size_t j = 0; j < nP; ++j) {
+      const size_t idxOrig = dataPointsIndices[i][j];
+
+      // insert x values at the end of xCords
+      const int idxXStart = idxOrig * Dim;
+      xCords.insert(xCords.end(), x.begin() + idxXStart, x.begin() + idxXStart + Dim);
+      response.emplace_back(y[idxOrig]);
+    }
+
+    // perform the fit on the points TODO make errors configurable
+    std::vector<double> error;
+    const auto params = MultivariatePolynomialHelper<0, 0, false>::fit(fitter, xCords, response, error, true);
+
+    // store parameters
+    std::copy(params.begin(), params.end(), &mParams[i * MultivariatePolynomialParametersHelper::getNParameters(Degree, Dim, InteractionOnly)]);
   }
 }
 

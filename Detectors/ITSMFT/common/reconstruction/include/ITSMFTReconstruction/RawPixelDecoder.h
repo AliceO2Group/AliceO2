@@ -107,6 +107,9 @@ class RawPixelDecoder final : public PixelReader
   void setAllowEmptyROFs(bool v) { mAlloEmptyROFs = v; }
   bool getAllowEmptyROFs() const { return mAlloEmptyROFs; }
 
+  void setVerifyDecoder(bool v) { mVerifyDecoder = v; }
+  bool getVerifyDecoder() const { return mVerifyDecoder; }
+
   void setInstanceID(size_t i) { mInstanceID = i; }
   void setNInstances(size_t n) { mNInstances = n; }
   auto getInstanceID() const { return mInstanceID; }
@@ -160,6 +163,7 @@ class RawPixelDecoder final : public PixelReader
   bool mAlloEmptyROFs = false;                                                        // do not skip empty ROFs
   bool mROFRampUpStage = false;                                                       // are we still in the ROF ramp up stage?
   bool mSkipRampUpData = false;
+  bool mVerifyDecoder = false;
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   // statistics

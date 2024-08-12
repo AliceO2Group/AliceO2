@@ -68,9 +68,11 @@ jobs:
           git push -f origin auto-datamodel-doc
 
           # Send pull request
-          # We need to use "hub" ourselves because alisw/pull-request gets
+          # We need to use "gh" ourselves because alisw/pull-request gets
           # confused when multiple repos are checked out.
-          hub pull-request -b AliceO2Group:master -h alibuild:auto-datamodel-doc \
-              --no-edit --no-maintainer-edits -m 'Automatic data model update'   \
-              -m "This update to the data model documentation was automatically created from tonight's O2 dev branch." ||
-            :  # If the PR already exists, hub fails, but we've just force-pushed, so we don't need a new PR.
+          GH_TOKEN="$GITHUB_TOKEN" gh pr create -B \
+          AliceO2Group:master -H alibuild:auto-datamodel-doc \
+          --no-maintainer-edit -t 'Automatic data model update' -b "This update \
+          to the data model documentation was automatically created from \
+          tonight's O2 dev branch." || true
+          # If the PR already exists, hub fails, but we've just force-pushed, so we don't need a new PR.

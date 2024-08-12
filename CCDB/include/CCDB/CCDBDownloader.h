@@ -87,6 +87,11 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
  */
 void onUVClose(uv_handle_t* handle);
 
+enum DownloaderErrorLevel {
+  MINOR,
+  SEVERE
+};
+
 /// A class encapsulating and performing simple CURL requests in terms of a so-called CURL multi-handle.
 /// A multi-handle allows to use a connection pool (connection cache) in the CURL layer even
 /// with short-lived CURL easy-handles. Thereby the overhead of connection to servers can be

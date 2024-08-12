@@ -29,12 +29,12 @@ VisualisationTrack::VisualisationTrack(const VisualisationTrackVO& vo)
 {
   this->mCharge = vo.charge;
   this->mPID = vo.PID;
-  this->mGID = vo.gid;
+  this->mBGID = vo.gid;
   this->mTheta = vo.theta;
   this->mPhi = vo.phi;
   this->mEta = vo.eta;
   this->addStartCoordinates(vo.startXYZ);
-  this->mSource = vo.source;
+  // this->mSource = vo.source;
   this->mTime = vo.time;
 }
 
@@ -42,12 +42,12 @@ VisualisationTrack::VisualisationTrack(const VisualisationTrack& src)
 {
   this->mCharge = src.mCharge;
   this->mPID = src.mPID;
-  this->mGID = src.mGID;
+  this->mBGID = src.mBGID;
   this->mTheta = src.mTheta;
   this->mPhi = src.mPhi;
   this->mEta = src.mEta;
   this->addStartCoordinates(src.getStartCoordinates());
-  this->mSource = src.mSource;
+  // this->mSource = src.mSource;
   this->mTime = src.mTime;
 
   this->mPolyX = src.mPolyX;
@@ -77,9 +77,9 @@ void VisualisationTrack::addPolyPoint(const float p[])
   mPolyZ.push_back(p[2]);
 }
 
-VisualisationCluster& VisualisationTrack::addCluster(float pos[])
+VisualisationCluster& VisualisationTrack::addCluster(const float pos[])
 {
-  mClusters.emplace_back(pos, 0);
+  mClusters.emplace_back(pos, this->mTime, this->mBGID);
   return mClusters.back();
 }
 

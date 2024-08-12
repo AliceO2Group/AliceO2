@@ -99,17 +99,74 @@ constexpr auto interleave_pack(pack<Args1...>, pack<Args2...>)
 template <typename P1, typename P2>
 using interleaved_pack_t = decltype(interleave_pack(P1{}, P2{}));
 
+/// Marks as void the types that do not satisfy the condition
+template <template <typename...> typename Condition, typename... Ts>
+using with_condition_pack = pack<std::conditional_t<Condition<Ts>::value, Ts, void>...>;
+
+template <typename... Ts>
+consteval auto count_non_void_pack(pack<Ts...> const&)
+{
+  return ((std::is_void_v<Ts> ? 0 : 1) + ...);
+}
+
+template <typename Result>
+consteval auto prune_voids_pack(Result result, pack<>)
+{
+  return result;
+}
+
+// The first one is non void, but one of the others is void
+template <typename... Rs, typename T, typename... Ts>
+  requires(!std::is_void_v<T>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T>{}, pack<Ts...>{});
+}
+
+// The first one is void
+template <typename... Rs, typename V, typename... Ts>
+  requires(std::is_void_v<V>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<V, Ts...>)
+{
+  return prune_voids_pack(pack<Rs...>{}, pack<Ts...>{});
+}
+
+// The first one is non void, but one of the others is void
+template <typename... Rs, typename T1, typename T2, typename... Ts>
+  requires(!std::is_void_v<T1> && !std::is_void_v<T2>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T1, T2, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T1, T2>{}, pack<Ts...>{});
+}
+
+// Eats 4 types at the time
+template <typename... Rs, typename T1, typename T2, typename T3, typename T4, typename... Ts>
+  requires(!std::is_void_v<T1> && !std::is_void_v<T2> && !std::is_void_v<T3> && !std::is_void_v<T4>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T1, T2, T3, T4, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T1, T2, T3, T4>{}, pack<Ts...>{});
+}
+
+// Eats 8 types at the time
+template <typename... Rs, typename T1, typename T2, typename T3, typename T4,
+          typename T5, typename T6, typename T7, typename T8, typename... Ts>
+  requires(!std::is_void_v<T1> && !std::is_void_v<T2> && !std::is_void_v<T3> && !std::is_void_v<T4> && !std::is_void_v<T5> && !std::is_void_v<T6> && !std::is_void_v<T7> && !std::is_void_v<T8>)
+consteval auto prune_voids_pack(pack<Rs...> result, pack<T1, T2, T3, T4, T5, T6, T7, T8, Ts...>)
+{
+  return prune_voids_pack(pack<Rs..., T1, T2, T3, T4, T5, T6, T7, T8>{}, pack<Ts...>{});
+}
+
 /// Selects from the pack types that satisfy the Condition
 /// Multicondition takes the type to check as first template parameter
 /// and any helper types as the following parameters
 template <template <typename...> typename Condition, typename Result, typename... Cs>
-constexpr auto select_pack(Result result, pack<>, pack<Cs...>)
+consteval auto select_pack(Result result, pack<>, pack<Cs...>)
 {
   return result;
 }
 
 template <template <typename...> typename Condition, typename Result, typename T, typename... Cs, typename... Ts>
-constexpr auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
+consteval auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
 {
   if constexpr (Condition<T, Cs...>()) {
     return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{}, condPack);
@@ -119,7 +176,7 @@ constexpr auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
 }
 
 template <template <typename...> typename Condition, typename... Types>
-using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}, pack<>{}))>;
+using selected_pack = std::decay_t<decltype(prune_voids_pack(pack<>{}, with_condition_pack<Condition, Types...>{}))>;
 template <template <typename...> typename Condition, typename CondPack, typename Pack>
 using selected_pack_multicondition = std::decay_t<decltype(select_pack<Condition>(pack<>{}, Pack{}, CondPack{}))>;
 
@@ -149,26 +206,23 @@ void print_pack()
 template <template <typename> typename Condition, typename... Types>
 using filtered_pack = std::decay_t<decltype(filter_pack<Condition>(pack<>{}, pack<Types...>{}))>;
 
-/// Check if a given pack Pack has a type T inside.
-template <typename T, typename Pack>
-struct has_type;
-
 template <typename T, typename... Us>
-struct has_type<T, pack<Us...>> : std::disjunction<std::is_same<T, Us>...> {
-};
+bool consteval has_type(framework::pack<Us...>)
+{
+  return (std::is_same_v<T, Us> || ...);
+}
 
-template <typename T, typename... Us>
-inline constexpr bool has_type_v = has_type<T, Us...>::value;
-
-template <template <typename, typename> typename Condition, typename T, typename Pack>
-struct has_type_conditional;
+template <typename T, typename P>
+inline constexpr bool has_type_v = has_type<T>(P{});
 
 template <template <typename, typename> typename Condition, typename T, typename... Us>
-struct has_type_conditional<Condition, T, pack<Us...>> : std::disjunction<Condition<T, Us>...> {
-};
+bool consteval has_type_conditional(framework::pack<Us...>)
+{
+  return (Condition<T, Us>::value || ...);
+}
 
-template <template <typename, typename> typename Condition, typename T, typename... Us>
-inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T, Us...>::value;
+template <template <typename, typename> typename Condition, typename T, typename P>
+inline constexpr bool has_type_conditional_v = has_type_conditional<Condition, T>(P{});
 
 template <typename T>
 constexpr size_t has_type_at(pack<> const&)
@@ -181,7 +235,7 @@ constexpr size_t has_type_at(pack<T1, Ts...> const&)
 {
   if constexpr (std::is_same_v<T, T1>) {
     return 0;
-  } else if constexpr (has_type_v<T, pack<Ts...>>) {
+  } else if constexpr (has_type<T>(pack<Ts...>{})) {
     return 1 + has_type_at<T>(pack<Ts...>{});
   }
   return sizeof...(Ts) + 2;
@@ -248,7 +302,7 @@ struct intersect_pack {
   {
     return filtered_pack<std::is_void,
                          std::conditional_t<
-                           has_type_v<pack_element_t<Indices, S1>, S2>,
+                           has_type<pack_element_t<Indices, S1>>(S2{}),
                            pack_element_t<Indices, S1>, void>...>{};
   }
   using type = decltype(make_intersection(std::make_index_sequence<pack_size(S1{})>{}));
@@ -280,7 +334,7 @@ struct subtract_pack {
   {
     return filtered_pack<std::is_void,
                          std::conditional_t<
-                           !has_type_v<pack_element_t<Indices, S1>, S2>,
+                           !has_type<pack_element_t<Indices, S1>>(S2{}),
                            pack_element_t<Indices, S1>, void>...>{};
   }
   using type = decltype(make_subtraction(std::make_index_sequence<pack_size(S1{})>{}));

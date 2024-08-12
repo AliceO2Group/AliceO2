@@ -18,6 +18,8 @@ enum struct DeploymentMode;
 
 struct DefaultsHelpers {
   static DeploymentMode deploymentMode();
+  /// @true if running online
+  static bool onlineDeploymentMode();
   /// get max number of timeslices in the queue
   static unsigned int pipelineLength();
 };

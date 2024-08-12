@@ -88,6 +88,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool requireSameRunType = true;                      ///< if loading calib objects from previous run, require it to be the same run type
   int tsDiffMax = 48;                                  ///< if loading calib objects from previous run, limit time between the object being stored and loaded again (in hours)
   unsigned int minNEventsSaveSlot = 100000;            ///< minimum amount a slot has to have in order to be taken into accoutn in finalize slot. THis is also relevant if the slot should be saved at the EOR
+  bool useStaticStartTimeSlot = true;                  ///< if set to true, allows to use the start timestamp set manually. This is important if data from a previous run was loaded as otherwise, the start-timestamp will not include data from the previous run
 
   // Parameters for pedestal calibration
   short maxPedestalRMS = 10; ///< Maximum value for RMS for pedestals (has to be tuned)

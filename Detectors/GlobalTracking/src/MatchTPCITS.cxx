@@ -11,6 +11,7 @@
 
 #include <TTree.h>
 #include <cassert>
+#include <algorithm>
 
 #include <fairlogger/Logger.h>
 #include "Field/MagneticField.h"
@@ -27,6 +28,7 @@
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/GeomConstants.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/GlobalParams.h"
 
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
@@ -43,6 +45,10 @@
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITStracking/IOUtils.h"
+
+#ifdef ENABLE_UPGRADES
+#include "ITS3Reconstruction/IOUtils.h"
+#endif
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.h"
@@ -102,7 +108,7 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
       doMatching(sec);
     }
     mTimer[SWDoMatching].Stop();
-    if (0) { // enabling this creates very verbose output
+    if constexpr (false) { // enabling this creates very verbose output
       mTimer[SWTot].Stop();
       printCandidatesTPC();
       printCandidatesITS();
@@ -112,7 +118,7 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
     selectBestMatches();
 
     bool fullMatchRefitDone = false;
-    if (mUseFT0 && Params::Instance().runAfterBurner) {
+    if (mUseFT0 && mParams->runAfterBurner) {
       fullMatchRefitDone = runAfterBurner(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs, calib);
     }
     if (!fullMatchRefitDone) {
@@ -237,7 +243,9 @@ void MatchTPCITS::init()
   }
 #endif
 
-  mRGHelper.init(); // prepare helper for TPC track / ITS clusters matching
+  if (mParams->runAfterBurner) { // only used in AfterBurner
+    mRGHelper.init();            // prepare helper for TPC track / ITS clusters matching
+  }
 
   clear();
 
@@ -635,7 +643,16 @@ bool MatchTPCITS::prepareITSData()
   const auto patterns = inp.getITSClustersPatterns();
   auto pattIt = patterns.begin();
   mITSClustersArray.reserve(clusITS.size());
+#ifdef ENABLE_UPGRADES
+  bool withITS3 = o2::GlobalParams::Instance().withITS3;
+  if (withITS3) {
+    o2::its3::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mIT3Dict);
+  } else {
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+  }
+#else
   o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+#endif
 
   // ITS clusters sizes
   mITSClusterSizes.reserve(clusITS.size());
@@ -643,18 +660,26 @@ bool MatchTPCITS::prepareITSData()
   for (auto& clus : clusITS) {
     auto pattID = clus.getPatternID();
     unsigned int npix;
+#ifdef ENABLE_UPGRADES
+    if ((pattID == o2::itsmft::CompCluster::InvalidPatternID) || ((withITS3) ? mIT3Dict->isGroup(pattID) : mITSDict->isGroup(pattID))) { // braces guarantee evaluation order
+#else
     if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
+#endif
       o2::itsmft::ClusterPattern patt;
       patt.acquirePattern(pattIt2);
       npix = patt.getNPixels();
     } else {
+#ifdef ENABLE_UPGRADES
+      if (withITS3) {
+        npix = mIT3Dict->getNpixels(pattID);
+      } else {
+        npix = mITSDict->getNpixels(pattID);
+      }
+#else
       npix = mITSDict->getNpixels(pattID);
+#endif
     }
-    if (npix < 255) {
-      mITSClusterSizes.push_back(npix);
-    } else {
-      mITSClusterSizes.push_back(255);
-    }
+    mITSClusterSizes.push_back(std::clamp(npix, 0u, 255u));
   }
 
   if (mMCTruthON) {
@@ -1405,16 +1430,23 @@ void MatchTPCITS::refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matche
   LOG(debug) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   int nToFit = (int)tpcToFit.size();
+  unsigned int nFailedRefit{0};
+
 #ifdef WITH_OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) \
+  reduction(+                                                     \
+            : nFailedRefit)
 #endif
   for (int ifit = 0; ifit < nToFit; ifit++) {
     int iTPC = tpcToFit[ifit], iITS;
     const auto& tTPC = mTPCWork[iTPC];
     if (refitTrackTPCITS(ifit, iTPC, iITS, matchedTracks, matchLabels, calib)) {
       mWinnerChi2Refit[iITS] = matchedTracks.back().getChi2Refit();
+    } else {
+      ++nFailedRefit;
     }
   }
+  LOGP(info, "Failed {} TPC-ITS refits out of {}", nFailedRefit, nToFit);
 
   // suppress tracks failed on refit and fill calib/debug data (if needed)
   int last = nToFit;
@@ -1546,7 +1578,7 @@ bool MatchTPCITS::refitTrackTPCITS(int slot, int iTPC, int& iITS, pmr::vector<o2
   auto& trfit = matchedTracks[slot];
   ((o2::track::TrackParCov&)trfit) = (const o2::track::TrackParCov&)tTPC;
   trfit.getParamOut() = (const o2::track::TrackParCov&)tITS; // create a copy of TPC track at xRef
-  trfit.getParamOut().setUserField(0);                  // reset eventual clones flag
+  trfit.getParamOut().setUserField(0);                       // reset eventual clones flag
   trfit.setPID(tTPC.getPID(), true);
   trfit.getParamOut().setPID(tTPC.getPID(), true);
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
@@ -1934,7 +1966,16 @@ bool MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
     return false;
   }
   mTimer[SWABMatch].Start(false);
+
   std::vector<ITSChipClustersRefs> itsChipClRefsBuff(mNThreads);
+#ifdef ENABLE_UPGRADES
+  // with upgrades the datatype changed, hence we need to initialize
+  // each element individually
+  std::generate(itsChipClRefsBuff.begin(), itsChipClRefsBuff.end(), []() {
+    return ITSChipClustersRefs(o2::its::GeometryTGeo::Instance()->getNumberOfChips());
+  });
+#endif
+
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
@@ -2831,9 +2872,22 @@ void MatchTPCITS::dumpTPCOrig(bool acc, int tpcIndex)
   ///< fill debug tree for TPC original tracks (passing pT cut)
   mTimer[SWDBG].Start(false);
   const auto& tpcOrig = mTPCTracksArray[tpcIndex];
-  uint8_t clSect = 0, clRow = 0;
+  uint8_t clSect = 0, clRow = 0, prevRow = 0xff;
   uint32_t clIdx = 0;
-  tpcOrig.getClusterReference(mTPCTrackClusIdx, tpcOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
+  int nshared = 0;
+  std::array<bool, 152> shMap{};
+  bool prevRawShared = false;
+  for (int i = 0; i < tpcOrig.getNClusterReferences(); i++) {
+    tpcOrig.getClusterReference(mTPCTrackClusIdx, i, clSect, clRow, clIdx);
+    unsigned int absoluteIndex = mTPCClusterIdxStruct->clusterOffset[clSect][clRow] + clIdx;
+    if (mTPCRefitterShMap[absoluteIndex] & GPUCA_NAMESPACE::gpu::GPUTPCGMMergedTrackHit::flagShared) {
+      if (!(prevRow == clRow && prevRawShared)) {
+        nshared++;
+      }
+      prevRow = clRow;
+      prevRawShared = true;
+    }
+  }
   int tb = tpcOrig.getTime0() * mNTPCOccBinLengthInv;
   float mltTPC = tb < 0 ? mTBinClOcc[0] : (tb >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[tb]);
   (*mDBGOut) << "tpcOrig"
@@ -2842,6 +2896,7 @@ void MatchTPCITS::dumpTPCOrig(bool acc, int tpcIndex)
              << "acc=" << acc
              << "chi2TPC=" << tpcOrig.getChi2()
              << "nClus=" << tpcOrig.getNClusters()
+             << "nShared=" << nshared
              << "time0=" << tpcOrig.getTime0()
              << "trc=" << ((o2::track::TrackParCov&)tpcOrig)
              << "minRow=" << clRow

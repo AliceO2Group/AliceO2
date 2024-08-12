@@ -102,6 +102,7 @@ void PID::initializeHistograms()
     mMapCanvas["CdEdxPIDHypothesisVsp"].emplace_back(std::make_unique<TCanvas>("CdEdxPIDHypothesisVsp", "PID Hypothesis Ratio"));
     mMapCanvas["CdEdxPIDHypothesisVsp"].at(0)->Divide(5, 2);
   }
+  mSeparationPowerCanvas.reset(new TCanvas("CSeparationPower", "Separation Power"));
 }
 
 //______________________________________________________________________________
@@ -130,7 +131,8 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
 {
   // ===| variables required for cutting and filling |===
   const auto& dEdx = track.getdEdx();
-  const auto pTPC = track.getP();
+  const auto absCharge = track.getAbsCharge();
+  const auto pTPC = (absCharge > 0) ? (track.getP() / absCharge) : track.getP(); // charge magnitude is divided getP() via getPtInv for pTPC/Z [fix for He3]
   const auto tgl = track.getTgl();
   const auto snp = track.getSnp();
   const auto phi = track.getPhi();
@@ -225,6 +227,7 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track, size_t nTracks)
       }
     }
   }
+
   if (mCreateCanvas) {
     for (auto const& pairC : mMapCanvas) {
       for (auto& canv : pairC.second) {

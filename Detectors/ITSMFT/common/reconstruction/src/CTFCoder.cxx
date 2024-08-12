@@ -229,7 +229,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
   sz += estimateBufferSize(static_cast<int>(CTF::BLCpattID), cc.pattID);
   sz += estimateBufferSize(static_cast<int>(CTF::BLCpattMap), cc.pattMap);
   sz *= 2. / 3; // if needed, will be autoexpanded
-  LOG(info) << "Estimated output size is " << sz << " bytes";
+  LOG(debug) << "Estimated output size is " << sz << " bytes";
   return sz;
 }
 

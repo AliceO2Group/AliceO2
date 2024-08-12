@@ -30,7 +30,7 @@ GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::ste
 
   const unsigned int maxTime = (param.par.continuousMaxTimeBin + 1) * ClusterNative::scaleTimePacked - 1;
 
-  for (unsigned int i = trackStart + get_global_id(0); i < trackEnd; i += get_global_size(0)) {
+  for (int i = trackStart + get_global_id(0); i < trackEnd; i += get_global_size(0)) {
     decompressTrack(cmprClusters, param, maxTime, i, decompressor.mAttachedClustersOffsets[i], decompressor);
   }
 }
@@ -133,10 +133,10 @@ GPUdii() void GPUTPCDecompressionKernels::Thread<GPUTPCDecompressionKernels::ste
   ClusterNative* GPUrestrict() clusterBuffer = decompressor.mNativeClustersBuffer;
   const ClusterNativeAccess* outputAccess = processors.ioPtrs.clustersNative;
   unsigned int* offsets = decompressor.mUnattachedClustersOffsets;
-  for (unsigned int i = get_global_id(0); i < GPUCA_ROW_COUNT * nSlices; i += get_global_size(0)) {
+  for (int i = get_global_id(0); i < GPUCA_ROW_COUNT * nSlices; i += get_global_size(0)) {
     unsigned int iRow = i % GPUCA_ROW_COUNT;
     unsigned int iSlice = sliceStart + (i / GPUCA_ROW_COUNT);
-    const int linearIndex = iSlice * GPUCA_ROW_COUNT + iRow;
+    const unsigned int linearIndex = iSlice * GPUCA_ROW_COUNT + iRow;
     unsigned int tmpBufferIndex = computeLinearTmpBufferIndex(iSlice, iRow, decompressor.mMaxNativeClustersPerBuffer);
     ClusterNative* buffer = clusterBuffer + outputAccess->clusterOffset[iSlice][iRow];
     if (decompressor.mNativeClustersIndex[linearIndex] != 0) {
