@@ -239,7 +239,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
                            vertexerElapsedTime,
                            mTimeFrame->getPrimaryVerticesNum(),
-                           mTimeFrame->getTotVertIteration()[0],
+                           mTimeFrame->getTotVertIteration().empty() == false ? mTimeFrame->getTotVertIteration()[0] : 0,
                            o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
                            rofspan.size() - mTimeFrame->getNoVertexROF(),
                            rofspan.size());
