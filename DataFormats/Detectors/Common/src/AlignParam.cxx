@@ -268,7 +268,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry(bool usePW) const
+bool AlignParam::applyToGeometry(bool usePW, bool addSensorPW, bool addMetalPW, bool addChipPW) const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -332,10 +332,20 @@ bool AlignParam::applyToGeometry(bool usePW) const
   if (path) {
     pathStr.append(path);
     if (getDetFromSymName(getSymName()) == "ITS" && (pathStr.find("ITSUChip") != std::string::npos) && usePW) {
+      auto metallay = node->GetNode()->GetDaughter(0);
       auto sensor = node->GetNode()->GetDaughter(1);
-      LOG(debug) << "adding " << path << "/" << sensor->GetName() << " volume to the PW";
-      gGeoManager->MakePhysicalNode(Form("%s/%s", path, sensor->GetName()));
-      pw->AddNode(Form("%s/%s", path, sensor->GetName()));
+      if (addSensorPW) {
+        gGeoManager->MakePhysicalNode(Form("%s/%s", path, sensor->GetName()));
+        pw->AddNode(Form("%s/%s", path, sensor->GetName()));
+      }
+      if (addMetalPW) {
+        gGeoManager->MakePhysicalNode(Form("%s/%s", path, metallay->GetName()));
+        pw->AddNode(Form("%s/%s", path, metallay->GetName()));
+      }
+      if (addChipPW) {
+        gGeoManager->MakePhysicalNode(path);
+        pw->AddNode(path);
+      }
     }
   }
   return true;

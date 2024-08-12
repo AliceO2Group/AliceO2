@@ -52,7 +52,7 @@ class AlignParam
   double getZ() const { return mZ; }
 
   /// apply object to geoemetry
-  bool applyToGeometry(bool usePW = false) const;
+  bool applyToGeometry(bool usePW = false, bool addSensorPW = false, bool addMetalPW = false, bool addChipPW = false) const;
 
   /// extract global delta matrix
   TGeoHMatrix createMatrix() const;

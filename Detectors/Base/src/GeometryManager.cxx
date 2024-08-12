@@ -258,7 +258,7 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
   auto& pars = o2::GeometryManagerParam::Instance();
   bool res = true;
   for (int i = 0; i < nvols; i++) {
-    if (!algPars[ord[i]].applyToGeometry(pars.useParallelWorld)) {
+    if (!algPars[ord[i]].applyToGeometry(pars.useParallelWorld, pars.addSensorToPW, pars.addMetalToPW, pars.addChipToPW)) {
       res = false;
       LOG(error) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
     }

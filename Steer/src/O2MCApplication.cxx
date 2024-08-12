@@ -182,9 +182,11 @@ bool O2MCApplicationBase::MisalignGeometry()
   auto& aligner = o2::base::Aligner::Instance();
   aligner.applyAlignment(confref.getTimestamp());
 
-  // export aligned geometry into different file
-  auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
-  gGeoManager->Export(alignedgeomfile.c_str());
+  // export aligned geometry into different file (only w/o PW)
+  if (gGeoManager->GetParallelWorld() == nullptr) {
+    auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
+    gGeoManager->Export(alignedgeomfile.c_str());
+  }
 
   // return original return value of misalignment procedure
   return true;

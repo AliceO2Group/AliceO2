@@ -20,6 +20,9 @@ namespace o2
 
 struct GeometryManagerParam : public o2::conf::ConfigurableParamHelper<GeometryManagerParam> {
   bool useParallelWorld = false;
+  bool addSensorToPW = false;
+  bool addMetalToPW = false;
+  bool addChipToPW = false;
 
   O2ParamDef(GeometryManagerParam, "GeometryManagerParam");
 };
