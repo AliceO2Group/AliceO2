@@ -228,6 +228,12 @@ int ReadConfiguration(int argc, char** argv)
       configStandalone.proc.ompThreads = 1;
     }
   }
+  if (configStandalone.setO2Settings) {
+    configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    configStandalone.rec.tpc.nWaysOuter = 1;
+    configStandalone.rec.tpc.trackReferenceX = 83;
+    configStandalone.proc.outputSharedClusterMap = 1;
+  }
 
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
