@@ -28,21 +28,45 @@
 namespace o2::tpc
 {
 
-//templated euqality check
-// for integer one would need a specialisation to check for == instead of <
+// templated euqality check
+//  for integer one would need a specialisation to check for == instead of <
 template <typename T>
+bool isEqualAbs(T x, T y, int n = 1)
+{
+  // Since `epsilon()` is the gap size (ULP, unit in the last place)
+  // of floating-point numbers in interval [1, 2), we can scale it to
+  // the gap size in interval [2^e, 2^{e+1}), where `e` is the exponent
+  // of `x` and `y`.
+
+  // If `x` and `y` have different gap sizes (which means they have
+  // different exponents), we take the smaller one. Taking the bigger
+  // one is also reasonable, I guess.
+  const T m = std::min(std::fabs(x), std::fabs(y));
+
+  // Subnormal numbers have fixed exponent, which is `min_exponent - 1`.
+  const int exp = m < std::numeric_limits<T>::min()
+                    ? std::numeric_limits<T>::min_exponent - 1
+                    : std::ilogb(m);
+
+  // We consider `x` and `y` equal if the difference between them is
+  // within `n` ULPs.
+  return std::fabs(x - y) <= n * std::ldexp(std::numeric_limits<T>::epsilon(), exp);
+}
+
+template <typename T>
+  requires(std::integral<T>)
 bool isEqualAbs(T val1, T val2)
 {
-  return std::abs(val1 - val2) < std::numeric_limits<T>::epsilon();
+  return val1 == val2;
 }
 
 BOOST_AUTO_TEST_CASE(CalArray_ROOTIO)
 {
-  //CalROC roc(PadSubset::ROC, 10);
+  // CalROC roc(PadSubset::ROC, 10);
   CalArray<unsigned> roc(PadSubset::ROC, 10);
 
   int iter = 0;
-  //unsigned iter=0;
+  // unsigned iter=0;
   for (auto& val : roc.getData()) {
     val = iter++;
   }
@@ -51,7 +75,7 @@ BOOST_AUTO_TEST_CASE(CalArray_ROOTIO)
   f->WriteObject(&roc, "roc");
   delete f;
 
-  //CalROC *rocRead = nullptr;
+  // CalROC *rocRead = nullptr;
   CalArray<unsigned>* rocRead = nullptr;
   f = TFile::Open("CalArray_ROOTIO.root");
   f->GetObject("roc", rocRead);
@@ -201,7 +225,7 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   //
   // ===| test operators with simple numbers |==================================
   //
-  const float number = 0.2;
+  const float number = 0.2f;
   bool isEqual = true;
 
   // + operator
@@ -320,4 +344,4 @@ BOOST_AUTO_TEST_CASE(CalDetTypeTest)
   BOOST_CHECK(testDict == true);
 }
 
-} // namespace o2
+} // namespace o2::tpc
