@@ -53,11 +53,11 @@ class GPUSettings
 #ifdef GPUCA_NOCOMPAT
 // Settings describing the global run parameters
 struct GPUSettingsGRP {
-  // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!
+  // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!, default value for newly added members for old data will be 0.
   float solenoidBzNominalGPU = -5.00668f; // solenoid field strength
   int constBz = 0;                        // for test-MC events with constant Bz
   int homemadeEvents = 0;                 // Toy-MC events
-  int continuousMaxTimeBin = 0;           // 0 for triggered events, -1 for default of 23ms
+  int continuousMaxTimeBin = 0;           // 0 for triggered events, -1 for default TF length
   int needsClusterer = 0;                 // Set to true if the data requires the clusterizer
   int doCompClusterDecode = 0;            // Set to true if the data contains compressed TPC clusters
 };
