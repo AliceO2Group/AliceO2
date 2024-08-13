@@ -103,7 +103,6 @@ void Detector::InitializeO2Detector()
   mMedSensHCal = getMediumID(ID_SC);
   mMedSensECalPad = getMediumID(ID_SIPAD);
   mMedSensECalPix = getMediumID(ID_SIPIX);
-
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
@@ -343,7 +342,7 @@ AliMixture( 8, "Ceramic    $", acer, zcer, denscer, 2, wcer);
   /// Si plate  -> idtmed[3600];
   Medium(ID_SIPAD, "Si sens pad$", 1, 0,
          isxfld, sxmgmx, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi, nullptr, 0);
-  /// Si plate  
+  /// Si plate
   Medium(ID_SIPIX, "Si sens pix$", 1, 0,
          isxfld, sxmgmx, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi, nullptr, 0);
 
