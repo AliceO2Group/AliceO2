@@ -415,7 +415,7 @@ struct GPUSmatrixImplFixtureSoloArray {
 
 BOOST_FIXTURE_TEST_CASE(MatrixInversionArray, GPUSmatrixImplFixtureSoloArray<1'000'000>)
 {
-   const int nBlocks{20}, nThreads{512};
+  const int nBlocks{20}, nThreads{512};
   GPUBenchmark benchmark("Array of 1'000'000 symmetric matrices inversion (" + std::to_string(nBlocks) + " blocks, " + std::to_string(nThreads) + " threads)");
   benchmark.start();
   gpu::invertMatrixKernelArray<MatSym3DGPU><<<nBlocks, nThreads>>>(static_cast<MatSym3DGPU*>(SMatrixSymArray_d.get()), 1'000'000);
