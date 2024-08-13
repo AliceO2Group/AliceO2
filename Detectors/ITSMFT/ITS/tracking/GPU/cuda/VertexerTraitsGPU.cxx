@@ -37,21 +37,22 @@ VertexerTraitsGPU::~VertexerTraitsGPU()
 {
 }
 
-void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
+void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams, const int iteration)
 {
   mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils, &mTfGPUParams);
 }
-void VertexerTraitsGPU::updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& tfPar)
+void VertexerTraitsGPU::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
   mTfGPUParams = tfPar;
-  mIndexTableUtils.setTrackingParameters(vrtPar);
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
-                                                  constants::math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
+  mIndexTableUtils.setTrackingParameters(vrtPar[0]);
+  for (auto& par : mVrtParams) {
+    par.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * par.phiCut / constants::math::TwoPi));
+    par.zSpan = static_cast<int>(std::ceil(par.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
+  }
 }
 
-void VertexerTraitsGPU::computeTracklets()
+void VertexerTraitsGPU::computeTracklets(const int iteration)
 {
   if (!mTimeFrameGPU->getClusters().size()) {
     return;
@@ -214,11 +215,11 @@ void VertexerTraitsGPU::computeTracklets()
   }
 }
 
-void VertexerTraitsGPU::computeTrackletMatching()
+void VertexerTraitsGPU::computeTrackletMatching(const int iteration)
 {
 }
 
-void VertexerTraitsGPU::computeVertices()
+void VertexerTraitsGPU::computeVertices(const int iteration)
 {
 }
 
