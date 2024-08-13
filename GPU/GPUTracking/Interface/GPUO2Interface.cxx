@@ -46,7 +46,7 @@ struct GPUO2Interface_Internals {
 };
 } // namespace o2::gpu
 
-GPUO2Interface::GPUO2Interface() : mInternals(new GPUO2Interface_Internals){};
+GPUO2Interface::GPUO2Interface() : mInternals(new GPUO2Interface_Internals) = default;
 
 GPUO2Interface::~GPUO2Interface() { Deinitialize(); }
 

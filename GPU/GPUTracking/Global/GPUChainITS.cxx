@@ -37,11 +37,7 @@ class GPUFrameworkExternalAllocator final : public o2::its::ExternalAllocator
 };
 } // namespace o2::its
 
-GPUChainITS::~GPUChainITS()
-{
-  mITSTrackerTraits.reset();
-  mITSVertexerTraits.reset();
-}
+GPUChainITS::~GPUChainITS() = default;
 
 GPUChainITS::GPUChainITS(GPUReconstruction* rec, unsigned int maxTracks) : GPUChain(rec), mMaxTracks(maxTracks) {}
 
