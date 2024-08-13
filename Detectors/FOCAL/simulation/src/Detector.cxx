@@ -101,11 +101,9 @@ void Detector::InitializeO2Detector()
   }
 
   mMedSensHCal = getMediumID(ID_SC);
-  mMedSensECalPad = getMediumID(ID_SILICON);
+  mMedSensECalPad = getMediumID(ID_SIPAD);
+  mMedSensECalPix = getMediumID(ID_SIPIX);
 
-  //
-  // TODO for Pixels
-  //
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
@@ -148,16 +146,18 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   }
 
   // Processing ECAL Pad hits
-  bool flagECAL = true;
+  bool flagECALPad = true;
   if (TVirtualMC::GetMC()->CurrentMedium() == mMedSensECalPad) {
-    flagECAL = ProcessHitsEPad(v);
+    flagECALPad = ProcessHitsEPad(v);
   }
 
-  //
-  // TODO for Pixels
-  //
+  // Processing ECAL Pixel hits
+  bool flagECALPix = true;
+  if (fMC->CurrentMedium() == mMedSensECalPix) {
+    flagECALPix = ProcessHitsEPix(v);
+  }
 
-  return (flagHCAL || flagECAL);
+  return (flagHCAL || flagECALPad || flagECALPix);
   // return true;
 }
 
@@ -341,7 +341,10 @@ AliMixture( 8, "Ceramic    $", acer, zcer, denscer, 2, wcer);
   Medium(ID_TUNGSTEN, "W conv.$", 0, 0,
          isxfld, sxmgmx, 10.0, 0.1, 0.1, 0.1, 0.1, nullptr, 0);
   /// Si plate  -> idtmed[3600];
-  Medium(ID_SILICON, "Si sens$", 1, 0,
+  Medium(ID_SIPAD, "Si sens pad$", 1, 0,
+         isxfld, sxmgmx, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi, nullptr, 0);
+  /// Si plate  
+  Medium(ID_SIPIX, "Si sens pix$", 1, 0,
          isxfld, sxmgmx, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi, nullptr, 0);
 
   //// G10 plate -> idtmed[3601];
@@ -883,7 +886,7 @@ void Detector::CreateECALGeometry()
 
     if (icomp->material() == "SiPad") {
       // TVirtualMC::GetMC()->Gsvolu("EWSIPAD1", "BOX", idtmed[3600], pars, 4);
-      TVirtualMC::GetMC()->Gsvolu("EWSIPAD1", "BOX", ID_SILICON, pars, 4);
+      TVirtualMC::GetMC()->Gsvolu("EWSIPAD1", "BOX", ID_SIPAD, pars, 4);
       // mSensitiveECALPad.push_back("EWSIPAD1");
       mSensitive.push_back("EWSIPAD1");
       gGeoManager->GetVolume("EWSIPAD1")->SetLineColor(kOrange - 7);
@@ -898,7 +901,7 @@ void Detector::CreateECALGeometry()
     // Pixels (sensitive layer)
     if (icomp->material() == "SiPix") {
       // TVirtualMC::GetMC()->Gsvolu("EWSIPIX1", "BOX", idtmed[3600], pars, 4);
-      TVirtualMC::GetMC()->Gsvolu("EWSIPIX1", "BOX", ID_SILICON, pars, 4);
+      TVirtualMC::GetMC()->Gsvolu("EWSIPIX1", "BOX", ID_SIPIX, pars, 4);
       // mSensitiveECALPix.push_back("EWSIPIX1");
       mSensitive.push_back("EWSIPIX1");
       gGeoManager->GetVolume("EWSIPIX1")->SetLineColor(kPink);
@@ -959,7 +962,7 @@ void Detector::CreateECALGeometry()
   // Create SiPad box for the two sensitive layers to be placed in front of ECAL
   TGeoBBox* siPadBox = new TGeoBBox("SiPadBox", geom->getTowerSizeX() / 2. + geom->getTowerGapSizeX() / 2.,
                                     geom->getTowerSizeY() / 2. + geom->getTowerGapSizeY() / 2., 0.03 / 2.0);
-  TGeoVolume* volumeSiPad = new TGeoVolume("volSiPad", siPadBox, gGeoManager->GetMedium(getMediumID(ID_SILICON)));
+  TGeoVolume* volumeSiPad = new TGeoVolume("volSiPad", siPadBox, gGeoManager->GetMedium(getMediumID(ID_SIPAD)));
   volumeSiPad->SetLineColor(kOrange + 7);
   // mSensitiveECALPad.push_back(volumeSiPad->GetName());
   mSensitive.push_back(volumeSiPad->GetName());
@@ -1117,9 +1120,49 @@ bool Detector::ProcessHitsHCAL(FairVolume* v)
 
 bool Detector::ProcessHitsEPix(FairVolume* v)
 {
-  LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << TVirtualMC::GetMC()->CurrentVolPath();
-  //
-  // TODO: to be filled with body
-  //
+  LOG(debug) << "We are in sensitive volume " << v->GetName() << ": " << fMC->CurrentVolPath();
+
+  double eloss = fMC->Edep() * 1e9; // energy in eV  (GeV->eV)
+  if (eloss < DBL_EPSILON) {
+    return false; // only process hits which actually deposit some energy in the FOCAL
+  }
+
+  // In case of new parent track create new track reference
+  auto o2stack = static_cast<o2::data::Stack*>(fMC->GetStack());
+  if (!mCurrentSuperparent->mHasTrackReference) {
+    float x, y, z, px, py, pz, e;
+    fMC->TrackPosition(x, y, z);
+    fMC->TrackMomentum(px, py, pz, e);
+    o2::TrackReference trackref(x, y, z, px, py, pz, fMC->TrackLength(), fMC->TrackTime(), mCurrentParentID, GetDetId());
+    o2stack->addTrackReference(trackref);
+    mCurrentSuperparent->mHasTrackReference = true;
+  }
+
+  float posX, posY, posZ;
+  fMC->TrackPosition(posX, posY, posZ);
+
+  auto [indetector, col, row, layer, segment] = mGeometry->getVirtualInfo(posX, posY, posZ);
+
+  if (!indetector) {
+    // particle outside the detector
+    return true;
+  }
+
+  auto currenthit = FindHit(mCurrentParentID, col, row, layer);
+  if (!currenthit) {
+    // Condition for new hit:
+    // - Processing different partent track (parent track must be produced outside FOCAL)
+    // - Inside different cell
+    // - First track of the event
+    Double_t time = fMC->TrackTime() * 1e9; // time in ns
+    LOG(debug3) << "Adding new hit for parent " << mCurrentParentID << " and cell Col: " << col << " Row: " << row << " segment: " << segment;
+
+    /// check handling of primary particles
+    AddHit(mCurrentParentID, mCurrentPrimaryID, mCurrentSuperparent->mEnergy, row * col + col, o2::focal::Hit::Subsystem_t::EPIXELS, math_utils::Point3D<float>(posX, posY, posZ), time, eloss);
+    o2stack->addHit(GetDetId());
+  } else {
+    LOG(debug3) << "Adding energy to the current hit";
+    currenthit->SetEnergyLoss(currenthit->GetEnergyLoss() + eloss);
+  }
   return true;
 }
