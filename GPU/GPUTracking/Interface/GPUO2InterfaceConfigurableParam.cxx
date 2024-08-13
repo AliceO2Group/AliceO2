@@ -103,10 +103,12 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
   obj.configReconstruction = rec;
   obj.configDisplay = display;
   obj.configQA = QA;
-  if (global.continuousMaxTimeBin) {
-    obj.configGRP.continuousMaxTimeBin = global.continuousMaxTimeBin;
-  } else {
-    obj.configGRP.continuousMaxTimeBin = global.tpcTriggeredMode ? 0 : -1;
+  if (obj.configGRP.continuousMaxTimeBin == 0 || obj.configGRP.continuousMaxTimeBin == -1) {
+    if (global.continuousMaxTimeBin) {
+      obj.configGRP.continuousMaxTimeBin = global.continuousMaxTimeBin;
+    } else {
+      obj.configGRP.continuousMaxTimeBin = global.tpcTriggeredMode ? 0 : -1;
+    }
   }
   if (global.solenoidBzNominalGPU > -1e6f) {
     obj.configGRP.solenoidBzNominalGPU = global.solenoidBzNominalGPU;
