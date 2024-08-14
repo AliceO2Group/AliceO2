@@ -98,7 +98,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration, int iROFslice, in
 
         for (int iV{startVtx}; iV < endVtx; ++iV) {
           auto& primaryVertex{primaryVertices[iV]};
-          if (primaryVertex.isFlagSet(1) && iteration != 3) {
+          if (primaryVertex.isFlagSet(2) && iteration != 3) {
             continue;
           }
           const float resolution = o2::gpu::CAMath::Sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
