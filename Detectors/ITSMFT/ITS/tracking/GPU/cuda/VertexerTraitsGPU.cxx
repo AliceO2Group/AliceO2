@@ -33,10 +33,6 @@ VertexerTraitsGPU::VertexerTraitsGPU()
   setIsGPU(true);
 }
 
-VertexerTraitsGPU::~VertexerTraitsGPU()
-{
-}
-
 void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams, const int iteration)
 {
   mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils, &mTfGPUParams);
