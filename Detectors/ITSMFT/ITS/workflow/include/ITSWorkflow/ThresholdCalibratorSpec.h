@@ -235,7 +235,6 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeRUCopy[N_RU] = {0};
   short int mCdwCntRU[N_RU][N_ROW] = {{0}};
   short int mRowRU[N_RU] = {0};
-  short int mLastRowRU[N_RU] = {0};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
