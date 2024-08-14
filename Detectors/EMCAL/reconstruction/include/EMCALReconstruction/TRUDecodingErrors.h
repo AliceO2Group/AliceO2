@@ -29,7 +29,7 @@ class FastOrStartTimeInvalidException : public std::exception
  public:
   /// \brief Constructor
   /// \param l0size Size of the L0 patch
-  FastOrStartTimeInvalidException(unsigned int time) : std::exception(), mErrorMessage(), mStartTime(time)
+  FastOrStartTimeInvalidException(int time) : std::exception(), mErrorMessage(), mStartTime(time)
   {
     mErrorMessage = "FastOr starttime invalid: " + std::to_string(time);
   }
@@ -46,7 +46,7 @@ class FastOrStartTimeInvalidException : public std::exception
 
   /// \brief Get the size of the L0 patch
   /// \return Size of the L0 patch
-  unsigned int getStartTime() const noexcept { return mStartTime; }
+  int getStartTime() const noexcept { return mStartTime; }
 
  private:
   std::string mErrorMessage; ///< Buffer for error message

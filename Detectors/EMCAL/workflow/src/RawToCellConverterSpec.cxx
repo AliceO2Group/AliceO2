@@ -456,6 +456,7 @@ void RawToCellConverterSpec::addFEEChannelToEvent(o2::emcal::EventContainer& cur
     if (chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
       // high- / low-gain cell
       CellID = getCellAbsID(position.mSupermoduleID, position.mColumn, position.mRow);
+
       isLowGain = chantype == o2::emcal::ChannelType_t::LOW_GAIN;
     } else {
       CellID = geLEDMONAbsID(position.mSupermoduleID, position.mColumn); // Module index encoded in colum for LEDMONs
@@ -562,7 +563,12 @@ void RawToCellConverterSpec::addTRUChannelToEvent(o2::emcal::EventContainer& cur
           //  std::cout << adc << ", ";
           //}
           // std::cout << std::endl;
-          currentEvent.setFastOR(absFastOR, bunch.getStartTime(), bunch.getADC());
+
+          try {
+            currentEvent.setFastOR(absFastOR, bunch.getStartTime(), bunch.getADC());
+          } catch (FastOrStartTimeInvalidException& e) {
+            handleFastORStartTimeErrors(e, position.mFeeID, tru);
+          }
         }
       } catch (FastORIndexException& e) {
         handleFastORErrors(e, position.mFeeID, tru);
@@ -929,6 +935,22 @@ void RawToCellConverterSpec::handleFastORErrors(const FastORIndexException& e, u
 {
   if (mCreateRawDataErrors) {
     mOutputDecoderErrors.emplace_back(linkID, ErrorTypeFEE::ErrorSource_t::TRU_ERROR, reconstructionerrors::getErrorCodeFromTRUDecodingError(reconstructionerrors::TRUDecodingError_t::TRU_INDEX_INVALID), indexTRU, -1);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " TRU decoding: " << e.what() << " in FEE ID " << linkID << ", TRU " << indexTRU;
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+}
+
+void RawToCellConverterSpec::handleFastORStartTimeErrors(const FastOrStartTimeInvalidException& e, unsigned int linkID, unsigned int indexTRU)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(linkID, ErrorTypeFEE::ErrorSource_t::TRU_ERROR, reconstructionerrors::getErrorCodeFromTRUDecodingError(reconstructionerrors::TRUDecodingError_t::FASTOR_STARTTIME_INVALID), indexTRU, -1);
   }
   if (mNumErrorMessages < mMaxErrorMessages) {
     LOG(warning) << " TRU decoding: " << e.what() << " in FEE ID " << linkID << ", TRU " << indexTRU;

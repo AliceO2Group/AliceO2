@@ -63,6 +63,7 @@ o2_target_root_dictionary(
         include/EMCALReconstruction/RecoParam.h
         include/EMCALReconstruction/StuDecoder.h
         include/EMCALReconstruction/TRUDataHandler.h
+        include/EMCALReconstruction/TRUDecodingErrors.h
 )
 
 o2_add_executable(rawreader-file
