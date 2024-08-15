@@ -85,8 +85,10 @@ std::unique_ptr<GPUParam> GPUO2InterfaceUtils::getFullParam(float solenoidBz, un
   if (!pConfiguration) {
     tmpConfig = std::make_unique<GPUO2InterfaceConfiguration>();
     pConfiguration = &tmpConfig;
+    (*pConfiguration)->configGRP.continuousMaxTimeBin = -1;
   } else if (!*pConfiguration) {
     *pConfiguration = std::make_unique<GPUO2InterfaceConfiguration>();
+    (*pConfiguration)->configGRP.continuousMaxTimeBin = -1;
   }
   (*pConfiguration)->configGRP.solenoidBzNominalGPU = solenoidBz;
   if (pO2Settings && *pO2Settings) {

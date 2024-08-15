@@ -40,7 +40,7 @@ class GPUReconstructionOCL1Backend : public GPUReconstructionOCL
   template <class S, class T, int I, bool MULTI>
   S& getKernelObject();
 
-  RecoStepField AvailableRecoSteps() override { return (RecoStep::TPCSliceTracking); }
+  RecoStepField AvailableGPURecoSteps() override { return (RecoStep::TPCSliceTracking); }
   bool ContextForAllPlatforms() override { return true; }
   bool CheckPlatform(unsigned int i) override;
   int GetOCLPrograms() override;

@@ -27,10 +27,12 @@
 #include <Math/SMatrix.h>
 #include <random>
 
-using MatSym3DGPU = o2::math_utils::SMatrixGPU<float, 3, 3, o2::math_utils::MatRepSymGPU<float, 3>>;
-using MatSym3D = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepSym<float, 3>>;
-using Mat3DGPU = o2::math_utils::SMatrixGPU<float, 3, 3, o2::math_utils::MatRepStdGPU<float, 3, 3>>;
-using Mat3D = ROOT::Math::SMatrix<float, 3, 3, ROOT::Math::MatRepStd<float, 3, 3>>;
+using MatSym3DGPU = o2::math_utils::SMatrixGPU<double, 3, 3, o2::math_utils::MatRepSymGPU<double, 3>>;
+using MatSym3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>;
+using Mat3DGPU = o2::math_utils::SMatrixGPU<double, 3, 3, o2::math_utils::MatRepStdGPU<double, 3, 3>>;
+using Mat3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepStd<double, 3, 3>>;
+
+static constexpr double tolerance = 1e-8;
 
 #define GPU_CHECK(call)                                                                      \
   do {                                                                                       \
@@ -130,7 +132,7 @@ GPUg() void copyMatrixKernelArray(
 
 // Function to compare two matrices element-wise with a specified tolerance
 template <typename MatrixType>
-void compareMatricesElementWise(const MatrixType& mat1, const MatrixType& mat2, float tolerance)
+void compareMatricesElementWise(const MatrixType& mat1, const MatrixType& mat2, double tolerance)
 {
   auto tol = boost::test_tools::tolerance(tolerance);
 
@@ -228,7 +230,7 @@ struct GPUSMatrixImplFixtureSolo {
   {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(1.0, 10.0);
+    std::uniform_real_distribution<double> dis(1.0, 10.0);
 
     // Initialize host matrices with random values
     for (int i = 0; i < 3; ++i) {
@@ -255,7 +257,6 @@ struct GPUSMatrixImplFixtureSolo {
 
 BOOST_FIXTURE_TEST_CASE(MatrixInversion, GPUSMatrixImplFixtureSolo)
 {
-  float tolerance = 0.00001f;
   const int nBlocks{1}, nThreads{1};
   GPUBenchmark benchmark("Single symmetric matrix inversion (" + std::to_string(nBlocks) + " blocks, " + std::to_string(nThreads) + " threads)");
   benchmark.start();
@@ -290,7 +291,7 @@ BOOST_FIXTURE_TEST_CASE(MatrixInversion, GPUSMatrixImplFixtureSolo)
   identity(2, 2) = 1;
   auto operation = SMatrix_h * SMatrix_original_h;
   Mat3D result;
-  ROOT::Math::Assign<float, 3, 3, decltype(operation), ROOT::Math::MatRepStd<float, 3, 3>, ROOT::Math::MatRepStd<float, 3, 3>>::Evaluate(result, operation);
+  ROOT::Math::Assign<double, 3, 3, decltype(operation), ROOT::Math::MatRepStd<double, 3, 3>, ROOT::Math::MatRepStd<double, 3, 3>>::Evaluate(result, operation);
   compareMatricesElementWise(result, identity, tolerance);
 }
 
@@ -307,7 +308,7 @@ struct GPUSMatrixImplFixtureDuo {
   {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(1.0, 10.0);
+    std::uniform_real_distribution<double> dis(1.0, 10.0);
 
     // Initialize host matrices with random values
     for (int i = 0; i < 3; ++i) {
@@ -384,7 +385,7 @@ struct GPUSmatrixImplFixtureSoloArray {
   {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis(1.0, 10.0);
+    std::uniform_real_distribution<double> dis(1.0, 10.0);
 
     // Initialize host matrices with random values
     for (size_t iMatrix{0}; iMatrix < D; ++iMatrix) {
@@ -414,9 +415,7 @@ struct GPUSmatrixImplFixtureSoloArray {
 
 BOOST_FIXTURE_TEST_CASE(MatrixInversionArray, GPUSmatrixImplFixtureSoloArray<1'000'000>)
 {
-  float tolerance = 0.00001f;
   const int nBlocks{20}, nThreads{512};
-
   GPUBenchmark benchmark("Array of 1'000'000 symmetric matrices inversion (" + std::to_string(nBlocks) + " blocks, " + std::to_string(nThreads) + " threads)");
   benchmark.start();
   gpu::invertMatrixKernelArray<MatSym3DGPU><<<nBlocks, nThreads>>>(static_cast<MatSym3DGPU*>(SMatrixSymArray_d.get()), 1'000'000);

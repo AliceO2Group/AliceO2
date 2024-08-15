@@ -210,10 +210,10 @@ class GPUReconstruction
   int NStreams() const { return mNStreams; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
-  RecoStepField GetRecoSteps() const { return mRecoSteps; }
-  RecoStepField GetRecoStepsGPU() const { return mRecoStepsGPU; }
-  InOutTypeField GetRecoStepsInputs() const { return mRecoStepsInputs; }
-  InOutTypeField GetRecoStepsOutputs() const { return mRecoStepsOutputs; }
+  RecoStepField GetRecoSteps() const { return mRecoSteps.steps; }
+  RecoStepField GetRecoStepsGPU() const { return mRecoSteps.stepsGPUMask; }
+  InOutTypeField GetRecoStepsInputs() const { return mRecoSteps.inputs; }
+  InOutTypeField GetRecoStepsOutputs() const { return mRecoSteps.outputs; }
   int getRecoStepNum(RecoStep step, bool validCheck = true);
   int getGeneralStepNum(GeneralStep step, bool validCheck = true);
 
@@ -286,7 +286,7 @@ class GPUReconstruction
   int ReadStructFromFile(const char* file, T* obj);
 
   // Others
-  virtual RecoStepField AvailableRecoSteps() { return RecoStep::AllRecoSteps; }
+  virtual RecoStepField AvailableGPURecoSteps() { return RecoStep::AllRecoSteps; }
   virtual bool CanQueryMaxMemory() { return false; }
 
   // Pointers to tracker classes
@@ -304,10 +304,7 @@ class GPUReconstruction
   GPUOutputControl mInputControl;                       // Prefefined input memory location for reading standalone dumps
   std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers; // Scalers how much memory will be needed
 
-  RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
-  RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
-  InOutTypeField mRecoStepsInputs = 0;
-  InOutTypeField mRecoStepsOutputs = 0;
+  GPURecoStepConfiguration mRecoSteps;
 
   std::string mDeviceName = "CPU";
 
