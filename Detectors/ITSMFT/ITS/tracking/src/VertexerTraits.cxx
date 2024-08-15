@@ -469,7 +469,7 @@ void VertexerTraits::computeVertices(const int iteration)
                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2()); // In place of chi2
 
         vertices.back().setTimeStamp(rofId);
-        vertices.back().setFlags(iteration);
+        vertices.back().setFlags(iteration + 1); // This can be interpreted as the UPC flag if it is > 0
         if (mTimeFrame->hasMCinformation()) {
           std::vector<o2::MCCompLabel> labels;
           for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
