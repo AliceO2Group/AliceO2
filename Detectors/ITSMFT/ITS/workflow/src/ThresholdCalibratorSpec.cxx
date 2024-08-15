@@ -1338,6 +1338,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         // count the zeros
         if (!mRunTypeUp) {
           mRunTypeRU[iRU]++;
+          mRunTypeRUCopy[iRU]++;
         }
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
         if (this->mScanType == 'T') {
@@ -1361,7 +1362,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         // count the last N injections
         short int checkVal = (mScanType == 'I') ? mMin : mMax;
         if (loopval == checkVal && realcharge == mMin2) { // the second condition is relevant only for mScanType=p
-          mCdwCntRU[iRU]++;
+          mCdwCntRU[iRU][row]++;
           mRowRU[iRU] = row; // keep the row
         }
         if (this->mVerboseOutput) {
@@ -1476,16 +1477,17 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     }
     std::vector<short int> chipEnabled = getChipListFromRu(iRU, mActiveLinks[iRU]); // chip boundaries
     // Fill the chipDone info string
-    if (mRunTypeRU[iRU] == nInjScaled * nL) {
+    if (mRunTypeRUCopy[iRU] == nInjScaled * nL) {
       for (short int iChip = 0; iChip < chipEnabled.size(); iChip++) {
         if ((chipEnabled[iChip] % mChipModBase) != mChipModSel) {
           continue;
         }
         addDatabaseEntry(chipEnabled[iChip], "", std::vector<float>(), true);
       }
+      mRunTypeRUCopy[iRU] = 0; // reset here is safer (the other counter is reset in finalize)
     }
     // Check if scan of a row is finished: only for specific scans!
-    bool passCondition = (mCdwCntRU[iRU] == nInjScaled * nL);
+    bool passCondition = (mCdwCntRU[iRU][mRowRU[iRU]] >= nInjScaled * nL);
     if (mScanType != 'D' && mScanType != 'A' && mScanType != 'P' && mScanType != 'p' && mScanType != 'R' && mScanType != 'r' && passCondition) {
       // extract data from the row
       for (short int iChip = 0; iChip < chipEnabled.size(); iChip++) {
@@ -1503,7 +1505,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           }
         }
       }
-      mCdwCntRU[iRU] = 0; // reset
+      mCdwCntRU[iRU][mRowRU[iRU]] = 0; // reset
     }
   } // end loop on RuSet
 
