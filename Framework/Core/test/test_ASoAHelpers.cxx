@@ -42,7 +42,7 @@ TEST_CASE("IteratorTuple")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
 
   TestA tests{tableA};
 
@@ -113,8 +113,8 @@ TEST_CASE("CombinationsGeneratorConstruction")
   auto tableB = builderB.finalize();
   REQUIRE(tableB->num_rows() == 4);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
-  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  using TestB = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X>;
   using ConcatTest = Concat<TestA, TestB>;
 
   TestA testsA{tableA};
@@ -344,9 +344,9 @@ TEST_CASE("Combinations")
   auto tableC = builderC.finalize();
   REQUIRE(tableC->num_rows() == 4);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
-  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
-  using TestC = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::Z>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
+  using TestB = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X>;
+  using TestC = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y, test::Z>;
   using ConcatTest = Concat<TestA, TestB>;
 
   TestA testsA{tableA};
@@ -799,7 +799,7 @@ TEST_CASE("BreakingCombinations")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
 
   TestA testsA{tableA};
 
@@ -864,8 +864,8 @@ TEST_CASE("SmallTableCombinations")
   auto tableB = builderB.finalize();
   REQUIRE(tableB->num_rows() == 3);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
-  using TestB = o2::soa::Table<o2::soa::Index<>, test::X>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
+  using TestB = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X>;
 
   TestA testsA{tableA};
   TestB testsB{tableB};
@@ -921,7 +921,7 @@ TEST_CASE("BlockCombinations")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 10);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
   TestA testA{tableA};
   REQUIRE(10 == testA.size());
 
@@ -1204,7 +1204,7 @@ TEST_CASE("CombinationsHelpers")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
 
   TestA testsA{tableA};
 
@@ -1262,7 +1262,7 @@ TEST_CASE("CombinationsHelpers")
   auto tableB = builderB.finalize();
   REQUIRE(tableB->num_rows() == 10);
 
-  using TestB = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  using TestB = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
   TestB testB{tableB};
   REQUIRE(10 == testB.size());
 
@@ -1298,7 +1298,7 @@ TEST_CASE("CombinationsHelpers")
 
 TEST_CASE("ConstructorsWithoutTables")
 {
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
   NoBinningPolicy<test::Y> noBinning;
 
   int count = 0;
@@ -1343,7 +1343,7 @@ TEST_CASE("BlockCombinationsCounters")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 10);
 
-  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
   TestA testA{tableA};
   REQUIRE(10 == testA.size());
 
