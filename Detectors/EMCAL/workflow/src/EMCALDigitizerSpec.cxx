@@ -143,6 +143,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       break;
     }
 
+    if (intRate < 10000.) {
+      break;
+    }
+
     collisionN++;
 
     mDigitizerTRU.setEventTime(timesview[collID]);
