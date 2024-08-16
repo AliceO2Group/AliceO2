@@ -45,7 +45,7 @@ enum TrackFlags : uint32_t {
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {
-  ITSrefit = 0x1,
+  ITSrefit = 0x1, // for SPD tracklets, 0x1 = tracklet from cluster not used in tracking
   TPCrefit = 0x2,
   GoldenChi2 = 0x4,
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
