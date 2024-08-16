@@ -59,6 +59,7 @@ jobs:
         run: |
           # git diff --quiet exits with 1 if any tracked files have changed, and
           # with 0 otherwise.
+          set -e
           if git diff --quiet; then
             exit  # Nothing has changed, so no need to send a PR.
           fi
@@ -70,8 +71,7 @@ jobs:
           # Send pull request
           # We need to use "gh" ourselves because alisw/pull-request gets
           # confused when multiple repos are checked out.
-          GH_TOKEN="$GITHUB_TOKEN" gh pr create -B \
-          AliceO2Group:master -H alibuild:auto-datamodel-doc \
+          GH_TOKEN="$GITHUB_TOKEN" gh pr create -B master \
           --no-maintainer-edit -t 'Automatic data model update' -b "This update \
           to the data model documentation was automatically created from \
           tonight's O2 dev branch." || true
