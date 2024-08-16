@@ -151,7 +151,13 @@ class Compressor
   /** encoder private functions and data members **/
 
   int encoderSpider(int itrm);
-  inline void encoderRewind() { mEncoderPointer = reinterpret_cast<uint32_t*>(mEncoderBuffer); };
+  inline void encoderRewind()
+  {
+    mEncoderPointer = reinterpret_cast<uint32_t*>(mEncoderBuffer);
+    if (mEncoderPointerStart > mEncoderPointer) {
+      mEncoderPointerStart = mEncoderPointer;
+    }
+  };
   inline int encoderNext()
   {
     if (mEncoderPointer + 1 >= mEncoderPointerMax) {
