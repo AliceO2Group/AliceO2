@@ -146,6 +146,7 @@ class GPUTPCSliceData
   GPUTPCSliceData(const GPUTPCSliceData&) CON_DELETE;            //
 #endif
   GPUd() void CreateGrid(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, float yMin, float yMax, float zMin, float zMax);
+  GPUd() void SetRowGridEmpty(MEM_GLOBAL(GPUTPCRow) & GPUrestrict() row);
   GPUd() static void GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, MEM_GLOBAL(GPUTPCRow) * GPUrestrict() row, int& maxY, int& maxZ);
   GPUd() unsigned int GetGridSize(unsigned int nHits, unsigned int nRows);
 
