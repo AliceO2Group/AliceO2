@@ -414,13 +414,13 @@ void TimeFrameGPU<nLayers>::initDevice(IndexTableUtils* utils,
   //     mIndexTableUtils.setTrackingParameters(trkParam);
   //   }
 
-  mMemChunks.resize(mGpuParams.nTimeFrameChunks, GpuTimeFrameChunk<nLayers>{static_cast<TimeFrame*>(this), mGpuParams});
+  // mMemChunks.resize(mGpuParams.nTimeFrameChunks, GpuTimeFrameChunk<nLayers>{static_cast<TimeFrame*>(this), mGpuParams});
   // mVerticesInChunks.resize(mGpuParams.nTimeFrameChunks);
   // mNVerticesInChunks.resize(mGpuParams.nTimeFrameChunks);
   // mLabelsInChunks.resize(mGpuParams.nTimeFrameChunks);
   // LOGP(debug, "Size of fixed part is: {} MB", GpuTimeFrameChunk<nLayers>::computeFixedSizeBytes(mGpuParams) / MB);
   // LOGP(debug, "Size of scaling part is: {} MB", GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), mGpuParams) / MB);
-  LOGP(info, "Allocating {} chunks of {} rofs capacity each.", mGpuParams.nTimeFrameChunks, mGpuParams.nROFsPerChunk);
+  // LOGP(info, "Allocating {} chunks of {} rofs capacity each.", mGpuParams.nTimeFrameChunks, mGpuParams.nROFsPerChunk);
 
   // for (int iChunk{0}; iChunk < mMemChunks.size(); ++iChunk) {
   //   mMemChunks[iChunk].allocate(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mGpuParams.maxGPUMemoryGB), mGpuStreams[iChunk]);

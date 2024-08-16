@@ -59,9 +59,8 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
   }
 }
 
-namespace o2
-{
-namespace its
+namespace o2::its
+
 {
 using namespace constants::its2;
 
@@ -130,7 +129,7 @@ GPUg() void fitTrackSeedsKernel(
   CellSeed* trackSeeds,
   TrackingFrameInfo** foundTrackingFrameInfo,
   o2::its::TrackITSExt* tracks,
-  const size_t nSeeds,
+  const unsigned int nSeeds,
   const float Bz,
   const int startLevel,
   float maxChi2ClusterAttachment,
@@ -149,7 +148,6 @@ GPUg() void fitTrackSeedsKernel(
     for (int iL{0}; iL < 7; ++iL) {
       temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::its::UnusedIndex);
     }
-
     bool fitSuccess = fitTrack(temporaryTrack,               // TrackITSExt& track,
                                0,                            // int lastLayer,
                                nLayers,                      // int firstLayer,
@@ -287,7 +285,7 @@ struct trackletSortIndexFunctor : public thrust::binary_function<T, T, bool> {
 };
 
 // Print layer buffer
-GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size, const int len = 150, const unsigned int tId = 0)
+GPUg() void printBufferLayerOnThread(const int layer, const int* v, unsigned int size, const int len = 150, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     for (int i{0}; i < size; ++i) {
@@ -301,7 +299,7 @@ GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size,
 }
 
 // Dump vertices
-GPUg() void printVertices(const Vertex* v, size_t size, const unsigned int tId = 0)
+GPUg() void printVertices(const Vertex* v, unsigned int size, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     printf("vertices: ");
@@ -435,7 +433,7 @@ GPUg() void computeLayerTrackletsKernelSingleRof(
               trackletsLookUpTable[currentSortedIndex]++; // Race-condition safe
               const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
               const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
-              const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
+              const unsigned int stride{currentClusterIndex * maxTrackletsPerCluster};
               new (tracklets + stride + storedTracklets) Tracklet{currentSortedIndex, roFrameClustersNext[rof1] + iNextCluster, tanL, phi, rof0, rof1};
               ++storedTracklets;
             }
@@ -559,7 +557,7 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
               if ((deltaZ / sigmaZ < trkPars->NSigmaCut && (deltaPhi < phiCut || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < phiCut))) {
                 const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate, currentCluster.xCoordinate - nextCluster.xCoordinate)};
                 const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
-                const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
+                const unsigned int stride{currentClusterIndex * maxTrackletsPerCluster};
                 if (storedTracklets < maxTrackletsPerCluster) {
                   new (trackletsRof0 + stride + storedTracklets) Tracklet{currentSortedIndexChunk, nextClusterIndex, tanL, phi, static_cast<short>(rof0), static_cast<short>(rof1)};
                 }
@@ -717,7 +715,7 @@ void cellNeighboursHandler(CellSeed* cellsCurrentLayer,
 void trackSeedHandler(CellSeed* trackSeeds,
                       TrackingFrameInfo** foundTrackingFrameInfo,
                       o2::its::TrackITSExt* tracks,
-                      const size_t nSeeds,
+                      const unsigned int nSeeds,
                       const float Bz,
                       const int startLevel,
                       float maxChi2ClusterAttachment,
@@ -729,7 +727,7 @@ void trackSeedHandler(CellSeed* trackSeeds,
     trackSeeds,               // CellSeed* trackSeeds,
     foundTrackingFrameInfo,   // TrackingFrameInfo** foundTrackingFrameInfo,
     tracks,                   // o2::its::TrackITSExt* tracks,
-    nSeeds,                   // const size_t nSeeds,
+    nSeeds,                   // const unsigned int nSeeds,
     Bz,                       // const float Bz,
     startLevel,               // const int startLevel,
     maxChi2ClusterAttachment, // float maxChi2ClusterAttachment,
@@ -740,5 +738,4 @@ void trackSeedHandler(CellSeed* trackSeeds,
   gpuCheckError(cudaPeekAtLastError());
   gpuCheckError(cudaDeviceSynchronize());
 }
-} // namespace its
-} // namespace o2
+} // namespace o2::its

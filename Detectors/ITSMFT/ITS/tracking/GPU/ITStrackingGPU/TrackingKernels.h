@@ -16,9 +16,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonDef.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class CellSeed;
 namespace gpu
@@ -42,7 +40,7 @@ GPUg() void fitTrackSeedsKernel(
   CellSeed* trackSeeds,
   TrackingFrameInfo** foundTrackingFrameInfo,
   o2::its::TrackITSExt* tracks,
-  const size_t nSeeds,
+  const unsigned int nSeeds,
   const float Bz,
   const int startLevel,
   float maxChi2ClusterAttachment,
@@ -55,13 +53,12 @@ GPUg() void fitTrackSeedsKernel(
 void trackSeedHandler(CellSeed* trackSeeds,
                       TrackingFrameInfo** foundTrackingFrameInfo,
                       o2::its::TrackITSExt* tracks,
-                      const size_t nSeeds,
+                      const unsigned int nSeeds,
                       const float Bz,
                       const int startLevel,
                       float maxChi2ClusterAttachment,
                       float maxChi2NDF,
                       const o2::base::Propagator* propagator,
                       const o2::base::PropagatorF::MatCorrType matCorrType);
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 #endif // ITSTRACKINGGPU_TRACKINGKERNELS_H_

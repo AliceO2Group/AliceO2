@@ -21,9 +21,7 @@
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 constexpr int UnusedIndex{-1};
 
@@ -468,5 +466,4 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
 };
 
 template class TrackerTraitsGPU<7>;
-} // namespace its
-} // namespace o2
+} // namespace o2::its
