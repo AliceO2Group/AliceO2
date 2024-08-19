@@ -39,9 +39,10 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # build flags to use for RTC
   set(GPU_RTC_FLAGS "${CMAKE_CUDA_FLAGS} ${CMAKE_CUDA_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -std=c++${CMAKE_CUDA_STANDARD}")
+  set(GPU_RTC_FLAGS_ARCH "")
   if(CUDA_COMPUTETARGET)
       foreach(CUDA_ARCH ${CUDA_COMPUTETARGET})
-          set(GPU_RTC_FLAGS "${GPU_RTC_FLAGS} -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}")
+          set(GPU_RTC_FLAGS_ARCH "${GPU_RTC_FLAGS_ARCH} -gencode arch=compute_${CUDA_ARCH},code=sm_${CUDA_ARCH}")
       endforeach()
       list (GET CUDA_COMPUTETARGET 0 RTC_CUDA_ARCH)
       set(RTC_CUDA_ARCH "${RTC_CUDA_ARCH}0")
@@ -85,7 +86,16 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   )
   create_binary_resource(${GPU_RTC_BIN}.command ${GPU_RTC_BIN}.command.o)
 
-  set(SRCS ${SRCS} ${GPU_RTC_BIN}.src.o ${GPU_RTC_BIN}.command.o)
+  add_custom_command(
+      OUTPUT ${GPU_RTC_BIN}.command.arch
+      COMMAND echo -n "${GPU_RTC_FLAGS_ARCH}" > ${GPU_RTC_BIN}.command.arch
+      COMMAND_EXPAND_LISTS
+      VERBATIM
+      COMMENT "Preparing CUDA RTC ARCH file ${GPU_RTC_BIN}.command.arch"
+  )
+  create_binary_resource(${GPU_RTC_BIN}.command.arch ${GPU_RTC_BIN}.command.arch.o)
+
+  set(SRCS ${SRCS} ${GPU_RTC_BIN}.src.o ${GPU_RTC_BIN}.command.o ${GPU_RTC_BIN}.command.arch.o)
 endif()
 # -------------------------------- End RTC -------------------------------------------------------
 
