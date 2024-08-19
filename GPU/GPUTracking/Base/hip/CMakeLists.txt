@@ -80,6 +80,10 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # build flags to use for RTC
   set(GPU_RTC_FLAGS "${CMAKE_HIP_FLAGS} ${CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -std=c++${CMAKE_HIP_STANDARD}")
+  foreach(HIP_ARCH ${CMAKE_HIP_ARCHITECTURES})
+    set(GPU_RTC_FLAGS "${GPU_RTC_FLAGS} --offload-arch=${HIP_ARCH}")
+  endforeach()
+
   set(GPU_RTC_FLAGS_SEPARATED "${GPU_RTC_FLAGS}")
   separate_arguments(GPU_RTC_FLAGS_SEPARATED)
 
