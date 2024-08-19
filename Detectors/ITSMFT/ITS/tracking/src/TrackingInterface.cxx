@@ -240,7 +240,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
     }
   }
   if (mRunVertexer) {
-    LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}, upc.sel:{}", cutRandomMult + cutVertexMult + cutUPCVertex, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult, cutUPCVertex);
     LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
                              vertexerElapsedTime,
                              mTimeFrame->getPrimaryVerticesNum(),
@@ -248,6 +247,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
                              o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
                              trackROFspan.size() - mTimeFrame->getNoVertexROF(),
                              trackROFspan.size());
+    LOG(info) << fmt::format("FastMultEst: rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   }
 
   if (mOverrideBeamEstimation) {
