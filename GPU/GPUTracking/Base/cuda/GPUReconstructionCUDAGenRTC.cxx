@@ -159,7 +159,8 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
     }
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
-    std::string baseCommand = getenv("O2_GPU_RTC_OVERRIDE_CMD") ? std::string(getenv("O2_GPU_RTC_OVERRIDE_CMD")) : std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
+    std::string baseCommand = (mProcessingSettings.RTCprependCommand != "" ? (mProcessingSettings.RTCprependCommand + " ") : "");
+    baseCommand += (getenv("O2_GPU_RTC_OVERRIDE_CMD") ? std::string(getenv("O2_GPU_RTC_OVERRIDE_CMD")) : std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len));
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
