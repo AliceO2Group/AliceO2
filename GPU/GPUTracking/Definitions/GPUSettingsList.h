@@ -283,6 +283,7 @@ AddOption(tpcMaxAttachedClustersPerSectorRow, unsigned int, 51000, "", 0, "Maxim
 AddOption(tpcUseOldCPUDecoding, bool, false, "", 0, "Enable old CPU-based TPC decoding")
 AddOption(RTCcacheFolder, std::string, "./rtccache/", "", 0, "Folder in which the cache file is stored")
 AddOption(RTCprependCommand, std::string, "", "", 0, "Prepend RTC compilation commands by this string")
+AddOption(RTCoverrideArchitecture, std::string, "", "", 0, "Override arhcitecture part of RTC compilation command line")
 AddOption(printSettings, bool, false, "", 0, "Print all settings when initializing")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)

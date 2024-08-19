@@ -80,8 +80,9 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 
   # build flags to use for RTC
   set(GPU_RTC_FLAGS "${CMAKE_HIP_FLAGS} ${CMAKE_HIP_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -std=c++${CMAKE_HIP_STANDARD}")
+  set(GPU_RTC_FLAGS_ARCH "")
   foreach(HIP_ARCH ${CMAKE_HIP_ARCHITECTURES})
-    set(GPU_RTC_FLAGS "${GPU_RTC_FLAGS} --offload-arch=${HIP_ARCH}")
+    set(GPU_RTC_FLAGS_ARCH "${GPU_RTC_FLAGS_ARCH} --offload-arch=${HIP_ARCH}")
   endforeach()
 
   set(GPU_RTC_FLAGS_SEPARATED "${GPU_RTC_FLAGS}")
@@ -118,7 +119,16 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   )
   create_binary_resource(${GPU_RTC_BIN}.command ${GPU_RTC_BIN}.command.o)
 
-  set(SRCS ${SRCS} ${GPU_RTC_BIN}.src.o ${GPU_RTC_BIN}.command.o)
+  add_custom_command(
+      OUTPUT ${GPU_RTC_BIN}.command.arch
+      COMMAND echo -n "${GPU_RTC_FLAGS_ARCH}" > ${GPU_RTC_BIN}.command.arch
+      COMMAND_EXPAND_LISTS
+      VERBATIM
+      COMMENT "Preparing HIP RTC ARCH file ${GPU_RTC_BIN}.command.arch"
+  )
+  create_binary_resource(${GPU_RTC_BIN}.command.arch ${GPU_RTC_BIN}.command.arch.o)
+
+  set(SRCS ${SRCS} ${GPU_RTC_BIN}.src.o ${GPU_RTC_BIN}.command.o ${GPU_RTC_BIN}.command.arch.o)
 endif()
 # -------------------------------- End RTC -------------------------------------------------------
 
