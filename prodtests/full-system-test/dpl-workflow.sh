@@ -323,6 +323,10 @@ fi
 [[ ${O2_GPU_DOUBLE_PIPELINE:-$EPNSYNCMODE} == 1 && $GPUTYPE != "CPU" ]] && GPU_CONFIG+=" --enableDoublePipeline"
 [[ ${O2_GPU_RTC:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCprependCommand=/usr/bin/env TMPDIR=/tmp /usr/bin/taskset -c 0-191;"
 [[ ${O2_GPU_RTC:-0} == 1 && $EPNSYNCMODE == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
+if [[ ${O2_GPU_RTC:-0} == 1 ]] && [[ ( ${ALICE_O2_FST:-0} == 1 && ${FST_TMUX_NO_EPN:-0} == 0 ) || $EPNSYNCMODE == 1 ]]; then
+  [[ ${EPN_NODE_MI100:-0} == 0 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCoverrideArchitecture=--offload-arch=gfx906;"
+  [[ ${EPN_NODE_MI100:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCoverrideArchitecture=--offload-arch=gfx908;"
+fi
 
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
