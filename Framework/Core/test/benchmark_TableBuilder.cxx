@@ -132,7 +132,7 @@ DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
 } // namespace test
 
-using TestVectors = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X, test::Y, test::Z>;
+using TestVectors = o2::soa::Table<test::X, test::Y, test::Z>;
 
 static void BM_TableBuilderSoA(benchmark::State& state)
 {

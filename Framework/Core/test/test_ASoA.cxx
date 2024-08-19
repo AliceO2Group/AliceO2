@@ -130,7 +130,7 @@ TEST_CASE("TestTableIteration")
   ++tests;
   REQUIRE(tests.x() == 0);
   REQUIRE(tests.y() == 1);
-  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::X, o2::aod::test::Y>;
+  using Test = o2::soa::Table<o2::aod::test::X, o2::aod::test::Y>;
   Test tests2{table};
   size_t value = 0;
   auto b = tests2.begin();
@@ -180,14 +180,14 @@ TEST_CASE("TestDynamicColumns")
   rowWriter(0, 1, 7);
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::X, o2::aod::test::Y, o2::aod::test::Sum<o2::aod::test::X, o2::aod::test::Y>>;
+  using Test = o2::soa::Table<o2::aod::test::X, o2::aod::test::Y, o2::aod::test::Sum<o2::aod::test::X, o2::aod::test::Y>>;
 
   Test tests{table};
   for (auto& test : tests) {
     REQUIRE(test.sum() == test.x() + test.y());
   }
 
-  using Test2 = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::X, o2::aod::test::Y, o2::aod::test::Sum<o2::aod::test::Y, o2::aod::test::Y>>;
+  using Test2 = o2::soa::Table<o2::aod::test::X, o2::aod::test::Y, o2::aod::test::Sum<o2::aod::test::Y, o2::aod::test::Y>>;
 
   Test2 tests2{table};
   for (auto& test : tests2) {
@@ -267,9 +267,9 @@ TEST_CASE("TestJoinedTables")
   rowWriterZ(0, 8);
   auto tableZ = builderZ.finalize();
 
-  using TestX = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::X>;
-  using TestY = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::Y>;
-  using TestZ = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::Z>;
+  using TestX = o2::soa::Table<o2::aod::test::X>;
+  using TestY = o2::soa::Table<o2::aod::test::Y>;
+  using TestZ = o2::soa::Table<o2::aod::test::Z>;
   using Test = Join<TestX, TestY>;
 
   REQUIRE(Test::contains<TestX>());
@@ -286,14 +286,14 @@ TEST_CASE("TestJoinedTables")
     REQUIRE(7 == test.x() + test.y());
   }
 
-  auto tests2 = join<o2::header::DataOrigin{"JOIN"}>(TestX{tableX}, TestY{tableY});
+  auto tests2 = join(TestX{tableX}, TestY{tableY});
   static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,
                 "Joined tables should have the same type, regardless how we construct them");
   for (auto& test : tests2) {
     REQUIRE(7 == test.x() + test.y());
   }
 
-  auto tests3 = join<o2::header::DataOrigin{"JOIN"}>(TestX{tableX}, TestY{tableY}, TestZ{tableZ});
+  auto tests3 = join(TestX{tableX}, TestY{tableY}, TestZ{tableZ});
 
   for (auto& test : tests3) {
     REQUIRE(15 == test.x() + test.y() + test.z());
@@ -356,25 +356,25 @@ TEST_CASE("TestConcatTables")
   rowWriterD(0, 23, 15);
   auto tableD = builderD.finalize();
 
-  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, o2::aod::test::X, o2::aod::test::Y>;
-  using TestB = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, o2::aod::test::X>;
-  using TestC = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::Z>;
-  using TestD = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::aod::test::X, o2::aod::test::Z>;
+  using TestA = o2::soa::Table<o2::soa::Index<>, o2::aod::test::X, o2::aod::test::Y>;
+  using TestB = o2::soa::Table<o2::soa::Index<>, o2::aod::test::X>;
+  using TestC = o2::soa::Table<o2::aod::test::Z>;
+  using TestD = o2::soa::Table<o2::aod::test::X, o2::aod::test::Z>;
   using ConcatTest = Concat<TestA, TestB>;
   using JoinedTest = Join<TestA, TestC>;
   using NestedJoinTest = Join<JoinedTest, TestD>;
   using NestedConcatTest = Concat<Join<TestA, TestB>, TestD>;
 
-  static_assert(std::is_same_v<NestedJoinTest::table_t, o2::soa::Table<o2::header::DataOrigin{"JOIN"}, o2::soa::Index<>, o2::aod::test::Y, o2::aod::test::X, o2::aod::test::Z>>, "Bad nested join");
+  static_assert(std::is_same_v<NestedJoinTest::table_t, o2::soa::Table<o2::soa::Index<>, o2::aod::test::Y, o2::aod::test::X, o2::aod::test::Z>>, "Bad nested join");
 
-  static_assert(std::is_same_v<ConcatTest::table_t, o2::soa::Table<o2::header::DataOrigin{"CONC"}, o2::soa::Index<>, o2::aod::test::X>>, "Bad intersection of columns");
+  static_assert(std::is_same_v<ConcatTest::table_t, o2::soa::Table<o2::soa::Index<>, o2::aod::test::X>>, "Bad intersection of columns");
   ConcatTest tests{tableA, tableB};
   REQUIRE(16 == tests.size());
   for (auto& test : tests) {
     REQUIRE(test.index() == test.x());
   }
 
-  static_assert(std::is_same_v<NestedConcatTest::table_t, o2::soa::Table<o2::header::DataOrigin{"CONC"}, o2::aod::test::X>>, "Bad nested concat");
+  static_assert(std::is_same_v<NestedConcatTest::table_t, o2::soa::Table<o2::aod::test::X>>, "Bad nested concat");
 
   // Hardcode a selection for the first 5 odd numbers
   using FilteredTest = Filtered<TestA>;
@@ -539,7 +539,7 @@ TEST_CASE("TestDereference")
   REQUIRE(j.pointB().x() == 3);
   REQUIRE(j.pointB().y() == 4);
 
-  auto joined = join<o2::header::DataOrigin{"JOIN"}>(segments, segmentsExtras);
+  auto joined = join(segments, segmentsExtras);
   joined.bindExternalIndices(&points, &infos);
   auto se = joined.begin();
   REQUIRE(se.n() == 10);
@@ -574,7 +574,7 @@ TEST_CASE("TestFilteredOperators")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
 
-  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, o2::aod::test::X, o2::aod::test::Y>;
+  using TestA = o2::soa::Table<o2::soa::Index<>, o2::aod::test::X, o2::aod::test::Y>;
   using FilteredTest = Filtered<TestA>;
   using NestedFilteredTest = Filtered<Filtered<TestA>>;
   using namespace o2::framework;
@@ -611,7 +611,7 @@ TEST_CASE("TestFilteredOperators")
   REQUIRE(0 == filteredIntersection.size());
 
   i = 0;
-  for (auto const& _ : filteredIntersection) {
+  for (auto& f : filteredIntersection) {
     i++;
   }
   REQUIRE(i == 0);
@@ -650,7 +650,7 @@ TEST_CASE("TestNestedFiltering")
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
 
-  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, o2::aod::test::X, o2::aod::test::Y>;
+  using TestA = o2::soa::Table<o2::soa::Index<>, o2::aod::test::X, o2::aod::test::Y>;
   using FilteredTest = Filtered<TestA>;
   using NestedFilteredTest = Filtered<Filtered<TestA>>;
   using TripleNestedFilteredTest = Filtered<Filtered<Filtered<TestA>>>;
