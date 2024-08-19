@@ -274,13 +274,8 @@ if(ENABLE_HIP)
     if(hip_VERSION VERSION_GREATER_EQUAL "6.0" AND NOT hip_VERSION VERSION_GREATER_EQUAL "6.2")
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -mllvm -amdgpu-legacy-sgpr-spill-lowering=true") # TODO: Cleanup
     endif()
-    set(O2_HIP_CMAKE_LINK_FLAGS "-Wno-pass-failed")
     string(REGEX REPLACE "(gfx1[0-9]+;?)" "" CMAKE_HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}") # ROCm currently doesn’t support integrated graphics
     if(HIP_AMDGPUTARGET)
-      foreach(HIP_ARCH ${HIP_AMDGPUTARGET})
-        set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --offload-arch=${HIP_ARCH}")
-        set(O2_HIP_CMAKE_LINK_FLAGS "${O2_HIP_CMAKE_LINK_FLAGS} --offload-arch=${HIP_ARCH}")
-      endforeach()
       set(CMAKE_HIP_ARCHITECTURES "${HIP_AMDGPUTARGET}") # If GPU build is enforced we override autodetection
     endif()
     if(NOT DEFINED GPUCA_NO_FAST_MATH OR NOT ${GPUCA_NO_FAST_MATH})
