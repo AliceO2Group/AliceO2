@@ -79,12 +79,16 @@ float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logg
     logger(fmt::format("ITS Hybrid seeding vertexer iteration {} summary:", iteration));
     trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
     trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
-    auto timeInitIteration = evaluateTask(&Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", [](std::string) {}, trkPars, iteration);
-    auto timeSelectionIteration = evaluateTask(&Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", [](std::string) {}, iteration);
+    auto timeInitIteration = evaluateTask(
+      &Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", [](std::string) {}, trkPars, iteration);
+    auto timeTrackletIteration = evaluateTask(
+      &Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", [](std::string) {}, iteration);
     nTracklets01 = mTimeFrame->getTotalTrackletsTF(0);
     nTracklets12 = mTimeFrame->getTotalTrackletsTF(1);
-    auto timeSelectionIteration = evaluateTask(&Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", [](std::string) {}, iteration);
-    auto timeVertexingIteration = evaluateTask(&Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", [](std::string) {}, iteration);
+    auto timeSelectionIteration = evaluateTask(
+      &Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", [](std::string) {}, iteration);
+    auto timeVertexingIteration = evaluateTask(
+      &Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", [](std::string) {}, iteration);
 
     printEpilog(logger, false, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration().size(), timeInit, timeTracklet, timeSelection, timeVertexing);
     timeInit += timeInitIteration;

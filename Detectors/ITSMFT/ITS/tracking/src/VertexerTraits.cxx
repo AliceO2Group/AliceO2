@@ -54,8 +54,8 @@ void trackleterKernelHost(
   std::vector<Tracklet>& tracklets,
   gsl::span<int> foundTracklets,
   const IndexTableUtils& utils,
-  const int pivotRof,
-  const int targetRof,
+  const short pivotRof,
+  const short targetRof,
   gsl::span<int> rofFoundTrackletsOffsets, // we want to change those, to keep track of the offset in deltaRof>0
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
@@ -118,8 +118,8 @@ void trackletSelectionKernelHost(
   std::vector<Line>& lines,
   const gsl::span<const MCCompLabel>& trackletLabels,
   std::vector<MCCompLabel>& linesLabels,
-  const int pivotRofId,
-  const int targetRofId,
+  const short pivotRofId,
+  const short targetRofId,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
   const int maxTracklets = static_cast<int>(1e2))
@@ -190,10 +190,10 @@ void VertexerTraits::computeTracklets(const int iteration)
 #pragma omp parallel num_threads(mNThreads)
   {
 #pragma omp for schedule(dynamic)
-    for (int pivotRofId = 0; pivotRofId < mTimeFrame->getNrof(); ++pivotRofId) { // Pivot rofId: the rof for which the tracklets are computed
+    for (short pivotRofId = 0; pivotRofId < mTimeFrame->getNrof(); ++pivotRofId) { // Pivot rofId: the rof for which the tracklets are computed
       bool skipROF = iteration && (int)mTimeFrame->getPrimaryVertices(pivotRofId).size() > mVrtParams[iteration].vertPerRofThreshold;
-      int startROF{std::max(0, pivotRofId - mVrtParams[iteration].deltaRof)};
-      int endROF{std::min(mTimeFrame->getNrof(), pivotRofId + mVrtParams[iteration].deltaRof + 1)};
+      short startROF{std::max((short)0, static_cast<short>(pivotRofId - mVrtParams[iteration].deltaRof))};
+      short endROF{std::min(static_cast<short>(mTimeFrame->getNrof()), static_cast<short>(pivotRofId + mVrtParams[iteration].deltaRof + 1))};
       for (auto targetRofId = startROF; targetRofId < endROF; ++targetRofId) {
         trackleterKernelHost<TrackletMode::Layer0Layer1, true>(
           !skipROF ? mTimeFrame->getClustersOnLayer(targetRofId, 0) : gsl::span<Cluster>(), // Clusters to be matched with the next layer in target rof
@@ -235,8 +235,8 @@ void VertexerTraits::computeTracklets(const int iteration)
 #pragma omp for schedule(dynamic)
     for (int pivotRofId = 0; pivotRofId < mTimeFrame->getNrof(); ++pivotRofId) {
       bool skipROF = iteration && (int)mTimeFrame->getPrimaryVertices(pivotRofId).size() > mVrtParams[iteration].vertPerRofThreshold;
-      int startROF{std::max(0, pivotRofId - mVrtParams[iteration].deltaRof)};
-      int endROF{std::min(mTimeFrame->getNrof(), pivotRofId + mVrtParams[iteration].deltaRof + 1)};
+      short startROF{std::max((short)0, static_cast<short>(pivotRofId - mVrtParams[iteration].deltaRof))};
+      short endROF{std::min(static_cast<short>(mTimeFrame->getNrof()), static_cast<short>(pivotRofId + mVrtParams[iteration].deltaRof + 1))};
       auto mobileOffset0 = mTimeFrame->getNTrackletsROF(pivotRofId, 0);
       auto mobileOffset1 = mTimeFrame->getNTrackletsROF(pivotRofId, 1);
       for (auto targetRofId = startROF; targetRofId < endROF; ++targetRofId) {
@@ -344,8 +344,8 @@ void VertexerTraits::computeTrackletMatching(const int iteration)
     }
     mTimeFrame->getLines(pivotRofId).reserve(mTimeFrame->getNTrackletsCluster(pivotRofId, 0).size());
     std::vector<bool> usedTracklets(mTimeFrame->getFoundTracklets(pivotRofId, 0).size(), false);
-    int startROF{std::max(0, pivotRofId - mVrtParams[iteration].deltaRof)};
-    int endROF{std::min(mTimeFrame->getNrof(), pivotRofId + mVrtParams[iteration].deltaRof + 1)};
+    int startROF{std::max((short)0, static_cast<short>(pivotRofId - mVrtParams[iteration].deltaRof))};
+    int endROF{std::min(static_cast<short>(mTimeFrame->getNrof()), static_cast<short>(pivotRofId + mVrtParams[iteration].deltaRof + 1))};
     for (auto targetRofId = startROF; targetRofId < endROF; ++targetRofId) {
       trackletSelectionKernelHost(
         mTimeFrame->getClustersOnLayer(targetRofId, 0),

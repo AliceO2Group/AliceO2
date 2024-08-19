@@ -32,8 +32,8 @@ namespace its
 
 struct Tracklet final {
   GPUhdi() Tracklet();
-  GPUhdi() Tracklet(const int, const int, const Cluster&, const Cluster&, int rof0, int rof1);
-  GPUhdi() Tracklet(const int, const int, float tanL, float phi, int rof0, int rof1);
+  GPUhdi() Tracklet(const int, const int, const Cluster&, const Cluster&, short rof0, short rof1);
+  GPUhdi() Tracklet(const int, const int, float tanL, float phi, short rof0, short rof1);
   GPUhdi() bool operator==(const Tracklet&) const;
   GPUhdi() bool operator!=(const Tracklet&) const;
   GPUhdi() unsigned char isEmpty() const
@@ -58,34 +58,34 @@ struct Tracklet final {
   int secondClusterIndex;
   float tanLambda;
   float phi;
-  unsigned short rof[2];
+  short rof[2];
 };
 
 GPUhdi() Tracklet::Tracklet() : firstClusterIndex{-1}, secondClusterIndex{-1}, tanLambda{0.0f}, phi{0.0f}
 {
-  rof[0] = 0;
-  rof[1] = 0;
+  rof[0] = -1;
+  rof[1] = -1;
 }
 
 GPUhdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-                            const Cluster& firstCluster, const Cluster& secondCluster, int rof0 = -1, int rof1 = -1)
+                            const Cluster& firstCluster, const Cluster& secondCluster, short rof0 = -1, short rof1 = -1)
   : firstClusterIndex{firstClusterOrderingIndex},
     secondClusterIndex{secondClusterOrderingIndex},
     tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /
               (firstCluster.radius - secondCluster.radius)},
     phi{o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
                                       firstCluster.xCoordinate - secondCluster.xCoordinate)},
-    rof{static_cast<unsigned short>(rof0), static_cast<unsigned short>(rof1)}
+    rof{static_cast<short>(rof0), static_cast<short>(rof1)}
 {
   // Nothing to do
 }
 
-GPUhdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi, int rof0, int rof1)
+GPUhdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi, short rof0, short rof1)
   : firstClusterIndex{idx0},
     secondClusterIndex{idx1},
     tanLambda{tanL},
     phi{phi},
-    rof{static_cast<unsigned short>(rof0), static_cast<unsigned short>(rof1)}
+    rof{static_cast<short>(rof0), static_cast<short>(rof1)}
 {
   // Nothing to do
 }

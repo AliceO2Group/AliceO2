@@ -56,8 +56,8 @@ struct Line final {
 
 GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
 {
-  rof[0] = 0;
-  rof[1] = 0;
+  rof[0] = -1;
+  rof[1] = -1;
 }
 
 GPUhdi() Line::Line(const Line& other)
@@ -88,8 +88,8 @@ GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
     cosinesDirector[index] *= inverseNorm;
   }
 
-  rof[0] = 0;
-  rof[1] = 0;
+  rof[0] = -1;
+  rof[1] = -1;
 }
 
 GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
@@ -208,7 +208,7 @@ inline bool Line::operator!=(const Line& rhs) const
 
 GPUhdi() void Line::print() const
 {
-  printf("Line: originPoint = (%f, %f, %f), cosinesDirector = (%f, %f, %f), rofs = (%u, %u)\n",
+  printf("Line: originPoint = (%f, %f, %f), cosinesDirector = (%f, %f, %f), rofs = (%hd, %hd)\n",
          originPoint[0], originPoint[1], originPoint[2], cosinesDirector[0], cosinesDirector[1], cosinesDirector[2], rof[0], rof[1]);
 }
 

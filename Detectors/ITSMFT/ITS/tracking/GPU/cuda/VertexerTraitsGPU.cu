@@ -178,7 +178,7 @@ GPUg() void trackleterKernelSingleRof(
   Tracklet* Tracklets,
   int* foundTracklets,
   const IndexTableUtils* utils,
-  const int rofId,
+  const short rofId,
   const size_t maxTrackletsPerCluster = 1e2)
 {
   const int phiBins{utils->getNphiBins()};
@@ -234,15 +234,15 @@ GPUg() void trackleterKernelMultipleRof(
   Tracklet* Tracklets,
   int* foundTracklets,
   const IndexTableUtils* utils,
-  const unsigned int startRofId,
-  const unsigned int rofSize,
+  const short startRofId,
+  const short rofSize,
   const float phiCut,
   const size_t maxTrackletsPerCluster = 1e2)
 {
   const int phiBins{utils->getNphiBins()};
   const int zBins{utils->getNzBins()};
-  for (unsigned int iRof{blockIdx.x}; iRof < rofSize; iRof += gridDim.x) {
-    auto rof = iRof + startRofId;
+  for (auto iRof{blockIdx.x}; iRof < rofSize; iRof += gridDim.x) {
+    short rof = static_cast<short>(iRof) + startRofId;
     auto* clustersNextLayerRof = clustersNextLayer + (sizeNextLClusters[rof] - sizeNextLClusters[startRofId]);
     auto* clustersCurrentLayerRof = clustersCurrentLayer + (sizeCurrentLClusters[rof] - sizeCurrentLClusters[startRofId]);
     auto nClustersNextLayerRof = sizeNextLClusters[rof + 1] - sizeNextLClusters[rof];
@@ -273,9 +273,9 @@ GPUg() void trackleterKernelMultipleRof(
             if (o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(currentCluster.phi, nextCluster.phi)) < phiCut) {
               if (storedTracklets < maxTrackletsPerCluster) {
                 if constexpr (Mode == TrackletMode::Layer0Layer1) {
-                  new (TrackletsRof + stride + storedTracklets) Tracklet{iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster, static_cast<int>(rof), static_cast<int>(rof)};
+                  new (TrackletsRof + stride + storedTracklets) Tracklet{iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster, rof, rof};
                 } else {
-                  new (TrackletsRof + stride + storedTracklets) Tracklet{iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster, static_cast<int>(rof), static_cast<int>(rof)};
+                  new (TrackletsRof + stride + storedTracklets) Tracklet{iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster, rof, rof};
                 }
                 ++storedTracklets;
               }
