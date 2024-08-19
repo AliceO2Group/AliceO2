@@ -164,7 +164,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
               originalTables.push_back(pc.inputs().get<TableConsumer>(spec.binding)->asArrowTable());
             }
           }
-          return o2::framework::spawner<metadata_t::origin()>(expressions{}, std::move(originalTables), input.binding.c_str());
+          return o2::framework::spawner(expressions{}, std::move(originalTables), input.binding.c_str());
         };
 
         if (description == header::DataDescription{"TRACK"}) {

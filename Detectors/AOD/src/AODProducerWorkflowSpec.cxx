@@ -1814,7 +1814,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksCursor = createTableCursor<o2::aod::StoredTracksIU>(pc);
   auto tracksCovCursor = createTableCursor<o2::aod::StoredTracksCovIU>(pc);
   auto tracksExtraCursor = createTableCursor<o2::aod::StoredTracksExtra>(pc);
-  auto tracksQACursor = createTableCursor<o2::aod::TracksQA>(pc);
+  auto tracksQACursor = createTableCursor<o2::aod::TrackQA>(pc);
   auto ambigTracksCursor = createTableCursor<o2::aod::AmbiguousTracks>(pc);
   auto ambigMFTTracksCursor = createTableCursor<o2::aod::AmbiguousMFTTracks>(pc);
   auto ambigFwdTracksCursor = createTableCursor<o2::aod::AmbiguousFwdTracks>(pc);
@@ -2986,7 +2986,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<Calos>::spec(),
     OutputForTable<CaloTriggers>::spec(),
     OutputForTable<CPVClusters>::spec(),
-    OutputForTable<Origins>::spec(),
+    OutputForTable<Origin>::spec(),
     OutputSpec{"TFN", "TFNumber"},
     OutputSpec{"TFF", "TFFilename"},
     OutputSpec{"AMD", "AODMetadataKeys"},
