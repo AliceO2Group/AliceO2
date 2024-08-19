@@ -37,9 +37,9 @@ struct WritingCursor {
 /// Helper class actually implementing the cursor which can write to
 /// a table. The provided template arguments are if type Column and
 /// therefore refer only to the persisted columns.
-template <o2::header::DataOrigin ORIGIN, typename... PC>
-struct WritingCursor<soa::Table<ORIGIN, PC...>> {
-  using persistent_table_t = soa::Table<ORIGIN, PC...>;
+template <typename... PC>
+struct WritingCursor<soa::Table<PC...>> {
+  using persistent_table_t = soa::Table<PC...>;
   using cursor_t = decltype(std::declval<TableBuilder>().cursor<persistent_table_t>());
 
   template <typename... T>
@@ -124,11 +124,11 @@ struct OutputForTable {
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename T>
-requires(!std::is_same_v<void, typename aod::MetadataTrait<T>::metadata>) struct Produces : WritingCursor<typename soa::PackToTable<aod::MetadataTrait<T>::metadata::origin(), typename T::table_t::persistent_columns_t>::table> {
+struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::persistent_columns_t>::table> {
 };
 
-template <template <o2::header::DataOrigin, typename...> class T, o2::header::DataOrigin ORIGIN, typename... C>
-struct Produces<T<ORIGIN, C...>> : WritingCursor<typename soa::PackToTable<ORIGIN, typename T<ORIGIN, C...>::table_t::persistent_columns_t>::table> {
+template <template <typename...> class T, typename... C>
+struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
 };
 
 /// Use this to group together produces. Useful to separate them logically
@@ -615,8 +615,8 @@ template <typename T, typename... Cs>
 auto Extend(T const& table)
 {
   static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
-  using output_t = Join<T, soa::Table<o2::header::DataOrigin{"JOIN"}, Cs...>>;
-  return output_t{{o2::framework::spawner<o2::header::DataOrigin{"JOIN"}>(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension"), table.asArrowTable()}, 0};
+  using output_t = Join<T, soa::Table<Cs...>>;
+  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, {table.asArrowTable()}, "dynamicExtension"), table.asArrowTable()}, 0};
 }
 
 /// Template function to attach dynamic columns on-the-fly (e.g. inside
@@ -625,7 +625,7 @@ template <typename T, typename... Cs>
 auto Attach(T const& table)
 {
   static_assert((framework::is_base_of_template_v<o2::soa::DynamicColumn, Cs> && ...), "You can only attach dynamic columns");
-  using output_t = Join<T, o2::soa::Table<o2::header::DataOrigin{"JOIN"}, Cs...>>;
+  using output_t = Join<T, o2::soa::Table<Cs...>>;
   return output_t{{table.asArrowTable()}, table.offset()};
 }
 } // namespace o2::soa

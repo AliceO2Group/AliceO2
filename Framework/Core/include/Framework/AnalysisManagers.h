@@ -351,7 +351,7 @@ struct OutputManager<Spawns<T>> {
       originalTable = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
     }
 
-    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner<aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::origin()>(what.pack(), extractOriginals(what.sources_pack(), pc), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), extractOriginals(what.sources_pack(), pc), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
     what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), originalTable}));
     return true;
   }
