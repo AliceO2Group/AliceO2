@@ -34,8 +34,8 @@ DECLARE_SOA_COLUMN_FULL(Y, y, uint64_t, "y");
 DECLARE_SOA_COLUMN_FULL(Pos, pos, int[4], "pos");
 } // namespace test2
 
-using TestTable = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test2::X, test2::Y>;
-using ArrayTable = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test2::Pos>;
+using TestTable = o2::soa::Table<test2::X, test2::Y>;
+using ArrayTable = o2::soa::Table<test2::Pos>;
 
 TEST_CASE("TestTableBuilder")
 {
