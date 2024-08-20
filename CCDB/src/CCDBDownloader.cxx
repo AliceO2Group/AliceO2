@@ -516,10 +516,18 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
         } else if (300 <= httpCode && httpCode < 400 && performData->locInd < locations.size()) {
           followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
         } else if (200 <= httpCode && httpCode < 300) {
-          contentRetrieved = true;
+          contentRetrieved = true; // Can be overruled by following timeout check
         }
       } else {
         LOG(error) << loggingMessage;
+      }
+
+      // Check for timeout
+      curl_off_t transferTime = 0;
+      curl_easy_getinfo(easy_handle, CURLINFO_TOTAL_TIME_T, &transferTime);
+      if (transferTime / 1000 >= mRequestTimeoutMS) {
+        LOG(error) << "Connection timeout\n";
+        contentRetrieved = false;
       }
 
       // Check if content was retrieved, or scheduled to be retrieved
