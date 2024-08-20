@@ -72,10 +72,12 @@ class Vertexer
   void findTrivialMCTracklets();
   template <typename... T>
   void validateTracklets(T&&... args);
-  void validateTrackletsHybrid();
+  template <typename... T>
+  void validateTrackletsHybrid(T&&... args);
   template <typename... T>
   void findVertices(T&&... args);
-  void findVerticesHybrid();
+  template <typename... T>
+  void findVerticesHybrid(T&&... args);
   void findHistVertices();
 
   template <typename... T>
@@ -153,14 +155,16 @@ void Vertexer::findTrackletsHybrid(T&&... args)
   mTraits->computeTrackletsHybrid(std::forward<T>(args)...);
 }
 
-inline void Vertexer::validateTrackletsHybrid()
+template <typename... T>
+inline void Vertexer::validateTrackletsHybrid(T&&... args)
 {
-  mTraits->computeTrackletMatchingHybrid();
+  mTraits->computeTrackletMatchingHybrid(std::forward<T>(args)...);
 }
 
-inline void Vertexer::findVerticesHybrid()
+template <typename... T>
+inline void Vertexer::findVerticesHybrid(T&&... args)
 {
-  mTraits->computeVerticesHybrid();
+  mTraits->computeVerticesHybrid(std::forward<T>(args)...);
 }
 
 template <typename... T>
