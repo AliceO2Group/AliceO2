@@ -16,7 +16,7 @@
 #include <tuple>
 #include <TRandom.h>
 #include <EMCALReconstruction/FastORTimeSeries.h>
-#include "EMCALBase/TRUDecodingErrors.h"
+#include "EMCALReconstruction/TRUDecodingErrors.h"
 
 namespace o2
 {

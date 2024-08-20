@@ -958,7 +958,7 @@ struct RowViewCore : public IP, C... {
       [this]<typename T>(T*) -> void requires is_persistent_v<T> { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
       [this]<typename T>(T*) -> void requires is_dynamic_v<T> { bindDynamicColumn<T>(typename T::bindings_t{});},
       [this]<typename T>(T*) -> void {},
-    };
+};
     (f(static_cast<C*>(nullptr)), ...);
     if constexpr (has_index_v) {
       this->setIndices(this->getIndices());

@@ -30,6 +30,9 @@
 #include <EMCALReconstruction/FastORTimeSeries.h>
 #include <EMCALReconstruction/TRUDataHandler.h>
 
+#ifndef ALICEO2_EMCAL_RECOCONTAINER_H
+#define ALICEO2_EMCAL_RECOCONTAINER_H
+
 namespace o2::emcal
 {
 /// \struct RecCellInfo
@@ -372,3 +375,5 @@ class RecoContainerReader
 };
 
 } // namespace o2::emcal
+
+#endif

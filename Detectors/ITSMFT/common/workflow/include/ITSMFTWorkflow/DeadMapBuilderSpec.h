@@ -108,7 +108,12 @@ class ITSMFTDeadMapBuilder : public Task
   std::string mDataSource = "chipsstatus";
 
   int mTFSampling = 350;
-  std::string mSamplingMode = "first-orbit-run"; // Use this default to ensure process of first TF. At the moment, use any other option to sample on absolute orbit value.
+
+  // utils for an improved sampling algorithm
+  std::unordered_set<long> mSampledTFs{};
+  std::deque<long> mSampledHistory{};
+  int mTFSamplingTolerance = 20;
+  int mSampledSlidingWindowSize = 1000; // units: mTFSampling
 
   o2::itsmft::TimeDeadMap mMapObject;
 
@@ -118,6 +123,7 @@ class ITSMFTDeadMapBuilder : public Task
   // Utils
 
   std::vector<uint16_t> getChipIDsOnSameCable(uint16_t);
+  bool acceptTF(long);
 
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};

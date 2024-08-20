@@ -47,7 +47,12 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   LOG(info) << "ITSMFTDeadMapBuilder init... " << mSelfName;
 
   mTFSampling = ic.options().get<int>("tf-sampling");
-  mSamplingMode = ic.options().get<std::string>("sampling-mode");
+  mTFSamplingTolerance = ic.options().get<int>("tf-sampling-tolerance");
+  if (mTFSamplingTolerance > mTFSampling) {
+    LOG(warning) << "Invalid request tf-sampling-tolerance larger or equal than tf-sampling. Setting tolerance to " << mTFSampling - 1;
+    mTFSamplingTolerance = mTFSampling - 1;
+  }
+  mSampledSlidingWindowSize = ic.options().get<int>("tf-sampling-history-size");
   mTFLength = ic.options().get<int>("tf-length");
   mDoLocalOutput = ic.options().get<bool>("local-output");
   mObjectName = ic.options().get<std::string>("outfile");
@@ -67,6 +72,8 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
     N_CHIPS = o2::itsmft::ChipMappingITS::getNChips();
   }
 
+  mSampledTFs.clear();
+  mSampledHistory.clear();
   mDeadMapTF.clear();
   mStaticChipStatus.clear();
   mMapObject.clear();
@@ -76,7 +83,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
     mStaticChipStatus.resize(N_CHIPS, false);
   }
 
-  LOG(info) << "Sampling one TF every " << mTFSampling;
+  LOG(info) << "Sampling one TF every " << mTFSampling << " with " << mTFSamplingTolerance << " TF tolerance";
 
   return;
 }
@@ -93,6 +100,39 @@ std::vector<uint16_t> ITSMFTDeadMapBuilder::getChipIDsOnSameCable(uint16_t chip)
     std::generate(chipList.begin(), chipList.end(), [&firstchipcable]() { return firstchipcable++; });
     return chipList;
   }
+}
+
+bool ITSMFTDeadMapBuilder::acceptTF(long orbit)
+{
+
+  // Description of the algorithm:
+  // Return true if the TF index (calculated as orbit/TF_length) falls within any interval [k * tf_sampling, k * tf_sampling + tolerance) for some integer k, provided no other TFs have been found in the same interval.
+
+  if (mTFSamplingTolerance < 1) {
+    return ((orbit / mTFLength) % mTFSampling == 0);
+  }
+
+  if ((orbit / mTFLength) % mTFSampling > mTFSamplingTolerance) {
+    return false;
+  }
+
+  long sampling_index = orbit / mTFLength / mTFSampling;
+
+  if (mSampledTFs.find(sampling_index) == mSampledTFs.end()) {
+
+    mSampledTFs.insert(sampling_index);
+    mSampledHistory.push_back(sampling_index);
+
+    if (mSampledHistory.size() > mSampledSlidingWindowSize) {
+      long oldIndex = mSampledHistory.front();
+      mSampledHistory.pop_front();
+      mSampledTFs.erase(oldIndex);
+    }
+
+    return true;
+  }
+
+  return false;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -151,12 +191,9 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     mFirstOrbitRun = mFirstOrbitTF;
   }
 
-  long sampled_orbit = mFirstOrbitTF;
-  if (mSamplingMode == "first-orbit-run") {
-    sampled_orbit = sampled_orbit - mFirstOrbitRun;
-  }
+  long sampled_orbit = mFirstOrbitTF - mFirstOrbitRun;
 
-  if ((sampled_orbit / mTFLength) % mTFSampling != 0) {
+  if (!acceptTF(sampled_orbit)) {
     return;
   }
 
@@ -270,7 +307,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
   if (ec != nullptr) {
 
     LOG(important) << "Sending object " << info.getPath() << "/" << info.getFileName()
-                   << "to ccdb-populator, of size " << image->size() << " bytes, valid for "
+                   << " to ccdb-populator, of size " << image->size() << " bytes, valid for "
                    << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     if (mRunMFT) {
@@ -332,7 +369,7 @@ void ITSMFTDeadMapBuilder::stop()
     finalizeOutput();
     if (!mCCDBUrl.empty()) {
       std::string detname = mRunMFT ? "MFT" : "ITS";
-      LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << "deadmap builder workflow.";
+      LOG(warning) << "endOfStream not processed. Sending output to ccdb from the " << detname << " deadmap builder workflow.";
       PrepareOutputCcdb(nullptr, mCCDBUrl);
     } else {
       LOG(alarm) << "endOfStream not processed. Nothing forwarded as output.";
@@ -379,7 +416,8 @@ DataProcessorSpec getITSMFTDeadMapBuilderSpec(std::string datasource, bool doMFT
     outputs,
     AlgorithmSpec{adaptFromTask<ITSMFTDeadMapBuilder>(datasource, doMFT)},
     Options{{"tf-sampling", VariantType::Int, 350, {"Process every Nth TF. Selection according to first TF orbit."}},
-            {"sampling-mode", VariantType::String, "first-orbit-run", {"Use absolute orbit value or offset from first processed orbit."}},
+            {"tf-sampling-tolerance", VariantType::Int, 20, {"Tolerance on the tf-sampling value (sliding window size)."}},
+            {"tf-sampling-history-size", VariantType::Int, 1000, {"Do not check if new TF is contained in a window that is older than N steps."}},
             {"tf-length", VariantType::Int, 32, {"Orbits per TF."}},
             {"skip-static-map", VariantType::Bool, false, {"Do not fill static part of the map."}},
             {"ccdb-url", VariantType::String, "", {"CCDB url. Ignored if endOfStream is processed."}},

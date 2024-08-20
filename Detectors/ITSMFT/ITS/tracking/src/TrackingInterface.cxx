@@ -118,15 +118,14 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   }
 
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0}, rofsinput.begin(), rofsinput.end());
+  auto& trackROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0}, rofsinput.begin(), rofsinput.end());
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0});
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
 
-  irFrames.reserve(rofs.size());
+  irFrames.reserve(trackROFvec.size());
   int nBCPerTF = alpParams.roFrameLengthInBC;
 
-  LOGP(info, "ITSTracker pulled {} clusters, {} RO frames", compClusters.size(), rofs.size());
-
+  LOGP(info, "ITSTracker pulled {} clusters, {} RO frames", compClusters.size(), trackROFvec.size());
   const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mIsMC) {
@@ -165,8 +164,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
-  gsl::span<itsmft::ROFRecord> rofspan(rofs);
-  mTimeFrame->loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
+  gsl::span<itsmft::ROFRecord> trackROFspan(trackROFvec);
+  mTimeFrame->loadROFrameData(trackROFspan, compClusters, pattIt, mDict, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
@@ -175,12 +174,12 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
 
   FastMultEst multEst; // mult estimator
   std::vector<bool> processingMask, processUPCMask;
-  int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
+  int cutVertexMult{0}, cutUPCVertex{0}, cutRandomMult = int(trackROFvec.size()) - multEst.selectROFs(trackROFvec, compClusters, physTriggers, processingMask);
   processUPCMask.resize(processingMask.size(), false);
   mTimeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
-    vertROFvec.reserve(rofs.size());
+    vertROFvec.reserve(trackROFvec.size());
     // Run seeding vertexer
     if constexpr (isGPU) {
       vertexerElapsedTime = mVertexer->clustersToVerticesHybrid(logger);
@@ -192,9 +191,9 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   gsl::span<const std::pair<MCCompLabel, float>> vMCRecInfo;
-  for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
+  for (auto iRof{0}; iRof < trackROFspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
-    auto& vtxROF = vertROFvec.emplace_back(rofspan[iRof]);
+    auto& vtxROF = vertROFvec.emplace_back(trackROFspan[iRof]);
     vtxROF.setFirstEntry(vertices.size());
     if (mRunVertexer) {
       auto vtxSpan = mTimeFrame->getPrimaryVertices(iRof);
@@ -219,6 +218,11 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
           allVerticesLabels.push_back(vMCRecInfo[iV].first);
           allVerticesPurities.push_back(vMCRecInfo[iV].second);
         }
+        if (v.isFlagSet(2)) { // Vertex is reconstructed in a second iteration
+          vtxROF.setFlag(2);  // flag that at least one vertex is from the second iteration
+        } else {
+          vtxROF.setFlag(1); // flag that at least one vertex is from the first iteration
+        }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
         LOGP(info, "ROF {} rejected by the vertex multiplicity selection [{},{}]", iRof, multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
@@ -235,21 +239,23 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       mTimeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-  LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}, upc.sel:{}", cutRandomMult + cutVertexMult + cutUPCVertex, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult, cutUPCVertex);
-  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
-                           vertexerElapsedTime,
-                           mTimeFrame->getPrimaryVerticesNum(),
-                           mTimeFrame->getTotVertIteration()[0],
-                           o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
-                           rofspan.size() - mTimeFrame->getNoVertexROF(),
-                           rofspan.size());
+  if (mRunVertexer) {
+    LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
+                             vertexerElapsedTime,
+                             mTimeFrame->getPrimaryVerticesNum(),
+                             mTimeFrame->getTotVertIteration()[0],
+                             o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
+                             trackROFspan.size() - mTimeFrame->getNoVertexROF(),
+                             trackROFspan.size());
+    LOG(info) << fmt::format("FastMultEst: rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
+  }
 
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {
     LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   }
-  if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
+  if (mCosmicsProcessing && compClusters.size() > 1500 * trackROFspan.size()) {
     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
   } else {
 
@@ -277,17 +283,18 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
     }
 
-    for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-      auto& rof{rofs[iROF]};
+    for (unsigned int iROF{0}; iROF < trackROFvec.size(); ++iROF) {
+      auto& tracksROF{trackROFvec[iROF]};
+      auto& vtxROF = vertROFvec[iROF];
       auto& tracks = mTimeFrame->getTracks(iROF);
       auto number{tracks.size()};
       auto first{allTracks.size()};
-      int offset = -rof.getFirstEntry(); // cluster entry!!!
-      rof.setFirstEntry(first);
-      rof.setNEntries(number);
-
+      int offset = -tracksROF.getFirstEntry(); // cluster entry!!!
+      tracksROF.setFirstEntry(first);
+      tracksROF.setNEntries(number);
+      tracksROF.setFlags(number ? vtxROF.getFlags() : 0); // copies 0xffffffff if cosmics
       if (processingMask[iROF]) {
-        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
+        irFrames.emplace_back(tracksROF.getBCData(), tracksROF.getBCData() + nBCPerTF - 1).info = tracks.size();
       }
       allTrackLabels.reserve(mTimeFrame->getTracksLabel(iROF).size()); // should be 0 if not MC
       std::copy(mTimeFrame->getTracksLabel(iROF).begin(), mTimeFrame->getTracksLabel(iROF).end(), std::back_inserter(allTrackLabels));

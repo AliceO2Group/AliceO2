@@ -21,6 +21,7 @@
 #include "TPCFastTransformGeo.h"
 #include "FlatObject.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -414,6 +415,9 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
   convUVtoGrid(slice, row, u, v, gridU, gridV);
   float dxuv[3];
   spline.interpolateU(splineData, gridU, gridV, dxuv);
+  if (CAMath::Abs(dxuv[0]) > 100 || CAMath::Abs(dxuv[1]) > 100 || CAMath::Abs(dxuv[2]) > 100) {
+    dxuv[0] = dxuv[1] = dxuv[2] = 0;
+  }
   dx = dxuv[0];
   du = dxuv[1];
   dv = dxuv[2];
@@ -428,6 +432,9 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrectionOld(int slice, int row, f
   convUVtoGrid(slice, row, u, v, gridU, gridV);
   float dxuv[3];
   spline.interpolateUold(splineData, gridU, gridV, dxuv);
+  if (CAMath::Abs(dxuv[0]) > 100 || CAMath::Abs(dxuv[1]) > 100 || CAMath::Abs(dxuv[2]) > 100) {
+    dxuv[0] = dxuv[1] = dxuv[2] = 0;
+  }
   dx = dxuv[0];
   du = dxuv[1];
   dv = dxuv[2];
@@ -444,6 +451,9 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
   const float* splineData = getSplineData(slice, row, 1);
   float dx = 0;
   spline.interpolateU(splineData, gridU, gridV, &dx);
+  if (CAMath::Abs(dx) > 100) {
+    dx = 0;
+  }
   x = mGeo.getRowInfo(row).x + dx;
 }
 
@@ -458,6 +468,9 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
 
   float duv[2];
   spline.interpolateU(splineData, gridU, gridV, duv);
+  if (CAMath::Abs(duv[0]) > 100 || CAMath::Abs(duv[1]) > 100) {
+    duv[0] = duv[1] = 0;
+  }
   nomU = corrU - duv[0];
   nomV = corrV - duv[1];
 }

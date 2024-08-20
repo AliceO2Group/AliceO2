@@ -32,8 +32,7 @@ Users can ask for support in [ALICE Talk](https://alice-talk.web.cern.ch).
 
 ### Issue tracking system
 
-We use JIRA to track issues. [Report a bug here](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1).
-Add the JIRA issue key (e.g. `O2-XYZ`) to the PR title or in a commit message to have the PR/commit appear in the JIRA ticket.
+We use JIRA to track issues. [Report issues (bugs,...) in the O2 JIRA project](https://its.cern.ch/jira/projects/O2) by using the "Create" button to submit a bug report or feature request. Add the JIRA issue key (e.g. `O2-XYZ`) to the PR title or in a commit message to have the PR/commit appear in the JIRA ticket.
 
 ### Coding guidelines
 

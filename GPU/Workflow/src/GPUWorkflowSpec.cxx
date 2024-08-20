@@ -187,6 +187,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   if (mConfParam->synchronousProcessing) {
     mConfig->configReconstruction.useMatLUT = false;
   }
+  if (mConfig->configProcessing.rtc.optSpecialCode == -1) {
+    mConfig->configProcessing.rtc.optSpecialCode = mConfParam->synchronousProcessing;
+  }
 
   // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
   if (mSpecConfig.outputTracks || mSpecConfig.outputCompClusters || mSpecConfig.outputCompClustersFlat) {
@@ -275,7 +278,10 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
     if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {
-      mConfig->PrintParam();
+      mConfig->configProcessing.printSettings = true;
+      if (mConfParam->printSettings > 1) {
+        mConfig->PrintParam();
+      }
     }
 
     // Configuration is prepared, initialize the tracker.

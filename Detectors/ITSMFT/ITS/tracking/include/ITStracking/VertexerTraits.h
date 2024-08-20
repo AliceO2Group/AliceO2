@@ -69,10 +69,10 @@ class VertexerTraits
   virtual void adoptTimeFrame(TimeFrame* tf);
   virtual void updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
   // Hybrid
-  virtual void initialiseHybrid(const TrackingParameters& trackingParams) { initialise(trackingParams); };
-  virtual void computeTrackletsHybrid() { computeTracklets(); };
-  virtual void computeTrackletMatchingHybrid() { computeTrackletMatching(); };
-  virtual void computeVerticesHybrid() { computeVertices(); };
+  virtual void initialiseHybrid(const TrackingParameters& trackingParams, const int iteration = 0) { initialise(trackingParams, iteration); };
+  virtual void computeTrackletsHybrid(const int iteration = 0) { computeTracklets(iteration); };
+  virtual void computeTrackletMatchingHybrid(const int iteration = 0) { computeTrackletMatching(iteration); };
+  virtual void computeVerticesHybrid(const int iteration = 0) { computeVertices(iteration); };
   virtual void adoptTimeFrameHybrid(TimeFrame* tf) { adoptTimeFrame(tf); };
 
   void computeVerticesInRof(int,

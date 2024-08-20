@@ -45,6 +45,14 @@ class ROFRecord
   void setFirstEntry(int idx) { mROFEntry.setFirstEntry(idx); }
   void setNEntries(int n) { mROFEntry.setEntries(n); }
 
+  uint32_t getFlags() const { return mBits; }
+  void setFlags(uint32_t flags) { mBits = flags; }
+  void setFlag(uint8_t flagIndex) { mBits |= (1 << flagIndex); }
+  void resetFlag(uint8_t flagIndex) { mBits &= ~(1 << flagIndex); }
+  bool getFlag(uint8_t flagIndex) const { return mBits & (1 << flagIndex); }
+  void clearAllFlags() { mBits = 0; }
+  void setAllFlags() { mBits = ~0; }
+
   const BCData& getBCData() const { return mBCData; }
   BCData& getBCData() { return mBCData; }
   EvIdx getEntry() const { return mROFEntry; }
@@ -91,8 +99,8 @@ class ROFRecord
   o2::InteractionRecord mBCData; // BC data for given trigger
   EvIdx mROFEntry;               //< reference on the 1st object of the ROF in data
   ROFtype mROFrame = 0;          //< frame ID
-
-  ClassDefNV(ROFRecord, 2);
+  uint32_t mBits = 0;
+  ClassDefNV(ROFRecord, 3);
 };
 
 /// this is a simple reference connecting (composed) MC event ID (from the EventRecord of the RunContext)

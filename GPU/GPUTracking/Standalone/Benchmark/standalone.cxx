@@ -114,6 +114,7 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.printSettings > 1) {
+    printf("Config Dump before ReadConfiguration\n");
     qConfigPrint();
   }
   if (configStandalone.proc.debugLevel < 0) {
@@ -228,6 +229,12 @@ int ReadConfiguration(int argc, char** argv)
       configStandalone.proc.ompThreads = 1;
     }
   }
+  if (configStandalone.setO2Settings) {
+    configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    configStandalone.rec.tpc.nWaysOuter = 1;
+    configStandalone.rec.tpc.trackReferenceX = 83;
+    configStandalone.proc.outputSharedClusterMap = 1;
+  }
 
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
@@ -264,6 +271,10 @@ int ReadConfiguration(int argc, char** argv)
   }
 
   if (configStandalone.printSettings) {
+    configStandalone.proc.printSettings = true;
+  }
+  if (configStandalone.printSettings > 1) {
+    printf("Config Dump after ReadConfiguration\n");
     qConfigPrint();
   }
 
@@ -423,6 +434,9 @@ int SetupReconstruction()
       procSet.eventDisplay = nullptr;
     }
   }
+  if (configStandalone.proc.rtc.optSpecialCode == -1) {
+    configStandalone.proc.rtc.optSpecialCode = configStandalone.testSyncAsync || configStandalone.testSync;
+  }
 
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
@@ -442,6 +456,7 @@ int SetupReconstruction()
     procSet.runQA = false;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
+    procSet.rtc.optSpecialCode = 0;
     if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSet.tpcInputWithClusterRejection = 1;
     }
@@ -725,14 +740,19 @@ int main(int argc, char** argv)
     return 1;
   }
 
-  recUnique.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType.c_str() : GPUDataTypes::DEVICE_TYPE_NAMES[GPUDataTypes::DeviceType::CPU], configStandalone.runGPUforce));
+  GPUSettingsDeviceBackend deviceSet;
+  deviceSet.deviceType = configStandalone.runGPU ? GPUDataTypes::GetDeviceType(configStandalone.gpuType.c_str()) : GPUDataTypes::DeviceType::CPU;
+  deviceSet.forceDeviceType = configStandalone.runGPUforce;
+  deviceSet.master = nullptr;
+  recUnique.reset(GPUReconstruction::CreateInstance(deviceSet));
   rec = recUnique.get();
+  deviceSet.master = rec;
   if (configStandalone.testSyncAsync) {
-    recUniqueAsync.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType.c_str() : GPUDataTypes::DEVICE_TYPE_NAMES[GPUDataTypes::DeviceType::CPU], configStandalone.runGPUforce, rec));
+    recUniqueAsync.reset(GPUReconstruction::CreateInstance(deviceSet));
     recAsync = recUniqueAsync.get();
   }
   if (configStandalone.proc.doublePipeline) {
-    recUniquePipeline.reset(GPUReconstruction::CreateInstance(configStandalone.runGPU ? configStandalone.gpuType.c_str() : GPUDataTypes::DEVICE_TYPE_NAMES[GPUDataTypes::DeviceType::CPU], configStandalone.runGPUforce, rec));
+    recUniquePipeline.reset(GPUReconstruction::CreateInstance(deviceSet));
     recPipeline = recUniquePipeline.get();
   }
   if (rec == nullptr || (configStandalone.testSyncAsync && recAsync == nullptr)) {
