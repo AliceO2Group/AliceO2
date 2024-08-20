@@ -227,7 +227,7 @@ void CcdbApi::init(std::string const& host)
     if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS ||
         deploymentMode == o2::framework::DeploymentMode::OnlineAUX ||
         deploymentMode == o2::framework::DeploymentMode::OnlineECS) {
-      mCurlTimeoutDownload = 5;
+      mCurlTimeoutDownload = 15;
     } else if (deploymentMode == o2::framework::DeploymentMode::Grid ||
                deploymentMode == o2::framework::DeploymentMode::FST) {
       mCurlTimeoutDownload = 15;
