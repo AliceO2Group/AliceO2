@@ -484,6 +484,10 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
   bool rescheduled = false;
   bool contentRetrieved = false;
 
+  if (curlCode != 0) {
+    LOG(error) << "CCDBDownloader: " << curl_easy_strerror(curlCode) << "\n";
+  }
+
   switch (performData->type) {
     case BLOCKING: {
       --(*performData->requestsLeft);
@@ -524,7 +528,7 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
       // Check for timeout
       if (curlCode == CURLE_OPERATION_TIMEDOUT) {
-        log(error) << "Connection timed out.\n";
+        LOG(error) << "Connection timed out.\n";
         contentRetrieved = false;
       }
 
