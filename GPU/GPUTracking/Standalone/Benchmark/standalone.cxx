@@ -434,6 +434,9 @@ int SetupReconstruction()
       procSet.eventDisplay = nullptr;
     }
   }
+  if (configStandalone.proc.rtc.optSpecialCode == -1) {
+    configStandalone.proc.rtc.optSpecialCode = configStandalone.testSyncAsync || configStandalone.testSync;
+  }
 
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
@@ -453,6 +456,7 @@ int SetupReconstruction()
     procSet.runQA = false;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
+    procSet.rtc.optSpecialCode = 0;
     if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSet.tpcInputWithClusterRejection = 1;
     }

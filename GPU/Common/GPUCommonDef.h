@@ -97,6 +97,9 @@
 #define GPUCA_DEBUG_STREAMER_CHECK(...)
 #endif
 
+#ifndef GPUCA_RTC_SPECIAL_CODE
+#define GPUCA_RTC_SPECIAL_CODE(...)
+#endif
 
 // API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"
