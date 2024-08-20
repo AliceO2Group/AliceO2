@@ -60,12 +60,17 @@ float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logg
 {
   float total{0.f};
   TrackingParameters trkPars;
-  trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
-  trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
-  total += evaluateTask(&Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", logger, trkPars);
-  total += evaluateTask(&Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", logger);
-  total += evaluateTask(&Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", logger);
+  TimeFrameGPUParameters tfGPUpar;
+  mTraits->updateVertexingParameters(mVertParams, tfGPUpar);
+  for (int iteration = 0; iteration < std::min(mVertParams[0].nIterations, (int)mVertParams.size()); ++iteration) {
+    logger(fmt::format("ITS Hybrid seeding vertexer iteration {} summary:", iteration));
+    trkPars.PhiBins = mTraits->getVertexingParameters()[0].PhiBins;
+    trkPars.ZBins = mTraits->getVertexingParameters()[0].ZBins;
+    total += evaluateTask(&Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", logger, trkPars, iteration);
+    total += evaluateTask(&Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", logger, iteration);
+    total += evaluateTask(&Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", logger, iteration);
+    total += evaluateTask(&Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", logger, iteration);
+  }
   printEpilog(logger, total);
   return total;
 }
