@@ -36,6 +36,8 @@ void BuildTopologyDictionary::accountTopology(const itsmft::ClusterTopology& clu
     //___________________DEFINING_TOPOLOGY_CHARACTERISTICS__________________
     itsmft::TopologyInfo topInf;
     topInf.mPattern.setPattern(cluster.getPattern().data());
+    topInf.mSizeX = cluster.getRowSpan();
+    topInf.mSizeZ = cluster.getColumnSpan();
     //__________________COG_Determination_____________
     topInf.mNpixels = cluster.getClusterPattern().getCOG(topInf.mCOGx, topInf.mCOGz);
     if (useDf) {

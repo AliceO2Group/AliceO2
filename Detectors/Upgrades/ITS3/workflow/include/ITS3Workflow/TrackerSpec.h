@@ -44,7 +44,7 @@ class TrackerDPL : public framework::Task
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
-  void setClusterDictionary(o2::its3::TopologyDictionary* d) { mDict = d; }
+  void setClusterDictionary(const o2::its3::TopologyDictionary* d) { mDict = d; }
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
@@ -56,7 +56,7 @@ class TrackerDPL : public framework::Task
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain{};
   bool mRunVertexer{true};
   bool mCosmicsProcessing{false};
-  o2::its3::TopologyDictionary* mDict{};
+  const o2::its3::TopologyDictionary* mDict{};
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS{};
   std::unique_ptr<its::Tracker> mTracker{};
   std::unique_ptr<its::Vertexer> mVertexer{};

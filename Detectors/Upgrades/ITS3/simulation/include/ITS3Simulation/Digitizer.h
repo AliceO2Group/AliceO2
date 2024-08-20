@@ -76,6 +76,8 @@ class Digitizer : public TObject
     mEventROFrameMax = 0;
   }
 
+  void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
+
  private:
   void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID);
   void registerDigits(o2::itsmft::ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
@@ -108,7 +110,7 @@ class Digitizer : public TObject
 
   o2::itsmft::AlpideSimResponse* mAlpSimResp = nullptr; // simulated response
 
-  const o2::its::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
+  const o2::its::GeometryTGeo* mGeometry = nullptr; ///< ITS3 geometry
 
   std::vector<o2::itsmft::ChipDigitsContainer> mChips; ///< Array of chips digits containers
   std::deque<std::unique_ptr<ExtraDig>> mExtraBuff;    ///< burrer (per roFrame) for extra digits
@@ -116,6 +118,8 @@ class Digitizer : public TObject
   std::vector<o2::itsmft::Digit>* mDigits = nullptr;                       //! output digits
   std::vector<o2::itsmft::ROFRecord>* mROFRecords = nullptr;               //! output ROF records
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mMCLabels = nullptr; //! output labels
+
+  const o2::itsmft::NoiseMap* mDeadChanMap = nullptr;
 
   ClassDef(Digitizer, 4);
 };

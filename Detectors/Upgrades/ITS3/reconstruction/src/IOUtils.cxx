@@ -22,6 +22,8 @@
 #include "ITStracking/TrackingConfigParam.h"
 #include "Framework/Logger.h"
 
+#include <limits>
+
 namespace o2::its3::ioutils
 {
 
@@ -44,9 +46,11 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
   for (auto& c : clusters) {
     float sigmaY2, sigmaZ2, sigmaYZ = 0;
     auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
-    auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
+    const auto detID = c.getSensorID();
+    auto& cl3d = output.emplace_back(detID,
+                                     (its3::constants::detID::isDetITS3(detID) ? geom->getT2LMatrixITS3(detID, geom->getSensorRefAlpha(detID)) : geom->getMatrixT2L(detID)) ^ locXYZ); // local --> tracking
     if (applyMisalignment) {
-      auto lrID = geom->getLayer(c.getSensorID());
+      auto lrID = geom->getLayer(detID);
       sigmaY2 += conf.sysErrY2[lrID];
       sigmaZ2 += conf.sysErrZ2[lrID];
     }
@@ -61,7 +65,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
                         const its3::TopologyDictionary* dict,
                         const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
-  its::GeometryTGeo* geom = its::GeometryTGeo::Instance();
+  auto geom = its::GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   tf->mNrof = 0;
@@ -78,19 +82,9 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
 
       auto pattID = c.getPatternID();
       float sigmaY2{0}, sigmaZ2{0}, sigmaYZ{0};
-      auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
-
-      unsigned int clusterSize{0};
-      if (pattID == itsmft::CompCluster::InvalidPatternID || dict->isGroup(pattID)) {
-        // TODO FIX
-        // o2::itsmft::ClusterPattern patt;
-        // patt.acquirePattern(pattIt);
-        // clusterSize = patt.getNPixels();
-        clusterSize = 0;
-      } else {
-        clusterSize = dict->getNpixels(pattID);
-      }
-      clusterSizeVec.push_back(std::clamp(clusterSize, 0u, 255u));
+      uint8_t clusterSize{0};
+      auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2, clusterSize);
+      clusterSizeVec.push_back(clusterSize);
 
       // Transformation to the local --> global
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
