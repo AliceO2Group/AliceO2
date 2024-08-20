@@ -9,170 +9,20 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_test_root_macro(CheckDigitsITS3.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckClustersITS3.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckTracksITS3.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckDCA.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                                             O2::Steer
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CreateDictionariesITS3.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(buildMatBudLUT.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckHits.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckDigitsDensity.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckClusterSize.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CompareClusterSize.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckSuperAlpideSegment.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckSuperAlpideSegmentTrans.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CompareClustersAndDigits.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
-
-o2_add_test_root_macro(CheckROFs.C
-                       PUBLIC_LINK_LIBRARIES O2::ITSBase
-                                             O2::ITS3Base
-                                             O2::ITSMFTBase
-                                             O2::ITSMFTSimulation
-                                             O2::ITS3Simulation
-                                             O2::ITS3Reconstruction
-                                             O2::MathUtils
-                                             O2::SimulationDataFormat
-                                             O2::DetectorsBase
-                       LABELS its3 COMPILE_ONLY)
+its3_add_macro(CheckDigitsITS3.C)
+its3_add_macro(CheckClustersITS3.C)
+its3_add_macro(CheckTracksITS3.C)
+its3_add_macro(CheckDCA.C)
+its3_add_macro(CreateDictionariesITS3.C)
+its3_add_macro(buildMatBudLUT.C)
+its3_add_macro(CheckHits.C)
+its3_add_macro(CheckDigitsDensity.C)
+its3_add_macro(CheckClusterSize.C)
+its3_add_macro(CompareClusterSize.C)
+its3_add_macro(CheckSuperAlpideSegment.C)
+its3_add_macro(CheckSuperAlpideSegmentTrans.C)
+its3_add_macro(CompareClustersAndDigits.C)
+its3_add_macro(CheckROFs.C)
+its3_add_macro(CheckTileNumbering.C)
+its3_add_macro(CreateITS3StaticDeadMap.C)
+its3_add_macro(TestSensorGeometry.C)

@@ -46,9 +46,10 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
   auto logger = [tracksSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
     LOG(info) << "ITS3TrackWriter pulled " << *tracksSize << " tracks, in " << rofs.size() << " RO frames";
   };
-  return MakeRootTreeWriterSpec("its-track-writer",
+  // NOTE: We name the branches as ITS and not IT3 to ensure matching works.
+  return MakeRootTreeWriterSpec("its3-track-writer",
                                 "o2trac_its.root",
-                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with IT3 tracks"},
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with ITS3 tracks"},
                                 BranchDefinition<std::vector<o2::its::TrackITS>>{InputSpec{"tracks", "ITS", "TRACKS", 0},
                                                                                  "ITSTrack",
                                                                                  tracksSizeGetter},

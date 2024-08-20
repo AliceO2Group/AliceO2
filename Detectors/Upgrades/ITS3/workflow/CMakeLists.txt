@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
+
 o2_add_library(ITS3Workflow
                SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
@@ -31,8 +33,7 @@ o2_add_library(ITS3Workflow
                                      O2::ITS3Reconstruction
                                      O2::ITSWorkflow
                                      O2::GPUTracking
-                                     O2::ITSBase
-)
+                                     O2::ITSBase)
 
 # o2_add_executable(digit-writer-workflow
 #                   SOURCES src/digit-writer-workflow.cxx

@@ -74,7 +74,7 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its.root",
                      const std::string& clusfile = "o2clus_its.root",
                      const std::string& kinefile = "o2sim_Kine.root",
                      const std::string& magfile = "o2sim_grp.root",
-                     const std::string& inputGeom = "o2sim_geometry.root",
+                     const std::string& inputGeom = "",
                      bool batch = false)
 {
   gROOT->SetBatch(batch);
@@ -154,8 +154,9 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its.root",
 
     for (unsigned int iClus{0}; iClus < clssize; ++iClus) {
       auto lab = (clusLabArr->getLabels(iClus))[0];
-      if (!lab.isValid() || lab.getSourceID() != 0 || !lab.isCorrect())
+      if (!lab.isValid() || lab.getSourceID() != 0 || !lab.isCorrect()) {
         continue;
+      }
 
       int trackID, evID, srcID;
       bool fake;
@@ -354,12 +355,12 @@ void CheckTracksITS3(const std::string& tracfile = "o2trac_its.root",
 
   h_phi_eff->SetTotalHistogram(*h_phi_den, "");
   h_phi_eff->SetPassedHistogram(*h_phi_num, "");
-  h_phi_eff->SetTitle("Tracking Efficiency;#it{#eta};Eff.");
+  h_phi_eff->SetTitle("Tracking Efficiency;#varphi;Eff.");
   h_phi_eff->Write();
 
   h_eta_eff->SetTotalHistogram(*h_eta_den, "");
   h_eta_eff->SetPassedHistogram(*h_eta_num, "");
-  h_eta_eff->SetTitle("Tracking Efficiency;#varphi;Eff.");
+  h_eta_eff->SetTitle("Tracking Efficiency;#it{#eta};Eff.");
   h_eta_eff->Write();
 
   file.Close();

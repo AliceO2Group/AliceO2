@@ -148,3 +148,22 @@ o2-sim -j 1  \
 ```
 
 The file `hijing.C` can be found [here](https://alice.its.cern.ch/jira/browse/AOGM-246).
+
+### Disabling individual tiles
+1. Create a file `input.txt` with a comma separated list of disabled tiles.
+2. (optional) Run the macro `CreateITS3StaticDeadMap.C` and/or visualize with `CheckTileNumbering.C`
+3. Move the ccdb object into `${ALICEO2_CCDB_LOCALCACHE}/IT3/Calib/DeadMap`, this is not optional since there is no default object uploaded
+4. Run digitizer with `ITS3Params.useDeadChannelMap=true;`, e.g.:
+``` bash
+o2-sim-digitizer-workflow --configKeyValues="ITS3Params.useDeadChannelMap=true;"
+```
+
+
+### Alignment studies
+#### Deform hits
+1. Create misalignment parameters with `CreateMisalignmentITS3.C`
+2. Visualize with `ShowCoefficients.C`
+3. Run digitizer
+``` bash
+o2-sim-digitizer-workflow -b --configKeyValues="ITS3Params.applyMisalignmentHits=true;ITS3Params.misalignmentHitsParams=misparams.root"
+```

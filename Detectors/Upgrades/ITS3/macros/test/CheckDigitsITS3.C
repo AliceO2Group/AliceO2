@@ -40,7 +40,7 @@
 #include "fairlogger/Logger.h"
 #endif
 
-void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "o2sim_geometry.root", bool batch = false)
+void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "", bool batch = false)
 {
   gROOT->SetBatch(batch);
   gStyle->SetPalette(kRainBow);
