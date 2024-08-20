@@ -523,10 +523,8 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
       }
 
       // Check for timeout
-      curl_off_t transferTime = 0;
-      curl_easy_getinfo(easy_handle, CURLINFO_TOTAL_TIME_T, &transferTime);
-      if (transferTime / 1000 >= mRequestTimeoutMS) {
-        LOG(error) << "Connection timeout\n";
+      if (curlCode == CURLE_OPERATION_TIMEDOUT) {
+        log(error) << "Connection timed out.\n";
         contentRetrieved = false;
       }
 
