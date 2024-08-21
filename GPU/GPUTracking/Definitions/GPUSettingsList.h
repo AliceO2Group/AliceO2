@@ -565,7 +565,6 @@ AddVariableRTC(dAlpha, float, 0.f)           // angular size
 AddVariableRTC(assumeConstantBz, signed char, 0)    // Assume a constant magnetic field
 AddVariableRTC(toyMCEventsFlag, signed char, 0)     // events were build with home-made event generator
 AddVariableRTC(continuousTracking, signed char, 0)  // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
-AddVariableRTC(resetTimers, signed char, 0)         // Reset benchmark timers before event processing
 AddVariableRTC(dodEdx, signed char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, signed char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, signed char, 0)          // Debug level
