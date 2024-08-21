@@ -78,7 +78,7 @@ class LZEROElectronics
   /// Sets geometry for trigger mapping
   void setGeometry(o2::emcal::Geometry* gm) { mGeometry = gm; }
 
-  /// Sets the masked fastOrs from the CCDB in the LZERO 
+  /// Sets the masked fastOrs from the CCDB in the LZERO
   void setMaskedFastOrs(std::vector<int> maskedfastors) { mMaskedFastOrs = maskedfastors; }
   void printMaskedFastOrs();
 
