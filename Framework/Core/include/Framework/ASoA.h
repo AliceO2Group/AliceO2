@@ -2002,6 +2002,12 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     {                                                                                                                                             \
       return *mColumnIterator;                                                                                                                    \
     }                                                                                                                                             \
+                                                                                                                                                  \
+    decltype(auto) get() const                                                                                                                    \
+    {                                                                                                                                             \
+      return _Getter_();                                                                                                                          \
+    }                                                                                                                                             \
+                                                                                                                                                  \
     static o2::framework::expressions::Projector Projector()                                                                                      \
     {                                                                                                                                             \
       return _Expression_;                                                                                                                        \
