@@ -115,7 +115,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
       tf->addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < tf->getUnsortedClusters().size(); ++iL) {
-      tf->mROframesClusters[iL].push_back(tf->getUnsortedClusters()[iL].size());
+      tf->mROFramesClusters[iL].push_back(tf->getUnsortedClusters()[iL].size());
     }
     tf->mNrof++;
   }
