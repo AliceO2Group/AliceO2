@@ -51,7 +51,7 @@ TEST_CASE("TestJoinedTablesContains")
   REQUIRE(tests.asArrowTable()->num_columns() != 0);
   REQUIRE(tests.asArrowTable()->num_columns() ==
           tXY->num_columns() + tZD->num_columns());
-  auto tests2 = join<o2::header::DataOrigin{"JOIN"}>(XY{tXY}, ZD{tZD});
+  auto tests2 = join<o2::framework::OriginEnc{"JOIN"}>(XY{tXY}, ZD{tZD});
   static_assert(std::is_same_v<Test::table_t, decltype(tests2)>,
                 "Joined tables should have the same type, regardless how we construct them");
 

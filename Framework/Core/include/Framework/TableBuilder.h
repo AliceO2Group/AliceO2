@@ -843,7 +843,7 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table>& fullT
                                             expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
 
 /// Expression-based column generator to materialize columns
-template <o2::header::DataOrigin ORIGIN, typename... C>
+template <o2::framework::OriginEnc ORIGIN, typename... C>
 auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
 {
   auto fullTable = soa::ArrowHelpers::joinTables(std::move(tables));

@@ -217,7 +217,7 @@ static void BM_ASoASimpleForLoop(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X>;
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X>;
 
   for (auto _ : state) {
     float sum = 0;
@@ -245,7 +245,7 @@ static void BM_ASoASimpleForLoopWithOp(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X, test::Y>;
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y>;
 
   for (auto _ : state) {
     Test tests{table};
@@ -273,7 +273,7 @@ static void BM_ASoADynamicColumnPresent(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X, test::Y, test::Z, test::Sum<test::X, test::Y>>;
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y, test::Z, test::Sum<test::X, test::Y>>;
 
   for (auto _ : state) {
     Test tests{table};
@@ -301,7 +301,7 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
   }
   auto table = builder.finalize();
 
-  using Test = o2::soa::Table<o2::header::DataOrigin{"AOD"}, test::X, test::Y, test::Sum<test::X, test::Y>>;
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y, test::Sum<test::X, test::Y>>;
 
   Test tests{table};
   for (auto _ : state) {

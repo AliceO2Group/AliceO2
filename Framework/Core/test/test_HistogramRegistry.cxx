@@ -84,7 +84,7 @@ TEST_CASE("HistogramRegistryExpressionFill")
   rowWriterA(0, 7.0f, -4.0f);
   auto tableA = builderA.finalize();
   REQUIRE(tableA->num_rows() == 8);
-  using TestA = o2::soa::Table<o2::header::DataOrigin{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
+  using TestA = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, o2::soa::Index<>, test::X, test::Y>;
   TestA tests{tableA};
   REQUIRE(8 == tests.size());
 
