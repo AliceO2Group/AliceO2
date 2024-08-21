@@ -93,7 +93,10 @@ class Vertexer
   void dumpTraits();
   template <typename... T>
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
-  void printEpilog(std::function<void(std::string s)> logger, const float total);
+  void printEpilog(std::function<void(std::string s)> logger,
+                   bool isHybrid,
+                   const unsigned int trackletN01, const unsigned int trackletN12, const unsigned selectedN, const unsigned int vertexN,
+                   const float initT, const float trackletT, const float selecT, const float vertexT);
 
  private:
   std::uint32_t mTimeFrameCounter = 0;

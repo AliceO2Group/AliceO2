@@ -63,6 +63,7 @@ void ITSTrackingInterface::initialise()
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
     vertParams[1].vertPerRofThreshold = 0;
+    vertParams[1].deltaRof = 0;
   } else if (mMode == TrackingMode::Sync) {
     trackParams.resize(1);
     trackParams[0].ZBins = 64;
@@ -236,7 +237,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
-      mTimeFrame->addPrimaryVertices(vtxVecLoc);
+      mTimeFrame->addPrimaryVertices(vtxVecLoc, iRof, 0);
     }
   }
   if (mRunVertexer) {
@@ -249,7 +250,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
                              trackROFspan.size());
     LOG(info) << fmt::format("FastMultEst: rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   }
-
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {

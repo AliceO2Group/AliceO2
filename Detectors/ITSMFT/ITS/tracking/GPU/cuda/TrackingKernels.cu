@@ -353,8 +353,8 @@ GPUg() void printTrackletsNotStrided(const Tracklet* t,
 // Compute the tracklets for a given layer
 template <int nLayers = 7>
 GPUg() void computeLayerTrackletsKernelSingleRof(
-  const int rof0,
-  const int maxRofs,
+  const short rof0,
+  const short maxRofs,
   const int layerIndex,
   const Cluster* clustersCurrentLayer,        // input data rof0
   const Cluster* clustersNextLayer,           // input data rof0-delta <rof0< rof0+delta (up to 3 rofs)
@@ -385,8 +385,8 @@ GPUg() void computeLayerTrackletsKernelSingleRof(
     if (usedClustersLayer[currentSortedIndex]) {
       continue;
     }
-    int minRof = (rof0 >= trkPars->DeltaROF) ? rof0 - trkPars->DeltaROF : 0;
-    int maxRof = (rof0 == maxRofs - trkPars->DeltaROF) ? rof0 : rof0 + trkPars->DeltaROF;
+    short minRof = (rof0 >= trkPars->DeltaROF) ? rof0 - trkPars->DeltaROF : 0;
+    short maxRof = (rof0 == static_cast<short>(maxRofs - trkPars->DeltaROF)) ? rof0 : rof0 + trkPars->DeltaROF;
     const float inverseR0{1.f / currentCluster.radius};
     for (int iPrimaryVertex{0}; iPrimaryVertex < nVertices; iPrimaryVertex++) {
       const auto& primaryVertex{vertices[iPrimaryVertex]};
@@ -410,7 +410,7 @@ GPUg() void computeLayerTrackletsKernelSingleRof(
       }
       constexpr int tableSize{256 * 128 + 1}; // hardcoded for the time being
 
-      for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
+      for (short rof1{minRof}; rof1 <= maxRof; ++rof1) {
         if (!(roFrameClustersNext[rof1 + 1] - roFrameClustersNext[rof1])) { // number of clusters on next layer > 0
           continue;
         }
@@ -561,7 +561,7 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
                 const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) / (currentCluster.radius - nextCluster.radius)};
                 const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
                 if (storedTracklets < maxTrackletsPerCluster) {
-                  new (trackletsRof0 + stride + storedTracklets) Tracklet{currentSortedIndexChunk, nextClusterIndex, tanL, phi, static_cast<ushort>(rof0), static_cast<ushort>(rof1)};
+                  new (trackletsRof0 + stride + storedTracklets) Tracklet{currentSortedIndexChunk, nextClusterIndex, tanL, phi, static_cast<short>(rof0), static_cast<short>(rof1)};
                 }
                 // else {
                 // printf("its-gpu-tracklet-finder: on rof %d layer: %d: found more tracklets (%d) than maximum allowed per cluster. This is lossy!\n", rof0, layerIndex, storedTracklets);

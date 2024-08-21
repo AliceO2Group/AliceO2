@@ -114,7 +114,7 @@ struct VertexingParameters {
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int ZBins{1};
   int PhiBins{128};
-
+  int deltaRof = 0;
   float zCut = 0.002f;
   float phiCut = 0.005f;
   float pairCut = 0.04f;
