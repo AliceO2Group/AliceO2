@@ -121,7 +121,6 @@ void GPUParam::SetDefaults(float solenoidBz)
   par.continuousTracking = false;
   par.continuousMaxTimeBin = 0;
   par.debugLevel = 0;
-  par.resetTimers = false;
   par.earlyTpcTransform = false;
 }
 
@@ -138,7 +137,6 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
   qptB5Scaler = CAMath::Abs(bzkG) > 0.1f ? CAMath::Abs(bzkG) / 5.006680f : 1.f; // Repeat here, since passing in g is optional
   if (p) {
     par.debugLevel = p->debugLevel;
-    par.resetTimers = p->resetTimers;
     UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
   }
   if (w) {
