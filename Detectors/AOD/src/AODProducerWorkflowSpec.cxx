@@ -2487,6 +2487,9 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - tpcClData.found;
     extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - tpcClData.crossed;
     extraInfoHolder.tpcNClsShared = tpcClData.shared;
+    uint8_t clsFractionUsedForPID = (tpcOrig.getdEdx().NHitsIROC + tpcOrig.getdEdx().NHitsOROC1 + tpcOrig.getdEdx().NHitsOROC2 + tpcOrig.getdEdx().NHitsOROC3) * 8 / tpcClData.found;
+    clsFractionUsedForPID = clsFractionUsedForPID > 7u ? 7u : clsFractionUsedForPID; // 7 is the maximum value
+    extraInfoHolder.flags |= clsFractionUsedForPID << 25;
     if (src == GIndex::TPC) { // standalone TPC track should set its time from their timebins range
       if (needBCSlice) {
         double t = (tpcOrig.getTime0() + 0.5 * (tpcOrig.getDeltaTFwd() - tpcOrig.getDeltaTBwd())) * mTPCBinNS; // central value

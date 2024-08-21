@@ -42,6 +42,7 @@ enum TrackFlags : uint32_t {
   PVContributor = 0x2,       // This track has contributed to the collision vertex fit
   OrphanTrack = 0x4,         // Track has no association with any collision vertex
   TrackTimeAsym = 0x8,       // track with an asymmetric time range
+  // NOTE bits 26..28 reserved for the fraction of TPC clusters used for PID
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {
