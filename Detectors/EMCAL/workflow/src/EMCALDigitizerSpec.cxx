@@ -113,15 +113,13 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
   auto& eventParts = context->getEventParts();
 
-
-
   // ------------------------------
   // For the TRIGGER Simulation
   // ------------------------------
   // Load the masked fastOr
-  // This impact the acceptance 
+  // This impact the acceptance
   // of the detector, and thus the
-  // overall efficiency of the L0 
+  // overall efficiency of the L0
   if (mCalibHandler) {
     mDigitizerTRU.setFEE(mCalibHandler->getFEEDCS());
     mDigitizerTRU.setMaskedFastOrsInLZERO();

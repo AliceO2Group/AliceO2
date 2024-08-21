@@ -460,12 +460,12 @@ int DigitizerTRU::GetChannelForMaskRun2(int mask, int bitnumber, bool onethirdsm
 {
   if (onethirdsm)
     return mask * 16 + bitnumber;
-  const int kChannelMap[6][16] = { { 8, 9, 10, 11, 20, 21, 22, 23, 32, 33, 34, 35, 44, 45, 46, 47 },     // Channels in mask0
-                                   { 56, 57, 58, 59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95 },   // Channels in mask1
-                                   { 4, 5, 6, 7, 16, 17, 18, 19, 28, 29, 30, 31, 40, 41, 42, 43 },       // Channels in mask2
-                                   { 52, 53, 54, 55, 64, 65, 66, 67, 76, 77, 78, 79, 88, 89, 90, 91 },   // Channels in mask3
-                                   { 0, 1, 2, 3, 12, 13, 14, 15, 24, 25, 26, 27, 36, 37, 38, 39 },       // Channels in mask4
-                                   { 48, 49, 50, 51, 60, 61, 62, 63, 72, 73, 74, 75, 84, 85, 86, 87 } }; // Channels in mask5
+  const int kChannelMap[6][16] = {{8, 9, 10, 11, 20, 21, 22, 23, 32, 33, 34, 35, 44, 45, 46, 47},    // Channels in mask0
+                                  {56, 57, 58, 59, 68, 69, 70, 71, 80, 81, 82, 83, 92, 93, 94, 95},  // Channels in mask1
+                                  {4, 5, 6, 7, 16, 17, 18, 19, 28, 29, 30, 31, 40, 41, 42, 43},      // Channels in mask2
+                                  {52, 53, 54, 55, 64, 65, 66, 67, 76, 77, 78, 79, 88, 89, 90, 91},  // Channels in mask3
+                                  {0, 1, 2, 3, 12, 13, 14, 15, 24, 25, 26, 27, 36, 37, 38, 39},      // Channels in mask4
+                                  {48, 49, 50, 51, 60, 61, 62, 63, 72, 73, 74, 75, 84, 85, 86, 87}}; // Channels in mask5
   return kChannelMap[mask][bitnumber];
 }
 //______________________________________________________________________
@@ -500,9 +500,9 @@ void DigitizerTRU::setMaskedFastOrsInLZERO()
   LOG(info) << "======================================";
   LOG(info) << "== PRINT MASK COMPUTED IN DIGITIZER ==";
   int counter = 0;
-  for(auto fastOr : maskedFastOrs) {
+  for (auto fastOr : maskedFastOrs) {
     LOG(info) << "fastOr masked (number, ID) = (" << counter << ", " << fastOr;
-    counter += 1; 
+    counter += 1;
   }
   LZERO.setMaskedFastOrs(maskedFastOrs);
 }

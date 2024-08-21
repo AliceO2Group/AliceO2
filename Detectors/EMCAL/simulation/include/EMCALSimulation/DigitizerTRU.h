@@ -33,7 +33,6 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "EMCALCalib/FeeDCS.h"
 
-
 namespace o2
 {
 namespace utils
@@ -85,7 +84,7 @@ class DigitizerTRU
   /// Sets FEE DCS for the masking of the fastOrs
   void setFEE(o2::emcal::FeeDCS* fees) { mFeeDCS = fees; }
 
-  /// Sets the masked fastOrs from the CCDB in the LZERO 
+  /// Sets the masked fastOrs from the CCDB in the LZERO
   void setMaskedFastOrsInLZERO();
   void printMaskedFastOrsInLZERO();
 
@@ -125,7 +124,6 @@ class DigitizerTRU
   int GetChannelForMaskRun2(int mask, int bitnumber, bool onethirdsm);
   std::vector<int> GetAbsFastORIndexFromMask();
 
-
  private:
   short mEventTimeOffset = 0;        ///< event time difference from trigger time (in number of bins)
   bool mSmearEnergy = true;          ///< do time and energy smearing
@@ -153,7 +151,7 @@ class DigitizerTRU
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
   // std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;
   bool mEnableDebugStreaming = false;
-  o2::emcal::FeeDCS* mFeeDCS;                         ///< EMCAL FEE DCS
+  o2::emcal::FeeDCS* mFeeDCS; ///< EMCAL FEE DCS
 
   ClassDefNV(DigitizerTRU, 1);
 };

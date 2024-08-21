@@ -245,8 +245,8 @@ void LZEROElectronics::printMaskedFastOrs()
   LOG(info) << "===============================";
   LOG(info) << "== PRINT MASK SAVED IN LZERO ==";
   int counter = 0;
-  for(auto fastOr : mMaskedFastOrs) {
+  for (auto fastOr : mMaskedFastOrs) {
     LOG(info) << "fastOr masked (number, ID) = (" << counter << ", " << fastOr;
-    counter += 1; 
+    counter += 1;
   }
 }
