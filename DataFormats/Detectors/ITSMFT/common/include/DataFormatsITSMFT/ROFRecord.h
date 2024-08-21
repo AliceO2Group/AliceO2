@@ -31,6 +31,8 @@ class ROFRecord
 {
 
  public:
+  enum { VtxStdMode = 0,
+         VtxUPCMode = 1 };
   using EvIdx = o2::dataformats::RangeReference<int, int>;
   using BCData = o2::InteractionRecord;
   using ROFtype = unsigned int;

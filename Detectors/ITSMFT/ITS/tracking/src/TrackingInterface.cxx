@@ -219,10 +219,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
           allVerticesLabels.push_back(vMCRecInfo[iV].first);
           allVerticesPurities.push_back(vMCRecInfo[iV].second);
         }
-        if (v.isFlagSet(2)) { // Vertex is reconstructed in a second iteration
-          vtxROF.setFlag(2);  // flag that at least one vertex is from the second iteration
+        if (v.isFlagSet(Vertex::UPCMode)) {              // Vertex is reconstructed in a second iteration
+          vtxROF.setFlag(itsmft::ROFRecord::VtxUPCMode); // flag that at least one vertex is from the second iteration
         } else {
-          vtxROF.setFlag(1); // flag that at least one vertex is from the first iteration
+          vtxROF.setFlag(itsmft::ROFRecord::VtxStdMode); // flag that at least one vertex is from the first iteration
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
@@ -292,7 +292,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       int offset = -tracksROF.getFirstEntry(); // cluster entry!!!
       tracksROF.setFirstEntry(first);
       tracksROF.setNEntries(number);
-      tracksROF.setFlags(number ? vtxROF.getFlags() : 0); // copies 0xffffffff if cosmics
+      tracksROF.setFlags(vtxROF.getFlags()); // copies 0xffffffff if cosmics
       if (processingMask[iROF]) {
         irFrames.emplace_back(tracksROF.getBCData(), tracksROF.getBCData() + nBCPerTF - 1).info = tracks.size();
       }
