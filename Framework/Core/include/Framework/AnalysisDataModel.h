@@ -40,7 +40,7 @@ DECLARE_SOA_COLUMN(RunNumber, runNumber, int);          //! Run number
 DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);       //! Bunch crossing number (globally unique in this run)
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t); //! CTP trigger mask
 DECLARE_SOA_COLUMN(InputMask, inputMask, uint64_t);     //! CTP input mask
-DECLARE_SOA_COLUMN(Flags, flags, uint8_t);     //! BC flags (e.g. tagging of UPC tracking settings, etc)
+DECLARE_SOA_COLUMN(Flags, flags, uint8_t);              //! BC flags (e.g. tagging of UPC tracking settings, etc)
 } // namespace bc
 
 DECLARE_SOA_TABLE(BCs_000, "AOD", "BC", //! Root of data model for tables pointing to a bunch crossing
