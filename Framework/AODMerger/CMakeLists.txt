@@ -18,3 +18,8 @@ o2_add_executable(thinner
                   COMPONENT_NAME aod
                   SOURCES src/aodThinner.cxx
                   PUBLIC_LINK_LIBRARIES  ROOT::Core ROOT::Net)
+
+o2_add_executable(strainer
+                  COMPONENT_NAME aod
+                  SOURCES src/aodStrainer.cxx
+                  PUBLIC_LINK_LIBRARIES  ROOT::Core ROOT::Net)
