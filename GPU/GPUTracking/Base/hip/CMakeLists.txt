@@ -110,9 +110,14 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   )
   create_binary_resource(${GPU_RTC_BIN}.src ${GPU_RTC_BIN}.src.o)
 
+  if(DEFINED ENV{GCC_TOOLCHAIN_REVISION})
+    set(RTC_COMMAND_FILTER | sed "s/--gcc-toolchain=[^ ]*//")
+  else()
+    set(RTC_COMMAND_FILTER)
+  endif()
   add_custom_command(
       OUTPUT ${GPU_RTC_BIN}.command
-      COMMAND echo -n "${hip_HIPCC_EXECUTABLE} ${GPU_RTC_FLAGS_SEPARATED} ${GPU_RTC_DEFINES} --genco" > ${GPU_RTC_BIN}.command
+      COMMAND echo -n "${hip_HIPCC_EXECUTABLE} ${GPU_RTC_FLAGS_SEPARATED} ${GPU_RTC_DEFINES} --genco" ${RTC_COMMAND_FILTER} > ${GPU_RTC_BIN}.command
       COMMAND_EXPAND_LISTS
       VERBATIM
       COMMENT "Preparing HIP RTC command file ${GPU_RTC_BIN}.command"
