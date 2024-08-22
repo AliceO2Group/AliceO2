@@ -51,10 +51,8 @@ DECLARE_SOA_TABLE_VERSIONED(BCs_001, "AOD", "BC", 1, //! Root of data model for 
                             o2::soa::Index<>,
                             bc::RunNumber, bc::GlobalBC,
                             bc::TriggerMask, bc::InputMask);
-DECLARE_SOA_TABLE_VERSIONED(BCs_002, "AOD", "BC", 2, //! Root of data model for tables pointing to a bunch crossing, version 1
-                            o2::soa::Index<>,
-                            bc::RunNumber, bc::GlobalBC,
-                            bc::TriggerMask, bc::InputMask, bc::Flags);
+DECLARE_SOA_TABLE(BCFlags, "AOD", "BCFLAG", //! flag for tagging UPCs, joinable with BCs
+                  bc::Flags);
 
 using BCs = BCs_001; // current version
 using BC = BCs::iterator;
