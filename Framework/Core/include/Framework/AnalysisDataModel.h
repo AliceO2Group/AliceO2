@@ -523,7 +523,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA",
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::v001::DetectorMap);
 
-DECLARE_SOA_TABLE_FULL(TracksExtraRun2, "TracksExtraRun2", "AOD", "TRACKEXTRARUN2",
+DECLARE_SOA_TABLE_FULL(Run2TrackExtras, "Run2TrackExtras", "AOD", "RUN2TRACKEXTRA",
                        track::ITSSignal,
                        track::TPCNClsPID);
 
@@ -535,7 +535,7 @@ using TrackIU = TracksIU::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackCovIU = TracksCovIU::iterator;
 using TrackExtra = TracksExtra::iterator;
-using TrackExtraRun2 = TracksExtraRun2::iterator;
+using Run2TrackExtra = Run2TrackExtras::iterator;
 
 } // namespace aod
 namespace soa
