@@ -128,7 +128,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
         if (fread(&cachedSettings, sizeof(cachedSettings), 1, fp) != 1) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(&cachedSettings, &mProcessingSettings.rtc, sizeof(cachedSettings))) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && !(cachedSettings == mProcessingSettings.rtc)) {
           GPUInfo("Cache file content outdated (rtc parameters)");
           break;
         }
