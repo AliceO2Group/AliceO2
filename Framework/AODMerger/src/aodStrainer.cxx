@@ -14,6 +14,7 @@
 #include <fstream>
 #include <getopt.h>
 #include <sstream>
+#include <random>
 
 #include "TSystem.h"
 #include "TFile.h"
@@ -35,11 +36,16 @@ int main(int argc, char* argv[])
   std::string inputAO2D("AO2D.root");
   std::string outputFileName{"AO2D_strained.root"};
   std::string tables{"O2bc,O2calotrigger,O2collision,O2fdd,O2ft0,O2fv0a"};
+  double downsampling = 1.0;
   long maxDirSize = 100000000;
   bool skipNonExistingFiles = false;
   bool skipParentFilesList = false;
   int verbosity = 2;
   int exitCode = 0; // 0: success, >0: failure
+
+  std::random_device rd;  // Seed generator
+  std::mt19937 gen(rd()); // Mersenne Twister generator
+  std::uniform_real_distribution<> dis(0.0, 1.0);
 
   int option_index = 0;
   static struct option long_options[] = {
