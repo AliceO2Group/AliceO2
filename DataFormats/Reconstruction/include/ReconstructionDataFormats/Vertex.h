@@ -124,6 +124,7 @@ class Vertex : public VertexBase
   using ushort = unsigned short;
   enum Flags : ushort {
     TimeValidated = 0x1 << 0, // Flag that the vertex was validated by external time measurement (e.g. FIT)
+    UPCMode = 0x1 << 1,       // vertex is found in the UPC mode ITS ROF
     FlagsMask = 0xffff
   };
 
