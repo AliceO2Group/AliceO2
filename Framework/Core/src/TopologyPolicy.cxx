@@ -73,6 +73,11 @@ bool expendableDataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
 {
   O2_SIGNPOST_ID_GENERATE(sid, topology);
   O2_SIGNPOST_START(topology, sid, "expendableDataDeps", "Checking if %s depends on %s", a.name.c_str(), b.name.c_str());
+  if (a.name.find("internal-dpl-injected-dummy-sink") != std::string::npos &&
+      b.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
+    O2_SIGNPOST_END(topology, sid, "expendableDataDeps", "false. Dummy sink never depends on itself.");
+    return false;
+  }
   // We never put anything behind the dummy sink.
   if (b.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
     O2_SIGNPOST_END(topology, sid, "expendableDataDeps", "false. %s is dummy sink and it nothing can depend on it.", b.name.c_str());
