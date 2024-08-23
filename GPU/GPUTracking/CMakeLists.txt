@@ -97,6 +97,7 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Merger/GPUTPCGMMergerDump.cxx
+              Base/GPUReconstructionLibrary.cxx
               Global/GPUChainTrackingClusterizer.cxx
               Global/GPUChainTrackingTransformation.cxx
               Global/GPUChainTrackingTRD.cxx
