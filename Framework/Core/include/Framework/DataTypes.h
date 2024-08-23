@@ -16,6 +16,13 @@
 #include <cstdint>
 #include <limits>
 
+namespace o2::aod::bc
+{
+enum BCFlags : uint8_t {
+  ITSUPCMode = 0x1
+};
+}
+
 namespace o2::aod::collision
 {
 enum CollisionFlagsRun2 : uint16_t {

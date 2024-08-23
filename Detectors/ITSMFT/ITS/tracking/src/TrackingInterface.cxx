@@ -201,10 +201,21 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       if (mIsMC) {
         vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
       }
-      if (o2::its::TrackerParamConfig::Instance().doUPCIteration && (vtxSpan.size() && vtxSpan[0].getFlags() == 1)) { // at least one vertex in this ROF and it is from second vertex iteration
-        LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
-        processUPCMask[iRof] = true;
-        cutUPCVertex++;
+      if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
+        if (vtxSpan.size()) {
+          if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
+            LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
+            processUPCMask[iRof] = true;
+            cutUPCVertex++;
+            vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+          } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
+            vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
+          }
+        } else {
+          vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+        }
+      } else {
+        vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
       }
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
@@ -218,11 +229,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
         if (mIsMC) {
           allVerticesLabels.push_back(vMCRecInfo[iV].first);
           allVerticesPurities.push_back(vMCRecInfo[iV].second);
-        }
-        if (v.isFlagSet(2)) { // Vertex is reconstructed in a second iteration
-          vtxROF.setFlag(2);  // flag that at least one vertex is from the second iteration
-        } else {
-          vtxROF.setFlag(1); // flag that at least one vertex is from the first iteration
         }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
@@ -292,7 +298,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       int offset = -tracksROF.getFirstEntry(); // cluster entry!!!
       tracksROF.setFirstEntry(first);
       tracksROF.setNEntries(number);
-      tracksROF.setFlags(number ? vtxROF.getFlags() : 0); // copies 0xffffffff if cosmics
+      tracksROF.setFlags(vtxROF.getFlags()); // copies 0xffffffff if cosmics
       if (processingMask[iROF]) {
         irFrames.emplace_back(tracksROF.getBCData(), tracksROF.getBCData() + nBCPerTF - 1).info = tracks.size();
       }

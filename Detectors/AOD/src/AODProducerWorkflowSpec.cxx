@@ -1797,6 +1797,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   using namespace o2::aodhelpers;
 
   auto bcCursor = createTableCursor<o2::aod::BCs>(pc);
+  auto bcFlagsCursor = createTableCursor<o2::aod::BCFlags>(pc);
   auto cascadesCursor = createTableCursor<o2::aod::Cascades>(pc);
   auto collisionsCursor = createTableCursor<o2::aod::Collisions>(pc);
   auto decay3BodyCursor = createTableCursor<o2::aod::Decay3Bodys>(pc);
@@ -2219,6 +2220,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   bcToClassMask.clear();
+
+  // filling BC flags table:
+  auto bcFlags = fillBCFlags(recoData, bcsMap);
+  bcFlagsCursor.reserve(bcFlags.size());
+  for (auto f : bcFlags) {
+    bcFlagsCursor(f);
+  }
 
   // fill cpvcluster table
   if (mInputSources[GIndex::CPV]) {
@@ -2884,6 +2892,36 @@ std::uint64_t AODProducerWorkflowDPL::fillBCSlice(int (&slice)[2], double tmin, 
   return bcOfTimeRef;
 }
 
+std::vector<uint8_t> AODProducerWorkflowDPL::fillBCFlags(const o2::globaltracking::RecoContainer& data, std::map<uint64_t, int>& bcsMap) const
+{
+  std::vector<uint8_t> flags(bcsMap.size());
+
+  // flag BCs belonging to UPC mode ITS ROFs
+  auto bcIt = bcsMap.begin();
+  auto itsrofs = data.getITSTracksROFRecords();
+  auto lROF = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameLengthInBC;
+  auto bROF = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC;
+  for (auto& rof : itsrofs) {
+    if (!rof.getFlag(o2::itsmft::ROFRecord::VtxUPCMode)) {
+      continue;
+    }
+    uint64_t globalBC0 = rof.getBCData().toLong() + bROF, globalBC1 = globalBC0 + lROF - 1;
+    // BCs are sorted, iterate until the start of ROF
+    while (bcIt != bcsMap.end()) {
+      if (bcIt->first < globalBC0) {
+        ++bcIt;
+        continue;
+      }
+      if (bcIt->first > globalBC1) {
+        break;
+      }
+      flags[bcIt->second] |= o2::aod::bc::ITSUPCMode;
+      ++bcIt;
+    }
+  }
+  return flags;
+}
+
 void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& /*ec*/)
 {
   LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
@@ -2945,6 +2983,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
 
   std::vector<OutputSpec> outputs{
     OutputForTable<BCs>::spec(),
+    OutputForTable<BCFlags>::spec(),
     OutputForTable<Cascades>::spec(),
     OutputForTable<Collisions>::spec(),
     OutputForTable<Decay3Bodys>::spec(),
