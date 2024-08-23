@@ -97,18 +97,8 @@ int main(int argc, char* argv[])
 
   auto outputFile = TFile::Open(outputFileName.c_str(), "RECREATE", "", 505);
   TDirectory* outputDir = nullptr;
-
-  bool connectedToAliEn = false;
   TString line(inputAO2D.c_str());
-
-  if (line.BeginsWith("alien:") && !connectedToAliEn) {
-    printf("Connecting to AliEn...");
-    TGrid::Connect("alien:");
-    connectedToAliEn = true; // Only try once
-  }
-
   printf("Processing input file: %s\n", line.Data());
-
   auto inputFile = TFile::Open(line);
   if (!inputFile) {
     printf("Error: Could not open input file %s.\n", line.Data());
@@ -191,17 +181,21 @@ int main(int argc, char* argv[])
       }
 
       auto inputTree = (TTree*)inputFile->Get(Form("%s/%s", dfName, treeName));
-      bool fastCopy = (inputTree->GetTotBytes() > 10000000); // Only do this for large enough trees to avoid that baskets are too small
       if (verbosity > 1) {
-        printf("    Processing tree %s with %lld entries with total size %lld (fast copy: %d)\n", treeName, inputTree->GetEntries(), inputTree->GetTotBytes(), fastCopy);
+        printf("    Processing tree %s with %lld entries with total size %lld\n", treeName, inputTree->GetEntries(), inputTree->GetTotBytes());
       }
 
       outputDir->cd();
-      auto outputTree = inputTree->CloneTree(-1, (fastCopy) ? "fast" : "");
+      auto outputTree = inputTree->CloneTree(-1, "fast");
       outputTree->Write();
     }
   }
-  outputFile->Close();
-
+  // in case of failure, remove the incomplete file
+  if (exitCode != 0) {
+    printf("Removing incomplete output file %s.\n", outputFile->GetName());
+    gSystem->Unlink(outputFile->GetName());
+  } else {
+    outputFile->Close();
+  }
   return exitCode;
 }
