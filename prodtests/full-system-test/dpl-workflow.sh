@@ -321,9 +321,9 @@ if has_detector_calib PHS && workflow_has_parameter CALIB; then
 fi
 
 [[ ${O2_GPU_DOUBLE_PIPELINE:-$EPNSYNCMODE} == 1 && $GPUTYPE != "CPU" ]] && GPU_CONFIG+=" --enableDoublePipeline"
-[[ ${O2_GPU_RTC:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCprependCommand=/usr/bin/env TMPDIR=/tmp /usr/bin/taskset -c 0-191;"
-[[ ${O2_GPU_RTC:-0} == 1 && $EPNSYNCMODE == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
-if [[ ${O2_GPU_RTC:-0} == 1 ]] && [[ ( ${ALICE_O2_FST:-0} == 1 && ${FST_TMUX_NO_EPN:-0} == 0 ) || $EPNSYNCMODE == 1 ]]; then
+[[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc_rtc.enable=1;GPU_proc_rtc.cacheOutput=1;GPU_proc.RTCprependCommand=/usr/bin/env TMPDIR=/tmp /usr/bin/taskset -c 0-191;"
+[[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 && $EPNSYNCMODE == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCcacheFolder=/var/tmp/o2_gpu_rtc_cache;"
+if [[ ${O2_GPU_RTC:-$EPNSYNCMODE} == 1 ]] && [[ ( ${ALICE_O2_FST:-0} == 1 && ${FST_TMUX_NO_EPN:-0} == 0 ) || $EPNSYNCMODE == 1 ]]; then
   [[ ${EPN_NODE_MI100:-0} == 0 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCoverrideArchitecture=--offload-arch=gfx906;"
   [[ ${EPN_NODE_MI100:-0} == 1 ]] && GPU_CONFIG_KEY+="GPU_proc.RTCoverrideArchitecture=--offload-arch=gfx908;"
 fi
