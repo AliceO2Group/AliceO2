@@ -117,7 +117,7 @@ int ReadConfiguration(int argc, char** argv)
     printf("Config Dump before ReadConfiguration\n");
     qConfigPrint();
   }
-  if (configStandalone.proc.debugLevel < 0) {
+  if (configStandalone.proc.debugLevel == -1) {
     configStandalone.proc.debugLevel = 0;
   }
 #ifndef _WIN32

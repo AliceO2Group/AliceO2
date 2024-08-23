@@ -222,7 +222,7 @@ AddOption(globalInitMutex, bool, false, "", 0, "Use global mutex to synchronize 
 AddOption(stuckProtection, int, 0, "", 0, "Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain")
 AddOption(trdNCandidates, int, 3, "", 0, "Number of branching track candidates for single input track during propagation")
 AddOption(trdTrackModelO2, bool, false, "", 0, "Use O2 track model instead of GPU track model for TRD tracking")
-AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silent)")
+AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-2 = silent, -1 = autoselect (-2 for O2, 0 for standalone))")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(debugMask, int, 262143, "", 0, "Mask for debug output dumps to file")
 AddOption(checkKernelFailures, bool, false, "", 0, "Synchronize after each kernel call and identify failing kernels")
