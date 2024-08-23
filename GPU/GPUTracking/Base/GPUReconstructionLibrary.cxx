@@ -27,6 +27,7 @@
 #endif
 
 #include "GPUReconstruction.h"
+#include "GPUReconstructionAvailableBackends.h"
 
 #include "utils/qlibload.h"
 
@@ -47,7 +48,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(DeviceType type, bool force
 GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBackend& cfg)
 {
   GPUReconstruction* retVal = nullptr;
-  unsigned int type = cfg.deviceType;
+  DeviceType type = (DeviceType)cfg.deviceType;
 #ifdef DEBUG_STREAMER
   if (type != DeviceType::CPU) {
     GPUError("Cannot create GPUReconstruction for a non-CPU device if DEBUG_STREAMER are enabled");
@@ -56,59 +57,67 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
 #endif
   if (type == DeviceType::CPU) {
     retVal = GPUReconstruction_Create_CPU(cfg);
-  } else if (type == DeviceType::CUDA) {
-    if ((retVal = sLibCUDA->GetPtr(cfg))) {
-      retVal->mMyLib = sLibCUDA;
-    }
-  } else if (type == DeviceType::HIP) {
-    if ((retVal = sLibHIP->GetPtr(cfg))) {
-      retVal->mMyLib = sLibHIP;
-    }
-  } else if (type == DeviceType::OCL) {
-    if ((retVal = sLibOCL->GetPtr(cfg))) {
-      retVal->mMyLib = sLibOCL;
-    }
-  } else if (type == DeviceType::OCL2) {
-    if ((retVal = sLibOCL2->GetPtr(cfg))) {
-      retVal->mMyLib = sLibOCL2;
-    }
   } else {
-    GPUError("Error: Invalid device type %u", type);
-    return nullptr;
+    auto* loader = GetLibraryInstance(type, true);
+    if (loader && (retVal = (*loader)->GetPtr(cfg))) {
+      retVal->mMyLib = *loader;
+    }
   }
 
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
-      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
+      GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], cfg.deviceType);
     } else if (type != DeviceType::CPU) {
-      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
+      GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], cfg.deviceType);
       GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
       retVal = CreateInstance(cfg2);
     }
   } else {
-    GPUInfo("Created GPUReconstruction instance for device type %s (%u)%s", GPUDataTypes::DEVICE_TYPE_NAMES[type], type, cfg.master ? " (slave)" : "");
+    GPUInfo("Created GPUReconstruction instance for device type %s (%u)%s", GPUDataTypes::DEVICE_TYPE_NAMES[type], cfg.deviceType, cfg.master ? " (slave)" : "");
   }
 
   return retVal;
 }
 
-bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
+bool GPUReconstruction::CheckInstanceAvailable(DeviceType type, bool verbose)
 {
   if (type == DeviceType::CPU) {
     return true;
-  } else if (type == DeviceType::CUDA) {
-    return sLibCUDA->LoadLibrary() == 0;
-  } else if (type == DeviceType::HIP) {
-    return sLibHIP->LoadLibrary() == 0;
-  } else if (type == DeviceType::OCL) {
-    return sLibOCL->LoadLibrary() == 0;
-  } else if (type == DeviceType::OCL2) {
-    return sLibOCL2->LoadLibrary() == 0;
   } else {
-    GPUError("Error: Invalid device type %u", (unsigned)type);
-    return false;
+    auto* loader = GetLibraryInstance(type, verbose);
+    return loader != nullptr && (*loader)->LoadLibrary() == 0;
   }
+}
+
+std::shared_ptr<GPUReconstruction::LibraryLoader>* GPUReconstruction::GetLibraryInstance(DeviceType type, bool verbose)
+{
+  if (type == DeviceType::CPU) {
+    return nullptr;
+  } else if (type == DeviceType::CUDA) {
+#ifdef CUDA_ENABLED
+    return &sLibCUDA;
+#endif
+  } else if (type == DeviceType::HIP) {
+#ifdef HIP_ENABLED
+    return &sLibHIP;
+#endif
+  } else if (type == DeviceType::OCL) {
+#ifdef OPENCL1_ENABLED
+    return &sLibOCL;
+#endif
+  } else if (type == DeviceType::OCL2) {
+#ifdef OPENCL2_ENABLED
+    return &sLibOCL2;
+#endif
+  } else {
+    GPUError("Error: Invalid device type %u", (unsigned int)type);
+    return nullptr;
+  }
+  if (verbose) {
+    GPUInfo("%s Support not compiled in for device type %u (%s)", GPUDataTypes::DEVICE_TYPE_NAMES[type], (unsigned int)type, GPUDataTypes::DEVICE_TYPE_NAMES[type]);
+  }
+  return nullptr;
 }
 
 GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)
@@ -121,23 +130,10 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forc
   return CreateInstance(t, forceType, master);
 }
 
-std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibCUDA(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
-                                                                                                                   "CUDA" LIBRARY_EXTENSION,
-                                                                                                                   "GPUReconstruction_Create_"
-                                                                                                                   "CUDA"));
-std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibHIP(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
-                                                                                                                  "HIP" LIBRARY_EXTENSION,
-                                                                                                                  "GPUReconstruction_Create_"
-                                                                                                                  "HIP"));
-std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibOCL(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
-                                                                                                                  "OCL" LIBRARY_EXTENSION,
-                                                                                                                  "GPUReconstruction_Create_"
-                                                                                                                  "OCL"));
-
-std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibOCL2(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
-                                                                                                                   "OCL2" LIBRARY_EXTENSION,
-                                                                                                                   "GPUReconstruction_Create_"
-                                                                                                                   "OCL2"));
+std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibCUDA(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTrackingCUDA" LIBRARY_EXTENSION, "GPUReconstruction_Create_CUDA"));
+std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibHIP(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTrackingHIP" LIBRARY_EXTENSION, "GPUReconstruction_Create_HIP"));
+std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibOCL(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTrackingOCL" LIBRARY_EXTENSION, "GPUReconstruction_Create_OCL"));
+std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibOCL2(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTrackingOCL2" LIBRARY_EXTENSION, "GPUReconstruction_Create_OCL2"));
 
 GPUReconstruction::LibraryLoader::LibraryLoader(const char* lib, const char* func) : mLibName(lib), mFuncName(func), mGPULib(nullptr), mGPUEntry(nullptr) {}
 

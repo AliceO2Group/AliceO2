@@ -508,6 +508,13 @@ set_source_files_properties(DataCompression/GPUTPCCompressionTrackModel.cxx
                             COMPILE_FLAGS "${GPUCA_CXX_NO_FAST_MATH_FLAGS}"
                             COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
 
+# GPUReconstructionLibrary needs to know which GPU backends are enabled for proper error messages
+configure_file(Base/GPUReconstructionAvailableBackends.template.h ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionAvailableBackends.h)
+set_source_files_properties(Base/GPUReconstructionLibrary.cxx
+                            PROPERTIES
+                            INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}")
+
+
 # Add compile definitions and libraries depending on available optional dependencies
 if(GPUCA_QA)
   message(STATUS "Building GPU QA")

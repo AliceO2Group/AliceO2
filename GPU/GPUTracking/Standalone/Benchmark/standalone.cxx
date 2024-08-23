@@ -257,13 +257,13 @@ int ReadConfiguration(int argc, char** argv)
   configStandalone.proc.showOutputStat = true;
 
   if (configStandalone.runGPU && configStandalone.gpuType == "AUTO") {
-    if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::CUDA)) {
+    if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::CUDA, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "CUDA";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::HIP)) {
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::HIP, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "HIP";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL2)) {
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL2, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "OCL2";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL)) {
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "OCL";
     } else {
       configStandalone.runGPU = false;
