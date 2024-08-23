@@ -49,6 +49,7 @@ class QualityControlFlag
   time_type getStart() const { return mInterval.getMin(); }
   time_type getEnd() const { return mInterval.getMax(); }
   RangeInterval& getInterval() { return mInterval; }
+  const RangeInterval getInterval() const { return mInterval; }
   FlagType getFlag() const { return mFlag; }
   const std::string& getComment() const { return mComment; }
   const std::string& getSource() const { return mSource; }
