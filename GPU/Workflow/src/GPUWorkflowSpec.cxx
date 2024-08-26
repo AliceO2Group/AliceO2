@@ -275,6 +275,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
     }
 
+    mConfig->configProcessing.willProvideO2PropagatorLate = true;
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
     if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {

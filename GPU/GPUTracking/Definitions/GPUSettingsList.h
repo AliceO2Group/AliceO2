@@ -273,6 +273,7 @@ AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after h
 AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minimum buffer size for the clustersPerRow during TPC clusterization")
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
 AddOption(o2PropagatorUseGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
+AddOption(willProvideO2PropagatorLate, bool, false, "", 0, "Disable check for availability of o2 propagator at initialization")
 AddOption(calibObjectsExtraMemorySize, unsigned int, 10u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(fastTransformObjectsMinMemorySize, unsigned int, 400u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(lateO2MatLutProvisioningSize, unsigned int, 0u, "", 0, "Memory size to reserve for late provisioning of matlut table")
