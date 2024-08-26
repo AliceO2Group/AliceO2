@@ -24,8 +24,15 @@
 using namespace o2::conf;
 namespace bpo = boost::program_options;
 
-void SimConfig::initOptions(boost::program_options::options_description& options)
+void SimConfig::initOptions(boost::program_options::options_description& options, bool isUpgrade)
 {
+  // some default args might depend on whether Run3 or Run5
+  // can be updated here:
+  std::string defaultGeomList{"ALICE2"};
+  if (isUpgrade == true) {
+    defaultGeomList = "ALICE3";
+  }
+
   int nsimworkersdefault = std::max(1u, std::thread::hardware_concurrency() / 2);
   options.add_options()(
     "mcEngine,e", bpo::value<std::string>()->default_value("TGeant4"), "VMC backend to be used.")(
@@ -35,7 +42,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of modules excluded in geometry (precendence over -m")(
     "readoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors creating hits, all if not given; added to to active modules")(
     "skipReadoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors to skip hit creation (precendence over --readoutDetectors")(
-    "detectorList", bpo::value<std::string>()->default_value("ALICE2"),
+    "detectorList", bpo::value<std::string>()->default_value(defaultGeomList),
     "Use a specific version of ALICE, e.g., a predefined list."
     "There is an 'official' list provided with:"
     "\nALICE2  : The default configuration for Run 3"
@@ -490,7 +497,7 @@ bool SimConfig::resetFromArguments(int argc, char* argv[])
   bpo::variables_map vm;
   bpo::options_description desc("Allowed options");
   desc.add_options()("help,h", "Produce help message.");
-  initOptions(desc);
+  initOptions(desc, mConfigData.mIsUpgrade);
 
   try {
     bpo::store(parse_command_line(argc, argv, desc), vm);
