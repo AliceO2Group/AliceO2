@@ -345,8 +345,6 @@ GPUQA::~GPUQA()
   clearGarbagageCollector(); // Needed to guarantee correct order for ROOT ownership
 }
 
-inline bool GPUQA::MCComp(const mcLabel_t& a, const mcLabel_t& b) { return (GPUQA::GetMCLabelID(a) > GPUQA::GetMCLabelID(b)); }
-
 bool GPUQA::clusterRemovable(int attach, bool prot) const
 {
   CHECK_CLUSTER_STATE_NOCOUNT();

@@ -218,8 +218,6 @@ class GPUQA
   const auto& GetClusterLabels();
   bool mcPresent();
 
-  static bool MCComp(const mcLabel_t& a, const mcLabel_t& b);
-
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;
   const GPUParam* mParam;
