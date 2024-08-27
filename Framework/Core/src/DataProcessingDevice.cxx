@@ -1845,6 +1845,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
+        O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got DomainInfoHeader with oldestPossibleTimeslice %d", (int)dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo, info.id);
         *context.wasActive = true;
         continue;
