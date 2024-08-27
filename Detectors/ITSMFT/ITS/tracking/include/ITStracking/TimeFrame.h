@@ -143,6 +143,7 @@ class TimeFrame
   {
     deepVectorClear(mPrimaryVertices);
     mROFramesPV.resize(1, 0);
+    mTotVertPerIteration.resize(1);
   };
 
   bool isClusterUsed(int layer, int clusterId) const;
