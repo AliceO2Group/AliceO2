@@ -131,10 +131,14 @@ class SVertex3Hypothesis
   void set(PID v0, PID ppos, PID pneg, PID pbach, float sig, float nSig, float margin, float cpt, float bz = 0.f);
   void set(PID v0, PID ppos, PID pneg, PID pbach, const float pars[NPIDParams], float bz = 0.f);
 
+  PID getPIDHyp() const { return mPIDV0; }
   float getMassV0Hyp() const { return PID::getMass(mPIDV0); }
   float getMassPosProng() const { return PID::getMass(mPIDPosProng); }
   float getMassNegProng() const { return PID::getMass(mPIDNegProng); }
   float getMassBachProng() const { return PID::getMass(mPIDBachProng); }
+  float getChargePosProng() const { return PID::getCharge(mPIDPosProng); }
+  float getChargeNegProng() const { return PID::getCharge(mPIDNegProng); }
+  float getChargeBachProng() const { return PID::getCharge(mPIDBachProng); }
 
   float calcMass2(float p2Pos, float p2Neg, float p2Bach, float p2Tot) const
   {
