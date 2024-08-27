@@ -298,6 +298,12 @@ void SVertexer::updateTimeDependentParams()
 
   m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
   m3bodyHyps[Hyp3body::AntiH3L3body].set(PID::HyperTriton, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
+  m3bodyHyps[Hyp3body::H4L3body].set(PID::Hyperhydrog4, PID::Proton, PID::Pion, PID::Triton, mSVParams->pidCutsH4L3body, bz);
+  m3bodyHyps[Hyp3body::AntiH4L3body].set(PID::Hyperhydrog4, PID::Pion, PID::Proton, PID::Triton, mSVParams->pidCutsH4L3body, bz);
+  m3bodyHyps[Hyp3body::He4L3body].set(PID::HyperHelium4, PID::Proton, PID::Pion, PID::Helium3, mSVParams->pidCutsHe4L3body, bz);
+  m3bodyHyps[Hyp3body::AntiHe4L3body].set(PID::HyperHelium4, PID::Pion, PID::Proton, PID::Helium3, mSVParams->pidCutsHe4L3body, bz);
+  m3bodyHyps[Hyp3body::He5L3body].set(PID::HyperHelium5, PID::Proton, PID::Pion, PID::Alpha, mSVParams->pidCutsHe5L3body, bz);
+  m3bodyHyps[Hyp3body::AntiHe5L3body].set(PID::HyperHelium5, PID::Pion, PID::Proton, PID::Alpha, mSVParams->pidCutsHe5L3body, bz);
 
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
@@ -1090,52 +1096,60 @@ int SVertexer::check3bodyDecays(const V0Index& v0Idx, const V0& v0, float rv0, s
     tr0.getPxPyPzGlo(p0);
     tr1.getPxPyPzGlo(p1);
     tr2.getPxPyPzGlo(p2);
-    std::array<float, 3> p3B = {p0[0] + p1[0] + p2[0], p0[1] + p1[1] + p2[1], p0[2] + p1[2] + p2[2]};
-
-    float pt2candidate = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2candidate = pt2candidate + p3B[2] * p3B[2];
-    if (pt2candidate < mMinPt23Body) { // pt cut
-      continue;
-    }
-    if (p3B[2] * p3B[2] / pt2candidate > mMaxTgl23Body) { // tgLambda cut
-      continue;
-    }
-
-    // compute primary vertex and cosPA of the 3-body decay
-    auto bestCosPA = mSVParams->minCosPA3body;
-    auto decay3bodyVtxID = -1;
-
-    for (int iv = decay3bodyVlist.getMin(); iv <= decay3bodyVlist.getMax(); iv++) {
-      const auto& pv = mPVertices[iv];
-      // check cos of pointing angle
-      float dx = vertexXYZ[0] - pv.getX(), dy = vertexXYZ[1] - pv.getY(), dz = vertexXYZ[2] - pv.getZ(), prodXYZ3body = dx * p3B[0] + dy * p3B[1] + dz * p3B[2];
-      float cosPA = prodXYZ3body / std::sqrt((dx * dx + dy * dy + dz * dz) * p2candidate);
-      if (cosPA < bestCosPA) {
-        LOG(debug) << "Rej. cosPA: " << cosPA;
-        continue;
-      }
-      decay3bodyVtxID = iv;
-      bestCosPA = cosPA;
-    }
-    if (decay3bodyVtxID == -1) {
-      LOG(debug) << "3-body decay not compatible with any vertex";
-      continue;
-    }
-
-    const auto& decay3bodyPv = mPVertices[decay3bodyVtxID];
-    float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
-    float pt3B = std::sqrt(pt2candidate);
 
     bool goodHyp = false;
-    for (int ipid = 0; ipid < 2; ipid++) { // TODO: expand this loop to cover all the 3body cases if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt3B))
-      if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, p2candidate, pt3B)) {
+    o2::track::PID pidHyp = o2::track::PID::Electron; // Update if goodHyp is true
+    auto decay3bodyVtxID = -1;
+    auto vtxCosPA = -1;
+
+    std::array<float, 3> pbach = {0, 0, 0}, p3B = {0, 0, 0}; // Update during the check of invariant mass
+    for (int ipid = 0; ipid < NHyp3body; ipid++) {
+      // check mass based on hypothesis of charge of bachelor (pos and neg expected to be proton/pion)
+      float bachChargeFactor = m3bodyHyps[ipid].getChargeBachProng() / tr2.getAbsCharge();
+      pbach = {bachChargeFactor * p2[0], bachChargeFactor * p2[1], bachChargeFactor * p2[2]};
+      p3B = {p0[0] + p1[0] + pbach[0], p0[1] + p1[1] + pbach[1], p0[2] + p1[2] + pbach[2]};
+      float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqPBach = pbach[0] * pbach[0] + pbach[1] * pbach[1] + pbach[2] * pbach[2];
+      float pt2Candidate = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2Candidate = pt2Candidate + p3B[2] * p3B[2];
+      float ptCandidate = std::sqrt(pt2Candidate);
+      if (m3bodyHyps[ipid].check(sqP0, sqP1, sqPBach, p2Candidate, ptCandidate)) {
+        if (pt2Candidate < mMinPt23Body) { // pt cut
+          continue;
+        }
+        if (p3B[2] * p3B[2] > pt2Candidate * mMaxTgl23Body) { // tgLambda cut
+          continue;
+        }
+
+        // compute primary vertex and cosPA of the 3-body decay
+        auto bestCosPA = mSVParams->minCosPA3body;
+        for (int iv = decay3bodyVlist.getMin(); iv <= decay3bodyVlist.getMax(); iv++) {
+          const auto& pv = mPVertices[iv];
+          // check cos of pointing angle
+          float dx = vertexXYZ[0] - pv.getX(), dy = vertexXYZ[1] - pv.getY(), dz = vertexXYZ[2] - pv.getZ(), prodXYZ3body = dx * p3B[0] + dy * p3B[1] + dz * p3B[2];
+          float cosPA = prodXYZ3body / std::sqrt((dx * dx + dy * dy + dz * dz) * p2Candidate);
+          if (cosPA < bestCosPA) {
+            LOG(debug) << "Rej. cosPA: " << cosPA;
+            continue;
+          }
+          decay3bodyVtxID = iv;
+          bestCosPA = cosPA;
+        }
+        if (decay3bodyVtxID == -1) {
+          LOG(debug) << "3-body decay not compatible with any vertex";
+          continue;
+        }
+
         goodHyp = true;
+        pidHyp = m3bodyHyps[ipid].getPIDHyp();
+        vtxCosPA = bestCosPA;
         break;
       }
     }
     if (!goodHyp) {
       continue;
     }
-    Decay3Body candidate3B(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2);
+
+    const auto& decay3bodyPv = mPVertices[decay3bodyVtxID];
+    Decay3Body candidate3B(vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, pidHyp);
     o2::track::TrackParCov trc = candidate3B;
     o2::dataformats::DCA dca;
     if (!trc.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
@@ -1143,7 +1157,7 @@ int SVertexer::check3bodyDecays(const V0Index& v0Idx, const V0& v0, float rv0, s
       continue;
     }
     if (mSVParams->createFull3Bodies) {
-      candidate3B.setCosPA(bestCosPA);
+      candidate3B.setCosPA(vtxCosPA);
       candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
       m3bodyTmp[ithread].push_back(candidate3B);
     }
