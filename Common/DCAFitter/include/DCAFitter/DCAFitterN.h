@@ -122,10 +122,10 @@ class DCAFitterN
 
   ///< prepare copies of tracks at the V0 candidate (no check for the candidate validity)
   ///  must be called before getTrack(i,cand) query
-  bool propagateTracksToVertex(int cand = 0);
+  GPUd() bool propagateTracksToVertex(int cand = 0);
 
   ///< check if propagation of tracks to candidate vertex was done
-  bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
+  GPUd() bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
 
   ///< check if propagation of tracks to candidate vertex was done
   bool isPropagationFailure(int cand = 0) const { return mPropFailed[mOrder[cand]]; }
@@ -153,18 +153,18 @@ class DCAFitterN
   }
 
   ///< create parent track param with errors for decay vertex
-  o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
+  GPUd() o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
 
   ///< create parent track param w/o errors for decay vertex
-  o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
+  GPUd() o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
 
   ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
-  o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0);
+  GPUd() o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0);
 
   ///< recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
-  bool recalculatePCAWithErrors(int cand = 0);
+  GPUd() bool recalculatePCAWithErrors(int cand = 0);
 
-  MatSym3D calcPCACovMatrix(int cand = 0) const;
+  GPUd() MatSym3D calcPCACovMatrix(int cand = 0) const;
 
   o2::gpu::gpustd::array<float, 6> calcPCACovMatrixFlat(int cand = 0) const
   {
@@ -517,7 +517,7 @@ GPUd() void DCAFitterN<N, Args...>::calcResidDerivatives()
         dr2[2] += trDx.d2zdx2;
       }
     } // track over which we differentiate
-  }   // residual being differentiated
+  } // residual being differentiated
 }
 
 //__________________________________________________________________________
@@ -567,7 +567,7 @@ GPUd() void DCAFitterN<N, Args...>::calcResidDerivativesNoErr()
       dr2ji[2] = -trDxi.d2zdx2 * NInv;
 
     } // track over which we differentiate
-  }   // residual being differentiated
+  } // residual being differentiated
 }
 
 //__________________________________________________________________________
@@ -1079,7 +1079,9 @@ GPUdi() bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, f
 {
   bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+#ifndef GPUCA_GPUCODE
     res = o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+#endif
   } else {
     res = t.propagateParamTo(x, mBz);
   }
@@ -1095,7 +1097,9 @@ GPUdi() bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, flo
 {
   bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
+#ifndef GPUCA_GPUCODE
     res = o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+#endif
   } else {
     res = t.propagateTo(x, mBz);
   }

@@ -325,7 +325,7 @@ GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z, float w)
 }
 
 template <typename T>
-void _swap(T& a, T& b)
+GPUd() void _swap(T& a, T& b)
 {
   T tmp = a;
   a = b;

@@ -205,7 +205,7 @@ GPUdi() SVectorGPU<T, D>& SVectorGPU<T, D>::operator-=(const SVectorGPU<T, D>& r
 }
 
 template <class T, unsigned int D>
-GPUd() SVectorGPU<T, D>& SVectorGPU<T, D>::operator+=(const SVectorGPU<T, D>& rhs)
+GPUdi() SVectorGPU<T, D>& SVectorGPU<T, D>::operator+=(const SVectorGPU<T, D>& rhs)
 {
   for (unsigned int i = 0; i < D; ++i) {
     mArray[i] += rhs.apply(i);
@@ -518,6 +518,9 @@ class SMatrixGPU
 
   GPUd() SMatrixRowGPUconst operator[](unsigned int i) const { return SMatrixRowGPUconst(*this, i); }
   GPUd() SMatrixRowGPU operator[](unsigned int i) { return SMatrixRowGPU(*this, i); }
+  template <class R2>
+  SMatrixGPU<T, D1, D2, R>& operator+=(const SMatrixGPU<T, D1, D2, R2>& rhs);
+
   GPUd() bool Invert();
   GPUd() bool IsInUse(const T* p) const;
 
@@ -676,7 +679,7 @@ GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator=(const Expr
 
 template <class T, unsigned int D1, unsigned int D2, class R>
 template <class M>
-GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator=(const M& rhs)
+GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator=(const M & rhs)
 {
   mRep = rhs.mRep;
   return *this;
@@ -1397,6 +1400,13 @@ GPUdi() bool SMatrixGPU<T, D1, D2, R>::Invert()
 {
   GPU_STATIC_CHECK(D1 == D2, SMatrixGPU_not_square);
   return Inverter<D1, D2>::Dinv((*this).mRep);
+}
+
+template <class T, unsigned int D1, unsigned int D2, class R>
+template <class R2>
+SMatrixGPU<T,D1,D2,R>& SMatrixGPU<T,D1,D2,R>::operator+=(const SMatrixGPU<T,D1,D2,R2>&  rhs) {
+   mRep += rhs.mRep;
+   return *this;
 }
 
 template <class T, unsigned int D1, unsigned int D2, class R>

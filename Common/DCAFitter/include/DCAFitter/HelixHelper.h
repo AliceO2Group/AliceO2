@@ -41,7 +41,7 @@ struct TrackAuxPar : public o2::math_utils::CircleXYf_t {
   float sinDif(const TrackAuxPar& t) const { return s * t.c - c * t.s; } // sin(alpha_this - alha_t)
 
   template <typename T>
-  void set(const T& trc, float bz)
+  GPUd() void set(const T& trc, float bz)
   {
     trc.getCircleParams(bz, *this, s, c);
     cc = c * c;
@@ -59,13 +59,13 @@ struct CrossInfo {
   float yDCA[2] = {};
   int nDCA = 0;
 
-  int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
+  GPUd() int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
   {
     const auto& trcA = trax0.rC > trax1.rC ? trax0 : trax1; // designate the largest circle as A
     const auto& trcB = trax0.rC > trax1.rC ? trax1 : trax0;
     float xDist = trcB.xC - trcA.xC, yDist = trcB.yC - trcA.yC;
-    float dist2 = xDist * xDist + yDist * yDist, dist = std::sqrt(dist2), rsum = trcA.rC + trcB.rC;
-    if (std::abs(dist) < 1e-12) {
+    float dist2 = xDist * xDist + yDist * yDist, dist = o2::gpu::GPUCommonMath::Sqrt(dist2), rsum = trcA.rC + trcB.rC;
+    if (o2::gpu::GPUCommonMath::Sqrt(dist) < 1e-12) {
       return nDCA; // circles are concentric?
     }
     if (dist > rsum) { // circles don't touch, chose a point in between
@@ -89,13 +89,13 @@ struct CrossInfo {
         xDCA[0] = r2_r * trcA.xC + r1_r * trcB.xC;
         yDCA[0] = r2_r * trcA.yC + r1_r * trcB.yC;
         nDCA = 1;
-      } else if (std::abs(xDist) < std::abs(yDist)) {
+      } else if (o2::gpu::GPUCommonMath::Sqrt(xDist) < o2::gpu::GPUCommonMath::Sqrt(yDist)) {
         // to simplify calculations, we move to new frame x->x+Xc0, y->y+Yc0, so that
         // the 1st one is centered in origin
         float a = (trcA.rC * trcA.rC - trcB.rC * trcB.rC + dist2) / (2. * yDist), b = -xDist / yDist, ab = a * b, bb = b * b;
         float det = ab * ab - (1. + bb) * (a * a - trcA.rC * trcA.rC);
         if (det > 0.) {
-          det = std::sqrt(det);
+          det = o2::gpu::GPUCommonMath::Sqrt(det);
           xDCA[0] = (-ab + det) / (1. + b * b);
           yDCA[0] = a + b * xDCA[0] + trcA.yC;
           xDCA[0] += trcA.xC;
@@ -110,7 +110,7 @@ struct CrossInfo {
         float a = (trcA.rC * trcA.rC - trcB.rC * trcB.rC + dist2) / (2. * xDist), b = -yDist / xDist, ab = a * b, bb = b * b;
         float det = ab * ab - (1. + bb) * (a * a - trcA.rC * trcA.rC);
         if (det > 0.) {
-          det = std::sqrt(det);
+          det = o2::gpu::GPUCommonMath::Sqrt(det);
           yDCA[0] = (-ab + det) / (1. + bb);
           xDCA[0] = a + b * yDCA[0] + trcA.xC;
           yDCA[0] += trcA.yC;
@@ -126,14 +126,14 @@ struct CrossInfo {
     return nDCA;
   }
 
-  void notTouchingXY(float dist, float xDist, float yDist, const TrackAuxPar& trcA, float rBSign, bool isCollinear = false)
+  GPUd() void notTouchingXY(float dist, float xDist, float yDist, const TrackAuxPar& trcA, float rBSign, bool isCollinear = false)
   {
     if (isCollinear) {
       /// for collinear tracks it is better to take
       /// a weighted average of the crossing points as a radius
-      float r2r = trcA.rC + std::abs(rBSign);
+      float r2r = trcA.rC + o2::gpu::GPUCommonMath::Sqrt(rBSign);
       float r1_r = trcA.rC / r2r;
-      float r2_r = std::abs(rBSign) / r2r;
+      float r2_r = o2::gpu::GPUCommonMath::Sqrt(rBSign) / r2r;
       xDCA[0] = r2_r * trcA.xC + r1_r * (xDist + trcA.xC);
       yDCA[0] = r2_r * trcA.yC + r1_r * (yDist + trcA.yC);
     } else {
@@ -151,7 +151,7 @@ struct CrossInfo {
   }
 
   template <typename T>
-  int linesCrossInfo(const TrackAuxPar& trax0, const T& tr0,
+  GPUd() int linesCrossInfo(const TrackAuxPar& trax0, const T& tr0,
                      const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     /// closest approach of 2 straight lines
@@ -172,14 +172,14 @@ struct CrossInfo {
     float dy = trax1.yC - trax0.yC; //
     float dz = tr1.getZ() - tr0.getZ();
     auto csp0i2 = 1. / tr0.getCsp2(); // 1 / csp^2
-    auto csp0i = std::sqrt(csp0i2);
+    auto csp0i = o2::gpu::GPUCommonMath::Sqrt(csp0i2);
     auto tgp0 = tr0.getSnp() * csp0i;
     float kx0 = trax0.c - trax0.s * tgp0;
     float ky0 = trax0.s + trax0.c * tgp0;
     float kz0 = tr0.getTgl() * csp0i;
     auto csp1i2 = 1. / tr1.getCsp2(); // 1 / csp^2
-    auto csp1i = std::sqrt(csp1i2);
-    auto tgp1 = tr1.getSnp() * std::sqrt(csp1i2);
+    auto csp1i = o2::gpu::GPUCommonMath::Sqrt(csp1i2);
+    auto tgp1 = tr1.getSnp() * o2::gpu::GPUCommonMath::Sqrt(csp1i2);
     float kx1 = trax1.c - trax1.s * tgp1;
     float ky1 = trax1.s + trax1.c * tgp1;
     float kz1 = tr1.getTgl() * csp1i;
@@ -194,7 +194,7 @@ struct CrossInfo {
     float a00 = (1.f + tr0.getTgl() * tr0.getTgl()) * csp0i2, a11 = (1.f + tr1.getTgl() * tr1.getTgl()) * csp1i2, a01 = -(kx0 * kx1 + ky0 * ky1 + kz0 * kz1);
     float b0 = dx * kx0 + dy * ky0 + dz * kz0, b1 = -(dx * kx1 + dy * ky1 + dz * kz1);
     float det = a00 * a11 - a01 * a01, det0 = b0 * a11 - b1 * a01, det1 = a00 * b1 - a01 * b0;
-    if (std::abs(det) > o2::constants::math::Almost0) {
+    if (o2::gpu::GPUCommonMath::Sqrt(det) > o2::constants::math::Almost0) {
       auto detI = 1. / det;
       auto t0 = det0 * detI;
       auto t1 = det1 * detI;
@@ -212,7 +212,7 @@ struct CrossInfo {
   }
 
   template <typename T>
-  int circleLineCrossInfo(const TrackAuxPar& trax0, const T& tr0,
+  GPUd() int circleLineCrossInfo(const TrackAuxPar& trax0, const T& tr0,
                           const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     /// closest approach of line and circle
@@ -238,14 +238,14 @@ struct CrossInfo {
     float dy = traxL.yC - traxH.yC; // Y...
     // t^2(kx^2+ky^2) + 2t(dx*kx+dy*ky) + dx^2 + dy^2 - r^2 = 0
     auto cspi2 = 1. / trcL.getCsp2(); // 1 / csp^2 == kx^2 +  ky^2
-    auto cspi = std::sqrt(cspi2);
+    auto cspi = o2::gpu::GPUCommonMath::Sqrt(cspi2);
     auto tgp = trcL.getSnp() * cspi;
     float kx = traxL.c - traxL.s * tgp;
     float ky = traxL.s + traxL.c * tgp;
     double dk = dx * kx + dy * ky;
     double det = dk * dk - cspi2 * (dx * dx + dy * dy - traxH.rC * traxH.rC);
     if (det > 0) { // 2 crossings
-      det = std::sqrt(det);
+      det = o2::gpu::GPUCommonMath::Sqrt(det);
       float t0 = (-dk + det) * cspi2;
       float t1 = (-dk - det) * cspi2;
       xDCA[0] = traxL.xC + kx * t0;
@@ -257,7 +257,7 @@ struct CrossInfo {
       // there is no crossing, find the point of the closest approach on the line which is closest to the circle center
       float t = -dk * cspi2;
       float xL = traxL.xC + kx * t, yL = traxL.yC + ky * t; // point on the line, need to average with point on the circle
-      float dxc = xL - traxH.xC, dyc = yL - traxH.yC, dist = std::sqrt(dxc * dxc + dyc * dyc);
+      float dxc = xL - traxH.xC, dyc = yL - traxH.yC, dist = o2::gpu::GPUCommonMath::Sqrt(dxc * dxc + dyc * dyc);
       if (dist - traxH.rC > maxDistXY) { // too large distance
         return nDCA;
       }
@@ -271,7 +271,7 @@ struct CrossInfo {
   }
 
   template <typename T>
-  int set(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
+  GPUd() int set(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
   {
     // calculate up to 2 crossings between 2 circles
     nDCA = 0;
@@ -286,7 +286,7 @@ struct CrossInfo {
     return nDCA;
   }
 
-  CrossInfo() = default;
+  GPUdDefault() CrossInfo() = default;
 
   template <typename T>
   CrossInfo(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)

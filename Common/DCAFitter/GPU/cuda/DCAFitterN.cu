@@ -24,9 +24,6 @@ namespace vertexing
 {
 GPUg() void __dummy_instance__()
 {
-#ifdef GPUCA_GPUCODE_DEVICE
-#pragma message "Compiling device code"
-#endif
   DCAFitter2 ft2;
   DCAFitter3 ft3;
   o2::track::TrackParCov tr;
