@@ -9,7 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# add_compile_options(-O0 -g -fPIC)
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(GlobalTrackingStudy
                SOURCES src/TPCTrackStudy.cxx
@@ -21,6 +21,8 @@ o2_add_library(GlobalTrackingStudy
                        src/DumpTracks.cxx
                        src/V0Ext.cxx
                        src/TrackInfoExt.cxx
+                       src/TrackMCStudyConfig.cxx
+                       src/TrackMCStudyTypes.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
@@ -33,6 +35,8 @@ o2_target_root_dictionary(
   GlobalTrackingStudy
   HEADERS include/GlobalTrackingStudy/V0Ext.h
           include/GlobalTrackingStudy/TrackInfoExt.h
+          include/GlobalTrackingStudy/TrackMCStudyConfig.h
+          include/GlobalTrackingStudy/TrackMCStudyTypes.h
 )
 
 o2_add_executable(study-workflow

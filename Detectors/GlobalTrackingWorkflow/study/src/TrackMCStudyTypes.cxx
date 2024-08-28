@@ -9,19 +9,4 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRACKING_STUDY_H
-#define O2_TRACKING_STUDY_H
-
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-
-namespace o2::trackstudy
-{
-
-/// create a processor spec
-o2::framework::DataProcessorSpec getTrackMCStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus);
-
-} // namespace o2::trackstudy
-
-#endif
+#include "GlobalTrackingStudy/TrackMCStudyTypes.h"
