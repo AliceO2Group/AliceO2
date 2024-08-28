@@ -11,6 +11,15 @@
 
 if (CUDA_ENABLED)
 add_subdirectory(cuda)
+o2_add_test(DCAFitterNCUDA
+            SOURCES test/testDCAFitterNCUDA.cu
+            COMPONENT_NAME DCAFitterCUDA
+            PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                                  O2::DCAFitterCUDA
+                                  O2::MathUtils
+                                  O2::ReconstructionDataFormats
+                                  O2::GPUCommon
+                                  O2::GPUTrackingCUDAExternalProvider)
 endif()
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
