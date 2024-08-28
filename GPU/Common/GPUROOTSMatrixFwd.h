@@ -70,7 +70,6 @@ template <class T, unsigned int D>
 using MatRepSym = detail::MatRepSymGPU<T, D>;
 template <class T, unsigned int D1, unsigned int D2 = D1>
 using MatRepStd = detail::MatRepStdGPU<T, D1, D2>;
-
 #endif
 
 } // namespace math_utils
