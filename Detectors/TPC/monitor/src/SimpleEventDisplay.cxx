@@ -16,6 +16,7 @@
 #include "TH2S.h"
 #include "TROOT.h"
 #include "TString.h"
+#include "TH2Poly.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/CalArray.h"
@@ -159,6 +160,17 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
 }
 
 //_____________________________________________________________________
+void SimpleEventDisplay::updateSectorHists()
+{
+  if (mSelectedSector % 36 != mLastSelSector % 36) {
+    mSectorLoop = kTRUE;
+    processEvent(getPresentEventNumber());
+    mLastSelSector = mSelectedSector;
+    mSectorLoop = kFALSE;
+  }
+}
+
+//_____________________________________________________________________
 TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
 {
   const int padOffset = (roc > 35) * Mapper::getPadsInIROC();
@@ -177,17 +189,47 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   mSelectedSector = roc;
 
   // attention change for if event has changed
-  if (mSelectedSector % 36 != mLastSelSector % 36) {
-    mSectorLoop = kTRUE;
-    processEvent(getPresentEventNumber());
-    mLastSelSector = mSelectedSector;
-    mSectorLoop = kFALSE;
-  }
-  TH1D* h = nullptr;
+  updateSectorHists();
+
   const Int_t nbins = mLastTimeBin - mFirstTimeBin;
   if (nbins <= 0) {
     return nullptr;
   }
+
+  TH2D* hPadSignals = nullptr;
+
+  // ===| ADC vs. Pad vs. Time for row |========================================
+  TH2F* hPadTime = nullptr;
+  if (roc < (Int_t)mTPCmapper.getNumberOfIROCs()) {
+    hPadTime = static_cast<TH2F*>(gROOT->FindObject("hPadTimeValsI"));
+    hPadSignals = mHSigIROC;
+  } else {
+    hPadTime = static_cast<TH2F*>(gROOT->FindObject("hPadTimeValsO"));
+    hPadSignals = mHSigOROC;
+  }
+
+  static Int_t lastRoc = -1;
+  static Int_t lastRow = -1;
+  if (hPadTime && ((lastRoc != roc) || (lastRow != row))) {
+    hPadTime->Reset();
+    const auto nPads = mTPCmapper.getNumberOfPadsInRowROC(roc, row);
+    const auto nBins = hPadTime->GetNbinsY();
+    const auto shift = nBins / 2 - nPads / 2;
+    for (int iPad = 0; iPad < nPads; ++iPad) {
+      const int ichannel = mTPCmapper.getPadNumberInROC(PadROCPos(roc, row, iPad));
+      const Int_t offset = (nbins + 2) * (ichannel + 1);
+      const double* arrSig = hPadSignals->GetArray() + offset;
+      for (int iTime = 0; iTime < nbins; ++iTime) {
+        hPadTime->SetBinContent(iTime + 1, iPad + shift + 1, arrSig[iTime + 1]);
+      }
+    }
+    hPadTime->SetEntries(nPads * nbins);
+    hPadTime->SetTitle(fmt::format("Pad row {}", row).data());
+    hPadTime->SetUniqueID(row);
+  }
+
+  // ===| ADC vs. time for single pad |=========================================
+  TH1D* h = nullptr;
   const Int_t offset = (nbins + 2) * (channel + 1);
   Double_t* arrP = nullptr;
 
@@ -196,15 +238,15 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   if (roc < (Int_t)mTPCmapper.getNumberOfIROCs()) {
     h = (TH1D*)gROOT->FindObject("PadSignals_IROC");
     if (!h) {
-      h = new TH1D("PadSignals_IROC", "PadSignals IROC;time bins (200ns);amplitude (ADC counts)", nbins, mFirstTimeBin, mLastTimeBin);
+      h = new TH1D("PadSignals_IROC", "PadSignals IROC;time bin (200ns);amplitude (ADC counts)", nbins, mFirstTimeBin, mLastTimeBin);
     }
     h->SetFillColor(kBlue - 10);
     arrP = mHSigIROC->GetArray() + offset;
-    //     title+="IROC ";
+    title += "IROC ";
   } else {
     h = (TH1D*)gROOT->FindObject("PadSignals_OROC");
     if (!h) {
-      h = new TH1D("PadSignals_OROC", "PadSignals OROC;time bins (200ns);amplitude (ADC counts)", nbins, mFirstTimeBin, mLastTimeBin);
+      h = new TH1D("PadSignals_OROC", "PadSignals OROC;time bin (200ns);amplitude (ADC counts)", nbins, mFirstTimeBin, mLastTimeBin);
     }
     h->SetFillColor(kBlue - 10);
     arrP = mHSigOROC->GetArray() + offset;
@@ -223,6 +265,7 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   h->SetEntries(entries);
   return h;
 }
+
 //_____________________________________________________________________
 void SimpleEventDisplay::resetEvent()
 {
@@ -235,4 +278,29 @@ void SimpleEventDisplay::resetEvent()
   }
   mHSigIROC->Reset();
   mHSigOROC->Reset();
+}
+
+//______________________________________________________________________________
+void SimpleEventDisplay::fillSectorHistSingleTimeBin(TH2Poly* h, Int_t timeBin)
+{
+  if (!h) {
+    return;
+  }
+  if (timeBin < mFirstTimeBin || timeBin > mLastTimeBin) {
+    return;
+  }
+
+  int ichannel = 0;
+  const int iTimeBin = timeBin - mFirstTimeBin + 1;
+  // IROC loop
+  for (int ipad = 0; ipad < mHSigIROC->GetNbinsY(); ++ipad, ++ichannel) {
+    h->SetBinContent(ichannel + 1, mHSigIROC->GetBinContent(iTimeBin, ipad + 1));
+  }
+
+  // OROC loop
+  for (int ipad = 0; ipad < mHSigOROC->GetNbinsY(); ++ipad, ++ichannel) {
+    h->SetBinContent(ichannel + 1, mHSigOROC->GetBinContent(iTimeBin, ipad + 1));
+  }
+
+  h->SetEntries(ichannel);
 }
