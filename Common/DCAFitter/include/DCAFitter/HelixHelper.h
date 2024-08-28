@@ -152,7 +152,7 @@ struct CrossInfo {
 
   template <typename T>
   GPUd() int linesCrossInfo(const TrackAuxPar& trax0, const T& tr0,
-                     const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
+                            const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     /// closest approach of 2 straight lines
     ///  TrackParam propagation can be parameterized in lab in a form
@@ -213,7 +213,7 @@ struct CrossInfo {
 
   template <typename T>
   GPUd() int circleLineCrossInfo(const TrackAuxPar& trax0, const T& tr0,
-                          const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
+                                 const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     /// closest approach of line and circle
     ///  TrackParam propagation can be parameterized in lab in a form
