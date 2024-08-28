@@ -266,7 +266,6 @@ DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector ma
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
                                 ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
 
-
 DECLARE_SOA_DYNAMIC_COLUMN(TOFChi2Perhit, tofChi2Perhit, //! TOF Chi2 reshifted to take into account the number of TOF hits
                            [](float chi2) -> float {
                              if (chi2 >= 80.f) {
