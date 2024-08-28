@@ -148,7 +148,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     if (mCfgL.showCollision == -1) {
       SetInfo("Showing all collisions", 1);
     } else {
-      SetInfo("Showing collision %d", mCfgL.showCollision);
+      SetInfo("Showing collision %d / %d", mCfgL.showCollision, mNCollissions);
     }
   } else if (key == 'F') {
     mCfgR.fullScreen ^= 1;

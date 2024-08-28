@@ -247,7 +247,7 @@ class GPUDisplay : public GPUDisplayInterface
   float mRPhiTheta[3];
   float mQuat[4];
 
-  vecpod<std::array<int, 37>> mCollisionClusters;
+  vecpod<std::array<int, 37>> mOverlayTFClusters;
   int mNCollissions = 1;
 
   vecpod<vtx> mVertexBuffer[NSLICES];
