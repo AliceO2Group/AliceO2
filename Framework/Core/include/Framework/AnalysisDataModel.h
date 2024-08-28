@@ -266,17 +266,43 @@ DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector ma
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
                                 ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
 
-DECLARE_SOA_EXPRESSION_COLUMN(TOFChi2Perhit, tofChi2Perhit, float, //! TOF Chi2 reshifted to take into account the number of TOF hits
-                              ifnode(aod::track::tofChi2 >= 80.f, aod::track::tofChi2 - 80.f,
-                                     ifnode(aod::track::tofChi2 >= 60.f, aod::track::tofChi2 - 60.f,
-                                            ifnode(aod::track::tofChi2 >= 40.f, aod::track::tofChi2 - 40.f,
-                                                   ifnode(aod::track::tofChi2 >= 20.f, aod::track::tofChi2 - 20.f, aod::track::tofChi2)))));
-DECLARE_SOA_EXPRESSION_COLUMN(TOFHitCount, tofHitCount, uint8_t, //! Number of TOF hits
-                              ifnode(aod::track::tofChi2 >= 80.f, 5,
-                                     ifnode(aod::track::tofChi2 >= 60.f, 4,
-                                            ifnode(aod::track::tofChi2 >= 40.f, 3,
-                                                   ifnode(aod::track::tofChi2 >= 20.f, 2,
-                                                          ifnode(aod::track::tofChi2 >= 0.f, 1, 0))))));
+
+DECLARE_SOA_DYNAMIC_COLUMN(TOFChi2Perhit, tofChi2Perhit, //! TOF Chi2 reshifted to take into account the number of TOF hits
+                           [](float chi2) -> float {
+                             if (chi2 >= 80.f) {
+                               return chi2 - 80.f;
+                             }
+                             if (chi2 >= 60.f) {
+                               return chi2 - 60.f;
+                             }
+                             if (chi2 >= 40.f) {
+                               return chi2 - 40.f;
+                             }
+                             if (chi2 >= 20.f) {
+                               return chi2 - 20.f;
+                             }
+                             return chi2;
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TOFClusPattern, tofClusPattern, //! TOF cluster pattern
+                           [](float chi2) -> int8_t {
+                             if (chi2 >= 80.f) {
+                               return 4;
+                             }
+                             if (chi2 >= 60.f) {
+                               return 3;
+                             }
+                             if (chi2 >= 40.f) {
+                               return 2;
+                             }
+                             if (chi2 >= 20.f) {
+                               return 1;
+                             }
+                             if (chi2 >= 0.f) {
+                               return 0;
+                             }
+                             return -1;
+                           });
 
 namespace v001
 {
@@ -507,6 +533,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
+                       track::TOFChi2Perhit<track::TOFChi2>, track::TOFClusPattern<track::TOFChi2>,
                        track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
@@ -526,19 +553,16 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
+                                 track::TOFChi2Perhit<track::TOFChi2>, track::TOFHitCount<track::TOFChi2>,
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
-                           track::DetectorMap,
-                           track::v001::TOFChi2Perhit,
-                           track::v001::TOFHitCount);
+                           track::DetectorMap);
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
-                           track::v001::DetectorMap,
-                           track::v001::TOFChi2Perhit,
-                           track::v001::TOFHitCount);
+                           track::v001::DetectorMap);
 
 using StoredTracksExtra = StoredTracksExtra_001;
 using TracksExtra = TracksExtra_001;
