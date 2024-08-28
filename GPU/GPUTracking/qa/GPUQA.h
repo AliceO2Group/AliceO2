@@ -42,7 +42,7 @@ class GPUQA
  public:
   GPUQA(void* chain) {}
   ~GPUQA() = default;
-
+  typedef int mcLabelI_t;
   int InitQA(int tasks = 0) { return 1; }
   void RunQA(bool matchOnly = false) {}
   int DrawQAHistograms() { return 1; }
@@ -50,7 +50,7 @@ class GPUQA
   bool SuppressTrack(int iTrack) const { return false; }
   bool SuppressHit(int iHit) const { return false; }
   int HitAttachStatus(int iHit) const { return false; }
-  int GetMCTrackLabel(unsigned int trackId) const { return -1; }
+  mcLabelI_t GetMCTrackLabel(unsigned int trackId) const { return -1; }
   bool clusterRemovable(int attach, bool prot) const { return false; }
   void DumpO2MCData(const char* filename) const {}
   int ReadO2MCData(const char* filename) { return 1; }
@@ -98,6 +98,16 @@ class GPUQA
   GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  using mcLabels_t = gsl::span<const o2::MCCompLabel>;
+  using mcLabel_t = o2::MCCompLabel;
+  using mcLabelI_t = mcLabel_t;
+#else
+  using mcLabels_t = AliHLTTPCClusterMCLabel;
+  using mcLabel_t = AliHLTTPCClusterMCWeight;
+  struct mcLabelI_t;
+#endif
+
   void UpdateParam(const GPUParam* param) { mParam = param; }
   int InitQA(int tasks = -1);
   void RunQA(bool matchOnly = false, const std::vector<o2::tpc::TrackTPC>* tracksExternal = nullptr, const std::vector<o2::MCCompLabel>* tracksExtMC = nullptr, const o2::tpc::ClusterNativeAccess* clNative = nullptr);
@@ -107,7 +117,8 @@ class GPUQA
   bool SuppressTrack(int iTrack) const;
   bool SuppressHit(int iHit) const;
   int HitAttachStatus(int iHit) const;
-  int GetMCTrackLabel(unsigned int trackId) const;
+  mcLabelI_t GetMCTrackLabel(unsigned int trackId) const;
+  unsigned int GetMCLabelCol(const mcLabel_t& label) const;
   bool clusterRemovable(int attach, bool prot) const;
   void InitO2MCData(GPUTrackingInOutPointers* updateIOPtr = nullptr);
   void DumpO2MCData(const char* filename) const;
@@ -168,15 +179,9 @@ class GPUQA
 
   using mcInfo_t = GPUTPCMCInfo;
 #ifdef GPUCA_TPC_GEOMETRY_O2
-  using mcLabels_t = gsl::span<const o2::MCCompLabel>;
-  using mcLabel_t = o2::MCCompLabel;
-  using mcLabelI_t = mcLabel_t;
-
   mcLabels_t GetMCLabel(unsigned int i);
   mcLabel_t GetMCLabel(unsigned int i, unsigned int j);
 #else
-  using mcLabels_t = AliHLTTPCClusterMCLabel;
-  using mcLabel_t = AliHLTTPCClusterMCWeight;
   struct mcLabelI_t {
     int getTrackID() const { return AbsLabelID(track); }
     int getEventID() const { return 0; }
@@ -210,7 +215,7 @@ class GPUQA
   int GetMCLabelNID(const mcLabels_t& label);
   int GetMCLabelNID(unsigned int i);
   int GetMCLabelID(unsigned int i, unsigned int j);
-  int GetMCLabelCol(unsigned int i, unsigned int j);
+  unsigned int GetMCLabelCol(unsigned int i, unsigned int j);
   static int GetMCLabelID(const mcLabels_t& label, unsigned int j);
   static int GetMCLabelID(const mcLabel_t& label);
   float GetMCLabelWeight(unsigned int i, unsigned int j);
