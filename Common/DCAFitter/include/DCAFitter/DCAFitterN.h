@@ -48,7 +48,7 @@ struct TrackCovI {
       syz = -cyz * detYZI;
       szz = cyy * detYZI;
     } else {
-#ifndef GPUCA_GPUCODE_DEVICE
+#ifndef GPUCA_GPUCODE
       throw std::runtime_error("invalid track covariance");
 #endif
     }

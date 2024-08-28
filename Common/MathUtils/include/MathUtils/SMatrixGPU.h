@@ -67,9 +67,9 @@ class SVectorGPU
   GPUd() SVectorGPU();
   GPUd() SVectorGPU(const SVectorGPU<T, N>& rhs);
 
-  GPUd() const T& operator[](unsigned int i) const;
+  GPUhd() const T& operator[](unsigned int i) const;
+  GPUhd() T& operator[](unsigned int i);
   GPUd() const T& operator()(unsigned int i) const;
-  GPUd() T& operator[](unsigned int i);
   GPUd() T& operator()(unsigned int i);
   GPUd() const T* Array() const;
   GPUd() T* Array();
@@ -114,19 +114,19 @@ GPUdi() const T* SVectorGPU<T, D>::end() const
 }
 template <class T, unsigned int N>
 
-GPUdi() const T& SVectorGPU<T, N>::operator[](unsigned int i) const
+GPUhdi() const T& SVectorGPU<T, N>::operator[](unsigned int i) const
+{
+  return mArray[i];
+}
+
+template <class T, unsigned int N>
+GPUhdi() T& SVectorGPU<T, N>::operator[](unsigned int i)
 {
   return mArray[i];
 }
 
 template <class T, unsigned int N>
 GPUdi() const T& SVectorGPU<T, N>::operator()(unsigned int i) const
-{
-  return mArray[i];
-}
-
-template <class T, unsigned int N>
-GPUdi() T& SVectorGPU<T, N>::operator[](unsigned int i)
 {
   return mArray[i];
 }
@@ -304,31 +304,11 @@ class MatRepSymGPU
  public:
   typedef T value_type;
   GPUdDefault() MatRepSymGPU() = default;
-  GPUdi() T& operator()(unsigned int i, unsigned int j)
-  {
-    return mArray[offset(i, j)];
-  }
-
-  GPUdi() T const& operator()(unsigned int i, unsigned int j) const
-  {
-    return mArray[offset(i, j)];
-  }
-
-  GPUdi() T& operator[](unsigned int i)
-  {
-    return mArray[off(i)];
-  }
-
-  GPUdi() T const& operator[](unsigned int i) const
-  {
-    return mArray[off(i)];
-  }
-
-  GPUdi() T apply(unsigned int i) const
-  {
-    return mArray[off(i)];
-  }
-
+  GPUdi() T& operator()(unsigned int i, unsigned int j) { return mArray[offset(i, j)]; }
+  GPUdi() T const& operator()(unsigned int i, unsigned int j) const { return mArray[offset(i, j)]; }
+  GPUhdi() T& operator[](unsigned int i) { return mArray[off(i)]; }
+  GPUdi() T const& operator[](unsigned int i) const { return mArray[off(i)]; }
+  GPUdi() T apply(unsigned int i) const { return mArray[off(i)]; }
   GPUdi() T* Array() { return mArray; }
 
   GPUdi() const T* Array() const { return mArray; }
@@ -519,7 +499,7 @@ class SMatrixGPU
   GPUd() SMatrixRowGPUconst operator[](unsigned int i) const { return SMatrixRowGPUconst(*this, i); }
   GPUd() SMatrixRowGPU operator[](unsigned int i) { return SMatrixRowGPU(*this, i); }
   template <class R2>
-  SMatrixGPU<T, D1, D2, R>& operator+=(const SMatrixGPU<T, D1, D2, R2>& rhs);
+  GPUd() SMatrixGPU<T, D1, D2, R>& operator+=(const SMatrixGPU<T, D1, D2, R2>& rhs);
 
   GPUd() bool Invert();
   GPUd() bool IsInUse(const T* p) const;
@@ -1404,9 +1384,10 @@ GPUdi() bool SMatrixGPU<T, D1, D2, R>::Invert()
 
 template <class T, unsigned int D1, unsigned int D2, class R>
 template <class R2>
-SMatrixGPU<T,D1,D2,R>& SMatrixGPU<T,D1,D2,R>::operator+=(const SMatrixGPU<T,D1,D2,R2>&  rhs) {
-   mRep += rhs.mRep;
-   return *this;
+GPUdi() SMatrixGPU<T, D1, D2, R>& SMatrixGPU<T, D1, D2, R>::operator+=(const SMatrixGPU<T, D1, D2, R2>& rhs)
+{
+  mRep += rhs.mRep;
+  return *this;
 }
 
 template <class T, unsigned int D1, unsigned int D2, class R>
@@ -1435,6 +1416,7 @@ class TransposeOpGPU
   {
     return mRhs.apply((i % D1) * D2 + i / D1);
   }
+
   GPUdi() T operator()(unsigned int i, unsigned j) const
   {
     return mRhs(j, i);

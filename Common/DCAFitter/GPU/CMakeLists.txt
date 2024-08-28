@@ -12,6 +12,7 @@
 if (CUDA_ENABLED)
 add_subdirectory(cuda)
 endif()
+set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 if (HIP_ENABLED)
 add_subdirectory(hip)

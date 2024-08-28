@@ -19,4 +19,3 @@ o2_add_hipified_library(DCAFitterHIP
                                      O2::DetectorsBase
                PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
                TARGETVARNAME targetName)
-                          

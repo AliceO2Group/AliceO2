@@ -17,12 +17,13 @@
 
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"
+#include "MathUtils/SMatrixGPU.h"
 
 namespace o2
 {
 namespace vertexing
 {
-GPUg() void __dummy_instance__()
+GPUd() void __dummy_instance__()
 {
   DCAFitter2 ft2;
   DCAFitter3 ft3;
