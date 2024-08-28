@@ -1734,8 +1734,8 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     timingInfo.keepAtEndOfStream = shouldProcess;
     // Fill timinginfo with some reasonable values for data sent with endOfStream
     timingInfo.timeslice = relayer.getOldestPossibleOutput().timeslice.value;
-    timingInfo.tfCounter = 0;
-    timingInfo.firstTForbit = 0;
+    timingInfo.tfCounter = -1;
+    timingInfo.firstTForbit = -1;
     // timingInfo.runNumber = ; // Not sure where to get this if not already set
     timingInfo.creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
     O2_SIGNPOST_EVENT_EMIT(calibration, dpid, "calibration", "TimingInfo.keepAtEndOfStream %d", timingInfo.keepAtEndOfStream);
