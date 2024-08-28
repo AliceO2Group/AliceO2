@@ -57,8 +57,8 @@ class ITSTrackingInterface
   template <bool isGPU = false>
   void run(framework::ProcessingContext& pc);
 
-  void updateTimeDependentParams(framework::ProcessingContext& pc);
-  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
+  virtual void updateTimeDependentParams(framework::ProcessingContext& pc);
+  virtual void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj);
 
   // Custom
   void setTraitsFromProvider(VertexerTraits*, TrackerTraits*, TimeFrame*);
@@ -70,6 +70,15 @@ class ITSTrackingInterface
     mMode = mode;
   }
 
+  TimeFrame* mTimeFrame = nullptr;
+
+ protected:
+  virtual void loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+                       gsl::span<const itsmft::CompClusterExt> clusters,
+                       gsl::span<const unsigned char>::iterator& pattIt,
+                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels);
+  void getConfiguration(framework::ProcessingContext& pc);
+
  private:
   bool mIsMC = false;
   bool mRunVertexer = true;
@@ -80,7 +89,6 @@ class ITSTrackingInterface
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;
-  TimeFrame* mTimeFrame = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
 };
 
