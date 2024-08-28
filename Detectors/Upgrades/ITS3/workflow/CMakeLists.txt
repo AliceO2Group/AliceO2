@@ -19,7 +19,6 @@ o2_add_library(ITS3Workflow
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
                        src/TrackerSpec.cxx
-                      #  src/CookedTrackerSpec.cxx
                        src/TrackWriterSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/VertexReaderSpec.cxx
@@ -31,6 +30,7 @@ o2_add_library(ITS3Workflow
                                      O2::ITStracking
                                      O2::ITSMFTReconstruction
                                      O2::ITS3Reconstruction
+                                     O2::ITS3TrackingInterface
                                      O2::ITSWorkflow
                                      O2::GPUTracking
                                      O2::ITSBase)
