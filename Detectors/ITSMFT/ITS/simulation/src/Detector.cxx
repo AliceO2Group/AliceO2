@@ -143,10 +143,10 @@ Detector::Detector(Bool_t active, TString name)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   if (name == "ITS") {
-    mDescriptorIB.reset(new DescriptorInnerBarrelITS2(3));
+    mDescriptorIB = std::make_shared<DescriptorInnerBarrelITS2>(3);
   } else if (name == "IT3") {
 #ifdef ENABLE_UPGRADES
-    mDescriptorIB.reset(new DescriptorInnerBarrelITS3());
+    mDescriptorIB = std::make_shared<DescriptorInnerBarrelITS3>();
 #endif
   } else {
     LOG(fatal) << "Detector name not supported (options ITS and ITS3)";
