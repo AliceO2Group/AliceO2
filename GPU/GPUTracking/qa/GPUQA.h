@@ -199,10 +199,11 @@ class GPUQA
   static int AbsLabelID(const int id);
 #endif
   template <class T>
-  static auto& GetMCTrackObj(T& obj, const mcLabelI_t& l);
+  auto& GetMCTrackObj(T& obj, const mcLabelI_t& l);
 
   unsigned int GetNMCCollissions() const;
   unsigned int GetNMCTracks(int iCol) const;
+  unsigned int GetNMCTracks(const mcLabel_t& label) const;
   unsigned int GetNMCLabels() const;
   const mcInfo_t& GetMCTrack(unsigned int iTrk, unsigned int iCol);
   const mcInfo_t& GetMCTrack(const mcLabel_t& label);
@@ -241,6 +242,9 @@ class GPUQA
 #endif
   std::vector<mcInfo_t> mMCInfos;
   std::vector<GPUTPCMCInfoCol> mMCInfosCol;
+  std::vector<unsigned int> mMCNEvents;
+  std::vector<unsigned int> mMCEventOffset;
+
   std::vector<additionalClusterParameters> mClusterParam;
   int mNTotalFakes = 0;
 
