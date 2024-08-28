@@ -461,9 +461,10 @@ class SMatrixGPU
     kCols = D2,     // columns
     kSize = D1 * D2 // rows*columns
   };
-  GPUd() T apply(unsigned int i) const;
-  GPUd() const T* Array() const;
-  GPUd() T* Array();
+  // https://root.cern/doc/master/SMatrix_8icc_source.html#l00627
+  GPUd() T apply(unsigned int i) const { return mRep[i]; }
+  GPUd() const T* Array() const { return mRep.Array(); }
+  GPUd() T* Array() { return mRep.Array(); }
   GPUd() iterator begin();
   GPUd() iterator end();
   GPUd() const T& operator()(unsigned int i, unsigned int j) const;

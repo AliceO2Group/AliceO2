@@ -13,6 +13,7 @@ if (CUDA_ENABLED)
 add_subdirectory(cuda)
 o2_add_test(DCAFitterNCUDA
             SOURCES test/testDCAFitterNCUDA.cu
+            TARGETVARNAME targetName
             COMPONENT_NAME DCAFitterCUDA
             PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                   O2::DCAFitterCUDA
