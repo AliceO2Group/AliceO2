@@ -2318,7 +2318,7 @@ void GPUDisplay::showInfo(const char* info)
       OpenGLPrint(mInfoText2, 40.f, 20.f, colorValue, colorValue, colorValue, 6 - mInfoText2Timer.GetCurrentElapsedTime());
     }
   }
-  if (mInfoHelpTimer.IsRunning()) {
+  if (mInfoHelpTimer.IsRunning() || mPrintInfoTextAlways) {
     if (mInfoHelpTimer.GetCurrentElapsedTime() >= 6) {
       mInfoHelpTimer.Reset();
     } else {
