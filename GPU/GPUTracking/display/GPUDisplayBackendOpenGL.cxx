@@ -432,8 +432,8 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
     CHKERR(glDeleteBuffers(1, &mSPIRVModelViewBuffer));
     CHKERR(glDeleteBuffers(1, &mSPIRVColorBuffer));
   }
-  if (mMagneticField) {
-    ExitMagField();
+  if (mMagneticFieldVisualization) {
+    ExitMagFieldVisualization();
   }
 }
 
@@ -532,7 +532,7 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     } else {
       CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
     }
-    if (mMagneticField) {
+    if (mMagneticFieldVisualization) {
       CHKERR(glNamedBufferSubData(mFieldModelViewBuffer, 0, sizeof(modelViewProj), &modelViewProj));
     }
   }

@@ -635,7 +635,7 @@ int GPUQA::ReadO2MCData(const char* filename)
     return 1;
   }
   if (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2) {
-    printf("Read %ld MC Infos\n", ftell(fp));
+    printf("Read %ld bytes MC Infos\n", ftell(fp));
   }
   fclose(fp);
   if (mTracking) {

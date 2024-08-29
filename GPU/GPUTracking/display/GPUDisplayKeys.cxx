@@ -47,7 +47,7 @@ const char* HelpText[] = {
   "[o] / [p] / [O] / [P]         Save / restore current camera position / Animation path",
   "[h]                           Print Help",
   "[H]                           Show info texts",
-  "[q] / [Q]                     Start / Stop Qt GUI",
+  "[q]                           Start / Stop Qt GUI",
   "[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right",
   "[pgup] / [pgdn]               Strafe up / down",
   "[e] / [f]                     Rotate left / right",
@@ -64,7 +64,7 @@ const char* HelpText[] = {
   "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS",
   "[SHIFT] + [F1] to [F4]        Enable / disable track detector filter",
   "[SHIFT] + [F12]               Switch track detector filter between AND and OR mode"
-  // FREE: [m] [SPACE] [q] [Q]
+  // FREE: [m] [SPACE] [Q]
   // Test setting: ^
 };
 
@@ -470,11 +470,15 @@ void GPUDisplay::HandleKey(unsigned char key)
       SetInfo("Showing help text", 1);
     }
   } else if (key == 'q') {
-    SetInfo("Starting GUI", 1);
-    mFrontend->startGUI();
-  } else if (key == 'Q') {
-    SetInfo("Stopping GUI", 1);
-    mFrontend->stopGUI();
+    static bool GUIStarted = false;
+    if (GUIStarted) {
+      SetInfo("Stopping GUI", 1);
+      mFrontend->stopGUI();
+    } else {
+      SetInfo("Starting GUI", 1);
+      mFrontend->startGUI();
+    }
+    GUIStarted = !GUIStarted;
   }
   /*
   else if (key == '^')

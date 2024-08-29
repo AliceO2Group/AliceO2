@@ -1824,6 +1824,9 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         } else {
           sector = 0;
         }
+        if (mQA && mIOPtrs->outputTracksTPCO2MC) {
+          col = mQA->GetMCLabelCol(mIOPtrs->outputTracksTPCO2MC[i]);
+        }
         mThreadTracks[numThread][col][sector][0].emplace_back(i);
       }
 #endif
