@@ -1689,9 +1689,10 @@ void CcdbApi::scheduleDownload(RequestContext& requestContext, size_t* requestCo
       if (chunk.capacity() < chunk.size() + realsize) {
         auto cl = ho.header.find("Content-Length");
         if (cl != ho.header.end()) {
-          sz = std::max(chunk.size() + realsize, (size_t)std::stol(cl->second));
+          size_t sizeFromHeader = std::stol(cl->second);
+          sz = std::max(chunk.size() * (sizeFromHeader ? 1 : 2) + realsize, sizeFromHeader);
         } else {
-          sz = chunk.size() + realsize;
+          sz = std::max(chunk.size() * 2, chunk.size() + realsize);
           // LOGP(debug, "SIZE IS NOT IN HEADER, allocate {}", sz);
         }
         chunk.reserve(sz);
