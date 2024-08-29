@@ -67,6 +67,8 @@ void ITSThresholdCalibrator::init(InitContext& ic)
 {
   LOGF(info, "ITSThresholdCalibrator init...", mSelfName);
 
+  mPercentageCut = ic.options().get<short int>("percentage-cut");
+
   mColStep = ic.options().get<short int>("s-curve-col-step");
   if (mColStep >= N_COL) {
     LOG(warning) << "mColStep = " << mColStep << ": saving s-curves of only 1 pixel (pix 0) per row";
@@ -1761,7 +1763,13 @@ void ITSThresholdCalibrator::finalize()
         if (mRunTypeRU[iRU] >= nInjScaled * getNumberOfActiveLinks(mActiveLinks[iRU]) || mRunStopRequested) {
           std::vector<short int> chipList = getChipListFromRu(iRU, mActiveLinks[iRU]);
           for (size_t i = 0; i < chipList.size(); i++) {
+            if ((chipList[i] % mChipModBase) != mChipModSel) {
+              continue;
+            }
             if (!mThresholds.count(chipList[i])) {
+              if (mVerboseOutput) {
+                LOG(info) << "Setting ITHR = 50 for chip " << chipList[i];
+              }
               std::vector<float> data = {50, 0, 0, 0, 0};
               addDatabaseEntry(chipList[i], name, data, false);
             }
@@ -1788,7 +1796,21 @@ void ITSThresholdCalibrator::finalize()
       if (mVerboseOutput) {
         LOG(info) << "Average or mpv " << name << " of chip " << it->first << " = " << outVal << " e-";
       }
-      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
+      float status = ((float)it->second[4] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of successful threshold extractions
+      if (status < mPercentageCut && (mScanType == 'I' || mScanType == 'V')) {
+        if (mScanType == 'I') { // default ITHR if percentage of success < mPercentageCut
+          outVal = 50.;
+          if (mVerboseOutput) {
+            LOG(info) << "Chip " << it->first << " status is " << status << ". Setting ITHR = 50";
+          }
+        } else { // better to not set any VCASN if the percentage of success < mPercentageCut
+          it = this->mThresholds.erase(it);
+          if (mVerboseOutput) {
+            LOG(info) << "Chip " << it->first << " status is " << status << ". Ignoring this chip.";
+          }
+          continue;
+        }
+      }
       std::vector<float> data = {outVal, rmsT, avgN, rmsN, status};
       this->addDatabaseEntry(it->first, name, data, false);
       it = this->mThresholds.erase(it);
@@ -1950,8 +1972,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"enable-single-pix-tag", VariantType::Bool, false, {"Use to enable tagging of single noisy pix in digital and analogue scan"}},
             {"ccdb-mgr-url", VariantType::String, "", {"CCDB url to download confDBmap"}},
             {"min-vcasn", VariantType::Int, 30, {"Min value of VCASN in vcasn scan, default is 30"}},
-            {"max-vcasn", VariantType::Int, 100, {"Max value of VCASN in vcasn scan, default is 80"}},
-            {"min-ithr", VariantType::Int, 25, {"Min value of ITHR in ithr scan, default is 30"}},
+            {"max-vcasn", VariantType::Int, 70, {"Max value of VCASN in vcasn scan, default is 70"}},
+            {"min-ithr", VariantType::Int, 25, {"Min value of ITHR in ithr scan, default is 25"}},
             {"max-ithr", VariantType::Int, 100, {"Max value of ITHR in ithr scan, default is 100"}},
             {"manual-mode", VariantType::Bool, false, {"Flag to activate the manual mode in case run type is not recognized"}},
             {"manual-min", VariantType::Int, 0, {"Min value of the variable used for the scan: use only in manual mode"}},
@@ -1974,7 +1996,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"charge-a", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 1st point used for the slope calculation"}},
             {"charge-b", VariantType::Int, 0, {"To use with --calculate-slope, it defines the charge (in DAC) for the 2nd point used for the slope calculation"}},
             {"meb-select", VariantType::Int, -1, {"Select from which multi-event buffer consider the hits: 0,1 or 2"}},
-            {"s-curve-col-step", VariantType::Int, 8, {"save s-curves points to tree every s-curve-col-step  pixels on 1 row"}}}};
+            {"s-curve-col-step", VariantType::Int, 8, {"save s-curves points to tree every s-curve-col-step  pixels on 1 row"}},
+            {"percentage-cut", VariantType::Int, 25, {"discard chip in ITHR/VCASN scan if the percentage of success is less than this cut"}}}};
 }
 } // namespace its
 } // namespace o2
