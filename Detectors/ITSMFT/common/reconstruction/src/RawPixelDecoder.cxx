@@ -270,6 +270,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnk.wordLength = (lnk.expectPadding = (RDHUtils::getDataFormat(rdh) == 0)) ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
+      lnk.alwaysParseTrigger = mAlwaysParseTrigger;
       if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
         LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       }
