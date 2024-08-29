@@ -656,7 +656,20 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
     const auto key = boost::algorithm::trim_copy(header.substr(0, index));
     const auto value = boost::algorithm::trim_copy(header.substr(index + 1));
     LOGP(debug, "Adding #{} {} -> {}", headers->size(), key, value);
-    headers->insert(std::make_pair(key, value));
+    bool insert = true;
+    if (key == "Content-Length") {
+      auto cl = headers->find("Content-Length");
+      if (cl != headers->end()) {
+        if (std::stol(cl->second) < stol(value)) {
+          headers->erase(key);
+        } else {
+          insert = false;
+        }
+      }
+    }
+    if (insert) {
+      headers->insert(std::make_pair(key, value));
+    }
   }
   return size * nitems;
 }
