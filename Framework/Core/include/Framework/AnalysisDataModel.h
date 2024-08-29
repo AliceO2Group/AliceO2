@@ -284,7 +284,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TOFChi2Perhit, tofChi2Perhit, //! TOF Chi2 reshifted 
                            });
 
 DECLARE_SOA_DYNAMIC_COLUMN(TOFClusPattern, tofClusPattern, //! TOF cluster pattern
-                           [](float chi2) -> int8_t {
+                           [](float chi2) -> int {
                              if (chi2 >= 80.f) {
                                return 4;
                              }
@@ -552,7 +552,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
-                                 track::TOFChi2Perhit<track::TOFChi2>, track::TOFHitCount<track::TOFChi2>,
+                                 track::TOFChi2Perhit<track::TOFChi2>, track::TOFClusPattern<track::TOFChi2>,
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
