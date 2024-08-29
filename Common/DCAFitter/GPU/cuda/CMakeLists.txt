@@ -9,21 +9,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(DCAFitterCUDA
+o2_add_library(DCAFitterCUDAAPI
                TARGETVARNAME targetName
-               SOURCES DCAFitterN.cu
+               SOURCES DCAFitterNKernels.cu
                # src/FwdDCAFitterN.cxx
-               PUBLIC_INCLUDE_DIRECTORIES ../../include
+               PUBLIC_INCLUDE_DIRECTORIES .
+                                          ../../include
                PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                     O2::CommonUtils
                                      O2::ReconstructionDataFormats
+                                     O2::DataFormatsParameters
                                      O2::GPUCommon
                                      O2::DetectorsBase
                PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-# o2_add_test(DCAFitterNCUDA NAME testDCAFitterNCUDA
-#             SOURCES test/testDCAFitterNCUDA.cu
-#             COMPONENT_NAME DCAFitterCUDA
-#             PUBLIC_LINK_LIBRARIES O2::DCAFitter
-#             COMPONENT_NAME GPU
-#             LABELS gpu vertexing)

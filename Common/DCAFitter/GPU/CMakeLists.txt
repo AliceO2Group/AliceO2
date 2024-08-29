@@ -11,18 +11,15 @@
 
 if (CUDA_ENABLED)
 add_subdirectory(cuda)
+
 o2_add_test(DCAFitterNCUDA
-            SOURCES test/testDCAFitterNCUDA.cu
-            TARGETVARNAME targetName
+            SOURCES test/testDCAFitterNCUDA.cxx
             COMPONENT_NAME DCAFitterCUDA
-            PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-                                  O2::DCAFitterCUDA
-                                  O2::MathUtils
-                                  O2::ReconstructionDataFormats
-                                  O2::GPUCommon
-                                  O2::GPUTrackingCUDAExternalProvider)
+            PUBLIC_LINK_LIBRARIES O2::DCAFitter ROOT::Core ROOT::Physics O2::DCAFitter
+            LABELS vertexing
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
-set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 if (HIP_ENABLED)
 add_subdirectory(hip)

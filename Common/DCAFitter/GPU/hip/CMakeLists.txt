@@ -10,12 +10,16 @@
 # or submit itself to any jurisdiction.
 
 set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fgpu-rdc")
-o2_add_hipified_library(DCAFitterHIP
-               SOURCES ../cuda/DCAFitterN.cu
-               PUBLIC_INCLUDE_DIRECTORIES ../../include
+o2_add_hipified_library(DCAFitterHIPAPI
+               TARGETVARNAME targetName
+               SOURCES ../cuda/DCAFitterNKernels.cu
+               # src/FwdDCAFitterN.cxx
+               PUBLIC_INCLUDE_DIRECTORIES ../cuda
+                                          ../../include
                PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                     O2::CommonUtils
                                      O2::ReconstructionDataFormats
+                                     O2::DataFormatsParameters
                                      O2::GPUCommon
                                      O2::DetectorsBase
-               PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
-               TARGETVARNAME targetName)
+               PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider)

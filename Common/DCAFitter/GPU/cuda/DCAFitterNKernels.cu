@@ -8,10 +8,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test DCAFitterNCUDA class
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
 
 #ifdef __HIPCC__
 #include "hip/hip_runtime.h"
@@ -22,9 +18,15 @@
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"
 
+#include "DCAFitterNKernels.h"
+
 using DCAFitter2 = o2::vertexing::DCAFitterN<2, o2::track::TrackParCov>;
 using DCAFitter3 = o2::vertexing::DCAFitterN<3, o2::track::TrackParCov>;
 
+namespace o2::vertexing
+{
+namespace gpu
+{
 GPUg() void testKernel()
 {
   DCAFitter2 ft2;
@@ -33,7 +35,10 @@ GPUg() void testKernel()
   ft2.process(tr, tr);
   ft3.process(tr, tr, tr);
 }
+} // namespace gpu
 
-BOOST_AUTO_TEST_CASE(DCAFitterCUDANProngs)
+void kernelHandler()
 {
+  gpu::testKernel<<<1, 1>>>();
 }
+} // namespace o2::vertexing
