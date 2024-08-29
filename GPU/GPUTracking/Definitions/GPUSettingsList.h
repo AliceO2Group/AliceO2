@@ -122,6 +122,8 @@ AddOptionRTC(globalTrackingMinHits, unsigned char, 8, "", 0, "Min num of hits fo
 AddOptionRTC(noisyPadsQuickCheck, unsigned char, 1, "", 0, "Only check first fragment for noisy pads instead of all fragments (when test is enabled).")
 AddOptionRTC(cfQMaxCutoff, unsigned char, 3, "", 0, "Cluster Finder rejects cluster with qmax below or equal to this threshold")
 AddOptionRTC(cfQTotCutoff, unsigned char, 5, "", 0, "Cluster Finder rejects cluster with qtot below or equal to this threshold")
+AddOptionRTC(cfQMaxCutoffSingleTime, unsigned char, 0, "", 0, "Cluster Finder rejects cluster with qMax below or equal to this threshold for single pad or single time bin clusters")
+AddOptionRTC(cfQMaxCutoffSinglePad, unsigned char, 0, "", 0, "Cluster Finder rejects cluster with qMax below or equal to this threshold for single pad or single pad bin clusters")
 AddOptionRTC(cfInnerThreshold, unsigned char, 0, "", 0, "Cluster Finder extends cluster if inner charge above this threshold")
 AddOptionRTC(cfMinSplitNum, unsigned char, 1, "", 0, "Minimum number of split charges in a cluster for the cluster to be marked as split")
 AddOptionRTC(cfNoiseSuppressionEpsilon, unsigned char, 10, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression")
