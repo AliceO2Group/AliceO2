@@ -296,6 +296,7 @@ class GPUDisplay : public GPUDisplayInterface
   opengl_spline mAnimationSplines[8];
 
   int mPrintInfoText = 1;
+  bool mPrintInfoTextAlways = 0;
   char mInfoText2[1024];
   HighResTimer mInfoText2Timer, mInfoHelpTimer;
 

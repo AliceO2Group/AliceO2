@@ -458,8 +458,17 @@ void GPUDisplay::HandleKey(unsigned char key)
     }
     SetInfo("Animation path loaded from file %s", "glanimation.tmp");
   } else if (key == 'h') {
-    PrintHelp();
-    SetInfo("Showing help text", 1);
+    if (mPrintInfoTextAlways) {
+      mPrintInfoTextAlways = false;
+      SetInfo("Showing help text disabled", 1);
+    } else if (mInfoHelpTimer.IsRunning()) {
+      mPrintInfoTextAlways = true;
+      mInfoHelpTimer.Reset();
+      SetInfo("Showing help text until disabled", 1);
+    } else {
+      PrintHelp();
+      SetInfo("Showing help text", 1);
+    }
   } else if (key == 'q') {
     SetInfo("Starting GUI", 1);
     mFrontend->startGUI();
