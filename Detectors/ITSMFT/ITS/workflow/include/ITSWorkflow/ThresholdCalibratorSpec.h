@@ -322,6 +322,9 @@ class ITSThresholdCalibrator : public Task
 
   // Variable to select from which MEB to consider the hits.
   int mMeb = -1;
+
+  // Percentage cut for VCASN/ITHR scans
+  short int mPercentageCut = 25; // default, at least 1 good row equivalent
 };
 
 // Create a processor spec
