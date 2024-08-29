@@ -129,7 +129,7 @@ class GPUDisplayBackend
   backendTypes mBackendType = TYPE_INVALID;
   const char* mBackendName = nullptr;
 
-  std::unique_ptr<GPUDisplayMagneticField> mMagneticField;
+  std::unique_ptr<GPUDisplayMagneticField> mMagneticFieldVisualization;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

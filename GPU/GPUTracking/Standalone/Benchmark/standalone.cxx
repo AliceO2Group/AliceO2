@@ -351,6 +351,9 @@ int SetupReconstruction()
     }
     printf("Enabling event display (%s backend)\n", eventDisplay->frontendName());
     procSet.eventDisplay = eventDisplay.get();
+    if (!configStandalone.QA.noMC) {
+      procSet.runMC = true;
+    }
   }
 
   if (procSet.runQA && !configStandalone.QA.noMC) {

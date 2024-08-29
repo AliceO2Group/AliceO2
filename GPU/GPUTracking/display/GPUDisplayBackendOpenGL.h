@@ -48,9 +48,9 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void setDepthBuffer() override;
   void setFrameBuffer(unsigned int newID = 0);
   int InitBackendA() override;
-  int InitMagField();
+  int InitMagFieldVisualization();
   void ExitBackendA() override;
-  void ExitMagField();
+  void ExitMagFieldVisualization();
   static int checkShaderStatus(unsigned int shader);
   static int checkProgramStatus(unsigned int program);
   void clearScreen(bool alphaOnly = false);
