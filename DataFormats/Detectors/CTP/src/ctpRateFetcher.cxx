@@ -17,9 +17,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsCTP/Scalers.h"
-//#include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CCDB/BasicCCDBManager.h"
-
 
 using namespace o2::ctp;
 double ctpRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
@@ -182,4 +180,3 @@ void ctpRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, u
   }
   mScalers->convertRawToO2();
 }
-
