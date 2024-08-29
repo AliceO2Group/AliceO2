@@ -271,7 +271,34 @@ DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTime, tofExpTime, //! Expected time for the tra
                              if (tofExpMom <= 0.f) {
                                return -999.f;
                              }
-                             return length * sqrt((mMassZSqared) + (tofExpMom * tofExpMom)) / (0.0299792f * tofExpMom);
+                             return length * sqrt((mMassZSqared) + (tofExpMom * tofExpMom)) / (o2::constants::physics::LightSpeedCm2PS * tofExpMom);
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTimePi, tofExpTimePi, //! Expected time for the track to reach the TOF under the pion hypothesis
+                           [](float length, float tofExpMom) -> float {
+                             if (tofExpMom <= 0.f) {
+                               return -999.f;
+                             }
+                             constexpr float mMassZSqared = o2::constants::physics::MassPionCharged * o2::constants::physics::MassPionCharged;
+                             return length * sqrt((mMassZSqared) + (tofExpMom * tofExpMom)) / (o2::constants::physics::LightSpeedCm2PS * tofExpMom);
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTimeKa, tofExpTimeKa, //! Expected time for the track to reach the TOF under the kaon hypothesis
+                           [](float length, float tofExpMom) -> float {
+                             if (tofExpMom <= 0.f) {
+                               return -999.f;
+                             }
+                             constexpr float mMassZSqared = o2::constants::physics::MassKaonCharged * o2::constants::physics::MassKaonCharged;
+                             return length * sqrt((mMassZSqared) + (tofExpMom * tofExpMom)) / (o2::constants::physics::LightSpeedCm2PS * tofExpMom);
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpTimePr, tofExpTimePr, //! Expected time for the track to reach the TOF under the proton hypothesis
+                           [](float length, float tofExpMom) -> float {
+                             if (tofExpMom <= 0.f) {
+                               return -999.f;
+                             }
+                             constexpr float mMassZSqared = o2::constants::physics::MassProton * o2::constants::physics::MassProton;
+                             return length * sqrt((mMassZSqared) + (tofExpMom * tofExpMom)) / (o2::constants::physics::LightSpeedCm2PS * tofExpMom);
                            });
 
 namespace v001
@@ -509,6 +536,9 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::TOFExpTime<track::Length, track::TOFExpMom>,
+                       track::TOFExpTimePi<track::Length, track::TOFExpMom>,
+                       track::TOFExpTimeKa<track::Length, track::TOFExpMom>,
+                       track::TOFExpTimePr<track::Length, track::TOFExpMom>,
                        track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
                        track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
@@ -531,6 +561,9 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::v001::ITSClsSizeInLayer<track::ITSClusterSizes>,
                                  track::v001::IsITSAfterburner<track::v001::DetectorMap, track::ITSChi2NCl>,
                                  track::TOFExpTime<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimePi<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimeKa<track::Length, track::TOFExpMom>,
+                                 track::TOFExpTimePr<track::Length, track::TOFExpMom>,
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
