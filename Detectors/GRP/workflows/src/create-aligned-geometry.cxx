@@ -150,7 +150,10 @@ DataProcessorSpec getAlignerSpec(DetID::mask_t dets)
                                                               false,                                // GRPMagField
                                                               false,                                // askMatLUT
                                                               o2::base::GRPGeomRequest::Alignments, // geometry
-                                                              inputs);
+                                                              inputs,                               // inputs
+                                                              false,                                // ask-once
+                                                              false,                                // dprop
+                                                              DetID::getNames(dets));               // only selected detectors
 
   return DataProcessorSpec{
     "geometry-aligned-producer",

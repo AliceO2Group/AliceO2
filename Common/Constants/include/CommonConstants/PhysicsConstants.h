@@ -73,7 +73,8 @@ enum Pdg {
   kAlpha = 1000020040,
   kHyperTriton = 1010010030,
   kHyperHydrogen4 = 1010010040,
-  kHyperHelium4 = 1010020040
+  kHyperHelium4 = 1010020040,
+  kHyperHelium5 = 1010020050
 };
 
 /// \brief Declarations of masses for additional particles
@@ -120,6 +121,7 @@ constexpr double MassAlpha = 3.7273794066;
 constexpr double MassHyperTriton = 2.99131;
 constexpr double MassHyperHydrogen4 = 3.9226;
 constexpr double MassHyperHelium4 = 3.9217;
+constexpr double MassHyperHelium5 = 4.841;
 
 /// \brief Declarations of masses for particles in ROOT PDG_t
 constexpr double MassDown = 0.00467;

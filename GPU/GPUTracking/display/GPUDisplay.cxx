@@ -62,6 +62,8 @@
 #include "DataFormatsTOF/Cluster.h"
 #include "TOFBase/Geo.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #endif
 #ifdef GPUCA_O2_LIB
 #include "ITSMFTBase/DPLAlpideParam.h"
@@ -193,8 +195,8 @@ void GPUDisplay::calcXYZ(const float* matrix)
 void GPUDisplay::SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 {
   mNCollissions = std::max<unsigned int>(mNCollissions, collision + 1);
-  mCollisionClusters.resize(mNCollissions);
-  mCollisionClusters[collision][slice] = cluster;
+  mOverlayTFClusters.resize(mNCollissions);
+  mOverlayTFClusters[collision][slice] = cluster;
 }
 
 void GPUDisplay::mAnimationCloseAngle(float& newangle, float lastAngle)
@@ -582,11 +584,20 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
-  if (mCollisionClusters.size() > 0 || iCol == 0) {
-    const int firstCluster = (mCollisionClusters.size() > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
-    const int lastCluster = (mCollisionClusters.size() > 1 && iCol + 1 < mCollisionClusters.size()) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
+  if (mOverlayTFClusters.size() > 0 || iCol == 0 || mNCollissions) {
+    const int firstCluster = (mOverlayTFClusters.size() > 1 && iCol > 0) ? mOverlayTFClusters[iCol - 1][iSlice] : 0;
+    const int lastCluster = (mOverlayTFClusters.size() > 1 && iCol + 1 < mOverlayTFClusters.size()) ? mOverlayTFClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
+    const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
     for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
       const int cid = GET_CID(iSlice, cidInSlice);
+#ifdef GPUCA_HAVE_O2HEADERS
+      if (checkClusterCollision) {
+        const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
+        if (labels.size() ? (iCol != mQA->GetMCLabelCol(labels[0])) : (iCol != 0)) {
+          continue;
+        }
+      }
+#endif
       if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
         continue;
       }
@@ -1208,7 +1219,7 @@ int GPUDisplay::DrawGLScene()
   }
   if (!mIOPtrs) {
     mNCollissions = 0;
-  } else if (!mCollisionClusters.size()) {
+  } else if (!mOverlayTFClusters.size()) {
     mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
   try {
@@ -1828,11 +1839,15 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
         }
         int slice = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + track->NClusters() - 1].slice;
         unsigned int col = 0;
-        if (mCollisionClusters.size() > 1) {
-          int label = mQA ? mQA->GetMCTrackLabel(i) : -1;
-          while (col < mCollisionClusters.size() && mCollisionClusters[col][NSLICES] < label) {
+        if (mQA) {
+          const auto& label = mQA->GetMCTrackLabel(i);
+#ifdef GPUCA_TPC_GEOMETRY_O2
+          col = mQA->GetMCLabelCol(label);
+#else
+          while (col < mOverlayTFClusters.size() && mOverlayTFClusters[col][NSLICES] < label) {
             col++;
           }
+#endif
         }
         mThreadTracks[numThread][col][slice][0].emplace_back(i);
       }

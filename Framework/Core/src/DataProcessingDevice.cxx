@@ -1732,6 +1732,12 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     // We should keep the data generated at end of stream only for those
     // which are not sources.
     timingInfo.keepAtEndOfStream = shouldProcess;
+    // Fill timinginfo with some reasonable values for data sent with endOfStream
+    timingInfo.timeslice = relayer.getOldestPossibleOutput().timeslice.value;
+    timingInfo.tfCounter = 0;
+    timingInfo.firstTForbit = 0;
+    // timingInfo.runNumber = ; // Not sure where to get this if not already set
+    timingInfo.creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
     O2_SIGNPOST_EVENT_EMIT(calibration, dpid, "calibration", "TimingInfo.keepAtEndOfStream %d", timingInfo.keepAtEndOfStream);
 
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
@@ -1845,6 +1851,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
+        O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got DomainInfoHeader with oldestPossibleTimeslice %d", (int)dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo, info.id);
         *context.wasActive = true;
         continue;
