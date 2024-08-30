@@ -64,6 +64,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
   mSkipStaticMap = ic.options().get<bool>("skip-static-map");
 
+  isEnded = false;
   mTimeStart = o2::ccdb::getCurrentTimestamp();
 
   if (mRunMFT) {
@@ -178,6 +179,16 @@ void ITSMFTDeadMapBuilder::finalizeOutput()
 void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 {
 
+  // Skip everything in case of garbage (potentially at EoS)
+  if (pc.services().get<o2::framework::TimingInfo>().firstTForbit == -1U) {
+    LOG(info) << "Skipping the processing of inputs for timeslice " << pc.services().get<o2::framework::TimingInfo>().timeslice << " (firstTForbit is " << pc.services().get<o2::framework::TimingInfo>().firstTForbit << ")";
+    return;
+  }
+
+  if (isEnded) {
+    return;
+  }
+
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
   std::chrono::time_point<std::chrono::high_resolution_clock> end;
 
@@ -188,6 +199,7 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
   mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
   if (mFirstOrbitRun == 0x0) {
+    mRunNumber = pc.services().get<o2::framework::TimingInfo>().runNumber;
     mFirstOrbitRun = mFirstOrbitTF;
   }
 
@@ -280,6 +292,12 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 
   LOG(info) << "Elapsed time in TF processing: " << difference / 1000. << " ms";
 
+  if (pc.transitionState() == TransitionHandlingState::Requested && !isEnded) {
+    std::string detname = mRunMFT ? "MFT" : "ITS";
+    LOG(warning) << "Transition state requested for " << detname << " process, calling stop() and stopping the process of new data.";
+    stop();
+  }
+
   return;
 }
 
@@ -291,8 +309,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   long tend = o2::ccdb::getCurrentTimestamp();
 
-  std::map<std::string, std::string> md = {
-    {"map_version", MAP_VERSION}};
+  std::map<std::string, std::string> md = {{"map_version", MAP_VERSION}, {"runNumber", std::to_string(mRunNumber)}};
 
   std::string path = mRunMFT ? "MFT/Calib/" : "ITS/Calib/";
   std::string name_str = "TimeDeadMap";
@@ -355,6 +372,7 @@ void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
     } else {
       LOG(warning) << "Time-dependent dead map is empty and will not be forwarded as output";
     }
+    LOG(info) << "Stop process of new data because of endOfStream";
     isEnded = true;
   }
   return;
@@ -374,6 +392,7 @@ void ITSMFTDeadMapBuilder::stop()
     } else {
       LOG(alarm) << "endOfStream not processed. Nothing forwarded as output.";
     }
+    LOG(info) << "Stop process of new data because of stop() call.";
     isEnded = true;
   }
   return;
