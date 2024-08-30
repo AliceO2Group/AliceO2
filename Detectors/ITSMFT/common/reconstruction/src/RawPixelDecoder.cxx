@@ -312,6 +312,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       }
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
+        memset(&ru.cableLinkPtr[0], 0, RUDecodeData::MaxCablesPerRU * sizeof(GBTLink*));
       }
     }
     // sort RUs in stave increasing order
