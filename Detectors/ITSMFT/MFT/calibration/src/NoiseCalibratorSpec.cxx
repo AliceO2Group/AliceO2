@@ -299,11 +299,14 @@ void NoiseCalibratorSpec::sendOutputCcdbMerge(DataAllocator& output)
   map<std::string, std::string> filter;
   auto* payloadPrev1 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPath, filter, -1, &headers);
   long validtime = std::stol(headers["Valid-From"]);
-  validtime = validtime - 60;
-  auto* payloadPrev2 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPath, filter, validtime, &headers);
-  auto bufferPL = payloadPrev2->merge(payloadPrev1);
-  auto mergedPL = payload.merge(&bufferPL);
-  // payload.merge(payloadPrev);
+  auto mergedPL = payload;
+  if(validtime>0)
+    {
+      validtime = validtime - 60;
+      auto* payloadPrev2 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPath, filter, validtime, &headers);
+      auto bufferPL = payloadPrev2->merge(payloadPrev1);
+      mergedPL = payload.merge(&bufferPL);
+    }
   o2::ccdb::CcdbObjectInfo info(mPathMerge, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mergedPL, &info);

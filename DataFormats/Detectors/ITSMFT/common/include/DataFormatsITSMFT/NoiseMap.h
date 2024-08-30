@@ -1,3 +1,4 @@
+
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -202,23 +203,15 @@ class NoiseMap
     return std::ceil((1. + 1. / t) / (relErr * relErr));
   }
 
-  NoiseMap merge(NoiseMap* prev)
+  NoiseMap merge(const NoiseMap* prev)
   {
     int incre = 0;
     for (size_t i = 0; i < (int)mNoisyPixels.size(); ++i) {
       for (const auto& prev_np : prev->mNoisyPixels[i]) { // only enters this for loop if the "i" chip exists.
-        bool existsInCurrentMap = false;
-        for (const auto& current_np : mNoisyPixels[i]) {
-          if (prev_np.first == current_np.first) {
-            existsInCurrentMap = true;
-            break;
-          }
-        } // end of for loop on elements of previous noise map
-
-        if (!existsInCurrentMap) {
-          incre++;
-          mNoisyPixels[i][prev_np.first] = prev_np.second;
-        }
+	if (mNoisyPixels[i].find(prev_np.first) == mNoisyPixels[i].end()) {
+	  mNoisyPixels[i][prev_np.first] = prev_np.second;
+	  incre++;
+	}
       } // end of for loop on elements of previous noise map
     }   // end of for loop on i (chip ID)
     return (mNoisyPixels);
