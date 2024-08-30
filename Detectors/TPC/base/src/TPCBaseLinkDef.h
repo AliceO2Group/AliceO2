@@ -21,6 +21,7 @@
 #pragma link C++ class o2::tpc::CalArray < unsigned> + ;
 #pragma link C++ class o2::tpc::CalArray < short> + ;
 #pragma link C++ class o2::tpc::CalArray < bool> + ;
+#pragma link C++ class o2::tpc::CalArray < o2::tpc::PadFlags> + ;
 #pragma link C++ class o2::tpc::CalDet < float> + ;
 #pragma link C++ class o2::tpc::CalDet < double> + ;
 #pragma link C++ class o2::tpc::CalDet < int> + ;
@@ -60,6 +61,8 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGas> + ;
 #pragma link C++ enum o2::tpc::AmplificationMode;
 #pragma link C++ enum o2::tpc::DigitzationMode;
+#pragma link C++ enum o2::tpc::PadFlags;
+#pragma link C++ enum o2::tpc::PadSubset;
 #pragma link C++ struct o2::tpc::ParameterGEM;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterGEM> + ;
 #pragma link C++ class o2::tpc::IonTailSettings + ;

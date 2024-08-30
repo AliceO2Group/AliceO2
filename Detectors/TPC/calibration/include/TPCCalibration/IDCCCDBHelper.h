@@ -32,7 +32,7 @@ struct IDCOne;
 struct FourierCoeff;
 template <typename DataT>
 struct IDCDelta;
-enum class PadFlags : unsigned short;
+enum class PadFlags : unsigned int;
 
 template <class T>
 class CalDet;

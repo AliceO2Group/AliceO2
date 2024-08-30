@@ -24,7 +24,7 @@
 namespace o2::tpc
 {
 
-enum class PadFlags : unsigned short;
+enum class PadFlags : unsigned int;
 
 template <class T>
 class CalDet;

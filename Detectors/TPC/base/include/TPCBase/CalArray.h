@@ -169,6 +169,7 @@ class CalArray
 
   /// initialize the data array depending on what is set as PadSubset
   void initData();
+  ClassDefNV(CalArray, 1)
 };
 
 #ifndef GPUCA_ALIGPUCODE

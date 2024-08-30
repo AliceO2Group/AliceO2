@@ -97,7 +97,7 @@ enum class StatisticsType {
   MeanStdDev   ///< Use mean and standard deviation
 };
 
-enum class PadFlags : unsigned short {
+enum class PadFlags : unsigned int {
   flagGoodPad = 1 << 0,      ///< flag for a good pad binary 0001
   flagDeadPad = 1 << 1,      ///< flag for a dead pad binary 0010
   flagUnknownPad = 1 << 2,   ///< flag for unknown status binary 0100
