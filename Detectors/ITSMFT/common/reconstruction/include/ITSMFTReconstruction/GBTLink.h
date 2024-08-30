@@ -266,6 +266,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   currRawPiece = rawData.currentPiece();
   uint8_t errRes = uint8_t(GBTLink::NoError);
   bool expectPacketDone = false;
+  bool verboseRawData = verbosity > 0 && ((verbosity % VerboseData) == 0);
   ir.clear();
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
@@ -390,7 +391,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     expectPacketDone = true;
 
     while (!gbtD->isDataTrailer() && !(cruPageAlignmentPaddingSeen = isAlignmentPadding())) { // start reading real payload
-      if ((verbosity % VerboseData) == 0) {
+      if (verboseRawData) {
         gbtD->printX(expectPadding);
       }
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
