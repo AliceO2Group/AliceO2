@@ -166,7 +166,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> trackROFspan(trackROFvec);
-  mTimeFrame->loadROFrameData(trackROFspan, compClusters, pattIt, mDict, labels);
+  loadROF(trackROFspan, compClusters, pattIt, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
@@ -343,11 +343,16 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
     }
     GeometryTGeo* geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
-    mVertexer->getGlobalConfiguration();
-    mTracker->getGlobalConfiguration();
-    if (mOverrideBeamEstimation) {
-      pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
-    }
+    getConfiguration(pc);
+  }
+}
+
+void ITSTrackingInterface::getConfiguration(framework::ProcessingContext& pc)
+{
+  mVertexer->getGlobalConfiguration();
+  mTracker->getGlobalConfiguration();
+  if (mOverrideBeamEstimation) {
+    pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
   }
 }
 
@@ -389,6 +394,14 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraits* vertexerTraits,
   mTimeFrame = frame;
   mVertexer->adoptTimeFrame(*mTimeFrame);
   mTracker->adoptTimeFrame(*mTimeFrame);
+}
+
+void ITSTrackingInterface::loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+                                   gsl::span<const itsmft::CompClusterExt> clusters,
+                                   gsl::span<const unsigned char>::iterator& pattIt,
+                                   const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+{
+  mTimeFrame->loadROFrameData(trackROFspan, clusters, pattIt, mDict, mcLabels);
 }
 
 template void ITSTrackingInterface::run<true>(framework::ProcessingContext& pc);
