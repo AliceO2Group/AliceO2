@@ -48,10 +48,10 @@ std::string FileProducer::newFileName() const
 
   const auto pid = getpid();
   const auto result = fmt::format(fmt::runtime(this->mName),
-                            fmt::arg("hostname", hostname),
-                            fmt::arg("pid", pid),
-                            fmt::arg("timestamp", millisec_since_epoch),
-                            fmt::arg("ext", this->mExt));
+                                  fmt::arg("hostname", hostname),
+                                  fmt::arg("pid", pid),
+                                  fmt::arg("timestamp", millisec_since_epoch),
+                                  fmt::arg("ext", this->mExt));
   const std::vector<std::string> ext = {".json", ".root", ".eve"};
   DirectoryLoader::reduceNumberOfFiles(this->mPath, DirectoryLoader::load(this->mPath, "_", ext), this->mFilesInFolder);
 
