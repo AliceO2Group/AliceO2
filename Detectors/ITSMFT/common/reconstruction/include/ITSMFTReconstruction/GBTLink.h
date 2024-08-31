@@ -154,7 +154,7 @@ struct GBTLink {
       long szd = RDHUtils::getMemorySize(*rdh);
       long offs = sizeof(RDH);
       char* ptrR = ((char*)ptr) + sizeof(RDH);
-      while (offs + wordLength <= szd) {
+      while (offs < szd) {
         const o2::itsmft::GBTWord* w = reinterpret_cast<const o2::itsmft::GBTWord*>(ptrR);
         std::string com = fmt::format(" | FeeID:{:#06x} offs: {:6} ", feeID, offs);
         if (w->isData()) {
@@ -420,9 +420,13 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       dataOffset += wordLength;
 
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTrailerWord(gbtT));
+      // are we at the end of the page?
+      if ((cruPageAlignmentPaddingSeen = isAlignmentPadding())) {
+        dataOffset = lastPageSize;
+      }
       // we finished the GBT page, but there might be continuation on the next CRU page
       if (!gbtT->packetDone) {
-        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && !isAlignmentPadding())));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && !cruPageAlignmentPaddingSeen)));
         continue; // keep reading next CRU page
       }
       // accumulate packet states
