@@ -9,18 +9,33 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(DCAFitterCUDAAPI
+o2_add_library(DCAFitterNKernels
                TARGETVARNAME targetName
                SOURCES DCAFitterNKernels.cu
-               # src/FwdDCAFitterN.cxx
-               PUBLIC_INCLUDE_DIRECTORIES .
-                                          ../../include
-               PUBLIC_LINK_LIBRARIES O2::MathUtils
-                                     O2::CommonUtils
-                                     O2::ReconstructionDataFormats
-                                     O2::DataFormatsParameters
-                                     O2::GPUCommon
-                                     O2::DetectorsBase
-               PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
-
+               ${CMAKE_SOURCE_DIR}/Common/DCAFitter/include
+               PRIVATE_LINK_LIBRARIES O2::DCAFitter
+                                      O2::MathUtils
+                                      O2::ReconstructionDataFormats
+                                      O2::GPUCommon
+                                      O2::DetectorsBase
+                                      O2::GPUTrackingCUDAExternalProvider)
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
+o2_add_library(DCAFitterCUDAAPI
+               SOURCES DCAFitterGPUAPI.cu
+               # src/FwdDCAFitterN.cxx
+               PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Common/DCAFitter/GPU
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon O2::ReconstructionDataFormats
+               PRIVATE_LINK_LIBRARIES O2::DCAFitter O2::DCAFitterNKernels)
+
+o2_add_test(DCAFitterNCUDA
+               SOURCES test/testDCAFitterNCUDA.cxx
+               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+                                     O2::DCAFitterCUDAAPI
+                                     O2::DCAFitter
+                                     ROOT::Core
+                                     ROOT::Physics 
+                                     
+               LABELS vertexing
+               ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+               VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})

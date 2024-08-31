@@ -9,10 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DCAFITTERN_KERNELS_H_
-#define DCAFITTERN_KERNELS_H_
-namespace o2::vertexing
+#ifndef DCAFITTER_KERNELS
+#define DCAFITTER_KERNELS
+#include "GPUCommonDef.h"
+
+namespace o2::vertexing::gpu
 {
-void kernelHandler();
+GPUg() void processKernel(o2::vertexing::DCAFitterN<2>*, o2::track::TrackParCov*, o2::track::TrackParCov*);
 }
 #endif

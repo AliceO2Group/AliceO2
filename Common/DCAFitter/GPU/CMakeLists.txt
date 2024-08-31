@@ -11,14 +11,6 @@
 
 if (CUDA_ENABLED)
 add_subdirectory(cuda)
-
-o2_add_test(DCAFitterNCUDA
-            SOURCES test/testDCAFitterNCUDA.cxx
-            COMPONENT_NAME DCAFitterCUDA
-            PUBLIC_LINK_LIBRARIES O2::DCAFitter ROOT::Core ROOT::Physics O2::DCAFitter
-            LABELS vertexing
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
 
 if (HIP_ENABLED)

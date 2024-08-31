@@ -9,24 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __HIPCC__
-#include "hip/hip_runtime.h"
-#else
-#include <cuda.h>
+#ifndef DCAFITTERN_GPU_API_H_
+#define DCAFITTERN_GPU_API_H_
+
+namespace o2::vertexing
+{
+void doProcessingOnGPU(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2);
+} // namespace o2::vertexing
 #endif
-
-#include "GPUCommonDef.h"
-#include "DCAFitter/DCAFitterN.h"
-
-#include "DCAFitterNKernels.h"
-
-using DCAFitter2 = o2::vertexing::DCAFitterN<2, o2::track::TrackParCov>;
-using DCAFitter3 = o2::vertexing::DCAFitterN<3, o2::track::TrackParCov>;
-
-namespace o2::vertexing::gpu
-{
-GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2)
-{
-  ft->process(*t1, *t2);
-}
-} // namespace o2::vertexing::gpu
