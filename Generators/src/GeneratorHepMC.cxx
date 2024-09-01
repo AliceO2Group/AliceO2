@@ -489,9 +489,9 @@ bool GeneratorHepMC::makeReader()
     // specifies that
     LOG(info) << "Creating ASCII reader of " << filename;
     if (mVersion == 2) {
-      mReader.reset(new HepMC3::ReaderAsciiHepMC2(filename));
+      mReader = std::make_shared<HepMC3::ReaderAsciiHepMC2>(filename);
     } else {
-      mReader.reset(new HepMC3::ReaderAscii(filename));
+      mReader = std::make_shared<HepMC3::ReaderAscii>(filename);
     }
   } else {
     LOG(info) << "Deduce a reader of " << filename;
