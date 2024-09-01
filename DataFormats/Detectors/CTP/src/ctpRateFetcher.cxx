@@ -22,7 +22,7 @@
 using namespace o2::ctp;
 double ctpRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
-  auto triggerRate = fetchNoPuCorr(ccdb, timeStamp, runNumber,sourceName);
+  auto triggerRate = fetchNoPuCorr(ccdb, timeStamp, runNumber, sourceName);
   if (triggerRate >= 0) {
     return pileUpCorrection(triggerRate);
   }
