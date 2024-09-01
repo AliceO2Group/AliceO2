@@ -25,8 +25,16 @@ using DCAFitter3 = o2::vertexing::DCAFitterN<3, o2::track::TrackParCov>;
 
 namespace o2::vertexing::gpu
 {
-GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2)
+GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft)
 {
-  ft->process(*t1, *t2);
+  if (threadIdx.x == 0) {
+    printf(" =============== GPU DCA Fitter ================\n");
+    ft->print();
+    printf(" ===============================================\n");
+  }
+}
+GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res)
+{
+  *res = ft->process(*t1, *t2);
 }
 } // namespace o2::vertexing::gpu

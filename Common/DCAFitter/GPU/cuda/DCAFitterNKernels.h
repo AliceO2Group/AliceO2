@@ -15,6 +15,7 @@
 
 namespace o2::vertexing::gpu
 {
-GPUg() void processKernel(o2::vertexing::DCAFitterN<2>*, o2::track::TrackParCov*, o2::track::TrackParCov*);
-}
+GPUg() void printKernel(o2::vertexing::DCAFitterN<2>*);
+GPUg() void processKernel(o2::vertexing::DCAFitterN<2>*, o2::track::TrackParCov*, o2::track::TrackParCov*, int*);
+} // namespace o2::vertexing::gpu
 #endif

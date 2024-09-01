@@ -12,7 +12,7 @@
 o2_add_library(DCAFitterNKernels
                TARGETVARNAME targetName
                SOURCES DCAFitterNKernels.cu
-               ${CMAKE_SOURCE_DIR}/Common/DCAFitter/include
+                    #    ${CMAKE_SOURCE_DIR}/Common/DCAFitter/include
                PRIVATE_LINK_LIBRARIES O2::DCAFitter
                                       O2::MathUtils
                                       O2::ReconstructionDataFormats
@@ -29,13 +29,13 @@ o2_add_library(DCAFitterCUDAAPI
                PRIVATE_LINK_LIBRARIES O2::DCAFitter O2::DCAFitterNKernels)
 
 o2_add_test(DCAFitterNCUDA
-               SOURCES test/testDCAFitterNCUDA.cxx
-               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+            SOURCES test/testDCAFitterNGPU.cxx
+            PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::DCAFitterCUDAAPI
                                      O2::DCAFitter
                                      ROOT::Core
                                      ROOT::Physics 
-                                     
-               LABELS vertexing
-               ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-               VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+            COMPONENT_NAME gpu               
+            LABELS vertexing
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
