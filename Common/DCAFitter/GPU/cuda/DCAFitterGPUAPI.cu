@@ -44,8 +44,9 @@ void doPrintOnGPU(o2::vertexing::DCAFitterN<2>* ft)
   o2::vertexing::DCAFitterN<2>* ft_device;
   gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&ft_device), sizeof(o2::vertexing::DCAFitterN<2>)));
   gpuCheckError(cudaMemcpy(ft_device, ft, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyHostToDevice));
-
+  printf(" =============== GPU DCA Fitter ================\n");
   gpu::printKernel<<<1, 1>>>(ft_device);
+  printf(" ===============================================\n");
   gpuCheckError(cudaPeekAtLastError());
   gpuCheckError(cudaDeviceSynchronize());
 

@@ -27,14 +27,13 @@ namespace o2::vertexing::gpu
 {
 GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft)
 {
-  if (threadIdx.x == 0) {
-    printf(" =============== GPU DCA Fitter ================\n");
-    ft->print();
-    printf(" ===============================================\n");
-  }
+  printf("hello world");
+  // if (threadIdx.x == 0) {
+  //   ft->print();
+  // }
 }
 GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res)
 {
-  *res = ft->process(*t1, *t2);
+  *res = 30000;/*ft->process(*t1, *t2);*/
 }
 } // namespace o2::vertexing::gpu
