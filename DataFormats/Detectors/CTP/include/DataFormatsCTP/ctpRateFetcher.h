@@ -34,10 +34,10 @@ class ctpRateFetcher
   void setManualCleanup(bool manualCleanup = true) { mManualCleanup = manualCleanup; }
 
  private:
-  double fetchCTPratesInputs(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, int input);
-  double fetchCTPratesClasses(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, const std::string& className, int inputType = 1);
-  double fetchCTPratesInputsNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, int input);
-  double fetchCTPratesClassesNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, const std::string& className, int inputType = 1);
+  double fetchCTPratesInputs(uint64_t timeStamp, int input);
+  double fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType = 1);
+  double fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input);
+  double fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const std::string& className, int inputType = 1);
 
   double pileUpCorrection(double rate);
   void setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp);

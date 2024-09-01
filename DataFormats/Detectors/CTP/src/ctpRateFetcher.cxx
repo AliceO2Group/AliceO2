@@ -22,56 +22,33 @@
 using namespace o2::ctp;
 double ctpRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
-  setupRun(runNumber, ccdb, timeStamp);
-  if (sourceName.find("ZNC") != std::string::npos) {
-    if (runNumber < 544448) {
-      return fetchCTPratesInputs(ccdb, timeStamp, runNumber, 25) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
-    } else {
-      return fetchCTPratesClasses(ccdb, timeStamp, runNumber, "C1ZNC-B-NOPF-CRU", 6) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
-    }
-  } else if (sourceName == "T0CE") {
-    return fetchCTPratesClasses(ccdb, timeStamp, runNumber, "CMTVXTCE-B-NOPF");
-  } else if (sourceName == "T0SC") {
-    return fetchCTPratesClasses(ccdb, timeStamp, runNumber, "CMTVXTSC-B-NOPF");
-  } else if (sourceName == "T0VTX") {
-    if (runNumber < 534202) {
-      return fetchCTPratesClasses(ccdb, timeStamp, runNumber, "minbias_TVX_L0", 3); // 2022
-    } else {
-      double_t ret = fetchCTPratesClasses(ccdb, timeStamp, runNumber, "CMTVX-B-NOPF");
-      if (ret < 0.) {
-        LOG(info) << "Trying different class";
-        ret = fetchCTPratesClasses(ccdb, timeStamp, runNumber, "CMTVX-NONE");
-        if (ret < 0) {
-          LOG(fatal) << "None of the classes used for lumi found";
-        }
-      }
-      return ret;
-    }
+  auto triggerRate = fetchNoPuCorr(ccdb, timeStamp, runNumber,sourceName);
+  if (triggerRate >= 0) {
+    return pileUpCorrection(triggerRate);
   }
-  LOG(error) << "CTP rate for " << sourceName << " not available";
-  return -1.;
+  return -1;
 }
 double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
   setupRun(runNumber, ccdb, timeStamp);
   if (sourceName.find("ZNC") != std::string::npos) {
     if (runNumber < 544448) {
-      return fetchCTPratesInputsNoPuCorr(ccdb, timeStamp, runNumber, 25) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
+      return fetchCTPratesInputsNoPuCorr(timeStamp, 25) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
     } else {
-      return fetchCTPratesClassesNoPuCorr(ccdb, timeStamp, runNumber, "C1ZNC-B-NOPF-CRU", 6) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
+      return fetchCTPratesClassesNoPuCorr(timeStamp, "C1ZNC-B-NOPF-CRU", 6) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
     }
   } else if (sourceName == "T0CE") {
-    return fetchCTPratesClassesNoPuCorr(ccdb, timeStamp, runNumber, "CMTVXTCE-B-NOPF");
+    return fetchCTPratesClassesNoPuCorr(timeStamp, "CMTVXTCE-B-NOPF");
   } else if (sourceName == "T0SC") {
-    return fetchCTPratesClassesNoPuCorr(ccdb, timeStamp, runNumber, "CMTVXTSC-B-NOPF");
+    return fetchCTPratesClassesNoPuCorr(timeStamp, "CMTVXTSC-B-NOPF");
   } else if (sourceName == "T0VTX") {
     if (runNumber < 534202) {
-      return fetchCTPratesClassesNoPuCorr(ccdb, timeStamp, runNumber, "minbias_TVX_L0", 3); // 2022
+      return fetchCTPratesClassesNoPuCorr(timeStamp, "minbias_TVX_L0", 3); // 2022
     } else {
-      double_t ret = fetchCTPratesClassesNoPuCorr(ccdb, timeStamp, runNumber, "CMTVX-B-NOPF");
+      double_t ret = fetchCTPratesClassesNoPuCorr(timeStamp, "CMTVX-B-NOPF");
       if (ret < 0.) {
         LOG(info) << "Trying different class";
-        ret = fetchCTPratesClassesNoPuCorr(ccdb, timeStamp, runNumber, "CMTVX-NONE");
+        ret = fetchCTPratesClassesNoPuCorr(timeStamp, "CMTVX-NONE");
         if (ret < 0) {
           LOG(fatal) << "None of the classes used for lumi found";
         }
@@ -82,25 +59,15 @@ double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t 
   LOG(error) << "CTP rate for " << sourceName << " not available";
   return -1.;
 }
-double ctpRateFetcher::fetchCTPratesClasses(o2::ccdb::BasicCCDBManager* /*ccdb*/, uint64_t timeStamp, int /*runNumber*/, const std::string& className, int inputType)
+double ctpRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType)
 {
-  std::vector<ctp::CTPClass> ctpcls = mConfig->getCTPClasses();
-  std::vector<int> clslist = mConfig->getTriggerClassList();
-  int classIndex = -1;
-  for (size_t i = 0; i < clslist.size(); i++) {
-    if (ctpcls[i].name.find(className) != std::string::npos) {
-      classIndex = i;
-      break;
-    }
+  auto triggerRate = fetchCTPratesClassesNoPuCorr(timeStamp, className, inputType);
+  if (triggerRate >= 0) {
+    return pileUpCorrection(triggerRate);
   }
-  if (classIndex == -1) {
-    LOG(warn) << "Trigger class " << className << " not found in CTPConfiguration";
-    return -1.;
-  }
-  auto rate{mScalers->getRateGivenT(timeStamp * 1.e-3, classIndex, inputType)};
-  return pileUpCorrection(rate.second);
+  return -1;
 }
-double ctpRateFetcher::fetchCTPratesClassesNoPuCorr(o2::ccdb::BasicCCDBManager* /*ccdb*/, uint64_t timeStamp, int /*runNumber*/, const std::string& className, int inputType)
+double ctpRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const std::string& className, int inputType)
 {
   std::vector<ctp::CTPClass> ctpcls = mConfig->getCTPClasses();
   std::vector<int> clslist = mConfig->getTriggerClassList();
@@ -118,7 +85,7 @@ double ctpRateFetcher::fetchCTPratesClassesNoPuCorr(o2::ccdb::BasicCCDBManager* 
   auto rate{mScalers->getRateGivenT(timeStamp * 1.e-3, classIndex, inputType)};
   return rate.second;
 }
-double ctpRateFetcher::fetchCTPratesInputs(o2::ccdb::BasicCCDBManager* /*ccdb*/, uint64_t timeStamp, int /*runNumber*/, int input)
+double ctpRateFetcher::fetchCTPratesInputs(uint64_t timeStamp, int input)
 {
   std::vector<ctp::CTPScalerRecordO2> recs = mScalers->getScalerRecordO2();
   if (recs[0].scalersInps.size() == 48) {
@@ -128,7 +95,7 @@ double ctpRateFetcher::fetchCTPratesInputs(o2::ccdb::BasicCCDBManager* /*ccdb*/,
     return -1.;
   }
 }
-double ctpRateFetcher::fetchCTPratesInputsNoPuCorr(o2::ccdb::BasicCCDBManager* /*ccdb*/, uint64_t timeStamp, int /*runNumber*/, int input)
+double ctpRateFetcher::fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input)
 {
   std::vector<ctp::CTPScalerRecordO2> recs = mScalers->getScalerRecordO2();
   if (recs[0].scalersInps.size() == 48) {
