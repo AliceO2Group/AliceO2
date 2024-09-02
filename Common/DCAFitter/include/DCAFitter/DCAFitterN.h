@@ -1111,7 +1111,13 @@ GPUdi() bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, flo
 
 using DCAFitter2 = DCAFitterN<2, o2::track::TrackParCov>;
 using DCAFitter3 = DCAFitterN<3, o2::track::TrackParCov>;
-
+#ifdef GPUCA_GPUCODE
+namespace gpu::kernel
+{
+GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft);
+GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res);
+} // namespace gpu::kernel
+#endif
 } // namespace vertexing
 } // namespace o2
 #endif // _ALICEO2_DCA_FITTERN_

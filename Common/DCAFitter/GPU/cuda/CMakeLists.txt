@@ -9,24 +9,26 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(DCAFitterNKernelsCUDA
+o2_add_library(DCAFitterCUDA
                TARGETVARNAME targetName
-               SOURCES DCAFitterNKernels.cu
-               PUBLIC_LINK_LIBRARIES O2::DCAFitter
-               PRIVATE_LINK_LIBRARIES 
-                                      O2::MathUtils
-                                      O2::ReconstructionDataFormats
-                                      O2::GPUCommon
-                                      O2::DetectorsBase
-                                      O2::GPUTrackingCUDAExternalProvider)
+               SOURCES DCAFitterN.cu
+               PUBLIC_INCLUDE_DIRECTORIES ../../include
+               PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                     O2::ReconstructionDataFormats
+                                     O2::DetectorsBase
+               PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 o2_add_library(DCAFitterAPICUDA
+              # TARGETVARNAME targetName2
                SOURCES DCAFitterGPUAPI.cu
                PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Common/DCAFitter/GPU
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon 
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::ReconstructionDataFormats
-               PRIVATE_LINK_LIBRARIES O2::DCAFitterNKernelsCUDA)
+               PRIVATE_LINK_LIBRARIES O2::DCAFitterCUDA
+               # O2::GPUTrackingCUDAExternalProvider
+                )
+# set_property(TARGET ${targetName2} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 o2_add_test(DCAFitterNCUDA
             SOURCES test/testDCAFitterNGPU.cxx
@@ -34,8 +36,8 @@ o2_add_test(DCAFitterNCUDA
                                   O2::DCAFitterAPICUDA
                                   O2::DCAFitter
                                   ROOT::Core
-                                  ROOT::Physics 
-            COMPONENT_NAME gpu               
+                                  ROOT::Physics
+            COMPONENT_NAME gpu
             LABELS vertexing
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
@@ -43,7 +45,7 @@ o2_add_test(DCAFitterNCUDA
 o2_add_executable(dca-fitter-on-gpu-cuda
                   SOURCES test/main_prog.cxx
                   PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                  O2::DCAFitterAPICUDA
-                  O2::DCAFitter
-                  ROOT::Core
-                  ROOT::Physics)
+                                        O2::DCAFitterAPICUDA
+                                        O2::DCAFitter
+                                        ROOT::Core
+                                        ROOT::Physics)

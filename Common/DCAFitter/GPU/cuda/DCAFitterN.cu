@@ -17,20 +17,38 @@
 
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"
-#include "MathUtils/SMatrixGPU.h"
+// #include "MathUtils/SMatrixGPU.h"
 
-namespace o2
+#define gpuCheckError(x)                \
+  {                                     \
+    gpuAssert((x), __FILE__, __LINE__); \
+  }
+inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 {
-namespace vertexing
+  if (code != cudaSuccess) {
+    std::cout << "GPUassert: " << cudaGetErrorString(code) << " " << file << " " << line << std::endl;
+    if (abort) {
+      throw std::runtime_error("GPU assert failed.");
+    }
+  }
+}
+namespace o2::vertexing::gpu
 {
-GPUd() void __dummy_instance__()
+namespace kernel
 {
-  DCAFitter2 ft2;
-  DCAFitter3 ft3;
-  o2::track::TrackParCov tr;
-  ft2.process(tr, tr);
-  ft3.process(tr, tr, tr);
+GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft)
+{
+  if (threadIdx.x == 0) {
+    printf(" =============== GPU DCA Fitter ================\n");
+    ft->print();
+    printf(" ===============================================\n");
+  }
 }
 
-} // namespace vertexing
-} // namespace o2
+GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res)
+{
+  *res = ft->process(*t1, *t2);
+}
+} // namespace kernel
+
+} // namespace o2::vertexing::gpu

@@ -1,3 +1,14 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include "DCAFitter/DCAFitterN.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include <TRandom.h>
@@ -102,7 +113,7 @@ int run()
 
   double bz = 5.0;
   std::vector<int> forceQ{1, 1};
-
+  std::cout << "running... " << std::endl;
   o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
   ft.setBz(bz);
   ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -111,14 +122,15 @@ int run()
   ft.setMaxDXYIni(4);          // do not consider V0 seeds with tracks XY-distance exceeding this. This is default anyway
   ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
   ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
-
+  std::cout << "running... " << std::endl;
   auto genParent = generate(vtxGen, vctracks, bz, genPHS, k0, k0dec, forceQ);
+  std::cout << "running... " << std::endl;
   ft.setUseAbsDCA(true);
   auto res = ft.process(vctracks[0], vctracks[1]);
   ft.print();
   std::cout << "returned value: " << res << std::endl;
 
-  doPrintOnGPU(&ft);
+  o2::vertexing::gpu::doPrintOnDevice(&ft);
   return 0;
 }
 } // namespace o2::vertexing

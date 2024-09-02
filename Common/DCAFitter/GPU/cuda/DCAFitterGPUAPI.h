@@ -12,9 +12,9 @@
 #ifndef DCAFITTERN_GPU_API_H_
 #define DCAFITTERN_GPU_API_H_
 
-namespace o2::vertexing
+namespace o2::vertexing::gpu
 {
-void doPrintOnGPU(o2::vertexing::DCAFitterN<2>* ft);
-int doProcessOnGPU(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2);
-} // namespace o2::vertexing
+void doPrintOnDevice(o2::vertexing::DCAFitterN<2>* ft);
+int doProcessOnDevice(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2);
+} // namespace o2::vertexing::gpu
 #endif

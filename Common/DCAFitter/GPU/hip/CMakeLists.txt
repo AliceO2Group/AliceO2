@@ -9,29 +9,28 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-# set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fgpu-rdc")
-# o2_add_hipified_library(DCAFitterNKernelsHIP
-#                TARGETVARNAME targetName
-#                SOURCES ../cuda/DCAFitterNKernels.cu
-#                PUBLIC_INCLUDE_DIRECTORIES ../cuda
-#                PRIVATE_LINK_LIBRARIES O2::DCAFitter
-#                                       O2::MathUtils
-#                                       O2::ReconstructionDataFormats
-#                                       O2::GPUCommon
-#                                       O2::DetectorsBase
-#                                       O2::GPUTrackingHIPExternalProvider)
-# target_compile_options(DCAFitterNKernelsHIP PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
-# target_link_options(DCAFitterNKernelsHIP PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
+set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -fgpu-rdc")
+o2_add_hipified_library(DCAFitterHIP
+                        SOURCES ../cuda/DCAFitterN.cu
+                        PUBLIC_INCLUDE_DIRECTORIES ../../include
+                        PUBLIC_LINK_LIBRARIES O2::MathUtils
+                                              O2::ReconstructionDataFormats
+                                              O2::DetectorsBase
+                                              hip::host
+                        PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
+                        TARGETVARNAME targetNAme)
+# target_compile_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
+# target_link_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
 
 # o2_add_hipified_library(DCAFitterAPIHIP
-#                SOURCES ../cuda/DCAFitterGPUAPI.cu
-#                # src/FwdDCAFitterN.cxx
-#                PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Common/DCAFitter/GPU
-#                                           ../cuda
-#                PUBLIC_LINK_LIBRARIES O2::GPUCommon
-#                                      O2::ReconstructionDataFormats
-#                PRIVATE_LINK_LIBRARIES O2::DCAFitter
-#                                       O2::DCAFitterNKernelsHIP)
+#                         SOURCES ../cuda/DCAFitterGPUAPI.cu
+#                         ../cuda/DCAFitterN.cu
+#                         PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Common/DCAFitter/GPU
+#                                                    ../cuda
+#                         PUBLIC_LINK_LIBRARIES O2::GPUCommon
+#                                               O2::ReconstructionDataFormats
+#                         PRIVATE_LINK_LIBRARIES O2::DCAFitterHIP O2::GPUTrackingHIPExternalProvider
+#                         TARGETVARNAME targetName)
 
 # o2_add_test(DCAFitterNHIP
 #             SOURCES ../cuda/test/testDCAFitterNGPU.cxx
@@ -41,7 +40,10 @@
 #                                   ROOT::Core
 #                                   ROOT::Physics
 #             HIPIFIED test
-#             COMPONENT_NAME gpu               
+#             COMPONENT_NAME gpu
 #             LABELS vertexing
 #             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
 #             VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+
+
+

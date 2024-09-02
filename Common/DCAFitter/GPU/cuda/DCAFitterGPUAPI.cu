@@ -16,7 +16,7 @@
 #endif
 
 #include "DCAFitter/DCAFitterN.h"
-#include "DCAFitterNKernels.h"
+
 #include "ReconstructionDataFormats/Track.h"
 
 #include <iostream>
@@ -36,17 +36,17 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
   }
 }
 
-namespace o2::vertexing
+namespace o2::vertexing::gpu
 {
 /// Print fitter
-void doPrintOnGPU(o2::vertexing::DCAFitterN<2>* ft)
+void doPrintOnDevice(o2::vertexing::DCAFitterN<2>* ft)
 {
-  o2::vertexing::DCAFitterN<2>* ft_device;
+  DCAFitterN<2>* ft_device;
   gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&ft_device), sizeof(o2::vertexing::DCAFitterN<2>)));
   gpuCheckError(cudaMemcpy(ft_device, ft, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyHostToDevice));
-  printf(" =============== GPU DCA Fitter ================\n");
-  gpu::printKernel<<<1, 1>>>(ft_device);
-  printf(" ===============================================\n");
+
+  gpu::kernel::printKernel<<<1, 1>>>(ft_device);
+
   gpuCheckError(cudaPeekAtLastError());
   gpuCheckError(cudaDeviceSynchronize());
 
@@ -54,9 +54,9 @@ void doPrintOnGPU(o2::vertexing::DCAFitterN<2>* ft)
 }
 
 /// Call the process(track, ...) method
-int doProcessOnGPU(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2)
+int doProcessOnDevice(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2)
 {
-  o2::vertexing::DCAFitterN<2>* ft_device;
+  DCAFitterN<2>* ft_device;
   o2::track::TrackParCov* t1_device;
   o2::track::TrackParCov* t2_device;
   int result, *result_device;
@@ -70,7 +70,7 @@ int doProcessOnGPU(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1,
   gpuCheckError(cudaMemcpy(t1_device, t1, sizeof(o2::track::TrackParCov), cudaMemcpyHostToDevice));
   gpuCheckError(cudaMemcpy(t2_device, t2, sizeof(o2::track::TrackParCov), cudaMemcpyHostToDevice));
 
-  gpu::processKernel<<<1, 1>>>(ft_device, t1_device, t2_device, result_device);
+  gpu::kernel::processKernel<<<1, 1>>>(ft_device, t1_device, t2_device, result_device);
   gpuCheckError(cudaPeekAtLastError());
   gpuCheckError(cudaDeviceSynchronize());
 
@@ -82,4 +82,4 @@ int doProcessOnGPU(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1,
 
   return result;
 }
-} // namespace o2::vertexing
+} // namespace o2::vertexing::gpu
