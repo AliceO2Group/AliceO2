@@ -24,6 +24,7 @@
 #include "Framework/PluginManager.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/Signpost.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -34,8 +35,7 @@
 #include <climits>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+O2_DECLARE_DYNAMIC_LOG(workflow_helpers);
 
 namespace o2::framework
 {
