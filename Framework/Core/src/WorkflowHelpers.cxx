@@ -838,15 +838,23 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // Notice that availableOutputsInfo MUST be updated first, since it relies on
   // the size of outputs to be the one before the update.
   auto enumerateAvailableOutputs = [&workflow, &outputs, &availableOutputsInfo]() {
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
     for (size_t wi = 0; wi < workflow.size(); ++wi) {
       auto& producer = workflow[wi];
+      if (producer.outputs.empty()) {
+        O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "No outputs for [%zu] %{public}s", wi, producer.name.c_str());
+      }
+      O2_SIGNPOST_START(workflow_helpers, sid, "output enumeration", "Enumerating outputs for producer [%zu] %{}s public", wi, producer.name.c_str());
 
       for (size_t oi = 0; oi < producer.outputs.size(); ++oi) {
         auto& out = producer.outputs[oi];
         auto uniqueOutputId = outputs.size();
         availableOutputsInfo.emplace_back(LogicalOutputInfo{wi, uniqueOutputId, false});
+        O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "- [%zu, %zu] %{public}s",
+                               oi, uniqueOutputId, DataSpecUtils::describe(out).c_str());
         outputs.push_back(out);
       }
+      O2_SIGNPOST_END(workflow_helpers, sid, "output enumeration", "");
     }
   };
 
