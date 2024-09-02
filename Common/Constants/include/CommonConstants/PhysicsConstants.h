@@ -193,8 +193,14 @@ constexpr double MassLambda = MassLambda0;
 constexpr double MassHyperhydrog4 = MassHyperHydrogen4;
 constexpr double MassHyperhelium4 = MassHyperHelium4;
 
-constexpr float LightSpeedCm2S = 299792458.e2;           // C in cm/s
-constexpr float LightSpeedCm2NS = LightSpeedCm2S * 1e-9; // C in cm/ns
+// Light speed
+constexpr float LightSpeedCm2S = 299792458.e2;            // C in cm/s
+constexpr float LightSpeedCm2NS = LightSpeedCm2S * 1e-9;  // C in cm/ns
+constexpr float LightSpeedCm2PS = LightSpeedCm2S * 1e-12; // C in cm/ps
+
+// Light speed inverse
+constexpr float invLightSpeedCm2PS = 1. / LightSpeedCm2PS; // 1/C in ps/cm
+
 } // namespace o2::constants::physics
 
 #endif
