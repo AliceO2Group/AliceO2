@@ -588,6 +588,7 @@ constexpr o2::header::DataOrigin gDataOriginTF3{"TF3"};
 constexpr o2::header::DataOrigin gDataOriginRCH{"RCH"};
 constexpr o2::header::DataOrigin gDataOriginMI3{"MI3"};
 constexpr o2::header::DataOrigin gDataOriginECL{"ECL"}; // upgrades
+constexpr o2::header::DataOrigin gDataOriginFVD{"FVD"}; // upgrades
 
 constexpr o2::header::DataOrigin gDataOriginGPU{"GPU"};
 

@@ -87,9 +87,10 @@ class DetID
   static constexpr ID RCH = 23;
   static constexpr ID MI3 = 24;
   static constexpr ID ECL = 25;
-  static constexpr ID Last = ECL;
+  static constexpr ID FVD = 26;
+  static constexpr ID Last = FVD;
 #else
-  static constexpr ID Last = FOC; ///< if extra detectors added, update this !!!
+  static constexpr ID Last = FVD; ///< if extra detectors added, update this !!!
 #endif
   static constexpr ID First = ITS;
 
@@ -181,7 +182,7 @@ class DetID
   // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "FOC", "IT3", "TRK", "FT3", "FCT", "TF3", "RCH", "MI3", "ECL", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "FOC", "IT3", "TRK", "FT3", "FCT", "TF3", "RCH", "MI3", "ECL", "FVD", nullptr};
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "FOC", nullptr};
 #endif
@@ -195,7 +196,7 @@ class DetID
 #ifdef ENABLE_UPGRADES
      ,
      o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginFCT, o2h::gDataOriginTF3,
-     o2h::gDataOriginRCH, o2h::gDataOriginMI3, o2h::gDataOriginECL
+     o2h::gDataOriginRCH, o2h::gDataOriginMI3, o2h::gDataOriginECL, o2h::gDataOriginFVD
 #endif
   };
 #endif // GPUCA_GPUCODE_DEVICE
@@ -211,10 +212,11 @@ GPUconstexpr() DetID::mask_t sMasks[DetID::nDetectors] = ///< detectot masks
    DetID::mask_t(math_utils::bit2Mask(DetID::CPV)), DetID::mask_t(math_utils::bit2Mask(DetID::EMC)), DetID::mask_t(math_utils::bit2Mask(DetID::HMP)), DetID::mask_t(math_utils::bit2Mask(DetID::MFT)), DetID::mask_t(math_utils::bit2Mask(DetID::MCH)),
    DetID::mask_t(math_utils::bit2Mask(DetID::MID)), DetID::mask_t(math_utils::bit2Mask(DetID::ZDC)), DetID::mask_t(math_utils::bit2Mask(DetID::FT0)), DetID::mask_t(math_utils::bit2Mask(DetID::FV0)), DetID::mask_t(math_utils::bit2Mask(DetID::FDD)),
    DetID::mask_t(math_utils::bit2Mask(DetID::TST)), DetID::mask_t(math_utils::bit2Mask(DetID::CTP)), DetID::mask_t(math_utils::bit2Mask(DetID::FOC))
+
 #ifdef ENABLE_UPGRADES
                                                                                                        ,
    DetID::mask_t(math_utils::bit2Mask(DetID::IT3)), DetID::mask_t(math_utils::bit2Mask(DetID::TRK)), DetID::mask_t(math_utils::bit2Mask(DetID::FT3)), DetID::mask_t(math_utils::bit2Mask(DetID::FCT)), DetID::mask_t(math_utils::bit2Mask(DetID::TF3)),
-   DetID::mask_t(math_utils::bit2Mask(DetID::RCH)), DetID::mask_t(math_utils::bit2Mask(DetID::MI3)), DetID::mask_t(math_utils::bit2Mask(DetID::ECL))
+   DetID::mask_t(math_utils::bit2Mask(DetID::RCH)), DetID::mask_t(math_utils::bit2Mask(DetID::MI3)), DetID::mask_t(math_utils::bit2Mask(DetID::ECL)), DetID::mask_t(math_utils::bit2Mask(DetID::FVD))
 #endif
 };
 } // namespace detid_internal
