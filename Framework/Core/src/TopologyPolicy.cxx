@@ -162,9 +162,14 @@ TopologyPolicy::DependencyChecker TopologyPolicyHelpers::alwaysDependent()
       O2_SIGNPOST_END(topology, sid, "alwaysDependent", "false. %s and %s are the same.", dependent.name.c_str(), ancestor.name.c_str());
       return false;
     }
-    if (ancestor.name == "internal-dpl-injected-dummy-sink") {
-      O2_SIGNPOST_END(topology, sid, "alwaysDependent", "false. %s is a dummy sink.", ancestor.name.c_str());
+    if (ancestor.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
+      O2_SIGNPOST_END(topology, sid, "alwaysDependent", "false. Nothing can depend on %s by policy.", ancestor.name.c_str());
       return false;
+    }
+    // We never put anything behind the dummy sink.
+    if (dependent.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
+      O2_SIGNPOST_END(topology, sid, "alwaysDependent", "true. %s is always last.", ancestor.name.c_str());
+      return true;
     }
     const std::regex matcher(".*output-proxy.*");
     // Check if regex applies
