@@ -41,18 +41,18 @@ FileProducer::FileProducer(const std::string& path, const std::string& ext, int 
 
 std::string FileProducer::newFileName() const
 {
-  auto millisec_since_epoch = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+  const auto millisec_since_epoch = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
   char hostname[_POSIX_HOST_NAME_MAX];
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
 
-  auto pid = getpid();
-  auto result = fmt::format(fmt::runtime(this->mName),
-                            fmt::arg("hostname", hostname),
-                            fmt::arg("pid", pid),
-                            fmt::arg("timestamp", millisec_since_epoch),
-                            fmt::arg("ext", this->mExt));
-  std::vector<std::string> ext = {".json", ".root"};
+  const auto pid = getpid();
+  const auto result = fmt::format(fmt::runtime(this->mName),
+                                  fmt::arg("hostname", hostname),
+                                  fmt::arg("pid", pid),
+                                  fmt::arg("timestamp", millisec_since_epoch),
+                                  fmt::arg("ext", this->mExt));
+  const std::vector<std::string> ext = {".json", ".root", ".eve"};
   DirectoryLoader::reduceNumberOfFiles(this->mPath, DirectoryLoader::load(this->mPath, "_", ext), this->mFilesInFolder);
 
   return this->mPath + "/" + result;
