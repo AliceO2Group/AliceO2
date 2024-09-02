@@ -2104,6 +2104,12 @@ DECLARE_SOA_ITERATOR_METADATA();
     {                                                                                                                                             \
       return *mColumnIterator;                                                                                                                    \
     }                                                                                                                                             \
+                                                                                                                                                  \
+    decltype(auto) get() const                                                                                                                    \
+    {                                                                                                                                             \
+      return _Getter_();                                                                                                                          \
+    }                                                                                                                                             \
+                                                                                                                                                  \
     static o2::framework::expressions::Projector Projector()                                                                                      \
     {                                                                                                                                             \
       return _Expression_;                                                                                                                        \
