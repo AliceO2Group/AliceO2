@@ -886,10 +886,17 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
 
   std::vector<bool> matches(constOutputs.size());
   for (size_t consumer = 0; consumer < workflow.size(); ++consumer) {
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
+    O2_SIGNPOST_START(workflow_helpers, sid, "input matching", "Matching inputs of consumer [%zu] %{}s public", consumer, workflow[consumer].name.c_str());
     for (size_t input = 0; input < workflow[consumer].inputs.size(); ++input) {
       forwards.clear();
       for (size_t i = 0; i < constOutputs.size(); i++) {
         matches[i] = DataSpecUtils::match(workflow[consumer].inputs[input], constOutputs[i]);
+        if (matches[i]) {
+          O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output", "Input %{public}s matches %{public}s",
+                                 DataSpecUtils::describe(workflow[consumer].inputs[input]).c_str(),
+                                 DataSpecUtils::describe(constOutputs[i]).c_str());
+        }
       }
 
       for (size_t i = 0; i < availableOutputsInfo.size(); i++) {
@@ -905,6 +912,8 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
         auto uniqueOutputId = oif->outputGlobalIndex;
         for (size_t tpi = 0; tpi < workflow[consumer].maxInputTimeslices; ++tpi) {
           for (size_t ptpi = 0; ptpi < workflow[producer].maxInputTimeslices; ++ptpi) {
+            O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output", "Adding edge between %{public}s and %{public}s", workflow[consumer].name.c_str(),
+                                   workflow[producer].name.c_str());
             logicalEdges.emplace_back(DeviceConnectionEdge{producer, consumer, tpi, ptpi, uniqueOutputId, input, oif->forward});
           }
         }
@@ -920,6 +929,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
         availableOutputsInfo.push_back(forward);
       }
     }
+    O2_SIGNPOST_END(workflow_helpers, sid, "input matching", "");
   }
 }
 
