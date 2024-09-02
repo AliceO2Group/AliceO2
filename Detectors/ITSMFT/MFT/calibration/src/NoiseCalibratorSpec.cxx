@@ -301,7 +301,7 @@ void NoiseCalibratorSpec::sendOutputCcdbMerge(DataAllocator& output)
   long validtime = std::stol(headers["Valid-From"]);
   auto mergedPL = payload;
   if (validtime > 0) {
-    validtime = validtime - 60;
+    validtime = validtime - 1;
     auto* payloadPrev2 = api.retrieveFromTFileAny<o2::itsmft::NoiseMap>(mPath, filter, validtime, &headers);
     auto bufferPL = payloadPrev2->merge(payloadPrev1);
     mergedPL = payload.merge(&bufferPL);
