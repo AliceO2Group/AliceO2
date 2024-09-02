@@ -207,12 +207,12 @@ class NoiseMap
     int incre = 0;
     for (size_t i = 0; i < (int)mNoisyPixels.size(); ++i) {
       for (const auto& prev_np : prev->mNoisyPixels[i]) { // only enters this for loop if the "i" chip exists.
-	if (mNoisyPixels[i].find(prev_np.first) == mNoisyPixels[i].end()) {
-	  mNoisyPixels[i][prev_np.first] = prev_np.second;
-	  incre++;
-	}
+        if (mNoisyPixels[i].find(prev_np.first) == mNoisyPixels[i].end()) {
+          mNoisyPixels[i][prev_np.first] = prev_np.second;
+          incre++;
+        }
       } // end of for loop on elements of previous noise map
-    }   // end of for loop on i (chip ID)
+    } // end of for loop on i (chip ID)
     return (mNoisyPixels);
   } // end of void merge
 
