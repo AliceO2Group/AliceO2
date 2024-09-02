@@ -2725,6 +2725,41 @@ std::string debugTopoInfo(std::vector<DataProcessorSpec> const& specs,
   return out.str();
 }
 
+void enableSignposts(std::string const& signpostsToEnable)
+{
+  static pid_t pid = getpid();
+  if (signpostsToEnable.empty() == true) {
+    auto printAllSignposts = [](char const* name, void* l, void* context) {
+      auto* log = (_o2_log_t*)l;
+      LOGP(detail, "Signpost stream {} disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
+      return true;
+    };
+    o2_walk_logs(printAllSignposts, nullptr);
+    return;
+  }
+  auto matchingLogEnabler = [](char const* name, void* l, void* context) {
+    auto* log = (_o2_log_t*)l;
+    auto* selectedName = (char const*)context;
+    std::string prefix = "ch.cern.aliceo2.";
+    if (strcmp(name, (prefix + selectedName).data()) == 0) {
+      LOGP(info, "Enabling signposts for stream \"ch.cern.aliceo2.{}\"", selectedName);
+      _o2_log_set_stacktrace(log, 1);
+      return false;
+    } else {
+      LOGP(info, "Signpost stream \"{}\" disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
+    }
+    return true;
+  };
+  // Split signpostsToEnable by comma using strtok_r
+  char* saveptr;
+  char* src = const_cast<char*>(signpostsToEnable.data());
+  auto* token = strtok_r(src, ",", &saveptr);
+  while (token) {
+    o2_walk_logs(matchingLogEnabler, token);
+    token = strtok_r(nullptr, ",", &saveptr);
+  }
+}
+
 // This is a toy executor for the workflow spec
 // What it needs to do is:
 //
@@ -2745,6 +2780,12 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ConfigParamSpec> const& detectedParams,
            o2::framework::ConfigContext& configContext)
 {
+  // Peek very early in the driver options and look for
+  // signposts, so the we can enable it without going through the whole dance
+  if (getenv("DPL_DRIVER_SIGNPOSTS")) {
+    enableSignposts(getenv("DPL_DRIVER_SIGNPOSTS"));
+  }
+
   std::vector<std::string> currentArgs;
   std::vector<PluginInfo> plugins;
   std::vector<ForwardingPolicy> forwardingPolicies = ForwardingPolicy::createDefaultPolicies();
@@ -3055,38 +3096,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
-  static pid_t pid = getpid();
-  if (varmap.count("signposts")) {
-    auto signpostsToEnable = varmap["signposts"].as<std::string>();
-    auto matchingLogEnabler = [](char const* name, void* l, void* context) {
-      auto* log = (_o2_log_t*)l;
-      auto* selectedName = (char const*)context;
-      std::string prefix = "ch.cern.aliceo2.";
-      if (strcmp(name, (prefix + selectedName).data()) == 0) {
-        LOGP(info, "Enabling signposts for stream \"ch.cern.aliceo2.{}\"", selectedName);
-        _o2_log_set_stacktrace(log, 1);
-        return false;
-      } else {
-        LOGP(info, "Signpost stream \"{}\" disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
-      }
-      return true;
-    };
-    // Split signpostsToEnable by comma using strtok_r
-    char* saveptr;
-    char* src = const_cast<char*>(signpostsToEnable.data());
-    auto* token = strtok_r(src, ",", &saveptr);
-    while (token) {
-      o2_walk_logs(matchingLogEnabler, token);
-      token = strtok_r(nullptr, ",", &saveptr);
-    }
-  } else {
-    auto printAllSignposts = [](char const* name, void* l, void* context) {
-      auto* log = (_o2_log_t*)l;
-      LOGP(detail, "Signpost stream {} disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
-      return true;
-    };
-    o2_walk_logs(printAllSignposts, nullptr);
-  }
+  enableSignposts(varmap["signposts"].as<std::string>());
 
   auto evaluateBatchOption = [&varmap]() -> bool {
     if (varmap.count("no-batch") > 0) {
