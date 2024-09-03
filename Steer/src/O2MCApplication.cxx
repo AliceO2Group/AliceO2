@@ -33,6 +33,7 @@
 #include <filesystem>
 #include <CommonUtils/FileSystemUtils.h>
 #include "SimConfig/GlobalProcessCutSimParam.h"
+#include <TGeoParallelWorld.h>
 
 namespace o2
 {
@@ -163,6 +164,9 @@ void O2MCApplicationBase::InitGeometry()
 
 bool O2MCApplicationBase::MisalignGeometry()
 {
+  TGeoParallelWorld* pw = nullptr;
+  pw = gGeoManager->CreateParallelWorld("sensors");
+
   for (auto det : listDetectors) {
     if (dynamic_cast<o2::base::Detector*>(det)) {
       ((o2::base::Detector*)det)->addAlignableVolumes();
@@ -182,11 +186,17 @@ bool O2MCApplicationBase::MisalignGeometry()
   auto& aligner = o2::base::Aligner::Instance();
   aligner.applyAlignment(confref.getTimestamp());
 
-  // export aligned geometry into different file (only w/o PW)
-  if (gGeoManager->GetParallelWorld() == nullptr) {
-    auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
-    gGeoManager->Export(alignedgeomfile.c_str());
+  // export aligned geometry into different file
+  auto alignedgeomfile = o2::base::NameConf::getAlignedGeomFileName(confref.getOutPrefix());
+  gGeoManager->Export(alignedgeomfile.c_str());
+
+  // fill parallel world geometry
+  for (auto det : listDetectors) {
+    if (dynamic_cast<o2::base::Detector*>(det)) {
+      ((o2::base::Detector*)det)->fillParallelWorld();
+    }
   }
+  gGeoManager->SetUseParallelWorldNav(kTRUE);
 
   // return original return value of misalignment procedure
   return true;

@@ -41,6 +41,7 @@
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
 #include "TVirtualMCStack.h" // for TVirtualMCStack
 #include "TFile.h"           // for TVirtualMCStack
+#include "TGeoParallelWorld.h"
 
 #include <cstdio> // for NULL, snprintf
 #include <cmath>
@@ -1306,6 +1307,51 @@ void Detector::defineSensitiveVolumes()
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);
   }
+}
+
+void Detector::fillParallelWorld() const // TODO: make this configurable to handle different volume lists
+{
+  TGeoParallelWorld *pw = gGeoManager->GetParallelWorld();
+
+  for (int iL{0}; iL < mNumberLayers; ++iL) {
+    auto const layer = mGeometry[iL];
+    TString path_0 = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
+    TString wrpV = mWrapperLayerId[iL] != -1 ? Form("%s%d_1", GeometryTGeo::getITSWrapVolPattern(), mWrapperLayerId[iL]) : "";
+    int nhbarrels = layer->getNumberOfHalfBarrelsPerParent();
+    int nstaves = layer->getNumberOfStavesPerParent();
+    int nhstaves = layer->getNumberOfHalfStavesPerParent();
+    int nmodules = layer->getNumberOfModulesPerParent();
+    int nchips = layer->getNumberOfChipsPerParent();
+
+    int nall = nhbarrels * nstaves * nchips;
+    if (nhstaves > 0) nall *= nhstaves;
+    if (nmodules > 0) nall *= nmodules;
+    for (int iC{0}; iC < nall; ++iC) {
+      TString path = Form("%s/%s/%s%d_1", path_0.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), iL);
+      path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSHalfBarrelPattern(), iL, iC % nhbarrels);
+      path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSStavePattern(), iL, iC % nstaves);
+      if (nhstaves > 0) {
+        path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSHalfStavePattern(), iL, iC % nhstaves);
+      }
+      if (nmodules > 0) {
+        path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSModulePattern(), iL, iC % nmodules);
+      }
+      path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSChipPattern(), iL, iC % nchips);
+
+      TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
+
+      auto metallay = node->GetNode()->GetDaughter(0);
+      gGeoManager->MakePhysicalNode(Form("%s/%s", path.Data(), metallay->GetName()));
+      pw->AddNode(Form("%s/%s", path.Data(), metallay->GetName()));
+
+      auto sensor = node->GetNode()->GetDaughter(1);
+      gGeoManager->MakePhysicalNode(Form("%s/%s", path.Data(), sensor->GetName()));
+      pw->AddNode(Form("%s/%s", path.Data(), sensor->GetName()));
+
+      pw->AddNode(path.Data());
+    }
+  }
+  return;
 }
 
 Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,

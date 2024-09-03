@@ -17,7 +17,6 @@
 #include <TGeoMatrix.h>
 #include <TGeoOverlap.h>
 #include <TGeoPhysicalNode.h>
-#include <TGeoParallelWorld.h>
 
 #include "DetectorsCommonDataFormats/AlignParam.h"
 
@@ -268,7 +267,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry(bool usePW, bool addSensorPW, bool addMetalPW, bool addChipPW) const
+bool AlignParam::applyToGeometry() const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -287,10 +286,6 @@ bool AlignParam::applyToGeometry(bool usePW, bool addSensorPW, bool addMetalPW, 
   const char* symname = getSymName().c_str();
   const char* path;
   TGeoPhysicalNode* node;
-  TGeoParallelWorld* pw = nullptr;
-  if (getDetFromSymName(getSymName()) == "ITS" && usePW) {
-    pw = gGeoManager->GetParallelWorld();
-  }
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
   if (pne) {
     path = pne->GetTitle();
@@ -328,26 +323,7 @@ bool AlignParam::applyToGeometry(bool usePW, bool addSensorPW, bool addMetalPW, 
   LOG(debug) << "Aligning volume " << symname;
 
   node->Align(ginv);
-  std::string pathStr;
-  if (path) {
-    pathStr.append(path);
-    if (getDetFromSymName(getSymName()) == "ITS" && (pathStr.find("ITSUChip") != std::string::npos) && usePW) {
-      auto metallay = node->GetNode()->GetDaughter(0);
-      auto sensor = node->GetNode()->GetDaughter(1);
-      if (addSensorPW) {
-        gGeoManager->MakePhysicalNode(Form("%s/%s", path, sensor->GetName()));
-        pw->AddNode(Form("%s/%s", path, sensor->GetName()));
-      }
-      if (addMetalPW) {
-        gGeoManager->MakePhysicalNode(Form("%s/%s", path, metallay->GetName()));
-        pw->AddNode(Form("%s/%s", path, metallay->GetName()));
-      }
-      if (addChipPW) {
-        gGeoManager->MakePhysicalNode(path);
-        pw->AddNode(path);
-      }
-    }
-  }
+
   return true;
 }
 

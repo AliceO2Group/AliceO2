@@ -171,6 +171,11 @@ void Detector::addAlignableVolumes() const
   LOG(warning) << "Alignable volumes are not yet defined for " << GetName();
 }
 
+void Detector::fillParallelWorld() const
+{
+  LOG(warning) << "Parallel world is not filled for " << GetName();
+}
+
 int Detector::registerSensitiveVolumeAndGetVolID(TGeoVolume const* vol)
 {
   // register this volume with FairRoot
