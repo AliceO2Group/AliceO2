@@ -38,7 +38,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
 template <int nLayers = 7>
 GPUg() void fitTrackSeedsKernel(
   CellSeed* trackSeeds,
-  TrackingFrameInfo** foundTrackingFrameInfo,
+  const TrackingFrameInfo** foundTrackingFrameInfo,
   o2::its::TrackITSExt* tracks,
   const unsigned int nSeeds,
   const float Bz,
@@ -51,7 +51,7 @@ GPUg() void fitTrackSeedsKernel(
 } // namespace gpu
 
 void trackSeedHandler(CellSeed* trackSeeds,
-                      TrackingFrameInfo** foundTrackingFrameInfo,
+                      const TrackingFrameInfo** foundTrackingFrameInfo,
                       o2::its::TrackITSExt* tracks,
                       const unsigned int nSeeds,
                       const float Bz,
