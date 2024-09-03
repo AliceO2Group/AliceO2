@@ -460,8 +460,8 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
     }
   }
-  if (iteration == 2) {
-    mTimeFrameGPU->unregisterHostMemory(0); // FIXME this needs to work also with sync
+  if (iteration == mTrkParams.size() - 1) {
+    mTimeFrameGPU->unregisterHostMemory(0);
   }
 };
 
