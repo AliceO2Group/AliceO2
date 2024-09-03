@@ -46,21 +46,19 @@ void GeometryTGeo::Build() const
 {
   // Top volume of FVD detector
   // A side
-  TGeoVolumeAssembly *vFVDA = buildModuleA();
-  LOG(info) << "FVD: building geometry. The name of the volume is '" << vFVDA->GetName() << "'";
 
-  TGeoVolume* vCaveRB24 = gGeoManager->GetVolume("caveRB24");
-  if (!vCaveRB24) {
-    LOG(fatal) << "Could not find the top volume for A-side";
-  }
-
-  vCaveRB24->AddNode(vFVDA, 0, new TGeoTranslation(sXGlobal, sYGlobal, sZGlobalA));
-
-  // C side
   TGeoVolume* vCave = gGeoManager->GetVolume("cave");
   if (!vCave) {
      LOG(fatal) << "Could not find the top volume for C-side";
   }
+
+  // A side
+  TGeoVolumeAssembly *vFVDA = buildModuleA();
+  LOG(info) << "FVD: building geometry. The name of the volume is '" << vFVDA->GetName() << "'";
+
+  vCave->AddNode(vFVDA, 0, new TGeoTranslation(sXGlobal, sYGlobal, sZGlobalA));
+
+  // C side
 
   TGeoVolumeAssembly *vFVDC =  buildModuleC();
   LOG(info) << "FVD: building geometry. The name of the volume is '" << vFVDC->GetName() << "'";
