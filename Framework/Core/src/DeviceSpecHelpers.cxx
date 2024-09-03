@@ -631,6 +631,28 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
     }
     DeviceConnectionId id{edge.producer, edge.consumer, edge.timeIndex, edge.producerTimeIndex, channel.port};
     connections.push_back(id);
+
+    auto& source = workflow[edge.producer];
+
+    O2_SIGNPOST_ID_GENERATE(sid, device_spec_helpers);
+    O2_SIGNPOST_START(device_spec_helpers, sid, "new channels", "Channel %{public}s has been created.", channel.name.c_str());
+    O2_SIGNPOST_ID_GENERATE(iid, device_spec_helpers);
+    O2_SIGNPOST_START(device_spec_helpers, iid, "producer outputs", "Producer %{public}s has the following outputs:", source.name.c_str());
+    for (auto& output : source.outputs) {
+      O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, iid, "producer outputs", "%{public}s", DataSpecUtils::describe(output).c_str());
+    }
+    O2_SIGNPOST_END(device_spec_helpers, iid, "producer outputs", "");
+    O2_SIGNPOST_START(device_spec_helpers, iid, "producer forwards", "Producer %{public}s has the following forwards:", source.name.c_str());
+    for (auto& forwards : device.forwards) {
+      O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, iid, "producer forwards", "%{public}s", DataSpecUtils::describe(forwards.matcher).c_str());
+    }
+    O2_SIGNPOST_END(device_spec_helpers, iid, "producer forwards", "");
+    O2_SIGNPOST_START(device_spec_helpers, iid, "consumer inputs", "Consumer %{public}s has the following inputs:", consumer.name.c_str());
+    for (auto& input : consumer.inputs) {
+      O2_SIGNPOST_EVENT_EMIT(device_spec_helpers, iid, "consumer inputs", "%{public}s", DataSpecUtils::describe(input).c_str());
+    }
+    O2_SIGNPOST_END(device_spec_helpers, iid, "consumer inputs", "");
+    O2_SIGNPOST_END(device_spec_helpers, sid, "new channels", "");
     return channel;
   };
 
