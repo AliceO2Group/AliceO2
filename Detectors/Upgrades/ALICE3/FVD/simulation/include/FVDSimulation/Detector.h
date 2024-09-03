@@ -35,12 +35,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Detector() = default;
   ~Detector() override;
 
-  void InitializeO2Detector() override;
-
-  Bool_t ProcessHits(FairVolume* v = nullptr) override;
-
-  /// Registers the produced collections in FAIRRootManager
-  void Register() override;
+  void ConstructGeometry() override;
 
   o2::fvd::Hit* addHit(Int_t trackId, Int_t cellId,
                        const math_utils::Point3D<float>& startPos, const math_utils::Point3D<float>& endPos,
@@ -55,24 +50,33 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
+  // Mandatory overrides
+  void BeginPrimary() override { ; }
+  void FinishPrimary() override { ; }
+  void InitializeO2Detector() override;
+  void PostTrack() override { ; }
+  void PreTrack() override { ; }
+  bool ProcessHits(FairVolume* v = nullptr) override;
+  void EndOfEvent() override;
+  void Register() override;
   void Reset() override;
-  void EndOfEvent() override { Reset(); }
 
-  void CreateMaterials();
-  void ConstructGeometry() override;
+  void createMaterials();
+  void buildModules();
 
   enum EMedia {
     Scintillator,
   };
-
-
 
  private:
   Detector(const Detector& rhs);
   Detector& operator=(const Detector&);
 
   std::vector<o2::fvd::Hit>* mHits = nullptr;
-  GeometryTGeo* mGeometry = nullptr; 
+  GeometryTGeo* mGeometryTGeo = nullptr; 
+
+  TGeoVolumeAssembly* buildModuleA();
+  TGeoVolumeAssembly* buildModuleC();
 
   /// Transient data about track passing the sensor, needed by ProcessHits()
   struct TrackData {               // this is transient

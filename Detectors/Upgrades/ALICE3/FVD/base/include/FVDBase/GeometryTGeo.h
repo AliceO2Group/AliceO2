@@ -32,18 +32,15 @@ namespace fvd
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
-  GeometryTGeo();
+  GeometryTGeo(bool build, int loadTrans);
 
-  void Build() const;
+  void Build(int loadTrans);
   void fillMatrixCache(int mask);
   virtual ~GeometryTGeo();
 
   static GeometryTGeo* Instance();
 
   void getGlobalPosition(float& x, float& y, float& z);
-  static constexpr int getNumberOfReadoutChannelsA() { return sNumberOfReadoutChannelsA; };
-  static constexpr int getNumberOfReadoutChannelsC() { return sNumberOfReadoutChannelsC; };
-  static constexpr int getNumberOfReadoutChannels()  { return sNumberOfReadoutChannelsA + sNumberOfCellsC; }
 
   static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FVD; }
 
@@ -52,27 +49,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
  private:
 
-  static constexpr float sDzScintillator = 4; 
-  static constexpr float sXGlobal = 0;
-  static constexpr float sYGlobal = 0;
-  static constexpr float sZGlobalA =  1700. - sDzScintillator/2;
-  static constexpr float sZGlobalC = -1950. + sDzScintillator/2;
-
-  static constexpr int sNumberOfCellSectors = 8;
-  static constexpr int sNumberOfCellRingsA  = 5; // 3
-  static constexpr int sNumberOfCellRingsC  = 6; 
-  static constexpr int sNumberOfCellsA = sNumberOfCellRingsA * sNumberOfCellSectors;
-  static constexpr int sNumberOfCellsC = sNumberOfCellRingsC * sNumberOfCellSectors;
-  static constexpr int sNumberOfReadoutChannelsA = sNumberOfCellsA;
-  static constexpr int sNumberOfReadoutChannelsC = sNumberOfCellsC;
-
-  static constexpr float sCellRingRadiiA[sNumberOfCellRingsA + 1] = {3., 14.8, 26.6, 38.4, 50.2, 62.};
-  static constexpr float sCellRingRadiiC[sNumberOfCellRingsC + 1] = {3.5, 17., 30.5, 44., 57.5, 71.};
-
   static std::unique_ptr<o2::fvd::GeometryTGeo> sInstance;
-
-  TGeoVolumeAssembly* buildModuleA() const;
-  TGeoVolumeAssembly* buildModuleC() const;
 
   ClassDefNV(GeometryTGeo, 1);
 };
