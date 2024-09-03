@@ -11,23 +11,29 @@
 
 #include "DataFormatsFVD/Hit.h"
 
-#include "FVDBase/GeometryTGeo.h"
-
 #include "FVDSimulation/Detector.h"
+
+#include "FVDBase/GeometryTGeo.h"
+#include "FVDBase/FVDBaseParam.h"
 
 #include "DetectorsBase/Stack.h"
 #include "Field/MagneticField.h"
-
-#include "TVirtualMC.h"
-#include "TLorentzVector.h"
-#include "TVector3.h"
-#include "TGeoManager.h"
-#include "TRandom.h"
 
 #include <fairlogger/Logger.h>
 #include "FairRootManager.h"
 #include "FairVolume.h"
 #include "FairRootManager.h"
+
+#include "TVirtualMC.h"
+#include "TLorentzVector.h"
+#include "TVector3.h"
+#include <TGeoTube.h>
+#include <TGeoVolume.h>
+#include <TGeoCompositeShape.h>
+#include <TGeoMedium.h>
+#include <TGeoCone.h>
+#include <TGeoManager.h>
+#include "TRandom.h"
 
 using namespace o2::fvd;
 using o2::fvd::GeometryTGeo;
@@ -35,22 +41,19 @@ using o2::fvd::Hit;
 
 ClassImp(o2::fvd::Detector);
 
-//_____________________________________________________________________________
 Detector::Detector(Bool_t Active)
   : o2::base::DetImpl<Detector>("FVD", Active),
     mHits(o2::utils::createSimVector<o2::fvd::Hit>()),
-    mGeometry(nullptr)
+    mGeometryTGeo(nullptr)
 {
 }
 
-//_____________________________________________________________________________
 Detector::Detector(const Detector& src)
   : o2::base::DetImpl<Detector>(src),
     mHits(o2::utils::createSimVector<o2::fvd::Hit>())
 {
 }
 
-//_____________________________________________________________________________
 Detector& Detector::operator=(const Detector& src)
 {
 
@@ -64,7 +67,6 @@ Detector& Detector::operator=(const Detector& src)
   return *this;
 }
 
-//_____________________________________________________________________________
 Detector::~Detector()
 {
 
@@ -73,33 +75,15 @@ Detector::~Detector()
   }
 }
 
-//_____________________________________________________________________________
 void Detector::InitializeO2Detector()
 {
-  LOG(info) << "FVD: Initializing O2 detector. Adding sensitive volumes.";
-
-  TGeoVolume* vol;
-
-  vol = gGeoManager->GetVolume("FVDA");
-  if (!vol) {
-    LOG(fatal) << "can't find volume FVDA";
-  } else {
-    AddSensitiveVolume(vol);
-  }
-
-  vol = gGeoManager->GetVolume("FVDC");
-  if (!vol) {
-    LOG(fatal) << "can't find volume FVDC";
-  } else {
-    AddSensitiveVolume(vol);
-  }
+  LOG(info) << "Initialize FVD detector";
+  mGeometryTGeo = GeometryTGeo::Instance();
 }
 
-//_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
-
   // Track only charged particles and photons
   bool isPhotonTrack = false;
   Int_t particlePdg = fMC->TrackPid();
@@ -138,7 +122,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
 
     // Get unique ID of the detector cell (sensitive volume)
-    Int_t cellId = mGeometry->getCurrentCellId(fMC);
+    Int_t cellId = mGeometryTGeo->getCurrentCellId(fMC);
 
     math_utils::Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
     math_utils::Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
@@ -147,13 +131,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
            mTrackData.mMomentumStart.E(), positionStop.T(),
            mTrackData.mEnergyLoss, particlePdg);
   } else {
-    return kFALSE; // do noting more
+    return kFALSE; // do nothing more
   }
 
  return kTRUE;
 }
 
-//_____________________________________________________________________________
 o2::fvd::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
                                const math_utils::Point3D<float>& startPos, const math_utils::Point3D<float>& endPos,
                                const math_utils::Vector3D<float>& startMom, double startE,
@@ -165,8 +148,36 @@ o2::fvd::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
   return &(mHits->back());
 }
 
-//_____________________________________________________________________________
-void Detector::CreateMaterials()
+void Detector::ConstructGeometry() 
+{
+   createMaterials();
+   buildModules();
+}
+
+
+void Detector::EndOfEvent() { 
+  Reset(); 
+}
+
+void Detector::Register()
+{
+  // This will create a branch in the output tree called Hit, setting the last
+  // parameter to kFALSE means that this collection will not be written to the file,
+  // it will exist only during the simulation
+
+  if (FairRootManager::Instance()) {
+    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  }
+}
+
+void Detector::Reset()
+{
+  if (!o2::utils::ShmManager::Instance().isOperational()) {
+    mHits->clear();
+  }
+}
+
+void Detector::createMaterials()
 {
 
   Float_t density, as[11], zs[11], ws[11];
@@ -197,32 +208,75 @@ void Detector::CreateMaterials()
   o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, nScint, wScint);
   o2::base::Detector::Medium(Scintillator, "Scintillator", matId, unsens, fieldType, maxField,
                              tmaxfd, stemax, deemax, epsil, stmin);
-
 }
 
-//_____________________________________________________________________________
-void Detector::ConstructGeometry()
+void Detector::buildModules()
 {
-  CreateMaterials();
-  mGeometry = new GeometryTGeo();
-  mGeometry->Build();
-}
-//_____________________________________________________________________________
-void Detector::Register()
-{
-  // This will create a branch in the output tree called Hit, setting the last
-  // parameter to kFALSE means that this collection will not be written to the file,
-  // it will exist only during the simulation
+  LOGP(info, "Creating FVD geometry");
 
-  if (FairRootManager::Instance()) {
-    FairRootManager::Instance()->RegisterAny(addNameTo("Hit").data(), mHits, kTRUE);
+  TGeoVolume* vCave = gGeoManager->GetVolume("cave");
+  if (!vCave) {
+     LOG(fatal) << "Could not find the top volume!";
   }
+
+  // create modules
+  TGeoVolumeAssembly *vFVDA = buildModuleA();
+  TGeoVolumeAssembly *vFVDC = buildModuleC();
+
+  vCave->AddNode(vFVDA, 0, new TGeoTranslation(0., 0., FVDBaseParam::zModA));
+  vCave->AddNode(vFVDC, 1, new TGeoTranslation(0., 0., FVDBaseParam::zModC));
 }
 
-//_____________________________________________________________________________
-void Detector::Reset()
+TGeoVolumeAssembly* Detector::buildModuleA()
 {
-  if (!o2::utils::ShmManager::Instance().isOperational()) {
-    mHits->clear();
+  TGeoVolumeAssembly* mod = new TGeoVolumeAssembly("FVDA");
+
+  const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator"); 
+
+  const float dphiDeg = 45.;
+
+  for (int ir = 0; ir < FVDBaseParam::nRingsA; ir++) {
+     for (int ic = 0; ic < 8; ic ++) {
+	int cellId = ic + ir;
+	std::string tbsName = "tbs" + std::to_string(cellId);
+	std::string nodeName = "node" + std::to_string(cellId);
+	float rmin = FVDBaseParam::rRingsA[ir];
+	float rmax = FVDBaseParam::rRingsA[ir+1];
+	float phimin = dphiDeg;
+	float phimax = dphiDeg;
+	float dz = FVDBaseParam::dzScint;
+        auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
+	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
+	mod->AddNode(nod, cellId);
+     }
   }
+
+  return mod;
+}
+
+TGeoVolumeAssembly* Detector::buildModuleC()
+{
+  TGeoVolumeAssembly* mod = new TGeoVolumeAssembly("FVDC");
+
+  const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator"); 
+
+  const float dphiDeg = 45.;
+
+  for (int ir = 0; ir < FVDBaseParam::nRingsC; ir++) {
+     for (int ic = 0; ic < 8; ic ++) {
+	int cellId = ic + ir + FVDBaseParam::nCellA;
+	std::string tbsName = "tbs" + std::to_string(cellId);
+	std::string nodeName = "node" + std::to_string(cellId);
+	float rmin = FVDBaseParam::rRingsC[ir];
+	float rmax = FVDBaseParam::rRingsC[ir+1];
+	float phimin = dphiDeg;
+	float phimax = dphiDeg;
+	float dz = FVDBaseParam::dzScint;
+        auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
+	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
+	mod->AddNode(nod, cellId);
+     }
+  }
+
+  return mod;
 }

@@ -90,7 +90,7 @@ class DetID
   static constexpr ID FVD = 26;
   static constexpr ID Last = FVD;
 #else
-  static constexpr ID Last = FVD; ///< if extra detectors added, update this !!!
+  static constexpr ID Last = FOC; ///< if extra detectors added, update this !!!
 #endif
   static constexpr ID First = ITS;
 
