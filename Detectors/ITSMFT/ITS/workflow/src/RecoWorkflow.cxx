@@ -79,7 +79,7 @@ framework::WorkflowSpec getWorkflow(bool useMC,
         std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
 
         specs.emplace_back(DataProcessorSpec{
-          "its-tracker",
+          "its-gpu-tracker",
           taskInputs,
           task->outputs(),
           AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)},

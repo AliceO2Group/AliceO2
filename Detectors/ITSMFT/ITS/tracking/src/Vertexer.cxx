@@ -90,7 +90,7 @@ float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logg
     auto timeVertexingIteration = evaluateTask(
       &Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", [](std::string) {}, iteration);
 
-    printEpilog(logger, false, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration().size(), timeInit, timeTracklet, timeSelection, timeVertexing);
+    printEpilog(logger, true, nTracklets01, nTracklets12, mTimeFrame->getNLinesTotal(), mTimeFrame->getTotVertIteration().size(), timeInit, timeTracklet, timeSelection, timeVertexing);
     timeInit += timeInitIteration;
     timeTracklet += timeTrackletIteration;
     timeSelection += timeSelectionIteration;
