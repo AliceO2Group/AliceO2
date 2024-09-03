@@ -192,10 +192,10 @@ void Detector::CreateMaterials()
   Float_t epsil = 0.03;   // tracking precision [cm]
   Float_t stmin = -0.001; // minimum step due to continuous processes [cm] (negative value: choose it automatically)
 			  
-  LOG(info) << "FVD: createMaterials(): fieldType " << fieldType << ", maxField " << maxField;
+  LOG(info) << "FVD: CreateMaterials(): fieldType " << fieldType << ", maxField " << maxField;
 
-  o2::base::Detector::Mixture(++matId, "Scintillator$", aScint, zScint, dScint, nScint, wScint);
-  o2::base::Detector::Medium(Scintillator, "Scintillator$", matId, unsens, fieldType, maxField,
+  o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, nScint, wScint);
+  o2::base::Detector::Medium(Scintillator, "Scintillator", matId, unsens, fieldType, maxField,
                              tmaxfd, stemax, deemax, epsil, stmin);
 
 }
