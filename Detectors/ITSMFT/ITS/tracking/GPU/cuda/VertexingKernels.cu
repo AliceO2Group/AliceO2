@@ -40,9 +40,8 @@ void trackletFinderHandler(const Cluster* clustersNextLayer,    // 0 2
                            const unsigned int rofSize,
                            const float phiCut,
                            const size_t maxTrackletsPerCluster)
-                           {
-                            
-                           }
+{
+}
 /*
 GPUd() float smallestAngleDifference(float a, float b)
 {

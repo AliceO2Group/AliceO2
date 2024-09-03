@@ -418,8 +418,8 @@ void TimeFrameGPU<nLayers>::initDevice(IndexTableUtils* utils,
   // mVerticesInChunks.resize(mGpuParams.nTimeFrameChunks);
   // mNVerticesInChunks.resize(mGpuParams.nTimeFrameChunks);
   // mLabelsInChunks.resize(mGpuParams.nTimeFrameChunks);
-  // LOGP(debug, "Size of fixed part is: {} MB", GpuTimeFrameChunk<nLayers>::computeFixedSizeBytes(mGpuParams) / MB);
-  // LOGP(debug, "Size of scaling part is: {} MB", GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), mGpuParams) / MB);
+  // LOGP(info, "Size of fixed part is: {} MB", GpuTimeFrameChunk<nLayers>::computeFixedSizeBytes(mGpuParams) / MB);
+  // LOGP(info, "Size of scaling part is: {} MB", GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(GpuTimeFrameChunk<nLayers>::computeRofPerChunk(mGpuParams, mAvailMemGB), mGpuParams) / MB);
   // LOGP(info, "Allocating {} chunks of {} rofs capacity each.", mGpuParams.nTimeFrameChunks, mGpuParams.nROFsPerChunk);
 
   // for (int iChunk{0}; iChunk < mMemChunks.size(); ++iChunk) {
@@ -571,7 +571,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::downloadTrackITSExtDevice(std::vector<CellSeed>& seeds)
 {
   LOGP(debug, "gpu-transfer: downloading {} tracks, for {} MB.", mTrackITSExt.size(), mTrackITSExt.size() * sizeof(o2::its::TrackITSExt) / MB);
-  checkGPUError(cudaMemcpyAsync(mTrackITSExt.data(), mTrackITSExtDevice, mTrackITSExt.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  checkGPUError(cudaMemcpyAsync(mTrackITSExt.data(), mTrackITSExtDevice, seeds.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
   checkGPUError(cudaHostUnregister(mTrackITSExt.data()));
   checkGPUError(cudaHostUnregister(seeds.data()));
   discardResult(cudaDeviceSynchronize());
