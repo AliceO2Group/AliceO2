@@ -75,7 +75,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
                      float maxQoverPt,
                      int nCl,
                      float Bz,
-                     TrackingFrameInfo** tfInfos,
+                     const TrackingFrameInfo** tfInfos,
                      const o2::base::Propagator* prop,
                      o2::base::PropagatorF::MatCorrType matCorrType)
 {
@@ -98,10 +98,6 @@ GPUd() bool fitTrack(TrackITSExt& track,
     }
 
     if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
-      track.setChi2(track.getChi2() + track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
-      if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
-        return false;
-      }
       const float xx0 = (iLayer > 2) ? 1.e-2f : 5.e-3f; // Rough layer thickness
       constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
       constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
@@ -127,7 +123,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
 template <int nLayers>
 GPUg() void fitTrackSeedsKernel(
   CellSeed* trackSeeds,
-  TrackingFrameInfo** foundTrackingFrameInfo,
+  const TrackingFrameInfo** foundTrackingFrameInfo,
   o2::its::TrackITSExt* tracks,
   const unsigned int nSeeds,
   const float Bz,
@@ -713,7 +709,7 @@ void cellNeighboursHandler(CellSeed* cellsCurrentLayer,
 }
 
 void trackSeedHandler(CellSeed* trackSeeds,
-                      TrackingFrameInfo** foundTrackingFrameInfo,
+                      const TrackingFrameInfo** foundTrackingFrameInfo,
                       o2::its::TrackITSExt* tracks,
                       const unsigned int nSeeds,
                       const float Bz,
