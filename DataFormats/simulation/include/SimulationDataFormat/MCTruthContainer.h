@@ -25,6 +25,7 @@
 #include <cstring> // memmove, memcpy
 #include <memory>
 #include <vector>
+#include <algorithm>
 
 // type traits are needed for the compile time consistency check
 // maybe to be moved out of Framework first
@@ -124,7 +125,7 @@ class MCTruthContainer
   MCTruthContainer& operator=(MCTruthContainer&& other) = default;
 
   using self_type = MCTruthContainer<TruthElement>;
-  struct FlatHeader {
+  struct alignas(std::max(alignof(TruthElement), sizeof(uint32_t))) FlatHeader {
     uint8_t version = 1;
     uint8_t sizeofHeaderElement = sizeof(MCTruthHeaderElement);
     uint8_t sizeofTruthElement = sizeof(TruthElement);

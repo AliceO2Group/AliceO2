@@ -110,7 +110,7 @@ class ConstMCTruthContainer : public std::vector<char>
 } // namespace o2
 
 // This is done so that DPL treats this container as a vector.
-// In particular in enables
+// In particular it enables
 // a) --> snapshot without ROOT dictionary (as a flat buffer)
 // b) --> requesting the resource in shared mem using make<T>
 #ifndef GPUCA_STANDALONE
