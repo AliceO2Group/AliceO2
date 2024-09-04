@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2024 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,27 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  recpoints-reader-workflow.cxx
-/// \brief FT0 RecPoints reader workflow
+/// \file  recpoints-writer-workflow.cxx
+/// \brief FT0 RecPoints writer workflow
 ///
-/// \author ruben.shahoyan@cern.ch, Andreas Molander andreas.molander@cern.ch
+/// \author Andreas Molander andreas.molander@cern.ch
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/Variant.h"
 
-#include "FT0Workflow/RecPointReaderSpec.h"
+#include "FT0Workflow/RecPointWriterSpec.h"
 
 #include <vector>
 
 using namespace o2::framework;
-
-void customize(std::vector<CallbacksPolicy>& policies)
-{
-  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
-}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -37,8 +30,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
-  std::swap(workflowOptions, options);
+  workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
 #include "Framework/runDataProcessing.h"
@@ -49,10 +41,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
   bool disableMC = ctx.options().get<bool>("disable-mc");
 
   WorkflowSpec specs;
-  DataProcessorSpec producer = o2::ft0::getRecPointReaderSpec(!disableMC);
+  DataProcessorSpec producer = o2::ft0::getRecPointWriterSpec(!disableMC);
   specs.push_back(producer);
-
-  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(ctx, specs);
   return specs;
 }

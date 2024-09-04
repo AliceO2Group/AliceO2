@@ -42,6 +42,7 @@ struct ChannelDataFloat {
   }
 
   void print() const;
+  bool operator==(const ChannelDataFloat&) const = default;
 
   ClassDefNV(ChannelDataFloat, 1);
 };
@@ -76,6 +77,9 @@ class RecPoints
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const;
   short static constexpr sDummyCollissionTime = 32767;
+
+  void print() const;
+  bool operator==(const RecPoints&) const = default;
 
  private:
   o2::dataformats::RangeReference<int, int> mRef;
