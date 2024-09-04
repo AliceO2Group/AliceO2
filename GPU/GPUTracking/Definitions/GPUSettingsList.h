@@ -122,6 +122,8 @@ AddOptionRTC(globalTrackingMinHits, unsigned char, 8, "", 0, "Min num of hits fo
 AddOptionRTC(noisyPadsQuickCheck, unsigned char, 1, "", 0, "Only check first fragment for noisy pads instead of all fragments (when test is enabled).")
 AddOptionRTC(cfQMaxCutoff, unsigned char, 3, "", 0, "Cluster Finder rejects cluster with qmax below or equal to this threshold")
 AddOptionRTC(cfQTotCutoff, unsigned char, 5, "", 0, "Cluster Finder rejects cluster with qtot below or equal to this threshold")
+AddOptionRTC(cfQMaxCutoffSingleTime, unsigned char, 0, "", 0, "Cluster Finder rejects cluster with qMax below or equal to this threshold for single pad or single time bin clusters")
+AddOptionRTC(cfQMaxCutoffSinglePad, unsigned char, 0, "", 0, "Cluster Finder rejects cluster with qMax below or equal to this threshold for single pad or single pad bin clusters")
 AddOptionRTC(cfInnerThreshold, unsigned char, 0, "", 0, "Cluster Finder extends cluster if inner charge above this threshold")
 AddOptionRTC(cfMinSplitNum, unsigned char, 1, "", 0, "Minimum number of split charges in a cluster for the cluster to be marked as split")
 AddOptionRTC(cfNoiseSuppressionEpsilon, unsigned char, 10, "", 0, "Cluster Finder: Difference between peak and charge for the charge to count as a minima during noise suppression")
@@ -222,7 +224,7 @@ AddOption(globalInitMutex, bool, false, "", 0, "Use global mutex to synchronize 
 AddOption(stuckProtection, int, 0, "", 0, "Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain")
 AddOption(trdNCandidates, int, 3, "", 0, "Number of branching track candidates for single input track during propagation")
 AddOption(trdTrackModelO2, bool, false, "", 0, "Use O2 track model instead of GPU track model for TRD tracking")
-AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silent)")
+AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-2 = silent, -1 = autoselect (-2 for O2, 0 for standalone))")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(debugMask, int, 262143, "", 0, "Mask for debug output dumps to file")
 AddOption(checkKernelFailures, bool, false, "", 0, "Synchronize after each kernel call and identify failing kernels")
@@ -273,6 +275,7 @@ AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after h
 AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minimum buffer size for the clustersPerRow during TPC clusterization")
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
 AddOption(o2PropagatorUseGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
+AddOption(willProvideO2PropagatorLate, bool, false, "", 0, "Disable check for availability of o2 propagator and MatLUT at initialization")
 AddOption(calibObjectsExtraMemorySize, unsigned int, 10u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(fastTransformObjectsMinMemorySize, unsigned int, 400u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(lateO2MatLutProvisioningSize, unsigned int, 0u, "", 0, "Memory size to reserve for late provisioning of matlut table")
@@ -322,7 +325,7 @@ AddOption(drawTPC, bool, true, "", 0, "Enable drawing TPC data")
 AddOption(drawTRD, bool, true, "", 0, "Enabale drawing TRD data")
 AddOption(drawTOF, bool, true, "", 0, "Enabale drawing TOF data")
 AddOption(drawITS, bool, true, "", 0, "Enabale drawing ITS data")
-AddOption(drawField, bool, true, "", 0, "Enable drawing magnetic field")
+AddOption(drawField, bool, false, "", 0, "Enable drawing magnetic field")
 AddOption(bFieldStepSize, float, 5.0f, "", 0, "Set field line step size")
 AddOption(bFieldStepCount, int, 100, "", 0, "Set field line step count")
 AddOption(bFieldLinesCount, int, 2000, "", 0, "Set field lines count")
@@ -376,6 +379,7 @@ EndConfig()
 BeginSubConfig(GPUSettingsDisplayVulkan, vulkan, configStandalone.display, "GLV", 0, "Vulkan display settings", display_vulkan)
 AddOption(nFramesInFlight, int, 0, "", 0, "Max number of render frames in flight (0 = as many as swapchain images)")
 AddOption(uniformBuffersInDeviceMemory, bool, 1, "", 0, "Have uniform buffers in host-accessible device memory")
+AddOption(forceDevice, int, -1, "", 0, "Force Vulkan device number to use")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -458,7 +462,7 @@ EndConfig()
 BeginConfig(GPUSettingsStandalone, configStandalone)
 AddOption(runGPU, bool, true, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
 AddOptionSet(runGPU, bool, false, "", 'c', "Use CPU for processing", message("CPU enabled"))
-AddOption(gpuType, std::string, "AUTO", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
+AddOption(gpuType, std::string, "AUTO", "", 0, "GPU type (CUDA / HIP / OCL / OCL2) or CPU or AUTO")
 AddOption(runGPUforce, bool, true, "", 0, "Force usage of the specified GPU device type, no CPU fallback")
 AddOption(noprompt, bool, true, "", 0, "Do prompt for keypress before exiting")
 AddOption(continueOnError, bool, false, "", 0, "Continue processing after an error")
@@ -565,7 +569,6 @@ AddVariableRTC(dAlpha, float, 0.f)           // angular size
 AddVariableRTC(assumeConstantBz, signed char, 0)    // Assume a constant magnetic field
 AddVariableRTC(toyMCEventsFlag, signed char, 0)     // events were build with home-made event generator
 AddVariableRTC(continuousTracking, signed char, 0)  // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
-AddVariableRTC(resetTimers, signed char, 0)         // Reset benchmark timers before event processing
 AddVariableRTC(dodEdx, signed char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, signed char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, signed char, 0)          // Debug level

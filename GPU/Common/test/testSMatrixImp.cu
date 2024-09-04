@@ -27,9 +27,9 @@
 #include <Math/SMatrix.h>
 #include <random>
 
-using MatSym3DGPU = o2::math_utils::SMatrixGPU<double, 3, 3, o2::math_utils::MatRepSymGPU<double, 3>>;
+using MatSym3DGPU = o2::math_utils::detail::SMatrixGPU<double, 3, 3, o2::math_utils::detail::MatRepSymGPU<double, 3>>;
 using MatSym3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>;
-using Mat3DGPU = o2::math_utils::SMatrixGPU<double, 3, 3, o2::math_utils::MatRepStdGPU<double, 3, 3>>;
+using Mat3DGPU = o2::math_utils::detail::SMatrixGPU<double, 3, 3, o2::math_utils::detail::MatRepStdGPU<double, 3, 3>>;
 using Mat3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepStd<double, 3, 3>>;
 
 static constexpr double tolerance = 1e-8;

@@ -30,7 +30,7 @@ For a simulation of a full 128 orbit time frame, run
 ```
 NEvents=650 NEventsQED=30000 SHMSIZE=128000000000 TPCTRACKERSCRATCHMEMORY=30000000000 $O2_ROOT/prodtests/full_system_test.sh
 ```
-To simulate collisions with an embedded signal one can set 'D0_EMBEDDING=1' while also supplying a config file with the desired settings using 'FST_EMBEDDING_CONFIG'. For an example configuration see '/prodtests/pythia8.cfg' and to generate a specific configuration one can use '${O2DPG_ROOT}/MC/config/common/pythia8/utils/mkpy8cfg.py'. Additional examples can be found in '/run/SimExamples/'
+To simulate collisions with an embedded signal one can set 'D0_EMBEDDING=1' while also supplying a config file with the desired settings using 'FST_EMBEDDING_CONFIG'. For an example configuration see '/prodtests/full-system-test/pythia8.cfg' and to generate a specific configuration one can use '${O2DPG_ROOT}/MC/config/common/pythia8/utils/mkpy8cfg.py'. Additional examples can be found in '/run/SimExamples/'
 ```
 DO_EMBEDDING=1 NEvents=5 NEventsQED=100 $O2_ROOT/prodtests/full_system_test.sh
 ```

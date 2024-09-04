@@ -54,18 +54,19 @@ class Detector : public o2::base::DetImpl<Detector>
 {
  public:
   enum MediumType_t { ID_TUNGSTEN = 0,
-                      ID_SILICON = 1,
-                      ID_G10 = 2,
-                      ID_COPPER = 3,
-                      ID_STEEL = 4,
-                      ID_ALLOY = 5,
-                      ID_CERAMIC = 6,
-                      ID_PB = 7,
-                      ID_SC = 8,
-                      ID_SIINSENS = 9,
-                      ID_ALUMINIUM = 10,
-                      ID_VAC = 11,
-                      ID_AIR = 12 };
+                      ID_SIPAD = 1,
+                      ID_SIPIX = 2,
+                      ID_G10 = 3,
+                      ID_COPPER = 4,
+                      ID_STEEL = 5,
+                      ID_ALLOY = 6,
+                      ID_CERAMIC = 7,
+                      ID_PB = 8,
+                      ID_SC = 9,
+                      ID_SIINSENS = 10,
+                      ID_ALUMINIUM = 11,
+                      ID_VAC = 12,
+                      ID_AIR = 13 };
   /// \brief Dummy constructor
   Detector() = default;
 

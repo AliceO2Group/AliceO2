@@ -33,61 +33,69 @@ using its3TGeo = o2::its::GeometryTGeo;
 
 void ITS3Layer::init()
 {
-  // First we start by creating variables which we are reusing a couple of times.
   mR = its3c::radii[mNLayer];
-  mRmin = mR - its3c::thickness / 2.;
-  mRmax = mR + its3c::thickness / 2.;
+  mRmin = its3c::radiiInner[mNLayer];
+  mRmax = its3c::radiiOuter[mNLayer];
+}
 
+void ITS3Layer::getMaterials(bool create)
+{
   if (gGeoManager == nullptr) {
     LOGP(fatal, "gGeoManager not initalized!");
   }
 
-  mSilicon = gGeoManager->GetMedium("IT3_SI$");
-  if (mSilicon == nullptr) {
-    LOGP(fatal, "IT3_SI$ == nullptr!");
-  }
+  mSilicon = getMaterial("IT3_SI$", create);
+  mAir = getMaterial("IT3_AIR$", create);
+  mCarbon = getMaterial("IT3_CARBON$", create);
+}
 
-  mAir = gGeoManager->GetMedium("IT3_AIR$");
-  if (mAir == nullptr) {
-    LOGP(fatal, "IT3_AIR$ == nullptr!");
+TGeoMedium* ITS3Layer::getMaterial(const char* matName, bool create)
+{
+  auto mat = gGeoManager->GetMedium(matName);
+  if (mat == nullptr) {
+    if (!create) {
+      LOGP(fatal, "Cannot get medium {}", matName);
+    } else { // create dummy
+      auto matDummy = gGeoManager->GetMaterial("MAT_DUMMY$");
+      if (matDummy == nullptr) {
+        LOGP(info, "Created Dummy material");
+        matDummy = new TGeoMaterial("MAT_DUMMY$", 26.98, 13, 2.7);
+      }
+      mat = new TGeoMedium(matName, 1, matDummy);
+      LOGP(info, "Created medium {}", matName);
+    }
   }
-
-  mCarbon = gGeoManager->GetMedium("IT3_CARBON$");
-  if (mCarbon == nullptr) {
-    LOGP(fatal, "IT3_CARBON$ == nullptr!");
-  }
+  return mat;
 }
 
 void ITS3Layer::createLayer(TGeoVolume* motherVolume)
 {
   // Create one layer of ITS3 and attach it to the motherVolume.
-  init();
-  createPixelArray();
-  createTile();
-  createRSU();
-  createSegment();
-  createChip();
-  createCarbonForm();
+  getMaterials();
   createLayerImpl();
+  mBuilt = true;
 
   LOGP(info, "ITS3-Layer: Created Layer {} with mR={} (minR={}, maxR={})", mNLayer, mR, mRmin, mRmax);
   if (motherVolume == nullptr) {
     return;
   }
   // Add it to motherVolume
-  LOGP(info, "  `-> Attaching to motherVolume '{}'", motherVolume->GetName());
+  LOGP(debug, "  `-> Attaching to motherVolume '{}'", motherVolume->GetName());
   auto* trans = new TGeoTranslation(0, 0, -constants::segment::lengthSensitive / 2.);
   motherVolume->AddNode(mLayer, 0, trans);
 }
 
 void ITS3Layer::createPixelArray()
 {
-  using namespace its3c::pixelarray;
+  if (mPixelArray != nullptr) {
+    return;
+  }
   // A pixel array is pure silicon and the sensitive part of our detector.
   // It will be segmented into a 442x156 matrix by the
   // SuperSegmentationAlpide.
   // Pixel Array is just a longer version of the biasing but starts in phi at
   // biasPhi2.
+  using namespace its3c::pixelarray;
   double pixelArrayPhi1 = constants::tile::readout::width / mR * o2m::Rad2Deg;
   double pixelArrayPhi2 = width / mR * o2m::Rad2Deg + pixelArrayPhi1;
   auto pixelArray = new TGeoTubeSeg(mRmin, mRmax, length / 2.,
@@ -99,11 +107,16 @@ void ITS3Layer::createPixelArray()
 
 void ITS3Layer::createTile()
 {
-  using namespace constants::tile;
+  if (mTile != nullptr) {
+    return;
+  } else {
+    createPixelArray();
+  }
   // This functions creates a single Tile, which is the basic building block
   // of the chip. It consists of a pixelArray (sensitive area), biasing, power
   // switches and readout periphery (latter three are insensitive).
   // We construct the Tile such that the PixelArray is in the z-middle
+  using namespace constants::tile;
   mTile = new TGeoVolumeAssembly(its3TGeo::getITS3TilePattern(mNLayer));
   mTile->VisibleDaughters();
 
@@ -143,8 +156,13 @@ void ITS3Layer::createTile()
 
 void ITS3Layer::createRSU()
 {
-  using namespace constants::rsu;
+  if (mRSU != nullptr) {
+    return;
+  } else {
+    createTile();
+  }
   // A Repeated Sensor Unit (RSU) is 12 Tiles + 4 Databackbones stichted together.
+  using namespace constants::rsu;
   mRSU = new TGeoVolumeAssembly(its3TGeo::getITS3RSUPattern(mNLayer));
   mRSU->VisibleDaughters();
   int nCopyRSU{0}, nCopyDB{0};
@@ -208,10 +226,15 @@ void ITS3Layer::createRSU()
 
 void ITS3Layer::createSegment()
 {
-  using namespace constants::segment;
+  if (mSegment != nullptr) {
+    return;
+  } else {
+    createRSU();
+  }
   // A segment is 12 RSUs + left and right end cap. We place the first rsu
   // as z-coordinate center and attach to this. Hence, we will displace the
   // left end-cap to the left and the right to right.
+  using namespace constants::segment;
   mSegment = new TGeoVolumeAssembly(its3TGeo::getITS3SegmentPattern(mNLayer));
   mSegment->VisibleDaughters();
 
@@ -243,7 +266,11 @@ void ITS3Layer::createSegment()
 
 void ITS3Layer::createChip()
 {
-
+  if (mChip != nullptr) {
+    return;
+  } else {
+    createSegment();
+  }
   // A HalfLayer is composed out of multiple segment stitched together along
   // rphi.
   mChip = new TGeoVolumeAssembly(its3TGeo::getITS3ChipPattern(mNLayer));
@@ -258,6 +285,11 @@ void ITS3Layer::createChip()
 
 void ITS3Layer::createCarbonForm()
 {
+  if (mCarbonForm != nullptr) {
+    return;
+  } else {
+    createChip();
+  }
   // TODO : Waiting for the further information from WP5(Corrado)
   using namespace constants::carbonfoam;
   mCarbonForm = new TGeoVolumeAssembly(its3TGeo::getITS3CarbonFormPattern(mNLayer));
@@ -325,6 +357,11 @@ TGeoCompositeShape* ITS3Layer::getHringShape(TGeoTubeSeg* Hring)
 
 void ITS3Layer::createLayerImpl()
 {
+  if (mLayer != nullptr) {
+    return;
+  } else {
+    createCarbonForm();
+  }
   // At long last a single layer... A layer is two HalfLayers (duuhhh) but
   // we have to take care of the equatorial gap. So both half layers will be
   // offset slightly by rotating in phi the upper HalfLayer and negative phi
@@ -342,32 +379,43 @@ void ITS3Layer::createLayerImpl()
   mLayer->AddNode(mCarbonForm, 1, rotBot);
 }
 
-void ITS3Layer::buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat, BuildLevel level)
+void ITS3Layer::buildPartial(TGeoVolume* motherVolume, TGeoMatrix* mat, BuildLevel level, bool createMaterials)
 {
+  if (!mBuilt) {
+    getMaterials(createMaterials);
+  }
   switch (level) {
-    case kPixelArray:
+    case BuildLevel::kPixelArray:
+      createPixelArray();
       motherVolume->AddNode(mPixelArray, 0, mat);
       break;
-    case kTile:
+    case BuildLevel::kTile:
+      createTile();
       motherVolume->AddNode(mTile, 0, mat);
       break;
-    case kRSU:
+    case BuildLevel::kRSU:
+      createRSU();
       motherVolume->AddNode(mRSU, 0, mat);
       break;
-    case kSegment:
+    case BuildLevel::kSegment:
+      createSegment();
       motherVolume->AddNode(mSegment, 0, mat);
       break;
-    case kChip:
+    case BuildLevel::kChip:
+      createChip();
       motherVolume->AddNode(mChip, 0, mat);
       break;
-    case kCarbonForm:
+    case BuildLevel::kCarbonForm:
+      createCarbonForm();
       motherVolume->AddNode(mCarbonForm, 0, mat);
       break;
-    case kLayer:
+    case BuildLevel::kLayer:
       [[fallthrough]];
     default:
+      createLayerImpl();
       motherVolume->AddNode(mLayer, 0, mat);
   }
+  LOGP(info, "Partially built ITS3-{}-{}", mNLayer, getName(level));
 }
 
 } // namespace o2::its3

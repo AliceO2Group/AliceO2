@@ -25,6 +25,8 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   int nIterations = 1;         // Number of vertexing passes to perform
   int vertPerRofThreshold = 0; // Maximum number of vertices per ROF to trigger second a round
   bool allowSingleContribClusters = false;
+  // Number of ROFs to be considered for the vertexing
+  int deltaRof = 0;
 
   // geometrical cuts
   float zCut = 0.002f;

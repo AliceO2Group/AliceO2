@@ -73,7 +73,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam(GPUO2InterfaceC
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) \
   name instance;                                                                             \
   {                                                                                          \
-    auto& src = GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();                         \
+    const auto& src = GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();                   \
     name& dst = instance;
 #define BeginHiddenConfig(name, instance) {
 #define EndConfig() }

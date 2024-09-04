@@ -124,6 +124,7 @@ class Vertex : public VertexBase
   using ushort = unsigned short;
   enum Flags : ushort {
     TimeValidated = 0x1 << 0, // Flag that the vertex was validated by external time measurement (e.g. FIT)
+    UPCMode = 0x1 << 1,       // vertex is found in the UPC mode ITS ROF
     FlagsMask = 0xffff
   };
 
@@ -146,8 +147,8 @@ class Vertex : public VertexBase
   GPUd() void setChi2(float v) { mChi2 = v; }
   GPUd() float getChi2() const { return mChi2; }
 
-  GPUd() const Stamp& getTimeStamp() const { return mTimeStamp; }
-  GPUd() Stamp& getTimeStamp() { return mTimeStamp; }
+  GPUhd() const Stamp& getTimeStamp() const { return mTimeStamp; }
+  GPUhd() Stamp& getTimeStamp() { return mTimeStamp; }
   GPUd() void setTimeStamp(const Stamp& v) { mTimeStamp = v; }
 
  protected:

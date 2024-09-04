@@ -354,7 +354,7 @@ void GPUDisplayBackendVulkan::createDevice()
   const std::vector<const char*> reqValidationLayers = {
     "VK_LAYER_KHRONOS_validation"};
   auto debugCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) -> VkBool32 {
-    static bool throwOnError = getenv("GPUCA_VULKAN_VALIDATION_THROW") && atoi(getenv("GPUCA_VULKAN_VALIDATION_THROW"));
+    static int throwOnError = getenv("GPUCA_VULKAN_VALIDATION_THROW") ? atoi(getenv("GPUCA_VULKAN_VALIDATION_THROW")) : 0;
     static bool showVulkanValidationInfo = getenv("GPUCA_VULKAN_VALIDATION_INFO") && atoi(getenv("GPUCA_VULKAN_VALIDATION_INFO"));
     switch (messageSeverity) {
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
@@ -364,7 +364,7 @@ void GPUDisplayBackendVulkan::createDevice()
         break;
       case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
         GPUWarning("%s", pCallbackData->pMessage);
-        if (throwOnError) {
+        if (throwOnError > 1) {
           throw std::logic_error("break_on_validation_warning");
         }
         break;
@@ -440,7 +440,12 @@ void GPUDisplayBackendVulkan::createDevice()
       bestScore = score;
     }
   }
-
+  if (mDisplay->cfg().vulkan.forceDevice != -1) {
+    if (mDisplay->cfg().vulkan.forceDevice < 0 || mDisplay->cfg().vulkan.forceDevice >= (int)devices.size()) {
+      throw std::runtime_error("Invalid Vulkan device selected");
+    }
+    mPhysicalDevice = devices[mDisplay->cfg().vulkan.forceDevice];
+  }
   if (!mPhysicalDevice) {
     throw std::runtime_error("All available Vulkan devices unsuited");
   }
@@ -1605,6 +1610,7 @@ void GPUDisplayBackendVulkan::finishFrame(bool doScreenshot, bool toMixBuffer, f
       CHKERR(mGraphicsQueue.submit(1, &submitInfo, mInFlightFence[mCurrentFrame]));
     }
 
+    CHKERR(mDevice.waitForFences(1, &mInFlightFence[mCurrentFrame], true, UINT64_MAX)); // TODO: I think we need to wait for the fence, so that the image was acquired before we present. Perhaps we can present later to avoid delays
     vk::PresentInfoKHR presentInfo{};
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = stageFinishedSemaphore;

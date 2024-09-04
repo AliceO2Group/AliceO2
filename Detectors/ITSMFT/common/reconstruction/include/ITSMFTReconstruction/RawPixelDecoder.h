@@ -91,6 +91,9 @@ class RawPixelDecoder final : public PixelReader
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
 
+  void setAlwaysParseTrigger(bool v) { mAlwaysParseTrigger = v; }
+  bool getAlwaysParseTrigger() const { return mAlwaysParseTrigger; }
+
   void printReport(bool decstat = true, bool skipNoErr = true) const;
   void produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo);
 
@@ -164,6 +167,7 @@ class RawPixelDecoder final : public PixelReader
   bool mROFRampUpStage = false;                                                       // are we still in the ROF ramp up stage?
   bool mSkipRampUpData = false;
   bool mVerifyDecoder = false;
+  bool mAlwaysParseTrigger = false;
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   // statistics

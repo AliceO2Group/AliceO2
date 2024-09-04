@@ -118,7 +118,7 @@ class SimConfig
     return SimConfig();
   }
 
-  static void initOptions(boost::program_options::options_description&);
+  static void initOptions(boost::program_options::options_description&, bool isUpgrade = false);
 
   // initializes the configuration from command line arguments
   // returns true of correctly initialized and not --help called

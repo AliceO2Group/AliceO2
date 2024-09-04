@@ -18,7 +18,7 @@ using DetID = o2::detectors::DetID;
 /// describe itsel as a string
 std::string CTFHeader::describe() const
 {
-  return fmt::format("Run:{:07d} TF:{} Orbit:{:08d} CteationTime:{} Detectors: {}", run, tfCounter, firstTForbit, creationTime, DetID::getNames(detectors));
+  return fmt::format("Run:{:07d} TF:{} Orbit:{:08d} CreationTime:{} Detectors: {}", run, tfCounter, firstTForbit, creationTime, DetID::getNames(detectors));
 }
 
 void CTFHeader::print() const

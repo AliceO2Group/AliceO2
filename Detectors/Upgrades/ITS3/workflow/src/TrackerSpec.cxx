@@ -73,7 +73,26 @@ void TrackerDPL::init(InitContext& /*ic*/)
     trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].CellDeltaTanLambdaSigma *= 4.;
     trackParams[2].MinTrackLength = 4;
+
     LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
+
+  } else if (mMode == "async_misaligned") {
+
+    trackParams.resize(3);
+    trackParams[0].PhiBins = 32;
+    trackParams[0].ZBins = 64;
+    trackParams[0].CellDeltaTanLambdaSigma *= 3.;
+    trackParams[0].SystErrorZ2[0] = 1.e-4;
+    trackParams[0].SystErrorZ2[1] = 1.e-4;
+    trackParams[0].SystErrorZ2[2] = 1.e-4;
+    std::copy(trackParams[0].SystErrorZ2.begin(), trackParams[0].SystErrorZ2.end(), trackParams[0].SystErrorY2.begin());
+    trackParams[0].MaxChi2ClusterAttachment = 60.;
+    trackParams[0].MaxChi2NDF = 40.;
+    trackParams[1] = trackParams[0];
+    trackParams[2] = trackParams[0];
+    trackParams[1].MinTrackLength = 6;
+    trackParams[2].MinTrackLength = 4;
+    LOG(info) << "Initializing tracker in misaligned async. phase reconstruction with " << trackParams.size() << " passes";
 
   } else if (mMode == "sync_misaligned") {
 
@@ -193,11 +212,10 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
   mVertexer->adoptTimeFrame(*timeFrame);
-  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
+  auto pattIt = patterns.begin();
 
-  gsl::span<itsmft::ROFRecord> rofspan(rofs);
+  const gsl::span<itsmft::ROFRecord> rofspan(rofs);
   ioutils::loadROFrameDataITS3(timeFrame, rofspan, compClusters, pattIt, mDict, labels);
-  pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](const std::string& s) { LOG(info) << s; };
   auto errorLogger = [&](const std::string& s) { LOG(error) << s; };
@@ -252,7 +270,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
-      timeFrame->addPrimaryVertices(vtxVecLoc);
+      timeFrame->addPrimaryVertices(vtxVecLoc, iRof, 0);
     }
   }
   // LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
@@ -405,6 +423,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, const int trgType, co
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "VERTICESMCPUR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }

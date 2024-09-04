@@ -142,7 +142,7 @@ void on_transition_requested_expired(uv_timer_t* handle)
   if (hasOnlyGenerated(spec)) {
     O2_SIGNPOST_EVENT_EMIT_INFO(calibration, cid, "callback", "Grace period for source expired. Exiting.");
   } else {
-    O2_SIGNPOST_EVENT_EMIT_ERROR(calibration, cid, "callback", "Grace period for data / calibration expired. Exiting.");
+    O2_SIGNPOST_EVENT_EMIT_WARN(calibration, cid, "callback", "Grace period for data / calibration expired. Exiting.");
   }
   state.transitionHandling = TransitionHandlingState::Expired;
 }
@@ -1096,7 +1096,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.balancingInputs = spec.completionPolicy.balanceChannels;
   // This is needed because the internal injected dummy sink should not
   // try to balance inputs unless the rate limiting is requested.
-  if (enableRateLimiting == false && spec.name == "internal-dpl-injected-dummy-sink") {
+  if (enableRateLimiting == false && spec.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
     context.balancingInputs = false;
   }
   if (enableRateLimiting) {
@@ -1732,6 +1732,12 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
     // We should keep the data generated at end of stream only for those
     // which are not sources.
     timingInfo.keepAtEndOfStream = shouldProcess;
+    // Fill timinginfo with some reasonable values for data sent with endOfStream
+    timingInfo.timeslice = relayer.getOldestPossibleOutput().timeslice.value;
+    timingInfo.tfCounter = -1;
+    timingInfo.firstTForbit = -1;
+    // timingInfo.runNumber = ; // Not sure where to get this if not already set
+    timingInfo.creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
     O2_SIGNPOST_EVENT_EMIT(calibration, dpid, "calibration", "TimingInfo.keepAtEndOfStream %d", timingInfo.keepAtEndOfStream);
 
     EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
@@ -1845,6 +1851,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
+        O2_SIGNPOST_EVENT_EMIT(device, cid, "handle_data", "Got DomainInfoHeader with oldestPossibleTimeslice %d", (int)dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo, info.id);
         *context.wasActive = true;
         continue;

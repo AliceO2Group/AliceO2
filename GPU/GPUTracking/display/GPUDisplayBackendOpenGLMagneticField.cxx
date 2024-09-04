@@ -59,11 +59,11 @@ using namespace GPUCA_NAMESPACE::gpu;
     }                                                                                                           \
   } while (false)
 
-int GPUDisplayBackendOpenGL::InitMagField()
+int GPUDisplayBackendOpenGL::InitMagFieldVisualization()
 {
 #ifndef GPUCA_NO_FMT
-  mMagneticField = std::make_unique<GPUDisplayMagneticField>();
-  mMagneticField->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
+  mMagneticFieldVisualization = std::make_unique<GPUDisplayMagneticField>();
+  mMagneticFieldVisualization->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
 
   CHKERR(mVertexShaderPassthrough = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(mGeometryShader = glCreateShader(GL_GEOMETRY_SHADER));
@@ -116,7 +116,7 @@ int GPUDisplayBackendOpenGL::InitMagField()
   CHKERR(glVertexArrayAttribFormat(VAO_field, ATTRIB_ZERO, 3, GL_FLOAT, GL_FALSE, 0));
 
   CHKERR(glCreateBuffers(1, &VBO_field));
-  CHKERR(glNamedBufferData(VBO_field, mMagneticField->mFieldLineSeedPoints.size() * sizeof(GPUDisplayMagneticField::vtx), mMagneticField->mFieldLineSeedPoints.data(), GL_STATIC_DRAW));
+  CHKERR(glNamedBufferData(VBO_field, mMagneticFieldVisualization->mFieldLineSeedPoints.size() * sizeof(GPUDisplayMagneticField::vtx), mMagneticFieldVisualization->mFieldLineSeedPoints.data(), GL_STATIC_DRAW));
 
   CHKERR(glVertexArrayVertexBuffer(VAO_field, BUFFER_IDX, VBO_field, 0, sizeof(GPUDisplayMagneticField::vtx)));
 
@@ -126,17 +126,17 @@ int GPUDisplayBackendOpenGL::InitMagField()
   CHKERR(glNamedBufferData(mFieldModelViewBuffer, sizeof(hmm_mat4), nullptr, GL_STREAM_DRAW));
 
   CHKERR(glCreateBuffers(1, &mFieldModelConstantsBuffer));
-  CHKERR(glNamedBufferData(mFieldModelConstantsBuffer, sizeof(GPUDisplayMagneticField::RenderConstantsUniform), mMagneticField->mRenderConstantsUniform.get(), GL_STREAM_DRAW));
+  CHKERR(glNamedBufferData(mFieldModelConstantsBuffer, sizeof(GPUDisplayMagneticField::RenderConstantsUniform), mMagneticFieldVisualization->mRenderConstantsUniform.get(), GL_STREAM_DRAW));
 
   CHKERR(glCreateBuffers(1, &mSolenoidSegmentsBuffer));
-  CHKERR(glNamedBufferData(mSolenoidSegmentsBuffer, sizeof(GPUDisplayMagneticField::SolenoidSegmentsUniform), mMagneticField->mSolenoidSegments.get(), GL_STREAM_DRAW));
+  CHKERR(glNamedBufferData(mSolenoidSegmentsBuffer, sizeof(GPUDisplayMagneticField::SolenoidSegmentsUniform), mMagneticFieldVisualization->mSolenoidSegments.get(), GL_STREAM_DRAW));
   CHKERR(glCreateBuffers(1, &mSolenoidParameterizationBuffer));
-  CHKERR(glNamedBufferData(mSolenoidParameterizationBuffer, sizeof(GPUDisplayMagneticField::SolenoidParameterizationUniform), mMagneticField->mSolenoidParameterization.get(), GL_STREAM_DRAW));
+  CHKERR(glNamedBufferData(mSolenoidParameterizationBuffer, sizeof(GPUDisplayMagneticField::SolenoidParameterizationUniform), mMagneticFieldVisualization->mSolenoidParameterization.get(), GL_STREAM_DRAW));
 
   CHKERR(glCreateBuffers(1, &mDipoleSegmentsBuffer));
-  CHKERR(glNamedBufferData(mDipoleSegmentsBuffer, sizeof(GPUDisplayMagneticField::DipoleSegmentsUniform), mMagneticField->mDipoleSegments.get(), GL_STREAM_DRAW));
+  CHKERR(glNamedBufferData(mDipoleSegmentsBuffer, sizeof(GPUDisplayMagneticField::DipoleSegmentsUniform), mMagneticFieldVisualization->mDipoleSegments.get(), GL_STREAM_DRAW));
   CHKERR(glCreateBuffers(1, &mDipoleParameterizationBuffer));
-  CHKERR(glNamedBufferData(mDipoleParameterizationBuffer, sizeof(GPUDisplayMagneticField::DipoleParameterizationUniform), mMagneticField->mDipoleParameterization.get(), GL_STREAM_DRAW));
+  CHKERR(glNamedBufferData(mDipoleParameterizationBuffer, sizeof(GPUDisplayMagneticField::DipoleParameterizationUniform), mMagneticFieldVisualization->mDipoleParameterization.get(), GL_STREAM_DRAW));
 #else
   throw std::runtime_error("Magnetic field needs fmt");
 #endif
@@ -146,18 +146,18 @@ int GPUDisplayBackendOpenGL::InitMagField()
 
 unsigned int GPUDisplayBackendOpenGL::drawField()
 {
-  if (!mMagneticField) {
-    return InitMagField(); // next frame will fill MVP matrix
+  if (!mMagneticFieldVisualization) {
+    return InitMagFieldVisualization(); // next frame will fill MVP matrix
   }
 
-  if (mMagneticField->mFieldLineSeedPoints.size() != (unsigned int)mDisplay->cfgL().bFieldLinesCount) {
-    mMagneticField->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
-    CHKERR(glNamedBufferData(VBO_field, mMagneticField->mFieldLineSeedPoints.size() * sizeof(GPUDisplayMagneticField::vtx), mMagneticField->mFieldLineSeedPoints.data(), GL_STATIC_DRAW));
+  if (mMagneticFieldVisualization->mFieldLineSeedPoints.size() != (unsigned int)mDisplay->cfgL().bFieldLinesCount) {
+    mMagneticFieldVisualization->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
+    CHKERR(glNamedBufferData(VBO_field, mMagneticFieldVisualization->mFieldLineSeedPoints.size() * sizeof(GPUDisplayMagneticField::vtx), mMagneticFieldVisualization->mFieldLineSeedPoints.data(), GL_STATIC_DRAW));
   }
 
-  mMagneticField->mRenderConstantsUniform->StepSize = mDisplay->cfgL().bFieldStepSize;
-  mMagneticField->mRenderConstantsUniform->StepCount = mDisplay->cfgL().bFieldStepCount;
-  CHKERR(glNamedBufferSubData(mFieldModelConstantsBuffer, 0, sizeof(GPUDisplayMagneticField::RenderConstantsUniform), mMagneticField->mRenderConstantsUniform.get()));
+  mMagneticFieldVisualization->mRenderConstantsUniform->StepSize = mDisplay->cfgL().bFieldStepSize;
+  mMagneticFieldVisualization->mRenderConstantsUniform->StepCount = mDisplay->cfgL().bFieldStepCount;
+  CHKERR(glNamedBufferSubData(mFieldModelConstantsBuffer, 0, sizeof(GPUDisplayMagneticField::RenderConstantsUniform), mMagneticFieldVisualization->mRenderConstantsUniform.get()));
 
   CHKERR(glBindVertexArray(VAO_field));
   CHKERR(glUseProgram(mShaderProgramField));
@@ -172,7 +172,7 @@ unsigned int GPUDisplayBackendOpenGL::drawField()
   CHKERR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, mSolenoidParameterizationBuffer));
   CHKERR(glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, mDipoleParameterizationBuffer));
 
-  CHKERR(glDrawArrays(GL_POINTS, 0, mMagneticField->mFieldLineSeedPoints.size()));
+  CHKERR(glDrawArrays(GL_POINTS, 0, mMagneticFieldVisualization->mFieldLineSeedPoints.size()));
 
   CHKERR(glUseProgram(0));
   CHKERR(glBindVertexArray(0));
@@ -180,7 +180,7 @@ unsigned int GPUDisplayBackendOpenGL::drawField()
   return 0;
 }
 
-void GPUDisplayBackendOpenGL::ExitMagField()
+void GPUDisplayBackendOpenGL::ExitMagFieldVisualization()
 {
   CHKERR(glDeleteBuffers(1, &mFieldModelViewBuffer));
   CHKERR(glDeleteBuffers(1, &mFieldModelConstantsBuffer));
@@ -196,10 +196,10 @@ void GPUDisplayBackendOpenGL::ExitMagField()
 }
 
 #else  // GPUCA_BUILD_EVENT_DISPLAY_OPENGL
-int GPUDisplayBackendOpenGL::InitMagField()
+int GPUDisplayBackendOpenGL::InitMagFieldVisualization()
 {
   return 0;
 }
 unsigned int GPUDisplayBackendOpenGL::drawField() { return 0; }
-void GPUDisplayBackendOpenGL::ExitMagField() {}
+void GPUDisplayBackendOpenGL::ExitMagFieldVisualization() {}
 #endif // GPUCA_BUILD_EVENT_DISPLAY_OPENGL

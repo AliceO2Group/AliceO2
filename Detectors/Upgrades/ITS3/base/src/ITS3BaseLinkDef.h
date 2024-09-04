@@ -16,6 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::its3::SegmentationSuperAlpide + ;
-#pragma link C++ class o2::its3::MisalignmentParameter + ;
+#pragma link C++ class o2::its3::ITS3Params + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its3::ITS3Params> + ;
 
 #endif

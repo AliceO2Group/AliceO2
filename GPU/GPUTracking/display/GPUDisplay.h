@@ -247,7 +247,7 @@ class GPUDisplay : public GPUDisplayInterface
   float mRPhiTheta[3];
   float mQuat[4];
 
-  vecpod<std::array<int, 37>> mCollisionClusters;
+  vecpod<std::array<int, 37>> mOverlayTFClusters;
   int mNCollissions = 1;
 
   vecpod<vtx> mVertexBuffer[NSLICES];
@@ -296,6 +296,7 @@ class GPUDisplay : public GPUDisplayInterface
   opengl_spline mAnimationSplines[8];
 
   int mPrintInfoText = 1;
+  bool mPrintInfoTextAlways = 0;
   char mInfoText2[1024];
   HighResTimer mInfoText2Timer, mInfoHelpTimer;
 

@@ -37,6 +37,7 @@ if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   [[ -z $NUMAGPUIDS ]] && export NUMAGPUIDS=1
   [[ -z $EPNPIPELINES ]] && export EPNPIPELINES=1
   [[ -z $O2_GPU_DOUBLE_PIPELINE ]] && export O2_GPU_DOUBLE_PIPELINE=1
+  [[ -z $O2_GPU_RTC ]] && export O2_GPU_RTC=1
   [[ -z $DPL_CONDITION_BACKEND ]] && export DPL_CONDITION_BACKEND="http://localhost:8084"
   export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=${DPL_CONDITION_BACKEND};"
   export GEN_TOPO_QC_OVERRIDE_CCDB_SERVER="${DPL_CONDITION_BACKEND}"

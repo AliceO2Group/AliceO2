@@ -624,6 +624,8 @@ class AODProducerWorkflowDPL : public Task
 
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
 
+  std::vector<uint8_t> fillBCFlags(const o2::globaltracking::RecoContainer& data, std::map<uint64_t, int>& bcsMap) const;
+
   // helper for tpc clusters
   void countTPCClusters(const o2::globaltracking::RecoContainer& data);
 

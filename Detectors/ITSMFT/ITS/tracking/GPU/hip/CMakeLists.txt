@@ -20,7 +20,8 @@ if(HIP_ENABLED)
                          ../cuda/TrackerTraitsGPU.cxx
                          ../cuda/TracerGPU.cu
                          ../cuda/TrackingKernels.cu
-                         ../cuda/VertexerTraitsGPU.cu
+                         ../cuda/VertexingKernels.cu
+                         ../cuda/VertexerTraitsGPU.cxx
                          ../cuda/Utils.cu
                  PUBLIC_INCLUDE_DIRECTORIES ../
                  PUBLIC_LINK_LIBRARIES O2::ITStracking
