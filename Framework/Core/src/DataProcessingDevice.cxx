@@ -1096,7 +1096,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.balancingInputs = spec.completionPolicy.balanceChannels;
   // This is needed because the internal injected dummy sink should not
   // try to balance inputs unless the rate limiting is requested.
-  if (enableRateLimiting == false && spec.name == "internal-dpl-injected-dummy-sink") {
+  if (enableRateLimiting == false && spec.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
     context.balancingInputs = false;
   }
   if (enableRateLimiting) {
