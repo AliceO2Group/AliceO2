@@ -25,7 +25,6 @@
 #include <numeric>
 
 #include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/GeometryManagerParam.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Aligner.h"
@@ -255,7 +254,7 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
   std::vector<int> ord(nvols);
   std::iota(std::begin(ord), std::end(ord), 0); // sort to apply alignment in correct hierarchy
   std::sort(std::begin(ord), std::end(ord), [&algPars](int a, int b) { return algPars[a].getLevel() < algPars[b].getLevel(); });
-  auto& pars = o2::GeometryManagerParam::Instance();
+
   bool res = true;
   for (int i = 0; i < nvols; i++) {
     if (!algPars[ord[i]].applyToGeometry()) {
