@@ -590,7 +590,12 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         decongestion->nextTimeslice = std::max(decongestion->nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
         O2_SIGNPOST_EVENT_EMIT(data_processor_context, cid, "oldest_possible_timeslice", "Next timeslice %" PRIi64, decongestion->nextTimeslice);
         if (oldNextTimeslice != decongestion->nextTimeslice) {
-          O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+          auto& state = ctx.services().get<DeviceState>();
+          if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
+            O2_SIGNPOST_EVENT_EMIT_WARN(data_processor_context, cid, "oldest_possible_timeslice", "Stop transition requested. Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+          } else {
+            O2_SIGNPOST_EVENT_EMIT_ERROR(data_processor_context, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+          }
           timesliceIndex.rescan();
         }
       }
@@ -644,8 +649,9 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
         return;
       }
-      auto &queue = services.get<AsyncQueue>();
-      auto& spec = services.get<DeviceSpec const>();
+      auto& queue = services.get<AsyncQueue>();
+      const auto& spec = services.get<DeviceSpec const>();
+      const auto& state = services.get<DeviceState const>();
       auto *device = services.get<RawDeviceService>().device();
       /// We use the oldest possible timeslice to debounce, so that only the latest one
       /// at the end of one iteration is sent.
@@ -683,16 +689,20 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         TimesliceId{oldestPossibleTimeslice}, -1);
       if (decongestion.orderedCompletionPolicyActive) {
         AsyncQueueHelpers::post(
-          queue, decongestion.oldestPossibleTimesliceTask, [ref = services, oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex](size_t id) {
+          queue, decongestion.oldestPossibleTimesliceTask, [ref = services, oldestPossibleOutput, &decongestion, &proxy, &spec, &state, device, &timesliceIndex](size_t id) {
             O2_SIGNPOST_ID_GENERATE(cid, async_queue);
             int64_t oldNextTimeslice = decongestion.nextTimeslice;
             decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
             if (oldNextTimeslice != decongestion.nextTimeslice) {
-              O2_SIGNPOST_EVENT_EMIT_ERROR(async_queue, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+              if (state.transitionHandling != TransitionHandlingState::NoTransition && DefaultsHelpers::onlineDeploymentMode()) {
+                O2_SIGNPOST_EVENT_EMIT_WARN(async_queue, cid, "oldest_possible_timeslice", "Stop transition requested. Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+              } else {
+                O2_SIGNPOST_EVENT_EMIT_ERROR(async_queue, cid, "oldest_possible_timeslice", "Some Lifetime::Timeframe data got dropped starting at %" PRIi64, oldNextTimeslice);
+              }
               timesliceIndex.rescan();
             }
-        },
-        TimesliceId{oldestPossibleOutput.timeslice.value}, -1);
+          },
+          TimesliceId{oldestPossibleOutput.timeslice.value}, -1);
       } },
     .kind = ServiceKind::Serial};
 }
