@@ -72,7 +72,6 @@ class MCTruthSourceTask : public o2::framework::Task
   bool mFinished = false;
   int mSize = 0;
   bool mNew = false;
-  o2::dataformats::MCTruthContainer<long> mLabels; // labels which get filled
 };
 
 o2::framework::DataProcessorSpec getMCTruthSourceSpec(bool newmctruth)
