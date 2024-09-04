@@ -24,6 +24,7 @@
 
 // root includes
 #include "TH1.h"
+// Decapricated to be removed in next PR
 #include "TCanvas.h"
 
 // o2 includes
@@ -70,7 +71,7 @@ class PID
 
   // To set the elementary track cuts
   void setPIDCuts(int minnCls = 60, float absTgl = 1., float mindEdxTot = 10.0,
-                  float maxdEdxTot = 70., float minpTPC = 0.05, float maxpTPC = 20., float minpTPCMIPs = 0.45, float maxpTPCMIPs = 0.55, bool turnOffHistosForAsync = false)
+                  float maxdEdxTot = 70., float minpTPC = 0.05, float maxpTPC = 20., float minpTPCMIPs = 0.45, float maxpTPCMIPs = 0.55, bool turnOffHistosForAsync = false, bool getdEdxVspHypoHist = false)
   {
     mCutMinnCls = minnCls;
     mCutAbsTgl = absTgl;
@@ -81,15 +82,21 @@ class PID
     mCutMinpTPCMIPs = minpTPCMIPs;
     mCutMaxpTPCMIPs = maxpTPCMIPs;
     mTurnOffHistosForAsync = turnOffHistosForAsync;
+    mGetdEdxVspHypoHist = getdEdxVspHypoHist;
   }
+
+  // Decapricated to be removed in next PR
   void setCreateCanvas(int createCanvas = 1)
   {
     mCreateCanvas = createCanvas;
   }
+
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() { return mMapHist; }
+  const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() const { return mMapHist; }
+
+  // Decapricated to be removed in next PR
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>>& getMapOfCanvas() { return mMapCanvas; }
   TCanvas* getSeparationPowerCanvas() { return mSeparationPowerCanvas.get(); }
-  const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() const { return mMapHist; }
   const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>>& getMapOfCanvas() const { return mMapCanvas; }
 
  private:
@@ -101,15 +108,19 @@ class PID
   float mCutMaxpTPC = 20.f;            // pTPC max value
   float mCutMinpTPCMIPs = 0.45f;       // pTPC min value for MIPs
   float mCutMaxpTPCMIPs = 0.55f;       // pTPC max value for MIPs
-  bool mCreateCanvas = true;           // Decide whether to create the TCanvas Object as it cannot be merged
   bool mTurnOffHistosForAsync = false; // Decide whether to turn off some histograms for async to reduce memory
+  bool mGetdEdxVspHypoHist = false;    // Decide whether to generate the EdxVspHypo histograms
+  // Decapricated to be removed in next PR
+  bool mCreateCanvas = true; // Decide whether to create the TCanvas Object as it cannot be merged
+
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHist;
+  // Decapricated to be removed in next PR
   // Map for Canvases to be published
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TCanvas>>> mMapCanvas;
   // Map for Histograms which will be put onto the canvases, and not published separately
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHistCanvas;
-  // Canvas for Trending Separation Power
   std::unique_ptr<TCanvas> mSeparationPowerCanvas;
+
   ClassDefNV(PID, 1)
 };
 } // namespace qc

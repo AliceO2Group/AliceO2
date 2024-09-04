@@ -24,6 +24,7 @@
 #include "Framework/PluginManager.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/Signpost.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -34,8 +35,7 @@
 #include <climits>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+O2_DECLARE_DYNAMIC_LOG(workflow_helpers);
 
 namespace o2::framework
 {
@@ -367,8 +367,23 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     // timeframe data.
     bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
     if (std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid")) != -1) {
-      if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
-        processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(runtime_hash(processor.name.c_str()))}});
+      if (timeframeSink && processor.name.find("internal-dpl-injected-dummy-sink") == std::string::npos) {
+        O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
+        uint32_t hash = runtime_hash(processor.name.c_str());
+        bool hasMatch = false;
+        ConcreteDataMatcher summaryMatcher = ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(hash)};
+        for (auto& output : processor.outputs) {
+          if (DataSpecUtils::match(output, summaryMatcher)) {
+            O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "%{public}s already there in %{public}s",
+                                   DataSpecUtils::describe(output).c_str(), processor.name.c_str());
+            hasMatch = true;
+            break;
+          }
+        }
+        if (!hasMatch) {
+          O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "Adding DPL/SUMMARY/%d to %{public}s", hash, processor.name.c_str());
+          processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(hash)}});
+        }
       }
     }
     bool hasConditionOption = false;
@@ -838,15 +853,23 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // Notice that availableOutputsInfo MUST be updated first, since it relies on
   // the size of outputs to be the one before the update.
   auto enumerateAvailableOutputs = [&workflow, &outputs, &availableOutputsInfo]() {
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
     for (size_t wi = 0; wi < workflow.size(); ++wi) {
       auto& producer = workflow[wi];
+      if (producer.outputs.empty()) {
+        O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "No outputs for [%zu] %{public}s", wi, producer.name.c_str());
+      }
+      O2_SIGNPOST_START(workflow_helpers, sid, "output enumeration", "Enumerating outputs for producer [%zu] %{}s public", wi, producer.name.c_str());
 
       for (size_t oi = 0; oi < producer.outputs.size(); ++oi) {
         auto& out = producer.outputs[oi];
         auto uniqueOutputId = outputs.size();
         availableOutputsInfo.emplace_back(LogicalOutputInfo{wi, uniqueOutputId, false});
+        O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "- [%zu, %zu] %{public}s",
+                               oi, uniqueOutputId, DataSpecUtils::describe(out).c_str());
         outputs.push_back(out);
       }
+      O2_SIGNPOST_END(workflow_helpers, sid, "output enumeration", "");
     }
   };
 
@@ -878,10 +901,17 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
 
   std::vector<bool> matches(constOutputs.size());
   for (size_t consumer = 0; consumer < workflow.size(); ++consumer) {
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
+    O2_SIGNPOST_START(workflow_helpers, sid, "input matching", "Matching inputs of consumer [%zu] %{}s public", consumer, workflow[consumer].name.c_str());
     for (size_t input = 0; input < workflow[consumer].inputs.size(); ++input) {
       forwards.clear();
       for (size_t i = 0; i < constOutputs.size(); i++) {
         matches[i] = DataSpecUtils::match(workflow[consumer].inputs[input], constOutputs[i]);
+        if (matches[i]) {
+          O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output", "Input %{public}s matches %{public}s",
+                                 DataSpecUtils::describe(workflow[consumer].inputs[input]).c_str(),
+                                 DataSpecUtils::describe(constOutputs[i]).c_str());
+        }
       }
 
       for (size_t i = 0; i < availableOutputsInfo.size(); i++) {
@@ -897,6 +927,8 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
         auto uniqueOutputId = oif->outputGlobalIndex;
         for (size_t tpi = 0; tpi < workflow[consumer].maxInputTimeslices; ++tpi) {
           for (size_t ptpi = 0; ptpi < workflow[producer].maxInputTimeslices; ++ptpi) {
+            O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output", "Adding edge between %{public}s and %{public}s", workflow[consumer].name.c_str(),
+                                   workflow[producer].name.c_str());
             logicalEdges.emplace_back(DeviceConnectionEdge{producer, consumer, tpi, ptpi, uniqueOutputId, input, oif->forward});
           }
         }
@@ -912,6 +944,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
         availableOutputsInfo.push_back(forward);
       }
     }
+    O2_SIGNPOST_END(workflow_helpers, sid, "input matching", "");
   }
 }
 
