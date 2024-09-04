@@ -412,7 +412,7 @@ void MatchGlobalFwd::doMatching()
     for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
       auto& thisMCHTrack = mMCHWork[MCHId];
       for (auto& pairCandidate : mCandidates[MCHId]) {
-	thisMCHTrack.setMFTTrackID(pairCandidate.second);
+        thisMCHTrack.setMFTTrackID(pairCandidate.second);
         auto& thisMFTTrack = mMFTWork[pairCandidate.second];
         auto chi2 = matchAllChi2(thisMCHTrack, thisMFTTrack); // Matching chi2 is stored independently
         thisMCHTrack.setMFTMCHMatchingScore(pairCandidate.first);
@@ -439,7 +439,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
   int nFakes = 0, nTrue = 0;
 
   auto compare = [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
-        return a.first < b.first;
+    return a.first < b.first;
   };
 
   auto firstMFTTrackID = thisMFTROF.getFirstEntry();
@@ -495,12 +495,12 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
         if constexpr (saveAllMode == SaveMode::kSaveNCandidates) { // In saveAllmode save all pairs to output container
           auto score = mMatchFunc(thisMCHTrack, thisMFTTrack);
-	  std::pair<int, int> scoreID = {score, MFTId};
-	  mCandidates[MCHId].push_back(scoreID);
-	  std::sort(mCandidates[MCHId].begin(), mCandidates[MCHId].end(), compare);
-	  if (mCandidates[MCHId].size() > mNCandidates) {
+          std::pair<int, int> scoreID = {score, MFTId};
+          mCandidates[MCHId].push_back(scoreID);
+          std::sort(mCandidates[MCHId].begin(), mCandidates[MCHId].end(), compare);
+          if (mCandidates[MCHId].size() > mNCandidates) {
             mCandidates[MCHId].pop_back();
-	  }
+          }
         }
 
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
