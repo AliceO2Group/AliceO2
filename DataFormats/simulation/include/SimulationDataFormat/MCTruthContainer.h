@@ -133,6 +133,9 @@ class MCTruthContainer
     uint32_t nofHeaderElements;
     uint32_t nofTruthElements;
   };
+#ifndef __CLING__
+  static_assert(alignof(FlatHeader) <= sizeof(uint32_t), "Invalid alignment");
+#endif
 
   // access
   MCTruthHeaderElement const& getMCTruthHeader(uint32_t dataindex) const { return mHeaderArray[dataindex]; }

@@ -26,7 +26,7 @@ namespace o2
 {
 BOOST_AUTO_TEST_CASE(MCTruth)
 {
-  using TruthElement = long;
+  using TruthElement = int;
   dataformats::MCTruthContainer<TruthElement> container;
   container.addElement(0, TruthElement(1));
   container.addElement(0, TruthElement(2));
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(MCTruth)
 
 BOOST_AUTO_TEST_CASE(MCTruth_RandomAccess)
 {
-  using TruthElement = long;
+  using TruthElement = int;
   dataformats::MCTruthContainer<TruthElement> container;
   container.addElementRandomAccess(0, TruthElement(1));
   container.addElementRandomAccess(0, TruthElement(2));
@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(MCTruth_RandomAccess)
 
 BOOST_AUTO_TEST_CASE(MCTruthContainer_flatten)
 {
-  using TruthElement = long;
+  using TruthElement = int;
   using TruthContainer = dataformats::MCTruthContainer<TruthElement>;
   TruthContainer container;
   container.addElement(0, TruthElement(1));
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_flatten)
 
 BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
 {
-  using TruthElement = long;
+  using TruthElement = int;
   // creates a container where labels might not be contiguous
   dataformats::LabelContainer<TruthElement, false> container;
   container.addLabel(0, TruthElement(1));
@@ -316,7 +316,7 @@ BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
 
 BOOST_AUTO_TEST_CASE(MCTruthContainer_move)
 {
-  using TruthElement = long;
+  using TruthElement = int;
   using Container = dataformats::MCTruthContainer<TruthElement>;
   Container container;
   container.addElement(0, TruthElement(1));

@@ -45,7 +45,6 @@
 #pragma link C++ class o2::BasicXYZQHit < float, float, int> + ;
 #pragma link C++ class o2::BasicXYZQHit < double, double, int> + ;
 #pragma link C++ struct o2::dataformats::MCTruthHeaderElement + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < long> + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::MCCompLabel> - ;
 #pragma link C++ class o2::dataformats::ConstMCTruthContainer < o2::MCCompLabel> - ;
 #pragma link C++ class std::vector < o2::dataformats::MCTruthContainer < o2::MCCompLabel>> + ;

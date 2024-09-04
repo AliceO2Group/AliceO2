@@ -20,8 +20,9 @@ namespace o2
 {
 // Composed Label to encode MC track id, event it comes from and the source (file)
 
-class MCCompLabel
+class __attribute__((packed)) MCCompLabel
 {
+  // We use __attribute__((packed)), since we have unaligned stored data of MCCompLabel
  private:
   static constexpr uint64_t ul0x1 = 0x1;
   static constexpr uint64_t NotSet = 0xffffffffffffffff;

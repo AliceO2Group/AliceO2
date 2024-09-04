@@ -20,8 +20,9 @@ namespace o2
 {
 namespace tof
 {
-class MCLabel : public o2::MCCompLabel
+class __attribute__((packed)) MCLabel : public o2::MCCompLabel
 {
+  // We use __attribute__((packed)), since we have unaligned stored data of MCCompLabel
  private:
   Int_t mTDC = -1;
 

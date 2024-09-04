@@ -24,8 +24,9 @@ namespace emcal
 /// \class MCLabel
 /// \brief Monte-Carlo label for EMCAL clusters / digits
 /// \ingroup EMCALDataFormat
-class MCLabel : public o2::MCCompLabel
+class __attribute__((packed)) MCLabel : public o2::MCCompLabel
 {
+  // We use __attribute__((packed)), since we have unaligned stored data of MCCompLabel
  private:
   Double_t mAmplitudeFraction;
 

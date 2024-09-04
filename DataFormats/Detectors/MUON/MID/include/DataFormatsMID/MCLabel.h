@@ -23,8 +23,9 @@ namespace o2
 {
 namespace mid
 {
-class MCLabel : public o2::MCCompLabel
+class __attribute__((packed)) MCLabel : public o2::MCCompLabel
 {
+  // We use __attribute__((packed)), since we have unaligned stored data of MCCompLabel
  private:
   uint32_t mStripsInfo = 0; /// Strip information
 
