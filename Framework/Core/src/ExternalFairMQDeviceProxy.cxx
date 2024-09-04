@@ -752,14 +752,15 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                         outputChannels = std::move(outputChannels)](ServiceRegistryRef ref, TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci, bool newRun) -> bool {
       auto* device = ref.get<RawDeviceService>().device();
       // pass a copy of the outputRoutes
-      auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
+      auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string const& {
+        static std::string emptyChannel = "";
         for (auto& route : outputRoutes) {
           LOG(debug) << "matching: " << DataSpecUtils::describe(query) << " to route " << DataSpecUtils::describe(route.matcher);
           if (DataSpecUtils::match(route.matcher, query) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
             return route.channel;
           }
         }
-        return {""};
+        return emptyChannel;
       };
 
       std::string const& channel = channels[ci];
