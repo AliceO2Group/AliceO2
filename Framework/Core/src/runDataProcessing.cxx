@@ -2741,9 +2741,20 @@ void enableSignposts(std::string const& signpostsToEnable)
     auto* log = (_o2_log_t*)l;
     auto* selectedName = (char const*)context;
     std::string prefix = "ch.cern.aliceo2.";
-    if (strcmp(name, (prefix + selectedName).data()) == 0) {
-      LOGP(info, "Enabling signposts for stream \"ch.cern.aliceo2.{}\"", selectedName);
-      _o2_log_set_stacktrace(log, 1);
+    auto* last = strchr(selectedName, ':');
+    int maxDepth = 1;
+    if (last) {
+      char* err;
+      maxDepth = strtol(last + 1, &err, 10);
+      if (*(last + 1) == '\0' || *err != '\0') {
+        maxDepth = 1;
+      }
+    }
+
+    auto fullName = prefix + std::string{selectedName, last ? last - selectedName : strlen(selectedName)};
+    if (strncmp(name, fullName.data(), fullName.size()) == 0) {
+      LOGP(info, "Enabling signposts for stream \"{}\" with depth {}.", fullName, maxDepth);
+      _o2_log_set_stacktrace(log, maxDepth);
       return false;
     } else {
       LOGP(info, "Signpost stream \"{}\" disabled. Enable it with o2-log -p {} -a {}", name, pid, (void*)&log->stacktrace);
