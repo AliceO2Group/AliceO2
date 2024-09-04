@@ -145,18 +145,12 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
       ji = (ji + 1) % historySize;
       continue;
     }
-    // Print matching lines
+    // Print matching lines. Notice we filter twice, once on input, to reduce the
+    // stream, a second time at display time, to avoid showing unrelevant
+    // messages from past.
     if (strstr(line.c_str(), control.logFilter) != nullptr) {
-      auto color = colorForLogLevel(logLevel);
-      // We filter twice, once on input, to reduce the
-      // stream, a second time at display time, to avoid
-      // showing unrelevant messages from past.
       if (logLevel >= control.logLevel) {
-        if (line.find('%', 0) != std::string::npos) {
-          ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
-        } else {
-          ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
-        }
+        ImGui::TextColored(colorForLogLevel(logLevel), "%s", line.c_str());
       }
     }
     ji = (ji + 1) % historySize;
