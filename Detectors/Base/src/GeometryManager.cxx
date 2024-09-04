@@ -18,7 +18,6 @@
 #include <TGeoMatrix.h>       // for TGeoHMatrix
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
-#include <TGeoParallelWorld.h>
 #include <string>
 #include <cassert>
 #include <cstddef> // for NULL
