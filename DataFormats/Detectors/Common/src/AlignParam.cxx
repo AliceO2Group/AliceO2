@@ -22,15 +22,6 @@
 
 using namespace o2::detectors;
 
-std::string getDetFromSymName(const std::string& input)
-{
-  size_t pos = input.find("/"); // Detector name is before the first slash
-  if (pos != std::string::npos) {
-    return input.substr(0, pos);
-  }
-  return input;
-}
-
 //___________________________________________________
 AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic name and its alignable ID
                        double x, double y, double z,         // delta translation
@@ -291,7 +282,7 @@ bool AlignParam::applyToGeometry() const
     path = pne->GetTitle();
     node = gGeoManager->MakeAlignablePN(pne);
   } else {
-    LOG(debug) << "The symbolic volume name " << symname
+    LOG(info) << "The symbolic volume name " << symname
                << " does not correspond to a physical entry. Using it as a volume path!";
     path = symname;
     if (!gGeoManager->CheckPath(path)) {

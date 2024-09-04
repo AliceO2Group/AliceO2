@@ -9,21 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_BASE_INCLUDE_GEOMETRYMANAGERPARAM_H_
-#define DETECTORS_BASE_INCLUDE_GEOMETRYMANAGERPARAM_H_
-
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
-
-namespace o2
-{
-
-struct GeometryManagerParam : public o2::conf::ConfigurableParamHelper<GeometryManagerParam> {
-  bool useParallelWorld = false;
-
-  O2ParamDef(GeometryManagerParam, "GeometryManagerParam");
-};
-
-} // namespace o2
-
-#endif /* DETECTORS_BASE_INCLUDE_GEOMETRYMANAGERPARAM_H_ */
+#include "ITSSimulation/ITSSimParam.h"
+O2ParamImpl(o2::its::ITSSimParam);

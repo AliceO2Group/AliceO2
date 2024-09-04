@@ -20,6 +20,7 @@
 #include "ITSSimulation/V3Layer.h"
 #include "ITSSimulation/V3Services.h"
 #include "ITSSimulation/V3Cage.h"
+#include "ITSSimulation/ITSSimParam.h"
 
 #include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -1312,46 +1313,45 @@ void Detector::defineSensitiveVolumes()
 void Detector::fillParallelWorld() const // TODO: make this configurable to handle different volume lists
 {
   TGeoParallelWorld *pw = gGeoManager->GetParallelWorld();
+  if (pw == nullptr) {
+    LOG(error) << "Parallel world was not created";
+    return;
+  }
 
   for (int iL{0}; iL < mNumberLayers; ++iL) {
     auto const layer = mGeometry[iL];
-    TString path_0 = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getITSVolPattern());
-    TString wrpV = mWrapperLayerId[iL] != -1 ? Form("%s%d_1", GeometryTGeo::getITSWrapVolPattern(), mWrapperLayerId[iL]) : "";
     int nhbarrels = layer->getNumberOfHalfBarrelsPerParent();
     int nstaves = layer->getNumberOfStavesPerParent();
     int nhstaves = layer->getNumberOfHalfStavesPerParent();
     int nmodules = layer->getNumberOfModulesPerParent();
     int nchips = layer->getNumberOfChipsPerParent();
 
-    int nall = nhbarrels * nstaves * nchips;
-    if (nhstaves > 0) nall *= nhstaves;
-    if (nmodules > 0) nall *= nmodules;
-    for (int iC{0}; iC < nall; ++iC) {
-      TString path = Form("%s/%s/%s%d_1", path_0.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), iL);
-      path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSHalfBarrelPattern(), iL, iC % nhbarrels);
-      path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSStavePattern(), iL, iC % nstaves);
-      if (nhstaves > 0) {
-        path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSHalfStavePattern(), iL, iC % nhstaves);
+    for (int iHB{0}; iHB < nhbarrels; ++iHB) {
+      for (int iS{0}; iS < nstaves; ++iS) {
+        for (int iHS{nhstaves > 0 ? 0 : -1}; iHS < nhstaves; ++iHS) {
+          for (int iM{nmodules > 0 ? 0 : -1}; iM < nmodules; ++iM) {
+            for (int iC{0}; iC < nchips; ++iC) {
+              TString sname = GeometryTGeo::composeSymNameChip(iL, iHB, iS, iHS, iM, iC);
+              TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(sname);
+              auto path = pne->GetTitle();
+
+              if (ITSSimParam::Instance().addMetalToPW) {
+                gGeoManager->MakePhysicalNode(Form("%s/MetalStack_1", path));
+                pw->AddNode(Form("%s/MetalStack_1", path));
+              }
+              if (ITSSimParam::Instance().addSensorToPW) {
+                gGeoManager->MakePhysicalNode(Form("%s/ITSUSensor%d_1", path, iL));
+                pw->AddNode(Form("%s/ITSUSensor%d_1", path, iL));
+              }
+              if (ITSSimParam::Instance().addChipToPW) {
+                pw->AddNode(path);
+              }
+            }
+          }
+        }
       }
-      if (nmodules > 0) {
-        path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSModulePattern(), iL, iC % nmodules);
-      }
-      path = Form("%s/%s%d_%d", path.Data(), GeometryTGeo::getITSChipPattern(), iL, iC % nchips);
-
-      TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
-
-      auto metallay = node->GetNode()->GetDaughter(0);
-      gGeoManager->MakePhysicalNode(Form("%s/%s", path.Data(), metallay->GetName()));
-      pw->AddNode(Form("%s/%s", path.Data(), metallay->GetName()));
-
-      auto sensor = node->GetNode()->GetDaughter(1);
-      gGeoManager->MakePhysicalNode(Form("%s/%s", path.Data(), sensor->GetName()));
-      pw->AddNode(Form("%s/%s", path.Data(), sensor->GetName()));
-
-      pw->AddNode(path.Data());
     }
   }
-  return;
 }
 
 Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
