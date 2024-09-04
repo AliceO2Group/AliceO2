@@ -408,6 +408,7 @@ void MatchGlobalFwd::doMatching()
       LOG(info) << "  MFT-MCH Matching: nFakes = " << nFakes << " nTrue = " << nTrue;
     }
   } else if constexpr (saveAllMode == SaveMode::kSaveNCandidates) {
+    int nFakes = 0, nTrue = 0;
     auto& matchAllChi2 = mMatchingFunctionMap["matchALL"];
     for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
       auto& thisMCHTrack = mMCHWork[MCHId];
