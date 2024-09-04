@@ -29,7 +29,8 @@ o2_add_hipified_library(DCAFitterHIP
 #                                                    ../cuda
 #                         PUBLIC_LINK_LIBRARIES O2::GPUCommon
 #                                               O2::ReconstructionDataFormats
-#                         PRIVATE_LINK_LIBRARIES O2::DCAFitterHIP O2::GPUTrackingHIPExternalProvider
+#                         PRIVATE_LINK_LIBRARIES O2::DCAFitterHIP 
+#                         # O2::GPUTrackingHIPExternalProvider
 #                         TARGETVARNAME targetName)
 
 # o2_add_test(DCAFitterNHIP

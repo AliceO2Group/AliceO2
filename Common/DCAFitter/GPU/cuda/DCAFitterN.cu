@@ -40,7 +40,7 @@ GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft)
 {
   if (threadIdx.x == 0) {
     printf(" =============== GPU DCA Fitter ================\n");
-    ft->print();
+    // ft->print();
     printf(" ===============================================\n");
   }
 }
@@ -48,6 +48,18 @@ GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft)
 GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res)
 {
   *res = ft->process(*t1, *t2);
+}
+
+void printKHost(o2::vertexing::DCAFitterN<2>* ft, int th, int bl)
+{
+  DCAFitterN<2>* ft_device;
+  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&ft_device), sizeof(o2::vertexing::DCAFitterN<2>)));
+  gpuCheckError(cudaMemcpy(ft_device, ft, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyHostToDevice));
+  LOGP(info, "ft: {} ft_device: {} size: {}", (void*)ft, (void*)ft_device, sizeof(o2::vertexing::DCAFitterN<2>));
+  printKernel<<<bl, th>>>(ft);
+  gpuCheckError(cudaPeekAtLastError());
+  gpuCheckError(cudaDeviceSynchronize());
+  // static_assert(false);
 }
 } // namespace kernel
 

@@ -18,7 +18,7 @@
 #include <Math/SVector.h>
 #include <array>
 
-#include "../DCAFitterGPUAPI.h"
+// #include "../DCAFitterGPUAPI.h"
 
 namespace o2::vertexing
 {
@@ -122,6 +122,7 @@ int run()
   ft.setMaxDXYIni(4);          // do not consider V0 seeds with tracks XY-distance exceeding this. This is default anyway
   ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
   ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
+
   std::cout << "running... " << std::endl;
   auto genParent = generate(vtxGen, vctracks, bz, genPHS, k0, k0dec, forceQ);
   std::cout << "running... " << std::endl;
@@ -130,7 +131,8 @@ int run()
   ft.print();
   std::cout << "returned value: " << res << std::endl;
 
-  o2::vertexing::gpu::doPrintOnDevice(&ft);
+  // o2::vertexing::gpu::doPrintOnDevice(&ft);
+  o2::vertexing::gpu::kernel::printKHost(&ft, 1, 1);
   return 0;
 }
 } // namespace o2::vertexing

@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+
 o2_add_library(DCAFitterCUDA
                TARGETVARNAME targetName
                SOURCES DCAFitterN.cu
@@ -43,9 +45,11 @@ o2_add_test(DCAFitterNCUDA
             VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_executable(dca-fitter-on-gpu-cuda
+                  TARGETVARNAME targetName3
                   SOURCES test/main_prog.cxx
                   PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                        O2::DCAFitterAPICUDA
+                                        O2::DCAFitterCUDA
                                         O2::DCAFitter
                                         ROOT::Core
                                         ROOT::Physics)
+# add_compile_options("-g -O0")

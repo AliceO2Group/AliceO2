@@ -1118,6 +1118,10 @@ GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft);
 GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res);
 } // namespace gpu::kernel
 #endif
+namespace gpu::kernel
+{
+void printKHost(o2::vertexing::DCAFitterN<2>* ft, int th, int bl);
+}
 } // namespace vertexing
 } // namespace o2
 #endif // _ALICEO2_DCA_FITTERN_

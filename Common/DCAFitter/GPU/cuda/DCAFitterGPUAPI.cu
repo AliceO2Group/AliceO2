@@ -44,11 +44,12 @@ void doPrintOnDevice(o2::vertexing::DCAFitterN<2>* ft)
   DCAFitterN<2>* ft_device;
   gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&ft_device), sizeof(o2::vertexing::DCAFitterN<2>)));
   gpuCheckError(cudaMemcpy(ft_device, ft, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyHostToDevice));
-
-  gpu::kernel::printKernel<<<1, 1>>>(ft_device);
-
+  LOGP(info, "ft: {} ft_device: {} size: {}", (void*)ft, (void*)ft_device, sizeof(o2::vertexing::DCAFitterN<2>));
+  kernel::printKernel<<<1, 2049>>>(ft_device);
+  LOGP(info, "here.");
   gpuCheckError(cudaPeekAtLastError());
   gpuCheckError(cudaDeviceSynchronize());
+  LOGP(info, "here 2.");
 
   gpuCheckError(cudaFree(ft_device));
 }
