@@ -190,7 +190,7 @@ bool O2MCApplicationBase::MisalignGeometry()
 
   // fill parallel world geometry if activated
   if (o2::GeometryManagerParam::Instance().useParallelWorld) {
-    TGeoParallelWorld *pw = gGeoManager->CreateParallelWorld("priority_sensors");
+    TGeoParallelWorld* pw = gGeoManager->CreateParallelWorld("priority_sensors");
     for (auto det : listDetectors) {
       if (dynamic_cast<o2::base::Detector*>(det)) {
         ((o2::base::Detector*)det)->fillParallelWorld();
