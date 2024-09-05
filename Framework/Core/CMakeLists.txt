@@ -16,6 +16,7 @@ o2_add_library(Framework
                        src/ArrowSupport.cxx
                        src/ArrowTableSlicingCache.cxx
                        src/AnalysisDataModel.cxx
+                       src/AnalysisSupportHelpers.cxx
                        src/ASoA.cxx
                        src/AsyncQueue.cxx
                        src/AnalysisDataModelHelpers.cxx
