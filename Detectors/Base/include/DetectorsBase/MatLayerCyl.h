@@ -54,9 +54,11 @@ class MatLayerCyl : public o2::gpu::FlatObject
                              Within = 0,
                              Above = 1 };
 
+#ifndef GPUCA_GPUCODE
   MatLayerCyl();
   MatLayerCyl(const MatLayerCyl& src) CON_DELETE;
   ~MatLayerCyl() CON_DEFAULT;
+#endif
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
   MatLayerCyl(float rMin, float rMax, float zHalfSpan, float dzMin, float drphiMin);
