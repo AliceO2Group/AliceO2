@@ -786,8 +786,10 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZ(const math_utils::Point3D<doubl
 
 namespace o2::base
 {
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 template class PropagatorImpl<float>;
-#ifndef GPUCA_GPUCODE_DEVICE
+#endif
+#ifndef GPUCA_GPUCODE
 template class PropagatorImpl<double>;
 #endif
 #ifndef __HIPCC__ // TODO: Fixme: must prevent HIP from compiling this, should file bug report

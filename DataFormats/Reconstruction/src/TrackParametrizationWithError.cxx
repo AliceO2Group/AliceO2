@@ -1245,8 +1245,10 @@ GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
 
 namespace o2::track
 {
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 template class TrackParametrizationWithError<float>;
-#ifndef GPUCA_GPUCODE_DEVICE
+#endif
+#ifndef GPUCA_GPUCODE
 template class TrackParametrizationWithError<double>;
 #endif
 } // namespace o2::track
