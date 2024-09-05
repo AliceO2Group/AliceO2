@@ -23,10 +23,12 @@
 using namespace o2::base;
 using flatObject = o2::gpu::FlatObject;
 
+#ifndef GPUCA_GPUCODE
 //________________________________________________________________________________
 MatLayerCyl::MatLayerCyl() : mNZBins(0), mNPhiBins(0), mNPhiSlices(0), mZHalf(0.f), mRMin2(0.f), mRMax2(0.f), mDZ(0.f), mDZInv(0.f), mDPhi(0.f), mDPhiInv(0.f), mPhiBin2Slice(nullptr), mSliceCos(nullptr), mSliceSin(nullptr), mCells(nullptr)
 {
 }
+#endif
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 //________________________________________________________________________________

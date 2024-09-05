@@ -34,7 +34,7 @@ class Geometry;
 class GeometryFlat : public o2::gpu::FlatObject, public GeometryBase
 {
  public:
-#ifndef GPUCA_GPUCODE_DEVICE
+#ifndef GPUCA_GPUCODE
   GeometryFlat() = default;
   GeometryFlat(const GeometryFlat& v) : FlatObject(), GeometryBase()
   {

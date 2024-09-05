@@ -60,7 +60,9 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 {
  public:
   /// Default constructor: creates an empty uninitialized object
+#ifndef GPUCA_GPUCODE
   CalibdEdxContainer() CON_DEFAULT;
+#endif
 
   /// Copy constructor: disabled to avoid ambiguity. Use cloneFromObject() instead
   CalibdEdxContainer(const CalibdEdxContainer&) CON_DELETE;
