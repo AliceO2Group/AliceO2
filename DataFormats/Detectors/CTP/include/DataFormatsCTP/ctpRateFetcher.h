@@ -30,9 +30,8 @@ class ctpRateFetcher
   ctpRateFetcher() = default;
   double fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
   double fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
-
-  void setManualCleanup(bool manualCleanup = true) { mManualCleanup = manualCleanup; }
-
+  void setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers);
+  void updateScalers(ctp::CTPRunScalers* scalers);
  private:
   double fetchCTPratesInputs(uint64_t timeStamp, int input);
   double fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType = 1);
@@ -40,8 +39,6 @@ class ctpRateFetcher
   double fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const std::string& className, int inputType = 1);
 
   double pileUpCorrection(double rate);
-  void setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp);
-  bool mManualCleanup = false;
   int mRunNumber = -1;
   ctp::CTPConfiguration* mConfig = nullptr;
   ctp::CTPRunScalers* mScalers = nullptr;

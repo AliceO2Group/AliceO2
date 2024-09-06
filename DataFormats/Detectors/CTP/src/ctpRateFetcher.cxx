@@ -30,7 +30,7 @@ double ctpRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStam
 }
 double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
-  setupRun(runNumber, ccdb, timeStamp);
+  setupRun(runNumber, ccdb, timeStamp, 1);
   if (sourceName.find("ZNC") != std::string::npos) {
     if (runNumber < 544448) {
       return fetchCTPratesInputsNoPuCorr(timeStamp, 25) / (sourceName.find("hadronic") != std::string::npos ? 28. : 1.);
@@ -46,7 +46,7 @@ double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t 
       return fetchCTPratesClassesNoPuCorr(timeStamp, "minbias_TVX_L0", 3); // 2022
     } else {
       double_t ret = fetchCTPratesClassesNoPuCorr(timeStamp, "CMTVX-B-NOPF");
-      if (ret < 0.) {
+      if (ret == -2.) {
         LOG(info) << "Trying different class";
         ret = fetchCTPratesClassesNoPuCorr(timeStamp, "CMTVX-NONE");
         if (ret < 0) {
@@ -59,6 +59,12 @@ double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t 
   LOG(error) << "CTP rate for " << sourceName << " not available";
   return -1.;
 }
+void ctpRateFetcher::updateScalers(ctp::CTPRunScalers* scalers)
+{
+  mScalers = scalers;
+  mScalers->convertRawToO2();
+}
+//
 double ctpRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType)
 {
   auto triggerRate = fetchCTPratesClassesNoPuCorr(timeStamp, className, inputType);
@@ -80,7 +86,7 @@ double ctpRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const st
   }
   if (classIndex == -1) {
     LOG(warn) << "Trigger class " << className << " not found in CTPConfiguration";
-    return -1.;
+    return -2.;
   }
   auto rate{mScalers->getRateGivenT(timeStamp * 1.e-3, classIndex, inputType)};
   return rate.second;
@@ -119,18 +125,13 @@ double ctpRateFetcher::pileUpCorrection(double triggerRate)
   return mu * nbc * constants::lhc::LHCRevFreq;
 }
 
-void ctpRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp)
+void ctpRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers)
 {
   if (runNumber == mRunNumber) {
     return;
   }
   mRunNumber = runNumber;
   LOG(debug) << "Setting up CTP scalers for run " << mRunNumber;
-  if (mManualCleanup) {
-    delete mConfig;
-    delete mScalers;
-    delete mLHCIFdata;
-  }
   std::map<string, string> metadata;
   mLHCIFdata = ccdb->getSpecific<parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
   if (mLHCIFdata == nullptr) {
@@ -141,9 +142,11 @@ void ctpRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, u
   if (mConfig == nullptr) {
     LOG(fatal) << "CTPRunConfig not in database, timestamp:" << timeStamp;
   }
-  mScalers = ccdb->getSpecific<ctp::CTPRunScalers>("CTP/Calib/Scalers", timeStamp, metadata);
-  if (mScalers == nullptr) {
-    LOG(fatal) << "CTPRunScalers not in database, timestamp:" << timeStamp;
+  if(initScalers) {
+    mScalers = ccdb->getSpecific<ctp::CTPRunScalers>("CTP/Calib/Scalers", timeStamp, metadata);
+    if (mScalers == nullptr) {
+      LOG(fatal) << "CTPRunScalers not in database, timestamp:" << timeStamp;
+    }
+    mScalers->convertRawToO2();
   }
-  mScalers->convertRawToO2();
 }
