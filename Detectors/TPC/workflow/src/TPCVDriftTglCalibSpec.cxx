@@ -30,9 +30,9 @@ namespace tpc
 class TPCVDriftTglCalibSpec : public Task
 {
  public:
-  TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, float maxDelay, size_t minEnt, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
+  TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, float offset, float maxDelay, size_t minEnt, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
   {
-    mCalibrator = std::make_unique<o2::tpc::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, maxDelay, minEnt);
+    mCalibrator = std::make_unique<o2::tpc::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, offset, maxDelay, minEnt);
   }
 
   void init(InitContext& ic) final
@@ -113,7 +113,7 @@ void TPCVDriftTglCalibSpec::sendOutput(DataAllocator& output)
 }
 
 //_____________________________________________________________
-DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, float maxDelay, size_t minEnt)
+DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, float slot0frac, float maxDelay, size_t minEnt)
 {
 
   using device = o2::tpc::TPCVDriftTglCalibSpec;
@@ -132,12 +132,13 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"}, Lifetime::Sporadic);
+  slot0frac = 1. - slot0frac;
 
   return DataProcessorSpec{
     "tpc-vd-tgl-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::tpc::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, maxDelay, minEnt, ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<o2::tpc::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, slot0frac, maxDelay, minEnt, ccdbRequest)},
     Options{{"vdtgl-histos-file-name", VariantType::String, "", {"file to save histos (if name provided)"}}}};
 }
 
