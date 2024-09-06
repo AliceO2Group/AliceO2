@@ -44,5 +44,7 @@ GPUdii() void GPUTrackingRefitKernel::Thread(int nBlocks, int nThreads, int iBlo
     }
   }
 }
-template GPUd() void GPUTrackingRefitKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
-template GPUd() void GPUTrackingRefitKernel::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
+template GPUdni() void GPUTrackingRefitKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+template GPUdni() void GPUTrackingRefitKernel::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+#endif
