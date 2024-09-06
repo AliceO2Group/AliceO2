@@ -1011,22 +1011,20 @@ GPUd() bool DCAFitterN<N, Args...>::closerToAlternative() const
 template <int N, typename... Args>
 GPUd() void DCAFitterN<N, Args...>::print() const
 {
-#if !defined(GPUCA_GPUCODE)
+#ifndef GPUCA_GPUCODE_DEVICE
   LOG(info) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
   LOG(info) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(info) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
   LOG(info) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDZIni;
-#endif
-#if defined(GPUCA_GPUCODE_DEVICE)
-  // if (mUseAbsDCA) {
-  printf("test %d\n", sizeof(DCAFitterN<2>));
-  // printf("%d-prong vertex fitter in abs. distance minimization mode\n", N);
-  // // } else {
-  // printf("%d-prong vertex fitter in weighted distance minimization mode\n", N);
-  // // }
-  // printf("Bz: %f MaxIter: %d  MaxChi2: %f\n", mBz, mMaxIter, mMaxChi2);
-  // printf("Stopping condition: Max.param change < %f Rel.Chi2 change > %f\n", mMinParamChange, mMinRelChi2Change);
-  // printf("Discard candidates for : Rvtx > %f DZ between tracks > %f", getMaxR(), mMaxDZIni);
+#else
+  if (mUseAbsDCA) {
+    printf("%d-prong vertex fitter in abs. distance minimization mode\n", N);
+  } else {
+    printf("%d-prong vertex fitter in weighted distance minimization mode\n", N);
+  }
+  printf("Bz: %f MaxIter: %d  MaxChi2: %f\n", mBz, mMaxIter, mMaxChi2);
+  printf("Stopping condition: Max.param change < %f Rel.Chi2 change > %f\n", mMinParamChange, mMinRelChi2Change);
+  printf("Discard candidates for : Rvtx > %f DZ between tracks > %f\n", getMaxR(), mMaxDZIni);
 #endif
 }
 
@@ -1131,10 +1129,17 @@ GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft);
 GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res);
 } // namespace gpu::kernel
 #endif
-namespace gpu::kernel
+namespace gpu
 {
-void printKHost(o2::vertexing::DCAFitterN<2>* ft, int th, int bl);
-}
+void printOnDevice(o2::vertexing::DCAFitterN<2>*,
+                   const int nBlocks = 1,
+                   const int nThreads = 1);
+int processOnDevice(o2::vertexing::DCAFitterN<2>*,
+                    o2::track::TrackParCov&,
+                    o2::track::TrackParCov&,
+                    const int nBlocks = 1,
+                    const int nThreads = 1);
+} // namespace gpu
 } // namespace vertexing
 } // namespace o2
 #endif // _ALICEO2_DCA_FITTERN_

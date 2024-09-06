@@ -9,8 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
-
 o2_add_library(DCAFitterCUDA
                TARGETVARNAME targetName
                SOURCES DCAFitterN.cu
@@ -21,21 +19,10 @@ o2_add_library(DCAFitterCUDA
                PRIVATE_LINK_LIBRARIES O2::GPUTrackingCUDAExternalProvider)
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
-o2_add_library(DCAFitterAPICUDA
-              # TARGETVARNAME targetName2
-               SOURCES DCAFitterGPUAPI.cu
-               PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Common/DCAFitter/GPU
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                     O2::ReconstructionDataFormats
-               PRIVATE_LINK_LIBRARIES O2::DCAFitterCUDA
-               # O2::GPUTrackingCUDAExternalProvider
-                )
-# set_property(TARGET ${targetName2} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-
 o2_add_test(DCAFitterNCUDA
             SOURCES test/testDCAFitterNGPU.cxx
             PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                  O2::DCAFitterAPICUDA
+                                  O2::DCAFitterCUDA
                                   O2::DCAFitter
                                   ROOT::Core
                                   ROOT::Physics
@@ -43,13 +30,3 @@ o2_add_test(DCAFitterNCUDA
             LABELS vertexing
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
-
-o2_add_executable(dca-fitter-on-gpu-cuda
-                  TARGETVARNAME targetName3
-                  SOURCES test/main_prog.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                        O2::DCAFitterCUDA
-                                        O2::DCAFitter
-                                        ROOT::Core
-                                        ROOT::Physics)
-# add_compile_options("-g -O0")

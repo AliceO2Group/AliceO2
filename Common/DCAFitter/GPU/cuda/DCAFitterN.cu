@@ -49,18 +49,58 @@ GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParC
 {
   *res = ft->process(*t1, *t2);
 }
+} // namespace kernel
 
-void printKHost(o2::vertexing::DCAFitterN<2>* ft, int th, int bl)
+void printOnDevice(o2::vertexing::DCAFitterN<2>* ft,
+                   const int nBlocks,
+                   const int nThreads)
 {
   DCAFitterN<2>* ft_device;
   gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&ft_device), sizeof(o2::vertexing::DCAFitterN<2>)));
   gpuCheckError(cudaMemcpy(ft_device, ft, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyHostToDevice));
-  LOGP(info, "ft: {} ft_device: {} size: {}", (void*)ft, (void*)ft_device, sizeof(o2::vertexing::DCAFitterN<2>));
-  printKernel<<<bl, th>>>(ft);
+
+  kernel::printKernel<<<nBlocks, nThreads>>>(ft_device);
+
   gpuCheckError(cudaPeekAtLastError());
   gpuCheckError(cudaDeviceSynchronize());
-  // static_assert(false);
 }
-} // namespace kernel
+
+int processOnDevice(o2::vertexing::DCAFitterN<2>* fitter,
+                    o2::track::TrackParCov& track1,
+                    o2::track::TrackParCov& track2,
+                    const int nBlocks,
+                    const int nThreads)
+{
+  DCAFitterN<2>* ft_device;
+  o2::track::TrackParCov* t1_device;
+  o2::track::TrackParCov* t2_device;
+  int result, *result_device;
+
+  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&ft_device), sizeof(o2::vertexing::DCAFitterN<2>)));
+  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&t1_device), sizeof(o2::track::TrackParCov)));
+  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&t2_device), sizeof(o2::track::TrackParCov)));
+  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&result_device), sizeof(int)));
+
+  gpuCheckError(cudaMemcpy(ft_device, fitter, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyHostToDevice));
+  gpuCheckError(cudaMemcpy(t1_device, &track1, sizeof(o2::track::TrackParCov), cudaMemcpyHostToDevice));
+  gpuCheckError(cudaMemcpy(t2_device, &track2, sizeof(o2::track::TrackParCov), cudaMemcpyHostToDevice));
+
+  kernel::processKernel<<<nBlocks, nThreads>>>(ft_device, t1_device, t2_device, result_device);
+
+  gpuCheckError(cudaPeekAtLastError());
+  gpuCheckError(cudaDeviceSynchronize());
+
+  gpuCheckError(cudaMemcpy(&result, result_device, sizeof(int), cudaMemcpyDeviceToHost));
+  gpuCheckError(cudaMemcpy(fitter, ft_device, sizeof(o2::vertexing::DCAFitterN<2>), cudaMemcpyDeviceToHost));
+  gpuCheckError(cudaMemcpy(&track1, t1_device, sizeof(o2::track::TrackParCov), cudaMemcpyDeviceToHost));
+  gpuCheckError(cudaMemcpy(&track2, t2_device, sizeof(o2::track::TrackParCov), cudaMemcpyDeviceToHost));
+  gpuCheckError(cudaFree(ft_device));
+  gpuCheckError(cudaFree(t1_device));
+  gpuCheckError(cudaFree(t2_device));
+
+  gpuCheckError(cudaFree(result_device));
+
+  return result;
+}
 
 } // namespace o2::vertexing::gpu

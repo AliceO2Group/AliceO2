@@ -23,8 +23,6 @@
 #include <Math/SVector.h>
 #include <array>
 
-#include "../DCAFitterGPUAPI.h"
-
 namespace o2
 {
 namespace vertexing
@@ -189,8 +187,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       auto genParent = generate(vtxGen, vctracks, bz, genPHS, k0, k0dec, forceQ);
       ft.setUseAbsDCA(true);
       swA.Start(false);
-      int ncA = o2::vertexing::gpu::doProcessOnDevice(&ft, &(vctracks[0]), &(vctracks[1]));
-      // int ncA = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      int ncA = gpu::processOnDevice(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swA.Stop();
       LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
@@ -202,8 +199,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       ft.setUseAbsDCA(true);
       ft.setWeightedFinalPCA(true);
       swAW.Start(false);
-      int ncAW = o2::vertexing::gpu::doProcessOnDevice(&ft, &(vctracks[0]), &(vctracks[1]));
-      // int ncAW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      int ncAW = gpu::processOnDevice(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swAW.Stop();
       LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncAW << " Chi2: " << (ncAW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncAW) {
@@ -215,8 +211,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       ft.setUseAbsDCA(false);
       ft.setWeightedFinalPCA(false);
       swW.Start(false);
-      int ncW = o2::vertexing::gpu::doProcessOnDevice(&ft, &(vctracks[0]), &(vctracks[1]));
-      // int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      int ncW = gpu::processOnDevice(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
       LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncW) {
@@ -226,17 +221,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       }
     }
     ft.print();
-    o2::vertexing::gpu::doPrintOnDevice(&ft);
+    gpu::printOnDevice(&ft, 1, 1);
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " GPU time: " << swA.CpuTime();
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " GPU time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " GPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     // BOOST_CHECK(nfoundAW > 0.99 * NTest);
     // BOOST_CHECK(nfoundW > 0.99 * NTest);

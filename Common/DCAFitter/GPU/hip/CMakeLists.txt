@@ -19,32 +19,16 @@ o2_add_hipified_library(DCAFitterHIP
                                               hip::host
                         PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
                         TARGETVARNAME targetNAme)
-# target_compile_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
-# target_link_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)
 
-# o2_add_hipified_library(DCAFitterAPIHIP
-#                         SOURCES ../cuda/DCAFitterGPUAPI.cu
-#                         ../cuda/DCAFitterN.cu
-#                         PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/Common/DCAFitter/GPU
-#                                                    ../cuda
-#                         PUBLIC_LINK_LIBRARIES O2::GPUCommon
-#                                               O2::ReconstructionDataFormats
-#                         PRIVATE_LINK_LIBRARIES O2::DCAFitterHIP 
-#                         # O2::GPUTrackingHIPExternalProvider
-#                         TARGETVARNAME targetName)
-
-# o2_add_test(DCAFitterNHIP
-#             SOURCES ../cuda/test/testDCAFitterNGPU.cxx
-#             PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-#                                   O2::DCAFitterAPIHIP
-#                                   O2::DCAFitter
-#                                   ROOT::Core
-#                                   ROOT::Physics
-#             HIPIFIED test
-#             COMPONENT_NAME gpu
-#             LABELS vertexing
-#             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-#             VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
-
-
-
+o2_add_test(DCAFitterNHIP
+            SOURCES ../cuda/test/testDCAFitterNGPU.cxx
+            PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+                                  O2::DCAFitterHIP
+                                  O2::DCAFitter
+                                  ROOT::Core
+                                  ROOT::Physics
+            HIPIFIED test
+            COMPONENT_NAME gpu
+            LABELS vertexing
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
