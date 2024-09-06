@@ -282,8 +282,8 @@ bool AlignParam::applyToGeometry() const
     path = pne->GetTitle();
     node = gGeoManager->MakeAlignablePN(pne);
   } else {
-    LOG(info) << "The symbolic volume name " << symname
-              << " does not correspond to a physical entry. Using it as a volume path!";
+    LOG(debug) << "The symbolic volume name " << symname
+               << " does not correspond to a physical entry. Using it as a volume path!";
     path = symname;
     if (!gGeoManager->CheckPath(path)) {
       LOG(error) << "Volume path " << path << " is not valid";

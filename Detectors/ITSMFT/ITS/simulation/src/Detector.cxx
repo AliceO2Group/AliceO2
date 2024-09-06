@@ -1319,6 +1319,7 @@ void Detector::fillParallelWorld() const // TODO: make this configurable to hand
   }
 
   for (int iL{0}; iL < mNumberLayers; ++iL) {
+    auto& param = ITSSimParam::Instance();
     auto const layer = mGeometry[iL];
     int nhbarrels = layer->getNumberOfHalfBarrelsPerParent();
     int nstaves = layer->getNumberOfStavesPerParent();
@@ -1335,15 +1336,17 @@ void Detector::fillParallelWorld() const // TODO: make this configurable to hand
               TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(sname);
               auto path = pne->GetTitle();
 
-              if (ITSSimParam::Instance().addMetalToPW) {
-                gGeoManager->MakePhysicalNode(Form("%s/MetalStack_1", path));
-                pw->AddNode(Form("%s/MetalStack_1", path));
+              if (param.addMetalToPW) {
+                TString metalPath = Form("%s/MetalStack_1", path);
+                gGeoManager->MakePhysicalNode(metalPath);
+                pw->AddNode(metalPath);
               }
-              if (ITSSimParam::Instance().addSensorToPW) {
-                gGeoManager->MakePhysicalNode(Form("%s/ITSUSensor%d_1", path, iL));
-                pw->AddNode(Form("%s/ITSUSensor%d_1", path, iL));
+              if (param.addSensorToPW) {
+                TString sensorPath = Form("%s/ITSUSensor%d_1", path, iL);
+                gGeoManager->MakePhysicalNode(sensorPath);
+                pw->AddNode(sensorPath);
               }
-              if (ITSSimParam::Instance().addChipToPW) {
+              if (param.addChipToPW) {
                 pw->AddNode(path);
               }
             }
