@@ -24,7 +24,7 @@ void TestFetcher(int runNumber = 556767)
   std::cout << "Run duration:" << pp.first << " " << pp.second << std::endl;
   // Opening run
   ctpRateFetcher fetcher;
-  fetcher.setupRun(runNumber,&ccdb,ts,0);
+  fetcher.setupRun(runNumber, &ccdb, ts, 0);
   ccdb.setURL("http://ali-qcdb-gpn.cern.ch:8083/");
   std::string QCDBPathCTPScalers = "qc/CTP/Scalers";
   map<string, string> metadata; // can be empty
@@ -34,13 +34,13 @@ void TestFetcher(int runNumber = 556767)
   auto tt = ctpscalers->getTimeLimitFromRaw();
   std::cout << "1st scalers duration:" << tt.first << " " << tt.second << std::endl;
   fetcher.updateScalers(ctpscalers);
-  auto rate = fetcher.fetchNoPuCorr(&ccdb,ts,runNumber,"T0VTX");
+  auto rate = fetcher.fetchNoPuCorr(&ccdb, ts, runNumber, "T0VTX");
   std::cout << "1st rate:" << rate << std::endl;
   // Running on the same run
-  ts = ts + 5*1000*3600;
+  ts = ts + 5 * 1000 * 3600;
   ctpscalers = ccdb.getSpecific<CTPRunScalers>(QCDBPathCTPScalers, ts, metadata);
   std::cout << "Later scalers duration:" << tt.first << " " << tt.second << std::endl;
   fetcher.updateScalers(ctpscalers);
-  rate = fetcher.fetchNoPuCorr(&ccdb,ts,runNumber,"T0VTX");
+  rate = fetcher.fetchNoPuCorr(&ccdb, ts, runNumber, "T0VTX");
   std::cout << "Later rate:" << rate << std::endl;
 }

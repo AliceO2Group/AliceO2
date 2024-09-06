@@ -142,7 +142,7 @@ void ctpRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, u
   if (mConfig == nullptr) {
     LOG(fatal) << "CTPRunConfig not in database, timestamp:" << timeStamp;
   }
-  if(initScalers) {
+  if (initScalers) {
     mScalers = ccdb->getSpecific<ctp::CTPRunScalers>("CTP/Calib/Scalers", timeStamp, metadata);
     if (mScalers == nullptr) {
       LOG(fatal) << "CTPRunScalers not in database, timestamp:" << timeStamp;

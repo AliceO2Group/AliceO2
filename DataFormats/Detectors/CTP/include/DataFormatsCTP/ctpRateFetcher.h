@@ -32,6 +32,7 @@ class ctpRateFetcher
   double fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
   void setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers);
   void updateScalers(ctp::CTPRunScalers* scalers);
+
  private:
   double fetchCTPratesInputs(uint64_t timeStamp, int input);
   double fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType = 1);
