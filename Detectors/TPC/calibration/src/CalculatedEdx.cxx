@@ -46,8 +46,8 @@ void CalculatedEdx::setRefit(const unsigned int nHbfPerTf)
 {
   mTPCRefitterShMap.reserve(mClusterIndex->nClustersTotal);
   auto sizeOcc = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHbfPerTf, nullptr);
-  LOGP(info, "Occupancy map size: {}", sizeOcc);
   mTPCRefitterOccMap.resize(sizeOcc);
+  std::fill(mTPCRefitterOccMap.begin(), mTPCRefitterOccMap.end(), 0);
   o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), nHbfPerTf);
   mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), nHbfPerTf, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
 }
