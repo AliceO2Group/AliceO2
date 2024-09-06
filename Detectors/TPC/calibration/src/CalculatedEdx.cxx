@@ -42,11 +42,14 @@ void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdx
   mClusterIndex = &clIndex;
 }
 
-void CalculatedEdx::setRefit()
+void CalculatedEdx::setRefit(const unsigned int nHbfPerTf)
 {
   mTPCRefitterShMap.reserve(mClusterIndex->nClustersTotal);
-  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mTPCRefitterShMap.data(), mTPCRefitterOccMap.data());
-  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), 0, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
+  auto sizeOcc = o2::gpu::GPUO2InterfaceRefit::fillOccupancyMapGetSize(nHbfPerTf, nullptr);
+  LOGP(info, "Occupancy map size: {}", sizeOcc);
+  mTPCRefitterOccMap.resize(sizeOcc);
+  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersAndOccupancyMap(mClusterIndex, *mTracks, mTPCTrackClIdxVecInput->data(), mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), nHbfPerTf);
+  mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mFieldNominalGPUBz, mTPCTrackClIdxVecInput->data(), nHbfPerTf, mTPCRefitterShMap.data(), mTPCRefitterOccMap.data(), mTPCRefitterOccMap.size());
 }
 
 void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method)
@@ -368,19 +371,27 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   }
 
   // number of clusters
-  output.NHitsIROC = nClsROC[0] - nClsSubThreshROC[0];
-  output.NHitsOROC1 = nClsROC[1] - nClsSubThreshROC[1];
-  output.NHitsOROC2 = nClsROC[2] - nClsSubThreshROC[2];
-  output.NHitsOROC3 = nClsROC[3] - nClsSubThreshROC[3];
-
   output.NHitsSubThresholdIROC = nClsROC[0];
   output.NHitsSubThresholdOROC1 = nClsROC[1];
   output.NHitsSubThresholdOROC2 = nClsROC[2];
   output.NHitsSubThresholdOROC3 = nClsROC[3];
 
-  // fill subthreshold clusters
-  if (((clusterMask & ClusterFlags::ExcludeSubthresholdCl) == ClusterFlags::None) && (minChargeTot <= mMinChargeTotThreshold && minChargeMax <= mMinChargeMaxThreshold)) {
-    fillMissingClusters(nClsSubThreshROC, minChargeTot, minChargeMax, subthresholdMethod);
+  // check if the lost clusters are subthreshold clusters based on the charge thresholds
+  if (minChargeTot <= mMinChargeTotThreshold && minChargeMax <= mMinChargeMaxThreshold) {
+    output.NHitsIROC = nClsROC[0] - nClsSubThreshROC[0];
+    output.NHitsOROC1 = nClsROC[1] - nClsSubThreshROC[1];
+    output.NHitsOROC2 = nClsROC[2] - nClsSubThreshROC[2];
+    output.NHitsOROC3 = nClsROC[3] - nClsSubThreshROC[3];
+
+    // fill subthreshold clusters if not excluded
+    if (((clusterMask & ClusterFlags::ExcludeSubthresholdCl) == ClusterFlags::None)) {
+      fillMissingClusters(nClsSubThreshROC, minChargeTot, minChargeMax, subthresholdMethod);
+    }
+  } else {
+    output.NHitsIROC = nClsROC[0];
+    output.NHitsOROC1 = nClsROC[1];
+    output.NHitsOROC2 = nClsROC[2];
+    output.NHitsOROC3 = nClsROC[3];
   }
 
   // calculate dEdx

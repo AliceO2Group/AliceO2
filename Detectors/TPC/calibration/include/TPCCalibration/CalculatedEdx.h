@@ -88,7 +88,7 @@ class CalculatedEdx
   void setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex, std::vector<o2::tpc::TrackTPC>* vTPCTracksArrayInp);
 
   /// set the refitter
-  void setRefit();
+  void setRefit(const unsigned int nHbfPerTf = 32);
 
   /// \param propagate propagate the tracks to extract the track parameters instead of performing a refit
   void setPropagateTrack(const bool propagate) { mPropagateTrack = propagate; }
