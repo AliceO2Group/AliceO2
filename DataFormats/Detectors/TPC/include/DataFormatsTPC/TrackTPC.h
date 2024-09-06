@@ -80,7 +80,7 @@ class TrackTPC : public o2::track::TrackParCov
 
   template <class T>
   GPUdi() static void getClusterReference(T& clinfo, int nCluster,
-                                                uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex, const ClusRef& ref)
+                                          uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex, const ClusRef& ref)
   {
     // data for given tracks starts at clinfo[ ref.getFirstEntry() ],
     // 1st ref.getEntries() cluster indices are stored as uint32_t
@@ -96,14 +96,14 @@ class TrackTPC : public o2::track::TrackParCov
 
   template <class T>
   GPUdi() void getClusterReference(T& clinfo, int nCluster,
-                                         uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
+                                   uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
   {
     getClusterReference<T>(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex, mClustersReference);
   }
 
   template <class T>
   GPUdi() static const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
-                                                                const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex, const ClusRef& ref)
+                                                          const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex, const ClusRef& ref)
   {
     uint32_t clusterIndex;
     getClusterReference<T>(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex, ref);
@@ -112,14 +112,14 @@ class TrackTPC : public o2::track::TrackParCov
 
   template <class T>
   GPUdi() const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
-                                                         const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
+                                                   const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
     return getCluster<T>(clinfo, nCluster, clusters, sectorIndex, rowIndex, mClustersReference);
   }
 
   template <class T>
   GPUdi() const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
-                                                         const o2::tpc::ClusterNativeAccess& clusters) const
+                                                   const o2::tpc::ClusterNativeAccess& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
     return (getCluster<T>(clinfo, nCluster, clusters, sectorIndex, rowIndex));

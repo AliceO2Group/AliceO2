@@ -345,11 +345,13 @@ class GPUTRDTrackerDebug
   GPUd() void SetFindable(bool* findable) {}
   GPUd() void Output() {}
 };
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 #ifndef GPUCA_ALIROOT_LIB
 template class GPUTRDTrackerDebug<GPUTRDTrackGPU>;
 #endif
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 template class GPUTRDTrackerDebug<GPUTRDTrack>;
+#endif
 #endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
