@@ -40,7 +40,7 @@ GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft)
 {
   if (threadIdx.x == 0) {
     printf(" =============== GPU DCA Fitter ================\n");
-    // ft->print();
+    ft->print();
     printf(" ===============================================\n");
   }
 }

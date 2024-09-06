@@ -113,7 +113,6 @@ int run()
 
   double bz = 5.0;
   std::vector<int> forceQ{1, 1};
-  std::cout << "running... " << std::endl;
   o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
   ft.setBz(bz);
   ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -123,12 +122,11 @@ int run()
   ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
   ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 
-  std::cout << "running... " << std::endl;
   auto genParent = generate(vtxGen, vctracks, bz, genPHS, k0, k0dec, forceQ);
-  std::cout << "running... " << std::endl;
   ft.setUseAbsDCA(true);
   auto res = ft.process(vctracks[0], vctracks[1]);
   ft.print();
+  std::cout << " => " << sizeof(DCAFitterN<2>) << std::endl;
   std::cout << "returned value: " << res << std::endl;
 
   // o2::vertexing::gpu::doPrintOnDevice(&ft);
