@@ -32,7 +32,7 @@ namespace fvd
 class GeometryTGeo : public o2::detectors::DetMatrixCache
 {
  public:
-  GeometryTGeo(bool build, int loadTrans);
+  GeometryTGeo(bool build = false, int loadTrans = 0);
 
   void Build(int loadTrans);
   void fillMatrixCache(int mask);

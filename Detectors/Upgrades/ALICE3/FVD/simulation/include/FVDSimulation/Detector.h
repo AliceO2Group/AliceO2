@@ -78,6 +78,8 @@ class Detector : public o2::base::DetImpl<Detector>
   TGeoVolumeAssembly* buildModuleA();
   TGeoVolumeAssembly* buildModuleC();
 
+  void defineSensitiveVolumes();
+
   /// Transient data about track passing the sensor, needed by ProcessHits()
   struct TrackData {               // this is transient
     bool mHitStarted;              //! hit creation started

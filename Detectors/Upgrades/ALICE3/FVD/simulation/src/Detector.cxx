@@ -152,6 +152,7 @@ void Detector::ConstructGeometry()
 {
    createMaterials();
    buildModules();
+   defineSensitiveVolumes();
 }
 
 
@@ -237,13 +238,13 @@ TGeoVolumeAssembly* Detector::buildModuleA()
 
   for (int ir = 0; ir < FVDBaseParam::nRingsA; ir++) {
      for (int ic = 0; ic < 8; ic ++) {
-	int cellId = ic + ir;
+	int cellId = ic + 8*ir;
 	std::string tbsName = "tbs" + std::to_string(cellId);
-	std::string nodeName = "node" + std::to_string(cellId);
+	std::string nodeName = "fvd_node" + std::to_string(cellId);
 	float rmin = FVDBaseParam::rRingsA[ir];
 	float rmax = FVDBaseParam::rRingsA[ir+1];
-	float phimin = dphiDeg;
-	float phimax = dphiDeg;
+	float phimin = dphiDeg * ic;
+	float phimax = dphiDeg * (ic + 1);
 	float dz = FVDBaseParam::dzScint;
         auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
 	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
@@ -264,13 +265,13 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 
   for (int ir = 0; ir < FVDBaseParam::nRingsC; ir++) {
      for (int ic = 0; ic < 8; ic ++) {
-	int cellId = ic + ir + FVDBaseParam::nCellA;
+	int cellId = ic + 8*ir + FVDBaseParam::nCellA;
 	std::string tbsName = "tbs" + std::to_string(cellId);
-	std::string nodeName = "node" + std::to_string(cellId);
+	std::string nodeName = "fvd_node" + std::to_string(cellId);
 	float rmin = FVDBaseParam::rRingsC[ir];
 	float rmax = FVDBaseParam::rRingsC[ir+1];
-	float phimin = dphiDeg;
-	float phimax = dphiDeg;
+	float phimin = dphiDeg * ic;
+	float phimax = dphiDeg * (ic + 1);
 	float dz = FVDBaseParam::dzScint;
         auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
 	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
@@ -279,4 +280,10 @@ TGeoVolumeAssembly* Detector::buildModuleC()
   }
 
   return mod;
+}
+
+void Detector::defineSensitiveVolumes()
+{
+   LOG(info) << "Adding FVD Sentitive Volumes";
+
 }
