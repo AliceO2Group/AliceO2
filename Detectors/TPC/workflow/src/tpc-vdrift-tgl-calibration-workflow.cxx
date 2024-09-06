@@ -26,6 +26,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"max-dtgl-itstpc", o2::framework::VariantType::Float, 0.15f, {"max range for tgL_ITS - tgl_TPC"}},
     {"min-entries-per-slot", o2::framework::VariantType::Int, 10000, {"mininal number of entries per slot"}},
     {"time-slot-seconds", o2::framework::VariantType::Int, 600, {"time slot length in seconds"}},
+    {"first-slot-length-fraction", o2::framework::VariantType::Float, 0.3f, {"1st slot length as fraction of nominal"}},
     {"max-slots-delay", o2::framework::VariantType::Float, 0.1f, {"difference in slot units between the current TF and oldest slot (end TF) to account for the TF"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
@@ -44,6 +45,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                        configcontext.options().get<int>("nbins-dtgl"),
                                                        configcontext.options().get<float>("max-dtgl-itstpc"),
                                                        configcontext.options().get<int>("time-slot-seconds"),
+                                                       configcontext.options().get<float>("first-slot-length-fraction"),
                                                        configcontext.options().get<float>("max-slots-delay"),
                                                        configcontext.options().get<int>("min-entries-per-slot")));
   return specs;
