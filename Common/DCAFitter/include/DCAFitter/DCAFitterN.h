@@ -753,7 +753,7 @@ GPUd() void DCAFitterN<N, Args...>::calcTrackResiduals()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline void DCAFitterN<N, Args...>::calcTrackDerivatives()
+GPUdi() void DCAFitterN<N, Args...>::calcTrackDerivatives()
 {
   // calculate track derivatives over X param
   for (int i = N; i--;) {
@@ -763,7 +763,7 @@ GPUd() inline void DCAFitterN<N, Args...>::calcTrackDerivatives()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline double DCAFitterN<N, Args...>::calcChi2() const
+GPUdi() double DCAFitterN<N, Args...>::calcChi2() const
 {
   // calculate current chi2
   double chi2 = 0;
@@ -777,7 +777,7 @@ GPUd() inline double DCAFitterN<N, Args...>::calcChi2() const
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline double DCAFitterN<N, Args...>::calcChi2NoErr() const
+GPUdi() double DCAFitterN<N, Args...>::calcChi2NoErr() const
 {
   // calculate current chi2 of abs. distance minimization
   double chi2 = 0;
@@ -842,7 +842,7 @@ GPUd() bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand)
+GPUdi() o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand)
 {
   // propagate tracks param only to current vertex (if not already done)
   int ord = mOrder[icand];
@@ -858,7 +858,7 @@ GPUd() inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline double DCAFitterN<N, Args...>::getAbsMax(const VecND& v)
+GPUdi() double DCAFitterN<N, Args...>::getAbsMax(const VecND& v)
 {
   double mx = -1;
   for (int i = N; i--;) {
@@ -1075,7 +1075,7 @@ GPUd() o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x)
+GPUdi() bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x)
 {
   bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
@@ -1091,7 +1091,7 @@ GPUd() inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar
 
 //___________________________________________________________________
 template <int N, typename... Args>
-GPUd() inline bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x)
+GPUdi() bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x)
 {
   bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
