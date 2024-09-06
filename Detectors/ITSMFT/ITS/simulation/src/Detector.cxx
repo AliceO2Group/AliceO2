@@ -1317,9 +1317,9 @@ void Detector::fillParallelWorld() const // TODO: make this configurable to hand
     LOG(error) << "Parallel world was not created";
     return;
   }
+  auto& param = ITSSimParam::Instance();
 
   for (int iL{0}; iL < mNumberLayers; ++iL) {
-    auto& param = ITSSimParam::Instance();
     auto const layer = mGeometry[iL];
     int nhbarrels = layer->getNumberOfHalfBarrelsPerParent();
     int nstaves = layer->getNumberOfStavesPerParent();
