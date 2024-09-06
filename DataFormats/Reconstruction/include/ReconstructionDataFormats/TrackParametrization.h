@@ -199,9 +199,9 @@ class TrackParametrization
   GPUd() value_t getPt() const;
   GPUd() value_t getE2() const;
   GPUd() value_t getE() const;
-  GPUd() static inline value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
-  GPUd() static inline value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
-  GPUd() static inline value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
+  GPUdi() static value_t getdEdxBB(value_t betagamma) { return BetheBlochSolid(betagamma); }
+  GPUdi() static value_t getdEdxBBOpt(value_t betagamma) { return BetheBlochSolidOpt(betagamma); }
+  GPUdi() static value_t getBetheBlochSolidDerivativeApprox(value_T dedx, value_T bg) { return BetheBlochSolidDerivative(dedx, bg); }
 
   GPUd() value_t getTheta() const;
   GPUd() value_t getEta() const;

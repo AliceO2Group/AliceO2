@@ -57,7 +57,7 @@ class ClusterLinesGPU final
  public:
   GPUd() ClusterLinesGPU(const Line& firstLine, const Line& secondLine); // poor man solution to calculate duplets' centroid
   GPUd() void computeClusterCentroid();
-  GPUd() inline float* getVertex() { return mVertex; }
+  GPUdi() float* getVertex() { return mVertex; }
 
  private:
   float mAMatrix[6];         // AX=B

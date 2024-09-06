@@ -190,7 +190,7 @@ GPUd() value_T BetheBlochSolidOpt(value_T bg)
 
 //____________________________________________________
 template <typename value_T>
-GPUd() value_T inline BetheBlochSolidDerivative(value_T dedx, value_T bg)
+GPUdi() value_T BetheBlochSolidDerivative(value_T dedx, value_T bg)
 {
   //
   // This is approximate derivative of the BB over betagamm, NO check for the consistency of the provided dedx and bg is done
