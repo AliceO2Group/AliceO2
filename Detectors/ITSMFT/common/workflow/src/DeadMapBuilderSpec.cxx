@@ -185,23 +185,25 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
     return;
   }
 
-  if (isEnded) {
-    return;
-  }
-
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
   std::chrono::time_point<std::chrono::high_resolution_clock> end;
 
   start = std::chrono::high_resolution_clock::now();
 
-  mTFCounter++;
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
-  mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
-
-  if (mFirstOrbitRun == 0x0) {
-    mRunNumber = pc.services().get<o2::framework::TimingInfo>().runNumber;
+  if (tinfo.globalRunNumberChanged || mFirstOrbitRun == 0x0) { // new run is starting
+    mRunNumber = tinfo.runNumber;
     mFirstOrbitRun = mFirstOrbitTF;
+    mTFCounter = 0;
+    isEnded = false;
   }
+
+  if (isEnded) {
+    return;
+  }
+  mFirstOrbitTF = tinfo.firstTForbit;
+  mTFCounter++;
 
   long sampled_orbit = mFirstOrbitTF - mFirstOrbitRun;
 
@@ -210,7 +212,7 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
   }
 
   mStepCounter++;
-  LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
+  LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " good TF received. First orbit " << mFirstOrbitTF;
 
   mDeadMapTF.clear();
 
