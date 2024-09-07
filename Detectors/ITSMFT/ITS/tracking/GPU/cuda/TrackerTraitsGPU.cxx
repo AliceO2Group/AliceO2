@@ -21,9 +21,7 @@
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TrackingKernels.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 constexpr int UnusedIndex{-1};
 
@@ -382,7 +380,7 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
         lastCellSeed.swap(updatedCellSeed);
         lastCellId.swap(updatedCellId);
-        updatedCellSeed.clear();
+        std::vector<CellSeed>().swap(updatedCellSeed); /// tame the memory peaks
         updatedCellId.clear();
         processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
       }
@@ -462,11 +460,10 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration)
       mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
     }
   }
-  if (iteration == 2) {
-    mTimeFrameGPU->unregisterHostMemory(0); // FIXME this needs to work also with sync
+  if (iteration == mTrkParams.size() - 1) {
+    mTimeFrameGPU->unregisterHostMemory(0);
   }
 };
 
 template class TrackerTraitsGPU<7>;
-} // namespace its
-} // namespace o2
+} // namespace o2::its

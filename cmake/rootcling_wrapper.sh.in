@@ -92,10 +92,12 @@ LOGFILE=${DICTIONARY_FILE}.log
   ${COMPILE_DEFINITIONS//;/ } \
   ${PCMDEPS:+-m }${PCMDEPS//;/ -m } \
   ${HEADERS//;/ } \
-  > ${LOGFILE} 2>&1 || cat ${LOGFILE} >&2
+  > ${LOGFILE} 2>&1 || ROOTCLINGRETVAL=$?
 
-if [[ $? != "0" ]]; then
-  rm $DICTIONARY_FILE
+if [[ ${ROOTCLINGRETVAL:-0} != "0" ]]; then
+  cat ${LOGFILE} >&2
+  rm -f $DICTIONARY_FILE
+  echo "ROOT CLING Dictionary generation of $DICTIONARY_FILE failed with error code $ROOTCLINGRETVAL"
   exit 1
 fi
 

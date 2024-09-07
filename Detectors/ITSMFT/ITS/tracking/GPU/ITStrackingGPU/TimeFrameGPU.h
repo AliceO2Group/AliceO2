@@ -174,9 +174,9 @@ class GpuTimeFrameChunk
 template <int nLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
- public:
   friend class GpuTimeFrameChunk<nLayers>;
 
+ public:
   TimeFrameGPU();
   ~TimeFrameGPU();
 
@@ -185,7 +185,7 @@ class TimeFrameGPU : public TimeFrame
   void unregisterHostMemory(const int);
   void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initialiseHybrid(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
-  void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
+  void initDevice(IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceSAFitting();
   void loadTrackingFrameInfoDevice(const int);
   void loadUnsortedClustersDevice();
@@ -227,7 +227,8 @@ class TimeFrameGPU : public TimeFrame
   TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
   gpuPair<int, int>* getDeviceNeighbours(const int layer) { return mNeighboursDevice[layer]; }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
-  TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() { return mTrackingFrameInfoDeviceArray; }
+  // TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() { return mTrackingFrameInfoDeviceArray; }
+  const TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() const { return mTrackingFrameInfoDeviceArray; }
   Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
   Cluster** getDeviceArrayUnsortedClusters() const { return mUnsortedClustersDeviceArray; }
   Tracklet** getDeviceArrayTracklets() const { return mTrackletsDeviceArray; }
@@ -275,7 +276,7 @@ class TimeFrameGPU : public TimeFrame
   TrackITSExt* mTrackITSExtDevice;
   std::array<gpuPair<int, int>*, nLayers - 2> mNeighboursDevice;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
-  TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
+  const TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 
   // State
   std::vector<Stream> mGpuStreams;

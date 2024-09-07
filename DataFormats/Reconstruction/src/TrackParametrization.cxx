@@ -956,8 +956,10 @@ GPUd() typename TrackParametrization<value_T>::value_t TrackParametrization<valu
 
 namespace o2::track
 {
+#if !defined(GPUCA_GPUCODE) || defined(GPUCA_GPUCODE_DEVICE) // FIXME: DR: WORKAROUND to avoid CUDA bug creating host symbols for device code.
 template class TrackParametrization<float>;
-#ifndef GPUCA_GPUCODE_DEVICE
+#endif
+#ifndef GPUCA_GPUCODE
 template class TrackParametrization<double>;
 #endif
 } // namespace o2::track

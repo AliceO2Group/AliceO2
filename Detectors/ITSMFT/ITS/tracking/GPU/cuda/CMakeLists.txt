@@ -22,7 +22,8 @@ o2_add_library(ITStrackingCUDA
                        TimeFrameGPU.cu
                        TracerGPU.cu
                        TrackingKernels.cu
-                       VertexerTraitsGPU.cu
+                       VertexingKernels.cu
+                       VertexerTraitsGPU.cxx
                        Utils.cu
                PUBLIC_INCLUDE_DIRECTORIES ../
                PUBLIC_LINK_LIBRARIES O2::ITStracking

@@ -22,7 +22,7 @@ namespace o2::framework
 
 /// A callback function to retrieve the fair::mq::Channel name to be used for sending
 /// messages of the specified OutputSpec
-using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
+using ChannelRetriever = std::function<std::string const&(OutputSpec const&, DataProcessingHeader::StartTime)>;
 /// The callback which actually does the heavy lifting of converting the input data into
 /// DPL messages. The callback is invoked with the following parameters:
 /// @param timingInfo is the timing information of the current timeslice
@@ -144,6 +144,6 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* label,
                                                       const char* defaultChannelConfig,
                                                       ChannelSelector channelSelector = defaultOutputProxyChannelSelector);
 
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_RAWDEVICESOURCE_H
