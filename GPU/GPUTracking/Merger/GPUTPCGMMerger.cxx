@@ -2089,7 +2089,7 @@ GPUd() void GPUTPCGMMerger::Finalize1(int nBlocks, int nThreads, int iBlock, int
     if (!trk.OK() || trk.NClusters() == 0) {
       continue;
     }
-    char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
+    unsigned char goodLeg = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].leg;
     for (unsigned int j = 0; j < trk.NClusters(); j++) {
       int id = mClusters[trk.FirstClusterRef() + j].num;
       unsigned int weight = mTrackOrderAttach[i] | attachAttached;

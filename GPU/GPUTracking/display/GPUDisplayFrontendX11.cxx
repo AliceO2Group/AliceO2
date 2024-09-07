@@ -147,7 +147,7 @@ void GPUDisplayFrontendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
     tmpString[0] = 0;
   }
   int specialKey = GetKey(sym);
-  int localeKey = tmpString[0];
+  int localeKey = (unsigned char)tmpString[0];
   // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", (int)event.xkey.keycode, (int)sym, (char)sym, (int)localeKey, (char)localeKey, (int)specialKey, (char)specialKey);
 
   if (specialKey) {

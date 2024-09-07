@@ -167,7 +167,7 @@ void GPUDisplayFrontendGlfw::GetKey(int key, int scancode, int mods, int& keyOut
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
   } else {
-    keyOut = keyPressOut = localeKey;
+    keyOut = keyPressOut = (unsigned char)localeKey;
     if (keyPressOut >= 'a' && keyPressOut <= 'z') {
       keyPressOut += 'A' - 'a';
     }
@@ -193,7 +193,7 @@ void GPUDisplayFrontendGlfw::key_callback(GLFWwindow* window, int key, int scanc
     if (action == GLFW_PRESS) {
       me->mLastKeyDown = handleKey;
     } else if (action == GLFW_RELEASE) {
-      keyPress = me->mKeyDownMap[handleKey];
+      keyPress = (unsigned char)me->mKeyDownMap[handleKey];
       me->mKeys[keyPress] = false;
       me->mKeysShift[keyPress] = false;
     }
