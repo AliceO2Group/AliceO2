@@ -237,6 +237,8 @@ TGeoVolumeAssembly* Detector::buildModuleA()
   const float dphiDeg = 45.;
 
   for (int ir = 0; ir < FVDBaseParam::nRingsA; ir++) {
+     std::string rName = "fvd_ring" + std::to_string(ir+1); 
+     TGeoVolumeAssembly *ring = new TGeoVolumeAssembly(rName.c_str());
      for (int ic = 0; ic < 8; ic ++) {
 	int cellId = ic + 8*ir;
 	std::string tbsName = "tbs" + std::to_string(cellId);
@@ -248,8 +250,9 @@ TGeoVolumeAssembly* Detector::buildModuleA()
 	float dz = FVDBaseParam::dzScint;
         auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
 	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-	mod->AddNode(nod, cellId);
+	ring->AddNode(nod, cellId);
      }
+     mod->AddNode(ring, ir);
   }
 
   return mod;
@@ -264,6 +267,8 @@ TGeoVolumeAssembly* Detector::buildModuleC()
   const float dphiDeg = 45.;
 
   for (int ir = 0; ir < FVDBaseParam::nRingsC; ir++) {
+     std::string rName = "fvd_ring" + std::to_string(ir+1+FVDBaseParam::nRingsA); 
+     TGeoVolumeAssembly *ring = new TGeoVolumeAssembly(rName.c_str());
      for (int ic = 0; ic < 8; ic ++) {
 	int cellId = ic + 8*ir + FVDBaseParam::nCellA;
 	std::string tbsName = "tbs" + std::to_string(cellId);
@@ -275,8 +280,9 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 	float dz = FVDBaseParam::dzScint;
         auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
 	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-	mod->AddNode(nod, cellId);
+	ring->AddNode(nod, cellId);
      }
+     mod->AddNode(ring, ir);
   }
 
   return mod;
@@ -285,5 +291,13 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 void Detector::defineSensitiveVolumes()
 {
    LOG(info) << "Adding FVD Sentitive Volumes";
+   TGeoVolume *v;
+   TString volumeName;
 
+   for (int iv = 0; iv < FVDBaseParam::nCellA +  FVDBaseParam::nCellC; iv ++) {
+     volumeName = "fvd_node" +  std::to_string(iv);
+     v = gGeoManager->GetVolume(volumeName);
+     LOG(info) << "Adding FVD Sensitive Volume => " << v->GetName();
+     AddSensitiveVolume(v);
+   }
 }
