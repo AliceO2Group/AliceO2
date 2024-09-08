@@ -90,7 +90,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
 }
 
 ///////////////////////////////////////////////////////////////////
-// TODO: can ChipMappingITS help here?
+// TODO:  can ChipMappingITS help here?
 std::vector<uint16_t> ITSMFTDeadMapBuilder::getChipIDsOnSameCable(uint16_t chip)
 {
   if (mRunMFT || chip < N_CHIPS_ITSIB) {
