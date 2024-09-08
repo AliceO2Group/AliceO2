@@ -238,7 +238,7 @@ struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeo
   }
 
   template <typename T, typename T2>
-  auto getBinningValue(T& rowIterator, arrow::Table* table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValue(T& rowIterator, uint64_t globalIndex = -1) const
   {
     if constexpr (has_type<T2>(pack<Ls...>{})) {
       if (globalIndex != -1) {
@@ -246,20 +246,20 @@ struct FlexibleBinningPolicy<std::tuple<Ls...>, Ts...> : BinningPolicyBase<sizeo
       }
       return std::get<T2>(mBinningFunctions)(rowIterator);
     } else {
-      return soa::row_helpers::getSingleRowData<T, T2>(table, rowIterator, ci, ai, globalIndex);
+      return soa::row_helpers::getSingleRowData<T, T2>(rowIterator, globalIndex);
     }
   }
 
   template <typename T>
-  auto getBinningValues(T& rowIterator, arrow::Table* table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValues(T& rowIterator, uint64_t globalIndex = -1) const
   {
-    return std::make_tuple(getBinningValue<T, Ts>(rowIterator, table, ci, ai, globalIndex)...);
+    return std::make_tuple(getBinningValue<T, Ts>(rowIterator, globalIndex)...);
   }
 
   template <typename T>
-  auto getBinningValues(typename T::iterator rowIterator, T& table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValues(typename T::iterator rowIterator, uint64_t globalIndex = -1) const
   {
-    return getBinningValues(rowIterator, table.asArrowTable().get(), ci, ai, globalIndex);
+    return getBinningValues(rowIterator, globalIndex);
   }
 
   template <typename... T2s>
@@ -281,15 +281,15 @@ struct ColumnBinningPolicy : BinningPolicyBase<sizeof...(Ts)> {
   }
 
   template <typename T>
-  auto getBinningValues(T& rowIterator, arrow::Table* table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValues(T& rowIterator, uint64_t globalIndex = -1) const
   {
-    return std::make_tuple(soa::row_helpers::getSingleRowData<T, Ts>(table, rowIterator, ci, ai, globalIndex)...);
+    return std::make_tuple(soa::row_helpers::getSingleRowData<T, Ts>(rowIterator, globalIndex)...);
   }
 
   template <typename T>
-  auto getBinningValues(typename T::iterator rowIterator, T& table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValues(typename T::iterator rowIterator, T& table, uint64_t globalIndex = -1) const
   {
-    return getBinningValues(rowIterator, table.asArrowTable().get(), ci, ai, globalIndex);
+    return getBinningValues(rowIterator, globalIndex);
   }
 
   int getBin(std::tuple<typename Ts::type...> const& data) const
@@ -306,15 +306,15 @@ struct NoBinningPolicy {
   NoBinningPolicy() = default;
 
   template <typename T>
-  auto getBinningValues(T& rowIterator, arrow::Table* table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValues(T& rowIterator, uint64_t globalIndex = -1) const
   {
-    return std::make_tuple(soa::row_helpers::getSingleRowData<T, C>(table, rowIterator, ci, ai, globalIndex));
+    return std::make_tuple(soa::row_helpers::getSingleRowData<T, C>(rowIterator, globalIndex));
   }
 
   template <typename T>
-  auto getBinningValues(typename T::iterator rowIterator, T& table, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1) const
+  auto getBinningValues(typename T::iterator rowIterator, uint64_t globalIndex = -1) const
   {
-    return getBinningValues(rowIterator, table.asArrowTable().get(), ci, ai, globalIndex);
+    return getBinningValues(rowIterator, globalIndex);
   }
 
   int getBin(std::tuple<typename C::type> const& data) const
