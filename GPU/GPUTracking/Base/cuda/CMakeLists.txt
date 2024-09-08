@@ -150,6 +150,8 @@ endif()
 # Setting target architecture and adding GPU libraries
 target_link_libraries(${targetName} PRIVATE cuda cudart nvrtc)
 set_target_cuda_arch(${targetName})
+#target_link_options(${targetName} PRIVATE "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld")
+#set_target_properties(${targetName} PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version_script.ld)
 
 if(OpenMP_CXX_FOUND)
   # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
