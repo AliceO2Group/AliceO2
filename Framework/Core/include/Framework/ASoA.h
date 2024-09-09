@@ -1977,19 +1977,15 @@ std::optional<R> getColumnValueByLabel(o2::framework::pack<Cs...>, const T& rowI
       if constexpr (o2::soa::is_dynamic_v<Cs>) {
         // check if bindings have the same size as lambda parameters (getter do not have additional parameters)
         if constexpr (o2::framework::pack_size(typename Cs::bindings_t{}) == o2::framework::pack_size(typename Cs::callable_t::args{})) {
-          std::string label = Cs::columnLabel();
-
           // dynamic columns do not have "f" prefix in columnLabel() return string
-          if (std::strcmp(&columnLabel[1], label.data()) == 0 || columnLabel == label) {
+          if (std::strcmp(&columnLabel[1], Cs::columnLabel()) == 0 || std::strcmp(columnLabel.data(), Cs::columnLabel()) == 0) {
             value = static_cast<R>(static_cast<Cs>(rowIterator).get());
           }
-
         }
       } else if constexpr (o2::soa::is_persistent_v<Cs> && !o2::soa::is_index_column_v<Cs>) {
-        if (columnLabel == Cs::columnLabel()) {
+        if (std::strcmp(columnLabel.data(), Cs::columnLabel()) == 0) {
           value = static_cast<R>(static_cast<Cs>(rowIterator).get());
         }
-
       }
     }
   }(),
