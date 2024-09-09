@@ -1129,17 +1129,17 @@ GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft);
 GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res);
 } // namespace gpu::kernel
 #endif
-namespace gpu
+namespace device
 {
-void printOnDevice(o2::vertexing::DCAFitterN<2>*,
-                   const int nBlocks = 1,
-                   const int nThreads = 1);
-int processOnDevice(o2::vertexing::DCAFitterN<2>*,
-                    o2::track::TrackParCov&,
-                    o2::track::TrackParCov&,
-                    const int nBlocks = 1,
-                    const int nThreads = 1);
-} // namespace gpu
+void print(o2::vertexing::DCAFitterN<2>*,
+           const int nBlocks = 1,
+           const int nThreads = 1);
+int process(o2::vertexing::DCAFitterN<2>*,
+            o2::track::TrackParCov&,
+            o2::track::TrackParCov&,
+            const int nBlocks = 1,
+            const int nThreads = 1);
+} // namespace device
 } // namespace vertexing
 } // namespace o2
 #endif // _ALICEO2_DCA_FITTERN_

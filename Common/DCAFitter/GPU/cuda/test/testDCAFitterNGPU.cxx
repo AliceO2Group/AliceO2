@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       auto genParent = generate(vtxGen, vctracks, bz, genPHS, k0, k0dec, forceQ);
       ft.setUseAbsDCA(true);
       swA.Start(false);
-      int ncA = gpu::processOnDevice(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      int ncA = device::process(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swA.Stop();
       LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       ft.setUseAbsDCA(true);
       ft.setWeightedFinalPCA(true);
       swAW.Start(false);
-      int ncAW = gpu::processOnDevice(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      int ncAW = device::process(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swAW.Stop();
       LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncAW << " Chi2: " << (ncAW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncAW) {
@@ -211,7 +211,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       ft.setUseAbsDCA(false);
       ft.setWeightedFinalPCA(false);
       swW.Start(false);
-      int ncW = gpu::processOnDevice(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+      int ncW = device::process(&ft, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
       LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncW) {
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       }
     }
     ft.print();
-    gpu::printOnDevice(&ft, 1, 1);
+    device::print(&ft, 1, 1);
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
