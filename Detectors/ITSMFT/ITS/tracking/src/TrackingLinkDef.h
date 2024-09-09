@@ -30,7 +30,7 @@
 #pragma link C++ class o2::its::TrackerParamConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::TrackerParamConfig> + ;
 
-#pragma link C++ class o2::its::GpuRecoParamConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::GpuRecoParamConfig> + ;
+#pragma link C++ class o2::its::ITSGpuTrackingParamConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::ITSGpuTrackingParamConfig> + ;
 
 #endif

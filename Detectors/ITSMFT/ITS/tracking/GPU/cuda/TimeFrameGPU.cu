@@ -364,27 +364,6 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
                                        const TimeFrameGPUParameters* gpuParam)
 {
   mGpuStreams.resize(mGpuParams.nTimeFrameChunks);
-  mHostNTracklets.resize((nLayers - 1) * mGpuParams.nTimeFrameChunks, 0);
-  mHostNCells.resize((nLayers - 2) * mGpuParams.nTimeFrameChunks, 0);
-
-  auto init = [&]() -> void {
-    this->initDevice(utils, trkParam, *gpuParam, maxLayers, iteration);
-  };
-  std::thread t1{init};
-  RANGE("tf_cpu_initialisation", 1);
-  o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
-  // registerHostMemory(maxLayers);
-  t1.join();
-}
-
-template <int nLayers>
-void TimeFrameGPU<nLayers>::initialiseHybrid(const int iteration,
-                                             const TrackingParameters& trkParam,
-                                             const int maxLayers,
-                                             IndexTableUtils* utils,
-                                             const TimeFrameGPUParameters* gpuParam)
-{
-  mGpuStreams.resize(mGpuParams.nTimeFrameChunks);
   o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
 }
 

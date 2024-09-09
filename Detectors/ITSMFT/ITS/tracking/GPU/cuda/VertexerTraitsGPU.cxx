@@ -37,6 +37,7 @@ void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams, con
 {
   mTimeFrameGPU->initialise(0, trackingParams, 3, &mIndexTableUtils, &mTfGPUParams);
 }
+
 void VertexerTraitsGPU::updateVertexingParameters(const std::vector<VertexingParameters>& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;

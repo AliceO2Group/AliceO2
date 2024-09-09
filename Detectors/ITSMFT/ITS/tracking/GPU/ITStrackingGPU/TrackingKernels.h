@@ -59,6 +59,8 @@ void trackSeedHandler(CellSeed* trackSeeds,
                       float maxChi2ClusterAttachment,
                       float maxChi2NDF,
                       const o2::base::Propagator* propagator,
-                      const o2::base::PropagatorF::MatCorrType matCorrType);
+                      const o2::base::PropagatorF::MatCorrType matCorrType,
+                      const int nBlocks,
+                      const int nThreads);
 } // namespace o2::its
 #endif // ITSTRACKINGGPU_TRACKINGKERNELS_H_
