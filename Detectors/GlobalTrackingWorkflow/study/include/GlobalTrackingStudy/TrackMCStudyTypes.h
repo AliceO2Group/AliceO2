@@ -15,7 +15,6 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "Framework/Task.h"
 
 namespace o2::trackstudy
 {

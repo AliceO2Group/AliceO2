@@ -214,7 +214,7 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
   prepareITSData(recoData);
   loadTPCOccMap(recoData);
   auto getITSPatt = [&](GTrackID gid, uint8_t& ncl) {
-    int16_t patt = 0;
+    int8_t patt = 0;
     if (gid.getSource() == VTIndex::ITSAB) {
       const auto& itsTrf = recoData.getITSABRefs()[gid];
       ncl = itsTrf.getNClusters();
@@ -223,7 +223,7 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
           patt |= 0x1 << il;
         }
       }
-      patt = -patt;
+      patt |= 0x1 << 7;
     } else {
       const auto& itsTr = recoData.getITSTrack(gid);
       for (int il = 0; il < 7; il++) {
@@ -349,7 +349,15 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
       LOGP(info, "Processing MC track#{} {} -> {} reconstructed tracks", mcnt - 1, entry.first.asString(), tracks.size());
     }
     // sort according to the gid complexity (in principle, should be already sorted due to the backwards loop over NSources above
-    std::sort(tracks.begin(), tracks.end(), [](RecTrack& lhs, RecTrack& rhs) { return lhs.gid.getSource() > rhs.gid.getSource(); });
+    std::sort(tracks.begin(), tracks.end(), [](RecTrack& lhs, RecTrack& rhs) {
+      const auto mskL = lhs.gid.getSourceDetectorsMask();
+      const auto mskR = rhs.gid.getSourceDetectorsMask();
+      bool itstpcL = mskL[DetID::ITS] && mskL[DetID::TPC], itstpcR = mskR[DetID::ITS] && mskR[DetID::TPC];
+      if (itstpcL && !itstpcR) { // to avoid TPC/TRD or TPC/TOF shadowing ITS/TPC
+        return true;
+      }
+      return lhs.gid.getSource() > rhs.gid.getSource();
+    });
     // fill track params
     int tcnt = 0;
     for (auto& tref : tracks) {
@@ -360,15 +368,15 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
         if (msk[DetID::ITS]) {
           auto gidITS = recoData.getITSContributorGID(tref.gid);
           tref.pattITS = getITSPatt(gidITS, tref.nClITS);
-          if (tref.gid.getSource() == VTIndex::ITS && trackFam.entITS < 0) {
+          if (gidITS.getSource() == VTIndex::ITS && trackFam.entITS < 0) { // has ITS track rather than AB tracklet
             trackFam.entITS = tcnt;
           }
-          if (msk[DetID::TPC] && trackFam.entITSTPC < 0) {
+          if (msk[DetID::TPC] && trackFam.entITSTPC < 0) { // has both ITS and TPC contribution
             trackFam.entITSTPC = tcnt;
           }
         }
-        if (msk[DetID::TPC] && trackFam.entTPC < 0) {
-          if (tref.gid.getSource() == VTIndex::TPC) {
+        if (msk[DetID::TPC]) {
+          if (trackFam.entTPC < 0) {
             trackFam.entTPC = tcnt;
           }
           auto gidTPC = recoData.getTPCContributorGID(tref.gid);
