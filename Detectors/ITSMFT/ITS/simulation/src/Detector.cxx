@@ -1310,7 +1310,7 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
-void Detector::fillParallelWorld() const // TODO: make this configurable to handle different volume lists
+void Detector::fillParallelWorld() const
 {
   TGeoParallelWorld* pw = gGeoManager->GetParallelWorld();
   if (pw == nullptr) {
