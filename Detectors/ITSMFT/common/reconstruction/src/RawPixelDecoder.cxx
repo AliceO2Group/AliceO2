@@ -515,8 +515,9 @@ void RawPixelDecoder<Mapping>::clearStat(bool resetRaw)
 
 ///______________________________________________________________________
 template <class Mapping>
-void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo)
+size_t RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo)
 {
+  size_t outSize = 0;
   bool dumpFullTF = false;
   for (auto& ru : mRUDecodeVec) {
     if (ru.linkHBFToDump.size()) {
@@ -550,6 +551,7 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework
               break;
             }
             ostrm.write(reinterpret_cast<const char*>(piece->data), piece->size);
+            outSize += piece->size;
             entry++;
           }
           LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
@@ -569,11 +571,13 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework
       for (size_t i = 0; i < lnk.rawData.getNPieces(); i++) {
         const auto* piece = lnk.rawData.getPiece(i);
         ostrm.write(reinterpret_cast<const char*>(piece->data), piece->size);
+        outSize += piece->size;
       }
     }
     LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
     break;
   }
+  return outSize;
 }
 
 ///______________________________________________________________________
