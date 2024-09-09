@@ -95,7 +95,7 @@ class RawPixelDecoder final : public PixelReader
   bool getAlwaysParseTrigger() const { return mAlwaysParseTrigger; }
 
   void printReport(bool decstat = true, bool skipNoErr = true) const;
-  void produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo);
+  size_t produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo);
 
   void clearStat(bool resetRaw = false);
 
