@@ -9,17 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUTRDTrackO2.cxx
+/// \file GPUTRDTrackO2.h
 /// \author David Rohr
 
-#include "GPUTRDTrackO2.h"
-using namespace GPUCA_NAMESPACE::gpu;
+#ifndef GPUTRDTRACKO2_H
+#define GPUTRDTRACKO2_H
 
-#include "GPUTRDTrack.inc"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "ReconstructionDataFormats/Track.h"
+#include "GPUTRDTrack.h"
 
-namespace o2::gpu
-{
-template class GPUTRDTrack_t<trackInterface<o2::track::TrackParCov>>;
-} // namespace o2::gpu
+#endif // GPUTRDTRACKO2_H

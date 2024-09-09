@@ -178,10 +178,14 @@ class FlatObject
   /// _____________  Constructors / destructors __________________________
 
   /// Default constructor / destructor
-  FlatObject() CON_DEFAULT;
+#ifndef GPUCA_GPUCODE
+  FlatObject() CON_DEFAULT; // No object derrived from FlatObject should be created on the GPU
   ~FlatObject();
   FlatObject(const FlatObject&) CON_DELETE;
   FlatObject& operator=(const FlatObject&) CON_DELETE;
+#else
+  FlatObject() CON_DELETE;
+#endif
 
  protected:
   /// _____________  Memory alignment  __________________________

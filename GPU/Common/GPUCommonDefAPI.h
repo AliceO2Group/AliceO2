@@ -152,7 +152,11 @@
   #define GPUbarrierWarp()
   #define GPUAtomic(type) type
 #elif defined(__CUDACC__) //Defines for CUDA
-  #define GPUd() __device__
+  #ifndef GPUCA_GPUCODE_DEVICE
+    #define GPUd() __device__ inline // FIXME: DR: Workaround: mark device function as inline such that nvcc does not create bogus host symbols
+  #else
+    #define GPUd() __device__
+  #endif
   #define GPUdDefault()
   #define GPUhdDefault()
   #define GPUdi() __device__ inline

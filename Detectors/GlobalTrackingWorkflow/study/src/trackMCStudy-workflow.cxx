@@ -40,7 +40,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"cluster-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation, never use it"}},
-    {"check-its-tpc", VariantType::Bool, false, {"Special output for failed ITS-TPC matches"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -57,22 +56,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!useMC) {
     throw std::runtime_error("MC cannot be disabled for this workflow");
   }
-  bool checkMatching = configcontext.options().get<bool>("check-its-tpc");
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  GID::mask_t allowedSourcesClus = GID::getSourcesMask(checkMatching ? "TPC" : "none");
+  GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS,TPC");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
-  if (checkMatching) {
-    srcCls |= GID::getSourcesMask("TPC");
-  }
+  srcCls |= GID::getSourcesMask("ITS,TPC");
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, true);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, true); // P-vertex is always needed
-  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls, checkMatching));
+  specs.emplace_back(o2::trackstudy::getTrackMCStudySpec(srcTrc, srcCls));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

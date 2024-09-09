@@ -40,5 +40,5 @@ o2_add_test_root_macro(readFITDCSdata.C
                                              O2::CCDB
                        LABELS fit)
 
-o2_data_file(COPY readFITDCSdata.C DESTINATION Detectors/FIT/macros/readFITDCSdata.C)
-o2_data_file(COPY readFITDeadChannelMap.C DESTINATION Detectors/FIT/macros/readFITDeadChannelMap.C)
+o2_data_file(COPY readFITDCSdata.C DESTINATION Detectors/FIT/macros/)
+o2_data_file(COPY readFITDeadChannelMap.C DESTINATION Detectors/FIT/macros/)

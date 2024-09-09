@@ -87,8 +87,16 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder->setNThreads(mNThreads);
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
     mVerbosity = ic.options().get<int>("decoder-verbosity");
+    auto dmpSz = ic.options().get<int>("stop-raw-data-dumps-after-size");
+    if (dmpSz > 0) {
+      mMaxRawDumpsSize = size_t(dmpSz) * 1024 * 1024;
+    }
     mDumpOnError = ic.options().get<int>("raw-data-dumps");
-    if (mDumpOnError < 0 || mDumpOnError >= int(GBTLink::RawDataDumps::DUMP_NTYPES)) {
+    if (mDumpOnError < 0) {
+      mDumpOnError = -mDumpOnError;
+      mDumpFrom1stPipeline = true;
+    }
+    if (mDumpOnError >= int(GBTLink::RawDataDumps::DUMP_NTYPES)) {
       throw std::runtime_error(fmt::format("unknown raw data dump level {} requested", mDumpOnError));
     }
     auto dumpDir = ic.options().get<std::string>("raw-data-dumps-directory");
@@ -243,8 +251,13 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0}, mDecoder->getExternalTriggers());
 
-  if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
-    mDecoder->produceRawDataDumps(mDumpOnError, pc.services().get<o2::framework::TimingInfo>());
+  if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) &&
+      (!mDumpFrom1stPipeline || pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {
+    mRawDumpedSize += mDecoder->produceRawDataDumps(mDumpOnError, pc.services().get<o2::framework::TimingInfo>());
+    if (mRawDumpedSize > mMaxRawDumpsSize && mMaxRawDumpsSize > 0) {
+      LOGP(info, "Max total dumped size {} MB exceeded allowed limit, disabling further dumping", mRawDumpedSize / (1024 * 1024));
+      mDumpOnError = int(GBTLink::RawDataDumps::DUMP_NONE);
+    }
   }
 
   if (mDoClusters) {
@@ -417,8 +430,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data, 3: raw data dump) of 1st lane"}},
       {"always-parse-trigger", VariantType::Bool, false, {"parse trigger word even if flags continuation of old trigger"}},
-      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
+      {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links. If negative, dump only on from 1st pipeline."}},
       {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
+      {"stop-raw-data-dumps-after-size", VariantType::Int, 1024, {"Stop dumping once this size in MB is accumulated. 0: no limit"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
       {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},

@@ -263,7 +263,7 @@ static void SHA1Final(
   memset(&finalcount, '\0', sizeof(finalcount));
 }
 
-void SHA1(
+static void SHA1(
   char* hash_out,
   const char* str,
   unsigned int len)
