@@ -22,6 +22,7 @@ struct MCTrackInfo {
   o2::track::TrackPar track{};
   o2::MCCompLabel label{};
   float occTPC = -1.f;
+  int occITS = -1.f;
   int bcInTF = -1;
   int pdg = 0;
   int pdgParent = 0;

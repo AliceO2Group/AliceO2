@@ -108,6 +108,7 @@ class TrackMCStudy : public Task
   std::vector<float> mTBinClOcc; ///< TPC occupancy histo: i-th entry is the integrated occupancy for ~1 orbit starting from the TB = i*mNTPCOccBinLength
   std::vector<long> mIntBC;      ///< interaction global BC wrt TF start
   std::vector<float> mTPCOcc;    ///< TPC occupancy for this interaction time
+  std::vector<int> mITSOcc;      //< N ITS clusters in the ROF containing collision
   int mNTPCOccBinLength = 0;     ///< TPC occ. histo bin length in TBs
   float mNTPCOccBinLengthInv;
   int mVerbose = 0;
@@ -247,13 +248,36 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
     return -1;
   };
 
-  const auto* digconst = mcReader.getDigitizationContext();
-  const auto& mcEvRecords = digconst->getEventRecords(false);
-  for (const auto& mcIR : mcEvRecords) {
-    long tbc = mcIR.differenceInBC(recoData.startIR);
-    mIntBC.push_back(tbc);
-    int occBin = tbc / 8 * mNTPCOccBinLengthInv;
-    mTPCOcc.push_back(occBin < 0 ? mTBinClOcc[0] : (occBin >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[occBin]));
+  {
+    const auto* digconst = mcReader.getDigitizationContext();
+    const auto& mcEvRecords = digconst->getEventRecords(false);
+    int ITSTimeBias = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC;
+    int ITSROFLen = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameLengthInBC;
+    unsigned int rofCount = 0;
+    const auto ITSClusROFRec = recoData.getITSClustersROFRecords();
+    for (const auto& mcIR : mcEvRecords) {
+      long tbc = mcIR.differenceInBC(recoData.startIR);
+      mIntBC.push_back(tbc);
+      int occBin = tbc / 8 * mNTPCOccBinLengthInv;
+      mTPCOcc.push_back(occBin < 0 ? mTBinClOcc[0] : (occBin >= mTBinClOcc.size() ? mTBinClOcc.back() : mTBinClOcc[occBin]));
+      // fill ITS occupancy
+      long gbc = mcIR.toLong();
+      while (rofCount < ITSClusROFRec.size()) {
+        long rofbcMin = ITSClusROFRec[rofCount].getBCData().toLong() + ITSTimeBias, rofbcMax = rofbcMin + ITSROFLen;
+        if (gbc < rofbcMin) { // IRs and ROFs are sorted, so this IR is prior of all ROFs
+          mITSOcc.push_back(0);
+        } else if (gbc < rofbcMax) {
+          mITSOcc.push_back(ITSClusROFRec[rofCount].getNEntries());
+        } else {
+          rofCount++; // test next ROF
+          continue;
+        }
+        break;
+      }
+      if (rofCount >= ITSClusROFRec.size()) {
+        mITSOcc.push_back(0); // IR after the last ROF
+      }
+    }
   }
 
   // collect interesting MC particle (tracks and parents)
@@ -382,7 +406,7 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
           auto gidTPC = recoData.getTPCContributorGID(tref.gid);
           const auto& trtpc = recoData.getTPCTrack(gidTPC);
           tref.nClTPC = trtpc.getNClusters();
-          tref.lowestPadRow = getLowestPadrow(recoData.getTPCTrack(gidTPC));
+          tref.lowestPadRow = getLowestPadrow(trtpc);
         }
       } else {
         LOGP(info, "Invalid entry {} of {} getTrackMCLabel {}", tcnt, tracks.size(), tref.gid.asString());
@@ -532,8 +556,8 @@ void TrackMCStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 //_____________________________________________________
 void TrackMCStudy::prepareITSData(const o2::globaltracking::RecoContainer& recoData)
 {
-  auto ITSTracksArray = recoData.getITSTracks();
-  auto ITSTrackROFRec = recoData.getITSTracksROFRecords();
+  const auto ITSTracksArray = recoData.getITSTracks();
+  const auto ITSTrackROFRec = recoData.getITSTracksROFRecords();
   int nROFs = ITSTrackROFRec.size();
   mITSROF.clear();
   mITSROFBracket.clear();
@@ -672,6 +696,7 @@ bool TrackMCStudy::addMCParticle(const MCTrack& mcPart, const o2::MCCompLabel& l
   mcEntry.mcTrackInfo.label = lb;
   mcEntry.mcTrackInfo.bcInTF = mIntBC[lb.getEventID()];
   mcEntry.mcTrackInfo.occTPC = mTPCOcc[lb.getEventID()];
+  mcEntry.mcTrackInfo.occITS = mITSOcc[lb.getEventID()];
   int moth = -1;
   o2::MCCompLabel mclbPar;
   if (!mcPart.isPrimary() && (moth = mcPart.getMotherTrackId()) >= 0) {
