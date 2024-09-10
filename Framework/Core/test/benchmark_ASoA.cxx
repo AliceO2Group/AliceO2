@@ -321,8 +321,6 @@ static void BM_ASoADynamicColumnPresentGetValueByLabel(benchmark::State& state)
 
 BENCHMARK(BM_ASoADynamicColumnPresentGetValueByLabel)->Range(8, 8 << maxrange);
 
-
-
 static void BM_ASoADynamicColumnCall(benchmark::State& state)
 {
   // Seed with a real random value, if available
@@ -379,6 +377,5 @@ static void BM_ASoADynamicColumnCallGetValueByLabel(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 BENCHMARK(BM_ASoADynamicColumnCallGetValueByLabel)->Range(8, 8 << maxrange);
-
 
 BENCHMARK_MAIN();
