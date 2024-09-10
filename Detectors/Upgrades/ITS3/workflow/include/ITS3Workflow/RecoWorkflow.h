@@ -30,7 +30,8 @@ framework::WorkflowSpec getWorkflow(bool useMC,
                                     bool upstreamClusters,
                                     bool disableRootOutput,
                                     bool useGeom,
-                                    int useTrig);
+                                    int useTrig,
+                                    bool overrideBeamPosition);
 }
 
 #endif

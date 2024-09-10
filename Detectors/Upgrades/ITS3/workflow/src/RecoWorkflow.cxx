@@ -21,7 +21,7 @@ namespace o2::its3::reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
-                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useGeom, int useTrig)
+                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useGeom, int useTrig, bool overrideBeamPosition)
 {
   framework::WorkflowSpec specs;
 
@@ -38,8 +38,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
   }
 
   if (trmode != "off") {
-    LOGP(info, "Active tracking: '{}'", trmode);
-    specs.emplace_back(o2::its3::getTrackerSpec(useMC, useGeom, useTrig, trmode, dtype));
+    specs.emplace_back(o2::its3::getTrackerSpec(useMC, useGeom, useTrig, trmode, overrideBeamPosition, dtype));
 
     if (!disableRootOutput) {
       specs.emplace_back(o2::its3::getTrackWriterSpec(useMC));
