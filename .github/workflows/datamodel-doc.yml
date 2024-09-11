@@ -48,6 +48,7 @@ jobs:
         run: |
           python3 -m pip install --user -U numpy nltk
           python3 -m nltk.downloader -d ~/nltk_data punkt
+          python3 -m nltk.downloader -d ~/nltk_data punkt_tab
 
       - name: Generate documentation
         run: exec bash -exo pipefail O2/scripts/datamodel-doc/update-datamodel.sh
