@@ -48,6 +48,7 @@ jobs:
         run: |
           python3 -m pip install --user -U numpy nltk
           python3 -m nltk.downloader -d ~/nltk_data punkt
+          python3 -m nltk.downloader -d ~/nltk_data punkt_tab
 
       - name: Generate documentation
         run: exec bash -exo pipefail O2/scripts/datamodel-doc/update-datamodel.sh
@@ -71,7 +72,7 @@ jobs:
           # Send pull request
           # We need to use "gh" ourselves because alisw/pull-request gets
           # confused when multiple repos are checked out.
-          GH_TOKEN="$GITHUB_TOKEN" gh pr create -B master \
+          GH_TOKEN="$GITHUB_TOKEN" gh pr create -R AliceO2Group/analysis-framework -B master \
           --no-maintainer-edit -t 'Automatic data model update' -b "This update \
           to the data model documentation was automatically created from \
           tonight's O2 dev branch." || true
