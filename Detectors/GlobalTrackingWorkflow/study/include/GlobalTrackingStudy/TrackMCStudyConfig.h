@@ -18,15 +18,15 @@ namespace o2::trackstudy
 {
 struct TrackMCStudyConfig : o2::conf::ConfigurableParamHelper<TrackMCStudyConfig> {
   float minPt = 0.05;
-  float maxTgl = 1.2;
+  float maxTgl = 1.5;
   float minPtMC = 0.05;
-  float maxTglMC = 1.2;
-  float minRMC = 33.;
+  float maxTglMC = 1.5;
+  float maxRMC = 33.;
   float maxPosTglMC = 2.;
   float maxPVZOffset = 15.;
-  float decayMotherMaxT = 0.1; // max TOF in ns for mother particles to study
+  float decayMotherMaxT = 1.0f; // max TOF in ns for mother particles to study
   bool requireITSorTPCTrackRefs = true;
-  int decayPDG[5] = {310, 3122, -1, -1, -1}; // decays to study, must end by -1
+  int decayPDG[5] = {310, 3122, 411, 421, -1}; // decays to study, must end by -1
   O2ParamDef(TrackMCStudyConfig, "trmcconf");
 };
 } // namespace o2::trackstudy
