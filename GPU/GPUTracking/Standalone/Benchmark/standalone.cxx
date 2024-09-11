@@ -230,7 +230,9 @@ int ReadConfiguration(int argc, char** argv)
     }
   }
   if (configStandalone.setO2Settings) {
-    configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    if (configStandalone.runGPU) {
+      configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    }
     configStandalone.rec.tpc.nWaysOuter = 1;
     configStandalone.rec.tpc.trackReferenceX = 83;
     configStandalone.proc.outputSharedClusterMap = 1;
