@@ -17,7 +17,7 @@ o2_gpu_kernel_file_list(TPCTRACKER ERRORS GPUTPCTrackParam.cxx GPUTPCTrack.cxx G
 o2_gpu_kernel_file_list(TPCTRACKLETCONS GPUTPCTrackletConstructor.cxx)
 o2_gpu_kernel_file_list(TPCSLICEDATA TPCTRACKER GPUTPCSliceData.cxx)
 o2_gpu_kernel_file_list(TPCOCCUPANCY GPUTPCClusterOccupancyMap.cxx)
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR GPUCA_CONFIG_O2_EXTENSIONS)
 o2_gpu_kernel_file_list(TPCDEDX GPUdEdx.cxx)
 o2_gpu_kernel_file_list(MATLUT MatLayerCylSet.cxx MatLayerCyl.cxx Ray.cxx)
 o2_gpu_kernel_file_list(TPCMERGER ERRORS GPUTPCGMMerger.cxx GPUTPCGMSliceTrack.cxx GPUTPCGMTrackParam.cxx GPUTPCGMPhysicalTrackModel.cxx GPUTPCGMPropagator.cxx)
@@ -89,7 +89,7 @@ o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step0"                 "GPUTPCGMM
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step1"                 "GPUTPCGMMergerGPU TPCMERGER"                           LB      simple)
 o2_gpu_add_kernel("GPUTPCGMMergerMergeLoopers, step2"                 "GPUTPCGMMergerGPU TPCMERGER"                           LB      simple)
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR GPUCA_CONFIG_O2_EXTENSIONS)
 o2_gpu_add_kernel("GPUTPCGMO2Output, prepare"                         "= TPCMERGER"                                           LB      simple)
 o2_gpu_add_kernel("GPUTPCGMO2Output, sort"                            "= TPCMERGER"                                           NO      simple)
 o2_gpu_add_kernel("GPUTPCGMO2Output, output"                          "= TPCMERGER"                                           LB      simple)

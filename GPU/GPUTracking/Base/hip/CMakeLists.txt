@@ -275,7 +275,7 @@ if(NOT GPUCA_HIP_COMPILE_MODE STREQUAL "rdc")
   target_link_options(${targetName} PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fno-gpu-rdc>)
 endif()
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR GPUCA_CONFIG_O2_EXTENSIONS)
   add_library(GPUTrackingHIPExternalProvider OBJECT ${GPUCA_HIP_SOURCE_DIR}/GPUReconstructionHIPExternalProvider.hip)
   add_library(O2::GPUTrackingHIPExternalProvider ALIAS GPUTrackingHIPExternalProvider)
   target_compile_options(GPUTrackingHIPExternalProvider PRIVATE $<$<COMPILE_LANGUAGE:HIP>:-fgpu-rdc>)

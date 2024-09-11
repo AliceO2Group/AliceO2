@@ -314,7 +314,7 @@ bool GPUChainTracking::ValidateSettings()
       return false;
     }
     if (!(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) || !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding) || param().rec.fwdTPCDigitsAsClusters) {
-      GPUError("Invalid reconstruction settings for double pipeline");
+      GPUError("Invalid reconstruction settings for double pipeline: Needs compression and cluster finding");
       return false;
     }
   }

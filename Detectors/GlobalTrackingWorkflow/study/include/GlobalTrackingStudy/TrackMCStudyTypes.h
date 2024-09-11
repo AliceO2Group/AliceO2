@@ -15,14 +15,22 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "Framework/Task.h"
+#include "SimulationDataFormat/MCEventLabel.h"
+#include "CommonConstants/LHCConstants.h"
+#include "CommonDataFormat/TimeStamp.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include <array>
 
 namespace o2::trackstudy
 {
 struct MCTrackInfo {
+
+  inline float getMCTimeMUS() const { return bcInTF * o2::constants::lhc::LHCBunchSpacingMUS; }
+
   o2::track::TrackPar track{};
   o2::MCCompLabel label{};
   float occTPC = -1.f;
+  int occITS = -1.f;
   int bcInTF = -1;
   int pdg = 0;
   int pdgParent = 0;
@@ -38,6 +46,9 @@ struct MCTrackInfo {
 struct RecTrack {
   o2::track::TrackParCov track{};
   o2::dataformats::VtxTrackIndex gid{};
+  o2::dataformats::TimeStampWithError<float, float> ts{};
+  o2::MCEventLabel pvLabel{};
+  int pvID = -1;
   uint8_t nClITS = 0;
   uint8_t nClTPC = 0;
   uint8_t pattITS = 0;
@@ -49,9 +60,12 @@ struct RecTrack {
 struct TrackFamily { // set of tracks related to the same MC label
   MCTrackInfo mcTrackInfo{};
   std::vector<RecTrack> recTracks{};
+  o2::track::TrackParCov trackITSProp{};
+  o2::track::TrackParCov trackTPCProp{};
   int8_t entITS = -1;
   int8_t entTPC = -1;
   int8_t entITSTPC = -1;
+  float tpcT0 = -999.;
   bool contains(const o2::dataformats::VtxTrackIndex& ref) const
   {
     for (const auto& tr : recTracks) {
@@ -64,5 +78,25 @@ struct TrackFamily { // set of tracks related to the same MC label
 
   ClassDefNV(TrackFamily, 1);
 };
+
+struct RecPV {
+  o2::dataformats::PrimaryVertex pv{};
+  o2::MCEventLabel mcEvLbl{};
+  ClassDefNV(RecPV, 1);
+};
+
+struct MCVertex {
+  float getX() const { return pos[0]; }
+  float getY() const { return pos[1]; }
+  float getZ() const { return pos[2]; }
+
+  std::array<float, 3> pos{0., 0., -1999.f};
+  float ts = 0;
+  int nTrackSel = 0; // number of selected MC charged tracks
+  int ID = -1;
+  std::vector<RecPV> recVtx{};
+  ClassDefNV(MCVertex, 1);
+};
+
 } // namespace o2::trackstudy
 #endif
