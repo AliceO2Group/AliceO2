@@ -369,6 +369,28 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
           trf.gid = vid; //  account(iv, vid);
           trf.pvID = pvID;
           trf.pvLabel = pvLbl;
+          while (dm[DetID::ITS] && dm[DetID::TPC]) { // this track should have both ITS and TPC parts, if ITS was mismatched, fill it to its proper MC track slot
+            auto gidSet = recoData.getSingleDetectorRefs(vid);
+            if (!gidSet[GTrackID::ITS].isSourceSet()) {
+              break; // AB track, nothing to check
+            }
+            auto lblITS = recoData.getTrackMCLabel(gidSet[GTrackID::ITS]);
+            if (lblITS == trackFamily.mcTrackInfo.label) {
+              break; // correct match, no need for special treatment
+            }
+            const auto& trcITSF = recoData.getTrackParam(gidSet[GTrackID::ITS]);
+            if (trcITSF.getPt() < params.minPt || std::abs(trcITSF.getTgl()) > params.maxTgl) {
+              break; // ignore this track
+            }
+            auto entryOfFake = mSelMCTracks.find(lblITS);
+            if (entryOfFake == mSelMCTracks.end()) { // this MC track was not selected
+              break;
+            }
+            auto& trackFamilyOfFake = entryOfFake->second;
+            auto& trfOfFake = trackFamilyOfFake.recTracks.emplace_back();
+            trfOfFake.gid = gidSet[GTrackID::ITS]; //  account(iv, vid);
+            break;
+          }
           if (mVerbose > 1) {
             LOGP(info, "Matched rec track {} to MC track {}", vid.asString(), entry->first.asString());
           }
@@ -408,27 +430,48 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
     int tcnt = 0;
     for (auto& tref : tracks) {
       if (tref.gid.isSourceSet()) {
+        auto gidSet = recoData.getSingleDetectorRefs(tref.gid);
         tref.track = recoData.getTrackParam(tref.gid);
-        tref.isFake = recoData.getTrackMCLabel(tref.gid).isFake();
+        if (recoData.getTrackMCLabel(tref.gid).isFake()) {
+          tref.flags |= RecTrack::FakeGLO;
+        }
         auto msk = tref.gid.getSourceDetectorsMask();
         if (msk[DetID::ITS]) {
-          auto gidITS = recoData.getITSContributorGID(tref.gid);
-          tref.pattITS = getITSPatt(gidITS, tref.nClITS);
-          if (gidITS.getSource() == VTIndex::ITS && trackFam.entITS < 0) { // has ITS track rather than AB tracklet
-            trackFam.entITS = tcnt;
+          if (gidSet[GTrackID::ITS].isSourceSet()) { // has ITS track rather than AB tracklet
+            tref.pattITS = getITSPatt(gidSet[GTrackID::ITS], tref.nClITS);
+            if (trackFam.entITS < 0) {
+              trackFam.entITS = tcnt;
+            }
+            auto lblITS = recoData.getTrackMCLabel(gidSet[GTrackID::ITS]);
+            if (lblITS.isFake()) {
+              tref.flags |= RecTrack::FakeITS;
+            }
+            if (lblITS == trackFam.mcTrackInfo.label) {
+              trackFam.entITSFound = tcnt;
+            }
+          } else { // AB ITS tracklet
+            tref.pattITS = getITSPatt(gidSet[GTrackID::ITSAB], tref.nClITS);
+            if (recoData.getTrackMCLabel(gidSet[GTrackID::ITSAB]).isFake()) {
+              tref.flags |= RecTrack::FakeITS;
+            }
           }
           if (msk[DetID::TPC] && trackFam.entITSTPC < 0) { // has both ITS and TPC contribution
             trackFam.entITSTPC = tcnt;
+            if (recoData.getTrackMCLabel(gidSet[GTrackID::ITSTPC]).isFake()) {
+              tref.flags |= RecTrack::FakeITSTPC;
+            }
           }
         }
         if (msk[DetID::TPC]) {
-          auto gidTPC = recoData.getTPCContributorGID(tref.gid);
-          const auto& trtpc = recoData.getTPCTrack(gidTPC);
+          const auto& trtpc = recoData.getTPCTrack(gidSet[GTrackID::TPC]);
           tref.nClTPC = trtpc.getNClusters();
           tref.lowestPadRow = getLowestPadrow(trtpc);
           if (trackFam.entTPC < 0) {
             trackFam.entTPC = tcnt;
             trackFam.tpcT0 = trtpc.getTime0();
+          }
+          if (recoData.getTrackMCLabel(gidSet[GTrackID::TPC]).isFake()) {
+            tref.flags |= RecTrack::FakeTPC;
           }
         }
         float ts = 0, terr = 0;
@@ -473,16 +516,20 @@ void TrackMCStudy::process(const o2::globaltracking::RecoContainer& recoData)
     std::string decTreeName = fmt::format("dec{}", params.decayPDG[id]);
     for (const auto& dec : mDecaysMaps[id]) {
       decFam.clear();
+      bool skip = false;
       for (int idd = dec.daughterFirst; idd <= dec.daughterLast; idd++) {
         auto dtLbl = mDecProdLblPool[idd]; // daughter MC label
         const auto& dtFamily = mSelMCTracks[dtLbl];
         if (dtFamily.mcTrackInfo.pdgParent != dec.pdg) {
           LOGP(error, "{}-th decay (pdg={}): {} in {}:{} range refers to MC track with pdgParent = {}", id, params.decayPDG[id], idd, dec.daughterFirst, dec.daughterLast, dtFamily.mcTrackInfo.pdgParent);
-          continue;
+          skip = true;
+          break;
         }
         decFam.push_back(dtFamily);
       }
-      (*mDBGOut) << decTreeName.c_str() << "pdgPar=" << dec.pdg << "trPar=" << dec.parent << "prod=" << decFam << "\n";
+      if (!skip) {
+        (*mDBGOut) << decTreeName.c_str() << "pdgPar=" << dec.pdg << "trPar=" << dec.parent << "prod=" << decFam << "\n";
+      }
     }
   }
 
@@ -745,7 +792,7 @@ bool TrackMCStudy::addMCParticle(const MCTrack& mcPart, const o2::MCCompLabel& l
   mcEntry.mcTrackInfo.occITS = mITSOcc[lb.getEventID()];
   int moth = -1;
   o2::MCCompLabel mclbPar;
-  if (!mcPart.isPrimary() && (moth = mcPart.getMotherTrackId()) >= 0) {
+  if ((moth = mcPart.getMotherTrackId()) >= 0) {
     const auto& mcPartPar = mCurrMCTracks[moth];
     mcEntry.mcTrackInfo.pdgParent = mcPartPar.GetPdgCode();
   }
