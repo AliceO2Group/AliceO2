@@ -72,7 +72,7 @@ jobs:
           # Send pull request
           # We need to use "gh" ourselves because alisw/pull-request gets
           # confused when multiple repos are checked out.
-          GH_TOKEN="$GITHUB_TOKEN" gh pr create -B master \
+          GH_TOKEN="$GITHUB_TOKEN" gh pr create -R AliceO2Group/analysis-framework -B master \
           --no-maintainer-edit -t 'Automatic data model update' -b "This update \
           to the data model documentation was automatically created from \
           tonight's O2 dev branch." || true
