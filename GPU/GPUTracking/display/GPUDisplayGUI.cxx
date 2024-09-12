@@ -18,8 +18,7 @@
 
 using namespace o2::gpu;
 
-GPUDisplayGUI::GPUDisplayGUI(QWidget* parent)
-  : QMainWindow(parent), ui(new Ui::GPUDisplayGUI)
+GPUDisplayGUI::GPUDisplayGUI(QWidget* parent) : QMainWindow(parent), ui(new Ui::GPUDisplayGUI)
 {
   ui->setupUi(this);
 }
