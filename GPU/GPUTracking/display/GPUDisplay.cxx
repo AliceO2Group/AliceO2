@@ -77,7 +77,7 @@ constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#define GL_SCALE_FACTOR 100.f
+#define GL_SCALE_FACTOR (1.f / 100.f)
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (mCfgH.separateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
@@ -1069,7 +1069,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           }
           float sa = sinf(alpha), ca = cosf(alpha);
           float drawX = trkParam.X() + mCfgH.xAdd;
-          useBuffer.emplace_back((ca * drawX - sa * trkParam.Y()) / GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * drawX) * mYFactor / GL_SCALE_FACTOR, mCfgH.projectXY ? 0 : (trkParam.Z() + ZOffset) / GL_SCALE_FACTOR);
+          useBuffer.emplace_back((ca * drawX - sa * trkParam.Y()) * GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * drawX) * mYFactor * GL_SCALE_FACTOR, mCfgH.projectXY ? 0 : (trkParam.Z() + ZOffset) * GL_SCALE_FACTOR);
           x += inFlyDirection ? 1 : -1;
         }
 
@@ -1111,8 +1111,8 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
         zz1 -= mCfgH.zAdd;
         zz2 -= mCfgH.zAdd;
       }
-      mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR * mYFactor, zz1 / GL_SCALE_FACTOR);
-      mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR * mYFactor, zz2 / GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx1 * GL_SCALE_FACTOR, yy1 * GL_SCALE_FACTOR * mYFactor, zz1 * GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx2 * GL_SCALE_FACTOR, yy2 * GL_SCALE_FACTOR * mYFactor, zz2 * GL_SCALE_FACTOR);
     }
     for (int j = 0; j <= (signed)row.Grid().Nz(); j++) {
       float y1 = row.Grid().YMin();
@@ -1129,8 +1129,8 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
         zz1 -= mCfgH.zAdd;
         zz2 -= mCfgH.zAdd;
       }
-      mVertexBuffer[iSlice].emplace_back(xx1 / GL_SCALE_FACTOR, yy1 / GL_SCALE_FACTOR * mYFactor, zz1 / GL_SCALE_FACTOR);
-      mVertexBuffer[iSlice].emplace_back(xx2 / GL_SCALE_FACTOR, yy2 / GL_SCALE_FACTOR * mYFactor, zz2 / GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx1 * GL_SCALE_FACTOR, yy1 * GL_SCALE_FACTOR * mYFactor, zz1 * GL_SCALE_FACTOR);
+      mVertexBuffer[iSlice].emplace_back(xx2 * GL_SCALE_FACTOR, yy2 * GL_SCALE_FACTOR * mYFactor, zz2 * GL_SCALE_FACTOR);
     }
   }
   insertVertexList(tracker.ISlice(), startCountInner, mVertexBuffer[iSlice].size());
@@ -1175,8 +1175,8 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
           float x2Tmp = xyzGlb2[0];
           xyzGlb2[0] = xyzGlb2[0] * cosf(alpha) + xyzGlb2[1] * sinf(alpha);
           xyzGlb2[1] = -x2Tmp * sinf(alpha) + xyzGlb2[1] * cosf(alpha);
-          mVertexBuffer[sector].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] / GL_SCALE_FACTOR);
-          mVertexBuffer[sector].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb1[0] * GL_SCALE_FACTOR, xyzGlb1[1] * GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] * GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb2[0] * GL_SCALE_FACTOR, xyzGlb2[1] * GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] * GL_SCALE_FACTOR);
         }
         for (int j = 0; j < pp->GetNcols(); ++j) {
           float xyzLoc1[3];
@@ -1195,8 +1195,8 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
           float x2Tmp = xyzGlb2[0];
           xyzGlb2[0] = xyzGlb2[0] * cosf(alpha) + xyzGlb2[1] * sinf(alpha);
           xyzGlb2[1] = -x2Tmp * sinf(alpha) + xyzGlb2[1] * cosf(alpha);
-          mVertexBuffer[sector].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] / GL_SCALE_FACTOR);
-          mVertexBuffer[sector].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb1[0] * GL_SCALE_FACTOR, xyzGlb1[1] * GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] * GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb2[0] * GL_SCALE_FACTOR, xyzGlb2[1] * GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] * GL_SCALE_FACTOR);
         }
       }
     }
@@ -1364,9 +1364,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
         mMaxClusterZ = fabsf(ptr->z);
       }
       ptr->z += iSlice < 18 ? mCfgH.zAdd : -mCfgH.zAdd;
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
+      ptr->x *= GL_SCALE_FACTOR;
+      ptr->y *= GL_SCALE_FACTOR;
+      ptr->z *= GL_SCALE_FACTOR;
       ptr->w = tCLUSTER;
     }
   }
@@ -1390,9 +1390,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     if (fabsf(ptr->z) > mMaxClusterZ) {
       mMaxClusterZ = fabsf(ptr->z);
     }
-    ptr->x /= GL_SCALE_FACTOR;
-    ptr->y /= GL_SCALE_FACTOR;
-    ptr->z /= GL_SCALE_FACTOR;
+    ptr->x *= GL_SCALE_FACTOR;
+    ptr->y *= GL_SCALE_FACTOR;
+    ptr->z *= GL_SCALE_FACTOR;
     ptr->w = tTRDCLUSTER;
     ptr = &mGlobalPosTRD2[i];
     mParam->Slice2Global(iSec, sp.getX() + mCfgH.xAdd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
@@ -1400,9 +1400,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     if (fabsf(ptr->z) > mMaxClusterZ) {
       mMaxClusterZ = fabsf(ptr->z);
     }
-    ptr->x /= GL_SCALE_FACTOR;
-    ptr->y /= GL_SCALE_FACTOR;
-    ptr->z /= GL_SCALE_FACTOR;
+    ptr->x *= GL_SCALE_FACTOR;
+    ptr->y *= GL_SCALE_FACTOR;
+    ptr->z *= GL_SCALE_FACTOR;
     ptr->w = tTRDCLUSTER;
   }
 
@@ -1420,9 +1420,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
     if (fabsf(ptr->z) > mMaxClusterZ) {
       mMaxClusterZ = fabsf(ptr->z);
     }
-    ptr->x /= GL_SCALE_FACTOR;
-    ptr->y /= GL_SCALE_FACTOR;
-    ptr->z /= GL_SCALE_FACTOR;
+    ptr->x *= GL_SCALE_FACTOR;
+    ptr->y *= GL_SCALE_FACTOR;
+    ptr->z *= GL_SCALE_FACTOR;
     ptr->w = tTOFCLUSTER;
 #endif
   }
@@ -1459,9 +1459,9 @@ void GPUDisplay::DrawGLScene_updateEventData()
         if (fabsf(ptr->z) > mMaxClusterZ) {
           mMaxClusterZ = fabsf(ptr->z);
         }
-        ptr->x /= GL_SCALE_FACTOR;
-        ptr->y /= GL_SCALE_FACTOR;
-        ptr->z /= GL_SCALE_FACTOR;
+        ptr->x *= GL_SCALE_FACTOR;
+        ptr->y *= GL_SCALE_FACTOR;
+        ptr->z *= GL_SCALE_FACTOR;
         ptr->w = tITSCLUSTER;
         i++;
       }
@@ -1485,7 +1485,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
   if (mCfgL.drawSlice != -1) {
     scalefactor *= 0.2f;
   }
-  float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) / GL_SCALE_FACTOR) * 0.8f;
+  float sqrdist = sqrtf(sqrtf(mViewMatrixP[12] * mViewMatrixP[12] + mViewMatrixP[13] * mViewMatrixP[13] + mViewMatrixP[14] * mViewMatrixP[14]) * GL_SCALE_FACTOR) * 0.8f;
   if (sqrdist < 0.2f) {
     sqrdist = 0.2f;
   }
@@ -1584,7 +1584,7 @@ void GPUDisplay::DrawGLScene_cameraAndAnimation(float animateTime, float& mixSla
       nextViewMatrix = nextViewMatrix * HMM_Translate({{-vals[0], -vals[1], -vals[2]}});
     }
   } else if (mResetScene) {
-    nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, mParam->par.continuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8}});
+    nextViewMatrix = nextViewMatrix * HMM_Translate({{0, 0, mParam->par.continuousTracking ? (-mMaxClusterZ * GL_SCALE_FACTOR - 8) : -8}});
     mViewMatrix = MY_HMM_IDENTITY;
     mModelMatrix = MY_HMM_IDENTITY;
 
@@ -2208,7 +2208,7 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
 
   // Draw Event
   nextViewMatrix = nextViewMatrix * mModelMatrix;
-  const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
+  const float zFar = ((mParam->par.continuousTracking ? (mMaxClusterZ * GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
   const hmm_mat4 proj = HMM_Perspective(mCfgR.fov, (float)mBackend->mRenderWidth / (float)mBackend->mRenderHeight, 0.1f, zFar);
   mBackend->prepareDraw(proj, nextViewMatrix, doScreenshot || mRequestScreenshot, renderToMixBuffer, mixSlaveImage);
   mBackend->pointSizeFactor(1);
