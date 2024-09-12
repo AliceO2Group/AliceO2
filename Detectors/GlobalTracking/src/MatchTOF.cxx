@@ -449,6 +449,7 @@ bool MatchTOF::prepareTPCData()
           mTracksLblWork[sector][trkType::UNCONS].emplace_back(mTracksLblWork[sec][trkType::UNCONS][it]);
         }
         mLTinfos[sector][trkType::UNCONS].emplace_back(mLTinfos[sec][trkType::UNCONS][it]);
+        mVZtpcOnly[sector].push_back(mVZtpcOnly[sec][it]);
         mTracksSectIndexCache[trkType::UNCONS][sector].push_back(itnew);
       }
     }
