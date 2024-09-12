@@ -2224,8 +2224,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
                   dst[1]->SetBinContent(bin, proj->GetMean());
                   dst[1]->SetBinError(bin, std::sqrt(proj->GetRMS()));
                 } else {
-                  proj->GetXaxis()->SetRangeUser(proj->GetMean() - 6. * proj->GetRMS(), proj->GetMean() + 6. * proj->GetRMS());
-                  proj->GetXaxis()->SetRangeUser(proj->GetMean() - 3. * proj->GetRMS(), proj->GetMean() + 3. * proj->GetRMS());
+                  proj->GetXaxis()->SetRange(0, 0);
+                  proj->GetXaxis()->SetRangeUser(std::max(proj->GetXaxis()->GetXmin(), proj->GetMean() - 3. * proj->GetRMS()), std::min(proj->GetXaxis()->GetXmax(), proj->GetMean() + 3. * proj->GetRMS()));
                   bool forceLogLike = proj->GetMaximum() < 20;
                   for (int k = forceLogLike ? 2 : 0; k < 3; k++) {
                     proj->Fit("gaus", forceLogLike || k == 2 ? "sQl" : k ? "sQww" : "sQ");
