@@ -231,7 +231,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   if (mSpecConfig.outputSharedClusterMap) {
     mConfig->configProcessing.outputSharedClusterMap = true;
   }
-  mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Disable O2 TPC track format output if no track output requested
+  if (!mSpecConfig.outputTracks) {
+    mConfig->configProcessing.createO2Output = 0; // Disable O2 TPC track format output if no track output requested
+  }
   mConfig->configProcessing.param.tpcTriggerHandling = mSpecConfig.tpcTriggerHandling;
 
   if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
