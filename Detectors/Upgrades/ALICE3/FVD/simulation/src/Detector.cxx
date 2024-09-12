@@ -225,7 +225,7 @@ void Detector::buildModules()
   TGeoVolumeAssembly *vFVDA = buildModuleA();
   TGeoVolumeAssembly *vFVDC = buildModuleC();
 
-  vCave->AddNode(vFVDA, 0, new TGeoTranslation(0., 0., FVDBaseParam::zModA));
+  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., FVDBaseParam::zModA));
   vCave->AddNode(vFVDC, 1, new TGeoTranslation(0., 0., FVDBaseParam::zModC));
 }
 
