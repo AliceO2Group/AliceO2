@@ -873,7 +873,7 @@ int GPUChainTracking::RunChainFinalize()
       Sleep(10);
       if (GetProcessingSettings().eventDisplay->EnableSendKey()) {
         iKey = kbhit() ? getch() : 0;
-        if (iKey == 'q') {
+        if (iKey == 27) {
           GetProcessingSettings().eventDisplay->setDisplayControl(2);
         } else if (iKey == 'n') {
           break;
