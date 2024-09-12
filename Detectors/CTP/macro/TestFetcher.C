@@ -12,7 +12,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <CCDB/BasicCCDBManager.h>
 #include <DataFormatsCTP/Configuration.h>
-#include <DataFormatsCTP/ctpRateFetcher.h>
+#include <DataFormatsCTP/CTPRateFetcher.h>
 #endif
 using namespace o2::ctp;
 
@@ -23,7 +23,7 @@ void TestFetcher(int runNumber = 556767)
   long ts = pp.first + 60;
   std::cout << "Run duration:" << pp.first << " " << pp.second << std::endl;
   // Opening run
-  ctpRateFetcher fetcher;
+  CTPRateFetcher fetcher;
   fetcher.setupRun(runNumber, &ccdb, ts, 0);
   ccdb.setURL("http://ali-qcdb-gpn.cern.ch:8083/");
   std::string QCDBPathCTPScalers = "qc/CTP/Scalers";

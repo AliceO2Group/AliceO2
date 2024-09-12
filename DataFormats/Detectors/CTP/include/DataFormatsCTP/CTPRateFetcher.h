@@ -24,10 +24,10 @@ namespace ctp
 class CTPRunScalers;
 class CTPConfiguration;
 
-class ctpRateFetcher
+class CTPRateFetcher
 {
  public:
-  ctpRateFetcher() = default;
+  CTPRateFetcher() = default;
   double fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
   double fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
   void setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers);

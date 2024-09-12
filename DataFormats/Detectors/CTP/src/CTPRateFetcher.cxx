@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsCTP/ctpRateFetcher.h"
+#include "DataFormatsCTP/CTPRateFetcher.h"
 
 #include <map>
 #include <vector>
@@ -20,7 +20,7 @@
 #include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::ctp;
-double ctpRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
+double CTPRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
   auto triggerRate = fetchNoPuCorr(ccdb, timeStamp, runNumber, sourceName);
   if (triggerRate >= 0) {
@@ -28,7 +28,7 @@ double ctpRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStam
   }
   return -1;
 }
-double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
+double CTPRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
 {
   setupRun(runNumber, ccdb, timeStamp, 1);
   if (sourceName.find("ZNC") != std::string::npos) {
@@ -59,13 +59,13 @@ double ctpRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t 
   LOG(error) << "CTP rate for " << sourceName << " not available";
   return -1.;
 }
-void ctpRateFetcher::updateScalers(ctp::CTPRunScalers* scalers)
+void CTPRateFetcher::updateScalers(ctp::CTPRunScalers* scalers)
 {
   mScalers = scalers;
   mScalers->convertRawToO2();
 }
 //
-double ctpRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType)
+double CTPRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType)
 {
   auto triggerRate = fetchCTPratesClassesNoPuCorr(timeStamp, className, inputType);
   if (triggerRate >= 0) {
@@ -73,7 +73,7 @@ double ctpRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::strin
   }
   return -1;
 }
-double ctpRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const std::string& className, int inputType)
+double CTPRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const std::string& className, int inputType)
 {
   std::vector<ctp::CTPClass> ctpcls = mConfig->getCTPClasses();
   std::vector<int> clslist = mConfig->getTriggerClassList();
@@ -91,7 +91,7 @@ double ctpRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const st
   auto rate{mScalers->getRateGivenT(timeStamp * 1.e-3, classIndex, inputType)};
   return rate.second;
 }
-double ctpRateFetcher::fetchCTPratesInputs(uint64_t timeStamp, int input)
+double CTPRateFetcher::fetchCTPratesInputs(uint64_t timeStamp, int input)
 {
   std::vector<ctp::CTPScalerRecordO2> recs = mScalers->getScalerRecordO2();
   if (recs[0].scalersInps.size() == 48) {
@@ -101,7 +101,7 @@ double ctpRateFetcher::fetchCTPratesInputs(uint64_t timeStamp, int input)
     return -1.;
   }
 }
-double ctpRateFetcher::fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input)
+double CTPRateFetcher::fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input)
 {
   std::vector<ctp::CTPScalerRecordO2> recs = mScalers->getScalerRecordO2();
   if (recs[0].scalersInps.size() == 48) {
@@ -112,7 +112,7 @@ double ctpRateFetcher::fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input
   }
 }
 
-double ctpRateFetcher::pileUpCorrection(double triggerRate)
+double CTPRateFetcher::pileUpCorrection(double triggerRate)
 {
   if (mLHCIFdata == nullptr) {
     LOG(fatal) << "No filling" << std::endl;
@@ -125,7 +125,7 @@ double ctpRateFetcher::pileUpCorrection(double triggerRate)
   return mu * nbc * constants::lhc::LHCRevFreq;
 }
 
-void ctpRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers)
+void CTPRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers)
 {
   if (runNumber == mRunNumber) {
     return;
