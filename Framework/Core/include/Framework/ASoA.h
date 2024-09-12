@@ -28,10 +28,8 @@
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
-#include <functional>
 #include <gsl/span>
 #include <limits>
-#include <stdexcept>
 
 #define DECLARE_SOA_METADATA()       \
   template <typename T>              \
@@ -41,8 +39,7 @@
 
 #define DECLARE_SOA_ITERATOR_METADATA()                                       \
   template <typename IT>                                                      \
-    requires(o2::soa::is_soa_iterator_v<IT>)                                  \
-  struct MetadataTrait<IT> {                                                  \
+  requires(o2::soa::is_soa_iterator_v<IT>) struct MetadataTrait<IT> {         \
     using metadata = typename MetadataTrait<typename IT::parent_t>::metadata; \
   };
 
@@ -900,8 +897,7 @@ struct RowViewCore : public IP, C... {
     return *this;
   }
 
-  RowViewCore(RowViewCore<ORIGIN, FilteredIndexPolicy, C...> const& other)
-    requires std::is_same_v<IP, DefaultIndexPolicy>
+  RowViewCore(RowViewCore<ORIGIN, FilteredIndexPolicy, C...> const& other) requires std::is_same_v<IP, DefaultIndexPolicy>
     : IP{static_cast<IP const&>(other)},
       C(static_cast<C const&>(other))...
   {
@@ -1027,15 +1023,11 @@ struct RowViewCore : public IP, C... {
   void bind()
   {
     using namespace o2::soa;
-    auto f = framework::overloaded{
-      [this]<typename T>(T*) -> void
-        requires is_persistent_v<T>
-                 { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
-                 [this]<typename T>(T*) -> void
-                   requires is_dynamic_v<T>
-      { bindDynamicColumn<T>(typename T::bindings_t{}); },
+    auto f = framework::overloaded  {
+      [this]<typename T>(T*) -> void requires is_persistent_v<T> { T::mColumnIterator.mCurrentPos = &this->mRowIndex; },
+      [this]<typename T>(T*) -> void requires is_dynamic_v<T> { bindDynamicColumn<T>(typename T::bindings_t{});},
       [this]<typename T>(T*) -> void {},
-      };
+};
     (f(static_cast<C*>(nullptr)), ...);
     if constexpr (has_index_v) {
       this->setIndices(this->getIndices());
@@ -1060,7 +1052,7 @@ struct RowViewCore : public IP, C... {
   {
     static_assert(std::is_same_v<decltype(&(static_cast<B*>(this)->mColumnIterator)), std::decay_t<decltype(B::mColumnIterator)>*>, "foo");
     return &(static_cast<B*>(this)->mColumnIterator);
-    // return static_cast<std::decay_t<decltype(B::mColumnIterator)>*>(nullptr);
+    //return static_cast<std::decay_t<decltype(B::mColumnIterator)>*>(nullptr);
   }
 
   template <typename B>
@@ -1523,8 +1515,7 @@ class Table
     }
 
     template <typename P, typename... O>
-    RowViewBase& operator=(RowViewBase<IP, P, O...> other)
-      requires std::is_same_v<typename P::table_t, typename Parent::table_t>
+    RowViewBase& operator=(RowViewBase<IP, P, O...> other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
       static_cast<RowViewCore<ORIGIN, IP, C...>&>(*this) = static_cast<RowViewCore<ORIGIN, IP, C...>>(other);
       return *this;
@@ -1538,23 +1529,20 @@ class Table
     }
 
     template <typename P>
-    RowViewBase& operator=(RowViewBase<FilteredIndexPolicy, P, T...> other)
-      requires std::is_same_v<IP, DefaultIndexPolicy>
+    RowViewBase& operator=(RowViewBase<FilteredIndexPolicy, P, T...> other) requires std::is_same_v<IP, DefaultIndexPolicy>
     {
       static_cast<RowViewCore<ORIGIN, IP, C...>&>(*this) = static_cast<RowViewCore<ORIGIN, FilteredIndexPolicy, C...>>(other);
       return *this;
     }
 
     template <typename P, typename... O>
-    RowViewBase(RowViewBase<IP, P, O...> const& other)
-      requires std::is_same_v<typename P::table_t, typename Parent::table_t>
+    RowViewBase(RowViewBase<IP, P, O...> const& other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
       *this = other;
     }
 
     template <typename P, typename... O>
-    RowViewBase(RowViewBase<IP, P, O...>&& other) noexcept
-      requires std::is_same_v<typename P::table_t, typename Parent::table_t>
+    RowViewBase(RowViewBase<IP, P, O...>&& other) noexcept requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
       *this = other;
     }
@@ -1572,8 +1560,7 @@ class Table
     }
 
     template <typename P>
-    RowViewBase(RowViewBase<FilteredIndexPolicy, P, T...> other)
-      requires std::is_same_v<IP, DefaultIndexPolicy>
+    RowViewBase(RowViewBase<FilteredIndexPolicy, P, T...> other) requires std::is_same_v<IP, DefaultIndexPolicy>
     {
       *this = other;
     }
@@ -1591,8 +1578,7 @@ class Table
     }
 
     template <typename P, typename... O>
-    void matchTo(RowViewBase<IP, P, O...> const& other)
-      requires std::is_same_v<typename P::table_t, typename Parent::table_t>
+    void matchTo(RowViewBase<IP, P, O...> const& other) requires std::is_same_v<typename P::table_t, typename Parent::table_t>
     {
       this->mRowIndex = other.mRowIndex;
     }
