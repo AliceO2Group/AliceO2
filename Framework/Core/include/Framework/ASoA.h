@@ -28,8 +28,10 @@
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
+#include <functional>
 #include <gsl/span>
 #include <limits>
+#include <stdexcept>
 
 #define DECLARE_SOA_METADATA()       \
   template <typename T>              \
@@ -2010,6 +2012,67 @@ template <typename R, typename T>
 std::optional<R> getColumnValueByLabel(const T& rowIterator, const std::string& columnLabel)
 {
   return getColumnValueByLabel<R>(typename T::parent_t::table_t::columns{}, rowIterator, columnLabel);
+}
+
+template <typename R, typename T, typename Column>
+R getColumnValue(const T& rowIterator)
+{
+  // This directly calls the column's get() method
+  return static_cast<R>(static_cast<Column>(rowIterator).get());
+}
+
+template <typename R, typename T, typename Column>
+using GetFunctionPointer = R (*)(const T&);
+
+template <typename R, typename T, typename Column>
+GetFunctionPointer<R, T, Column> createGetterPtr(const std::string_view& columnLabel, bool& found)
+{
+  using Col = Column;
+
+  if (found) {
+    return nullptr;
+  }
+
+  if constexpr (std::is_arithmetic_v<typename Col::type> && std::is_convertible_v<typename Col::type, R>) {
+    if constexpr (o2::soa::is_dynamic_v<Col>) {
+      if constexpr (o2::framework::pack_size(typename Col::bindings_t{}) == o2::framework::pack_size(typename Col::callable_t::args{})) {
+        if (columnLabel == std::string_view(&Col::columnLabel()[1]) || columnLabel == std::string_view(Col::columnLabel())) {
+          found = true;
+          return &getColumnValue<R, T, Col>;
+        }
+      }
+    } else if constexpr (o2::soa::is_persistent_v<Col> && !o2::soa::is_index_column_v<Col>) {
+      if (columnLabel == std::string_view(Col::columnLabel())) {
+        found = true;
+        return &getColumnValue<R, T, Col>;
+      }
+    }
+  }
+
+  return nullptr;
+}
+
+template <typename R, typename T, typename... Cs>
+std::function<R(const T&)> getColumnGetterByLabel(o2::framework::pack<Cs...>, const T& rowIterator, const std::string_view& columnLabel)
+{
+  std::string_view labelView(columnLabel);
+  bool found = false;
+  std::function<R(const T&)> func = nullptr;
+
+  // Iterate through each column in the pack and create the getter function pointer if a match is found
+  (void)((func = createGetterForColumn<R, T, Cs>(labelView, found), found) || ...);
+
+  if (!found) {
+    throw std::runtime_error("Getter for provided columnLabel not found!");
+  }
+
+  return func;
+}
+
+template <typename R, typename T>
+std::function<R(const typename T::iterator&)> getColumnGetterByLabel(const T& table, const std::string_view& columnLabel)
+{
+  return getColumnGetterByLabel<R>(typename T::columns{}, table.begin(), columnLabel);
 }
 } // namespace row_helpers
 } // namespace o2::soa

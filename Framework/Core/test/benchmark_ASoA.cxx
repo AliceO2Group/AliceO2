@@ -288,6 +288,36 @@ static void BM_ASoADynamicColumnPresent(benchmark::State& state)
 
 BENCHMARK(BM_ASoADynamicColumnPresent)->Range(8, 8 << maxrange);
 
+static void BM_ASoADynamicColumnPresentGetGetterByLabel(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y, test::Z, test::Sum<test::X, test::Y>>;
+
+  for (auto _ : state) {
+    Test tests{table};
+    float sum = 0;
+    auto xGetter = o2::soa::row_helpers::getColumnGetterByLabel<float>(tests, "x");
+    auto yGetter = o2::soa::row_helpers::getColumnGetterByLabel<float>(tests, "y");
+    for (auto& test : tests) {
+      sum += xGetter(test) + yGetter(test);
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
+}
+
+BENCHMARK(BM_ASoADynamicColumnPresentGetGetterByLabel)->Range(8, 8 << maxrange);
+
 static void BM_ASoADynamicColumnPresentGetValueByLabel(benchmark::State& state)
 {
   // Seed with a real random value, if available
@@ -347,6 +377,34 @@ static void BM_ASoADynamicColumnCall(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
 }
 BENCHMARK(BM_ASoADynamicColumnCall)->Range(8, 8 << maxrange);
+
+static void BM_ASoADynamicColumnCallGetGetterByLabel(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+
+  TableBuilder builder;
+  auto rowWriter = builder.persist<float, float, float>({"x", "y", "z"});
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  using Test = o2::soa::Table<o2::framework::OriginEnc{"AOD"}, test::X, test::Y, test::Sum<test::X, test::Y>>;
+
+  Test tests{table};
+  for (auto _ : state) {
+    float sum = 0;
+    auto sumGetter = o2::soa::row_helpers::getColumnGetterByLabel<float>(tests, "Sum");
+    for (auto& test : tests) {
+      sum += sumGetter(test);
+    }
+    benchmark::DoNotOptimize(sum);
+  }
+  state.SetBytesProcessed(state.iterations() * state.range(0) * sizeof(float) * 2);
+}
+BENCHMARK(BM_ASoADynamicColumnCallGetGetterByLabel)->Range(8, 8 << maxrange);
 
 static void BM_ASoADynamicColumnCallGetValueByLabel(benchmark::State& state)
 {
