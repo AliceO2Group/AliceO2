@@ -1217,7 +1217,7 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
 #elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   TrackParametrization<value_T>::printParam();
   printf(
-    "\nCov: [%+.3e] [%+.3e %+.3e] [%+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e %+.3e]",
+    " Cov: [%+.3e] [%+.3e %+.3e] [%+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e] [%+.3e %+.3e %+.3e %+.3e %+.3e]\n",
     mC[kSigY2], mC[kSigZY], mC[kSigZ2], mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], mC[kSigTglY],
     mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
     mC[kSigQ2Pt2]);
@@ -1234,7 +1234,7 @@ GPUd() void TrackParametrizationWithError<value_T>::printHexadecimal()
 #elif !defined(GPUCA_GPUCODE_DEVICE) || (!defined(__OPENCL__) && defined(GPUCA_GPU_DEBUG_PRINT))
   TrackParametrization<value_T>::printParamHexadecimal();
   printf(
-    "\nCov: [%x] [%x %x] [%x %x %x] [%x %x %x %x] [%x %x %x %x %x]",
+    " Cov: [%x] [%x %x] [%x %x %x] [%x %x %x %x] [%x %x %x %x %x]\n",
     gpu::CAMath::Float2UIntReint(mC[kSigY2]),
     gpu::CAMath::Float2UIntReint(mC[kSigZY]), gpu::CAMath::Float2UIntReint(mC[kSigZ2]),
     gpu::CAMath::Float2UIntReint(mC[kSigSnpY]), gpu::CAMath::Float2UIntReint(mC[kSigSnpZ]), gpu::CAMath::Float2UIntReint(mC[kSigSnp2]),

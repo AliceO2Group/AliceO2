@@ -15,10 +15,6 @@
 /// Only parts strictly requiring STD library have been changed.
 /// Also some utilities to have basic checks and printouts working on GPUs have been rewritten.
 ///
-/// Notably only templated implementation of
-/// row_offsets_utils::make and row_offsets_utils::do_make
-/// has been reworked to support gpustd::array as backend.
-///
 /// Other than that, the author is not taking any credit on the methodologies implemented
 /// which have been taken straight from root source code
 ///
