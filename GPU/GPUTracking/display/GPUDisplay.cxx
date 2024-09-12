@@ -590,13 +590,15 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
     const bool checkClusterCollision = mQA && mNCollissions && mOverlayTFClusters.size() == 0 && mIOPtrs->clustersNative && mIOPtrs->clustersNative->clustersMCTruth;
     for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
       const int cid = GET_CID(iSlice, cidInSlice);
-#ifdef GPUCA_HAVE_O2HEADERS
+#ifdef GPUCA_TPC_GEOMETRY_O2
       if (checkClusterCollision) {
         const auto& labels = mIOPtrs->clustersNative->clustersMCTruth->getLabels(cid);
         if (labels.size() ? (iCol != mQA->GetMCLabelCol(labels[0])) : (iCol != 0)) {
           continue;
         }
       }
+#else
+      (void)checkClusterCollision;
 #endif
       if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
         continue;
@@ -1814,7 +1816,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
       }
     }
     if (mConfig.showTPCTracksFromO2Format) {
-#ifdef GPUCA_HAVE_O2HEADERS
+#ifdef GPUCA_TPC_GEOMETRY_O2
       unsigned int col = 0;
       GPUCA_OPENMP(for)
       for (unsigned int i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
@@ -1847,7 +1849,7 @@ size_t GPUDisplay::DrawGLScene_updateVertexList()
 #ifdef GPUCA_TPC_GEOMETRY_O2
           col = mQA->GetMCLabelCol(label);
 #else
-          while (col < mOverlayTFClusters.size() && mOverlayTFClusters[col][NSLICES] < label) {
+          while (label.isValid() && col < mOverlayTFClusters.size() && mOverlayTFClusters[col][NSLICES] < label.track) {
             col++;
           }
 #endif
