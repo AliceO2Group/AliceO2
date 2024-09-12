@@ -1886,6 +1886,8 @@ void GPUQA::resetHists()
 
 int GPUQA::DrawQAHistograms(TObjArray* qcout)
 {
+  const auto oldRootIgnoreLevel = gErrorIgnoreLevel;
+  gErrorIgnoreLevel = kWarning;
   if (!mQAInitialized) {
     throw std::runtime_error("QA not initialized");
   }
@@ -2772,6 +2774,8 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
   if (!qcout) {
     clearGarbagageCollector();
   }
+  GPUInfo("GPU TPC QA histograms have been written to %s files", mConfig.writeRootFiles ? ".pdf and .root" : ".pdf");
+  gErrorIgnoreLevel = oldRootIgnoreLevel;
   return (0);
 }
 
