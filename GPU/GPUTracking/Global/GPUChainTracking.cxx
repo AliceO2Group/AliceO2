@@ -655,6 +655,22 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
         pDst[i] = pSrc[i];
       }
     }
+    if (mNewCalibObjects->trdGeometry && (GetRecoSteps() & GPUDataTypes::RecoStep::TRDTracking)) {
+#ifdef GPUCA_HAVE_O2HEADERS
+      if (GetProcessingSettings().trdTrackModelO2) {
+        processors()->trdTrackerO2.UpdateGeometry();
+        if (mRec->IsGPU()) {
+          TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, processors()->trdTrackerO2.MemoryPermanent(), stream);
+        }
+      } else
+#endif
+      {
+        processors()->trdTrackerGPU.UpdateGeometry();
+        if (mRec->IsGPU()) {
+          TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, processors()->trdTrackerGPU.MemoryPermanent(), stream);
+        }
+      }
+    }
     if (mRec->IsGPU()) {
       std::array<unsigned char, sizeof(GPUTrackingFlatObjects)> oldFlatPtrs, oldFlatPtrsDevice;
       memcpy(oldFlatPtrs.data(), (void*)&mFlatObjectsShadow, oldFlatPtrs.size());
