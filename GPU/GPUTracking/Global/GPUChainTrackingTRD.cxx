@@ -30,11 +30,11 @@ template <int I>
 int GPUChainTracking::RunTRDTracking()
 {
 #ifndef GPUCA_ALIROOT_LIB
-  if (!processors()->trdTrackerGPU.IsInitialized()) {
+  auto& Tracker = processors()->getTRDTracker<I>();
+  if (!Tracker.IsInitialized()) {
     return 1;
   }
 
-  auto& Tracker = processors()->getTRDTracker<I>();
   Tracker.Reset();
   if (mIOPtrs.nTRDTracklets == 0) {
     return 0;
@@ -182,7 +182,7 @@ int GPUChainTracking::DoTRDGPUTracking(T* externalInstance)
       processorsShadow()->ioPtrs.trdTrigRecMask = nullptr;
     }
     WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), useStream);
-    WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), TrackerShadow, sizeof(*TrackerShadow), useStream);
+    WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->getTRDTracker<I>() - (char*)processors(), TrackerShadow, sizeof(*TrackerShadow), useStream);
   }
 
   TransferMemoryResourcesToGPU(RecoStep::TRDTracking, Tracker, useStream);
