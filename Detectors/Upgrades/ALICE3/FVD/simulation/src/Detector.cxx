@@ -122,7 +122,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
 
     // Get unique ID of the detector cell (sensitive volume)
-    Int_t cellId = mGeometryTGeo->getCurrentCellId(fMC);
+    // Int_t cellId = mGeometryTGeo->getCurrentCellId(fMC);
+    int cellId = vol->getVolumeId();
 
     math_utils::Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
     math_utils::Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
