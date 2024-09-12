@@ -72,6 +72,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   int startGUI();
   void stopGUI();
+  bool isGUIRunning();
 
   // volatile variables to exchange control informations between display and backend
   volatile int mDisplayControl = 0; // Control for next event (=1) or quit (=2)
