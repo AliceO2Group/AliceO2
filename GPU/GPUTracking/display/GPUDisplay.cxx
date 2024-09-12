@@ -1019,8 +1019,6 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           trkParam.Set(mclocal[0], mclocal[1], mc.z - ZOffset, mclocal[2], mclocal[3], mc.pZ, charge);
 #endif
         }
-        trkParam.X() += mCfgH.xAdd;
-        x += mCfgH.xAdd;
         float z0 = trkParam.Z();
         if (iMC && inFlyDirection == 0) {
           buffer.clear();
@@ -1070,7 +1068,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             break;
           }
           float sa = sinf(alpha), ca = cosf(alpha);
-          useBuffer.emplace_back((ca * trkParam.X() - sa * trkParam.Y()) / GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * trkParam.X()) / GL_SCALE_FACTOR, mCfgH.projectXY ? 0 : (trkParam.Z() + ZOffset) / GL_SCALE_FACTOR);
+          float drawX = trkParam.X() + mCfgH.xAdd;
+          useBuffer.emplace_back((ca * drawX - sa * trkParam.Y()) / GL_SCALE_FACTOR, (ca * trkParam.Y() + sa * drawX) * mYFactor / GL_SCALE_FACTOR, mCfgH.projectXY ? 0 : (trkParam.Z() + ZOffset) / GL_SCALE_FACTOR);
           x += inFlyDirection ? 1 : -1;
         }
 
@@ -1196,8 +1195,8 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
           float x2Tmp = xyzGlb2[0];
           xyzGlb2[0] = xyzGlb2[0] * cosf(alpha) + xyzGlb2[1] * sinf(alpha);
           xyzGlb2[1] = -x2Tmp * sinf(alpha) + xyzGlb2[1] * cosf(alpha);
-          mVertexBuffer[sector].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR, xyzGlb1[2] / GL_SCALE_FACTOR);
-          mVertexBuffer[sector].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR, xyzGlb2[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb1[0] / GL_SCALE_FACTOR, xyzGlb1[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb1[2] / GL_SCALE_FACTOR);
+          mVertexBuffer[sector].emplace_back(xyzGlb2[0] / GL_SCALE_FACTOR, xyzGlb2[1] / GL_SCALE_FACTOR * mYFactor, xyzGlb2[2] / GL_SCALE_FACTOR);
         }
       }
     }
