@@ -58,6 +58,10 @@ set(SRCS ../utils/qsem.cxx
          backend/GPUDisplayBackendOpenGL.cxx)
 
 set(SRCS_NO_H helpers/GPUDisplayLoader.cxx
+              render/GPUDisplayDraw.cxx
+              render/GPUDisplayImportEvent.cxx
+              helpers/GPUDisplayHelpers.cxx
+              helpers/GPUDisplayAnimation.cxx
               helpers/GPUDisplayBackendOpenGLMagneticField.cxx
               helpers/GPUDisplayQuaternion.cxx
               helpers/GPUDisplayInterpolation.cxx

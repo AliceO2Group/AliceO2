@@ -42,7 +42,7 @@ QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentUniform_frag_spv);
 #define GPUCA_BUILD_EVENT_DISPLAY_OPENGL
 #if !defined(GL_VERSION_4_5) || GL_VERSION_4_5 != 1
 #ifdef GPUCA_STANDALONE
-//#error Unsupported OpenGL version < 4.5
+// #error Unsupported OpenGL version < 4.5
 #elif defined(GPUCA_O2_LIB)
 #pragma message "Unsupported OpenGL version < 4.5, disabling standalone event display"
 #else
@@ -82,7 +82,7 @@ bool GPUDisplayBackendOpenGL::CoreProfile()
 }
 #endif
 
-//#define CHKERR(cmd) {cmd;}
+// #define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd)                                                                                             \
   do {                                                                                                          \
     (cmd);                                                                                                      \
