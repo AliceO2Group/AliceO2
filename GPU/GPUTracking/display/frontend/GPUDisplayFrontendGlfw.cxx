@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUDisplayFrontendGlfw.h"
-#include "GPUDisplayBackend.h"
+#include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 

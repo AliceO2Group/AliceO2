@@ -28,8 +28,8 @@
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayMagneticField.h"
-#include "GPUDisplayBackendOpenGL.h"
-#include "GPUDisplayShaders.h"
+#include "backend/GPUDisplayBackendOpenGL.h"
+#include "shaders/GPUDisplayShaders.h"
 #include "GPUDisplay.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
