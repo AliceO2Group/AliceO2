@@ -333,7 +333,7 @@ class MatchGlobalFwd
   std::vector<o2::mft::TrackMFT> mMFTMatchPlaneParams;         ///< MFT track parameters at matching plane
   std::vector<o2::track::TrackParCovFwd> mMCHMatchPlaneParams; ///< MCH track parameters at matching plane
 
-  std::map<int, std::vector<std::pair<int, int>>> mCandidates; ///< map each MCH track id to vector of best match candidates
+  std::map<int, std::vector<std::pair<float, int>>> mCandidates; ///< map each MCH track id to vector of best match candidates
 
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;
