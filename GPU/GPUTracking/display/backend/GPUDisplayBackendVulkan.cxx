@@ -31,7 +31,7 @@ QGET_LD_BINARY_SYMBOLS(shaders_shaders_vertexTexture_vert_spv);
 QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentTexture_frag_spv);
 QGET_LD_BINARY_SYMBOLS(shaders_shaders_fragmentText_frag_spv);
 
-//#define CHKERR(cmd) {cmd;}
+// #define CHKERR(cmd) {cmd;}
 #define CHKERR(cmd)                                                                                     \
   do {                                                                                                  \
     auto tmp_internal_retVal = cmd;                                                                     \
@@ -1083,10 +1083,10 @@ void GPUDisplayBackendVulkan::createPipeline()
   vk::PipelineMultisampleStateCreateInfo multisampling{};
   multisampling.sampleShadingEnable = false;
   // multisampling.rasterizationSamples // below
-  multisampling.minSampleShading = 1.0f;          // Optional
-  multisampling.pSampleMask = nullptr;            // Optional
-  multisampling.alphaToCoverageEnable = false;    // Optional
-  multisampling.alphaToOneEnable = false;         // Optional
+  multisampling.minSampleShading = 1.0f;       // Optional
+  multisampling.pSampleMask = nullptr;         // Optional
+  multisampling.alphaToCoverageEnable = false; // Optional
+  multisampling.alphaToOneEnable = false;      // Optional
 
   vk::PipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;

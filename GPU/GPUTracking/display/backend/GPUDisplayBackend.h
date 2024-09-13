@@ -78,8 +78,8 @@ class GPUDisplayBackend
   virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
   virtual unsigned int drawField() { return 0; }
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
-  virtual void setQuality(){};
-  virtual void SetVSync(bool enable){};
+  virtual void setQuality() {};
+  virtual void SetVSync(bool enable) {};
   virtual bool backendNeedRedraw() { return true; }
   virtual void setDepthBuffer() = 0;
   virtual int InitBackendA() = 0;

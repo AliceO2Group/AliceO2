@@ -83,7 +83,7 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
   virtual int FrontendMain() = 0;
   static void* FrontendThreadWrapper(void*);
 
-  static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                           // Initial window size, before maximizing
+  static constexpr int INIT_WIDTH = 1024, INIT_HEIGHT = 768;                            // Initial window size, before maximizing
   static constexpr const char* DISPLAY_WINDOW_NAME = "GPU CA Standalone Event Display"; // Title of event display set by backend
   // Constant key codes for special mKeys (to unify different treatment in X11 / Windows / GLUT / etc.)
   static constexpr int KEY_UP = 1;
@@ -138,12 +138,12 @@ class GPUDisplayFrontend : public GPUDisplayFrontendInterface
 
   std::unique_ptr<GPUDisplayGUIWrapper> mGUI;
 
-  void HandleKey(unsigned char key);                                    // Callback for handling key presses
-  int DrawGLScene();                                                    // Callback to draw the GL scene
-  void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
-  void ResizeScene(int width, int height);                              // Callback when GL window is resized
-  int InitDisplay(bool initFailure = false);                            // Callback to initialize the GL Display (to be called in StartDisplay)
-  void ExitDisplay();                                                   // Callback to clean up the GL Display
+  void HandleKey(unsigned char key);         // Callback for handling key presses
+  int DrawGLScene();                         // Callback to draw the GL scene
+  void HandleSendKey();                      // Optional callback to handle key press from external source (e.g. stdin by default)
+  void ResizeScene(int width, int height);   // Callback when GL window is resized
+  int InitDisplay(bool initFailure = false); // Callback to initialize the GL Display (to be called in StartDisplay)
+  void ExitDisplay();                        // Callback to clean up the GL Display
   int& drawTextFontSize();
 };
 } // namespace GPUCA_NAMESPACE::gpu
