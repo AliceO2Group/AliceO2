@@ -29,7 +29,7 @@
 #include <type_traits>
 
 #ifndef _WIN32
-#include "bitmapfile.h"
+#include "helpers/bitmapfile.h"
 #include "../utils/linux_helpers.h"
 #endif
 #ifdef WITH_OPENMP
@@ -69,8 +69,8 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #endif
 
-#include "GPUDisplayFrontend.h"
-#include "GPUDisplayBackend.h"
+#include "frontend/GPUDisplayFrontend.h"
+#include "backend/GPUDisplayBackend.h"
 
 constexpr hmm_mat4 MY_HMM_IDENTITY = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}};
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }

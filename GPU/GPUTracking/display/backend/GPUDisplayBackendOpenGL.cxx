@@ -25,7 +25,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayBackendOpenGL.h"
-#include "GPUDisplayShaders.h"
+#include "shaders/GPUDisplayShaders.h"
 #include "GPUDisplay.h"
 
 #define OPENGL_EMULATE_MULTI_DRAW 0

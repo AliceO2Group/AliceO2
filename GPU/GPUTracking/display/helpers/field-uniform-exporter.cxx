@@ -18,7 +18,7 @@
 #include <Field/MagneticField.h>
 #include <memory>
 
-#include "../GPUDisplayMagneticField.h"
+#include "GPUDisplayMagneticField.h"
 
 namespace bpo = boost::program_options;
 using namespace GPUCA_NAMESPACE::gpu;

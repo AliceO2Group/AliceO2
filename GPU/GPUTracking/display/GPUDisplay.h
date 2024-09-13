@@ -16,8 +16,8 @@
 #define GPUDISPLAY_H
 
 #include "GPUSettings.h"
-#include "GPUDisplayFrontend.h"
-#include "GPUDisplayBackend.h"
+#include "frontend/GPUDisplayFrontend.h"
+#include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
 
 #include "GPUChainTracking.h"
