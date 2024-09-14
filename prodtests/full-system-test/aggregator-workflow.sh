@@ -125,6 +125,7 @@ if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRACK_INPUT="
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW=
+  [[ "${GEN_TOPO_ONTHEFLY:-}" == "1" ]] && WORKFLOW="echo '{}' | " # When running in a pseudo terminal / with ODC, sometimes we have bogus stdin file descriptors
 else
   : ${AGGREGATOR_TASKS:=ALL}
 fi

@@ -105,6 +105,15 @@ int GPUDisplayFrontend::startGUI()
   return retVal;
 }
 
+bool GPUDisplayFrontend::isGUIRunning()
+{
+  bool retVal = false;
+#ifdef GPUCA_BUILD_EVENT_DISPLAY_QT
+  retVal = mGUI && mGUI->isRunning();
+#endif
+  return retVal;
+}
+
 GPUDisplayFrontend* GPUDisplayFrontend::getFrontend(const char* type)
 {
 #if !defined(GPUCA_STANDALONE) && defined(GPUCA_BUILD_EVENT_DISPLAY_GLFW)

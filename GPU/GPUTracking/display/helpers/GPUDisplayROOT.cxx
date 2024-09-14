@@ -12,6 +12,10 @@
 /// \file GPUDisplayROOT.cxx
 /// \author David Rohr
 
+#ifndef GPUCA_NO_ROOT
+#include "Rtypes.h" // Include ROOT header first, to use ROOT and disable replacements
+#endif
+
 #include "GPUDisplay.h"
 using namespace GPUCA_NAMESPACE::gpu;
 

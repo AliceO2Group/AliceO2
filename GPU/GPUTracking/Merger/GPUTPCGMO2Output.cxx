@@ -44,7 +44,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
 
   constexpr unsigned char flagsReject = getFlagsReject();
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
-  bool cutOnTrackdEdx = merger.Param().par.dodEdx && merger.Param().rec.tpc.minTrackdEdxMax2Tot > 0.f;
+  bool cutOnTrackdEdx = merger.Param().par.dodEdx && merger.Param().dodEdxDownscaled && merger.Param().rec.tpc.minTrackdEdxMax2Tot > 0.f;
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
@@ -146,7 +146,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 
     oTrack.setChi2(tracks[i].GetParam().GetChi2());
     auto& outerPar = tracks[i].OuterParam();
-    if (merger.Param().par.dodEdx) {
+    if (merger.Param().par.dodEdx && merger.Param().dodEdxDownscaled) {
       oTrack.setdEdx(tracksdEdx[i]);
     }
 
@@ -163,7 +163,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
        outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
 
-    if (merger.Param().par.dodEdx && merger.Param().rec.tpc.enablePID) {
+    if (merger.Param().par.dodEdx && merger.Param().dodEdxDownscaled && merger.Param().rec.tpc.enablePID) {
       PIDResponse pidResponse{};
       auto pid = pidResponse.getMostProbablePID(oTrack, merger.Param().rec.tpc.PID_EKrangeMin, merger.Param().rec.tpc.PID_EKrangeMax, merger.Param().rec.tpc.PID_EPrangeMin, merger.Param().rec.tpc.PID_EPrangeMax, merger.Param().rec.tpc.PID_EDrangeMin, merger.Param().rec.tpc.PID_EDrangeMax, merger.Param().rec.tpc.PID_ETrangeMin, merger.Param().rec.tpc.PID_ETrangeMax, merger.Param().rec.tpc.PID_useNsigma, merger.Param().rec.tpc.PID_sigma);
       auto pidRemap = merger.Param().rec.tpc.PID_remap[pid];

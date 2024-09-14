@@ -16,8 +16,8 @@
 #define GPUDISPLAY_H
 
 #include "GPUSettings.h"
-#include "GPUDisplayFrontend.h"
-#include "GPUDisplayBackend.h"
+#include "frontend/GPUDisplayFrontend.h"
+#include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayInterface.h"
 
 #include "GPUChainTracking.h"
@@ -80,6 +80,7 @@ class GPUDisplay : public GPUDisplayInterface
 
  private:
   static constexpr int NSLICES = GPUChainTracking::NSLICES;
+  static constexpr float GL_SCALE_FACTOR = (1.f / 100.f);
 
   static constexpr const int N_POINTS_TYPE = 15;
   static constexpr const int N_POINTS_TYPE_TPC = 9;
@@ -152,7 +153,6 @@ class GPUDisplay : public GPUDisplayInterface
   void disableUnsupportedOptions();
   int buildTrackFilter();
   const GPUTPCTracker& sliceTracker(int iSlice);
-  const GPUTRDTrackerGPU& trdTracker();
   const GPUTRDGeometry* trdGeometry();
   const GPUTrackingInOutPointers* mIOPtrs = nullptr;
   void insertVertexList(std::pair<vecpod<int>*, vecpod<unsigned int>*>& vBuf, size_t first, size_t last);
@@ -175,6 +175,7 @@ class GPUDisplay : public GPUDisplayInterface
   void resetAnimation();
   void removeAnimationPoint();
   void startAnimation();
+  int animateCamera(float& animateTime, float& mixSlaveImage, hmm_mat4& nextViewMatrix);
   void showInfo(const char* info);
   void ActivateColor();
   void SetColorTRD();

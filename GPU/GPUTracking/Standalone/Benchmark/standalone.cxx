@@ -230,7 +230,9 @@ int ReadConfiguration(int argc, char** argv)
     }
   }
   if (configStandalone.setO2Settings) {
-    configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    if (configStandalone.runGPU) {
+      configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    }
     configStandalone.rec.tpc.nWaysOuter = 1;
     configStandalone.rec.tpc.trackReferenceX = 83;
     configStandalone.proc.outputSharedClusterMap = 1;
@@ -266,7 +268,12 @@ int ReadConfiguration(int argc, char** argv)
     } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "OCL";
     } else {
+      if (configStandalone.runGPUforce) {
+        printf("No GPU backend / device found, running on CPU is disabled due to runGPUforce\n");
+        return 1;
+      }
       configStandalone.runGPU = false;
+      configStandalone.gpuType = "CPU";
     }
   }
 

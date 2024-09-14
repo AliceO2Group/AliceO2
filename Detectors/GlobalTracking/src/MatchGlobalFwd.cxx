@@ -494,9 +494,9 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
           }
         }
 
-        if constexpr (saveAllMode == SaveMode::kSaveNCandidates) { // In saveAllmode save all pairs to output container
+        if constexpr (saveAllMode == SaveMode::kSaveNCandidates) { // Save best N matching candidates
           auto score = mMatchFunc(thisMCHTrack, thisMFTTrack);
-          std::pair<int, int> scoreID = {score, MFTId};
+          std::pair<float, int> scoreID = {score, MFTId};
           mCandidates[MCHId].push_back(scoreID);
           std::sort(mCandidates[MCHId].begin(), mCandidates[MCHId].end(), compare);
           if (mCandidates[MCHId].size() > mNCandidates) {

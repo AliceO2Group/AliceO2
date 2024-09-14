@@ -14,7 +14,7 @@
 
 // Now the other headers
 #include "GPUDisplayFrontendWayland.h"
-#include "GPUDisplayBackend.h"
+#include "backend/GPUDisplayBackend.h"
 #include "GPUDisplayGUIWrapper.h"
 #include "GPUDisplay.h"
 #include "GPULogging.h"

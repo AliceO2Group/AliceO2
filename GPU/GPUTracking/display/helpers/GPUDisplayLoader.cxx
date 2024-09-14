@@ -13,7 +13,7 @@
 /// \author David Rohr
 
 #include "GPUDisplay.h"
-#include "GPUDisplayFrontend.h"
+#include "frontend/GPUDisplayFrontend.h"
 #include "GPUDisplayInterface.h"
 
 #include <tuple>

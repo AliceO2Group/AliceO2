@@ -105,7 +105,11 @@ class GPUQA
 #else
   using mcLabels_t = AliHLTTPCClusterMCLabel;
   using mcLabel_t = AliHLTTPCClusterMCWeight;
+
+ private:
   struct mcLabelI_t;
+
+ public:
 #endif
 
   void UpdateParam(const GPUParam* param) { mParam = param; }
@@ -185,6 +189,7 @@ class GPUQA
   struct mcLabelI_t {
     int getTrackID() const { return AbsLabelID(track); }
     int getEventID() const { return 0; }
+    int getSourceID() const { return 0; }
     long int getTrackEventSourceID() const { return getTrackID(); }
     bool isFake() const { return track < 0; }
     bool isValid() const { return track != MC_LABEL_INVALID; }
@@ -208,7 +213,7 @@ class GPUQA
 
   unsigned int GetNMCCollissions() const;
   unsigned int GetNMCTracks(int iCol) const;
-  unsigned int GetNMCTracks(const mcLabel_t& label) const;
+  unsigned int GetNMCTracks(const mcLabelI_t& label) const;
   unsigned int GetNMCLabels() const;
   const mcInfo_t& GetMCTrack(unsigned int iTrk, unsigned int iCol);
   const mcInfo_t& GetMCTrack(const mcLabel_t& label);

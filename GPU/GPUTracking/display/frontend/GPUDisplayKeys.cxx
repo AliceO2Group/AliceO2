@@ -470,15 +470,13 @@ void GPUDisplay::HandleKey(unsigned char key)
       SetInfo("Showing help text", 1);
     }
   } else if (key == 'q') {
-    static bool GUIStarted = false;
-    if (GUIStarted) {
+    if (mFrontend->isGUIRunning()) {
       SetInfo("Stopping GUI", 1);
       mFrontend->stopGUI();
     } else {
       SetInfo("Starting GUI", 1);
       mFrontend->startGUI();
     }
-    GUIStarted = !GUIStarted;
   }
   /*
   else if (key == '^')

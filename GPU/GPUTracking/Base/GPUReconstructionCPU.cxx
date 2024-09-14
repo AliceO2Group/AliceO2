@@ -271,7 +271,7 @@ int GPUReconstructionCPU::RunChains()
       if (mTimers[i]->memSize && mStatNEvents && time != 0.) {
         snprintf(bandwidth, 256, " (%6.3f GB/s - %'14lu bytes)", mTimers[i]->memSize / time * 1e-9, (unsigned long)(mTimers[i]->memSize / mStatNEvents));
       }
-      printf("Execution Time: Task (%c %8ux): %50s Time: %'10d us%s\n", type, mTimers[i]->count, mTimers[i]->name.c_str(), (int)(time * 1000000 / mStatNEvents), bandwidth);
+      printf("Execution Time: Task (%c %8ux): %50s Time: %'10lu us%s\n", type, mTimers[i]->count, mTimers[i]->name.c_str(), (unsigned long)(time * 1000000 / mStatNEvents), bandwidth);
       if (mProcessingSettings.resetTimers) {
         mTimers[i]->count = 0;
         mTimers[i]->memSize = 0;
@@ -279,14 +279,14 @@ int GPUReconstructionCPU::RunChains()
     }
     for (int i = 0; i < GPUDataTypes::N_RECO_STEPS; i++) {
       if (kernelStepTimes[i] != 0. || mTimersRecoSteps[i].timerTotal.GetElapsedTime() != 0.) {
-        printf("Execution Time: Step              : %11s %38s Time: %'10d us ( Total Time : %'14d us)\n", "Tasks", GPUDataTypes::RECO_STEP_NAMES[i], (int)(kernelStepTimes[i] * 1000000 / mStatNEvents), (int)(mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
+        printf("Execution Time: Step              : %11s %38s Time: %'10lu us ( Total Time : %'14lu us)\n", "Tasks", GPUDataTypes::RECO_STEP_NAMES[i], (unsigned long)(kernelStepTimes[i] * 1000000 / mStatNEvents), (unsigned long)(mTimersRecoSteps[i].timerTotal.GetElapsedTime() * 1000000 / mStatNEvents));
       }
       if (mTimersRecoSteps[i].bytesToGPU) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10lu us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToGPU, "DMA to GPU", GPUDataTypes::RECO_STEP_NAMES[i], (unsigned long)(mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].timerToGPU.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToGPU / mStatNEvents, mTimersRecoSteps[i].bytesToGPU / mTimersRecoSteps[i].countToGPU);
       }
       if (mTimersRecoSteps[i].bytesToHost) {
-        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10d us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (int)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
+        printf("Execution Time: Step (D %8ux): %11s %38s Time: %'10lu us (%6.3f GB/s - %'14lu bytes - %'14lu per call)\n", mTimersRecoSteps[i].countToHost, "DMA to Host", GPUDataTypes::RECO_STEP_NAMES[i], (unsigned long)(mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1000000 / mStatNEvents),
                mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].timerToHost.GetElapsedTime() * 1e-9, mTimersRecoSteps[i].bytesToHost / mStatNEvents, mTimersRecoSteps[i].bytesToHost / mTimersRecoSteps[i].countToHost);
       }
       if (mProcessingSettings.resetTimers) {
@@ -300,14 +300,14 @@ int GPUReconstructionCPU::RunChains()
     }
     for (int i = 0; i < GPUDataTypes::N_GENERAL_STEPS; i++) {
       if (mTimersGeneralSteps[i].GetElapsedTime() != 0.) {
-        printf("Execution Time: General Step      : %50s Time: %'10d us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], (int)(mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents));
+        printf("Execution Time: General Step      : %50s Time: %'10lu us\n", GPUDataTypes::GENERAL_STEP_NAMES[i], (unsigned long)(mTimersGeneralSteps[i].GetElapsedTime() * 1000000 / mStatNEvents));
       }
     }
     mStatKernelTime = kernelTotal * 1000000 / mStatNEvents;
-    printf("Execution Time: Total   : %50s Time: %'10d us%s\n", "Total Kernel", (int)mStatKernelTime, nEventReport.c_str());
-    printf("Execution Time: Total   : %50s Time: %'10d us%s\n", "Total Wall", (int)mStatWallTime, nEventReport.c_str());
+    printf("Execution Time: Total   : %50s Time: %'10lu us%s\n", "Total Kernel", (unsigned long)mStatKernelTime, nEventReport.c_str());
+    printf("Execution Time: Total   : %50s Time: %'10lu us%s\n", "Total Wall", (unsigned long)mStatWallTime, nEventReport.c_str());
   } else if (GetProcessingSettings().debugLevel >= 0) {
-    GPUInfo("Total Wall Time: %d us%s", (int)mStatWallTime, nEventReport.c_str());
+    GPUInfo("Total Wall Time: %lu us%s", (unsigned long)mStatWallTime, nEventReport.c_str());
   }
   if (mProcessingSettings.resetTimers) {
     mStatNEvents = 0;

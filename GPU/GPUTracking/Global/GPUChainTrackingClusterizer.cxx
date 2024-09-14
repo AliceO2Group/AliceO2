@@ -472,7 +472,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
     mCFContext.reset(new GPUTPCCFChainContext);
   }
   const short maxFragmentLen = GetProcessingSettings().overrideClusterizerFragmentLen;
-  const unsigned int maxAllowedTimebin = param().par.continuousTracking ? std::max<int>(param().par.continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
+  const unsigned int maxAllowedTimebin = param().par.continuousTracking ? std::max<int>(param().continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
   mCFContext->tpcMaxTimeBin = maxAllowedTimebin;
   const CfFragment fragmentMax{(tpccf::TPCTime)mCFContext->tpcMaxTimeBin + 1, maxFragmentLen};
   mCFContext->prepare(mIOPtrs.tpcZS, fragmentMax);
