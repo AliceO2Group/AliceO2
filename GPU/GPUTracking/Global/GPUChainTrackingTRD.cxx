@@ -40,7 +40,7 @@ int GPUChainTracking::RunTRDTracking()
     return 0;
   }
 
-  bool isTriggeredEvent = (param().par.continuousMaxTimeBin == 0);
+  bool isTriggeredEvent = (param().continuousMaxTimeBin == 0);
 
   if (!isTriggeredEvent) {
     Tracker.SetProcessPerTimeFrame(true);

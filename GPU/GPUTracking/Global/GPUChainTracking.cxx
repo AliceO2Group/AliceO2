@@ -285,7 +285,7 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("OMP Kernels require mergerReadFromTrackerDirectly");
     return false;
   }
-  if (param().par.continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
+  if (param().continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
     GPUError("configured max time bin exceeds 256 orbits");
     return false;
   }
