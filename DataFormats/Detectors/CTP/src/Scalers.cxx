@@ -308,11 +308,11 @@ int CTPRunScalers::convertRawToO2()
   for (uint32_t i = 1; i < mScalerRecordRaw.size(); i++) {
     //update overflows
     int ret = updateOverflows(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflows);
-    //for(int k = 0; k < mClassMask.size(); k++) {
-    //  if(mClassMask[k]) {
-    //    LOG(info) << i << " " << k << " " << overflows[k][0] << " " << overflows[k][1] << " " << overflows[k][2] << " " << overflows[k][3] << " " << overflows[k][4] << " " << overflows[k][5];
-    //  }
-    //}
+    // for(int k = 0; k < mClassMask.size(); k++) {
+    //   if(mClassMask[k]) {
+    //     LOG(info) << i << " " << k << " " << overflows[k][0] << " " << overflows[k][1] << " " << overflows[k][2] << " " << overflows[k][3] << " " << overflows[k][4] << " " << overflows[k][5];
+    //   }
+    // }
     //
     if (ret == 0) {
       CTPScalerRecordO2 o2rec;
@@ -437,13 +437,13 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     // ret++;
   }
   dif = (scal1.l1Before - scal0.l1Before) - (scal1.l0After - scal0.l0After);
-  //LOG(info) << "L1B L0A " << dif << " " << scal1.l1Before << " " << scal1.l0After << " " << scal0.l1Before << " " << scal0.l0After;
+  // LOG(info) << "L1B L0A " << dif << " " << scal1.l1Before << " " << scal1.l0After << " " << scal0.l1Before << " " << scal0.l0After;
   if (dif <= difThres) {
     eCnts.l0Al1Bd1++;
   } else if (dif > difThres) {
     eCnts.l0Al1B++;
     if (eCnts.l0Al1B < eCnts.MAXPRINT) {
-      //LOG(error) << "L1B > L0A Before error:" << dif << " " << scal1.l1Before << " " << scal1.l0After << " " << scal0.l1Before << " " << scal0.l0After;
+      // LOG(error) << "L1B > L0A Before error:" << dif << " " << scal1.l1Before << " " << scal1.l0After << " " << scal0.l1Before << " " << scal0.l0After;
       LOG(warning) << "L1B > L0A Before error:" << dif;
     }
     ret++;
