@@ -13,11 +13,7 @@
 
 #include <map>
 #include <vector>
-
 #include "CommonConstants/LHCConstants.h"
-#include "DataFormatsCTP/Configuration.h"
-#include "DataFormatsCTP/Scalers.h"
-#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::ctp;
 double CTPRateFetcher::fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName)
@@ -59,10 +55,10 @@ double CTPRateFetcher::fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t 
   LOG(error) << "CTP rate for " << sourceName << " not available";
   return -1.;
 }
-void CTPRateFetcher::updateScalers(ctp::CTPRunScalers* scalers)
+void CTPRateFetcher::updateScalers(ctp::CTPRunScalers& scalers)
 {
   mScalers = scalers;
-  mScalers->convertRawToO2();
+  mScalers.convertRawToO2();
 }
 //
 double CTPRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::string& className, int inputType)
@@ -75,8 +71,8 @@ double CTPRateFetcher::fetchCTPratesClasses(uint64_t timeStamp, const std::strin
 }
 double CTPRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const std::string& className, int inputType)
 {
-  std::vector<ctp::CTPClass> ctpcls = mConfig->getCTPClasses();
-  std::vector<int> clslist = mConfig->getTriggerClassList();
+  std::vector<ctp::CTPClass> ctpcls = mConfig.getCTPClasses();
+  std::vector<int> clslist = mConfig.getTriggerClassList();
   int classIndex = -1;
   for (size_t i = 0; i < clslist.size(); i++) {
     if (ctpcls[i].name.find(className) != std::string::npos) {
@@ -88,14 +84,14 @@ double CTPRateFetcher::fetchCTPratesClassesNoPuCorr(uint64_t timeStamp, const st
     LOG(warn) << "Trigger class " << className << " not found in CTPConfiguration";
     return -2.;
   }
-  auto rate{mScalers->getRateGivenT(timeStamp * 1.e-3, classIndex, inputType)};
+  auto rate{mScalers.getRateGivenT(timeStamp * 1.e-3, classIndex, inputType)};
   return rate.second;
 }
 double CTPRateFetcher::fetchCTPratesInputs(uint64_t timeStamp, int input)
 {
-  std::vector<ctp::CTPScalerRecordO2> recs = mScalers->getScalerRecordO2();
+  std::vector<ctp::CTPScalerRecordO2> recs = mScalers.getScalerRecordO2();
   if (recs[0].scalersInps.size() == 48) {
-    return pileUpCorrection(mScalers->getRateGivenT(timeStamp * 1.e-3, input, 7).second);
+    return pileUpCorrection(mScalers.getRateGivenT(timeStamp * 1.e-3, input, 7).second);
   } else {
     LOG(error) << "Inputs not available";
     return -1.;
@@ -103,9 +99,9 @@ double CTPRateFetcher::fetchCTPratesInputs(uint64_t timeStamp, int input)
 }
 double CTPRateFetcher::fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input)
 {
-  std::vector<ctp::CTPScalerRecordO2> recs = mScalers->getScalerRecordO2();
+  std::vector<ctp::CTPScalerRecordO2> recs = mScalers.getScalerRecordO2();
   if (recs[0].scalersInps.size() == 48) {
-    return mScalers->getRateGivenT(timeStamp * 1.e-3, input, 7).second;
+    return mScalers.getRateGivenT(timeStamp * 1.e-3, input, 7).second;
   } else {
     LOG(error) << "Inputs not available";
     return -1.;
@@ -114,10 +110,10 @@ double CTPRateFetcher::fetchCTPratesInputsNoPuCorr(uint64_t timeStamp, int input
 
 double CTPRateFetcher::pileUpCorrection(double triggerRate)
 {
-  if (mLHCIFdata == nullptr) {
+  if (mLHCIFdata.getFillNumber() == 0) {
     LOG(fatal) << "No filling" << std::endl;
   }
-  auto bfilling = mLHCIFdata->getBunchFilling();
+  auto bfilling = mLHCIFdata.getBunchFilling();
   std::vector<int> bcs = bfilling.getFilledBCs();
   double nbc = bcs.size();
   double nTriggersPerFilledBC = triggerRate / nbc / constants::lhc::LHCRevFreq;
@@ -133,19 +129,22 @@ void CTPRateFetcher::setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, u
   mRunNumber = runNumber;
   LOG(debug) << "Setting up CTP scalers for run " << mRunNumber;
   std::map<string, string> metadata;
-  mLHCIFdata = ccdb->getSpecific<parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
-  if (mLHCIFdata == nullptr) {
+  auto ptrLHCIFdata = ccdb->getSpecific<parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
+  if (ptrLHCIFdata == nullptr) {
     LOG(fatal) << "GRPLHCIFData not in database, timestamp:" << timeStamp;
   }
+  mLHCIFdata = *ptrLHCIFdata;
   metadata["runNumber"] = std::to_string(mRunNumber);
-  mConfig = ccdb->getSpecific<ctp::CTPConfiguration>("CTP/Config/Config", timeStamp, metadata);
-  if (mConfig == nullptr) {
+  auto ptrConfig = ccdb->getSpecific<ctp::CTPConfiguration>("CTP/Config/Config", timeStamp, metadata);
+  if (ptrConfig == nullptr) {
     LOG(fatal) << "CTPRunConfig not in database, timestamp:" << timeStamp;
   }
+  mConfig = *ptrConfig;
   if (initScalers) {
-    mScalers = ccdb->getSpecific<ctp::CTPRunScalers>("CTP/Calib/Scalers", timeStamp, metadata);
-    if (mScalers) {
-      mScalers->convertRawToO2();
+    auto ptrScalers = ccdb->getSpecific<ctp::CTPRunScalers>("CTP/Calib/Scalers", timeStamp, metadata);
+    if (ptrScalers) {
+      mScalers = *ptrScalers;
+      mScalers.convertRawToO2();
     } else {
       LOG(fatal) << "CTPRunScalers not in database, timestamp:" << timeStamp;
     }

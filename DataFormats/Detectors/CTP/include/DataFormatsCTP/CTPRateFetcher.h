@@ -16,22 +16,22 @@
 
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsParameters/GRPLHCIFData.h"
+#include "DataFormatsCTP/Configuration.h"
+#include "DataFormatsCTP/Scalers.h"
 
 namespace o2
 {
 namespace ctp
 {
-class CTPRunScalers;
-class CTPConfiguration;
 
 class CTPRateFetcher
 {
  public:
   CTPRateFetcher() = default;
-  double fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
-  double fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, std::string sourceName);
+  double fetch(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, const std::string sourceName);
+  double fetchNoPuCorr(o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, int runNumber, const std::string sourceName);
   void setupRun(int runNumber, o2::ccdb::BasicCCDBManager* ccdb, uint64_t timeStamp, bool initScalers);
-  void updateScalers(ctp::CTPRunScalers* scalers);
+  void updateScalers(ctp::CTPRunScalers& scalers);
 
  private:
   double fetchCTPratesInputs(uint64_t timeStamp, int input);
@@ -41,9 +41,10 @@ class CTPRateFetcher
 
   double pileUpCorrection(double rate);
   int mRunNumber = -1;
-  ctp::CTPConfiguration* mConfig = nullptr;
-  ctp::CTPRunScalers* mScalers = nullptr;
-  o2::parameters::GRPLHCIFData* mLHCIFdata = nullptr;
+  o2::ctp::CTPConfiguration mConfig{};
+  o2::ctp::CTPRunScalers mScalers{};
+  o2::parameters::GRPLHCIFData mLHCIFdata{};
+  ClassDefNV(CTPRateFetcher, 1);
 };
 } // namespace ctp
 } // namespace o2

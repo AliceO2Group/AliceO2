@@ -16,7 +16,7 @@
 #endif
 using namespace o2::ctp;
 
-void TestFetcher(int runNumber = 556767)
+void TestFetcher(int runNumber = 557251)
 {
   auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
   std::pair<int64_t, int64_t> pp = ccdb.getRunDuration(runNumber);
@@ -33,14 +33,14 @@ void TestFetcher(int runNumber = 556767)
   CTPRunScalers* ctpscalers = ccdb.getSpecific<CTPRunScalers>(QCDBPathCTPScalers, ts, metadata);
   auto tt = ctpscalers->getTimeLimitFromRaw();
   std::cout << "1st scalers duration:" << tt.first << " " << tt.second << std::endl;
-  fetcher.updateScalers(ctpscalers);
+  fetcher.updateScalers(*ctpscalers);
   auto rate = fetcher.fetchNoPuCorr(&ccdb, ts, runNumber, "T0VTX");
   std::cout << "1st rate:" << rate << std::endl;
   // Running on the same run
   ts = ts + 5 * 1000 * 3600;
   ctpscalers = ccdb.getSpecific<CTPRunScalers>(QCDBPathCTPScalers, ts, metadata);
   std::cout << "Later scalers duration:" << tt.first << " " << tt.second << std::endl;
-  fetcher.updateScalers(ctpscalers);
+  fetcher.updateScalers(*ctpscalers);
   rate = fetcher.fetchNoPuCorr(&ccdb, ts, runNumber, "T0VTX");
   std::cout << "Later rate:" << rate << std::endl;
 }

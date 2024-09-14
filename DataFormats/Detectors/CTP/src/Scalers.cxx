@@ -308,6 +308,11 @@ int CTPRunScalers::convertRawToO2()
   for (uint32_t i = 1; i < mScalerRecordRaw.size(); i++) {
     //update overflows
     int ret = updateOverflows(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflows);
+    //for(int k = 0; k < mClassMask.size(); k++) {
+    //  if(mClassMask[k]) {
+    //    LOG(info) << i << " " << k << " " << overflows[k][0] << " " << overflows[k][1] << " " << overflows[k][2] << " " << overflows[k][3] << " " << overflows[k][4] << " " << overflows[k][5];
+    //  }
+    //}
     //
     if (ret == 0) {
       CTPScalerRecordO2 o2rec;
@@ -396,7 +401,7 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
   // LMB >= LMA >= L0B >= L0A >= L1B >= L1A: 5 relations
   // broken for classes started at L0
   //
-  int64_t difThres = 2;
+  int64_t difThres = 6;
   int64_t dif = (scal1.lmAfter - scal0.lmAfter) - (scal1.lmBefore - scal0.lmBefore);
   if (dif <= difThres) {
     eCnts.lmBlmAd1++;
@@ -432,12 +437,14 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     // ret++;
   }
   dif = (scal1.l1Before - scal0.l1Before) - (scal1.l0After - scal0.l0After);
+  //LOG(info) << "L1B L0A " << dif << " " << scal1.l1Before << " " << scal1.l0After << " " << scal0.l1Before << " " << scal0.l0After;
   if (dif <= difThres) {
     eCnts.l0Al1Bd1++;
   } else if (dif > difThres) {
     eCnts.l0Al1B++;
     if (eCnts.l0Al1B < eCnts.MAXPRINT) {
-      LOG(error) << "L1B > L0A Before error:" << dif;
+      //LOG(error) << "L1B > L0A Before error:" << dif << " " << scal1.l1Before << " " << scal1.l0After << " " << scal0.l1Before << " " << scal0.l0After;
+      LOG(warning) << "L1B > L0A Before error:" << dif;
     }
     ret++;
   }
@@ -466,10 +473,11 @@ int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScal
 }
 int CTPRunScalers::checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1, errorCounters& eCnts) const
 {
+  int ret = 0;
   for (uint32_t i = 0; i < rec0.scalers.size(); i++) {
-    checkConsistency(rec0.scalers[i], rec1.scalers[i], eCnts);
+    ret += checkConsistency(rec0.scalers[i], rec1.scalers[i], eCnts);
   }
-  return 0;
+  return ret;
 }
 int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const
 {
