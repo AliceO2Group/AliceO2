@@ -28,3 +28,4 @@ o2_target_root_dictionary(DataFormatsFDD
           include/DataFormatsFDD/RawEventData.h
           include/DataFormatsFDD/LookUpTable.h
           include/DataFormatsFDD/CTF.h)
+
