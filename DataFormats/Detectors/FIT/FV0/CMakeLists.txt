@@ -22,6 +22,7 @@ o2_add_library(DataFormatsFV0
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
                         Microsoft.GSL::GSL
+                        O2::DetectorsCommonDataFormats
 )
 
 o2_target_root_dictionary(DataFormatsFV0
