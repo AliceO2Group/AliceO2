@@ -19,11 +19,11 @@
 #include "DetectorsBase/Detector.h"
 #include "FVDBase/GeometryTGeo.h"
 #include "FVDBase/FVDBaseParam.h"
-#include "ITSMFTSimulation/Hit.h"        
-#include "Rtypes.h"                         
-#include "TGeoManager.h"                  
-#include "TLorentzVector.h"             
-#include "TVector3.h"                  
+#include "ITSMFTSimulation/Hit.h"
+#include "Rtypes.h"
+#include "TGeoManager.h"
+#include "TLorentzVector.h"
+#include "TVector3.h"
 
 class FairVolume;
 class TGeoVolume;
@@ -34,7 +34,7 @@ namespace fvd
 {
 class GeometryTGeo;
 }
-}
+} // namespace o2
 
 namespace o2
 {
@@ -53,14 +53,14 @@ class Detector : public o2::base::DetImpl<Detector>
   void ConstructGeometry() override;
 
   /// This method is an example of how to add your own point of type Hit to the clones array
-  o2::itsmft::Hit* addHit(int trackID, int detID, 
-		          const TVector3& startPos, 
-			  const TVector3& endPos,
-                          const TVector3& startMom, 
-			  double startE, 
-			  double endTime, double eLoss,
-                          unsigned int startStatus, 
-			  unsigned int endStatus);
+  o2::itsmft::Hit* addHit(int trackID, int detID,
+                          const TVector3& startPos,
+                          const TVector3& endPos,
+                          const TVector3& startMom,
+                          double startE,
+                          double endTime, double eLoss,
+                          unsigned int startStatus,
+                          unsigned int endStatus);
 
   std::vector<o2::itsmft::Hit>* getHits(Int_t iColl)
   {
@@ -105,7 +105,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   std::vector<float> mRingRadiiA;
   std::vector<float> mRingRadiiC;
-  
+
   float mZmodA;
   float mZmodC;
 

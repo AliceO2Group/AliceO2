@@ -21,9 +21,9 @@ namespace fvd
 {
 struct FVDBaseParam : public o2::conf::ConfigurableParamHelper<FVDBaseParam> {
 
-//  int nringsA = 5; // 3
-//  int nringsC = 6;
-  int nsect   = 8;
+  //  int nringsA = 5; // 3
+  //  int nringsC = 6;
+  int nsect = 8;
 
   float dzscint = 4.;
   std::vector<float> ringsA = {3., 14.8, 26.6, 38.4, 50.2, 62.};
@@ -40,5 +40,5 @@ struct FVDBaseParam : public o2::conf::ConfigurableParamHelper<FVDBaseParam> {
 
 } // namespace fvd
 } // namespace o2
-  
+
 #endif
