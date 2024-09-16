@@ -30,15 +30,15 @@ namespace track
 struct TrackAuxPar : public o2::math_utils::CircleXYf_t {
   float c, s, cc, ss, cs; // cos ans sin of track alpha and their products
 
-  TrackAuxPar() = default;
+  GPUdDefault() TrackAuxPar() = default;
 
   template <typename T>
-  TrackAuxPar(const T& trc, float bz)
+  GPUd() TrackAuxPar(const T& trc, float bz)
   {
     set(trc, bz);
   }
-  float cosDif(const TrackAuxPar& t) const { return c * t.c + s * t.s; } // cos(alpha_this - alha_t)
-  float sinDif(const TrackAuxPar& t) const { return s * t.c - c * t.s; } // sin(alpha_this - alha_t)
+  GPUd() float cosDif(const TrackAuxPar& t) const { return c * t.c + s * t.s; } // cos(alpha_this - alha_t)
+  GPUd() float sinDif(const TrackAuxPar& t) const { return s * t.c - c * t.s; } // sin(alpha_this - alha_t)
 
   template <typename T>
   GPUd() void set(const T& trc, float bz)
@@ -289,7 +289,7 @@ struct CrossInfo {
   GPUdDefault() CrossInfo() = default;
 
   template <typename T>
-  CrossInfo(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
+  GPUd() CrossInfo(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef, bool isCollinear = false)
   {
     set(trax0, tr0, trax1, tr1, maxDistXY, isCollinear);
   }
