@@ -160,22 +160,6 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   // run init
   run->Init();
 
-  // runtime database
-  bool kParameterMerged = true;
-  auto rtdb = run->GetRuntimeDb();
-  auto parOut = new FairParRootFileIo(kParameterMerged);
-
-  std::stringstream s2;
-  s2 << confref.getOutPrefix();
-  if (asservice) {
-    s2 << "_" << pid;
-  }
-  s2 << "_par.root";
-  std::string parfilename = s2.str();
-  parOut->open(parfilename.c_str());
-  rtdb->setOutput(parOut);
-  rtdb->saveOutput();
-  rtdb->print();
   // add ALICE particles to TDatabasePDG singleton
   o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
 
