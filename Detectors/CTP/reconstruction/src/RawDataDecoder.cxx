@@ -5,7 +5,7 @@
 // This software is distributed under the terms of the GNU General Public
 // License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
-// In applying this license CERN does not waive the privileges and immunitiesg
+// In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
@@ -175,7 +175,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
     auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
     auto linkCRU = (feeID & 0xf00) >> 8;
-    LOG(info) << "CRU link:" << linkCRU;
+    //LOG(info) << "CRU link:" << linkCRU;
     if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
       payloadCTP = o2::ctp::NIntRecPayload;
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
