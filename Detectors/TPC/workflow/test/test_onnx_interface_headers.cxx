@@ -118,8 +118,8 @@ class onnxInference : public Task
 			std::vector<int64_t> inputShape{test_size_tensor, models[0].getNumInputNodes()[0][1]};
 
 			LOG(info) << "Creating ONNX tensor";
-			std::vector<std::vector<Ort::Float16_t>> input_tensor(execution_threads);
-            std::vector<Ort::Float16_t> input_data(models[0].getNumInputNodes()[0][1] * test_size_tensor, Ort::Float16_t(1.0f));  // Example input
+			std::vector<std::vector<OrtDataType::Float16_t>> input_tensor(execution_threads);
+            std::vector<OrtDataType::Float16_t> input_data(models[0].getNumInputNodes()[0][1] * test_size_tensor, OrtDataType::Float16_t(1.0f));  // Example input
             for(int i = 0; i < execution_threads; i++){
 				input_tensor[i] = input_data;
 				// input_tensor[i].resize(test_num_tensors);
@@ -129,15 +129,15 @@ class onnxInference : public Task
             }
 
 			LOG(info) << "Starting inference";
+			auto start_network_eval = std::chrono::high_resolution_clock::now();
 			for(int i = 0; i < test_size_iter; i++){
-				auto start_network_eval = std::chrono::high_resolution_clock::now();
-				runONNXGPUModel<Ort::Float16_t, Ort::Float16_t>(input_tensor, execution_threads);
-				auto end_network_eval = std::chrono::high_resolution_clock::now();
-				time += std::chrono::duration<double, std::ratio<1, (unsigned long)1e9>>(end_network_eval - start_network_eval).count();
+				runONNXGPUModel<OrtDataType::Float16_t, OrtDataType::Float16_t>(input_tensor, execution_threads);
 				if((i % epochs_measure == 0) && (i != 0)){
-                    time /= 1e9;
+					auto end_network_eval = std::chrono::high_resolution_clock::now();
+					time = std::chrono::duration<double, std::ratio<1, (unsigned long)1e9>>(end_network_eval - start_network_eval).count()/1e9;
                     LOG(info) << "Total time: " << time << "s. Timing: " << uint64_t((double)test_size_tensor*epochs_measure*execution_threads*test_num_tensors/time) << " elements / s";
                     time = 0;
+					start_network_eval = std::chrono::high_resolution_clock::now();
 				}
 			}
 

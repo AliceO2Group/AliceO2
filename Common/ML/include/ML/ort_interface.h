@@ -23,9 +23,6 @@
 #include <map>
 #include <thread>
 
-// ONNX includes
-#include <onnxruntime_cxx_api.h>
-
 // O2 includes
 #include "GPUORTFloat16.h"
 #include "Framework/Logger.h"
@@ -71,16 +68,12 @@ class OrtModel
     std::vector<std::string> getOutputNames() const { return mOutputNames; }
 
     void setActiveThreads(int threads) { intraOpNumThreads = threads; }
-  
+
   private:
 
-    // ORT runtime objects
-    Ort::RunOptions runOptions;
-    std::shared_ptr<Ort::Env> env = nullptr;
-    std::shared_ptr<Ort::Session> session = nullptr; ///< ONNX session
-    Ort::SessionOptions sessionOptions;
-    Ort::AllocatorWithDefaultOptions allocator;
-    Ort::MemoryInfo memoryInfo = Ort::MemoryInfo("Cpu", OrtAllocatorType::OrtDeviceAllocator, 0, OrtMemType::OrtMemTypeDefault);
+    // ORT variables -> need to be hidden as Pimpl
+    struct OrtVariables;
+    OrtVariables* pImplOrt;
 
     // Input & Output specifications of the loaded network
     std::vector<const char*> inputNamesChar, outputNamesChar;
