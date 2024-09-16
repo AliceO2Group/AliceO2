@@ -44,11 +44,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
 
   static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FVD; }
 
-  int getCellId(int nmod, int nring, int nsec) const;
-  int getCurrentCellId(const TVirtualMC* fMC) const;
-
  private:
-
   static std::unique_ptr<o2::fvd::GeometryTGeo> sInstance;
 
   ClassDefNV(GeometryTGeo, 1);

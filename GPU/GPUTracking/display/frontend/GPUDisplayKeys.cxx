@@ -175,7 +175,12 @@ void GPUDisplay::HandleKey(unsigned char key)
       mCfgH.markClusters <<= 1;
     }
     SetInfo("Cluster flag highlight mask set to %d (%s)", mCfgH.markClusters,
-            mCfgH.markClusters == 0 ? "off" : mCfgH.markClusters == 1 ? "split pad" : mCfgH.markClusters == 2 ? "split time" : mCfgH.markClusters == 4 ? "edge" : mCfgH.markClusters == 8 ? "singlePad" : mCfgH.markClusters == 0x10 ? "reject distance" : "reject error");
+            mCfgH.markClusters == 0 ? "off" : mCfgH.markClusters == 1    ? "split pad"
+                                            : mCfgH.markClusters == 2    ? "split time"
+                                            : mCfgH.markClusters == 4    ? "edge"
+                                            : mCfgH.markClusters == 8    ? "singlePad"
+                                            : mCfgH.markClusters == 0x10 ? "reject distance"
+                                                                         : "reject error");
   } else if (key == 'z') {
     mCfgH.markFakeClusters ^= 1;
     SetInfo("Marking fake clusters: %s", mCfgH.markFakeClusters ? "on" : "off");
@@ -389,7 +394,9 @@ void GPUDisplay::HandleKey(unsigned char key)
     if (mCfgL.animationMode == 6) {
       SetInfo("Animation mode %d - Centered on origin", mCfgL.animationMode);
     } else {
-      SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfgL.animationMode, (mCfgL.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfgL.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfgL.animationMode & 1) ? "Euler angles" : "Quaternion");
+      SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfgL.animationMode, (mCfgL.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfgL.animationMode & 4) ? "Spherical (Euler angles)"
+                                                                                                                                                                               : "Cartesian",
+              (mCfgL.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
   } else if (key == 'u') {
     mCfgH.trackFilter = (mCfgH.trackFilter + 1) % (mConfig.filterMacros.size() + 1);

@@ -17,7 +17,7 @@
 #include <fairlogger/Logger.h>
 
 using namespace o2::fvd;
-namespace o2 
+namespace o2
 {
 namespace fvd
 {
@@ -46,7 +46,7 @@ GeometryTGeo* GeometryTGeo::Instance()
 
 void GeometryTGeo::Build(int loadTrans)
 {
-   if (isBuilt()) {
+  if (isBuilt()) {
     LOGP(warning, "Already built");
     return; // already initialized
   }
@@ -62,24 +62,5 @@ void GeometryTGeo::fillMatrixCache(int mask)
 {
 }
 
-int GeometryTGeo::getCellId(int nmod, int nring, int nsec) const
-{
-   return nmod * FVDBaseParam::nCellA + 8 * nring +  nsec;
-}
-
-int GeometryTGeo::getCurrentCellId(const TVirtualMC* fMC) const
-{
-  int moduleId = -1;
-  int sectorId = -1;
-  int ringId = -1;
-
-  fMC->CurrentVolOffID(2, moduleId);
-  fMC->CurrentVolOffID(1, sectorId);
-  fMC->CurrentVolOffID(0, ringId);
-  int cellId = getCellId(moduleId, ringId, sectorId); 
-
-  return cellId;
-}
-
 } // namespace fvd
-} //namespace o2
+} // namespace o2

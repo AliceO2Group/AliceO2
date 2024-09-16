@@ -9,19 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsFVD/Hit.h"
+/// \file Detector.cxx
+/// \brief Implementation of the Detector class
 
+#include "ITSMFTSimulation/Hit.h"
 #include "FVDSimulation/Detector.h"
-
 #include "FVDBase/GeometryTGeo.h"
 #include "FVDBase/FVDBaseParam.h"
 
 #include "DetectorsBase/Stack.h"
+#include "SimulationDataFormat/TrackReference.h"
 #include "Field/MagneticField.h"
 
+// FairRoot includes
+#include "FairDetector.h"    
 #include <fairlogger/Logger.h>
-#include "FairRootManager.h"
-#include "FairVolume.h"
+#include "FairRootManager.h"  
+#include "FairRun.h"         
+#include "FairRuntimeDb.h"  
+#include "FairVolume.h"    
 #include "FairRootManager.h"
 
 #include "TVirtualMC.h"
@@ -35,33 +41,49 @@
 #include <TGeoManager.h>
 #include "TRandom.h"
 
+class FairModule;
+
+class TGeoMedium;
+
 using namespace o2::fvd;
-using o2::fvd::GeometryTGeo;
-using o2::fvd::Hit;
+using o2::itsmft::Hit;
 
-ClassImp(o2::fvd::Detector);
+Detector::Detector(bool active)
+  : o2::base::DetImpl<Detector>("FVD", true),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
+    mGeometryTGeo(nullptr),
+    mTrackData()
+{
+   auto& baseParam = FVDBaseParam::Instance();
+   mNumberOfRingsA = baseParam.nringsA;
+   mNumberOfRingsC = baseParam.nringsC;
+   mNumberOfSectors = baseParam.nsect;
 
-Detector::Detector(Bool_t Active)
-  : o2::base::DetImpl<Detector>("FVD", Active),
-    mHits(o2::utils::createSimVector<o2::fvd::Hit>()),
-    mGeometryTGeo(nullptr)
+   mDzScint = baseParam.dzscint;
+
+   mRingRadiiA = baseParam.ringsA;
+   mRingRadiiC = baseParam.ringsC;
+
+   mZmodA = baseParam.zmodA;
+   mZmodC = baseParam.zmodC;
+}
+
+Detector::Detector(const Detector& rhs)
+  : o2::base::DetImpl<Detector>(rhs),
+    mTrackData(),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
 }
 
-Detector::Detector(const Detector& src)
-  : o2::base::DetImpl<Detector>(src),
-    mHits(o2::utils::createSimVector<o2::fvd::Hit>())
-{
-}
-
-Detector& Detector::operator=(const Detector& src)
+Detector& Detector::operator=(const Detector& rhs)
 {
 
-  if (this == &src) {
+  if (this == &rhs) {
     return *this;
   }
   // base class assignment
-  base::Detector::operator=(src);
+  base::Detector::operator=(rhs);
+  mTrackData = rhs.mTrackData;
 
   mHits = nullptr;
   return *this;
@@ -79,86 +101,110 @@ void Detector::InitializeO2Detector()
 {
   LOG(info) << "Initialize FVD detector";
   mGeometryTGeo = GeometryTGeo::Instance();
+  defineSensitiveVolumes();
 }
 
-Bool_t Detector::ProcessHits(FairVolume* vol)
+bool Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
   // Track only charged particles and photons
-  bool isPhotonTrack = false;
-  Int_t particlePdg = fMC->TrackPid();
-  if (particlePdg == 22) { // If particle is standard PDG photon
-    isPhotonTrack = true;
-  }
-  if (!(isPhotonTrack || fMC->TrackCharge())) {
+  if (fMC->TrackCharge()) {
     return kFALSE;
   }
+  
+  auto stack = (o2::data::Stack*)fMC->GetStack();
+
+  int cellId = vol->getVolumeId();
 
   // Check track status to define when hit is started and when it is stopped
   bool startHit = false, stopHit = false;
-  if ((fMC->IsTrackEntering()) || (fMC->IsTrackInside() && !mTrackData.mHitStarted)) {
+  unsigned char status = 0;
+  
+  Int_t currVolId, offId;
+
+  if (fMC->IsTrackEntering()) {
+    status |= Hit::kTrackEntering;
+  }
+  if (fMC->IsTrackInside()) {
+    status |= Hit::kTrackInside;
+  }
+  if (fMC->IsTrackExiting()) {
+    status |= Hit::kTrackExiting;
+  }
+  if (fMC->IsTrackOut()) {
+    status |= Hit::kTrackOut;
+  }
+  if (fMC->IsTrackStop()) {
+    status |= Hit::kTrackStopped;
+  }
+  if (fMC->IsTrackAlive()) {
+    status |= Hit::kTrackAlive;
+  }
+
+  // track is entering or created in the volume
+  if ((status & Hit::kTrackEntering) || (status & Hit::kTrackInside && !mTrackData.mHitStarted)) {
     startHit = true;
-  } else if ((fMC->IsTrackExiting() || fMC->IsTrackOut() || fMC->IsTrackStop())) {
+  } else if ((status & (Hit::kTrackExiting | Hit::kTrackOut | Hit::kTrackStopped))) {
     stopHit = true;
   }
 
-  // Increment energy loss at all steps except entrance
+  // increment energy loss at all steps except entrance
   if (!startHit) {
     mTrackData.mEnergyLoss += fMC->Edep();
   }
+  if (!(startHit | stopHit)) {
+    return kFALSE; // do noting
+  }
 
-  // Track is entering or created in the volume
-  // Start registering new hit, defined as the combination of all the steps from a given particle
   if (startHit) {
     mTrackData.mHitStarted = true;
     mTrackData.mEnergyLoss = 0.;
     fMC->TrackMomentum(mTrackData.mMomentumStart);
     fMC->TrackPosition(mTrackData.mPositionStart);
+    mTrackData.mTrkStatusStart = true;
   }
 
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
-    Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
+    Int_t trackId = fMC->GetStack()->GetCurrentTrackNumber();
 
-    // Get unique ID of the detector cell (sensitive volume)
-    // Int_t cellId = mGeometryTGeo->getCurrentCellId(fMC);
-    int cellId = vol->getVolumeId();
-
-    math_utils::Point3D<float> posStart(mTrackData.mPositionStart.X(), mTrackData.mPositionStart.Y(), mTrackData.mPositionStart.Z());
-    math_utils::Point3D<float> posStop(positionStop.X(), positionStop.Y(), positionStop.Z());
-    math_utils::Vector3D<float> momStart(mTrackData.mMomentumStart.Px(), mTrackData.mMomentumStart.Py(), mTrackData.mMomentumStart.Pz());
-    addHit(trackID, cellId, posStart, posStop, momStart,
-           mTrackData.mMomentumStart.E(), positionStop.T(),
-           mTrackData.mEnergyLoss, particlePdg);
+    Hit *p = addHit(trackId, cellId, mTrackData.mPositionStart.Vect(), positionStop.Vect(), 
+	            mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), 
+		    positionStop.T(), mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, 
+		    status);
+    stack->addHit(GetDetId());
   } else {
-    return kFALSE; // do nothing more
+    return false; // do nothing more
   }
-
- return kTRUE;
+  return true;
 }
 
-o2::fvd::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
-                               const math_utils::Point3D<float>& startPos, const math_utils::Point3D<float>& endPos,
-                               const math_utils::Vector3D<float>& startMom, double startE,
-                               double endTime, double eLoss, Int_t particlePdg)
+o2::itsmft::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
+                                  const TVector3& startPos, 
+			          const TVector3& endPos,
+                                  const TVector3& startMom, 
+			          double startE,
+                                  double endTime, 
+			          double eLoss, 
+			          unsigned int startStatus, 
+			          unsigned int endStatus)
 {
-  mHits->emplace_back(trackId, cellId, startPos, endPos, startMom, startE, endTime, eLoss, particlePdg);
-  auto stack = (o2::data::Stack*)fMC->GetStack();
-  stack->addHit(GetDetId());
+  mHits->emplace_back(trackId, cellId, startPos, 
+		       endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
 }
 
-void Detector::ConstructGeometry() 
+void Detector::ConstructGeometry()
 {
-   createMaterials();
-   buildModules();
-   defineSensitiveVolumes();
+  createMaterials();
+  buildModules();
+  //defineSensitiveVolumes();
 }
 
-
-void Detector::EndOfEvent() { 
-  Reset(); 
+void Detector::EndOfEvent()
+{
+  Reset();
 }
 
 void Detector::Register()
@@ -195,16 +241,16 @@ void Detector::createMaterials()
 
   Int_t matId = 0;                  // tmp material id number
   const Int_t unsens = 0, sens = 1; // sensitive or unsensitive medium
-				    //
-  Int_t fieldType = 3;     // Field type
-  Float_t maxField = 5.0; // Field max.
+                                    //
+  Int_t fieldType = 3;              // Field type
+  Float_t maxField = 5.0;           // Field max.
 
   Float_t tmaxfd = -10.0; // max deflection angle due to magnetic field in one step
   Float_t stemax = 0.1;   // max step allowed [cm]
   Float_t deemax = 1.0;   // maximum fractional energy loss in one step 0<deemax<=1
   Float_t epsil = 0.03;   // tracking precision [cm]
   Float_t stmin = -0.001; // minimum step due to continuous processes [cm] (negative value: choose it automatically)
-			  
+
   LOG(info) << "FVD: CreateMaterials(): fieldType " << fieldType << ", maxField " << maxField;
 
   o2::base::Detector::Mixture(++matId, "Scintillator", aScint, zScint, dScint, nScint, wScint);
@@ -218,42 +264,40 @@ void Detector::buildModules()
 
   TGeoVolume* vCave = gGeoManager->GetVolume("cave");
   if (!vCave) {
-     LOG(fatal) << "Could not find the top volume!";
+    LOG(fatal) << "Could not find the top volume!";
   }
 
   // create modules
-  TGeoVolumeAssembly *vFVDA = buildModuleA();
-  TGeoVolumeAssembly *vFVDC = buildModuleC();
+  TGeoVolumeAssembly* vFVDA = buildModuleA();
+  TGeoVolumeAssembly* vFVDC = buildModuleC();
 
-  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., FVDBaseParam::zModA));
-  vCave->AddNode(vFVDC, 1, new TGeoTranslation(0., 0., FVDBaseParam::zModC));
+  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., mZmodA));
+  vCave->AddNode(vFVDC, 1, new TGeoTranslation(0., 0., mZmodC));
 }
 
 TGeoVolumeAssembly* Detector::buildModuleA()
 {
   TGeoVolumeAssembly* mod = new TGeoVolumeAssembly("FVDA");
 
-  const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator"); 
+  const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator");
 
-  const float dphiDeg = 45.;
+  float dphiDeg = 360./mNumberOfSectors;
 
-  for (int ir = 0; ir < FVDBaseParam::nRingsA; ir++) {
-     std::string rName = "fvd_ring" + std::to_string(ir+1); 
-     TGeoVolumeAssembly *ring = new TGeoVolumeAssembly(rName.c_str());
-     for (int ic = 0; ic < 8; ic ++) {
-	int cellId = ic + 8*ir;
-	std::string tbsName = "tbs" + std::to_string(cellId);
-	std::string nodeName = "fvd_node" + std::to_string(cellId);
-	float rmin = FVDBaseParam::rRingsA[ir];
-	float rmax = FVDBaseParam::rRingsA[ir+1];
-	float phimin = dphiDeg * ic;
-	float phimax = dphiDeg * (ic + 1);
-	float dz = FVDBaseParam::dzScint;
-        auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
-	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-	ring->AddNode(nod, cellId);
-     }
-     mod->AddNode(ring, ir);
+  for (int ir = 0; ir < mNumberOfRingsA; ir++) {
+    std::string rName = "fvd_ring" + std::to_string(ir + 1);
+    TGeoVolumeAssembly* ring = new TGeoVolumeAssembly(rName.c_str());
+    for (int ic = 0; ic < mNumberOfSectors; ic++) {
+      int cellId = ic + mNumberOfSectors * ir;
+      std::string nodeName = "fvd_node" + std::to_string(cellId);
+      float rmin = mRingRadiiA[ir];
+      float rmax = mRingRadiiA[ir + 1];
+      float phimin = dphiDeg * ic;
+      float phimax = dphiDeg * (ic + 1);
+      auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
+      auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
+      ring->AddNode(nod, cellId);
+    }
+    mod->AddNode(ring, ir);
   }
 
   return mod;
@@ -263,27 +307,25 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 {
   TGeoVolumeAssembly* mod = new TGeoVolumeAssembly("FVDC");
 
-  const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator"); 
+  const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator");
 
-  const float dphiDeg = 45.;
+  float dphiDeg = 360./mNumberOfSectors;
 
-  for (int ir = 0; ir < FVDBaseParam::nRingsC; ir++) {
-     std::string rName = "fvd_ring" + std::to_string(ir+1+FVDBaseParam::nRingsA); 
-     TGeoVolumeAssembly *ring = new TGeoVolumeAssembly(rName.c_str());
-     for (int ic = 0; ic < 8; ic ++) {
-	int cellId = ic + 8*ir + FVDBaseParam::nCellA;
-	std::string tbsName = "tbs" + std::to_string(cellId);
-	std::string nodeName = "fvd_node" + std::to_string(cellId);
-	float rmin = FVDBaseParam::rRingsC[ir];
-	float rmax = FVDBaseParam::rRingsC[ir+1];
-	float phimin = dphiDeg * ic;
-	float phimax = dphiDeg * (ic + 1);
-	float dz = FVDBaseParam::dzScint;
-        auto tbs = new TGeoTubeSeg(tbsName.c_str(), rmin, rmax, dz, phimin, phimax);
-	auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
-	ring->AddNode(nod, cellId);
-     }
-     mod->AddNode(ring, ir);
+  for (int ir = 0; ir < mNumberOfRingsC; ir++) {
+    std::string rName = "fvd_ring" + std::to_string(ir + 1 + mNumberOfRingsA);
+    TGeoVolumeAssembly* ring = new TGeoVolumeAssembly(rName.c_str());
+    for (int ic = 0; ic < mNumberOfSectors; ic++) {
+      int cellId = ic + mNumberOfSectors * (ir + mNumberOfRingsA);
+      std::string nodeName = "fvd_node" + std::to_string(cellId);
+      float rmin = mRingRadiiC[ir];
+      float rmax = mRingRadiiC[ir + 1];
+      float phimin = dphiDeg * ic;
+      float phimax = dphiDeg * (ic + 1);
+      auto tbs = new TGeoTubeSeg("tbs", rmin, rmax, mDzScint, phimin, phimax);
+      auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
+      ring->AddNode(nod, cellId);
+    }
+    mod->AddNode(ring, ir);
   }
 
   return mod;
@@ -291,14 +333,19 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 
 void Detector::defineSensitiveVolumes()
 {
-   LOG(info) << "Adding FVD Sentitive Volumes";
-   TGeoVolume *v;
-   TString volumeName;
+  LOG(info) << "Adding FVD Sentitive Volumes";
+  TGeoVolume* v;
+  TString volumeName;
 
-   for (int iv = 0; iv < FVDBaseParam::nCellA +  FVDBaseParam::nCellC; iv ++) {
-     volumeName = "fvd_node" +  std::to_string(iv);
-     v = gGeoManager->GetVolume(volumeName);
-     LOG(info) << "Adding FVD Sensitive Volume => " << v->GetName();
-     AddSensitiveVolume(v);
-   }
+  int nCellA = mNumberOfRingsA*mNumberOfSectors;
+  int nCellC = mNumberOfRingsC*mNumberOfSectors;
+
+  for (int iv = 0; iv < nCellA + nCellC; iv++) {
+    volumeName = "fvd_node" + std::to_string(iv);
+    v = gGeoManager->GetVolume(volumeName);
+    LOG(info) << "Adding FVD Sensitive Volume => " << v->GetName();
+    AddSensitiveVolume(v);
+  }
 }
+
+ClassImp(o2::fvd::Detector);
