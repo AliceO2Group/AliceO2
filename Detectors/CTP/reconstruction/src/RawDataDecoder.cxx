@@ -329,8 +329,8 @@ int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vect
   uint32_t size_gbt = 0;
   mTFOrbit = 0;
   uint32_t orbit0 = 0;
-  std::array<int,o2::ctp::CTP_NCLASSES> rates{};
-  std::array<int,o2::ctp::CTP_NCLASSES> ratesC{};
+  std::array<int, o2::ctp::CTP_NCLASSES> rates{};
+  std::array<int, o2::ctp::CTP_NCLASSES> ratesC{};
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     const o2::header::RDHAny* rdh = nullptr;
     try {
@@ -362,7 +362,7 @@ int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vect
     }
     auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
     auto linkCRU = (feeID & 0xf00) >> 8;
-    //LOG(info) << "CRU link:" << linkCRU;
+    // LOG(info) << "CRU link:" << linkCRU;
     if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
       payloadCTP = o2::ctp::NIntRecPayload;
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
@@ -423,29 +423,29 @@ int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vect
       makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
       for (auto diglet : diglets) {
         int nbits = payloadCTP - 12;
-        for(int i = 0; i < nbits; i++ ) {
+        for (int i = 0; i < nbits; i++) {
           gbtword80_t mask = 1ull << i;
           gbtword80_t pld = (diglet >> 12) & mask;
-          //LOG(info) << "diglet:" << diglet << " pld:" << pld;
-          if(pld.count() != 0) {
-            if(linkCRU == o2::ctp::GBTLinkIDIntRec) {
+          // LOG(info) << "diglet:" << diglet << " pld:" << pld;
+          if (pld.count() != 0) {
+            if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
               rates[i]++;
             } else {
               ratesC[i]++;
             }
           }
         }
-        //LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
+        // LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
       }
     }
     if ((remnant.count() > 0) && stopBit) {
       int nbits = payloadCTP - 12;
-      for(int i = 0; i < nbits; i++ ) {
+      for (int i = 0; i < nbits; i++) {
         gbtword80_t mask = 1ull << i;
         gbtword80_t pld = (remnant >> 12) & mask;
-        //LOG(info) << "diglet:" << remnant << " pld:" << pld;
-        if(pld.count() != 0) {
-          if(linkCRU == o2::ctp::GBTLinkIDIntRec) {
+        // LOG(info) << "diglet:" << remnant << " pld:" << pld;
+        if (pld.count() != 0) {
+          if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
             rates[i]++;
           } else {
             ratesC[i]++;
@@ -456,25 +456,25 @@ int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vect
     }
   }
   // print max rates
-  std::map<int,int> ratesmap;
-  std::map<int,int> ratesmapC; 
-  for(int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
-    if(rates[i]) {
+  std::map<int, int> ratesmap;
+  std::map<int, int> ratesmapC;
+  for (int i = 0; i < o2::ctp::CTP_NCLASSES; i++) {
+    if (rates[i]) {
       ratesmap[rates[i]] = i;
     }
-    if(ratesC[i]) {
+    if (ratesC[i]) {
       ratesmapC[ratesC[i]] = i;
     }
   }
   auto nhb = o2::base::GRPGeomHelper::getNHBFPerTF();
   std::string message = "Ringing inputs [MHz]:";
-  for(auto const& r: ratesmap) {
-    //LOG(error) << r.second;
-    message += " " + o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(r.second + 1) + ":" + std::to_string(r.first/32./o2::constants::lhc::LHCOrbitMUS);
+  for (auto const& r : ratesmap) {
+    // LOG(error) << r.second;
+    message += " " + o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(r.second + 1) + ":" + std::to_string(r.first / 32. / o2::constants::lhc::LHCOrbitMUS);
   }
   std::string messageC = "Ringing classes [MHz]:";
-  for(auto const& r: ratesmapC) {
-      messageC += " class" + std::to_string(r.second) + ":" + std::to_string(r.first/32./o2::constants::lhc::LHCOrbitMUS);
+  for (auto const& r : ratesmapC) {
+    messageC += " class" + std::to_string(r.second) + ":" + std::to_string(r.first / 32. / o2::constants::lhc::LHCOrbitMUS);
   }
   LOG(error) << messageC;
   LOG(fatal) << message;

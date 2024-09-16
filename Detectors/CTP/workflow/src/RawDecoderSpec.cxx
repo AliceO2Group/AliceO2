@@ -123,17 +123,16 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       if (mMaxInputSizeFatal) {
         fatal_flag = 1;
         LOG(error) << "Input data size bigger than threshold:" << mMaxInputSize << " < " << payloadSize << " ecoding TF and exiting.";
-        //LOG(fatal) << "Input data size:" << payloadSize; - fatal issued in decoder
+        // LOG(fatal) << "Input data size:" << payloadSize; - fatal issued in decoder
       } else {
         LOG(error) << "Input data size:" << payloadSize << " sending dummy output";
         dummyOutput();
         return;
       }
-      
     }
   }
   int ret = 0;
-  if(fatal_flag) {
+  if (fatal_flag) {
     ret = mDecoder.decodeRawFatal(inputs, filter);
   } else {
     ret = mDecoder.decodeRaw(inputs, filter, mOutputDigits, lumiPointsHBF1);
