@@ -39,11 +39,5 @@
 
 #pragma link C++ class o2::fv0::FV0CalibrationInfoObject + ;
 #pragma link C++ class o2::fv0::FV0ChannelTimeCalibrationObject + ;
-/*
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsFIT/ChannelData.h"
-#pragma link C++ class o2::fit::ChannelData < o2::detectors::DetID::FV0> + ;
-#include "DataFormatsFIT/Digit.h"
-#pragma link C++ class o2::fit::Digit < o2::detectors::DetID::FV0> + ;
-*/
+
 #endif

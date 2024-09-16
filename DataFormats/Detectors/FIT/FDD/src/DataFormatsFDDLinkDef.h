@@ -36,11 +36,5 @@
 #pragma link C++ class o2::fdd::CTFHeader + ;
 #pragma link C++ class o2::fdd::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 8, uint32_t> + ;
-/*
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsFIT/ChannelData.h"
-#pragma link C++ class o2::fit::ChannelData < o2::detectors::DetID::FDD> + ;
-#include "DataFormatsFIT/Digit.h"
-#pragma link C++ class o2::fit::Digit < o2::detectors::DetID::FDD> + ;
-*/
+
 #endif
