@@ -112,6 +112,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   //
   std::vector<LumiInfo> lumiPointsHBF1;
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
+  bool fatal_flag = 0;
   if (mMaxInputSize > 0) {
     size_t payloadSize = 0;
     for (const auto& ref : o2::framework::InputRecordWalker(inputs, filter)) {
@@ -120,15 +121,23 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     }
     if (payloadSize > (size_t)mMaxInputSize) {
       if (mMaxInputSizeFatal) {
-        LOG(fatal) << "Input data size:" << payloadSize;
+        fatal_flag = 1;
+        LOG(error) << "Input data size bigger than threshold:" << mMaxInputSize << " < " << payloadSize << " ecoding TF and exiting.";
+        //LOG(fatal) << "Input data size:" << payloadSize; - fatal issued in decoder
       } else {
-        LOG(error) << "Input data size:" << payloadSize;
+        LOG(error) << "Input data size:" << payloadSize << " sending dummy output";
+        dummyOutput();
+        return;
       }
-      dummyOutput();
-      return;
+      
     }
   }
-  int ret = mDecoder.decodeRaw(inputs, filter, mOutputDigits, lumiPointsHBF1);
+  int ret = 0;
+  if(fatal_flag) {
+    ret = mDecoder.decodeRawFatal(inputs, filter);
+  } else {
+    ret = mDecoder.decodeRaw(inputs, filter, mOutputDigits, lumiPointsHBF1);
+  }
   if (ret == 1) {
     dummyOutput();
     return;
