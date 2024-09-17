@@ -409,5 +409,5 @@ if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
   [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE:-}"
   [[ $WORKFLOWMODE == "print" || "${PRINT_WORKFLOW:-}" == "1" ]] && echo "#Aggregator Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
-  if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi
+  if [[ $WORKFLOWMODE != "print" ]] && [[ ! -z $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]]; then eval $WORKFLOW; else true; fi
 fi
