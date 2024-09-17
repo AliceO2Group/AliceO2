@@ -152,10 +152,10 @@ template<class I, class O> // class I is the input data type, e.g. float, class 
 std::vector<O> OrtModel::inference(std::vector<I>& input){
   std::vector<int64_t> inputShape{input.size() / mInputShapes[0][1], mInputShapes[0][1]};
   std::vector<Ort::Value> inputTensor;
-  inputTensor.emplace_back(Ort::Value::CreateTensor<O>(pImplOrt->memoryInfo, (v2v<I, O>(input)).data(), input.size(), inputShape.data(), inputShape.size()));
+  inputTensor.emplace_back(Ort::Value::CreateTensor<O>(pImplOrt->memoryInfo, (reinterpret_cast<O*>(input)).data(), input.size(), inputShape.data(), inputShape.size()));
   // input.clear();
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
-  O* outputValues = outputTensors[0].template GetTensorMutableData<O>();
+  O* outputValues = reinterpret_cast<O*>(outputTensors[0].template GetTensorMutableData<O>());
   outputTensors.clear();
   return std::vector<O>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
 }
@@ -165,26 +165,14 @@ std::vector<O> OrtModel::inference(std::vector<std::vector<I>>& input){
   std::vector<Ort::Value> inputTensor;
   for(auto i : input){
     std::vector<int64_t> inputShape{i.size() / mInputShapes[0][1], mInputShapes[0][1]};
-    inputTensor.emplace_back(Ort::Value::CreateTensor<O>(pImplOrt->memoryInfo, (v2v<I, O>(i)).data(), i.size(), inputShape.data(), inputShape.size()));
+    inputTensor.emplace_back(Ort::Value::CreateTensor<O>(pImplOrt->memoryInfo, (reinterpret_cast<O*>(i)).data(), i.size(), inputShape.data(), inputShape.size()));
   }
   // input.clear();
   auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
-  O* outputValues = outputTensors[0].template GetTensorMutableData<O>();
+  O* outputValues = reinterpret_cast<O*>(outputTensors[0].template GetTensorMutableData<O>());
   outputTensors.clear();
   return std::vector<O>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
 }
-
-// template<class I, class T, class O> // class I is the input data type, e.g. float, class O is the output data type, e.g. O2::gpu::OrtDataType::Float16_t from O2/GPU/GPUTracking/ML/convert_float16.h
-// std::vector<O> OrtModel::inference(std::vector<I>& input){
-//   std::vector<int64_t> inputShape{input.size(), mInputShapes[0][1]};
-//   std::vector<Ort::Value> inputTensor;
-//   inputTensor.emplace_back(Ort::Value::CreateTensor<O>(memoryInfo, (v2v<I, O>(input)).data(), input.size(), inputShape.data(), inputShape.size()));
-//   input.clear();
-//   auto outputTensors = (pImplOrt->session)->Run(runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
-//   O* outputValues = outputTensors[0].template GetTensorMutableData<O>();
-//   outputTensors.clear();
-//   return std::vector<O>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
-// }
 
 std::string OrtModel::printShape(const std::vector<int64_t>& v)
 {
@@ -194,10 +182,6 @@ std::string OrtModel::printShape(const std::vector<int64_t>& v)
   ss << v[v.size() - 1];
   return ss.str();
 }
-
-// template std::vector<OrtDataType::Float16_t> OrtModel::v2v<float, OrtDataType::Float16_t>(std::vector<float>&, bool);
-
-// template std::vector<OrtDataType::Float16_t> OrtModel::inference<float, OrtDataType::Float16_t>(std::vector<float>&);
 
 template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<OrtDataType::Float16_t>& input) {
   std::vector<int64_t> inputShape{input.size() / mInputShapes[0][1], mInputShapes[0][1]};
@@ -210,38 +194,29 @@ template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType:
   return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
 }
 
-// template std::vector<OrtDataType::Float16_t> OrtModel::inference<float, OrtDataType::Float16_t>(std::vector<std::vector<float>>&);
-// template std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<std::vector<OrtDataType::Float16_t>>&);
+template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<float, OrtDataType::Float16_t>(std::vector<float>& input) {
+  std::vector<int64_t> inputShape{input.size() / mInputShapes[0][1], mInputShapes[0][1]};
+  std::vector<Ort::Value> inputTensor;
+  inputTensor.emplace_back(Ort::Value::CreateTensor<Ort::Float16_t>(pImplOrt->memoryInfo, reinterpret_cast<Ort::Float16_t*>(input.data()), input.size(), inputShape.data(), inputShape.size()));
+  // input.clear();
+  auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
+  OrtDataType::Float16_t* outputValues = reinterpret_cast<OrtDataType::Float16_t*>(outputTensors[0].template GetTensorMutableData<Ort::Float16_t>());
+  outputTensors.clear();
+  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+}
 
-// template std::vector<OrtDataType::Float16_t> OrtModel::v2v<float, OrtDataType::Float16_t>(std::vector<float>&, bool);
-// template <> std::vector<Ort::Float16_t> OrtModel::v2v<OrtDataType::Float16_t, Ort::Float16_t>(std::vector<OrtDataType::Float16_t>& input, bool clearInput) {
-//   std::vector<Ort::Float16_t> output(input.size());
-//   std::transform(std::begin(input), std::end(input), std::begin(output), [](OrtDataType::Float16_t f) { return Ort::Float16_t::FromBits(f.val); });
-//   if(clearInput) input.clear();
-//   return output;
-// };
-// template <> std::vector<OrtDataType::Float16_t> OrtModel::v2v<Ort::Float16_t, OrtDataType::Float16_t>(std::vector<Ort::Float16_t>& input, bool clearInput) {
-//   std::vector<OrtDataType::Float16_t> output(input.size());
-//   std::transform(std::begin(input), std::end(input), std::begin(output), [](Ort::Float16_t f) { return OrtDataType::Float16_t::FromBits(f.val); });
-//   if(clearInput) input.clear();
-//   return output;
-// };
-// template std::vector<Ort::Float16_t> OrtModel::v2v<float, Ort::Float16_t>(std::vector<float>&, bool);
-// 
-// // template std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, Ort::Float16_t, OrtDataType::Float16_t>(std::vector<OrtDataType::Float16_t>&);
-// // template std::vector<OrtDataType::Float16_t> OrtModel::inference<float, Ort::Float16_t, OrtDataType::Float16_t>(std::vector<float>&);
-// // template std::vector<float> OrtModel::inference<float, Ort::Float16_t, float>(std::vector<float>&);
-// 
-// template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<float, OrtDataType::Float16_t>(std::vector<float>& input){
-//   return OrtModel::inference<float, Ort::Float16_t, OrtDataType::Float16_t>(input);
-// };
-// template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<OrtDataType::Float16_t>& input) {
-//   return OrtModel::inference<OrtDataType::Float16_t, Ort::Float16_t, OrtDataType::Float16_t>(input);
-// };
-// 
-// template <> std::vector<float> OrtModel::inference<float, OrtDataType::Float16_t, float>(std::vector<float>& input) {
-//   return OrtModel::inference<float, Ort::Float16_t, float>(input);
-// };
+template <> std::vector<OrtDataType::Float16_t> OrtModel::inference<OrtDataType::Float16_t, OrtDataType::Float16_t>(std::vector<std::vector<OrtDataType::Float16_t>>& input) {
+  std::vector<Ort::Value> inputTensor;
+  for(auto i : input){
+    std::vector<int64_t> inputShape{i.size() / mInputShapes[0][1], mInputShapes[0][1]};
+    inputTensor.emplace_back(Ort::Value::CreateTensor<Ort::Float16_t>(pImplOrt->memoryInfo, reinterpret_cast<Ort::Float16_t*>(i.data()), i.size(), inputShape.data(), inputShape.size()));
+  }
+  // input.clear();
+  auto outputTensors = (pImplOrt->session)->Run(pImplOrt->runOptions, inputNamesChar.data(), inputTensor.data(), inputTensor.size(), outputNamesChar.data(), outputNamesChar.size());
+  OrtDataType::Float16_t* outputValues = reinterpret_cast<OrtDataType::Float16_t*>(outputTensors[0].template GetTensorMutableData<Ort::Float16_t>());
+  outputTensors.clear();
+  return std::vector<OrtDataType::Float16_t>{outputValues, outputValues + input.size() * mOutputShapes[0][1]};
+}
 
 } // namespace ml
 
