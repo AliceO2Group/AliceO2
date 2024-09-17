@@ -651,7 +651,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
       auto& queue = services.get<AsyncQueue>();
       const auto& spec = services.get<DeviceSpec const>();
-      const auto& state = services.get<DeviceState const>();
+      const auto& state = services.get<DeviceState>();
       auto *device = services.get<RawDeviceService>().device();
       /// We use the oldest possible timeslice to debounce, so that only the latest one
       /// at the end of one iteration is sent.
