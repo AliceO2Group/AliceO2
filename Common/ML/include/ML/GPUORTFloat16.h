@@ -11,7 +11,7 @@
 
 /// \file     GPUORTFloat16.h
 /// \author   Christian Sonnabend <christian.sonnabend@cern.ch>
-/// \brief    An implementation of the ONNXRuntime Float16_t data-type for GPU acceleration
+/// \brief    An implementation of the ONNXRuntime Float16_t data-type for GPU acceleration (source https://github.com/microsoft/onnxruntime/blob/main/include/onnxruntime/core/session/onnxruntime_float16.h)
 
 #include <stdint.h>
 #include <cmath>
