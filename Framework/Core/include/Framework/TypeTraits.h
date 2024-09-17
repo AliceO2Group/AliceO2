@@ -177,16 +177,17 @@ struct has_root_setowner<
 ///
 /// Useful to deal with those who cannot make up their mind about ownership.
 /// ;-)
-template <typename HOLDER, typename T, typename... ARGS>
-static std::enable_if_t<sizeof(std::declval<HOLDER>().unique()) != 0, HOLDER>
-  make_matching(ARGS&&... args)
+
+template <typename PTR, typename T, typename... ARGS>
+  requires o2::framework::is_specialization_v<PTR, std::shared_ptr>
+static auto make_matching(ARGS&&... args)
 {
   return std::make_shared<T>(std::forward<ARGS>(args)...);
 }
 
-template <typename HOLDER, typename T, typename... ARGS>
-static std::enable_if_t<sizeof(std::declval<HOLDER>().get_deleter()) != 0, HOLDER>
-  make_matching(ARGS&&... args)
+template <typename PTR, typename T, typename... ARGS>
+  requires o2::framework::is_specialization_v<PTR, std::unique_ptr>
+static auto make_matching(ARGS&&... args)
 {
   return std::make_unique<T>(std::forward<ARGS>(args)...);
 }
