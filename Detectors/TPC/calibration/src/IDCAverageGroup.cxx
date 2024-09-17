@@ -160,7 +160,7 @@ void o2::tpc::IDCAverageGroup<Type>::drawGrouping(const std::string filename)
   can.SetLeftMargin(0.06f);
   can.SetTopMargin(0.04f);
   can.cd();
-  poly->SetTitle(0);
+  poly->SetTitle(nullptr);
   poly->GetYaxis()->SetTickSize(0.002f);
   poly->GetYaxis()->SetTitleOffset(0.7f);
   poly->SetStats(0);

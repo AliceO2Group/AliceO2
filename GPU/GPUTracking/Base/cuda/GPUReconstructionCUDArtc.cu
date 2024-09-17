@@ -14,6 +14,7 @@
 
 #define GPUCA_GPUCODE_GENRTC
 #define GPUCA_GPUCODE_COMPILEKERNELS
+#define GPUCA_RTC_SPECIAL_CODE(...) GPUCA_RTC_SPECIAL_CODE(__VA_ARGS__)
 #include "GPUReconstructionCUDADef.h"
 #include "GPUReconstructionIncludesDeviceAll.h"
 

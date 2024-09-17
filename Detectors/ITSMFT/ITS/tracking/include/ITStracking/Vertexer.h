@@ -72,10 +72,12 @@ class Vertexer
   void findTrivialMCTracklets();
   template <typename... T>
   void validateTracklets(T&&... args);
-  void validateTrackletsHybrid();
+  template <typename... T>
+  void validateTrackletsHybrid(T&&... args);
   template <typename... T>
   void findVertices(T&&... args);
-  void findVerticesHybrid();
+  template <typename... T>
+  void findVerticesHybrid(T&&... args);
   void findHistVertices();
 
   template <typename... T>
@@ -91,7 +93,10 @@ class Vertexer
   void dumpTraits();
   template <typename... T>
   float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
-  void printEpilog(std::function<void(std::string s)> logger, const float total);
+  void printEpilog(std::function<void(std::string s)> logger,
+                   bool isHybrid,
+                   const unsigned int trackletN01, const unsigned int trackletN12, const unsigned selectedN, const unsigned int vertexN,
+                   const float initT, const float trackletT, const float selecT, const float vertexT);
 
  private:
   std::uint32_t mTimeFrameCounter = 0;
@@ -153,14 +158,16 @@ void Vertexer::findTrackletsHybrid(T&&... args)
   mTraits->computeTrackletsHybrid(std::forward<T>(args)...);
 }
 
-inline void Vertexer::validateTrackletsHybrid()
+template <typename... T>
+inline void Vertexer::validateTrackletsHybrid(T&&... args)
 {
-  mTraits->computeTrackletMatchingHybrid();
+  mTraits->computeTrackletMatchingHybrid(std::forward<T>(args)...);
 }
 
-inline void Vertexer::findVerticesHybrid()
+template <typename... T>
+inline void Vertexer::findVerticesHybrid(T&&... args)
 {
-  mTraits->computeVerticesHybrid();
+  mTraits->computeVerticesHybrid(std::forward<T>(args)...);
 }
 
 template <typename... T>

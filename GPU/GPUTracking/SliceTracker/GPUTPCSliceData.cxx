@@ -112,7 +112,7 @@ void* GPUTPCSliceData::SetPointersRows(void* mem)
 GPUd() void GPUTPCSliceData::GetMaxNBins(GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mem, GPUTPCRow* GPUrestrict() row, int& maxY, int& maxZ)
 {
   maxY = row->mMaxY * 2.f / GPUCA_MIN_BIN_SIZE + 1;
-  maxZ = (mem->param.par.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.par.continuousMaxTimeBin)) : mem->param.tpcGeometry.TPCLength()) + 50;
+  maxZ = (mem->param.continuousMaxTimeBin > 0 ? (mem->calibObjects.fastTransformHelper->getCorrMap()->convTimeToZinTimeFrame(0, 0, mem->param.continuousMaxTimeBin)) : mem->param.tpcGeometry.TPCLength()) + 50;
   maxZ = maxZ / GPUCA_MIN_BIN_SIZE + 1;
 }
 
@@ -152,6 +152,23 @@ GPUdi() static void UpdateMinMaxYZ(float& yMin, float& yMax, float& zMin, float&
   }
   if (zMin > z) {
     zMin = z;
+  }
+}
+
+GPUdii() void GPUTPCSliceData::SetRowGridEmpty(GPUTPCRow& GPUrestrict() row)
+{
+  GPUAtomic(calink)* c = (GPUAtomic(calink)*)mFirstHitInBin + row.mFirstHitInBinOffset;
+  row.mGrid.CreateEmpty();
+  row.mNHits = 0;
+  row.mHitNumberOffset = 0;
+  row.mHy0 = 0.f;
+  row.mHz0 = 0.f;
+  row.mHstepY = 1.f;
+  row.mHstepZ = 1.f;
+  row.mHstepYi = 1.f;
+  row.mHstepZi = 1.f;
+  for (int i = 0; i < 4; i++) {
+    c[i] = 0;
   }
 }
 
@@ -217,37 +234,29 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     const unsigned int NumberOfClusters = EarlyTransformWithoutClusterNative ? NumberOfClustersInRow[rowIndex] : mem->ioPtrs.clustersNative->nClusters[iSlice][rowIndex];
     const unsigned int RowOffset = EarlyTransformWithoutClusterNative ? RowOffsets[rowIndex] : (mem->ioPtrs.clustersNative->clusterOffset[iSlice][rowIndex] - mem->ioPtrs.clustersNative->clusterOffset[iSlice][0]);
     CONSTEXPR const unsigned int maxN = 1u << (sizeof(calink) < 3 ? (sizeof(calink) * 8) : 24);
+    GPUTPCRow& row = mRows[rowIndex];
+    if (iThread == 0) {
+      row.mFirstHitInBinOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * GPUCA_ROWALIGNMENT / sizeof(int));
+    }
     if (NumberOfClusters >= maxN) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_HITINROW_OVERFLOW, iSlice * 1000 + rowIndex, NumberOfClusters, maxN);
+        SetRowGridEmpty(row);
       }
-      return 1;
+      continue;
     }
 
-    GPUTPCRow& row = mRows[rowIndex];
     if (iThread == 0) {
       tmpMinMax[0] = yMin;
       tmpMinMax[1] = yMax;
       tmpMinMax[2] = zMin;
       tmpMinMax[3] = zMax;
-      row.mFirstHitInBinOffset = CAMath::nextMultipleOf<GPUCA_ROWALIGNMENT / sizeof(calink)>(GetGridSize(RowOffset, rowIndex) + rowIndex * GPUCA_ROWALIGNMENT / sizeof(int));
     }
     GPUbarrier();
     GPUAtomic(calink)* c = (GPUAtomic(calink)*)mFirstHitInBin + row.mFirstHitInBinOffset;
     if (NumberOfClusters == 0) {
       if (iThread == 0) {
-        row.mGrid.CreateEmpty();
-        row.mNHits = 0;
-        row.mHitNumberOffset = 0;
-        row.mHy0 = 0.f;
-        row.mHz0 = 0.f;
-        row.mHstepY = 1.f;
-        row.mHstepZ = 1.f;
-        row.mHstepYi = 1.f;
-        row.mHstepZi = 1.f;
-        for (int i = 0; i < 4; i++) {
-          c[i] = 0;
-        }
+        SetRowGridEmpty(row);
       }
       continue;
     }
@@ -315,16 +324,18 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     if (sizeof(calink) < 4 && numberOfBins >= maxBins) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_BIN_OVERFLOW, iSlice * 1000 + rowIndex, numberOfBins, maxBins);
+        SetRowGridEmpty(row);
       }
-      return 1;
+      continue;
     }
     const unsigned int nn = numberOfBins + grid.Ny() + 3;
     const unsigned int maxnn = GetGridSize(NumberOfClusters, 1);
     if (nn >= maxnn) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_FIRSTHITINBIN_OVERFLOW, iSlice, nn, maxnn);
+        SetRowGridEmpty(row);
       }
-      return 1;
+      continue;
     }
 
     calink* bins = &binMemory[RowOffset]; // Reuse mLinkUpData memory as temporary memory
@@ -363,12 +374,16 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     const float stepYi = 1.f / stepY;
     const float stepZi = 1.f / stepZ;
 
-    row.mHy0 = y0;
-    row.mHz0 = z0;
-    row.mHstepY = stepY;
-    row.mHstepZ = stepZ;
-    row.mHstepYi = stepYi;
-    row.mHstepZi = stepZi;
+    if (iThread == 0) {
+      row.mHy0 = y0;
+      row.mHz0 = z0;
+      row.mHstepY = stepY;
+      row.mHstepZ = stepZ;
+      row.mHstepYi = stepYi;
+      row.mHstepZi = stepZi;
+    }
+
+    GPUbarrier();
 
     for (int hitIndex = iThread; hitIndex < row.mNHits; hitIndex += nThreads) {
       const calink bin = bins[hitIndex];
@@ -392,11 +407,14 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
       mHitData[globalBinsortedIndex].y = (cahit)yy;
     }
 
+    GPUbarrier();
+
     if (iThread == 0 && !mem->param.par.continuousTracking) {
       const float maxAbsZ = CAMath::Max(CAMath::Abs(tmpMinMax[2]), CAMath::Abs(tmpMinMax[3]));
       if (maxAbsZ > 300) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_Z_OVERFLOW, iSlice, (unsigned int)maxAbsZ);
-        return 1;
+        SetRowGridEmpty(row);
+        continue;
       }
     }
   }

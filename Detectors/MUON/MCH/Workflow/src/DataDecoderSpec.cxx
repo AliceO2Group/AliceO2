@@ -189,9 +189,13 @@ class DataDecoderTask
     std::vector<Digit> digits;
     std::vector<ROFRecord> rofs;
     std::vector<OrbitInfo> orbits;
+    std::vector<DecoderError> errors;
+    std::vector<HeartBeatPacket> hbpackets;
     output.snapshot(Output{header::gDataOriginMCH, "DIGITS", 0}, digits);
     output.snapshot(Output{header::gDataOriginMCH, "DIGITROFS", 0}, rofs);
     output.snapshot(Output{header::gDataOriginMCH, "ORBITS", 0}, orbits);
+    output.snapshot(Output{header::gDataOriginMCH, "ERRORS", 0}, errors);
+    output.snapshot(Output{header::gDataOriginMCH, "HBPACKETS", 0}, hbpackets);
   }
 
   bool isDroppedTF(framework::ProcessingContext& pc)

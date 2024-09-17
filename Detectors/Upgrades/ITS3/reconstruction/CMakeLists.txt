@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 #
 
-#add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
+# add_compile_options(-O0 -g -fPIC -fno-omit-frame-pointer)
 
 o2_add_library(ITS3Reconstruction
                TARGETVARNAME targetName
@@ -19,7 +19,6 @@ o2_add_library(ITS3Reconstruction
                        src/BuildTopologyDictionary.cxx
                        src/LookUp.cxx
                        src/IOUtils.cxx
-                #        src/FastMultEst.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::ITSMFTReconstruction
                                      O2::ITS3Base
@@ -40,6 +39,15 @@ o2_target_root_dictionary(
           include/ITS3Reconstruction/LookUp.h
           include/ITS3Reconstruction/IOUtils.h
 )
+
+o2_add_library(ITS3TrackingInterface
+  TARGETVARNAME targetName
+  SOURCES src/TrackingInterface.cxx
+               PRIVATE_LINK_LIBRARIES
+                       O2::ITS3Reconstruction
+                       O2::ITSTrackingInterface
+                       O2::Framework
+                       O2::GPUTracking)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

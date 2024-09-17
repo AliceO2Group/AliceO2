@@ -125,6 +125,7 @@ if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRACK_INPUT="
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW=
+  [[ "${GEN_TOPO_ONTHEFLY:-}" == "1" ]] && WORKFLOW="echo '{}' | " # When running in a pseudo terminal / with ODC, sometimes we have bogus stdin file descriptors
 else
   : ${AGGREGATOR_TASKS:=ALL}
 fi
@@ -400,9 +401,9 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBPRO_SUBSPEC_MIN --sspec-max $CCDBPRO_SUBSPEC_MAX"; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBPRO_SUBSPEC_MIN --sspec-max $CCDBPRO_SUBSPEC_MAX"; fi
 
-if [[ $CCDB_DCS_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]] && [[ $NEED_DCS_CCDB_POPULATOR != 0 ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_DCS_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBDCS_SUBSPEC_MIN --sspec-max $CCDBDCS_SUBSPEC_MAX --name-extention dcs"; fi
+if [[ $CCDB_DCS_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]] && [[ $WORKFLOW != "echo '{}' | " ]] && [[ $NEED_DCS_CCDB_POPULATOR != 0 ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_DCS_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\" --sspec-min $CCDBDCS_SUBSPEC_MIN --sspec-max $CCDBDCS_SUBSPEC_MAX --name-extention dcs"; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"

@@ -20,7 +20,7 @@ The run number is needed to retrieve objects from the CCDB. There are specific r
   - 311901—311999
 
 _Note: For now the same topology dictionary will be used for both collision-systems_
-_Last Update of file here (jira)[https://its.cern.ch/jira/browse/O2-4698]_
+_Last Update of file here (jira)[https://its.cern.ch/jira/browse/O2-5293]_
 
 ## Simulation
 
@@ -42,12 +42,16 @@ Simulate diamond
 
 ### Local Tracking
 
+0. Optionally, if not provided in the ccdb
+
+Create the general run parameters, see _GRPECS_.
+
 1. Simulate
 
 Simulate PIPE and ITS3
 
 ```bash
-o2-sim -g pythia8pp -j10 -m PIPE IT3 --run 303901 -n1000
+o2-sim -g pythia8pp --detectorList ALICE2.1 -m PIPE IT3 --run 303901 -n1000 --field ccdb
 ```
 
 In the previous command:
@@ -60,7 +64,7 @@ In the previous command:
 2. Digitization
 
 ```bash
-o2-sim-digitizer-workflow -b --interactionRate 50000 --run --configKeyValues="HBFUtils.runNumber=303901;" --onlyDet IT3
+o2-sim-digitizer-workflow -b --interactionRate 500000 --run --configKeyValues="HBFUtils.runNumber=303901;" --onlyDet IT3
 root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckDigitsITS3.C++
 ```
 
@@ -74,13 +78,7 @@ root -x -l ${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckT
 
 ### Global Tracking
 
-1. Simulate
-
-Simulate all detectors but replacing ITS with IT3
-
-```bash
-o2-sim -g pythia8pp -j10 --detectorList ALICE2.1 --run 303901 -n20 -m IT3
-```
+TODO
 
 ## Creating CCDB Objects
 
@@ -131,6 +129,12 @@ root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/Compa
 root -x -l '${ALIBUILD_WORK_DIR}/../O2/Detectors/Upgrades/ITS3/macros/test/CheckClusterSize.C++("o2clus_its.root", "o2sim_Kine.root", "IT3dictionary.root", false)'
 ```
 
+### GRPECS
+
+``` bash
+o2-grp-simgrp-tool createGRPs --detectorList ALICE2.1 --run 303901 --bcPatternFile bcPattern.root --hbfpertf 128 --field -5 --publishto ccdb
+```
+
 ### Using external generators based on AliRoot
 
 It is also possible to simulate heavy-ion collision using external generators based on AliRoot. In this case, it is necessary to load both O2 and AliROOT (the order is important):
@@ -148,3 +152,22 @@ o2-sim -j 1  \
 ```
 
 The file `hijing.C` can be found [here](https://alice.its.cern.ch/jira/browse/AOGM-246).
+
+### Disabling individual tiles
+1. Create a file `input.txt` with a comma separated list of disabled tiles.
+2. (optional) Run the macro `CreateITS3StaticDeadMap.C` and/or visualize with `CheckTileNumbering.C`
+3. Move the ccdb object into `${ALICEO2_CCDB_LOCALCACHE}/IT3/Calib/DeadMap`, this is not optional since there is no default object uploaded
+4. Run digitizer with `ITS3Params.useDeadChannelMap=true;`, e.g.:
+``` bash
+o2-sim-digitizer-workflow --configKeyValues="ITS3Params.useDeadChannelMap=true;"
+```
+
+
+### Alignment studies
+#### Deform hits
+1. Create misalignment parameters with `CreateMisalignmentITS3.C`
+2. Visualize with `ShowCoefficients.C`
+3. Run digitizer
+``` bash
+o2-sim-digitizer-workflow -b --configKeyValues="ITS3Params.applyMisalignmentHits=true;ITS3Params.misalignmentHitsParams=misparams.root"
+```

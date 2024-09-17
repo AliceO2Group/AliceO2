@@ -49,6 +49,22 @@ o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, i
   }
 }
 
+template <class iterator, typename T = float>
+o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const its3::TopologyDictionary* dict, T& sig2y, T& sig2z, uint8_t& cls)
+{
+  auto pattID = c.getPatternID();
+  auto iterC = iter;
+  unsigned int clusterSize{999};
+  if (pattID == itsmft::CompCluster::InvalidPatternID || dict->isGroup(pattID)) {
+    o2::itsmft::ClusterPattern patt(iterC);
+    clusterSize = patt.getNPixels();
+  } else {
+    clusterSize = dict->getNpixels(pattID);
+  }
+  cls = static_cast<uint8_t>(std::clamp(clusterSize, static_cast<unsigned int>(std::numeric_limits<uint8_t>::min()), static_cast<unsigned int>(std::numeric_limits<uint8_t>::max())));
+  return extractClusterData(c, iter, dict, sig2y, sig2z);
+}
+
 void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
                             std::vector<o2::BaseCluster<float>>& output,

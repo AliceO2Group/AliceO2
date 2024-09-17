@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "WorkflowHelpers.h"
+#include "AnalysisSupportHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ConfigParamsHelper.h"
@@ -24,6 +25,7 @@
 #include "Framework/PluginManager.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/DefaultsHelpers.h"
+#include "Framework/Signpost.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -34,8 +36,7 @@
 #include <climits>
 #include <thread>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
+O2_DECLARE_DYNAMIC_LOG(workflow_helpers);
 
 namespace o2::framework
 {
@@ -123,87 +124,6 @@ std::vector<TopoIndexInfo>
     std::copy(withPredecessor.begin(), withPredecessor.end(), std::back_inserter(L));
   }
   return S;
-}
-
-void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
-                                                std::vector<InputSpec> const& requestedInputs,
-                                                DataProcessorSpec& publisher)
-{
-  auto matchingOutputFor = [](InputSpec const& requested) {
-    return [&requested](OutputSpec const& provided) {
-      return DataSpecUtils::match(requested, provided);
-    };
-  };
-  for (InputSpec const& requested : requestedInputs) {
-    auto provided = std::find_if(providedOutputs.begin(),
-                                 providedOutputs.end(),
-                                 matchingOutputFor(requested));
-
-    if (provided != providedOutputs.end()) {
-      continue;
-    }
-
-    auto inList = std::find_if(publisher.outputs.begin(),
-                               publisher.outputs.end(),
-                               matchingOutputFor(requested));
-    if (inList != publisher.outputs.end()) {
-      continue;
-    }
-
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, requested.lifetime, requested.metadata});
-  }
-}
-
-void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> const& providedSpecials,
-                                                 std::vector<InputSpec> const& requestedSpecials,
-                                                 std::vector<InputSpec>& requestedAODs,
-                                                 DataProcessorSpec& publisher)
-{
-  for (auto& input : requestedSpecials) {
-    if (std::any_of(providedSpecials.begin(), providedSpecials.end(), [&input](auto const& x) {
-          return DataSpecUtils::match(input, x);
-        })) {
-      continue;
-    }
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
-    for (auto& i : input.metadata) {
-      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
-        auto j = std::find(publisher.inputs.begin(), publisher.inputs.end(), spec);
-        if (j == publisher.inputs.end()) {
-          publisher.inputs.push_back(spec);
-        }
-        DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
-      }
-    }
-  }
-}
-
-void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& requestedSpecials,
-                                                 std::vector<InputSpec>& requestedAODs,
-                                                 std::vector<InputSpec>& requestedDYNs,
-                                                 DataProcessorSpec& publisher)
-{
-  for (auto& input : requestedSpecials) {
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
-    for (auto& i : input.metadata) {
-      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
-        auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
-        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
-        if (j == publisher.inputs.end()) {
-          publisher.inputs.push_back(spec);
-        }
-        if (DataSpecUtils::partialMatch(spec, AODOrigins)) {
-          DataSpecUtils::updateInputList(requestedAODs, std::move(spec));
-        } else if (DataSpecUtils::partialMatch(spec, header::DataOrigin{"DYN"})) {
-          DataSpecUtils::updateInputList(requestedDYNs, std::move(spec));
-        }
-      }
-    }
-  }
 }
 
 // get the default value for condition-backend
@@ -321,24 +241,15 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     aodReader.options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, rateLimitingChannelConfigInput, {"how many timeframes can be in flight at the same time"}});
   }
 
-  std::vector<InputSpec> requestedAODs;
-  std::vector<OutputSpec> providedAODs;
-  std::vector<InputSpec> requestedDYNs;
-  std::vector<OutputSpec> providedDYNs;
-  std::vector<InputSpec> requestedIDXs;
-
+  AnalysisContext ac;
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
-  std::vector<OutputSpec> providedOutputObjHist;
-
-  std::vector<OutputTaskInfo> outTskMap;
-  std::vector<OutputObjectInfo> outObjHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
     auto name = processor.name;
     auto hash = runtime_hash(name.c_str());
-    outTskMap.push_back({hash, name});
+    ac.outTskMap.push_back({hash, name});
 
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
@@ -367,8 +278,23 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     // timeframe data.
     bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
     if (std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid")) != -1) {
-      if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
-        processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(runtime_hash(processor.name.c_str()))}});
+      if (timeframeSink && processor.name.find("internal-dpl-injected-dummy-sink") == std::string::npos) {
+        O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
+        uint32_t hash = runtime_hash(processor.name.c_str());
+        bool hasMatch = false;
+        ConcreteDataMatcher summaryMatcher = ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(hash)};
+        for (auto& output : processor.outputs) {
+          if (DataSpecUtils::match(output, summaryMatcher)) {
+            O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "%{public}s already there in %{public}s",
+                                   DataSpecUtils::describe(output).c_str(), processor.name.c_str());
+            hasMatch = true;
+            break;
+          }
+        }
+        if (!hasMatch) {
+          O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "Adding DPL/SUMMARY/%d to %{public}s", hash, processor.name.c_str());
+          processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(hash)}});
+        }
       }
     }
     bool hasConditionOption = false;
@@ -420,13 +346,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           break;
       }
       if (DataSpecUtils::partialMatch(input, AODOrigins)) {
-        DataSpecUtils::updateInputList(requestedAODs, InputSpec{input});
+        DataSpecUtils::updateInputList(ac.requestedAODs, InputSpec{input});
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
-        DataSpecUtils::updateInputList(requestedDYNs, InputSpec{input});
+        DataSpecUtils::updateInputList(ac.requestedDYNs, InputSpec{input});
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"IDX"})) {
-        DataSpecUtils::updateInputList(requestedIDXs, InputSpec{input});
+        DataSpecUtils::updateInputList(ac.requestedIDXs, InputSpec{input});
       }
     }
 
@@ -434,14 +360,14 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
     for (auto& output : processor.outputs) {
       if (DataSpecUtils::partialMatch(output, AODOrigins)) {
-        providedAODs.emplace_back(output);
+        ac.providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
-        providedDYNs.emplace_back(output);
+        ac.providedDYNs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
-        providedOutputObjHist.emplace_back(output);
-        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.id == hash; });
-        if (it == outObjHistMap.end()) {
-          outObjHistMap.push_back({hash, {output.binding.value}});
+        ac.providedOutputObjHist.emplace_back(output);
+        auto it = std::find_if(ac.outObjHistMap.begin(), ac.outObjHistMap.end(), [&](auto&& x) { return x.id == hash; });
+        if (it == ac.outObjHistMap.end()) {
+          ac.outObjHistMap.push_back({hash, {output.binding.value}});
         } else {
           it->bindings.push_back(output.binding.value);
         }
@@ -454,12 +380,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
   auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
-  std::sort(requestedDYNs.begin(), requestedDYNs.end(), inputSpecLessThan);
-  std::sort(providedDYNs.begin(), providedDYNs.end(), outputSpecLessThan);
-  std::vector<InputSpec> spawnerInputs;
-  for (auto& input : requestedDYNs) {
-    if (std::none_of(providedDYNs.begin(), providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
-      spawnerInputs.emplace_back(input);
+  std::sort(ac.requestedDYNs.begin(), ac.requestedDYNs.end(), inputSpecLessThan);
+  std::sort(ac.providedDYNs.begin(), ac.providedDYNs.end(), outputSpecLessThan);
+  for (auto& input : ac.requestedDYNs) {
+    if (std::none_of(ac.providedDYNs.begin(), ac.providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
+      ac.spawnerInputs.emplace_back(input);
     }
   }
 
@@ -467,21 +392,21 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     "internal-dpl-aod-spawner",
     {},
     {},
-    readers::AODReaderHelpers::aodSpawnerCallback(spawnerInputs),
+    readers::AODReaderHelpers::aodSpawnerCallback(ac.spawnerInputs),
     {}};
 
   DataProcessorSpec indexBuilder{
     "internal-dpl-aod-index-builder",
     {},
     {},
-    readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
+    readers::AODReaderHelpers::indexBuilderCallback(ac.requestedIDXs),
     {}};
 
-  addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, indexBuilder);
-  addMissingOutputsToSpawner({}, spawnerInputs, requestedAODs, aodSpawner);
+  AnalysisSupportHelpers::addMissingOutputsToBuilder(ac.requestedIDXs, ac.requestedAODs, ac.requestedDYNs, indexBuilder);
+  AnalysisSupportHelpers::addMissingOutputsToSpawner({}, ac.spawnerInputs, ac.requestedAODs, aodSpawner);
 
-  addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
-  addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
+  AnalysisSupportHelpers::addMissingOutputsToReader(ac.providedAODs, ac.requestedAODs, aodReader);
+  AnalysisSupportHelpers::addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;
 
@@ -647,8 +572,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // This is to inject a file sink so that any dangling ATSK object is written
   // to a ROOT file.
-  if (providedOutputObjHist.empty() == false) {
-    auto rootSink = CommonDataProcessors::getOutputObjHistSink(outObjHistMap, outTskMap);
+  if (ac.providedOutputObjHist.empty() == false) {
+    auto rootSink = AnalysisSupportHelpers::getOutputObjHistSink(ac.outObjHistMap, ac.outTskMap);
     extraSpecs.push_back(rootSink);
   }
 
@@ -679,7 +604,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     // add TFNumber and TFFilename as input to the writer
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     outputsInputsAOD.emplace_back(InputSpec{"tff", "TFF", "TFFilename"});
-    auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
+    auto fileSink = AnalysisSupportHelpers::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
 
     auto it = std::find_if(outputsInputs.begin(), outputsInputs.end(), [](InputSpec& spec) -> bool {
@@ -838,15 +763,23 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // Notice that availableOutputsInfo MUST be updated first, since it relies on
   // the size of outputs to be the one before the update.
   auto enumerateAvailableOutputs = [&workflow, &outputs, &availableOutputsInfo]() {
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
     for (size_t wi = 0; wi < workflow.size(); ++wi) {
       auto& producer = workflow[wi];
+      if (producer.outputs.empty()) {
+        O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "No outputs for [%zu] %{public}s", wi, producer.name.c_str());
+      }
+      O2_SIGNPOST_START(workflow_helpers, sid, "output enumeration", "Enumerating outputs for producer [%zu] %{}s public", wi, producer.name.c_str());
 
       for (size_t oi = 0; oi < producer.outputs.size(); ++oi) {
         auto& out = producer.outputs[oi];
         auto uniqueOutputId = outputs.size();
         availableOutputsInfo.emplace_back(LogicalOutputInfo{wi, uniqueOutputId, false});
+        O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output enumeration", "- [%zu, %zu] %{public}s",
+                               oi, uniqueOutputId, DataSpecUtils::describe(out).c_str());
         outputs.push_back(out);
       }
+      O2_SIGNPOST_END(workflow_helpers, sid, "output enumeration", "");
     }
   };
 
@@ -878,10 +811,17 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
 
   std::vector<bool> matches(constOutputs.size());
   for (size_t consumer = 0; consumer < workflow.size(); ++consumer) {
+    O2_SIGNPOST_ID_GENERATE(sid, workflow_helpers);
+    O2_SIGNPOST_START(workflow_helpers, sid, "input matching", "Matching inputs of consumer [%zu] %{}s public", consumer, workflow[consumer].name.c_str());
     for (size_t input = 0; input < workflow[consumer].inputs.size(); ++input) {
       forwards.clear();
       for (size_t i = 0; i < constOutputs.size(); i++) {
         matches[i] = DataSpecUtils::match(workflow[consumer].inputs[input], constOutputs[i]);
+        if (matches[i]) {
+          O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output", "Input %{public}s matches %{public}s",
+                                 DataSpecUtils::describe(workflow[consumer].inputs[input]).c_str(),
+                                 DataSpecUtils::describe(constOutputs[i]).c_str());
+        }
       }
 
       for (size_t i = 0; i < availableOutputsInfo.size(); i++) {
@@ -897,6 +837,8 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
         auto uniqueOutputId = oif->outputGlobalIndex;
         for (size_t tpi = 0; tpi < workflow[consumer].maxInputTimeslices; ++tpi) {
           for (size_t ptpi = 0; ptpi < workflow[producer].maxInputTimeslices; ++ptpi) {
+            O2_SIGNPOST_EVENT_EMIT(workflow_helpers, sid, "output", "Adding edge between %{public}s and %{public}s", workflow[consumer].name.c_str(),
+                                   workflow[producer].name.c_str());
             logicalEdges.emplace_back(DeviceConnectionEdge{producer, consumer, tpi, ptpi, uniqueOutputId, input, oif->forward});
           }
         }
@@ -912,6 +854,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
         availableOutputsInfo.push_back(forward);
       }
     }
+    O2_SIGNPOST_END(workflow_helpers, sid, "input matching", "");
   }
 }
 

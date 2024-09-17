@@ -63,6 +63,7 @@ void ITSTrackingInterface::initialise()
     vertParams[1].phiCut = 0.015f;
     vertParams[1].tanLambdaCut = 0.015f;
     vertParams[1].vertPerRofThreshold = 0;
+    vertParams[1].deltaRof = 0;
   } else if (mMode == TrackingMode::Sync) {
     trackParams.resize(1);
     trackParams[0].ZBins = 64;
@@ -165,7 +166,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> trackROFspan(trackROFvec);
-  mTimeFrame->loadROFrameData(trackROFspan, compClusters, pattIt, mDict, labels);
+  loadROF(trackROFspan, compClusters, pattIt, labels);
   pattIt = patterns.begin();
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
@@ -200,10 +201,21 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       if (mIsMC) {
         vMCRecInfo = mTimeFrame->getPrimaryVerticesMCRecInfo(iRof);
       }
-      if (o2::its::TrackerParamConfig::Instance().doUPCIteration && (vtxSpan.size() && vtxSpan[0].getFlags() == 1)) { // at least one vertex in this ROF and it is from second vertex iteration
-        LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
-        processUPCMask[iRof] = true;
-        cutUPCVertex++;
+      if (o2::its::TrackerParamConfig::Instance().doUPCIteration) {
+        if (vtxSpan.size()) {
+          if (vtxSpan[0].isFlagSet(Vertex::UPCMode) == 1) { // at least one vertex in this ROF and it is from second vertex iteration
+            LOGP(debug, "ROF {} rejected as vertices are from the UPC iteration", iRof);
+            processUPCMask[iRof] = true;
+            cutUPCVertex++;
+            vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+          } else { // in all cases except if as standard mode vertex was found, the ROF was processed with UPC settings
+            vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
+          }
+        } else {
+          vtxROF.setFlag(o2::itsmft::ROFRecord::VtxUPCMode);
+        }
+      } else {
+        vtxROF.setFlag(o2::itsmft::ROFRecord::VtxStdMode);
       }
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
@@ -218,11 +230,6 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
           allVerticesLabels.push_back(vMCRecInfo[iV].first);
           allVerticesPurities.push_back(vMCRecInfo[iV].second);
         }
-        if (v.isFlagSet(2)) { // Vertex is reconstructed in a second iteration
-          vtxROF.setFlag(2);  // flag that at least one vertex is from the second iteration
-        } else {
-          vtxROF.setFlag(1); // flag that at least one vertex is from the first iteration
-        }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
         LOGP(info, "ROF {} rejected by the vertex multiplicity selection [{},{}]", iRof, multEstConf.cutMultVtxLow, multEstConf.cutMultVtxHigh);
@@ -236,11 +243,10 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       for (auto& v : vtxVecLoc) {
         vertices.push_back(v);
       }
-      mTimeFrame->addPrimaryVertices(vtxVecLoc);
+      mTimeFrame->addPrimaryVertices(vtxVecLoc, iRof, 0);
     }
   }
   if (mRunVertexer) {
-    LOG(info) << fmt::format(" - rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}, upc.sel:{}", cutRandomMult + cutVertexMult + cutUPCVertex, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult, cutUPCVertex);
     LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} ({} + {}) vertices found in {}/{} ROFs",
                              vertexerElapsedTime,
                              mTimeFrame->getPrimaryVerticesNum(),
@@ -248,8 +254,8 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
                              o2::its::VertexerParamConfig::Instance().nIterations > 1 ? mTimeFrame->getTotVertIteration()[1] : 0,
                              trackROFspan.size() - mTimeFrame->getNoVertexROF(),
                              trackROFspan.size());
+    LOG(info) << fmt::format("FastMultEst: rejected {}/{} ROFs: random/mult.sel:{} (seed {}), vtx.sel:{}", cutRandomMult + cutVertexMult, trackROFspan.size(), cutRandomMult, multEst.lastRandomSeed, cutVertexMult);
   }
-
   if (mOverrideBeamEstimation) {
     LOG(info) << fmt::format(" - Beam position set to: {}, {} from meanvertex object", mTimeFrame->getBeamX(), mTimeFrame->getBeamY());
   } else {
@@ -292,7 +298,7 @@ void ITSTrackingInterface::run(framework::ProcessingContext& pc)
       int offset = -tracksROF.getFirstEntry(); // cluster entry!!!
       tracksROF.setFirstEntry(first);
       tracksROF.setNEntries(number);
-      tracksROF.setFlags(number ? vtxROF.getFlags() : 0); // copies 0xffffffff if cosmics
+      tracksROF.setFlags(vtxROF.getFlags()); // copies 0xffffffff if cosmics
       if (processingMask[iROF]) {
         irFrames.emplace_back(tracksROF.getBCData(), tracksROF.getBCData() + nBCPerTF - 1).info = tracks.size();
       }
@@ -337,11 +343,16 @@ void ITSTrackingInterface::updateTimeDependentParams(framework::ProcessingContex
     }
     GeometryTGeo* geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
-    mVertexer->getGlobalConfiguration();
-    mTracker->getGlobalConfiguration();
-    if (mOverrideBeamEstimation) {
-      pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
-    }
+    getConfiguration(pc);
+  }
+}
+
+void ITSTrackingInterface::getConfiguration(framework::ProcessingContext& pc)
+{
+  mVertexer->getGlobalConfiguration();
+  mTracker->getGlobalConfiguration();
+  if (mOverrideBeamEstimation) {
+    pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
   }
 }
 
@@ -383,6 +394,14 @@ void ITSTrackingInterface::setTraitsFromProvider(VertexerTraits* vertexerTraits,
   mTimeFrame = frame;
   mVertexer->adoptTimeFrame(*mTimeFrame);
   mTracker->adoptTimeFrame(*mTimeFrame);
+}
+
+void ITSTrackingInterface::loadROF(gsl::span<itsmft::ROFRecord>& trackROFspan,
+                                   gsl::span<const itsmft::CompClusterExt> clusters,
+                                   gsl::span<const unsigned char>::iterator& pattIt,
+                                   const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+{
+  mTimeFrame->loadROFrameData(trackROFspan, clusters, pattIt, mDict, mcLabels);
 }
 
 template void ITSTrackingInterface::run<true>(framework::ProcessingContext& pc);

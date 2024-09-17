@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ITSMFT_TRACKING_LINE_H_
-#define O2_ITSMFT_TRACKING_LINE_H_
+#ifndef O2_ITS_CLUSTERLINES_H
+#define O2_ITS_CLUSTERLINES_H
 
 #include <array>
 #include <vector>
@@ -19,11 +19,8 @@
 #include "ITStracking/Tracklet.h"
 #include "GPUCommonMath.h"
 
-namespace o2
+namespace o2::its
 {
-namespace its
-{
-
 struct Line final {
   GPUhd() Line();
   GPUhd() Line(const Line&);
@@ -31,7 +28,7 @@ struct Line final {
   GPUhd() Line(const float firstPoint[3], const float secondPoint[3]);
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
 
-  inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
+  static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);
   GPUhd() static float getDistanceFromPoint(const Line& line, const float point[3]);
   static std::array<float, 6> getDCAComponents(const Line& line, const std::array<float, 3> point);
   GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
@@ -39,12 +36,14 @@ struct Line final {
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
   GPUhd() unsigned char isEmpty() const { return (originPoint[0] == 0.f && originPoint[1] == 0.f && originPoint[2] == 0.f) &&
                                                  (cosinesDirector[0] == 0.f && cosinesDirector[1] == 0.f && cosinesDirector[2] == 0.f); }
+  GPUhdi() auto getDeltaROF() const { return rof[1] - rof[0]; }
   GPUhd() void print() const;
   bool operator==(const Line&) const;
   bool operator!=(const Line&) const;
+  short getMinROF() const { return rof[0] < rof[1] ? rof[0] : rof[1]; }
 
-  float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
-  float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
+  float originPoint[3], cosinesDirector[3];
+  float weightMatrix[6] = {1., 0., 0., 1., 0., 1.};
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
   //    1 --> 0,1
@@ -52,11 +51,13 @@ struct Line final {
   //    3 --> 1,1
   //    4 --> 1,2
   //    5 --> 2,2
-  // Debug quantities
+  short rof[2];
 };
 
 GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
 {
+  rof[0] = -1;
+  rof[1] = -1;
 }
 
 GPUhdi() Line::Line(const Line& other)
@@ -67,6 +68,9 @@ GPUhdi() Line::Line(const Line& other)
   }
   for (int i{0}; i < 6; ++i) {
     weightMatrix[i] = other.weightMatrix[i];
+  }
+  for (int i{0}; i < 2; ++i) {
+    rof[i] = other.rof[i];
   }
 }
 
@@ -83,6 +87,9 @@ GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
   for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
   }
+
+  rof[0] = -1;
+  rof[1] = -1;
 }
 
 GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters)
@@ -101,6 +108,9 @@ GPUhdi() Line::Line(const Tracklet& tracklet, const Cluster* innerClusters, cons
   for (int index{0}; index < 3; ++index) {
     cosinesDirector[index] *= inverseNorm;
   }
+
+  rof[0] = tracklet.rof[0];
+  rof[1] = tracklet.rof[1];
 }
 
 // static functions:
@@ -198,8 +208,8 @@ inline bool Line::operator!=(const Line& rhs) const
 
 GPUhdi() void Line::print() const
 {
-  printf("Line: originPoint = (%f, %f, %f), cosinesDirector = (%f, %f, %f)\n",
-         originPoint[0], originPoint[1], originPoint[2], cosinesDirector[0], cosinesDirector[1], cosinesDirector[2]);
+  printf("Line: originPoint = (%f, %f, %f), cosinesDirector = (%f, %f, %f), rofs = (%hd, %hd)\n",
+         originPoint[0], originPoint[1], originPoint[2], cosinesDirector[0], cosinesDirector[1], cosinesDirector[2], rof[0], rof[1]);
 }
 
 class ClusterLines final
@@ -211,11 +221,13 @@ class ClusterLines final
   ClusterLines(const Line& firstLine, const Line& secondLine);
   void add(const int& lineLabel, const Line& line, const bool& weight = false);
   void computeClusterCentroid();
+  void updateROFPoll(const Line&);
   inline std::vector<int>& getLabels()
   {
     return mLabels;
   }
   inline int getSize() const { return mLabels.size(); }
+  inline short getROF() const { return mROF; }
   inline std::array<float, 3> getVertex() const { return mVertex; }
   inline std::array<float, 6> getRMS2() const { return mRMS2; }
   inline float getAvgDistance2() const { return mAvgDistance2; }
@@ -230,8 +242,9 @@ class ClusterLines final
   std::array<float, 3> mVertex = {0.f};       // cluster centroid position
   std::array<float, 6> mRMS2 = {0.f};         // symmetric matrix: diagonal is RMS2
   float mAvgDistance2 = 0.f;                  // substitute for chi2
+  int mROFWeight = 0;                         // rof weight for voting
+  short mROF = -1;                            // rof
 };
 
-} // namespace its
-} // namespace o2
-#endif /* O2_ITSMFT_TRACKING_LINE_H_ */
+} // namespace o2::its
+#endif /* O2_ITS_CLUSTERLINES_H */

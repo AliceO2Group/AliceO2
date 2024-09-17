@@ -477,10 +477,12 @@ static inline void qConfigHelp(const char* subConfig = nullptr, int followSub = 
   if (followSub < 2) {
     printf("Usage Info:");
   }
-
 #define QCONFIG_HELP
 #include "qconfig.h"
 #undef QCONFIG_HELP
+  if (followSub < 2) {
+    printf("\n");
+  }
 }
 
 // Create parser for configuration

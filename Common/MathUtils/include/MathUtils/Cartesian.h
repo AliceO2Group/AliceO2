@@ -34,8 +34,8 @@
 #include "GPUCommonMath.h"
 #include "CartesianGPU.h"
 #include "SMatrixGPU.h"
-
 #endif
+
 #include "GPUROOTCartesianFwd.h"
 #include "GPUROOTSMatrixFwd.h"
 
@@ -250,6 +250,34 @@ class Transform3D : public ROOT::Math::Transform3D
   ClassDefNV(Transform3D, 1);
 };
 #endif // Disable for GPU
+
+// Aliasing of the Dot(SVector a, SVector b) operation between SVectors
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
+template <class T, unsigned int D>
+inline T Dot(const SVector<T, D>& lhs, const SVector<T, D>& rhs)
+{
+  return ROOT::Math::Dot(lhs, rhs);
+}
+
+template <class T, unsigned int D1, unsigned int D2, class R>
+inline SMatrix<T, D1, D1, MatRepSym<T, D1>> Similarity(const SMatrix<T, D1, D2, R>& lhs, const SMatrix<T, D2, D2, MatRepSym<T, D2>>& rhs)
+{
+  return ROOT::Math::Similarity(lhs, rhs);
+}
+#else
+template <class T, unsigned int D>
+GPUdi() T Dot(const SVector<T, D>& lhs, const SVector<T, D>& rhs)
+{
+  return o2::math_utils::detail::Dot(lhs, rhs);
+}
+
+template <class T, unsigned int D1, unsigned int D2, class R>
+GPUdi() SMatrix<T, D1, D1, MatRepSym<T, D1>> Similarity(const SMatrix<T, D1, D2, R>& lhs, const SMatrix<T, D2, D2, MatRepSym<T, D2>>& rhs)
+{
+  return o2::math_utils::detail::Similarity(lhs, rhs);
+}
+#endif // Disable for GPU
+
 } // namespace math_utils
 } // namespace o2
 

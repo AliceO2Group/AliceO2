@@ -102,6 +102,7 @@ class ITSMFTDeadMapBuilder : public Task
 
   std::vector<uint16_t> mDeadMapTF{};
 
+  int mRunNumber = -1;
   unsigned long mFirstOrbitTF = 0x0;
   unsigned long mFirstOrbitRun = 0x0;
 

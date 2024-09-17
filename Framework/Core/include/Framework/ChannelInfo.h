@@ -97,6 +97,7 @@ struct ForwardChannelInfo {
 
 struct ForwardChannelState {
   TimesliceId oldestForChannel = {0};
+  int64_t droppedMessages = 0;
 };
 
 } // namespace o2::framework

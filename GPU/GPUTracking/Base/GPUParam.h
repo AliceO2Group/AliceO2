@@ -57,6 +57,9 @@ struct GPUParam_t {
   float bzCLight;
   float qptB5Scaler;
 
+  signed char dodEdxDownscaled;
+  int continuousMaxTimeBin;
+
   GPUTPCGeometry tpcGeometry;                       // TPC Geometry
   GPUTPCGMPolynomialField polynomialField;          // Polynomial approx. of magnetic field for TPC GM
   const unsigned int* occupancyMap;                 // Ptr to TPC occupancy map

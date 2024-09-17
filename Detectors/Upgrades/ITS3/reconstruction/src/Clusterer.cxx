@@ -177,7 +177,6 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
     }
     auto validPixID = curChipData->getFirstUnmasked();
     auto npix = curChipData->getData().size();
-    LOGP(debug, "ClustererThread: Chip={}  npix={} validPixID={} -> valid={} -> singleHit={}", chipID, npix, validPixID, validPixID < npix, validPixID + 1 == npix);
     if (validPixID < npix) { // chip data may have all of its pixels masked!
       auto valp = validPixID++;
       if (validPixID == npix) { // special case of a single pixel fired on the chip

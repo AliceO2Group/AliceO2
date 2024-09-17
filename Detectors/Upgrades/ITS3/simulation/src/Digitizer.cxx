@@ -18,11 +18,11 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "ITS3Base/SpecsV2.h"
+#include "Framework/Logger.h"
 
 #include <TRandom.h>
 #include <vector>
 #include <numeric>
-#include <fairlogger/Logger.h> // for LOG
 
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
@@ -38,6 +38,10 @@ void Digitizer::init()
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
+    if (mDeadChanMap != nullptr) {
+      mChips[i].disable(mDeadChanMap->isFullChipMasked(i));
+      mChips[i].setDeadChanMap(mDeadChanMap);
+    }
   }
 
   if (mParams.getAlpSimResponse() == nullptr) {
@@ -190,10 +194,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // convert single hit to digits
   int chipID = hit.GetDetectorID();
   auto& chip = mChips[chipID];
-  // if (chip.isDisabled()) { // right now we do not have 'dead' chips
-  //   LOG(debug) << "skip disabled chip " << chipID;
-  //   return;
-  // }
+  if (chip.isDisabled()) {
+    return;
+  }
   float timeInROF = hit.GetTime() * sec2ns;
   if (timeInROF > 20e3) {
     const int maxWarn = 10;

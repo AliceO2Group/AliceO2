@@ -97,7 +97,6 @@ class MCTruthWriterTask : public o2::framework::Task
   bool mNew = false;
   bool mIO = false;
   int mID = 0;
-  o2::dataformats::MCTruthContainer<long> mLabels; // labels which get filled
 };
 
 o2::framework::DataProcessorSpec getMCTruthWriterSpec(int id, bool doio, bool newmctruth)

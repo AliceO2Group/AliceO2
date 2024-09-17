@@ -484,6 +484,10 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
   bool rescheduled = false;
   bool contentRetrieved = false;
 
+  if (curlCode != 0) {
+    LOG(error) << "CCDBDownloader CURL transfer error - " << curl_easy_strerror(curlCode) << "\n";
+  }
+
   switch (performData->type) {
     case BLOCKING: {
       --(*performData->requestsLeft);
@@ -516,10 +520,15 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
         } else if (300 <= httpCode && httpCode < 400 && performData->locInd < locations.size()) {
           followRedirect(performData, easy_handle, locations, rescheduled, contentRetrieved);
         } else if (200 <= httpCode && httpCode < 300) {
-          contentRetrieved = true;
+          contentRetrieved = true; // Can be overruled by following error check
         }
       } else {
         LOG(error) << loggingMessage;
+      }
+
+      // Check for errors
+      if (curlCode != 0) {
+        contentRetrieved = false;
       }
 
       // Check if content was retrieved, or scheduled to be retrieved

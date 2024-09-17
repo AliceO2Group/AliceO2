@@ -64,6 +64,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
   mLocalOutputDir = ic.options().get<std::string>("output-dir");
   mSkipStaticMap = ic.options().get<bool>("skip-static-map");
 
+  isEnded = false;
   mTimeStart = o2::ccdb::getCurrentTimestamp();
 
   if (mRunMFT) {
@@ -89,7 +90,7 @@ void ITSMFTDeadMapBuilder::init(InitContext& ic)
 }
 
 ///////////////////////////////////////////////////////////////////
-// TODO: can ChipMappingITS help here?
+// TODO:  can ChipMappingITS help here?
 std::vector<uint16_t> ITSMFTDeadMapBuilder::getChipIDsOnSameCable(uint16_t chip)
 {
   if (mRunMFT || chip < N_CHIPS_ITSIB) {
@@ -178,18 +179,31 @@ void ITSMFTDeadMapBuilder::finalizeOutput()
 void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 {
 
+  // Skip everything in case of garbage (potentially at EoS)
+  if (pc.services().get<o2::framework::TimingInfo>().firstTForbit == -1U) {
+    LOG(info) << "Skipping the processing of inputs for timeslice " << pc.services().get<o2::framework::TimingInfo>().timeslice << " (firstTForbit is " << pc.services().get<o2::framework::TimingInfo>().firstTForbit << ")";
+    return;
+  }
+
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
   std::chrono::time_point<std::chrono::high_resolution_clock> end;
 
   start = std::chrono::high_resolution_clock::now();
 
-  mTFCounter++;
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
-  mFirstOrbitTF = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
-
-  if (mFirstOrbitRun == 0x0) {
+  if (tinfo.globalRunNumberChanged || mFirstOrbitRun == 0x0) { // new run is starting
+    mRunNumber = tinfo.runNumber;
     mFirstOrbitRun = mFirstOrbitTF;
+    mTFCounter = 0;
+    isEnded = false;
   }
+
+  if (isEnded) {
+    return;
+  }
+  mFirstOrbitTF = tinfo.firstTForbit;
+  mTFCounter++;
 
   long sampled_orbit = mFirstOrbitTF - mFirstOrbitRun;
 
@@ -198,7 +212,7 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
   }
 
   mStepCounter++;
-  LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " TF received. First orbit " << mFirstOrbitTF;
+  LOG(info) << "Processing step #" << mStepCounter << " out of " << mTFCounter << " good TF received. First orbit " << mFirstOrbitTF;
 
   mDeadMapTF.clear();
 
@@ -280,6 +294,12 @@ void ITSMFTDeadMapBuilder::run(ProcessingContext& pc)
 
   LOG(info) << "Elapsed time in TF processing: " << difference / 1000. << " ms";
 
+  if (pc.transitionState() == TransitionHandlingState::Requested && !isEnded) {
+    std::string detname = mRunMFT ? "MFT" : "ITS";
+    LOG(warning) << "Transition state requested for " << detname << " process, calling stop() and stopping the process of new data.";
+    stop();
+  }
+
   return;
 }
 
@@ -291,8 +311,7 @@ void ITSMFTDeadMapBuilder::PrepareOutputCcdb(EndOfStreamContext* ec, std::string
 
   long tend = o2::ccdb::getCurrentTimestamp();
 
-  std::map<std::string, std::string> md = {
-    {"map_version", MAP_VERSION}};
+  std::map<std::string, std::string> md = {{"map_version", MAP_VERSION}, {"runNumber", std::to_string(mRunNumber)}};
 
   std::string path = mRunMFT ? "MFT/Calib/" : "ITS/Calib/";
   std::string name_str = "TimeDeadMap";
@@ -355,6 +374,7 @@ void ITSMFTDeadMapBuilder::endOfStream(EndOfStreamContext& ec)
     } else {
       LOG(warning) << "Time-dependent dead map is empty and will not be forwarded as output";
     }
+    LOG(info) << "Stop process of new data because of endOfStream";
     isEnded = true;
   }
   return;
@@ -374,6 +394,7 @@ void ITSMFTDeadMapBuilder::stop()
     } else {
       LOG(alarm) << "endOfStream not processed. Nothing forwarded as output.";
     }
+    LOG(info) << "Stop process of new data because of stop() call.";
     isEnded = true;
   }
   return;

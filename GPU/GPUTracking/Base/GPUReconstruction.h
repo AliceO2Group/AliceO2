@@ -123,7 +123,7 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true, GPUReconstruction* master = nullptr);
   static GPUReconstruction* CreateInstance(int type, bool forceType, GPUReconstruction* master = nullptr) { return CreateInstance((DeviceType)type, forceType, master); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
-  static bool CheckInstanceAvailable(DeviceType type);
+  static bool CheckInstanceAvailable(DeviceType type, bool verbose);
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
@@ -260,6 +260,9 @@ class GPUReconstruction
     virtual ~GPUThreadContext();
   };
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
+
+  // Private helpers for library loading
+  static std::shared_ptr<LibraryLoader>* GetLibraryInstance(DeviceType type, bool verbose);
 
   // Private helper functions for memory management
   size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend, const char* device);

@@ -483,7 +483,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // Note: we want to run both the output and input proxy in the same workflow and thus we need
     // different data identifiers and change the data origin in the forwarding
     OutputSpec query{"PRX", dh->dataDescription, dh->subSpecification};
-    auto channelName = channelRetriever(query, dph->startTime);
+    auto const& channelName = channelRetriever(query, dph->startTime);
     bool isData = DataSpecUtils::match(OutputSpec{"TST", "DATA", 0}, dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     // for the configured data channel we require the channel name, the EOS message containing
     // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the

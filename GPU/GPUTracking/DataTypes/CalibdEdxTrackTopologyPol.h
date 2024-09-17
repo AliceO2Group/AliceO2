@@ -53,13 +53,12 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param fileName name of the input file containing the object
   /// \parma name name of the object
   CalibdEdxTrackTopologyPol(std::string_view fileName, std::string_view name = "CalibdEdxTrackTopologyPol") { loadFromFile(fileName.data(), name.data()); };
-#endif
-
   /// Default constructor: creates an empty uninitialized object
   CalibdEdxTrackTopologyPol() CON_DEFAULT;
 
   /// destructor
   ~CalibdEdxTrackTopologyPol() CON_DEFAULT;
+#endif
 
 #ifdef GPUCA_HAVE_O2HEADERS
   /// \return returns the track topology correction

@@ -13,6 +13,7 @@ set(MODULE GPUTracking)
 cmake_minimum_required(VERSION 3.27 FATAL_ERROR)
 
 # set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -O0") # to uncomment if needed, tired of typing this...
+# set(GPUCA_BUILD_DEBUG 1)
 
 if(NOT "${GPUCA_NO_FAST_MATH}" AND NOT CMAKE_BUILD_TYPE_UPPER STREQUAL "DEBUG")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
@@ -28,7 +29,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     include("cmake/kernel_helpers.cmake")
   endif()
 else()
-  if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND))
+  if((ALIGPU_BUILD_TYPE STREQUAL "Standalone" AND GPUCA_BUILD_EVENT_DISPLAY) OR (ALIGPU_BUILD_TYPE STREQUAL "O2" AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND TARGET AliceO2::DebugGUI AND OPENGL_FOUND AND GLFW_FOUND))
     set(GPUCA_EVENT_DISPLAY ON)
   endif()
   if(ROOT_FOUND)
@@ -97,6 +98,7 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Merger/GPUTPCGMMergerDump.cxx
+              Base/GPUReconstructionLibrary.cxx
               Global/GPUChainTrackingClusterizer.cxx
               Global/GPUChainTrackingTransformation.cxx
               Global/GPUChainTrackingTRD.cxx
@@ -170,7 +172,7 @@ set(HDRS_INSTALL
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayInterface.cxx)
 endif()
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
+if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR GPUCA_CONFIG_O2_EXTENSIONS)
     set(SRCS_NO_CINT
         ${SRCS_NO_CINT}
         Global/GPUChainITS.cxx
@@ -294,6 +296,8 @@ string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
 set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_DATATYPES}")
 set(HDRS_CINT_DATATYPES ${HDRS_CINT_DATATYPES} ${HDRS_TMP})
+string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_DATATYPE_HEADERS}")
+set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
 unset(HDRS_TMP)
 
 # Main CMake part for O2
@@ -487,7 +491,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   add_library(O2::${MODULE} ALIAS ${MODULE})
   install(TARGETS ${MODULE})
 
-  if(CONFIG_ROOT)
+  if(GPUCA_CONFIG_ROOT)
     ROOT_GENERATE_DICTIONARY(G__${MODULE} ${HDRS_CINT_O2} ${HDRS_CINT_DATATYPES} ${HDRS_CINT_O2_ADDITIONAL} GPUTrackingLinkDef_Standalone.h)
     target_sources(${MODULE} PRIVATE G__${MODULE})
     INSTALL(FILES
@@ -506,6 +510,13 @@ set_source_files_properties(DataCompression/GPUTPCCompressionTrackModel.cxx
                             PROPERTIES
                             COMPILE_FLAGS "${GPUCA_CXX_NO_FAST_MATH_FLAGS}"
                             COMPILE_DEFINITIONS "GPUCA_NO_FAST_MATH")
+
+# GPUReconstructionLibrary needs to know which GPU backends are enabled for proper error messages
+configure_file(Base/GPUReconstructionAvailableBackends.template.h ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionAvailableBackends.h)
+set_source_files_properties(Base/GPUReconstructionLibrary.cxx
+                            PROPERTIES
+                            INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}")
+
 
 # Add compile definitions and libraries depending on available optional dependencies
 if(GPUCA_QA)

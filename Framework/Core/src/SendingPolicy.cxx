@@ -174,7 +174,7 @@ std::vector<ForwardingPolicy> ForwardingPolicy::createDefaultPolicies()
             .forward = [](fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
               auto &proxy = registry.get<FairMQDeviceProxy>();
               auto *channel = proxy.getForwardChannel(channelIndex);
-              OutputChannelState& state = proxy.getOutputChannelState(channelIndex);
+              ForwardChannelState& state = proxy.getForwardChannelState(channelIndex);
               auto timeout = 1000;
               if (state.droppedMessages > 0) {
                 timeout = 0;

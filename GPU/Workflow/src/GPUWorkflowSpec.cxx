@@ -187,6 +187,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   if (mConfParam->synchronousProcessing) {
     mConfig->configReconstruction.useMatLUT = false;
   }
+  if (mConfig->configProcessing.rtc.optSpecialCode == -1) {
+    mConfig->configProcessing.rtc.optSpecialCode = mConfParam->synchronousProcessing;
+  }
 
   // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
   if (mSpecConfig.outputTracks || mSpecConfig.outputCompClusters || mSpecConfig.outputCompClustersFlat) {
@@ -228,7 +231,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   if (mSpecConfig.outputSharedClusterMap) {
     mConfig->configProcessing.outputSharedClusterMap = true;
   }
-  mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Disable O2 TPC track format output if no track output requested
+  if (!mSpecConfig.outputTracks) {
+    mConfig->configProcessing.createO2Output = 0; // Disable O2 TPC track format output if no track output requested
+  }
   mConfig->configProcessing.param.tpcTriggerHandling = mSpecConfig.tpcTriggerHandling;
 
   if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
@@ -272,6 +277,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
     }
 
+    mConfig->configProcessing.willProvideO2PropagatorLate = true;
     mConfig->configProcessing.o2PropagatorUseGPUField = true;
 
     if (mConfParam->printSettings && (mConfParam->printSettings > 1 || ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0)) {

@@ -33,12 +33,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "utils/qGetLdBinarySymbols.h"
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_src);
 QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_command);
+QGET_LD_BINARY_SYMBOLS(GPUReconstructionCUDArtc_command_arch);
 #endif
 
 int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
 {
 #ifndef GPUCA_ALIROOT_LIB
-  std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtc.optConstexpr);
+  std::string rtcparam = std::string(mProcessingSettings.rtc.optSpecialCode ? "#define GPUCA_RTC_SPECIAL_CODE(...) __VA_ARGS__\n" : "#define GPUCA_RTC_SPECIAL_CODE(...)\n") + GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtc.optConstexpr);
   if (filename == "") {
     filename = "/tmp/o2cagpu_rtc_";
   }
@@ -53,12 +54,16 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
     kernelsall += kernels[i] + "\n";
   }
 
+  std::string baseCommand = (mProcessingSettings.RTCprependCommand != "" ? (mProcessingSettings.RTCprependCommand + " ") : "");
+  baseCommand += (getenv("O2_GPU_RTC_OVERRIDE_CMD") ? std::string(getenv("O2_GPU_RTC_OVERRIDE_CMD")) : std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len));
+  baseCommand += std::string(" ") + (mProcessingSettings.RTCoverrideArchitecture != "" ? mProcessingSettings.RTCoverrideArchitecture : std::string(_binary_GPUReconstructionCUDArtc_command_arch_start, _binary_GPUReconstructionCUDArtc_command_arch_len));
+
 #ifdef GPUCA_HAVE_O2HEADERS
   char shasource[21], shaparam[21], shacmd[21], shakernels[21];
   if (mProcessingSettings.rtc.cacheOutput) {
     o2::framework::internal::SHA1(shasource, _binary_GPUReconstructionCUDArtc_src_start, _binary_GPUReconstructionCUDArtc_src_len);
     o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
-    o2::framework::internal::SHA1(shacmd, _binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
+    o2::framework::internal::SHA1(shacmd, baseCommand.c_str(), baseCommand.size());
     o2::framework::internal::SHA1(shakernels, kernelsall.c_str(), kernelsall.size());
   }
 #endif
@@ -123,7 +128,7 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
         if (fread(&cachedSettings, sizeof(cachedSettings), 1, fp) != 1) {
           throw std::runtime_error("Cache file corrupt");
         }
-        if (!mProcessingSettings.rtc.ignoreCacheValid && memcmp(&cachedSettings, &mProcessingSettings.rtc, sizeof(cachedSettings))) {
+        if (!mProcessingSettings.rtc.ignoreCacheValid && !(cachedSettings == mProcessingSettings.rtc)) {
           GPUInfo("Cache file content outdated (rtc parameters)");
           break;
         }
@@ -159,7 +164,6 @@ int GPUReconstructionCUDA::genRTC(std::string& filename, unsigned int& nCompile)
     }
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
-    std::string baseCommand = getenv("O2_GPU_RTC_OVERRIDE_CMD") ? std::string(getenv("O2_GPU_RTC_OVERRIDE_CMD")) : std::string(_binary_GPUReconstructionCUDArtc_command_start, _binary_GPUReconstructionCUDArtc_command_len);
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif

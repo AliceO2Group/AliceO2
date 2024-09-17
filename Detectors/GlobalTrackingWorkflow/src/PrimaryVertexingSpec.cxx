@@ -150,6 +150,34 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
       }
     }
     mVertexer.process(tracks, gids, ft0Data, vertices, vertexTrackIDs, v2tRefs, tracksMCInfo, lblVtx);
+
+    // flag vertices using UPC ITS mode
+    auto itsrofs = recoData.getITSTracksROFRecords();
+    std::vector<bool> itsTrUPC(recoData.getITSTracks().size());
+    for (auto& rof : itsrofs) {
+      if (rof.getFlag(o2::itsmft::ROFRecord::VtxUPCMode)) {
+        for (int i = rof.getFirstEntry(); i < rof.getFirstEntry() + rof.getNEntries(); i++) {
+          itsTrUPC[i] = true;
+        }
+      }
+    }
+    int nv = vertices.size();
+    for (int iv = 0; iv < nv; iv++) {
+      int idMin = v2tRefs[iv].getFirstEntry(), idMax = idMin + v2tRefs[iv].getEntries();
+      int nits = 0, nitsUPC = 0;
+      for (int id = idMin; id < idMax; id++) {
+        auto gid = recoData.getITSContributorGID(vertexTrackIDs[id]);
+        if (gid.getSource() == GIndex::ITS) {
+          nits++;
+          if (itsTrUPC[gid.getIndex()]) {
+            nitsUPC++;
+          }
+        }
+      }
+      if (nitsUPC > nits / 2) {
+        vertices[iv].setFlags(PVertex::UPCMode);
+      }
+    }
   }
 
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0}, vertices);

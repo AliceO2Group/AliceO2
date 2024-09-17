@@ -15,23 +15,18 @@
 #define O2_ITS3_TRACKERDPL
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "ITS3Reconstruction/TopologyDictionary.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-#include "ITStracking/TimeFrame.h"
-#include "ITStracking/Tracker.h"
-#include "ITStracking/TrackerTraits.h"
-#include "ITStracking/Vertexer.h"
-#include "ITStracking/VertexerTraits.h"
+#include "ITS3Reconstruction/TrackingInterface.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
-#include "CommonUtils/StringUtils.h"
-#include "TStopwatch.h"
+#include "GPUDataTypes.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+
+#include "TStopwatch.h"
 
 namespace o2::its3
 {
@@ -39,33 +34,36 @@ namespace o2::its3
 class TrackerDPL : public framework::Task
 {
  public:
-  TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC, int trgType, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
+  TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr,
+             bool isMC,
+             int trgType,
+             const its::TrackingMode& trMode = its::TrackingMode::Unset,
+             const bool overrBeamEst = false,
+             gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
+  ~TrackerDPL() override = default;
+  TrackerDPL(const TrackerDPL&) = delete;
+  TrackerDPL(TrackerDPL&&) = delete;
+  TrackerDPL& operator=(const TrackerDPL&) = delete;
+  TrackerDPL& operator=(TrackerDPL&&) = delete;
+
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
-  void setClusterDictionary(o2::its3::TopologyDictionary* d) { mDict = d; }
+  void stop() final;
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
-
-  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest{};
-  bool mIsMC{false};
-  int mUseTriggers{0};
-  std::string mMode{"sync"};
-  std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain{};
-  bool mRunVertexer{true};
-  bool mCosmicsProcessing{false};
-  o2::its3::TopologyDictionary* mDict{};
-  std::unique_ptr<o2::gpu::GPUChainITS> mChainITS{};
-  std::unique_ptr<its::Tracker> mTracker{};
-  std::unique_ptr<its::Vertexer> mVertexer{};
-  TStopwatch mTimer{};
+  std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
+  std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  ITS3TrackingInterface mITS3TrackingInterface;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
 /// run ITS CA tracker
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, bool useGeom, int useTrig, const std::string& trMode, const bool overrBeamEst = false, gpu::GPUDataTypes::DeviceType dType = gpu::GPUDataTypes::DeviceType::CPU);
 
 } // namespace o2::its3
 

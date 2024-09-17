@@ -117,7 +117,7 @@ int ReadConfiguration(int argc, char** argv)
     printf("Config Dump before ReadConfiguration\n");
     qConfigPrint();
   }
-  if (configStandalone.proc.debugLevel < 0) {
+  if (configStandalone.proc.debugLevel == -1) {
     configStandalone.proc.debugLevel = 0;
   }
 #ifndef _WIN32
@@ -230,7 +230,9 @@ int ReadConfiguration(int argc, char** argv)
     }
   }
   if (configStandalone.setO2Settings) {
-    configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    if (configStandalone.runGPU) {
+      configStandalone.proc.forceHostMemoryPoolSize = 1024 * 1024 * 1024;
+    }
     configStandalone.rec.tpc.nWaysOuter = 1;
     configStandalone.rec.tpc.trackReferenceX = 83;
     configStandalone.proc.outputSharedClusterMap = 1;
@@ -257,16 +259,21 @@ int ReadConfiguration(int argc, char** argv)
   configStandalone.proc.showOutputStat = true;
 
   if (configStandalone.runGPU && configStandalone.gpuType == "AUTO") {
-    if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::CUDA)) {
+    if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::CUDA, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "CUDA";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::HIP)) {
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::HIP, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "HIP";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL2)) {
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL2, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "OCL2";
-    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL)) {
+    } else if (GPUReconstruction::CheckInstanceAvailable(GPUReconstruction::DeviceType::OCL, configStandalone.proc.debugLevel >= 2)) {
       configStandalone.gpuType = "OCL";
     } else {
+      if (configStandalone.runGPUforce) {
+        printf("No GPU backend / device found, running on CPU is disabled due to runGPUforce\n");
+        return 1;
+      }
       configStandalone.runGPU = false;
+      configStandalone.gpuType = "CPU";
     }
   }
 
@@ -351,6 +358,9 @@ int SetupReconstruction()
     }
     printf("Enabling event display (%s backend)\n", eventDisplay->frontendName());
     procSet.eventDisplay = eventDisplay.get();
+    if (!configStandalone.QA.noMC) {
+      procSet.runMC = true;
+    }
   }
 
   if (procSet.runQA && !configStandalone.QA.noMC) {
@@ -434,6 +444,9 @@ int SetupReconstruction()
       procSet.eventDisplay = nullptr;
     }
   }
+  if (configStandalone.proc.rtc.optSpecialCode == -1) {
+    configStandalone.proc.rtc.optSpecialCode = configStandalone.testSyncAsync || configStandalone.testSync;
+  }
 
   rec->SetSettings(&grp, &recSet, &procSet, &steps);
   if (configStandalone.proc.doublePipeline) {
@@ -453,6 +466,7 @@ int SetupReconstruction()
     procSet.runQA = false;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
+    procSet.rtc.optSpecialCode = 0;
     if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
       procSet.tpcInputWithClusterRejection = 1;
     }
@@ -931,11 +945,14 @@ int main(int argc, char** argv)
       if (configStandalone.timeFrameTime) {
         double nClusters = chainTracking->GetTPCMerger().NMaxClusters();
         if (nClusters > 0) {
-          double nClsPerTF = 550000. * 1138.3;
+          const int nOrbits = 32;
+          const double colRate = 50000;
+          const double orbitRate = 11245;
+          const double nClsPerTF = 755851. * nOrbits * colRate / orbitRate;
           double timePerTF = (configStandalone.proc.doublePipeline ? pipelineWalltime : ((configStandalone.proc.debugLevel ? rec->GetStatKernelTime() : rec->GetStatWallTime()) / 1000000.)) * nClsPerTF / nClusters;
-          double nGPUsReq = timePerTF / 0.02277;
+          const double nGPUsReq = timePerTF * orbitRate / nOrbits;
           char stat[1024];
-          snprintf(stat, 1024, "Sync phase: %.2f sec per 256 orbit TF, %.1f GPUs required", timePerTF, nGPUsReq);
+          snprintf(stat, 1024, "Sync phase: %.2f sec per %d orbit TF, %.1f GPUs required", timePerTF, nOrbits, nGPUsReq);
           if (configStandalone.testSyncAsync) {
             timePerTF = (configStandalone.proc.debugLevel ? recAsync->GetStatKernelTime() : recAsync->GetStatWallTime()) / 1000000. * nClsPerTF / nClusters;
             snprintf(stat + strlen(stat), 1024 - strlen(stat), " - Async phase: %f sec per TF", timePerTF);
