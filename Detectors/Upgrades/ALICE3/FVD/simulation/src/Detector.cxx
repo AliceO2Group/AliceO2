@@ -55,14 +55,15 @@ Detector::Detector(bool active)
     mTrackData()
 {
    auto& baseParam = FVDBaseParam::Instance();
-   mNumberOfRingsA = baseParam.nringsA;
-   mNumberOfRingsC = baseParam.nringsC;
    mNumberOfSectors = baseParam.nsect;
 
    mDzScint = baseParam.dzscint;
 
    mRingRadiiA = baseParam.ringsA;
    mRingRadiiC = baseParam.ringsC;
+
+   mNumberOfRingsA = mRingRadiiA.size() - 1;
+   mNumberOfRingsC = mRingRadiiC.size() - 1;
 
    mZmodA = baseParam.zmodA;
    mZmodC = baseParam.zmodC;
@@ -108,7 +109,12 @@ bool Detector::ProcessHits(FairVolume* vol)
 {
   // This method is called from the MC stepping
   // Track only charged particles and photons
-  if (fMC->TrackCharge()) {
+  bool isPhotonTrack = false;
+  Int_t particlePdg = fMC->TrackPid();
+  if (particlePdg == 22) { // If particle is standard PDG photon
+    isPhotonTrack = true;
+  }
+  if (!(isPhotonTrack || fMC->TrackCharge())) {
     return kFALSE;
   }
   

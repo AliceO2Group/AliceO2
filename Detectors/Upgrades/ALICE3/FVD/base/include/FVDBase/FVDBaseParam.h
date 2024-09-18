@@ -21,19 +21,14 @@ namespace fvd
 {
 struct FVDBaseParam : public o2::conf::ConfigurableParamHelper<FVDBaseParam> {
 
-  //  int nringsA = 5; // 3
-  //  int nringsC = 6;
-  int nsect = 8;
-
-  float dzscint = 4.;
+  static constexpr int nsect = 8;
+  
   std::vector<float> ringsA = {3., 14.8, 26.6, 38.4, 50.2, 62.};
   std::vector<float> ringsC = {3.5, 14.8, 22.8, 37.3, 48.5, 59.8, 71.};
 
-  int nringsA = ringsA.size() - 1;
-  int nringsC = ringsC.size() - 1;
-
   float zmodA = 1700;
   float zmodC = -1950;
+  float dzscint = 4.;
 
   O2ParamDef(FVDBaseParam, "FVDBase");
 };
