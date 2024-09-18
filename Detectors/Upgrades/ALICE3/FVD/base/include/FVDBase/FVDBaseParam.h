@@ -22,7 +22,7 @@ namespace fvd
 struct FVDBaseParam : public o2::conf::ConfigurableParamHelper<FVDBaseParam> {
 
   static constexpr int nsect = 8;
-  
+
   std::vector<float> ringsA = {3., 14.8, 26.6, 38.4, 50.2, 62.};
   std::vector<float> ringsC = {3.5, 14.8, 22.8, 37.3, 48.5, 59.8, 71.};
 

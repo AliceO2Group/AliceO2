@@ -22,12 +22,12 @@
 #include "Field/MagneticField.h"
 
 // FairRoot includes
-#include "FairDetector.h"    
+#include "FairDetector.h"
 #include <fairlogger/Logger.h>
-#include "FairRootManager.h"  
-#include "FairRun.h"         
-#include "FairRuntimeDb.h"  
-#include "FairVolume.h"    
+#include "FairRootManager.h"
+#include "FairRun.h"
+#include "FairRuntimeDb.h"
+#include "FairVolume.h"
 #include "FairRootManager.h"
 
 #include "TVirtualMC.h"
@@ -54,19 +54,19 @@ Detector::Detector(bool active)
     mGeometryTGeo(nullptr),
     mTrackData()
 {
-   auto& baseParam = FVDBaseParam::Instance();
-   mNumberOfSectors = baseParam.nsect;
+  auto& baseParam = FVDBaseParam::Instance();
+  mNumberOfSectors = baseParam.nsect;
 
-   mDzScint = baseParam.dzscint;
+  mDzScint = baseParam.dzscint;
 
-   mRingRadiiA = baseParam.ringsA;
-   mRingRadiiC = baseParam.ringsC;
+  mRingRadiiA = baseParam.ringsA;
+  mRingRadiiC = baseParam.ringsC;
 
-   mNumberOfRingsA = mRingRadiiA.size() - 1;
-   mNumberOfRingsC = mRingRadiiC.size() - 1;
+  mNumberOfRingsA = mRingRadiiA.size() - 1;
+  mNumberOfRingsC = mRingRadiiC.size() - 1;
 
-   mZmodA = baseParam.zmodA;
-   mZmodC = baseParam.zmodC;
+  mZmodA = baseParam.zmodA;
+  mZmodC = baseParam.zmodC;
 }
 
 Detector::Detector(const Detector& rhs)
@@ -117,7 +117,7 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (!(isPhotonTrack || fMC->TrackCharge())) {
     return kFALSE;
   }
-  
+
   auto stack = (o2::data::Stack*)fMC->GetStack();
 
   int cellId = vol->getVolumeId();
@@ -125,7 +125,7 @@ bool Detector::ProcessHits(FairVolume* vol)
   // Check track status to define when hit is started and when it is stopped
   bool startHit = false, stopHit = false;
   unsigned char status = 0;
-  
+
   Int_t currVolId, offId;
 
   if (fMC->IsTrackEntering()) {
@@ -175,12 +175,12 @@ bool Detector::ProcessHits(FairVolume* vol)
     fMC->TrackPosition(positionStop);
     int trackId = fMC->GetStack()->GetCurrentTrackNumber();
 
-    int chId = getChannelId(mTrackData.mPositionStart.Vect()); 
+    int chId = getChannelId(mTrackData.mPositionStart.Vect());
 
-    Hit *p = addHit(trackId, chId /*cellId*/, mTrackData.mPositionStart.Vect(), positionStop.Vect(), 
-	            mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), 
-		    positionStop.T(), mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, 
-		    status);
+    Hit* p = addHit(trackId, chId /*cellId*/, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+                    mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(),
+                    positionStop.T(), mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart,
+                    status);
     stack->addHit(GetDetId());
   } else {
     return false; // do nothing more
@@ -189,17 +189,17 @@ bool Detector::ProcessHits(FairVolume* vol)
 }
 
 o2::itsmft::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
-                                  const TVector3& startPos, 
-			          const TVector3& endPos,
-                                  const TVector3& startMom, 
-			          double startE,
-                                  double endTime, 
-			          double eLoss, 
-			          unsigned int startStatus, 
-			          unsigned int endStatus)
+                                  const TVector3& startPos,
+                                  const TVector3& endPos,
+                                  const TVector3& startMom,
+                                  double startE,
+                                  double endTime,
+                                  double eLoss,
+                                  unsigned int startStatus,
+                                  unsigned int endStatus)
 {
-  mHits->emplace_back(trackId, cellId, startPos, 
-		       endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
+  mHits->emplace_back(trackId, cellId, startPos,
+                      endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
 }
 
@@ -288,7 +288,7 @@ TGeoVolumeAssembly* Detector::buildModuleA()
 
   const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator");
 
-  float dphiDeg = 360./mNumberOfSectors;
+  float dphiDeg = 360. / mNumberOfSectors;
 
   for (int ir = 0; ir < mNumberOfRingsA; ir++) {
     std::string rName = "fvd_ring" + std::to_string(ir + 1);
@@ -316,7 +316,7 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 
   const TGeoMedium* medium = gGeoManager->GetMedium("FVD_Scintillator");
 
-  float dphiDeg = 360./mNumberOfSectors;
+  float dphiDeg = 360. / mNumberOfSectors;
 
   for (int ir = 0; ir < mNumberOfRingsC; ir++) {
     std::string rName = "fvd_ring" + std::to_string(ir + 1 + mNumberOfRingsA);
@@ -344,8 +344,8 @@ void Detector::defineSensitiveVolumes()
   TGeoVolume* v;
   TString volumeName;
 
-  int nCellA = mNumberOfRingsA*mNumberOfSectors;
-  int nCellC = mNumberOfRingsC*mNumberOfSectors;
+  int nCellA = mNumberOfRingsA * mNumberOfSectors;
+  int nCellC = mNumberOfRingsC * mNumberOfSectors;
 
   for (int iv = 0; iv < nCellA + nCellC; iv++) {
     volumeName = "fvd_node" + std::to_string(iv);
@@ -357,26 +357,27 @@ void Detector::defineSensitiveVolumes()
 
 int Detector::getChannelId(TVector3 vec)
 {
-   float phi = vec.Phi();
-   if (phi < 0) phi += TMath::TwoPi();
-   float r   = vec.Perp();
-   float z   = vec.Z();
+  float phi = vec.Phi();
+  if (phi < 0)
+    phi += TMath::TwoPi();
+  float r = vec.Perp();
+  float z = vec.Z();
 
-   int isect = int(phi/(TMath::Pi()/4));
+  int isect = int(phi / (TMath::Pi() / 4));
 
-   std::vector<float>rd = z > 0 ? mRingRadiiA : mRingRadiiC;
-   int noff = z > 0 ? 0 : mNumberOfRingsA*mNumberOfSectors;
+  std::vector<float> rd = z > 0 ? mRingRadiiA : mRingRadiiC;
+  int noff = z > 0 ? 0 : mNumberOfRingsA * mNumberOfSectors;
 
-   int ir = 0;
+  int ir = 0;
 
-   for (int i = 1; i < rd.size(); i++) {
-      if (r < rd[i]) 
-        break;
-      else
-	ir ++;
-   }
+  for (int i = 1; i < rd.size(); i++) {
+    if (r < rd[i])
+      break;
+    else
+      ir++;
+  }
 
-   return ir * mNumberOfSectors + isect + noff;
+  return ir * mNumberOfSectors + isect + noff;
 }
 
 ClassImp(o2::fvd::Detector);
