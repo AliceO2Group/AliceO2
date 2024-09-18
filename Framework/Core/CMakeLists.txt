@@ -229,7 +229,6 @@ add_executable(o2-test-framework-core
               test/test_OptionsHelpers.cxx
               test/test_OverrideLabels.cxx
               test/test_O2DataModelHelpers.cxx
-              test/test_PtrHelpers.cxx
               test/test_RootConfigParamHelpers.cxx
               test/test_Services.cxx
               test/test_StringHelpers.cxx
