@@ -55,4 +55,5 @@
 #pragma link C++ class o2::ft0::GlobalOffsetsInfoObject + ;
 #pragma link C++ class std::pair < std::vector < double>, std::vector < double>> + ;
 #pragma link C++ class o2::ft0::SlewingCoef + ;
+
 #endif

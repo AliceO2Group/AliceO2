@@ -17,6 +17,8 @@
 
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsFT0/SpectraInfoObject.h"
+#include "DetectorsCalibration/TimeSlotCalibration.h"
+#include "DetectorsCalibration/TimeSlot.h"
 
 #include "TList.h"
 
@@ -27,6 +29,8 @@ namespace o2::ft0
 class FT0TimeOffsetSlotContainer final
 {
   static constexpr int sNCHANNELS = o2::ft0::Geometry::Nchannels;
+  using TimeSlot = o2::calibration::TimeSlot<FT0TimeOffsetSlotContainer>;
+  using TimeSlotCalibration = o2::calibration::TimeSlotCalibration<FT0TimeOffsetSlotContainer>;
 
  public:
   FT0TimeOffsetSlotContainer(std::size_t minEntries); // constructor is needed due to current version of FITCalibration library, should be removed

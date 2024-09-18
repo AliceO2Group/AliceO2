@@ -50,6 +50,8 @@ struct TrackCovI {
     } else {
 #ifndef GPUCA_GPUCODE
       throw std::runtime_error("invalid track covariance");
+#else
+      printf("invalid track covariance\n");
 #endif
     }
   }
@@ -107,8 +109,8 @@ class DCAFitterN
 
   //=========================================================================
   ///< return PCA candidate, by default best on is provided (no check for the index validity)
-  const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
-  const auto getPCACandidatePos(int cand = 0) const
+  GPUd() const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
+  GPUd() const auto getPCACandidatePos(int cand = 0) const
   {
     const auto& vd = mPCA[mOrder[cand]];
     return o2::gpu::gpustd::array<float, 3>{static_cast<float>(vd[0]), static_cast<float>(vd[1]), static_cast<float>(vd[2])};
@@ -439,7 +441,7 @@ GPUd() bool DCAFitterN<N, Args...>::calcPCACoefs()
     miei[1][0] = taux.s * tcov.sxx;
     miei[1][1] = taux.c * tcov.syy;
     miei[1][2] = taux.c * tcov.syz;
-    // miei[2][0] = 0;
+    miei[2][0] = 0;
     miei[2][1] = tcov.syz;
     miei[2][2] = tcov.szz;
     mTrCFVT[mCurHyp][i] = mWeightInv * miei;
@@ -902,7 +904,11 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
+#ifndef GPUCA_GPUCODE_DEVICE
       LOG(error) << "InversionFailed";
+#else
+      printf("InversionFailed\n");
+#endif
       return false;
     }
     VecND dx = mD2Chi2Dx2 * mDChi2Dx;
@@ -955,7 +961,11 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
+#ifndef GPUCA_GPUCODE_DEVICE
       LOG(error) << "InversionFailed";
+#else
+      printf("InversionFailed\n");
+#endif
       return false;
     }
     VecND dx = mD2Chi2Dx2 * mDChi2Dx;
@@ -1022,9 +1032,9 @@ GPUd() void DCAFitterN<N, Args...>::print() const
   } else {
     printf("%d-prong vertex fitter in weighted distance minimization mode\n", N);
   }
-  printf("Bz: %f MaxIter: %d  MaxChi2: %f\n", mBz, mMaxIter, mMaxChi2);
-  printf("Stopping condition: Max.param change < %f Rel.Chi2 change > %f\n", mMinParamChange, mMinRelChi2Change);
-  printf("Discard candidates for : Rvtx > %f DZ between tracks > %f\n", getMaxR(), mMaxDZIni);
+  printf("Bz: %1.f MaxIter: %3.d  MaxChi2: %2.3f\n", mBz, mMaxIter, mMaxChi2);
+  printf("Stopping condition: Max.param change < %2.3f Rel.Chi2 change > %2.3f\n", mMinParamChange, mMinRelChi2Change);
+  printf("Discard candidates for : Rvtx > %2.3f DZ between tracks > %2.3f\n", getMaxR(), mMaxDZIni);
 #endif
 }
 
@@ -1122,24 +1132,21 @@ GPUdi() bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, flo
 
 using DCAFitter2 = DCAFitterN<2, o2::track::TrackParCov>;
 using DCAFitter3 = DCAFitterN<3, o2::track::TrackParCov>;
-#ifdef GPUCA_GPUCODE
-namespace gpu::kernel
-{
-GPUg() void printKernel(o2::vertexing::DCAFitterN<2>* ft);
-GPUg() void processKernel(o2::vertexing::DCAFitterN<2>* ft, o2::track::TrackParCov* t1, o2::track::TrackParCov* t2, int* res);
-} // namespace gpu::kernel
-#endif
+
 namespace device
 {
-void print(o2::vertexing::DCAFitterN<2>*,
-           const int nBlocks = 1,
-           const int nThreads = 1);
-int process(o2::vertexing::DCAFitterN<2>*,
-            o2::track::TrackParCov&,
-            o2::track::TrackParCov&,
-            const int nBlocks = 1,
-            const int nThreads = 1);
+template <typename Fitter>
+void print(const int nBlocks,
+           const int nThreads,
+           Fitter& ft);
+
+template <typename Fitter, class... Tr>
+int process(const int nBlocks,
+            const int nThreads,
+            Fitter&,
+            Tr&... args);
 } // namespace device
+
 } // namespace vertexing
 } // namespace o2
 #endif // _ALICEO2_DCA_FITTERN_

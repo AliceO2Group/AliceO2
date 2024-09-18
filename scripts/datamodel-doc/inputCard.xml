@@ -109,7 +109,7 @@
           o2::aod::FV0As, o2::aod::FT0s, o2::aod::FDDs, so2::aod::HMPIDs, o2::aod::Calos, o2::aod::CaloTriggers, o2::aod::Zdcs, o2::aod::FV0Cs, o2::aod::HMPIDs, o2::aod::CPVClusters, o2::aod::HMPID
         </category>
         <category name="Strangeness">
-          o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::TrackedV0s, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades, o2::aod::TrackedCascades, o2::aod::Decay3Bodys, o2::aod::Tracked3Bodys
+          o2::aod::V0s, o2::aod::TransientV0s, o2::aod::StoredV0s, o2::aod::TrackedV0s, o2::aod::Cascades, o2::aod::TransientCascades, o2::aod::StoredCascades, o2::aod::TrackedCascades, o2::aod::TrackedV0s, o2::aod::Decay3Bodys, o2::aod::Tracked3Bodys
         </category>
         <category name="Indices">
           o2::aod::Run3MatchedExclusive, o2::aod::Run3MatchedSparse, o2::aod::MatchedBCCollisionsExclusive, o2::aod::MatchedBCCollisionsSparse, o2::aod::Run3MatchedToBCExclusive, o2::aod::Run3MatchedToBCSparse, o2::aod::MatchedBCCollisionsExclusiveMulti, o2::aod::MatchedBCCollisionsSparseMulti
@@ -146,7 +146,7 @@
         <!-- selection of files to consider as CMakeLists files -->
         <!-- relative to CMLfiles/mainDir -->
         <fileName>
-          CMakeLists.txt, PID/CMakeLists.txt
+          CMakeLists.txt, PID/CMakeLists.txt, Converters/CMakeLists.txt
         </fileName>
       </CMLfiles>
 
@@ -159,7 +159,7 @@
         <!-- selection of files to consider as task code files -->
         <!-- relative to codeFiles/mainDir -->
         <fileName>
-          *.cxx, PID/*.cxx
+          *.cxx, PID/*.cxx, Converters/*.cxx
         </fileName>
       </codeFiles>
     </DataModel>
@@ -175,7 +175,7 @@
         <!-- selection of files to consider as header files -->
         <!-- relative to headerFiles/mainDir -->
         <fileName>
-          DataModel/*.h, FemtoUniverse/DataModel/*.h, FemtoWorld/DataModel/*.h, JCorran/DataModel/*.h, TwoParticleCorrelations/DataModel/*.h
+          DataModel/*.h, Femto3D/DataModel/*.h, FemtoUniverse/DataModel/*.h, FemtoWorld/DataModel/*.h, JCorran/DataModel/*.h, TwoParticleCorrelations/DataModel/*.h
         </fileName>
       </headerFiles>
 
@@ -188,7 +188,7 @@
         <!-- selection of files to consider as CMakeLists files -->
         <!-- relative to CMLfiles/mainDir -->
         <fileName>
-          TableProducer/CMakeLists.txt, FemtoUniverse/TableProducer/CMakeLists.txt, FemtoWorld/TableProducer/CMakeLists.txt, JCorran/TableProducer/CMakeLists.txt, TwoParticleCorrelations/TableProducer/CMakeLists.txt
+          EbyEFluctuations/Tasks/CMakeLists.txt, Femto3D/TableProducer/CMakeLists.txt, FemtoDream/TableProducer/CMakeLists.txt, FemtoUniverse/TableProducer/CMakeLists.txt, FemtoWorld/TableProducer/CMakeLists.txt, JCorran/TableProducer/CMakeLists.txt, TableProducer/CMakeLists.txt, TwoParticleCorrelations/TableProducer/CMakeLists.txt
         </fileName>
       </CMLfiles>
 
@@ -201,7 +201,7 @@
         <!-- selection of files to consider as task code files -->
         <!-- relative to codeFiles/mainDir -->
         <fileName>
-          TableProducer/*.cxx, FemtoUniverse/TableProducer/*.cxx, FemtoWorld/TableProducer/*.cxx, JCorran/TableProducer/*.cxx, TwoParticleCorrelations/TableProducer/*.cxx
+          EbyEFluctuations/Tasks/*.cxx, Femto3D/TableProducer/*.cxx, FemtoDream/TableProducer/*.cxx, FemtoUniverse/TableProducer/*.cxx, FemtoWorld/TableProducer/*.cxx, JCorran/TableProducer/*.cxx, TableProducer/*.cxx, TwoParticleCorrelations/TableProducer/*.cxx
         </fileName>
       </codeFiles>
     </DataModel>
@@ -259,7 +259,7 @@
         <!-- selection of files to consider as header files -->
         <!-- relative to headerFiles/mainDir -->
         <fileName>
-          PhotonMeson/DataModel/*.h
+          PhotonMeson/DataModel/*.h, Dilepton/DataModel/*.h
         </fileName>
       </headerFiles>
 
@@ -272,7 +272,7 @@
         <!-- selection of files to consider as CMakeLists files -->
         <!-- relative to CMLfiles/mainDir -->
         <fileName>
-          PhotonMeson/TableProducer/CMakeLists.txt
+          PhotonMeson/TableProducer/CMakeLists.txt, Dilepton/TableProducer/CMakeLists.txt
         </fileName>
       </CMLfiles>
 
@@ -285,7 +285,7 @@
         <!-- selection of files to consider as task code files -->
         <!-- relative to codeFiles/mainDir -->
         <fileName>
-          PhotonMeson/TableProducer/*.cxx
+          PhotonMeson/TableProducer/*.cxx, Dilepton/TableProducer/*.cxx
         </fileName>
       </codeFiles>
     </DataModel>
@@ -301,7 +301,7 @@
         <!-- selection of files to consider as header files -->
         <!-- relative to headerFiles/mainDir -->
         <fileName>
-          DataModel/*.h, TableProducer/*.cxx
+          TableProducer/*.cxx, D2H/DataModel/*.h, DataModel/*.h, HFC/DataModel/*.h
         </fileName>
       </headerFiles>
 
@@ -314,7 +314,7 @@
         <!-- selection of files to consider as CMakeLists files -->
         <!-- relative to CMLfiles/mainDir -->
         <fileName>
-          TableProducer/CMakeLists.txt
+          TableProducer/CMakeLists.txt, D2H/TableProducer/CMakeLists.txt, HFC/TableProducer/CMakeLists.txt, HFL/TableProducer/CMakeLists.txt
         </fileName>
       </CMLfiles>
 
@@ -327,7 +327,7 @@
         <!-- selection of files to consider as task code files -->
         <!-- relative to codeFiles/mainDir -->
         <fileName>
-          TableProducer/*.cxx
+          TableProducer/*.cxx, D2H/TableProducer/*.cxx, HFC/TableProducer/*.cxx, HFL/TableProducer/*.cxx
         </fileName>
       </codeFiles>
     </DataModel>
@@ -397,7 +397,7 @@
         <!-- selection of files to consider as CMakeLists files -->
         <!-- relative to CMLfiles/mainDir -->
         <fileName>
-          TableProducer/CMakeLists.txt
+          TableProducer/*/CMakeLists.txt
         </fileName>
       </CMLfiles>
 
@@ -410,7 +410,7 @@
         <!-- selection of files to consider as task code files -->
         <!-- relative to codeFiles/mainDir -->
         <fileName>
-          TableProducer/*.cxx
+          TableProducer/*/*.cxx
         </fileName>
       </codeFiles>
     </DataModel>
