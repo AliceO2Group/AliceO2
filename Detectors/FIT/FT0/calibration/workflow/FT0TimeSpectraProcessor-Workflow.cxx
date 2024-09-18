@@ -40,8 +40,8 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
   int mTimeWindow{153};
   uint8_t mPMbitsToCheck{0b11111110};
   uint8_t mPMbitsGood{0b01001000};
-  uint8_t mTrgBitsToCheck{0b11110000};
-  uint8_t mTrgBitsGood{0b10010000};
+  uint64_t mTrgBitsToCheck{0b11110000};
+  uint64_t mTrgBitsGood{0b10010000};
   void init(o2::framework::InitContext& ic) final
   {
     mNbinsY = ic.options().get<int>("number-bins");
@@ -69,7 +69,8 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
     o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(sNCHANNELS + nExtraSpectraSlots, 0, sNCHANNELS + nExtraSpectraSlots, mNbinsY, mMinY, mMaxY);
     for (const auto& digit : digits) {
-      if ((digit.mTriggers.getTriggersignals() & mTrgBitsToCheck) != mTrgBitsGood) {
+      const uint64_t trgWordExt = digit.mTriggers.getExtendedTrgWordFT0();
+      if ((trgWordExt & mTrgBitsToCheck) != mTrgBitsGood) {
         continue;
       }
       const auto& chan = digit.getBunchChannelData(channels);

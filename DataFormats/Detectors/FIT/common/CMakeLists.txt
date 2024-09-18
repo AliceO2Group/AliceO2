@@ -20,4 +20,6 @@ o2_add_library(DataFormatsFIT
 o2_target_root_dictionary(DataFormatsFIT
   HEADERS include/DataFormatsFIT/DCSDPValues.h
           include/DataFormatsFIT/LookUpTable.h
-          include/DataFormatsFIT/Triggers.h)
+          include/DataFormatsFIT/Triggers.h
+          include/DataFormatsFIT/ChannelData.h
+          include/DataFormatsFIT/Digit.h)
