@@ -167,9 +167,11 @@ bool Detector::ProcessHits(FairVolume* vol)
   if (stopHit) {
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
-    Int_t trackId = fMC->GetStack()->GetCurrentTrackNumber();
+    int trackId = fMC->GetStack()->GetCurrentTrackNumber();
 
-    Hit *p = addHit(trackId, cellId, mTrackData.mPositionStart.Vect(), positionStop.Vect(), 
+    int chId = getChannelId(mTrackData.mPositionStart.Vect()); 
+
+    Hit *p = addHit(trackId, chId /*cellId*/, mTrackData.mPositionStart.Vect(), positionStop.Vect(), 
 	            mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), 
 		    positionStop.T(), mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, 
 		    status);
@@ -199,7 +201,6 @@ void Detector::ConstructGeometry()
 {
   createMaterials();
   buildModules();
-  //defineSensitiveVolumes();
 }
 
 void Detector::EndOfEvent()
@@ -271,8 +272,8 @@ void Detector::buildModules()
   TGeoVolumeAssembly* vFVDA = buildModuleA();
   TGeoVolumeAssembly* vFVDC = buildModuleC();
 
-  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., mZmodA));
-  vCave->AddNode(vFVDC, 1, new TGeoTranslation(0., 0., mZmodC));
+  vCave->AddNode(vFVDA, 2, new TGeoTranslation(0., 0., mZmodA));
+  vCave->AddNode(vFVDC, 2, new TGeoTranslation(0., 0., mZmodC));
 }
 
 TGeoVolumeAssembly* Detector::buildModuleA()
@@ -297,7 +298,7 @@ TGeoVolumeAssembly* Detector::buildModuleA()
       auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
       ring->AddNode(nod, cellId);
     }
-    mod->AddNode(ring, ir);
+    mod->AddNode(ring, 1);
   }
 
   return mod;
@@ -325,7 +326,7 @@ TGeoVolumeAssembly* Detector::buildModuleC()
       auto nod = new TGeoVolume(nodeName.c_str(), tbs, medium);
       ring->AddNode(nod, cellId);
     }
-    mod->AddNode(ring, ir);
+    mod->AddNode(ring, 1);
   }
 
   return mod;
@@ -346,6 +347,30 @@ void Detector::defineSensitiveVolumes()
     LOG(info) << "Adding FVD Sensitive Volume => " << v->GetName();
     AddSensitiveVolume(v);
   }
+}
+
+int Detector::getChannelId(TVector3 vec)
+{
+   float phi = vec.Phi();
+   if (phi < 0) phi += TMath::TwoPi();
+   float r   = vec.Perp();
+   float z   = vec.Z();
+
+   int isect = int(phi/(TMath::Pi()/4));
+
+   std::vector<float>rd = z > 0 ? mRingRadiiA : mRingRadiiC;
+   int noff = z > 0 ? 0 : mNumberOfRingsA*mNumberOfSectors;
+
+   int ir = 0;
+
+   for (int i = 1; i < rd.size(); i++) {
+      if (r < rd[i]) 
+        break;
+      else
+	ir ++;
+   }
+
+   return ir * mNumberOfSectors + isect + noff;
 }
 
 ClassImp(o2::fvd::Detector);

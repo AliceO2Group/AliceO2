@@ -111,6 +111,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void defineSensitiveVolumes();
 
+  int getChannelId(TVector3 vec);
+
   /// Transient data about track passing the sensor, needed by ProcessHits()
   struct TrackData {               // this is transient
     bool mHitStarted;              //! hit creation started
