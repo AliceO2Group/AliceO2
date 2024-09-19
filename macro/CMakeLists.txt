@@ -57,6 +57,7 @@ install(FILES CheckDigits_mft.C
               CreateGRPMagFieldObject.C
               CreateGRPLHCIFObject.C
               getTimeStamp.C
+              CreateSampleIRFrames.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which

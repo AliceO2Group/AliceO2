@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include "CommonDataFormat/TFIDInfo.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "CommonUtils/NameConf.h"
 
 namespace o2
@@ -50,16 +51,25 @@ struct HBFUtilsInitializer {
   static constexpr char DelayOpt[] = "reader-delay";
   static constexpr char HBFConfOpt[] = "hbfutils-config";
   static constexpr char HBFTFInfoOpt[] = "tf-info-source";
+  static constexpr char HBFIRFrameOpt[] = "irframes-info-source";
+  static constexpr char IgnoreIRFramesOpt[] = "ignore-irframes";
   static constexpr char HBFUSrc[] = "hbfutils";
   static constexpr char ReaderDriverDevice[] = "reader-driver";
   static constexpr char UpstreamOpt[] = "upstream";
 
   static int NTFs;
+  static long LastIRFrameIndex; // index of the last used entry in the optional IRFrame vector
+  static bool LastIRFrameSplit; // flag that the last IRFrame was split between two TFs
+  static std::vector<o2::dataformats::IRFrame> IRFrames;
+  static o2::dataformats::IRFrame IRFrameSel; // IRFrame selected for the current TF
 
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
   static HBFOpt getOptType(const std::string& optString);
   static std::vector<o2::dataformats::TFIDInfo> readTFIDInfoVector(const std::string& fname);
-  static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph);
+  static void readIRFramesVector(const std::string& fname);
+  static void assignDataHeaderFromTFIDInfo(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph);
+  static void assignDataHeaderFromHBFUtils(o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph);
+  static void assignDataHeaderFromHBFUtilWithIRFrames(o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph);
   static void addNewTimeSliceCallback(std::vector<o2::framework::CallbacksPolicy>& policies);
   static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts, const std::string& defOpt = std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
 };
