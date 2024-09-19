@@ -17,6 +17,10 @@ O2_DECLARE_DYNAMIC_LOG(async_queue);
 
 namespace o2::framework
 {
+AsyncQueue::AsyncQueue()
+{
+}
+
 auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTaskId
 {
   AsyncTaskId id;
@@ -25,14 +29,9 @@ auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTa
   return id;
 }
 
-auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTaskId id, AsyncCallback task, TimesliceId timeslice, int64_t debounce) -> void
+auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTask const& task) -> void
 {
-  AsyncTask taskToPost;
-  taskToPost.task = task;
-  taskToPost.id = id;
-  taskToPost.timeslice = timeslice;
-  taskToPost.debounce = debounce;
-  queue.tasks.push_back(taskToPost);
+  queue.tasks.push_back(task);
 }
 
 auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> void
@@ -85,6 +84,8 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
     }
   }
   // Keep only the tasks with the highest debounce value for a given id
+  // For this reason I need to keep the callback in the task itself, because
+  // two different callbacks with the same id will be coalesced.
   auto newEnd = std::unique(order.begin(), order.end(), [&queue](int a, int b) {
     return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value && queue.tasks[a].debounce >= 0 && queue.tasks[b].debounce >= 0;
   });
@@ -111,7 +112,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
       O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Running task %{public}s (%d) for timeslice %zu",
                              queue.prototypes[queue.tasks[i].id.value].name.c_str(), i,
                              queue.tasks[i].timeslice.value);
-      queue.tasks[i].task(opid.value);
+      queue.tasks[i].callback(queue.tasks[i], opid.value);
       O2_SIGNPOST_EVENT_EMIT(async_queue, opid, "run", "Done running %d", i);
     }
   }

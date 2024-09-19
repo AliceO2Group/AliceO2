@@ -636,6 +636,39 @@ static auto toBeforwardedMessageSet = [](std::vector<ChannelIndex>& cachedForwar
   return cachedForwardingChoices.empty() == false;
 };
 
+struct DecongestionContext {
+  ServiceRegistryRef ref;
+  TimesliceIndex::OldestOutputInfo oldestTimeslice;
+};
+
+auto decongestionCallbackLate = [](AsyncTask& task, size_t aid) -> void {
+  auto& oldestTimeslice = task.user<DecongestionContext>().oldestTimeslice;
+  auto& ref = task.user<DecongestionContext>().ref;
+
+  auto& decongestion = ref.get<DecongestionService>();
+  auto& proxy = ref.get<FairMQDeviceProxy>();
+  if (oldestTimeslice.timeslice.value <= decongestion.lastTimeslice) {
+    LOG(debug) << "Not sending already sent oldest possible timeslice " << oldestTimeslice.timeslice.value;
+    return;
+  }
+  for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+    auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+    auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+    O2_SIGNPOST_ID_GENERATE(aid, async_queue);
+    // TODO: this we could cache in the proxy at the bind moment.
+    if (info.channelType != ChannelAccountingType::DPL) {
+      O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputsCallback", "Skipping channel %{public}s because it's not a DPL channel",
+                             info.name.c_str());
+
+      continue;
+    }
+    if (DataProcessingHelpers::sendOldestPossibleTimeframe(ref, info, state, oldestTimeslice.timeslice.value)) {
+      O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputsCallback", "Forwarding to channel %{public}s oldest possible timeslice %zu, prio 20",
+                             info.name.c_str(), oldestTimeslice.timeslice.value);
+    }
+  }
+};
+
 // This is how we do the forwarding, i.e. we push
 // the inputs which are shared between this device and others
 // to the next one in the daisy chain.
@@ -721,36 +754,13 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
 
   auto& asyncQueue = registry.get<AsyncQueue>();
   auto& decongestion = registry.get<DecongestionService>();
-  auto& timesliceIndex = registry.get<TimesliceIndex>();
   O2_SIGNPOST_ID_GENERATE(aid, async_queue);
   O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputs", "Queuing forwarding oldestPossible %zu", oldestTimeslice.timeslice.value);
-  AsyncQueueHelpers::post(
-    asyncQueue, decongestion.oldestPossibleTimesliceTask, [&proxy, &decongestion, registry, oldestTimeslice, &timesliceIndex](size_t aid) {
-      // DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestTimeslice.timeslice.value);
-      if (oldestTimeslice.timeslice.value <= decongestion.lastTimeslice) {
-        LOG(debug) << "Not sending already sent oldest possible timeslice " << oldestTimeslice.timeslice.value;
-        return;
-      }
-      for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
-        auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
-        auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
-        O2_SIGNPOST_ID_GENERATE(aid, async_queue);
-        // TODO: this we could cache in the proxy at the bind moment.
-        if (info.channelType != ChannelAccountingType::DPL) {
-          O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputsCallback", "Skipping channel %{public}s because it's not a DPL channel",
-                                 info.name.c_str());
-
-          continue;
-        }
-        if (DataProcessingHelpers::sendOldestPossibleTimeframe(registry, info, state, oldestTimeslice.timeslice.value)) {
-          O2_SIGNPOST_EVENT_EMIT(async_queue, aid, "forwardInputsCallback", "Forwarding to channel %{public}s oldest possible timeslice %zu, prio 20",
-                                 info.name.c_str(), oldestTimeslice.timeslice.value);
-        }
-      }
-    },
-    oldestTimeslice.timeslice, -1);
+  AsyncQueueHelpers::post(asyncQueue, AsyncTask{.timeslice = oldestTimeslice.timeslice, .id = decongestion.oldestPossibleTimesliceTask, .debounce = -1, .callback = decongestionCallbackLate}
+                                        .user<DecongestionContext>({.ref = registry, .oldestTimeslice = oldestTimeslice}));
   O2_SIGNPOST_END(forwarding, sid, "forwardInputs", "Forwarding done");
 };
+
 extern volatile int region_read_global_dummy_variable;
 volatile int region_read_global_dummy_variable;
 
