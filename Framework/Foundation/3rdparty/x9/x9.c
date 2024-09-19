@@ -35,7 +35,12 @@
 #include "x9.h"
 
 #include <assert.h>    /* assert */
+#if defined(__x86_64__) || defined(__i386__)
 #include <immintrin.h> /* _mm_pause */
+#elif defined(__aarch64__)
+#else
+#error Not supported architecture
+#endif
 #include <stdarg.h>    /* va_* */
 #include <stdatomic.h> /* atomic_* */
 #include <stdbool.h>   /* bool */
@@ -361,7 +366,13 @@ void x9_read_from_inbox_spin(x9_inbox* const inbox,
   register x9_msg_header* const header = x9_header_ptr(inbox, idx);
 
   for (;;) {
+#if defined(__x86_64__) || defined(__i386__)
     _mm_pause();
+#elif defined(__aarch64__)
+    __asm__ __volatile__ ("yield");
+#else
+#error Not supported architecture
+#endif
     if (atomic_load_explicit(&header->slot_has_data, __ATOMIC_RELAXED)) {
       if (atomic_load_explicit(&header->msg_written, __ATOMIC_ACQUIRE)) {
         memcpy(outparam, (char*)header + sizeof(x9_msg_header), msg_sz);
