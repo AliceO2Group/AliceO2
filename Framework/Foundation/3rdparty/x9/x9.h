@@ -30,7 +30,8 @@
    You can contact the author at: diogoxflores@gmail.com
 */
 
-#pragma once
+#ifndef O2_FRAMEWORK_FOUDATION_X9_H_
+#define O2_FRAMEWORK_FOUDATION_X9_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -172,3 +173,4 @@ __attribute__((nonnull)) void x9_broadcast_msg_to_all_node_inboxes(
 #ifdef __cplusplus
 }
 #endif
+#endif // O2_FRAMEWORK_FOUDATION_X9_H_
