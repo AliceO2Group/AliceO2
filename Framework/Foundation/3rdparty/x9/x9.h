@@ -32,6 +32,11 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#define restrict __restrict__
+#endif
+
 #include <stdbool.h> /* bool */
 #include <stdint.h>  /* uint64_t */
 
@@ -164,3 +169,6 @@ __attribute__((nonnull)) void x9_broadcast_msg_to_all_node_inboxes(
     uint64_t const       msg_sz,
     void const* restrict const msg);
 
+#ifdef __cplusplus
+}
+#endif
