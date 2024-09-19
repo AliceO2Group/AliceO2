@@ -16,5 +16,12 @@ o2_add_library(Catch2
                TARGETVARNAME targetName
                PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/catch2)
 
+o2_add_library(X9
+               SOURCES x9/x9.c
+               TARGETVARNAME targetName
+               PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/x9)
+
 install(FILES ${CMAKE_CURRENT_LIST_DIR}/catch2/catch_amalgamated.hpp
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/x9/x9.h
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
