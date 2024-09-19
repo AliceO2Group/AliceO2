@@ -11,6 +11,7 @@
 
 #include "Framework/AsyncQueue.h"
 #include "Framework/Signpost.h"
+#include "x9.h"
 #include <numeric>
 
 O2_DECLARE_DYNAMIC_LOG(async_queue);
@@ -18,7 +19,9 @@ O2_DECLARE_DYNAMIC_LOG(async_queue);
 namespace o2::framework
 {
 AsyncQueue::AsyncQueue()
+  : inbox(x9_create_inbox(16, "async_queue", sizeof(AsyncTask)))
 {
+  this->inbox = x9_create_inbox(16, "async_queue", sizeof(AsyncTask));
 }
 
 auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTaskId
@@ -31,11 +34,39 @@ auto AsyncQueueHelpers::create(AsyncQueue& queue, AsyncTaskSpec spec) -> AsyncTa
 
 auto AsyncQueueHelpers::post(AsyncQueue& queue, AsyncTask const& task) -> void
 {
-  queue.tasks.push_back(task);
+  // Until we do not manage to write to the inbox, keep removing
+  // items from the queue if you are the first one which fails to
+  // write.
+  while (!x9_write_to_inbox(queue.inbox, sizeof(AsyncTask), &task)) {
+    AsyncQueueHelpers::flushPending(queue);
+  }
+}
+
+auto AsyncQueueHelpers::flushPending(AsyncQueue& queue) -> void
+{
+  bool isFirst = true;
+  if (!std::atomic_compare_exchange_strong(&queue.first, &isFirst, false)) {
+    // Not the first, try again.
+    return;
+  }
+  // First thread which does not manage to write to the queue.
+  // Flush it a bit before we try again.
+  AsyncTask toFlush;
+  // This potentially stalls if the inserting tasks are faster to insert
+  // than we are to retrieve. We should probably have a cut-off
+  while (x9_read_from_inbox(queue.inbox, sizeof(AsyncTask), &toFlush)) {
+    queue.tasks.push_back(toFlush);
+  }
+  queue.first = true;
 }
 
 auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> void
 {
+  // We synchronize right before we run to get as many
+  // tasks as possible. Notice we might still miss some
+  // which will have to handled on a subsequent iteration.
+  AsyncQueueHelpers::flushPending(queue);
+
   if (queue.tasks.empty()) {
     return;
   }

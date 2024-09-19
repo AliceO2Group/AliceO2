@@ -14,6 +14,10 @@
 #include "Framework/TimesliceSlot.h"
 #include <string>
 #include <vector>
+#include <atomic>
+
+typedef struct x9_inbox_internal x9_inbox;
+typedef struct x9_node_internal x9_node;
 
 namespace o2::framework
 {
@@ -89,6 +93,12 @@ struct AsyncQueue {
   std::vector<AsyncTaskSpec> prototypes;
   std::vector<AsyncTask> tasks;
   size_t iteration = 0;
+
+  std::atomic<bool> first = true;
+
+  // Inbox for the message queue used to append
+  // tasks to this queue.
+  x9_inbox* inbox = nullptr;
   AsyncQueue();
 };
 
@@ -104,6 +114,8 @@ struct AsyncQueueHelpers {
   /// 3. only execute the highest (timeslice, debounce) value
   static void run(AsyncQueue& queue, TimesliceId oldestPossibleTimeslice);
 
+  // Flush tasks which were posted but not yet committed to the queue
+  static void flushPending(AsyncQueue& queue);
   /// Reset the queue to its initial state
   static void reset(AsyncQueue& queue);
 };
