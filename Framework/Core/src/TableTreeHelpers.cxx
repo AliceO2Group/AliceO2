@@ -454,9 +454,23 @@ std::shared_ptr<TTree> TableToTree::process()
   }
 
   for (auto& reader : mColumnReaders) {
-    int idealBasketSize = 1024 + reader->fieldSize() * mRows; // minimal additional size needed, otherwise we get 2 baskets
+    int idealBasketSize = 1024 + reader->fieldSize() * reader->columnEntries(); // minimal additional size needed, otherwise we get 2 baskets
     int basketSize = std::max(32000, idealBasketSize);        // keep a minimum value
+    // std::cout << "Setting baskets size for " << reader->branchName() << " to " << basketSize << " =  1024 + "
+    //           << reader->fieldSize() << " * " << reader->columnEntries() << ". mRows was " << mRows << std::endl;
     mTree->SetBasketSize(reader->branchName(), basketSize);
+    // If it starts with fIndexArray, also set the size branch basket size
+    if (strncmp(reader->branchName(), "fIndexArray", strlen("fIndexArray")) == 0) {
+      std::string sizeBranch = reader->branchName();
+      sizeBranch += "_size";
+      //  std::cout << "Setting baskets size for " << sizeBranch << " to " << basketSize << " =  1024 + "
+      //            << reader->fieldSize() << " * " << reader->columnEntries() << ". mRows was " << mRows << std::endl;
+      // One int per array to keep track of the size
+      int idealBasketSize = 4 * mRows + 1024 + reader->fieldSize() * reader->columnEntries(); // minimal additional size needed, otherwise we get 2 baskets
+      int basketSize = std::max(32000, idealBasketSize);                                      // keep a minimum value
+      mTree->SetBasketSize(sizeBranch.c_str(), basketSize);
+      mTree->SetBasketSize(reader->branchName(), basketSize);
+    }
   }
 
   while (row < mRows) {
