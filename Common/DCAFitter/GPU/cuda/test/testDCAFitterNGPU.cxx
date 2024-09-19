@@ -23,6 +23,10 @@
 #include <Math/SVector.h>
 #include <array>
 
+#define nBlocks 60
+#define nThreads 1024
+#define NTest 1000000
+
 namespace o2
 {
 namespace vertexing
@@ -142,11 +146,11 @@ TLorentzVector generate(Vec3D& vtx, std::vector<o2::track::TrackParCov>& vctr, f
   return parent;
 }
 
+#ifdef DO_SINGLE_THREAD_TEST
 BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
 {
-  gRandom->Delete();
-  gRandom = new TRandom(42);
-  constexpr int NTest = 10000;
+  // gRandom->Delete();
+  // gRandom = new TRandom(42);
   o2::utils::TreeStreamRedirector outStream("dcafitterNTest.root");
 
   TGenPhaseSpace genPHS;
@@ -222,17 +226,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    device::print(1, 1, ft);
+
     meanDA /= nfoundA ? nfoundA : 1;
-    meanDAW /= nfoundA ? nfoundA : 1;
+    meanDAW /= nfoundAW ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " GPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " Total time: " << swA.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " GPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " Total time: " << swAW.CpuTime() * 1000 << " ms";
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " GPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " Total time: " << swW.CpuTime() * 1000 << " ms";
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -301,17 +305,16 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       }
     }
 
-    device::print(1, 1, ft);
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix from gamma conversion";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " Total time: " << swA.CpuTime();
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " Total time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " Total time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -379,17 +382,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    device::print(1, 1, ft);
+
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices: Helix : Line";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " Total time: " << swA.CpuTime();
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " Total time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " Total time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -456,17 +459,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    device::print(1, 1, ft);
+
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 2-prong vertices: Line : Line";
     LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " Total time: " << swA.CpuTime();
     LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " Total time: " << swAW.CpuTime();
     LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " Total time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -532,17 +535,17 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
         nfoundW++;
       }
     }
-    device::print(1, 1, ft);
+
     meanDA /= nfoundA ? nfoundA : 1;
     meanDAW /= nfoundAW ? nfoundAW : 1;
     meanDW /= nfoundW ? nfoundW : 1;
     LOG(info) << "Processed " << NTest << " 3-prong vertices";
     LOG(info) << "3-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
-              << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
+              << " mean.dist to truth: " << meanDA << " Total time: " << swA.CpuTime();
     LOG(info) << "3-prongs with abs.dist but wghPCA: eff= " << float(nfoundAW) / NTest
-              << " mean.dist to truth: " << meanDAW << " CPU time: " << swAW.CpuTime();
+              << " mean.dist to truth: " << meanDAW << " Total time: " << swAW.CpuTime();
     LOG(info) << "3-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
-              << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
+              << " mean.dist to truth: " << meanDW << " Total time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundAW > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -552,6 +555,513 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   }
 
   outStream.Close();
+}
+#endif
+
+BOOST_AUTO_TEST_CASE(DCAFitterNProngsBulk)
+{
+  // gRandom->Delete();
+  // gRandom = new TRandom(42);
+  o2::utils::TreeStreamRedirector outStreamB("dcafitterNTestBulk.root");
+
+  TGenPhaseSpace genPHS;
+  constexpr double ele = 0.00051;
+  constexpr double gamma = 2 * ele + 1e-6;
+  constexpr double pion = 0.13957;
+  constexpr double k0 = 0.49761;
+  constexpr double kch = 0.49368;
+  constexpr double dch = 1.86965;
+  std::vector<double> gammadec = {ele, ele};
+  std::vector<double> k0dec = {pion, pion};
+  std::vector<double> dchdec = {pion, kch, pion};
+  std::vector<std::vector<o2::track::TrackParCov>> vctracks(3, std::vector<o2::track::TrackParCov>(NTest));
+  std::vector<Vec3D> vtxGen(NTest);
+
+  double bz = 5.0;
+  { // 2 prongs vertices bulk processing
+    LOG(info) << "\n\nBulk-processing 2-prong Helix - Helix case";
+    std::vector<int> forceQ{1, 1};
+
+    o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
+    ft.setBz(bz);
+    ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    ft.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    ft.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    ft.setMaxDXYIni(4);          // do not consider V0 seeds with tracks XY-distance exceeding this. This is default anyway
+    ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
+    ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
+
+    std::vector<o2::vertexing::DCAFitterN<2>> fitters_host(NTest);
+    std::vector<TLorentzVector> genParents(NTest);
+
+    std::string treeName2Abulk = "pr2aBulk", treeName2AWbulk = "pr2awBulk", treeName2Wbulk = "pr2wBulk";
+    TStopwatch swAb, swAWb, swWb;
+    int nfoundAb = 0, nfoundAWb = 0, nfoundWb = 0;
+    double meanDAb = 0, meanDAWb = 0, meanDWb = 0;
+    swAb.Stop();
+    swAWb.Stop();
+    swWb.Stop();
+
+    ft.setUseAbsDCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    for (int iev = 0; iev < NTest; iev++) {
+      std::vector<o2::track::TrackParCov> vc(2);
+      genParents[iev] = generate(vtxGen[iev], vc, bz, genPHS, k0, k0dec, forceQ);
+      vctracks[0][iev] = vc[0];
+      vctracks[1][iev] = vc[1];
+    }
+
+    swAb.Start(false);
+    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAb[iev] << " Chi2: " << (ncAb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Abulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDAb += minDb;
+        nfoundAb++;
+      }
+    }
+
+    ft.setUseAbsDCA(true);
+    ft.setWeightedFinalPCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swAWb.Start(false);
+    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2AWbulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDAWb += minDb;
+        nfoundAWb++;
+      }
+    }
+
+    ft.setUseAbsDCA(false);
+    ft.setWeightedFinalPCA(false);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swWb.Start(false);
+    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncWb[iev] << " Chi2: " << (ncWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Wbulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDWb += minDb;
+        nfoundWb++;
+      }
+    }
+    //
+    meanDAb /= nfoundAb ? nfoundAb : 1;
+    meanDAWb /= nfoundAWb ? nfoundAWb : 1;
+    meanDWb /= nfoundWb ? nfoundWb : 1;
+    LOGP(info, "Bulk-processed {} 2-prong vertices Helix : Helix", NTest);
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundAb) / NTest
+              << " mean.dist to truth: " << meanDAb << " Total time: " << swAb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAWb) / NTest
+              << " mean.dist to truth: " << meanDAWb << " Total time: " << swAWb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundWb) / NTest
+              << " mean.dist to truth: " << meanDWb << " Total time: " << swWb.CpuTime() * 1000 << " ms";
+    BOOST_CHECK(nfoundAb > 0.99 * NTest);
+    BOOST_CHECK(nfoundAWb > 0.99 * NTest);
+    BOOST_CHECK(nfoundWb > 0.99 * NTest);
+    BOOST_CHECK(meanDAb < 0.1);
+    BOOST_CHECK(meanDAWb < 0.1);
+    BOOST_CHECK(meanDWb < 0.1);
+  }
+
+  { // 2 prongs vertices bulk processing for gamma conversion
+    LOG(info) << "\n\nBulk-processing 2-prong Helix - Helix case gamma conversion";
+    std::vector<int> forceQ{1, 1};
+
+    o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
+    ft.setBz(bz);
+    ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    ft.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    ft.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    ft.setMaxDXYIni(4);          // do not consider V0 seeds with tracks XY-distance exceeding this. This is default anyway
+    ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
+    ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
+
+    std::vector<o2::vertexing::DCAFitterN<2>> fitters_host(NTest);
+    std::vector<TLorentzVector> genParents(NTest);
+
+    std::string treeName2Abulk = "gpr2aBulk", treeName2AWbulk = "gpr2awBulk", treeName2Wbulk = "gpr2wBulk";
+    TStopwatch swAb, swAWb, swWb;
+    int nfoundAb = 0, nfoundAWb = 0, nfoundWb = 0;
+    double meanDAb = 0, meanDAWb = 0, meanDWb = 0;
+    swAb.Stop();
+    swAWb.Stop();
+    swWb.Stop();
+
+    ft.setUseAbsDCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    for (int iev = 0; iev < NTest; iev++) {
+      std::vector<o2::track::TrackParCov> vc(2);
+      genParents[iev] = generate(vtxGen[iev], vc, bz, genPHS, gamma, gammadec, forceQ);
+      vctracks[0][iev] = vc[0];
+      vctracks[1][iev] = vc[1];
+    }
+
+    swAb.Start(false);
+    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAb[iev] << " Chi2: " << (ncAb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Abulk, fitters_host[iev], vtxGen[iev], genParents[iev], gammadec);
+        meanDAb += minDb;
+        nfoundAb++;
+      }
+    }
+    //
+    ft.setUseAbsDCA(true);
+    ft.setWeightedFinalPCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swAWb.Start(false);
+    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2AWbulk, fitters_host[iev], vtxGen[iev], genParents[iev], gammadec);
+        meanDAWb += minDb;
+        nfoundAWb++;
+      }
+    }
+
+    ft.setUseAbsDCA(false);
+    ft.setWeightedFinalPCA(false);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swWb.Start(false);
+    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncWb[iev] << " Chi2: " << (ncWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Wbulk, fitters_host[iev], vtxGen[iev], genParents[iev], gammadec);
+        meanDWb += minDb;
+        nfoundWb++;
+      }
+    }
+    //
+
+    meanDAb /= nfoundAb ? nfoundAb : 1;
+    meanDAWb /= nfoundAWb ? nfoundAWb : 1;
+    meanDWb /= nfoundWb ? nfoundWb : 1;
+    LOGP(info, "Bulk-processed {} 2-prong vertices Helix : Helix from gamma conversion", NTest);
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundAb) / NTest
+              << " mean.dist to truth: " << meanDAb << " Total time: " << swAb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAWb) / NTest
+              << " mean.dist to truth: " << meanDAWb << " Total time: " << swAWb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundWb) / NTest
+              << " mean.dist to truth: " << meanDWb << " Total time: " << swWb.CpuTime() * 1000 << " ms";
+    BOOST_CHECK(nfoundAb > 0.99 * NTest);
+    BOOST_CHECK(nfoundAWb > 0.99 * NTest);
+    BOOST_CHECK(nfoundWb > 0.99 * NTest);
+    BOOST_CHECK(meanDAb < 2.1);
+    BOOST_CHECK(meanDAWb < 2.1);
+    BOOST_CHECK(meanDWb < 2.1);
+  }
+
+  // 2 prongs vertices bulk processing with one of charges set to 0: Helix : Line
+  {
+    std::vector<int> forceQ{1, 1};
+    LOG(info) << "\n\nBulk-processing 2-prong Helix - Line case";
+    o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
+    ft.setBz(bz);
+    ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    ft.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    ft.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
+    ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
+
+    std::vector<o2::vertexing::DCAFitterN<2>> fitters_host(NTest);
+    std::vector<TLorentzVector> genParents(NTest);
+
+    std::string treeName2Abulk = "pr2aHLb", treeName2AWbulk = "pr2awHLb", treeName2Wbulk = "pr2wHLb";
+    TStopwatch swAb, swAWb, swWb;
+    int nfoundAb = 0, nfoundAWb = 0, nfoundWb = 0;
+    double meanDAb = 0, meanDAWb = 0, meanDWb = 0;
+    swAb.Stop();
+    swAWb.Stop();
+    swWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      forceQ[iev % 2] = 1;
+      forceQ[1 - iev % 2] = 0;
+      std::vector<o2::track::TrackParCov> vc(2);
+      genParents[iev] = generate(vtxGen[iev], vc, bz, genPHS, k0, k0dec, forceQ);
+      vctracks[0][iev] = vc[0];
+      vctracks[1][iev] = vc[1];
+    }
+    ft.setUseAbsDCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+
+    swAb.Start(false);
+    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist with final weighted DCA " << iev << " NC: " << ncAb[iev] << " Chi2: " << (ncAb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Abulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDAb += minDb;
+        nfoundAb++;
+      }
+    }
+
+    ft.setUseAbsDCA(true);
+    ft.setWeightedFinalPCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swAWb.Start(false);
+    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist  " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2AWbulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDAWb += minDb;
+        nfoundAWb++;
+      }
+    }
+
+    ft.setUseAbsDCA(false);
+    ft.setWeightedFinalPCA(false);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swWb.Start(false);
+    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncWb[iev] << " Chi2: " << (ncWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Wbulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDWb += minDb;
+        nfoundWb++;
+      }
+    }
+
+    //
+    meanDAb /= nfoundAb ? nfoundAb : 1;
+    meanDAWb /= nfoundAWb ? nfoundAWb : 1;
+    meanDWb /= nfoundWb ? nfoundWb : 1;
+    LOG(info) << "Bulk-processed " << NTest << " 2-prong vertices: Helix : Line";
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundAb) / NTest
+              << " mean.dist to truth: " << meanDAb << " Total time: " << swAb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAWb) / NTest
+              << " mean.dist to truth: " << meanDAWb << " Total time: " << swAWb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundWb) / NTest
+              << " mean.dist to truth: " << meanDWb << " Total time: " << swWb.CpuTime() * 1000 << " ms";
+    BOOST_CHECK(nfoundAb > 0.99 * NTest);
+    BOOST_CHECK(nfoundAWb > 0.99 * NTest);
+    BOOST_CHECK(nfoundWb > 0.99 * NTest);
+    BOOST_CHECK(meanDAb < 0.1);
+    BOOST_CHECK(meanDAWb < 0.1);
+    BOOST_CHECK(meanDWb < 0.1);
+  }
+
+  // 2 prongs vertices with both of charges set to 0: Line : Line
+  {
+    std::vector<int> forceQ{0, 0};
+    LOG(info) << "\n\nBulk-processing 2-prong Line - Line case";
+    o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
+    ft.setBz(bz);
+    ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    ft.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    ft.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
+    ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
+
+    std::vector<o2::vertexing::DCAFitterN<2>> fitters_host(NTest);
+    std::vector<TLorentzVector> genParents(NTest);
+
+    std::string treeName2Abulk = "pr2aLL", treeName2AWbulk = "pr2awLL", treeName2Wbulk = "pr2wLL";
+    TStopwatch swAb, swAWb, swWb;
+    int nfoundAb = 0, nfoundAWb = 0, nfoundWb = 0;
+    double meanDAb = 0, meanDAWb = 0, meanDWb = 0;
+    swAb.Stop();
+    swAWb.Stop();
+    swWb.Stop();
+    for (int iev = 0; iev < NTest; iev++) {
+      forceQ[0] = forceQ[1] = 0;
+      std::vector<o2::track::TrackParCov> vc(2);
+      genParents[iev] = generate(vtxGen[iev], vc, bz, genPHS, k0, k0dec, forceQ);
+      vctracks[0][iev] = vc[0];
+      vctracks[1][iev] = vc[1];
+    }
+
+    ft.setUseAbsDCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+
+    swAb.Start(false);
+    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAb[iev] << " Chi2: " << (ncAb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Abulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDAb += minDb;
+        nfoundAb++;
+      }
+    }
+
+    ft.setUseAbsDCA(true);
+    ft.setWeightedFinalPCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swAWb.Start(false);
+    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swAWb.Stop();
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2AWbulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDAWb += minDb;
+        nfoundAWb++;
+      }
+    }
+
+    ft.setUseAbsDCA(false);
+    ft.setWeightedFinalPCA(false);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+
+    swWb.Start(false);
+    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
+    swWb.Stop();
+
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncWb[iev] << " Chi2: " << (ncWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName2Wbulk, fitters_host[iev], vtxGen[iev], genParents[iev], k0dec);
+        meanDWb += minDb;
+        nfoundWb++;
+      }
+    }
+    // ft.print();
+    meanDAb /= nfoundAb ? nfoundAb : 1;
+    meanDAWb /= nfoundAWb ? nfoundAWb : 1;
+    meanDWb /= nfoundWb ? nfoundWb : 1;
+    LOG(info) << "Bulk-processed " << NTest << " 2-prong vertices: Line : Line";
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundAb) / NTest
+              << " mean.dist to truth: " << meanDAb << " Total time: " << swAb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with abs.dist but wghPCA: eff= " << float(nfoundAWb) / NTest
+              << " mean.dist to truth: " << meanDAWb << " Total time: " << swAWb.CpuTime() * 1000 << " ms";
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundWb) / NTest
+              << " mean.dist to truth: " << meanDWb << " Total time: " << swWb.CpuTime() * 1000 << " ms";
+    BOOST_CHECK(nfoundAb > 0.99 * NTest);
+    BOOST_CHECK(nfoundAWb > 0.99 * NTest);
+    BOOST_CHECK(nfoundWb > 0.99 * NTest);
+    BOOST_CHECK(meanDAb < 0.1);
+    BOOST_CHECK(meanDAWb < 0.1);
+    BOOST_CHECK(meanDWb < 0.1);
+  }
+
+  // Bulk-process 3 prongs vertices
+  {
+    LOG(info) << "\n\nBulk-processing 3-prongs";
+    std::vector<int> forceQ{1, 1, 1};
+
+    o2::vertexing::DCAFitterN<3> ft; // 3 prong fitter
+    ft.setBz(bz);
+    ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
+    ft.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+    ft.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
+    ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
+
+    std::vector<o2::vertexing::DCAFitterN<3>> fitters_host(NTest);
+    std::vector<TLorentzVector> genParents(NTest);
+
+    std::string treeName3Abulk = "pr3a", treeName3AWbulk = "pr3aw", treeName3Wbulk = "pr3w";
+    TStopwatch swAb, swAWb, swWb;
+    int nfoundAb = 0, nfoundAWb = 0, nfoundWb = 0;
+    double meanDAb = 0, meanDAWb = 0, meanDWb = 0;
+    swAb.Stop();
+    swAWb.Stop();
+    swWb.Stop();
+    for (int iev = 0; iev < NTest; iev++) {
+      std::vector<o2::track::TrackParCov> vc(3);
+      genParents[iev] = generate(vtxGen[iev], vc, bz, genPHS, dch, dchdec, forceQ);
+
+      vctracks[0][iev] = vc[0];
+      vctracks[1][iev] = vc[1];
+      vctracks[2][iev] = vc[2];
+    }
+
+    ft.setUseAbsDCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+    swAb.Start(false);
+    auto ncAb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+    swAb.Stop();
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAb[iev] << " Chi2: " << (ncAb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName3Abulk, fitters_host[iev], vtxGen[iev], genParents[iev], dchdec);
+        meanDAb += minDb;
+        nfoundAb++;
+      }
+    }
+
+    ft.setUseAbsDCA(true);
+    ft.setWeightedFinalPCA(true);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+
+    swAWb.Start(false);
+    auto ncAWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+    swAWb.Stop();
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncAWb[iev] << " Chi2: " << (ncAWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncAWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName3AWbulk, fitters_host[iev], vtxGen[iev], genParents[iev], dchdec);
+        meanDAWb += minDb;
+        nfoundAWb++;
+      }
+    }
+
+    ft.setUseAbsDCA(false);
+    ft.setWeightedFinalPCA(false);
+    std::fill(fitters_host.begin(), fitters_host.end(), ft);
+
+    swWb.Start(false);
+    auto ncWb = device::processBulk(nBlocks, nThreads, fitters_host, vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
+    swWb.Stop();
+    for (int iev = 0; iev < NTest; iev++) {
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncWb[iev] << " Chi2: " << (ncWb[iev] ? fitters_host[iev].getChi2AtPCACandidate(0) : -1);
+      if (ncWb[iev]) {
+        auto minDb = checkResults(outStreamB, treeName3Wbulk, fitters_host[iev], vtxGen[iev], genParents[iev], dchdec);
+        meanDWb += minDb;
+        nfoundWb++;
+      }
+    }
+
+    // ft.print();
+    meanDAb /= nfoundAb ? nfoundAb : 1;
+    meanDAWb /= nfoundAWb ? nfoundAWb : 1;
+    meanDWb /= nfoundWb ? nfoundWb : 1;
+    LOG(info) << "Bulk-processed " << NTest << " 3-prong vertices";
+    LOG(info) << "3-prongs with abs.dist minization: eff= " << float(nfoundAb) / NTest
+              << " mean.dist to truth: " << meanDAb << " Total time: " << swAb.CpuTime() * 1000 << " ms";
+    LOG(info) << "3-prongs with abs.dist but wghPCA: eff= " << float(nfoundAWb) / NTest
+              << " mean.dist to truth: " << meanDAWb << " Total time: " << swAWb.CpuTime() * 1000 << " ms";
+    LOG(info) << "3-prongs with wgh.dist minization: eff= " << float(nfoundWb) / NTest
+              << " mean.dist to truth: " << meanDWb << " Total time: " << swWb.CpuTime() * 1000 << " ms";
+    BOOST_CHECK(nfoundAb > 0.99 * NTest);
+    BOOST_CHECK(nfoundAWb > 0.99 * NTest);
+    BOOST_CHECK(nfoundWb > 0.99 * NTest);
+    BOOST_CHECK(meanDAb < 0.1);
+    BOOST_CHECK(meanDAWb < 0.1);
+    BOOST_CHECK(meanDWb < 0.1);
+  }
+  outStreamB.Close();
 }
 
 } // namespace vertexing
