@@ -266,6 +266,7 @@ void InterCalibEPN::clear(int ih)
 
 void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
+  constexpr double minfty = -std::numeric_limits<double>::infinity();
   // printf("%s: ih=%d tc=%g t1=%g t2=%g t3=%g t4=%g w=%g\n",__func__,ih, tc, t1, t2, t3, t4, w); fflush(stdout);
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
@@ -273,15 +274,12 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   if ((ih == 7 || ih == 8) && (t1 < mInterCalibConfig->tower_cut_ZP || t2 < mInterCalibConfig->tower_cut_ZP || t3 < mInterCalibConfig->tower_cut_ZP || t4 < mInterCalibConfig->tower_cut_ZP)) {
     return;
   }
-  double val[NPAR] = {0, 0, 0, 0, 0, 1};
-  val[0] = tc;
-  val[1] = t1;
-  val[2] = t2;
-  val[3] = t3;
-  val[4] = t4;
-  for (int32_t i = 0; i < NPAR; i++) {
-    for (int32_t j = i; j < NPAR; j++) {
-      mData.mSum[ih][i][j] += val[i] * val[j] * w;
+  double val[NPAR] = {tc, t1, t2, t3, t4, 1};
+  if (tc > minfty && t1 > minfty && t2 > minfty && t3 > minfty && t4 > minfty) {
+    for (int32_t i = 0; i < NPAR; i++) {
+      for (int32_t j = i; j < NPAR; j++) {
+        mData.mSum[ih][i][j] += val[i] * val[j] * w;
+      }
     }
   }
   // mData.mSum[ih][5][5] contains the number of analyzed events
