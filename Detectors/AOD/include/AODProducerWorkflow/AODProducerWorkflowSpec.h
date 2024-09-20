@@ -381,6 +381,7 @@ class AODProducerWorkflowDPL : public Task
     float tpcChi2NCl = -999.f;
     float trdChi2 = -999.f;
     float tofChi2 = -999.f;
+    uint_16t tofHitPattern = 0;
     float tpcSignal = -999.f;
     float trdSignal = -999.f;
     float length = -999.f;
