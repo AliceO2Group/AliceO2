@@ -17,7 +17,7 @@
 
 #include "GPUCommonDef.h"
 #include "DCAFitter/DCAFitterN.h"
-// #include "MathUtils/SMatrixGPU.h"
+#include "DeviceInterface/GPUInterface.h"
 
 #define gpuCheckError(x)                \
   {                                     \
@@ -146,10 +146,12 @@ std::vector<int> processBulk(const int nBlocks,
   int* results_device;
   Fitter* fitters_device;
   std::array<o2::track::TrackParCov*, Fitter::getNProngs()> tracks_device;
+  auto* gpuInterface = GPUInterface::Instance();
 
   int iArg{0};
   ([&] {
-    gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&(tracks_device[iArg])), sizeof(Tr) * args.size()));
+    gpuInterface->register(args.data(), sizeof(Tr) * args.size());
+    gpuInterface->allocAsync(reinterpret_cast<void**>(&(tracks_device[iArg])), sizeof(Tr) * args.size());
     gpuCheckError(cudaMemcpy(tracks_device[iArg], args.data(), sizeof(Tr) * args.size(), cudaMemcpyHostToDevice));
     ++iArg;
   }(),

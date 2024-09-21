@@ -8,37 +8,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-///
-/// \file Stream.h
-/// \brief
-///
 
-#ifndef ITSTRACKINGGPU_STREAM_H_
-#define ITSTRACKINGGPU_STREAM_H_
+#ifndef GPUMANAGER_INTERFACE_PARAMS
+#define GPUMANAGER_INTERFACE_PARAMS
 
-#include "ITStracking/Definitions.h"
-
-namespace o2
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
+namespace o2::vertexing::device
 {
-namespace its
-{
-namespace gpu
-{
-
-class Stream final
-{
-
- public:
-  Stream();
-  ~Stream();
-
-  [[nodiscard]] const GPUStream& get() const;
-
- private:
-  GPUStream mStream;
+struct GPUInterfaceParamConfig : public o2::conf::ConfigurableParamHelper<GPUInterfaceParamConfig> {
+  size_t streamPoolSize = 8;
+  O2ParamDef(GPUInterfaceParamConfig, "GPUInterfaceParams")
 };
-} // namespace gpu
-} // namespace its
-} // namespace o2
-
-#endif /* TRAKINGITSU_INCLUDE_GPU_STREAM_H_ */
+} // namespace o2::vertexing::device
+#endif
