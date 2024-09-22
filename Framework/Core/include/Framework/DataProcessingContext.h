@@ -26,9 +26,7 @@ struct DataProcessorSpec;
 struct DataProcessorContext {
   DataProcessorContext(DataProcessorContext const&) = delete;
   DataProcessorContext() = default;
-  // These are specific of a given context and therefore
-  // not shared by threads.
-  bool* wasActive = nullptr;
+
   bool allDone = false;
   /// Latest run number we processed globally for this DataProcessor.
   int64_t lastRunNumberProcessed = -1;
