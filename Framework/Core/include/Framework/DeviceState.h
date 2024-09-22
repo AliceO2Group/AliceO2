@@ -30,6 +30,8 @@ typedef struct uv_async_s uv_async_t;
 namespace o2::framework
 {
 
+struct DataProcessorContext;
+
 /// Running state information of a given device
 struct DeviceState {
   /// Motivation for the loop being triggered.
@@ -108,6 +110,11 @@ struct DeviceState {
   /// the bits we are interested in.
   std::vector<int> severityStack;
   TransitionHandlingState transitionHandling = TransitionHandlingState::NoTransition;
+
+  // The DataProcessorContext which was most recently active.
+  // We use this to determine if we should trigger the loop without
+  // waiting for some events.
+  std::atomic<DataProcessorContext*> lastActiveDataProcessor = nullptr;
 };
 
 } // namespace o2::framework
