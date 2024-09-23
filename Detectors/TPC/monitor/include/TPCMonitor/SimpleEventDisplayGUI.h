@@ -17,10 +17,13 @@
 #define TPC_SimpleEventDisplayGUI_H_
 
 #include <memory>
+#include <string>
 
 #include "TString.h"
 
 #include "TPCMonitor/SimpleEventDisplay.h"
+#include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 
 class TH2F;
 class TH1F;
@@ -28,6 +31,9 @@ class TH1;
 class TGTextEntry;
 class TGTextButton;
 class TGCheckButton;
+class TGNumberEntry;
+class TGVButtonGroup;
+class TH2Poly;
 
 namespace o2::tpc
 {
@@ -47,6 +53,9 @@ class SimpleEventDisplayGUI
 
   void toggleFFT();
   void toggleOccupancy();
+  void togglePadTime();
+  void toggleSingleTimeBin();
+  void toggleClusters();
   void monitorGui();
   void exitRoot();
   void update(TString clist);
@@ -60,6 +69,8 @@ class SimpleEventDisplayGUI
   void next(int eventNumber = -1);
   void callEventNumber();
   void applySignalThreshold();
+  void selectTimeBin();
+  void showClusters(int roc, int row);
 
   void runSimpleEventDisplay(std::string_view fileInfo, std::string_view pedestalFile = "", int firstTimeBin = 0, int lastTimeBin = 500, int nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0, int selectedSector = 0, bool showSides = 1);
 
@@ -103,16 +114,44 @@ class SimpleEventDisplayGUI
   TH2F* mHOccupancyC = nullptr;
   TH2F* mHOccupancyIROC = nullptr;
   TH2F* mHOccupancyOROC = nullptr;
+  TH2F* mHPadTimeIROC = nullptr;
+  TH2F* mHPadTimeOROC = nullptr;
+  TH2Poly* mSectorPolyTimeBin = nullptr;
+  TPolyMarker* mClustersIROC = nullptr;
+  TPolyMarker* mClustersOROC = nullptr;
+  TPolyMarker* mClustersRowPad = nullptr;
 
+  TGCheckButton* mCheckSingleTB = nullptr;
   TGCheckButton* mCheckFFT = nullptr;
   TGCheckButton* mCheckOccupancy = nullptr;
+  TGCheckButton* mCheckPadTime = nullptr;
+  TGCheckButton* mCheckShowClusters = nullptr;
+  static constexpr int NCheckClFlags = 5;
+  TGCheckButton* mCheckClFlags[NCheckClFlags] = {};
+  TGVButtonGroup* mFlagGroup = nullptr;
   TGTextEntry* mEventNumber = nullptr;
   TGTextEntry* mSignalThresholdValue = nullptr;
+  TGNumberEntry* mSelTimeBin = nullptr;
+
+  std::string mInputFileInfo{};
+
+  o2::tpc::ClusterNativeHelper::Reader mTPCclusterReader;
+  o2::tpc::ClusterNativeAccess mClusterIndex;
+  std::unique_ptr<o2::tpc::ClusterNative[]> mClusterBuffer;
+  o2::tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer mClusterMCBuffer;
 
   TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
 
   void initOccupancyHists();
   void deleteOccupancyHists();
+
+  void initPadTimeHists();
+  void deletePadTimeHists();
+
+  void initSingleTBHists();
+  void deleteSingleTBHists();
+
+  void fillClusters(Long64_t entry);
 
   ClassDefNV(SimpleEventDisplayGUI, 0);
 };

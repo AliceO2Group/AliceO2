@@ -133,11 +133,11 @@ void utils::addFECInfo()
   h->SetTitle(title.data());
 }
 
-void utils::saveCanvases(TObjArray& arr, std::string_view outDir, std::string_view types, std::string_view rootFileName)
+void utils::saveCanvases(TObjArray& arr, std::string_view outDir, std::string_view types, std::string_view rootFileName, std::string nameAdd)
 {
   if (types.size()) {
     for (auto c : arr) {
-      utils::saveCanvas(*static_cast<TCanvas*>(c), outDir, types);
+      utils::saveCanvas(*static_cast<TCanvas*>(c), outDir, types, nameAdd);
     }
   }
 
@@ -148,24 +148,24 @@ void utils::saveCanvases(TObjArray& arr, std::string_view outDir, std::string_vi
   }
 }
 
-void utils::saveCanvases(std::vector<TCanvas*>& canvases, std::string_view outDir, std::string_view types, std::string_view rootFileName)
+void utils::saveCanvases(std::vector<TCanvas*>& canvases, std::string_view outDir, std::string_view types, std::string_view rootFileName, std::string nameAdd)
 {
   TObjArray arr;
   for (auto c : canvases) {
     arr.Add(c);
   }
 
-  saveCanvases(arr, outDir, types, rootFileName);
+  saveCanvases(arr, outDir, types, rootFileName, nameAdd);
 }
 
-void utils::saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types)
+void utils::saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types, std::string nameAdd)
 {
   if (!types.size()) {
     return;
   }
   const auto typesVec = tokenize(types, ",");
   for (const auto& type : typesVec) {
-    c.SaveAs(fmt::format("{}/{}.{}", outDir, c.GetName(), type).data());
+    c.SaveAs(fmt::format("{}/{}{}.{}", outDir, c.GetName(), nameAdd, type).data());
   }
 }
 

@@ -9,22 +9,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_DATA_FILTER_H
-#define O2_TPC_DATA_FILTER_H
+/// \file DigitAdd.h
+/// \brief Extension of TPC Digit adding draw query functions for simple drawing
+/// \author Jens Wiechula (Jens.Wiechula@ikf.uni-frankfurt.de)
 
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/DataProcessorSpec.h"
+#ifndef ALICEO2_TPC_DIGITADD_H_
+#define ALICEO2_TPC_DIGITADD_H_
+
+#include "DataFormatsTPC/Digit.h"
 
 namespace o2::tpc
 {
-struct CorrectionMapsLoaderGloOpts;
-}
-
-namespace o2::trackstudy
+/// \class Digit
+class DigitAdd : public Digit
 {
-/// create a processor spec
-o2::framework::DataProcessorSpec getTPCRefitterSpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC, const o2::tpc::CorrectionMapsLoaderGloOpts& sclOpts, bool requestCosmics = false);
+ public:
+  int sector() const;
+  float lx() const;
+  float ly() const;
+  float gx() const;
+  float gy() const;
+  float cpad() const;
 
-} // namespace o2::trackstudy
+  ClassDefNV(DigitAdd, 1)
+};
 
-#endif
+} // namespace o2::tpc
+
+#endif // ALICEO2_TPC_DIGITADD_H_

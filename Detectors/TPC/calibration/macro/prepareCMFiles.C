@@ -38,6 +38,7 @@ void prepareCMFiles(const std::string_view pulserFile, std::string outputDir = "
 
   // ===| load noise and pedestal from file |===
   CalDet<float> output("CMkValues");
+  CalDet<float> outputInv("InvCMkValues");
   CalDet<float>* pulserQtot{nullptr};
   const CDBInterface::CalPadMapType* calPulser = nullptr;
 
@@ -80,7 +81,9 @@ void prepareCMFiles(const std::string_view pulserFile, std::string outputDir = "
     }
   }
 
+  DataMapF commonModeKValuesFloat;
   DataMapU32 commonModeKValues;
+  DataMapU32 commonModeInvKValues;
 
   // ===| prepare values |===
   for (size_t iroc = 0; iroc < pulserQtot->getData().size(); ++iroc) {
@@ -131,14 +134,32 @@ void prepareCMFiles(const std::string_view pulserFile, std::string outputDir = "
 
       // default thresholds
       const auto pulserValFixed = floatToFixedSize<DataBits, FractionalBits>(pulserVal);
+      const auto pulserValFixedInv = floatToFixedSize<DataBits, FractionalBits>(1. / pulserVal);
+      commonModeKValuesFloat[LinkInfo(cruID, globalLinkID)][hwChannel] = pulserVal;
       commonModeKValues[LinkInfo(cruID, globalLinkID)][hwChannel] = pulserValFixed;
+      commonModeInvKValues[LinkInfo(cruID, globalLinkID)][hwChannel] = pulserValFixedInv;
     }
   }
 
   const bool onlyFilled = false;
+  // ===| k-Values full float precision |===
+  const auto outFileFloatTxt = (outputDir + "/commonMode_K_values_float.txt");
+  const auto outFileFloatRoot = (outputDir + "/commonMode_K_values_float.root");
+  writeValues(outFileFloatTxt, commonModeKValuesFloat, onlyFilled);
+
+  getCalPad<FractionalBits>(outFileFloatTxt, outFileFloatRoot, "CMkValues");
+
+  // ===| k-Values limited precision 2I6F |===
   const auto outFileTxt = (outputDir + "/commonMode_K_values.txt");
   const auto outFileRoot = (outputDir + "/commonMode_K_values.root");
   writeValues(outFileTxt, commonModeKValues, onlyFilled);
 
   getCalPad<FractionalBits>(outFileTxt, outFileRoot, "CMkValues");
+
+  // ===| inverse k-Values limited precision 2I6F |===
+  const auto outFileInvTxt = (outputDir + "/commonMode_inv_K_values.txt");
+  const auto outFileInvRoot = (outputDir + "/commonMode_inv_K_values.root");
+  writeValues(outFileInvTxt, commonModeInvKValues, onlyFilled);
+
+  getCalPad<FractionalBits>(outFileInvTxt, outFileInvRoot, "InvCMkValues");
 }

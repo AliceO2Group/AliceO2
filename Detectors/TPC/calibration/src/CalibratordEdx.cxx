@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCCalibration/CalibratordEdx.h"
+#include <fmt/core.h>
 
 #include <array>
 #include <cstddef>
@@ -40,6 +41,7 @@ void CalibratordEdx::finalizeSlot(Slot& slot)
   // compute calibration values from histograms
   CalibdEdx* container = slot.getContainer();
   container->finalize();
+  container->finalizeDebugOutput();
   mCalibs.push_back(container->getCalib());
 
   TFType startTF = slot.getTFStart();
@@ -61,6 +63,21 @@ void CalibratordEdx::finalizeSlot(Slot& slot)
                           << "correction=" << calibCopy // dE/dx corretion
                           << "\n";
   }
+
+  if (mDumpHistograms) {
+    const auto fileName = fmt::format("o2tpc_CalibratordEdx_Histos_{}_{}_{}_{}.root", startTime, endTime, startTF, endTF);
+    const auto dumpTHn = (mDumpHistograms & 0x1) == 0x1;
+    const auto dumpTree = (mDumpHistograms & 0x2) == 0x2;
+    if (dumpTree) {
+      container->writeTTree(fileName);
+    }
+    if (dumpTHn) {
+      auto f = std::make_unique<TFile>(fileName.data(), dumpTree ? "update" : "recreate");
+      auto hn = container->getRootHist();
+      hn->Write("calibHist");
+      f->Close();
+    }
+  }
 }
 
 CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, TFType tend)
@@ -77,6 +94,10 @@ CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, 
   const auto [cut, iterations, cutLowFactor] = mElectronCut;
   container->setElectronCut(cut, iterations, cutLowFactor);
   container->setMaterialType(mMatType);
+  if (mEnableTrackDebug) {
+    const auto fileName = fmt::format("o2tpc_CalibratordEdx_TrackDebug_{}_{}.root", tstart, tend);
+    container->enableDebugOutput(fileName);
+  }
 
   slot.setContainer(std::move(container));
   return slot;

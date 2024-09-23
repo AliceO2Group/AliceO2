@@ -109,6 +109,12 @@ class CalibdEdxCorrection
   /// Single fit parameters averaged over all sectors for a stack type
   float getMeanParam(const GEMstack stack, ChargeType charge, uint32_t param) const;
 
+  /// Single fit parameters averaged over all sectors for a stack type
+  float getMeanEntries(ChargeType charge) const;
+
+  /// Single fit parameters averaged over all sectors for a stack type
+  float getMeanEntries(const GEMstack stack, ChargeType charge) const;
+
 #endif
 
  private:
