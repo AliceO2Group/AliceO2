@@ -142,9 +142,9 @@ inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, fl
                                              float z1, float z2, float maxdeltaz)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = phi - maxdeltaphi;
+  const float phiRangeMin = (maxdeltaphi > constants::math::Pi) ? 0.f : phi - maxdeltaphi;
   const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = phi + maxdeltaphi;
+  const float phiRangeMax = (maxdeltaphi > constants::math::Pi) ? constants::math::TwoPi : phi + maxdeltaphi;
 
   if (zRangeMax < -mTrkParams[0].LayerZ[layerIndex + 1] ||
       zRangeMin > mTrkParams[0].LayerZ[layerIndex + 1] || zRangeMin > zRangeMax) {
