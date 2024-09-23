@@ -265,7 +265,7 @@ void build_geometry(FairRunSim* run = nullptr)
   }
 
   if (isActivated("FVD")) {
-    // FIT-FVD
+    // ALICE3 FVD
     addReadoutDetector(new o2::fvd::Detector(isReadout("FVD")));
   }
 

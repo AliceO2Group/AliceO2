@@ -270,16 +270,16 @@ void Detector::buildModules()
   LOGP(info, "Creating FVD geometry");
 
   TGeoVolume* vCave = gGeoManager->GetVolume("cave");
+
   if (!vCave) {
-    LOG(fatal) << "Could not find the top volume!";
+    LOG(fatal) << "Could not find the top volume (cave)!";
   }
 
-  // create modules
   TGeoVolumeAssembly* vFVDA = buildModuleA();
-  TGeoVolumeAssembly* vFVDC = buildModuleC();
+  vCave->AddNode(vFVDA, 1, new TGeoTranslation(0., 0., mZmodA - mDzScint/2.));
 
-  vCave->AddNode(vFVDA, 2, new TGeoTranslation(0., 0., mZmodA));
-  vCave->AddNode(vFVDC, 2, new TGeoTranslation(0., 0., mZmodC));
+  TGeoVolumeAssembly* vFVDC = buildModuleC();
+  vCave->AddNode(vFVDC, 2, new TGeoTranslation(0., 0., mZmodC + mDzScint/2.));
 }
 
 TGeoVolumeAssembly* Detector::buildModuleA()
@@ -341,9 +341,9 @@ TGeoVolumeAssembly* Detector::buildModuleC()
 void Detector::defineSensitiveVolumes()
 {
   LOG(info) << "Adding FVD Sentitive Volumes";
+
   TGeoVolume* v;
   TString volumeName;
-
   int nCellA = mNumberOfRingsA * mNumberOfSectors;
   int nCellC = mNumberOfRingsC * mNumberOfSectors;
 
@@ -353,6 +353,7 @@ void Detector::defineSensitiveVolumes()
     LOG(info) << "Adding FVD Sensitive Volume => " << v->GetName();
     AddSensitiveVolume(v);
   }
+  
 }
 
 int Detector::getChannelId(TVector3 vec)
