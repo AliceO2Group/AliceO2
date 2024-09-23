@@ -122,7 +122,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     if (payloadSize > (size_t)mMaxInputSize) {
       if (mMaxInputSizeFatal) {
         fatal_flag = 1;
-        LOG(error) << "Input data size bigger than threshold:" << mMaxInputSize << " < " << payloadSize << " ecoding TF and exiting.";
+        LOG(error) << "Input data size bigger than threshold: " << mMaxInputSize << " < " << payloadSize << " decoding TF and exiting.";
         // LOG(fatal) << "Input data size:" << payloadSize; - fatal issued in decoder
       } else {
         LOG(error) << "Input data size:" << payloadSize << " sending dummy output";

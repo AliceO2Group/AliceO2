@@ -18,6 +18,7 @@
 #include "CTPReconstruction/RawDataDecoder.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include <boost/range/adaptor/reversed.hpp>
 
 using namespace o2::ctp;
 
@@ -468,12 +469,12 @@ int RawDataDecoder::decodeRawFatal(o2::framework::InputRecord& inputs, std::vect
   }
   auto nhb = o2::base::GRPGeomHelper::getNHBFPerTF();
   std::string message = "Ringing inputs [MHz]:";
-  for (auto const& r : ratesmap) {
+  for (auto const& r : boost::adaptors::reverse(ratesmap)) {
     // LOG(error) << r.second;
     message += " " + o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(r.second + 1) + ":" + std::to_string(r.first / 32. / o2::constants::lhc::LHCOrbitMUS);
   }
   std::string messageC = "Ringing classes [MHz]:";
-  for (auto const& r : ratesmapC) {
+  for (auto const& r : boost::adaptors::reverse(ratesmapC)) {
     messageC += " class" + std::to_string(r.second) + ":" + std::to_string(r.first / 32. / o2::constants::lhc::LHCOrbitMUS);
   }
   LOG(error) << messageC;
