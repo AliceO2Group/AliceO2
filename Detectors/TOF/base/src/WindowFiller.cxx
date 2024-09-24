@@ -196,13 +196,14 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     // check if patterns are in the current row
     unsigned int initrow = mFirstIR.orbit * Geo::NWINDOW_IN_ORBIT;
     for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
-      //printf("pattern row=%ld current=%ld\n",it->row - initrow,mReadoutWindowCurrent);
+      unsigned int irow = it->row;
+      // printf("pattern row=%ld (%u - %u) current=%ld\n",irow - initrow,irow,initrow,mReadoutWindowCurrent);
 
-      if (it->row - initrow > mReadoutWindowCurrent) {
+      if (irow - initrow > mReadoutWindowCurrent) {
         break;
       }
 
-      if (it->row - initrow < mReadoutWindowCurrent) { // this should not happen
+      if (irow - initrow < mReadoutWindowCurrent) { // this should not happen
         LOG(error) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
       } else {
         uint32_t cpatt = it->pattern;
