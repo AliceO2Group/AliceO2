@@ -173,6 +173,8 @@ class TimeFrame
   int getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
+  auto getNumberOfExtendedTracks() const { return mNExtendedTracks; }
+  auto getNumberOfUsedExtendedClusters() const { return mNExtendedUsedClusters; }
 
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
@@ -270,6 +272,8 @@ class TimeFrame
   std::vector<std::vector<int>> mTrackletsLookupTable;
   std::vector<std::vector<unsigned char>> mUsedClusters;
   int mNrof = 0;
+  int mNExtendedTracks{0};
+  int mNExtendedUsedClusters{0};
   std::vector<int> mROFramesPV = {0};
   std::vector<Vertex> mPrimaryVertices;
 

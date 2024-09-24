@@ -675,16 +675,11 @@ void TrackerTraits::findRoads(const int iteration)
 
 void TrackerTraits::extendTracks(const int iteration)
 {
-  if (!mTrkParams.back().UseTrackFollower) {
-    return;
-  }
   for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
     for (auto& track : mTimeFrame->getTracks(rof)) {
-      /// TODO: track refitting is missing!
-      int ncl{track.getNClusters()};
       auto backup{track};
       bool success{false};
-      if (track.getLastClusterLayer() != mTrkParams[0].NLayers - 1) {
+      if (track.getLastClusterLayer() != mTrkParams[iteration].NLayers - 1) {
         success = success || trackFollowing(&track, rof, true, iteration);
       }
       if (track.getFirstClusterLayer() != 0) {
@@ -694,7 +689,7 @@ void TrackerTraits::extendTracks(const int iteration)
         /// We have to refit the track
         track.resetCovariance();
         track.setChi2(0);
-        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+        bool fitSuccess = fitTrack(track, 0, mTrkParams[iteration].NLayers, 1, mTrkParams[iteration].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
         if (!fitSuccess) {
           track = backup;
           continue;
@@ -702,13 +697,19 @@ void TrackerTraits::extendTracks(const int iteration)
         track.getParamOut() = track;
         track.resetCovariance();
         track.setChi2(0);
-        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
+        fitSuccess = fitTrack(track, mTrkParams[iteration].NLayers - 1, -1, -1, mTrkParams[iteration].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.);
         if (!fitSuccess) {
           track = backup;
           continue;
         }
+        mTimeFrame->mNExtendedTracks++;
+        mTimeFrame->mNExtendedUsedClusters += track.getNClusters() - backup.getNClusters();
+        auto pattern = track.getPattern();
+        auto diff = (pattern & ~backup.getPattern()) & 0xff;
+        pattern |= (diff << 24);
+        track.setPattern(pattern);
         /// Make sure that the newly attached clusters get marked as used
-        for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+        for (int iLayer{0}; iLayer < mTrkParams[iteration].NLayers; ++iLayer) {
           if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
             continue;
           }
@@ -859,12 +860,12 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
     int iLayer = outward ? track->getLastClusterLayer() : track->getFirstClusterLayer();
     while (iLayer != end) {
       iLayer += step;
-      const float& r = mTrkParams[iteration].LayerRadii[iLayer];
-      float x;
-      if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto)) {
+      const float r = mTrkParams[iteration].LayerRadii[iLayer];
+      float x{-999};
+      if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto) || x <= 0.f) {
         continue;
       }
-      bool success{false};
+
       auto& hypoParam{outward ? hypo.getParamOut() : hypo.getParamIn()};
       if (!propInstance->propagateToX(hypoParam, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
                                       PropagatorF::MAX_STEP, mTrkParams[iteration].CorrType)) {
