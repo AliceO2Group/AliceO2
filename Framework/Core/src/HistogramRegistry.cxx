@@ -121,7 +121,7 @@ HistPtr HistogramRegistry::add(char const* const name, char const* const title, 
 
 HistPtr HistogramRegistry::add(const std::string& name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2)
 {
-return add(name.c_str(), title, histType, axes, callSumw2);
+  return add(name.c_str(), title, histType, axes, callSumw2);
 }
 
 // store a copy of an existing histogram (or group of histograms) under a different name
