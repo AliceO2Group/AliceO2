@@ -207,38 +207,12 @@ bool shouldPreserveRawChannels(const DeviceSpec& spec)
   return std::find(spec.labels.begin(), spec.labels.end(), ecs::preserveRawChannelsLabel) != spec.labels.end();
 }
 
-bool isQcReconfigurable(const DeviceSpec& spec)
-{
-  return std::find(spec.labels.begin(), spec.labels.end(), ecs::qcReconfigurable) != spec.labels.end();
-}
-
 bool isCritical(const DeviceSpec& spec)
 {
   // DPL's expendable Data Processor corresponds to a non-critical task in ECS
   // DPL's resilient Data Processor corresponds to a critical task in ECS
   // All tasks are considered critical by default in ECS
   return std::find(spec.labels.begin(), spec.labels.end(), DataProcessorLabel{"expendable"}) == spec.labels.end();
-}
-
-void dumpProperties(std::ostream& dumpOut, const DeviceExecution& execution, const DeviceSpec& spec, const std::string& indLevel)
-{
-  // get the argument `--config`
-  std::string configPath;
-  auto it = std::find_if(execution.args.begin(), execution.args.end(), [](char* v) { return v != nullptr && strcmp(v, "--config") == 0; });
-
-  // get the next argument and find `/o2/components/` in it, then take what comes after in the string.
-  if (it != execution.args.end()) {
-    std::string configParam = *(++it);
-    std::string prefix = "/o2/components/"; // keep only the path to the config file, i.e. stuff after "/o2/components/"
-    size_t pos = configParam.find(prefix);
-    if (pos != std::string::npos) {
-      configPath = configParam.substr(pos + prefix.length());
-    }
-  }
-
-  dumpOut << indLevel << "properties:\n";
-  std::string qcConfigFullCommand = configPath.empty() ? "\"\"" : "\"{{ ToPtree(config.Get('" + configPath + "'), 'json') }}\"";
-  dumpOut << indLevel << indScheme << "qcConfiguration: " << qcConfigFullCommand << "\n";
 }
 
 void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::string indLevel)
@@ -452,10 +426,6 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
     if (rawChannel.method == "bind") {
       dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, preserveRawChannels, indLevel + indScheme);
     }
-  }
-
-  if (implementation::isQcReconfigurable(spec)) {
-    implementation::dumpProperties(dumpOut, execution, spec, indLevel);
   }
 
   dumpOut << indLevel << "command:\n";
