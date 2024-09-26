@@ -15,10 +15,8 @@
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
 #include "../src/ComputingResourceHelpers.h"
-#include "Framework/DataAllocator.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
-#include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DriverConfig.h"
 #include "Framework/O2ControlParameters.h"
@@ -141,6 +139,7 @@ defaults:
   log_task_stdout: none
   log_task_stderr: none
   exit_transition_timeout: 15
+  data_processing_timeout: 10
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | bcsadc/foo
@@ -173,6 +172,8 @@ command:
     - "-b"
     - "--exit-transition-timeout"
     - "'{{ exit_transition_timeout }}'"
+    - "--data-processing-timeout"
+    - "'{{ data_processing_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -236,6 +237,7 @@ defaults:
   log_task_stdout: none
   log_task_stderr: none
   exit_transition_timeout: 15
+  data_processing_timeout: 10
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
@@ -270,6 +272,8 @@ command:
     - "-b"
     - "--exit-transition-timeout"
     - "'{{ exit_transition_timeout }}'"
+    - "--data-processing-timeout"
+    - "'{{ data_processing_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -333,6 +337,7 @@ defaults:
   log_task_stdout: none
   log_task_stderr: none
   exit_transition_timeout: 15
+  data_processing_timeout: 10
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
@@ -367,6 +372,8 @@ command:
     - "-b"
     - "--exit-transition-timeout"
     - "'{{ exit_transition_timeout }}'"
+    - "--data-processing-timeout"
+    - "'{{ data_processing_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
@@ -430,6 +437,7 @@ defaults:
   log_task_stdout: none
   log_task_stderr: none
   exit_transition_timeout: 15
+  data_processing_timeout: 10
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
     {{ dpl_command }} | foo
@@ -461,6 +469,8 @@ command:
     - "-b"
     - "--exit-transition-timeout"
     - "'{{ exit_transition_timeout }}'"
+    - "--data-processing-timeout"
+    - "'{{ data_processing_timeout }}'"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
