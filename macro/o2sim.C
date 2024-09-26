@@ -65,6 +65,17 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   // fix the timestamp early
   uint64_t timestamp = confref.getTimestamp();
+  // see if we have a run number but not a timestamp
+  auto run_number = confref.getRunNumber();
+  if (run_number != -1) {
+    if (confref.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kNow) {
+      // fix the time by talking to CCDB
+      auto [sor, eor] = ccdbmgr.getRunDuration(run_number);
+      LOG(info) << "Have run number. Fixing timestamp to " << sor;
+      timestamp = sor;
+    }
+  }
+
   ccdbmgr.setTimestamp(timestamp);
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
   // try to verify connection
@@ -179,12 +190,12 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   // add ALICE particles to TDatabasePDG singleton
   o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
 
-  long runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
+  long runStart = timestamp;
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
-    if (confref.getRunNumber() != -1) {
-      grp.setRun(confref.getRunNumber());
+    if (run_number != -1) {
+      grp.setRun(run_number);
     } else {
       grp.setRun(run->GetRunId());
     }
