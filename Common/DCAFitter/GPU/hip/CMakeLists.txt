@@ -20,7 +20,7 @@ o2_add_hipified_library(DCAFitterHIP
                                               hip::host
                         PRIVATE_LINK_LIBRARIES O2::GPUTrackingHIPExternalProvider
                         TARGETVARNAME targetNAme)
-
+                          
 o2_add_test(DCAFitterNHIP
             SOURCES ../cuda/test/testDCAFitterNGPU.cxx
             PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats

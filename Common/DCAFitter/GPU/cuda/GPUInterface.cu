@@ -18,7 +18,6 @@
 #include <iostream>
 
 #include "DeviceInterface/GPUInterface.h"
-#include "DeviceInterface/GPUInterfaceConfigParam.h"
 
 #define gpuCheckError(x)                \
   {                                     \
@@ -36,21 +35,59 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 
 namespace o2::vertexing::device
 {
-GPUInterface* GPUInterface::sGPUInterface = nullptr;
-GPUInterface* GPUInterface::Instance()
+
+GPUInterface::GPUInterface(size_t N)
 {
-  if (sGPUInterface == nullptr) {
-    sGPUInterface = new GPUInterface(o2::vertexing::device::GPUInterfaceParamConfig::Instance().streamPoolSize);
+  resize(N);
+  for (auto& st : mStreams) {
+    gpuCheckError(cudaStreamCreate(&st));
   }
-  return sGPUInterface;
 }
 
-void GPUInterface::register(void* addr, size_t bufferSize)
+GPUInterface::~GPUInterface()
+{
+  for (auto& st : mStreams) {
+    gpuCheckError(cudaStreamDestroy(st));
+  }
+}
+
+void GPUInterface::resize(size_t N)
+{
+  mPool.resize(N);
+  mStreams.resize(N);
+}
+
+void GPUInterface::registerBuffer(void* addr, size_t bufferSize)
 {
   gpuCheckError(cudaHostRegister(addr, bufferSize, cudaHostRegisterDefault));
 }
 
-void GPUInterface::allocAsync(void** addrPtr, size_t bufferSize, unsigned short streamId) {
+void GPUInterface::unregisterBuffer(void* addr)
+{
+  gpuCheckError(cudaHostUnregister(addr));
+}
 
+GPUInterface* GPUInterface::sGPUInterface = nullptr;
+GPUInterface* GPUInterface::Instance()
+{
+  if (sGPUInterface == nullptr) {
+    sGPUInterface = new GPUInterface(8); // FIXME: get some configurable param to do so.
+  }
+  return sGPUInterface;
+}
+
+void GPUInterface::allocDevice(void** addrPtr, size_t bufferSize)
+{
+  gpuCheckError(cudaMalloc(addrPtr, bufferSize));
+}
+
+void GPUInterface::freeDevice(void* addr)
+{
+  gpuCheckError(cudaFree(addr));
+}
+
+Stream& GPUInterface::getStream(short N)
+{
+  return mStreams[N % mStreams.size()];
 }
 } // namespace o2::vertexing::device

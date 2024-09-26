@@ -23,9 +23,9 @@
 #include <Math/SVector.h>
 #include <array>
 
-#define nBlocks 60
-#define nThreads 1024
-#define NTest 1000000
+#define nBlocks 30
+#define nThreads 256
+#define NTest 100000
 
 namespace o2
 {

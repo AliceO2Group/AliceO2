@@ -17,7 +17,6 @@
 
 #include <thread>
 #include <vector>
-#include <atomic>
 
 namespace o2
 {
@@ -28,12 +27,12 @@ namespace device
 
 #if !defined(__HIPCC__) && !defined(__CUDACC__)
 typedef struct _dummyStream {
-} stream;
+} Stream;
 #else
 #ifdef __HIPCC__
-typedef hipStream_t stream;
+typedef hipStream_t Stream;
 #else
-typedef cudaStream_t stream;
+typedef cudaStream_t Stream;
 #endif
 #endif
 
@@ -46,43 +45,24 @@ class GPUInterface
   static GPUInterface* Instance();
 
   // APIs
-  void register(void*, size_t);
-  void allocAsync(void**, size_t, unsigned short streamId = -1);
+  void registerBuffer(void*, size_t);
+  void unregisterBuffer(void* addr);
+  void allocDevice(void**, size_t);
+  void freeDevice(void*);
+  Stream& getStream(short N = 0);
 
  protected:
-  GPUInterface(size_t N)
-  {
-    resize(N);
-  }
+  GPUInterface(size_t N = 1);
+  ~GPUInterface();
 
   void resize(size_t);
   unsigned short getNextCursor();
 
-  static GPUInterface* sGPUInterface = nullptr;
-  std::atomic<unsigned short> mCursor{0};
+  static GPUInterface* sGPUInterface;
   std::vector<std::thread> mPool{};
-  std::vector<stream> mStreams{};
+  std::vector<Stream> mStreams{};
 };
 
-inline void GPUInterface::resize(size_t N)
-{
-  mPool.resize(N);
-  mStreams.resize(N);
-}
-
-inline unsigned short GPUInterface::getNextCursor()
-{
-  auto index = mCursor++;
-
-  auto id = index % mPool.size();
-
-  auto oldValue = mCursor;
-  auto newValue = oldValue % mPool.size();
-  while (!mCursor.compare_exchange_weak(oldValue, newValue, std::memory_order_relaxed)) {
-    newValue = oldValue % mPool.size();
-  }
-  return id;
-}
 } // namespace device
 } // namespace vertexing
 } // namespace o2

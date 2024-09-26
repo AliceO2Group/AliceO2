@@ -150,14 +150,16 @@ std::vector<int> processBulk(const int nBlocks,
 
   int iArg{0};
   ([&] {
-    gpuInterface->register(args.data(), sizeof(Tr) * args.size());
-    gpuInterface->allocAsync(reinterpret_cast<void**>(&(tracks_device[iArg])), sizeof(Tr) * args.size());
-    gpuCheckError(cudaMemcpy(tracks_device[iArg], args.data(), sizeof(Tr) * args.size(), cudaMemcpyHostToDevice));
+    gpuInterface->registerBuffer(reinterpret_cast<void*>(args.data()), sizeof(Tr) * args.size());
+    gpuInterface->allocDevice(reinterpret_cast<void**>(&(tracks_device[iArg])), sizeof(Tr) * args.size());
+    gpuCheckError(cudaMemcpyAsync(tracks_device[iArg], args.data(), sizeof(Tr) * args.size(), cudaMemcpyHostToDevice, gpuInterface->getStream(iArg)));
     ++iArg;
   }(),
    ...);
-  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&results_device), sizeof(int) * nFits));
-  gpuCheckError(cudaMalloc(reinterpret_cast<void**>(&fitters_device), sizeof(Fitter) * nFits));
+  gpuInterface->registerBuffer(reinterpret_cast<void*>(fitters.data()), sizeof(Fitter) * nFits);
+  gpuInterface->registerBuffer(reinterpret_cast<void*>(results.data()), sizeof(int) * nFits);
+  gpuInterface->allocDevice(reinterpret_cast<void**>(&results_device), sizeof(int) * nFits);
+  gpuInterface->allocDevice(reinterpret_cast<void**>(&fitters_device), sizeof(Fitter) * nFits);
   gpuCheckError(cudaMemcpy(fitters_device, fitters.data(), sizeof(Fitter) * nFits, cudaMemcpyHostToDevice));
 
   gpuCheckError(cudaEventRecord(start));
@@ -172,14 +174,17 @@ std::vector<int> processBulk(const int nBlocks,
 
   iArg = 0;
   ([&] {
-    gpuCheckError(cudaMemcpy(args.data(), tracks_device[iArg], sizeof(Tr) * args.size(), cudaMemcpyDeviceToHost));
-    gpuCheckError(cudaFree(tracks_device[iArg]));
+    gpuCheckError(cudaMemcpyAsync(args.data(), tracks_device[iArg], sizeof(Tr) * args.size(), cudaMemcpyDeviceToHost, gpuInterface->getStream(iArg)));
+    gpuInterface->freeDevice(tracks_device[iArg]);
+    gpuInterface->unregisterBuffer(args.data());
     ++iArg;
   }(),
    ...);
 
-  gpuCheckError(cudaFree(fitters_device));
-  gpuCheckError(cudaFree(results_device));
+  gpuInterface->freeDevice(fitters_device);
+  gpuInterface->freeDevice(results_device);
+  gpuInterface->unregisterBuffer(fitters.data());
+  gpuInterface->unregisterBuffer(results.data());
   gpuCheckError(cudaEventSynchronize(stop));
 
   float milliseconds = 0;
