@@ -1963,59 +1963,21 @@ std::tuple<typename Cs::type...> getRowData(T rowIterator, uint64_t globalIndex 
   return std::make_tuple(getSingleRowData<T, Cs>(rowIterator, globalIndex)...);
 }
 
-template <typename R, typename T, typename... Cs>
-std::optional<R> getColumnValueByLabel(o2::framework::pack<Cs...>, const T& rowIterator, const std::string& columnLabel)
-{
-  std::optional<R> value = std::nullopt;
-
-  ([&]() {
-    if (value) {
-      return;
-    }
-
-    if constexpr (std::is_arithmetic_v<typename Cs::type> && std::is_convertible_v<typename Cs::type, R>) {
-      if constexpr (o2::soa::is_dynamic_v<Cs>) {
-        // check if bindings have the same size as lambda parameters (getter do not have additional parameters)
-        if constexpr (o2::framework::pack_size(typename Cs::bindings_t{}) == o2::framework::pack_size(typename Cs::callable_t::args{})) {
-          // dynamic columns do not have "f" prefix in columnLabel() return string
-          if (std::strcmp(&columnLabel[1], Cs::columnLabel()) == 0 || std::strcmp(columnLabel.data(), Cs::columnLabel()) == 0) {
-            value = static_cast<R>(static_cast<Cs>(rowIterator).get());
-          }
-        }
-      } else if constexpr (o2::soa::is_persistent_v<Cs> && !o2::soa::is_index_column_v<Cs>) {
-        if (std::strcmp(columnLabel.data(), Cs::columnLabel()) == 0) {
-          value = static_cast<R>(static_cast<Cs>(rowIterator).get());
-        }
-      }
-    }
-  }(),
-   ...);
-
-  return value;
-}
-
-template <typename R, typename T>
-std::optional<R> getColumnValueByLabel(const T& rowIterator, const std::string& columnLabel)
-{
-  return getColumnValueByLabel<R>(typename T::parent_t::table_t::columns{}, rowIterator, columnLabel);
-}
-
 template <typename R, typename T, typename Column>
 R getColumnValue(const T& rowIterator)
 {
-  // This directly calls the column's get() method
   return static_cast<R>(static_cast<Column>(rowIterator).get());
 }
 
-template <typename R, typename T, typename Column>
-using GetFunctionPointer = R (*)(const T&);
+template <typename R, typename T>
+using ColumnGetterFunction = R (*)(const T&);
 
 template <typename R, typename T, typename Column>
-GetFunctionPointer<R, T, Column> createGetterPtr(const std::string_view& columnLabel, bool& found)
+ColumnGetterFunction<R, T> createGetterPtr(const std::string_view& columnLabel, bool& found)
 {
   using Col = Column;
 
-  if (found) {
+  if(found) {
     return nullptr;
   }
 
@@ -2039,14 +2001,13 @@ GetFunctionPointer<R, T, Column> createGetterPtr(const std::string_view& columnL
 }
 
 template <typename R, typename T, typename... Cs>
-std::function<R(const T&)> getColumnGetterByLabel(o2::framework::pack<Cs...>, const T& rowIterator, const std::string_view& columnLabel)
+ColumnGetterFunction<R, T> getColumnGetterByLabel(o2::framework::pack<Cs...>, const T& rowIterator, const std::string_view& columnLabel)
 {
   std::string_view labelView(columnLabel);
   bool found = false;
-  std::function<R(const T&)> func = nullptr;
+  ColumnGetterFunction<R, T> func;
 
-  // Iterate through each column in the pack and create the getter function pointer if a match is found
-  (void)((func = createGetterForColumn<R, T, Cs>(labelView, found), found) || ...);
+  (void)((func = createGetterPtr<R, T, Cs>(labelView, found), found) || ...);
 
   if (!found) {
     throw std::runtime_error("Getter for provided columnLabel not found!");
@@ -2056,7 +2017,7 @@ std::function<R(const T&)> getColumnGetterByLabel(o2::framework::pack<Cs...>, co
 }
 
 template <typename R, typename T>
-std::function<R(const typename T::iterator&)> getColumnGetterByLabel(const T& table, const std::string_view& columnLabel)
+ColumnGetterFunction<R, typename T::iterator> getColumnGetterByLabel(const T& table, const std::string_view& columnLabel)
 {
   return getColumnGetterByLabel<R>(typename T::columns{}, table.begin(), columnLabel);
 }
